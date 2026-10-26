@@ -21,7 +21,7 @@ namespace EtcdGrove
 namespace path
 
 section
-variable [FfiSyntax]
+variable [GooseExts]
 
 theorem lit_slashslash : (go!"//" : List w8) = [slash, slash] := by decide
 theorem lit_slash : (go!"/" : List w8) = [slash] := by decide
@@ -176,7 +176,7 @@ end
 
 section spec
 open Iris Iris.BI Iris.ProofMode
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

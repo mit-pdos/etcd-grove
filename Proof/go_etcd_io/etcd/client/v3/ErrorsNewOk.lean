@@ -37,7 +37,7 @@ namespace EtcdGrove
 
 /-- The method set of `*errors.errorString` has no `GRPCStatus` method (Go's `errors` package
 gives it only `Error`; grpc's `status.FromError` would call it). -/
-class ErrorStringNoGRPCStatus [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions] : Prop where
+class ErrorStringNoGRPCStatus [GooseExts] [GoGlobalContext] [GoSemanticsFunctions] : Prop where
   noGRPCStatus : methodSet (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) !!
       go!"GRPCStatus" ≠
     some (go.Signature [] false
@@ -45,7 +45,7 @@ class ErrorStringNoGRPCStatus [FfiSyntax] [GoGlobalContext] [GoSemanticsFunction
 
 section ctxClass
 open Iris Iris.BI
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -73,7 +73,7 @@ namespace client
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.api.v3 go_etcd_io.etcd.cache.v3
 
 section proofs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

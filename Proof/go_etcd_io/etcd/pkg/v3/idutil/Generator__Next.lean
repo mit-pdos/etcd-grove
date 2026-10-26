@@ -120,7 +120,7 @@ theorem idClusterOk_issue (I : GMap w64 (Option (List w8 × GName))) (C : GMap w
       exact Hok.2 p L' hp
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

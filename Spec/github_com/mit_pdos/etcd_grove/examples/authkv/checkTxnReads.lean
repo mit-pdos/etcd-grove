@@ -19,12 +19,12 @@ open Iris Iris.BI
 
 /-- A transaction's operation's response holds only keys `who` may read: a range's key-values
 (the responses of other kinds hold none `checkTxnReads` reads). -/
-def respReadsOk [FfiSyntax] (who : GoString) : OpRespM → Prop
+def respReadsOk [GooseExts] (who : GoString) : OpRespM → Prop
   | .range _ kvs _ _ => ∀ kv ∈ kvs, permittedK who kv.key
   | _ => True
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

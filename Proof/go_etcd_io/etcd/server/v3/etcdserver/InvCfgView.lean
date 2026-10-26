@@ -36,7 +36,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 section pure
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- **The server's conf-change decoder** (raft's dynamic mode's `dec`): a `ConfChange` entry's
 change, `AsV2`'s; none for any other entry (the server's policy commits no `ConfChangeV2`,
@@ -151,7 +151,7 @@ theorem srvCfgOk_cc {V : GSet w64} {D : List EntryM} {ca : Nat} {cfg : CCState}
 end pure
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -184,7 +184,7 @@ instance raftApplyCCDyn_persistent (γn : NodeNames) (n : GoInterface) :
 end defs
 
 section addr
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -201,7 +201,7 @@ instance srvRaftNodeDyn_persistent (s : Loc) (γn : NodeNames) :
 end addr
 
 section apply
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

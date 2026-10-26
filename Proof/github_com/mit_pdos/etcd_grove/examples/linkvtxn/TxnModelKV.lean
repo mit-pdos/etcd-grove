@@ -45,7 +45,7 @@ namespace linkv
 open mvcc
 
 section kv
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-! ## The abstraction -/
 

@@ -137,7 +137,7 @@ def OpModel.watchUnsupported (o : OpModel) : Bool :=
     o.filterDelete = true)
 
 /-- The pure part of `opAt`: the scalar fields. -/
-def OpFields [FfiSyntax] (op : go_etcd_io.etcd.client.v3.Op) (o : OpModel) : Prop :=
+def OpFields [GooseExts] (op : go_etcd_io.etcd.client.v3.Op) (o : OpModel) : Prop :=
   op.countOnly' = o.countOnly ∧ op.prevKV' = o.prevKV ∧ (op.sort' ≠ null ↔ o.sortSet = true) ∧
   op.limit' = o.limit ∧ op.minModRev' = o.minModRev ∧ op.maxModRev' = o.maxModRev ∧
   op.minCreateRev' = o.minCreateRev ∧ op.maxCreateRev' = o.maxCreateRev ∧
@@ -146,7 +146,7 @@ def OpFields [FfiSyntax] (op : go_etcd_io.etcd.client.v3.Op) (o : OpModel) : Pro
   op.serializable' = o.serializable ∧ op.progressNotify' = o.progressNotify
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -337,7 +337,7 @@ def opDeletePanics (key : GoString) (gs : List (OpFull → OpFull)) : Prop :=
   opGetPanics gs ∨ (opDeleteModel key gs).deletePanics
 
 section opdefs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

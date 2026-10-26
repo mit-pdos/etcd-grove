@@ -25,17 +25,17 @@ open Iris Iris.BI go_etcd_io.raft.v3
 
 /-- What a tick does to the physical state beyond the protocol: the log as `NetFrame`
 keeps it, the term up by at most one (a campaign), `offsetInProgress` not back. -/
-def TickStep [FfiSyntax] (s s' : NState) : Prop :=
+def TickStep [GooseExts] (s s' : NState) : Prop :=
   NetFrame s s' ∧ uint.Z s.term ≤ uint.Z s'.term ∧ uint.Z s'.term ≤ uint.Z s.term + 1 ∧
   uint.Z s.logst.inprogress ≤ uint.Z s'.logst.inprogress ∧
   -- (2026-10-17) a pre-candidate afterwards is at the term before (a pre-campaign keeps it)
   (s'.role = .preCandidate → s'.term = s.term)
 
-theorem TickStep.refl [FfiSyntax] (s : NState) : TickStep s s :=
+theorem TickStep.refl [GooseExts] (s : NState) : TickStep s s :=
   ⟨NetFrame.refl s, Int.le_refl _, by omega, Int.le_refl _, fun _ => rfl⟩
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 -- `hlc := HasLC.hasLC`, as in `Spec/raft__Step.lean`
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]

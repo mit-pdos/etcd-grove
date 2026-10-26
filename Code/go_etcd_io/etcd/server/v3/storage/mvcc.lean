@@ -44,551 +44,551 @@ end pkg_id
 
 namespace go_etcd_io.etcd.server.v3.storage.mvcc
 
-noncomputable def kvHasher.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def kvHasher.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/mvcc.kvHasher" [])
 
 attribute [irreducible] kvHasher.ty
 
-noncomputable def KeyValueHash.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def KeyValueHash.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/mvcc.KeyValueHash" [])
 
 attribute [irreducible] KeyValueHash.ty
 
-noncomputable def HashStorage.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def HashStorage.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/mvcc.HashStorage" [])
 
 attribute [irreducible] HashStorage.ty
 
-noncomputable def hashStorage.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def hashStorage.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/mvcc.hashStorage" [])
 
 attribute [irreducible] hashStorage.ty
 
-noncomputable def index.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def index.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/mvcc.index" [])
 
 attribute [irreducible] index.ty
 
-noncomputable def treeIndex.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def treeIndex.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/mvcc.treeIndex" [])
 
 attribute [irreducible] treeIndex.ty
 
-noncomputable def keyIndex.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def keyIndex.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/mvcc.keyIndex" [])
 
 attribute [irreducible] keyIndex.ty
 
-noncomputable def generation.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def generation.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/mvcc.generation" [])
 
 attribute [irreducible] generation.ty
 
-noncomputable def RangeOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def RangeOptions.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/mvcc.RangeOptions" [])
 
 attribute [irreducible] RangeOptions.ty
 
-noncomputable def RangeResult.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def RangeResult.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/mvcc.RangeResult" [])
 
 attribute [irreducible] RangeResult.ty
 
-noncomputable def ReadView.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ReadView.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/mvcc.ReadView" [])
 
 attribute [irreducible] ReadView.ty
 
-noncomputable def TxnRead.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def TxnRead.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/mvcc.TxnRead" [])
 
 attribute [irreducible] TxnRead.ty
 
-noncomputable def WriteView.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def WriteView.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/mvcc.WriteView" [])
 
 attribute [irreducible] WriteView.ty
 
-noncomputable def TxnWrite.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def TxnWrite.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/mvcc.TxnWrite" [])
 
 attribute [irreducible] TxnWrite.ty
 
-noncomputable def txnReadWrite.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def txnReadWrite.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/mvcc.txnReadWrite" [])
 
 attribute [irreducible] txnReadWrite.ty
 
-noncomputable def ReadTxMode.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ReadTxMode.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/mvcc.ReadTxMode" [])
 
 attribute [irreducible] ReadTxMode.ty
 
-noncomputable def KV.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def KV.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/mvcc.KV" [])
 
 attribute [irreducible] KV.ty
 
-noncomputable def WatchableKV.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def WatchableKV.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/mvcc.WatchableKV" [])
 
 attribute [irreducible] WatchableKV.ty
 
-noncomputable def Watchable.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Watchable.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/mvcc.Watchable" [])
 
 attribute [irreducible] Watchable.ty
 
-noncomputable def readView.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def readView.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/mvcc.readView" [])
 
 attribute [irreducible] readView.ty
 
-noncomputable def writeView.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def writeView.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/mvcc.writeView" [])
 
 attribute [irreducible] writeView.ty
 
-noncomputable def StoreConfig.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def StoreConfig.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/mvcc.StoreConfig" [])
 
 attribute [irreducible] StoreConfig.ty
 
-noncomputable def store.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def store.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/mvcc.store" [])
 
 attribute [irreducible] store.ty
 
-noncomputable def revKeyValue.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def revKeyValue.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/mvcc.revKeyValue" [])
 
 attribute [irreducible] revKeyValue.ty
 
-noncomputable def storeTxnRead.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def storeTxnRead.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/mvcc.storeTxnRead" [])
 
 attribute [irreducible] storeTxnRead.ty
 
-noncomputable def storeTxnCommon.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def storeTxnCommon.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/mvcc.storeTxnCommon" [])
 
 attribute [irreducible] storeTxnCommon.ty
 
-noncomputable def storeTxnWrite.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def storeTxnWrite.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/mvcc.storeTxnWrite" [])
 
 attribute [irreducible] storeTxnWrite.ty
 
-noncomputable def metricsTxnWrite.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def metricsTxnWrite.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/mvcc.metricsTxnWrite" [])
 
 attribute [irreducible] metricsTxnWrite.ty
 
-noncomputable def Revision.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Revision.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/mvcc.Revision" [])
 
 attribute [irreducible] Revision.ty
 
-noncomputable def BucketKey.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def BucketKey.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/mvcc.BucketKey" [])
 
 attribute [irreducible] BucketKey.ty
 
-noncomputable def watchable.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def watchable.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/mvcc.watchable" [])
 
 attribute [irreducible] watchable.ty
 
-noncomputable def watchableStore.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def watchableStore.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/mvcc.watchableStore" [])
 
 attribute [irreducible] watchableStore.ty
 
-noncomputable def cancelFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def cancelFunc.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/mvcc.cancelFunc" [])
 
 attribute [irreducible] cancelFunc.ty
 
-noncomputable def contains.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def contains.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/mvcc.contains" [])
 
 attribute [irreducible] contains.ty
 
-noncomputable def watcher.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def watcher.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/mvcc.watcher" [])
 
 attribute [irreducible] watcher.ty
 
-noncomputable def watchableStoreTxnWrite.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def watchableStoreTxnWrite.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/mvcc.watchableStoreTxnWrite" [])
 
 attribute [irreducible] watchableStoreTxnWrite.ty
 
-noncomputable def WatchID.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def WatchID.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/mvcc.WatchID" [])
 
 attribute [irreducible] WatchID.ty
 
-noncomputable def FilterFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def FilterFunc.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/mvcc.FilterFunc" [])
 
 attribute [irreducible] FilterFunc.ty
 
-noncomputable def WatchStream.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def WatchStream.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/mvcc.WatchStream" [])
 
 attribute [irreducible] WatchStream.ty
 
-noncomputable def WatchResponse.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def WatchResponse.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/mvcc.WatchResponse" [])
 
 attribute [irreducible] WatchResponse.ty
 
-noncomputable def watchStream.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def watchStream.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/mvcc.watchStream" [])
 
 attribute [irreducible] watchStream.ty
 
-noncomputable def eventBatch.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def eventBatch.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/mvcc.eventBatch" [])
 
 attribute [irreducible] eventBatch.ty
 
-noncomputable def watcherBatch.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def watcherBatch.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/mvcc.watcherBatch" [])
 
 attribute [irreducible] watcherBatch.ty
 
-noncomputable def watcherSet.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def watcherSet.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/mvcc.watcherSet" [])
 
 attribute [irreducible] watcherSet.ty
 
-noncomputable def watcherSetByKey.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def watcherSetByKey.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/mvcc.watcherSetByKey" [])
 
 attribute [irreducible] watcherSetByKey.ty
 
-noncomputable def watcherGroup.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def watcherGroup.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/mvcc.watcherGroup" [])
 
 attribute [irreducible] watcherGroup.ty
 
-axiom hashStorageMaxSize [FfiSyntax] [GoGlobalContext] : val
+axiom hashStorageMaxSize [GooseExts] [GoGlobalContext] : val
 
-@[reducible] noncomputable def ConcurrentReadTxMode [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def ConcurrentReadTxMode [GooseExts] [GoGlobalContext] : val :=
   #(W32 1)
 
-@[reducible] noncomputable def SharedBufReadTxMode [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def SharedBufReadTxMode [GooseExts] [GoGlobalContext] : val :=
   #(W32 2)
 
-@[reducible] noncomputable def revBytesLen [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def revBytesLen [GooseExts] [GoGlobalContext] : val :=
   #(17 : Int)
 
-@[reducible] noncomputable def markedRevBytesLen [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def markedRevBytesLen [GooseExts] [GoGlobalContext] : val :=
   #(18 : Int)
 
-@[reducible] noncomputable def markBytePosition [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def markBytePosition [GooseExts] [GoGlobalContext] : val :=
   #(17 : Int)
 
-@[reducible] noncomputable def markTombstone [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def markTombstone [GooseExts] [GoGlobalContext] : val :=
   #(W8 116)
 
-noncomputable def ErrRevisionNotFound [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrRevisionNotFound [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.ErrRevisionNotFound"
 
-noncomputable def ErrCompacted [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrCompacted [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.ErrCompacted"
 
-noncomputable def ErrFutureRev [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrFutureRev [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.ErrFutureRev"
 
-noncomputable def restoreChunkKeys [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def restoreChunkKeys [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.restoreChunkKeys"
 
-noncomputable def defaultCompactionBatchLimit [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def defaultCompactionBatchLimit [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.defaultCompactionBatchLimit"
 
-axiom defaultCompactionBatchLimit.init [FfiSyntax] [GoGlobalContext] : val
+axiom defaultCompactionBatchLimit.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def defaultCompactionSleepInterval [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def defaultCompactionSleepInterval [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.defaultCompactionSleepInterval"
 
-axiom defaultCompactionSleepInterval.init [FfiSyntax] [GoGlobalContext] : val
+axiom defaultCompactionSleepInterval.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def rangeCounter [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def rangeCounter [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.rangeCounter"
 
-axiom rangeCounter.init [FfiSyntax] [GoGlobalContext] : val
+axiom rangeCounter.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def putCounter [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def putCounter [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.putCounter"
 
-axiom putCounter.init [FfiSyntax] [GoGlobalContext] : val
+axiom putCounter.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def deleteCounter [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def deleteCounter [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.deleteCounter"
 
-axiom deleteCounter.init [FfiSyntax] [GoGlobalContext] : val
+axiom deleteCounter.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def txnCounter [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def txnCounter [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.txnCounter"
 
-axiom txnCounter.init [FfiSyntax] [GoGlobalContext] : val
+axiom txnCounter.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def keysGauge [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def keysGauge [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.keysGauge"
 
-axiom keysGauge.init [FfiSyntax] [GoGlobalContext] : val
+axiom keysGauge.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def watchStreamGauge [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def watchStreamGauge [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.watchStreamGauge"
 
-axiom watchStreamGauge.init [FfiSyntax] [GoGlobalContext] : val
+axiom watchStreamGauge.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def watcherGauge [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def watcherGauge [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.watcherGauge"
 
-axiom watcherGauge.init [FfiSyntax] [GoGlobalContext] : val
+axiom watcherGauge.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def slowWatcherGauge [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def slowWatcherGauge [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.slowWatcherGauge"
 
-axiom slowWatcherGauge.init [FfiSyntax] [GoGlobalContext] : val
+axiom slowWatcherGauge.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def totalEventsCounter [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def totalEventsCounter [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.totalEventsCounter"
 
-axiom totalEventsCounter.init [FfiSyntax] [GoGlobalContext] : val
+axiom totalEventsCounter.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def pendingEventsGauge [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def pendingEventsGauge [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.pendingEventsGauge"
 
-axiom pendingEventsGauge.init [FfiSyntax] [GoGlobalContext] : val
+axiom pendingEventsGauge.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def indexCompactionPauseMs [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def indexCompactionPauseMs [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.indexCompactionPauseMs"
 
-axiom indexCompactionPauseMs.init [FfiSyntax] [GoGlobalContext] : val
+axiom indexCompactionPauseMs.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def dbCompactionPauseMs [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def dbCompactionPauseMs [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.dbCompactionPauseMs"
 
-axiom dbCompactionPauseMs.init [FfiSyntax] [GoGlobalContext] : val
+axiom dbCompactionPauseMs.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def dbCompactionTotalMs [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def dbCompactionTotalMs [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.dbCompactionTotalMs"
 
-axiom dbCompactionTotalMs.init [FfiSyntax] [GoGlobalContext] : val
+axiom dbCompactionTotalMs.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def dbCompactionLast [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def dbCompactionLast [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.dbCompactionLast"
 
-axiom dbCompactionLast.init [FfiSyntax] [GoGlobalContext] : val
+axiom dbCompactionLast.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def dbCompactionKeysCounter [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def dbCompactionKeysCounter [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.dbCompactionKeysCounter"
 
-axiom dbCompactionKeysCounter.init [FfiSyntax] [GoGlobalContext] : val
+axiom dbCompactionKeysCounter.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def dbTotalSize [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def dbTotalSize [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.dbTotalSize"
 
-axiom dbTotalSize.init [FfiSyntax] [GoGlobalContext] : val
+axiom dbTotalSize.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def reportDbTotalSizeInBytesMu [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def reportDbTotalSizeInBytesMu [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.reportDbTotalSizeInBytesMu"
 
-noncomputable def reportDbTotalSizeInBytes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def reportDbTotalSizeInBytes [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.reportDbTotalSizeInBytes"
 
-noncomputable def dbTotalSizeInUse [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def dbTotalSizeInUse [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.dbTotalSizeInUse"
 
-axiom dbTotalSizeInUse.init [FfiSyntax] [GoGlobalContext] : val
+axiom dbTotalSizeInUse.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def reportDbTotalSizeInUseInBytesMu [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def reportDbTotalSizeInUseInBytesMu [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.reportDbTotalSizeInUseInBytesMu"
 
-noncomputable def reportDbTotalSizeInUseInBytes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def reportDbTotalSizeInUseInBytes [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.reportDbTotalSizeInUseInBytes"
 
-noncomputable def dbOpenReadTxN [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def dbOpenReadTxN [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.dbOpenReadTxN"
 
-axiom dbOpenReadTxN.init [FfiSyntax] [GoGlobalContext] : val
+axiom dbOpenReadTxN.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def reportDbOpenReadTxNMu [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def reportDbOpenReadTxNMu [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.reportDbOpenReadTxNMu"
 
-noncomputable def reportDbOpenReadTxN [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def reportDbOpenReadTxN [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.reportDbOpenReadTxN"
 
-noncomputable def hashSec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def hashSec [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.hashSec"
 
-axiom hashSec.init [FfiSyntax] [GoGlobalContext] : val
+axiom hashSec.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def hashRevSec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def hashRevSec [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.hashRevSec"
 
-axiom hashRevSec.init [FfiSyntax] [GoGlobalContext] : val
+axiom hashRevSec.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def currentRev [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def currentRev [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.currentRev"
 
-axiom currentRev.init [FfiSyntax] [GoGlobalContext] : val
+axiom currentRev.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def reportCurrentRevMu [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def reportCurrentRevMu [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.reportCurrentRevMu"
 
-noncomputable def reportCurrentRev [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def reportCurrentRev [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.reportCurrentRev"
 
-noncomputable def compactRev [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def compactRev [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.compactRev"
 
-axiom compactRev.init [FfiSyntax] [GoGlobalContext] : val
+axiom compactRev.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def reportCompactRevMu [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def reportCompactRevMu [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.reportCompactRevMu"
 
-noncomputable def reportCompactRev [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def reportCompactRev [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.reportCompactRev"
 
-noncomputable def totalPutSizeGauge [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def totalPutSizeGauge [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.totalPutSizeGauge"
 
-axiom totalPutSizeGauge.init [FfiSyntax] [GoGlobalContext] : val
+axiom totalPutSizeGauge.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def chanBufLen [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def chanBufLen [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.chanBufLen"
 
-noncomputable def maxWatchersPerSync [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def maxWatchersPerSync [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.maxWatchersPerSync"
 
-noncomputable def watchResyncPeriod [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def watchResyncPeriod [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.watchResyncPeriod"
 
-noncomputable def ErrWatcherNotExist [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrWatcherNotExist [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.ErrWatcherNotExist"
 
-noncomputable def ErrEmptyWatcherRange [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrEmptyWatcherRange [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.ErrEmptyWatcherRange"
 
-noncomputable def ErrWatcherDuplicateID [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrWatcherDuplicateID [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.ErrWatcherDuplicateID"
 
-noncomputable def watchBatchMaxRevs [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def watchBatchMaxRevs [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.watchBatchMaxRevs"
 
-noncomputable def unsafeHashByRev [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def unsafeHashByRev [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.unsafeHashByRev"
 
-noncomputable def newKVHasher [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newKVHasher [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.newKVHasher"
 
-noncomputable def NewHashStorage [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewHashStorage [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.NewHashStorage"
 
-noncomputable def newTreeIndex [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newTreeIndex [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.newTreeIndex"
 
-noncomputable def NewReadOnlyTxnWrite [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewReadOnlyTxnWrite [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.NewReadOnlyTxnWrite"
 
-noncomputable def NewStore [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewStore [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.NewStore"
 
-noncomputable def restoreIntoIndex [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def restoreIntoIndex [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.restoreIntoIndex"
 
-noncomputable def restoreChunk [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def restoreChunk [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.restoreChunk"
 
-noncomputable def sliceCapWithLimit [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sliceCapWithLimit [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.sliceCapWithLimit"
 
-noncomputable def init.«0» [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def init.«0» [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.init.0"
 
-noncomputable def ReportEventReceived [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ReportEventReceived [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.ReportEventReceived"
 
-noncomputable def newMetricsTxnRead [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newMetricsTxnRead [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.newMetricsTxnRead"
 
-noncomputable def newMetricsTxnWrite [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newMetricsTxnWrite [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.newMetricsTxnWrite"
 
-noncomputable def RevToBytes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def RevToBytes [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.RevToBytes"
 
-noncomputable def BytesToRev [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def BytesToRev [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.BytesToRev"
 
-noncomputable def newBucketKey [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newBucketKey [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.newBucketKey"
 
-noncomputable def NewRevBytes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewRevBytes [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.NewRevBytes"
 
-noncomputable def BucketKeyToBytes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def BucketKeyToBytes [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.BucketKeyToBytes"
 
-noncomputable def BytesToBucketKey [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def BytesToBucketKey [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.BytesToBucketKey"
 
-noncomputable def isTombstone [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def isTombstone [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.isTombstone"
 
-noncomputable def IsTombstone [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsTombstone [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.IsTombstone"
 
-noncomputable def UnsafeReadFinishedCompact [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def UnsafeReadFinishedCompact [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.UnsafeReadFinishedCompact"
 
-noncomputable def UnsafeReadScheduledCompact [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def UnsafeReadScheduledCompact [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.UnsafeReadScheduledCompact"
 
-noncomputable def SetScheduledCompact [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def SetScheduledCompact [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.SetScheduledCompact"
 
-noncomputable def UnsafeSetScheduledCompact [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def UnsafeSetScheduledCompact [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.UnsafeSetScheduledCompact"
 
-noncomputable def SetFinishedCompact [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def SetFinishedCompact [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.SetFinishedCompact"
 
-noncomputable def UnsafeSetFinishedCompact [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def UnsafeSetFinishedCompact [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.UnsafeSetFinishedCompact"
 
-noncomputable def ChanBufLen [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ChanBufLen [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.ChanBufLen"
 
-noncomputable def New [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def New [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.New"
 
-noncomputable def newWatchableStore [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newWatchableStore [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.newWatchableStore"
 
-noncomputable def resyncDelay [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def resyncDelay [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.resyncDelay"
 
-noncomputable def rangeEvents [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def rangeEvents [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.rangeEvents"
 
-noncomputable def kvsToEvents [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def kvsToEvents [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.kvsToEvents"
 
-noncomputable def newWatcherBatch [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newWatcherBatch [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.newWatcherBatch"
 
-noncomputable def newWatcherGroup [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newWatcherGroup [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/mvcc.newWatcherGroup"
 
 /-- go: hash.go:128:6 -/
-noncomputable def NewHashStorage.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def NewHashStorage.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (Lam "s"
   (App (Val exceptionDo)
@@ -600,7 +600,7 @@ noncomputable def NewHashStorage.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (CompositeLiteral hashStorage.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"store")) (ElementExpression (go.GoType.PointerType store.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"lg")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) (Var "$v1")))]))))))))))))
 
 /-- go: index.go:45:6 -/
-noncomputable def newTreeIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def newTreeIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (App (Val exceptionDo)
   (Let "lg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
@@ -619,7 +619,7 @@ noncomputable def newTreeIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (CompositeLiteral treeIndex.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"tree")) (ElementExpression (go.GoType.PointerType (_root_.Perennial.k8s_io.utils.third_party.forked.golang.btree.BTree.ty (go.GoType.PointerType keyIndex.ty))) (Var "$v0"))), (KeyedElement (some (KeyField go!"lg")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) (Var "$v1")))]))))))))))
 
 /-- go: index.go:54:22 -/
-noncomputable def treeIndex.Put.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def treeIndex.Put.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ti"
   (Lam "key"
   (Lam "rev"
@@ -684,7 +684,7 @@ noncomputable def treeIndex.Put.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType keyIndex.ty)))) (Pair (Var "keyi") (Var "$r0"))))))))))))))))
 
 /-- go: index.go:68:22 -/
-noncomputable def treeIndex.Get.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def treeIndex.Get.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ti"
   (Lam "key"
   (Lam "atRev"
@@ -718,7 +718,7 @@ noncomputable def treeIndex.Get.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType treeIndex.ty) go!"RLock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType treeIndex.ty)))) (Var "ti"))) (Val #()))))))))))))))))
 
 /-- go: index.go:74:22 -/
-noncomputable def treeIndex.unsafeGet.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def treeIndex.unsafeGet.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ti"
   (Lam "key"
   (Lam "atRev"
@@ -758,7 +758,7 @@ noncomputable def treeIndex.unsafeGet.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType keyIndex.ty)))) (Pair (Var "keyi") (Var "$r0"))))))))))))))))))
 
 /-- go: index.go:82:22 -/
-noncomputable def treeIndex.KeyIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def treeIndex.KeyIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ti"
   (Lam "keyi"
   (App (Val wrapDefer)
@@ -780,7 +780,7 @@ noncomputable def treeIndex.KeyIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType treeIndex.ty) go!"RLock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType treeIndex.ty)))) (Var "ti"))) (Val #()))))))))))
 
 /-- go: index.go:88:22 -/
-noncomputable def treeIndex.keyIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def treeIndex.keyIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ti"
   (Lam "keyi"
   (App (Val exceptionDo)
@@ -810,7 +810,7 @@ noncomputable def treeIndex.keyIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType keyIndex.ty)))) (Pair (Var "ki") (Var "$r0"))))))))))))))))))
 
 /-- go: index.go:95:22 -/
-noncomputable def treeIndex.unsafeVisit.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def treeIndex.unsafeVisit.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ti"
   (Lam "key"
   (Lam "end"
@@ -864,7 +864,7 @@ noncomputable def treeIndex.unsafeVisit.impl [FfiSyntax] [GoGlobalContext] : val
     The second return parameter isn't capped by the limit and reflects the total number of revisions.
 
     go: index.go:112:22 -/
-noncomputable def treeIndex.Revisions.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def treeIndex.Revisions.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ti"
   (Lam "key"
   (Lam "end"
@@ -999,7 +999,7 @@ noncomputable def treeIndex.Revisions.impl [FfiSyntax] [GoGlobalContext] : val :
     from key(included) to end(excluded) at the given rev.
 
     go: index.go:141:22 -/
-noncomputable def treeIndex.CountRevisions.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def treeIndex.CountRevisions.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ti"
   (Lam "key"
   (Lam "end"
@@ -1105,7 +1105,7 @@ noncomputable def treeIndex.CountRevisions.impl [FfiSyntax] [GoGlobalContext] : 
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType treeIndex.ty) go!"RLock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType treeIndex.ty)))) (Var "ti"))) (Val #()))))))))))))))
 
 /-- go: index.go:162:22 -/
-noncomputable def treeIndex.Range.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def treeIndex.Range.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ti"
   (Lam "key"
   (Lam "end"
@@ -1268,7 +1268,7 @@ noncomputable def treeIndex.Range.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType treeIndex.ty) go!"RLock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType treeIndex.ty)))) (Var "ti"))) (Val #())))))))))))))))))))))))
 
 /-- go: index.go:192:22 -/
-noncomputable def treeIndex.Tombstone.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def treeIndex.Tombstone.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ti"
   (Lam "key"
   (Lam "rev"
@@ -1320,7 +1320,7 @@ noncomputable def treeIndex.Tombstone.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType keyIndex.ty)))) (Pair (Var "keyi") (Var "$r0")))))))))))))))
 
 /-- go: index.go:205:22 -/
-noncomputable def treeIndex.Compact.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def treeIndex.Compact.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ti"
   (Lam "rev"
   (App (Val exceptionDo)
@@ -1400,7 +1400,7 @@ noncomputable def treeIndex.Compact.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- Keep finds all revisions to be kept for a Compaction at the given rev.
 
     go: index.go:230:22 -/
-noncomputable def treeIndex.Keep.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def treeIndex.Keep.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ti"
   (Lam "rev"
   (App (Val wrapDefer)
@@ -1439,7 +1439,7 @@ noncomputable def treeIndex.Keep.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.MapType Revision.ty (go.GoType.StructType []))))) (Pair (Var "available") (Var "$r0")))))))))))))
 
 /-- go: index.go:262:22 -/
-noncomputable def treeIndex.Insert.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def treeIndex.Insert.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ti"
   (Lam "ki"
   (App (Val wrapDefer)
@@ -1466,7 +1466,7 @@ noncomputable def treeIndex.Insert.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- put puts a revision to the keyIndex.
 
     go: key_index.go:80:21 -/
-noncomputable def keyIndex.put.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def keyIndex.put.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ki"
   (Lam "lg"
   (Lam "main"
@@ -1550,7 +1550,7 @@ noncomputable def keyIndex.put.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore Revision.ty))) (Pair (Var "rev") (Var "$r0")))))))))))))))))
 
 /-- go: key_index.go:105:21 -/
-noncomputable def keyIndex.restore.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def keyIndex.restore.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ki"
   (Lam "lg"
   (Lam "created"
@@ -1606,7 +1606,7 @@ noncomputable def keyIndex.restore.impl [FfiSyntax] [GoGlobalContext] : val :=
     compacted) of the key, so set it empty.
 
     go: key_index.go:122:21 -/
-noncomputable def keyIndex.restoreTombstone.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def keyIndex.restoreTombstone.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ki"
   (Lam "lg"
   (Lam "main"
@@ -1643,7 +1643,7 @@ noncomputable def keyIndex.restoreTombstone.impl [FfiSyntax] [GoGlobalContext] :
     It returns ErrRevisionNotFound when tombstone on an empty generation.
 
     go: key_index.go:131:21 -/
-noncomputable def keyIndex.tombstone.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def keyIndex.tombstone.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ki"
   (Lam "lg"
   (Lam "main"
@@ -1694,7 +1694,7 @@ noncomputable def keyIndex.tombstone.impl [FfiSyntax] [GoGlobalContext] : val :=
     Rev must be smaller than or equal to the given atRev.
 
     go: key_index.go:149:21 -/
-noncomputable def keyIndex.get.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def keyIndex.get.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ki"
   (Lam "lg"
   (Lam "atRev"
@@ -1754,7 +1754,7 @@ noncomputable def keyIndex.get.impl [FfiSyntax] [GoGlobalContext] : val :=
     If a generation becomes empty during compaction, it will be removed.
 
     go: key_index.go:215:21 -/
-noncomputable def keyIndex.compact.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def keyIndex.compact.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ki"
   (Lam "lg"
   (Lam "atRev"
@@ -1817,7 +1817,7 @@ noncomputable def keyIndex.compact.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- keep finds the revision to be kept if compact is called at given atRev.
 
     go: key_index.go:238:21 -/
-noncomputable def keyIndex.keep.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def keyIndex.keep.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ki"
   (Lam "atRev"
   (Lam "available"
@@ -1868,7 +1868,7 @@ noncomputable def keyIndex.keep.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #()))))))))))))
 
 /-- go: key_index.go:258:21 -/
-noncomputable def keyIndex.doCompact.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def keyIndex.doCompact.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ki"
   (Lam "atRev"
   (Lam "available"
@@ -1938,7 +1938,7 @@ noncomputable def keyIndex.doCompact.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [Revision.ty] false [go.bool]))))) (Pair (Var "f") (Var "$r0"))))))))))))))))
 
 /-- go: key_index.go:284:21 -/
-noncomputable def keyIndex.isEmpty.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def keyIndex.isEmpty.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ki"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1952,7 +1952,7 @@ noncomputable def keyIndex.isEmpty.impl [FfiSyntax] [GoGlobalContext] : val :=
     which means that the key does not exist at the given rev, it returns nil.
 
     go: key_index.go:291:21 -/
-noncomputable def keyIndex.findGeneration.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def keyIndex.findGeneration.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ki"
   (Lam "rev"
   (App (Val exceptionDo)
@@ -2015,7 +2015,7 @@ noncomputable def keyIndex.findGeneration.impl [FfiSyntax] [GoGlobalContext] : v
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "lastg") (Var "$r0"))))))))))))
 
 /-- go: key_index.go:314:21 -/
-noncomputable def keyIndex.Less.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def keyIndex.Less.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ki"
   (Lam "bki"
   (App (Val exceptionDo)
@@ -2027,7 +2027,7 @@ noncomputable def keyIndex.Less.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.bytes.Compare []))) (Val #())) (Var "$a0")) (Var "$a1")))) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (App (Val (GoInstruction (GoUnOp GoNeg go.untypedInt))) (Val #(1 : Int))))))))))))
 
 /-- go: key_index.go:352:22 -/
-noncomputable def generation.isEmpty.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def generation.isEmpty.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "g"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -2043,7 +2043,7 @@ noncomputable def generation.isEmpty.impl [FfiSyntax] [GoGlobalContext] : val :=
     finishing walking, -1 will be returned.
 
     go: key_index.go:359:22 -/
-noncomputable def generation.walk.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def generation.walk.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "g"
   (Lam "f"
   (App (Val exceptionDo)
@@ -2079,7 +2079,7 @@ noncomputable def generation.walk.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "l") (Var "$r0"))))))))))))
 
 /-- go: kv.go:97:26 -/
-noncomputable def txnReadWrite.DeleteRange.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def txnReadWrite.DeleteRange.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "trw"
   (Lam "key"
   (Lam "end"
@@ -2094,7 +2094,7 @@ noncomputable def txnReadWrite.DeleteRange.impl [FfiSyntax] [GoGlobalContext] : 
   (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0")))))))))))))
 
 /-- go: kv.go:98:26 -/
-noncomputable def txnReadWrite.Put.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def txnReadWrite.Put.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "trw"
   (Lam "key"
   (Lam "value"
@@ -2110,7 +2110,7 @@ noncomputable def txnReadWrite.Put.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))))))))))))
 
 /-- go: kv.go:101:26 -/
-noncomputable def txnReadWrite.Changes.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def txnReadWrite.Changes.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "trw"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -2119,7 +2119,7 @@ noncomputable def txnReadWrite.Changes.impl [FfiSyntax] [GoGlobalContext] : val 
   (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (Val UntypedNil)))))))
 
 /-- go: kv.go:103:6 -/
-noncomputable def NewReadOnlyTxnWrite.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def NewReadOnlyTxnWrite.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "txn"
   (App (Val exceptionDo)
   (Let "txn" (App (Val (GoInstruction (GoAlloc TxnRead.ty))) (Var "txn"))
@@ -2128,7 +2128,7 @@ noncomputable def NewReadOnlyTxnWrite.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val (GoInstruction (CompositeLiteral txnReadWrite.ty))) (LiteralValue [(KeyedElement none (ElementExpression TxnRead.ty (Var "$v0")))])))))))))
 
 /-- go: kv_view.go:26:21 -/
-noncomputable def readView.FirstRev.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def readView.FirstRev.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "rv"
   (Lam BAnon
   (App (Val wrapDefer)
@@ -2152,7 +2152,7 @@ noncomputable def readView.FirstRev.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore TxnRead.ty))) (Pair (Var "tr") (Var "$r0"))))))))))))
 
 /-- go: kv_view.go:32:21 -/
-noncomputable def readView.Rev.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def readView.Rev.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "rv"
   (Lam BAnon
   (App (Val wrapDefer)
@@ -2176,7 +2176,7 @@ noncomputable def readView.Rev.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore TxnRead.ty))) (Pair (Var "tr") (Var "$r0"))))))))))))
 
 /-- go: kv_view.go:38:21 -/
-noncomputable def readView.Range.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def readView.Range.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "rv"
   (Lam "ctx"
   (Lam "key"
@@ -2216,7 +2216,7 @@ noncomputable def readView.Range.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore TxnRead.ty))) (Pair (Var "tr") (Var "$r0")))))))))))))))))))))
 
 /-- go: kv_view.go:46:22 -/
-noncomputable def writeView.DeleteRange.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def writeView.DeleteRange.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "wv"
   (Lam "key"
   (Lam "end"
@@ -2249,7 +2249,7 @@ noncomputable def writeView.DeleteRange.impl [FfiSyntax] [GoGlobalContext] : val
   (App (Val (GoInstruction (GoStore TxnWrite.ty))) (Pair (Var "tw") (Var "$r0")))))))))))))))))
 
 /-- go: kv_view.go:52:22 -/
-noncomputable def writeView.Put.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def writeView.Put.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "wv"
   (Lam "key"
   (Lam "value"
@@ -2285,7 +2285,7 @@ noncomputable def writeView.Put.impl [FfiSyntax] [GoGlobalContext] : val :=
     revive:disable-next-line:unexported-return this is used internally in the mvcc pkg
 
     go: kvstore.go:87:6 -/
-noncomputable def NewStore.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def NewStore.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (Lam "b"
   (Lam "le"
@@ -2408,7 +2408,7 @@ noncomputable def NewStore.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #()))))))))))))))
 
 /-- go: kvstore.go:137:17 -/
-noncomputable def store.compactBarrier.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def store.compactBarrier.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
   (Lam "ch"
@@ -2459,7 +2459,7 @@ noncomputable def store.compactBarrier.impl [FfiSyntax] [GoGlobalContext] : val 
   (Val #()))))))))))))
 
 /-- go: kvstore.go:197:17 -/
-noncomputable def store.updateCompactRev.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def store.updateCompactRev.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "rev"
   (App (Val exceptionDo)
@@ -2537,7 +2537,7 @@ noncomputable def store.updateCompactRev.impl [FfiSyntax] [GoGlobalContext] : va
 /-- checkPrevCompactionCompleted checks whether the previous scheduled compaction is completed.
 
     go: kvstore.go:225:17 -/
-noncomputable def store.checkPrevCompactionCompleted.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def store.checkPrevCompactionCompleted.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
   (App (Val wrapDefer)
@@ -2590,7 +2590,7 @@ noncomputable def store.checkPrevCompactionCompleted.impl [FfiSyntax] [GoGlobalC
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.ReadTx.ty))) (Pair (Var "tx") (Var "$r0"))))))))))))
 
 /-- go: kvstore.go:234:17 -/
-noncomputable def store.compact.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def store.compact.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "trace"
   (Lam "rev"
@@ -2688,7 +2688,7 @@ noncomputable def store.compact.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (Pair (Var "ch") (Var "$r0"))))))))))))))))))
 
 /-- go: kvstore.go:262:17 -/
-noncomputable def store.compactLockfree.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def store.compactLockfree.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "rev"
   (App (Val exceptionDo)
@@ -2733,7 +2733,7 @@ noncomputable def store.compactLockfree.impl [FfiSyntax] [GoGlobalContext] : val
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "prevCompactionCompleted") (Var "$r0"))))))))))))
 
 /-- go: kvstore.go:272:17 -/
-noncomputable def store.Compact.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def store.Compact.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "trace"
   (Lam "rev"
@@ -2794,7 +2794,7 @@ noncomputable def store.Compact.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef store.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType store.ty)))) (Var "s")))) (Val #())))))))))))
 
 /-- go: kvstore.go:286:17 -/
-noncomputable def store.Commit.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def store.Commit.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
   (App (Val wrapDefer)
@@ -2817,7 +2817,7 @@ noncomputable def store.Commit.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef store.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType store.ty)))) (Var "s")))) (Val #()))))))))))
 
 /-- go: kvstore.go:292:17 -/
-noncomputable def store.Restore.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def store.Restore.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "b"
   (App (Val wrapDefer)
@@ -2877,7 +2877,7 @@ noncomputable def store.Restore.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef store.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType store.ty)))) (Var "s")))) (Val #()))))))))))
 
 /-- go: kvstore.go:317:17 -/
-noncomputable def store.restore.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def store.restore.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -3181,7 +3181,7 @@ noncomputable def store.restore.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType store.ty) go!"setupMetricsReporter"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType store.ty)))) (Var "s"))) (Val #()))))))))
 
 /-- go: kvstore.go:434:6 -/
-noncomputable def restoreIntoIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def restoreIntoIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (Lam "idx"
   (App (Val exceptionDo)
@@ -3391,7 +3391,7 @@ noncomputable def restoreIntoIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.sendrecv revKeyValue.ty)))) (Pair (Var "rkvc") (Var "$r0"))))))))))))))
 
 /-- go: kvstore.go:493:6 -/
-noncomputable def restoreChunk.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def restoreChunk.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (Lam "kvc"
   (Lam "keys"
@@ -3480,7 +3480,7 @@ noncomputable def restoreChunk.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "key") (Var "$value")))))))))))))))))))))))
 
 /-- go: kvstore.go:515:17 -/
-noncomputable def store.Close.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def store.Close.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -3496,7 +3496,7 @@ noncomputable def store.Close.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (FuncResolve go.close [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #())) (Var "$a0")))))))))
 
 /-- go: kvstore.go:521:17 -/
-noncomputable def store.setupMetricsReporter.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def store.setupMetricsReporter.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -3597,7 +3597,7 @@ noncomputable def store.setupMetricsReporter.impl [FfiSyntax] [GoGlobalContext] 
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty))) (Pair (Var "b") (Var "$r0"))))))))))))
 
 /-- go: kvstore.go:548:17 -/
-noncomputable def store.HashStorage.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def store.HashStorage.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -3606,7 +3606,7 @@ noncomputable def store.HashStorage.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoLoad HashStorage.ty))) (App (Val (GoInstruction (StructFieldRef store.ty go!"hashes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType store.ty)))) (Var "s")))))))))
 
 /-- go: kvstore_compaction.go:28:17 -/
-noncomputable def store.scheduleCompaction.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def store.scheduleCompaction.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "compactMainRev"
   (Lam "prevCompactRev"
@@ -3896,7 +3896,7 @@ noncomputable def store.scheduleCompaction.impl [FfiSyntax] [GoGlobalContext] : 
   (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty go!"LockForSafeRangeDelete"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty))) (App (Val (GoInstruction (StructFieldRef store.ty go!"b"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType store.ty)))) (Var "s"))))) (Val #()))))))))))))
 
 /-- go: kvstore_txn.go:46:17 -/
-noncomputable def store.Read.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def store.Read.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "mode"
   (Lam "trace"
@@ -3947,7 +3947,7 @@ noncomputable def store.Read.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef store.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType store.ty)))) (Var "s")))) (Val #())))))))))))
 
 /-- go: kvstore_txn.go:66:27 -/
-noncomputable def storeTxnCommon.FirstRev.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def storeTxnCommon.FirstRev.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "tr"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -3956,7 +3956,7 @@ noncomputable def storeTxnCommon.FirstRev.impl [FfiSyntax] [GoGlobalContext] : v
   (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef storeTxnCommon.ty go!"firstRev"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType storeTxnCommon.ty)))) (Var "tr")))))))))
 
 /-- go: kvstore_txn.go:67:27 -/
-noncomputable def storeTxnCommon.Rev.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def storeTxnCommon.Rev.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "tr"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -3965,7 +3965,7 @@ noncomputable def storeTxnCommon.Rev.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef storeTxnCommon.ty go!"rev"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType storeTxnCommon.ty)))) (Var "tr")))))))))
 
 /-- go: kvstore_txn.go:69:27 -/
-noncomputable def storeTxnCommon.Range.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def storeTxnCommon.Range.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "tr"
   (Lam "ctx"
   (Lam "key"
@@ -3991,7 +3991,7 @@ noncomputable def storeTxnCommon.Range.impl [FfiSyntax] [GoGlobalContext] : val 
   (Pair (Var "$ret0") (Var "$ret1")))))))))))))))))))
 
 /-- go: kvstore_txn.go:73:27 -/
-noncomputable def storeTxnCommon.rangeKeys.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def storeTxnCommon.rangeKeys.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "tr"
   (Lam "ctx"
   (Lam "key"
@@ -4317,7 +4317,7 @@ noncomputable def storeTxnCommon.rangeKeys.impl [FfiSyntax] [GoGlobalContext] : 
   (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "rev") (Var "$r0"))))))))))))))))))))
 
 /-- go: kvstore_txn.go:154:6 -/
-noncomputable def sliceCapWithLimit.impl [FfiSyntax] [GoGlobalContext] (S : go.GoType) : val :=
+noncomputable def sliceCapWithLimit.impl [GooseExts] [GoGlobalContext] (S : go.GoType) : val :=
   (LamV "limit"
   (Lam "s"
   (App (Val exceptionDo)
@@ -4335,7 +4335,7 @@ noncomputable def sliceCapWithLimit.impl [FfiSyntax] [GoGlobalContext] (S : go.G
   (Val #())))))))))
 
 /-- go: kvstore_txn.go:161:25 -/
-noncomputable def storeTxnRead.End.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def storeTxnRead.End.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "tr"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -4350,7 +4350,7 @@ noncomputable def storeTxnRead.End.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.ReadTx.ty go!"RUnlock"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.ReadTx.ty))) (App (Val (GoInstruction (StructFieldRef storeTxnRead.ty go!"tx"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType storeTxnRead.ty)))) (Var "tr"))))) (Val #())))))))))
 
 /-- go: kvstore_txn.go:174:17 -/
-noncomputable def store.Write.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def store.Write.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "trace"
   (App (Val exceptionDo)
@@ -4386,7 +4386,7 @@ noncomputable def store.Write.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef store.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType store.ty)))) (Var "s")))) (Val #())))))))))
 
 /-- go: kvstore_txn.go:187:26 -/
-noncomputable def storeTxnWrite.Rev.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def storeTxnWrite.Rev.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "tw"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -4395,7 +4395,7 @@ noncomputable def storeTxnWrite.Rev.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef storeTxnWrite.ty go!"beginRev"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType storeTxnWrite.ty)))) (Var "tw")))))))))
 
 /-- go: kvstore_txn.go:189:26 -/
-noncomputable def storeTxnWrite.Range.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def storeTxnWrite.Range.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "tw"
   (Lam "ctx"
   (Lam "key"
@@ -4433,7 +4433,7 @@ noncomputable def storeTxnWrite.Range.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "rev") (Var "$r0"))))))))))))))))))))
 
 /-- go: kvstore_txn.go:197:26 -/
-noncomputable def storeTxnWrite.DeleteRange.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def storeTxnWrite.DeleteRange.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "tw"
   (Lam "key"
   (Lam "end"
@@ -4459,7 +4459,7 @@ noncomputable def storeTxnWrite.DeleteRange.impl [FfiSyntax] [GoGlobalContext] :
   (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "n") (Var "$r0")))))))))))))))
 
 /-- go: kvstore_txn.go:204:26 -/
-noncomputable def storeTxnWrite.Put.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def storeTxnWrite.Put.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "tw"
   (Lam "key"
   (Lam "value"
@@ -4479,7 +4479,7 @@ noncomputable def storeTxnWrite.Put.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType storeTxnWrite.ty) go!"put"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType storeTxnWrite.ty)))) (Var "tw"))) (Var "$a0")) (Var "$a1")) (Var "$a2"))))))))))))))))
 
 /-- go: kvstore_txn.go:209:26 -/
-noncomputable def storeTxnWrite.End.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def storeTxnWrite.End.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "tw"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -4511,7 +4511,7 @@ noncomputable def storeTxnWrite.End.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #())))))))))
 
 /-- go: kvstore_txn.go:223:26 -/
-noncomputable def storeTxnWrite.put.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def storeTxnWrite.put.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "tw"
   (Lam "key"
   (Lam "value"
@@ -4736,7 +4736,7 @@ noncomputable def storeTxnWrite.put.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "rev") (Var "$r0")))))))))))))))))
 
 /-- go: kvstore_txn.go:293:26 -/
-noncomputable def storeTxnWrite.deleteRange.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def storeTxnWrite.deleteRange.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "tw"
   (Lam "key"
   (Lam "end"
@@ -4815,7 +4815,7 @@ noncomputable def storeTxnWrite.deleteRange.impl [FfiSyntax] [GoGlobalContext] :
   (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "rrev") (Var "$r0"))))))))))))))
 
 /-- go: kvstore_txn.go:308:26 -/
-noncomputable def storeTxnWrite.delete.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def storeTxnWrite.delete.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "tw"
   (Lam "key"
   (App (Val exceptionDo)
@@ -4939,7 +4939,7 @@ noncomputable def storeTxnWrite.delete.impl [FfiSyntax] [GoGlobalContext] : val 
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "ibytes") (Var "$r0")))))))))))))
 
 /-- go: kvstore_txn.go:348:26 -/
-noncomputable def storeTxnWrite.Changes.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def storeTxnWrite.Changes.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "tw"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -4948,7 +4948,7 @@ noncomputable def storeTxnWrite.Changes.impl [FfiSyntax] [GoGlobalContext] : val
   (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (App (Val (GoInstruction (StructFieldRef storeTxnWrite.ty go!"changes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType storeTxnWrite.ty)))) (Var "tw")))))))))
 
 /-- go: metrics_txn.go:31:6 -/
-noncomputable def newMetricsTxnRead.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def newMetricsTxnRead.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "tr"
   (App (Val exceptionDo)
   (Let "tr" (App (Val (GoInstruction (GoAlloc TxnRead.ty))) (Var "tr"))
@@ -4962,7 +4962,7 @@ noncomputable def newMetricsTxnRead.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (CompositeLiteral metricsTxnWrite.ty))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.PointerType txnReadWrite.ty) (Var "$v0"))), (KeyedElement none (ElementExpression go.uint (Var "$v1"))), (KeyedElement none (ElementExpression go.uint (Var "$v2"))), (KeyedElement none (ElementExpression go.uint (Var "$v3"))), (KeyedElement none (ElementExpression go.int64 (Var "$v4")))])))))))))))))
 
 /-- go: metrics_txn.go:35:6 -/
-noncomputable def newMetricsTxnWrite.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def newMetricsTxnWrite.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "tw"
   (App (Val exceptionDo)
   (Let "tw" (App (Val (GoInstruction (GoAlloc TxnWrite.ty))) (Var "tw"))
@@ -4975,7 +4975,7 @@ noncomputable def newMetricsTxnWrite.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (CompositeLiteral metricsTxnWrite.ty))) (LiteralValue [(KeyedElement none (ElementExpression TxnWrite.ty (Var "$v0"))), (KeyedElement none (ElementExpression go.uint (Var "$v1"))), (KeyedElement none (ElementExpression go.uint (Var "$v2"))), (KeyedElement none (ElementExpression go.uint (Var "$v3"))), (KeyedElement none (ElementExpression go.int64 (Var "$v4")))])))))))))))))
 
 /-- go: metrics_txn.go:39:28 -/
-noncomputable def metricsTxnWrite.Range.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def metricsTxnWrite.Range.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "tw"
   (Lam "ctx"
   (Lam "key"
@@ -5001,7 +5001,7 @@ noncomputable def metricsTxnWrite.Range.impl [FfiSyntax] [GoGlobalContext] : val
   (App (Val (GoInstruction (GoStore go.uint))) (Pair (App (Val (GoInstruction (StructFieldRef metricsTxnWrite.ty go!"ranges"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType metricsTxnWrite.ty)))) (Var "tw"))) (App (Val (GoInstruction (GoOp GoPlus go.uint))) (Pair (App (Val (GoInstruction (GoLoad go.uint))) (App (Val (GoInstruction (StructFieldRef metricsTxnWrite.ty go!"ranges"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType metricsTxnWrite.ty)))) (Var "tw")))) (Val #(W64 1)))))))))))))))))))
 
 /-- go: metrics_txn.go:44:28 -/
-noncomputable def metricsTxnWrite.DeleteRange.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def metricsTxnWrite.DeleteRange.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "tw"
   (Lam "key"
   (Lam "end"
@@ -5023,7 +5023,7 @@ noncomputable def metricsTxnWrite.DeleteRange.impl [FfiSyntax] [GoGlobalContext]
   (App (Val (GoInstruction (GoStore go.uint))) (Pair (App (Val (GoInstruction (StructFieldRef metricsTxnWrite.ty go!"deletes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType metricsTxnWrite.ty)))) (Var "tw"))) (App (Val (GoInstruction (GoOp GoPlus go.uint))) (Pair (App (Val (GoInstruction (GoLoad go.uint))) (App (Val (GoInstruction (StructFieldRef metricsTxnWrite.ty go!"deletes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType metricsTxnWrite.ty)))) (Var "tw")))) (Val #(W64 1)))))))))))))))))
 
 /-- go: metrics_txn.go:49:28 -/
-noncomputable def metricsTxnWrite.Put.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def metricsTxnWrite.Put.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "tw"
   (Lam "key"
   (Lam "value"
@@ -5054,7 +5054,7 @@ noncomputable def metricsTxnWrite.Put.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val (GoInstruction (GoStore go.uint))) (Pair (App (Val (GoInstruction (StructFieldRef metricsTxnWrite.ty go!"puts"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType metricsTxnWrite.ty)))) (Var "tw"))) (App (Val (GoInstruction (GoOp GoPlus go.uint))) (Pair (App (Val (GoInstruction (GoLoad go.uint))) (App (Val (GoInstruction (StructFieldRef metricsTxnWrite.ty go!"puts"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType metricsTxnWrite.ty)))) (Var "tw")))) (Val #(W64 1))))))))))))))))))
 
 /-- go: metrics_txn.go:56:28 -/
-noncomputable def metricsTxnWrite.End.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def metricsTxnWrite.End.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "tw"
   (Lam BAnon
   (App (Val wrapDefer)
@@ -5113,7 +5113,7 @@ noncomputable def metricsTxnWrite.End.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Var "$oldf") (Val #()))))))))))))))))
 
 /-- go: revision.go:44:19 -/
-noncomputable def Revision.GreaterThan.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Revision.GreaterThan.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "b"
   (App (Val exceptionDo)
@@ -5135,7 +5135,7 @@ noncomputable def Revision.GreaterThan.impl [FfiSyntax] [GoGlobalContext] : val 
   (Val #())))))))))
 
 /-- go: revision.go:54:6 -/
-noncomputable def RevToBytes.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def RevToBytes.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "rev"
   (Lam "bytes"
   (App (Val exceptionDo)
@@ -5150,7 +5150,7 @@ noncomputable def RevToBytes.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (App (Val (GoInstruction (FuncResolve BucketKeyToBytes []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))))
 
 /-- go: revision.go:58:6 -/
-noncomputable def BytesToRev.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def BytesToRev.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "bytes"
   (App (Val exceptionDo)
   (Let "bytes" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "bytes"))
@@ -5159,7 +5159,7 @@ noncomputable def BytesToRev.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (FuncResolve BytesToBucketKey []))) (Val #())) (Var "$a0"))))))))
 
 /-- go: revision.go:69:6 -/
-noncomputable def newBucketKey.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def newBucketKey.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "main"
   (Lam "sub"
   (Lam "isTombstone"
@@ -5175,14 +5175,14 @@ noncomputable def newBucketKey.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (CompositeLiteral BucketKey.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Revision")) (ElementExpression Revision.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"tombstone")) (ElementExpression go.bool (Var "$v1")))]))))))))))))
 
 /-- go: revision.go:79:6 -/
-noncomputable def NewRevBytes.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def NewRevBytes.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val exceptionDo)
   (App (Val doReturn)
   (App (App (App (Val (GoInstruction (FuncResolve go.make3 [(go.GoType.SliceType go.byte)]))) (Val #())) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val revBytesLen))) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val markedRevBytesLen))))))
 
 /-- go: revision.go:83:6 -/
-noncomputable def BucketKeyToBytes.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def BucketKeyToBytes.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "rev"
   (Lam "bytes"
   (App (Val exceptionDo)
@@ -5226,7 +5226,7 @@ noncomputable def BucketKeyToBytes.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.encoding.binary.bigEndian.ty) go!"PutUint64"))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.encoding.binary.BigEndian))) (Val #()))) (Var "$a0")) (Var "$a1")))))))))))
 
 /-- go: revision.go:98:6 -/
-noncomputable def BytesToBucketKey.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def BytesToBucketKey.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "bytes"
   (App (Val exceptionDo)
   (Let "bytes" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "bytes"))
@@ -5289,7 +5289,7 @@ noncomputable def BytesToBucketKey.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- isTombstone checks whether the revision bytes is a tombstone.
 
     go: revision.go:120:6 -/
-noncomputable def isTombstone.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def isTombstone.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (App (Val exceptionDo)
   (Let "b" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "b"))
@@ -5298,7 +5298,7 @@ noncomputable def isTombstone.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0"))) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val markedRevBytesLen)))) (App (Val (GoInstruction (GoOp GoEquals go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "b")) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val markBytePosition))))) (Val markTombstone))) (Val #false))))))
 
 /-- go: revision.go:124:6 -/
-noncomputable def IsTombstone.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def IsTombstone.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (App (Val exceptionDo)
   (Let "b" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "b"))
@@ -5307,7 +5307,7 @@ noncomputable def IsTombstone.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (FuncResolve isTombstone []))) (Val #())) (Var "$a0")))))))
 
 /-- go: store.go:22:6 -/
-noncomputable def UnsafeReadFinishedCompact.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def UnsafeReadFinishedCompact.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "tx"
   (App (Val exceptionDo)
   (Let "tx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReader.ty))) (Var "tx"))
@@ -5339,7 +5339,7 @@ noncomputable def UnsafeReadFinishedCompact.impl [FfiSyntax] [GoGlobalContext] :
   (Var "$r0"))))))))))))
 
 /-- go: store.go:30:6 -/
-noncomputable def UnsafeReadScheduledCompact.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def UnsafeReadScheduledCompact.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "tx"
   (App (Val exceptionDo)
   (Let "tx" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReader.ty))) (Var "tx"))
@@ -5371,7 +5371,7 @@ noncomputable def UnsafeReadScheduledCompact.impl [FfiSyntax] [GoGlobalContext] 
   (Var "$r0"))))))))))))
 
 /-- go: store.go:38:6 -/
-noncomputable def SetScheduledCompact.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def SetScheduledCompact.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "tx"
   (Lam "value"
   (App (Val wrapDefer)
@@ -5397,7 +5397,7 @@ noncomputable def SetScheduledCompact.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty go!"LockInsideApply"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty))) (Var "tx"))) (Val #())))))))))))
 
 /-- go: store.go:44:6 -/
-noncomputable def UnsafeSetScheduledCompact.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def UnsafeSetScheduledCompact.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "tx"
   (Lam "value"
   (App (Val exceptionDo)
@@ -5425,7 +5425,7 @@ noncomputable def UnsafeSetScheduledCompact.impl [FfiSyntax] [GoGlobalContext] :
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "rbytes") (Var "$r0")))))))))))))
 
 /-- go: store.go:50:6 -/
-noncomputable def SetFinishedCompact.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def SetFinishedCompact.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "tx"
   (Lam "value"
   (App (Val wrapDefer)
@@ -5451,7 +5451,7 @@ noncomputable def SetFinishedCompact.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty go!"LockInsideApply"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty))) (Var "tx"))) (Val #())))))))))))
 
 /-- go: store.go:56:6 -/
-noncomputable def UnsafeSetFinishedCompact.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def UnsafeSetFinishedCompact.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "tx"
   (Lam "value"
   (App (Val exceptionDo)
@@ -5479,14 +5479,14 @@ noncomputable def UnsafeSetFinishedCompact.impl [FfiSyntax] [GoGlobalContext] : 
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "rbytes") (Var "$r0")))))))))))))
 
 /-- go: watchable_store.go:47:6 -/
-noncomputable def ChanBufLen.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def ChanBufLen.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val exceptionDo)
   (App (Val doReturn)
   (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (GlobalVarAddr chanBufLen))) (Val #()))))))
 
 /-- go: watchable_store.go:84:6 -/
-noncomputable def New.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def New.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (Lam "b"
   (Lam "le"
@@ -5523,7 +5523,7 @@ noncomputable def New.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType watchableStore.ty)))) (Pair (Var "s") (Var "$r0"))))))))))))))))
 
 /-- go: watchable_store.go:92:6 -/
-noncomputable def newWatchableStore.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def newWatchableStore.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (Lam "b"
   (Lam "le"
@@ -5579,7 +5579,7 @@ noncomputable def newWatchableStore.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #())))))))))))))
 
 /-- go: watchable_store.go:112:26 -/
-noncomputable def watchableStore.Close.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def watchableStore.Close.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -5595,7 +5595,7 @@ noncomputable def watchableStore.Close.impl [FfiSyntax] [GoGlobalContext] : val 
   (App (App (Val (GoInstruction (FuncResolve go.close [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #())) (Var "$a0")))))))))
 
 /-- go: watchable_store.go:118:26 -/
-noncomputable def watchableStore.NewWatchStream.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def watchableStore.NewWatchStream.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -5611,7 +5611,7 @@ noncomputable def watchableStore.NewWatchStream.impl [FfiSyntax] [GoGlobalContex
   (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.github_com.prometheus.client_golang.prometheus.Gauge.ty go!"Inc"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.github_com.prometheus.client_golang.prometheus.Gauge.ty))) (App (Val (GoInstruction (GlobalVarAddr watchStreamGauge))) (Val #())))) (Val #()))))))))
 
 /-- go: watchable_store.go:128:26 -/
-noncomputable def watchableStore.watch.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def watchableStore.watch.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "key"
   (Lam "end"
@@ -5694,7 +5694,7 @@ noncomputable def watchableStore.watch.impl [FfiSyntax] [GoGlobalContext] : val 
 /-- cancelWatcher removes references of the watcher from the watchableStore
 
     go: watchable_store.go:161:26 -/
-noncomputable def watchableStore.cancelWatcher.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def watchableStore.cancelWatcher.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "wa"
   (App (Val exceptionDo)
@@ -5797,7 +5797,7 @@ noncomputable def watchableStore.cancelWatcher.impl [FfiSyntax] [GoGlobalContext
   (Val #()))))))))))
 
 /-- go: watchable_store.go:207:26 -/
-noncomputable def watchableStore.Restore.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def watchableStore.Restore.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "b"
   (App (Val wrapDefer)
@@ -5852,7 +5852,7 @@ noncomputable def watchableStore.Restore.impl [FfiSyntax] [GoGlobalContext] : va
 /-- syncWatchersLoop syncs the watcher in the unsynced map every 100ms.
 
     go: watchable_store.go:224:26 -/
-noncomputable def watchableStore.syncWatchersLoop.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def watchableStore.syncWatchersLoop.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
   (App (Val wrapDefer)
@@ -5945,7 +5945,7 @@ noncomputable def watchableStore.syncWatchersLoop.impl [FfiSyntax] [GoGlobalCont
     monotonic clock resolution is coarser than a sync pass takes.
 
     go: watchable_store.go:260:6 -/
-noncomputable def resyncDelay.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def resyncDelay.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "syncDuration"
   (Lam "lastUnsyncedWatchers"
   (Lam "unsyncedWatchers"
@@ -5966,7 +5966,7 @@ noncomputable def resyncDelay.impl [FfiSyntax] [GoGlobalContext] : val :=
     watchers that had a blocked watcher channel
 
     go: watchable_store.go:270:26 -/
-noncomputable def watchableStore.syncVictimsLoop.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def watchableStore.syncVictimsLoop.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
   (App (Val wrapDefer)
@@ -6030,7 +6030,7 @@ noncomputable def watchableStore.syncVictimsLoop.impl [FfiSyntax] [GoGlobalConte
 /-- moveVictims tries to update watches with already pending event data
 
     go: watchable_store.go:296:26 -/
-noncomputable def watchableStore.moveVictims.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def watchableStore.moveVictims.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -6191,7 +6191,7 @@ noncomputable def watchableStore.moveVictims.impl [FfiSyntax] [GoGlobalContext] 
      4. remove synced watchers in set from unsynced group and move to synced group
 
     go: watchable_store.go:358:26 -/
-noncomputable def watchableStore.syncWatchers.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def watchableStore.syncWatchers.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
   (App (Val wrapDefer)
@@ -6387,7 +6387,7 @@ noncomputable def watchableStore.syncWatchers.impl [FfiSyntax] [GoGlobalContext]
 /-- rangeEvents returns events in range [minRev, maxRev).
 
     go: watchable_store.go:430:6 -/
-noncomputable def rangeEvents.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def rangeEvents.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (Lam "b"
   (Lam "minRev"
@@ -6481,7 +6481,7 @@ noncomputable def rangeEvents.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- kvsToEvents gets all events for the watchers from all key-value pairs
 
     go: watchable_store.go:457:6 -/
-noncomputable def kvsToEvents.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def kvsToEvents.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (Lam "c"
   (Lam "revs"
@@ -6566,7 +6566,7 @@ noncomputable def kvsToEvents.impl [FfiSyntax] [GoGlobalContext] : val :=
     watchers that watch on the key of the event.
 
     go: watchable_store.go:481:26 -/
-noncomputable def watchableStore.notify.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def watchableStore.notify.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "rev"
   (Lam "evs"
@@ -6640,7 +6640,7 @@ noncomputable def watchableStore.notify.impl [FfiSyntax] [GoGlobalContext] : val
   (App (Val (GoInstruction (GoStore watcherBatch.ty))) (Pair (Var "victim") (Var "$r0")))))))))))))))
 
 /-- go: watchable_store.go:507:26 -/
-noncomputable def watchableStore.addVictim.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def watchableStore.addVictim.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "victim"
   (App (Val exceptionDo)
@@ -6670,7 +6670,7 @@ noncomputable def watchableStore.addVictim.impl [FfiSyntax] [GoGlobalContext] : 
   (Val #()))))))))))
 
 /-- go: watchable_store.go:518:26 -/
-noncomputable def watchableStore.rev.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def watchableStore.rev.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -6679,7 +6679,7 @@ noncomputable def watchableStore.rev.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType store.ty) go!"Rev"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType store.ty)))) (App (Val (GoInstruction (StructFieldRef watchableStore.ty go!"store"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchableStore.ty)))) (Var "s"))))) (Val #())))))))
 
 /-- go: watchable_store.go:520:26 -/
-noncomputable def watchableStore.progress.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def watchableStore.progress.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "w"
   (App (Val exceptionDo)
@@ -6696,7 +6696,7 @@ noncomputable def watchableStore.progress.impl [FfiSyntax] [GoGlobalContext] : v
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType watchableStore.ty) go!"progressIfSync"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchableStore.ty)))) (Var "s"))) (Var "$a0")) (Var "$a1")))))))))))
 
 /-- go: watchable_store.go:524:26 -/
-noncomputable def watchableStore.progressAll.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def watchableStore.progressAll.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "watchers"
   (App (Val exceptionDo)
@@ -6708,7 +6708,7 @@ noncomputable def watchableStore.progressAll.impl [FfiSyntax] [GoGlobalContext] 
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType watchableStore.ty) go!"progressIfSync"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchableStore.ty)))) (Var "s"))) (Var "$a0")) (Var "$a1"))))))))))
 
 /-- go: watchable_store.go:528:26 -/
-noncomputable def watchableStore.progressIfSync.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def watchableStore.progressIfSync.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "watchers"
   (Lam "responseWatchID"
@@ -6791,7 +6791,7 @@ noncomputable def watchableStore.progressIfSync.impl [FfiSyntax] [GoGlobalContex
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef watchableStore.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchableStore.ty)))) (Var "s")))) (Val #()))))))))))))
 
 /-- go: watchable_store.go:588:19 -/
-noncomputable def watcher.send.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def watcher.send.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "wr"
   (App (Val exceptionDo)
@@ -6909,7 +6909,7 @@ noncomputable def watcher.send.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "progressEvent") (Var "$r0"))))))))))))
 
 /-- go: watchable_store_txn.go:22:35 -/
-noncomputable def watchableStoreTxnWrite.End.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def watchableStoreTxnWrite.End.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "tw"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -6987,7 +6987,7 @@ noncomputable def watchableStoreTxnWrite.End.impl [FfiSyntax] [GoGlobalContext] 
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (Pair (Var "changes") (Var "$r0"))))))))))))
 
 /-- go: watchable_store_txn.go:54:26 -/
-noncomputable def watchableStore.Write.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def watchableStore.Write.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "trace"
   (App (Val exceptionDo)
@@ -7002,7 +7002,7 @@ noncomputable def watchableStore.Write.impl [FfiSyntax] [GoGlobalContext] : val 
 /-- Watch creates a new watcher in the stream and returns its WatchID.
 
     go: watcher.go:115:24 -/
-noncomputable def watchStream.Watch.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def watchStream.Watch.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ws"
   (Lam "ctx"
   (Lam "id"
@@ -7128,7 +7128,7 @@ noncomputable def watchStream.Watch.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #()))))))))))))))))))))
 
 /-- go: watcher.go:149:24 -/
-noncomputable def watchStream.Chan.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def watchStream.Chan.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ws"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -7137,7 +7137,7 @@ noncomputable def watchStream.Chan.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (Convert (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty) (go.GoType.ChannelType go.ChanDir.recvonly WatchResponse.ty)))) (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty)))) (App (Val (GoInstruction (StructFieldRef watchStream.ty go!"ch"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchStream.ty)))) (Var "ws"))))))))))
 
 /-- go: watcher.go:153:24 -/
-noncomputable def watchStream.Cancel.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def watchStream.Cancel.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ws"
   (Lam "id"
   (App (Val exceptionDo)
@@ -7208,7 +7208,7 @@ noncomputable def watchStream.Cancel.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef watchStream.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchStream.ty)))) (Var "ws")))) (Val #())))))))))
 
 /-- go: watcher.go:178:24 -/
-noncomputable def watchStream.Close.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def watchStream.Close.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ws"
   (Lam BAnon
   (App (Val wrapDefer)
@@ -7253,7 +7253,7 @@ noncomputable def watchStream.Close.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef watchStream.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchStream.ty)))) (Var "ws")))) (Val #()))))))))))
 
 /-- go: watcher.go:190:24 -/
-noncomputable def watchStream.Rev.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def watchStream.Rev.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ws"
   (Lam BAnon
   (App (Val wrapDefer)
@@ -7273,7 +7273,7 @@ noncomputable def watchStream.Rev.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef watchStream.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchStream.ty)))) (Var "ws")))) (Val #())))))))))
 
 /-- go: watcher.go:196:24 -/
-noncomputable def watchStream.RequestProgress.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def watchStream.RequestProgress.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ws"
   (Lam "id"
   (App (Val exceptionDo)
@@ -7312,7 +7312,7 @@ noncomputable def watchStream.RequestProgress.impl [FfiSyntax] [GoGlobalContext]
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef watchStream.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchStream.ty)))) (Var "ws")))) (Val #()))))))))))
 
 /-- go: watcher.go:206:24 -/
-noncomputable def watchStream.RequestProgressAll.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def watchStream.RequestProgressAll.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ws"
   (Lam BAnon
   (App (Val wrapDefer)
@@ -7333,7 +7333,7 @@ noncomputable def watchStream.RequestProgressAll.impl [FfiSyntax] [GoGlobalConte
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef watchStream.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType watchStream.ty)))) (Var "ws")))) (Val #())))))))))
 
 /-- go: watcher_group.go:39:23 -/
-noncomputable def eventBatch.add.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def eventBatch.add.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "eb"
   (Lam "ev"
   (App (Val exceptionDo)
@@ -7401,7 +7401,7 @@ noncomputable def eventBatch.add.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #()))))))))))
 
 /-- go: watcher_group.go:68:24 -/
-noncomputable def watcherBatch.add.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def watcherBatch.add.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "wb"
   (Lam "w"
   (Lam "ev"
@@ -7436,7 +7436,7 @@ noncomputable def watcherBatch.add.impl [FfiSyntax] [GoGlobalContext] : val :=
     events look up by watcher.
 
     go: watcher_group.go:79:6 -/
-noncomputable def newWatcherBatch.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def newWatcherBatch.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "wg"
   (Lam "evs"
   (App (Val exceptionDo)
@@ -7489,7 +7489,7 @@ noncomputable def newWatcherBatch.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #())))))))))
 
 /-- go: watcher_group.go:102:21 -/
-noncomputable def watcherSet.add.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def watcherSet.add.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "wa"
   (App (Val exceptionDo)
@@ -7522,7 +7522,7 @@ noncomputable def watcherSet.add.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Var "$r0"))))))))))))))))
 
 /-- go: watcher_group.go:109:21 -/
-noncomputable def watcherSet.union.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def watcherSet.union.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "ws"
   (App (Val exceptionDo)
@@ -7544,7 +7544,7 @@ noncomputable def watcherSet.union.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType watcher.ty)))) (Pair (Var "wa") (Var "$key"))))))))))))))))
 
 /-- go: watcher_group.go:115:21 -/
-noncomputable def watcherSet.delete.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def watcherSet.delete.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "wa"
   (App (Val exceptionDo)
@@ -7578,7 +7578,7 @@ noncomputable def watcherSet.delete.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Var "$r0"))))))))))))))))
 
 /-- go: watcher_group.go:124:26 -/
-noncomputable def watcherSetByKey.add.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def watcherSetByKey.add.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "wa"
   (App (Val exceptionDo)
@@ -7608,7 +7608,7 @@ noncomputable def watcherSetByKey.add.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val (GoInstruction (GoStore watcherSet.ty))) (Pair (Var "set") (Var "$r0")))))))))))))
 
 /-- go: watcher_group.go:133:26 -/
-noncomputable def watcherSetByKey.delete.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def watcherSetByKey.delete.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "wa"
   (App (Val exceptionDo)
@@ -7671,7 +7671,7 @@ noncomputable def watcherSetByKey.delete.impl [FfiSyntax] [GoGlobalContext] : va
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "k") (Var "$r0"))))))))))))
 
 /-- go: watcher_group.go:158:6 -/
-noncomputable def newWatcherGroup.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def newWatcherGroup.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val exceptionDo)
   (App (Val doReturn)
@@ -7683,7 +7683,7 @@ noncomputable def newWatcherGroup.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- add puts a watcher in the group.
 
     go: watcher_group.go:167:25 -/
-noncomputable def watcherGroup.add.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def watcherGroup.add.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "wg"
   (Lam "wa"
   (App (Val exceptionDo)
@@ -7746,7 +7746,7 @@ noncomputable def watcherGroup.add.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- contains is whether the given key has a watcher in the group.
 
     go: watcher_group.go:188:25 -/
-noncomputable def watcherGroup.contains.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def watcherGroup.contains.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "wg"
   (Lam "key"
   (App (Val exceptionDo)
@@ -7772,7 +7772,7 @@ noncomputable def watcherGroup.contains.impl [FfiSyntax] [GoGlobalContext] : val
 /-- size gives the number of unique watchers in the group.
 
     go: watcher_group.go:194:25 -/
-noncomputable def watcherGroup.size.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def watcherGroup.size.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "wg"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -7784,7 +7784,7 @@ noncomputable def watcherGroup.size.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- delete removes a watcher from the group.
 
     go: watcher_group.go:197:25 -/
-noncomputable def watcherGroup.delete.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def watcherGroup.delete.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "wg"
   (Lam "wa"
   (App (Val exceptionDo)
@@ -7874,7 +7874,7 @@ noncomputable def watcherGroup.delete.impl [FfiSyntax] [GoGlobalContext] : val :
 /-- choose selects watchers from the watcher group to update
 
     go: watcher_group.go:226:25 -/
-noncomputable def watcherGroup.choose.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def watcherGroup.choose.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "wg"
   (Lam "maxWatchers"
   (Lam "curRev"
@@ -7924,7 +7924,7 @@ noncomputable def watcherGroup.choose.impl [FfiSyntax] [GoGlobalContext] : val :
   (Val #())))))))))))))
 
 /-- go: watcher_group.go:241:25 -/
-noncomputable def watcherGroup.chooseAll.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def watcherGroup.chooseAll.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "wg"
   (Lam "curRev"
   (Lam "compactRev"
@@ -7994,7 +7994,7 @@ noncomputable def watcherGroup.chooseAll.impl [FfiSyntax] [GoGlobalContext] : va
 /-- watcherSetByKey gets the set of watchers that receive events on the given key.
 
     go: watcher_group.go:273:25 -/
-noncomputable def watcherGroup.watcherSetByKey.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def watcherGroup.watcherSetByKey.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "wg"
   (Lam "key"
   (App (Val exceptionDo)
@@ -8060,9 +8060,9 @@ noncomputable def watcherGroup.watcherSetByKey.impl [FfiSyntax] [GoGlobalContext
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc where
   pkgImportedPkgs := [pkg_id.hash, pkg_id.sync, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.server.v3.storage.backend, pkg_id.go_etcd_io.etcd.server.v3.storage.schema, pkg_id.k8s_io.utils.third_party.forked.golang.btree, pkg_id.bytes, pkg_id.errors, pkg_id.fmt, pkg_id.context, pkg_id.go_etcd_io.etcd.api.v3.mvccpb, pkg_id.go_etcd_io.etcd.pkg.v3.traceutil, pkg_id.go_etcd_io.etcd.server.v3.lease, pkg_id.math, pkg_id.time, pkg_id.google_golang_org.protobuf.proto, pkg_id.go_etcd_io.etcd.client.pkg.v3.verify, pkg_id.go_etcd_io.etcd.pkg.v3.schedule, pkg_id.encoding.binary, pkg_id.github_com.dustin.go_humanize, pkg_id.github_com.prometheus.client_golang.prometheus, pkg_id.go_etcd_io.etcd.client.v3, pkg_id.go_opentelemetry_io.otel.trace, pkg_id.go_etcd_io.etcd.pkg.v3.adt]
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc)) (Lam BAnon
   (App (Val exceptionDo)
@@ -8367,33 +8367,33 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc watchBatchMaxRevs go.int)) (Val #()))))))))
 
-structure kvHasher [FfiSyntax] where
+structure kvHasher [GooseExts] where
   mk ::
   hash' : _root_.Perennial.hash.Hash32
   compactRevision' : w64
   revision' : w64
   keep' : GoMap
 
-noncomputable instance kvHasher.zero_val [FfiSyntax] : ZeroVal kvHasher :=
+noncomputable instance kvHasher.zero_val [GooseExts] : ZeroVal kvHasher :=
   ⟨kvHasher.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def kvHasher.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def kvHasher.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"hash" _root_.Perennial.hash.Hash32.ty),
 (go.field_decl.FieldDecl go!"compactRevision" go.int64),
 (go.field_decl.FieldDecl go!"revision" go.int64),
 (go.field_decl.FieldDecl go!"keep" (go.GoType.MapType Revision.ty (go.GoType.StructType [])))]
 
-@[irreducible] noncomputable def kvHasher.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def kvHasher.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   kvHasher.fieldsUnsealed
 
-noncomputable instance equals_unfold_kvHasher [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_kvHasher [GooseExts] [GoGlobalContext] :
     EqualsUnfold kvHasher.fields kvHasher.fieldsUnsealed :=
   ⟨by unfold kvHasher.fields; rfl⟩
 
-@[reducible] noncomputable def kvHasher.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def kvHasher.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType kvHasher.fields)
 
-class kvHasher.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class kvHasher.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying kvHasher.underlying kvHasher
   underlying : go.UnderlyingDirectedEq kvHasher.ty kvHasher.underlying
   get_hash : ∀ (x : kvHasher), go.IsGoStepPureDetTagged under (StructFieldGet kvHasher.underlying go!"hash") #x (Val #(x.hash'))
@@ -8416,31 +8416,31 @@ attribute [instance] kvHasher.TypeAssumptions.type_repr
   kvHasher.TypeAssumptions.get_keep
   kvHasher.TypeAssumptions.set_keep
 
-structure KeyValueHash [FfiSyntax] where
+structure KeyValueHash [GooseExts] where
   mk ::
   Hash' : w32
   CompactRevision' : w64
   Revision' : w64
 
-noncomputable instance KeyValueHash.zero_val [FfiSyntax] : ZeroVal KeyValueHash :=
+noncomputable instance KeyValueHash.zero_val [GooseExts] : ZeroVal KeyValueHash :=
   ⟨KeyValueHash.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def KeyValueHash.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def KeyValueHash.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Hash" go.uint32),
 (go.field_decl.FieldDecl go!"CompactRevision" go.int64),
 (go.field_decl.FieldDecl go!"Revision" go.int64)]
 
-@[irreducible] noncomputable def KeyValueHash.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def KeyValueHash.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   KeyValueHash.fieldsUnsealed
 
-noncomputable instance equals_unfold_KeyValueHash [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_KeyValueHash [GooseExts] [GoGlobalContext] :
     EqualsUnfold KeyValueHash.fields KeyValueHash.fieldsUnsealed :=
   ⟨by unfold KeyValueHash.fields; rfl⟩
 
-@[reducible] noncomputable def KeyValueHash.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def KeyValueHash.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType KeyValueHash.fields)
 
-class KeyValueHash.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class KeyValueHash.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying KeyValueHash.underlying KeyValueHash
   underlying : go.UnderlyingDirectedEq KeyValueHash.ty KeyValueHash.underlying
   get_Hash : ∀ (x : KeyValueHash), go.IsGoStepPureDetTagged under (StructFieldGet KeyValueHash.underlying go!"Hash") #x (Val #(x.Hash'))
@@ -8459,43 +8459,43 @@ attribute [instance] KeyValueHash.TypeAssumptions.type_repr
   KeyValueHash.TypeAssumptions.get_Revision
   KeyValueHash.TypeAssumptions.set_Revision
 
-abbrev HashStorage [FfiSyntax] : Type := GoInterface
+abbrev HashStorage [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def HashStorage.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def HashStorage.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Hash" (go.signature.Signature [] false [go.uint32, go.int64, go.error])), (go.InterfaceElem.MethodElem go!"HashByRev" (go.signature.Signature [go.int64] false [KeyValueHash.ty, go.int64, go.error])), (go.InterfaceElem.MethodElem go!"Hashes" (go.signature.Signature [] false [(go.GoType.SliceType KeyValueHash.ty)])), (go.InterfaceElem.MethodElem go!"Store" (go.signature.Signature [KeyValueHash.ty] false []))])
 
-class HashStorage.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class HashStorage.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq HashStorage.ty HashStorage.underlying
 
 attribute [instance] HashStorage.TypeAssumptions.underlying
 
-structure hashStorage [FfiSyntax] where
+structure hashStorage [GooseExts] where
   mk ::
   store' : Loc
   hashMu' : _root_.Perennial.sync.RWMutex
   hashes' : GoSlice
   lg' : Loc
 
-noncomputable instance hashStorage.zero_val [FfiSyntax] : ZeroVal hashStorage :=
+noncomputable instance hashStorage.zero_val [GooseExts] : ZeroVal hashStorage :=
   ⟨hashStorage.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def hashStorage.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def hashStorage.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"store" (go.GoType.PointerType store.ty)),
 (go.field_decl.FieldDecl go!"hashMu" _root_.Perennial.sync.RWMutex.ty),
 (go.field_decl.FieldDecl go!"hashes" (go.GoType.SliceType KeyValueHash.ty)),
 (go.field_decl.FieldDecl go!"lg" (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty))]
 
-@[irreducible] noncomputable def hashStorage.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def hashStorage.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   hashStorage.fieldsUnsealed
 
-noncomputable instance equals_unfold_hashStorage [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_hashStorage [GooseExts] [GoGlobalContext] :
     EqualsUnfold hashStorage.fields hashStorage.fieldsUnsealed :=
   ⟨by unfold hashStorage.fields; rfl⟩
 
-@[reducible] noncomputable def hashStorage.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def hashStorage.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType hashStorage.fields)
 
-class hashStorage.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class hashStorage.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying hashStorage.underlying hashStorage
   underlying : go.UnderlyingDirectedEq hashStorage.ty hashStorage.underlying
   get_store : ∀ (x : hashStorage), go.IsGoStepPureDetTagged under (StructFieldGet hashStorage.underlying go!"store") #x (Val #(x.store'))
@@ -8518,41 +8518,41 @@ attribute [instance] hashStorage.TypeAssumptions.type_repr
   hashStorage.TypeAssumptions.get_lg
   hashStorage.TypeAssumptions.set_lg
 
-abbrev index [FfiSyntax] : Type := GoInterface
+abbrev index [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def index.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def index.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Compact" (go.signature.Signature [go.int64] false [(go.GoType.MapType Revision.ty (go.GoType.StructType []))])), (go.InterfaceElem.MethodElem go!"CountRevisions" (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), go.int64] false [go.int])), (go.InterfaceElem.MethodElem go!"Equal" (go.signature.Signature [index.ty] false [go.bool])), (go.InterfaceElem.MethodElem go!"Get" (go.signature.Signature [(go.GoType.SliceType go.byte), go.int64] false [Revision.ty, Revision.ty, go.int64, go.error])), (go.InterfaceElem.MethodElem go!"Insert" (go.signature.Signature [(go.GoType.PointerType keyIndex.ty)] false [])), (go.InterfaceElem.MethodElem go!"Keep" (go.signature.Signature [go.int64] false [(go.GoType.MapType Revision.ty (go.GoType.StructType []))])), (go.InterfaceElem.MethodElem go!"KeyIndex" (go.signature.Signature [(go.GoType.PointerType keyIndex.ty)] false [(go.GoType.PointerType keyIndex.ty)])), (go.InterfaceElem.MethodElem go!"Put" (go.signature.Signature [(go.GoType.SliceType go.byte), Revision.ty] false [])), (go.InterfaceElem.MethodElem go!"Range" (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), go.int64, go.int, go.bool] false [(go.GoType.SliceType (go.GoType.SliceType go.byte)), (go.GoType.SliceType Revision.ty), (go.GoType.SliceType Revision.ty), (go.GoType.SliceType go.int64), go.int])), (go.InterfaceElem.MethodElem go!"Revisions" (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), go.int64, go.int, go.bool] false [(go.GoType.SliceType Revision.ty), go.int])), (go.InterfaceElem.MethodElem go!"Tombstone" (go.signature.Signature [(go.GoType.SliceType go.byte), Revision.ty] false [go.error]))])
 
-class index.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class index.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq index.ty index.underlying
 
 attribute [instance] index.TypeAssumptions.underlying
 
-structure treeIndex [FfiSyntax] where
+structure treeIndex [GooseExts] where
   mk ::
   RWMutex' : _root_.Perennial.sync.RWMutex
   tree' : Loc
   lg' : Loc
 
-noncomputable instance treeIndex.zero_val [FfiSyntax] : ZeroVal treeIndex :=
+noncomputable instance treeIndex.zero_val [GooseExts] : ZeroVal treeIndex :=
   ⟨treeIndex.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def treeIndex.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def treeIndex.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"RWMutex" _root_.Perennial.sync.RWMutex.ty),
 (go.field_decl.FieldDecl go!"tree" (go.GoType.PointerType (_root_.Perennial.k8s_io.utils.third_party.forked.golang.btree.BTree.ty (go.GoType.PointerType keyIndex.ty)))),
 (go.field_decl.FieldDecl go!"lg" (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty))]
 
-@[irreducible] noncomputable def treeIndex.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def treeIndex.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   treeIndex.fieldsUnsealed
 
-noncomputable instance equals_unfold_treeIndex [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_treeIndex [GooseExts] [GoGlobalContext] :
     EqualsUnfold treeIndex.fields treeIndex.fieldsUnsealed :=
   ⟨by unfold treeIndex.fields; rfl⟩
 
-@[reducible] noncomputable def treeIndex.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def treeIndex.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType treeIndex.fields)
 
-class treeIndex.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class treeIndex.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying treeIndex.underlying treeIndex
   underlying : go.UnderlyingDirectedEq treeIndex.ty treeIndex.underlying
   get_RWMutex : ∀ (x : treeIndex), go.IsGoStepPureDetTagged under (StructFieldGet treeIndex.underlying go!"RWMutex") #x (Val #(x.RWMutex'))
@@ -8618,29 +8618,29 @@ attribute [instance] treeIndex.TypeAssumptions.type_repr
   treeIndex.TypeAssumptions.ptr_unsafeGet_unfold
   treeIndex.TypeAssumptions.ptr_unsafeVisit_unfold
 
-structure Revision [FfiSyntax] where
+structure Revision [GooseExts] where
   mk ::
   Main' : w64
   Sub' : w64
 
-noncomputable instance Revision.zero_val [FfiSyntax] : ZeroVal Revision :=
+noncomputable instance Revision.zero_val [GooseExts] : ZeroVal Revision :=
   ⟨Revision.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Revision.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Revision.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Main" go.int64),
 (go.field_decl.FieldDecl go!"Sub" go.int64)]
 
-@[irreducible] noncomputable def Revision.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Revision.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Revision.fieldsUnsealed
 
-noncomputable instance equals_unfold_Revision [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Revision [GooseExts] [GoGlobalContext] :
     EqualsUnfold Revision.fields Revision.fieldsUnsealed :=
   ⟨by unfold Revision.fields; rfl⟩
 
-@[reducible] noncomputable def Revision.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Revision.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Revision.fields)
 
-class Revision.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Revision.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Revision.underlying Revision
   underlying : go.UnderlyingDirectedEq Revision.ty Revision.underlying
   get_Main : ∀ (x : Revision), go.IsGoStepPureDetTagged under (StructFieldGet Revision.underlying go!"Main") #x (Val #(x.Main'))
@@ -8660,31 +8660,31 @@ attribute [instance] Revision.TypeAssumptions.type_repr
   Revision.TypeAssumptions.GreaterThan_unfold
   Revision.TypeAssumptions.ptr_GreaterThan_unfold
 
-structure keyIndex [FfiSyntax] where
+structure keyIndex [GooseExts] where
   mk ::
   key' : GoSlice
   modified' : Revision
   generations' : GoSlice
 
-noncomputable instance keyIndex.zero_val [FfiSyntax] : ZeroVal keyIndex :=
+noncomputable instance keyIndex.zero_val [GooseExts] : ZeroVal keyIndex :=
   ⟨keyIndex.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def keyIndex.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def keyIndex.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"key" (go.GoType.SliceType go.byte)),
 (go.field_decl.FieldDecl go!"modified" Revision.ty),
 (go.field_decl.FieldDecl go!"generations" (go.GoType.SliceType generation.ty))]
 
-@[irreducible] noncomputable def keyIndex.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def keyIndex.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   keyIndex.fieldsUnsealed
 
-noncomputable instance equals_unfold_keyIndex [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_keyIndex [GooseExts] [GoGlobalContext] :
     EqualsUnfold keyIndex.fields keyIndex.fieldsUnsealed :=
   ⟨by unfold keyIndex.fields; rfl⟩
 
-@[reducible] noncomputable def keyIndex.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def keyIndex.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType keyIndex.fields)
 
-class keyIndex.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class keyIndex.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying keyIndex.underlying keyIndex
   underlying : go.UnderlyingDirectedEq keyIndex.ty keyIndex.underlying
   get_key : ∀ (x : keyIndex), go.IsGoStepPureDetTagged under (StructFieldGet keyIndex.underlying go!"key") #x (Val #(x.key'))
@@ -8725,31 +8725,31 @@ attribute [instance] keyIndex.TypeAssumptions.type_repr
   keyIndex.TypeAssumptions.ptr_restoreTombstone_unfold
   keyIndex.TypeAssumptions.ptr_tombstone_unfold
 
-structure generation [FfiSyntax] where
+structure generation [GooseExts] where
   mk ::
   ver' : w64
   created' : Revision
   revs' : GoSlice
 
-noncomputable instance generation.zero_val [FfiSyntax] : ZeroVal generation :=
+noncomputable instance generation.zero_val [GooseExts] : ZeroVal generation :=
   ⟨generation.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def generation.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def generation.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"ver" go.int64),
 (go.field_decl.FieldDecl go!"created" Revision.ty),
 (go.field_decl.FieldDecl go!"revs" (go.GoType.SliceType Revision.ty))]
 
-@[irreducible] noncomputable def generation.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def generation.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   generation.fieldsUnsealed
 
-noncomputable instance equals_unfold_generation [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_generation [GooseExts] [GoGlobalContext] :
     EqualsUnfold generation.fields generation.fieldsUnsealed :=
   ⟨by unfold generation.fields; rfl⟩
 
-@[reducible] noncomputable def generation.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def generation.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType generation.fields)
 
-class generation.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class generation.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying generation.underlying generation
   underlying : go.UnderlyingDirectedEq generation.ty generation.underlying
   get_ver : ∀ (x : generation), go.IsGoStepPureDetTagged under (StructFieldGet generation.underlying go!"ver") #x (Val #(x.ver'))
@@ -8772,7 +8772,7 @@ attribute [instance] generation.TypeAssumptions.type_repr
   generation.TypeAssumptions.ptr_isEmpty_unfold
   generation.TypeAssumptions.ptr_walk_unfold
 
-structure RangeOptions [FfiSyntax] where
+structure RangeOptions [GooseExts] where
   mk ::
   Limit' : w64
   Rev' : w64
@@ -8780,27 +8780,27 @@ structure RangeOptions [FfiSyntax] where
   FastKeysOnly' : Bool
   WithTotalCount' : Bool
 
-noncomputable instance RangeOptions.zero_val [FfiSyntax] : ZeroVal RangeOptions :=
+noncomputable instance RangeOptions.zero_val [GooseExts] : ZeroVal RangeOptions :=
   ⟨RangeOptions.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def RangeOptions.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def RangeOptions.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Limit" go.int64),
 (go.field_decl.FieldDecl go!"Rev" go.int64),
 (go.field_decl.FieldDecl go!"CountOnly" go.bool),
 (go.field_decl.FieldDecl go!"FastKeysOnly" go.bool),
 (go.field_decl.FieldDecl go!"WithTotalCount" go.bool)]
 
-@[irreducible] noncomputable def RangeOptions.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def RangeOptions.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   RangeOptions.fieldsUnsealed
 
-noncomputable instance equals_unfold_RangeOptions [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_RangeOptions [GooseExts] [GoGlobalContext] :
     EqualsUnfold RangeOptions.fields RangeOptions.fieldsUnsealed :=
   ⟨by unfold RangeOptions.fields; rfl⟩
 
-@[reducible] noncomputable def RangeOptions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def RangeOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType RangeOptions.fields)
 
-class RangeOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class RangeOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RangeOptions.underlying RangeOptions
   underlying : go.UnderlyingDirectedEq RangeOptions.ty RangeOptions.underlying
   get_Limit : ∀ (x : RangeOptions), go.IsGoStepPureDetTagged under (StructFieldGet RangeOptions.underlying go!"Limit") #x (Val #(x.Limit'))
@@ -8827,31 +8827,31 @@ attribute [instance] RangeOptions.TypeAssumptions.type_repr
   RangeOptions.TypeAssumptions.get_WithTotalCount
   RangeOptions.TypeAssumptions.set_WithTotalCount
 
-structure RangeResult [FfiSyntax] where
+structure RangeResult [GooseExts] where
   mk ::
   KVs' : GoSlice
   Rev' : w64
   Count' : w64
 
-noncomputable instance RangeResult.zero_val [FfiSyntax] : ZeroVal RangeResult :=
+noncomputable instance RangeResult.zero_val [GooseExts] : ZeroVal RangeResult :=
   ⟨RangeResult.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def RangeResult.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def RangeResult.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"KVs" (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))),
 (go.field_decl.FieldDecl go!"Rev" go.int64),
 (go.field_decl.FieldDecl go!"Count" go.int)]
 
-@[irreducible] noncomputable def RangeResult.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def RangeResult.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   RangeResult.fieldsUnsealed
 
-noncomputable instance equals_unfold_RangeResult [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_RangeResult [GooseExts] [GoGlobalContext] :
     EqualsUnfold RangeResult.fields RangeResult.fieldsUnsealed :=
   ⟨by unfold RangeResult.fields; rfl⟩
 
-@[reducible] noncomputable def RangeResult.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def RangeResult.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType RangeResult.fields)
 
-class RangeResult.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class RangeResult.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RangeResult.underlying RangeResult
   underlying : go.UnderlyingDirectedEq RangeResult.ty RangeResult.underlying
   get_KVs : ∀ (x : RangeResult), go.IsGoStepPureDetTagged under (StructFieldGet RangeResult.underlying go!"KVs") #x (Val #(x.KVs'))
@@ -8870,67 +8870,67 @@ attribute [instance] RangeResult.TypeAssumptions.type_repr
   RangeResult.TypeAssumptions.get_Count
   RangeResult.TypeAssumptions.set_Count
 
-abbrev ReadView [FfiSyntax] : Type := GoInterface
+abbrev ReadView [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def ReadView.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ReadView.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"FirstRev" (go.signature.Signature [] false [go.int64])), (go.InterfaceElem.MethodElem go!"Range" (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), RangeOptions.ty] false [(go.GoType.PointerType RangeResult.ty), go.error])), (go.InterfaceElem.MethodElem go!"Rev" (go.signature.Signature [] false [go.int64]))])
 
-class ReadView.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ReadView.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ReadView.ty ReadView.underlying
 
 attribute [instance] ReadView.TypeAssumptions.underlying
 
-abbrev TxnRead [FfiSyntax] : Type := GoInterface
+abbrev TxnRead [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def TxnRead.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def TxnRead.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"End" (go.signature.Signature [] false [])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm ReadView.ty)])])
 
-class TxnRead.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class TxnRead.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq TxnRead.ty TxnRead.underlying
 
 attribute [instance] TxnRead.TypeAssumptions.underlying
 
-abbrev WriteView [FfiSyntax] : Type := GoInterface
+abbrev WriteView [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def WriteView.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def WriteView.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"DeleteRange" (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.int64, go.int64])), (go.InterfaceElem.MethodElem go!"Put" (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), _root_.Perennial.go_etcd_io.etcd.server.v3.lease.LeaseID.ty] false [go.int64]))])
 
-class WriteView.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class WriteView.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq WriteView.ty WriteView.underlying
 
 attribute [instance] WriteView.TypeAssumptions.underlying
 
-abbrev TxnWrite [FfiSyntax] : Type := GoInterface
+abbrev TxnWrite [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def TxnWrite.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def TxnWrite.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Changes" (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm TxnRead.ty)]), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm WriteView.ty)])])
 
-class TxnWrite.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class TxnWrite.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq TxnWrite.ty TxnWrite.underlying
 
 attribute [instance] TxnWrite.TypeAssumptions.underlying
 
-structure txnReadWrite [FfiSyntax] where
+structure txnReadWrite [GooseExts] where
   mk ::
   TxnRead' : TxnRead
 
-noncomputable instance txnReadWrite.zero_val [FfiSyntax] : ZeroVal txnReadWrite :=
+noncomputable instance txnReadWrite.zero_val [GooseExts] : ZeroVal txnReadWrite :=
   ⟨txnReadWrite.mk zeroValDef⟩
 
-@[reducible] noncomputable def txnReadWrite.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def txnReadWrite.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"TxnRead" TxnRead.ty)]
 
-@[irreducible] noncomputable def txnReadWrite.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def txnReadWrite.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   txnReadWrite.fieldsUnsealed
 
-noncomputable instance equals_unfold_txnReadWrite [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_txnReadWrite [GooseExts] [GoGlobalContext] :
     EqualsUnfold txnReadWrite.fields txnReadWrite.fieldsUnsealed :=
   ⟨by unfold txnReadWrite.fields; rfl⟩
 
-@[reducible] noncomputable def txnReadWrite.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def txnReadWrite.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType txnReadWrite.fields)
 
-class txnReadWrite.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class txnReadWrite.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying txnReadWrite.underlying txnReadWrite
   underlying : go.UnderlyingDirectedEq txnReadWrite.ty txnReadWrite.underlying
   get_TxnRead : ∀ (x : txnReadWrite), go.IsGoStepPureDetTagged under (StructFieldGet txnReadWrite.underlying go!"TxnRead") #x (Val #(x.TxnRead'))
@@ -8971,67 +8971,67 @@ attribute [instance] txnReadWrite.TypeAssumptions.type_repr
   txnReadWrite.TypeAssumptions.ptr_Range_unfold
   txnReadWrite.TypeAssumptions.ptr_Rev_unfold
 
-abbrev ReadTxMode [FfiSyntax] : Type := w32
+abbrev ReadTxMode [GooseExts] : Type := w32
 
-@[reducible] noncomputable def ReadTxMode.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ReadTxMode.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.uint32
 
-class ReadTxMode.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ReadTxMode.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ReadTxMode.ty ReadTxMode.underlying
 
 attribute [instance] ReadTxMode.TypeAssumptions.underlying
 
-abbrev KV [FfiSyntax] : Type := GoInterface
+abbrev KV [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def KV.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def KV.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Close" (go.signature.Signature [] false [go.error])), (go.InterfaceElem.MethodElem go!"Commit" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"Compact" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty), go.int64] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType [])), go.error])), (go.InterfaceElem.MethodElem go!"HashStorage" (go.signature.Signature [] false [HashStorage.ty])), (go.InterfaceElem.MethodElem go!"Read" (go.signature.Signature [ReadTxMode.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty)] false [TxnRead.ty])), (go.InterfaceElem.MethodElem go!"Restore" (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"Write" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty)] false [TxnWrite.ty])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm ReadView.ty)]), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm WriteView.ty)])])
 
-class KV.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class KV.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq KV.ty KV.underlying
 
 attribute [instance] KV.TypeAssumptions.underlying
 
-abbrev WatchableKV [FfiSyntax] : Type := GoInterface
+abbrev WatchableKV [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def WatchableKV.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def WatchableKV.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.TypeElem [(go.type_term.TypeTerm KV.ty)]), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm Watchable.ty)])])
 
-class WatchableKV.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class WatchableKV.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq WatchableKV.ty WatchableKV.underlying
 
 attribute [instance] WatchableKV.TypeAssumptions.underlying
 
-abbrev Watchable [FfiSyntax] : Type := GoInterface
+abbrev Watchable [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def Watchable.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Watchable.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"NewWatchStream" (go.signature.Signature [] false [WatchStream.ty]))])
 
-class Watchable.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Watchable.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Watchable.ty Watchable.underlying
 
 attribute [instance] Watchable.TypeAssumptions.underlying
 
-structure readView [FfiSyntax] where
+structure readView [GooseExts] where
   mk ::
   kv' : KV
 
-noncomputable instance readView.zero_val [FfiSyntax] : ZeroVal readView :=
+noncomputable instance readView.zero_val [GooseExts] : ZeroVal readView :=
   ⟨readView.mk zeroValDef⟩
 
-@[reducible] noncomputable def readView.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def readView.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"kv" KV.ty)]
 
-@[irreducible] noncomputable def readView.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def readView.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   readView.fieldsUnsealed
 
-noncomputable instance equals_unfold_readView [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_readView [GooseExts] [GoGlobalContext] :
     EqualsUnfold readView.fields readView.fieldsUnsealed :=
   ⟨by unfold readView.fields; rfl⟩
 
-@[reducible] noncomputable def readView.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def readView.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType readView.fields)
 
-class readView.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class readView.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying readView.underlying readView
   underlying : go.UnderlyingDirectedEq readView.ty readView.underlying
   get_kv : ∀ (x : readView), go.IsGoStepPureDetTagged under (StructFieldGet readView.underlying go!"kv") #x (Val #(x.kv'))
@@ -9048,27 +9048,27 @@ attribute [instance] readView.TypeAssumptions.type_repr
   readView.TypeAssumptions.ptr_Range_unfold
   readView.TypeAssumptions.ptr_Rev_unfold
 
-structure writeView [FfiSyntax] where
+structure writeView [GooseExts] where
   mk ::
   kv' : KV
 
-noncomputable instance writeView.zero_val [FfiSyntax] : ZeroVal writeView :=
+noncomputable instance writeView.zero_val [GooseExts] : ZeroVal writeView :=
   ⟨writeView.mk zeroValDef⟩
 
-@[reducible] noncomputable def writeView.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def writeView.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"kv" KV.ty)]
 
-@[irreducible] noncomputable def writeView.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def writeView.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   writeView.fieldsUnsealed
 
-noncomputable instance equals_unfold_writeView [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_writeView [GooseExts] [GoGlobalContext] :
     EqualsUnfold writeView.fields writeView.fieldsUnsealed :=
   ⟨by unfold writeView.fields; rfl⟩
 
-@[reducible] noncomputable def writeView.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def writeView.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType writeView.fields)
 
-class writeView.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class writeView.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying writeView.underlying writeView
   underlying : go.UnderlyingDirectedEq writeView.ty writeView.underlying
   get_kv : ∀ (x : writeView), go.IsGoStepPureDetTagged under (StructFieldGet writeView.underlying go!"kv") #x (Val #(x.kv'))
@@ -9083,29 +9083,29 @@ attribute [instance] writeView.TypeAssumptions.type_repr
   writeView.TypeAssumptions.ptr_DeleteRange_unfold
   writeView.TypeAssumptions.ptr_Put_unfold
 
-structure StoreConfig [FfiSyntax] where
+structure StoreConfig [GooseExts] where
   mk ::
   CompactionBatchLimit' : w64
   CompactionSleepInterval' : _root_.Perennial.time.Duration
 
-noncomputable instance StoreConfig.zero_val [FfiSyntax] : ZeroVal StoreConfig :=
+noncomputable instance StoreConfig.zero_val [GooseExts] : ZeroVal StoreConfig :=
   ⟨StoreConfig.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def StoreConfig.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def StoreConfig.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"CompactionBatchLimit" go.int),
 (go.field_decl.FieldDecl go!"CompactionSleepInterval" _root_.Perennial.time.Duration.ty)]
 
-@[irreducible] noncomputable def StoreConfig.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def StoreConfig.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   StoreConfig.fieldsUnsealed
 
-noncomputable instance equals_unfold_StoreConfig [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_StoreConfig [GooseExts] [GoGlobalContext] :
     EqualsUnfold StoreConfig.fields StoreConfig.fieldsUnsealed :=
   ⟨by unfold StoreConfig.fields; rfl⟩
 
-@[reducible] noncomputable def StoreConfig.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def StoreConfig.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType StoreConfig.fields)
 
-class StoreConfig.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class StoreConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying StoreConfig.underlying StoreConfig
   underlying : go.UnderlyingDirectedEq StoreConfig.ty StoreConfig.underlying
   get_CompactionBatchLimit : ∀ (x : StoreConfig), go.IsGoStepPureDetTagged under (StructFieldGet StoreConfig.underlying go!"CompactionBatchLimit") #x (Val #(x.CompactionBatchLimit'))
@@ -9120,7 +9120,7 @@ attribute [instance] StoreConfig.TypeAssumptions.type_repr
   StoreConfig.TypeAssumptions.get_CompactionSleepInterval
   StoreConfig.TypeAssumptions.set_CompactionSleepInterval
 
-structure store [FfiSyntax] where
+structure store [GooseExts] where
   mk ::
   ReadView' : ReadView
   WriteView' : WriteView
@@ -9137,10 +9137,10 @@ structure store [FfiSyntax] where
   lg' : Loc
   hashes' : HashStorage
 
-noncomputable instance store.zero_val [FfiSyntax] : ZeroVal store :=
+noncomputable instance store.zero_val [GooseExts] : ZeroVal store :=
   ⟨store.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def store.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def store.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"ReadView" ReadView.ty),
 (go.field_decl.EmbeddedField go!"WriteView" WriteView.ty),
 (go.field_decl.FieldDecl go!"cfg" StoreConfig.ty),
@@ -9156,17 +9156,17 @@ noncomputable instance store.zero_val [FfiSyntax] : ZeroVal store :=
 (go.field_decl.FieldDecl go!"lg" (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)),
 (go.field_decl.FieldDecl go!"hashes" HashStorage.ty)]
 
-@[irreducible] noncomputable def store.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def store.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   store.fieldsUnsealed
 
-noncomputable instance equals_unfold_store [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_store [GooseExts] [GoGlobalContext] :
     EqualsUnfold store.fields store.fieldsUnsealed :=
   ⟨by unfold store.fields; rfl⟩
 
-@[reducible] noncomputable def store.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def store.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType store.fields)
 
-class store.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class store.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying store.underlying store
   underlying : go.UnderlyingDirectedEq store.ty store.underlying
   get_ReadView : ∀ (x : store), go.IsGoStepPureDetTagged under (StructFieldGet store.underlying go!"ReadView") #x (Val #(x.ReadView'))
@@ -9289,31 +9289,31 @@ attribute [instance] store.TypeAssumptions.type_repr
   store.TypeAssumptions.ptr_setupMetricsReporter_unfold
   store.TypeAssumptions.ptr_updateCompactRev_unfold
 
-structure revKeyValue [FfiSyntax] where
+structure revKeyValue [GooseExts] where
   mk ::
   key' : GoSlice
   kv' : Loc
   kstr' : GoString
 
-noncomputable instance revKeyValue.zero_val [FfiSyntax] : ZeroVal revKeyValue :=
+noncomputable instance revKeyValue.zero_val [GooseExts] : ZeroVal revKeyValue :=
   ⟨revKeyValue.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def revKeyValue.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def revKeyValue.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"key" (go.GoType.SliceType go.byte)),
 (go.field_decl.FieldDecl go!"kv" (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty)),
 (go.field_decl.FieldDecl go!"kstr" go.string)]
 
-@[irreducible] noncomputable def revKeyValue.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def revKeyValue.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   revKeyValue.fieldsUnsealed
 
-noncomputable instance equals_unfold_revKeyValue [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_revKeyValue [GooseExts] [GoGlobalContext] :
     EqualsUnfold revKeyValue.fields revKeyValue.fieldsUnsealed :=
   ⟨by unfold revKeyValue.fields; rfl⟩
 
-@[reducible] noncomputable def revKeyValue.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def revKeyValue.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType revKeyValue.fields)
 
-class revKeyValue.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class revKeyValue.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying revKeyValue.underlying revKeyValue
   underlying : go.UnderlyingDirectedEq revKeyValue.ty revKeyValue.underlying
   get_key : ∀ (x : revKeyValue), go.IsGoStepPureDetTagged under (StructFieldGet revKeyValue.underlying go!"key") #x (Val #(x.key'))
@@ -9332,7 +9332,7 @@ attribute [instance] revKeyValue.TypeAssumptions.type_repr
   revKeyValue.TypeAssumptions.get_kstr
   revKeyValue.TypeAssumptions.set_kstr
 
-structure storeTxnCommon [FfiSyntax] where
+structure storeTxnCommon [GooseExts] where
   mk ::
   s' : Loc
   tx' : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReader
@@ -9340,27 +9340,27 @@ structure storeTxnCommon [FfiSyntax] where
   rev' : w64
   trace' : Loc
 
-noncomputable instance storeTxnCommon.zero_val [FfiSyntax] : ZeroVal storeTxnCommon :=
+noncomputable instance storeTxnCommon.zero_val [GooseExts] : ZeroVal storeTxnCommon :=
   ⟨storeTxnCommon.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def storeTxnCommon.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def storeTxnCommon.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"s" (go.GoType.PointerType store.ty)),
 (go.field_decl.FieldDecl go!"tx" _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReader.ty),
 (go.field_decl.FieldDecl go!"firstRev" go.int64),
 (go.field_decl.FieldDecl go!"rev" go.int64),
 (go.field_decl.FieldDecl go!"trace" (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty))]
 
-@[irreducible] noncomputable def storeTxnCommon.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def storeTxnCommon.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   storeTxnCommon.fieldsUnsealed
 
-noncomputable instance equals_unfold_storeTxnCommon [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_storeTxnCommon [GooseExts] [GoGlobalContext] :
     EqualsUnfold storeTxnCommon.fields storeTxnCommon.fieldsUnsealed :=
   ⟨by unfold storeTxnCommon.fields; rfl⟩
 
-@[reducible] noncomputable def storeTxnCommon.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def storeTxnCommon.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType storeTxnCommon.fields)
 
-class storeTxnCommon.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class storeTxnCommon.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying storeTxnCommon.underlying storeTxnCommon
   underlying : go.UnderlyingDirectedEq storeTxnCommon.ty storeTxnCommon.underlying
   get_s : ∀ (x : storeTxnCommon), go.IsGoStepPureDetTagged under (StructFieldGet storeTxnCommon.underlying go!"s") #x (Val #(x.s'))
@@ -9395,29 +9395,29 @@ attribute [instance] storeTxnCommon.TypeAssumptions.type_repr
   storeTxnCommon.TypeAssumptions.ptr_Rev_unfold
   storeTxnCommon.TypeAssumptions.ptr_rangeKeys_unfold
 
-structure storeTxnRead [FfiSyntax] where
+structure storeTxnRead [GooseExts] where
   mk ::
   storeTxnCommon' : storeTxnCommon
   tx' : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.ReadTx
 
-noncomputable instance storeTxnRead.zero_val [FfiSyntax] : ZeroVal storeTxnRead :=
+noncomputable instance storeTxnRead.zero_val [GooseExts] : ZeroVal storeTxnRead :=
   ⟨storeTxnRead.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def storeTxnRead.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def storeTxnRead.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"storeTxnCommon" storeTxnCommon.ty),
 (go.field_decl.FieldDecl go!"tx" _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.ReadTx.ty)]
 
-@[irreducible] noncomputable def storeTxnRead.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def storeTxnRead.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   storeTxnRead.fieldsUnsealed
 
-noncomputable instance equals_unfold_storeTxnRead [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_storeTxnRead [GooseExts] [GoGlobalContext] :
     EqualsUnfold storeTxnRead.fields storeTxnRead.fieldsUnsealed :=
   ⟨by unfold storeTxnRead.fields; rfl⟩
 
-@[reducible] noncomputable def storeTxnRead.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def storeTxnRead.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType storeTxnRead.fields)
 
-class storeTxnRead.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class storeTxnRead.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying storeTxnRead.underlying storeTxnRead
   underlying : go.UnderlyingDirectedEq storeTxnRead.ty storeTxnRead.underlying
   get_storeTxnCommon : ∀ (x : storeTxnRead), go.IsGoStepPureDetTagged under (StructFieldGet storeTxnRead.underlying go!"storeTxnCommon") #x (Val #(x.storeTxnCommon'))
@@ -9446,33 +9446,33 @@ attribute [instance] storeTxnRead.TypeAssumptions.type_repr
   storeTxnRead.TypeAssumptions.ptr_Rev_unfold
   storeTxnRead.TypeAssumptions.ptr_rangeKeys_unfold
 
-structure storeTxnWrite [FfiSyntax] where
+structure storeTxnWrite [GooseExts] where
   mk ::
   storeTxnCommon' : storeTxnCommon
   tx' : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx
   beginRev' : w64
   changes' : GoSlice
 
-noncomputable instance storeTxnWrite.zero_val [FfiSyntax] : ZeroVal storeTxnWrite :=
+noncomputable instance storeTxnWrite.zero_val [GooseExts] : ZeroVal storeTxnWrite :=
   ⟨storeTxnWrite.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def storeTxnWrite.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def storeTxnWrite.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"storeTxnCommon" storeTxnCommon.ty),
 (go.field_decl.FieldDecl go!"tx" _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty),
 (go.field_decl.FieldDecl go!"beginRev" go.int64),
 (go.field_decl.FieldDecl go!"changes" (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty)))]
 
-@[irreducible] noncomputable def storeTxnWrite.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def storeTxnWrite.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   storeTxnWrite.fieldsUnsealed
 
-noncomputable instance equals_unfold_storeTxnWrite [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_storeTxnWrite [GooseExts] [GoGlobalContext] :
     EqualsUnfold storeTxnWrite.fields storeTxnWrite.fieldsUnsealed :=
   ⟨by unfold storeTxnWrite.fields; rfl⟩
 
-@[reducible] noncomputable def storeTxnWrite.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def storeTxnWrite.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType storeTxnWrite.fields)
 
-class storeTxnWrite.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class storeTxnWrite.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying storeTxnWrite.underlying storeTxnWrite
   underlying : go.UnderlyingDirectedEq storeTxnWrite.ty storeTxnWrite.underlying
   get_storeTxnCommon : ∀ (x : storeTxnWrite), go.IsGoStepPureDetTagged under (StructFieldGet storeTxnWrite.underlying go!"storeTxnCommon") #x (Val #(x.storeTxnCommon'))
@@ -9519,7 +9519,7 @@ attribute [instance] storeTxnWrite.TypeAssumptions.type_repr
   storeTxnWrite.TypeAssumptions.ptr_put_unfold
   storeTxnWrite.TypeAssumptions.ptr_rangeKeys_unfold
 
-structure metricsTxnWrite [FfiSyntax] where
+structure metricsTxnWrite [GooseExts] where
   mk ::
   TxnWrite' : TxnWrite
   ranges' : w64
@@ -9527,27 +9527,27 @@ structure metricsTxnWrite [FfiSyntax] where
   deletes' : w64
   putSize' : w64
 
-noncomputable instance metricsTxnWrite.zero_val [FfiSyntax] : ZeroVal metricsTxnWrite :=
+noncomputable instance metricsTxnWrite.zero_val [GooseExts] : ZeroVal metricsTxnWrite :=
   ⟨metricsTxnWrite.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def metricsTxnWrite.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def metricsTxnWrite.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"TxnWrite" TxnWrite.ty),
 (go.field_decl.FieldDecl go!"ranges" go.uint),
 (go.field_decl.FieldDecl go!"puts" go.uint),
 (go.field_decl.FieldDecl go!"deletes" go.uint),
 (go.field_decl.FieldDecl go!"putSize" go.int64)]
 
-@[irreducible] noncomputable def metricsTxnWrite.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def metricsTxnWrite.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   metricsTxnWrite.fieldsUnsealed
 
-noncomputable instance equals_unfold_metricsTxnWrite [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_metricsTxnWrite [GooseExts] [GoGlobalContext] :
     EqualsUnfold metricsTxnWrite.fields metricsTxnWrite.fieldsUnsealed :=
   ⟨by unfold metricsTxnWrite.fields; rfl⟩
 
-@[reducible] noncomputable def metricsTxnWrite.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def metricsTxnWrite.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType metricsTxnWrite.fields)
 
-class metricsTxnWrite.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class metricsTxnWrite.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying metricsTxnWrite.underlying metricsTxnWrite
   underlying : go.UnderlyingDirectedEq metricsTxnWrite.ty metricsTxnWrite.underlying
   get_TxnWrite : ∀ (x : metricsTxnWrite), go.IsGoStepPureDetTagged under (StructFieldGet metricsTxnWrite.underlying go!"TxnWrite") #x (Val #(x.TxnWrite'))
@@ -9600,29 +9600,29 @@ attribute [instance] metricsTxnWrite.TypeAssumptions.type_repr
   metricsTxnWrite.TypeAssumptions.ptr_Range_unfold
   metricsTxnWrite.TypeAssumptions.ptr_Rev_unfold
 
-structure BucketKey [FfiSyntax] where
+structure BucketKey [GooseExts] where
   mk ::
   Revision' : Revision
   tombstone' : Bool
 
-noncomputable instance BucketKey.zero_val [FfiSyntax] : ZeroVal BucketKey :=
+noncomputable instance BucketKey.zero_val [GooseExts] : ZeroVal BucketKey :=
   ⟨BucketKey.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def BucketKey.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def BucketKey.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"Revision" Revision.ty),
 (go.field_decl.FieldDecl go!"tombstone" go.bool)]
 
-@[irreducible] noncomputable def BucketKey.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def BucketKey.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   BucketKey.fieldsUnsealed
 
-noncomputable instance equals_unfold_BucketKey [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_BucketKey [GooseExts] [GoGlobalContext] :
     EqualsUnfold BucketKey.fields BucketKey.fieldsUnsealed :=
   ⟨by unfold BucketKey.fields; rfl⟩
 
-@[reducible] noncomputable def BucketKey.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def BucketKey.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType BucketKey.fields)
 
-class BucketKey.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class BucketKey.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying BucketKey.underlying BucketKey
   underlying : go.UnderlyingDirectedEq BucketKey.ty BucketKey.underlying
   get_Revision : ∀ (x : BucketKey), go.IsGoStepPureDetTagged under (StructFieldGet BucketKey.underlying go!"Revision") #x (Val #(x.Revision'))
@@ -9643,22 +9643,22 @@ attribute [instance] BucketKey.TypeAssumptions.type_repr
   BucketKey.TypeAssumptions.GreaterThan_unfold
   BucketKey.TypeAssumptions.ptr_GreaterThan_unfold
 
-abbrev watchable [FfiSyntax] : Type := GoInterface
+abbrev watchable [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def watchable.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def watchable.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"progress" (go.signature.Signature [(go.GoType.PointerType watcher.ty)] false [])), (go.InterfaceElem.MethodElem go!"progressAll" (go.signature.Signature [(go.GoType.MapType WatchID.ty (go.GoType.PointerType watcher.ty))] false [go.bool])), (go.InterfaceElem.MethodElem go!"rev" (go.signature.Signature [] false [go.int64])), (go.InterfaceElem.MethodElem go!"watch" (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), go.int64, WatchID.ty, (go.GoType.ChannelType go.ChanDir.sendonly WatchResponse.ty), (go.GoType.SliceType FilterFunc.ty)] true [(go.GoType.PointerType watcher.ty), cancelFunc.ty]))])
 
-class watchable.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class watchable.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq watchable.ty watchable.underlying
 
 attribute [instance] watchable.TypeAssumptions.underlying
 
-abbrev watcherSetByKey [FfiSyntax] : Type := GoMap
+abbrev watcherSetByKey [GooseExts] : Type := GoMap
 
-@[reducible] noncomputable def watcherSetByKey.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def watcherSetByKey.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.MapType go.string watcherSet.ty)
 
-class watcherSetByKey.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class watcherSetByKey.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq watcherSetByKey.ty watcherSetByKey.underlying
   add_unfold : MethodUnfold watcherSetByKey.ty go!"add" watcherSetByKey.add.impl
   delete_unfold : MethodUnfold watcherSetByKey.ty go!"delete" watcherSetByKey.delete.impl
@@ -9673,12 +9673,12 @@ attribute [instance] watcherSetByKey.TypeAssumptions.underlying
   watcherSetByKey.TypeAssumptions.ptr_add_unfold
   watcherSetByKey.TypeAssumptions.ptr_delete_unfold
 
-abbrev watcherSet [FfiSyntax] : Type := GoMap
+abbrev watcherSet [GooseExts] : Type := GoMap
 
-@[reducible] noncomputable def watcherSet.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def watcherSet.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.MapType (go.GoType.PointerType watcher.ty) (go.GoType.StructType []))
 
-class watcherSet.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class watcherSet.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq watcherSet.ty watcherSet.underlying
   add_unfold : MethodUnfold watcherSet.ty go!"add" watcherSet.add.impl
   delete_unfold : MethodUnfold watcherSet.ty go!"delete" watcherSet.delete.impl
@@ -9698,31 +9698,31 @@ attribute [instance] watcherSet.TypeAssumptions.underlying
   watcherSet.TypeAssumptions.ptr_delete_unfold
   watcherSet.TypeAssumptions.ptr_union_unfold
 
-structure watcherGroup [FfiSyntax] where
+structure watcherGroup [GooseExts] where
   mk ::
   keyWatchers' : watcherSetByKey
   ranges' : _root_.Perennial.go_etcd_io.etcd.pkg.v3.adt.IntervalTree
   watchers' : watcherSet
 
-noncomputable instance watcherGroup.zero_val [FfiSyntax] : ZeroVal watcherGroup :=
+noncomputable instance watcherGroup.zero_val [GooseExts] : ZeroVal watcherGroup :=
   ⟨watcherGroup.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def watcherGroup.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def watcherGroup.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"keyWatchers" watcherSetByKey.ty),
 (go.field_decl.FieldDecl go!"ranges" _root_.Perennial.go_etcd_io.etcd.pkg.v3.adt.IntervalTree.ty),
 (go.field_decl.FieldDecl go!"watchers" watcherSet.ty)]
 
-@[irreducible] noncomputable def watcherGroup.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def watcherGroup.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   watcherGroup.fieldsUnsealed
 
-noncomputable instance equals_unfold_watcherGroup [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_watcherGroup [GooseExts] [GoGlobalContext] :
     EqualsUnfold watcherGroup.fields watcherGroup.fieldsUnsealed :=
   ⟨by unfold watcherGroup.fields; rfl⟩
 
-@[reducible] noncomputable def watcherGroup.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def watcherGroup.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType watcherGroup.fields)
 
-class watcherGroup.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class watcherGroup.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying watcherGroup.underlying watcherGroup
   underlying : go.UnderlyingDirectedEq watcherGroup.ty watcherGroup.underlying
   get_keyWatchers : ∀ (x : watcherGroup), go.IsGoStepPureDetTagged under (StructFieldGet watcherGroup.underlying go!"keyWatchers") #x (Val #(x.keyWatchers'))
@@ -9755,7 +9755,7 @@ attribute [instance] watcherGroup.TypeAssumptions.type_repr
   watcherGroup.TypeAssumptions.ptr_size_unfold
   watcherGroup.TypeAssumptions.ptr_watcherSetByKey_unfold
 
-structure watchableStore [FfiSyntax] where
+structure watchableStore [GooseExts] where
   mk ::
   store' : Loc
   mu' : _root_.Perennial.sync.RWMutex
@@ -9766,10 +9766,10 @@ structure watchableStore [FfiSyntax] where
   stopc' : GoChan
   wg' : _root_.Perennial.sync.WaitGroup
 
-noncomputable instance watchableStore.zero_val [FfiSyntax] : ZeroVal watchableStore :=
+noncomputable instance watchableStore.zero_val [GooseExts] : ZeroVal watchableStore :=
   ⟨watchableStore.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def watchableStore.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def watchableStore.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"store" (go.GoType.PointerType store.ty)),
 (go.field_decl.FieldDecl go!"mu" _root_.Perennial.sync.RWMutex.ty),
 (go.field_decl.FieldDecl go!"victims" (go.GoType.SliceType watcherBatch.ty)),
@@ -9779,17 +9779,17 @@ noncomputable instance watchableStore.zero_val [FfiSyntax] : ZeroVal watchableSt
 (go.field_decl.FieldDecl go!"stopc" (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))),
 (go.field_decl.FieldDecl go!"wg" _root_.Perennial.sync.WaitGroup.ty)]
 
-@[irreducible] noncomputable def watchableStore.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def watchableStore.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   watchableStore.fieldsUnsealed
 
-noncomputable instance equals_unfold_watchableStore [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_watchableStore [GooseExts] [GoGlobalContext] :
     EqualsUnfold watchableStore.fields watchableStore.fieldsUnsealed :=
   ⟨by unfold watchableStore.fields; rfl⟩
 
-@[reducible] noncomputable def watchableStore.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def watchableStore.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType watchableStore.fields)
 
-class watchableStore.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class watchableStore.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying watchableStore.underlying watchableStore
   underlying : go.UnderlyingDirectedEq watchableStore.ty watchableStore.underlying
   get_store : ∀ (x : watchableStore), go.IsGoStepPureDetTagged under (StructFieldGet watchableStore.underlying go!"store") #x (Val #(x.store'))
@@ -9908,37 +9908,37 @@ attribute [instance] watchableStore.TypeAssumptions.type_repr
   watchableStore.TypeAssumptions.ptr_syncWatchersLoop_unfold
   watchableStore.TypeAssumptions.ptr_watch_unfold
 
-abbrev cancelFunc [FfiSyntax] : Type := GoFunc
+abbrev cancelFunc [GooseExts] : Type := GoFunc
 
-@[reducible] noncomputable def cancelFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def cancelFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [] false []))
 
-class cancelFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class cancelFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq cancelFunc.ty cancelFunc.underlying
 
 attribute [instance] cancelFunc.TypeAssumptions.underlying
 
-abbrev contains [FfiSyntax] : Type := GoInterface
+abbrev contains [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def contains.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def contains.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"contains" (go.signature.Signature [go.string] false [go.bool]))])
 
-class contains.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class contains.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq contains.ty contains.underlying
 
 attribute [instance] contains.TypeAssumptions.underlying
 
-abbrev WatchID [FfiSyntax] : Type := w64
+abbrev WatchID [GooseExts] : Type := w64
 
-@[reducible] noncomputable def WatchID.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def WatchID.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.int64
 
-class WatchID.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class WatchID.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq WatchID.ty WatchID.underlying
 
 attribute [instance] WatchID.TypeAssumptions.underlying
 
-structure watcher [FfiSyntax] where
+structure watcher [GooseExts] where
   mk ::
   key' : GoSlice
   end' : GoSlice
@@ -9951,10 +9951,10 @@ structure watcher [FfiSyntax] where
   fcs' : GoSlice
   ch' : GoChan
 
-noncomputable instance watcher.zero_val [FfiSyntax] : ZeroVal watcher :=
+noncomputable instance watcher.zero_val [GooseExts] : ZeroVal watcher :=
   ⟨watcher.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def watcher.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def watcher.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"key" (go.GoType.SliceType go.byte)),
 (go.field_decl.FieldDecl go!"end" (go.GoType.SliceType go.byte)),
 (go.field_decl.FieldDecl go!"victim" go.bool),
@@ -9966,17 +9966,17 @@ noncomputable instance watcher.zero_val [FfiSyntax] : ZeroVal watcher :=
 (go.field_decl.FieldDecl go!"fcs" (go.GoType.SliceType FilterFunc.ty)),
 (go.field_decl.FieldDecl go!"ch" (go.GoType.ChannelType go.ChanDir.sendonly WatchResponse.ty))]
 
-@[irreducible] noncomputable def watcher.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def watcher.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   watcher.fieldsUnsealed
 
-noncomputable instance equals_unfold_watcher [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_watcher [GooseExts] [GoGlobalContext] :
     EqualsUnfold watcher.fields watcher.fieldsUnsealed :=
   ⟨by unfold watcher.fields; rfl⟩
 
-@[reducible] noncomputable def watcher.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def watcher.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType watcher.fields)
 
-class watcher.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class watcher.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying watcher.underlying watcher
   underlying : go.UnderlyingDirectedEq watcher.ty watcher.underlying
   get_key : ∀ (x : watcher), go.IsGoStepPureDetTagged under (StructFieldGet watcher.underlying go!"key") #x (Val #(x.key'))
@@ -10025,29 +10025,29 @@ attribute [instance] watcher.TypeAssumptions.type_repr
   watcher.TypeAssumptions.set_ch
   watcher.TypeAssumptions.ptr_send_unfold
 
-structure watchableStoreTxnWrite [FfiSyntax] where
+structure watchableStoreTxnWrite [GooseExts] where
   mk ::
   TxnWrite' : TxnWrite
   s' : Loc
 
-noncomputable instance watchableStoreTxnWrite.zero_val [FfiSyntax] : ZeroVal watchableStoreTxnWrite :=
+noncomputable instance watchableStoreTxnWrite.zero_val [GooseExts] : ZeroVal watchableStoreTxnWrite :=
   ⟨watchableStoreTxnWrite.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def watchableStoreTxnWrite.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def watchableStoreTxnWrite.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"TxnWrite" TxnWrite.ty),
 (go.field_decl.FieldDecl go!"s" (go.GoType.PointerType watchableStore.ty))]
 
-@[irreducible] noncomputable def watchableStoreTxnWrite.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def watchableStoreTxnWrite.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   watchableStoreTxnWrite.fieldsUnsealed
 
-noncomputable instance equals_unfold_watchableStoreTxnWrite [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_watchableStoreTxnWrite [GooseExts] [GoGlobalContext] :
     EqualsUnfold watchableStoreTxnWrite.fields watchableStoreTxnWrite.fieldsUnsealed :=
   ⟨by unfold watchableStoreTxnWrite.fields; rfl⟩
 
-@[reducible] noncomputable def watchableStoreTxnWrite.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def watchableStoreTxnWrite.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType watchableStoreTxnWrite.fields)
 
-class watchableStoreTxnWrite.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class watchableStoreTxnWrite.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying watchableStoreTxnWrite.underlying watchableStoreTxnWrite
   underlying : go.UnderlyingDirectedEq watchableStoreTxnWrite.ty watchableStoreTxnWrite.underlying
   get_TxnWrite : ∀ (x : watchableStoreTxnWrite), go.IsGoStepPureDetTagged under (StructFieldGet watchableStoreTxnWrite.underlying go!"TxnWrite") #x (Val #(x.TxnWrite'))
@@ -10100,53 +10100,53 @@ attribute [instance] watchableStoreTxnWrite.TypeAssumptions.type_repr
   watchableStoreTxnWrite.TypeAssumptions.ptr_Range_unfold
   watchableStoreTxnWrite.TypeAssumptions.ptr_Rev_unfold
 
-abbrev FilterFunc [FfiSyntax] : Type := GoFunc
+abbrev FilterFunc [GooseExts] : Type := GoFunc
 
-@[reducible] noncomputable def FilterFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def FilterFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event.ty)] false [go.bool]))
 
-class FilterFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class FilterFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq FilterFunc.ty FilterFunc.underlying
 
 attribute [instance] FilterFunc.TypeAssumptions.underlying
 
-abbrev WatchStream [FfiSyntax] : Type := GoInterface
+abbrev WatchStream [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def WatchStream.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def WatchStream.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Cancel" (go.signature.Signature [WatchID.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"Chan" (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly WatchResponse.ty)])), (go.InterfaceElem.MethodElem go!"Close" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"RequestProgress" (go.signature.Signature [WatchID.ty] false [])), (go.InterfaceElem.MethodElem go!"RequestProgressAll" (go.signature.Signature [] false [go.bool])), (go.InterfaceElem.MethodElem go!"Rev" (go.signature.Signature [] false [go.int64])), (go.InterfaceElem.MethodElem go!"Watch" (go.signature.Signature [_root_.Perennial.context.Context.ty, WatchID.ty, (go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), go.int64, (go.GoType.SliceType FilterFunc.ty)] true [WatchID.ty, go.error]))])
 
-class WatchStream.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class WatchStream.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq WatchStream.ty WatchStream.underlying
 
 attribute [instance] WatchStream.TypeAssumptions.underlying
 
-structure WatchResponse [FfiSyntax] where
+structure WatchResponse [GooseExts] where
   mk ::
   WatchID' : WatchID
   Events' : GoSlice
   Revision' : w64
   CompactRevision' : w64
 
-noncomputable instance WatchResponse.zero_val [FfiSyntax] : ZeroVal WatchResponse :=
+noncomputable instance WatchResponse.zero_val [GooseExts] : ZeroVal WatchResponse :=
   ⟨WatchResponse.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def WatchResponse.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def WatchResponse.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"WatchID" WatchID.ty),
 (go.field_decl.FieldDecl go!"Events" (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event.ty))),
 (go.field_decl.FieldDecl go!"Revision" go.int64),
 (go.field_decl.FieldDecl go!"CompactRevision" go.int64)]
 
-@[irreducible] noncomputable def WatchResponse.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def WatchResponse.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   WatchResponse.fieldsUnsealed
 
-noncomputable instance equals_unfold_WatchResponse [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_WatchResponse [GooseExts] [GoGlobalContext] :
     EqualsUnfold WatchResponse.fields WatchResponse.fieldsUnsealed :=
   ⟨by unfold WatchResponse.fields; rfl⟩
 
-@[reducible] noncomputable def WatchResponse.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def WatchResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType WatchResponse.fields)
 
-class WatchResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class WatchResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying WatchResponse.underlying WatchResponse
   underlying : go.UnderlyingDirectedEq WatchResponse.ty WatchResponse.underlying
   get_WatchID : ∀ (x : WatchResponse), go.IsGoStepPureDetTagged under (StructFieldGet WatchResponse.underlying go!"WatchID") #x (Val #(x.WatchID'))
@@ -10169,7 +10169,7 @@ attribute [instance] WatchResponse.TypeAssumptions.type_repr
   WatchResponse.TypeAssumptions.get_CompactRevision
   WatchResponse.TypeAssumptions.set_CompactRevision
 
-structure watchStream [FfiSyntax] where
+structure watchStream [GooseExts] where
   mk ::
   watchable' : watchable
   ch' : GoChan
@@ -10179,10 +10179,10 @@ structure watchStream [FfiSyntax] where
   cancels' : GoMap
   watchers' : GoMap
 
-noncomputable instance watchStream.zero_val [FfiSyntax] : ZeroVal watchStream :=
+noncomputable instance watchStream.zero_val [GooseExts] : ZeroVal watchStream :=
   ⟨watchStream.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def watchStream.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def watchStream.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"watchable" watchable.ty),
 (go.field_decl.FieldDecl go!"ch" (go.GoType.ChannelType go.ChanDir.sendrecv WatchResponse.ty)),
 (go.field_decl.FieldDecl go!"mu" _root_.Perennial.sync.Mutex.ty),
@@ -10191,17 +10191,17 @@ noncomputable instance watchStream.zero_val [FfiSyntax] : ZeroVal watchStream :=
 (go.field_decl.FieldDecl go!"cancels" (go.GoType.MapType WatchID.ty cancelFunc.ty)),
 (go.field_decl.FieldDecl go!"watchers" (go.GoType.MapType WatchID.ty (go.GoType.PointerType watcher.ty)))]
 
-@[irreducible] noncomputable def watchStream.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def watchStream.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   watchStream.fieldsUnsealed
 
-noncomputable instance equals_unfold_watchStream [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_watchStream [GooseExts] [GoGlobalContext] :
     EqualsUnfold watchStream.fields watchStream.fieldsUnsealed :=
   ⟨by unfold watchStream.fields; rfl⟩
 
-@[reducible] noncomputable def watchStream.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def watchStream.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType watchStream.fields)
 
-class watchStream.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class watchStream.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying watchStream.underlying watchStream
   underlying : go.UnderlyingDirectedEq watchStream.ty watchStream.underlying
   get_watchable : ∀ (x : watchStream), go.IsGoStepPureDetTagged under (StructFieldGet watchStream.underlying go!"watchable") #x (Val #(x.watchable'))
@@ -10250,31 +10250,31 @@ attribute [instance] watchStream.TypeAssumptions.type_repr
   watchStream.TypeAssumptions.ptr_Rev_unfold
   watchStream.TypeAssumptions.ptr_Watch_unfold
 
-structure eventBatch [FfiSyntax] where
+structure eventBatch [GooseExts] where
   mk ::
   evs' : GoSlice
   revs' : w64
   moreRev' : w64
 
-noncomputable instance eventBatch.zero_val [FfiSyntax] : ZeroVal eventBatch :=
+noncomputable instance eventBatch.zero_val [GooseExts] : ZeroVal eventBatch :=
   ⟨eventBatch.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def eventBatch.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def eventBatch.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"evs" (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.Event.ty))),
 (go.field_decl.FieldDecl go!"revs" go.int),
 (go.field_decl.FieldDecl go!"moreRev" go.int64)]
 
-@[irreducible] noncomputable def eventBatch.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def eventBatch.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   eventBatch.fieldsUnsealed
 
-noncomputable instance equals_unfold_eventBatch [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_eventBatch [GooseExts] [GoGlobalContext] :
     EqualsUnfold eventBatch.fields eventBatch.fieldsUnsealed :=
   ⟨by unfold eventBatch.fields; rfl⟩
 
-@[reducible] noncomputable def eventBatch.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def eventBatch.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType eventBatch.fields)
 
-class eventBatch.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class eventBatch.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying eventBatch.underlying eventBatch
   underlying : go.UnderlyingDirectedEq eventBatch.ty eventBatch.underlying
   get_evs : ∀ (x : eventBatch), go.IsGoStepPureDetTagged under (StructFieldGet eventBatch.underlying go!"evs") #x (Val #(x.evs'))
@@ -10295,12 +10295,12 @@ attribute [instance] eventBatch.TypeAssumptions.type_repr
   eventBatch.TypeAssumptions.set_moreRev
   eventBatch.TypeAssumptions.ptr_add_unfold
 
-abbrev watcherBatch [FfiSyntax] : Type := GoMap
+abbrev watcherBatch [GooseExts] : Type := GoMap
 
-@[reducible] noncomputable def watcherBatch.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def watcherBatch.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.MapType (go.GoType.PointerType watcher.ty) (go.GoType.PointerType eventBatch.ty))
 
-class watcherBatch.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class watcherBatch.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq watcherBatch.ty watcherBatch.underlying
   add_unfold : MethodUnfold watcherBatch.ty go!"add" watcherBatch.add.impl
   ptr_add_unfold : MethodUnfold (go.GoType.PointerType watcherBatch.ty) go!"add" (LamV "$r"
@@ -10310,7 +10310,7 @@ attribute [instance] watcherBatch.TypeAssumptions.underlying
   watcherBatch.TypeAssumptions.add_unfold
   watcherBatch.TypeAssumptions.ptr_add_unfold
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   kvHasher_instance : kvHasher.TypeAssumptions
   KeyValueHash_instance : KeyValueHash.TypeAssumptions
   HashStorage_instance : HashStorage.TypeAssumptions

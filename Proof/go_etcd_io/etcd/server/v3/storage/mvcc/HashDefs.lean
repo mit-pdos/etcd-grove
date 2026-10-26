@@ -30,7 +30,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -45,10 +45,10 @@ instance mvcc.hashStorageOk_persistent (h : Loc) : Persistent (mvcc.hashStorageO
 end defs
 
 /-- **A hasher `newKVHasher` made** (opaque: `crc32` has no model; see the file header). -/
-opaque mvcc.kvHasherOk [FfiSyntax] : kvHasher → Prop
+opaque mvcc.kvHasherOk [GooseExts] : kvHasher → Prop
 
 /-- **A key of the `key` bucket** (`BytesToBucketKey` accepts it; see the file header). -/
-def mvcc.bucketKeyOk [FfiSyntax] (k : GoString) : Prop :=
+def mvcc.bucketKeyOk [GooseExts] (k : GoString) : Prop :=
   ∃ (r : mvcc.Rev) (rest : List w8), k = mvcc.revBytes r false ++ rest ∧ rest.length ≤ 1 ∧
     0 ≤ sint.Z r.main ∧ 0 ≤ sint.Z r.sub
 

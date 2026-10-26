@@ -23,113 +23,113 @@ end pkg_id
 
 namespace go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb
 
-noncomputable def LockRequest.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def LockRequest.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3lock/v3lockpb.LockRequest" [])
 
 attribute [irreducible] LockRequest.ty
 
-noncomputable def LockResponse.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def LockResponse.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3lock/v3lockpb.LockResponse" [])
 
 attribute [irreducible] LockResponse.ty
 
-noncomputable def UnlockRequest.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def UnlockRequest.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3lock/v3lockpb.UnlockRequest" [])
 
 attribute [irreducible] UnlockRequest.ty
 
-noncomputable def UnlockResponse.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def UnlockResponse.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3lock/v3lockpb.UnlockResponse" [])
 
 attribute [irreducible] UnlockResponse.ty
 
-noncomputable def LockClient.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def LockClient.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3lock/v3lockpb.LockClient" [])
 
 attribute [irreducible] LockClient.ty
 
-noncomputable def lockClient.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def lockClient.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3lock/v3lockpb.lockClient" [])
 
 attribute [irreducible] lockClient.ty
 
-noncomputable def LockServer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def LockServer.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3lock/v3lockpb.LockServer" [])
 
 attribute [irreducible] LockServer.ty
 
-noncomputable def UnimplementedLockServer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def UnimplementedLockServer.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3lock/v3lockpb.UnimplementedLockServer" [])
 
 attribute [irreducible] UnimplementedLockServer.ty
 
-noncomputable def UnsafeLockServer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def UnsafeLockServer.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3lock/v3lockpb.UnsafeLockServer" [])
 
 attribute [irreducible] UnsafeLockServer.ty
 
-axiom LockClient.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom LockClient.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom lockClient.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom lockClient.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom file_v3lock_proto_rawDesc [FfiSyntax] [GoGlobalContext] : val
+axiom file_v3lock_proto_rawDesc [GooseExts] [GoGlobalContext] : val
 
-axiom Lock_Lock_FullMethodName [FfiSyntax] [GoGlobalContext] : val
+axiom Lock_Lock_FullMethodName [GooseExts] [GoGlobalContext] : val
 
-axiom Lock_Unlock_FullMethodName [FfiSyntax] [GoGlobalContext] : val
+axiom Lock_Unlock_FullMethodName [GooseExts] [GoGlobalContext] : val
 
-noncomputable def File_v3lock_proto [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def File_v3lock_proto [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3lock/v3lockpb.File_v3lock_proto"
 
-noncomputable def file_v3lock_proto_rawDescOnce [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def file_v3lock_proto_rawDescOnce [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3lock/v3lockpb.file_v3lock_proto_rawDescOnce"
 
-noncomputable def file_v3lock_proto_rawDescData [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def file_v3lock_proto_rawDescData [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3lock/v3lockpb.file_v3lock_proto_rawDescData"
 
-noncomputable def file_v3lock_proto_msgTypes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def file_v3lock_proto_msgTypes [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3lock/v3lockpb.file_v3lock_proto_msgTypes"
 
-axiom file_v3lock_proto_msgTypes.init [FfiSyntax] [GoGlobalContext] : val
+axiom file_v3lock_proto_msgTypes.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def file_v3lock_proto_goTypes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def file_v3lock_proto_goTypes [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3lock/v3lockpb.file_v3lock_proto_goTypes"
 
-axiom file_v3lock_proto_goTypes.init [FfiSyntax] [GoGlobalContext] : val
+axiom file_v3lock_proto_goTypes.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def file_v3lock_proto_depIdxs [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def file_v3lock_proto_depIdxs [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3lock/v3lockpb.file_v3lock_proto_depIdxs"
 
-axiom file_v3lock_proto_depIdxs.init [FfiSyntax] [GoGlobalContext] : val
+axiom file_v3lock_proto_depIdxs.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def Lock_ServiceDesc [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Lock_ServiceDesc [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3lock/v3lockpb.Lock_ServiceDesc"
 
-axiom Lock_ServiceDesc.init [FfiSyntax] [GoGlobalContext] : val
+axiom Lock_ServiceDesc.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def file_v3lock_proto_rawDescGZIP [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def file_v3lock_proto_rawDescGZIP [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3lock/v3lockpb.file_v3lock_proto_rawDescGZIP"
 
-noncomputable def init.«0» [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def init.«0» [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3lock/v3lockpb.init.0"
 
-noncomputable def file_v3lock_proto_init [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def file_v3lock_proto_init [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3lock/v3lockpb.file_v3lock_proto_init"
 
-noncomputable def NewLockClient [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewLockClient [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3lock/v3lockpb.NewLockClient"
 
-noncomputable def RegisterLockServer [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def RegisterLockServer [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3lock/v3lockpb.RegisterLockServer"
 
-noncomputable def _Lock_Lock_Handler [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def _Lock_Lock_Handler [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3lock/v3lockpb._Lock_Lock_Handler"
 
-noncomputable def _Lock_Unlock_Handler [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def _Lock_Unlock_Handler [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3lock/v3lockpb._Lock_Unlock_Handler"
 
 /-- go: v3lock.pb.go:71:23 -/
-noncomputable def LockRequest.GetName.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def LockRequest.GetName.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -144,7 +144,7 @@ noncomputable def LockRequest.GetName.impl [FfiSyntax] [GoGlobalContext] : val :
   (Val #()))))))))
 
 /-- go: v3lock.pb.go:78:23 -/
-noncomputable def LockRequest.GetLease.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def LockRequest.GetLease.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -159,7 +159,7 @@ noncomputable def LockRequest.GetLease.impl [FfiSyntax] [GoGlobalContext] : val 
   (Val #()))))))))
 
 /-- go: v3lock.pb.go:126:24 -/
-noncomputable def LockResponse.GetHeader.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def LockResponse.GetHeader.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -174,7 +174,7 @@ noncomputable def LockResponse.GetHeader.impl [FfiSyntax] [GoGlobalContext] : va
   (Val #()))))))))
 
 /-- go: v3lock.pb.go:133:24 -/
-noncomputable def LockResponse.GetKey.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def LockResponse.GetKey.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -189,7 +189,7 @@ noncomputable def LockResponse.GetKey.impl [FfiSyntax] [GoGlobalContext] : val :
   (Val #()))))))))
 
 /-- go: v3lock.pb.go:178:25 -/
-noncomputable def UnlockRequest.GetKey.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def UnlockRequest.GetKey.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -204,7 +204,7 @@ noncomputable def UnlockRequest.GetKey.impl [FfiSyntax] [GoGlobalContext] : val 
   (Val #()))))))))
 
 /-- go: v3lock.pb.go:222:26 -/
-noncomputable def UnlockResponse.GetHeader.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def UnlockResponse.GetHeader.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -221,7 +221,7 @@ noncomputable def UnlockResponse.GetHeader.impl [FfiSyntax] [GoGlobalContext] : 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb where
   pkgImportedPkgs := [pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.google_golang_org.protobuf.reflect.protoreflect, pkg_id.google_golang_org.protobuf.runtime.protoimpl]
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb)) (Lam BAnon
   (App (Val exceptionDo)
@@ -249,7 +249,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.initialize') (Val #()))))))))
 
-structure LockRequest [FfiSyntax] where
+structure LockRequest [GooseExts] where
   mk ::
   state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
   Name' : GoSlice
@@ -257,27 +257,27 @@ structure LockRequest [FfiSyntax] where
   unknownFields' : GoSlice
   sizeCache' : w32
 
-noncomputable instance LockRequest.zero_val [FfiSyntax] : ZeroVal LockRequest :=
+noncomputable instance LockRequest.zero_val [GooseExts] : ZeroVal LockRequest :=
   ⟨LockRequest.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def LockRequest.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def LockRequest.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
 (go.field_decl.FieldDecl go!"Name" (go.GoType.SliceType go.byte)),
 (go.field_decl.FieldDecl go!"Lease" go.int64),
 (go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
 (go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
 
-@[irreducible] noncomputable def LockRequest.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def LockRequest.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   LockRequest.fieldsUnsealed
 
-noncomputable instance equals_unfold_LockRequest [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_LockRequest [GooseExts] [GoGlobalContext] :
     EqualsUnfold LockRequest.fields LockRequest.fieldsUnsealed :=
   ⟨by unfold LockRequest.fields; rfl⟩
 
-@[reducible] noncomputable def LockRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def LockRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType LockRequest.fields)
 
-class LockRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class LockRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying LockRequest.underlying LockRequest
   underlying : go.UnderlyingDirectedEq LockRequest.ty LockRequest.underlying
   get_state : ∀ (x : LockRequest), go.IsGoStepPureDetTagged under (StructFieldGet LockRequest.underlying go!"state") #x (Val #(x.state'))
@@ -308,7 +308,7 @@ attribute [instance] LockRequest.TypeAssumptions.type_repr
   LockRequest.TypeAssumptions.ptr_GetLease_unfold
   LockRequest.TypeAssumptions.ptr_GetName_unfold
 
-structure LockResponse [FfiSyntax] where
+structure LockResponse [GooseExts] where
   mk ::
   state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
   Header' : Loc
@@ -316,27 +316,27 @@ structure LockResponse [FfiSyntax] where
   unknownFields' : GoSlice
   sizeCache' : w32
 
-noncomputable instance LockResponse.zero_val [FfiSyntax] : ZeroVal LockResponse :=
+noncomputable instance LockResponse.zero_val [GooseExts] : ZeroVal LockResponse :=
   ⟨LockResponse.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def LockResponse.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def LockResponse.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
 (go.field_decl.FieldDecl go!"Header" (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)),
 (go.field_decl.FieldDecl go!"Key" (go.GoType.SliceType go.byte)),
 (go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
 (go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
 
-@[irreducible] noncomputable def LockResponse.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def LockResponse.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   LockResponse.fieldsUnsealed
 
-noncomputable instance equals_unfold_LockResponse [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_LockResponse [GooseExts] [GoGlobalContext] :
     EqualsUnfold LockResponse.fields LockResponse.fieldsUnsealed :=
   ⟨by unfold LockResponse.fields; rfl⟩
 
-@[reducible] noncomputable def LockResponse.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def LockResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType LockResponse.fields)
 
-class LockResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class LockResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying LockResponse.underlying LockResponse
   underlying : go.UnderlyingDirectedEq LockResponse.ty LockResponse.underlying
   get_state : ∀ (x : LockResponse), go.IsGoStepPureDetTagged under (StructFieldGet LockResponse.underlying go!"state") #x (Val #(x.state'))
@@ -367,33 +367,33 @@ attribute [instance] LockResponse.TypeAssumptions.type_repr
   LockResponse.TypeAssumptions.ptr_GetHeader_unfold
   LockResponse.TypeAssumptions.ptr_GetKey_unfold
 
-structure UnlockRequest [FfiSyntax] where
+structure UnlockRequest [GooseExts] where
   mk ::
   state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
   Key' : GoSlice
   unknownFields' : GoSlice
   sizeCache' : w32
 
-noncomputable instance UnlockRequest.zero_val [FfiSyntax] : ZeroVal UnlockRequest :=
+noncomputable instance UnlockRequest.zero_val [GooseExts] : ZeroVal UnlockRequest :=
   ⟨UnlockRequest.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def UnlockRequest.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def UnlockRequest.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
 (go.field_decl.FieldDecl go!"Key" (go.GoType.SliceType go.byte)),
 (go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
 (go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
 
-@[irreducible] noncomputable def UnlockRequest.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def UnlockRequest.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   UnlockRequest.fieldsUnsealed
 
-noncomputable instance equals_unfold_UnlockRequest [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_UnlockRequest [GooseExts] [GoGlobalContext] :
     EqualsUnfold UnlockRequest.fields UnlockRequest.fieldsUnsealed :=
   ⟨by unfold UnlockRequest.fields; rfl⟩
 
-@[reducible] noncomputable def UnlockRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def UnlockRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType UnlockRequest.fields)
 
-class UnlockRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class UnlockRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying UnlockRequest.underlying UnlockRequest
   underlying : go.UnderlyingDirectedEq UnlockRequest.ty UnlockRequest.underlying
   get_state : ∀ (x : UnlockRequest), go.IsGoStepPureDetTagged under (StructFieldGet UnlockRequest.underlying go!"state") #x (Val #(x.state'))
@@ -418,33 +418,33 @@ attribute [instance] UnlockRequest.TypeAssumptions.type_repr
   UnlockRequest.TypeAssumptions.set_sizeCache
   UnlockRequest.TypeAssumptions.ptr_GetKey_unfold
 
-structure UnlockResponse [FfiSyntax] where
+structure UnlockResponse [GooseExts] where
   mk ::
   state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
   Header' : Loc
   unknownFields' : GoSlice
   sizeCache' : w32
 
-noncomputable instance UnlockResponse.zero_val [FfiSyntax] : ZeroVal UnlockResponse :=
+noncomputable instance UnlockResponse.zero_val [GooseExts] : ZeroVal UnlockResponse :=
   ⟨UnlockResponse.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def UnlockResponse.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def UnlockResponse.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
 (go.field_decl.FieldDecl go!"Header" (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)),
 (go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
 (go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
 
-@[irreducible] noncomputable def UnlockResponse.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def UnlockResponse.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   UnlockResponse.fieldsUnsealed
 
-noncomputable instance equals_unfold_UnlockResponse [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_UnlockResponse [GooseExts] [GoGlobalContext] :
     EqualsUnfold UnlockResponse.fields UnlockResponse.fieldsUnsealed :=
   ⟨by unfold UnlockResponse.fields; rfl⟩
 
-@[reducible] noncomputable def UnlockResponse.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def UnlockResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType UnlockResponse.fields)
 
-class UnlockResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class UnlockResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying UnlockResponse.underlying UnlockResponse
   underlying : go.UnderlyingDirectedEq UnlockResponse.ty UnlockResponse.underlying
   get_state : ∀ (x : UnlockResponse), go.IsGoStepPureDetTagged under (StructFieldGet UnlockResponse.underlying go!"state") #x (Val #(x.state'))
@@ -473,7 +473,7 @@ axiom LockClient : Type
 axiom LockClient.zero_val : ZeroVal LockClient
 attribute [instance] LockClient.zero_val
 
-class LockClient.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class LockClient.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying LockClient.underlying LockClient
   underlying : go.UnderlyingDirectedEq LockClient.ty LockClient.underlying
   isUnderlying : go.IsUnderlying LockClient.underlying LockClient.underlying
@@ -486,7 +486,7 @@ axiom lockClient : Type
 axiom lockClient.zero_val : ZeroVal lockClient
 attribute [instance] lockClient.zero_val
 
-class lockClient.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class lockClient.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying lockClient.underlying lockClient
   underlying : go.UnderlyingDirectedEq lockClient.ty lockClient.underlying
   isUnderlying : go.IsUnderlying lockClient.underlying lockClient.underlying
@@ -495,53 +495,53 @@ attribute [instance] lockClient.TypeAssumptions.type_repr
   lockClient.TypeAssumptions.underlying
   lockClient.TypeAssumptions.isUnderlying
 
-abbrev LockServer [FfiSyntax] : Type := GoInterface
+abbrev LockServer [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def LockServer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def LockServer.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Lock" (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType LockRequest.ty)] false [(go.GoType.PointerType LockResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"Unlock" (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType UnlockRequest.ty)] false [(go.GoType.PointerType UnlockResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"mustEmbedUnimplementedLockServer" (go.signature.Signature [] false []))])
 
-class LockServer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class LockServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq LockServer.ty LockServer.underlying
 
 attribute [instance] LockServer.TypeAssumptions.underlying
 
-structure UnimplementedLockServer [FfiSyntax] where
+structure UnimplementedLockServer [GooseExts] where
   mk ::
 
-noncomputable instance UnimplementedLockServer.zero_val [FfiSyntax] : ZeroVal UnimplementedLockServer :=
+noncomputable instance UnimplementedLockServer.zero_val [GooseExts] : ZeroVal UnimplementedLockServer :=
   ⟨UnimplementedLockServer.mk⟩
 
-@[reducible] noncomputable def UnimplementedLockServer.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def UnimplementedLockServer.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   []
 
-@[irreducible] noncomputable def UnimplementedLockServer.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def UnimplementedLockServer.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   UnimplementedLockServer.fieldsUnsealed
 
-noncomputable instance equals_unfold_UnimplementedLockServer [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_UnimplementedLockServer [GooseExts] [GoGlobalContext] :
     EqualsUnfold UnimplementedLockServer.fields UnimplementedLockServer.fieldsUnsealed :=
   ⟨by unfold UnimplementedLockServer.fields; rfl⟩
 
-@[reducible] noncomputable def UnimplementedLockServer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def UnimplementedLockServer.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType UnimplementedLockServer.fields)
 
-class UnimplementedLockServer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class UnimplementedLockServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying UnimplementedLockServer.underlying UnimplementedLockServer
   underlying : go.UnderlyingDirectedEq UnimplementedLockServer.ty UnimplementedLockServer.underlying
 
 attribute [instance] UnimplementedLockServer.TypeAssumptions.type_repr
   UnimplementedLockServer.TypeAssumptions.underlying
 
-abbrev UnsafeLockServer [FfiSyntax] : Type := GoInterface
+abbrev UnsafeLockServer [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def UnsafeLockServer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def UnsafeLockServer.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"mustEmbedUnimplementedLockServer" (go.signature.Signature [] false []))])
 
-class UnsafeLockServer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class UnsafeLockServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq UnsafeLockServer.ty UnsafeLockServer.underlying
 
 attribute [instance] UnsafeLockServer.TypeAssumptions.underlying
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   LockRequest_instance : LockRequest.TypeAssumptions
   LockResponse_instance : LockResponse.TypeAssumptions
   UnlockRequest_instance : UnlockRequest.TypeAssumptions

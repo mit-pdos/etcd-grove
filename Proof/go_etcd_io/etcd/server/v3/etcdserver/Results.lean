@@ -163,7 +163,7 @@ theorem entryStep_rejected_no_write (m : EntryModel) (v3 : Bool) (y y' : apply.A
 /-! ## The apply loop -/
 
 section triples
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -401,7 +401,7 @@ uber-applier's chain (`alarmChain`), the outcome is `alarmPut`/`alarmDelete` (th
 (`apply.apply_kv`). The writing `Txn` and the read side: unit 3b's, below. -/
 
 section request
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -580,7 +580,7 @@ error. **`txn_applied_model`** (pure): through the uber-applier's chain the outc
 (the txn package's `txnModel` or a layer's rejection), the log after the outcome's. -/
 
 section read
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -776,7 +776,7 @@ given up (`crevFrozen_alloc`), so its readers are those of a never-compacted sto
 and the right to close the store holds its scheduler's stop token (D19m (C)). -/
 
 section backend
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -1260,7 +1260,7 @@ end backend
 #print axioms Perennial.EtcdGrove.server_kv_watchable
 
 section latest
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -1301,7 +1301,7 @@ end latest
 #print axioms Perennial.EtcdGrove.auth_delete_range_permitted_latest
 
 section latestApply
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -1418,7 +1418,7 @@ end latestApply
 #print axioms Perennial.EtcdGrove.auth_role_revoke_permission_tie
 
 section userAddSure
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -1438,7 +1438,7 @@ end userAddSure
 #print axioms Perennial.EtcdGrove.auth_user_add_sure
 
 section tokens
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -1537,7 +1537,7 @@ end tokens
 #print axioms Perennial.EtcdGrove.srv_auth_bound_of_inv
 
 section serverAuth
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -1614,7 +1614,7 @@ end serverAuth
 #print axioms Perennial.EtcdGrove.server_new_auth_on
 
 section goroutines
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

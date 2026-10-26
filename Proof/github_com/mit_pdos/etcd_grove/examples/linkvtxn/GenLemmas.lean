@@ -29,7 +29,7 @@ namespace linkvtxn
 open github_com.mit_pdos.etcd_grove.examples.linkvtxn
 
 section gen
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- **A transaction input's shape** (see the file header). -/
 def TxnShape (r : Input) (cs : List Cmp) (ts es : List TOp) : Prop :=

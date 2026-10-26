@@ -31,17 +31,17 @@ namespace EtcdGrove
 open Iris Iris.BI
 
 /-- **The address `addr` is the program's, unbound** (exclusive; see the file header). -/
-axiom netAddrFree {GF : BundledGFunctors} [FfiSyntax] (addr : GoString) : IProp GF
+axiom netAddrFree {GF : BundledGFunctors} [GooseExts] (addr : GoString) : IProp GF
 
 /-- **The right to fix the HTTP protocol of the address `addr`** (exclusive; D39a, 2026-10-23,
 rafthttp stage 6a): program start gives it once per address, with `netAddrFree addr`;
 `http.reserve` (`Proof/net/http/Axioms.lean`) consumes it, fixing the address's protocol before
 its listener exists (a raft member sends to its peers before they listen). Purely ghost: no Go
 operation consumes or needs it. -/
-axiom httpProtoFree {GF : BundledGFunctors} [FfiSyntax] (addr : GoString) : IProp GF
+axiom httpProtoFree {GF : BundledGFunctors} [GooseExts] (addr : GoString) : IProp GF
 
 /-- **The listener `l` is bound at `addr`, unused** (exclusive; see the file header). -/
-axiom netListenerAt {GF : BundledGFunctors} [FfiSyntax] (l : GoInterface) (addr : GoString) :
+axiom netListenerAt {GF : BundledGFunctors} [GooseExts] (l : GoInterface) (addr : GoString) :
   IProp GF
 
 end EtcdGrove

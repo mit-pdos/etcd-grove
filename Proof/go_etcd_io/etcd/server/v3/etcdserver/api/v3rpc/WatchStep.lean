@@ -191,7 +191,7 @@ theorem watchStreamSpec_step (log : Log) (hwf : LogWf' log) (hlen : log.length <
   rfl
 
 section model
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

@@ -26,16 +26,18 @@ namespace lease
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.lease
 
 section lemmas
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.lease.Assumptions]
 
 instance leaseItem_safeMapKey (k : LeaseItem) : SafeMapKey (GF := GF) LeaseItem.ty k where
-  wp_go_eq_safe_map_key s E Φ := by
+  key_ok := trivial
+  wp_go_eq_map_key k' _ s E Φ := by
     iintro HΦ
     wp_pures
+    rw [show decide (k.Key' = k'.Key') = decide (k = k') by cases k; cases k'; simp]
     iapply HΦ
 
 /-- `(*Time).Before` on a fractional points-to (2026-10-13, unit 9: the queue's `Less` reads the

@@ -20,130 +20,130 @@ end pkg_id
 
 namespace k8s_io.apiserver.pkg.storage.value
 
-noncomputable def gRPCError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def gRPCError.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/value.gRPCError" [])
 
 attribute [irreducible] gRPCError.ty
 
-noncomputable def Context.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Context.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/value.Context" [])
 
 attribute [irreducible] Context.ty
 
-noncomputable def Read.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Read.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/value.Read" [])
 
 attribute [irreducible] Read.ty
 
-noncomputable def Write.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Write.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/value.Write" [])
 
 attribute [irreducible] Write.ty
 
-noncomputable def Transformer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Transformer.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/value.Transformer" [])
 
 attribute [irreducible] Transformer.ty
 
-noncomputable def ResourceTransformers.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ResourceTransformers.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/value.ResourceTransformers" [])
 
 attribute [irreducible] ResourceTransformers.ty
 
-noncomputable def DefaultContext.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DefaultContext.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/value.DefaultContext" [])
 
 attribute [irreducible] DefaultContext.ty
 
-noncomputable def PrefixTransformer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PrefixTransformer.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/value.PrefixTransformer" [])
 
 attribute [irreducible] PrefixTransformer.ty
 
-noncomputable def prefixTransformers.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def prefixTransformers.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/value.prefixTransformers" [])
 
 attribute [irreducible] prefixTransformers.ty
 
-axiom gRPCError.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom gRPCError.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Read.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Read.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Write.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Write.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ResourceTransformers.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ResourceTransformers.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom «namespace» [FfiSyntax] [GoGlobalContext] : val
+axiom «namespace» [GooseExts] [GoGlobalContext] : val
 
-axiom subsystem [FfiSyntax] [GoGlobalContext] : val
+axiom subsystem [GooseExts] [GoGlobalContext] : val
 
-noncomputable def transformerLatencies [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def transformerLatencies [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/value.transformerLatencies"
 
-axiom transformerLatencies.init [FfiSyntax] [GoGlobalContext] : val
+axiom transformerLatencies.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def transformerOperationsTotal [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def transformerOperationsTotal [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/value.transformerOperationsTotal"
 
-axiom transformerOperationsTotal.init [FfiSyntax] [GoGlobalContext] : val
+axiom transformerOperationsTotal.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def envelopeTransformationCacheMissTotal [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def envelopeTransformationCacheMissTotal [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/value.envelopeTransformationCacheMissTotal"
 
-axiom envelopeTransformationCacheMissTotal.init [FfiSyntax] [GoGlobalContext] : val
+axiom envelopeTransformationCacheMissTotal.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def dataKeyGenerationLatencies [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def dataKeyGenerationLatencies [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/value.dataKeyGenerationLatencies"
 
-axiom dataKeyGenerationLatencies.init [FfiSyntax] [GoGlobalContext] : val
+axiom dataKeyGenerationLatencies.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def dataKeyGenerationFailuresTotal [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def dataKeyGenerationFailuresTotal [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/value.dataKeyGenerationFailuresTotal"
 
-axiom dataKeyGenerationFailuresTotal.init [FfiSyntax] [GoGlobalContext] : val
+axiom dataKeyGenerationFailuresTotal.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def registerMetrics [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def registerMetrics [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/value.registerMetrics"
 
-noncomputable def RegisterMetrics [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def RegisterMetrics [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/value.RegisterMetrics"
 
-noncomputable def RecordTransformation [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def RecordTransformation [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/value.RecordTransformation"
 
-noncomputable def RecordCacheMiss [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def RecordCacheMiss [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/value.RecordCacheMiss"
 
-noncomputable def RecordDataKeyGeneration [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def RecordDataKeyGeneration [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/value.RecordDataKeyGeneration"
 
-noncomputable def sinceInSeconds [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sinceInSeconds [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/value.sinceInSeconds"
 
-noncomputable def getErrorCode [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def getErrorCode [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/value.getErrorCode"
 
-noncomputable def init.«0» [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def init.«0» [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/value.init.0"
 
-noncomputable def NewPrefixTransformers [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewPrefixTransformers [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/value.NewPrefixTransformers"
 
-noncomputable def logTransformErr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def logTransformErr [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/value.logTransformErr"
 
-noncomputable def getRequestInfoFromContext [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def getRequestInfoFromContext [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/value.getRequestInfoFromContext"
 
-noncomputable def getResourceFromContext [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def getResourceFromContext [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/value.getResourceFromContext"
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apiserver.pkg.storage.value where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.apiserver.pkg.storage.value)) (Lam BAnon
   (App (Val exceptionDo)
@@ -172,7 +172,7 @@ axiom gRPCError : Type
 axiom gRPCError.zero_val : ZeroVal gRPCError
 attribute [instance] gRPCError.zero_val
 
-class gRPCError.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class gRPCError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying gRPCError.underlying gRPCError
   underlying : go.UnderlyingDirectedEq gRPCError.ty gRPCError.underlying
   isUnderlying : go.IsUnderlying gRPCError.underlying gRPCError.underlying
@@ -181,12 +181,12 @@ attribute [instance] gRPCError.TypeAssumptions.type_repr
   gRPCError.TypeAssumptions.underlying
   gRPCError.TypeAssumptions.isUnderlying
 
-abbrev Context [FfiSyntax] : Type := GoInterface
+abbrev Context [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def Context.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Context.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"AuthenticatedData" (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))])
 
-class Context.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Context.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Context.ty Context.underlying
 
 attribute [instance] Context.TypeAssumptions.underlying
@@ -195,7 +195,7 @@ axiom Read : Type
 axiom Read.zero_val : ZeroVal Read
 attribute [instance] Read.zero_val
 
-class Read.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Read.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Read.underlying Read
   underlying : go.UnderlyingDirectedEq Read.ty Read.underlying
   isUnderlying : go.IsUnderlying Read.underlying Read.underlying
@@ -208,7 +208,7 @@ axiom Write : Type
 axiom Write.zero_val : ZeroVal Write
 attribute [instance] Write.zero_val
 
-class Write.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Write.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Write.underlying Write
   underlying : go.UnderlyingDirectedEq Write.ty Write.underlying
   isUnderlying : go.IsUnderlying Write.underlying Write.underlying
@@ -217,12 +217,12 @@ attribute [instance] Write.TypeAssumptions.type_repr
   Write.TypeAssumptions.underlying
   Write.TypeAssumptions.isUnderlying
 
-abbrev Transformer [FfiSyntax] : Type := GoInterface
+abbrev Transformer [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def Transformer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Transformer.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.TypeElem [(go.type_term.TypeTerm Read.ty)]), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm Write.ty)])])
 
-class Transformer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Transformer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Transformer.ty Transformer.underlying
 
 attribute [instance] Transformer.TypeAssumptions.underlying
@@ -231,7 +231,7 @@ axiom ResourceTransformers : Type
 axiom ResourceTransformers.zero_val : ZeroVal ResourceTransformers
 attribute [instance] ResourceTransformers.zero_val
 
-class ResourceTransformers.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ResourceTransformers.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ResourceTransformers.underlying ResourceTransformers
   underlying : go.UnderlyingDirectedEq ResourceTransformers.ty ResourceTransformers.underlying
   isUnderlying : go.IsUnderlying ResourceTransformers.underlying ResourceTransformers.underlying
@@ -240,39 +240,39 @@ attribute [instance] ResourceTransformers.TypeAssumptions.type_repr
   ResourceTransformers.TypeAssumptions.underlying
   ResourceTransformers.TypeAssumptions.isUnderlying
 
-abbrev DefaultContext [FfiSyntax] : Type := GoSlice
+abbrev DefaultContext [GooseExts] : Type := GoSlice
 
-@[reducible] noncomputable def DefaultContext.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def DefaultContext.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.SliceType go.byte)
 
-class DefaultContext.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DefaultContext.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq DefaultContext.ty DefaultContext.underlying
 
 attribute [instance] DefaultContext.TypeAssumptions.underlying
 
-structure PrefixTransformer [FfiSyntax] where
+structure PrefixTransformer [GooseExts] where
   mk ::
   Prefix' : GoSlice
   Transformer' : Transformer
 
-noncomputable instance PrefixTransformer.zero_val [FfiSyntax] : ZeroVal PrefixTransformer :=
+noncomputable instance PrefixTransformer.zero_val [GooseExts] : ZeroVal PrefixTransformer :=
   ⟨PrefixTransformer.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def PrefixTransformer.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def PrefixTransformer.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Prefix" (go.GoType.SliceType go.byte)),
 (go.field_decl.FieldDecl go!"Transformer" Transformer.ty)]
 
-@[irreducible] noncomputable def PrefixTransformer.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def PrefixTransformer.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PrefixTransformer.fieldsUnsealed
 
-noncomputable instance equals_unfold_PrefixTransformer [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_PrefixTransformer [GooseExts] [GoGlobalContext] :
     EqualsUnfold PrefixTransformer.fields PrefixTransformer.fieldsUnsealed :=
   ⟨by unfold PrefixTransformer.fields; rfl⟩
 
-@[reducible] noncomputable def PrefixTransformer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PrefixTransformer.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType PrefixTransformer.fields)
 
-class PrefixTransformer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class PrefixTransformer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PrefixTransformer.underlying PrefixTransformer
   underlying : go.UnderlyingDirectedEq PrefixTransformer.ty PrefixTransformer.underlying
   get_Prefix : ∀ (x : PrefixTransformer), go.IsGoStepPureDetTagged under (StructFieldGet PrefixTransformer.underlying go!"Prefix") #x (Val #(x.Prefix'))
@@ -287,29 +287,29 @@ attribute [instance] PrefixTransformer.TypeAssumptions.type_repr
   PrefixTransformer.TypeAssumptions.get_Transformer
   PrefixTransformer.TypeAssumptions.set_Transformer
 
-structure prefixTransformers [FfiSyntax] where
+structure prefixTransformers [GooseExts] where
   mk ::
   transformers' : GoSlice
   err' : GoError
 
-noncomputable instance prefixTransformers.zero_val [FfiSyntax] : ZeroVal prefixTransformers :=
+noncomputable instance prefixTransformers.zero_val [GooseExts] : ZeroVal prefixTransformers :=
   ⟨prefixTransformers.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def prefixTransformers.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def prefixTransformers.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"transformers" (go.GoType.SliceType PrefixTransformer.ty)),
 (go.field_decl.FieldDecl go!"err" go.error)]
 
-@[irreducible] noncomputable def prefixTransformers.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def prefixTransformers.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   prefixTransformers.fieldsUnsealed
 
-noncomputable instance equals_unfold_prefixTransformers [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_prefixTransformers [GooseExts] [GoGlobalContext] :
     EqualsUnfold prefixTransformers.fields prefixTransformers.fieldsUnsealed :=
   ⟨by unfold prefixTransformers.fields; rfl⟩
 
-@[reducible] noncomputable def prefixTransformers.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def prefixTransformers.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType prefixTransformers.fields)
 
-class prefixTransformers.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class prefixTransformers.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying prefixTransformers.underlying prefixTransformers
   underlying : go.UnderlyingDirectedEq prefixTransformers.ty prefixTransformers.underlying
   get_transformers : ∀ (x : prefixTransformers), go.IsGoStepPureDetTagged under (StructFieldGet prefixTransformers.underlying go!"transformers") #x (Val #(x.transformers'))
@@ -324,7 +324,7 @@ attribute [instance] prefixTransformers.TypeAssumptions.type_repr
   prefixTransformers.TypeAssumptions.get_err
   prefixTransformers.TypeAssumptions.set_err
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   gRPCError_instance : gRPCError.TypeAssumptions
   Context_instance : Context.TypeAssumptions
   Read_instance : Read.TypeAssumptions

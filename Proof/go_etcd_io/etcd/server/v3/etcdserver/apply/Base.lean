@@ -61,7 +61,7 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 namespace EtcdGrove
 
 section errIs
-variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
 /-- **An `errors.New` error, as `errors.Is` sees it**: a pointer error (an `*errorString`,
 `errors.IsPointerError`: Go's `==` on it is Lean's equality), a leaf of an error tree without an
@@ -74,7 +74,7 @@ def errLeaf (e : GoInterfaceOk) : Prop :=
 end errIs
 
 section errIsIProp
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -102,7 +102,7 @@ instance errKeyMsg_persistent (err : GoInterface) : Persistent (errKeyMsg (GF :=
 
 /-- A target `errors.Is` can compare with by `==` in the model (Perennial's `errors.wp_Is`): `nil`
 or a pointer error. -/
-def ptrTarget [FfiSyntax] [GoGlobalContext] (target : GoInterface) : Prop :=
+def ptrTarget [GooseExts] [GoGlobalContext] (target : GoInterface) : Prop :=
   ∀ tii, target = GoInterface.ok tii → _root_.Perennial.errors.IsPointerError tii
 
 /-- **An error the applier returns, as `errors.Is` and the gRPC layer see it** (persistent): for
@@ -148,7 +148,7 @@ theorem safeMapKey_ptrErr (e : GoInterfaceOk) (h : _root_.Perennial.errors.IsPoi
   obtain ⟨ty, v⟩ := e
   simp only at hT hv
   subst hT hv
-  exact ⟨fun s E Φ => by iintro H; wp_auto; iapply H⟩
+  exact safeMapKey_interface_pointer go.error T l
 
 /-- `nil` is in the empty tree. -/
 theorem applyErrIs_nil : ⊢ applyErrIs (GF := GF) GoInterface.nil := by
@@ -248,7 +248,7 @@ end errIsIProp
 end EtcdGrove
 
 section init
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -530,7 +530,7 @@ end init
 namespace EtcdGrove
 
 section errVars
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics] [_root_.Perennial.errors.Assumptions]

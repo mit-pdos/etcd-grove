@@ -31,7 +31,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -61,8 +61,11 @@ local macro "enc_full" : tactic => `(tactic| (
   ihave %Hp := Hpe $$ Hm
   have Hwire := Hp.1 Hok.1
   have Hfr := V2Frame.full (frm := frm) (to := to) cst Hwire Hp.2
+  ihave #Hbin : isPkgInit (PROP := IProp GF) pkg_id.encoding.binary $$ []
+  · iPkgInit
+  ihave %Hbe := bigEndian_ne_null $$ Hbin
   wp_apply (encoding.binary.wp_load_struct_nofields (V := encoding.binary.bigEndian)
-    (globalAddr encoding.binary.BigEndian))
+    (globalAddr encoding.binary.BigEndian) Hbe)
   iintro -
   (try wp_auto)
   simp only [go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.msgTypeApp]
@@ -87,8 +90,11 @@ local macro "enc_full" : tactic => `(tactic| (
   have hk : k = 1 := Hk.2.2 rfl
   subst hk
   (try wp_auto)
+  ihave #Hbin : isPkgInit (PROP := IProp GF) pkg_id.encoding.binary $$ []
+  · iPkgInit
+  ihave %Hbe := bigEndian_ne_null $$ Hbin
   wp_apply (encoding.binary.wp_load_struct_nofields (V := encoding.binary.bigEndian)
-    (globalAddr encoding.binary.BigEndian))
+    (globalAddr encoding.binary.BigEndian) Hbe)
   iintro -
   (try wp_auto)
   have wpS := wp_Size pbMessage ml st

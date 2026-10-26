@@ -56,7 +56,7 @@ open github_com.anishathalye.porcupine github_com.anishathalye.porcupine.Theory
 abbrev lintestN : Namespace := nroot.@"lintest"
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -94,7 +94,7 @@ end defs
 /-! ## The ghost log -/
 
 section ghost
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- A client's ghost value: its records (an operation's input and output, and the clock's
 value at its linearization point) and the last value it read from the clock. -/
@@ -131,7 +131,7 @@ def ClientOk (id : w64) (hc : List Operation) (Lc : List (OpV × w64)) : Prop :=
 end ghost
 
 section inv
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable {σ : Type}

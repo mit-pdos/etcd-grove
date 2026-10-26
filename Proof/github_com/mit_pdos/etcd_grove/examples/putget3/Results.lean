@@ -30,7 +30,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.raft.v3
 
 section results
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -44,7 +44,7 @@ theorem putget3_Main [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWi
 end results
 
 section adequacy
-attribute [local instance] disk_op disk_model disk_semantics disk_interp
+attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp
 variable [go_gctx : GoGlobalContext]
 
 /-- **putget3 is safe, in the operational semantics** (`putget3_adequate`, see the
@@ -68,7 +68,7 @@ theorem putget3_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (Hprem : ∀ hG : HeapGS .hasLC putget3GF,
       ⊢ putget3.premises (GF := putget3GF) (hG := heapAt3 hG lctx) n id₁ id₂ id₃ bootLog)
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
-    (Hthreads : g.threads = 1)
+    (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([putget3Program], ((σ, g) : CfgState)) κs (t2, σ2))
     (Hn : n + 2 ≤ 2 ^ 31) (Hwb : n + 7 ≤ backend.wbInit) :

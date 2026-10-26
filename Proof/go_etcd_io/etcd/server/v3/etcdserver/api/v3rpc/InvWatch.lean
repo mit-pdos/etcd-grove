@@ -66,7 +66,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.api.v3 go_etcd_io.etcd.server.v
 open go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc (watchServer serverWatchStream)
 
 section addrs
-variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
 /-- The server `s` as an interface value (`apply.RaftStatusGetter`, `AuthGetter`). -/
 abbrev srvIface (s : Loc) : GoInterface :=
@@ -86,7 +86,7 @@ abbrev swsF (sws : Loc) (f : GoString) : Loc := structFieldRef serverWatchStream
 end addrs
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

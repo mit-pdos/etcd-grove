@@ -145,7 +145,7 @@ theorem plainLog_append (A B : List EntryModel) :
 /-- The log `L` after the applied index `ai₀`, entry by entry (2026-10-16, stage R7b: what raft's
 commit step establishes, `srvIdxOk` without its overflow bound): consecutive indices from
 `ai₀ + 1`, normal entries and v1 conf changes. -/
-abbrev srvIdxOkW [FfiSyntax] (ai₀ : w64) (L : List EntryModel) : Prop :=
+abbrev srvIdxOkW [GooseExts] (ai₀ : w64) (L : List EntryModel) : Prop :=
   ∀ (n : Nat) (m : EntryModel), L[n]? = some m →
     uint.Z m.index = uint.Z ai₀ + 1 + n ∧
       (m.typ = W32 0 ∨ (m.typ = W32 1 ∧ isConfChangeEncoding m.data))
@@ -154,11 +154,11 @@ abbrev srvIdxOkW [FfiSyntax] (ai₀ : w64) (L : List EntryModel) : Prop :=
 normal entries and v1 conf changes. (The overflow bound is on the *next* index, `ai₀ + 1 + |L|`,
 which raft's commit step cannot promise: the KV invariant keeps `srvIdxOkW`, and the bound comes
 with a `Ready`'s batch, a premise on the run, `rnLogFits`; 2026-10-16, stage R7b.) -/
-def srvIdxOk [FfiSyntax] (ai₀ : w64) (L : List EntryModel) : Prop :=
+def srvIdxOk [GooseExts] (ai₀ : w64) (L : List EntryModel) : Prop :=
   uint.Z ai₀ + 1 + L.length < 2 ^ 64 ∧ srvIdxOkW ai₀ L
 
 /-- A prefix of a consecutive log is consecutive. -/
-theorem srvIdxOkW_prefix [FfiSyntax] (ai₀ : w64) (A B : List EntryModel) (h : srvIdxOkW ai₀ B) (hp : A <+: B) :
+theorem srvIdxOkW_prefix [GooseExts] (ai₀ : w64) (A B : List EntryModel) (h : srvIdxOkW ai₀ B) (hp : A <+: B) :
     srvIdxOkW ai₀ A := by
   intro n m hm
   obtain ⟨r, rfl⟩ := hp
@@ -166,7 +166,7 @@ theorem srvIdxOkW_prefix [FfiSyntax] (ai₀ : w64) (A B : List EntryModel) (h : 
 
 /-- **One entry on** (2026-10-16, stage R7b: what a firing of the server's update gives): the
 entry at the next index, normal or a v1 conf change. -/
-theorem srvIdxOkW_snoc [FfiSyntax] (ai₀ : w64) (L : List EntryModel) (e : EntryModel) (h : srvIdxOkW ai₀ L)
+theorem srvIdxOkW_snoc [GooseExts] (ai₀ : w64) (L : List EntryModel) (e : EntryModel) (h : srvIdxOkW ai₀ L)
     (hidx : uint.Z e.index = uint.Z ai₀ + 1 + L.length)
     (hty : e.typ = W32 0 ∨ (e.typ = W32 1 ∧ isConfChangeEncoding e.data)) :
     srvIdxOkW ai₀ (L ++ [e]) := by
@@ -185,7 +185,7 @@ theorem srvIdxOkW_snoc [FfiSyntax] (ai₀ : w64) (L : List EntryModel) (e : Entr
     exact ⟨hidx, hty⟩
 
 /-- `srvIdxOk` from the entry-wise facts and the bound. -/
-theorem srvIdxOk_of_W [FfiSyntax] (ai₀ : w64) (L : List EntryModel) (h : srvIdxOkW ai₀ L)
+theorem srvIdxOk_of_W [GooseExts] (ai₀ : w64) (L : List EntryModel) (h : srvIdxOkW ai₀ L)
     (hb : uint.Z ai₀ + 1 + L.length < 2 ^ 64) : srvIdxOk ai₀ L := ⟨hb, h⟩
 
 /-! ## The deterministic step -/

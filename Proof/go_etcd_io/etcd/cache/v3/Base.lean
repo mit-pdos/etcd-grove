@@ -51,7 +51,7 @@ the status message (`status.FromError(err).Message()`), which for an error that 
 error is its `Error()` (`Spec/google_golang_org/grpc/status/FromError.lean`). grpc's `FromError`
 reads the status embedded in the error value, so the description is a function of the error, as
 its code is (`statusCode`); nothing more is said of it. -/
-opaque errDesc [FfiSyntax] : GoInterface → GoString
+opaque errDesc [GooseExts] : GoInterface → GoString
 
 /-- **The refusals** (D29): the descriptions after which the client's retry interceptor sends a
 `nonRepeatable` call (a write) again: the auth errors (`shouldRefreshToken`, then
@@ -68,13 +68,13 @@ theorem mem_refusalDescs_balancer (d : GoString)
   rcases h with rfl | rfl <;> simp [refusalDescs]
 
 /-- **An error that is not a refusal** (D29): `nil`, or one whose description is not a refusal's. -/
-def noRefusal [FfiSyntax] (err : GoInterface) : Prop :=
+def noRefusal [GooseExts] (err : GoInterface) : Prop :=
   err = GoInterface.nil ∨ errDesc err ∉ refusalDescs
 
 end desc
 
 section init
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -554,7 +554,7 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etc
 end init
 
 section errstr
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

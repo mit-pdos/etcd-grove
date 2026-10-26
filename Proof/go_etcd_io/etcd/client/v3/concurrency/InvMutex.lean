@@ -82,7 +82,7 @@ def acquireTxn (pfx key : GoString) (lease : w64) : TxnModel :=
     elseOps := [.get (keyOp key), .get (ownerOp pfx)] }
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [EM : EtcdModel GF]

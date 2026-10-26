@@ -96,7 +96,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
@@ -133,7 +133,7 @@ stated on the states), whose pointers the slice holds (`msgs.map QMsg.loc`); `ou
 messages (`msgQ`), so it is **no longer persistent**. -/
 
 /-- A queued message: its pointer and the state it holds (stage R4). -/
-structure QMsg [FfiSyntax] where
+structure QMsg [GooseExts] where
   loc : Loc
   st : MsgSt
 
@@ -535,16 +535,16 @@ theorem raftOwn_logger (l : Loc) (v : raft) :
 
 /-- The requests to the witness a node queues (2026-10-20, W4): each to the witness `W`, from the
 node `id`, and, but a pre-vote, of a term at most `t`. -/
-def WqOk [FfiSyntax] (W id t : w64) (μs : List WMsg) : Prop :=
+def WqOk [GooseExts] (W id t : w64) (μs : List WMsg) : Prop :=
   ∀ μ ∈ μs, μ.to = W ∧ μ.frm = id ∧ (μ.ty ≠ MsgPreVote → uint.Z μ.term ≤ uint.Z t)
 
-theorem WqOk.nil [FfiSyntax] {W id t : w64} : WqOk W id t [] := fun _ h => absurd h List.not_mem_nil
+theorem WqOk.nil [GooseExts] {W id t : w64} : WqOk W id t [] := fun _ h => absurd h List.not_mem_nil
 
-theorem WqOk.mono [FfiSyntax] {W id t t' : w64} {μs : List WMsg} (H : WqOk W id t μs)
+theorem WqOk.mono [GooseExts] {W id t t' : w64} {μs : List WMsg} (H : WqOk W id t μs)
     (h : uint.Z t ≤ uint.Z t') : WqOk W id t' μs :=
   fun μ hμ => ⟨(H μ hμ).1, (H μ hμ).2.1, fun hp => Int.le_trans ((H μ hμ).2.2 hp) h⟩
 
-theorem WqOk.snoc [FfiSyntax] {W id t : w64} {μs : List WMsg} {μ : WMsg} (H : WqOk W id t μs)
+theorem WqOk.snoc [GooseExts] {W id t : w64} {μs : List WMsg} {μ : WMsg} (H : WqOk W id t μs)
     (Hμ : μ.to = W ∧ μ.frm = id ∧ (μ.ty ≠ MsgPreVote → uint.Z μ.term ≤ uint.Z t)) :
     WqOk W id t (μs ++ [μ]) := by
   intro x hx
@@ -1240,7 +1240,7 @@ local macro "reseal " s:term:max : tactic =>
                 $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox %Hwf Hwit Hnscap))
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
@@ -1483,7 +1483,7 @@ local macro "split_field_proof " f:ident : tactic =>
              try (ipureintro; simp_all)))
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
@@ -1732,7 +1732,7 @@ the old configuration and goes back at a new one, with a new progress map
 re-established. `switchToConfig` is the one user (for `newRaft`'s move from the empty
 configuration to the persisted one). -/
 section reconfig
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
@@ -1906,7 +1906,7 @@ local macro "resealC " c:term:max s:term:max : tactic =>
                 $$ Hr Hlogger Htrk Hlog Hmsgs Hmsgs_cap HmsgsAA HmsgsAA_cap Hmisc Houtbox %Hwf Hwit Hnscap))
 
 section physC
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
@@ -2328,7 +2328,7 @@ configuration), so the old lemmas keep their own proofs rather than being derive
 `ownRaftPhys_toC` (a derivation per lemma would be longer than the proof). -/
 
 section physCfields
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]

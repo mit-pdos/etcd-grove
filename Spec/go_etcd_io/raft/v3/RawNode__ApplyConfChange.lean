@@ -81,7 +81,7 @@ open Iris Iris.BI go_etcd_io.raft.v3
 -- (2026-10-16, stage R5) `DynCCPreOp` and `DynCCPre` moved to `InvRawnode.lean`.
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 -- `hlc := HasLC.hasLC`, as in `Spec/raft__Step.lean`
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]

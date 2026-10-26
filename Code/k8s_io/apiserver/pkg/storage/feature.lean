@@ -23,62 +23,62 @@ end pkg_id
 
 namespace k8s_io.apiserver.pkg.storage.feature
 
-noncomputable def FeatureSupportChecker.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def FeatureSupportChecker.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/feature.FeatureSupportChecker" [])
 
 attribute [irreducible] FeatureSupportChecker.ty
 
-noncomputable def defaultFeatureSupportChecker.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def defaultFeatureSupportChecker.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/feature.defaultFeatureSupportChecker" [])
 
 attribute [irreducible] defaultFeatureSupportChecker.ty
 
-noncomputable def client.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def client.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/feature.client" [])
 
 attribute [irreducible] client.ty
 
-axiom FeatureSupportChecker.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom FeatureSupportChecker.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom defaultFeatureSupportChecker.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom defaultFeatureSupportChecker.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom rangeStreamRecheckInterval [FfiSyntax] [GoGlobalContext] : val
+axiom rangeStreamRecheckInterval [GooseExts] [GoGlobalContext] : val
 
-noncomputable def v3_4_31 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def v3_4_31 [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/feature.v3_4_31"
 
-axiom v3_4_31.init [FfiSyntax] [GoGlobalContext] : val
+axiom v3_4_31.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def v3_5_0 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def v3_5_0 [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/feature.v3_5_0"
 
-axiom v3_5_0.init [FfiSyntax] [GoGlobalContext] : val
+axiom v3_5_0.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def v3_5_13 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def v3_5_13 [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/feature.v3_5_13"
 
-axiom v3_5_13.init [FfiSyntax] [GoGlobalContext] : val
+axiom v3_5_13.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def DefaultFeatureSupportChecker [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def DefaultFeatureSupportChecker [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/feature.DefaultFeatureSupportChecker"
 
-axiom DefaultFeatureSupportChecker.init [FfiSyntax] [GoGlobalContext] : val
+axiom DefaultFeatureSupportChecker.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def newDefaultFeatureSupportChecker [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newDefaultFeatureSupportChecker [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/feature.newDefaultFeatureSupportChecker"
 
-noncomputable def NewDefaultFeatureSupportChecker [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewDefaultFeatureSupportChecker [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/feature.NewDefaultFeatureSupportChecker"
 
-noncomputable def endpointSupportsRequestWatchProgress [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def endpointSupportsRequestWatchProgress [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/feature.endpointSupportsRequestWatchProgress"
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apiserver.pkg.storage.feature where
   pkgImportedPkgs := [pkg_id.context, pkg_id.go_etcd_io.etcd.client.v3, pkg_id.k8s_io.apiserver.pkg.storage]
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.apiserver.pkg.storage.feature)) (Lam BAnon
   (App (Val exceptionDo)
@@ -107,7 +107,7 @@ axiom FeatureSupportChecker : Type
 axiom FeatureSupportChecker.zero_val : ZeroVal FeatureSupportChecker
 attribute [instance] FeatureSupportChecker.zero_val
 
-class FeatureSupportChecker.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class FeatureSupportChecker.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying FeatureSupportChecker.underlying FeatureSupportChecker
   underlying : go.UnderlyingDirectedEq FeatureSupportChecker.ty FeatureSupportChecker.underlying
   isUnderlying : go.IsUnderlying FeatureSupportChecker.underlying FeatureSupportChecker.underlying
@@ -120,7 +120,7 @@ axiom defaultFeatureSupportChecker : Type
 axiom defaultFeatureSupportChecker.zero_val : ZeroVal defaultFeatureSupportChecker
 attribute [instance] defaultFeatureSupportChecker.zero_val
 
-class defaultFeatureSupportChecker.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class defaultFeatureSupportChecker.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying defaultFeatureSupportChecker.underlying defaultFeatureSupportChecker
   underlying : go.UnderlyingDirectedEq defaultFeatureSupportChecker.ty defaultFeatureSupportChecker.underlying
   isUnderlying : go.IsUnderlying defaultFeatureSupportChecker.underlying defaultFeatureSupportChecker.underlying
@@ -129,17 +129,17 @@ attribute [instance] defaultFeatureSupportChecker.TypeAssumptions.type_repr
   defaultFeatureSupportChecker.TypeAssumptions.underlying
   defaultFeatureSupportChecker.TypeAssumptions.isUnderlying
 
-abbrev client [FfiSyntax] : Type := GoInterface
+abbrev client [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def client.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def client.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Endpoints" (go.signature.Signature [] false [(go.GoType.SliceType go.string)])), (go.InterfaceElem.MethodElem go!"Status" (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.v3.StatusResponse.ty), go.error]))])
 
-class client.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class client.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq client.ty client.underlying
 
 attribute [instance] client.TypeAssumptions.underlying
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   FeatureSupportChecker_instance : FeatureSupportChecker.TypeAssumptions
   defaultFeatureSupportChecker_instance : defaultFeatureSupportChecker.TypeAssumptions
   client_instance : client.TypeAssumptions

@@ -114,7 +114,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.raft.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -1140,7 +1140,7 @@ theorem NewServer.wp_proofM (on : Bool)
     $$ [inflightSnapshots]
   · rw [sync.atomic.ownInt64_unseal]
     unfold sync.atomic.ownInt64Def
-    rw [show ({ _0' := zero_val _, _1' := zero_val _, v' := W64 0 } : sync.atomic.Int64) =
+    rw [show ({ «_#0'» := zero_val _, «_#1'» := zero_val _, v' := W64 0 } : sync.atomic.Int64) =
       zero_val _ from rfl]
     iexact inflightSnapshots
   imod inv_alloc srvInflightN ⊤

@@ -21,55 +21,55 @@ end pkg_id
 
 namespace container.heap
 
-noncomputable def Interface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Interface.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"container/heap.Interface" [])
 
 attribute [irreducible] Interface.ty
 
-noncomputable def Init [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Init [GooseExts] [GoGlobalContext] : GoString :=
   go!"container/heap.Init"
 
-noncomputable def Push [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Push [GooseExts] [GoGlobalContext] : GoString :=
   go!"container/heap.Push"
 
-noncomputable def Pop [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Pop [GooseExts] [GoGlobalContext] : GoString :=
   go!"container/heap.Pop"
 
-noncomputable def Remove [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Remove [GooseExts] [GoGlobalContext] : GoString :=
   go!"container/heap.Remove"
 
-noncomputable def Fix [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Fix [GooseExts] [GoGlobalContext] : GoString :=
   go!"container/heap.Fix"
 
-noncomputable def up [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def up [GooseExts] [GoGlobalContext] : GoString :=
   go!"container/heap.up"
 
-noncomputable def down [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def down [GooseExts] [GoGlobalContext] : GoString :=
   go!"container/heap.down"
 
 noncomputable instance info' : PkgInfo pkg_id.container.heap where
   pkgImportedPkgs := [pkg_id.sort]
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.container.heap)) (Lam BAnon
   (App (Val exceptionDo)
   (App (Val doExecute)
   (App (Val _root_.Perennial.sort.initialize') (Val #())))))))
 
-abbrev Interface [FfiSyntax] : Type := GoInterface
+abbrev Interface [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def Interface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Pop" (go.signature.Signature [] false [go.any])), (go.InterfaceElem.MethodElem go!"Push" (go.signature.Signature [go.any] false [])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm _root_.Perennial.sort.Interface.ty)])])
 
-class Interface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Interface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Interface.ty Interface.underlying
 
 attribute [instance] Interface.TypeAssumptions.underlying
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Interface_instance : Interface.TypeAssumptions
   import_sort_Assumption : _root_.Perennial.sort.Assumptions
 

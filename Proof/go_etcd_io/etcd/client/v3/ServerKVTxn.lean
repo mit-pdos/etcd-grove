@@ -308,7 +308,7 @@ theorem noZeroEnd_wire (t : TxnModel) (hp : TxnModel.plain t)
     (fun o ho => hd o (List.mem_append_right _ ho))⟩
 
 section applied
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 
 /-- **A transaction's log**: its run's changes committed at the log the entry met (nothing
@@ -343,7 +343,7 @@ end applied
 /-! ## The response -/
 
 section resp
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -607,7 +607,7 @@ theorem flat_branch (t : TxnModel) (hp : TxnModel.plain t) (ok : Bool) :
   subst he; exact plain_branch t hp ok _ h
 
 section proofs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

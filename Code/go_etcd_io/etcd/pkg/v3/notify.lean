@@ -21,18 +21,18 @@ end pkg_id
 
 namespace go_etcd_io.etcd.pkg.v3.notify
 
-noncomputable def Notifier.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Notifier.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/pkg/v3/notify.Notifier" [])
 
 attribute [irreducible] Notifier.ty
 
-noncomputable def NewNotifier [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewNotifier [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/pkg/v3/notify.NewNotifier"
 
 /-- NewNotifier returns new notifier
 
     go: notify.go:29:6 -/
-noncomputable def NewNotifier.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def NewNotifier.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val exceptionDo)
   (App (Val doReturn)
@@ -43,7 +43,7 @@ noncomputable def NewNotifier.impl [FfiSyntax] [GoGlobalContext] : val :=
     Consumers will be informed by closing the channel.
 
     go: notify.go:37:20 -/
-noncomputable def Notifier.Receive.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Notifier.Receive.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam BAnon
   (App (Val wrapDefer)
@@ -66,7 +66,7 @@ noncomputable def Notifier.Receive.impl [FfiSyntax] [GoGlobalContext] : val :=
     for next notification.
 
     go: notify.go:45:20 -/
-noncomputable def Notifier.Notify.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Notifier.Notify.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -101,38 +101,38 @@ noncomputable def Notifier.Notify.impl [FfiSyntax] [GoGlobalContext] : val :=
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.pkg.v3.notify where
   pkgImportedPkgs := [pkg_id.sync]
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.pkg.v3.notify)) (Lam BAnon
   (App (Val exceptionDo)
   (App (Val doExecute)
   (App (Val _root_.Perennial.sync.initialize') (Val #())))))))
 
-structure Notifier [FfiSyntax] where
+structure Notifier [GooseExts] where
   mk ::
   mu' : _root_.Perennial.sync.RWMutex
   channel' : GoChan
 
-noncomputable instance Notifier.zero_val [FfiSyntax] : ZeroVal Notifier :=
+noncomputable instance Notifier.zero_val [GooseExts] : ZeroVal Notifier :=
   ⟨Notifier.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Notifier.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Notifier.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"mu" _root_.Perennial.sync.RWMutex.ty),
 (go.field_decl.FieldDecl go!"channel" (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])))]
 
-@[irreducible] noncomputable def Notifier.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Notifier.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Notifier.fieldsUnsealed
 
-noncomputable instance equals_unfold_Notifier [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Notifier [GooseExts] [GoGlobalContext] :
     EqualsUnfold Notifier.fields Notifier.fieldsUnsealed :=
   ⟨by unfold Notifier.fields; rfl⟩
 
-@[reducible] noncomputable def Notifier.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Notifier.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Notifier.fields)
 
-class Notifier.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Notifier.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Notifier.underlying Notifier
   underlying : go.UnderlyingDirectedEq Notifier.ty Notifier.underlying
   get_mu : ∀ (x : Notifier), go.IsGoStepPureDetTagged under (StructFieldGet Notifier.underlying go!"mu") #x (Val #(x.mu'))
@@ -151,7 +151,7 @@ attribute [instance] Notifier.TypeAssumptions.type_repr
   Notifier.TypeAssumptions.ptr_Notify_unfold
   Notifier.TypeAssumptions.ptr_Receive_unfold
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Notifier_instance : Notifier.TypeAssumptions
   NewNotifier_unfold : FuncUnfold NewNotifier [] NewNotifier.impl
   import_sync_Assumption : _root_.Perennial.sync.Assumptions

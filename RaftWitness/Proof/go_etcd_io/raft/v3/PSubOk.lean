@@ -22,7 +22,7 @@ namespace Perennial
 namespace EtcdGrove
 
 section psub
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- A leader's subterm is below its log's last index. -/
 def PSubOk (s : PState) : Prop :=

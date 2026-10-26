@@ -18,13 +18,13 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-omit ffi [FfiInterp ffi] [FfiSemantics ext ffi] go_gctx in
+omit [GooseInterp] [GooseSemantics] go_gctx in
 /-- Rocq `truncate_append_split`: the new visible stable part and unstable suffix make
 up `plogTruncateAppend` of the whole log. -/
 private theorem truncateAppend_split (prev : entryID) (sents uents : List EntryM)
@@ -37,7 +37,7 @@ private theorem truncateAppend_split (prev : entryID) (sents uents : List EntryM
   congr 3
   omega
 
-omit ffi [FfiInterp ffi] [FfiSemantics ext ffi] go_gctx in
+omit [GooseInterp] [GooseSemantics] go_gctx in
 private theorem truncateAppend_lengths (prev : entryID) (sents uents : List EntryM)
     (e0 : EntryM) (ents' : List EntryM)
     (H1 : uint.Z prev.index' < uint.Z e0.Index')

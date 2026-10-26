@@ -32,7 +32,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3 go_etcd_io.etcd.api.v
 /-! ## The verdicts at the latest state (pure) -/
 
 section pure
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- **`P` of the latest state** of the history `hs` in the mode `M`: in `on γa`, `P` holds of the
 last state of `hs`; in the other modes nothing is said. -/
@@ -170,7 +170,7 @@ end pure
 /-! ## The contracts -/
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -219,7 +219,7 @@ instance isAuthStoreL_persistent (st : GoInterface) (RD : IProp GF) (M : auth.Au
 end defs
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

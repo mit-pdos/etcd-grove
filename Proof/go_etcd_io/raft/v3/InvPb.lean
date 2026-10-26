@@ -77,7 +77,7 @@ open Iris Iris.BI go_etcd_io.raft.v3
 /-- What a `*pb.Message` holds beyond its scalars (D3): its scalar fields as the model reads them
 (`msg`), the entries behind `Entries`, the snapshot behind `Snapshot` (`none`: `nil`), the bytes
 behind `Context`, and the pointers in `Responses` (whose objects the holder owns). -/
-structure MsgSt [FfiSyntax] where
+structure MsgSt [GooseExts] where
   msg : MessageM
   ents : List EntryM
   snap : Option SnapshotM
@@ -150,13 +150,13 @@ theorem sorted_perm_eq : ∀ (xs ys : List w64), xs ≡ₚ ys →
 
 /-- What `(*ConfChange).AsV2` makes of a `ConfChange` holding `m`: the one change
 `{Type, NodeId}`, the `Auto` transition, the same context (`raftpb/confchange.go:58`). -/
-def CCV1M.asV2 [FfiSyntax] (m : CCV1M) : CCV2M :=
+def CCV1M.asV2 [GooseExts] (m : CCV1M) : CCV2M :=
   { transition := W32 0, changes := [ConfChangeSingleM.mk m.type m.nodeId], context := m.context }
 
 end pure
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -398,7 +398,7 @@ end defs
 /-! ## Lemmas -/
 
 section lemmas
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

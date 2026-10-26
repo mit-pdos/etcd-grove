@@ -27,7 +27,7 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std
 
 /-- The method set of `*errors.errorString` has no `As`, `Unwrap` or `Is` method (Go's `errors`
 package gives it only `Error`). -/
-class ErrorStringLeaf [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions] : Prop where
+class ErrorStringLeaf [GooseExts] [GoGlobalContext] [GoSemanticsFunctions] : Prop where
   leaf : ∀ v : val,
     _root_.Perennial.errors.isLeafError
       ⟨go.GoType.PointerType _root_.Perennial.errors.errorString.ty, v⟩
@@ -35,7 +35,7 @@ class ErrorStringLeaf [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions] : Pro
     some (go.Signature [go.error] false [go.bool])
 
 /-- An `errors.New` error (a `*errorString`) is a leaf pointer error without an `Is` method. -/
-theorem errorString_leaf [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions] [ErrorStringLeaf]
+theorem errorString_leaf [GooseExts] [GoGlobalContext] [GoSemanticsFunctions] [ErrorStringLeaf]
     (x : Loc) :
     _root_.Perennial.errors.IsPointerError
         ⟨go.GoType.PointerType _root_.Perennial.errors.errorString.ty, #x⟩ ∧
@@ -46,7 +46,7 @@ theorem errorString_leaf [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions] [E
   ⟨⟨_, _, rfl, rfl⟩, ErrorStringLeaf.leaf _, ErrorStringLeaf.noIs⟩
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

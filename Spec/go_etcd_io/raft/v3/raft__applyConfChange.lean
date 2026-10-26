@@ -18,7 +18,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.raft.v3
 
 section pure
-variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
 /-- What `applyConfChange` did at a node moved to the configuration `c'` (2026-10-13,
 reconfiguration stage A2): installed new `Progress` objects (`prs`, tracking `c'`'s ids, records
@@ -138,7 +138,7 @@ theorem applyCCOkC_step {B : Int} (c' : CfgM) (id : w64) (s s' : NState) (H : Ap
 end pure
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]

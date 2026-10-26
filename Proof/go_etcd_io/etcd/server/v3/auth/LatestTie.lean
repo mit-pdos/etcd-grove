@@ -37,7 +37,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.auth auth go_etcd_io.
 namespace auth
 
 section pure
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- The history after an outcome: the next state appended, else the same. -/
 def histAfter (hs : List AuthState) : Outcome → List AuthState
@@ -131,7 +131,7 @@ theorem latestTie_flag (M : AuthMode) (hs : List AuthState) (b : Bool) (sc st0 :
 end pure
 
 section res
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -221,7 +221,7 @@ end res
 end auth
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -369,7 +369,7 @@ abbrev auth.authStore.RoleRevokePermission.specT : Prop :=
 end spec
 
 section derive
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

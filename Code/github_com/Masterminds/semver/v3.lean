@@ -20,207 +20,207 @@ end pkg_id
 
 namespace github_com.Masterminds.semver.v3
 
-noncomputable def Collection.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Collection.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/Masterminds/semver/v3.Collection" [])
 
 attribute [irreducible] Collection.ty
 
-noncomputable def Constraints.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Constraints.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/Masterminds/semver/v3.Constraints" [])
 
 attribute [irreducible] Constraints.ty
 
-noncomputable def constraint.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def constraint.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/Masterminds/semver/v3.constraint" [])
 
 attribute [irreducible] constraint.ty
 
-noncomputable def cfunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def cfunc.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/Masterminds/semver/v3.cfunc" [])
 
 attribute [irreducible] cfunc.ty
 
-noncomputable def Version.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Version.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/Masterminds/semver/v3.Version" [])
 
 attribute [irreducible] Version.ty
 
-axiom MaxConstraintLen [FfiSyntax] [GoGlobalContext] : val
+axiom MaxConstraintLen [GooseExts] [GoGlobalContext] : val
 
-axiom MaxConstraintGroups [FfiSyntax] [GoGlobalContext] : val
+axiom MaxConstraintGroups [GooseExts] [GoGlobalContext] : val
 
-axiom cvRegex [FfiSyntax] [GoGlobalContext] : val
+axiom cvRegex [GooseExts] [GoGlobalContext] : val
 
-axiom MaxVersionLen [FfiSyntax] [GoGlobalContext] : val
+axiom MaxVersionLen [GooseExts] [GoGlobalContext] : val
 
-axiom semVerRegex [FfiSyntax] [GoGlobalContext] : val
+axiom semVerRegex [GooseExts] [GoGlobalContext] : val
 
-axiom looseSemVerRegex [FfiSyntax] [GoGlobalContext] : val
+axiom looseSemVerRegex [GooseExts] [GoGlobalContext] : val
 
-axiom num [FfiSyntax] [GoGlobalContext] : val
+axiom num [GooseExts] [GoGlobalContext] : val
 
-axiom allowed [FfiSyntax] [GoGlobalContext] : val
+axiom allowed [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrConstraintTooLong [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrConstraintTooLong [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/Masterminds/semver/v3.ErrConstraintTooLong"
 
-axiom ErrConstraintTooLong.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrConstraintTooLong.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrTooManyConstraintGroups [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrTooManyConstraintGroups [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/Masterminds/semver/v3.ErrTooManyConstraintGroups"
 
-axiom ErrTooManyConstraintGroups.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrTooManyConstraintGroups.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def constraintOps [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def constraintOps [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/Masterminds/semver/v3.constraintOps"
 
-noncomputable def constraintRegex [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def constraintRegex [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/Masterminds/semver/v3.constraintRegex"
 
-noncomputable def constraintRangeRegex [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def constraintRangeRegex [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/Masterminds/semver/v3.constraintRangeRegex"
 
-noncomputable def findConstraintRegex [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def findConstraintRegex [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/Masterminds/semver/v3.findConstraintRegex"
 
-noncomputable def validConstraintRegex [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validConstraintRegex [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/Masterminds/semver/v3.validConstraintRegex"
 
-noncomputable def versionRegex [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def versionRegex [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/Masterminds/semver/v3.versionRegex"
 
-noncomputable def looseVersionRegex [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def looseVersionRegex [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/Masterminds/semver/v3.looseVersionRegex"
 
-noncomputable def CoerceNewVersion [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def CoerceNewVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/Masterminds/semver/v3.CoerceNewVersion"
 
-axiom CoerceNewVersion.init [FfiSyntax] [GoGlobalContext] : val
+axiom CoerceNewVersion.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def DetailedNewVersionErrors [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def DetailedNewVersionErrors [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/Masterminds/semver/v3.DetailedNewVersionErrors"
 
-axiom DetailedNewVersionErrors.init [FfiSyntax] [GoGlobalContext] : val
+axiom DetailedNewVersionErrors.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrInvalidSemVer [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrInvalidSemVer [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/Masterminds/semver/v3.ErrInvalidSemVer"
 
-axiom ErrInvalidSemVer.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrInvalidSemVer.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrEmptyString [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrEmptyString [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/Masterminds/semver/v3.ErrEmptyString"
 
-axiom ErrEmptyString.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrEmptyString.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrInvalidCharacters [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrInvalidCharacters [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/Masterminds/semver/v3.ErrInvalidCharacters"
 
-axiom ErrInvalidCharacters.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrInvalidCharacters.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrSegmentStartsZero [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrSegmentStartsZero [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/Masterminds/semver/v3.ErrSegmentStartsZero"
 
-axiom ErrSegmentStartsZero.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrSegmentStartsZero.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrInvalidMetadata [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrInvalidMetadata [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/Masterminds/semver/v3.ErrInvalidMetadata"
 
-axiom ErrInvalidMetadata.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrInvalidMetadata.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrInvalidPrerelease [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrInvalidPrerelease [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/Masterminds/semver/v3.ErrInvalidPrerelease"
 
-axiom ErrInvalidPrerelease.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrInvalidPrerelease.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrVersionTooLong [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrVersionTooLong [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/Masterminds/semver/v3.ErrVersionTooLong"
 
-axiom ErrVersionTooLong.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrVersionTooLong.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def NewConstraint [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewConstraint [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/Masterminds/semver/v3.NewConstraint"
 
-noncomputable def init.«0» [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def init.«0» [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/Masterminds/semver/v3.init.0"
 
-noncomputable def parseConstraint [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def parseConstraint [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/Masterminds/semver/v3.parseConstraint"
 
-noncomputable def constraintNotEqual [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def constraintNotEqual [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/Masterminds/semver/v3.constraintNotEqual"
 
-noncomputable def constraintGreaterThan [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def constraintGreaterThan [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/Masterminds/semver/v3.constraintGreaterThan"
 
-noncomputable def constraintLessThan [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def constraintLessThan [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/Masterminds/semver/v3.constraintLessThan"
 
-noncomputable def constraintGreaterThanEqual [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def constraintGreaterThanEqual [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/Masterminds/semver/v3.constraintGreaterThanEqual"
 
-noncomputable def constraintLessThanEqual [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def constraintLessThanEqual [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/Masterminds/semver/v3.constraintLessThanEqual"
 
-noncomputable def constraintTilde [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def constraintTilde [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/Masterminds/semver/v3.constraintTilde"
 
-noncomputable def constraintTildeOrEqual [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def constraintTildeOrEqual [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/Masterminds/semver/v3.constraintTildeOrEqual"
 
-noncomputable def constraintCaret [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def constraintCaret [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/Masterminds/semver/v3.constraintCaret"
 
-noncomputable def isX [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def isX [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/Masterminds/semver/v3.isX"
 
-noncomputable def rewriteRange [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def rewriteRange [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/Masterminds/semver/v3.rewriteRange"
 
-noncomputable def init.«1» [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def init.«1» [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/Masterminds/semver/v3.init.1"
 
-noncomputable def StrictNewVersion [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def StrictNewVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/Masterminds/semver/v3.StrictNewVersion"
 
-noncomputable def NewVersion [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/Masterminds/semver/v3.NewVersion"
 
-noncomputable def coerceNewVersion [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coerceNewVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/Masterminds/semver/v3.coerceNewVersion"
 
-noncomputable def New [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def New [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/Masterminds/semver/v3.New"
 
-noncomputable def MustParse [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def MustParse [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/Masterminds/semver/v3.MustParse"
 
-noncomputable def compareSegment [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def compareSegment [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/Masterminds/semver/v3.compareSegment"
 
-noncomputable def comparePrerelease [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def comparePrerelease [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/Masterminds/semver/v3.comparePrerelease"
 
-noncomputable def comparePrePart [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def comparePrePart [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/Masterminds/semver/v3.comparePrePart"
 
-noncomputable def containsOnly [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def containsOnly [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/Masterminds/semver/v3.containsOnly"
 
-noncomputable def validatePrerelease [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validatePrerelease [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/Masterminds/semver/v3.validatePrerelease"
 
-noncomputable def validateMetadata [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateMetadata [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/Masterminds/semver/v3.validateMetadata"
 
-noncomputable def validateVersion [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validateVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/Masterminds/semver/v3.validateVersion"
 
 noncomputable instance info' : PkgInfo pkg_id.github_com.Masterminds.semver.v3 where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.github_com.Masterminds.semver.v3)) (Lam BAnon
   (App (Val exceptionDo)
@@ -263,41 +263,41 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val ErrConstraintTooLong.init) (Val #()))))))))
 
-abbrev Collection [FfiSyntax] : Type := GoSlice
+abbrev Collection [GooseExts] : Type := GoSlice
 
-@[reducible] noncomputable def Collection.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Collection.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.SliceType (go.GoType.PointerType Version.ty))
 
-class Collection.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Collection.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Collection.ty Collection.underlying
 
 attribute [instance] Collection.TypeAssumptions.underlying
 
-structure Constraints [FfiSyntax] where
+structure Constraints [GooseExts] where
   mk ::
   constraints' : GoSlice
   containsPre' : GoSlice
   IncludePrerelease' : Bool
 
-noncomputable instance Constraints.zero_val [FfiSyntax] : ZeroVal Constraints :=
+noncomputable instance Constraints.zero_val [GooseExts] : ZeroVal Constraints :=
   ⟨Constraints.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Constraints.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Constraints.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"constraints" (go.GoType.SliceType (go.GoType.SliceType (go.GoType.PointerType constraint.ty)))),
 (go.field_decl.FieldDecl go!"containsPre" (go.GoType.SliceType go.bool)),
 (go.field_decl.FieldDecl go!"IncludePrerelease" go.bool)]
 
-@[irreducible] noncomputable def Constraints.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Constraints.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Constraints.fieldsUnsealed
 
-noncomputable instance equals_unfold_Constraints [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Constraints [GooseExts] [GoGlobalContext] :
     EqualsUnfold Constraints.fields Constraints.fieldsUnsealed :=
   ⟨by unfold Constraints.fields; rfl⟩
 
-@[reducible] noncomputable def Constraints.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Constraints.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Constraints.fields)
 
-class Constraints.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Constraints.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Constraints.underlying Constraints
   underlying : go.UnderlyingDirectedEq Constraints.ty Constraints.underlying
   get_constraints : ∀ (x : Constraints), go.IsGoStepPureDetTagged under (StructFieldGet Constraints.underlying go!"constraints") #x (Val #(x.constraints'))
@@ -316,7 +316,7 @@ attribute [instance] Constraints.TypeAssumptions.type_repr
   Constraints.TypeAssumptions.get_IncludePrerelease
   Constraints.TypeAssumptions.set_IncludePrerelease
 
-structure constraint [FfiSyntax] where
+structure constraint [GooseExts] where
   mk ::
   con' : Loc
   orig' : GoString
@@ -325,10 +325,10 @@ structure constraint [FfiSyntax] where
   dirty' : Bool
   patchDirty' : Bool
 
-noncomputable instance constraint.zero_val [FfiSyntax] : ZeroVal constraint :=
+noncomputable instance constraint.zero_val [GooseExts] : ZeroVal constraint :=
   ⟨constraint.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def constraint.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def constraint.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"con" (go.GoType.PointerType Version.ty)),
 (go.field_decl.FieldDecl go!"orig" go.string),
 (go.field_decl.FieldDecl go!"origfunc" go.string),
@@ -336,17 +336,17 @@ noncomputable instance constraint.zero_val [FfiSyntax] : ZeroVal constraint :=
 (go.field_decl.FieldDecl go!"dirty" go.bool),
 (go.field_decl.FieldDecl go!"patchDirty" go.bool)]
 
-@[irreducible] noncomputable def constraint.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def constraint.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   constraint.fieldsUnsealed
 
-noncomputable instance equals_unfold_constraint [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_constraint [GooseExts] [GoGlobalContext] :
     EqualsUnfold constraint.fields constraint.fieldsUnsealed :=
   ⟨by unfold constraint.fields; rfl⟩
 
-@[reducible] noncomputable def constraint.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def constraint.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType constraint.fields)
 
-class constraint.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class constraint.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying constraint.underlying constraint
   underlying : go.UnderlyingDirectedEq constraint.ty constraint.underlying
   get_con : ∀ (x : constraint), go.IsGoStepPureDetTagged under (StructFieldGet constraint.underlying go!"con") #x (Val #(x.con'))
@@ -377,17 +377,17 @@ attribute [instance] constraint.TypeAssumptions.type_repr
   constraint.TypeAssumptions.get_patchDirty
   constraint.TypeAssumptions.set_patchDirty
 
-abbrev cfunc [FfiSyntax] : Type := GoFunc
+abbrev cfunc [GooseExts] : Type := GoFunc
 
-@[reducible] noncomputable def cfunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def cfunc.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType Version.ty), (go.GoType.PointerType constraint.ty), go.bool] false [go.bool, go.error]))
 
-class cfunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class cfunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq cfunc.ty cfunc.underlying
 
 attribute [instance] cfunc.TypeAssumptions.underlying
 
-structure Version [FfiSyntax] where
+structure Version [GooseExts] where
   mk ::
   major' : w64
   minor' : w64
@@ -396,10 +396,10 @@ structure Version [FfiSyntax] where
   metadata' : GoString
   original' : GoString
 
-noncomputable instance Version.zero_val [FfiSyntax] : ZeroVal Version :=
+noncomputable instance Version.zero_val [GooseExts] : ZeroVal Version :=
   ⟨Version.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Version.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Version.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"major" go.uint64),
 (go.field_decl.FieldDecl go!"minor" go.uint64),
 (go.field_decl.FieldDecl go!"patch" go.uint64),
@@ -407,17 +407,17 @@ noncomputable instance Version.zero_val [FfiSyntax] : ZeroVal Version :=
 (go.field_decl.FieldDecl go!"metadata" go.string),
 (go.field_decl.FieldDecl go!"original" go.string)]
 
-@[irreducible] noncomputable def Version.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Version.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Version.fieldsUnsealed
 
-noncomputable instance equals_unfold_Version [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Version [GooseExts] [GoGlobalContext] :
     EqualsUnfold Version.fields Version.fieldsUnsealed :=
   ⟨by unfold Version.fields; rfl⟩
 
-@[reducible] noncomputable def Version.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Version.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Version.fields)
 
-class Version.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Version.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Version.underlying Version
   underlying : go.UnderlyingDirectedEq Version.ty Version.underlying
   get_major : ∀ (x : Version), go.IsGoStepPureDetTagged under (StructFieldGet Version.underlying go!"major") #x (Val #(x.major'))
@@ -448,7 +448,7 @@ attribute [instance] Version.TypeAssumptions.type_repr
   Version.TypeAssumptions.get_original
   Version.TypeAssumptions.set_original
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Collection_instance : Collection.TypeAssumptions
   Constraints_instance : Constraints.TypeAssumptions
   constraint_instance : constraint.TypeAssumptions

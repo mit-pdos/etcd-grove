@@ -23,39 +23,39 @@ end pkg_id
 
 namespace github_com.mit_pdos.etcd_grove.third_party.bridge
 
-noncomputable def Dialer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Dialer.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/mit-pdos/etcd-grove/third_party/bridge.Dialer" [])
 
 attribute [irreducible] Dialer.ty
 
-noncomputable def Bridge.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Bridge.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/mit-pdos/etcd-grove/third_party/bridge.Bridge" [])
 
 attribute [irreducible] Bridge.ty
 
-noncomputable def bridge.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def bridge.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/mit-pdos/etcd-grove/third_party/bridge.bridge" [])
 
 attribute [irreducible] bridge.ty
 
-noncomputable def bridgeConn.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def bridgeConn.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/mit-pdos/etcd-grove/third_party/bridge.bridgeConn" [])
 
 attribute [irreducible] bridgeConn.ty
 
-noncomputable def dialer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def dialer.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/mit-pdos/etcd-grove/third_party/bridge.dialer" [])
 
 attribute [irreducible] dialer.ty
 
-noncomputable def newBridge [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newBridge [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/third_party/bridge.newBridge"
 
-noncomputable def New [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def New [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/third_party/bridge.New"
 
 /-- go: bridge.go:52:6 -/
-noncomputable def newBridge.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def newBridge.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "dialer"
   (Lam "listener"
   (App (Val exceptionDo)
@@ -89,7 +89,7 @@ noncomputable def newBridge.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType bridge.ty)))) (Pair (Var "b") (Var "$r0"))))))))))))
 
 /-- go: bridge.go:68:18 -/
-noncomputable def bridge.Close.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def bridge.Close.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -117,7 +117,7 @@ noncomputable def bridge.Close.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.net.Listener.ty go!"Close"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.net.Listener.ty))) (App (Val (GoInstruction (StructFieldRef bridge.ty go!"l"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bridge.ty)))) (Var "b"))))) (Val #())))))))))
 
 /-- go: bridge.go:80:18 -/
-noncomputable def bridge.DropConnections.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def bridge.DropConnections.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
   (App (Val wrapDefer)
@@ -152,7 +152,7 @@ noncomputable def bridge.DropConnections.impl [FfiSyntax] [GoGlobalContext] : va
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef bridge.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bridge.ty)))) (Var "b")))) (Val #()))))))))))
 
 /-- go: bridge.go:89:18 -/
-noncomputable def bridge.PauseConnections.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def bridge.PauseConnections.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -171,7 +171,7 @@ noncomputable def bridge.PauseConnections.impl [FfiSyntax] [GoGlobalContext] : v
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef bridge.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bridge.ty)))) (Var "b")))) (Val #())))))))))
 
 /-- go: bridge.go:95:18 -/
-noncomputable def bridge.UnpauseConnections.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def bridge.UnpauseConnections.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -193,7 +193,7 @@ noncomputable def bridge.UnpauseConnections.impl [FfiSyntax] [GoGlobalContext] :
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef bridge.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bridge.ty)))) (Var "b")))) (Val #())))))))))
 
 /-- go: bridge.go:105:18 -/
-noncomputable def bridge.serveListen.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def bridge.serveListen.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
   (App (Val wrapDefer)
@@ -332,7 +332,7 @@ noncomputable def bridge.serveListen.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Var "$oldf") (Val #()))))))))))))))))
 
 /-- go: bridge.go:146:18 -/
-noncomputable def bridge.serveConn.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def bridge.serveConn.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "bc"
   (App (Val wrapDefer)
@@ -420,7 +420,7 @@ noncomputable def bridge.serveConn.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Var "$oldf") (Val #())))))))))))))))))
 
 /-- go: bridge.go:177:23 -/
-noncomputable def bridgeConn.Close.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def bridgeConn.Close.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "bc"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -435,7 +435,7 @@ noncomputable def bridgeConn.Close.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType bridgeConn.ty) go!"close"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bridgeConn.ty)))) (Var "bc"))) (Val #())))))))))
 
 /-- go: bridge.go:182:23 -/
-noncomputable def bridgeConn.close.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def bridgeConn.close.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "bc"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -450,7 +450,7 @@ noncomputable def bridgeConn.close.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.net.Conn.ty go!"Close"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.net.Conn.ty))) (App (Val (GoInstruction (StructFieldRef bridgeConn.ty go!"in"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bridgeConn.ty)))) (Var "bc"))))) (Val #())))))))))
 
 /-- go: bridge.go:187:18 -/
-noncomputable def bridge.Blackhole.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def bridge.Blackhole.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -469,7 +469,7 @@ noncomputable def bridge.Blackhole.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef bridge.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType bridge.ty)))) (Var "b")))) (Val #())))))))))
 
 /-- go: bridge.go:193:18 -/
-noncomputable def bridge.Unblackhole.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def bridge.Unblackhole.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -505,7 +505,7 @@ noncomputable def bridge.Unblackhole.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- ref. https://github.com/golang/go/blob/master/src/io/io.go copyBuffer
 
     go: bridge.go:204:18 -/
-noncomputable def bridge.ioCopy.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def bridge.ioCopy.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "dst"
   (Lam "src"
@@ -591,7 +591,7 @@ noncomputable def bridge.ioCopy.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "buf") (Var "$r0")))))))))))))))
 
 /-- go: dialer.go:14:17 -/
-noncomputable def dialer.Dial.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def dialer.Dial.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "d"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -608,7 +608,7 @@ noncomputable def dialer.Dial.impl [FfiSyntax] [GoGlobalContext] : val :=
     as etcd's integration framework does for a member's gRPC address (`UseBridge`).
 
     go: dialer.go:20:6 -/
-noncomputable def New.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def New.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "addr"
   (Lam "l"
   (App (Val exceptionDo)
@@ -624,7 +624,7 @@ noncomputable def New.impl [FfiSyntax] [GoGlobalContext] : val :=
 noncomputable instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.third_party.bridge where
   pkgImportedPkgs := [pkg_id.io, pkg_id.net, pkg_id.sync]
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.github_com.mit_pdos.etcd_grove.third_party.bridge)) (Lam BAnon
   (App (Val exceptionDo)
@@ -637,27 +637,27 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.sync.initialize') (Val #()))))))))
 
-abbrev Dialer [FfiSyntax] : Type := GoInterface
+abbrev Dialer [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def Dialer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Dialer.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Dial" (go.signature.Signature [] false [_root_.Perennial.net.Conn.ty, go.error]))])
 
-class Dialer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Dialer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Dialer.ty Dialer.underlying
 
 attribute [instance] Dialer.TypeAssumptions.underlying
 
-abbrev Bridge [FfiSyntax] : Type := GoInterface
+abbrev Bridge [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def Bridge.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Bridge.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Blackhole" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"Close" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"DropConnections" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"PauseConnections" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"Unblackhole" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"UnpauseConnections" (go.signature.Signature [] false []))])
 
-class Bridge.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Bridge.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Bridge.ty Bridge.underlying
 
 attribute [instance] Bridge.TypeAssumptions.underlying
 
-structure bridge [FfiSyntax] where
+structure bridge [GooseExts] where
   mk ::
   dialer' : Dialer
   l' : _root_.Perennial.net.Listener
@@ -668,10 +668,10 @@ structure bridge [FfiSyntax] where
   wg' : _root_.Perennial.sync.WaitGroup
   mu' : _root_.Perennial.sync.Mutex
 
-noncomputable instance bridge.zero_val [FfiSyntax] : ZeroVal bridge :=
+noncomputable instance bridge.zero_val [GooseExts] : ZeroVal bridge :=
   ⟨bridge.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def bridge.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def bridge.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"dialer" Dialer.ty),
 (go.field_decl.FieldDecl go!"l" _root_.Perennial.net.Listener.ty),
 (go.field_decl.FieldDecl go!"conns" (go.GoType.MapType (go.GoType.PointerType bridgeConn.ty) (go.GoType.StructType []))),
@@ -681,17 +681,17 @@ noncomputable instance bridge.zero_val [FfiSyntax] : ZeroVal bridge :=
 (go.field_decl.FieldDecl go!"wg" _root_.Perennial.sync.WaitGroup.ty),
 (go.field_decl.FieldDecl go!"mu" _root_.Perennial.sync.Mutex.ty)]
 
-@[irreducible] noncomputable def bridge.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def bridge.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   bridge.fieldsUnsealed
 
-noncomputable instance equals_unfold_bridge [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_bridge [GooseExts] [GoGlobalContext] :
     EqualsUnfold bridge.fields bridge.fieldsUnsealed :=
   ⟨by unfold bridge.fields; rfl⟩
 
-@[reducible] noncomputable def bridge.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def bridge.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType bridge.fields)
 
-class bridge.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class bridge.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying bridge.underlying bridge
   underlying : go.UnderlyingDirectedEq bridge.ty bridge.underlying
   get_dialer : ∀ (x : bridge), go.IsGoStepPureDetTagged under (StructFieldGet bridge.underlying go!"dialer") #x (Val #(x.dialer'))
@@ -748,31 +748,31 @@ attribute [instance] bridge.TypeAssumptions.type_repr
   bridge.TypeAssumptions.ptr_serveConn_unfold
   bridge.TypeAssumptions.ptr_serveListen_unfold
 
-structure bridgeConn [FfiSyntax] where
+structure bridgeConn [GooseExts] where
   mk ::
   in' : _root_.Perennial.net.Conn
   out' : _root_.Perennial.net.Conn
   donec' : GoChan
 
-noncomputable instance bridgeConn.zero_val [FfiSyntax] : ZeroVal bridgeConn :=
+noncomputable instance bridgeConn.zero_val [GooseExts] : ZeroVal bridgeConn :=
   ⟨bridgeConn.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def bridgeConn.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def bridgeConn.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"in" _root_.Perennial.net.Conn.ty),
 (go.field_decl.FieldDecl go!"out" _root_.Perennial.net.Conn.ty),
 (go.field_decl.FieldDecl go!"donec" (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])))]
 
-@[irreducible] noncomputable def bridgeConn.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def bridgeConn.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   bridgeConn.fieldsUnsealed
 
-noncomputable instance equals_unfold_bridgeConn [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_bridgeConn [GooseExts] [GoGlobalContext] :
     EqualsUnfold bridgeConn.fields bridgeConn.fieldsUnsealed :=
   ⟨by unfold bridgeConn.fields; rfl⟩
 
-@[reducible] noncomputable def bridgeConn.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def bridgeConn.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType bridgeConn.fields)
 
-class bridgeConn.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class bridgeConn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying bridgeConn.underlying bridgeConn
   underlying : go.UnderlyingDirectedEq bridgeConn.ty bridgeConn.underlying
   get_in : ∀ (x : bridgeConn), go.IsGoStepPureDetTagged under (StructFieldGet bridgeConn.underlying go!"in") #x (Val #(x.in'))
@@ -795,29 +795,29 @@ attribute [instance] bridgeConn.TypeAssumptions.type_repr
   bridgeConn.TypeAssumptions.ptr_Close_unfold
   bridgeConn.TypeAssumptions.ptr_close_unfold
 
-structure dialer [FfiSyntax] where
+structure dialer [GooseExts] where
   mk ::
   network' : GoString
   addr' : GoString
 
-noncomputable instance dialer.zero_val [FfiSyntax] : ZeroVal dialer :=
+noncomputable instance dialer.zero_val [GooseExts] : ZeroVal dialer :=
   ⟨dialer.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def dialer.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def dialer.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"network" go.string),
 (go.field_decl.FieldDecl go!"addr" go.string)]
 
-@[irreducible] noncomputable def dialer.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def dialer.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   dialer.fieldsUnsealed
 
-noncomputable instance equals_unfold_dialer [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_dialer [GooseExts] [GoGlobalContext] :
     EqualsUnfold dialer.fields dialer.fieldsUnsealed :=
   ⟨by unfold dialer.fields; rfl⟩
 
-@[reducible] noncomputable def dialer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def dialer.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType dialer.fields)
 
-class dialer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class dialer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying dialer.underlying dialer
   underlying : go.UnderlyingDirectedEq dialer.ty dialer.underlying
   get_network : ∀ (x : dialer), go.IsGoStepPureDetTagged under (StructFieldGet dialer.underlying go!"network") #x (Val #(x.network'))
@@ -837,7 +837,7 @@ attribute [instance] dialer.TypeAssumptions.type_repr
   dialer.TypeAssumptions.Dial_unfold
   dialer.TypeAssumptions.ptr_Dial_unfold
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Dialer_instance : Dialer.TypeAssumptions
   Bridge_instance : Bridge.TypeAssumptions
   bridge_instance : bridge.TypeAssumptions

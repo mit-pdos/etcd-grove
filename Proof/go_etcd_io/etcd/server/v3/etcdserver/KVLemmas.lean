@@ -63,7 +63,7 @@ theorem kvModel_snoc_nonwrite (γk : KVNames) (L : List EntryModel) (e : EntryMo
   exact kvEntry_nonwrite _ _ _ e h
 
 section lemmas
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

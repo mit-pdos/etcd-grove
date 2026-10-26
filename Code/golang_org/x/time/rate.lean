@@ -20,60 +20,60 @@ end pkg_id
 
 namespace golang_org.x.time.rate
 
-noncomputable def Limit.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Limit.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"golang.org/x/time/rate.Limit" [])
 
 attribute [irreducible] Limit.ty
 
-noncomputable def Limiter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Limiter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"golang.org/x/time/rate.Limiter" [])
 
 attribute [irreducible] Limiter.ty
 
-noncomputable def Reservation.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Reservation.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"golang.org/x/time/rate.Reservation" [])
 
 attribute [irreducible] Reservation.ty
 
-noncomputable def Sometimes.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Sometimes.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"golang.org/x/time/rate.Sometimes" [])
 
 attribute [irreducible] Sometimes.ty
 
-axiom Limiter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Limiter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Reservation.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Reservation.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Sometimes.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Sometimes.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Inf [FfiSyntax] [GoGlobalContext] : val
+axiom Inf [GooseExts] [GoGlobalContext] : val
 
-axiom InfDuration [FfiSyntax] [GoGlobalContext] : val
+axiom InfDuration [GooseExts] [GoGlobalContext] : val
 
-noncomputable def Every [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Every [GooseExts] [GoGlobalContext] : GoString :=
   go!"golang.org/x/time/rate.Every"
 
-noncomputable def NewLimiter [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewLimiter [GooseExts] [GoGlobalContext] : GoString :=
   go!"golang.org/x/time/rate.NewLimiter"
 
 noncomputable instance info' : PkgInfo pkg_id.golang_org.x.time.rate where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.golang_org.x.time.rate)) (Lam BAnon
   (App (Val exceptionDo)
   (App (Val doExecute)
   (Val #()))))))
 
-abbrev Limit [FfiSyntax] : Type := w64
+abbrev Limit [GooseExts] : Type := w64
 
-@[reducible] noncomputable def Limit.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Limit.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.float64
 
-class Limit.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Limit.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Limit.ty Limit.underlying
 
 attribute [instance] Limit.TypeAssumptions.underlying
@@ -82,7 +82,7 @@ axiom Limiter : Type
 axiom Limiter.zero_val : ZeroVal Limiter
 attribute [instance] Limiter.zero_val
 
-class Limiter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Limiter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Limiter.underlying Limiter
   underlying : go.UnderlyingDirectedEq Limiter.ty Limiter.underlying
   isUnderlying : go.IsUnderlying Limiter.underlying Limiter.underlying
@@ -95,7 +95,7 @@ axiom Reservation : Type
 axiom Reservation.zero_val : ZeroVal Reservation
 attribute [instance] Reservation.zero_val
 
-class Reservation.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Reservation.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Reservation.underlying Reservation
   underlying : go.UnderlyingDirectedEq Reservation.ty Reservation.underlying
   isUnderlying : go.IsUnderlying Reservation.underlying Reservation.underlying
@@ -108,7 +108,7 @@ axiom Sometimes : Type
 axiom Sometimes.zero_val : ZeroVal Sometimes
 attribute [instance] Sometimes.zero_val
 
-class Sometimes.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Sometimes.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Sometimes.underlying Sometimes
   underlying : go.UnderlyingDirectedEq Sometimes.ty Sometimes.underlying
   isUnderlying : go.IsUnderlying Sometimes.underlying Sometimes.underlying
@@ -117,7 +117,7 @@ attribute [instance] Sometimes.TypeAssumptions.type_repr
   Sometimes.TypeAssumptions.underlying
   Sometimes.TypeAssumptions.isUnderlying
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Limit_instance : Limit.TypeAssumptions
   Limiter_instance : Limiter.TypeAssumptions
   Reservation_instance : Reservation.TypeAssumptions

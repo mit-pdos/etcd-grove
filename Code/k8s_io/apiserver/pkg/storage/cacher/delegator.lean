@@ -20,75 +20,75 @@ end pkg_id
 
 namespace k8s_io.apiserver.pkg.storage.cacher.delegator
 
-noncomputable def Helper.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Helper.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/cacher/delegator.Helper" [])
 
 attribute [irreducible] Helper.ty
 
-noncomputable def Result.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Result.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/cacher/delegator.Result" [])
 
 attribute [irreducible] Result.ty
 
-noncomputable def CacheWithoutSnapshots.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def CacheWithoutSnapshots.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/cacher/delegator.CacheWithoutSnapshots" [])
 
 attribute [irreducible] CacheWithoutSnapshots.ty
 
-noncomputable def ShouldDelegateListMeta [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ShouldDelegateListMeta [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher/delegator.ShouldDelegateListMeta"
 
-noncomputable def ShouldDelegateList [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ShouldDelegateList [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher/delegator.ShouldDelegateList"
 
-noncomputable def ConsistentReadSupported [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ConsistentReadSupported [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher/delegator.ConsistentReadSupported"
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apiserver.pkg.storage.cacher.delegator where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.apiserver.pkg.storage.cacher.delegator)) (Lam BAnon
   (App (Val exceptionDo)
   (App (Val doExecute)
   (App (Val «_».init) (Val #())))))))
 
-abbrev Helper [FfiSyntax] : Type := GoInterface
+abbrev Helper [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def Helper.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Helper.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"ShouldDelegateConsistentRead" (go.signature.Signature [] false [Result.ty, go.error])), (go.InterfaceElem.MethodElem go!"ShouldDelegateContinue" (go.signature.Signature [go.string, go.bool] false [Result.ty, go.error])), (go.InterfaceElem.MethodElem go!"ShouldDelegateExactRV" (go.signature.Signature [go.string, go.bool] false [Result.ty, go.error]))])
 
-class Helper.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Helper.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Helper.ty Helper.underlying
 
 attribute [instance] Helper.TypeAssumptions.underlying
 
-structure Result [FfiSyntax] where
+structure Result [GooseExts] where
   mk ::
   ShouldDelegate' : Bool
   ConsistentRead' : Bool
 
-noncomputable instance Result.zero_val [FfiSyntax] : ZeroVal Result :=
+noncomputable instance Result.zero_val [GooseExts] : ZeroVal Result :=
   ⟨Result.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Result.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Result.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"ShouldDelegate" go.bool),
 (go.field_decl.FieldDecl go!"ConsistentRead" go.bool)]
 
-@[irreducible] noncomputable def Result.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Result.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Result.fieldsUnsealed
 
-noncomputable instance equals_unfold_Result [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Result [GooseExts] [GoGlobalContext] :
     EqualsUnfold Result.fields Result.fieldsUnsealed :=
   ⟨by unfold Result.fields; rfl⟩
 
-@[reducible] noncomputable def Result.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Result.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Result.fields)
 
-class Result.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Result.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Result.underlying Result
   underlying : go.UnderlyingDirectedEq Result.ty Result.underlying
   get_ShouldDelegate : ∀ (x : Result), go.IsGoStepPureDetTagged under (StructFieldGet Result.underlying go!"ShouldDelegate") #x (Val #(x.ShouldDelegate'))
@@ -103,33 +103,33 @@ attribute [instance] Result.TypeAssumptions.type_repr
   Result.TypeAssumptions.get_ConsistentRead
   Result.TypeAssumptions.set_ConsistentRead
 
-structure CacheWithoutSnapshots [FfiSyntax] where
+structure CacheWithoutSnapshots [GooseExts] where
   mk ::
 
-noncomputable instance CacheWithoutSnapshots.zero_val [FfiSyntax] : ZeroVal CacheWithoutSnapshots :=
+noncomputable instance CacheWithoutSnapshots.zero_val [GooseExts] : ZeroVal CacheWithoutSnapshots :=
   ⟨CacheWithoutSnapshots.mk⟩
 
-@[reducible] noncomputable def CacheWithoutSnapshots.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def CacheWithoutSnapshots.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   []
 
-@[irreducible] noncomputable def CacheWithoutSnapshots.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def CacheWithoutSnapshots.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   CacheWithoutSnapshots.fieldsUnsealed
 
-noncomputable instance equals_unfold_CacheWithoutSnapshots [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_CacheWithoutSnapshots [GooseExts] [GoGlobalContext] :
     EqualsUnfold CacheWithoutSnapshots.fields CacheWithoutSnapshots.fieldsUnsealed :=
   ⟨by unfold CacheWithoutSnapshots.fields; rfl⟩
 
-@[reducible] noncomputable def CacheWithoutSnapshots.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def CacheWithoutSnapshots.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType CacheWithoutSnapshots.fields)
 
-class CacheWithoutSnapshots.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class CacheWithoutSnapshots.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying CacheWithoutSnapshots.underlying CacheWithoutSnapshots
   underlying : go.UnderlyingDirectedEq CacheWithoutSnapshots.ty CacheWithoutSnapshots.underlying
 
 attribute [instance] CacheWithoutSnapshots.TypeAssumptions.type_repr
   CacheWithoutSnapshots.TypeAssumptions.underlying
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Helper_instance : Helper.TypeAssumptions
   Result_instance : Result.TypeAssumptions
   CacheWithoutSnapshots_instance : CacheWithoutSnapshots.TypeAssumptions

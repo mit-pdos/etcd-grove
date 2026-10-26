@@ -21,50 +21,50 @@ end pkg_id
 
 namespace go_etcd_io.etcd.client.pkg.v3.verify
 
-noncomputable def VerificationType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def VerificationType.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/pkg/v3/verify.VerificationType" [])
 
 attribute [irreducible] VerificationType.ty
 
-noncomputable def VerifyFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def VerifyFunc.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/pkg/v3/verify.VerifyFunc" [])
 
 attribute [irreducible] VerifyFunc.ty
 
-axiom envVerify [FfiSyntax] [GoGlobalContext] : val
+axiom envVerify [GooseExts] [GoGlobalContext] : val
 
-axiom envVerifyValueAll [FfiSyntax] [GoGlobalContext] : val
+axiom envVerifyValueAll [GooseExts] [GoGlobalContext] : val
 
-axiom envVerifyValueAssert [FfiSyntax] [GoGlobalContext] : val
+axiom envVerifyValueAssert [GooseExts] [GoGlobalContext] : val
 
-noncomputable def getEnvVerify [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def getEnvVerify [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/pkg/v3/verify.getEnvVerify"
 
-noncomputable def IsVerificationEnabled [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsVerificationEnabled [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/pkg/v3/verify.IsVerificationEnabled"
 
-noncomputable def EnableVerifications [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def EnableVerifications [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/pkg/v3/verify.EnableVerifications"
 
-noncomputable def EnableAllVerifications [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def EnableAllVerifications [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/pkg/v3/verify.EnableAllVerifications"
 
-noncomputable def DisableVerifications [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def DisableVerifications [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/pkg/v3/verify.DisableVerifications"
 
-noncomputable def Verify [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Verify [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/pkg/v3/verify.Verify"
 
-noncomputable def verifier [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def verifier [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/pkg/v3/verify.verifier"
 
-noncomputable def Assert [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Assert [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/pkg/v3/verify.Assert"
 
 /-- Assert will panic with a given formatted message if the given condition is false.
 
     go: verify.go:85:6 -/
-noncomputable def Assert.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Assert.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "condition"
   (Lam "msg"
   (Lam "v"
@@ -87,36 +87,36 @@ noncomputable def Assert.impl [FfiSyntax] [GoGlobalContext] : val :=
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.client.pkg.v3.verify where
   pkgImportedPkgs := [pkg_id.fmt]
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.client.pkg.v3.verify)) (Lam BAnon
   (App (Val exceptionDo)
   (App (Val doExecute)
   (App (Val _root_.Perennial.fmt.initialize') (Val #())))))))
 
-abbrev VerificationType [FfiSyntax] : Type := GoString
+abbrev VerificationType [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def VerificationType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def VerificationType.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-class VerificationType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class VerificationType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq VerificationType.ty VerificationType.underlying
 
 attribute [instance] VerificationType.TypeAssumptions.underlying
 
-abbrev VerifyFunc [FfiSyntax] : Type := GoFunc
+abbrev VerifyFunc [GooseExts] : Type := GoFunc
 
-@[reducible] noncomputable def VerifyFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def VerifyFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [] false [go.bool, (go.GoType.MapType go.string go.any)]))
 
-class VerifyFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class VerifyFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq VerifyFunc.ty VerifyFunc.underlying
 
 attribute [instance] VerifyFunc.TypeAssumptions.underlying
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   VerificationType_instance : VerificationType.TypeAssumptions
   VerifyFunc_instance : VerifyFunc.TypeAssumptions
   Assert_unfold : FuncUnfold Assert [] Assert.impl

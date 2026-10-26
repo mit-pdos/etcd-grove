@@ -296,7 +296,7 @@ theorem demuxRLW_startOk_of {c : DemuxCore} {ri : RegInfo} (h : ri.s = W64 0 ∨
   · exact Or.inr (Or.inl ⟨hm, h⟩)
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

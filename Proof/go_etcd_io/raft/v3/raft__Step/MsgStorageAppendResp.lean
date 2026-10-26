@@ -24,7 +24,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 section snplemmas
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- (D22 S-d3a) `SnpOk` after `stableTo`, which keeps every field it reads. -/
 theorem SnpOk.stableTo {g : NGhost} {ls : LogState} (id : entryID) (H : SnpOk g ls) :
@@ -45,7 +45,7 @@ theorem SnpOk.ackL {g : NGhost} {ls : LogState} (sn : Option SnapshotM) (H : Snp
 end snplemmas
 
 section branches
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]

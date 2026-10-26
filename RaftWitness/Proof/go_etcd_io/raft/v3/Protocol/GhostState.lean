@@ -44,7 +44,7 @@ namespace EtcdGrove
 open Iris Iris.BI GMap go_etcd_io.raft.v3
 
 section ghost
-variable [FfiSyntax]
+variable [GooseExts]
 variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF]
 variable {md : Bool}
 
@@ -2478,7 +2478,7 @@ end inv
 
 /-! ### Pure facts about the vote tally -/
 
-omit [FfiSyntax] in
+omit [GooseExts] in
 theorem elem_of_granted (votes : GMap w64 Bool) (v : w64) :
     v ∈ granted votes ↔ votes !! v = some true := by
   unfold granted
@@ -2493,11 +2493,11 @@ theorem elem_of_granted (votes : GMap w64 Bool) (v : w64) :
   · intro Hv
     exact ⟨true, (GMap.mapLookup_filter_Some _ _ _ _).mpr ⟨Hv, rfl⟩⟩
 
-omit [FfiSyntax] in
+omit [GooseExts] in
 theorem granted_empty : granted ∅ = ∅ := by
   unfold granted; rw [GMap.map_filter_empty, GMap.dom_empty_L]
 
-omit [FfiSyntax] in
+omit [GooseExts] in
 theorem elem_of_granted_recordVote (votes : GMap w64 Bool) (src : w64) (b : Bool) (v : w64) :
     v ∈ granted (recordVote votes src b) →
     v ∈ granted votes ∨ (v = src ∧ b = true) := by

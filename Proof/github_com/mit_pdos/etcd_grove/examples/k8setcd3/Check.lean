@@ -46,7 +46,7 @@ theorem lintestN_clockN : (↑lintest.lintestN : CoPset) ⊆
     ndot_ne_disjoint nroot (by decide : "lintest" ≠ "k8setcd3_clock") p ⟨hp, h'⟩⟩
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

@@ -25,62 +25,62 @@ end pkg_id
 
 namespace go_etcd_io.raft.v3.tracker
 
-noncomputable def inflight.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def inflight.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/raft/v3/tracker.inflight" [])
 
 attribute [irreducible] inflight.ty
 
-noncomputable def Inflights.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Inflights.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/raft/v3/tracker.Inflights" [])
 
 attribute [irreducible] Inflights.ty
 
-noncomputable def Progress.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Progress.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/raft/v3/tracker.Progress" [])
 
 attribute [irreducible] Progress.ty
 
-noncomputable def ProgressMap.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ProgressMap.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/raft/v3/tracker.ProgressMap" [])
 
 attribute [irreducible] ProgressMap.ty
 
-noncomputable def StateType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def StateType.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/raft/v3/tracker.StateType" [])
 
 attribute [irreducible] StateType.ty
 
-noncomputable def Config.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Config.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/raft/v3/tracker.Config" [])
 
 attribute [irreducible] Config.ty
 
-noncomputable def ProgressTracker.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ProgressTracker.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/raft/v3/tracker.ProgressTracker" [])
 
 attribute [irreducible] ProgressTracker.ty
 
-noncomputable def matchAckIndexer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def matchAckIndexer.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/raft/v3/tracker.matchAckIndexer" [])
 
 attribute [irreducible] matchAckIndexer.ty
 
-@[reducible] noncomputable def StateProbe [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def StateProbe [GooseExts] [GoGlobalContext] : val :=
   #(W64 0)
 
-@[reducible] noncomputable def StateReplicate [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def StateReplicate [GooseExts] [GoGlobalContext] : val :=
   #(W64 1)
 
-@[reducible] noncomputable def StateSnapshot [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def StateSnapshot [GooseExts] [GoGlobalContext] : val :=
   #(W64 2)
 
-noncomputable def prstmap [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def prstmap [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3/tracker.prstmap"
 
-noncomputable def NewInflights [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewInflights [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3/tracker.NewInflights"
 
-noncomputable def MakeProgressTracker [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def MakeProgressTracker [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3/tracker.MakeProgressTracker"
 
 /-- NewInflights sets up an Inflights that allows up to size inflight messages,
@@ -89,7 +89,7 @@ noncomputable def MakeProgressTracker [FfiSyntax] [GoGlobalContext] : GoString :
     that brings it from size < maxBytes to size >= maxBytes.
 
     go: inflights.go:46:6 -/
-noncomputable def NewInflights.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def NewInflights.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "size"
   (Lam "maxBytes"
   (App (Val exceptionDo)
@@ -104,7 +104,7 @@ noncomputable def NewInflights.impl [FfiSyntax] [GoGlobalContext] : val :=
     the receiver.
 
     go: inflights.go:55:22 -/
-noncomputable def Inflights.Clone.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Inflights.Clone.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "in"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -129,7 +129,7 @@ noncomputable def Inflights.Clone.impl [FfiSyntax] [GoGlobalContext] : val :=
     provide a monotonic sequence of indexes.
 
     go: inflights.go:65:22 -/
-noncomputable def Inflights.Add.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Inflights.Add.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "in"
   (Lam "index"
   (Lam "bytes"
@@ -187,7 +187,7 @@ noncomputable def Inflights.Add.impl [FfiSyntax] [GoGlobalContext] : val :=
     thousands of Raft groups per process.
 
     go: inflights.go:85:22 -/
-noncomputable def Inflights.grow.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Inflights.grow.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "in"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -229,7 +229,7 @@ noncomputable def Inflights.grow.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- FreeLE frees the inflights smaller or equal to the given `to` flight.
 
     go: inflights.go:98:22 -/
-noncomputable def Inflights.FreeLE.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Inflights.FreeLE.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "in"
   (Lam "to"
   (App (Val exceptionDo)
@@ -302,7 +302,7 @@ noncomputable def Inflights.FreeLE.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- Full returns true if no more messages can be sent at the moment.
 
     go: inflights.go:131:22 -/
-noncomputable def Inflights.Full.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Inflights.Full.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "in"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -313,7 +313,7 @@ noncomputable def Inflights.Full.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- Count returns the number of inflight messages.
 
     go: inflights.go:136:22 -/
-noncomputable def Inflights.Count.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Inflights.Count.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "in"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -324,7 +324,7 @@ noncomputable def Inflights.Count.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- reset frees all inflights.
 
     go: inflights.go:139:22 -/
-noncomputable def Inflights.reset.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Inflights.reset.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "in"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -348,7 +348,7 @@ noncomputable def Inflights.reset.impl [FfiSyntax] [GoGlobalContext] : val :=
     PendingSnapshot, and Inflights.
 
     go: progress.go:121:21 -/
-noncomputable def Progress.ResetState.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Progress.ResetState.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "pr"
   (Lam "state"
   (App (Val exceptionDo)
@@ -376,7 +376,7 @@ noncomputable def Progress.ResetState.impl [FfiSyntax] [GoGlobalContext] : val :
     optionally and if larger, the index of the pending snapshot.
 
     go: progress.go:130:21 -/
-noncomputable def Progress.BecomeProbe.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Progress.BecomeProbe.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "pr"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -416,7 +416,7 @@ noncomputable def Progress.BecomeProbe.impl [FfiSyntax] [GoGlobalContext] : val 
 /-- BecomeReplicate transitions into StateReplicate, resetting Next to Match+1.
 
     go: progress.go:146:21 -/
-noncomputable def Progress.BecomeReplicate.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Progress.BecomeReplicate.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "pr"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -436,7 +436,7 @@ noncomputable def Progress.BecomeReplicate.impl [FfiSyntax] [GoGlobalContext] : 
     snapshot index.
 
     go: progress.go:153:21 -/
-noncomputable def Progress.BecomeSnapshot.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Progress.BecomeSnapshot.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "pr"
   (Lam "snapshoti"
   (App (Val exceptionDo)
@@ -468,7 +468,7 @@ noncomputable def Progress.BecomeSnapshot.impl [FfiSyntax] [GoGlobalContext] : v
     Must be used with StateProbe or StateReplicate.
 
     go: progress.go:165:21 -/
-noncomputable def Progress.SentEntries.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Progress.SentEntries.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "pr"
   (Lam "entries"
   (Lam "bytes"
@@ -513,7 +513,7 @@ noncomputable def Progress.SentEntries.impl [FfiSyntax] [GoGlobalContext] : val 
     advance the follower's commit index.
 
     go: progress.go:189:21 -/
-noncomputable def Progress.CanBumpCommit.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Progress.CanBumpCommit.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "pr"
   (Lam "index"
   (App (Val exceptionDo)
@@ -525,7 +525,7 @@ noncomputable def Progress.CanBumpCommit.impl [FfiSyntax] [GoGlobalContext] : va
 /-- SentCommit updates the sentCommit.
 
     go: progress.go:198:21 -/
-noncomputable def Progress.SentCommit.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Progress.SentCommit.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "pr"
   (Lam "commit"
   (App (Val exceptionDo)
@@ -543,7 +543,7 @@ noncomputable def Progress.SentCommit.impl [FfiSyntax] [GoGlobalContext] : val :
     an outdated message. Otherwise it updates the progress and returns true.
 
     go: progress.go:205:21 -/
-noncomputable def Progress.MaybeUpdate.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Progress.MaybeUpdate.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "pr"
   (Lam "n"
   (App (Val exceptionDo)
@@ -585,7 +585,7 @@ noncomputable def Progress.MaybeUpdate.impl [FfiSyntax] [GoGlobalContext] : val 
     cleared for sending log entries.
 
     go: progress.go:226:21 -/
-noncomputable def Progress.MaybeDecrTo.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Progress.MaybeDecrTo.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "pr"
   (Lam "rejected"
   (Lam "matchHint"
@@ -650,7 +650,7 @@ noncomputable def Progress.MaybeDecrTo.impl [FfiSyntax] [GoGlobalContext] : val 
     log entries again.
 
     go: progress.go:262:21 -/
-noncomputable def Progress.IsPaused.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Progress.IsPaused.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "pr"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -670,7 +670,7 @@ noncomputable def Progress.IsPaused.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))))))))))
 
 /-- go: progress.go:275:21 -/
-noncomputable def Progress.String.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Progress.String.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "pr"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -752,7 +752,7 @@ noncomputable def Progress.String.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- String prints the ProgressMap in sorted key order, one Progress per line.
 
     go: progress.go:303:22 -/
-noncomputable def ProgressMap.String.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def ProgressMap.String.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "m"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -806,7 +806,7 @@ noncomputable def ProgressMap.String.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.uint64)))) (Pair (Var "ids") (Var "$r0")))))))))))
 
 /-- go: state.go:42:21 -/
-noncomputable def StateType.String.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def StateType.String.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "st"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -815,7 +815,7 @@ noncomputable def StateType.String.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 3 go.string)))) (Pair (App (Val (GoInstruction (GlobalVarAddr prstmap))) (Val #())) (App (Val (GoInstruction (Convert StateType.ty go.int))) (App (Val (GoInstruction (GoLoad StateType.ty))) (Var "st")))))))))))
 
 /-- go: tracker.go:80:17 -/
-noncomputable def Config.String.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Config.String.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -863,7 +863,7 @@ noncomputable def Config.String.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- Clone returns a copy of the Config that shares no memory with the original.
 
     go: tracker.go:96:18 -/
-noncomputable def Config.Clone.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Config.Clone.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -916,7 +916,7 @@ noncomputable def Config.Clone.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- MakeProgressTracker initializes a ProgressTracker.
 
     go: tracker.go:129:6 -/
-noncomputable def MakeProgressTracker.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def MakeProgressTracker.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "maxInflight"
   (Lam "maxBytes"
   (App (Val exceptionDo)
@@ -943,7 +943,7 @@ noncomputable def MakeProgressTracker.impl [FfiSyntax] [GoGlobalContext] : val :
 /-- ConfState returns a ConfState representing the active configuration.
 
     go: tracker.go:148:27 -/
-noncomputable def ProgressTracker.ConfState.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def ProgressTracker.ConfState.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "p"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -960,7 +960,7 @@ noncomputable def ProgressTracker.ConfState.impl [FfiSyntax] [GoGlobalContext] :
     (i.e. the leader) in the current configuration.
 
     go: tracker.go:160:27 -/
-noncomputable def ProgressTracker.IsSingleton.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def ProgressTracker.IsSingleton.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "p"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -973,7 +973,7 @@ noncomputable def ProgressTracker.IsSingleton.impl [FfiSyntax] [GoGlobalContext]
 /-- AckedIndex implements IndexLookuper.
 
     go: tracker.go:169:26 -/
-noncomputable def matchAckIndexer.AckedIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def matchAckIndexer.AckedIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "id"
   (App (Val exceptionDo)
@@ -1005,7 +1005,7 @@ noncomputable def matchAckIndexer.AckedIndex.impl [FfiSyntax] [GoGlobalContext] 
     the voting members of the group have acknowledged.
 
     go: tracker.go:179:27 -/
-noncomputable def ProgressTracker.Committed.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def ProgressTracker.Committed.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "p"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1017,7 +1017,7 @@ noncomputable def ProgressTracker.Committed.impl [FfiSyntax] [GoGlobalContext] :
 /-- Visit invokes the supplied closure for all tracked progresses in stable order.
 
     go: tracker.go:184:27 -/
-noncomputable def ProgressTracker.Visit.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def ProgressTracker.Visit.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "p"
   (Lam "f"
   (App (Val exceptionDo)
@@ -1082,7 +1082,7 @@ noncomputable def ProgressTracker.Visit.impl [FfiSyntax] [GoGlobalContext] : val
     raft state machine. Otherwise, it returns false.
 
     go: tracker.go:208:27 -/
-noncomputable def ProgressTracker.QuorumActive.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def ProgressTracker.QuorumActive.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "p"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1119,7 +1119,7 @@ noncomputable def ProgressTracker.QuorumActive.impl [FfiSyntax] [GoGlobalContext
 /-- VoterNodes returns a sorted slice of voters.
 
     go: tracker.go:221:27 -/
-noncomputable def ProgressTracker.VoterNodes.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def ProgressTracker.VoterNodes.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "p"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1160,7 +1160,7 @@ noncomputable def ProgressTracker.VoterNodes.impl [FfiSyntax] [GoGlobalContext] 
 /-- LearnerNodes returns a sorted slice of learners.
 
     go: tracker.go:232:27 -/
-noncomputable def ProgressTracker.LearnerNodes.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def ProgressTracker.LearnerNodes.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "p"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1203,7 +1203,7 @@ noncomputable def ProgressTracker.LearnerNodes.impl [FfiSyntax] [GoGlobalContext
 /-- ResetVotes prepares for a new round of vote counting via recordVote.
 
     go: tracker.go:245:27 -/
-noncomputable def ProgressTracker.ResetVotes.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def ProgressTracker.ResetVotes.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "p"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1219,7 +1219,7 @@ noncomputable def ProgressTracker.ResetVotes.impl [FfiSyntax] [GoGlobalContext] 
     instance if v == true (and declined it otherwise).
 
     go: tracker.go:251:27 -/
-noncomputable def ProgressTracker.RecordVote.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def ProgressTracker.RecordVote.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "p"
   (Lam "id"
   (Lam "v"
@@ -1253,7 +1253,7 @@ noncomputable def ProgressTracker.RecordVote.impl [FfiSyntax] [GoGlobalContext] 
     election outcome is known.
 
     go: tracker.go:260:27 -/
-noncomputable def ProgressTracker.TallyVotes.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def ProgressTracker.TallyVotes.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "p"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1314,7 +1314,7 @@ noncomputable def ProgressTracker.TallyVotes.impl [FfiSyntax] [GoGlobalContext] 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.raft.v3.tracker where
   pkgImportedPkgs := [pkg_id.fmt, pkg_id.slices, pkg_id.strings, pkg_id.go_etcd_io.raft.v3.quorum, pkg_id.go_etcd_io.raft.v3.raftpb]
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.raft.v3.tracker)) (Lam BAnon
   (App (Val exceptionDo)
@@ -1347,29 +1347,29 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc prstmap (go.GoType.ArrayType 3 go.string))) (Val #()))))))))
 
-structure inflight [FfiSyntax] where
+structure inflight [GooseExts] where
   mk ::
   index' : w64
   bytes' : w64
 
-noncomputable instance inflight.zero_val [FfiSyntax] : ZeroVal inflight :=
+noncomputable instance inflight.zero_val [GooseExts] : ZeroVal inflight :=
   ⟨inflight.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def inflight.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def inflight.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"index" go.uint64),
 (go.field_decl.FieldDecl go!"bytes" go.uint64)]
 
-@[irreducible] noncomputable def inflight.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def inflight.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   inflight.fieldsUnsealed
 
-noncomputable instance equals_unfold_inflight [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_inflight [GooseExts] [GoGlobalContext] :
     EqualsUnfold inflight.fields inflight.fieldsUnsealed :=
   ⟨by unfold inflight.fields; rfl⟩
 
-@[reducible] noncomputable def inflight.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def inflight.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType inflight.fields)
 
-class inflight.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class inflight.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying inflight.underlying inflight
   underlying : go.UnderlyingDirectedEq inflight.ty inflight.underlying
   get_index : ∀ (x : inflight), go.IsGoStepPureDetTagged under (StructFieldGet inflight.underlying go!"index") #x (Val #(x.index'))
@@ -1384,7 +1384,7 @@ attribute [instance] inflight.TypeAssumptions.type_repr
   inflight.TypeAssumptions.get_bytes
   inflight.TypeAssumptions.set_bytes
 
-structure Inflights [FfiSyntax] where
+structure Inflights [GooseExts] where
   mk ::
   start' : w64
   count' : w64
@@ -1393,10 +1393,10 @@ structure Inflights [FfiSyntax] where
   maxBytes' : w64
   buffer' : GoSlice
 
-noncomputable instance Inflights.zero_val [FfiSyntax] : ZeroVal Inflights :=
+noncomputable instance Inflights.zero_val [GooseExts] : ZeroVal Inflights :=
   ⟨Inflights.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Inflights.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Inflights.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"start" go.int),
 (go.field_decl.FieldDecl go!"count" go.int),
 (go.field_decl.FieldDecl go!"bytes" go.uint64),
@@ -1404,17 +1404,17 @@ noncomputable instance Inflights.zero_val [FfiSyntax] : ZeroVal Inflights :=
 (go.field_decl.FieldDecl go!"maxBytes" go.uint64),
 (go.field_decl.FieldDecl go!"buffer" (go.GoType.SliceType inflight.ty))]
 
-@[irreducible] noncomputable def Inflights.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Inflights.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Inflights.fieldsUnsealed
 
-noncomputable instance equals_unfold_Inflights [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Inflights [GooseExts] [GoGlobalContext] :
     EqualsUnfold Inflights.fields Inflights.fieldsUnsealed :=
   ⟨by unfold Inflights.fields; rfl⟩
 
-@[reducible] noncomputable def Inflights.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Inflights.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Inflights.fields)
 
-class Inflights.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Inflights.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Inflights.underlying Inflights
   underlying : go.UnderlyingDirectedEq Inflights.ty Inflights.underlying
   get_start : ∀ (x : Inflights), go.IsGoStepPureDetTagged under (StructFieldGet Inflights.underlying go!"start") #x (Val #(x.start'))
@@ -1459,12 +1459,12 @@ attribute [instance] Inflights.TypeAssumptions.type_repr
   Inflights.TypeAssumptions.ptr_grow_unfold
   Inflights.TypeAssumptions.ptr_reset_unfold
 
-abbrev StateType [FfiSyntax] : Type := w64
+abbrev StateType [GooseExts] : Type := w64
 
-@[reducible] noncomputable def StateType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def StateType.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.uint64
 
-class StateType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class StateType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq StateType.ty StateType.underlying
   String_unfold : MethodUnfold StateType.ty go!"String" StateType.String.impl
   ptr_String_unfold : MethodUnfold (go.GoType.PointerType StateType.ty) go!"String" (LamV "$r"
@@ -1474,7 +1474,7 @@ attribute [instance] StateType.TypeAssumptions.underlying
   StateType.TypeAssumptions.String_unfold
   StateType.TypeAssumptions.ptr_String_unfold
 
-structure Progress [FfiSyntax] where
+structure Progress [GooseExts] where
   mk ::
   Match' : w64
   Next' : w64
@@ -1486,10 +1486,10 @@ structure Progress [FfiSyntax] where
   Inflights' : Loc
   IsLearner' : Bool
 
-noncomputable instance Progress.zero_val [FfiSyntax] : ZeroVal Progress :=
+noncomputable instance Progress.zero_val [GooseExts] : ZeroVal Progress :=
   ⟨Progress.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Progress.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Progress.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Match" go.uint64),
 (go.field_decl.FieldDecl go!"Next" go.uint64),
 (go.field_decl.FieldDecl go!"sentCommit" go.uint64),
@@ -1500,17 +1500,17 @@ noncomputable instance Progress.zero_val [FfiSyntax] : ZeroVal Progress :=
 (go.field_decl.FieldDecl go!"Inflights" (go.GoType.PointerType Inflights.ty)),
 (go.field_decl.FieldDecl go!"IsLearner" go.bool)]
 
-@[irreducible] noncomputable def Progress.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Progress.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Progress.fieldsUnsealed
 
-noncomputable instance equals_unfold_Progress [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Progress [GooseExts] [GoGlobalContext] :
     EqualsUnfold Progress.fields Progress.fieldsUnsealed :=
   ⟨by unfold Progress.fields; rfl⟩
 
-@[reducible] noncomputable def Progress.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Progress.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Progress.fields)
 
-class Progress.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Progress.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Progress.underlying Progress
   underlying : go.UnderlyingDirectedEq Progress.ty Progress.underlying
   get_Match : ∀ (x : Progress), go.IsGoStepPureDetTagged under (StructFieldGet Progress.underlying go!"Match") #x (Val #(x.Match'))
@@ -1575,12 +1575,12 @@ attribute [instance] Progress.TypeAssumptions.type_repr
   Progress.TypeAssumptions.ptr_SentEntries_unfold
   Progress.TypeAssumptions.ptr_String_unfold
 
-abbrev ProgressMap [FfiSyntax] : Type := GoMap
+abbrev ProgressMap [GooseExts] : Type := GoMap
 
-@[reducible] noncomputable def ProgressMap.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ProgressMap.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.MapType go.uint64 (go.GoType.PointerType Progress.ty))
 
-class ProgressMap.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ProgressMap.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ProgressMap.ty ProgressMap.underlying
   String_unfold : MethodUnfold ProgressMap.ty go!"String" ProgressMap.String.impl
   ptr_String_unfold : MethodUnfold (go.GoType.PointerType ProgressMap.ty) go!"String" (LamV "$r"
@@ -1590,33 +1590,33 @@ attribute [instance] ProgressMap.TypeAssumptions.underlying
   ProgressMap.TypeAssumptions.String_unfold
   ProgressMap.TypeAssumptions.ptr_String_unfold
 
-structure Config [FfiSyntax] where
+structure Config [GooseExts] where
   mk ::
   Voters' : _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig
   AutoLeave' : Bool
   Learners' : GoMap
   LearnersNext' : GoMap
 
-noncomputable instance Config.zero_val [FfiSyntax] : ZeroVal Config :=
+noncomputable instance Config.zero_val [GooseExts] : ZeroVal Config :=
   ⟨Config.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Config.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Config.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Voters" _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty),
 (go.field_decl.FieldDecl go!"AutoLeave" go.bool),
 (go.field_decl.FieldDecl go!"Learners" (go.GoType.MapType go.uint64 (go.GoType.StructType []))),
 (go.field_decl.FieldDecl go!"LearnersNext" (go.GoType.MapType go.uint64 (go.GoType.StructType [])))]
 
-@[irreducible] noncomputable def Config.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Config.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Config.fieldsUnsealed
 
-noncomputable instance equals_unfold_Config [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Config [GooseExts] [GoGlobalContext] :
     EqualsUnfold Config.fields Config.fieldsUnsealed :=
   ⟨by unfold Config.fields; rfl⟩
 
-@[reducible] noncomputable def Config.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Config.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Config.fields)
 
-class Config.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Config.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Config.underlying Config
   underlying : go.UnderlyingDirectedEq Config.ty Config.underlying
   get_Voters : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Voters") #x (Val #(x.Voters'))
@@ -1646,7 +1646,7 @@ attribute [instance] Config.TypeAssumptions.type_repr
   Config.TypeAssumptions.ptr_Clone_unfold
   Config.TypeAssumptions.ptr_String_unfold
 
-structure ProgressTracker [FfiSyntax] where
+structure ProgressTracker [GooseExts] where
   mk ::
   Config' : Config
   Progress' : ProgressMap
@@ -1654,27 +1654,27 @@ structure ProgressTracker [FfiSyntax] where
   MaxInflight' : w64
   MaxInflightBytes' : w64
 
-noncomputable instance ProgressTracker.zero_val [FfiSyntax] : ZeroVal ProgressTracker :=
+noncomputable instance ProgressTracker.zero_val [GooseExts] : ZeroVal ProgressTracker :=
   ⟨ProgressTracker.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ProgressTracker.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ProgressTracker.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"Config" Config.ty),
 (go.field_decl.FieldDecl go!"Progress" ProgressMap.ty),
 (go.field_decl.FieldDecl go!"Votes" (go.GoType.MapType go.uint64 go.bool)),
 (go.field_decl.FieldDecl go!"MaxInflight" go.int),
 (go.field_decl.FieldDecl go!"MaxInflightBytes" go.uint64)]
 
-@[irreducible] noncomputable def ProgressTracker.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ProgressTracker.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ProgressTracker.fieldsUnsealed
 
-noncomputable instance equals_unfold_ProgressTracker [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ProgressTracker [GooseExts] [GoGlobalContext] :
     EqualsUnfold ProgressTracker.fields ProgressTracker.fieldsUnsealed :=
   ⟨by unfold ProgressTracker.fields; rfl⟩
 
-@[reducible] noncomputable def ProgressTracker.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ProgressTracker.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ProgressTracker.fields)
 
-class ProgressTracker.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ProgressTracker.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ProgressTracker.underlying ProgressTracker
   underlying : go.UnderlyingDirectedEq ProgressTracker.ty ProgressTracker.underlying
   get_Config : ∀ (x : ProgressTracker), go.IsGoStepPureDetTagged under (StructFieldGet ProgressTracker.underlying go!"Config") #x (Val #(x.Config'))
@@ -1730,12 +1730,12 @@ attribute [instance] ProgressTracker.TypeAssumptions.type_repr
   ProgressTracker.TypeAssumptions.ptr_Visit_unfold
   ProgressTracker.TypeAssumptions.ptr_VoterNodes_unfold
 
-abbrev matchAckIndexer [FfiSyntax] : Type := GoMap
+abbrev matchAckIndexer [GooseExts] : Type := GoMap
 
-@[reducible] noncomputable def matchAckIndexer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def matchAckIndexer.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.MapType go.uint64 (go.GoType.PointerType Progress.ty))
 
-class matchAckIndexer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class matchAckIndexer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq matchAckIndexer.ty matchAckIndexer.underlying
   AckedIndex_unfold : MethodUnfold matchAckIndexer.ty go!"AckedIndex" matchAckIndexer.AckedIndex.impl
   ptr_AckedIndex_unfold : MethodUnfold (go.GoType.PointerType matchAckIndexer.ty) go!"AckedIndex" (LamV "$r"
@@ -1745,7 +1745,7 @@ attribute [instance] matchAckIndexer.TypeAssumptions.underlying
   matchAckIndexer.TypeAssumptions.AckedIndex_unfold
   matchAckIndexer.TypeAssumptions.ptr_AckedIndex_unfold
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   inflight_instance : inflight.TypeAssumptions
   Inflights_instance : Inflights.TypeAssumptions
   Progress_instance : Progress.TypeAssumptions

@@ -133,7 +133,7 @@ instance KVState.inhabited : Inhabited KVState := ⟨⟨0, ∅, []⟩⟩
 /-! ## Pure part -/
 
 section pure
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- The pending writes (in some order). -/
 def pendIns (M : GMap Nat MI) : List MI := M.toList.map Prod.snd
@@ -280,7 +280,7 @@ end pure
 /-! ## The ghost state and the invariant -/
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -428,7 +428,7 @@ end defs
 /-! ## The steps -/
 
 section proofs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

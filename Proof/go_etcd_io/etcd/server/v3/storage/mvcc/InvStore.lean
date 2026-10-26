@@ -350,18 +350,18 @@ def StoreNames.withPhys (γ : StoreNames) (p : PhysNames) : StoreNames :=
 points-to are shared by the locks that guard their readers (`storeFields`, `fieldShare`), not
 persistent; which objects they are is the store's ghost variable `cur`'s (`curAt`; S3 to S5b, a
 discarded pin, `objsPin`). -/
-structure StoreObjs [FfiSyntax] where
+structure StoreObjs [GooseExts] where
   b : GoInterface
   ti : Loc
   ssched : GoInterface
   sstop : Loc
 
-instance storeObjs_countable [FfiSyntax] : Pos.Countable StoreObjs :=
+instance storeObjs_countable [GooseExts] : Pos.Countable StoreObjs :=
   countableOfLeftInverse (fun x : StoreObjs => (x.b, x.ti, x.ssched, x.sstop))
     (fun p => ⟨p.1, p.2.1, p.2.2.1, p.2.2.2⟩) (fun _ => rfl)
 
 section addrs
-variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
 /-- The address of the store's `mu`. -/
 abbrev muAddr (s : Loc) : Loc := structFieldRef store go!"mu" s
@@ -376,7 +376,7 @@ end addrs
 
 /-- Two interface values of the same pointer type are the same pointer (with its own binders:
 nothing in its statement determines a section's `GF`). -/
-theorem mkOk_loc_inj [FfiSyntax] [GoLocalContext] [GoGlobalContext] [go.Semantics] (T : go.GoType)
+theorem mkOk_loc_inj [GooseExts] [GoLocalContext] [GoGlobalContext] [go.Semantics] (T : go.GoType)
     {a b : Loc}
     (h : interface.mkOk T #a = interface.mkOk T #b) : a = b := by
   unfold interface.mkOk at h
@@ -385,7 +385,7 @@ theorem mkOk_loc_inj [FfiSyntax] [GoLocalContext] [GoGlobalContext] [go.Semantic
 
 
 section reprs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -4156,7 +4156,7 @@ theorem restoreLogOk_len {R : Log} (h : restoreLogOk R) :
 end reprs
 
 section hookLc
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -4691,7 +4691,7 @@ theorem compactRight_of_closer (s : Loc) (γ : StoreNames) :
 end hookLc
 
 section halves
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -4708,7 +4708,7 @@ macro "withPhys_simp" : tactic => `(tactic| simp only [Perennial.EtcdGrove.mvcc.
     Perennial.EtcdGrove.mvcc.readerPool_withPhys, Perennial.EtcdGrove.mvcc.wDep_withPhys, Perennial.EtcdGrove.mvcc.wsDep_withPhys, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_clog, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_leases, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_revs, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_cok, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_watchQ, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_wr, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_cur, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_rst, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_tk, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_tko, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_wsd, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_tkw, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_tkr, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_idx_hist, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_idx_log, Perennial.EtcdGrove.mvcc.StoreNames.withPhys_idx_crev])
 
 section physShare
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

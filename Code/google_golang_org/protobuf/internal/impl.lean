@@ -22,2712 +22,2712 @@ end pkg_id
 
 namespace google_golang_org.protobuf.internal.impl
 
-noncomputable def Export.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Export.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.Export" [])
 
 attribute [irreducible] Export.ty
 
-noncomputable def legacyMessageWrapper.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def legacyMessageWrapper.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.legacyMessageWrapper" [])
 
 attribute [irreducible] legacyMessageWrapper.ty
 
-noncomputable def RaceDetectHookData.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def RaceDetectHookData.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.RaceDetectHookData" [])
 
 attribute [irreducible] RaceDetectHookData.ty
 
-noncomputable def extensionFieldInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def extensionFieldInfo.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.extensionFieldInfo" [])
 
 attribute [irreducible] extensionFieldInfo.ty
 
-noncomputable def lazyExtensionValue.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def lazyExtensionValue.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.lazyExtensionValue" [])
 
 attribute [irreducible] lazyExtensionValue.ty
 
-noncomputable def ExtensionField.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ExtensionField.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.ExtensionField" [])
 
 attribute [irreducible] ExtensionField.ty
 
-noncomputable def errInvalidUTF8.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def errInvalidUTF8.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.errInvalidUTF8" [])
 
 attribute [irreducible] errInvalidUTF8.ty
 
-noncomputable def mapInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def mapInfo.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.mapInfo" [])
 
 attribute [irreducible] mapInfo.ty
 
-noncomputable def coderMessageInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def coderMessageInfo.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.coderMessageInfo" [])
 
 attribute [irreducible] coderMessageInfo.ty
 
-noncomputable def coderFieldInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def coderFieldInfo.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.coderFieldInfo" [])
 
 attribute [irreducible] coderFieldInfo.ty
 
-noncomputable def pointerCoderFuncs.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def pointerCoderFuncs.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.pointerCoderFuncs" [])
 
 attribute [irreducible] pointerCoderFuncs.ty
 
-noncomputable def valueCoderFuncs.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def valueCoderFuncs.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.valueCoderFuncs" [])
 
 attribute [irreducible] valueCoderFuncs.ty
 
-noncomputable def unwrapper.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def unwrapper.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.unwrapper" [])
 
 attribute [irreducible] unwrapper.ty
 
-noncomputable def Converter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Converter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.Converter" [])
 
 attribute [irreducible] Converter.ty
 
-noncomputable def boolConverter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def boolConverter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.boolConverter" [])
 
 attribute [irreducible] boolConverter.ty
 
-noncomputable def int32Converter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def int32Converter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.int32Converter" [])
 
 attribute [irreducible] int32Converter.ty
 
-noncomputable def int64Converter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def int64Converter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.int64Converter" [])
 
 attribute [irreducible] int64Converter.ty
 
-noncomputable def uint32Converter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def uint32Converter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.uint32Converter" [])
 
 attribute [irreducible] uint32Converter.ty
 
-noncomputable def uint64Converter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def uint64Converter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.uint64Converter" [])
 
 attribute [irreducible] uint64Converter.ty
 
-noncomputable def float32Converter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def float32Converter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.float32Converter" [])
 
 attribute [irreducible] float32Converter.ty
 
-noncomputable def float64Converter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def float64Converter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.float64Converter" [])
 
 attribute [irreducible] float64Converter.ty
 
-noncomputable def stringConverter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def stringConverter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.stringConverter" [])
 
 attribute [irreducible] stringConverter.ty
 
-noncomputable def bytesConverter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def bytesConverter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.bytesConverter" [])
 
 attribute [irreducible] bytesConverter.ty
 
-noncomputable def enumConverter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def enumConverter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.enumConverter" [])
 
 attribute [irreducible] enumConverter.ty
 
-noncomputable def messageConverter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def messageConverter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.messageConverter" [])
 
 attribute [irreducible] messageConverter.ty
 
-noncomputable def listConverter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def listConverter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.listConverter" [])
 
 attribute [irreducible] listConverter.ty
 
-noncomputable def listPtrConverter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def listPtrConverter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.listPtrConverter" [])
 
 attribute [irreducible] listPtrConverter.ty
 
-noncomputable def listReflect.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def listReflect.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.listReflect" [])
 
 attribute [irreducible] listReflect.ty
 
-noncomputable def mapConverter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def mapConverter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.mapConverter" [])
 
 attribute [irreducible] mapConverter.ty
 
-noncomputable def mapReflect.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def mapReflect.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.mapReflect" [])
 
 attribute [irreducible] mapReflect.ty
 
-noncomputable def unmarshalOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def unmarshalOptions.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.unmarshalOptions" [])
 
 attribute [irreducible] unmarshalOptions.ty
 
-noncomputable def unmarshalOutput.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def unmarshalOutput.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.unmarshalOutput" [])
 
 attribute [irreducible] unmarshalOutput.ty
 
-noncomputable def marshalOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def marshalOptions.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.marshalOptions" [])
 
 attribute [irreducible] marshalOptions.ty
 
-noncomputable def EnumInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EnumInfo.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.EnumInfo" [])
 
 attribute [irreducible] EnumInfo.ty
 
-noncomputable def ExtensionInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ExtensionInfo.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.ExtensionInfo" [])
 
 attribute [irreducible] ExtensionInfo.ty
 
-noncomputable def extensionTypeDescriptor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def extensionTypeDescriptor.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.extensionTypeDescriptor" [])
 
 attribute [irreducible] extensionTypeDescriptor.ty
 
-noncomputable def legacyEnumType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def legacyEnumType.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.legacyEnumType" [])
 
 attribute [irreducible] legacyEnumType.ty
 
-noncomputable def legacyEnumWrapper.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def legacyEnumWrapper.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.legacyEnumWrapper" [])
 
 attribute [irreducible] legacyEnumWrapper.ty
 
-noncomputable def placeholderExtension.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def placeholderExtension.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.placeholderExtension" [])
 
 attribute [irreducible] placeholderExtension.ty
 
-noncomputable def enumV1.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def enumV1.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.enumV1" [])
 
 attribute [irreducible] enumV1.ty
 
-noncomputable def messageV1.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def messageV1.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.messageV1" [])
 
 attribute [irreducible] messageV1.ty
 
-noncomputable def resolverOnly.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def resolverOnly.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.resolverOnly" [])
 
 attribute [irreducible] resolverOnly.ty
 
-noncomputable def placeholderEnumValues.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def placeholderEnumValues.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.placeholderEnumValues" [])
 
 attribute [irreducible] placeholderEnumValues.ty
 
-noncomputable def legacyMarshaler.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def legacyMarshaler.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.legacyMarshaler" [])
 
 attribute [irreducible] legacyMarshaler.ty
 
-noncomputable def legacyUnmarshaler.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def legacyUnmarshaler.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.legacyUnmarshaler" [])
 
 attribute [irreducible] legacyUnmarshaler.ty
 
-noncomputable def legacyMerger.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def legacyMerger.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.legacyMerger" [])
 
 attribute [irreducible] legacyMerger.ty
 
-noncomputable def aberrantMessageType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def aberrantMessageType.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.aberrantMessageType" [])
 
 attribute [irreducible] aberrantMessageType.ty
 
-noncomputable def aberrantMessage.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def aberrantMessage.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.aberrantMessage" [])
 
 attribute [irreducible] aberrantMessage.ty
 
-noncomputable def mergeOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def mergeOptions.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.mergeOptions" [])
 
 attribute [irreducible] mergeOptions.ty
 
-noncomputable def MessageInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def MessageInfo.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.MessageInfo" [])
 
 attribute [irreducible] MessageInfo.ty
 
-noncomputable def exporter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def exporter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.exporter" [])
 
 attribute [irreducible] exporter.ty
 
-noncomputable def structInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def structInfo.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.structInfo" [])
 
 attribute [irreducible] structInfo.ty
 
-noncomputable def mapEntryType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def mapEntryType.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.mapEntryType" [])
 
 attribute [irreducible] mapEntryType.ty
 
-noncomputable def opaqueStructInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def opaqueStructInfo.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.opaqueStructInfo" [])
 
 attribute [irreducible] opaqueStructInfo.ty
 
-noncomputable def presenceList.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def presenceList.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.presenceList" [])
 
 attribute [irreducible] presenceList.ty
 
-noncomputable def pvalueList.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def pvalueList.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.pvalueList" [])
 
 attribute [irreducible] pvalueList.ty
 
-noncomputable def reflectMessageInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def reflectMessageInfo.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.reflectMessageInfo" [])
 
 attribute [irreducible] reflectMessageInfo.ty
 
-noncomputable def extensionMap.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def extensionMap.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.extensionMap" [])
 
 attribute [irreducible] extensionMap.ty
 
-noncomputable def MessageState.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def MessageState.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.MessageState" [])
 
 attribute [irreducible] MessageState.ty
 
-noncomputable def messageState.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def messageState.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.messageState" [])
 
 attribute [irreducible] messageState.ty
 
-noncomputable def messageDataType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def messageDataType.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.messageDataType" [])
 
 attribute [irreducible] messageDataType.ty
 
-noncomputable def messageReflectWrapper.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def messageReflectWrapper.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.messageReflectWrapper" [])
 
 attribute [irreducible] messageReflectWrapper.ty
 
-noncomputable def messageIfaceWrapper.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def messageIfaceWrapper.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.messageIfaceWrapper" [])
 
 attribute [irreducible] messageIfaceWrapper.ty
 
-noncomputable def fieldInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def fieldInfo.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.fieldInfo" [])
 
 attribute [irreducible] fieldInfo.ty
 
-noncomputable def oneofInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def oneofInfo.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.oneofInfo" [])
 
 attribute [irreducible] oneofInfo.ty
 
-noncomputable def Pointer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Pointer.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.Pointer" [])
 
 attribute [irreducible] Pointer.ty
 
-noncomputable def offset.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def offset.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.offset" [])
 
 attribute [irreducible] offset.ty
 
-noncomputable def pointer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def pointer.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.pointer" [])
 
 attribute [irreducible] pointer.ty
 
-noncomputable def atomicNilMessage.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def atomicNilMessage.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.atomicNilMessage" [])
 
 attribute [irreducible] atomicNilMessage.ty
 
-noncomputable def atomicV1MessageInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def atomicV1MessageInfo.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.atomicV1MessageInfo" [])
 
 attribute [irreducible] atomicV1MessageInfo.ty
 
-noncomputable def presenceSize.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def presenceSize.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.presenceSize" [])
 
 attribute [irreducible] presenceSize.ty
 
-noncomputable def presence.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def presence.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.presence" [])
 
 attribute [irreducible] presence.ty
 
-noncomputable def ValidationStatus.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ValidationStatus.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.ValidationStatus" [])
 
 attribute [irreducible] ValidationStatus.ty
 
-noncomputable def validationInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def validationInfo.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.validationInfo" [])
 
 attribute [irreducible] validationInfo.ty
 
-noncomputable def validationType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def validationType.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/impl.validationType" [])
 
 attribute [irreducible] validationType.ty
 
-axiom Export.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Export.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom enum [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom enum [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom message [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom message [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom legacyMessageWrapper.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom legacyMessageWrapper.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom RaceDetectHookData.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom RaceDetectHookData.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom extensionFieldInfo.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom extensionFieldInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom lazyExtensionValue.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom lazyExtensionValue.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ExtensionField.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ExtensionField.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom errInvalidUTF8.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom errInvalidUTF8.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom mapInfo.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom mapInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom coderMessageInfo.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom coderMessageInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom coderFieldInfo.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom coderFieldInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom pointerCoderFuncs.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom pointerCoderFuncs.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom valueCoderFuncs.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom valueCoderFuncs.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom unwrapper.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom unwrapper.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Converter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Converter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom boolConverter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom boolConverter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom int32Converter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom int32Converter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom int64Converter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom int64Converter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom uint32Converter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom uint32Converter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom uint64Converter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom uint64Converter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom float32Converter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom float32Converter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom float64Converter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom float64Converter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom stringConverter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom stringConverter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom bytesConverter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom bytesConverter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom enumConverter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom enumConverter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom messageConverter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom messageConverter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom listConverter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom listConverter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom listPtrConverter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom listPtrConverter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom listReflect.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom listReflect.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom mapConverter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom mapConverter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom mapReflect.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom mapReflect.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom unmarshalOptions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom unmarshalOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom unmarshalOutput.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom unmarshalOutput.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom marshalOptions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom marshalOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom EnumInfo.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom EnumInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ExtensionInfo.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ExtensionInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom extensionTypeDescriptor.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom extensionTypeDescriptor.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom legacyEnumType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom legacyEnumType.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom legacyEnumWrapper.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom legacyEnumWrapper.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom placeholderExtension.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom placeholderExtension.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom enumV1.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom enumV1.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom messageV1.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom messageV1.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom resolverOnly.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom resolverOnly.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom placeholderEnumValues.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom placeholderEnumValues.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom legacyMarshaler.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom legacyMarshaler.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom legacyUnmarshaler.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom legacyUnmarshaler.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom legacyMerger.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom legacyMerger.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom aberrantMessageType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom aberrantMessageType.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom aberrantMessage.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom aberrantMessage.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom mergeOptions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom mergeOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom MessageInfo.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom MessageInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom exporter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom exporter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom SizeCache [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom SizeCache [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom WeakFields [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom WeakFields [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom UnknownFields [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom UnknownFields [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom unknownFieldsA [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom unknownFieldsA [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom unknownFieldsB [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom unknownFieldsB [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ExtensionFields [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ExtensionFields [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom structInfo.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom structInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom mapEntryType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom mapEntryType.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom opaqueStructInfo.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom opaqueStructInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom presenceList.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom presenceList.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom pvalueList.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom pvalueList.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom reflectMessageInfo.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom reflectMessageInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom extensionMap.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom extensionMap.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom messageState.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom messageState.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom messageDataType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom messageDataType.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom messageReflectWrapper.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom messageReflectWrapper.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom messageIfaceWrapper.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom messageIfaceWrapper.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom fieldInfo.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom fieldInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom oneofInfo.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom oneofInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Pointer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Pointer.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom offset.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom offset.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom pointer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom pointer.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom atomicNilMessage.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom atomicNilMessage.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom atomicV1MessageInfo.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom atomicV1MessageInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom presenceSize.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom presenceSize.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom presence.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom presence.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ValidationStatus.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ValidationStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom validationInfo.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom validationInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom validationType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom validationType.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom mapKeyTagSize [FfiSyntax] [GoGlobalContext] : val
+axiom mapKeyTagSize [GooseExts] [GoGlobalContext] : val
 
-axiom mapValTagSize [FfiSyntax] [GoGlobalContext] : val
+axiom mapValTagSize [GooseExts] [GoGlobalContext] : val
 
-axiom noPresence [FfiSyntax] [GoGlobalContext] : val
+axiom noPresence [GooseExts] [GoGlobalContext] : val
 
-axiom extensionInfoUninitialized [FfiSyntax] [GoGlobalContext] : val
+axiom extensionInfoUninitialized [GooseExts] [GoGlobalContext] : val
 
-axiom extensionInfoDescInit [FfiSyntax] [GoGlobalContext] : val
+axiom extensionInfoDescInit [GooseExts] [GoGlobalContext] : val
 
-axiom extensionInfoFullInit [FfiSyntax] [GoGlobalContext] : val
+axiom extensionInfoFullInit [GooseExts] [GoGlobalContext] : val
 
-axiom UnsafeEnabled [FfiSyntax] [GoGlobalContext] : val
+axiom UnsafeEnabled [GooseExts] [GoGlobalContext] : val
 
-axiom ValidationUnknown [FfiSyntax] [GoGlobalContext] : val
+axiom ValidationUnknown [GooseExts] [GoGlobalContext] : val
 
-axiom ValidationInvalid [FfiSyntax] [GoGlobalContext] : val
+axiom ValidationInvalid [GooseExts] [GoGlobalContext] : val
 
-axiom ValidationValid [FfiSyntax] [GoGlobalContext] : val
+axiom ValidationValid [GooseExts] [GoGlobalContext] : val
 
-axiom ValidationWrongWireType [FfiSyntax] [GoGlobalContext] : val
+axiom ValidationWrongWireType [GooseExts] [GoGlobalContext] : val
 
-axiom validationTypeOther [FfiSyntax] [GoGlobalContext] : val
+axiom validationTypeOther [GooseExts] [GoGlobalContext] : val
 
-axiom validationTypeMessage [FfiSyntax] [GoGlobalContext] : val
+axiom validationTypeMessage [GooseExts] [GoGlobalContext] : val
 
-axiom validationTypeGroup [FfiSyntax] [GoGlobalContext] : val
+axiom validationTypeGroup [GooseExts] [GoGlobalContext] : val
 
-axiom validationTypeMap [FfiSyntax] [GoGlobalContext] : val
+axiom validationTypeMap [GooseExts] [GoGlobalContext] : val
 
-axiom validationTypeRepeatedVarint [FfiSyntax] [GoGlobalContext] : val
+axiom validationTypeRepeatedVarint [GooseExts] [GoGlobalContext] : val
 
-axiom validationTypeRepeatedFixed32 [FfiSyntax] [GoGlobalContext] : val
+axiom validationTypeRepeatedFixed32 [GooseExts] [GoGlobalContext] : val
 
-axiom validationTypeRepeatedFixed64 [FfiSyntax] [GoGlobalContext] : val
+axiom validationTypeRepeatedFixed64 [GooseExts] [GoGlobalContext] : val
 
-axiom validationTypeVarint [FfiSyntax] [GoGlobalContext] : val
+axiom validationTypeVarint [GooseExts] [GoGlobalContext] : val
 
-axiom validationTypeFixed32 [FfiSyntax] [GoGlobalContext] : val
+axiom validationTypeFixed32 [GooseExts] [GoGlobalContext] : val
 
-axiom validationTypeFixed64 [FfiSyntax] [GoGlobalContext] : val
+axiom validationTypeFixed64 [GooseExts] [GoGlobalContext] : val
 
-axiom validationTypeBytes [FfiSyntax] [GoGlobalContext] : val
+axiom validationTypeBytes [GooseExts] [GoGlobalContext] : val
 
-axiom validationTypeUTF8String [FfiSyntax] [GoGlobalContext] : val
+axiom validationTypeUTF8String [GooseExts] [GoGlobalContext] : val
 
-axiom validationTypeMessageSetItem [FfiSyntax] [GoGlobalContext] : val
+axiom validationTypeMessageSetItem [GooseExts] [GoGlobalContext] : val
 
-noncomputable def needsInitCheckMu [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def needsInitCheckMu [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.needsInitCheckMu"
 
-noncomputable def needsInitCheckMap [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def needsInitCheckMap [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.needsInitCheckMap"
 
-noncomputable def coderMessageValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderMessageValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderMessageValue"
 
-noncomputable def coderGroupValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderGroupValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderGroupValue"
 
-noncomputable def coderMessageSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderMessageSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderMessageSliceValue"
 
-noncomputable def coderGroupSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderGroupSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderGroupSliceValue"
 
-noncomputable def coderBool [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderBool [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderBool"
 
-noncomputable def coderBoolNoZero [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderBoolNoZero [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderBoolNoZero"
 
-noncomputable def coderBoolPtr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderBoolPtr [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderBoolPtr"
 
-noncomputable def coderBoolSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderBoolSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderBoolSlice"
 
-noncomputable def coderBoolPackedSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderBoolPackedSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderBoolPackedSlice"
 
-noncomputable def coderBoolValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderBoolValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderBoolValue"
 
-noncomputable def coderBoolSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderBoolSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderBoolSliceValue"
 
-noncomputable def coderBoolPackedSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderBoolPackedSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderBoolPackedSliceValue"
 
-noncomputable def coderEnumValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderEnumValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderEnumValue"
 
-noncomputable def coderEnumSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderEnumSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderEnumSliceValue"
 
-noncomputable def coderEnumPackedSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderEnumPackedSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderEnumPackedSliceValue"
 
-noncomputable def coderInt32 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderInt32 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderInt32"
 
-noncomputable def coderInt32NoZero [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderInt32NoZero [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderInt32NoZero"
 
-noncomputable def coderInt32Ptr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderInt32Ptr [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderInt32Ptr"
 
-noncomputable def coderInt32Slice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderInt32Slice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderInt32Slice"
 
-noncomputable def coderInt32PackedSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderInt32PackedSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderInt32PackedSlice"
 
-noncomputable def coderInt32Value [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderInt32Value [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderInt32Value"
 
-noncomputable def coderInt32SliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderInt32SliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderInt32SliceValue"
 
-noncomputable def coderInt32PackedSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderInt32PackedSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderInt32PackedSliceValue"
 
-noncomputable def coderSint32 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderSint32 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderSint32"
 
-noncomputable def coderSint32NoZero [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderSint32NoZero [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderSint32NoZero"
 
-noncomputable def coderSint32Ptr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderSint32Ptr [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderSint32Ptr"
 
-noncomputable def coderSint32Slice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderSint32Slice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderSint32Slice"
 
-noncomputable def coderSint32PackedSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderSint32PackedSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderSint32PackedSlice"
 
-noncomputable def coderSint32Value [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderSint32Value [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderSint32Value"
 
-noncomputable def coderSint32SliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderSint32SliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderSint32SliceValue"
 
-noncomputable def coderSint32PackedSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderSint32PackedSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderSint32PackedSliceValue"
 
-noncomputable def coderUint32 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderUint32 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderUint32"
 
-noncomputable def coderUint32NoZero [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderUint32NoZero [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderUint32NoZero"
 
-noncomputable def coderUint32Ptr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderUint32Ptr [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderUint32Ptr"
 
-noncomputable def coderUint32Slice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderUint32Slice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderUint32Slice"
 
-noncomputable def coderUint32PackedSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderUint32PackedSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderUint32PackedSlice"
 
-noncomputable def coderUint32Value [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderUint32Value [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderUint32Value"
 
-noncomputable def coderUint32SliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderUint32SliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderUint32SliceValue"
 
-noncomputable def coderUint32PackedSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderUint32PackedSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderUint32PackedSliceValue"
 
-noncomputable def coderInt64 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderInt64 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderInt64"
 
-noncomputable def coderInt64NoZero [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderInt64NoZero [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderInt64NoZero"
 
-noncomputable def coderInt64Ptr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderInt64Ptr [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderInt64Ptr"
 
-noncomputable def coderInt64Slice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderInt64Slice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderInt64Slice"
 
-noncomputable def coderInt64PackedSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderInt64PackedSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderInt64PackedSlice"
 
-noncomputable def coderInt64Value [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderInt64Value [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderInt64Value"
 
-noncomputable def coderInt64SliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderInt64SliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderInt64SliceValue"
 
-noncomputable def coderInt64PackedSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderInt64PackedSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderInt64PackedSliceValue"
 
-noncomputable def coderSint64 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderSint64 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderSint64"
 
-noncomputable def coderSint64NoZero [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderSint64NoZero [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderSint64NoZero"
 
-noncomputable def coderSint64Ptr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderSint64Ptr [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderSint64Ptr"
 
-noncomputable def coderSint64Slice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderSint64Slice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderSint64Slice"
 
-noncomputable def coderSint64PackedSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderSint64PackedSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderSint64PackedSlice"
 
-noncomputable def coderSint64Value [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderSint64Value [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderSint64Value"
 
-noncomputable def coderSint64SliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderSint64SliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderSint64SliceValue"
 
-noncomputable def coderSint64PackedSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderSint64PackedSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderSint64PackedSliceValue"
 
-noncomputable def coderUint64 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderUint64 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderUint64"
 
-noncomputable def coderUint64NoZero [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderUint64NoZero [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderUint64NoZero"
 
-noncomputable def coderUint64Ptr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderUint64Ptr [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderUint64Ptr"
 
-noncomputable def coderUint64Slice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderUint64Slice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderUint64Slice"
 
-noncomputable def coderUint64PackedSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderUint64PackedSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderUint64PackedSlice"
 
-noncomputable def coderUint64Value [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderUint64Value [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderUint64Value"
 
-noncomputable def coderUint64SliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderUint64SliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderUint64SliceValue"
 
-noncomputable def coderUint64PackedSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderUint64PackedSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderUint64PackedSliceValue"
 
-noncomputable def coderSfixed32 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderSfixed32 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderSfixed32"
 
-noncomputable def coderSfixed32NoZero [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderSfixed32NoZero [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderSfixed32NoZero"
 
-noncomputable def coderSfixed32Ptr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderSfixed32Ptr [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderSfixed32Ptr"
 
-noncomputable def coderSfixed32Slice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderSfixed32Slice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderSfixed32Slice"
 
-noncomputable def coderSfixed32PackedSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderSfixed32PackedSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderSfixed32PackedSlice"
 
-noncomputable def coderSfixed32Value [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderSfixed32Value [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderSfixed32Value"
 
-noncomputable def coderSfixed32SliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderSfixed32SliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderSfixed32SliceValue"
 
-noncomputable def coderSfixed32PackedSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderSfixed32PackedSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderSfixed32PackedSliceValue"
 
-noncomputable def coderFixed32 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderFixed32 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderFixed32"
 
-noncomputable def coderFixed32NoZero [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderFixed32NoZero [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderFixed32NoZero"
 
-noncomputable def coderFixed32Ptr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderFixed32Ptr [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderFixed32Ptr"
 
-noncomputable def coderFixed32Slice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderFixed32Slice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderFixed32Slice"
 
-noncomputable def coderFixed32PackedSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderFixed32PackedSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderFixed32PackedSlice"
 
-noncomputable def coderFixed32Value [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderFixed32Value [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderFixed32Value"
 
-noncomputable def coderFixed32SliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderFixed32SliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderFixed32SliceValue"
 
-noncomputable def coderFixed32PackedSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderFixed32PackedSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderFixed32PackedSliceValue"
 
-noncomputable def coderFloat [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderFloat [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderFloat"
 
-noncomputable def coderFloatNoZero [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderFloatNoZero [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderFloatNoZero"
 
-noncomputable def coderFloatPtr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderFloatPtr [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderFloatPtr"
 
-noncomputable def coderFloatSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderFloatSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderFloatSlice"
 
-noncomputable def coderFloatPackedSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderFloatPackedSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderFloatPackedSlice"
 
-noncomputable def coderFloatValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderFloatValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderFloatValue"
 
-noncomputable def coderFloatSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderFloatSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderFloatSliceValue"
 
-noncomputable def coderFloatPackedSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderFloatPackedSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderFloatPackedSliceValue"
 
-noncomputable def coderSfixed64 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderSfixed64 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderSfixed64"
 
-noncomputable def coderSfixed64NoZero [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderSfixed64NoZero [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderSfixed64NoZero"
 
-noncomputable def coderSfixed64Ptr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderSfixed64Ptr [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderSfixed64Ptr"
 
-noncomputable def coderSfixed64Slice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderSfixed64Slice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderSfixed64Slice"
 
-noncomputable def coderSfixed64PackedSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderSfixed64PackedSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderSfixed64PackedSlice"
 
-noncomputable def coderSfixed64Value [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderSfixed64Value [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderSfixed64Value"
 
-noncomputable def coderSfixed64SliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderSfixed64SliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderSfixed64SliceValue"
 
-noncomputable def coderSfixed64PackedSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderSfixed64PackedSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderSfixed64PackedSliceValue"
 
-noncomputable def coderFixed64 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderFixed64 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderFixed64"
 
-noncomputable def coderFixed64NoZero [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderFixed64NoZero [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderFixed64NoZero"
 
-noncomputable def coderFixed64Ptr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderFixed64Ptr [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderFixed64Ptr"
 
-noncomputable def coderFixed64Slice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderFixed64Slice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderFixed64Slice"
 
-noncomputable def coderFixed64PackedSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderFixed64PackedSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderFixed64PackedSlice"
 
-noncomputable def coderFixed64Value [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderFixed64Value [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderFixed64Value"
 
-noncomputable def coderFixed64SliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderFixed64SliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderFixed64SliceValue"
 
-noncomputable def coderFixed64PackedSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderFixed64PackedSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderFixed64PackedSliceValue"
 
-noncomputable def coderDouble [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderDouble [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderDouble"
 
-noncomputable def coderDoubleNoZero [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderDoubleNoZero [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderDoubleNoZero"
 
-noncomputable def coderDoublePtr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderDoublePtr [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderDoublePtr"
 
-noncomputable def coderDoubleSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderDoubleSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderDoubleSlice"
 
-noncomputable def coderDoublePackedSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderDoublePackedSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderDoublePackedSlice"
 
-noncomputable def coderDoubleValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderDoubleValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderDoubleValue"
 
-noncomputable def coderDoubleSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderDoubleSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderDoubleSliceValue"
 
-noncomputable def coderDoublePackedSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderDoublePackedSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderDoublePackedSliceValue"
 
-noncomputable def coderString [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderString [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderString"
 
-noncomputable def coderStringValidateUTF8 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderStringValidateUTF8 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderStringValidateUTF8"
 
-noncomputable def coderStringNoZero [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderStringNoZero [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderStringNoZero"
 
-noncomputable def coderStringNoZeroValidateUTF8 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderStringNoZeroValidateUTF8 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderStringNoZeroValidateUTF8"
 
-noncomputable def coderStringPtr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderStringPtr [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderStringPtr"
 
-noncomputable def coderStringPtrValidateUTF8 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderStringPtrValidateUTF8 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderStringPtrValidateUTF8"
 
-noncomputable def coderStringSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderStringSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderStringSlice"
 
-noncomputable def coderStringSliceValidateUTF8 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderStringSliceValidateUTF8 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderStringSliceValidateUTF8"
 
-noncomputable def coderStringValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderStringValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderStringValue"
 
-noncomputable def coderStringValueValidateUTF8 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderStringValueValidateUTF8 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderStringValueValidateUTF8"
 
-noncomputable def coderStringSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderStringSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderStringSliceValue"
 
-noncomputable def coderBytes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderBytes [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderBytes"
 
-noncomputable def coderBytesValidateUTF8 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderBytesValidateUTF8 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderBytesValidateUTF8"
 
-noncomputable def coderBytesNoZero [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderBytesNoZero [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderBytesNoZero"
 
-noncomputable def coderBytesNoZeroValidateUTF8 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderBytesNoZeroValidateUTF8 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderBytesNoZeroValidateUTF8"
 
-noncomputable def coderBytesSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderBytesSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderBytesSlice"
 
-noncomputable def coderBytesSliceValidateUTF8 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderBytesSliceValidateUTF8 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderBytesSliceValidateUTF8"
 
-noncomputable def coderBytesValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderBytesValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderBytesValue"
 
-noncomputable def coderBytesSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderBytesSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderBytesSliceValue"
 
-noncomputable def emptyBuf [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def emptyBuf [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.emptyBuf"
 
-noncomputable def wireTypes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def wireTypes [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.wireTypes"
 
-noncomputable def coderEnumNoZero [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderEnumNoZero [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderEnumNoZero"
 
-noncomputable def coderEnum [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderEnum [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderEnum"
 
-noncomputable def coderEnumPtr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderEnumPtr [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderEnumPtr"
 
-noncomputable def coderEnumSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderEnumSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderEnumSlice"
 
-noncomputable def coderEnumPackedSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coderEnumPackedSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.coderEnumPackedSlice"
 
-noncomputable def boolType [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def boolType [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.boolType"
 
-noncomputable def int32Type [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def int32Type [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.int32Type"
 
-noncomputable def int64Type [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def int64Type [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.int64Type"
 
-noncomputable def uint32Type [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def uint32Type [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.uint32Type"
 
-noncomputable def uint64Type [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def uint64Type [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.uint64Type"
 
-noncomputable def float32Type [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def float32Type [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.float32Type"
 
-noncomputable def float64Type [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def float64Type [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.float64Type"
 
-noncomputable def stringType [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def stringType [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.stringType"
 
-noncomputable def bytesType [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def bytesType [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.bytesType"
 
-noncomputable def byteType [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def byteType [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.byteType"
 
-noncomputable def boolZero [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def boolZero [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.boolZero"
 
-noncomputable def int32Zero [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def int32Zero [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.int32Zero"
 
-noncomputable def int64Zero [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def int64Zero [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.int64Zero"
 
-noncomputable def uint32Zero [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def uint32Zero [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.uint32Zero"
 
-noncomputable def uint64Zero [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def uint64Zero [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.uint64Zero"
 
-noncomputable def float32Zero [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def float32Zero [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.float32Zero"
 
-noncomputable def float64Zero [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def float64Zero [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.float64Zero"
 
-noncomputable def stringZero [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def stringZero [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.stringZero"
 
-noncomputable def bytesZero [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def bytesZero [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.bytesZero"
 
-noncomputable def errDecode [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def errDecode [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.errDecode"
 
-noncomputable def errRecursionDepth [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def errRecursionDepth [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.errRecursionDepth"
 
-noncomputable def lazyUnmarshalOptions [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def lazyUnmarshalOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.lazyUnmarshalOptions"
 
-noncomputable def errUnknown [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def errUnknown [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.errUnknown"
 
-noncomputable def enableLazy [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def enableLazy [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.enableLazy"
 
-noncomputable def legacyEnumTypeCache [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def legacyEnumTypeCache [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.legacyEnumTypeCache"
 
-noncomputable def legacyEnumDescCache [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def legacyEnumDescCache [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.legacyEnumDescCache"
 
-noncomputable def aberrantEnumDescCache [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def aberrantEnumDescCache [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.aberrantEnumDescCache"
 
-noncomputable def legacyFileDescCache [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def legacyFileDescCache [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.legacyFileDescCache"
 
-noncomputable def legacyMessageTypeCache [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def legacyMessageTypeCache [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.legacyMessageTypeCache"
 
-noncomputable def legacyMessageDescCache [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def legacyMessageDescCache [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.legacyMessageDescCache"
 
-noncomputable def aberrantMessageDescLock [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def aberrantMessageDescLock [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.aberrantMessageDescLock"
 
-noncomputable def aberrantMessageDescCache [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def aberrantMessageDescCache [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.aberrantMessageDescCache"
 
-noncomputable def aberrantProtoMethods [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def aberrantProtoMethods [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.aberrantProtoMethods"
 
-noncomputable def sizecacheType [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizecacheType [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizecacheType"
 
-noncomputable def unknownFieldsAType [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def unknownFieldsAType [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.unknownFieldsAType"
 
-noncomputable def unknownFieldsBType [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def unknownFieldsBType [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.unknownFieldsBType"
 
-noncomputable def extensionFieldsType [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def extensionFieldsType [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.extensionFieldsType"
 
-noncomputable def nilBytes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def nilBytes [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.nilBytes"
 
-noncomputable def emptyBytes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def emptyBytes [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.emptyBytes"
 
-noncomputable def invalidOffset [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def invalidOffset [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.invalidOffset"
 
-noncomputable def zeroOffset [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def zeroOffset [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.zeroOffset"
 
-noncomputable def interfaceToPointer [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def interfaceToPointer [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.interfaceToPointer"
 
-noncomputable def raceDetectHookPresent [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def raceDetectHookPresent [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.raceDetectHookPresent"
 
-noncomputable def raceDetectHookSetPresent [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def raceDetectHookSetPresent [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.raceDetectHookSetPresent"
 
-noncomputable def raceDetectHookClearPresent [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def raceDetectHookClearPresent [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.raceDetectHookClearPresent"
 
-noncomputable def needsInitCheck [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def needsInitCheck [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.needsInitCheck"
 
-noncomputable def needsInitCheckLocked [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def needsInitCheckLocked [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.needsInitCheckLocked"
 
-noncomputable def getExtensionFieldInfo [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def getExtensionFieldInfo [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.getExtensionFieldInfo"
 
-noncomputable def makeExtensionFieldInfo [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def makeExtensionFieldInfo [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.makeExtensionFieldInfo"
 
-noncomputable def IsLazy [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsLazy [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.IsLazy"
 
-noncomputable def makeMessageFieldCoder [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def makeMessageFieldCoder [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.makeMessageFieldCoder"
 
-noncomputable def sizeMessageInfo [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeMessageInfo [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeMessageInfo"
 
-noncomputable def appendMessageInfo [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendMessageInfo [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendMessageInfo"
 
-noncomputable def consumeMessageInfo [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeMessageInfo [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeMessageInfo"
 
-noncomputable def isInitMessageInfo [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def isInitMessageInfo [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.isInitMessageInfo"
 
-noncomputable def sizeMessage [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeMessage [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeMessage"
 
-noncomputable def appendMessage [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendMessage [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendMessage"
 
-noncomputable def consumeMessage [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeMessage [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeMessage"
 
-noncomputable def sizeMessageValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeMessageValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeMessageValue"
 
-noncomputable def appendMessageValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendMessageValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendMessageValue"
 
-noncomputable def consumeMessageValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeMessageValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeMessageValue"
 
-noncomputable def isInitMessageValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def isInitMessageValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.isInitMessageValue"
 
-noncomputable def sizeGroupValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeGroupValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeGroupValue"
 
-noncomputable def appendGroupValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendGroupValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendGroupValue"
 
-noncomputable def consumeGroupValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeGroupValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeGroupValue"
 
-noncomputable def makeGroupFieldCoder [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def makeGroupFieldCoder [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.makeGroupFieldCoder"
 
-noncomputable def sizeGroupType [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeGroupType [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeGroupType"
 
-noncomputable def appendGroupType [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendGroupType [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendGroupType"
 
-noncomputable def consumeGroupType [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeGroupType [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeGroupType"
 
-noncomputable def sizeGroup [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeGroup [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeGroup"
 
-noncomputable def appendGroup [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendGroup [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendGroup"
 
-noncomputable def consumeGroup [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeGroup [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeGroup"
 
-noncomputable def makeMessageSliceFieldCoder [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def makeMessageSliceFieldCoder [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.makeMessageSliceFieldCoder"
 
-noncomputable def sizeMessageSliceInfo [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeMessageSliceInfo [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeMessageSliceInfo"
 
-noncomputable def appendMessageSliceInfo [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendMessageSliceInfo [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendMessageSliceInfo"
 
-noncomputable def consumeMessageSliceInfo [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeMessageSliceInfo [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeMessageSliceInfo"
 
-noncomputable def isInitMessageSliceInfo [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def isInitMessageSliceInfo [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.isInitMessageSliceInfo"
 
-noncomputable def sizeMessageSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeMessageSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeMessageSlice"
 
-noncomputable def appendMessageSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendMessageSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendMessageSlice"
 
-noncomputable def consumeMessageSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeMessageSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeMessageSlice"
 
-noncomputable def isInitMessageSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def isInitMessageSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.isInitMessageSlice"
 
-noncomputable def sizeMessageSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeMessageSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeMessageSliceValue"
 
-noncomputable def appendMessageSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendMessageSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendMessageSliceValue"
 
-noncomputable def consumeMessageSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeMessageSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeMessageSliceValue"
 
-noncomputable def isInitMessageSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def isInitMessageSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.isInitMessageSliceValue"
 
-noncomputable def sizeGroupSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeGroupSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeGroupSliceValue"
 
-noncomputable def appendGroupSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendGroupSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendGroupSliceValue"
 
-noncomputable def consumeGroupSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeGroupSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeGroupSliceValue"
 
-noncomputable def makeGroupSliceFieldCoder [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def makeGroupSliceFieldCoder [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.makeGroupSliceFieldCoder"
 
-noncomputable def sizeGroupSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeGroupSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeGroupSlice"
 
-noncomputable def appendGroupSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendGroupSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendGroupSlice"
 
-noncomputable def consumeGroupSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeGroupSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeGroupSlice"
 
-noncomputable def sizeGroupSliceInfo [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeGroupSliceInfo [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeGroupSliceInfo"
 
-noncomputable def appendGroupSliceInfo [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendGroupSliceInfo [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendGroupSliceInfo"
 
-noncomputable def consumeGroupSliceInfo [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeGroupSliceInfo [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeGroupSliceInfo"
 
-noncomputable def asMessage [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def asMessage [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.asMessage"
 
-noncomputable def makeOpaqueMessageFieldCoder [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def makeOpaqueMessageFieldCoder [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.makeOpaqueMessageFieldCoder"
 
-noncomputable def sizeOpaqueMessage [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeOpaqueMessage [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeOpaqueMessage"
 
-noncomputable def appendOpaqueMessage [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendOpaqueMessage [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendOpaqueMessage"
 
-noncomputable def consumeOpaqueMessage [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeOpaqueMessage [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeOpaqueMessage"
 
-noncomputable def isInitOpaqueMessage [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def isInitOpaqueMessage [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.isInitOpaqueMessage"
 
-noncomputable def mergeOpaqueMessage [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def mergeOpaqueMessage [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.mergeOpaqueMessage"
 
-noncomputable def sizeOpaqueGroup [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeOpaqueGroup [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeOpaqueGroup"
 
-noncomputable def appendOpaqueGroup [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendOpaqueGroup [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendOpaqueGroup"
 
-noncomputable def consumeOpaqueGroup [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeOpaqueGroup [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeOpaqueGroup"
 
-noncomputable def makeOpaqueRepeatedMessageFieldCoder [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def makeOpaqueRepeatedMessageFieldCoder [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.makeOpaqueRepeatedMessageFieldCoder"
 
-noncomputable def sizeOpaqueMessageSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeOpaqueMessageSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeOpaqueMessageSlice"
 
-noncomputable def appendOpaqueMessageSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendOpaqueMessageSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendOpaqueMessageSlice"
 
-noncomputable def consumeOpaqueMessageSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeOpaqueMessageSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeOpaqueMessageSlice"
 
-noncomputable def isInitOpaqueMessageSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def isInitOpaqueMessageSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.isInitOpaqueMessageSlice"
 
-noncomputable def mergeOpaqueMessageSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def mergeOpaqueMessageSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.mergeOpaqueMessageSlice"
 
-noncomputable def sizeOpaqueGroupSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeOpaqueGroupSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeOpaqueGroupSlice"
 
-noncomputable def appendOpaqueGroupSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendOpaqueGroupSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendOpaqueGroupSlice"
 
-noncomputable def consumeOpaqueGroupSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeOpaqueGroupSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeOpaqueGroupSlice"
 
-noncomputable def sizeBool [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeBool [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeBool"
 
-noncomputable def appendBool [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendBool [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendBool"
 
-noncomputable def consumeBool [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeBool [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeBool"
 
-noncomputable def sizeBoolNoZero [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeBoolNoZero [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeBoolNoZero"
 
-noncomputable def appendBoolNoZero [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendBoolNoZero [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendBoolNoZero"
 
-noncomputable def sizeBoolPtr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeBoolPtr [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeBoolPtr"
 
-noncomputable def appendBoolPtr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendBoolPtr [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendBoolPtr"
 
-noncomputable def consumeBoolPtr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeBoolPtr [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeBoolPtr"
 
-noncomputable def sizeBoolSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeBoolSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeBoolSlice"
 
-noncomputable def appendBoolSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendBoolSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendBoolSlice"
 
-noncomputable def consumeBoolSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeBoolSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeBoolSlice"
 
-noncomputable def sizeBoolPackedSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeBoolPackedSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeBoolPackedSlice"
 
-noncomputable def appendBoolPackedSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendBoolPackedSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendBoolPackedSlice"
 
-noncomputable def sizeBoolValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeBoolValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeBoolValue"
 
-noncomputable def appendBoolValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendBoolValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendBoolValue"
 
-noncomputable def consumeBoolValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeBoolValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeBoolValue"
 
-noncomputable def sizeBoolSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeBoolSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeBoolSliceValue"
 
-noncomputable def appendBoolSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendBoolSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendBoolSliceValue"
 
-noncomputable def consumeBoolSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeBoolSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeBoolSliceValue"
 
-noncomputable def sizeBoolPackedSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeBoolPackedSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeBoolPackedSliceValue"
 
-noncomputable def appendBoolPackedSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendBoolPackedSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendBoolPackedSliceValue"
 
-noncomputable def sizeEnumValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeEnumValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeEnumValue"
 
-noncomputable def appendEnumValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendEnumValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendEnumValue"
 
-noncomputable def consumeEnumValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeEnumValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeEnumValue"
 
-noncomputable def sizeEnumSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeEnumSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeEnumSliceValue"
 
-noncomputable def appendEnumSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendEnumSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendEnumSliceValue"
 
-noncomputable def consumeEnumSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeEnumSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeEnumSliceValue"
 
-noncomputable def sizeEnumPackedSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeEnumPackedSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeEnumPackedSliceValue"
 
-noncomputable def appendEnumPackedSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendEnumPackedSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendEnumPackedSliceValue"
 
-noncomputable def sizeInt32 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeInt32 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeInt32"
 
-noncomputable def appendInt32 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendInt32 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendInt32"
 
-noncomputable def consumeInt32 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeInt32 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeInt32"
 
-noncomputable def sizeInt32NoZero [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeInt32NoZero [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeInt32NoZero"
 
-noncomputable def appendInt32NoZero [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendInt32NoZero [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendInt32NoZero"
 
-noncomputable def sizeInt32Ptr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeInt32Ptr [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeInt32Ptr"
 
-noncomputable def appendInt32Ptr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendInt32Ptr [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendInt32Ptr"
 
-noncomputable def consumeInt32Ptr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeInt32Ptr [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeInt32Ptr"
 
-noncomputable def sizeInt32Slice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeInt32Slice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeInt32Slice"
 
-noncomputable def appendInt32Slice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendInt32Slice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendInt32Slice"
 
-noncomputable def consumeInt32Slice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeInt32Slice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeInt32Slice"
 
-noncomputable def sizeInt32PackedSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeInt32PackedSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeInt32PackedSlice"
 
-noncomputable def appendInt32PackedSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendInt32PackedSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendInt32PackedSlice"
 
-noncomputable def sizeInt32Value [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeInt32Value [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeInt32Value"
 
-noncomputable def appendInt32Value [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendInt32Value [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendInt32Value"
 
-noncomputable def consumeInt32Value [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeInt32Value [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeInt32Value"
 
-noncomputable def sizeInt32SliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeInt32SliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeInt32SliceValue"
 
-noncomputable def appendInt32SliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendInt32SliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendInt32SliceValue"
 
-noncomputable def consumeInt32SliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeInt32SliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeInt32SliceValue"
 
-noncomputable def sizeInt32PackedSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeInt32PackedSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeInt32PackedSliceValue"
 
-noncomputable def appendInt32PackedSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendInt32PackedSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendInt32PackedSliceValue"
 
-noncomputable def sizeSint32 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeSint32 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeSint32"
 
-noncomputable def appendSint32 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendSint32 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendSint32"
 
-noncomputable def consumeSint32 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeSint32 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeSint32"
 
-noncomputable def sizeSint32NoZero [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeSint32NoZero [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeSint32NoZero"
 
-noncomputable def appendSint32NoZero [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendSint32NoZero [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendSint32NoZero"
 
-noncomputable def sizeSint32Ptr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeSint32Ptr [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeSint32Ptr"
 
-noncomputable def appendSint32Ptr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendSint32Ptr [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendSint32Ptr"
 
-noncomputable def consumeSint32Ptr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeSint32Ptr [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeSint32Ptr"
 
-noncomputable def sizeSint32Slice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeSint32Slice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeSint32Slice"
 
-noncomputable def appendSint32Slice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendSint32Slice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendSint32Slice"
 
-noncomputable def consumeSint32Slice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeSint32Slice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeSint32Slice"
 
-noncomputable def sizeSint32PackedSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeSint32PackedSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeSint32PackedSlice"
 
-noncomputable def appendSint32PackedSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendSint32PackedSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendSint32PackedSlice"
 
-noncomputable def sizeSint32Value [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeSint32Value [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeSint32Value"
 
-noncomputable def appendSint32Value [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendSint32Value [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendSint32Value"
 
-noncomputable def consumeSint32Value [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeSint32Value [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeSint32Value"
 
-noncomputable def sizeSint32SliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeSint32SliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeSint32SliceValue"
 
-noncomputable def appendSint32SliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendSint32SliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendSint32SliceValue"
 
-noncomputable def consumeSint32SliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeSint32SliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeSint32SliceValue"
 
-noncomputable def sizeSint32PackedSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeSint32PackedSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeSint32PackedSliceValue"
 
-noncomputable def appendSint32PackedSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendSint32PackedSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendSint32PackedSliceValue"
 
-noncomputable def sizeUint32 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeUint32 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeUint32"
 
-noncomputable def appendUint32 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendUint32 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendUint32"
 
-noncomputable def consumeUint32 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeUint32 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeUint32"
 
-noncomputable def sizeUint32NoZero [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeUint32NoZero [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeUint32NoZero"
 
-noncomputable def appendUint32NoZero [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendUint32NoZero [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendUint32NoZero"
 
-noncomputable def sizeUint32Ptr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeUint32Ptr [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeUint32Ptr"
 
-noncomputable def appendUint32Ptr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendUint32Ptr [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendUint32Ptr"
 
-noncomputable def consumeUint32Ptr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeUint32Ptr [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeUint32Ptr"
 
-noncomputable def sizeUint32Slice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeUint32Slice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeUint32Slice"
 
-noncomputable def appendUint32Slice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendUint32Slice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendUint32Slice"
 
-noncomputable def consumeUint32Slice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeUint32Slice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeUint32Slice"
 
-noncomputable def sizeUint32PackedSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeUint32PackedSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeUint32PackedSlice"
 
-noncomputable def appendUint32PackedSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendUint32PackedSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendUint32PackedSlice"
 
-noncomputable def sizeUint32Value [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeUint32Value [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeUint32Value"
 
-noncomputable def appendUint32Value [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendUint32Value [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendUint32Value"
 
-noncomputable def consumeUint32Value [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeUint32Value [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeUint32Value"
 
-noncomputable def sizeUint32SliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeUint32SliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeUint32SliceValue"
 
-noncomputable def appendUint32SliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendUint32SliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendUint32SliceValue"
 
-noncomputable def consumeUint32SliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeUint32SliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeUint32SliceValue"
 
-noncomputable def sizeUint32PackedSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeUint32PackedSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeUint32PackedSliceValue"
 
-noncomputable def appendUint32PackedSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendUint32PackedSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendUint32PackedSliceValue"
 
-noncomputable def sizeInt64 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeInt64 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeInt64"
 
-noncomputable def appendInt64 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendInt64 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendInt64"
 
-noncomputable def consumeInt64 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeInt64 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeInt64"
 
-noncomputable def sizeInt64NoZero [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeInt64NoZero [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeInt64NoZero"
 
-noncomputable def appendInt64NoZero [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendInt64NoZero [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendInt64NoZero"
 
-noncomputable def sizeInt64Ptr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeInt64Ptr [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeInt64Ptr"
 
-noncomputable def appendInt64Ptr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendInt64Ptr [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendInt64Ptr"
 
-noncomputable def consumeInt64Ptr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeInt64Ptr [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeInt64Ptr"
 
-noncomputable def sizeInt64Slice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeInt64Slice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeInt64Slice"
 
-noncomputable def appendInt64Slice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendInt64Slice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendInt64Slice"
 
-noncomputable def consumeInt64Slice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeInt64Slice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeInt64Slice"
 
-noncomputable def sizeInt64PackedSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeInt64PackedSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeInt64PackedSlice"
 
-noncomputable def appendInt64PackedSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendInt64PackedSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendInt64PackedSlice"
 
-noncomputable def sizeInt64Value [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeInt64Value [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeInt64Value"
 
-noncomputable def appendInt64Value [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendInt64Value [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendInt64Value"
 
-noncomputable def consumeInt64Value [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeInt64Value [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeInt64Value"
 
-noncomputable def sizeInt64SliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeInt64SliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeInt64SliceValue"
 
-noncomputable def appendInt64SliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendInt64SliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendInt64SliceValue"
 
-noncomputable def consumeInt64SliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeInt64SliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeInt64SliceValue"
 
-noncomputable def sizeInt64PackedSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeInt64PackedSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeInt64PackedSliceValue"
 
-noncomputable def appendInt64PackedSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendInt64PackedSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendInt64PackedSliceValue"
 
-noncomputable def sizeSint64 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeSint64 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeSint64"
 
-noncomputable def appendSint64 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendSint64 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendSint64"
 
-noncomputable def consumeSint64 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeSint64 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeSint64"
 
-noncomputable def sizeSint64NoZero [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeSint64NoZero [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeSint64NoZero"
 
-noncomputable def appendSint64NoZero [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendSint64NoZero [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendSint64NoZero"
 
-noncomputable def sizeSint64Ptr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeSint64Ptr [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeSint64Ptr"
 
-noncomputable def appendSint64Ptr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendSint64Ptr [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendSint64Ptr"
 
-noncomputable def consumeSint64Ptr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeSint64Ptr [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeSint64Ptr"
 
-noncomputable def sizeSint64Slice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeSint64Slice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeSint64Slice"
 
-noncomputable def appendSint64Slice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendSint64Slice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendSint64Slice"
 
-noncomputable def consumeSint64Slice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeSint64Slice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeSint64Slice"
 
-noncomputable def sizeSint64PackedSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeSint64PackedSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeSint64PackedSlice"
 
-noncomputable def appendSint64PackedSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendSint64PackedSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendSint64PackedSlice"
 
-noncomputable def sizeSint64Value [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeSint64Value [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeSint64Value"
 
-noncomputable def appendSint64Value [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendSint64Value [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendSint64Value"
 
-noncomputable def consumeSint64Value [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeSint64Value [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeSint64Value"
 
-noncomputable def sizeSint64SliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeSint64SliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeSint64SliceValue"
 
-noncomputable def appendSint64SliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendSint64SliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendSint64SliceValue"
 
-noncomputable def consumeSint64SliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeSint64SliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeSint64SliceValue"
 
-noncomputable def sizeSint64PackedSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeSint64PackedSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeSint64PackedSliceValue"
 
-noncomputable def appendSint64PackedSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendSint64PackedSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendSint64PackedSliceValue"
 
-noncomputable def sizeUint64 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeUint64 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeUint64"
 
-noncomputable def appendUint64 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendUint64 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendUint64"
 
-noncomputable def consumeUint64 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeUint64 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeUint64"
 
-noncomputable def sizeUint64NoZero [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeUint64NoZero [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeUint64NoZero"
 
-noncomputable def appendUint64NoZero [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendUint64NoZero [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendUint64NoZero"
 
-noncomputable def sizeUint64Ptr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeUint64Ptr [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeUint64Ptr"
 
-noncomputable def appendUint64Ptr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendUint64Ptr [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendUint64Ptr"
 
-noncomputable def consumeUint64Ptr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeUint64Ptr [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeUint64Ptr"
 
-noncomputable def sizeUint64Slice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeUint64Slice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeUint64Slice"
 
-noncomputable def appendUint64Slice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendUint64Slice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendUint64Slice"
 
-noncomputable def consumeUint64Slice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeUint64Slice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeUint64Slice"
 
-noncomputable def sizeUint64PackedSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeUint64PackedSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeUint64PackedSlice"
 
-noncomputable def appendUint64PackedSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendUint64PackedSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendUint64PackedSlice"
 
-noncomputable def sizeUint64Value [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeUint64Value [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeUint64Value"
 
-noncomputable def appendUint64Value [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendUint64Value [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendUint64Value"
 
-noncomputable def consumeUint64Value [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeUint64Value [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeUint64Value"
 
-noncomputable def sizeUint64SliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeUint64SliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeUint64SliceValue"
 
-noncomputable def appendUint64SliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendUint64SliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendUint64SliceValue"
 
-noncomputable def consumeUint64SliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeUint64SliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeUint64SliceValue"
 
-noncomputable def sizeUint64PackedSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeUint64PackedSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeUint64PackedSliceValue"
 
-noncomputable def appendUint64PackedSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendUint64PackedSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendUint64PackedSliceValue"
 
-noncomputable def sizeSfixed32 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeSfixed32 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeSfixed32"
 
-noncomputable def appendSfixed32 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendSfixed32 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendSfixed32"
 
-noncomputable def consumeSfixed32 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeSfixed32 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeSfixed32"
 
-noncomputable def sizeSfixed32NoZero [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeSfixed32NoZero [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeSfixed32NoZero"
 
-noncomputable def appendSfixed32NoZero [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendSfixed32NoZero [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendSfixed32NoZero"
 
-noncomputable def sizeSfixed32Ptr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeSfixed32Ptr [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeSfixed32Ptr"
 
-noncomputable def appendSfixed32Ptr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendSfixed32Ptr [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendSfixed32Ptr"
 
-noncomputable def consumeSfixed32Ptr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeSfixed32Ptr [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeSfixed32Ptr"
 
-noncomputable def sizeSfixed32Slice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeSfixed32Slice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeSfixed32Slice"
 
-noncomputable def appendSfixed32Slice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendSfixed32Slice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendSfixed32Slice"
 
-noncomputable def consumeSfixed32Slice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeSfixed32Slice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeSfixed32Slice"
 
-noncomputable def sizeSfixed32PackedSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeSfixed32PackedSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeSfixed32PackedSlice"
 
-noncomputable def appendSfixed32PackedSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendSfixed32PackedSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendSfixed32PackedSlice"
 
-noncomputable def sizeSfixed32Value [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeSfixed32Value [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeSfixed32Value"
 
-noncomputable def appendSfixed32Value [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendSfixed32Value [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendSfixed32Value"
 
-noncomputable def consumeSfixed32Value [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeSfixed32Value [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeSfixed32Value"
 
-noncomputable def sizeSfixed32SliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeSfixed32SliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeSfixed32SliceValue"
 
-noncomputable def appendSfixed32SliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendSfixed32SliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendSfixed32SliceValue"
 
-noncomputable def consumeSfixed32SliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeSfixed32SliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeSfixed32SliceValue"
 
-noncomputable def sizeSfixed32PackedSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeSfixed32PackedSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeSfixed32PackedSliceValue"
 
-noncomputable def appendSfixed32PackedSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendSfixed32PackedSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendSfixed32PackedSliceValue"
 
-noncomputable def sizeFixed32 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeFixed32 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeFixed32"
 
-noncomputable def appendFixed32 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendFixed32 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendFixed32"
 
-noncomputable def consumeFixed32 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeFixed32 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeFixed32"
 
-noncomputable def sizeFixed32NoZero [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeFixed32NoZero [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeFixed32NoZero"
 
-noncomputable def appendFixed32NoZero [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendFixed32NoZero [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendFixed32NoZero"
 
-noncomputable def sizeFixed32Ptr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeFixed32Ptr [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeFixed32Ptr"
 
-noncomputable def appendFixed32Ptr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendFixed32Ptr [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendFixed32Ptr"
 
-noncomputable def consumeFixed32Ptr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeFixed32Ptr [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeFixed32Ptr"
 
-noncomputable def sizeFixed32Slice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeFixed32Slice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeFixed32Slice"
 
-noncomputable def appendFixed32Slice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendFixed32Slice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendFixed32Slice"
 
-noncomputable def consumeFixed32Slice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeFixed32Slice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeFixed32Slice"
 
-noncomputable def sizeFixed32PackedSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeFixed32PackedSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeFixed32PackedSlice"
 
-noncomputable def appendFixed32PackedSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendFixed32PackedSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendFixed32PackedSlice"
 
-noncomputable def sizeFixed32Value [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeFixed32Value [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeFixed32Value"
 
-noncomputable def appendFixed32Value [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendFixed32Value [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendFixed32Value"
 
-noncomputable def consumeFixed32Value [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeFixed32Value [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeFixed32Value"
 
-noncomputable def sizeFixed32SliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeFixed32SliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeFixed32SliceValue"
 
-noncomputable def appendFixed32SliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendFixed32SliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendFixed32SliceValue"
 
-noncomputable def consumeFixed32SliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeFixed32SliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeFixed32SliceValue"
 
-noncomputable def sizeFixed32PackedSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeFixed32PackedSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeFixed32PackedSliceValue"
 
-noncomputable def appendFixed32PackedSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendFixed32PackedSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendFixed32PackedSliceValue"
 
-noncomputable def sizeFloat [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeFloat [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeFloat"
 
-noncomputable def appendFloat [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendFloat [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendFloat"
 
-noncomputable def consumeFloat [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeFloat [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeFloat"
 
-noncomputable def sizeFloatNoZero [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeFloatNoZero [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeFloatNoZero"
 
-noncomputable def appendFloatNoZero [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendFloatNoZero [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendFloatNoZero"
 
-noncomputable def sizeFloatPtr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeFloatPtr [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeFloatPtr"
 
-noncomputable def appendFloatPtr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendFloatPtr [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendFloatPtr"
 
-noncomputable def consumeFloatPtr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeFloatPtr [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeFloatPtr"
 
-noncomputable def sizeFloatSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeFloatSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeFloatSlice"
 
-noncomputable def appendFloatSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendFloatSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendFloatSlice"
 
-noncomputable def consumeFloatSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeFloatSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeFloatSlice"
 
-noncomputable def sizeFloatPackedSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeFloatPackedSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeFloatPackedSlice"
 
-noncomputable def appendFloatPackedSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendFloatPackedSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendFloatPackedSlice"
 
-noncomputable def sizeFloatValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeFloatValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeFloatValue"
 
-noncomputable def appendFloatValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendFloatValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendFloatValue"
 
-noncomputable def consumeFloatValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeFloatValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeFloatValue"
 
-noncomputable def sizeFloatSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeFloatSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeFloatSliceValue"
 
-noncomputable def appendFloatSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendFloatSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendFloatSliceValue"
 
-noncomputable def consumeFloatSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeFloatSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeFloatSliceValue"
 
-noncomputable def sizeFloatPackedSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeFloatPackedSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeFloatPackedSliceValue"
 
-noncomputable def appendFloatPackedSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendFloatPackedSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendFloatPackedSliceValue"
 
-noncomputable def sizeSfixed64 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeSfixed64 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeSfixed64"
 
-noncomputable def appendSfixed64 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendSfixed64 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendSfixed64"
 
-noncomputable def consumeSfixed64 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeSfixed64 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeSfixed64"
 
-noncomputable def sizeSfixed64NoZero [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeSfixed64NoZero [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeSfixed64NoZero"
 
-noncomputable def appendSfixed64NoZero [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendSfixed64NoZero [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendSfixed64NoZero"
 
-noncomputable def sizeSfixed64Ptr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeSfixed64Ptr [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeSfixed64Ptr"
 
-noncomputable def appendSfixed64Ptr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendSfixed64Ptr [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendSfixed64Ptr"
 
-noncomputable def consumeSfixed64Ptr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeSfixed64Ptr [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeSfixed64Ptr"
 
-noncomputable def sizeSfixed64Slice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeSfixed64Slice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeSfixed64Slice"
 
-noncomputable def appendSfixed64Slice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendSfixed64Slice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendSfixed64Slice"
 
-noncomputable def consumeSfixed64Slice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeSfixed64Slice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeSfixed64Slice"
 
-noncomputable def sizeSfixed64PackedSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeSfixed64PackedSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeSfixed64PackedSlice"
 
-noncomputable def appendSfixed64PackedSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendSfixed64PackedSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendSfixed64PackedSlice"
 
-noncomputable def sizeSfixed64Value [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeSfixed64Value [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeSfixed64Value"
 
-noncomputable def appendSfixed64Value [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendSfixed64Value [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendSfixed64Value"
 
-noncomputable def consumeSfixed64Value [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeSfixed64Value [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeSfixed64Value"
 
-noncomputable def sizeSfixed64SliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeSfixed64SliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeSfixed64SliceValue"
 
-noncomputable def appendSfixed64SliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendSfixed64SliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendSfixed64SliceValue"
 
-noncomputable def consumeSfixed64SliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeSfixed64SliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeSfixed64SliceValue"
 
-noncomputable def sizeSfixed64PackedSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeSfixed64PackedSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeSfixed64PackedSliceValue"
 
-noncomputable def appendSfixed64PackedSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendSfixed64PackedSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendSfixed64PackedSliceValue"
 
-noncomputable def sizeFixed64 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeFixed64 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeFixed64"
 
-noncomputable def appendFixed64 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendFixed64 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendFixed64"
 
-noncomputable def consumeFixed64 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeFixed64 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeFixed64"
 
-noncomputable def sizeFixed64NoZero [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeFixed64NoZero [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeFixed64NoZero"
 
-noncomputable def appendFixed64NoZero [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendFixed64NoZero [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendFixed64NoZero"
 
-noncomputable def sizeFixed64Ptr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeFixed64Ptr [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeFixed64Ptr"
 
-noncomputable def appendFixed64Ptr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendFixed64Ptr [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendFixed64Ptr"
 
-noncomputable def consumeFixed64Ptr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeFixed64Ptr [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeFixed64Ptr"
 
-noncomputable def sizeFixed64Slice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeFixed64Slice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeFixed64Slice"
 
-noncomputable def appendFixed64Slice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendFixed64Slice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendFixed64Slice"
 
-noncomputable def consumeFixed64Slice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeFixed64Slice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeFixed64Slice"
 
-noncomputable def sizeFixed64PackedSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeFixed64PackedSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeFixed64PackedSlice"
 
-noncomputable def appendFixed64PackedSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendFixed64PackedSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendFixed64PackedSlice"
 
-noncomputable def sizeFixed64Value [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeFixed64Value [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeFixed64Value"
 
-noncomputable def appendFixed64Value [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendFixed64Value [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendFixed64Value"
 
-noncomputable def consumeFixed64Value [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeFixed64Value [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeFixed64Value"
 
-noncomputable def sizeFixed64SliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeFixed64SliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeFixed64SliceValue"
 
-noncomputable def appendFixed64SliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendFixed64SliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendFixed64SliceValue"
 
-noncomputable def consumeFixed64SliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeFixed64SliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeFixed64SliceValue"
 
-noncomputable def sizeFixed64PackedSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeFixed64PackedSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeFixed64PackedSliceValue"
 
-noncomputable def appendFixed64PackedSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendFixed64PackedSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendFixed64PackedSliceValue"
 
-noncomputable def sizeDouble [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeDouble [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeDouble"
 
-noncomputable def appendDouble [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendDouble [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendDouble"
 
-noncomputable def consumeDouble [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeDouble [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeDouble"
 
-noncomputable def sizeDoubleNoZero [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeDoubleNoZero [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeDoubleNoZero"
 
-noncomputable def appendDoubleNoZero [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendDoubleNoZero [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendDoubleNoZero"
 
-noncomputable def sizeDoublePtr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeDoublePtr [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeDoublePtr"
 
-noncomputable def appendDoublePtr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendDoublePtr [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendDoublePtr"
 
-noncomputable def consumeDoublePtr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeDoublePtr [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeDoublePtr"
 
-noncomputable def sizeDoubleSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeDoubleSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeDoubleSlice"
 
-noncomputable def appendDoubleSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendDoubleSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendDoubleSlice"
 
-noncomputable def consumeDoubleSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeDoubleSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeDoubleSlice"
 
-noncomputable def sizeDoublePackedSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeDoublePackedSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeDoublePackedSlice"
 
-noncomputable def appendDoublePackedSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendDoublePackedSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendDoublePackedSlice"
 
-noncomputable def sizeDoubleValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeDoubleValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeDoubleValue"
 
-noncomputable def appendDoubleValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendDoubleValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendDoubleValue"
 
-noncomputable def consumeDoubleValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeDoubleValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeDoubleValue"
 
-noncomputable def sizeDoubleSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeDoubleSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeDoubleSliceValue"
 
-noncomputable def appendDoubleSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendDoubleSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendDoubleSliceValue"
 
-noncomputable def consumeDoubleSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeDoubleSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeDoubleSliceValue"
 
-noncomputable def sizeDoublePackedSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeDoublePackedSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeDoublePackedSliceValue"
 
-noncomputable def appendDoublePackedSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendDoublePackedSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendDoublePackedSliceValue"
 
-noncomputable def sizeString [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeString [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeString"
 
-noncomputable def appendString [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendString [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendString"
 
-noncomputable def consumeString [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeString [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeString"
 
-noncomputable def appendStringValidateUTF8 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendStringValidateUTF8 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendStringValidateUTF8"
 
-noncomputable def consumeStringValidateUTF8 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeStringValidateUTF8 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeStringValidateUTF8"
 
-noncomputable def sizeStringNoZero [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeStringNoZero [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeStringNoZero"
 
-noncomputable def appendStringNoZero [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendStringNoZero [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendStringNoZero"
 
-noncomputable def appendStringNoZeroValidateUTF8 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendStringNoZeroValidateUTF8 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendStringNoZeroValidateUTF8"
 
-noncomputable def sizeStringPtr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeStringPtr [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeStringPtr"
 
-noncomputable def appendStringPtr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendStringPtr [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendStringPtr"
 
-noncomputable def consumeStringPtr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeStringPtr [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeStringPtr"
 
-noncomputable def appendStringPtrValidateUTF8 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendStringPtrValidateUTF8 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendStringPtrValidateUTF8"
 
-noncomputable def consumeStringPtrValidateUTF8 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeStringPtrValidateUTF8 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeStringPtrValidateUTF8"
 
-noncomputable def sizeStringSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeStringSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeStringSlice"
 
-noncomputable def appendStringSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendStringSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendStringSlice"
 
-noncomputable def consumeStringSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeStringSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeStringSlice"
 
-noncomputable def appendStringSliceValidateUTF8 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendStringSliceValidateUTF8 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendStringSliceValidateUTF8"
 
-noncomputable def consumeStringSliceValidateUTF8 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeStringSliceValidateUTF8 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeStringSliceValidateUTF8"
 
-noncomputable def sizeStringValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeStringValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeStringValue"
 
-noncomputable def appendStringValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendStringValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendStringValue"
 
-noncomputable def consumeStringValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeStringValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeStringValue"
 
-noncomputable def appendStringValueValidateUTF8 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendStringValueValidateUTF8 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendStringValueValidateUTF8"
 
-noncomputable def consumeStringValueValidateUTF8 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeStringValueValidateUTF8 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeStringValueValidateUTF8"
 
-noncomputable def sizeStringSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeStringSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeStringSliceValue"
 
-noncomputable def appendStringSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendStringSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendStringSliceValue"
 
-noncomputable def consumeStringSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeStringSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeStringSliceValue"
 
-noncomputable def sizeBytes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeBytes [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeBytes"
 
-noncomputable def appendBytes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendBytes [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendBytes"
 
-noncomputable def consumeBytes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeBytes [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeBytes"
 
-noncomputable def appendBytesValidateUTF8 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendBytesValidateUTF8 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendBytesValidateUTF8"
 
-noncomputable def consumeBytesValidateUTF8 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeBytesValidateUTF8 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeBytesValidateUTF8"
 
-noncomputable def sizeBytesNoZero [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeBytesNoZero [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeBytesNoZero"
 
-noncomputable def appendBytesNoZero [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendBytesNoZero [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendBytesNoZero"
 
-noncomputable def consumeBytesNoZero [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeBytesNoZero [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeBytesNoZero"
 
-noncomputable def appendBytesNoZeroValidateUTF8 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendBytesNoZeroValidateUTF8 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendBytesNoZeroValidateUTF8"
 
-noncomputable def consumeBytesNoZeroValidateUTF8 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeBytesNoZeroValidateUTF8 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeBytesNoZeroValidateUTF8"
 
-noncomputable def sizeBytesSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeBytesSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeBytesSlice"
 
-noncomputable def appendBytesSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendBytesSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendBytesSlice"
 
-noncomputable def consumeBytesSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeBytesSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeBytesSlice"
 
-noncomputable def appendBytesSliceValidateUTF8 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendBytesSliceValidateUTF8 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendBytesSliceValidateUTF8"
 
-noncomputable def consumeBytesSliceValidateUTF8 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeBytesSliceValidateUTF8 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeBytesSliceValidateUTF8"
 
-noncomputable def sizeBytesValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeBytesValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeBytesValue"
 
-noncomputable def appendBytesValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendBytesValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendBytesValue"
 
-noncomputable def consumeBytesValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeBytesValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeBytesValue"
 
-noncomputable def sizeBytesSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeBytesSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeBytesSliceValue"
 
-noncomputable def appendBytesSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendBytesSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendBytesSliceValue"
 
-noncomputable def consumeBytesSliceValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeBytesSliceValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeBytesSliceValue"
 
-noncomputable def encoderFuncsForMap [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def encoderFuncsForMap [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.encoderFuncsForMap"
 
-noncomputable def sizeMap [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeMap [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeMap"
 
-noncomputable def consumeMap [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeMap [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeMap"
 
-noncomputable def consumeMapOfMessage [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def consumeMapOfMessage [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.consumeMapOfMessage"
 
-noncomputable def appendMapItem [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendMapItem [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendMapItem"
 
-noncomputable def appendMap [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendMap [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendMap"
 
-noncomputable def appendMapDeterministic [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendMapDeterministic [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.appendMapDeterministic"
 
-noncomputable def isInitMap [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def isInitMap [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.isInitMap"
 
-noncomputable def mergeMap [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def mergeMap [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.mergeMap"
 
-noncomputable def mergeMapOfBytes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def mergeMapOfBytes [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.mergeMapOfBytes"
 
-noncomputable def mergeMapOfMessage [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def mergeMapOfMessage [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.mergeMapOfMessage"
 
-noncomputable def sizeMessageSet [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sizeMessageSet [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.sizeMessageSet"
 
-noncomputable def marshalMessageSet [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def marshalMessageSet [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.marshalMessageSet"
 
-noncomputable def marshalMessageSetField [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def marshalMessageSetField [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.marshalMessageSetField"
 
-noncomputable def unmarshalMessageSet [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def unmarshalMessageSet [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.unmarshalMessageSet"
 
-noncomputable def fieldCoder [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def fieldCoder [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.fieldCoder"
 
-noncomputable def encoderFuncsForValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def encoderFuncsForValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.encoderFuncsForValue"
 
-noncomputable def NewConverter [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewConverter [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.NewConverter"
 
-noncomputable def newSingularConverter [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newSingularConverter [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.newSingularConverter"
 
-noncomputable def newEnumConverter [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newEnumConverter [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.newEnumConverter"
 
-noncomputable def newMessageConverter [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newMessageConverter [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.newMessageConverter"
 
-noncomputable def newListConverter [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newListConverter [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.newListConverter"
 
-noncomputable def newMapConverter [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newMapConverter [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.newMapConverter"
 
-noncomputable def skipExtension [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def skipExtension [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.skipExtension"
 
-noncomputable def fullyLazyExtensions [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def fullyLazyExtensions [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.fullyLazyExtensions"
 
-noncomputable def lazyFields [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def lazyFields [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.lazyFields"
 
-noncomputable def equal [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def equal [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.equal"
 
-noncomputable def equalMessage [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def equalMessage [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.equalMessage"
 
-noncomputable def equalValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def equalValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.equalValue"
 
-noncomputable def equalMessageMap [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def equalMessageMap [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.equalMessageMap"
 
-noncomputable def equalMessageList [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def equalMessageList [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.equalMessageList"
 
-noncomputable def equalUnknown [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def equalUnknown [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.equalUnknown"
 
-noncomputable def InitExtensionInfo [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def InitExtensionInfo [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.InitExtensionInfo"
 
-noncomputable def EnableLazyUnmarshal [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def EnableLazyUnmarshal [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.EnableLazyUnmarshal"
 
-noncomputable def LazyEnabled [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def LazyEnabled [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.LazyEnabled"
 
-noncomputable def UnmarshalField [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def UnmarshalField [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.UnmarshalField"
 
-noncomputable def legacyEnumName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def legacyEnumName [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.legacyEnumName"
 
-noncomputable def legacyWrapEnum [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def legacyWrapEnum [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.legacyWrapEnum"
 
-noncomputable def legacyLoadEnumType [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def legacyLoadEnumType [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.legacyLoadEnumType"
 
-noncomputable def LegacyLoadEnumDesc [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def LegacyLoadEnumDesc [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.LegacyLoadEnumDesc"
 
-noncomputable def aberrantLoadEnumDesc [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def aberrantLoadEnumDesc [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.aberrantLoadEnumDesc"
 
-noncomputable def AberrantDeriveFullName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def AberrantDeriveFullName [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.AberrantDeriveFullName"
 
-noncomputable def legacyLoadFileDesc [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def legacyLoadFileDesc [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.legacyLoadFileDesc"
 
-noncomputable def legacyWrapMessage [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def legacyWrapMessage [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.legacyWrapMessage"
 
-noncomputable def legacyLoadMessageType [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def legacyLoadMessageType [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.legacyLoadMessageType"
 
-noncomputable def legacyLoadMessageInfo [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def legacyLoadMessageInfo [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.legacyLoadMessageInfo"
 
-noncomputable def LegacyLoadMessageDesc [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def LegacyLoadMessageDesc [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.LegacyLoadMessageDesc"
 
-noncomputable def legacyLoadMessageDesc [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def legacyLoadMessageDesc [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.legacyLoadMessageDesc"
 
-noncomputable def aberrantLoadMessageDesc [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def aberrantLoadMessageDesc [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.aberrantLoadMessageDesc"
 
-noncomputable def aberrantLoadMessageDescReentrant [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def aberrantLoadMessageDescReentrant [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.aberrantLoadMessageDescReentrant"
 
-noncomputable def aberrantDeriveMessageName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def aberrantDeriveMessageName [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.aberrantDeriveMessageName"
 
-noncomputable def aberrantAppendField [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def aberrantAppendField [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.aberrantAppendField"
 
-noncomputable def legacyMarshal [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def legacyMarshal [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.legacyMarshal"
 
-noncomputable def legacyUnmarshal [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def legacyUnmarshal [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.legacyUnmarshal"
 
-noncomputable def legacyMerge [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def legacyMerge [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.legacyMerge"
 
-noncomputable def mergeScalarValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def mergeScalarValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.mergeScalarValue"
 
-noncomputable def mergeBytesValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def mergeBytesValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.mergeBytesValue"
 
-noncomputable def mergeListValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def mergeListValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.mergeListValue"
 
-noncomputable def mergeBytesListValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def mergeBytesListValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.mergeBytesListValue"
 
-noncomputable def mergeMessageListValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def mergeMessageListValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.mergeMessageListValue"
 
-noncomputable def mergeMessageValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def mergeMessageValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.mergeMessageValue"
 
-noncomputable def mergeMessage [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def mergeMessage [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.mergeMessage"
 
-noncomputable def mergeMessageSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def mergeMessageSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.mergeMessageSlice"
 
-noncomputable def mergeBytes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def mergeBytes [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.mergeBytes"
 
-noncomputable def mergeBytesNoZero [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def mergeBytesNoZero [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.mergeBytesNoZero"
 
-noncomputable def mergeBytesSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def mergeBytesSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.mergeBytesSlice"
 
-noncomputable def mergeBool [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def mergeBool [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.mergeBool"
 
-noncomputable def mergeBoolNoZero [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def mergeBoolNoZero [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.mergeBoolNoZero"
 
-noncomputable def mergeBoolPtr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def mergeBoolPtr [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.mergeBoolPtr"
 
-noncomputable def mergeBoolSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def mergeBoolSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.mergeBoolSlice"
 
-noncomputable def mergeInt32 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def mergeInt32 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.mergeInt32"
 
-noncomputable def mergeInt32NoZero [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def mergeInt32NoZero [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.mergeInt32NoZero"
 
-noncomputable def mergeInt32Ptr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def mergeInt32Ptr [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.mergeInt32Ptr"
 
-noncomputable def mergeInt32Slice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def mergeInt32Slice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.mergeInt32Slice"
 
-noncomputable def mergeUint32 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def mergeUint32 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.mergeUint32"
 
-noncomputable def mergeUint32NoZero [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def mergeUint32NoZero [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.mergeUint32NoZero"
 
-noncomputable def mergeUint32Ptr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def mergeUint32Ptr [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.mergeUint32Ptr"
 
-noncomputable def mergeUint32Slice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def mergeUint32Slice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.mergeUint32Slice"
 
-noncomputable def mergeInt64 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def mergeInt64 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.mergeInt64"
 
-noncomputable def mergeInt64NoZero [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def mergeInt64NoZero [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.mergeInt64NoZero"
 
-noncomputable def mergeInt64Ptr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def mergeInt64Ptr [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.mergeInt64Ptr"
 
-noncomputable def mergeInt64Slice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def mergeInt64Slice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.mergeInt64Slice"
 
-noncomputable def mergeUint64 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def mergeUint64 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.mergeUint64"
 
-noncomputable def mergeUint64NoZero [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def mergeUint64NoZero [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.mergeUint64NoZero"
 
-noncomputable def mergeUint64Ptr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def mergeUint64Ptr [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.mergeUint64Ptr"
 
-noncomputable def mergeUint64Slice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def mergeUint64Slice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.mergeUint64Slice"
 
-noncomputable def mergeFloat32 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def mergeFloat32 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.mergeFloat32"
 
-noncomputable def mergeFloat32NoZero [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def mergeFloat32NoZero [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.mergeFloat32NoZero"
 
-noncomputable def mergeFloat32Ptr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def mergeFloat32Ptr [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.mergeFloat32Ptr"
 
-noncomputable def mergeFloat32Slice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def mergeFloat32Slice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.mergeFloat32Slice"
 
-noncomputable def mergeFloat64 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def mergeFloat64 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.mergeFloat64"
 
-noncomputable def mergeFloat64NoZero [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def mergeFloat64NoZero [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.mergeFloat64NoZero"
 
-noncomputable def mergeFloat64Ptr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def mergeFloat64Ptr [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.mergeFloat64Ptr"
 
-noncomputable def mergeFloat64Slice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def mergeFloat64Slice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.mergeFloat64Slice"
 
-noncomputable def mergeString [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def mergeString [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.mergeString"
 
-noncomputable def mergeStringNoZero [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def mergeStringNoZero [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.mergeStringNoZero"
 
-noncomputable def mergeStringPtr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def mergeStringPtr [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.mergeStringPtr"
 
-noncomputable def mergeStringSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def mergeStringSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.mergeStringSlice"
 
-noncomputable def getMessageInfo [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def getMessageInfo [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.getMessageInfo"
 
-noncomputable def isOpaque [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def isOpaque [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.isOpaque"
 
-noncomputable def opaqueInitHook [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def opaqueInitHook [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.opaqueInitHook"
 
-noncomputable def makeOneofInfoOpaque [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def makeOneofInfoOpaque [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.makeOneofInfoOpaque"
 
-noncomputable def presenceIndex [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def presenceIndex [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.presenceIndex"
 
-noncomputable def isLastOneofField [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def isLastOneofField [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.isLastOneofField"
 
-noncomputable def getterForOpaqueNullableScalar [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def getterForOpaqueNullableScalar [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.getterForOpaqueNullableScalar"
 
-noncomputable def fieldInfoForMissing [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def fieldInfoForMissing [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.fieldInfoForMissing"
 
-noncomputable def fieldInfoForOneof [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def fieldInfoForOneof [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.fieldInfoForOneof"
 
-noncomputable def fieldInfoForMap [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def fieldInfoForMap [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.fieldInfoForMap"
 
-noncomputable def fieldInfoForList [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def fieldInfoForList [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.fieldInfoForList"
 
-noncomputable def fieldInfoForScalar [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def fieldInfoForScalar [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.fieldInfoForScalar"
 
-noncomputable def fieldInfoForMessage [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def fieldInfoForMessage [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.fieldInfoForMessage"
 
-noncomputable def makeOneofInfo [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def makeOneofInfo [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.makeOneofInfo"
 
-noncomputable def getterForNullableScalar [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def getterForNullableScalar [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.getterForNullableScalar"
 
-noncomputable def getterForDirectScalar [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def getterForDirectScalar [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.getterForDirectScalar"
 
-noncomputable def offsetOf [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def offsetOf [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.offsetOf"
 
-noncomputable def pointerOf [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def pointerOf [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.pointerOf"
 
-noncomputable def pointerOfValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def pointerOfValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.pointerOfValue"
 
-noncomputable def pointerOfIface [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def pointerOfIface [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.pointerOfIface"
 
-noncomputable def atomicLoadShadowPresence [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def atomicLoadShadowPresence [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.atomicLoadShadowPresence"
 
-noncomputable def atomicStoreShadowPresence [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def atomicStoreShadowPresence [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.atomicStoreShadowPresence"
 
-noncomputable def findPointerToRaceDetectData [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def findPointerToRaceDetectData [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.findPointerToRaceDetectData"
 
-noncomputable def Validate [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Validate [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.Validate"
 
-noncomputable def newFieldValidationInfo [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newFieldValidationInfo [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.newFieldValidationInfo"
 
-noncomputable def newValidationInfo [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newValidationInfo [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/protobuf/internal/impl.newValidationInfo"
 
 noncomputable instance info' : PkgInfo pkg_id.google_golang_org.protobuf.internal.impl where
   pkgImportedPkgs := [pkg_id.google_golang_org.protobuf.internal.pragma]
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.google_golang_org.protobuf.internal.impl)) (Lam BAnon
   (App (Val exceptionDo)
@@ -3269,7 +3269,7 @@ axiom Export : Type
 axiom Export.zero_val : ZeroVal Export
 attribute [instance] Export.zero_val
 
-class Export.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Export.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Export.underlying Export
   underlying : go.UnderlyingDirectedEq Export.ty Export.underlying
   isUnderlying : go.IsUnderlying Export.underlying Export.underlying
@@ -3282,7 +3282,7 @@ axiom legacyMessageWrapper : Type
 axiom legacyMessageWrapper.zero_val : ZeroVal legacyMessageWrapper
 attribute [instance] legacyMessageWrapper.zero_val
 
-class legacyMessageWrapper.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class legacyMessageWrapper.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying legacyMessageWrapper.underlying legacyMessageWrapper
   underlying : go.UnderlyingDirectedEq legacyMessageWrapper.ty legacyMessageWrapper.underlying
   isUnderlying : go.IsUnderlying legacyMessageWrapper.underlying legacyMessageWrapper.underlying
@@ -3295,7 +3295,7 @@ axiom RaceDetectHookData : Type
 axiom RaceDetectHookData.zero_val : ZeroVal RaceDetectHookData
 attribute [instance] RaceDetectHookData.zero_val
 
-class RaceDetectHookData.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class RaceDetectHookData.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RaceDetectHookData.underlying RaceDetectHookData
   underlying : go.UnderlyingDirectedEq RaceDetectHookData.ty RaceDetectHookData.underlying
   isUnderlying : go.IsUnderlying RaceDetectHookData.underlying RaceDetectHookData.underlying
@@ -3308,7 +3308,7 @@ axiom extensionFieldInfo : Type
 axiom extensionFieldInfo.zero_val : ZeroVal extensionFieldInfo
 attribute [instance] extensionFieldInfo.zero_val
 
-class extensionFieldInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class extensionFieldInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying extensionFieldInfo.underlying extensionFieldInfo
   underlying : go.UnderlyingDirectedEq extensionFieldInfo.ty extensionFieldInfo.underlying
   isUnderlying : go.IsUnderlying extensionFieldInfo.underlying extensionFieldInfo.underlying
@@ -3321,7 +3321,7 @@ axiom lazyExtensionValue : Type
 axiom lazyExtensionValue.zero_val : ZeroVal lazyExtensionValue
 attribute [instance] lazyExtensionValue.zero_val
 
-class lazyExtensionValue.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class lazyExtensionValue.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying lazyExtensionValue.underlying lazyExtensionValue
   underlying : go.UnderlyingDirectedEq lazyExtensionValue.ty lazyExtensionValue.underlying
   isUnderlying : go.IsUnderlying lazyExtensionValue.underlying lazyExtensionValue.underlying
@@ -3334,7 +3334,7 @@ axiom ExtensionField : Type
 axiom ExtensionField.zero_val : ZeroVal ExtensionField
 attribute [instance] ExtensionField.zero_val
 
-class ExtensionField.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ExtensionField.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ExtensionField.underlying ExtensionField
   underlying : go.UnderlyingDirectedEq ExtensionField.ty ExtensionField.underlying
   isUnderlying : go.IsUnderlying ExtensionField.underlying ExtensionField.underlying
@@ -3347,7 +3347,7 @@ axiom errInvalidUTF8 : Type
 axiom errInvalidUTF8.zero_val : ZeroVal errInvalidUTF8
 attribute [instance] errInvalidUTF8.zero_val
 
-class errInvalidUTF8.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class errInvalidUTF8.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying errInvalidUTF8.underlying errInvalidUTF8
   underlying : go.UnderlyingDirectedEq errInvalidUTF8.ty errInvalidUTF8.underlying
   isUnderlying : go.IsUnderlying errInvalidUTF8.underlying errInvalidUTF8.underlying
@@ -3360,7 +3360,7 @@ axiom mapInfo : Type
 axiom mapInfo.zero_val : ZeroVal mapInfo
 attribute [instance] mapInfo.zero_val
 
-class mapInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class mapInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying mapInfo.underlying mapInfo
   underlying : go.UnderlyingDirectedEq mapInfo.ty mapInfo.underlying
   isUnderlying : go.IsUnderlying mapInfo.underlying mapInfo.underlying
@@ -3373,7 +3373,7 @@ axiom coderMessageInfo : Type
 axiom coderMessageInfo.zero_val : ZeroVal coderMessageInfo
 attribute [instance] coderMessageInfo.zero_val
 
-class coderMessageInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class coderMessageInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying coderMessageInfo.underlying coderMessageInfo
   underlying : go.UnderlyingDirectedEq coderMessageInfo.ty coderMessageInfo.underlying
   isUnderlying : go.IsUnderlying coderMessageInfo.underlying coderMessageInfo.underlying
@@ -3386,7 +3386,7 @@ axiom coderFieldInfo : Type
 axiom coderFieldInfo.zero_val : ZeroVal coderFieldInfo
 attribute [instance] coderFieldInfo.zero_val
 
-class coderFieldInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class coderFieldInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying coderFieldInfo.underlying coderFieldInfo
   underlying : go.UnderlyingDirectedEq coderFieldInfo.ty coderFieldInfo.underlying
   isUnderlying : go.IsUnderlying coderFieldInfo.underlying coderFieldInfo.underlying
@@ -3399,7 +3399,7 @@ axiom pointerCoderFuncs : Type
 axiom pointerCoderFuncs.zero_val : ZeroVal pointerCoderFuncs
 attribute [instance] pointerCoderFuncs.zero_val
 
-class pointerCoderFuncs.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class pointerCoderFuncs.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying pointerCoderFuncs.underlying pointerCoderFuncs
   underlying : go.UnderlyingDirectedEq pointerCoderFuncs.ty pointerCoderFuncs.underlying
   isUnderlying : go.IsUnderlying pointerCoderFuncs.underlying pointerCoderFuncs.underlying
@@ -3412,7 +3412,7 @@ axiom valueCoderFuncs : Type
 axiom valueCoderFuncs.zero_val : ZeroVal valueCoderFuncs
 attribute [instance] valueCoderFuncs.zero_val
 
-class valueCoderFuncs.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class valueCoderFuncs.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying valueCoderFuncs.underlying valueCoderFuncs
   underlying : go.UnderlyingDirectedEq valueCoderFuncs.ty valueCoderFuncs.underlying
   isUnderlying : go.IsUnderlying valueCoderFuncs.underlying valueCoderFuncs.underlying
@@ -3425,7 +3425,7 @@ axiom unwrapper : Type
 axiom unwrapper.zero_val : ZeroVal unwrapper
 attribute [instance] unwrapper.zero_val
 
-class unwrapper.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class unwrapper.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying unwrapper.underlying unwrapper
   underlying : go.UnderlyingDirectedEq unwrapper.ty unwrapper.underlying
   isUnderlying : go.IsUnderlying unwrapper.underlying unwrapper.underlying
@@ -3438,7 +3438,7 @@ axiom Converter : Type
 axiom Converter.zero_val : ZeroVal Converter
 attribute [instance] Converter.zero_val
 
-class Converter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Converter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Converter.underlying Converter
   underlying : go.UnderlyingDirectedEq Converter.ty Converter.underlying
   isUnderlying : go.IsUnderlying Converter.underlying Converter.underlying
@@ -3451,7 +3451,7 @@ axiom boolConverter : Type
 axiom boolConverter.zero_val : ZeroVal boolConverter
 attribute [instance] boolConverter.zero_val
 
-class boolConverter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class boolConverter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying boolConverter.underlying boolConverter
   underlying : go.UnderlyingDirectedEq boolConverter.ty boolConverter.underlying
   isUnderlying : go.IsUnderlying boolConverter.underlying boolConverter.underlying
@@ -3464,7 +3464,7 @@ axiom int32Converter : Type
 axiom int32Converter.zero_val : ZeroVal int32Converter
 attribute [instance] int32Converter.zero_val
 
-class int32Converter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class int32Converter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying int32Converter.underlying int32Converter
   underlying : go.UnderlyingDirectedEq int32Converter.ty int32Converter.underlying
   isUnderlying : go.IsUnderlying int32Converter.underlying int32Converter.underlying
@@ -3477,7 +3477,7 @@ axiom int64Converter : Type
 axiom int64Converter.zero_val : ZeroVal int64Converter
 attribute [instance] int64Converter.zero_val
 
-class int64Converter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class int64Converter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying int64Converter.underlying int64Converter
   underlying : go.UnderlyingDirectedEq int64Converter.ty int64Converter.underlying
   isUnderlying : go.IsUnderlying int64Converter.underlying int64Converter.underlying
@@ -3490,7 +3490,7 @@ axiom uint32Converter : Type
 axiom uint32Converter.zero_val : ZeroVal uint32Converter
 attribute [instance] uint32Converter.zero_val
 
-class uint32Converter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class uint32Converter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying uint32Converter.underlying uint32Converter
   underlying : go.UnderlyingDirectedEq uint32Converter.ty uint32Converter.underlying
   isUnderlying : go.IsUnderlying uint32Converter.underlying uint32Converter.underlying
@@ -3503,7 +3503,7 @@ axiom uint64Converter : Type
 axiom uint64Converter.zero_val : ZeroVal uint64Converter
 attribute [instance] uint64Converter.zero_val
 
-class uint64Converter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class uint64Converter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying uint64Converter.underlying uint64Converter
   underlying : go.UnderlyingDirectedEq uint64Converter.ty uint64Converter.underlying
   isUnderlying : go.IsUnderlying uint64Converter.underlying uint64Converter.underlying
@@ -3516,7 +3516,7 @@ axiom float32Converter : Type
 axiom float32Converter.zero_val : ZeroVal float32Converter
 attribute [instance] float32Converter.zero_val
 
-class float32Converter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class float32Converter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying float32Converter.underlying float32Converter
   underlying : go.UnderlyingDirectedEq float32Converter.ty float32Converter.underlying
   isUnderlying : go.IsUnderlying float32Converter.underlying float32Converter.underlying
@@ -3529,7 +3529,7 @@ axiom float64Converter : Type
 axiom float64Converter.zero_val : ZeroVal float64Converter
 attribute [instance] float64Converter.zero_val
 
-class float64Converter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class float64Converter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying float64Converter.underlying float64Converter
   underlying : go.UnderlyingDirectedEq float64Converter.ty float64Converter.underlying
   isUnderlying : go.IsUnderlying float64Converter.underlying float64Converter.underlying
@@ -3542,7 +3542,7 @@ axiom stringConverter : Type
 axiom stringConverter.zero_val : ZeroVal stringConverter
 attribute [instance] stringConverter.zero_val
 
-class stringConverter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class stringConverter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying stringConverter.underlying stringConverter
   underlying : go.UnderlyingDirectedEq stringConverter.ty stringConverter.underlying
   isUnderlying : go.IsUnderlying stringConverter.underlying stringConverter.underlying
@@ -3555,7 +3555,7 @@ axiom bytesConverter : Type
 axiom bytesConverter.zero_val : ZeroVal bytesConverter
 attribute [instance] bytesConverter.zero_val
 
-class bytesConverter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class bytesConverter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying bytesConverter.underlying bytesConverter
   underlying : go.UnderlyingDirectedEq bytesConverter.ty bytesConverter.underlying
   isUnderlying : go.IsUnderlying bytesConverter.underlying bytesConverter.underlying
@@ -3568,7 +3568,7 @@ axiom enumConverter : Type
 axiom enumConverter.zero_val : ZeroVal enumConverter
 attribute [instance] enumConverter.zero_val
 
-class enumConverter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class enumConverter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying enumConverter.underlying enumConverter
   underlying : go.UnderlyingDirectedEq enumConverter.ty enumConverter.underlying
   isUnderlying : go.IsUnderlying enumConverter.underlying enumConverter.underlying
@@ -3581,7 +3581,7 @@ axiom messageConverter : Type
 axiom messageConverter.zero_val : ZeroVal messageConverter
 attribute [instance] messageConverter.zero_val
 
-class messageConverter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class messageConverter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying messageConverter.underlying messageConverter
   underlying : go.UnderlyingDirectedEq messageConverter.ty messageConverter.underlying
   isUnderlying : go.IsUnderlying messageConverter.underlying messageConverter.underlying
@@ -3594,7 +3594,7 @@ axiom listConverter : Type
 axiom listConverter.zero_val : ZeroVal listConverter
 attribute [instance] listConverter.zero_val
 
-class listConverter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class listConverter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying listConverter.underlying listConverter
   underlying : go.UnderlyingDirectedEq listConverter.ty listConverter.underlying
   isUnderlying : go.IsUnderlying listConverter.underlying listConverter.underlying
@@ -3607,7 +3607,7 @@ axiom listPtrConverter : Type
 axiom listPtrConverter.zero_val : ZeroVal listPtrConverter
 attribute [instance] listPtrConverter.zero_val
 
-class listPtrConverter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class listPtrConverter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying listPtrConverter.underlying listPtrConverter
   underlying : go.UnderlyingDirectedEq listPtrConverter.ty listPtrConverter.underlying
   isUnderlying : go.IsUnderlying listPtrConverter.underlying listPtrConverter.underlying
@@ -3620,7 +3620,7 @@ axiom listReflect : Type
 axiom listReflect.zero_val : ZeroVal listReflect
 attribute [instance] listReflect.zero_val
 
-class listReflect.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class listReflect.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying listReflect.underlying listReflect
   underlying : go.UnderlyingDirectedEq listReflect.ty listReflect.underlying
   isUnderlying : go.IsUnderlying listReflect.underlying listReflect.underlying
@@ -3633,7 +3633,7 @@ axiom mapConverter : Type
 axiom mapConverter.zero_val : ZeroVal mapConverter
 attribute [instance] mapConverter.zero_val
 
-class mapConverter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class mapConverter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying mapConverter.underlying mapConverter
   underlying : go.UnderlyingDirectedEq mapConverter.ty mapConverter.underlying
   isUnderlying : go.IsUnderlying mapConverter.underlying mapConverter.underlying
@@ -3646,7 +3646,7 @@ axiom mapReflect : Type
 axiom mapReflect.zero_val : ZeroVal mapReflect
 attribute [instance] mapReflect.zero_val
 
-class mapReflect.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class mapReflect.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying mapReflect.underlying mapReflect
   underlying : go.UnderlyingDirectedEq mapReflect.ty mapReflect.underlying
   isUnderlying : go.IsUnderlying mapReflect.underlying mapReflect.underlying
@@ -3659,7 +3659,7 @@ axiom unmarshalOptions : Type
 axiom unmarshalOptions.zero_val : ZeroVal unmarshalOptions
 attribute [instance] unmarshalOptions.zero_val
 
-class unmarshalOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class unmarshalOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying unmarshalOptions.underlying unmarshalOptions
   underlying : go.UnderlyingDirectedEq unmarshalOptions.ty unmarshalOptions.underlying
   isUnderlying : go.IsUnderlying unmarshalOptions.underlying unmarshalOptions.underlying
@@ -3672,7 +3672,7 @@ axiom unmarshalOutput : Type
 axiom unmarshalOutput.zero_val : ZeroVal unmarshalOutput
 attribute [instance] unmarshalOutput.zero_val
 
-class unmarshalOutput.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class unmarshalOutput.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying unmarshalOutput.underlying unmarshalOutput
   underlying : go.UnderlyingDirectedEq unmarshalOutput.ty unmarshalOutput.underlying
   isUnderlying : go.IsUnderlying unmarshalOutput.underlying unmarshalOutput.underlying
@@ -3685,7 +3685,7 @@ axiom marshalOptions : Type
 axiom marshalOptions.zero_val : ZeroVal marshalOptions
 attribute [instance] marshalOptions.zero_val
 
-class marshalOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class marshalOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying marshalOptions.underlying marshalOptions
   underlying : go.UnderlyingDirectedEq marshalOptions.ty marshalOptions.underlying
   isUnderlying : go.IsUnderlying marshalOptions.underlying marshalOptions.underlying
@@ -3698,7 +3698,7 @@ axiom EnumInfo : Type
 axiom EnumInfo.zero_val : ZeroVal EnumInfo
 attribute [instance] EnumInfo.zero_val
 
-class EnumInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class EnumInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying EnumInfo.underlying EnumInfo
   underlying : go.UnderlyingDirectedEq EnumInfo.ty EnumInfo.underlying
   isUnderlying : go.IsUnderlying EnumInfo.underlying EnumInfo.underlying
@@ -3711,7 +3711,7 @@ axiom ExtensionInfo : Type
 axiom ExtensionInfo.zero_val : ZeroVal ExtensionInfo
 attribute [instance] ExtensionInfo.zero_val
 
-class ExtensionInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ExtensionInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ExtensionInfo.underlying ExtensionInfo
   underlying : go.UnderlyingDirectedEq ExtensionInfo.ty ExtensionInfo.underlying
   isUnderlying : go.IsUnderlying ExtensionInfo.underlying ExtensionInfo.underlying
@@ -3724,7 +3724,7 @@ axiom extensionTypeDescriptor : Type
 axiom extensionTypeDescriptor.zero_val : ZeroVal extensionTypeDescriptor
 attribute [instance] extensionTypeDescriptor.zero_val
 
-class extensionTypeDescriptor.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class extensionTypeDescriptor.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying extensionTypeDescriptor.underlying extensionTypeDescriptor
   underlying : go.UnderlyingDirectedEq extensionTypeDescriptor.ty extensionTypeDescriptor.underlying
   isUnderlying : go.IsUnderlying extensionTypeDescriptor.underlying extensionTypeDescriptor.underlying
@@ -3737,7 +3737,7 @@ axiom legacyEnumType : Type
 axiom legacyEnumType.zero_val : ZeroVal legacyEnumType
 attribute [instance] legacyEnumType.zero_val
 
-class legacyEnumType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class legacyEnumType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying legacyEnumType.underlying legacyEnumType
   underlying : go.UnderlyingDirectedEq legacyEnumType.ty legacyEnumType.underlying
   isUnderlying : go.IsUnderlying legacyEnumType.underlying legacyEnumType.underlying
@@ -3750,7 +3750,7 @@ axiom legacyEnumWrapper : Type
 axiom legacyEnumWrapper.zero_val : ZeroVal legacyEnumWrapper
 attribute [instance] legacyEnumWrapper.zero_val
 
-class legacyEnumWrapper.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class legacyEnumWrapper.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying legacyEnumWrapper.underlying legacyEnumWrapper
   underlying : go.UnderlyingDirectedEq legacyEnumWrapper.ty legacyEnumWrapper.underlying
   isUnderlying : go.IsUnderlying legacyEnumWrapper.underlying legacyEnumWrapper.underlying
@@ -3763,7 +3763,7 @@ axiom placeholderExtension : Type
 axiom placeholderExtension.zero_val : ZeroVal placeholderExtension
 attribute [instance] placeholderExtension.zero_val
 
-class placeholderExtension.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class placeholderExtension.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying placeholderExtension.underlying placeholderExtension
   underlying : go.UnderlyingDirectedEq placeholderExtension.ty placeholderExtension.underlying
   isUnderlying : go.IsUnderlying placeholderExtension.underlying placeholderExtension.underlying
@@ -3776,7 +3776,7 @@ axiom enumV1 : Type
 axiom enumV1.zero_val : ZeroVal enumV1
 attribute [instance] enumV1.zero_val
 
-class enumV1.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class enumV1.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying enumV1.underlying enumV1
   underlying : go.UnderlyingDirectedEq enumV1.ty enumV1.underlying
   isUnderlying : go.IsUnderlying enumV1.underlying enumV1.underlying
@@ -3789,7 +3789,7 @@ axiom messageV1 : Type
 axiom messageV1.zero_val : ZeroVal messageV1
 attribute [instance] messageV1.zero_val
 
-class messageV1.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class messageV1.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying messageV1.underlying messageV1
   underlying : go.UnderlyingDirectedEq messageV1.ty messageV1.underlying
   isUnderlying : go.IsUnderlying messageV1.underlying messageV1.underlying
@@ -3802,7 +3802,7 @@ axiom resolverOnly : Type
 axiom resolverOnly.zero_val : ZeroVal resolverOnly
 attribute [instance] resolverOnly.zero_val
 
-class resolverOnly.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class resolverOnly.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying resolverOnly.underlying resolverOnly
   underlying : go.UnderlyingDirectedEq resolverOnly.ty resolverOnly.underlying
   isUnderlying : go.IsUnderlying resolverOnly.underlying resolverOnly.underlying
@@ -3815,7 +3815,7 @@ axiom placeholderEnumValues : Type
 axiom placeholderEnumValues.zero_val : ZeroVal placeholderEnumValues
 attribute [instance] placeholderEnumValues.zero_val
 
-class placeholderEnumValues.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class placeholderEnumValues.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying placeholderEnumValues.underlying placeholderEnumValues
   underlying : go.UnderlyingDirectedEq placeholderEnumValues.ty placeholderEnumValues.underlying
   isUnderlying : go.IsUnderlying placeholderEnumValues.underlying placeholderEnumValues.underlying
@@ -3828,7 +3828,7 @@ axiom legacyMarshaler : Type
 axiom legacyMarshaler.zero_val : ZeroVal legacyMarshaler
 attribute [instance] legacyMarshaler.zero_val
 
-class legacyMarshaler.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class legacyMarshaler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying legacyMarshaler.underlying legacyMarshaler
   underlying : go.UnderlyingDirectedEq legacyMarshaler.ty legacyMarshaler.underlying
   isUnderlying : go.IsUnderlying legacyMarshaler.underlying legacyMarshaler.underlying
@@ -3841,7 +3841,7 @@ axiom legacyUnmarshaler : Type
 axiom legacyUnmarshaler.zero_val : ZeroVal legacyUnmarshaler
 attribute [instance] legacyUnmarshaler.zero_val
 
-class legacyUnmarshaler.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class legacyUnmarshaler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying legacyUnmarshaler.underlying legacyUnmarshaler
   underlying : go.UnderlyingDirectedEq legacyUnmarshaler.ty legacyUnmarshaler.underlying
   isUnderlying : go.IsUnderlying legacyUnmarshaler.underlying legacyUnmarshaler.underlying
@@ -3854,7 +3854,7 @@ axiom legacyMerger : Type
 axiom legacyMerger.zero_val : ZeroVal legacyMerger
 attribute [instance] legacyMerger.zero_val
 
-class legacyMerger.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class legacyMerger.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying legacyMerger.underlying legacyMerger
   underlying : go.UnderlyingDirectedEq legacyMerger.ty legacyMerger.underlying
   isUnderlying : go.IsUnderlying legacyMerger.underlying legacyMerger.underlying
@@ -3867,7 +3867,7 @@ axiom aberrantMessageType : Type
 axiom aberrantMessageType.zero_val : ZeroVal aberrantMessageType
 attribute [instance] aberrantMessageType.zero_val
 
-class aberrantMessageType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class aberrantMessageType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying aberrantMessageType.underlying aberrantMessageType
   underlying : go.UnderlyingDirectedEq aberrantMessageType.ty aberrantMessageType.underlying
   isUnderlying : go.IsUnderlying aberrantMessageType.underlying aberrantMessageType.underlying
@@ -3880,7 +3880,7 @@ axiom aberrantMessage : Type
 axiom aberrantMessage.zero_val : ZeroVal aberrantMessage
 attribute [instance] aberrantMessage.zero_val
 
-class aberrantMessage.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class aberrantMessage.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying aberrantMessage.underlying aberrantMessage
   underlying : go.UnderlyingDirectedEq aberrantMessage.ty aberrantMessage.underlying
   isUnderlying : go.IsUnderlying aberrantMessage.underlying aberrantMessage.underlying
@@ -3893,7 +3893,7 @@ axiom mergeOptions : Type
 axiom mergeOptions.zero_val : ZeroVal mergeOptions
 attribute [instance] mergeOptions.zero_val
 
-class mergeOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class mergeOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying mergeOptions.underlying mergeOptions
   underlying : go.UnderlyingDirectedEq mergeOptions.ty mergeOptions.underlying
   isUnderlying : go.IsUnderlying mergeOptions.underlying mergeOptions.underlying
@@ -3906,7 +3906,7 @@ axiom MessageInfo : Type
 axiom MessageInfo.zero_val : ZeroVal MessageInfo
 attribute [instance] MessageInfo.zero_val
 
-class MessageInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class MessageInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying MessageInfo.underlying MessageInfo
   underlying : go.UnderlyingDirectedEq MessageInfo.ty MessageInfo.underlying
   isUnderlying : go.IsUnderlying MessageInfo.underlying MessageInfo.underlying
@@ -3919,7 +3919,7 @@ axiom exporter : Type
 axiom exporter.zero_val : ZeroVal exporter
 attribute [instance] exporter.zero_val
 
-class exporter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class exporter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying exporter.underlying exporter
   underlying : go.UnderlyingDirectedEq exporter.ty exporter.underlying
   isUnderlying : go.IsUnderlying exporter.underlying exporter.underlying
@@ -3932,7 +3932,7 @@ axiom structInfo : Type
 axiom structInfo.zero_val : ZeroVal structInfo
 attribute [instance] structInfo.zero_val
 
-class structInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class structInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying structInfo.underlying structInfo
   underlying : go.UnderlyingDirectedEq structInfo.ty structInfo.underlying
   isUnderlying : go.IsUnderlying structInfo.underlying structInfo.underlying
@@ -3945,7 +3945,7 @@ axiom mapEntryType : Type
 axiom mapEntryType.zero_val : ZeroVal mapEntryType
 attribute [instance] mapEntryType.zero_val
 
-class mapEntryType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class mapEntryType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying mapEntryType.underlying mapEntryType
   underlying : go.UnderlyingDirectedEq mapEntryType.ty mapEntryType.underlying
   isUnderlying : go.IsUnderlying mapEntryType.underlying mapEntryType.underlying
@@ -3958,7 +3958,7 @@ axiom opaqueStructInfo : Type
 axiom opaqueStructInfo.zero_val : ZeroVal opaqueStructInfo
 attribute [instance] opaqueStructInfo.zero_val
 
-class opaqueStructInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class opaqueStructInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying opaqueStructInfo.underlying opaqueStructInfo
   underlying : go.UnderlyingDirectedEq opaqueStructInfo.ty opaqueStructInfo.underlying
   isUnderlying : go.IsUnderlying opaqueStructInfo.underlying opaqueStructInfo.underlying
@@ -3971,7 +3971,7 @@ axiom presenceList : Type
 axiom presenceList.zero_val : ZeroVal presenceList
 attribute [instance] presenceList.zero_val
 
-class presenceList.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class presenceList.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying presenceList.underlying presenceList
   underlying : go.UnderlyingDirectedEq presenceList.ty presenceList.underlying
   isUnderlying : go.IsUnderlying presenceList.underlying presenceList.underlying
@@ -3984,7 +3984,7 @@ axiom pvalueList : Type
 axiom pvalueList.zero_val : ZeroVal pvalueList
 attribute [instance] pvalueList.zero_val
 
-class pvalueList.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class pvalueList.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying pvalueList.underlying pvalueList
   underlying : go.UnderlyingDirectedEq pvalueList.ty pvalueList.underlying
   isUnderlying : go.IsUnderlying pvalueList.underlying pvalueList.underlying
@@ -3997,7 +3997,7 @@ axiom reflectMessageInfo : Type
 axiom reflectMessageInfo.zero_val : ZeroVal reflectMessageInfo
 attribute [instance] reflectMessageInfo.zero_val
 
-class reflectMessageInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class reflectMessageInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying reflectMessageInfo.underlying reflectMessageInfo
   underlying : go.UnderlyingDirectedEq reflectMessageInfo.ty reflectMessageInfo.underlying
   isUnderlying : go.IsUnderlying reflectMessageInfo.underlying reflectMessageInfo.underlying
@@ -4010,7 +4010,7 @@ axiom extensionMap : Type
 axiom extensionMap.zero_val : ZeroVal extensionMap
 attribute [instance] extensionMap.zero_val
 
-class extensionMap.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class extensionMap.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying extensionMap.underlying extensionMap
   underlying : go.UnderlyingDirectedEq extensionMap.ty extensionMap.underlying
   isUnderlying : go.IsUnderlying extensionMap.underlying extensionMap.underlying
@@ -4019,33 +4019,33 @@ attribute [instance] extensionMap.TypeAssumptions.type_repr
   extensionMap.TypeAssumptions.underlying
   extensionMap.TypeAssumptions.isUnderlying
 
-structure MessageState [FfiSyntax] where
+structure MessageState [GooseExts] where
   mk ::
   NoUnkeyedLiterals' : _root_.Perennial.google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals
   DoNotCompare' : _root_.Perennial.google_golang_org.protobuf.internal.pragma.DoNotCompare
   DoNotCopy' : _root_.Perennial.google_golang_org.protobuf.internal.pragma.DoNotCopy
   atomicMessageInfo' : Loc
 
-noncomputable instance MessageState.zero_val [FfiSyntax] : ZeroVal MessageState :=
+noncomputable instance MessageState.zero_val [GooseExts] : ZeroVal MessageState :=
   ⟨MessageState.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def MessageState.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def MessageState.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"NoUnkeyedLiterals" _root_.Perennial.google_golang_org.protobuf.internal.pragma.NoUnkeyedLiterals.ty),
 (go.field_decl.EmbeddedField go!"DoNotCompare" _root_.Perennial.google_golang_org.protobuf.internal.pragma.DoNotCompare.ty),
 (go.field_decl.EmbeddedField go!"DoNotCopy" _root_.Perennial.google_golang_org.protobuf.internal.pragma.DoNotCopy.ty),
 (go.field_decl.FieldDecl go!"atomicMessageInfo" (go.GoType.PointerType MessageInfo.ty))]
 
-@[irreducible] noncomputable def MessageState.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def MessageState.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   MessageState.fieldsUnsealed
 
-noncomputable instance equals_unfold_MessageState [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_MessageState [GooseExts] [GoGlobalContext] :
     EqualsUnfold MessageState.fields MessageState.fieldsUnsealed :=
   ⟨by unfold MessageState.fields; rfl⟩
 
-@[reducible] noncomputable def MessageState.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def MessageState.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType MessageState.fields)
 
-class MessageState.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class MessageState.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying MessageState.underlying MessageState
   underlying : go.UnderlyingDirectedEq MessageState.ty MessageState.underlying
   get_NoUnkeyedLiterals : ∀ (x : MessageState), go.IsGoStepPureDetTagged under (StructFieldGet MessageState.underlying go!"NoUnkeyedLiterals") #x (Val #(x.NoUnkeyedLiterals'))
@@ -4072,7 +4072,7 @@ axiom messageState : Type
 axiom messageState.zero_val : ZeroVal messageState
 attribute [instance] messageState.zero_val
 
-class messageState.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class messageState.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying messageState.underlying messageState
   underlying : go.UnderlyingDirectedEq messageState.ty messageState.underlying
   isUnderlying : go.IsUnderlying messageState.underlying messageState.underlying
@@ -4085,7 +4085,7 @@ axiom messageDataType : Type
 axiom messageDataType.zero_val : ZeroVal messageDataType
 attribute [instance] messageDataType.zero_val
 
-class messageDataType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class messageDataType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying messageDataType.underlying messageDataType
   underlying : go.UnderlyingDirectedEq messageDataType.ty messageDataType.underlying
   isUnderlying : go.IsUnderlying messageDataType.underlying messageDataType.underlying
@@ -4098,7 +4098,7 @@ axiom messageReflectWrapper : Type
 axiom messageReflectWrapper.zero_val : ZeroVal messageReflectWrapper
 attribute [instance] messageReflectWrapper.zero_val
 
-class messageReflectWrapper.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class messageReflectWrapper.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying messageReflectWrapper.underlying messageReflectWrapper
   underlying : go.UnderlyingDirectedEq messageReflectWrapper.ty messageReflectWrapper.underlying
   isUnderlying : go.IsUnderlying messageReflectWrapper.underlying messageReflectWrapper.underlying
@@ -4111,7 +4111,7 @@ axiom messageIfaceWrapper : Type
 axiom messageIfaceWrapper.zero_val : ZeroVal messageIfaceWrapper
 attribute [instance] messageIfaceWrapper.zero_val
 
-class messageIfaceWrapper.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class messageIfaceWrapper.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying messageIfaceWrapper.underlying messageIfaceWrapper
   underlying : go.UnderlyingDirectedEq messageIfaceWrapper.ty messageIfaceWrapper.underlying
   isUnderlying : go.IsUnderlying messageIfaceWrapper.underlying messageIfaceWrapper.underlying
@@ -4124,7 +4124,7 @@ axiom fieldInfo : Type
 axiom fieldInfo.zero_val : ZeroVal fieldInfo
 attribute [instance] fieldInfo.zero_val
 
-class fieldInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class fieldInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying fieldInfo.underlying fieldInfo
   underlying : go.UnderlyingDirectedEq fieldInfo.ty fieldInfo.underlying
   isUnderlying : go.IsUnderlying fieldInfo.underlying fieldInfo.underlying
@@ -4137,7 +4137,7 @@ axiom oneofInfo : Type
 axiom oneofInfo.zero_val : ZeroVal oneofInfo
 attribute [instance] oneofInfo.zero_val
 
-class oneofInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class oneofInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying oneofInfo.underlying oneofInfo
   underlying : go.UnderlyingDirectedEq oneofInfo.ty oneofInfo.underlying
   isUnderlying : go.IsUnderlying oneofInfo.underlying oneofInfo.underlying
@@ -4150,7 +4150,7 @@ axiom Pointer : Type
 axiom Pointer.zero_val : ZeroVal Pointer
 attribute [instance] Pointer.zero_val
 
-class Pointer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Pointer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Pointer.underlying Pointer
   underlying : go.UnderlyingDirectedEq Pointer.ty Pointer.underlying
   isUnderlying : go.IsUnderlying Pointer.underlying Pointer.underlying
@@ -4163,7 +4163,7 @@ axiom offset : Type
 axiom offset.zero_val : ZeroVal offset
 attribute [instance] offset.zero_val
 
-class offset.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class offset.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying offset.underlying offset
   underlying : go.UnderlyingDirectedEq offset.ty offset.underlying
   isUnderlying : go.IsUnderlying offset.underlying offset.underlying
@@ -4176,7 +4176,7 @@ axiom pointer : Type
 axiom pointer.zero_val : ZeroVal pointer
 attribute [instance] pointer.zero_val
 
-class pointer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class pointer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying pointer.underlying pointer
   underlying : go.UnderlyingDirectedEq pointer.ty pointer.underlying
   isUnderlying : go.IsUnderlying pointer.underlying pointer.underlying
@@ -4189,7 +4189,7 @@ axiom atomicNilMessage : Type
 axiom atomicNilMessage.zero_val : ZeroVal atomicNilMessage
 attribute [instance] atomicNilMessage.zero_val
 
-class atomicNilMessage.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class atomicNilMessage.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying atomicNilMessage.underlying atomicNilMessage
   underlying : go.UnderlyingDirectedEq atomicNilMessage.ty atomicNilMessage.underlying
   isUnderlying : go.IsUnderlying atomicNilMessage.underlying atomicNilMessage.underlying
@@ -4202,7 +4202,7 @@ axiom atomicV1MessageInfo : Type
 axiom atomicV1MessageInfo.zero_val : ZeroVal atomicV1MessageInfo
 attribute [instance] atomicV1MessageInfo.zero_val
 
-class atomicV1MessageInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class atomicV1MessageInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying atomicV1MessageInfo.underlying atomicV1MessageInfo
   underlying : go.UnderlyingDirectedEq atomicV1MessageInfo.ty atomicV1MessageInfo.underlying
   isUnderlying : go.IsUnderlying atomicV1MessageInfo.underlying atomicV1MessageInfo.underlying
@@ -4215,7 +4215,7 @@ axiom presenceSize : Type
 axiom presenceSize.zero_val : ZeroVal presenceSize
 attribute [instance] presenceSize.zero_val
 
-class presenceSize.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class presenceSize.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying presenceSize.underlying presenceSize
   underlying : go.UnderlyingDirectedEq presenceSize.ty presenceSize.underlying
   isUnderlying : go.IsUnderlying presenceSize.underlying presenceSize.underlying
@@ -4228,7 +4228,7 @@ axiom presence : Type
 axiom presence.zero_val : ZeroVal presence
 attribute [instance] presence.zero_val
 
-class presence.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class presence.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying presence.underlying presence
   underlying : go.UnderlyingDirectedEq presence.ty presence.underlying
   isUnderlying : go.IsUnderlying presence.underlying presence.underlying
@@ -4241,7 +4241,7 @@ axiom ValidationStatus : Type
 axiom ValidationStatus.zero_val : ZeroVal ValidationStatus
 attribute [instance] ValidationStatus.zero_val
 
-class ValidationStatus.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ValidationStatus.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ValidationStatus.underlying ValidationStatus
   underlying : go.UnderlyingDirectedEq ValidationStatus.ty ValidationStatus.underlying
   isUnderlying : go.IsUnderlying ValidationStatus.underlying ValidationStatus.underlying
@@ -4254,7 +4254,7 @@ axiom validationInfo : Type
 axiom validationInfo.zero_val : ZeroVal validationInfo
 attribute [instance] validationInfo.zero_val
 
-class validationInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class validationInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying validationInfo.underlying validationInfo
   underlying : go.UnderlyingDirectedEq validationInfo.ty validationInfo.underlying
   isUnderlying : go.IsUnderlying validationInfo.underlying validationInfo.underlying
@@ -4267,7 +4267,7 @@ axiom validationType : Type
 axiom validationType.zero_val : ZeroVal validationType
 attribute [instance] validationType.zero_val
 
-class validationType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class validationType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying validationType.underlying validationType
   underlying : go.UnderlyingDirectedEq validationType.ty validationType.underlying
   isUnderlying : go.IsUnderlying validationType.underlying validationType.underlying
@@ -4276,7 +4276,7 @@ attribute [instance] validationType.TypeAssumptions.type_repr
   validationType.TypeAssumptions.underlying
   validationType.TypeAssumptions.isUnderlying
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Export_instance : Export.TypeAssumptions
   legacyMessageWrapper_instance : legacyMessageWrapper.TypeAssumptions
   RaceDetectHookData_instance : RaceDetectHookData.TypeAssumptions

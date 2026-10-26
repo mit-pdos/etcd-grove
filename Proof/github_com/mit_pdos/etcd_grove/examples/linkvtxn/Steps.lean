@@ -37,7 +37,7 @@ open github_com.mit_pdos.etcd_grove.examples.linkvtxn
 open Classical
 
 section go
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- The model's inputs, outputs and states. -/
 abbrev MI := linkv.MIn GoString GoString

@@ -20,28 +20,28 @@ end pkg_id
 
 namespace go_etcd_io.etcd.client.v3.internal.resolver
 
-noncomputable def EtcdManualResolver.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EtcdManualResolver.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/v3/internal/resolver.EtcdManualResolver" [])
 
 attribute [irreducible] EtcdManualResolver.ty
 
-axiom EtcdManualResolver.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom EtcdManualResolver.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-@[reducible] noncomputable def Schema [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def Schema [GooseExts] [GoGlobalContext] : val :=
   #(go!"etcd-endpoints")
 
-noncomputable def New [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def New [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3/internal/resolver.New"
 
-noncomputable def getCC [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def getCC [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3/internal/resolver.getCC"
 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.client.v3.internal.resolver where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.client.v3.internal.resolver)) (Lam BAnon
   (App (Val exceptionDo)
@@ -52,7 +52,7 @@ axiom EtcdManualResolver : Type
 axiom EtcdManualResolver.zero_val : ZeroVal EtcdManualResolver
 attribute [instance] EtcdManualResolver.zero_val
 
-class EtcdManualResolver.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class EtcdManualResolver.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying EtcdManualResolver.underlying EtcdManualResolver
   underlying : go.UnderlyingDirectedEq EtcdManualResolver.ty EtcdManualResolver.underlying
   isUnderlying : go.IsUnderlying EtcdManualResolver.underlying EtcdManualResolver.underlying
@@ -61,7 +61,7 @@ attribute [instance] EtcdManualResolver.TypeAssumptions.type_repr
   EtcdManualResolver.TypeAssumptions.underlying
   EtcdManualResolver.TypeAssumptions.isUnderlying
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   EtcdManualResolver_instance : EtcdManualResolver.TypeAssumptions
 
 attribute [instance] Assumptions.EtcdManualResolver_instance

@@ -20,104 +20,104 @@ end pkg_id
 
 namespace k8s_io.apiserver.pkg.features
 
-axiom APIResponseCompression [FfiSyntax] [GoGlobalContext] : val
+axiom APIResponseCompression [GooseExts] [GoGlobalContext] : val
 
-axiom APIServerIdentity [FfiSyntax] [GoGlobalContext] : val
+axiom APIServerIdentity [GooseExts] [GoGlobalContext] : val
 
-axiom APIServerWebhookAuthenticationToken [FfiSyntax] [GoGlobalContext] : val
+axiom APIServerWebhookAuthenticationToken [GooseExts] [GoGlobalContext] : val
 
-axiom APIServingWithRoutine [FfiSyntax] [GoGlobalContext] : val
+axiom APIServingWithRoutine [GooseExts] [GoGlobalContext] : val
 
-axiom AllocatorPoolBufferCap [FfiSyntax] [GoGlobalContext] : val
+axiom AllocatorPoolBufferCap [GooseExts] [GoGlobalContext] : val
 
-axiom AllowParsingUserUIDFromCertAuth [FfiSyntax] [GoGlobalContext] : val
+axiom AllowParsingUserUIDFromCertAuth [GooseExts] [GoGlobalContext] : val
 
-axiom AllowUnsafeMalformedObjectDeletion [FfiSyntax] [GoGlobalContext] : val
+axiom AllowUnsafeMalformedObjectDeletion [GooseExts] [GoGlobalContext] : val
 
-axiom CBORServingAndStorage [FfiSyntax] [GoGlobalContext] : val
+axiom CBORServingAndStorage [GooseExts] [GoGlobalContext] : val
 
-axiom ConcurrentWatchObjectDecode [FfiSyntax] [GoGlobalContext] : val
+axiom ConcurrentWatchObjectDecode [GooseExts] [GoGlobalContext] : val
 
-axiom ConditionalAuthorization [FfiSyntax] [GoGlobalContext] : val
+axiom ConditionalAuthorization [GooseExts] [GoGlobalContext] : val
 
-axiom ConsistentListFromCacheSkipTimeoutFallback [FfiSyntax] [GoGlobalContext] : val
+axiom ConsistentListFromCacheSkipTimeoutFallback [GooseExts] [GoGlobalContext] : val
 
-axiom ConstrainedImpersonation [FfiSyntax] [GoGlobalContext] : val
+axiom ConstrainedImpersonation [GooseExts] [GoGlobalContext] : val
 
-axiom CoordinatedLeaderElection [FfiSyntax] [GoGlobalContext] : val
+axiom CoordinatedLeaderElection [GooseExts] [GoGlobalContext] : val
 
-axiom DeclarativeValidation [FfiSyntax] [GoGlobalContext] : val
+axiom DeclarativeValidation [GooseExts] [GoGlobalContext] : val
 
-axiom DeclarativeValidationBeta [FfiSyntax] [GoGlobalContext] : val
+axiom DeclarativeValidationBeta [GooseExts] [GoGlobalContext] : val
 
-axiom DeclarativeValidationTakeover [FfiSyntax] [GoGlobalContext] : val
+axiom DeclarativeValidationTakeover [GooseExts] [GoGlobalContext] : val
 
-axiom DetectCacheInconsistency [FfiSyntax] [GoGlobalContext] : val
+axiom DetectCacheInconsistency [GooseExts] [GoGlobalContext] : val
 
-axiom EtcdRangeStream [FfiSyntax] [GoGlobalContext] : val
+axiom EtcdRangeStream [GooseExts] [GoGlobalContext] : val
 
-axiom ExcludeAdmissionWebhookVirtualResources [FfiSyntax] [GoGlobalContext] : val
+axiom ExcludeAdmissionWebhookVirtualResources [GooseExts] [GoGlobalContext] : val
 
-axiom KMSv1 [FfiSyntax] [GoGlobalContext] : val
+axiom KMSv1 [GooseExts] [GoGlobalContext] : val
 
-axiom ListFromCacheSnapshot [FfiSyntax] [GoGlobalContext] : val
+axiom ListFromCacheSnapshot [GooseExts] [GoGlobalContext] : val
 
-axiom ManagedFieldsOptOut [FfiSyntax] [GoGlobalContext] : val
+axiom ManagedFieldsOptOut [GooseExts] [GoGlobalContext] : val
 
-axiom ManifestBasedAdmissionControlConfig [FfiSyntax] [GoGlobalContext] : val
+axiom ManifestBasedAdmissionControlConfig [GooseExts] [GoGlobalContext] : val
 
-axiom MutatingAdmissionPolicy [FfiSyntax] [GoGlobalContext] : val
+axiom MutatingAdmissionPolicy [GooseExts] [GoGlobalContext] : val
 
-axiom OpenAPIEnums [FfiSyntax] [GoGlobalContext] : val
+axiom OpenAPIEnums [GooseExts] [GoGlobalContext] : val
 
-axiom OpenAPIV2LazyBuild [FfiSyntax] [GoGlobalContext] : val
+axiom OpenAPIV2LazyBuild [GooseExts] [GoGlobalContext] : val
 
-axiom RemoteRequestHeaderUID [FfiSyntax] [GoGlobalContext] : val
+axiom RemoteRequestHeaderUID [GooseExts] [GoGlobalContext] : val
 
-axiom RequestCostAggregation [FfiSyntax] [GoGlobalContext] : val
+axiom RequestCostAggregation [GooseExts] [GoGlobalContext] : val
 
-axiom SeparateCacheWatchRPC [FfiSyntax] [GoGlobalContext] : val
+axiom SeparateCacheWatchRPC [GooseExts] [GoGlobalContext] : val
 
-axiom ShardedListAndWatch [FfiSyntax] [GoGlobalContext] : val
+axiom ShardedListAndWatch [GooseExts] [GoGlobalContext] : val
 
-axiom SizeBasedListCostEstimate [FfiSyntax] [GoGlobalContext] : val
+axiom SizeBasedListCostEstimate [GooseExts] [GoGlobalContext] : val
 
-axiom StorageVersionAPI [FfiSyntax] [GoGlobalContext] : val
+axiom StorageVersionAPI [GooseExts] [GoGlobalContext] : val
 
-axiom StorageVersionHash [FfiSyntax] [GoGlobalContext] : val
+axiom StorageVersionHash [GooseExts] [GoGlobalContext] : val
 
-axiom StructuredAuthenticationConfigurationEgressSelector [FfiSyntax] [GoGlobalContext] : val
+axiom StructuredAuthenticationConfigurationEgressSelector [GooseExts] [GoGlobalContext] : val
 
-axiom StructuredAuthenticationConfigurationJWKSMetrics [FfiSyntax] [GoGlobalContext] : val
+axiom StructuredAuthenticationConfigurationJWKSMetrics [GooseExts] [GoGlobalContext] : val
 
-axiom TokenRequestServiceAccountUIDValidation [FfiSyntax] [GoGlobalContext] : val
+axiom TokenRequestServiceAccountUIDValidation [GooseExts] [GoGlobalContext] : val
 
-axiom UnauthenticatedHTTP2DOSMitigation [FfiSyntax] [GoGlobalContext] : val
+axiom UnauthenticatedHTTP2DOSMitigation [GooseExts] [GoGlobalContext] : val
 
-axiom UnknownVersionInteroperabilityProxy [FfiSyntax] [GoGlobalContext] : val
+axiom UnknownVersionInteroperabilityProxy [GooseExts] [GoGlobalContext] : val
 
-axiom WatchCacheInitializationPostStartHook [FfiSyntax] [GoGlobalContext] : val
+axiom WatchCacheInitializationPostStartHook [GooseExts] [GoGlobalContext] : val
 
-axiom WatchList [FfiSyntax] [GoGlobalContext] : val
+axiom WatchList [GooseExts] [GoGlobalContext] : val
 
-axiom WatchListCompression [FfiSyntax] [GoGlobalContext] : val
+axiom WatchListCompression [GooseExts] [GoGlobalContext] : val
 
-axiom WebhookRoundTripLoadBalancing [FfiSyntax] [GoGlobalContext] : val
+axiom WebhookRoundTripLoadBalancing [GooseExts] [GoGlobalContext] : val
 
-noncomputable def defaultVersionedKubernetesFeatureGates [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def defaultVersionedKubernetesFeatureGates [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/features.defaultVersionedKubernetesFeatureGates"
 
-axiom defaultVersionedKubernetesFeatureGates.init [FfiSyntax] [GoGlobalContext] : val
+axiom defaultVersionedKubernetesFeatureGates.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def init.«0» [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def init.«0» [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/features.init.0"
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apiserver.pkg.features where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.apiserver.pkg.features)) (Lam BAnon
   (App (Val exceptionDo)
@@ -127,7 +127,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val defaultVersionedKubernetesFeatureGates.init) (Val #()))))))))
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop
 
 end k8s_io.apiserver.pkg.features
 

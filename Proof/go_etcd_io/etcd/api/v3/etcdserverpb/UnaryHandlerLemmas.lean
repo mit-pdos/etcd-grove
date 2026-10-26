@@ -26,7 +26,7 @@ dec func(any) error, interceptor grpc.UnaryServerInterceptor) (any, error)`, as 
 it): decode a new `*Req` (`reqTy`) with `dec`; with no interceptor, call `srv.(S).M(ctx, in)`
 (`srvTy`, `meth`); otherwise call the interceptor with an `info` naming `fullMethod` and a
 closure making that call. The response is returned as `any` (from `*Rep`, `repTy`). -/
-def unaryHandlerImpl [FfiSyntax] [GoGlobalContext] (srvTy reqTy repTy : go.GoType)
+def unaryHandlerImpl [GooseExts] [GoGlobalContext] (srvTy reqTy repTy : go.GoType)
     (meth fullMethod : GoString) : val :=
     (LamV "srv"
     (Lam "ctx"
@@ -100,7 +100,7 @@ def unaryHandlerImpl [FfiSyntax] [GoGlobalContext] (srvTy reqTy repTy : go.GoTyp
 
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

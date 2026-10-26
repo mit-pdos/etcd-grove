@@ -21,51 +21,51 @@ end pkg_id
 
 namespace path
 
-noncomputable def lazybuf.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def lazybuf.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"path.lazybuf" [])
 
 attribute [irreducible] lazybuf.ty
 
-noncomputable def ErrBadPattern [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrBadPattern [GooseExts] [GoGlobalContext] : GoString :=
   go!"path.ErrBadPattern"
 
-axiom ErrBadPattern.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrBadPattern.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def Match [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Match [GooseExts] [GoGlobalContext] : GoString :=
   go!"path.Match"
 
-noncomputable def scanChunk [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def scanChunk [GooseExts] [GoGlobalContext] : GoString :=
   go!"path.scanChunk"
 
-noncomputable def matchChunk [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def matchChunk [GooseExts] [GoGlobalContext] : GoString :=
   go!"path.matchChunk"
 
-noncomputable def getEsc [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def getEsc [GooseExts] [GoGlobalContext] : GoString :=
   go!"path.getEsc"
 
-noncomputable def Clean [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Clean [GooseExts] [GoGlobalContext] : GoString :=
   go!"path.Clean"
 
-noncomputable def Split [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Split [GooseExts] [GoGlobalContext] : GoString :=
   go!"path.Split"
 
-noncomputable def Join [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Join [GooseExts] [GoGlobalContext] : GoString :=
   go!"path.Join"
 
-noncomputable def Ext [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Ext [GooseExts] [GoGlobalContext] : GoString :=
   go!"path.Ext"
 
-noncomputable def Base [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Base [GooseExts] [GoGlobalContext] : GoString :=
   go!"path.Base"
 
-noncomputable def IsAbs [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsAbs [GooseExts] [GoGlobalContext] : GoString :=
   go!"path.IsAbs"
 
-noncomputable def Dir [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Dir [GooseExts] [GoGlobalContext] : GoString :=
   go!"path.Dir"
 
 /-- go: path.go:26:19 -/
-noncomputable def lazybuf.index.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def lazybuf.index.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "i"
   (App (Val exceptionDo)
@@ -81,7 +81,7 @@ noncomputable def lazybuf.index.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #())))))))))
 
 /-- go: path.go:33:19 -/
-noncomputable def lazybuf.append.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def lazybuf.append.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "c"
   (App (Val exceptionDo)
@@ -122,7 +122,7 @@ noncomputable def lazybuf.append.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #()))))))))))
 
 /-- go: path.go:46:19 -/
-noncomputable def lazybuf.string.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def lazybuf.string.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -159,7 +159,7 @@ noncomputable def lazybuf.string.impl [FfiSyntax] [GoGlobalContext] : val :=
     https://9p.io/sys/doc/lexnames.html
 
     go: path.go:72:6 -/
-noncomputable def Clean.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Clean.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "path"
   (App (Val exceptionDo)
   (Let "path" (App (Val (GoInstruction (GoAlloc go.string))) (Var "path"))
@@ -291,7 +291,7 @@ noncomputable def Clean.impl [FfiSyntax] [GoGlobalContext] : val :=
     The returned values have the property that path = dir+file.
 
     go: path.go:145:6 -/
-noncomputable def Split.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Split.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "path"
   (App (Val exceptionDo)
   (Let "file" (App (Val (GoInstruction (GoAlloc go.string))) (App (Val (GoInstruction (GoZeroVal go.string))) (Val #())))
@@ -316,7 +316,7 @@ noncomputable def Split.impl [FfiSyntax] [GoGlobalContext] : val :=
     an empty string.
 
     go: path.go:155:6 -/
-noncomputable def Join.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Join.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "elem"
   (App (Val exceptionDo)
   (Let "elem" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (Var "elem"))
@@ -394,7 +394,7 @@ noncomputable def Join.impl [FfiSyntax] [GoGlobalContext] : val :=
     If the path consists entirely of slashes, Base returns "/".
 
     go: path.go:192:6 -/
-noncomputable def Base.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Base.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "path"
   (App (Val exceptionDo)
   (Let "path" (App (Val (GoInstruction (GoAlloc go.string))) (Var "path"))
@@ -449,7 +449,7 @@ noncomputable def Base.impl [FfiSyntax] [GoGlobalContext] : val :=
     slash.
 
     go: path.go:223:6 -/
-noncomputable def Dir.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Dir.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "path"
   (App (Val exceptionDo)
   (Let "path" (App (Val (GoInstruction (GoAlloc go.string))) (Var "path"))
@@ -473,9 +473,9 @@ noncomputable def Dir.impl [FfiSyntax] [GoGlobalContext] : val :=
 noncomputable instance info' : PkgInfo pkg_id.path where
   pkgImportedPkgs := [pkg_id.internal.bytealg]
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.path)) (Lam BAnon
   (App (Val exceptionDo)
@@ -485,31 +485,31 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.internal.bytealg.initialize') (Val #()))))))))
 
-structure lazybuf [FfiSyntax] where
+structure lazybuf [GooseExts] where
   mk ::
   s' : GoString
   buf' : GoSlice
   w' : w64
 
-noncomputable instance lazybuf.zero_val [FfiSyntax] : ZeroVal lazybuf :=
+noncomputable instance lazybuf.zero_val [GooseExts] : ZeroVal lazybuf :=
   ⟨lazybuf.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def lazybuf.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def lazybuf.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"s" go.string),
 (go.field_decl.FieldDecl go!"buf" (go.GoType.SliceType go.byte)),
 (go.field_decl.FieldDecl go!"w" go.int)]
 
-@[irreducible] noncomputable def lazybuf.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def lazybuf.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   lazybuf.fieldsUnsealed
 
-noncomputable instance equals_unfold_lazybuf [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_lazybuf [GooseExts] [GoGlobalContext] :
     EqualsUnfold lazybuf.fields lazybuf.fieldsUnsealed :=
   ⟨by unfold lazybuf.fields; rfl⟩
 
-@[reducible] noncomputable def lazybuf.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def lazybuf.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType lazybuf.fields)
 
-class lazybuf.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class lazybuf.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying lazybuf.underlying lazybuf
   underlying : go.UnderlyingDirectedEq lazybuf.ty lazybuf.underlying
   get_s : ∀ (x : lazybuf), go.IsGoStepPureDetTagged under (StructFieldGet lazybuf.underlying go!"s") #x (Val #(x.s'))
@@ -534,7 +534,7 @@ attribute [instance] lazybuf.TypeAssumptions.type_repr
   lazybuf.TypeAssumptions.ptr_index_unfold
   lazybuf.TypeAssumptions.ptr_string_unfold
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   lazybuf_instance : lazybuf.TypeAssumptions
   Clean_unfold : FuncUnfold Clean [] Clean.impl
   Split_unfold : FuncUnfold Split [] Split.impl

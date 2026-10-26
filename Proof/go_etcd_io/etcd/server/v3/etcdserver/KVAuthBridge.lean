@@ -25,7 +25,7 @@ namespace Perennial
 namespace EtcdGrove
 
 section pure
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- **A granted request's permissions are each granted.** -/
 theorem granted1_of_kvGranted (st : auth.AuthState) (rq : apply.IRRModel) (x : apply.Perm3)

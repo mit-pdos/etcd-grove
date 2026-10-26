@@ -41,15 +41,15 @@ open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver
 /-- **A callback's error as the Go error the store returns** (`validateDeletion`'s, `tryUpdate`'s):
 the store returns it unchanged, so a caller that knows its callback's errors (`GoInterface`: the
 error itself) can tell them apart from the others. -/
-class KUserErr [FfiSyntax] (E : Type) where
+class KUserErr [GooseExts] (E : Type) where
   is : E → GoInterface → Prop
 
-instance [FfiSyntax] : KUserErr Empty := ⟨fun e _ => nomatch e⟩
+instance [GooseExts] : KUserErr Empty := ⟨fun e _ => nomatch e⟩
 
-instance [FfiSyntax] : KUserErr GoInterface := ⟨fun e err => err = e⟩
+instance [GooseExts] : KUserErr GoInterface := ⟨fun e err => err = e⟩
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -241,7 +241,7 @@ end defs
 /-! ## Pure facts of the abstraction -/
 
 section pure
-variable [ext : FfiSyntax]
+variable [GooseExts]
 variable {Obj : Type} [DecidableEq Obj]
 
 theorem W64_uint_nat (x : w64) : W64 ((uint.nat x : Nat) : Int) = x := by
@@ -287,7 +287,7 @@ theorem ObjCodec.dec_some (C : ObjCodec Obj) (v : GoString) (o : Obj) (b : Bool)
 end pure
 
 section abs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

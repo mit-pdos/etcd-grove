@@ -37,7 +37,7 @@ namespace k8setcd3
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode k8s
 
 section defs
-variable [ext : FfiSyntax] [go_gctx : GoGlobalContext]
+variable [GooseExts] [go_gctx : GoGlobalContext]
 
 /-- The driver's codec, as `Main` passes it (`codec{}`). -/
 def codecI : GoInterface := interface.mkOk github_com.mit_pdos.etcd_grove.examples.k8setcd3.codec.ty #(github_com.mit_pdos.etcd_grove.examples.k8setcd3.codec.mk)
@@ -51,7 +51,7 @@ def decoderI : GoInterfaceOk := interface.mk github_com.mit_pdos.etcd_grove.exam
 end defs
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

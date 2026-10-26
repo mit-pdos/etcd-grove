@@ -141,7 +141,7 @@ theorem no_ovl_of_left {q z : IvlS} (h1 : affLt q.1 z.1) (h2 : ¬ affLt z.1 q.2)
   fun h0 => h2 (((ivlCmp_eq_zero_iff q z).1 h0).1 h1)
 
 section entries
-variable [ext : FfiSyntax]
+variable [GooseExts]
 set_option linter.unusedSectionVars false
 
 theorem stab_append (q : IvlS) (A B : List Entry) : stab q (A ++ B) = stab q A ++ stab q B := by
@@ -492,7 +492,7 @@ end entries
 /-! ## The red-black invariant -/
 
 section rb
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- The root is black (after `insertFixup`'s and `deleteFixup`'s last line). -/
 def rootBlack (t : RbT Entry) : Prop := t.color = .black

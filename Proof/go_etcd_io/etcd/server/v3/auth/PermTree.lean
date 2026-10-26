@@ -25,7 +25,7 @@ namespace auth
 open go_etcd_io.etcd.api.v3
 
 section pure
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 instance isOpenEnded_dec : DecidablePred isOpenEnded :=
   fun e => inferInstanceAs (Decidable (e = [(0 : w8)]))

@@ -58,7 +58,7 @@ theorem maps_of_stateEnc (H : List (List w8)) (kvs ops : List (List w8 × List w
   unfold AppliedOk; rw [He]; exact Ho
 
 section ghost
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 
@@ -103,7 +103,7 @@ theorem entsDataIs_odOf (γ : RaftNames) (L : List EntryM) (ods : List (Option (
 end ghost
 
 section getdata
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -144,7 +144,7 @@ theorem ownSnapS_not_null (p : Loc) (dq : DFrac) (s : SnapshotM) :
 end getdata
 
 section pend
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- A batch numbered on from the boundary of a storage that holds no entries (one that has just
 installed a snapshot) may be handed out (`memStorage_handout`'s premise). -/
@@ -179,7 +179,7 @@ entries, the messages, the read states, the indices' bound) and what depends on 
 the storage). -/
 
 section ready
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]

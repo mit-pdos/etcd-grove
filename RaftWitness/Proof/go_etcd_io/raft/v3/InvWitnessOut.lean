@@ -25,7 +25,7 @@ open Iris Iris.BI Iris.ProofMode GMap go_etcd_io.raft.v3
 
 /-- The protocol reading of a request to the witness (`StepC.sendWApp`, `askWitness`,
 `sendWPre`, `beat`). -/
-def wAbs [FfiSyntax] (μ : WMsg) : Msg :=
+def wAbs [GooseExts] (μ : WMsg) : Msg :=
   if μ.ty = MsgApp then
     Msg.mkV .wapp μ.frm μ.to μ.term false μ.li μ.lt μ.ls (W64 0) [] μ.rs0 []
   else if μ.ty = MsgVote then
@@ -36,12 +36,12 @@ def wAbs [FfiSyntax] (μ : WMsg) : Msg :=
     { Msg.plain .heartbeat μ.frm μ.to μ.term false with ctx := μ.ctx }
 
 /-- A request's protocol reading is not a snapshot (2026-10-20). -/
-theorem wAbs_not_snap [FfiSyntax] (μ : WMsg) : (wAbs μ).ty ≠ .snap := by
+theorem wAbs_not_snap [GooseExts] (μ : WMsg) : (wAbs μ).ty ≠ .snap := by
   unfold wAbs
   repeat (first | (split <;> try simp [Msg.mkV, Msg.plain]) | simp [Msg.mkV, Msg.plain])
 
 section own
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

@@ -37,7 +37,7 @@ namespace adt
 open Iris Iris.BI go_etcd_io.etcd.pkg.v3.adt
 
 section defs
-variable [ext : FfiSyntax] [GoGlobalContext]
+variable [GooseExts] [GoGlobalContext]
 
 /-- The affine interval value `[b, e)` as the Go `Interval` (its `Comparable`s are
 `StringAffineComparable`s): what `NewStringAffineInterval(b, e)` returns. -/
@@ -53,7 +53,7 @@ def affIvl (b e : GoString) : Interval :=
 end defs
 
 section reprs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

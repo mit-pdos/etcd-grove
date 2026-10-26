@@ -94,13 +94,13 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 /-- The store's `Storage` struct (not raft's `Storage` interface). -/
-abbrev RStorage [FfiSyntax] := github_com.mit_pdos.etcd_grove.examples.kv.Storage
+abbrev RStorage [GooseExts] := github_com.mit_pdos.etcd_grove.examples.kv.Storage
 /-- The store's replica struct, `KV`. -/
-abbrev RKV [FfiSyntax] := github_com.mit_pdos.etcd_grove.examples.kv.KV
+abbrev RKV [GooseExts] := github_com.mit_pdos.etcd_grove.examples.kv.KV
 
-abbrev rStorageTy [FfiSyntax] [GoGlobalContext] : go.GoType :=
+abbrev rStorageTy [GooseExts] [GoGlobalContext] : go.GoType :=
   github_com.mit_pdos.etcd_grove.examples.kv.Storage.ty
-abbrev rKVTy [FfiSyntax] [GoGlobalContext] : go.GoType :=
+abbrev rKVTy [GooseExts] [GoGlobalContext] : go.GoType :=
   github_com.mit_pdos.etcd_grove.examples.kv.KV.ty
 
 /-! ## The storage registry and the storage model -/
@@ -127,7 +127,7 @@ theorem memStorRec_inj (ms1 ms2 : Loc) (γs1 γs2 : MemStorNames) :
 def kvStorN : Namespace := nroot.@"kv_storage"
 
 section stor
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -244,7 +244,7 @@ theorem raftN_regN : (↑raftN : CoPset) ⊆ ⊤ \ ↑rkvN :=
 
 /-- The minting discipline (see the file header): the fresh-data tokens `M`, (2026-10-14,
 stage R) the fresh read-context tokens `F` and the operations' slots `O` are minted. -/
-def MintOk [FfiSyntax] (M : GMap (List w8) Unit) (F : GMap (List w8) Unit)
+def MintOk [GooseExts] (M : GMap (List w8) Unit) (F : GMap (List w8) Unit)
     (S : GMap w64 w64) (Mi : GMap (w64 × w64) (List w8)) (O : GMap (List w8) (GName × GName)) :
     Prop :=
   (∀ d, M !! d = some () → ∃ k, opKey d = some k ∧ Mi !! k = some d) ∧
@@ -253,11 +253,11 @@ def MintOk [FfiSyntax] (M : GMap (List w8) Unit) (F : GMap (List w8) Unit)
   (∀ d γp, O !! d = some γp → M !! d = some ())
 
 /-- A replica's ghost names: its node's. -/
-structure RepNames [FfiSyntax] where
+structure RepNames [GooseExts] where
   node : NodeNames
 
 section ghost
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -500,7 +500,7 @@ the conf-change branch of `run` live); a dynamic node takes no `MsgSnap`. `Remov
 stays generic (`CCAllowed`), for a cluster that admits the change. -/
 
 section ccfg
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- A replica's node in the cluster's static mode (see the section header): no conf change
 admitted, leader transfer on (`node.TransferLeadership`'s premise; D22 S-a: `RaftNames.reNoXfer`). -/

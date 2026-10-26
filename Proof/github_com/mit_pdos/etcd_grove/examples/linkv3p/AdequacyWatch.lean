@@ -43,7 +43,7 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode go_etcd_io.raft.v3
 
-attribute [local instance] disk_op disk_model disk_semantics disk_interp
+attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp
 
 section adequacy
 variable [go_gctx : GoGlobalContext]
@@ -89,7 +89,7 @@ theorem linkv3p_watch_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (Hprem : ∀ hG : HeapGS .hasLC linkvGF,
       ⊢ linkv3p.premises (GF := linkvGF) (hG := linkvHeapAt hG lctx) n id₁ id₂ id₃ bootLog)
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
-    (Hthreads : g.threads = 1)
+    (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps' : RealNsteps n ([linkv3pWatchProgram nw nops steps], ((σ, g) : CfgState)) κs (t2, σ2))
     (Hn : n + 2 ≤ 2 ^ 29) (Hwb : n + 7 ≤ backend.wbInit) :
@@ -101,7 +101,7 @@ theorem linkv3p_watch_adequate [lctx : GoLocalContext] [sem : go.Semantics]
       (Val #nops)) (schedLit steps))
     (fun v => v = #(W64 0) ∨ v = #(W64 1) ∨ v = #(W64 2)) (fun p h => h.elim (fun h => intoVal_ne_PanicV _ p h.symm)
       (fun h => h.elim (fun h => intoVal_ne_PanicV _ p h.symm)
-        (fun h => intoVal_ne_PanicV _ p h.symm))) linkv3pAddrs (by decide) σ g trivial trivial Hlctx Hinit Hthreads HNs HAs
+        (fun h => intoVal_ne_PanicV _ p h.symm))) linkv3pAddrs (by decide) σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit Hthreads HNs HAs
     n κs t2 σ2 Hsteps' fun hG HN HT => ?_
   letI : HeapGS .hasLC linkvGF := linkvHeapAt hG lctx
   haveI := Hctx hG

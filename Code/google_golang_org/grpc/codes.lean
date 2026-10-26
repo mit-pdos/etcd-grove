@@ -20,72 +20,72 @@ end pkg_id
 
 namespace google_golang_org.grpc.codes
 
-noncomputable def Code.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Code.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/codes.Code" [])
 
 attribute [irreducible] Code.ty
 
-@[reducible] noncomputable def OK [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def OK [GooseExts] [GoGlobalContext] : val :=
   #(W32 0)
 
-@[reducible] noncomputable def Canceled [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def Canceled [GooseExts] [GoGlobalContext] : val :=
   #(W32 1)
 
-@[reducible] noncomputable def Unknown [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def Unknown [GooseExts] [GoGlobalContext] : val :=
   #(W32 2)
 
-axiom InvalidArgument [FfiSyntax] [GoGlobalContext] : val
+axiom InvalidArgument [GooseExts] [GoGlobalContext] : val
 
-@[reducible] noncomputable def DeadlineExceeded [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def DeadlineExceeded [GooseExts] [GoGlobalContext] : val :=
   #(W32 4)
 
-axiom NotFound [FfiSyntax] [GoGlobalContext] : val
+axiom NotFound [GooseExts] [GoGlobalContext] : val
 
-axiom AlreadyExists [FfiSyntax] [GoGlobalContext] : val
+axiom AlreadyExists [GooseExts] [GoGlobalContext] : val
 
-axiom PermissionDenied [FfiSyntax] [GoGlobalContext] : val
+axiom PermissionDenied [GooseExts] [GoGlobalContext] : val
 
-axiom ResourceExhausted [FfiSyntax] [GoGlobalContext] : val
+axiom ResourceExhausted [GooseExts] [GoGlobalContext] : val
 
-@[reducible] noncomputable def FailedPrecondition [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def FailedPrecondition [GooseExts] [GoGlobalContext] : val :=
   #(W32 9)
 
-axiom Aborted [FfiSyntax] [GoGlobalContext] : val
+axiom Aborted [GooseExts] [GoGlobalContext] : val
 
-axiom OutOfRange [FfiSyntax] [GoGlobalContext] : val
+axiom OutOfRange [GooseExts] [GoGlobalContext] : val
 
-@[reducible] noncomputable def Unimplemented [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def Unimplemented [GooseExts] [GoGlobalContext] : val :=
   #(W32 12)
 
-@[reducible] noncomputable def Internal [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def Internal [GooseExts] [GoGlobalContext] : val :=
   #(W32 13)
 
-@[reducible] noncomputable def Unavailable [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def Unavailable [GooseExts] [GoGlobalContext] : val :=
   #(W32 14)
 
-axiom DataLoss [FfiSyntax] [GoGlobalContext] : val
+axiom DataLoss [GooseExts] [GoGlobalContext] : val
 
-axiom Unauthenticated [FfiSyntax] [GoGlobalContext] : val
+axiom Unauthenticated [GooseExts] [GoGlobalContext] : val
 
-axiom _maxCode [FfiSyntax] [GoGlobalContext] : val
+axiom _maxCode [GooseExts] [GoGlobalContext] : val
 
-noncomputable def strToCode [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def strToCode [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/codes.strToCode"
 
-axiom strToCode.init [FfiSyntax] [GoGlobalContext] : val
+axiom strToCode.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def init.«0» [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def init.«0» [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/codes.init.0"
 
-noncomputable def canonicalString [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def canonicalString [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/codes.canonicalString"
 
 noncomputable instance info' : PkgInfo pkg_id.google_golang_org.grpc.codes where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.google_golang_org.grpc.codes)) (Lam BAnon
   (App (Val exceptionDo)
@@ -95,17 +95,17 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val strToCode.init) (Val #()))))))))
 
-abbrev Code [FfiSyntax] : Type := w32
+abbrev Code [GooseExts] : Type := w32
 
-@[reducible] noncomputable def Code.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Code.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.uint32
 
-class Code.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Code.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Code.ty Code.underlying
 
 attribute [instance] Code.TypeAssumptions.underlying
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Code_instance : Code.TypeAssumptions
 
 attribute [instance] Assumptions.Code_instance

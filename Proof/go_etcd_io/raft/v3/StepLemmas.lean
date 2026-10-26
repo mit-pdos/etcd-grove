@@ -20,7 +20,7 @@ namespace EtcdGrove
 open go_etcd_io.raft.v3
 
 section step_lemmas
-variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 -- The (fixed) set of voters.
 variable (cfg : GSet w64)
 /- (2026-10-18, D19b stage 5) the bound of the indices a step may create (`Step`'s) -/

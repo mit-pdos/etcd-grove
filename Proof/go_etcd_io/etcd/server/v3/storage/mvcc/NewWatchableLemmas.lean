@@ -19,11 +19,11 @@ namespace mvcc
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.storage.mvcc
 
 /-- The lock invariant's initial state: the initial log, no watcher, no victim. -/
-def wsInit [FfiSyntax] : WsState :=
+def wsInit [GooseExts] : WsState :=
   { Lmu := [[], []], Ws := ∅, Wu := ∅, ST := ∅, Wo := ∅, M := ∅, E := ∅, vs := slice.nil,
     vbs := [], VB := [] }
 
-theorem wsInit_ok [FfiSyntax] : WsOk wsInit := by
+theorem wsInit_ok [GooseExts] : WsOk wsInit := by
   have hv : ∀ w, wsInit.victimOf w = none := fun w => rfl
   have hl : ∀ w, ¬ wsInit.live w := by
     intro w h
@@ -32,14 +32,14 @@ theorem wsInit_ok [FfiSyntax] : WsOk wsInit := by
     simp [wsInit, GMap.lookup_empty] at h
   constructor <;> intros <;> simp_all [wsInit, GMap.lookup_empty, WsState.victimOf]
 
-theorem wsInit_settled [FfiSyntax] : wsInit.settled := by
+theorem wsInit_settled [GooseExts] : wsInit.settled := by
   constructor
   · intro w γw ed h; simp [wsInit, GMap.lookup_empty] at h
   · exact ⟨fun w st h => by simp [wsInit, WsState.victimOf] at h,
       fun w st h => by simp [wsInit, GMap.lookup_empty] at h⟩
 
 section lemmas
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

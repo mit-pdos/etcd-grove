@@ -22,7 +22,7 @@ namespace features
 
 /-- **`AllowUnsafeMalformedObjectDeletion` is a value, not a panic** (the trust boundary; see the
 file header). -/
-axiom AllowUnsafeMalformedObjectDeletion_notPanic [FfiSyntax] [GoGlobalContext] :
+axiom AllowUnsafeMalformedObjectDeletion_notPanic [GooseExts] [GoGlobalContext] :
     k8s_io.apiserver.pkg.features.AllowUnsafeMalformedObjectDeletion.isPanic = false
 
 end features

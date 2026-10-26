@@ -34,11 +34,11 @@ namespace kubernetes
 open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver
 
 /-- A key's mod revision in a state, `0` if absent. -/
-def modAt [FfiSyntax] (key : GoString) (σ : KVState) : w64 :=
+def modAt [GooseExts] (key : GoString) (σ : KVState) : w64 :=
   ((mvcc.findKey key σ.kvs).map EtcdKv.modRev).getD (W64 0)
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

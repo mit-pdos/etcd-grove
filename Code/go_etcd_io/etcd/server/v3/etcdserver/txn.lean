@@ -37,176 +37,176 @@ end pkg_id
 
 namespace go_etcd_io.etcd.server.v3.etcdserver.txn
 
-noncomputable def kvSort.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def kvSort.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/txn.kvSort" [])
 
 attribute [irreducible] kvSort.ty
 
-noncomputable def kvSortByKey.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def kvSortByKey.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/txn.kvSortByKey" [])
 
 attribute [irreducible] kvSortByKey.ty
 
-noncomputable def kvSortByVersion.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def kvSortByVersion.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/txn.kvSortByVersion" [])
 
 attribute [irreducible] kvSortByVersion.ty
 
-noncomputable def kvSortByCreate.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def kvSortByCreate.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/txn.kvSortByCreate" [])
 
 attribute [irreducible] kvSortByCreate.ty
 
-noncomputable def kvSortByMod.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def kvSortByMod.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/txn.kvSortByMod" [])
 
 attribute [irreducible] kvSortByMod.ty
 
-noncomputable def kvSortByValue.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def kvSortByValue.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/txn.kvSortByValue" [])
 
 attribute [irreducible] kvSortByValue.ty
 
-noncomputable def slowApplies [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def slowApplies [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/txn.slowApplies"
 
-axiom slowApplies.init [FfiSyntax] [GoGlobalContext] : val
+axiom slowApplies.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def applySec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def applySec [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/txn.applySec"
 
-axiom applySec.init [FfiSyntax] [GoGlobalContext] : val
+axiom applySec.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def rangeSec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def rangeSec [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/txn.rangeSec"
 
-axiom rangeSec.init [FfiSyntax] [GoGlobalContext] : val
+axiom rangeSec.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def DeleteRange [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def DeleteRange [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/txn.DeleteRange"
 
-noncomputable def deleteRange [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def deleteRange [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/txn.deleteRange"
 
-noncomputable def mkGteRange [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def mkGteRange [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/txn.mkGteRange"
 
-noncomputable def ApplySecObserve [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ApplySecObserve [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/txn.ApplySecObserve"
 
-noncomputable def RangeSecObserve [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def RangeSecObserve [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/txn.RangeSecObserve"
 
-noncomputable def init.«0» [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def init.«0» [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/txn.init.0"
 
-noncomputable def Put [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Put [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/txn.Put"
 
-noncomputable def put [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def put [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/txn.put"
 
-noncomputable def checkPut [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def checkPut [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/txn.checkPut"
 
-noncomputable def checkLease [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def checkLease [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/txn.checkLease"
 
-noncomputable def checkAndGetPrevKV [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def checkAndGetPrevKV [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/txn.checkAndGetPrevKV"
 
-noncomputable def getPrevKV [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def getPrevKV [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/txn.getPrevKV"
 
-noncomputable def Count [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Count [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/txn.Count"
 
-noncomputable def Range [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Range [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/txn.Range"
 
-noncomputable def executeRange [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def executeRange [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/txn.executeRange"
 
-noncomputable def rangeLimit [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def rangeLimit [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/txn.rangeLimit"
 
-noncomputable def IsDefaultOrdering [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsDefaultOrdering [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/txn.IsDefaultOrdering"
 
-noncomputable def HasRevisionFilters [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def HasRevisionFilters [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/txn.HasRevisionFilters"
 
-noncomputable def filterRangeResults [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def filterRangeResults [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/txn.filterRangeResults"
 
-noncomputable def sortRangeResults [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sortRangeResults [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/txn.sortRangeResults"
 
-noncomputable def asembleRangeResponse [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def asembleRangeResponse [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/txn.asembleRangeResponse"
 
-noncomputable def checkRange [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def checkRange [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/txn.checkRange"
 
-noncomputable def pruneKVs [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def pruneKVs [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/txn.pruneKVs"
 
-noncomputable def Txn [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Txn [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/txn.Txn"
 
-noncomputable def txn [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def txn [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/txn.txn"
 
-noncomputable def newTxnResp [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newTxnResp [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/txn.newTxnResp"
 
-noncomputable def executeTxn [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def executeTxn [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/txn.executeTxn"
 
-noncomputable def checkTxn [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def checkTxn [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/txn.checkTxn"
 
-noncomputable def compareInt64 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def compareInt64 [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/txn.compareInt64"
 
-noncomputable def compareToPath [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def compareToPath [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/txn.compareToPath"
 
-noncomputable def applyCompares [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def applyCompares [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/txn.applyCompares"
 
-noncomputable def applyCompare [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def applyCompare [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/txn.applyCompare"
 
-noncomputable def compareKV [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def compareKV [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/txn.compareKV"
 
-noncomputable def IsTxnSerializable [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsTxnSerializable [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/txn.IsTxnSerializable"
 
-noncomputable def IsTxnReadonly [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsTxnReadonly [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/txn.IsTxnReadonly"
 
-noncomputable def WarnOfExpensiveRequest [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WarnOfExpensiveRequest [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/txn.WarnOfExpensiveRequest"
 
-noncomputable def WarnOfFailedRequest [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WarnOfFailedRequest [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/txn.WarnOfFailedRequest"
 
-noncomputable def WarnOfExpensiveReadOnlyTxnRequest [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WarnOfExpensiveReadOnlyTxnRequest [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/txn.WarnOfExpensiveReadOnlyTxnRequest"
 
-noncomputable def WarnOfExpensiveReadOnlyRangeRequest [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WarnOfExpensiveReadOnlyRangeRequest [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/txn.WarnOfExpensiveReadOnlyRangeRequest"
 
-noncomputable def warnOfExpensiveGenericRequest [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def warnOfExpensiveGenericRequest [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/txn.warnOfExpensiveGenericRequest"
 
-noncomputable def isNil [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def isNil [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/txn.isNil"
 
 /-- go: delete.go:28:6 -/
-noncomputable def DeleteRange.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def DeleteRange.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ctx"
   (Lam "lg"
   (Lam "kv"
@@ -272,7 +272,7 @@ noncomputable def DeleteRange.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0")))))))))))))))))))))))
 
 /-- go: delete.go:39:6 -/
-noncomputable def deleteRange.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def deleteRange.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ctx"
   (Lam "txnWrite"
   (Lam "dr"
@@ -358,7 +358,7 @@ noncomputable def deleteRange.impl [FfiSyntax] [GoGlobalContext] : val :=
     string (vs nil being no byte string).
 
     go: delete.go:63:6 -/
-noncomputable def mkGteRange.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def mkGteRange.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "rangeEnd"
   (App (Val exceptionDo)
   (Let "rangeEnd" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "rangeEnd"))
@@ -373,7 +373,7 @@ noncomputable def mkGteRange.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #())))))))
 
 /-- go: put.go:30:6 -/
-noncomputable def Put.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Put.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ctx"
   (Lam "lg"
   (Lam "lessor"
@@ -465,7 +465,7 @@ noncomputable def Put.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0")))))))))))))))))))))))))
 
 /-- go: put.go:48:6 -/
-noncomputable def put.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def put.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ctx"
   (Lam "txnWrite"
   (Lam "p"
@@ -543,7 +543,7 @@ noncomputable def put.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty)))) (Pair (Var "trace") (Var "$r0"))))))))))))))))
 
 /-- go: put.go:71:6 -/
-noncomputable def checkPut.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def checkPut.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "trace"
   (Lam "txnWrite"
   (Lam "lessor"
@@ -584,7 +584,7 @@ noncomputable def checkPut.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))))))))))))
 
 /-- go: put.go:80:6 -/
-noncomputable def checkLease.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def checkLease.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lessor"
   (Lam "p"
   (App (Val exceptionDo)
@@ -614,7 +614,7 @@ noncomputable def checkLease.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.lease.LeaseID.ty))) (Pair (Var "leaseID") (Var "$r0"))))))))))))
 
 /-- go: put.go:90:6 -/
-noncomputable def checkAndGetPrevKV.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def checkAndGetPrevKV.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "trace"
   (Lam "txnWrite"
   (Lam "p"
@@ -658,7 +658,7 @@ noncomputable def checkAndGetPrevKV.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.RangeResult.ty)))) (Pair (Var "prevKV") (Var "$r0")))))))))))))))))))
 
 /-- go: put.go:104:6 -/
-noncomputable def getPrevKV.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def getPrevKV.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "trace"
   (Lam "txnWrite"
   (Lam "p"
@@ -708,7 +708,7 @@ noncomputable def getPrevKV.impl [FfiSyntax] [GoGlobalContext] : val :=
     A revision of 0 reads at the latest revision.
 
     go: range.go:34:6 -/
-noncomputable def Count.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Count.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ctx"
   (Lam "lg"
   (Lam "kv"
@@ -759,7 +759,7 @@ noncomputable def Count.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse.ty)))) (Pair (Var "resp") (Var "$r0")))))))))))))))))))))))))))
 
 /-- go: range.go:47:6 -/
-noncomputable def Range.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Range.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ctx"
   (Lam "lg"
   (Lam "kv"
@@ -847,7 +847,7 @@ noncomputable def Range.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0")))))))))))))))))))))))))
 
 /-- go: range.go:59:6 -/
-noncomputable def executeRange.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def executeRange.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ctx"
   (Lam "lg"
   (Lam "txnRead"
@@ -937,7 +937,7 @@ noncomputable def executeRange.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty)))) (Pair (Var "trace") (Var "$r0"))))))))))))))))))
 
 /-- go: range.go:86:6 -/
-noncomputable def rangeLimit.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def rangeLimit.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (App (Val exceptionDo)
   (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)))) (Var "r"))
@@ -967,7 +967,7 @@ noncomputable def rangeLimit.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "limit") (Var "$r0"))))))))))
 
 /-- go: range.go:97:6 -/
-noncomputable def IsDefaultOrdering.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def IsDefaultOrdering.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "sortTarget"
   (Lam "sortOrder"
   (App (Val exceptionDo)
@@ -977,7 +977,7 @@ noncomputable def IsDefaultOrdering.impl [FfiSyntax] [GoGlobalContext] : val :=
   (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest_SortOrder.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest_SortOrder.ty))) (Var "sortOrder")) (Val _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest_NONE))) (Val #true) (If (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest_SortTarget.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest_SortTarget.ty))) (Var "sortTarget")) (Val _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest_KEY))) (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest_SortOrder.ty))) (Pair (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest_SortOrder.ty))) (Var "sortOrder")) (Val _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest_ASCEND))) (Val #false)))))))))
 
 /-- go: range.go:105:6 -/
-noncomputable def HasRevisionFilters.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def HasRevisionFilters.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (App (Val exceptionDo)
   (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)))) (Var "r"))
@@ -985,7 +985,7 @@ noncomputable def HasRevisionFilters.impl [FfiSyntax] [GoGlobalContext] : val :=
   (If (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty go!"MinModRevision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)))) (Var "r")))) (Val #(W64 0))))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty go!"MaxModRevision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)))) (Var "r")))) (Val #(W64 0)))))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty go!"MinCreateRevision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)))) (Var "r")))) (Val #(W64 0)))))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty go!"MaxCreateRevision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)))) (Var "r")))) (Val #(W64 0))))))))))
 
 /-- go: range.go:110:6 -/
-noncomputable def filterRangeResults.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def filterRangeResults.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "rr"
   (Lam "r"
   (App (Val exceptionDo)
@@ -1043,7 +1043,7 @@ noncomputable def filterRangeResults.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #()))))))))))
 
 /-- go: range.go:125:6 -/
-noncomputable def sortRangeResults.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def sortRangeResults.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "rr"
   (Lam "r"
   (Lam "lg"
@@ -1125,7 +1125,7 @@ noncomputable def sortRangeResults.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest_SortOrder.ty))) (Pair (Var "sortOrder") (Var "$r0")))))))))))))))
 
 /-- go: range.go:156:6 -/
-noncomputable def asembleRangeResponse.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def asembleRangeResponse.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "rr"
   (Lam "r"
   (App (Val exceptionDo)
@@ -1186,7 +1186,7 @@ noncomputable def asembleRangeResponse.impl [FfiSyntax] [GoGlobalContext] : val 
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse.ty)))) (Pair (Var "resp") (Var "$r0"))))))))))))
 
 /-- go: range.go:174:6 -/
-noncomputable def checkRange.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def checkRange.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "rv"
   (Lam "req"
   (App (Val exceptionDo)
@@ -1209,7 +1209,7 @@ noncomputable def checkRange.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #()))))))))))))
 
 /-- go: range.go:186:6 -/
-noncomputable def pruneKVs.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def pruneKVs.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "rr"
   (Lam "isPrunable"
   (App (Val exceptionDo)
@@ -1248,7 +1248,7 @@ noncomputable def pruneKVs.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "j") (Var "$r0")))))))))))))
 
 /-- go: range.go:199:18 -/
-noncomputable def kvSort.Swap.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def kvSort.Swap.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "i"
   (Lam "j"
@@ -1273,7 +1273,7 @@ noncomputable def kvSort.Swap.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty)))) (Pair (Var "t") (Var "$r0")))))))))))))))
 
 /-- go: range.go:204:18 -/
-noncomputable def kvSort.Len.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def kvSort.Len.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1283,7 +1283,7 @@ noncomputable def kvSort.Len.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))]))) (Val #())) (Var "$a0"))))))))
 
 /-- go: range.go:208:23 -/
-noncomputable def kvSortByKey.Less.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def kvSortByKey.Less.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "i"
   (Lam "j"
@@ -1297,7 +1297,7 @@ noncomputable def kvSortByKey.Less.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.bytes.Compare []))) (Val #())) (Var "$a0")) (Var "$a1")))) (Val #(W64 0))))))))))))
 
 /-- go: range.go:214:27 -/
-noncomputable def kvSortByVersion.Less.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def kvSortByVersion.Less.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "i"
   (Lam "j"
@@ -1309,7 +1309,7 @@ noncomputable def kvSortByVersion.Less.impl [FfiSyntax] [GoGlobalContext] : val 
   (App (Val (GoInstruction (GoOp GoLt go.int64))) (Pair (App (Val (GoInstruction (GoOp GoSub go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty go!"Version"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (App (Val (GoInstruction (StructFieldRef kvSort.ty go!"kvs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType kvSort.ty)))) (App (Val (GoInstruction (StructFieldRef kvSortByVersion.ty go!"kvSort"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType kvSortByVersion.ty)))) (Var "s")))))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))))) (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty go!"Version"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (App (Val (GoInstruction (StructFieldRef kvSort.ty go!"kvs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType kvSort.ty)))) (App (Val (GoInstruction (StructFieldRef kvSortByVersion.ty go!"kvSort"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType kvSortByVersion.ty)))) (Var "s")))))) (App (Val (GoInstruction (GoLoad go.int))) (Var "j"))))))))) (Val #(W64 0))))))))))))
 
 /-- go: range.go:220:26 -/
-noncomputable def kvSortByCreate.Less.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def kvSortByCreate.Less.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "i"
   (Lam "j"
@@ -1321,7 +1321,7 @@ noncomputable def kvSortByCreate.Less.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val (GoInstruction (GoOp GoLt go.int64))) (Pair (App (Val (GoInstruction (GoOp GoSub go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty go!"CreateRevision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (App (Val (GoInstruction (StructFieldRef kvSort.ty go!"kvs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType kvSort.ty)))) (App (Val (GoInstruction (StructFieldRef kvSortByCreate.ty go!"kvSort"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType kvSortByCreate.ty)))) (Var "s")))))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))))) (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty go!"CreateRevision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (App (Val (GoInstruction (StructFieldRef kvSort.ty go!"kvs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType kvSort.ty)))) (App (Val (GoInstruction (StructFieldRef kvSortByCreate.ty go!"kvSort"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType kvSortByCreate.ty)))) (Var "s")))))) (App (Val (GoInstruction (GoLoad go.int))) (Var "j"))))))))) (Val #(W64 0))))))))))))
 
 /-- go: range.go:226:23 -/
-noncomputable def kvSortByMod.Less.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def kvSortByMod.Less.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "i"
   (Lam "j"
@@ -1333,7 +1333,7 @@ noncomputable def kvSortByMod.Less.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoOp GoLt go.int64))) (Pair (App (Val (GoInstruction (GoOp GoSub go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty go!"ModRevision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (App (Val (GoInstruction (StructFieldRef kvSort.ty go!"kvs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType kvSort.ty)))) (App (Val (GoInstruction (StructFieldRef kvSortByMod.ty go!"kvSort"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType kvSortByMod.ty)))) (Var "s")))))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))))) (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty go!"ModRevision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty))))) (App (Val (GoInstruction (StructFieldRef kvSort.ty go!"kvs"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType kvSort.ty)))) (App (Val (GoInstruction (StructFieldRef kvSortByMod.ty go!"kvSort"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType kvSortByMod.ty)))) (Var "s")))))) (App (Val (GoInstruction (GoLoad go.int))) (Var "j"))))))))) (Val #(W64 0))))))))))))
 
 /-- go: range.go:232:25 -/
-noncomputable def kvSortByValue.Less.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def kvSortByValue.Less.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "i"
   (Lam "j"
@@ -1347,7 +1347,7 @@ noncomputable def kvSortByValue.Less.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.bytes.Compare []))) (Val #())) (Var "$a0")) (Var "$a1")))) (Val #(W64 0))))))))))))
 
 /-- go: txn.go:32:6 -/
-noncomputable def Txn.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Txn.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ctx"
   (Lam "lg"
   (Lam "rt"
@@ -1509,7 +1509,7 @@ noncomputable def Txn.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0"))))))))))))))))))))))))))))
 
 /-- go: txn.go:81:6 -/
-noncomputable def txn.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def txn.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ctx"
   (Lam "lg"
   (Lam "txnWrite"
@@ -1597,7 +1597,7 @@ noncomputable def txn.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- newTxnResp allocates a txn response for a txn request given a path.
 
     go: txn.go:105:6 -/
-noncomputable def newTxnResp.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def newTxnResp.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "rt"
   (Lam "txnPath"
   (App (Val exceptionDo)
@@ -1711,7 +1711,7 @@ noncomputable def newTxnResp.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RequestOp.ty))))) (Pair (Var "reqs") (Var "$r0"))))))))))))))
 
 /-- go: txn.go:135:6 -/
-noncomputable def executeTxn.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def executeTxn.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ctx"
   (Lam "lg"
   (Lam "txnWrite"
@@ -1978,7 +1978,7 @@ noncomputable def executeTxn.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty)))) (Pair (Var "trace") (Var "$r0"))))))))))))))))))))))))
 
 /-- go: txn.go:201:6 -/
-noncomputable def checkTxn.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def checkTxn.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "trace"
   (Lam "rv"
   (Lam "rt"
@@ -2092,7 +2092,7 @@ noncomputable def checkTxn.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "txnCount") (Var "$r0"))))))))))))))))))
 
 /-- go: txn.go:230:6 -/
-noncomputable def compareInt64.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def compareInt64.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "b"
   (App (Val exceptionDo)
@@ -2109,7 +2109,7 @@ noncomputable def compareInt64.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #(W64 0)))))))))))
 
 /-- go: txn.go:241:6 -/
-noncomputable def compareToPath.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def compareToPath.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "rv"
   (Lam "rt"
   (App (Val exceptionDo)
@@ -2179,7 +2179,7 @@ noncomputable def compareToPath.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.bool)))) (Pair (Var "txnPath") (Var "$r0"))))))))))))
 
 /-- go: txn.go:257:6 -/
-noncomputable def applyCompares.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def applyCompares.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "rv"
   (Lam "cmps"
   (App (Val exceptionDo)
@@ -2211,7 +2211,7 @@ noncomputable def applyCompares.impl [FfiSyntax] [GoGlobalContext] : val :=
     If the comparison succeeds, it returns true. Otherwise, returns false.
 
     go: txn.go:268:6 -/
-noncomputable def applyCompare.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def applyCompare.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "rv"
   (Lam "c"
   (App (Val exceptionDo)
@@ -2279,7 +2279,7 @@ noncomputable def applyCompare.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.RangeResult.ty)))) (Pair (Var "rr") (Var "$r0")))))))))))))))))
 
 /-- go: txn.go:294:6 -/
-noncomputable def compareKV.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def compareKV.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "ckv"
   (App (Val exceptionDo)
@@ -2441,7 +2441,7 @@ noncomputable def compareKV.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.int64))) (Pair (Var "rev") (Var "$r0")))))))))))))
 
 /-- go: txn.go:338:6 -/
-noncomputable def IsTxnSerializable.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def IsTxnSerializable.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (App (Val exceptionDo)
   (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest.ty)))) (Var "r"))
@@ -2493,7 +2493,7 @@ noncomputable def IsTxnSerializable.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RequestOp.ty)))) (Pair (Var "u") (Var "$value"))))))))))))))
 
 /-- go: txn.go:352:6 -/
-noncomputable def IsTxnReadonly.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def IsTxnReadonly.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (App (Val exceptionDo)
   (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest.ty)))) (Var "r"))
@@ -2545,7 +2545,7 @@ noncomputable def IsTxnReadonly.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RequestOp.ty)))) (Pair (Var "u") (Var "$value"))))))))))))))
 
 /-- go: util.go:55:6 -/
-noncomputable def WarnOfExpensiveReadOnlyTxnRequest.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def WarnOfExpensiveReadOnlyTxnRequest.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (Lam "warningApplyDuration"
   (Lam "now"
@@ -2644,7 +2644,7 @@ noncomputable def WarnOfExpensiveReadOnlyTxnRequest.impl [FfiSyntax] [GoGlobalCo
   (Val #()))))))))))))))))))
 
 /-- go: util.go:80:6 -/
-noncomputable def WarnOfExpensiveReadOnlyRangeRequest.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def WarnOfExpensiveReadOnlyRangeRequest.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (Lam "warningApplyDuration"
   (Lam "now"
@@ -2696,7 +2696,7 @@ noncomputable def WarnOfExpensiveReadOnlyRangeRequest.impl [FfiSyntax] [GoGlobal
 /-- callers need make sure time has passed warningApplyDuration
 
     go: util.go:92:6 -/
-noncomputable def warnOfExpensiveGenericRequest.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def warnOfExpensiveGenericRequest.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (Lam "warningApplyDuration"
   (Lam "now"
@@ -2742,7 +2742,7 @@ noncomputable def warnOfExpensiveGenericRequest.impl [FfiSyntax] [GoGlobalContex
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Warn"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))) (Var "$a0")) (Var "$a1"))))))))))))))))))))))
 
 /-- go: util.go:105:6 -/
-noncomputable def isNil.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def isNil.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "msg"
   (App (Val exceptionDo)
   (Let "msg" (App (Val (GoInstruction (GoAlloc _root_.Perennial.google_golang_org.protobuf.proto.Message.ty))) (Var "msg"))
@@ -2753,9 +2753,9 @@ noncomputable def isNil.impl [FfiSyntax] [GoGlobalContext] : val :=
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn where
   pkgImportedPkgs := [pkg_id.context, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.go_etcd_io.etcd.api.v3.mvccpb, pkg_id.go_etcd_io.etcd.pkg.v3.traceutil, pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc, pkg_id.time, pkg_id.github_com.prometheus.client_golang.prometheus, pkg_id.google_golang_org.protobuf.proto, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.errors, pkg_id.go_etcd_io.etcd.server.v3.lease, pkg_id.bytes, pkg_id.math, pkg_id.sort, pkg_id.fmt, pkg_id.reflect, pkg_id.strings]
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn)) (Lam BAnon
   (App (Val exceptionDo)
@@ -2822,27 +2822,27 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.strings.initialize') (Val #()))))))))
 
-structure kvSort [FfiSyntax] where
+structure kvSort [GooseExts] where
   mk ::
   kvs' : GoSlice
 
-noncomputable instance kvSort.zero_val [FfiSyntax] : ZeroVal kvSort :=
+noncomputable instance kvSort.zero_val [GooseExts] : ZeroVal kvSort :=
   ⟨kvSort.mk zeroValDef⟩
 
-@[reducible] noncomputable def kvSort.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def kvSort.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"kvs" (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty)))]
 
-@[irreducible] noncomputable def kvSort.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def kvSort.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   kvSort.fieldsUnsealed
 
-noncomputable instance equals_unfold_kvSort [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_kvSort [GooseExts] [GoGlobalContext] :
     EqualsUnfold kvSort.fields kvSort.fieldsUnsealed :=
   ⟨by unfold kvSort.fields; rfl⟩
 
-@[reducible] noncomputable def kvSort.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def kvSort.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType kvSort.fields)
 
-class kvSort.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class kvSort.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying kvSort.underlying kvSort
   underlying : go.UnderlyingDirectedEq kvSort.ty kvSort.underlying
   get_kvs : ∀ (x : kvSort), go.IsGoStepPureDetTagged under (StructFieldGet kvSort.underlying go!"kvs") #x (Val #(x.kvs'))
@@ -2857,27 +2857,27 @@ attribute [instance] kvSort.TypeAssumptions.type_repr
   kvSort.TypeAssumptions.ptr_Len_unfold
   kvSort.TypeAssumptions.ptr_Swap_unfold
 
-structure kvSortByKey [FfiSyntax] where
+structure kvSortByKey [GooseExts] where
   mk ::
   kvSort' : Loc
 
-noncomputable instance kvSortByKey.zero_val [FfiSyntax] : ZeroVal kvSortByKey :=
+noncomputable instance kvSortByKey.zero_val [GooseExts] : ZeroVal kvSortByKey :=
   ⟨kvSortByKey.mk zeroValDef⟩
 
-@[reducible] noncomputable def kvSortByKey.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def kvSortByKey.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"kvSort" (go.GoType.PointerType kvSort.ty))]
 
-@[irreducible] noncomputable def kvSortByKey.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def kvSortByKey.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   kvSortByKey.fieldsUnsealed
 
-noncomputable instance equals_unfold_kvSortByKey [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_kvSortByKey [GooseExts] [GoGlobalContext] :
     EqualsUnfold kvSortByKey.fields kvSortByKey.fieldsUnsealed :=
   ⟨by unfold kvSortByKey.fields; rfl⟩
 
-@[reducible] noncomputable def kvSortByKey.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def kvSortByKey.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType kvSortByKey.fields)
 
-class kvSortByKey.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class kvSortByKey.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying kvSortByKey.underlying kvSortByKey
   underlying : go.UnderlyingDirectedEq kvSortByKey.ty kvSortByKey.underlying
   get_kvSort : ∀ (x : kvSortByKey), go.IsGoStepPureDetTagged under (StructFieldGet kvSortByKey.underlying go!"kvSort") #x (Val #(x.kvSort'))
@@ -2902,27 +2902,27 @@ attribute [instance] kvSortByKey.TypeAssumptions.type_repr
   kvSortByKey.TypeAssumptions.ptr_Less_unfold
   kvSortByKey.TypeAssumptions.ptr_Swap_unfold
 
-structure kvSortByVersion [FfiSyntax] where
+structure kvSortByVersion [GooseExts] where
   mk ::
   kvSort' : Loc
 
-noncomputable instance kvSortByVersion.zero_val [FfiSyntax] : ZeroVal kvSortByVersion :=
+noncomputable instance kvSortByVersion.zero_val [GooseExts] : ZeroVal kvSortByVersion :=
   ⟨kvSortByVersion.mk zeroValDef⟩
 
-@[reducible] noncomputable def kvSortByVersion.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def kvSortByVersion.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"kvSort" (go.GoType.PointerType kvSort.ty))]
 
-@[irreducible] noncomputable def kvSortByVersion.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def kvSortByVersion.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   kvSortByVersion.fieldsUnsealed
 
-noncomputable instance equals_unfold_kvSortByVersion [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_kvSortByVersion [GooseExts] [GoGlobalContext] :
     EqualsUnfold kvSortByVersion.fields kvSortByVersion.fieldsUnsealed :=
   ⟨by unfold kvSortByVersion.fields; rfl⟩
 
-@[reducible] noncomputable def kvSortByVersion.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def kvSortByVersion.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType kvSortByVersion.fields)
 
-class kvSortByVersion.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class kvSortByVersion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying kvSortByVersion.underlying kvSortByVersion
   underlying : go.UnderlyingDirectedEq kvSortByVersion.ty kvSortByVersion.underlying
   get_kvSort : ∀ (x : kvSortByVersion), go.IsGoStepPureDetTagged under (StructFieldGet kvSortByVersion.underlying go!"kvSort") #x (Val #(x.kvSort'))
@@ -2947,27 +2947,27 @@ attribute [instance] kvSortByVersion.TypeAssumptions.type_repr
   kvSortByVersion.TypeAssumptions.ptr_Less_unfold
   kvSortByVersion.TypeAssumptions.ptr_Swap_unfold
 
-structure kvSortByCreate [FfiSyntax] where
+structure kvSortByCreate [GooseExts] where
   mk ::
   kvSort' : Loc
 
-noncomputable instance kvSortByCreate.zero_val [FfiSyntax] : ZeroVal kvSortByCreate :=
+noncomputable instance kvSortByCreate.zero_val [GooseExts] : ZeroVal kvSortByCreate :=
   ⟨kvSortByCreate.mk zeroValDef⟩
 
-@[reducible] noncomputable def kvSortByCreate.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def kvSortByCreate.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"kvSort" (go.GoType.PointerType kvSort.ty))]
 
-@[irreducible] noncomputable def kvSortByCreate.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def kvSortByCreate.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   kvSortByCreate.fieldsUnsealed
 
-noncomputable instance equals_unfold_kvSortByCreate [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_kvSortByCreate [GooseExts] [GoGlobalContext] :
     EqualsUnfold kvSortByCreate.fields kvSortByCreate.fieldsUnsealed :=
   ⟨by unfold kvSortByCreate.fields; rfl⟩
 
-@[reducible] noncomputable def kvSortByCreate.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def kvSortByCreate.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType kvSortByCreate.fields)
 
-class kvSortByCreate.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class kvSortByCreate.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying kvSortByCreate.underlying kvSortByCreate
   underlying : go.UnderlyingDirectedEq kvSortByCreate.ty kvSortByCreate.underlying
   get_kvSort : ∀ (x : kvSortByCreate), go.IsGoStepPureDetTagged under (StructFieldGet kvSortByCreate.underlying go!"kvSort") #x (Val #(x.kvSort'))
@@ -2992,27 +2992,27 @@ attribute [instance] kvSortByCreate.TypeAssumptions.type_repr
   kvSortByCreate.TypeAssumptions.ptr_Less_unfold
   kvSortByCreate.TypeAssumptions.ptr_Swap_unfold
 
-structure kvSortByMod [FfiSyntax] where
+structure kvSortByMod [GooseExts] where
   mk ::
   kvSort' : Loc
 
-noncomputable instance kvSortByMod.zero_val [FfiSyntax] : ZeroVal kvSortByMod :=
+noncomputable instance kvSortByMod.zero_val [GooseExts] : ZeroVal kvSortByMod :=
   ⟨kvSortByMod.mk zeroValDef⟩
 
-@[reducible] noncomputable def kvSortByMod.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def kvSortByMod.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"kvSort" (go.GoType.PointerType kvSort.ty))]
 
-@[irreducible] noncomputable def kvSortByMod.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def kvSortByMod.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   kvSortByMod.fieldsUnsealed
 
-noncomputable instance equals_unfold_kvSortByMod [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_kvSortByMod [GooseExts] [GoGlobalContext] :
     EqualsUnfold kvSortByMod.fields kvSortByMod.fieldsUnsealed :=
   ⟨by unfold kvSortByMod.fields; rfl⟩
 
-@[reducible] noncomputable def kvSortByMod.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def kvSortByMod.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType kvSortByMod.fields)
 
-class kvSortByMod.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class kvSortByMod.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying kvSortByMod.underlying kvSortByMod
   underlying : go.UnderlyingDirectedEq kvSortByMod.ty kvSortByMod.underlying
   get_kvSort : ∀ (x : kvSortByMod), go.IsGoStepPureDetTagged under (StructFieldGet kvSortByMod.underlying go!"kvSort") #x (Val #(x.kvSort'))
@@ -3037,27 +3037,27 @@ attribute [instance] kvSortByMod.TypeAssumptions.type_repr
   kvSortByMod.TypeAssumptions.ptr_Less_unfold
   kvSortByMod.TypeAssumptions.ptr_Swap_unfold
 
-structure kvSortByValue [FfiSyntax] where
+structure kvSortByValue [GooseExts] where
   mk ::
   kvSort' : Loc
 
-noncomputable instance kvSortByValue.zero_val [FfiSyntax] : ZeroVal kvSortByValue :=
+noncomputable instance kvSortByValue.zero_val [GooseExts] : ZeroVal kvSortByValue :=
   ⟨kvSortByValue.mk zeroValDef⟩
 
-@[reducible] noncomputable def kvSortByValue.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def kvSortByValue.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"kvSort" (go.GoType.PointerType kvSort.ty))]
 
-@[irreducible] noncomputable def kvSortByValue.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def kvSortByValue.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   kvSortByValue.fieldsUnsealed
 
-noncomputable instance equals_unfold_kvSortByValue [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_kvSortByValue [GooseExts] [GoGlobalContext] :
     EqualsUnfold kvSortByValue.fields kvSortByValue.fieldsUnsealed :=
   ⟨by unfold kvSortByValue.fields; rfl⟩
 
-@[reducible] noncomputable def kvSortByValue.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def kvSortByValue.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType kvSortByValue.fields)
 
-class kvSortByValue.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class kvSortByValue.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying kvSortByValue.underlying kvSortByValue
   underlying : go.UnderlyingDirectedEq kvSortByValue.ty kvSortByValue.underlying
   get_kvSort : ∀ (x : kvSortByValue), go.IsGoStepPureDetTagged under (StructFieldGet kvSortByValue.underlying go!"kvSort") #x (Val #(x.kvSort'))
@@ -3082,7 +3082,7 @@ attribute [instance] kvSortByValue.TypeAssumptions.type_repr
   kvSortByValue.TypeAssumptions.ptr_Less_unfold
   kvSortByValue.TypeAssumptions.ptr_Swap_unfold
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   kvSort_instance : kvSort.TypeAssumptions
   kvSortByKey_instance : kvSortByKey.TypeAssumptions
   kvSortByVersion_instance : kvSortByVersion.TypeAssumptions

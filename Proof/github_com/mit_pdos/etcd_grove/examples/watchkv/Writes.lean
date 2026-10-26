@@ -46,7 +46,7 @@ namespace watchkv
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver
 
 section pure
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- The put of `k ↦ v` with no options appends its one change. -/
 theorem kvOpStep_put_changes (k v : GoString) (σ : KVState) :
@@ -65,7 +65,7 @@ theorem kvLogOkTo_compacted {σ : KVState} {r : Nat} (h : kvLogOkTo σ r) : σ.c
 end pure
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

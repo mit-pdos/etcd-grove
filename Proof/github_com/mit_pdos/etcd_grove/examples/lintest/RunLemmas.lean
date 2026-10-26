@@ -32,7 +32,7 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 open github_com.anishathalye.porcupine github_com.anishathalye.porcupine.Theory
 
 section pure
-variable [ext : FfiSyntax] {σ : Type}
+variable [GooseExts] {σ : Type}
 
 /-- The clients' traces `hs` and ghost values `ps` (client `c`'s at index `c`): client `c`'s
 records match its trace (`ClientOk`), and there are `m` of them. -/
@@ -237,7 +237,7 @@ theorem InvOk.init (M : SeqModel σ OpV) (n : Nat) (t0 : w64) :
 end pure
 
 section heap
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

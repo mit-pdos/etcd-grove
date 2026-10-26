@@ -20,203 +20,203 @@ end pkg_id
 
 namespace go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc
 
-noncomputable def InterceptorFilter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def InterceptorFilter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc.InterceptorFilter" [])
 
 attribute [irreducible] InterceptorFilter.ty
 
-noncomputable def Filter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Filter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc.Filter" [])
 
 attribute [irreducible] Filter.ty
 
-noncomputable def semconvMode.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def semconvMode.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc.semconvMode" [])
 
 attribute [irreducible] semconvMode.ty
 
-noncomputable def config.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def config.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc.config" [])
 
 attribute [irreducible] config.ty
 
-noncomputable def Option.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Option.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc.Option" [])
 
 attribute [irreducible] Option.ty
 
-noncomputable def optionFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def optionFunc.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc.optionFunc" [])
 
 attribute [irreducible] optionFunc.ty
 
-noncomputable def Event.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Event.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc.Event" [])
 
 attribute [irreducible] Event.ty
 
-noncomputable def InterceptorType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def InterceptorType.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc.InterceptorType" [])
 
 attribute [irreducible] InterceptorType.ty
 
-noncomputable def InterceptorInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def InterceptorInfo.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc.InterceptorInfo" [])
 
 attribute [irreducible] InterceptorInfo.ty
 
-noncomputable def metadataSupplier.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def metadataSupplier.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc.metadataSupplier" [])
 
 attribute [irreducible] metadataSupplier.ty
 
-noncomputable def gRPCContextKey.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def gRPCContextKey.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc.gRPCContextKey" [])
 
 attribute [irreducible] gRPCContextKey.ty
 
-noncomputable def dialTargetContextKey.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def dialTargetContextKey.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc.dialTargetContextKey" [])
 
 attribute [irreducible] dialTargetContextKey.ty
 
-noncomputable def gRPCContext.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def gRPCContext.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc.gRPCContext" [])
 
 attribute [irreducible] gRPCContext.ty
 
-noncomputable def serverHandler.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def serverHandler.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc.serverHandler" [])
 
 attribute [irreducible] serverHandler.ty
 
-noncomputable def clientHandler.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def clientHandler.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc.clientHandler" [])
 
 attribute [irreducible] clientHandler.ty
 
-axiom Filter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Filter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom config.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom config.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom InterceptorInfo.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom InterceptorInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom metadataSupplier.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom metadataSupplier.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom gRPCContext.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom gRPCContext.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom serverHandler.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom serverHandler.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom clientHandler.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom clientHandler.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ScopeName [FfiSyntax] [GoGlobalContext] : val
+axiom ScopeName [GooseExts] [GoGlobalContext] : val
 
-axiom semconvModeNew [FfiSyntax] [GoGlobalContext] : val
+axiom semconvModeNew [GooseExts] [GoGlobalContext] : val
 
-axiom semconvModeOld [FfiSyntax] [GoGlobalContext] : val
+axiom semconvModeOld [GooseExts] [GoGlobalContext] : val
 
-axiom semconvModeDup [FfiSyntax] [GoGlobalContext] : val
+axiom semconvModeDup [GooseExts] [GoGlobalContext] : val
 
-axiom ReceivedEvents [FfiSyntax] [GoGlobalContext] : val
+axiom ReceivedEvents [GooseExts] [GoGlobalContext] : val
 
-axiom SentEvents [FfiSyntax] [GoGlobalContext] : val
+axiom SentEvents [GooseExts] [GoGlobalContext] : val
 
-axiom UndefinedInterceptor [FfiSyntax] [GoGlobalContext] : val
+axiom UndefinedInterceptor [GooseExts] [GoGlobalContext] : val
 
-axiom UnaryClient [FfiSyntax] [GoGlobalContext] : val
+axiom UnaryClient [GooseExts] [GoGlobalContext] : val
 
-axiom StreamClient [FfiSyntax] [GoGlobalContext] : val
+axiom StreamClient [GooseExts] [GoGlobalContext] : val
 
-axiom UnaryServer [FfiSyntax] [GoGlobalContext] : val
+axiom UnaryServer [GooseExts] [GoGlobalContext] : val
 
-axiom StreamServer [FfiSyntax] [GoGlobalContext] : val
+axiom StreamServer [GooseExts] [GoGlobalContext] : val
 
-axiom Version [FfiSyntax] [GoGlobalContext] : val
+axiom Version [GooseExts] [GoGlobalContext] : val
 
-noncomputable def newConfig [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc.newConfig"
 
-noncomputable def parseSemconvMode [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def parseSemconvMode [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc.parseSemconvMode"
 
-noncomputable def WithPublicEndpoint [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithPublicEndpoint [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc.WithPublicEndpoint"
 
-noncomputable def WithPublicEndpointFn [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithPublicEndpointFn [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc.WithPublicEndpointFn"
 
-noncomputable def WithPropagators [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithPropagators [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc.WithPropagators"
 
-noncomputable def WithInterceptorFilter [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithInterceptorFilter [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc.WithInterceptorFilter"
 
-noncomputable def WithFilter [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithFilter [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc.WithFilter"
 
-noncomputable def WithTracerProvider [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithTracerProvider [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc.WithTracerProvider"
 
-noncomputable def WithMeterProvider [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithMeterProvider [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc.WithMeterProvider"
 
-noncomputable def WithMessageEvents [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithMessageEvents [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc.WithMessageEvents"
 
-noncomputable def WithSpanKind [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithSpanKind [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc.WithSpanKind"
 
-noncomputable def WithSpanAttributes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithSpanAttributes [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc.WithSpanAttributes"
 
-noncomputable def WithMetricAttributes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithMetricAttributes [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc.WithMetricAttributes"
 
-noncomputable def WithMetricAttributesFn [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithMetricAttributesFn [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc.WithMetricAttributesFn"
 
-noncomputable def serverAddrAttrsFromCanonicalTarget [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def serverAddrAttrsFromCanonicalTarget [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc.serverAddrAttrsFromCanonicalTarget"
 
-noncomputable def serverAddrAttrs [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def serverAddrAttrs [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc.serverAddrAttrs"
 
-noncomputable def serverStatus [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def serverStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc.serverStatus"
 
-noncomputable def inject [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def inject [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc.inject"
 
-noncomputable def extract [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def extract [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc.extract"
 
-noncomputable def NewServerHandler [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewServerHandler [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc.NewServerHandler"
 
-noncomputable def NewClientHandler [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewClientHandler [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc.NewClientHandler"
 
-noncomputable def canonicalString [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def canonicalString [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc.canonicalString"
 
 noncomputable instance info' : PkgInfo pkg_id.go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_opentelemetry_io.contrib.instrumentation.google_golang_org.grpc.otelgrpc)) (Lam BAnon
   (App (Val exceptionDo)
   (App (Val doExecute)
   (App (Val «_».init) (Val #())))))))
 
-abbrev InterceptorFilter [FfiSyntax] : Type := GoFunc
+abbrev InterceptorFilter [GooseExts] : Type := GoFunc
 
-@[reducible] noncomputable def InterceptorFilter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def InterceptorFilter.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType InterceptorInfo.ty)] false [go.bool]))
 
-class InterceptorFilter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class InterceptorFilter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq InterceptorFilter.ty InterceptorFilter.underlying
 
 attribute [instance] InterceptorFilter.TypeAssumptions.underlying
@@ -225,7 +225,7 @@ axiom Filter : Type
 axiom Filter.zero_val : ZeroVal Filter
 attribute [instance] Filter.zero_val
 
-class Filter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Filter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Filter.underlying Filter
   underlying : go.UnderlyingDirectedEq Filter.ty Filter.underlying
   isUnderlying : go.IsUnderlying Filter.underlying Filter.underlying
@@ -234,12 +234,12 @@ attribute [instance] Filter.TypeAssumptions.type_repr
   Filter.TypeAssumptions.underlying
   Filter.TypeAssumptions.isUnderlying
 
-abbrev semconvMode [FfiSyntax] : Type := w64
+abbrev semconvMode [GooseExts] : Type := w64
 
-@[reducible] noncomputable def semconvMode.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def semconvMode.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.int
 
-class semconvMode.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class semconvMode.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq semconvMode.ty semconvMode.underlying
 
 attribute [instance] semconvMode.TypeAssumptions.underlying
@@ -248,7 +248,7 @@ axiom config : Type
 axiom config.zero_val : ZeroVal config
 attribute [instance] config.zero_val
 
-class config.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class config.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying config.underlying config
   underlying : go.UnderlyingDirectedEq config.ty config.underlying
   isUnderlying : go.IsUnderlying config.underlying config.underlying
@@ -257,42 +257,42 @@ attribute [instance] config.TypeAssumptions.type_repr
   config.TypeAssumptions.underlying
   config.TypeAssumptions.isUnderlying
 
-abbrev Option [FfiSyntax] : Type := GoInterface
+abbrev Option [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def Option.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Option.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"apply" (go.signature.Signature [(go.GoType.PointerType config.ty)] false []))])
 
-class Option.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Option.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Option.ty Option.underlying
 
 attribute [instance] Option.TypeAssumptions.underlying
 
-abbrev optionFunc [FfiSyntax] : Type := GoFunc
+abbrev optionFunc [GooseExts] : Type := GoFunc
 
-@[reducible] noncomputable def optionFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def optionFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType config.ty)] false []))
 
-class optionFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class optionFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq optionFunc.ty optionFunc.underlying
 
 attribute [instance] optionFunc.TypeAssumptions.underlying
 
-abbrev Event [FfiSyntax] : Type := w64
+abbrev Event [GooseExts] : Type := w64
 
-@[reducible] noncomputable def Event.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Event.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.int
 
-class Event.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Event.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Event.ty Event.underlying
 
 attribute [instance] Event.TypeAssumptions.underlying
 
-abbrev InterceptorType [FfiSyntax] : Type := w8
+abbrev InterceptorType [GooseExts] : Type := w8
 
-@[reducible] noncomputable def InterceptorType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def InterceptorType.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.uint8
 
-class InterceptorType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class InterceptorType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq InterceptorType.ty InterceptorType.underlying
 
 attribute [instance] InterceptorType.TypeAssumptions.underlying
@@ -301,7 +301,7 @@ axiom InterceptorInfo : Type
 axiom InterceptorInfo.zero_val : ZeroVal InterceptorInfo
 attribute [instance] InterceptorInfo.zero_val
 
-class InterceptorInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class InterceptorInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying InterceptorInfo.underlying InterceptorInfo
   underlying : go.UnderlyingDirectedEq InterceptorInfo.ty InterceptorInfo.underlying
   isUnderlying : go.IsUnderlying InterceptorInfo.underlying InterceptorInfo.underlying
@@ -314,7 +314,7 @@ axiom metadataSupplier : Type
 axiom metadataSupplier.zero_val : ZeroVal metadataSupplier
 attribute [instance] metadataSupplier.zero_val
 
-class metadataSupplier.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class metadataSupplier.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying metadataSupplier.underlying metadataSupplier
   underlying : go.UnderlyingDirectedEq metadataSupplier.ty metadataSupplier.underlying
   isUnderlying : go.IsUnderlying metadataSupplier.underlying metadataSupplier.underlying
@@ -323,52 +323,52 @@ attribute [instance] metadataSupplier.TypeAssumptions.type_repr
   metadataSupplier.TypeAssumptions.underlying
   metadataSupplier.TypeAssumptions.isUnderlying
 
-structure gRPCContextKey [FfiSyntax] where
+structure gRPCContextKey [GooseExts] where
   mk ::
 
-noncomputable instance gRPCContextKey.zero_val [FfiSyntax] : ZeroVal gRPCContextKey :=
+noncomputable instance gRPCContextKey.zero_val [GooseExts] : ZeroVal gRPCContextKey :=
   ⟨gRPCContextKey.mk⟩
 
-@[reducible] noncomputable def gRPCContextKey.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def gRPCContextKey.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   []
 
-@[irreducible] noncomputable def gRPCContextKey.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def gRPCContextKey.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   gRPCContextKey.fieldsUnsealed
 
-noncomputable instance equals_unfold_gRPCContextKey [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_gRPCContextKey [GooseExts] [GoGlobalContext] :
     EqualsUnfold gRPCContextKey.fields gRPCContextKey.fieldsUnsealed :=
   ⟨by unfold gRPCContextKey.fields; rfl⟩
 
-@[reducible] noncomputable def gRPCContextKey.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def gRPCContextKey.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType gRPCContextKey.fields)
 
-class gRPCContextKey.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class gRPCContextKey.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying gRPCContextKey.underlying gRPCContextKey
   underlying : go.UnderlyingDirectedEq gRPCContextKey.ty gRPCContextKey.underlying
 
 attribute [instance] gRPCContextKey.TypeAssumptions.type_repr
   gRPCContextKey.TypeAssumptions.underlying
 
-structure dialTargetContextKey [FfiSyntax] where
+structure dialTargetContextKey [GooseExts] where
   mk ::
 
-noncomputable instance dialTargetContextKey.zero_val [FfiSyntax] : ZeroVal dialTargetContextKey :=
+noncomputable instance dialTargetContextKey.zero_val [GooseExts] : ZeroVal dialTargetContextKey :=
   ⟨dialTargetContextKey.mk⟩
 
-@[reducible] noncomputable def dialTargetContextKey.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def dialTargetContextKey.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   []
 
-@[irreducible] noncomputable def dialTargetContextKey.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def dialTargetContextKey.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   dialTargetContextKey.fieldsUnsealed
 
-noncomputable instance equals_unfold_dialTargetContextKey [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_dialTargetContextKey [GooseExts] [GoGlobalContext] :
     EqualsUnfold dialTargetContextKey.fields dialTargetContextKey.fieldsUnsealed :=
   ⟨by unfold dialTargetContextKey.fields; rfl⟩
 
-@[reducible] noncomputable def dialTargetContextKey.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def dialTargetContextKey.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType dialTargetContextKey.fields)
 
-class dialTargetContextKey.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class dialTargetContextKey.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying dialTargetContextKey.underlying dialTargetContextKey
   underlying : go.UnderlyingDirectedEq dialTargetContextKey.ty dialTargetContextKey.underlying
 
@@ -379,7 +379,7 @@ axiom gRPCContext : Type
 axiom gRPCContext.zero_val : ZeroVal gRPCContext
 attribute [instance] gRPCContext.zero_val
 
-class gRPCContext.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class gRPCContext.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying gRPCContext.underlying gRPCContext
   underlying : go.UnderlyingDirectedEq gRPCContext.ty gRPCContext.underlying
   isUnderlying : go.IsUnderlying gRPCContext.underlying gRPCContext.underlying
@@ -392,7 +392,7 @@ axiom serverHandler : Type
 axiom serverHandler.zero_val : ZeroVal serverHandler
 attribute [instance] serverHandler.zero_val
 
-class serverHandler.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class serverHandler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying serverHandler.underlying serverHandler
   underlying : go.UnderlyingDirectedEq serverHandler.ty serverHandler.underlying
   isUnderlying : go.IsUnderlying serverHandler.underlying serverHandler.underlying
@@ -405,7 +405,7 @@ axiom clientHandler : Type
 axiom clientHandler.zero_val : ZeroVal clientHandler
 attribute [instance] clientHandler.zero_val
 
-class clientHandler.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class clientHandler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying clientHandler.underlying clientHandler
   underlying : go.UnderlyingDirectedEq clientHandler.ty clientHandler.underlying
   isUnderlying : go.IsUnderlying clientHandler.underlying clientHandler.underlying
@@ -414,7 +414,7 @@ attribute [instance] clientHandler.TypeAssumptions.type_repr
   clientHandler.TypeAssumptions.underlying
   clientHandler.TypeAssumptions.isUnderlying
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   InterceptorFilter_instance : InterceptorFilter.TypeAssumptions
   Filter_instance : Filter.TypeAssumptions
   semconvMode_instance : semconvMode.TypeAssumptions

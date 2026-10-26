@@ -44,18 +44,18 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 open RawNodeOwnAccess
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-omit [FfiInterp ffi] [FfiSemantics ext ffi] [StorageModel GF] in
+omit [GooseInterp] [GooseSemantics] [StorageModel GF] in
 /-- A loop condition `wp_if_destruct` left as the value equation (D22 S-d3a), peeled. -/
 private theorem hif_pos {P : Prop} [Decidable P] (h : (#(decide P) : val) = #true) : P :=
   of_decide_eq_true (GoGlobalContext.intoVal_inj_bool h)
 
-omit [FfiInterp ffi] [FfiSemantics ext ffi] [StorageModel GF] in
+omit [GooseInterp] [GooseSemantics] [StorageModel GF] in
 private theorem hif_neg {P : Prop} [Decidable P] (h : ¬ ((#(decide P) : val) = #true)) : ¬ P :=
   fun hp => h (by rw [decide_eq_true hp])
 

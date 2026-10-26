@@ -51,7 +51,7 @@ lives here, beside the heartbeat handler, because all three `stepX` specs mentio
 def MsgBeat : w32 := W32 1
 
 section heartbeat_result
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- The state after `handleHeartbeat`: `committed` moved by `commitTo`, and the
 `HeartbeatResp` queued. Named because `stepFollower` and `stepCandidate` state their
@@ -66,7 +66,7 @@ def heartbeatResult (id : w64) (s : NState) (m : MessageM) (cl : List w8 := []) 
 end heartbeat_result
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]

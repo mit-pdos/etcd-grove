@@ -20,166 +20,166 @@ end pkg_id
 
 namespace net.url
 
-noncomputable def encoding.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def encoding.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net/url.encoding" [])
 
 attribute [irreducible] encoding.ty
 
-noncomputable def Error.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Error.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net/url.Error" [])
 
 attribute [irreducible] Error.ty
 
-noncomputable def EscapeError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EscapeError.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net/url.EscapeError" [])
 
 attribute [irreducible] EscapeError.ty
 
-noncomputable def InvalidHostError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def InvalidHostError.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net/url.InvalidHostError" [])
 
 attribute [irreducible] InvalidHostError.ty
 
-noncomputable def URL.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def URL.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net/url.URL" [])
 
 attribute [irreducible] URL.ty
 
-noncomputable def Userinfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Userinfo.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net/url.Userinfo" [])
 
 attribute [irreducible] Userinfo.ty
 
-noncomputable def Values.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Values.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"net/url.Values" [])
 
 attribute [irreducible] Values.ty
 
-axiom encodePath [FfiSyntax] [GoGlobalContext] : val
+axiom encodePath [GooseExts] [GoGlobalContext] : val
 
-axiom encodePathSegment [FfiSyntax] [GoGlobalContext] : val
+axiom encodePathSegment [GooseExts] [GoGlobalContext] : val
 
-axiom encodeHost [FfiSyntax] [GoGlobalContext] : val
+axiom encodeHost [GooseExts] [GoGlobalContext] : val
 
-axiom encodeZone [FfiSyntax] [GoGlobalContext] : val
+axiom encodeZone [GooseExts] [GoGlobalContext] : val
 
-axiom encodeUserPassword [FfiSyntax] [GoGlobalContext] : val
+axiom encodeUserPassword [GooseExts] [GoGlobalContext] : val
 
-axiom encodeQueryComponent [FfiSyntax] [GoGlobalContext] : val
+axiom encodeQueryComponent [GooseExts] [GoGlobalContext] : val
 
-axiom encodeFragment [FfiSyntax] [GoGlobalContext] : val
+axiom encodeFragment [GooseExts] [GoGlobalContext] : val
 
-axiom hexChar [FfiSyntax] [GoGlobalContext] : val
+axiom hexChar [GooseExts] [GoGlobalContext] : val
 
-axiom upperhex [FfiSyntax] [GoGlobalContext] : val
+axiom upperhex [GooseExts] [GoGlobalContext] : val
 
-axiom defaultMaxParams [FfiSyntax] [GoGlobalContext] : val
+axiom defaultMaxParams [GooseExts] [GoGlobalContext] : val
 
-noncomputable def table [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def table [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/url.table"
 
-axiom table.init [FfiSyntax] [GoGlobalContext] : val
+axiom table.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def urlstrictcolons [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def urlstrictcolons [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/url.urlstrictcolons"
 
-axiom urlstrictcolons.init [FfiSyntax] [GoGlobalContext] : val
+axiom urlstrictcolons.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def urlmaxqueryparams [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def urlmaxqueryparams [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/url.urlmaxqueryparams"
 
-axiom urlmaxqueryparams.init [FfiSyntax] [GoGlobalContext] : val
+axiom urlmaxqueryparams.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ishex [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ishex [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/url.ishex"
 
-noncomputable def unhex [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def unhex [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/url.unhex"
 
-noncomputable def shouldEscape [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def shouldEscape [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/url.shouldEscape"
 
-noncomputable def QueryUnescape [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def QueryUnescape [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/url.QueryUnescape"
 
-noncomputable def PathUnescape [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def PathUnescape [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/url.PathUnescape"
 
-noncomputable def unescape [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def unescape [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/url.unescape"
 
-noncomputable def QueryEscape [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def QueryEscape [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/url.QueryEscape"
 
-noncomputable def PathEscape [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def PathEscape [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/url.PathEscape"
 
-noncomputable def escape [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def escape [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/url.escape"
 
-noncomputable def User [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def User [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/url.User"
 
-noncomputable def UserPassword [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def UserPassword [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/url.UserPassword"
 
-noncomputable def getScheme [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def getScheme [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/url.getScheme"
 
-noncomputable def Parse [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Parse [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/url.Parse"
 
-noncomputable def ParseRequestURI [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ParseRequestURI [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/url.ParseRequestURI"
 
-noncomputable def parse [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def parse [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/url.parse"
 
-noncomputable def parseAuthority [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def parseAuthority [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/url.parseAuthority"
 
-noncomputable def parseHost [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def parseHost [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/url.parseHost"
 
-noncomputable def badSetPath [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def badSetPath [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/url.badSetPath"
 
-noncomputable def validEncoded [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validEncoded [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/url.validEncoded"
 
-noncomputable def validOptionalPort [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validOptionalPort [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/url.validOptionalPort"
 
-noncomputable def ParseQuery [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ParseQuery [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/url.ParseQuery"
 
-noncomputable def urlParamsWithinMax [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def urlParamsWithinMax [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/url.urlParamsWithinMax"
 
-noncomputable def parseQuery [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def parseQuery [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/url.parseQuery"
 
-noncomputable def resolvePath [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def resolvePath [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/url.resolvePath"
 
-noncomputable def splitHostPort [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def splitHostPort [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/url.splitHostPort"
 
-noncomputable def validUserinfo [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def validUserinfo [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/url.validUserinfo"
 
-noncomputable def stringContainsCTLByte [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def stringContainsCTLByte [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/url.stringContainsCTLByte"
 
-noncomputable def JoinPath [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def JoinPath [GooseExts] [GoGlobalContext] : GoString :=
   go!"net/url.JoinPath"
 
 noncomputable instance info' : PkgInfo pkg_id.net.url where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.net.url)) (Lam BAnon
   (App (Val exceptionDo)
@@ -192,41 +192,41 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val table.init) (Val #()))))))))
 
-abbrev encoding [FfiSyntax] : Type := w8
+abbrev encoding [GooseExts] : Type := w8
 
-@[reducible] noncomputable def encoding.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def encoding.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.uint8
 
-class encoding.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class encoding.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq encoding.ty encoding.underlying
 
 attribute [instance] encoding.TypeAssumptions.underlying
 
-structure Error [FfiSyntax] where
+structure Error [GooseExts] where
   mk ::
   Op' : GoString
   URL' : GoString
   Err' : GoError
 
-noncomputable instance Error.zero_val [FfiSyntax] : ZeroVal Error :=
+noncomputable instance Error.zero_val [GooseExts] : ZeroVal Error :=
   ⟨Error.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Error.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Error.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Op" go.string),
 (go.field_decl.FieldDecl go!"URL" go.string),
 (go.field_decl.FieldDecl go!"Err" go.error)]
 
-@[irreducible] noncomputable def Error.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Error.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Error.fieldsUnsealed
 
-noncomputable instance equals_unfold_Error [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Error [GooseExts] [GoGlobalContext] :
     EqualsUnfold Error.fields Error.fieldsUnsealed :=
   ⟨by unfold Error.fields; rfl⟩
 
-@[reducible] noncomputable def Error.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Error.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Error.fields)
 
-class Error.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Error.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Error.underlying Error
   underlying : go.UnderlyingDirectedEq Error.ty Error.underlying
   get_Op : ∀ (x : Error), go.IsGoStepPureDetTagged under (StructFieldGet Error.underlying go!"Op") #x (Val #(x.Op'))
@@ -245,27 +245,27 @@ attribute [instance] Error.TypeAssumptions.type_repr
   Error.TypeAssumptions.get_Err
   Error.TypeAssumptions.set_Err
 
-abbrev EscapeError [FfiSyntax] : Type := GoString
+abbrev EscapeError [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def EscapeError.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def EscapeError.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-class EscapeError.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class EscapeError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq EscapeError.ty EscapeError.underlying
 
 attribute [instance] EscapeError.TypeAssumptions.underlying
 
-abbrev InvalidHostError [FfiSyntax] : Type := GoString
+abbrev InvalidHostError [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def InvalidHostError.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def InvalidHostError.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-class InvalidHostError.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class InvalidHostError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq InvalidHostError.ty InvalidHostError.underlying
 
 attribute [instance] InvalidHostError.TypeAssumptions.underlying
 
-structure URL [FfiSyntax] where
+structure URL [GooseExts] where
   mk ::
   Scheme' : GoString
   Opaque' : GoString
@@ -279,10 +279,10 @@ structure URL [FfiSyntax] where
   ForceQuery' : Bool
   OmitHost' : Bool
 
-noncomputable instance URL.zero_val [FfiSyntax] : ZeroVal URL :=
+noncomputable instance URL.zero_val [GooseExts] : ZeroVal URL :=
   ⟨URL.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def URL.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def URL.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Scheme" go.string),
 (go.field_decl.FieldDecl go!"Opaque" go.string),
 (go.field_decl.FieldDecl go!"User" (go.GoType.PointerType Userinfo.ty)),
@@ -295,17 +295,17 @@ noncomputable instance URL.zero_val [FfiSyntax] : ZeroVal URL :=
 (go.field_decl.FieldDecl go!"ForceQuery" go.bool),
 (go.field_decl.FieldDecl go!"OmitHost" go.bool)]
 
-@[irreducible] noncomputable def URL.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def URL.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   URL.fieldsUnsealed
 
-noncomputable instance equals_unfold_URL [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_URL [GooseExts] [GoGlobalContext] :
     EqualsUnfold URL.fields URL.fieldsUnsealed :=
   ⟨by unfold URL.fields; rfl⟩
 
-@[reducible] noncomputable def URL.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def URL.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType URL.fields)
 
-class URL.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class URL.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying URL.underlying URL
   underlying : go.UnderlyingDirectedEq URL.ty URL.underlying
   get_Scheme : ∀ (x : URL), go.IsGoStepPureDetTagged under (StructFieldGet URL.underlying go!"Scheme") #x (Val #(x.Scheme'))
@@ -356,31 +356,31 @@ attribute [instance] URL.TypeAssumptions.type_repr
   URL.TypeAssumptions.get_OmitHost
   URL.TypeAssumptions.set_OmitHost
 
-structure Userinfo [FfiSyntax] where
+structure Userinfo [GooseExts] where
   mk ::
   username' : GoString
   password' : GoString
   passwordSet' : Bool
 
-noncomputable instance Userinfo.zero_val [FfiSyntax] : ZeroVal Userinfo :=
+noncomputable instance Userinfo.zero_val [GooseExts] : ZeroVal Userinfo :=
   ⟨Userinfo.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Userinfo.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Userinfo.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"username" go.string),
 (go.field_decl.FieldDecl go!"password" go.string),
 (go.field_decl.FieldDecl go!"passwordSet" go.bool)]
 
-@[irreducible] noncomputable def Userinfo.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Userinfo.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Userinfo.fieldsUnsealed
 
-noncomputable instance equals_unfold_Userinfo [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Userinfo [GooseExts] [GoGlobalContext] :
     EqualsUnfold Userinfo.fields Userinfo.fieldsUnsealed :=
   ⟨by unfold Userinfo.fields; rfl⟩
 
-@[reducible] noncomputable def Userinfo.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Userinfo.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Userinfo.fields)
 
-class Userinfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Userinfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Userinfo.underlying Userinfo
   underlying : go.UnderlyingDirectedEq Userinfo.ty Userinfo.underlying
   get_username : ∀ (x : Userinfo), go.IsGoStepPureDetTagged under (StructFieldGet Userinfo.underlying go!"username") #x (Val #(x.username'))
@@ -399,17 +399,17 @@ attribute [instance] Userinfo.TypeAssumptions.type_repr
   Userinfo.TypeAssumptions.get_passwordSet
   Userinfo.TypeAssumptions.set_passwordSet
 
-abbrev Values [FfiSyntax] : Type := GoMap
+abbrev Values [GooseExts] : Type := GoMap
 
-@[reducible] noncomputable def Values.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Values.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.MapType go.string (go.GoType.SliceType go.string))
 
-class Values.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Values.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Values.ty Values.underlying
 
 attribute [instance] Values.TypeAssumptions.underlying
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   encoding_instance : encoding.TypeAssumptions
   Error_instance : Error.TypeAssumptions
   EscapeError_instance : EscapeError.TypeAssumptions

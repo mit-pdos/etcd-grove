@@ -18,7 +18,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.raft.v3
 
 section commit_ok
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- `CommitOk cfg ps n`: a leader in protocol state `ps` may advance its commit index to
 `n` -- exactly the premises of the model's `Step.commit` other than the role: `n` is
@@ -61,7 +61,7 @@ def WAppSent (c : CfgM) (id : w64) (s : NState) (m : Msg) : Prop :=
 end commit_ok
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]

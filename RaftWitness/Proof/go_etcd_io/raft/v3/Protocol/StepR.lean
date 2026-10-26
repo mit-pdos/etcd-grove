@@ -73,7 +73,7 @@ namespace EtcdGrove
 open GMap go_etcd_io.raft.v3
 
 section state
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- A node's protocol state with what reconfiguration reads (see the file header). -/
 structure RState where
@@ -126,7 +126,7 @@ def StaticAdm (V : GSet w64) (_ : List EntryM) (cs : CCState) : Prop :=
 end state
 
 section model
-variable [FfiSyntax]
+variable [GooseExts]
 
 variable (Adm : List EntryM → CCState → Prop) (dec : CCDec) (id : w64)
 
@@ -501,7 +501,7 @@ end model
 /-! ### Monotonicity in the admissible configurations -/
 
 section mono
-variable [FfiSyntax]
+variable [GooseExts]
 
 theorem StepR.mono {Adm Adm' : List EntryM → CCState → Prop} {dec : CCDec} {id : w64} {B : Int}
     (hA : ∀ l cs, Adm l cs → Adm' l cs) {r : RState} {ms : List Msg} {r' : RState}
@@ -567,7 +567,7 @@ end mono
 (Until D19p, 2026-10-18, also `stepR_static`: see the file header.) -/
 
 section static
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- The configuration has the voters `V`, not joint. -/
 def StaticR (V : GSet w64) (r : RState) : Prop :=

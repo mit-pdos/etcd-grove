@@ -53,7 +53,7 @@ namespace Perennial
 
 namespace go_etcd_io.raft.v3.raftpb
 section code
-variable [FfiSyntax] [GoGlobalContext]
+variable [GooseExts] [GoGlobalContext]
 
 /-- `file_raft_proto_enumTypes = make([]protoimpl.EnumInfo, 4)`: allocates a slice of zero
 `EnumInfo`s (an axiomatized type, so no zero value for goose's `make`), and cannot panic. The

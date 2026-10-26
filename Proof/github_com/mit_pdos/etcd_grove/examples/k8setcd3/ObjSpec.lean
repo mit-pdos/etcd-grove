@@ -24,7 +24,7 @@ namespace k8setcd3
 open Iris Iris.BI Iris.ProofMode k8s
 
 section tyOk
-variable [ext : FfiSyntax] [go_gctx : GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
+variable [GooseExts] [go_gctx : GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
 
 /-- **The method-set fact the store asks of the driver's objects** (`ObjSpec.tyOk`, without the
 ghost state): `*Obj` is in `runtime.Object`'s type set (its methods `GetObjectKind` and
@@ -40,7 +40,7 @@ def objTyOk : Prop :=
 end tyOk
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

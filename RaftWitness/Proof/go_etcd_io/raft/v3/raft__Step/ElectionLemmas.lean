@@ -36,7 +36,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 section base
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -106,7 +106,7 @@ theorem msgOwn_of_resp (l pty pto pte prj : Loc) (ty : raftpb.MessageType) (to t
   · iapply ownSlice_nil
   iapply ownSlice_nil
 
-omit ffi [FfiInterp ffi] [FfiSemantics ext ffi] go_gctx in
+omit [GooseInterp] [GooseSemantics] go_gctx in
 /-- `send`'s premise for the vote response the `MsgVote` tails build (`Term: term`,
 `Reject: rej`). -/
 theorem sendOk_voteResp (id : w64) (s : NState) (to term : w64) (rej : Bool)

@@ -53,7 +53,7 @@ theorem logNoLease_restore (R : mvcc.Log) (h : mvcc.restoreLogOk R) :
   · exact h.2.2 cs hcs c hc k v l hcl
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

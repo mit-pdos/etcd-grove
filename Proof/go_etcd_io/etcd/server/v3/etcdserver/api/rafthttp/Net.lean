@@ -52,13 +52,13 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- **What a message carries over the network** (see the file header). -/
-structure NetPayload (GF : BundledGFunctors) [FfiSyntax] where
+structure NetPayload (GF : BundledGFunctors) [GooseExts] where
   P : MsgSt → IProp GF
   O : MsgSt → IProp GF
   once : MsgSt → Prop
@@ -87,7 +87,7 @@ abbrev StreamKey := GName × StreamTy × w64
 /-- **A network's names** (see the file header). (2026-10-23, rafthttp stage 6a, D39) `reg`: the
 streams' registry (`Stream.lean`'s `streamRegInv`), one for the network, so that a member's
 stream reader and its peer's stream handler agree on a connection. -/
-structure NetNames (GF : BundledGFunctors) [FfiSyntax] where
+structure NetNames (GF : BundledGFunctors) [GooseExts] where
   N : NetPayload GF
   slots : GName
   dir : w64 → List GoString
@@ -241,7 +241,7 @@ instance netRaftOk_persistent (γn : NetNames GF) (id : w64) (γd : GName) (R : 
 end defs
 
 section lemmas
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 

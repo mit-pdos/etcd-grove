@@ -20,127 +20,127 @@ end pkg_id
 
 namespace go_etcd_io.etcd.server.v3.etcdserver.errors
 
-noncomputable def DiscoveryError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DiscoveryError.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/errors.DiscoveryError" [])
 
 attribute [irreducible] DiscoveryError.ty
 
-noncomputable def ErrUnknownMethod [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrUnknownMethod [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/errors.ErrUnknownMethod"
 
-axiom ErrUnknownMethod.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrUnknownMethod.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrStopped [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrStopped [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/errors.ErrStopped"
 
-axiom ErrStopped.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrStopped.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrCanceled [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrCanceled [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/errors.ErrCanceled"
 
-axiom ErrCanceled.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrCanceled.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrTimeout [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrTimeout [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/errors.ErrTimeout"
 
-axiom ErrTimeout.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrTimeout.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrTimeoutDueToLeaderFail [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrTimeoutDueToLeaderFail [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/errors.ErrTimeoutDueToLeaderFail"
 
-axiom ErrTimeoutDueToLeaderFail.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrTimeoutDueToLeaderFail.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrTimeoutDueToConnectionLost [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrTimeoutDueToConnectionLost [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/errors.ErrTimeoutDueToConnectionLost"
 
-axiom ErrTimeoutDueToConnectionLost.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrTimeoutDueToConnectionLost.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrTimeoutLeaderTransfer [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrTimeoutLeaderTransfer [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/errors.ErrTimeoutLeaderTransfer"
 
-axiom ErrTimeoutLeaderTransfer.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrTimeoutLeaderTransfer.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrTimeoutWaitAppliedIndex [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrTimeoutWaitAppliedIndex [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/errors.ErrTimeoutWaitAppliedIndex"
 
-axiom ErrTimeoutWaitAppliedIndex.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrTimeoutWaitAppliedIndex.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrLeaderChanged [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrLeaderChanged [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/errors.ErrLeaderChanged"
 
-axiom ErrLeaderChanged.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrLeaderChanged.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrNotEnoughStartedMembers [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrNotEnoughStartedMembers [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/errors.ErrNotEnoughStartedMembers"
 
-axiom ErrNotEnoughStartedMembers.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrNotEnoughStartedMembers.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrLearnerNotReady [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrLearnerNotReady [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/errors.ErrLearnerNotReady"
 
-axiom ErrLearnerNotReady.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrLearnerNotReady.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrNoLeader [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrNoLeader [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/errors.ErrNoLeader"
 
-axiom ErrNoLeader.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrNoLeader.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrNotLeader [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrNotLeader [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/errors.ErrNotLeader"
 
-axiom ErrNotLeader.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrNotLeader.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrRequestTooLarge [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrRequestTooLarge [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/errors.ErrRequestTooLarge"
 
-axiom ErrRequestTooLarge.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrRequestTooLarge.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrNoSpace [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrNoSpace [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/errors.ErrNoSpace"
 
-axiom ErrNoSpace.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrNoSpace.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrTooManyRequests [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrTooManyRequests [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/errors.ErrTooManyRequests"
 
-axiom ErrTooManyRequests.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrTooManyRequests.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrUnhealthy [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrUnhealthy [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/errors.ErrUnhealthy"
 
-axiom ErrUnhealthy.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrUnhealthy.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrCorrupt [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrCorrupt [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/errors.ErrCorrupt"
 
-axiom ErrCorrupt.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrCorrupt.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrBadLeaderTransferee [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrBadLeaderTransferee [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/errors.ErrBadLeaderTransferee"
 
-axiom ErrBadLeaderTransferee.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrBadLeaderTransferee.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrClusterVersionUnavailable [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrClusterVersionUnavailable [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/errors.ErrClusterVersionUnavailable"
 
-axiom ErrClusterVersionUnavailable.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrClusterVersionUnavailable.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrWrongDowngradeVersionFormat [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrWrongDowngradeVersionFormat [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/errors.ErrWrongDowngradeVersionFormat"
 
-axiom ErrWrongDowngradeVersionFormat.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrWrongDowngradeVersionFormat.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrKeyNotFound [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrKeyNotFound [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/errors.ErrKeyNotFound"
 
-axiom ErrKeyNotFound.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrKeyNotFound.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.errors where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.server.v3.etcdserver.errors)) (Lam BAnon
   (App (Val exceptionDo)
@@ -210,29 +210,29 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val ErrUnknownMethod.init) (Val #()))))))))
 
-structure DiscoveryError [FfiSyntax] where
+structure DiscoveryError [GooseExts] where
   mk ::
   Op' : GoString
   Err' : GoError
 
-noncomputable instance DiscoveryError.zero_val [FfiSyntax] : ZeroVal DiscoveryError :=
+noncomputable instance DiscoveryError.zero_val [GooseExts] : ZeroVal DiscoveryError :=
   ⟨DiscoveryError.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def DiscoveryError.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def DiscoveryError.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Op" go.string),
 (go.field_decl.FieldDecl go!"Err" go.error)]
 
-@[irreducible] noncomputable def DiscoveryError.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def DiscoveryError.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   DiscoveryError.fieldsUnsealed
 
-noncomputable instance equals_unfold_DiscoveryError [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_DiscoveryError [GooseExts] [GoGlobalContext] :
     EqualsUnfold DiscoveryError.fields DiscoveryError.fieldsUnsealed :=
   ⟨by unfold DiscoveryError.fields; rfl⟩
 
-@[reducible] noncomputable def DiscoveryError.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def DiscoveryError.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType DiscoveryError.fields)
 
-class DiscoveryError.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DiscoveryError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DiscoveryError.underlying DiscoveryError
   underlying : go.UnderlyingDirectedEq DiscoveryError.ty DiscoveryError.underlying
   get_Op : ∀ (x : DiscoveryError), go.IsGoStepPureDetTagged under (StructFieldGet DiscoveryError.underlying go!"Op") #x (Val #(x.Op'))
@@ -247,7 +247,7 @@ attribute [instance] DiscoveryError.TypeAssumptions.type_repr
   DiscoveryError.TypeAssumptions.get_Err
   DiscoveryError.TypeAssumptions.set_Err
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   DiscoveryError_instance : DiscoveryError.TypeAssumptions
 
 attribute [instance] Assumptions.DiscoveryError_instance

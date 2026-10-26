@@ -28,7 +28,7 @@ namespace EtcdGrove
 namespace linkv
 
 section kv
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- The put of `k ↦ v` with no options (`client/v3/Results.lean`'s `putKeyOp`: what
 `cli.Put(ctx, k, v)` sends). -/

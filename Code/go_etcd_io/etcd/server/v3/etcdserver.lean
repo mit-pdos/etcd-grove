@@ -73,541 +73,541 @@ end pkg_id
 
 namespace go_etcd_io.etcd.server.v3.etcdserver
 
-noncomputable def serverVersionAdapter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def serverVersionAdapter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver.serverVersionAdapter" [])
 
 attribute [irreducible] serverVersionAdapter.ty
 
-noncomputable def bootstrappedServer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def bootstrappedServer.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver.bootstrappedServer" [])
 
 attribute [irreducible] bootstrappedServer.ty
 
-noncomputable def bootstrappedStorage.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def bootstrappedStorage.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver.bootstrappedStorage" [])
 
 attribute [irreducible] bootstrappedStorage.ty
 
-noncomputable def bootstrappedBackend.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def bootstrappedBackend.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver.bootstrappedBackend" [])
 
 attribute [irreducible] bootstrappedBackend.ty
 
-noncomputable def bootstrappedCluster.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def bootstrappedCluster.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver.bootstrappedCluster" [])
 
 attribute [irreducible] bootstrappedCluster.ty
 
-noncomputable def bootstrappedRaft.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def bootstrappedRaft.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver.bootstrappedRaft" [])
 
 attribute [irreducible] bootstrappedRaft.ty
 
-noncomputable def snapshotMetadata.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def snapshotMetadata.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver.snapshotMetadata" [])
 
 attribute [irreducible] snapshotMetadata.ty
 
-noncomputable def bootstrappedWAL.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def bootstrappedWAL.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver.bootstrappedWAL" [])
 
 attribute [irreducible] bootstrappedWAL.ty
 
-noncomputable def CorruptionChecker.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def CorruptionChecker.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver.CorruptionChecker" [])
 
 attribute [irreducible] CorruptionChecker.ty
 
-noncomputable def corruptionChecker.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def corruptionChecker.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver.corruptionChecker" [])
 
 attribute [irreducible] corruptionChecker.ty
 
-noncomputable def Hasher.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Hasher.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver.Hasher" [])
 
 attribute [irreducible] Hasher.ty
 
-noncomputable def hasherAdapter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def hasherAdapter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver.hasherAdapter" [])
 
 attribute [irreducible] hasherAdapter.ty
 
-noncomputable def peerInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def peerInfo.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver.peerInfo" [])
 
 attribute [irreducible] peerInfo.ty
 
-noncomputable def peerHashKVResp.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def peerHashKVResp.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver.peerHashKVResp" [])
 
 attribute [irreducible] peerHashKVResp.ty
 
-noncomputable def hashKVHandler.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def hashKVHandler.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver.hashKVHandler" [])
 
 attribute [irreducible] hashKVHandler.ty
 
-noncomputable def toApply.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def toApply.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver.toApply" [])
 
 attribute [irreducible] toApply.ty
 
-noncomputable def raftNode.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def raftNode.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver.raftNode" [])
 
 attribute [irreducible] raftNode.ty
 
-noncomputable def raftNodeConfig.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def raftNodeConfig.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver.raftNodeConfig" [])
 
 attribute [irreducible] raftNodeConfig.ty
 
-noncomputable def Response.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Response.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver.Response" [])
 
 attribute [irreducible] Response.ty
 
-noncomputable def ServerV2.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ServerV2.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver.ServerV2" [])
 
 attribute [irreducible] ServerV2.ty
 
-noncomputable def ServerV3.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ServerV3.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver.ServerV3" [])
 
 attribute [irreducible] ServerV3.ty
 
-noncomputable def Server.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Server.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver.Server" [])
 
 attribute [irreducible] Server.ty
 
-noncomputable def EtcdServer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EtcdServer.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver.EtcdServer" [])
 
 attribute [irreducible] EtcdServer.ty
 
-noncomputable def ServerPeer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ServerPeer.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver.ServerPeer" [])
 
 attribute [irreducible] ServerPeer.ty
 
-noncomputable def ServerPeerV2.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ServerPeerV2.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver.ServerPeerV2" [])
 
 attribute [irreducible] ServerPeerV2.ty
 
-noncomputable def downgradeEnabledHandler.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def downgradeEnabledHandler.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver.downgradeEnabledHandler" [])
 
 attribute [irreducible] downgradeEnabledHandler.ty
 
-noncomputable def etcdProgress.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def etcdProgress.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver.etcdProgress" [])
 
 attribute [irreducible] etcdProgress.ty
 
-noncomputable def raftReadyHandler.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def raftReadyHandler.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver.raftReadyHandler" [])
 
 attribute [irreducible] raftReadyHandler.ty
 
-noncomputable def confChangeResponse.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def confChangeResponse.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver.confChangeResponse" [])
 
 attribute [irreducible] confChangeResponse.ty
 
-noncomputable def AccessController.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def AccessController.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver.AccessController" [])
 
 attribute [irreducible] AccessController.ty
 
-noncomputable def RaftKV.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def RaftKV.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver.RaftKV" [])
 
 attribute [irreducible] RaftKV.ty
 
-noncomputable def Lessor.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Lessor.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver.Lessor" [])
 
 attribute [irreducible] Lessor.ty
 
-noncomputable def Authenticator.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Authenticator.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver.Authenticator" [])
 
 attribute [irreducible] Authenticator.ty
 
-noncomputable def zapRaftLogger.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def zapRaftLogger.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver.zapRaftLogger" [])
 
 attribute [irreducible] zapRaftLogger.ty
 
-axiom Response.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Response.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PeerHashKVPath [FfiSyntax] [GoGlobalContext] : val
+axiom PeerHashKVPath [GooseExts] [GoGlobalContext] : val
 
-axiom maxSizePerMsg [FfiSyntax] [GoGlobalContext] : val
+axiom maxSizePerMsg [GooseExts] [GoGlobalContext] : val
 
-axiom maxInflightMsgs [FfiSyntax] [GoGlobalContext] : val
+axiom maxInflightMsgs [GooseExts] [GoGlobalContext] : val
 
-@[reducible] noncomputable def DefaultSnapshotCount [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def DefaultSnapshotCount [GooseExts] [GoGlobalContext] : val :=
   #(10000 : Int)
 
-@[reducible] noncomputable def DefaultSnapshotCatchUpEntries [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def DefaultSnapshotCatchUpEntries [GooseExts] [GoGlobalContext] : val :=
   #(W64 5000)
 
-axiom StoreClusterPrefix [FfiSyntax] [GoGlobalContext] : val
+axiom StoreClusterPrefix [GooseExts] [GoGlobalContext] : val
 
-axiom StoreKeysPrefix [FfiSyntax] [GoGlobalContext] : val
+axiom StoreKeysPrefix [GooseExts] [GoGlobalContext] : val
 
-axiom HealthInterval [FfiSyntax] [GoGlobalContext] : val
+axiom HealthInterval [GooseExts] [GoGlobalContext] : val
 
-axiom purgeFileInterval [FfiSyntax] [GoGlobalContext] : val
+axiom purgeFileInterval [GooseExts] [GoGlobalContext] : val
 
-axiom maxSnapDBFiles [FfiSyntax] [GoGlobalContext] : val
+axiom maxSnapDBFiles [GooseExts] [GoGlobalContext] : val
 
-@[reducible] noncomputable def maxInFlightMsgSnap [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def maxInFlightMsgSnap [GooseExts] [GoGlobalContext] : val :=
   #(16 : Int)
 
-@[reducible] noncomputable def releaseDelayAfterSnapshot [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def releaseDelayAfterSnapshot [GooseExts] [GoGlobalContext] : val :=
   #(W64 30000000000)
 
-axiom maxPendingRevokes [FfiSyntax] [GoGlobalContext] : val
+axiom maxPendingRevokes [GooseExts] [GoGlobalContext] : val
 
-axiom recommendedMaxRequestBytes [FfiSyntax] [GoGlobalContext] : val
+axiom recommendedMaxRequestBytes [GooseExts] [GoGlobalContext] : val
 
-axiom readyPercentThreshold [FfiSyntax] [GoGlobalContext] : val
+axiom readyPercentThreshold [GooseExts] [GoGlobalContext] : val
 
-axiom DowngradeEnabledPath [FfiSyntax] [GoGlobalContext] : val
+axiom DowngradeEnabledPath [GooseExts] [GoGlobalContext] : val
 
-@[reducible] noncomputable def memorySnapshotCount [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def memorySnapshotCount [GooseExts] [GoGlobalContext] : val :=
   #(100 : Int)
 
-@[reducible] noncomputable def maxGapBetweenApplyAndCommitIndex [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def maxGapBetweenApplyAndCommitIndex [GooseExts] [GoGlobalContext] : val :=
   #(5000 : Int)
 
-@[reducible] noncomputable def maxNormalGap [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def maxNormalGap [GooseExts] [GoGlobalContext] : val :=
   #(5000 : Int)
 
-@[reducible] noncomputable def maxPriorityGap [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def maxPriorityGap [GooseExts] [GoGlobalContext] : val :=
   #(10000 : Int)
 
-@[reducible] noncomputable def traceThreshold [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def traceThreshold [GooseExts] [GoGlobalContext] : val :=
   #(W64 100000000)
 
-axiom applyTimeout [FfiSyntax] [GoGlobalContext] : val
+axiom applyTimeout [GooseExts] [GoGlobalContext] : val
 
-axiom initialStreamChunkLimit [FfiSyntax] [GoGlobalContext] : val
+axiom initialStreamChunkLimit [GooseExts] [GoGlobalContext] : val
 
-noncomputable def hasLeader [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def hasLeader [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.hasLeader"
 
-axiom hasLeader.init [FfiSyntax] [GoGlobalContext] : val
+axiom hasLeader.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def isLeader [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def isLeader [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.isLeader"
 
-axiom isLeader.init [FfiSyntax] [GoGlobalContext] : val
+axiom isLeader.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def leaderChanges [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def leaderChanges [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.leaderChanges"
 
-axiom leaderChanges.init [FfiSyntax] [GoGlobalContext] : val
+axiom leaderChanges.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def learnerPromoteFailed [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def learnerPromoteFailed [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.learnerPromoteFailed"
 
-axiom learnerPromoteFailed.init [FfiSyntax] [GoGlobalContext] : val
+axiom learnerPromoteFailed.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def learnerPromoteSucceed [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def learnerPromoteSucceed [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.learnerPromoteSucceed"
 
-axiom learnerPromoteSucceed.init [FfiSyntax] [GoGlobalContext] : val
+axiom learnerPromoteSucceed.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def heartbeatSendFailures [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def heartbeatSendFailures [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.heartbeatSendFailures"
 
-axiom heartbeatSendFailures.init [FfiSyntax] [GoGlobalContext] : val
+axiom heartbeatSendFailures.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def applySnapshotInProgress [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def applySnapshotInProgress [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.applySnapshotInProgress"
 
-axiom applySnapshotInProgress.init [FfiSyntax] [GoGlobalContext] : val
+axiom applySnapshotInProgress.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def proposalsCommitted [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def proposalsCommitted [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.proposalsCommitted"
 
-axiom proposalsCommitted.init [FfiSyntax] [GoGlobalContext] : val
+axiom proposalsCommitted.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def proposalsApplied [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def proposalsApplied [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.proposalsApplied"
 
-axiom proposalsApplied.init [FfiSyntax] [GoGlobalContext] : val
+axiom proposalsApplied.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def proposalsPending [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def proposalsPending [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.proposalsPending"
 
-axiom proposalsPending.init [FfiSyntax] [GoGlobalContext] : val
+axiom proposalsPending.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def proposalsFailed [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def proposalsFailed [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.proposalsFailed"
 
-axiom proposalsFailed.init [FfiSyntax] [GoGlobalContext] : val
+axiom proposalsFailed.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def requestDurationSec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def requestDurationSec [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.requestDurationSec"
 
-axiom requestDurationSec.init [FfiSyntax] [GoGlobalContext] : val
+axiom requestDurationSec.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def leaseExpired [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def leaseExpired [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.leaseExpired"
 
-axiom leaseExpired.init [FfiSyntax] [GoGlobalContext] : val
+axiom leaseExpired.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def currentVersion [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def currentVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.currentVersion"
 
-axiom currentVersion.init [FfiSyntax] [GoGlobalContext] : val
+axiom currentVersion.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def currentGoVersion [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def currentGoVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.currentGoVersion"
 
-axiom currentGoVersion.init [FfiSyntax] [GoGlobalContext] : val
+axiom currentGoVersion.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def serverID [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def serverID [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.serverID"
 
-axiom serverID.init [FfiSyntax] [GoGlobalContext] : val
+axiom serverID.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def serverFeatureEnabled [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def serverFeatureEnabled [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.serverFeatureEnabled"
 
-axiom serverFeatureEnabled.init [FfiSyntax] [GoGlobalContext] : val
+axiom serverFeatureEnabled.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def fdUsed [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def fdUsed [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.fdUsed"
 
-axiom fdUsed.init [FfiSyntax] [GoGlobalContext] : val
+axiom fdUsed.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def fdLimit [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def fdLimit [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.fdLimit"
 
-axiom fdLimit.init [FfiSyntax] [GoGlobalContext] : val
+axiom fdLimit.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def enableAllRuntimeMetricsOnce [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def enableAllRuntimeMetricsOnce [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.enableAllRuntimeMetricsOnce"
 
-noncomputable def raftStatusMu [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def raftStatusMu [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.raftStatusMu"
 
-noncomputable def raftStatus [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def raftStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.raftStatus"
 
-noncomputable def monitorVersionInterval [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def monitorVersionInterval [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.monitorVersionInterval"
 
-axiom monitorVersionInterval.init [FfiSyntax] [GoGlobalContext] : val
+axiom monitorVersionInterval.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def recommendedMaxRequestBytesString [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def recommendedMaxRequestBytesString [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.recommendedMaxRequestBytesString"
 
-axiom recommendedMaxRequestBytesString.init [FfiSyntax] [GoGlobalContext] : val
+axiom recommendedMaxRequestBytesString.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def NewServerVersionAdapter [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewServerVersionAdapter [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.NewServerVersionAdapter"
 
-noncomputable def bootstrap [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def bootstrap [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.bootstrap"
 
-noncomputable def buildConfStateFromV3store [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def buildConfStateFromV3store [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.buildConfStateFromV3store"
 
-noncomputable def bootstrapStorage [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def bootstrapStorage [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.bootstrapStorage"
 
-noncomputable def bootstrapSnapshot [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def bootstrapSnapshot [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.bootstrapSnapshot"
 
-noncomputable def bootstrapBackend [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def bootstrapBackend [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.bootstrapBackend"
 
-noncomputable def maybeDefragBackend [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def maybeDefragBackend [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.maybeDefragBackend"
 
-noncomputable def bootstrapCluster [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def bootstrapCluster [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.bootstrapCluster"
 
-noncomputable def bootstrapExistingClusterNoWAL [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def bootstrapExistingClusterNoWAL [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.bootstrapExistingClusterNoWAL"
 
-noncomputable def bootstrapNewClusterNoWAL [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def bootstrapNewClusterNoWAL [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.bootstrapNewClusterNoWAL"
 
-noncomputable def bootstrapClusterWithWAL [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def bootstrapClusterWithWAL [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.bootstrapClusterWithWAL"
 
-noncomputable def recoverSnapshot [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def recoverSnapshot [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.recoverSnapshot"
 
-noncomputable def bootstrapRaft [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def bootstrapRaft [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.bootstrapRaft"
 
-noncomputable def bootstrapRaftFromCluster [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def bootstrapRaftFromCluster [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.bootstrapRaftFromCluster"
 
-noncomputable def bootstrapRaftFromWAL [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def bootstrapRaftFromWAL [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.bootstrapRaftFromWAL"
 
-noncomputable def raftConfig [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def raftConfig [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.raftConfig"
 
-noncomputable def bootstrapWALFromSnapshot [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def bootstrapWALFromSnapshot [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.bootstrapWALFromSnapshot"
 
-noncomputable def openWALFromSnapshot [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def openWALFromSnapshot [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.openWALFromSnapshot"
 
-noncomputable def bootstrapNewWAL [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def bootstrapNewWAL [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.bootstrapNewWAL"
 
-noncomputable def isMemberBootstrapped [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def isMemberBootstrapped [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.isMemberBootstrapped"
 
-noncomputable def GetClusterFromRemotePeers [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def GetClusterFromRemotePeers [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.GetClusterFromRemotePeers"
 
-noncomputable def getClusterFromRemotePeers [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def getClusterFromRemotePeers [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.getClusterFromRemotePeers"
 
-noncomputable def getRemotePeerURLs [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def getRemotePeerURLs [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.getRemotePeerURLs"
 
-noncomputable def getMembersVersions [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def getMembersVersions [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.getMembersVersions"
 
-noncomputable def allowedVersionRange [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def allowedVersionRange [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.allowedVersionRange"
 
-noncomputable def isCompatibleWithCluster [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def isCompatibleWithCluster [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.isCompatibleWithCluster"
 
-noncomputable def isCompatibleWithVers [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def isCompatibleWithVers [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.isCompatibleWithVers"
 
-noncomputable def getVersion [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def getVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.getVersion"
 
-noncomputable def promoteMemberHTTP [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def promoteMemberHTTP [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.promoteMemberHTTP"
 
-noncomputable def getDowngradeEnabledFromRemotePeers [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def getDowngradeEnabledFromRemotePeers [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.getDowngradeEnabledFromRemotePeers"
 
-noncomputable def getDowngradeEnabled [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def getDowngradeEnabled [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.getDowngradeEnabled"
 
-noncomputable def convertToClusterVersion [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def convertToClusterVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.convertToClusterVersion"
 
-noncomputable def newCorruptionChecker [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newCorruptionChecker [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.newCorruptionChecker"
 
-noncomputable def HashByRev [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def HashByRev [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.HashByRev"
 
-noncomputable def init.«0» [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def init.«0» [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.init.0"
 
-noncomputable def EnableAllRuntimeMetrics [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def EnableAllRuntimeMetrics [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.EnableAllRuntimeMetrics"
 
-noncomputable def monitorFileDescriptor [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def monitorFileDescriptor [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.monitorFileDescriptor"
 
-noncomputable def init.«1» [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def init.«1» [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.init.1"
 
-noncomputable def newRaftNode [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newRaftNode [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.newRaftNode"
 
-noncomputable def updateCommittedIndex [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def updateCommittedIndex [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.updateCommittedIndex"
 
-noncomputable def init.«2» [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def init.«2» [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.init.2"
 
-noncomputable def NewServer [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewServer [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.NewServer"
 
-noncomputable def tickToDur [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def tickToDur [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.tickToDur"
 
-noncomputable def verifyConsistentIndexIsLatest [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def verifyConsistentIndexIsLatest [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.verifyConsistentIndexIsLatest"
 
-noncomputable def addFeatureGateMetrics [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def addFeatureGateMetrics [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.addFeatureGateMetrics"
 
-noncomputable def NewAccessController [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewAccessController [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.NewAccessController"
 
-noncomputable def newSnapshotReaderCloser [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newSnapshotReaderCloser [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.newSnapshotReaderCloser"
 
-noncomputable def firstCompareKey [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def firstCompareKey [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.firstCompareKey"
 
-noncomputable def firstOpKey [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def firstOpKey [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.firstOpKey"
 
-noncomputable def firstOpType [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def firstOpType [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.firstOpType"
 
-noncomputable def firstOpLease [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def firstOpLease [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.firstOpLease"
 
-noncomputable def isConnectedToQuorumSince [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def isConnectedToQuorumSince [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.isConnectedToQuorumSince"
 
-noncomputable def isConnectedToQuorumAfterAddingNewMemberSince [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def isConnectedToQuorumAfterAddingNewMemberSince [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.isConnectedToQuorumAfterAddingNewMemberSince"
 
-noncomputable def quorum [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def quorum [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.quorum"
 
-noncomputable def isConnectedSince [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def isConnectedSince [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.isConnectedSince"
 
-noncomputable def exceedsRequestLimit [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def exceedsRequestLimit [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.exceedsRequestLimit"
 
-noncomputable def isPriorityRequest [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def isPriorityRequest [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.isPriorityRequest"
 
-noncomputable def numConnectedSince [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def numConnectedSince [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.numConnectedSince"
 
-noncomputable def longestConnected [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def longestConnected [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.longestConnected"
 
-noncomputable def adjustChunkLimit [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def adjustChunkLimit [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.adjustChunkLimit"
 
-noncomputable def getRequestType [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def getRequestType [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.getRequestType"
 
-noncomputable def NewRaftLogger [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewRaftLogger [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.NewRaftLogger"
 
-noncomputable def NewRaftLoggerZap [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewRaftLoggerZap [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.NewRaftLoggerZap"
 
-noncomputable def NewRaftLoggerFromZapCore [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewRaftLoggerFromZapCore [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver.NewRaftLoggerFromZapCore"
 
 /-- go: bootstrap.go:578:28 -/
-noncomputable def bootstrappedRaft.newRaftNode.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def bootstrappedRaft.newRaftNode.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "ss"
   (Lam "wal"
@@ -659,7 +659,7 @@ noncomputable def bootstrappedRaft.newRaftNode.impl [FfiSyntax] [GoGlobalContext
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.raft.v3.Node.ty))) (Pair (Var "n") (Var "$r0")))))))))))))))))
 
 /-- go: interface.go:22:22 -/
-noncomputable def EtcdServer.ApplyWait.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.ApplyWait.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "deadline"
   (App (Val exceptionDo)
@@ -670,7 +670,7 @@ noncomputable def EtcdServer.ApplyWait.impl [FfiSyntax] [GoGlobalContext] : val 
   (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.go_etcd_io.etcd.pkg.v3.wait.WaitTime.ty go!"Wait"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.pkg.v3.wait.WaitTime.ty))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"applyWait"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))))) (Var "$a0")))))))))
 
 /-- go: interface.go:26:22 -/
-noncomputable def EtcdServer.Done.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.Done.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -679,7 +679,7 @@ noncomputable def EtcdServer.Done.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (Convert (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])) (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"done"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))))))))))
 
 /-- go: interface.go:30:22 -/
-noncomputable def EtcdServer.LeaderChanged.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.LeaderChanged.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -688,7 +688,7 @@ noncomputable def EtcdServer.LeaderChanged.impl [FfiSyntax] [GoGlobalContext] : 
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.notify.Notifier.ty) go!"Receive"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.notify.Notifier.ty)))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"leaderChanged"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))))) (Val #())))))))
 
 /-- go: interface.go:34:22 -/
-noncomputable def EtcdServer.NextRequestID.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.NextRequestID.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -697,7 +697,7 @@ noncomputable def EtcdServer.NextRequestID.impl [FfiSyntax] [GoGlobalContext] : 
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.idutil.Generator.ty) go!"Next"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.idutil.Generator.ty)))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"reqIDGen"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))))) (Val #())))))))
 
 /-- go: interface.go:38:22 -/
-noncomputable def EtcdServer.RequestTimeout.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.RequestTimeout.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -706,7 +706,7 @@ noncomputable def EtcdServer.RequestTimeout.impl [FfiSyntax] [GoGlobalContext] :
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty) go!"ReqTimeout"))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"Cfg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s")))) (Val #())))))))
 
 /-- go: interface.go:42:22 -/
-noncomputable def EtcdServer.Stopping.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.Stopping.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -715,7 +715,7 @@ noncomputable def EtcdServer.Stopping.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val (GoInstruction (Convert (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])) (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"stopping"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))))))))))
 
 /-- go: interface.go:46:22 -/
-noncomputable def EtcdServer.LinearizableReadNotify.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.LinearizableReadNotify.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
   (App (Val exceptionDo)
@@ -726,7 +726,7 @@ noncomputable def EtcdServer.LinearizableReadNotify.impl [FfiSyntax] [GoGlobalCo
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.read.Read.ty) go!"LinearizableReadNotify"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.read.Read.ty)))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"read"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))))) (Var "$a0")))))))))
 
 /-- go: raft.go:126:6 -/
-noncomputable def newRaftNode.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def newRaftNode.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cfg"
   (App (Val exceptionDo)
   (Let "cfg" (App (Val (GoInstruction (GoAlloc raftNodeConfig.ty))) (Var "cfg"))
@@ -798,7 +798,7 @@ noncomputable def newRaftNode.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- raft.Node does not have locks in Raft package
 
     go: raft.go:162:20 -/
-noncomputable def raftNode.tick.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def raftNode.tick.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -820,7 +820,7 @@ noncomputable def raftNode.tick.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty)))) (App (Val (GoInstruction (StructFieldRef raftNode.ty go!"tickMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftNode.ty)))) (Var "r"))))) (Val #())))))))))
 
 /-- go: raft.go:169:20 -/
-noncomputable def raftNode.getLatestTickTs.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def raftNode.getLatestTickTs.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
   (App (Val wrapDefer)
@@ -843,7 +843,7 @@ noncomputable def raftNode.getLatestTickTs.impl [FfiSyntax] [GoGlobalContext] : 
     to modify the fields after it has been started.
 
     go: raft.go:177:20 -/
-noncomputable def raftNode.start.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def raftNode.start.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "rh"
   (App (Val exceptionDo)
@@ -1195,7 +1195,7 @@ noncomputable def raftNode.start.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.time.Duration.ty))) (Pair (Var "internalTimeout") (Var "$r0")))))))))))))
 
 /-- go: raft.go:361:6 -/
-noncomputable def updateCommittedIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def updateCommittedIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ap"
   (Lam "rh"
   (App (Val exceptionDo)
@@ -1229,7 +1229,7 @@ noncomputable def updateCommittedIndex.impl [FfiSyntax] [GoGlobalContext] : val 
   (Val #())))))))))))
 
 /-- go: raft.go:374:20 -/
-noncomputable def raftNode.processMessages.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def raftNode.processMessages.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "ms"
   (App (Val exceptionDo)
@@ -1340,7 +1340,7 @@ noncomputable def raftNode.processMessages.impl [FfiSyntax] [GoGlobalContext] : 
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "sentAppResp") (Var "$r0"))))))))))))
 
 /-- go: raft.go:421:20 -/
-noncomputable def raftNode.apply.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def raftNode.apply.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1349,7 +1349,7 @@ noncomputable def raftNode.apply.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv toApply.ty)))) (App (Val (GoInstruction (StructFieldRef raftNode.ty go!"applyc"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType raftNode.ty)))) (Var "r")))))))))
 
 /-- go: raft.go:425:20 -/
-noncomputable def raftNode.stop.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def raftNode.stop.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1370,7 +1370,7 @@ noncomputable def raftNode.stop.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #()))))])))))))))))
 
 /-- go: raft.go:437:20 -/
-noncomputable def raftNode.onStop.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def raftNode.onStop.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1412,7 +1412,7 @@ noncomputable def raftNode.onStop.impl [FfiSyntax] [GoGlobalContext] : val :=
     speeding up election process.
 
     go: raft.go:462:20 -/
-noncomputable def raftNode.advanceTicks.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def raftNode.advanceTicks.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "ticks"
   (App (Val exceptionDo)
@@ -1435,7 +1435,7 @@ noncomputable def raftNode.advanceTicks.impl [FfiSyntax] [GoGlobalContext] : val
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "i") (Var "$r0")))))))))))))
 
 /-- go: raft.go:468:20 -/
-noncomputable def raftNode.ReadState.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def raftNode.ReadState.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1447,7 +1447,7 @@ noncomputable def raftNode.ReadState.impl [FfiSyntax] [GoGlobalContext] : val :=
     configuration is considered static for the lifetime of the EtcdServer.
 
     go: server.go:299:6 -/
-noncomputable def NewServer.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def NewServer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cfg"
   (App (Val wrapDefer)
   (Lam "$defer"
@@ -1839,7 +1839,7 @@ noncomputable def NewServer.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType bootstrappedServer.ty)))) (Pair (Var "b") (Var "$r0")))))))))))))))))
 
 /-- go: server.go:447:22 -/
-noncomputable def EtcdServer.Logger.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.Logger.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1861,7 +1861,7 @@ noncomputable def EtcdServer.Logger.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- FeatureEnabled returns true if the feature is enabled by the etcd server, false otherwise.
 
     go: server.go:459:22 -/
-noncomputable def EtcdServer.FeatureEnabled.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.FeatureEnabled.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "f"
   (App (Val exceptionDo)
@@ -1877,7 +1877,7 @@ noncomputable def EtcdServer.FeatureEnabled.impl [FfiSyntax] [GoGlobalContext] :
     should be implemented in goroutines.
 
     go: server.go:533:22 -/
-noncomputable def EtcdServer.Start.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.Start.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1954,7 +1954,7 @@ noncomputable def EtcdServer.Start.impl [FfiSyntax] [GoGlobalContext] : val :=
     This function is just used for testing.
 
     go: server.go:550:22 -/
-noncomputable def EtcdServer.start.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.start.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -2093,7 +2093,7 @@ noncomputable def EtcdServer.start.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Pair (Var "lg") (Var "$r0"))))))))))))
 
 /-- go: server.go:626:22 -/
-noncomputable def EtcdServer.Cluster.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.Cluster.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -2102,7 +2102,7 @@ noncomputable def EtcdServer.Cluster.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (Convert (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty) _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.Cluster.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty)))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"cluster"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))))))))))
 
 /-- go: server.go:645:22 -/
-noncomputable def EtcdServer.RaftHandler.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.RaftHandler.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -2114,7 +2114,7 @@ noncomputable def EtcdServer.RaftHandler.impl [FfiSyntax] [GoGlobalContext] : va
     machine, respecting any timeout of the given context.
 
     go: server.go:699:22 -/
-noncomputable def EtcdServer.Process.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.Process.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
   (Lam "m"
@@ -2181,7 +2181,7 @@ noncomputable def EtcdServer.Process.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Pair (Var "lg") (Var "$r0"))))))))))))))
 
 /-- go: server.go:723:22 -/
-noncomputable def EtcdServer.IsIDRemoved.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.IsIDRemoved.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "id"
   (App (Val exceptionDo)
@@ -2192,7 +2192,7 @@ noncomputable def EtcdServer.IsIDRemoved.impl [FfiSyntax] [GoGlobalContext] : va
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty) go!"IsIDRemoved"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty)))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"cluster"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))))) (Var "$a0")))))))))
 
 /-- go: server.go:725:22 -/
-noncomputable def EtcdServer.ReportUnreachable.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.ReportUnreachable.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "id"
   (App (Val exceptionDo)
@@ -2209,7 +2209,7 @@ noncomputable def EtcdServer.ReportUnreachable.impl [FfiSyntax] [GoGlobalContext
     and clears the used snapshot from the snapshot store.
 
     go: server.go:729:22 -/
-noncomputable def EtcdServer.ReportSnapshot.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.ReportSnapshot.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "id"
   (Lam "status"
@@ -2226,7 +2226,7 @@ noncomputable def EtcdServer.ReportSnapshot.impl [FfiSyntax] [GoGlobalContext] :
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType raftNode.ty) go!"ReportSnapshot"))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"r"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s")))) (Var "$a0")) (Var "$a1")))))))))))))
 
 /-- go: server.go:751:22 -/
-noncomputable def EtcdServer.run.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.run.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
   (App (Val wrapDefer)
@@ -2492,7 +2492,7 @@ noncomputable def EtcdServer.run.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Pair (Var "lg") (Var "$r0")))))))))))))
 
 /-- go: server.go:978:22 -/
-noncomputable def EtcdServer.applyAll.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.applyAll.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ep"
   (Lam "apply"
@@ -2569,7 +2569,7 @@ noncomputable def EtcdServer.applyAll.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"applySnapshot"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))) (Var "$a0")) (Var "$a1"))))))))))))))
 
 /-- go: server.go:1014:22 -/
-noncomputable def EtcdServer.applySnapshot.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.applySnapshot.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ep"
   (Lam "toApply"
@@ -2993,7 +2993,7 @@ noncomputable def EtcdServer.applySnapshot.impl [FfiSyntax] [GoGlobalContext] : 
   (Val #())))))))))))))
 
 /-- go: server.go:1174:22 -/
-noncomputable def EtcdServer.NewUberApplier.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.NewUberApplier.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -3022,7 +3022,7 @@ noncomputable def EtcdServer.NewUberApplier.impl [FfiSyntax] [GoGlobalContext] :
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions.ty))) (Pair (Var "opts") (Var "$r0")))))))))))
 
 /-- go: server.go:1203:22 -/
-noncomputable def EtcdServer.applyEntries.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.applyEntries.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ep"
   (Lam "apply"
@@ -3116,7 +3116,7 @@ noncomputable def EtcdServer.applyEntries.impl [FfiSyntax] [GoGlobalContext] : v
   (Val #()))))))))))))
 
 /-- go: server.go:1229:22 -/
-noncomputable def EtcdServer.ForceSnapshot.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.ForceSnapshot.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -3129,7 +3129,7 @@ noncomputable def EtcdServer.ForceSnapshot.impl [FfiSyntax] [GoGlobalContext] : 
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"forceDiskSnapshot"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))) (Var "$r0"))))))))))
 
 /-- go: server.go:1233:22 -/
-noncomputable def EtcdServer.snapshotIfNeededAndCompactRaftLog.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.snapshotIfNeededAndCompactRaftLog.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ep"
   (App (Val exceptionDo)
@@ -3166,7 +3166,7 @@ noncomputable def EtcdServer.snapshotIfNeededAndCompactRaftLog.impl [FfiSyntax] 
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "shouldSnapshotToDisk") (Var "$r0")))))))))))))
 
 /-- go: server.go:1244:22 -/
-noncomputable def EtcdServer.shouldSnapshotToDisk.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.shouldSnapshotToDisk.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ep"
   (App (Val exceptionDo)
@@ -3176,7 +3176,7 @@ noncomputable def EtcdServer.shouldSnapshotToDisk.impl [FfiSyntax] [GoGlobalCont
   (If (If (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"forceDiskSnapshot"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s")))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef etcdProgress.ty go!"appliedi"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType etcdProgress.ty)))) (Var "ep")))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef etcdProgress.ty go!"diskSnapshotIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType etcdProgress.ty)))) (Var "ep"))))))) (Val #false)) (Val #true) (App (Val (GoInstruction (GoOp GoGt go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoSub go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef etcdProgress.ty go!"appliedi"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType etcdProgress.ty)))) (Var "ep")))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef etcdProgress.ty go!"diskSnapshotIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType etcdProgress.ty)))) (Var "ep")))))) (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.server.v3.config.ServerConfig.ty go!"SnapshotCount"))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"Cfg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))))))))))))))
 
 /-- go: server.go:1248:22 -/
-noncomputable def EtcdServer.shouldSnapshotToMemory.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.shouldSnapshotToMemory.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ep"
   (App (Val exceptionDo)
@@ -3186,7 +3186,7 @@ noncomputable def EtcdServer.shouldSnapshotToMemory.impl [FfiSyntax] [GoGlobalCo
   (App (Val (GoInstruction (GoOp GoGt go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef etcdProgress.ty go!"appliedi"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType etcdProgress.ty)))) (Var "ep")))) (App (Val (GoInstruction (GoOp GoPlus go.uint64))) (Pair (App (Val (GoInstruction (GoLoad go.uint64))) (App (Val (GoInstruction (StructFieldRef etcdProgress.ty go!"memorySnapshotIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType etcdProgress.ty)))) (Var "ep")))) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val memorySnapshotCount))))))))))))
 
 /-- go: server.go:1256:22 -/
-noncomputable def EtcdServer.isLeader.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.isLeader.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -3198,7 +3198,7 @@ noncomputable def EtcdServer.isLeader.impl [FfiSyntax] [GoGlobalContext] : val :
     when the server is being stopped.
 
     go: server.go:1376:22 -/
-noncomputable def EtcdServer.StoppingNotify.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.StoppingNotify.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -3207,7 +3207,7 @@ noncomputable def EtcdServer.StoppingNotify.impl [FfiSyntax] [GoGlobalContext] :
   (App (Val (GoInstruction (Convert (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])) (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"stopping"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))))))))))
 
 /-- go: server.go:1378:22 -/
-noncomputable def EtcdServer.checkMembershipOperationPermission.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.checkMembershipOperationPermission.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
   (App (Val exceptionDo)
@@ -3244,7 +3244,7 @@ noncomputable def EtcdServer.checkMembershipOperationPermission.impl [FfiSyntax]
   (Val #())))))))))
 
 /-- go: server.go:1458:22 -/
-noncomputable def EtcdServer.RemoveMember.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.RemoveMember.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
   (Lam "id"
@@ -3292,7 +3292,7 @@ noncomputable def EtcdServer.RemoveMember.impl [FfiSyntax] [GoGlobalContext] : v
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))))))))
 
 /-- go: server.go:1686:22 -/
-noncomputable def EtcdServer.MemberList.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.MemberList.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
   (Lam "r"
@@ -3331,7 +3331,7 @@ noncomputable def EtcdServer.MemberList.impl [FfiSyntax] [GoGlobalContext] : val
   (Val #())))))))))))
 
 /-- go: server.go:1699:22 -/
-noncomputable def EtcdServer.setCommittedIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.setCommittedIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "v"
   (App (Val exceptionDo)
@@ -3345,7 +3345,7 @@ noncomputable def EtcdServer.setCommittedIndex.impl [FfiSyntax] [GoGlobalContext
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Uint64.ty) go!"Store"))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"committedIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s")))) (Var "$a0"))))))))))
 
 /-- go: server.go:1703:22 -/
-noncomputable def EtcdServer.getCommittedIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.getCommittedIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -3354,7 +3354,7 @@ noncomputable def EtcdServer.getCommittedIndex.impl [FfiSyntax] [GoGlobalContext
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Uint64.ty) go!"Load"))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"committedIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s")))) (Val #())))))))
 
 /-- go: server.go:1707:22 -/
-noncomputable def EtcdServer.setAppliedIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.setAppliedIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "v"
   (App (Val exceptionDo)
@@ -3368,7 +3368,7 @@ noncomputable def EtcdServer.setAppliedIndex.impl [FfiSyntax] [GoGlobalContext] 
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Uint64.ty) go!"Store"))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"appliedIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s")))) (Var "$a0"))))))))))
 
 /-- go: server.go:1711:22 -/
-noncomputable def EtcdServer.getAppliedIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.getAppliedIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -3377,7 +3377,7 @@ noncomputable def EtcdServer.getAppliedIndex.impl [FfiSyntax] [GoGlobalContext] 
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Uint64.ty) go!"Load"))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"appliedIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s")))) (Val #())))))))
 
 /-- go: server.go:1715:22 -/
-noncomputable def EtcdServer.setTerm.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.setTerm.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "v"
   (App (Val exceptionDo)
@@ -3391,7 +3391,7 @@ noncomputable def EtcdServer.setTerm.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Uint64.ty) go!"Store"))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"term"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s")))) (Var "$a0"))))))))))
 
 /-- go: server.go:1719:22 -/
-noncomputable def EtcdServer.getTerm.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.getTerm.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -3400,7 +3400,7 @@ noncomputable def EtcdServer.getTerm.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Uint64.ty) go!"Load"))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"term"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s")))) (Val #())))))))
 
 /-- go: server.go:1723:22 -/
-noncomputable def EtcdServer.setLead.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.setLead.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "v"
   (App (Val exceptionDo)
@@ -3414,7 +3414,7 @@ noncomputable def EtcdServer.setLead.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.atomic.Uint64.ty) go!"Store"))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"lead"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s")))) (Var "$a0"))))))))))
 
 /-- go: server.go:1727:22 -/
-noncomputable def EtcdServer.getLead.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.getLead.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -3428,7 +3428,7 @@ noncomputable def EtcdServer.getLead.impl [FfiSyntax] [GoGlobalContext] : val :=
     as long as linearizable semantic is required)
 
     go: server.go:1739:22 -/
-noncomputable def EtcdServer.FirstCommitInTermNotify.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.FirstCommitInTermNotify.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -3437,7 +3437,7 @@ noncomputable def EtcdServer.FirstCommitInTermNotify.impl [FfiSyntax] [GoGlobalC
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.notify.Notifier.ty) go!"Receive"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.notify.Notifier.ty)))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"firstCommitInTerm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))))) (Val #())))))))
 
 /-- go: server.go:1751:22 -/
-noncomputable def EtcdServer.MemberID.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.MemberID.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -3446,7 +3446,7 @@ noncomputable def EtcdServer.MemberID.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"memberID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s")))))))))
 
 /-- go: server.go:1753:22 -/
-noncomputable def EtcdServer.Leader.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.Leader.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -3455,7 +3455,7 @@ noncomputable def EtcdServer.Leader.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"getLead"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))) (Val #())))))))
 
 /-- go: server.go:1755:22 -/
-noncomputable def EtcdServer.Lead.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.Lead.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -3464,7 +3464,7 @@ noncomputable def EtcdServer.Lead.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"getLead"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))) (Val #())))))))
 
 /-- go: server.go:1757:22 -/
-noncomputable def EtcdServer.CommittedIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.CommittedIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -3473,7 +3473,7 @@ noncomputable def EtcdServer.CommittedIndex.impl [FfiSyntax] [GoGlobalContext] :
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"getCommittedIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))) (Val #())))))))
 
 /-- go: server.go:1759:22 -/
-noncomputable def EtcdServer.AppliedIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.AppliedIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -3482,7 +3482,7 @@ noncomputable def EtcdServer.AppliedIndex.impl [FfiSyntax] [GoGlobalContext] : v
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"getAppliedIndex"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))) (Val #())))))))
 
 /-- go: server.go:1761:22 -/
-noncomputable def EtcdServer.Term.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.Term.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -3491,7 +3491,7 @@ noncomputable def EtcdServer.Term.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"getTerm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))) (Val #())))))))
 
 /-- go: server.go:1867:22 -/
-noncomputable def EtcdServer.sendMergedSnap.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.sendMergedSnap.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "merged"
   (App (Val exceptionDo)
@@ -3597,7 +3597,7 @@ noncomputable def EtcdServer.sendMergedSnap.impl [FfiSyntax] [GoGlobalContext] :
     The given entries should not be empty.
 
     go: server.go:1910:22 -/
-noncomputable def EtcdServer.apply.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.apply.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "es"
   (Lam "ep"
@@ -3754,7 +3754,7 @@ noncomputable def EtcdServer.apply.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- applyEntryNormal applies an EntryNormal type raftpb request to the EtcdServer
 
     go: server.go:1963:22 -/
-noncomputable def EtcdServer.applyEntryNormal.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.applyEntryNormal.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "e"
   (Lam "shouldApplyV3"
@@ -3900,7 +3900,7 @@ noncomputable def EtcdServer.applyEntryNormal.impl [FfiSyntax] [GoGlobalContext]
   (Val #())))))))))))))
 
 /-- go: server.go:2155:22 -/
-noncomputable def EtcdServer.compactRaftLog.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.compactRaftLog.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "snapi"
   (App (Val exceptionDo)
@@ -3972,7 +3972,7 @@ noncomputable def EtcdServer.compactRaftLog.impl [FfiSyntax] [GoGlobalContext] :
 /-- CutPeer drops messages to the specified peer.
 
     go: server.go:2189:22 -/
-noncomputable def EtcdServer.CutPeer.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.CutPeer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "id"
   (App (Val exceptionDo)
@@ -4004,7 +4004,7 @@ noncomputable def EtcdServer.CutPeer.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- MendPeer recovers the message dropping behavior of the given peer.
 
     go: server.go:2197:22 -/
-noncomputable def EtcdServer.MendPeer.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.MendPeer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "id"
   (App (Val exceptionDo)
@@ -4034,7 +4034,7 @@ noncomputable def EtcdServer.MendPeer.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport.ty)))) (Pair (Var "tr") (Var "$r0"))))))))))))))))))
 
 /-- go: server.go:2208:22 -/
-noncomputable def EtcdServer.ClusterVersion.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.ClusterVersion.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -4049,7 +4049,7 @@ noncomputable def EtcdServer.ClusterVersion.impl [FfiSyntax] [GoGlobalContext] :
   (Val #()))))))))
 
 /-- go: server.go:2375:22 -/
-noncomputable def EtcdServer.parseProposeCtxErr.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.parseProposeCtxErr.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "err"
   (Lam "start"
@@ -4125,7 +4125,7 @@ noncomputable def EtcdServer.parseProposeCtxErr.impl [FfiSyntax] [GoGlobalContex
   (App (Val (GoInstruction (GoLoad go.error))) (Var "err")))))))))))))
 
 /-- go: server.go:2408:22 -/
-noncomputable def EtcdServer.KV.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.KV.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -4134,7 +4134,7 @@ noncomputable def EtcdServer.KV.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.WatchableKV.ty))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"kv"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s")))))))))
 
 /-- go: server.go:2409:22 -/
-noncomputable def EtcdServer.Backend.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.Backend.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
   (App (Val wrapDefer)
@@ -4154,7 +4154,7 @@ noncomputable def EtcdServer.Backend.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"bemu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s")))) (Val #())))))))))
 
 /-- go: server.go:2415:22 -/
-noncomputable def EtcdServer.AuthStore.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.AuthStore.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -4163,7 +4163,7 @@ noncomputable def EtcdServer.AuthStore.impl [FfiSyntax] [GoGlobalContext] : val 
   (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthStore.ty))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"authStore"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s")))))))))
 
 /-- go: server.go:2417:22 -/
-noncomputable def EtcdServer.restoreAlarms.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.restoreAlarms.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -4203,7 +4203,7 @@ noncomputable def EtcdServer.restoreAlarms.impl [FfiSyntax] [GoGlobalContext] : 
     The passed function should interrupt on s.StoppingNotify().
 
     go: server.go:2429:22 -/
-noncomputable def EtcdServer.GoAttach.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.GoAttach.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "f"
   (App (Val wrapDefer)
@@ -4265,7 +4265,7 @@ noncomputable def EtcdServer.GoAttach.impl [FfiSyntax] [GoGlobalContext] : val :
 /-- IsLearner returns if the local member is raft learner
 
     go: server.go:2453:22 -/
-noncomputable def EtcdServer.IsLearner.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.IsLearner.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -4276,7 +4276,7 @@ noncomputable def EtcdServer.IsLearner.impl [FfiSyntax] [GoGlobalContext] : val 
 /-- IsMemberExist returns if the member with the given id exists in cluster.
 
     go: server.go:2458:22 -/
-noncomputable def EtcdServer.IsMemberExist.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.IsMemberExist.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "id"
   (App (Val exceptionDo)
@@ -4287,7 +4287,7 @@ noncomputable def EtcdServer.IsMemberExist.impl [FfiSyntax] [GoGlobalContext] : 
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty) go!"IsMemberExist"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty)))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"cluster"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))))) (Var "$a0")))))))))
 
 /-- go: server.go:2471:22 -/
-noncomputable def EtcdServer.getTxPostLockInsideApplyHook.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.getTxPostLockInsideApplyHook.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -4324,7 +4324,7 @@ noncomputable def EtcdServer.getTxPostLockInsideApplyHook.impl [FfiSyntax] [GoGl
     as ReadCloser.
 
     go: snapshot_merge.go:32:22 -/
-noncomputable def EtcdServer.createMergedSnapshotMessage.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.createMergedSnapshotMessage.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "m"
   (Lam "snapt"
@@ -4377,7 +4377,7 @@ noncomputable def EtcdServer.createMergedSnapshotMessage.impl [FfiSyntax] [GoGlo
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Pair (Var "lg") (Var "$r0"))))))))))))))))))
 
 /-- go: snapshot_merge.go:56:6 -/
-noncomputable def newSnapshotReaderCloser.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def newSnapshotReaderCloser.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (Lam "snapshot"
   (App (Val exceptionDo)
@@ -4465,7 +4465,7 @@ noncomputable def newSnapshotReaderCloser.impl [FfiSyntax] [GoGlobalContext] : v
 /-- firstCompareKey returns first non-empty key in the list of comparison operations.
 
     go: tracing.go:20:6 -/
-noncomputable def firstCompareKey.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def firstCompareKey.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (App (Val exceptionDo)
   (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.Compare.ty))))) (Var "c"))
@@ -4497,7 +4497,7 @@ noncomputable def firstCompareKey.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- firstOpKey returns first non-empty key in the list of request operations.
 
     go: tracing.go:31:6 -/
-noncomputable def firstOpKey.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def firstOpKey.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ops"
   (App (Val exceptionDo)
   (Let "ops" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RequestOp.ty))))) (Var "ops"))
@@ -4553,7 +4553,7 @@ noncomputable def firstOpKey.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- firstOpType returns type of the first operation in the list.
 
     go: tracing.go:50:6 -/
-noncomputable def firstOpType.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def firstOpType.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ops"
   (App (Val exceptionDo)
   (Let "ops" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RequestOp.ty))))) (Var "ops"))
@@ -4602,7 +4602,7 @@ noncomputable def firstOpType.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- firstOpLease returns lease ID of the first PUT operation in the list.
 
     go: tracing.go:67:6 -/
-noncomputable def firstOpLease.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def firstOpLease.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ops"
   (App (Val exceptionDo)
   (Let "ops" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RequestOp.ty))))) (Var "ops"))
@@ -4643,7 +4643,7 @@ noncomputable def firstOpLease.impl [FfiSyntax] [GoGlobalContext] : val :=
     to a quorum of the current cluster continuously since the given time.
 
     go: util.go:28:6 -/
-noncomputable def isConnectedToQuorumSince.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def isConnectedToQuorumSince.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "transport"
   (Lam "since"
   (Lam "self"
@@ -4663,7 +4663,7 @@ noncomputable def isConnectedToQuorumSince.impl [FfiSyntax] [GoGlobalContext] : 
   (App (App (Val (GoInstruction (FuncResolve quorum []))) (Val #())) (Var "$a0")))))))))))))))
 
 /-- go: util.go:46:6 -/
-noncomputable def quorum.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def quorum.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "num"
   (App (Val exceptionDo)
   (Let "num" (App (Val (GoInstruction (GoAlloc go.int))) (Var "num"))
@@ -4674,7 +4674,7 @@ noncomputable def quorum.impl [FfiSyntax] [GoGlobalContext] : val :=
     remote member since the given time.
 
     go: util.go:52:6 -/
-noncomputable def isConnectedSince.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def isConnectedSince.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "transport"
   (Lam "since"
   (Lam "remote"
@@ -4697,7 +4697,7 @@ noncomputable def isConnectedSince.impl [FfiSyntax] [GoGlobalContext] : val :=
     which helps mitigate pressure on the cluster.
 
     go: util.go:60:6 -/
-noncomputable def exceedsRequestLimit.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def exceedsRequestLimit.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "appliedIndex"
   (Lam "committedIndex"
   (Lam "r"
@@ -4727,7 +4727,7 @@ noncomputable def exceedsRequestLimit.impl [FfiSyntax] [GoGlobalContext] : val :
   (Val #())))))))))))))
 
 /-- go: util.go:72:6 -/
-noncomputable def isPriorityRequest.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def isPriorityRequest.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (App (Val exceptionDo)
   (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)))) (Var "r"))
@@ -4738,7 +4738,7 @@ noncomputable def isPriorityRequest.impl [FfiSyntax] [GoGlobalContext] : val :=
     since the given time.
 
     go: util.go:78:6 -/
-noncomputable def numConnectedSince.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def numConnectedSince.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "transport"
   (Lam "since"
   (Lam "self"
@@ -4777,7 +4777,7 @@ noncomputable def numConnectedSince.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "connectedNum") (Var "$r0"))))))))))))))))
 
 /-- go: v3_server.go:106:22 -/
-noncomputable def EtcdServer.Range.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.Range.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
   (Lam "r"
@@ -4988,7 +4988,7 @@ noncomputable def EtcdServer.Range.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0")))))))))))))))))))
 
 /-- go: v3_server.go:295:22 -/
-noncomputable def EtcdServer.Put.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.Put.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
   (Lam "r"
@@ -5058,7 +5058,7 @@ noncomputable def EtcdServer.Put.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0")))))))))))))))))))
 
 /-- go: v3_server.go:310:22 -/
-noncomputable def EtcdServer.DeleteRange.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.DeleteRange.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
   (Lam "r"
@@ -5124,7 +5124,7 @@ noncomputable def EtcdServer.DeleteRange.impl [FfiSyntax] [GoGlobalContext] : va
   (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0")))))))))))))))))))
 
 /-- go: v3_server.go:325:22 -/
-noncomputable def EtcdServer.Txn.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.Txn.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
   (Lam "r"
@@ -5374,7 +5374,7 @@ noncomputable def EtcdServer.Txn.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "readOnly") (Var "$r0")))))))))))))))
 
 /-- go: v3_server.go:434:22 -/
-noncomputable def EtcdServer.LeaseGrant.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.LeaseGrant.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
   (Lam "r"
@@ -5460,7 +5460,7 @@ noncomputable def EtcdServer.LeaseGrant.impl [FfiSyntax] [GoGlobalContext] : val
   (Val #()))))))))))))
 
 /-- go: v3_server.go:470:22 -/
-noncomputable def EtcdServer.LeaseRevoke.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.LeaseRevoke.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
   (Lam "r"
@@ -5535,7 +5535,7 @@ noncomputable def EtcdServer.LeaseRevoke.impl [FfiSyntax] [GoGlobalContext] : va
   (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0")))))))))))))))))))
 
 /-- go: v3_server.go:726:22 -/
-noncomputable def EtcdServer.newHeader.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.newHeader.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -5549,7 +5549,7 @@ noncomputable def EtcdServer.newHeader.impl [FfiSyntax] [GoGlobalContext] : val 
   (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"ClusterId")) (ElementExpression go.uint64 (Var "$v0"))), (KeyedElement (some (KeyField go!"MemberId")) (ElementExpression go.uint64 (Var "$v1"))), (KeyedElement (some (KeyField go!"Revision")) (ElementExpression go.int64 (Var "$v2"))), (KeyedElement (some (KeyField go!"RaftTerm")) (ElementExpression go.uint64 (Var "$v3"))), (KeyedElement (some (KeyField go!"LeaderId")) (ElementExpression go.uint64 (Var "$v4")))])))))))))))))
 
 /-- go: v3_server.go:813:22 -/
-noncomputable def EtcdServer.AuthEnable.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.AuthEnable.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
   (Lam "r"
@@ -5583,7 +5583,7 @@ noncomputable def EtcdServer.AuthEnable.impl [FfiSyntax] [GoGlobalContext] : val
   (App (Val (GoInstruction (GoStore _root_.Perennial.google_golang_org.protobuf.proto.Message.ty))) (Pair (Var "resp") (Var "$r0")))))))))))))))))))
 
 /-- go: v3_server.go:821:22 -/
-noncomputable def EtcdServer.AuthDisable.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.AuthDisable.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
   (Lam "r"
@@ -5617,7 +5617,7 @@ noncomputable def EtcdServer.AuthDisable.impl [FfiSyntax] [GoGlobalContext] : va
   (App (Val (GoInstruction (GoStore _root_.Perennial.google_golang_org.protobuf.proto.Message.ty))) (Pair (Var "resp") (Var "$r0")))))))))))))))))))
 
 /-- go: v3_server.go:829:22 -/
-noncomputable def EtcdServer.AuthStatus.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.AuthStatus.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
   (Lam "r"
@@ -5651,7 +5651,7 @@ noncomputable def EtcdServer.AuthStatus.impl [FfiSyntax] [GoGlobalContext] : val
   (App (Val (GoInstruction (GoStore _root_.Perennial.google_golang_org.protobuf.proto.Message.ty))) (Pair (Var "resp") (Var "$r0")))))))))))))))))))
 
 /-- go: v3_server.go:837:22 -/
-noncomputable def EtcdServer.Authenticate.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.Authenticate.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
   (Lam "r"
@@ -5794,7 +5794,7 @@ noncomputable def EtcdServer.Authenticate.impl [FfiSyntax] [GoGlobalContext] : v
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0"))))))))))))))))
 
 /-- go: v3_server.go:908:22 -/
-noncomputable def EtcdServer.UserDelete.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.UserDelete.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
   (Lam "r"
@@ -5828,7 +5828,7 @@ noncomputable def EtcdServer.UserDelete.impl [FfiSyntax] [GoGlobalContext] : val
   (App (Val (GoInstruction (GoStore _root_.Perennial.google_golang_org.protobuf.proto.Message.ty))) (Pair (Var "resp") (Var "$r0")))))))))))))))))))
 
 /-- go: v3_server.go:933:22 -/
-noncomputable def EtcdServer.UserGrantRole.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.UserGrantRole.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
   (Lam "r"
@@ -5862,7 +5862,7 @@ noncomputable def EtcdServer.UserGrantRole.impl [FfiSyntax] [GoGlobalContext] : 
   (App (Val (GoInstruction (GoStore _root_.Perennial.google_golang_org.protobuf.proto.Message.ty))) (Pair (Var "resp") (Var "$r0")))))))))))))))))))
 
 /-- go: v3_server.go:941:22 -/
-noncomputable def EtcdServer.UserGet.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.UserGet.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
   (Lam "r"
@@ -5896,7 +5896,7 @@ noncomputable def EtcdServer.UserGet.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.google_golang_org.protobuf.proto.Message.ty))) (Pair (Var "resp") (Var "$r0")))))))))))))))))))
 
 /-- go: v3_server.go:949:22 -/
-noncomputable def EtcdServer.UserList.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.UserList.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
   (Lam "r"
@@ -5930,7 +5930,7 @@ noncomputable def EtcdServer.UserList.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val (GoInstruction (GoStore _root_.Perennial.google_golang_org.protobuf.proto.Message.ty))) (Pair (Var "resp") (Var "$r0")))))))))))))))))))
 
 /-- go: v3_server.go:957:22 -/
-noncomputable def EtcdServer.UserRevokeRole.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.UserRevokeRole.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
   (Lam "r"
@@ -5964,7 +5964,7 @@ noncomputable def EtcdServer.UserRevokeRole.impl [FfiSyntax] [GoGlobalContext] :
   (App (Val (GoInstruction (GoStore _root_.Perennial.google_golang_org.protobuf.proto.Message.ty))) (Pair (Var "resp") (Var "$r0")))))))))))))))))))
 
 /-- go: v3_server.go:965:22 -/
-noncomputable def EtcdServer.RoleAdd.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.RoleAdd.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
   (Lam "r"
@@ -5998,7 +5998,7 @@ noncomputable def EtcdServer.RoleAdd.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.google_golang_org.protobuf.proto.Message.ty))) (Pair (Var "resp") (Var "$r0")))))))))))))))))))
 
 /-- go: v3_server.go:973:22 -/
-noncomputable def EtcdServer.RoleGrantPermission.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.RoleGrantPermission.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
   (Lam "r"
@@ -6032,7 +6032,7 @@ noncomputable def EtcdServer.RoleGrantPermission.impl [FfiSyntax] [GoGlobalConte
   (App (Val (GoInstruction (GoStore _root_.Perennial.google_golang_org.protobuf.proto.Message.ty))) (Pair (Var "resp") (Var "$r0")))))))))))))))))))
 
 /-- go: v3_server.go:981:22 -/
-noncomputable def EtcdServer.RoleGet.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.RoleGet.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
   (Lam "r"
@@ -6066,7 +6066,7 @@ noncomputable def EtcdServer.RoleGet.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.google_golang_org.protobuf.proto.Message.ty))) (Pair (Var "resp") (Var "$r0")))))))))))))))))))
 
 /-- go: v3_server.go:989:22 -/
-noncomputable def EtcdServer.RoleList.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.RoleList.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
   (Lam "r"
@@ -6100,7 +6100,7 @@ noncomputable def EtcdServer.RoleList.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val (GoInstruction (GoStore _root_.Perennial.google_golang_org.protobuf.proto.Message.ty))) (Pair (Var "resp") (Var "$r0")))))))))))))))))))
 
 /-- go: v3_server.go:997:22 -/
-noncomputable def EtcdServer.RoleRevokePermission.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.RoleRevokePermission.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
   (Lam "r"
@@ -6134,7 +6134,7 @@ noncomputable def EtcdServer.RoleRevokePermission.impl [FfiSyntax] [GoGlobalCont
   (App (Val (GoInstruction (GoStore _root_.Perennial.google_golang_org.protobuf.proto.Message.ty))) (Pair (Var "resp") (Var "$r0")))))))))))))))))))
 
 /-- go: v3_server.go:1005:22 -/
-noncomputable def EtcdServer.RoleDelete.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.RoleDelete.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
   (Lam "r"
@@ -6168,7 +6168,7 @@ noncomputable def EtcdServer.RoleDelete.impl [FfiSyntax] [GoGlobalContext] : val
   (App (Val (GoInstruction (GoStore _root_.Perennial.google_golang_org.protobuf.proto.Message.ty))) (Pair (Var "resp") (Var "$r0")))))))))))))))))))
 
 /-- go: v3_server.go:1013:22 -/
-noncomputable def EtcdServer.raftRequest.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.raftRequest.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
   (Lam "r"
@@ -6252,7 +6252,7 @@ noncomputable def EtcdServer.raftRequest.impl [FfiSyntax] [GoGlobalContext] : va
 /-- doSerialize handles the auth logic, with permissions checked by "chk", for a serialized request "get". Returns a non-nil error on authentication failure.
 
     go: v3_server.go:1035:22 -/
-noncomputable def EtcdServer.doSerialize.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.doSerialize.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
   (Lam "chk"
@@ -6324,7 +6324,7 @@ noncomputable def EtcdServer.doSerialize.impl [FfiSyntax] [GoGlobalContext] : va
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.pkg.v3.traceutil.Trace.ty)))) (Pair (Var "trace") (Var "$r0"))))))))))))))))
 
 /-- go: v3_server.go:1059:22 -/
-noncomputable def EtcdServer.processInternalRaftRequestOnce.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.processInternalRaftRequestOnce.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
   (Lam "r"
@@ -6570,7 +6570,7 @@ noncomputable def EtcdServer.processInternalRaftRequestOnce.impl [FfiSyntax] [Go
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "ai") (Var "$r0")))))))))))))))
 
 /-- go: v3_server.go:1136:6 -/
-noncomputable def getRequestType.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def getRequestType.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (App (Val exceptionDo)
   (Let "r" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.InternalRaftRequest.ty)))) (Var "r"))
@@ -6671,7 +6671,7 @@ noncomputable def getRequestType.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- Watchable returns a watchable interface attached to the etcdserver.
 
     go: v3_server.go:1204:22 -/
-noncomputable def EtcdServer.Watchable.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.Watchable.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -6680,7 +6680,7 @@ noncomputable def EtcdServer.Watchable.impl [FfiSyntax] [GoGlobalContext] : val 
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType EtcdServer.ty) go!"KV"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))) (Val #())))))))
 
 /-- go: v3_server.go:1206:22 -/
-noncomputable def EtcdServer.AuthInfoFromCtx.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.AuthInfoFromCtx.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
   (App (Val exceptionDo)
@@ -6721,7 +6721,7 @@ noncomputable def EtcdServer.AuthInfoFromCtx.impl [FfiSyntax] [GoGlobalContext] 
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthInfo.ty)))) (Pair (Var "authInfo") (Var "$r0")))))))))))))))))
 
 /-- go: v3_server.go:1277:22 -/
-noncomputable def EtcdServer.requireAuthInfo.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EtcdServer.requireAuthInfo.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
   (App (Val exceptionDo)
@@ -6765,9 +6765,9 @@ noncomputable def EtcdServer.requireAuthInfo.impl [FfiSyntax] [GoGlobalContext] 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver where
   pkgImportedPkgs := [pkg_id.context, pkg_id.github_com.Masterminds.semver.v3, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.go_etcd_io.etcd.api.v3.version, pkg_id.errors, pkg_id.fmt, pkg_id.io, pkg_id.net.http, pkg_id.time, pkg_id.github_com.dustin.go_humanize, pkg_id.go_uber_org.zap, pkg_id.google_golang_org.protobuf.proto, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.pkg.v3.pbutil, pkg_id.go_etcd_io.etcd.server.v3.config, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.errors, pkg_id.go_etcd_io.etcd.server.v3.storage, pkg_id.go_etcd_io.etcd.server.v3.storage.backend, pkg_id.go_etcd_io.etcd.server.v3.storage.wal, pkg_id.go_etcd_io.raft.v3, pkg_id.go_etcd_io.raft.v3.raftpb, pkg_id.strconv, pkg_id.sync, pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc, pkg_id.github_com.prometheus.client_golang.prometheus, pkg_id.log, pkg_id.go_etcd_io.etcd.client.pkg.v3.logutil, pkg_id.go_etcd_io.etcd.pkg.v3.contention, pkg_id.math, pkg_id.sync.atomic, pkg_id.go_etcd_io.etcd.pkg.v3.featuregate, pkg_id.go_etcd_io.etcd.pkg.v3.idutil, pkg_id.go_etcd_io.etcd.pkg.v3.notify, pkg_id.go_etcd_io.etcd.pkg.v3.schedule, pkg_id.go_etcd_io.etcd.pkg.v3.traceutil, pkg_id.go_etcd_io.etcd.pkg.v3.wait, pkg_id.go_etcd_io.etcd.server.v3.auth, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.read, pkg_id.go_etcd_io.etcd.server.v3.features, pkg_id.go_etcd_io.etcd.server.v3.lease, pkg_id.go_opentelemetry_io.otel.«attribute», pkg_id.go_opentelemetry_io.otel.trace, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.txn]
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.server.v3.etcdserver)) (Lam BAnon
   (App (Val exceptionDo)
@@ -7011,27 +7011,27 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc raftStatus (go.GoType.FunctionType (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.raft.v3.Status.ty])))) (Val #()))))))))
 
-structure serverVersionAdapter [FfiSyntax] where
+structure serverVersionAdapter [GooseExts] where
   mk ::
   EtcdServer' : Loc
 
-noncomputable instance serverVersionAdapter.zero_val [FfiSyntax] : ZeroVal serverVersionAdapter :=
+noncomputable instance serverVersionAdapter.zero_val [GooseExts] : ZeroVal serverVersionAdapter :=
   ⟨serverVersionAdapter.mk zeroValDef⟩
 
-@[reducible] noncomputable def serverVersionAdapter.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def serverVersionAdapter.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"EtcdServer" (go.GoType.PointerType EtcdServer.ty))]
 
-@[irreducible] noncomputable def serverVersionAdapter.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def serverVersionAdapter.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   serverVersionAdapter.fieldsUnsealed
 
-noncomputable instance equals_unfold_serverVersionAdapter [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_serverVersionAdapter [GooseExts] [GoGlobalContext] :
     EqualsUnfold serverVersionAdapter.fields serverVersionAdapter.fieldsUnsealed :=
   ⟨by unfold serverVersionAdapter.fields; rfl⟩
 
-@[reducible] noncomputable def serverVersionAdapter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def serverVersionAdapter.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType serverVersionAdapter.fields)
 
-class serverVersionAdapter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class serverVersionAdapter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying serverVersionAdapter.underlying serverVersionAdapter
   underlying : go.UnderlyingDirectedEq serverVersionAdapter.ty serverVersionAdapter.underlying
   get_EtcdServer : ∀ (x : serverVersionAdapter), go.IsGoStepPureDetTagged under (StructFieldGet serverVersionAdapter.underlying go!"EtcdServer") #x (Val #(x.EtcdServer'))
@@ -7042,7 +7042,7 @@ attribute [instance] serverVersionAdapter.TypeAssumptions.type_repr
   serverVersionAdapter.TypeAssumptions.get_EtcdServer
   serverVersionAdapter.TypeAssumptions.set_EtcdServer
 
-structure bootstrappedServer [FfiSyntax] where
+structure bootstrappedServer [GooseExts] where
   mk ::
   storage' : Loc
   cluster' : Loc
@@ -7050,27 +7050,27 @@ structure bootstrappedServer [FfiSyntax] where
   prt' : _root_.Perennial.net.http.RoundTripper
   ss' : Loc
 
-noncomputable instance bootstrappedServer.zero_val [FfiSyntax] : ZeroVal bootstrappedServer :=
+noncomputable instance bootstrappedServer.zero_val [GooseExts] : ZeroVal bootstrappedServer :=
   ⟨bootstrappedServer.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def bootstrappedServer.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def bootstrappedServer.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"storage" (go.GoType.PointerType bootstrappedStorage.ty)),
 (go.field_decl.FieldDecl go!"cluster" (go.GoType.PointerType bootstrappedCluster.ty)),
 (go.field_decl.FieldDecl go!"raft" (go.GoType.PointerType bootstrappedRaft.ty)),
 (go.field_decl.FieldDecl go!"prt" _root_.Perennial.net.http.RoundTripper.ty),
 (go.field_decl.FieldDecl go!"ss" (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Snapshotter.ty))]
 
-@[irreducible] noncomputable def bootstrappedServer.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def bootstrappedServer.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   bootstrappedServer.fieldsUnsealed
 
-noncomputable instance equals_unfold_bootstrappedServer [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_bootstrappedServer [GooseExts] [GoGlobalContext] :
     EqualsUnfold bootstrappedServer.fields bootstrappedServer.fieldsUnsealed :=
   ⟨by unfold bootstrappedServer.fields; rfl⟩
 
-@[reducible] noncomputable def bootstrappedServer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def bootstrappedServer.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType bootstrappedServer.fields)
 
-class bootstrappedServer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class bootstrappedServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying bootstrappedServer.underlying bootstrappedServer
   underlying : go.UnderlyingDirectedEq bootstrappedServer.ty bootstrappedServer.underlying
   get_storage : ∀ (x : bootstrappedServer), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedServer.underlying go!"storage") #x (Val #(x.storage'))
@@ -7097,29 +7097,29 @@ attribute [instance] bootstrappedServer.TypeAssumptions.type_repr
   bootstrappedServer.TypeAssumptions.get_ss
   bootstrappedServer.TypeAssumptions.set_ss
 
-structure bootstrappedStorage [FfiSyntax] where
+structure bootstrappedStorage [GooseExts] where
   mk ::
   backend' : Loc
   wal' : Loc
 
-noncomputable instance bootstrappedStorage.zero_val [FfiSyntax] : ZeroVal bootstrappedStorage :=
+noncomputable instance bootstrappedStorage.zero_val [GooseExts] : ZeroVal bootstrappedStorage :=
   ⟨bootstrappedStorage.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def bootstrappedStorage.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def bootstrappedStorage.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"backend" (go.GoType.PointerType bootstrappedBackend.ty)),
 (go.field_decl.FieldDecl go!"wal" (go.GoType.PointerType bootstrappedWAL.ty))]
 
-@[irreducible] noncomputable def bootstrappedStorage.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def bootstrappedStorage.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   bootstrappedStorage.fieldsUnsealed
 
-noncomputable instance equals_unfold_bootstrappedStorage [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_bootstrappedStorage [GooseExts] [GoGlobalContext] :
     EqualsUnfold bootstrappedStorage.fields bootstrappedStorage.fieldsUnsealed :=
   ⟨by unfold bootstrappedStorage.fields; rfl⟩
 
-@[reducible] noncomputable def bootstrappedStorage.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def bootstrappedStorage.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType bootstrappedStorage.fields)
 
-class bootstrappedStorage.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class bootstrappedStorage.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying bootstrappedStorage.underlying bootstrappedStorage
   underlying : go.UnderlyingDirectedEq bootstrappedStorage.ty bootstrappedStorage.underlying
   get_backend : ∀ (x : bootstrappedStorage), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedStorage.underlying go!"backend") #x (Val #(x.backend'))
@@ -7134,7 +7134,7 @@ attribute [instance] bootstrappedStorage.TypeAssumptions.type_repr
   bootstrappedStorage.TypeAssumptions.get_wal
   bootstrappedStorage.TypeAssumptions.set_wal
 
-structure bootstrappedBackend [FfiSyntax] where
+structure bootstrappedBackend [GooseExts] where
   mk ::
   beHooks' : Loc
   be' : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend
@@ -7142,27 +7142,27 @@ structure bootstrappedBackend [FfiSyntax] where
   beExist' : Bool
   snapshot' : Loc
 
-noncomputable instance bootstrappedBackend.zero_val [FfiSyntax] : ZeroVal bootstrappedBackend :=
+noncomputable instance bootstrappedBackend.zero_val [GooseExts] : ZeroVal bootstrappedBackend :=
   ⟨bootstrappedBackend.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def bootstrappedBackend.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def bootstrappedBackend.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"beHooks" (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.storage.BackendHooks.ty)),
 (go.field_decl.FieldDecl go!"be" _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty),
 (go.field_decl.FieldDecl go!"ci" _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.cindex.ConsistentIndexer.ty),
 (go.field_decl.FieldDecl go!"beExist" go.bool),
 (go.field_decl.FieldDecl go!"snapshot" (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty))]
 
-@[irreducible] noncomputable def bootstrappedBackend.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def bootstrappedBackend.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   bootstrappedBackend.fieldsUnsealed
 
-noncomputable instance equals_unfold_bootstrappedBackend [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_bootstrappedBackend [GooseExts] [GoGlobalContext] :
     EqualsUnfold bootstrappedBackend.fields bootstrappedBackend.fieldsUnsealed :=
   ⟨by unfold bootstrappedBackend.fields; rfl⟩
 
-@[reducible] noncomputable def bootstrappedBackend.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def bootstrappedBackend.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType bootstrappedBackend.fields)
 
-class bootstrappedBackend.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class bootstrappedBackend.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying bootstrappedBackend.underlying bootstrappedBackend
   underlying : go.UnderlyingDirectedEq bootstrappedBackend.ty bootstrappedBackend.underlying
   get_beHooks : ∀ (x : bootstrappedBackend), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedBackend.underlying go!"beHooks") #x (Val #(x.beHooks'))
@@ -7189,31 +7189,31 @@ attribute [instance] bootstrappedBackend.TypeAssumptions.type_repr
   bootstrappedBackend.TypeAssumptions.get_snapshot
   bootstrappedBackend.TypeAssumptions.set_snapshot
 
-structure bootstrappedCluster [FfiSyntax] where
+structure bootstrappedCluster [GooseExts] where
   mk ::
   remotes' : GoSlice
   cl' : Loc
   nodeID' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID
 
-noncomputable instance bootstrappedCluster.zero_val [FfiSyntax] : ZeroVal bootstrappedCluster :=
+noncomputable instance bootstrappedCluster.zero_val [GooseExts] : ZeroVal bootstrappedCluster :=
   ⟨bootstrappedCluster.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def bootstrappedCluster.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def bootstrappedCluster.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"remotes" (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty))),
 (go.field_decl.FieldDecl go!"cl" (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty)),
 (go.field_decl.FieldDecl go!"nodeID" _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty)]
 
-@[irreducible] noncomputable def bootstrappedCluster.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def bootstrappedCluster.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   bootstrappedCluster.fieldsUnsealed
 
-noncomputable instance equals_unfold_bootstrappedCluster [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_bootstrappedCluster [GooseExts] [GoGlobalContext] :
     EqualsUnfold bootstrappedCluster.fields bootstrappedCluster.fieldsUnsealed :=
   ⟨by unfold bootstrappedCluster.fields; rfl⟩
 
-@[reducible] noncomputable def bootstrappedCluster.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def bootstrappedCluster.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType bootstrappedCluster.fields)
 
-class bootstrappedCluster.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class bootstrappedCluster.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying bootstrappedCluster.underlying bootstrappedCluster
   underlying : go.UnderlyingDirectedEq bootstrappedCluster.ty bootstrappedCluster.underlying
   get_remotes : ∀ (x : bootstrappedCluster), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedCluster.underlying go!"remotes") #x (Val #(x.remotes'))
@@ -7232,7 +7232,7 @@ attribute [instance] bootstrappedCluster.TypeAssumptions.type_repr
   bootstrappedCluster.TypeAssumptions.get_nodeID
   bootstrappedCluster.TypeAssumptions.set_nodeID
 
-structure bootstrappedRaft [FfiSyntax] where
+structure bootstrappedRaft [GooseExts] where
   mk ::
   lg' : Loc
   heartbeat' : _root_.Perennial.time.Duration
@@ -7240,27 +7240,27 @@ structure bootstrappedRaft [FfiSyntax] where
   config' : Loc
   storage' : Loc
 
-noncomputable instance bootstrappedRaft.zero_val [FfiSyntax] : ZeroVal bootstrappedRaft :=
+noncomputable instance bootstrappedRaft.zero_val [GooseExts] : ZeroVal bootstrappedRaft :=
   ⟨bootstrappedRaft.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def bootstrappedRaft.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def bootstrappedRaft.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"lg" (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)),
 (go.field_decl.FieldDecl go!"heartbeat" _root_.Perennial.time.Duration.ty),
 (go.field_decl.FieldDecl go!"peers" (go.GoType.SliceType _root_.Perennial.go_etcd_io.raft.v3.Peer.ty)),
 (go.field_decl.FieldDecl go!"config" (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.Config.ty)),
 (go.field_decl.FieldDecl go!"storage" (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.MemoryStorage.ty))]
 
-@[irreducible] noncomputable def bootstrappedRaft.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def bootstrappedRaft.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   bootstrappedRaft.fieldsUnsealed
 
-noncomputable instance equals_unfold_bootstrappedRaft [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_bootstrappedRaft [GooseExts] [GoGlobalContext] :
     EqualsUnfold bootstrappedRaft.fields bootstrappedRaft.fieldsUnsealed :=
   ⟨by unfold bootstrappedRaft.fields; rfl⟩
 
-@[reducible] noncomputable def bootstrappedRaft.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def bootstrappedRaft.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType bootstrappedRaft.fields)
 
-class bootstrappedRaft.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class bootstrappedRaft.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying bootstrappedRaft.underlying bootstrappedRaft
   underlying : go.UnderlyingDirectedEq bootstrappedRaft.ty bootstrappedRaft.underlying
   get_lg : ∀ (x : bootstrappedRaft), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedRaft.underlying go!"lg") #x (Val #(x.lg'))
@@ -7289,29 +7289,29 @@ attribute [instance] bootstrappedRaft.TypeAssumptions.type_repr
   bootstrappedRaft.TypeAssumptions.set_storage
   bootstrappedRaft.TypeAssumptions.ptr_newRaftNode_unfold
 
-structure snapshotMetadata [FfiSyntax] where
+structure snapshotMetadata [GooseExts] where
   mk ::
   nodeID' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID
   clusterID' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID
 
-noncomputable instance snapshotMetadata.zero_val [FfiSyntax] : ZeroVal snapshotMetadata :=
+noncomputable instance snapshotMetadata.zero_val [GooseExts] : ZeroVal snapshotMetadata :=
   ⟨snapshotMetadata.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def snapshotMetadata.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def snapshotMetadata.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"nodeID" _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty),
 (go.field_decl.FieldDecl go!"clusterID" _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty)]
 
-@[irreducible] noncomputable def snapshotMetadata.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def snapshotMetadata.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   snapshotMetadata.fieldsUnsealed
 
-noncomputable instance equals_unfold_snapshotMetadata [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_snapshotMetadata [GooseExts] [GoGlobalContext] :
     EqualsUnfold snapshotMetadata.fields snapshotMetadata.fieldsUnsealed :=
   ⟨by unfold snapshotMetadata.fields; rfl⟩
 
-@[reducible] noncomputable def snapshotMetadata.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def snapshotMetadata.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType snapshotMetadata.fields)
 
-class snapshotMetadata.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class snapshotMetadata.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying snapshotMetadata.underlying snapshotMetadata
   underlying : go.UnderlyingDirectedEq snapshotMetadata.ty snapshotMetadata.underlying
   get_nodeID : ∀ (x : snapshotMetadata), go.IsGoStepPureDetTagged under (StructFieldGet snapshotMetadata.underlying go!"nodeID") #x (Val #(x.nodeID'))
@@ -7326,7 +7326,7 @@ attribute [instance] snapshotMetadata.TypeAssumptions.type_repr
   snapshotMetadata.TypeAssumptions.get_clusterID
   snapshotMetadata.TypeAssumptions.set_clusterID
 
-structure bootstrappedWAL [FfiSyntax] where
+structure bootstrappedWAL [GooseExts] where
   mk ::
   lg' : Loc
   haveWAL' : Bool
@@ -7336,10 +7336,10 @@ structure bootstrappedWAL [FfiSyntax] where
   snapshot' : Loc
   meta' : Loc
 
-noncomputable instance bootstrappedWAL.zero_val [FfiSyntax] : ZeroVal bootstrappedWAL :=
+noncomputable instance bootstrappedWAL.zero_val [GooseExts] : ZeroVal bootstrappedWAL :=
   ⟨bootstrappedWAL.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def bootstrappedWAL.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def bootstrappedWAL.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"lg" (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)),
 (go.field_decl.FieldDecl go!"haveWAL" go.bool),
 (go.field_decl.FieldDecl go!"w" (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.storage.wal.WAL.ty)),
@@ -7348,17 +7348,17 @@ noncomputable instance bootstrappedWAL.zero_val [FfiSyntax] : ZeroVal bootstrapp
 (go.field_decl.FieldDecl go!"snapshot" (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)),
 (go.field_decl.FieldDecl go!"meta" (go.GoType.PointerType snapshotMetadata.ty))]
 
-@[irreducible] noncomputable def bootstrappedWAL.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def bootstrappedWAL.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   bootstrappedWAL.fieldsUnsealed
 
-noncomputable instance equals_unfold_bootstrappedWAL [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_bootstrappedWAL [GooseExts] [GoGlobalContext] :
     EqualsUnfold bootstrappedWAL.fields bootstrappedWAL.fieldsUnsealed :=
   ⟨by unfold bootstrappedWAL.fields; rfl⟩
 
-@[reducible] noncomputable def bootstrappedWAL.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def bootstrappedWAL.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType bootstrappedWAL.fields)
 
-class bootstrappedWAL.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class bootstrappedWAL.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying bootstrappedWAL.underlying bootstrappedWAL
   underlying : go.UnderlyingDirectedEq bootstrappedWAL.ty bootstrappedWAL.underlying
   get_lg : ∀ (x : bootstrappedWAL), go.IsGoStepPureDetTagged under (StructFieldGet bootstrappedWAL.underlying go!"lg") #x (Val #(x.lg'))
@@ -7393,53 +7393,53 @@ attribute [instance] bootstrappedWAL.TypeAssumptions.type_repr
   bootstrappedWAL.TypeAssumptions.get_meta
   bootstrappedWAL.TypeAssumptions.set_meta
 
-abbrev CorruptionChecker [FfiSyntax] : Type := GoInterface
+abbrev CorruptionChecker [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def CorruptionChecker.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def CorruptionChecker.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"CompactHashCheck" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"InitialCheck" (go.signature.Signature [] false [go.error])), (go.InterfaceElem.MethodElem go!"PeriodicCheck" (go.signature.Signature [] false [go.error]))])
 
-class CorruptionChecker.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class CorruptionChecker.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq CorruptionChecker.ty CorruptionChecker.underlying
 
 attribute [instance] CorruptionChecker.TypeAssumptions.underlying
 
-abbrev Hasher [FfiSyntax] : Type := GoInterface
+abbrev Hasher [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def Hasher.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Hasher.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"LinearizableReadNotify" (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"MemberID" (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty])), (go.InterfaceElem.MethodElem go!"PeerHashByRev" (go.signature.Signature [go.int64] false [(go.GoType.SliceType (go.GoType.PointerType peerHashKVResp.ty))])), (go.InterfaceElem.MethodElem go!"ReqTimeout" (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty])), (go.InterfaceElem.MethodElem go!"TriggerCorruptAlarm" (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.HashStorage.ty)])])
 
-class Hasher.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Hasher.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Hasher.ty Hasher.underlying
 
 attribute [instance] Hasher.TypeAssumptions.underlying
 
-structure corruptionChecker [FfiSyntax] where
+structure corruptionChecker [GooseExts] where
   mk ::
   lg' : Loc
   hasher' : Hasher
   mux' : _root_.Perennial.sync.RWMutex
   latestRevisionChecked' : w64
 
-noncomputable instance corruptionChecker.zero_val [FfiSyntax] : ZeroVal corruptionChecker :=
+noncomputable instance corruptionChecker.zero_val [GooseExts] : ZeroVal corruptionChecker :=
   ⟨corruptionChecker.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def corruptionChecker.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def corruptionChecker.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"lg" (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)),
 (go.field_decl.FieldDecl go!"hasher" Hasher.ty),
 (go.field_decl.FieldDecl go!"mux" _root_.Perennial.sync.RWMutex.ty),
 (go.field_decl.FieldDecl go!"latestRevisionChecked" go.int64)]
 
-@[irreducible] noncomputable def corruptionChecker.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def corruptionChecker.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   corruptionChecker.fieldsUnsealed
 
-noncomputable instance equals_unfold_corruptionChecker [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_corruptionChecker [GooseExts] [GoGlobalContext] :
     EqualsUnfold corruptionChecker.fields corruptionChecker.fieldsUnsealed :=
   ⟨by unfold corruptionChecker.fields; rfl⟩
 
-@[reducible] noncomputable def corruptionChecker.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def corruptionChecker.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType corruptionChecker.fields)
 
-class corruptionChecker.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class corruptionChecker.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying corruptionChecker.underlying corruptionChecker
   underlying : go.UnderlyingDirectedEq corruptionChecker.ty corruptionChecker.underlying
   get_lg : ∀ (x : corruptionChecker), go.IsGoStepPureDetTagged under (StructFieldGet corruptionChecker.underlying go!"lg") #x (Val #(x.lg'))
@@ -7462,29 +7462,29 @@ attribute [instance] corruptionChecker.TypeAssumptions.type_repr
   corruptionChecker.TypeAssumptions.get_latestRevisionChecked
   corruptionChecker.TypeAssumptions.set_latestRevisionChecked
 
-structure hasherAdapter [FfiSyntax] where
+structure hasherAdapter [GooseExts] where
   mk ::
   EtcdServer' : Loc
   HashStorage' : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.HashStorage
 
-noncomputable instance hasherAdapter.zero_val [FfiSyntax] : ZeroVal hasherAdapter :=
+noncomputable instance hasherAdapter.zero_val [GooseExts] : ZeroVal hasherAdapter :=
   ⟨hasherAdapter.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def hasherAdapter.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def hasherAdapter.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"EtcdServer" (go.GoType.PointerType EtcdServer.ty)),
 (go.field_decl.EmbeddedField go!"HashStorage" _root_.Perennial.go_etcd_io.etcd.server.v3.storage.mvcc.HashStorage.ty)]
 
-@[irreducible] noncomputable def hasherAdapter.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def hasherAdapter.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   hasherAdapter.fieldsUnsealed
 
-noncomputable instance equals_unfold_hasherAdapter [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_hasherAdapter [GooseExts] [GoGlobalContext] :
     EqualsUnfold hasherAdapter.fields hasherAdapter.fieldsUnsealed :=
   ⟨by unfold hasherAdapter.fields; rfl⟩
 
-@[reducible] noncomputable def hasherAdapter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def hasherAdapter.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType hasherAdapter.fields)
 
-class hasherAdapter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class hasherAdapter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying hasherAdapter.underlying hasherAdapter
   underlying : go.UnderlyingDirectedEq hasherAdapter.ty hasherAdapter.underlying
   get_EtcdServer : ∀ (x : hasherAdapter), go.IsGoStepPureDetTagged under (StructFieldGet hasherAdapter.underlying go!"EtcdServer") #x (Val #(x.EtcdServer'))
@@ -7499,29 +7499,29 @@ attribute [instance] hasherAdapter.TypeAssumptions.type_repr
   hasherAdapter.TypeAssumptions.get_HashStorage
   hasherAdapter.TypeAssumptions.set_HashStorage
 
-structure peerInfo [FfiSyntax] where
+structure peerInfo [GooseExts] where
   mk ::
   id' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID
   eps' : GoSlice
 
-noncomputable instance peerInfo.zero_val [FfiSyntax] : ZeroVal peerInfo :=
+noncomputable instance peerInfo.zero_val [GooseExts] : ZeroVal peerInfo :=
   ⟨peerInfo.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def peerInfo.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def peerInfo.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"id" _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty),
 (go.field_decl.FieldDecl go!"eps" (go.GoType.SliceType go.string))]
 
-@[irreducible] noncomputable def peerInfo.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def peerInfo.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   peerInfo.fieldsUnsealed
 
-noncomputable instance equals_unfold_peerInfo [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_peerInfo [GooseExts] [GoGlobalContext] :
     EqualsUnfold peerInfo.fields peerInfo.fieldsUnsealed :=
   ⟨by unfold peerInfo.fields; rfl⟩
 
-@[reducible] noncomputable def peerInfo.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def peerInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType peerInfo.fields)
 
-class peerInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class peerInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying peerInfo.underlying peerInfo
   underlying : go.UnderlyingDirectedEq peerInfo.ty peerInfo.underlying
   get_id : ∀ (x : peerInfo), go.IsGoStepPureDetTagged under (StructFieldGet peerInfo.underlying go!"id") #x (Val #(x.id'))
@@ -7536,31 +7536,31 @@ attribute [instance] peerInfo.TypeAssumptions.type_repr
   peerInfo.TypeAssumptions.get_eps
   peerInfo.TypeAssumptions.set_eps
 
-structure peerHashKVResp [FfiSyntax] where
+structure peerHashKVResp [GooseExts] where
   mk ::
   peerInfo' : peerInfo
   resp' : Loc
   err' : GoError
 
-noncomputable instance peerHashKVResp.zero_val [FfiSyntax] : ZeroVal peerHashKVResp :=
+noncomputable instance peerHashKVResp.zero_val [GooseExts] : ZeroVal peerHashKVResp :=
   ⟨peerHashKVResp.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def peerHashKVResp.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def peerHashKVResp.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"peerInfo" peerInfo.ty),
 (go.field_decl.FieldDecl go!"resp" (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.HashKVResponse.ty)),
 (go.field_decl.FieldDecl go!"err" go.error)]
 
-@[irreducible] noncomputable def peerHashKVResp.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def peerHashKVResp.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   peerHashKVResp.fieldsUnsealed
 
-noncomputable instance equals_unfold_peerHashKVResp [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_peerHashKVResp [GooseExts] [GoGlobalContext] :
     EqualsUnfold peerHashKVResp.fields peerHashKVResp.fieldsUnsealed :=
   ⟨by unfold peerHashKVResp.fields; rfl⟩
 
-@[reducible] noncomputable def peerHashKVResp.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def peerHashKVResp.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType peerHashKVResp.fields)
 
-class peerHashKVResp.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class peerHashKVResp.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying peerHashKVResp.underlying peerHashKVResp
   underlying : go.UnderlyingDirectedEq peerHashKVResp.ty peerHashKVResp.underlying
   get_peerInfo : ∀ (x : peerHashKVResp), go.IsGoStepPureDetTagged under (StructFieldGet peerHashKVResp.underlying go!"peerInfo") #x (Val #(x.peerInfo'))
@@ -7579,29 +7579,29 @@ attribute [instance] peerHashKVResp.TypeAssumptions.type_repr
   peerHashKVResp.TypeAssumptions.get_err
   peerHashKVResp.TypeAssumptions.set_err
 
-structure hashKVHandler [FfiSyntax] where
+structure hashKVHandler [GooseExts] where
   mk ::
   lg' : Loc
   server' : Loc
 
-noncomputable instance hashKVHandler.zero_val [FfiSyntax] : ZeroVal hashKVHandler :=
+noncomputable instance hashKVHandler.zero_val [GooseExts] : ZeroVal hashKVHandler :=
   ⟨hashKVHandler.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def hashKVHandler.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def hashKVHandler.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"lg" (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)),
 (go.field_decl.FieldDecl go!"server" (go.GoType.PointerType EtcdServer.ty))]
 
-@[irreducible] noncomputable def hashKVHandler.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def hashKVHandler.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   hashKVHandler.fieldsUnsealed
 
-noncomputable instance equals_unfold_hashKVHandler [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_hashKVHandler [GooseExts] [GoGlobalContext] :
     EqualsUnfold hashKVHandler.fields hashKVHandler.fieldsUnsealed :=
   ⟨by unfold hashKVHandler.fields; rfl⟩
 
-@[reducible] noncomputable def hashKVHandler.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def hashKVHandler.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType hashKVHandler.fields)
 
-class hashKVHandler.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class hashKVHandler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying hashKVHandler.underlying hashKVHandler
   underlying : go.UnderlyingDirectedEq hashKVHandler.ty hashKVHandler.underlying
   get_lg : ∀ (x : hashKVHandler), go.IsGoStepPureDetTagged under (StructFieldGet hashKVHandler.underlying go!"lg") #x (Val #(x.lg'))
@@ -7616,7 +7616,7 @@ attribute [instance] hashKVHandler.TypeAssumptions.type_repr
   hashKVHandler.TypeAssumptions.get_server
   hashKVHandler.TypeAssumptions.set_server
 
-structure toApply [FfiSyntax] where
+structure toApply [GooseExts] where
   mk ::
   entries' : GoSlice
   snapshot' : Loc
@@ -7624,27 +7624,27 @@ structure toApply [FfiSyntax] where
   raftAdvancedC' : GoChan
   raftTerm' : w64
 
-noncomputable instance toApply.zero_val [FfiSyntax] : ZeroVal toApply :=
+noncomputable instance toApply.zero_val [GooseExts] : ZeroVal toApply :=
   ⟨toApply.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def toApply.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def toApply.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"entries" (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))),
 (go.field_decl.FieldDecl go!"snapshot" (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)),
 (go.field_decl.FieldDecl go!"notifyc" (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))),
 (go.field_decl.FieldDecl go!"raftAdvancedC" (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))),
 (go.field_decl.FieldDecl go!"raftTerm" go.uint64)]
 
-@[irreducible] noncomputable def toApply.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def toApply.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   toApply.fieldsUnsealed
 
-noncomputable instance equals_unfold_toApply [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_toApply [GooseExts] [GoGlobalContext] :
     EqualsUnfold toApply.fields toApply.fieldsUnsealed :=
   ⟨by unfold toApply.fields; rfl⟩
 
-@[reducible] noncomputable def toApply.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def toApply.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType toApply.fields)
 
-class toApply.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class toApply.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying toApply.underlying toApply
   underlying : go.UnderlyingDirectedEq toApply.ty toApply.underlying
   get_entries : ∀ (x : toApply), go.IsGoStepPureDetTagged under (StructFieldGet toApply.underlying go!"entries") #x (Val #(x.entries'))
@@ -7671,7 +7671,7 @@ attribute [instance] toApply.TypeAssumptions.type_repr
   toApply.TypeAssumptions.get_raftTerm
   toApply.TypeAssumptions.set_raftTerm
 
-structure raftNodeConfig [FfiSyntax] where
+structure raftNodeConfig [GooseExts] where
   mk ::
   lg' : Loc
   isIDRemoved' : GoFunc
@@ -7681,10 +7681,10 @@ structure raftNodeConfig [FfiSyntax] where
   heartbeat' : _root_.Perennial.time.Duration
   transport' : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transporter
 
-noncomputable instance raftNodeConfig.zero_val [FfiSyntax] : ZeroVal raftNodeConfig :=
+noncomputable instance raftNodeConfig.zero_val [GooseExts] : ZeroVal raftNodeConfig :=
   ⟨raftNodeConfig.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def raftNodeConfig.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def raftNodeConfig.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"lg" (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)),
 (go.field_decl.FieldDecl go!"isIDRemoved" (go.GoType.FunctionType (go.signature.Signature [go.uint64] false [go.bool]))),
 (go.field_decl.EmbeddedField go!"Node" _root_.Perennial.go_etcd_io.raft.v3.Node.ty),
@@ -7693,17 +7693,17 @@ noncomputable instance raftNodeConfig.zero_val [FfiSyntax] : ZeroVal raftNodeCon
 (go.field_decl.FieldDecl go!"heartbeat" _root_.Perennial.time.Duration.ty),
 (go.field_decl.FieldDecl go!"transport" _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transporter.ty)]
 
-@[irreducible] noncomputable def raftNodeConfig.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def raftNodeConfig.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   raftNodeConfig.fieldsUnsealed
 
-noncomputable instance equals_unfold_raftNodeConfig [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_raftNodeConfig [GooseExts] [GoGlobalContext] :
     EqualsUnfold raftNodeConfig.fields raftNodeConfig.fieldsUnsealed :=
   ⟨by unfold raftNodeConfig.fields; rfl⟩
 
-@[reducible] noncomputable def raftNodeConfig.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def raftNodeConfig.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType raftNodeConfig.fields)
 
-class raftNodeConfig.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class raftNodeConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying raftNodeConfig.underlying raftNodeConfig
   underlying : go.UnderlyingDirectedEq raftNodeConfig.ty raftNodeConfig.underlying
   get_lg : ∀ (x : raftNodeConfig), go.IsGoStepPureDetTagged under (StructFieldGet raftNodeConfig.underlying go!"lg") #x (Val #(x.lg'))
@@ -7792,7 +7792,7 @@ attribute [instance] raftNodeConfig.TypeAssumptions.type_repr
   raftNodeConfig.TypeAssumptions.ptr_Stop_unfold
   raftNodeConfig.TypeAssumptions.ptr_Tick_unfold
 
-structure raftNode [FfiSyntax] where
+structure raftNode [GooseExts] where
   mk ::
   lg' : Loc
   tickMu' : Loc
@@ -7806,10 +7806,10 @@ structure raftNode [FfiSyntax] where
   stopped' : GoChan
   done' : GoChan
 
-noncomputable instance raftNode.zero_val [FfiSyntax] : ZeroVal raftNode :=
+noncomputable instance raftNode.zero_val [GooseExts] : ZeroVal raftNode :=
   ⟨raftNode.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def raftNode.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def raftNode.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"lg" (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)),
 (go.field_decl.FieldDecl go!"tickMu" (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty)),
 (go.field_decl.FieldDecl go!"latestTickTs" _root_.Perennial.time.Time.ty),
@@ -7822,17 +7822,17 @@ noncomputable instance raftNode.zero_val [FfiSyntax] : ZeroVal raftNode :=
 (go.field_decl.FieldDecl go!"stopped" (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))),
 (go.field_decl.FieldDecl go!"done" (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])))]
 
-@[irreducible] noncomputable def raftNode.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def raftNode.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   raftNode.fieldsUnsealed
 
-noncomputable instance equals_unfold_raftNode [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_raftNode [GooseExts] [GoGlobalContext] :
     EqualsUnfold raftNode.fields raftNode.fieldsUnsealed :=
   ⟨by unfold raftNode.fields; rfl⟩
 
-@[reducible] noncomputable def raftNode.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def raftNode.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType raftNode.fields)
 
-class raftNode.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class raftNode.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying raftNode.underlying raftNode
   underlying : go.UnderlyingDirectedEq raftNode.ty raftNode.underlying
   get_lg : ∀ (x : raftNode), go.IsGoStepPureDetTagged under (StructFieldGet raftNode.underlying go!"lg") #x (Val #(x.lg'))
@@ -7959,7 +7959,7 @@ axiom Response : Type
 axiom Response.zero_val : ZeroVal Response
 attribute [instance] Response.zero_val
 
-class Response.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Response.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Response.underlying Response
   underlying : go.UnderlyingDirectedEq Response.ty Response.underlying
   isUnderlying : go.IsUnderlying Response.underlying Response.underlying
@@ -7968,37 +7968,37 @@ attribute [instance] Response.TypeAssumptions.type_repr
   Response.TypeAssumptions.underlying
   Response.TypeAssumptions.isUnderlying
 
-abbrev ServerV2 [FfiSyntax] : Type := GoInterface
+abbrev ServerV2 [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def ServerV2.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ServerV2.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"ClientCertAuthEnabled" (go.signature.Signature [] false [go.bool])), (go.InterfaceElem.MethodElem go!"Leader" (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm Server.ty)])])
 
-class ServerV2.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ServerV2.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ServerV2.ty ServerV2.underlying
 
 attribute [instance] ServerV2.TypeAssumptions.underlying
 
-abbrev ServerV3 [FfiSyntax] : Type := GoInterface
+abbrev ServerV3 [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def ServerV3.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ServerV3.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.TypeElem [(go.type_term.TypeTerm Server.ty)]), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.apply.RaftStatusGetter.ty)])])
 
-class ServerV3.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ServerV3.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ServerV3.ty ServerV3.underlying
 
 attribute [instance] ServerV3.TypeAssumptions.underlying
 
-abbrev Server [FfiSyntax] : Type := GoInterface
+abbrev Server [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def Server.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Server.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"AddMember" (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error])), (go.InterfaceElem.MethodElem go!"Alarms" (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty))])), (go.InterfaceElem.MethodElem go!"Cluster" (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.Cluster.ty])), (go.InterfaceElem.MethodElem go!"ClusterVersion" (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)])), (go.InterfaceElem.MethodElem go!"LeaderChangedNotify" (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))])), (go.InterfaceElem.MethodElem go!"PromoteMember" (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error])), (go.InterfaceElem.MethodElem go!"RemoveMember" (go.signature.Signature [_root_.Perennial.context.Context.ty, go.uint64] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error])), (go.InterfaceElem.MethodElem go!"StorageVersion" (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)])), (go.InterfaceElem.MethodElem go!"UpdateMember" (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)), go.error]))])
 
-class Server.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Server.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Server.ty Server.underlying
 
 attribute [instance] Server.TypeAssumptions.underlying
 
-structure EtcdServer [FfiSyntax] where
+structure EtcdServer [GooseExts] where
   mk ::
   inflightSnapshots' : _root_.Perennial.sync.atomic.Int64
   appliedIndex' : _root_.Perennial.sync.atomic.Uint64
@@ -8048,10 +8048,10 @@ structure EtcdServer [FfiSyntax] where
   forceDiskSnapshot' : Bool
   corruptionChecker' : CorruptionChecker
 
-noncomputable instance EtcdServer.zero_val [FfiSyntax] : ZeroVal EtcdServer :=
+noncomputable instance EtcdServer.zero_val [GooseExts] : ZeroVal EtcdServer :=
   ⟨EtcdServer.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def EtcdServer.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def EtcdServer.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"inflightSnapshots" _root_.Perennial.sync.atomic.Int64.ty),
 (go.field_decl.FieldDecl go!"appliedIndex" _root_.Perennial.sync.atomic.Uint64.ty),
 (go.field_decl.FieldDecl go!"committedIndex" _root_.Perennial.sync.atomic.Uint64.ty),
@@ -8100,17 +8100,17 @@ noncomputable instance EtcdServer.zero_val [FfiSyntax] : ZeroVal EtcdServer :=
 (go.field_decl.FieldDecl go!"forceDiskSnapshot" go.bool),
 (go.field_decl.FieldDecl go!"corruptionChecker" CorruptionChecker.ty)]
 
-@[irreducible] noncomputable def EtcdServer.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def EtcdServer.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   EtcdServer.fieldsUnsealed
 
-noncomputable instance equals_unfold_EtcdServer [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_EtcdServer [GooseExts] [GoGlobalContext] :
     EqualsUnfold EtcdServer.fields EtcdServer.fieldsUnsealed :=
   ⟨by unfold EtcdServer.fields; rfl⟩
 
-@[reducible] noncomputable def EtcdServer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def EtcdServer.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType EtcdServer.fields)
 
-class EtcdServer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class EtcdServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying EtcdServer.underlying EtcdServer
   underlying : go.UnderlyingDirectedEq EtcdServer.ty EtcdServer.underlying
   get_inflightSnapshots : ∀ (x : EtcdServer), go.IsGoStepPureDetTagged under (StructFieldGet EtcdServer.underlying go!"inflightSnapshots") #x (Val #(x.inflightSnapshots'))
@@ -8487,51 +8487,51 @@ attribute [instance] EtcdServer.TypeAssumptions.type_repr
   EtcdServer.TypeAssumptions.ptr_snapshotIfNeededAndCompactRaftLog_unfold
   EtcdServer.TypeAssumptions.ptr_start_unfold
 
-abbrev ServerPeer [FfiSyntax] : Type := GoInterface
+abbrev ServerPeer [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def ServerPeer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ServerPeer.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"LeaseHandler" (go.signature.Signature [] false [_root_.Perennial.net.http.Handler.ty])), (go.InterfaceElem.MethodElem go!"RaftHandler" (go.signature.Signature [] false [_root_.Perennial.net.http.Handler.ty])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm ServerV2.ty)])])
 
-class ServerPeer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ServerPeer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ServerPeer.ty ServerPeer.underlying
 
 attribute [instance] ServerPeer.TypeAssumptions.underlying
 
-abbrev ServerPeerV2 [FfiSyntax] : Type := GoInterface
+abbrev ServerPeerV2 [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def ServerPeerV2.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ServerPeerV2.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"DowngradeEnabledHandler" (go.signature.Signature [] false [_root_.Perennial.net.http.Handler.ty])), (go.InterfaceElem.MethodElem go!"HashKVHandler" (go.signature.Signature [] false [_root_.Perennial.net.http.Handler.ty])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm ServerPeer.ty)])])
 
-class ServerPeerV2.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ServerPeerV2.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ServerPeerV2.ty ServerPeerV2.underlying
 
 attribute [instance] ServerPeerV2.TypeAssumptions.underlying
 
-structure downgradeEnabledHandler [FfiSyntax] where
+structure downgradeEnabledHandler [GooseExts] where
   mk ::
   lg' : Loc
   cluster' : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.Cluster
   server' : Loc
 
-noncomputable instance downgradeEnabledHandler.zero_val [FfiSyntax] : ZeroVal downgradeEnabledHandler :=
+noncomputable instance downgradeEnabledHandler.zero_val [GooseExts] : ZeroVal downgradeEnabledHandler :=
   ⟨downgradeEnabledHandler.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def downgradeEnabledHandler.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def downgradeEnabledHandler.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"lg" (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)),
 (go.field_decl.FieldDecl go!"cluster" _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.Cluster.ty),
 (go.field_decl.FieldDecl go!"server" (go.GoType.PointerType EtcdServer.ty))]
 
-@[irreducible] noncomputable def downgradeEnabledHandler.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def downgradeEnabledHandler.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   downgradeEnabledHandler.fieldsUnsealed
 
-noncomputable instance equals_unfold_downgradeEnabledHandler [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_downgradeEnabledHandler [GooseExts] [GoGlobalContext] :
     EqualsUnfold downgradeEnabledHandler.fields downgradeEnabledHandler.fieldsUnsealed :=
   ⟨by unfold downgradeEnabledHandler.fields; rfl⟩
 
-@[reducible] noncomputable def downgradeEnabledHandler.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def downgradeEnabledHandler.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType downgradeEnabledHandler.fields)
 
-class downgradeEnabledHandler.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class downgradeEnabledHandler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying downgradeEnabledHandler.underlying downgradeEnabledHandler
   underlying : go.UnderlyingDirectedEq downgradeEnabledHandler.ty downgradeEnabledHandler.underlying
   get_lg : ∀ (x : downgradeEnabledHandler), go.IsGoStepPureDetTagged under (StructFieldGet downgradeEnabledHandler.underlying go!"lg") #x (Val #(x.lg'))
@@ -8550,7 +8550,7 @@ attribute [instance] downgradeEnabledHandler.TypeAssumptions.type_repr
   downgradeEnabledHandler.TypeAssumptions.get_server
   downgradeEnabledHandler.TypeAssumptions.set_server
 
-structure etcdProgress [FfiSyntax] where
+structure etcdProgress [GooseExts] where
   mk ::
   confState' : Loc
   diskSnapshotIndex' : w64
@@ -8558,27 +8558,27 @@ structure etcdProgress [FfiSyntax] where
   appliedt' : w64
   appliedi' : w64
 
-noncomputable instance etcdProgress.zero_val [FfiSyntax] : ZeroVal etcdProgress :=
+noncomputable instance etcdProgress.zero_val [GooseExts] : ZeroVal etcdProgress :=
   ⟨etcdProgress.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def etcdProgress.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def etcdProgress.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"confState" (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)),
 (go.field_decl.FieldDecl go!"diskSnapshotIndex" go.uint64),
 (go.field_decl.FieldDecl go!"memorySnapshotIndex" go.uint64),
 (go.field_decl.FieldDecl go!"appliedt" go.uint64),
 (go.field_decl.FieldDecl go!"appliedi" go.uint64)]
 
-@[irreducible] noncomputable def etcdProgress.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def etcdProgress.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   etcdProgress.fieldsUnsealed
 
-noncomputable instance equals_unfold_etcdProgress [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_etcdProgress [GooseExts] [GoGlobalContext] :
     EqualsUnfold etcdProgress.fields etcdProgress.fieldsUnsealed :=
   ⟨by unfold etcdProgress.fields; rfl⟩
 
-@[reducible] noncomputable def etcdProgress.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def etcdProgress.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType etcdProgress.fields)
 
-class etcdProgress.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class etcdProgress.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying etcdProgress.underlying etcdProgress
   underlying : go.UnderlyingDirectedEq etcdProgress.ty etcdProgress.underlying
   get_confState : ∀ (x : etcdProgress), go.IsGoStepPureDetTagged under (StructFieldGet etcdProgress.underlying go!"confState") #x (Val #(x.confState'))
@@ -8605,33 +8605,33 @@ attribute [instance] etcdProgress.TypeAssumptions.type_repr
   etcdProgress.TypeAssumptions.get_appliedi
   etcdProgress.TypeAssumptions.set_appliedi
 
-structure raftReadyHandler [FfiSyntax] where
+structure raftReadyHandler [GooseExts] where
   mk ::
   getLead' : GoFunc
   updateLead' : GoFunc
   updateLeadership' : GoFunc
   updateCommittedIndex' : GoFunc
 
-noncomputable instance raftReadyHandler.zero_val [FfiSyntax] : ZeroVal raftReadyHandler :=
+noncomputable instance raftReadyHandler.zero_val [GooseExts] : ZeroVal raftReadyHandler :=
   ⟨raftReadyHandler.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def raftReadyHandler.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def raftReadyHandler.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"getLead" (go.GoType.FunctionType (go.signature.Signature [] false [go.uint64]))),
 (go.field_decl.FieldDecl go!"updateLead" (go.GoType.FunctionType (go.signature.Signature [go.uint64] false []))),
 (go.field_decl.FieldDecl go!"updateLeadership" (go.GoType.FunctionType (go.signature.Signature [go.bool] false []))),
 (go.field_decl.FieldDecl go!"updateCommittedIndex" (go.GoType.FunctionType (go.signature.Signature [go.uint64] false [])))]
 
-@[irreducible] noncomputable def raftReadyHandler.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def raftReadyHandler.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   raftReadyHandler.fieldsUnsealed
 
-noncomputable instance equals_unfold_raftReadyHandler [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_raftReadyHandler [GooseExts] [GoGlobalContext] :
     EqualsUnfold raftReadyHandler.fields raftReadyHandler.fieldsUnsealed :=
   ⟨by unfold raftReadyHandler.fields; rfl⟩
 
-@[reducible] noncomputable def raftReadyHandler.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def raftReadyHandler.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType raftReadyHandler.fields)
 
-class raftReadyHandler.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class raftReadyHandler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying raftReadyHandler.underlying raftReadyHandler
   underlying : go.UnderlyingDirectedEq raftReadyHandler.ty raftReadyHandler.underlying
   get_getLead : ∀ (x : raftReadyHandler), go.IsGoStepPureDetTagged under (StructFieldGet raftReadyHandler.underlying go!"getLead") #x (Val #(x.getLead'))
@@ -8654,31 +8654,31 @@ attribute [instance] raftReadyHandler.TypeAssumptions.type_repr
   raftReadyHandler.TypeAssumptions.get_updateCommittedIndex
   raftReadyHandler.TypeAssumptions.set_updateCommittedIndex
 
-structure confChangeResponse [FfiSyntax] where
+structure confChangeResponse [GooseExts] where
   mk ::
   membs' : GoSlice
   raftAdvanceC' : GoChan
   err' : GoError
 
-noncomputable instance confChangeResponse.zero_val [FfiSyntax] : ZeroVal confChangeResponse :=
+noncomputable instance confChangeResponse.zero_val [GooseExts] : ZeroVal confChangeResponse :=
   ⟨confChangeResponse.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def confChangeResponse.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def confChangeResponse.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"membs" (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty))),
 (go.field_decl.FieldDecl go!"raftAdvanceC" (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))),
 (go.field_decl.FieldDecl go!"err" go.error)]
 
-@[irreducible] noncomputable def confChangeResponse.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def confChangeResponse.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   confChangeResponse.fieldsUnsealed
 
-noncomputable instance equals_unfold_confChangeResponse [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_confChangeResponse [GooseExts] [GoGlobalContext] :
     EqualsUnfold confChangeResponse.fields confChangeResponse.fieldsUnsealed :=
   ⟨by unfold confChangeResponse.fields; rfl⟩
 
-@[reducible] noncomputable def confChangeResponse.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def confChangeResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType confChangeResponse.fields)
 
-class confChangeResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class confChangeResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying confChangeResponse.underlying confChangeResponse
   underlying : go.UnderlyingDirectedEq confChangeResponse.ty confChangeResponse.underlying
   get_membs : ∀ (x : confChangeResponse), go.IsGoStepPureDetTagged under (StructFieldGet confChangeResponse.underlying go!"membs") #x (Val #(x.membs'))
@@ -8697,33 +8697,33 @@ attribute [instance] confChangeResponse.TypeAssumptions.type_repr
   confChangeResponse.TypeAssumptions.get_err
   confChangeResponse.TypeAssumptions.set_err
 
-structure AccessController [FfiSyntax] where
+structure AccessController [GooseExts] where
   mk ::
   corsMu' : _root_.Perennial.sync.RWMutex
   CORS' : GoMap
   hostWhitelistMu' : _root_.Perennial.sync.RWMutex
   HostWhitelist' : GoMap
 
-noncomputable instance AccessController.zero_val [FfiSyntax] : ZeroVal AccessController :=
+noncomputable instance AccessController.zero_val [GooseExts] : ZeroVal AccessController :=
   ⟨AccessController.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def AccessController.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def AccessController.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"corsMu" _root_.Perennial.sync.RWMutex.ty),
 (go.field_decl.FieldDecl go!"CORS" (go.GoType.MapType go.string (go.GoType.StructType []))),
 (go.field_decl.FieldDecl go!"hostWhitelistMu" _root_.Perennial.sync.RWMutex.ty),
 (go.field_decl.FieldDecl go!"HostWhitelist" (go.GoType.MapType go.string (go.GoType.StructType [])))]
 
-@[irreducible] noncomputable def AccessController.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def AccessController.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   AccessController.fieldsUnsealed
 
-noncomputable instance equals_unfold_AccessController [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_AccessController [GooseExts] [GoGlobalContext] :
     EqualsUnfold AccessController.fields AccessController.fieldsUnsealed :=
   ⟨by unfold AccessController.fields; rfl⟩
 
-@[reducible] noncomputable def AccessController.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def AccessController.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType AccessController.fields)
 
-class AccessController.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class AccessController.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying AccessController.underlying AccessController
   underlying : go.UnderlyingDirectedEq AccessController.ty AccessController.underlying
   get_corsMu : ∀ (x : AccessController), go.IsGoStepPureDetTagged under (StructFieldGet AccessController.underlying go!"corsMu") #x (Val #(x.corsMu'))
@@ -8746,59 +8746,59 @@ attribute [instance] AccessController.TypeAssumptions.type_repr
   AccessController.TypeAssumptions.get_HostWhitelist
   AccessController.TypeAssumptions.set_HostWhitelist
 
-abbrev RaftKV [FfiSyntax] : Type := GoInterface
+abbrev RaftKV [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def RaftKV.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def RaftKV.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Compact" (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"DeleteRange" (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.DeleteRangeResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"Put" (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.PutResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"Range" (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"RangeStream" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest.ty), _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.KV_RangeStreamServer.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"Txn" (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.TxnResponse.ty), go.error]))])
 
-class RaftKV.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class RaftKV.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq RaftKV.ty RaftKV.underlying
 
 attribute [instance] RaftKV.TypeAssumptions.underlying
 
-abbrev Lessor [FfiSyntax] : Type := GoInterface
+abbrev Lessor [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def Lessor.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Lessor.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"LeaseGrant" (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"LeaseLeases" (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseLeasesRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseLeasesResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"LeaseRenew" (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.go_etcd_io.etcd.server.v3.lease.LeaseID.ty] false [go.int64, go.error])), (go.InterfaceElem.MethodElem go!"LeaseRevoke" (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseRevokeResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"LeaseTimeToLive" (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseTimeToLiveResponse.ty), go.error]))])
 
-class Lessor.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Lessor.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Lessor.ty Lessor.underlying
 
 attribute [instance] Lessor.TypeAssumptions.underlying
 
-abbrev Authenticator [FfiSyntax] : Type := GoInterface
+abbrev Authenticator [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def Authenticator.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Authenticator.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"AuthDisable" (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthDisableResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"AuthEnable" (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthEnableResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"AuthStatus" (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthStatusResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"Authenticate" (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthenticateResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"RoleAdd" (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleAddResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"RoleDelete" (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleDeleteResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"RoleGet" (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGetResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"RoleGrantPermission" (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"RoleList" (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleListResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"RoleRevokePermission" (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleRevokePermissionResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"UserAdd" (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserAddResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"UserChangePassword" (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserChangePasswordResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"UserDelete" (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserDeleteResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"UserGet" (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGetResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"UserGrantRole" (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserGrantRoleResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"UserList" (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserListResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"UserRevokeRole" (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthUserRevokeRoleResponse.ty), go.error]))])
 
-class Authenticator.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Authenticator.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Authenticator.ty Authenticator.underlying
 
 attribute [instance] Authenticator.TypeAssumptions.underlying
 
-structure zapRaftLogger [FfiSyntax] where
+structure zapRaftLogger [GooseExts] where
   mk ::
   lg' : Loc
   sugar' : Loc
 
-noncomputable instance zapRaftLogger.zero_val [FfiSyntax] : ZeroVal zapRaftLogger :=
+noncomputable instance zapRaftLogger.zero_val [GooseExts] : ZeroVal zapRaftLogger :=
   ⟨zapRaftLogger.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def zapRaftLogger.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def zapRaftLogger.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"lg" (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)),
 (go.field_decl.FieldDecl go!"sugar" (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.SugaredLogger.ty))]
 
-@[irreducible] noncomputable def zapRaftLogger.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def zapRaftLogger.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   zapRaftLogger.fieldsUnsealed
 
-noncomputable instance equals_unfold_zapRaftLogger [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_zapRaftLogger [GooseExts] [GoGlobalContext] :
     EqualsUnfold zapRaftLogger.fields zapRaftLogger.fieldsUnsealed :=
   ⟨by unfold zapRaftLogger.fields; rfl⟩
 
-@[reducible] noncomputable def zapRaftLogger.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def zapRaftLogger.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType zapRaftLogger.fields)
 
-class zapRaftLogger.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class zapRaftLogger.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying zapRaftLogger.underlying zapRaftLogger
   underlying : go.UnderlyingDirectedEq zapRaftLogger.ty zapRaftLogger.underlying
   get_lg : ∀ (x : zapRaftLogger), go.IsGoStepPureDetTagged under (StructFieldGet zapRaftLogger.underlying go!"lg") #x (Val #(x.lg'))
@@ -8813,7 +8813,7 @@ attribute [instance] zapRaftLogger.TypeAssumptions.type_repr
   zapRaftLogger.TypeAssumptions.get_sugar
   zapRaftLogger.TypeAssumptions.set_sugar
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   serverVersionAdapter_instance : serverVersionAdapter.TypeAssumptions
   bootstrappedServer_instance : bootstrappedServer.TypeAssumptions
   bootstrappedStorage_instance : bootstrappedStorage.TypeAssumptions

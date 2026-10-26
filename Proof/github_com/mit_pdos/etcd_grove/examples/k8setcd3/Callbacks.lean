@@ -34,7 +34,7 @@ def rejects (reject v : GoString) : Bool := decide (reject ≠ []) && decide (v 
 
 
 section upd
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- **`validateFor(reject)`, as a function**: an object of value `reject` is rejected, with the
 error `eD` (`errDeleteRejected`'s). -/
@@ -53,7 +53,7 @@ def updD (eU : GoInterface) (inp : Input) (o : DObj) (_ : Nat) : Except GoInterf
 end upd
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

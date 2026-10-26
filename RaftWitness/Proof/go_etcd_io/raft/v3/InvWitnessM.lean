@@ -23,7 +23,7 @@ namespace EtcdGrove
 open GMap go_etcd_io.raft.v3
 
 section model
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- The witness's durable state (`raftpb.WitnessHardState`): its hard state (term, vote,
 commit), the last entry it was told of (index, term, subterm), the leader it knows, and the

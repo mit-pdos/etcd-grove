@@ -63,18 +63,18 @@ abbrev restBuckets : List GoString := mvcc.restBuckets
 /-- **The bucket `n` every member's backend holds at the committed log `L`** (D22, 2026-10-23: a
 definition, the rest model's, `InvRest.lean`; until then the boot values and the opaque
 `clusterBktOf`), from the start's consistent index `c0` and the boot log `bootLog`. -/
-def bkRestOf [FfiSyntax] (c0 : w64) (bootLog : List EntryM) (L : List EntryModel) (n : GoString) :
+def bkRestOf [GooseExts] (c0 : w64) (bootLog : List EntryM) (L : List EntryModel) (n : GoString) :
     Option BktData :=
   (restModel c0 bootLog L).bk.lookup n
 
 /-- **The membership bucket `n` at the committed log `L`** (D22, 2026-10-23: a definition, the
 rest model's; until then opaque). -/
-abbrev clusterBktOf [FfiSyntax] (c0 : w64) (bootLog : List EntryM) (n : GoString)
+abbrev clusterBktOf [GooseExts] (c0 : w64) (bootLog : List EntryM) (n : GoString)
     (L : List EntryModel) : Option BktData :=
   bkRestOf c0 bootLog L n
 
 /-- **`D`'s other buckets are those of the committed log `L`** (see the file header). -/
-def bkRestAt [FfiSyntax] (c0 : w64) (bootLog : List EntryM) (L : List EntryModel) (D : Data) :
+def bkRestAt [GooseExts] (c0 : w64) (bootLog : List EntryM) (L : List EntryModel) (D : Data) :
     Prop :=
   ∀ n ∈ restBuckets, D.lookup n = bkRestOf c0 bootLog L n
 
@@ -82,14 +82,14 @@ def bkRestAt [FfiSyntax] (c0 : w64) (bootLog : List EntryM) (L : List EntryModel
 
 /-- **`D` is the image at index `i` of the server's entries `A`, the raft log being `L`** (see
 the file header). -/
-def imageAt [FfiSyntax] (γk : KVNames) (bootLog : List EntryM) (i : w64) (L A : List EntryModel)
+def imageAt [GooseExts] (γk : KVNames) (bootLog : List EntryM) (i : w64) (L A : List EntryModel)
     (D : Data) : Prop :=
   mvcc.keyImage (kvModel γk A) D ∧ dget D schema.metaName schema.ciKeyBytes = encMeta i ∧
     (∃ t : w64, dget D schema.metaName schema.termKeyBytes = encMeta t) ∧
     bkRestAt γk.c0 bootLog L D
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -166,7 +166,7 @@ end defs
 /-! ## Lemmas -/
 
 section lemmas
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

@@ -132,7 +132,7 @@ theorem txnWireOf_plain (t : TxnModel) (h : TxnModel.plain t) : TxnModel.plain (
     exact opWire_plain op0 (h.2 op0 h0)
 
 section reply
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -211,7 +211,7 @@ def etcdTxnSpec (E : apply.AEnv GF) (γw γr : ReadNames) (cid mid : w64) :
 end reply
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -393,7 +393,7 @@ end defs
 
 /-- **A member as its client sees it**: its client address and what etcd's specs it registers
 there are at (`etcd_kv_started`'s): its apply environment, read names, cluster and member ids. -/
-structure SrvAt (GF : BundledGFunctors) [FfiSyntax] where
+structure SrvAt (GF : BundledGFunctors) [GooseExts] where
   addr : GoString
   E : apply.AEnv GF
   γr : ReadNames
@@ -401,7 +401,7 @@ structure SrvAt (GF : BundledGFunctors) [FfiSyntax] where
   mid : w64
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -510,7 +510,7 @@ theorem srvsAt_rpcs {Req Rep : ProtoMsg GF} (addr : List GoString) (E : apply.AE
 end defs
 
 section members
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -941,7 +941,7 @@ log it met with the write's changes committed (as `ServerKVPut.lean`'s `put_appl
 that log, so a write's reply gives that it is a well-formed small log's, too. -/
 
 section applied
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 
 /-- An applied outcome without the quota's `ErrNoSpace` passes through every layer of a chain:
@@ -1086,7 +1086,7 @@ server (certificates, the revision's token, the applied index's witness) is the 
 which the results about the server's own model use (`ServerKV*.lean`). -/
 
 section abstract
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -1788,7 +1788,7 @@ theorem txnObjAt_conn (tp api : Loc) (addr addr' : List GoString) (ci : GoInterf
 end abstract
 
 section start_alloc
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

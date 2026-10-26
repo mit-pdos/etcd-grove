@@ -121,7 +121,7 @@ open Iris Iris.BI GMap go_etcd_io.raft.v3
 
 /-! ### Countability of the data the ghost state stores (Lean addition) -/
 
-instance entryID_countable [FfiSyntax] : Pos.Countable entryID :=
+instance entryID_countable [GooseExts] : Pos.Countable entryID :=
   .ofInjective (fun b => Pos.Countable.encode (b.term', b.index'))
     (by
       rintro ⟨_, _⟩ ⟨_, _⟩ h
@@ -130,7 +130,7 @@ instance entryID_countable [FfiSyntax] : Pos.Countable entryID :=
       obtain ⟨h1, h2⟩ := h
       subst h1 h2; rfl)
 
-instance raftpbEntry_countable [FfiSyntax] : Pos.Countable EntryM :=
+instance raftpbEntry_countable [GooseExts] : Pos.Countable EntryM :=
   .ofInjective (fun e => Pos.Countable.encode (e.Term', e.Index', e.Type', e.Data', e.Subterm'))
     (by
       rintro ⟨_, _, _, _, _⟩ ⟨_, _, _, _, _⟩ h
@@ -170,7 +170,7 @@ committed log prefix (`fold`, partial: `none` past an entry that would panic), a
 of it the safety argument uses, that two prefixes of one log whose conf counts differ by at most
 one have overlapping configurations (`adj`; `fold_adjacent` for `cfgFold`). Abstract here: the
 ghost files sit below `CfgOverlap.lean`, which instantiates it (`DynCfg.ofFold`). -/
-structure DynCfg [FfiSyntax] where
+structure DynCfg [GooseExts] where
   fold : List EntryM → Option CfgM
   adj : ∀ (P1 P2 : List EntryM) (c1 c2 : CfgM), P1 <+: P2 →
     confCount P2 ≤ confCount P1 + 1 → fold P1 = some c1 → fold P2 = some c2 → QOverlap c1 c2
@@ -180,22 +180,22 @@ structure DynCfg [FfiSyntax] where
     confCount P2 ≤ confCount P1 + 1 → fold P1 = some c1 → fold P2 = some c2 → CfgShape c1 c2
 
 /-- No configuration at all. -/
-def DynCfg.trivial [FfiSyntax] : DynCfg where
+def DynCfg.trivial [GooseExts] : DynCfg where
   fold _ := none
   adj := by intro _ _ _ _ _ _ h; cases h
   shape := by intro _ _ _ _ _ _ h; cases h
 
-/-- `D`, at its own `FfiSyntax` instance (`RaftNames.reDyn` is a function of the instance,
+/-- `D`, at its own `GooseExts` instance (`RaftNames.reDyn` is a function of the instance,
 since `RaftNames` takes none). -/
-def DynCfg.all [ext : FfiSyntax] (D : DynCfg) : (e : FfiSyntax) → @DynCfg e := by
+def DynCfg.all [ext : GooseExts] (D : DynCfg) : (e : GooseExts) → @DynCfg e := by
   classical
   exact fun e => if h : e = ext then h ▸ D else @DynCfg.trivial e
 
-theorem DynCfg.all_self [ext : FfiSyntax] (D : DynCfg) : D.all ext = D := by
+theorem DynCfg.all_self [ext : GooseExts] (D : DynCfg) : D.all ext = D := by
   unfold DynCfg.all; simp
 
 /-- A bootstrap entry (2026-10-16, stage R8b, D12): `EntryM`'s fields, instance-free, since
-`RaftNames` takes no `FfiSyntax` (as `reDyn`); `BootEntry.toEntry` is the entry. -/
+`RaftNames` takes no `GooseExts` (as `reDyn`); `BootEntry.toEntry` is the entry. -/
 structure BootEntry where
   term : w64
   index : w64
@@ -288,9 +288,9 @@ structure RaftNames where
   is the ghost state's voters `reCfg` (`CfgStatic`), what the code proofs use; `some D`,
   dynamic -- the configuration of a committed prefix is `D`'s fold (`CfgAt`), and the
   dynamic-only facts (`dynOn`: a commit fact's at-most-one and witnesses, a campaign
-  record's, the node-local witnesses) are required. A function of the `FfiSyntax` instance
+  record's, the node-local witnesses) are required. A function of the `GooseExts` instance
   (`DynCfg.all`), since `RaftNames` takes none. -/
-  reDyn : Option ((e : FfiSyntax) → @DynCfg e)
+  reDyn : Option ((e : GooseExts) → @DynCfg e)
   /-- The conf-change entries' bytes the cluster admits (2026-10-15, stage N): every conf-change
   entry's data `bs`, of type `ty`, satisfies `reCCOk ty bs` (`entDataIs`), which
   `ProposeConfChange` asks of the change it proposes (`CCAllowed`). A client that applies the
@@ -424,67 +424,67 @@ earlier term), `rqRecOk_confirm` (a read's confirming quorum and its doom quorum
 `CfgAt` as "`c` is the configuration of `cfgFold dec c0 P`" and replaces each use of
 `CfgAt.overlap` by the adjacent/far case split (`fold_adjacent` for the adjacent case). -/
 
-/-- The mode's dynamic configurations, at the ambient `FfiSyntax` instance. -/
-def BootEntry.toEntry [FfiSyntax] (b : BootEntry) : EntryM := ⟨b.term, b.index, b.type, b.data, b.sub⟩
+/-- The mode's dynamic configurations, at the ambient `GooseExts` instance. -/
+def BootEntry.toEntry [GooseExts] (b : BootEntry) : EntryM := ⟨b.term, b.index, b.type, b.data, b.sub⟩
 
-def BootEntry.ofEntry [FfiSyntax] (e : EntryM) : BootEntry := ⟨e.Term', e.Index', e.Type', e.Data', e.Subterm'⟩
+def BootEntry.ofEntry [GooseExts] (e : EntryM) : BootEntry := ⟨e.Term', e.Index', e.Type', e.Data', e.Subterm'⟩
 
-theorem BootEntry.toEntry_ofEntry [FfiSyntax] (e : EntryM) : (BootEntry.ofEntry e).toEntry = e := rfl
+theorem BootEntry.toEntry_ofEntry [GooseExts] (e : EntryM) : (BootEntry.ofEntry e).toEntry = e := rfl
 
-theorem BootEntry.map_toEntry_ofEntry [FfiSyntax] (L : List EntryM) :
+theorem BootEntry.map_toEntry_ofEntry [GooseExts] (L : List EntryM) :
     (L.map BootEntry.ofEntry).map BootEntry.toEntry = L := by
   induction L with
   | nil => rfl
   | cons e L ih => simp only [List.map_cons, BootEntry.toEntry_ofEntry, ih]
 
 /-- The cluster's bootstrap log (2026-10-16, stage R8b, D12; `RaftNames.reBootRaw`). -/
-def RaftNames.reBoot [FfiSyntax] (γ : RaftNames) : List EntryM :=
+def RaftNames.reBoot [GooseExts] (γ : RaftNames) : List EntryM :=
   γ.reBootRaw.map BootEntry.toEntry
 
 /-- The no-snapshot mode is of a cluster with a bootstrap log (2026-10-19, D21 M3). -/
-theorem RaftNames.noSnap_boot [FfiSyntax] {γ : RaftNames} (h : γ.reNoSnap = true) :
+theorem RaftNames.noSnap_boot [GooseExts] {γ : RaftNames} (h : γ.reNoSnap = true) :
     γ.reBoot ≠ [] := by
   unfold RaftNames.reBoot
   intro he
   exact γ.reNoSnap_ok h (List.map_eq_nil_iff.1 he)
 
-def RaftNames.dyn [ext : FfiSyntax] (γ : RaftNames) : Option DynCfg :=
+def RaftNames.dyn [ext : GooseExts] (γ : RaftNames) : Option DynCfg :=
   γ.reDyn.map fun f => f ext
 
-theorem RaftNames.dyn_none [FfiSyntax] {γ : RaftNames} (h : γ.reDyn = none) : γ.dyn = none := by
+theorem RaftNames.dyn_none [GooseExts] {γ : RaftNames} (h : γ.reDyn = none) : γ.dyn = none := by
   unfold RaftNames.dyn; rw [h]; rfl
 
-theorem RaftNames.dyn_eq_none [FfiSyntax] {γ : RaftNames} : γ.dyn = none ↔ γ.reDyn = none := by
+theorem RaftNames.dyn_eq_none [GooseExts] {γ : RaftNames} : γ.dyn = none ↔ γ.reDyn = none := by
   unfold RaftNames.dyn; cases γ.reDyn <;> simp
 
 /-- The configuration `c` is the one of the committed prefix `P`: static, the ghost state's
 (`CfgStatic`, the prefix unused); dynamic, the mode's fold of `P` (2026-10-14, reconfiguration
 stage B5; until then static only). -/
-def CfgAt [FfiSyntax] (γ : RaftNames) (P : List EntryM) (c : CfgM) : Prop :=
+def CfgAt [GooseExts] (γ : RaftNames) (P : List EntryM) (c : CfgM) : Prop :=
   match γ.dyn with
   | none => CfgStatic γ c
   | some D => D.fold P = some c
 
-theorem CfgAt.of_static [FfiSyntax] {γ : RaftNames} {c : CfgM} (P : List EntryM)
+theorem CfgAt.of_static [GooseExts] {γ : RaftNames} {c : CfgM} (P : List EntryM)
     (HC : CfgStatic γ c) : CfgAt γ P c := by
   unfold CfgAt; rw [RaftNames.dyn_none HC.2.2]; exact HC
 
-theorem CfgAt.static [FfiSyntax] {γ : RaftNames} {P : List EntryM} {c : CfgM}
+theorem CfgAt.static [GooseExts] {γ : RaftNames} {P : List EntryM} {c : CfgM}
     (Hst : γ.reDyn = none) (H : CfgAt γ P c) : CfgStatic γ c := by
   unfold CfgAt at H; rw [RaftNames.dyn_none Hst] at H; exact H
 
-theorem CfgAt.dyn [FfiSyntax] {γ : RaftNames} {D : DynCfg} {P : List EntryM} {c : CfgM}
+theorem CfgAt.dyn [GooseExts] {γ : RaftNames} {D : DynCfg} {P : List EntryM} {c : CfgM}
     (HD : γ.dyn = some D) (H : CfgAt γ P c) : D.fold P = some c := by
   unfold CfgAt at H; rw [HD] at H; exact H
 
-theorem CfgAt.of_dyn [FfiSyntax] {γ : RaftNames} {D : DynCfg} {P : List EntryM} {c : CfgM}
+theorem CfgAt.of_dyn [GooseExts] {γ : RaftNames} {D : DynCfg} {P : List EntryM} {c : CfgM}
     (HD : γ.dyn = some D) (H : D.fold P = some c) : CfgAt γ P c := by
   unfold CfgAt; rw [HD]; exact H
 
 /-- Two recorded configurations overlap, at a static ghost state (both are the ghost state's).
 Dynamic: only when their conf counts differ by at most one (`CfgAt.overlap_adj`); the far cases
 are `win_fresh`'s, `lc_core`'s and `rqRecOk_confirm`'s. -/
-theorem CfgAt.overlap [FfiSyntax] {γ : RaftNames} {P1 P2 : List EntryM} {c1 c2 : CfgM}
+theorem CfgAt.overlap [GooseExts] {γ : RaftNames} {P1 P2 : List EntryM} {c1 c2 : CfgM}
     (Hst : γ.reDyn = none) (H1 : CfgAt γ P1 c1) (H2 : CfgAt γ P2 c2) : QOverlap c1 c2 := by
   intro q1 q2 h1 h2
   obtain ⟨x, hx1, hx2⟩ := quorums_intersect γ.reCfg q1 q2
@@ -493,7 +493,7 @@ theorem CfgAt.overlap [FfiSyntax] {γ : RaftNames} {P1 P2 : List EntryM} {c1 c2 
 
 /-- Two recorded configurations of comparable prefixes whose conf counts differ by at most
 one overlap (both modes). -/
-theorem CfgAt.overlap_adj [FfiSyntax] {γ : RaftNames} {P1 P2 : List EntryM} {c1 c2 : CfgM}
+theorem CfgAt.overlap_adj [GooseExts] {γ : RaftNames} {P1 P2 : List EntryM} {c1 c2 : CfgM}
     (Hp : P1 <+: P2 ∨ P2 <+: P1) (Hc1 : confCount P2 ≤ confCount P1 + 1)
     (Hc2 : confCount P1 ≤ confCount P2 + 1)
     (H1 : CfgAt γ P1 c1) (H2 : CfgAt γ P2 c2) : QOverlap c1 c2 := by
@@ -508,7 +508,7 @@ theorem CfgAt.overlap_adj [FfiSyntax] {γ : RaftNames} {P1 P2 : List EntryM} {c1
 
 /-- Two recorded configurations of one prefix have the same incoming voters (2026-10-20, W5):
 static, both are the ghost state's; dynamic, the fold is a function. -/
-theorem CfgAt.incoming_eq [FfiSyntax] {γ : RaftNames} {P : List EntryM} {c1 c2 : CfgM}
+theorem CfgAt.incoming_eq [GooseExts] {γ : RaftNames} {P : List EntryM} {c1 c2 : CfgM}
     (H1 : CfgAt γ P c1) (H2 : CfgAt γ P c2) : c1.incoming = c2.incoming := by
   cases h : γ.dyn with
   | none =>
@@ -520,7 +520,7 @@ theorem CfgAt.incoming_eq [FfiSyntax] {γ : RaftNames} {P : List EntryM} {c1 c2 
     rw [h1] at h2; cases h2; rfl
 
 /-- A joint quorum of a recorded configuration has a member. -/
-theorem CfgAt.member [FfiSyntax] {γ : RaftNames} {P : List EntryM} {c : CfgM}
+theorem CfgAt.member [GooseExts] {γ : RaftNames} {P : List EntryM} {c : CfgM}
     {q : GSet w64} (H : CfgAt γ P c) (hq : JQuorum c q) : ∃ x, x ∈ q := by
   obtain ⟨x, hx, -⟩ := CfgAt.overlap_adj (Or.inl (List.prefix_refl P)) (by omega) (by omega)
     H H q q hq hq
@@ -528,12 +528,12 @@ theorem CfgAt.member [FfiSyntax] {γ : RaftNames} {P : List EntryM} {c : CfgM}
 
 /-- An event of a node's history (`reEvs`): an acknowledgement `(t, i)`, or a vote in
 `T` cast knowing the leader of `T` iff `d`, with full log `F` (`isVlog`'s data). -/
-inductive Aev [FfiSyntax] where
+inductive Aev [GooseExts] where
   | ack (t i : w64)
   | vote (T : w64) (d : Bool) (F : List EntryM)
 
 section aev
-variable [FfiSyntax]
+variable [GooseExts]
 
 instance Aev_countable : Pos.Countable Aev :=
   .ofInjective (fun
@@ -574,7 +574,7 @@ theorem EvSorted_snoc (L : List Aev) (e : Aev) :
 end aev
 
 section ghost
-variable [FfiSyntax]
+variable [GooseExts]
 variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF]
 
 /-! ### Votes -/
@@ -2891,13 +2891,13 @@ theorem commitIn_committed (γ : RaftNames) (F : List EntryM) (c tm : w64) :
   · ileft; ipureintro; exact H0.1
   · iright; iexists t, n, G; iframe Hq; ipureintro; exact Hc.1
 
-omit [FfiSyntax] in
+omit [GooseExts] in
 theorem take_agree_le {α : Type _} {F F' : List α} {lim m : Nat} (h : F'.take lim = F.take lim)
     (hm : m ≤ lim) : F'.take m = F.take m := by
   have := congrArg (List.take m) h
   simpa [List.take_take, Nat.min_eq_left hm] using this
 
-omit [FfiSyntax] in
+omit [GooseExts] in
 theorem getElem?_agree_lt {α : Type _} {F F' : List α} {lim k : Nat}
     (h : F'.take lim = F.take lim) (hk : k < lim) : F'[k]? = F[k]? := by
   have := congrArg (fun l => l[k]?) h
@@ -3058,7 +3058,7 @@ theorem commitIn_move (γ : RaftNames) (F F' : List EntryM) (c tm tm' : w64) :
   icases full_take_eq γ F F' c Hw Hw' Hs Heq.symm $$ Hr Hr' with %Htk
   iapply commitIn_agree γ F F' c tm tm' Htm Heq Htk.symm $$ Hc
 
-omit [FfiSyntax] in
+omit [GooseExts] in
 /-- The first `c` entries of a log are those of any log it is a prefix of. -/
 theorem take_of_prefix {α : Type _} {L L' : List α} {c : Nat} (h : L <+: L')
     (hc : c ≤ L.length) : L'.take c = L.take c := by

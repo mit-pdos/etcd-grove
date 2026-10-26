@@ -20,70 +20,70 @@ end pkg_id
 
 namespace google_golang_org.grpc.health
 
-noncomputable def producerBuilder.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def producerBuilder.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/health.producerBuilder" [])
 
 attribute [irreducible] producerBuilder.ty
 
-noncomputable def healthServiceProducer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def healthServiceProducer.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/health.healthServiceProducer" [])
 
 attribute [irreducible] healthServiceProducer.ty
 
-noncomputable def Server.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Server.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/health.Server" [])
 
 attribute [irreducible] Server.ty
 
-axiom producerBuilder.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom producerBuilder.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom healthServiceProducer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom healthServiceProducer.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Server.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Server.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom healthCheckMethod [FfiSyntax] [GoGlobalContext] : val
+axiom healthCheckMethod [GooseExts] [GoGlobalContext] : val
 
-axiom maxAllowedServices [FfiSyntax] [GoGlobalContext] : val
+axiom maxAllowedServices [GooseExts] [GoGlobalContext] : val
 
-noncomputable def backoffStrategy [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def backoffStrategy [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/health.backoffStrategy"
 
-axiom backoffStrategy.init [FfiSyntax] [GoGlobalContext] : val
+axiom backoffStrategy.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def backoffFunc [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def backoffFunc [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/health.backoffFunc"
 
-axiom backoffFunc.init [FfiSyntax] [GoGlobalContext] : val
+axiom backoffFunc.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def logger [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def logger [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/health.logger"
 
-axiom logger.init [FfiSyntax] [GoGlobalContext] : val
+axiom logger.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def producerBuilderSingleton [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def producerBuilderSingleton [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/health.producerBuilderSingleton"
 
-noncomputable def init.«0» [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def init.«0» [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/health.init.0"
 
-noncomputable def clientHealthCheck [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def clientHealthCheck [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/health.clientHealthCheck"
 
-noncomputable def init.«1» [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def init.«1» [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/health.init.1"
 
-noncomputable def registerClientSideHealthCheckListener [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def registerClientSideHealthCheckListener [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/health.registerClientSideHealthCheckListener"
 
-noncomputable def NewServer [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewServer [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/health.NewServer"
 
 noncomputable instance info' : PkgInfo pkg_id.google_golang_org.grpc.health where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.google_golang_org.grpc.health)) (Lam BAnon
   (App (Val exceptionDo)
@@ -106,7 +106,7 @@ axiom producerBuilder : Type
 axiom producerBuilder.zero_val : ZeroVal producerBuilder
 attribute [instance] producerBuilder.zero_val
 
-class producerBuilder.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class producerBuilder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying producerBuilder.underlying producerBuilder
   underlying : go.UnderlyingDirectedEq producerBuilder.ty producerBuilder.underlying
   isUnderlying : go.IsUnderlying producerBuilder.underlying producerBuilder.underlying
@@ -119,7 +119,7 @@ axiom healthServiceProducer : Type
 axiom healthServiceProducer.zero_val : ZeroVal healthServiceProducer
 attribute [instance] healthServiceProducer.zero_val
 
-class healthServiceProducer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class healthServiceProducer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying healthServiceProducer.underlying healthServiceProducer
   underlying : go.UnderlyingDirectedEq healthServiceProducer.ty healthServiceProducer.underlying
   isUnderlying : go.IsUnderlying healthServiceProducer.underlying healthServiceProducer.underlying
@@ -132,7 +132,7 @@ axiom Server : Type
 axiom Server.zero_val : ZeroVal Server
 attribute [instance] Server.zero_val
 
-class Server.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Server.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Server.underlying Server
   underlying : go.UnderlyingDirectedEq Server.ty Server.underlying
   isUnderlying : go.IsUnderlying Server.underlying Server.underlying
@@ -141,7 +141,7 @@ attribute [instance] Server.TypeAssumptions.type_repr
   Server.TypeAssumptions.underlying
   Server.TypeAssumptions.isUnderlying
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   producerBuilder_instance : producerBuilder.TypeAssumptions
   healthServiceProducer_instance : healthServiceProducer.TypeAssumptions
   Server_instance : Server.TypeAssumptions

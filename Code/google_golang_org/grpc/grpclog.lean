@@ -20,124 +20,124 @@ end pkg_id
 
 namespace google_golang_org.grpc.grpclog
 
-noncomputable def componentData.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def componentData.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/grpclog.componentData" [])
 
 attribute [irreducible] componentData.ty
 
-noncomputable def Logger.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Logger.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/grpclog.Logger" [])
 
 attribute [irreducible] Logger.ty
 
-noncomputable def LoggerV2.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def LoggerV2.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/grpclog.LoggerV2" [])
 
 attribute [irreducible] LoggerV2.ty
 
-noncomputable def DepthLoggerV2.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DepthLoggerV2.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/grpclog.DepthLoggerV2" [])
 
 attribute [irreducible] DepthLoggerV2.ty
 
-axiom Logger.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Logger.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom LoggerV2.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom LoggerV2.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom DepthLoggerV2.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom DepthLoggerV2.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-noncomputable def cache [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def cache [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/grpclog.cache"
 
-axiom cache.init [FfiSyntax] [GoGlobalContext] : val
+axiom cache.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def Component [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Component [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/grpclog.Component"
 
-noncomputable def init.«0» [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def init.«0» [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/grpclog.init.0"
 
-noncomputable def V [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def V [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/grpclog.V"
 
-noncomputable def Info [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Info [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/grpclog.Info"
 
-noncomputable def Infof [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Infof [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/grpclog.Infof"
 
-noncomputable def Infoln [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Infoln [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/grpclog.Infoln"
 
-noncomputable def Warning [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Warning [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/grpclog.Warning"
 
-noncomputable def Warningf [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Warningf [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/grpclog.Warningf"
 
-noncomputable def Warningln [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Warningln [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/grpclog.Warningln"
 
-noncomputable def Error [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Error [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/grpclog.Error"
 
-noncomputable def Errorf [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Errorf [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/grpclog.Errorf"
 
-noncomputable def Errorln [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Errorln [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/grpclog.Errorln"
 
-noncomputable def Fatal [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Fatal [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/grpclog.Fatal"
 
-noncomputable def Fatalf [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Fatalf [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/grpclog.Fatalf"
 
-noncomputable def Fatalln [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Fatalln [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/grpclog.Fatalln"
 
-noncomputable def Print [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Print [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/grpclog.Print"
 
-noncomputable def Printf [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Printf [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/grpclog.Printf"
 
-noncomputable def Println [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Println [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/grpclog.Println"
 
-noncomputable def InfoDepth [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def InfoDepth [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/grpclog.InfoDepth"
 
-noncomputable def WarningDepth [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WarningDepth [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/grpclog.WarningDepth"
 
-noncomputable def ErrorDepth [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrorDepth [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/grpclog.ErrorDepth"
 
-noncomputable def FatalDepth [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def FatalDepth [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/grpclog.FatalDepth"
 
-noncomputable def SetLogger [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def SetLogger [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/grpclog.SetLogger"
 
-noncomputable def SetLoggerV2 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def SetLoggerV2 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/grpclog.SetLoggerV2"
 
-noncomputable def NewLoggerV2 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewLoggerV2 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/grpclog.NewLoggerV2"
 
-noncomputable def NewLoggerV2WithVerbosity [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewLoggerV2WithVerbosity [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/grpclog.NewLoggerV2WithVerbosity"
 
-noncomputable def newLoggerV2 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newLoggerV2 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/grpclog.newLoggerV2"
 
 noncomputable instance info' : PkgInfo pkg_id.google_golang_org.grpc.grpclog where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.google_golang_org.grpc.grpclog)) (Lam BAnon
   (App (Val exceptionDo)
@@ -147,27 +147,27 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val cache.init) (Val #()))))))))
 
-structure componentData [FfiSyntax] where
+structure componentData [GooseExts] where
   mk ::
   name' : GoString
 
-noncomputable instance componentData.zero_val [FfiSyntax] : ZeroVal componentData :=
+noncomputable instance componentData.zero_val [GooseExts] : ZeroVal componentData :=
   ⟨componentData.mk zeroValDef⟩
 
-@[reducible] noncomputable def componentData.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def componentData.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"name" go.string)]
 
-@[irreducible] noncomputable def componentData.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def componentData.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   componentData.fieldsUnsealed
 
-noncomputable instance equals_unfold_componentData [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_componentData [GooseExts] [GoGlobalContext] :
     EqualsUnfold componentData.fields componentData.fieldsUnsealed :=
   ⟨by unfold componentData.fields; rfl⟩
 
-@[reducible] noncomputable def componentData.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def componentData.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType componentData.fields)
 
-class componentData.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class componentData.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying componentData.underlying componentData
   underlying : go.UnderlyingDirectedEq componentData.ty componentData.underlying
   get_name : ∀ (x : componentData), go.IsGoStepPureDetTagged under (StructFieldGet componentData.underlying go!"name") #x (Val #(x.name'))
@@ -182,7 +182,7 @@ axiom Logger : Type
 axiom Logger.zero_val : ZeroVal Logger
 attribute [instance] Logger.zero_val
 
-class Logger.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Logger.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Logger.underlying Logger
   underlying : go.UnderlyingDirectedEq Logger.ty Logger.underlying
   isUnderlying : go.IsUnderlying Logger.underlying Logger.underlying
@@ -195,7 +195,7 @@ axiom LoggerV2 : Type
 axiom LoggerV2.zero_val : ZeroVal LoggerV2
 attribute [instance] LoggerV2.zero_val
 
-class LoggerV2.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class LoggerV2.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying LoggerV2.underlying LoggerV2
   underlying : go.UnderlyingDirectedEq LoggerV2.ty LoggerV2.underlying
   isUnderlying : go.IsUnderlying LoggerV2.underlying LoggerV2.underlying
@@ -208,7 +208,7 @@ axiom DepthLoggerV2 : Type
 axiom DepthLoggerV2.zero_val : ZeroVal DepthLoggerV2
 attribute [instance] DepthLoggerV2.zero_val
 
-class DepthLoggerV2.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DepthLoggerV2.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DepthLoggerV2.underlying DepthLoggerV2
   underlying : go.UnderlyingDirectedEq DepthLoggerV2.ty DepthLoggerV2.underlying
   isUnderlying : go.IsUnderlying DepthLoggerV2.underlying DepthLoggerV2.underlying
@@ -217,7 +217,7 @@ attribute [instance] DepthLoggerV2.TypeAssumptions.type_repr
   DepthLoggerV2.TypeAssumptions.underlying
   DepthLoggerV2.TypeAssumptions.isUnderlying
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   componentData_instance : componentData.TypeAssumptions
   Logger_instance : Logger.TypeAssumptions
   LoggerV2_instance : LoggerV2.TypeAssumptions

@@ -20,22 +20,22 @@ end pkg_id
 
 namespace go_etcd_io.etcd.pkg.v3.contention
 
-noncomputable def TimeoutDetector.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def TimeoutDetector.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/pkg/v3/contention.TimeoutDetector" [])
 
 attribute [irreducible] TimeoutDetector.ty
 
-axiom TimeoutDetector.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom TimeoutDetector.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-noncomputable def NewTimeoutDetector [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewTimeoutDetector [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/pkg/v3/contention.NewTimeoutDetector"
 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.pkg.v3.contention where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.pkg.v3.contention)) (Lam BAnon
   (App (Val exceptionDo)
@@ -46,7 +46,7 @@ axiom TimeoutDetector : Type
 axiom TimeoutDetector.zero_val : ZeroVal TimeoutDetector
 attribute [instance] TimeoutDetector.zero_val
 
-class TimeoutDetector.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class TimeoutDetector.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying TimeoutDetector.underlying TimeoutDetector
   underlying : go.UnderlyingDirectedEq TimeoutDetector.ty TimeoutDetector.underlying
   isUnderlying : go.IsUnderlying TimeoutDetector.underlying TimeoutDetector.underlying
@@ -55,7 +55,7 @@ attribute [instance] TimeoutDetector.TypeAssumptions.type_repr
   TimeoutDetector.TypeAssumptions.underlying
   TimeoutDetector.TypeAssumptions.isUnderlying
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   TimeoutDetector_instance : TimeoutDetector.TypeAssumptions
 
 attribute [instance] Assumptions.TimeoutDetector_instance

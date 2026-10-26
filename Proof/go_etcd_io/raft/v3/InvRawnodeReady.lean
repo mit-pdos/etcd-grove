@@ -110,7 +110,7 @@ The converses of `InvPb.lean`'s `*_split` lemmas, for the halves of the response
 hands out (`ownRaftPhysReady`, the way back). -/
 
 section combine
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -251,7 +251,7 @@ theorem msgOwn_combine (l : Loc) (dq1 dq2 : DFrac) (ms : MsgSt) :
 end combine
 
 section pure
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- What `acceptReady` needs of the committed entries `ce` a `Ready` hands out
 (2026-10-10): they are the next ones after `applying`, up to at most `committed` -- its
@@ -334,7 +334,7 @@ def SnapRdy (rs : RNState) (ce : List EntryM) (l : SnapLoan) (s : NState) : Prop
 end pure
 
 section rawnodeReady
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
@@ -819,28 +819,28 @@ theorem ownRaftPhysReady_lt0 (c : CfgM) (r : Loc) (id : w64) (s : NState) (msl :
 def rdCountM (ms : List MsgSt) : Nat :=
   ms.countP (fun m => decide (m.msg.Type' = MsgReadIndex))
 
-omit [FfiInterp ffi] [FfiSemantics ext ffi] go_gctx in
+omit [GooseInterp] [GooseSemantics] go_gctx in
 theorem rdCountM_cons (m : MsgSt) (ms : List MsgSt) :
     rdCountM (m :: ms) = (if m.msg.Type' = MsgReadIndex then 1 else 0) + rdCountM ms := by
   unfold rdCountM
   rw [List.countP_cons]
   by_cases h : m.msg.Type' = MsgReadIndex <;> simp [h, Nat.add_comm]
 
-omit [FfiInterp ffi] [FfiSemantics ext ffi] go_gctx in
+omit [GooseInterp] [GooseSemantics] go_gctx in
 theorem rdCountM_append (a b : List MsgSt) : rdCountM (a ++ b) = rdCountM a + rdCountM b := by
   unfold rdCountM; exact List.countP_append
 
-omit [FfiInterp ffi] [FfiSemantics ext ffi] go_gctx in
+omit [GooseInterp] [GooseSemantics] go_gctx in
 theorem rdCountM_filter_le (l : List QMsg) (f : QMsg → Bool) :
     rdCountM ((l.filter f).map QMsg.st) ≤ rdCountM (l.map QMsg.st) := by
   unfold rdCountM
   rw [List.countP_map, List.countP_map]
   exact List.filter_sublist.countP_le
 
-omit [FfiInterp ffi] [FfiSemantics ext ffi] go_gctx in
+omit [GooseInterp] [GooseSemantics] go_gctx in
 theorem mtypeOf_MsgReadIndex : mtypeOf MsgReadIndex = some .readIndex := rfl
 
-omit [FfiInterp ffi] [FfiSemantics ext ffi] go_gctx in
+omit [GooseInterp] [GooseSemantics] go_gctx in
 /-- Only `MsgReadIndex` is abstracted as a `readIndex`. -/
 theorem mtypeOf_readIndex (t : w32) (H : mtypeOf t = some .readIndex) : t = MsgReadIndex := by
   unfold mtypeOf at H
@@ -848,7 +848,7 @@ theorem mtypeOf_readIndex (t : w32) (H : mtypeOf t = some .readIndex) : t = MsgR
   rename_i h
   exact uint_Z_inj.1 (by rw [h]; rfl)
 
-omit [FfiInterp ffi] [FfiSemantics ext ffi] go_gctx in
+omit [GooseInterp] [GooseSemantics] go_gctx in
 /-- A queued message contributes a read-index request to the abstract outbox iff it is a
 `MsgReadIndex`. (2026-10-16, stage R5: pure.) -/
 theorem msgAbs_rdCount (m : MsgSt) (a : Option Msg) (H : msgAbs m a) :
@@ -873,7 +873,7 @@ theorem msgAbs_rdCount (m : MsgSt) (a : Option Msg) (H : msgAbs m a) :
       cases H1
     simp [rdCount, absSnap, absSnapFrom, Hne]
 
-omit [FfiInterp ffi] [FfiSemantics ext ffi] go_gctx in
+omit [GooseInterp] [GooseSemantics] go_gctx in
 theorem msgsAbs_rdCount (ms : List QMsg) (as_ : List (Option Msg))
     (H : List.Forall₂ (fun q a => msgAbs q.st a) ms as_) :
     rdCountM (ms.map QMsg.st) = rdCount (absList as_) := by
@@ -883,7 +883,7 @@ theorem msgsAbs_rdCount (ms : List QMsg) (as_ : List (Option Msg))
     have Hab : absList (a :: as') = a.toList ++ absList as' := by cases a <;> rfl
     rw [List.map_cons, Hab, rdCount_append, msgAbs_rdCount _ _ Ha, ← ih, rdCountM_cons]
 
-omit [FfiInterp ffi] [FfiSemantics ext ffi] go_gctx in
+omit [GooseInterp] [GooseSemantics] go_gctx in
 /-- The messages a `Ready` hands out (those of `r.msgs` and those of `msgsAfterAppend` to
 others) hold at most as many `MsgReadIndex`s as the outbox has requests (2026-10-16). -/
 theorem outboxRelP_rdCount (o : List Msg) (ms1 ms2 : List QMsg) (f : QMsg → Bool)
@@ -906,7 +906,7 @@ A queued `MsgProp` carries its entries' tickets (`entTk`); the abstract outbox k
 def stTks (γ : RaftNames) (st : MsgSt) : IProp GF :=
   if st.msg.Type' = MsgProp then iprop([∗list] e ∈ st.ents, entTk γ e) else iprop(emp)
 
-omit [FfiInterp ffi] [FfiSemantics ext ffi] go_gctx in
+omit [GooseInterp] [GooseSemantics] go_gctx in
 /-- Only `MsgProp` is abstracted as a `propose`. -/
 theorem mtypeOf_propose (t : w32) (H : mtypeOf t = some .propose) : t = MsgProp := by
   unfold mtypeOf at H
@@ -918,7 +918,7 @@ theorem mtypeOf_propose (t : w32) (H : mtypeOf t = some .propose) : t = MsgProp 
 def qProp (st : MsgSt) : Option Msg :=
   if st.msg.Type' = MsgProp then some (absMsg .propose st.msg st.ents st.ctx) else none
 
-omit [FfiInterp ffi] [FfiSemantics ext ffi] go_gctx in
+omit [GooseInterp] [GooseSemantics] go_gctx in
 theorem msgAbs_props (m : MsgSt) (a : Option Msg) (H : msgAbs m a) :
     propsOf a.toList = (qProp m).toList := by
   unfold qProp
@@ -937,7 +937,7 @@ theorem msgAbs_props (m : MsgSt) (a : Option Msg) (H : msgAbs m a) :
       intro h; rw [h, mtypeOf_MsgProp] at H1; cases H1
     simp [Hne, propsOf_cons, absSnap, absSnapFrom]
 
-omit [FfiInterp ffi] [FfiSemantics ext ffi] go_gctx in
+omit [GooseInterp] [GooseSemantics] go_gctx in
 theorem msgsAbs_props (ms : List QMsg) (as_ : List (Option Msg))
     (H : List.Forall₂ (fun q a => msgAbs q.st a) ms as_) :
     propsOf (absList as_) = ms.filterMap (fun q => qProp q.st) := by
@@ -948,7 +948,7 @@ theorem msgsAbs_props (ms : List QMsg) (as_ : List (Option Msg))
     rw [Hab, propsOf_append, msgAbs_props _ _ Ha, ih, List.filterMap_cons]
     cases qProp q.st <;> rfl
 
-omit [FfiInterp ffi] [FfiSemantics ext ffi] go_gctx in
+omit [GooseInterp] [GooseSemantics] go_gctx in
 /-- The proposals a `Ready` hands out are among the outbox's. -/
 theorem outboxRelP_props (o : List Msg) (ms1 ms2 : List QMsg) (f : QMsg → Bool)
     (Hp : outboxRelP o ms1 ms2) :
@@ -1319,7 +1319,7 @@ instance readyIdx_persistent (γr : RaftNames) (d ce es : List EntryM) :
     Persistent (readyIdx (GF := GF) γr d ce es) := by
   unfold readyIdx; infer_instance
 
-omit [FfiInterp ffi] [FfiSemantics ext ffi] go_gctx in
+omit [GooseInterp] [GooseSemantics] go_gctx in
 /-- The indices a `Ready` hands out are within the log (2026-10-18, D19b stage 5, `readyIdx`):
 the unstable entries not yet handed out end at the last index, the committed log handed out
 (`applying` long, then `ce`) is at most `committed` long. -/

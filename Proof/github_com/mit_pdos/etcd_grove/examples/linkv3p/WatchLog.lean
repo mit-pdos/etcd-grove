@@ -33,7 +33,7 @@ namespace linkv3p
 open go_etcd_io.etcd.server.v3.etcdserver
 
 section pure
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 export common (Cur Cur_zero)
 

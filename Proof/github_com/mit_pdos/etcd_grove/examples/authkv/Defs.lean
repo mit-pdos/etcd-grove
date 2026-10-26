@@ -31,7 +31,7 @@ namespace authkv
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.raft.v3
 
 section pure
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- `Main`'s peer URL, `http://127.0.0.1:23926`. -/
 def peerURL : _root_.Perennial.net.url.URL :=
@@ -54,7 +54,7 @@ def akDir (id : w64) : w64 → List GoString := dirOne id go!"http://127.0.0.1:2
 end pure
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

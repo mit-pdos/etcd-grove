@@ -45,7 +45,7 @@ theorem list_shift_within {A : Type} (vs vs' : List A) (i n : Nat) (hn : vs.leng
       (by rw [List.length_drop]; omega)]
 
 section wps
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [GoSemanticsFunctions] [preSem : go.PreSemantics]

@@ -19,7 +19,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -36,8 +36,11 @@ theorem rafthttp.messageEncoder.encode.wp_proof
   wp_start as ⟨#Hw, #Hwr, HWr, #Hm, #HA⟩
   iunfold writerAtF at Hwr
   wp_auto
+  ihave #Hbin : isPkgInit (PROP := IProp GF) pkg_id.encoding.binary $$ []
+  · iPkgInit
+  ihave %Hbe := bigEndian_ne_null $$ Hbin
   wp_apply (encoding.binary.wp_load_struct_nofields (V := encoding.binary.bigEndian)
-    (globalAddr encoding.binary.BigEndian))
+    (globalAddr encoding.binary.BigEndian) Hbe)
   iintro -
   wp_auto
   wp_apply wpS $$ [$Hm] as %n ⟨%Hn, %Hwire⟩

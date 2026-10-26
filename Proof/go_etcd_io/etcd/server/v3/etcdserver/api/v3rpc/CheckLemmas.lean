@@ -80,7 +80,7 @@ theorem v3rpc.txnCheck_eq (n : Int) (cs : List CmpModel) (ts es : List v3rpc.Req
   cases v3rpc.opsCheck (n - v3rpc.txnWidth cs ts es) ts <;> rfl
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

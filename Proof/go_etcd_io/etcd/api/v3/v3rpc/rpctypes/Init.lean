@@ -37,7 +37,7 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
 section opaqueInits
 namespace go_etcd_io.etcd.api.v3.v3rpc.rpctypes
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -299,13 +299,13 @@ end opaqueInits
 /-- **The method set of `rpctypes.EtcdError`** is `{Code, Error}` (`error.go`): no `As`,
 `Unwrap`, `GRPCStatus` or `Is` method. A fact about the method sets, which the semantics leaves
 uninterpreted: a premise, as `EtcdGrove.ErrorStringLeaf`. -/
-class EtcdGrove.RpctypesEtcdErrorMethods [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions] : Prop where
+class EtcdGrove.RpctypesEtcdErrorMethods [GooseExts] [GoGlobalContext] [GoSemanticsFunctions] : Prop where
   leaf : ∀ v : val, errors.isLeafError ⟨go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty, v⟩
   noGRPCStatus : methodSet go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty !! go!"GRPCStatus" = none
   noIs : methodSet go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty !! go!"Is" = none
 
 section init
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

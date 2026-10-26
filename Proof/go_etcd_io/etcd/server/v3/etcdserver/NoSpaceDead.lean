@@ -76,7 +76,7 @@ theorem dispatchStep_start (rq : apply.IRRModel) (log : mvcc.Log) (o : apply.Out
     · exact Or.inr ⟨_, rfl⟩
 
 section iris
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

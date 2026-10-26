@@ -225,7 +225,7 @@ theorem size_le_of_sub_dom {V : Type} (s : GSet w64) (prs : GMap w64 V) (H : s â
 /-! ## The tracker at a configuration -/
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

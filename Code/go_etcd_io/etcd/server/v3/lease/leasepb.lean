@@ -21,66 +21,66 @@ end pkg_id
 
 namespace go_etcd_io.etcd.server.v3.lease.leasepb
 
-noncomputable def Lease.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Lease.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/lease/leasepb.Lease" [])
 
 attribute [irreducible] Lease.ty
 
-noncomputable def LeaseInternalRequest.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def LeaseInternalRequest.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/lease/leasepb.LeaseInternalRequest" [])
 
 attribute [irreducible] LeaseInternalRequest.ty
 
-noncomputable def LeaseInternalResponse.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def LeaseInternalResponse.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/lease/leasepb.LeaseInternalResponse" [])
 
 attribute [irreducible] LeaseInternalResponse.ty
 
-axiom LeaseInternalRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom LeaseInternalRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom LeaseInternalResponse.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom LeaseInternalResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom file_lease_proto_rawDesc [FfiSyntax] [GoGlobalContext] : val
+axiom file_lease_proto_rawDesc [GooseExts] [GoGlobalContext] : val
 
-noncomputable def File_lease_proto [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def File_lease_proto [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/lease/leasepb.File_lease_proto"
 
-noncomputable def file_lease_proto_rawDescOnce [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def file_lease_proto_rawDescOnce [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/lease/leasepb.file_lease_proto_rawDescOnce"
 
-noncomputable def file_lease_proto_rawDescData [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def file_lease_proto_rawDescData [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/lease/leasepb.file_lease_proto_rawDescData"
 
-noncomputable def file_lease_proto_msgTypes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def file_lease_proto_msgTypes [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/lease/leasepb.file_lease_proto_msgTypes"
 
-axiom file_lease_proto_msgTypes.init [FfiSyntax] [GoGlobalContext] : val
+axiom file_lease_proto_msgTypes.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def file_lease_proto_goTypes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def file_lease_proto_goTypes [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/lease/leasepb.file_lease_proto_goTypes"
 
-axiom file_lease_proto_goTypes.init [FfiSyntax] [GoGlobalContext] : val
+axiom file_lease_proto_goTypes.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def file_lease_proto_depIdxs [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def file_lease_proto_depIdxs [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/lease/leasepb.file_lease_proto_depIdxs"
 
-axiom file_lease_proto_depIdxs.init [FfiSyntax] [GoGlobalContext] : val
+axiom file_lease_proto_depIdxs.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def file_lease_proto_rawDescGZIP [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def file_lease_proto_rawDescGZIP [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/lease/leasepb.file_lease_proto_rawDescGZIP"
 
-noncomputable def init.«0» [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def init.«0» [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/lease/leasepb.init.0"
 
-noncomputable def file_lease_proto_init [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def file_lease_proto_init [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/lease/leasepb.file_lease_proto_init"
 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.lease.leasepb where
   pkgImportedPkgs := [pkg_id.google_golang_org.protobuf.runtime.protoimpl]
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.server.v3.lease.leasepb)) (Lam BAnon
   (App (Val exceptionDo)
@@ -99,7 +99,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.initialize') (Val #()))))))))
 
-structure Lease [FfiSyntax] where
+structure Lease [GooseExts] where
   mk ::
   state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
   ID' : w64
@@ -108,10 +108,10 @@ structure Lease [FfiSyntax] where
   unknownFields' : GoSlice
   sizeCache' : w32
 
-noncomputable instance Lease.zero_val [FfiSyntax] : ZeroVal Lease :=
+noncomputable instance Lease.zero_val [GooseExts] : ZeroVal Lease :=
   ⟨Lease.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Lease.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Lease.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
 (go.field_decl.FieldDecl go!"ID" go.int64),
 (go.field_decl.FieldDecl go!"TTL" go.int64),
@@ -119,17 +119,17 @@ noncomputable instance Lease.zero_val [FfiSyntax] : ZeroVal Lease :=
 (go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
 (go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
 
-@[irreducible] noncomputable def Lease.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Lease.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Lease.fieldsUnsealed
 
-noncomputable instance equals_unfold_Lease [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Lease [GooseExts] [GoGlobalContext] :
     EqualsUnfold Lease.fields Lease.fieldsUnsealed :=
   ⟨by unfold Lease.fields; rfl⟩
 
-@[reducible] noncomputable def Lease.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Lease.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Lease.fields)
 
-class Lease.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Lease.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Lease.underlying Lease
   underlying : go.UnderlyingDirectedEq Lease.ty Lease.underlying
   get_state : ∀ (x : Lease), go.IsGoStepPureDetTagged under (StructFieldGet Lease.underlying go!"state") #x (Val #(x.state'))
@@ -164,7 +164,7 @@ axiom LeaseInternalRequest : Type
 axiom LeaseInternalRequest.zero_val : ZeroVal LeaseInternalRequest
 attribute [instance] LeaseInternalRequest.zero_val
 
-class LeaseInternalRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class LeaseInternalRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying LeaseInternalRequest.underlying LeaseInternalRequest
   underlying : go.UnderlyingDirectedEq LeaseInternalRequest.ty LeaseInternalRequest.underlying
   isUnderlying : go.IsUnderlying LeaseInternalRequest.underlying LeaseInternalRequest.underlying
@@ -177,7 +177,7 @@ axiom LeaseInternalResponse : Type
 axiom LeaseInternalResponse.zero_val : ZeroVal LeaseInternalResponse
 attribute [instance] LeaseInternalResponse.zero_val
 
-class LeaseInternalResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class LeaseInternalResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying LeaseInternalResponse.underlying LeaseInternalResponse
   underlying : go.UnderlyingDirectedEq LeaseInternalResponse.ty LeaseInternalResponse.underlying
   isUnderlying : go.IsUnderlying LeaseInternalResponse.underlying LeaseInternalResponse.underlying
@@ -186,7 +186,7 @@ attribute [instance] LeaseInternalResponse.TypeAssumptions.type_repr
   LeaseInternalResponse.TypeAssumptions.underlying
   LeaseInternalResponse.TypeAssumptions.isUnderlying
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Lease_instance : Lease.TypeAssumptions
   LeaseInternalRequest_instance : LeaseInternalRequest.TypeAssumptions
   LeaseInternalResponse_instance : LeaseInternalResponse.TypeAssumptions

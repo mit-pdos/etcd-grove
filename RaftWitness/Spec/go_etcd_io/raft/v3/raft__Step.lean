@@ -88,7 +88,7 @@ entries and no context (`RawNode.TransferLeader` builds it so, and forwarding ke
 off no transferee is recorded, so no `MsgTimeoutNow` is sent.
 These are transport premises, like the others: no message fact carries them
 (`MsgTransferLeader` and `MsgTimeoutNow` are outside the model, `mtypeOf` is `none`). -/
-def RestMsgOk [FfiSyntax] (s : NState) (m : MessageM) (ents : List EntryM) (ctx : List w8) :
+def RestMsgOk [GooseExts] (s : NState) (m : MessageM) (ents : List EntryM) (ctx : List w8) :
     Prop :=
   ((m.Type' = MsgForgetLeader ∨ m.Type' = MsgUnreachable ∨ m.Type' = MsgSnapStatus) →
      m.Term' = W64 0) ∧
@@ -102,14 +102,14 @@ def RestMsgOk [FfiSyntax] (s : NState) (m : MessageM) (ents : List EntryM) (ctx 
      s.gh.xf = false)
 
 /-- `RestMsgOk` of a message of none of those types. -/
-theorem RestMsgOk.of_ne [FfiSyntax] {s : NState} {m : MessageM} {ents : List EntryM}
+theorem RestMsgOk.of_ne [GooseExts] {s : NState} {m : MessageM} {ents : List EntryM}
     {ctx : List w8}
     (h : m.Type' ≠ MsgForgetLeader ∧ m.Type' ≠ MsgUnreachable ∧ m.Type' ≠ MsgSnapStatus ∧
       m.Type' ≠ MsgTimeoutNow ∧ m.Type' ≠ MsgTransferLeader) : RestMsgOk s m ents ctx :=
   ⟨fun h' => by rcases h' with h' | h' | h' <;> simp_all,
    fun h' => absurd h' h.2.2.2.1, fun h' => absurd h' h.2.2.2.2⟩
 
-def StepMsg [FfiSyntax] (m : MessageM) : Prop :=
+def StepMsg [GooseExts] (m : MessageM) : Prop :=
   m.Type' ∈ stepMsgTypes
 
 /-- What a `Step` of one of the messages `RawNode` steps itself leaves of the node's
@@ -120,7 +120,7 @@ and what the storage holds (`prev`, the ghost `stored`), which the `RawNode` pre
 keeps the records of for the acknowledgement `Advance` steps (`InvRawnode.lean`); and
 the storage the log reads (`LogState.storage`, constant), which the `RawNode` predicate
 names to its client (`RNState.storage`); and (2026-10-10) `r.preVote`. -/
-def LocalFrame [FfiSyntax] (s s' : NState) : Prop :=
+def LocalFrame [GooseExts] (s s' : NState) : Prop :=
   s'.term = s.term ∧
   uint.Z s.logst.inprogress ≤ uint.Z s'.logst.inprogress ∧
   s'.logst.unpersisted = s.logst.unpersisted ∧
@@ -142,7 +142,7 @@ entries not yet handed out, so not when its last entry is at or below it. This i
 lets the `RawNode` predicate (`InvRawnode.lean`) keep its client-facing facts on the log
 (the committed entries handed out so far, the unpersisted ones) across a `Step`.
 Nothing is said for any other message type. -/
-def LocalStepOk [FfiSyntax] (m : MessageM) (ents : List EntryM)
+def LocalStepOk [GooseExts] (m : MessageM) (ents : List EntryM)
     (s s' : NState) : Prop :=
   (m.Type' = MsgProp ∨ m.Type' = MsgStorageAppendResp ∨ m.Type' = MsgStorageApplyResp) →
   LocalFrame s s' ∧
@@ -166,7 +166,7 @@ leaves the storage holding entries the log no longer has -- which is why the
 acknowledgement `Advance` steps after it may still move them stable (`StableOk`). And
 the storage the log reads (`LogState.storage`, constant). And (2026-10-10) `r.preVote`,
 never written after `newRaft` (the `RawNode` predicate keeps it off in the dynamic mode). -/
-def NetFrame [FfiSyntax] (s s' : NState) : Prop :=
+def NetFrame [GooseExts] (s s' : NState) : Prop :=
   s'.logst.applying = s.logst.applying ∧
   s'.logst.snap = s.logst.snap ∧
   s'.logst.unpersisted = s.logst.unpersisted ∧
@@ -180,16 +180,16 @@ def NetFrame [FfiSyntax] (s s' : NState) : Prop :=
 
 /-- (2026-10-19, D21 M3) A frame keeps the no-snapshot mode; (D21 M2r) and leader transfer: the
 ghost state's flags (`NGhost`), all of it. -/
-theorem NetFrame.ns [FfiSyntax] {s s' : NState} (H : NetFrame s s') : s'.gh = s.gh :=
+theorem NetFrame.ns [GooseExts] {s s' : NState} (H : NetFrame s s') : s'.gh = s.gh :=
   H.2.2.2.2.2.2.2.1
 
-theorem LocalFrame.ns [FfiSyntax] {s s' : NState} (H : LocalFrame s s') : s'.gh = s.gh :=
+theorem LocalFrame.ns [GooseExts] {s s' : NState} (H : LocalFrame s s') : s'.gh = s.gh :=
   H.2.2.2.2.2.2.2.2.1
 
-theorem NetFrame.refl [FfiSyntax] (s : NState) : NetFrame s s :=
+theorem NetFrame.refl [GooseExts] (s : NState) : NetFrame s s :=
   ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, Int.le_refl _⟩
 
-theorem NetFrame.trans [FfiSyntax] {s1 s2 s3 : NState} (h1 : NetFrame s1 s2)
+theorem NetFrame.trans [GooseExts] {s1 s2 s3 : NState} (h1 : NetFrame s1 s2)
     (h2 : NetFrame s2 s3) : NetFrame s1 s3 :=
   ⟨h2.1.trans h1.1, h2.2.1.trans h1.2.1, h2.2.2.1.trans h1.2.2.1, h2.2.2.2.1.trans h1.2.2.2.1,
    h2.2.2.2.2.1.trans h1.2.2.2.2.1, h2.2.2.2.2.2.1.trans h1.2.2.2.2.2.1,
@@ -197,7 +197,7 @@ theorem NetFrame.trans [FfiSyntax] {s1 s2 s3 : NState} (h1 : NetFrame s1 s2)
    h2.2.2.2.2.2.2.2.2.1.trans h1.2.2.2.2.2.2.2.2.1, Int.le_trans h1.2.2.2.2.2.2.2.2.2 h2.2.2.2.2.2.2.2.2.2⟩
 
 /-- Two states with the same log state and pre-vote setting. -/
-theorem NetFrame.of_logst [FfiSyntax] {s s' : NState} (h : s'.logst = s.logst)
+theorem NetFrame.of_logst [GooseExts] {s s' : NState} (h : s'.logst = s.logst)
     (hpv : s'.prevote = s.prevote := by rfl) (hg : s'.gh = s.gh := by rfl) :
     NetFrame s s' := by
   unfold NetFrame; rw [h, hpv, hg]; exact ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, Int.le_refl _⟩
@@ -211,7 +211,7 @@ one past the larger of the node's and the message's term: a step-down to the mes
 term, then a campaign. And (2026-10-17, for the pre-candidate's budget at the `RawNode` layer)
 a node that is a pre-candidate afterwards was one before, or stepped a `MsgHup` (a pre-campaign),
 and is at the same term (`PreCandStep`). -/
-def PreCandStep [FfiSyntax] (m : MessageM) (s s' : NState) : Prop :=
+def PreCandStep [GooseExts] (m : MessageM) (s s' : NState) : Prop :=
   s'.role = .preCandidate → s'.term = s.term ∧ (s.role = .preCandidate ∨ m.Type' = MsgHup)
 
 /-- `PreCandStep` for a concrete end state: the role and term kept, or a role that is no
@@ -223,7 +223,7 @@ macro "pc_tac" : tactic => `(tactic| first
   | (intro h; exact ⟨rfl, .inr ‹_›⟩)
   | (intro h; simp_all))
 
-def TermStep [FfiSyntax] (m : MessageM) (s s' : NState) : Prop :=
+def TermStep [GooseExts] (m : MessageM) (s s' : NState) : Prop :=
   uint.Z s.term ≤ uint.Z s'.term ∧
   (m.Type' = MsgHup → uint.Z s'.term ≤ uint.Z s.term + 1) ∧
   (m.Type' ≠ MsgHup → m.Type' ≠ MsgPreVoteResp → m.Type' ≠ MsgTimeoutNow →
@@ -233,7 +233,7 @@ def TermStep [FfiSyntax] (m : MessageM) (s s' : NState) : Prop :=
   PreCandStep m s s'
 
 /-- A step that keeps the term. -/
-theorem TermStep.of_term [FfiSyntax] {m : MessageM} {s s' : NState}
+theorem TermStep.of_term [GooseExts] {m : MessageM} {s s' : NState}
     (h : s'.term = s.term)
     (hi : m.Type' ≠ MsgApp → uint.Z s.logst.inprogress ≤ uint.Z s'.logst.inprogress)
     (hpc : PreCandStep m s s' := by pc_tac) :
@@ -242,12 +242,12 @@ theorem TermStep.of_term [FfiSyntax] {m : MessageM} {s s' : NState}
   exact ⟨Int.le_refl _, fun _ => by omega, fun _ _ _ => Int.le_max_left _ _, hi,
     fun _ => by have := Int.le_max_left (uint.Z s.term) (uint.Z m.Term'); omega, hpc⟩
 
-theorem TermStep.refl [FfiSyntax] (m : MessageM) (s : NState) : TermStep m s s :=
+theorem TermStep.refl [GooseExts] (m : MessageM) (s : NState) : TermStep m s s :=
   TermStep.of_term rfl (fun _ => Int.le_refl _) (fun h => ⟨rfl, .inl h⟩)
 
 /-- A step to a term between the start's and the message's, for a message other than
 `MsgHup` (a step-down to `m.Term`, then a handler that keeps it). -/
-theorem TermStep.of_le [FfiSyntax] {m : MessageM} {s s' : NState}
+theorem TermStep.of_le [GooseExts] {m : MessageM} {s s' : NState}
     (hup : m.Type' ≠ MsgHup) (h1 : uint.Z s.term ≤ uint.Z s'.term)
     (h2 : uint.Z s'.term ≤ uint.Z m.Term')
     (hi : m.Type' ≠ MsgApp → uint.Z s.logst.inprogress ≤ uint.Z s'.logst.inprogress)
@@ -257,7 +257,7 @@ theorem TermStep.of_le [FfiSyntax] {m : MessageM} {s s' : NState}
    fun _ => by have := Int.le_max_right (uint.Z s.term) (uint.Z m.Term'); omega, hpc⟩
 
 /-- A local step's frame keeps the term and does not move `offsetInProgress` back. -/
-theorem TermStep.of_local [FfiSyntax] {m : MessageM} {s s' : NState}
+theorem TermStep.of_local [GooseExts] {m : MessageM} {s s' : NState}
     (h : LocalFrame s s') : TermStep m s s' :=
   TermStep.of_term h.1 (fun _ => h.2.1) (fun hp => ⟨h.1, .inl (h.2.2.2.2.2.2.2.2.2.1 ▸ hp)⟩)
 
@@ -269,7 +269,7 @@ pre-candidate (a won pre-vote's `campaign`), and never makes the node a pre-cand
 by `Ready`: with this, stepping them all moves the term up by at most one -- once a
 pre-vote is won the node is a candidate, and stays one through the rest of the queue,
 whose responses are then all stale or a candidate's to ignore. -/
-def RespStep [FfiSyntax] (m : MessageM) (s s' : NState) : Prop :=
+def RespStep [GooseExts] (m : MessageM) (s s' : NState) : Prop :=
   ((m.Type' = MsgVoteResp ∨ m.Type' = MsgAppResp) →
      uint.Z m.Term' < uint.Z s.term → s'.role = s.role) ∧
   (m.Type' = MsgPreVoteResp →
@@ -277,23 +277,23 @@ def RespStep [FfiSyntax] (m : MessageM) (s s' : NState) : Prop :=
       (s.role = .preCandidate ∧ uint.Z s'.term = uint.Z s.term + 1)) ∧
      (s'.role = .preCandidate → s.role = .preCandidate ∧ s'.term = s.term))
 
-theorem RespStep.refl [FfiSyntax] (m : MessageM) (s : NState) : RespStep m s s :=
+theorem RespStep.refl [GooseExts] (m : MessageM) (s : NState) : RespStep m s s :=
   ⟨fun _ _ => rfl, fun _ => ⟨.inl (Int.le_max_left _ _), fun h => ⟨h, rfl⟩⟩⟩
 
 /-- Any step of a message that is none of the three responses. -/
-theorem RespStep.of_type [FfiSyntax] {m : MessageM} {s s' : NState}
+theorem RespStep.of_type [GooseExts] {m : MessageM} {s s' : NState}
     (h1 : m.Type' ≠ MsgVoteResp) (h2 : m.Type' ≠ MsgAppResp)
     (h3 : m.Type' ≠ MsgPreVoteResp) : RespStep m s s' :=
   ⟨fun h => by rcases h with h | h <;> contradiction, fun h => absurd h h3⟩
 
 /-- Any step of a `MsgVoteResp` or `MsgAppResp` that is not stale. -/
-theorem RespStep.of_fresh [FfiSyntax] {m : MessageM} {s s' : NState}
+theorem RespStep.of_fresh [GooseExts] {m : MessageM} {s s' : NState}
     (h3 : m.Type' ≠ MsgPreVoteResp) (hge : uint.Z s.term ≤ uint.Z m.Term') :
     RespStep m s s' :=
   ⟨fun _ hlt => absurd hlt (Int.not_lt.2 hge), fun h => absurd h h3⟩
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 -- `hlc := HasLC.hasLC`, so that the heap's invariants are an `InvGS GF` (see the
 -- Lean notes)

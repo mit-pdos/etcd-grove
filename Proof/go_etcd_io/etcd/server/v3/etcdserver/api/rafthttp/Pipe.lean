@@ -31,7 +31,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -56,7 +56,7 @@ instance pipeDeposit_persistent (N : NetPayload GF) (γk : GName) (st : MsgSt) :
 
 /-- **The raft network over HTTP**: the network's names, the member owning each host, (stage 5)
 the streams' registry (`Stream.lean`) and (stage 6d) the members (a request's sender is one). -/
-structure RaftHttp (GF : BundledGFunctors) [FfiSyntax] where
+structure RaftHttp (GF : BundledGFunctors) [GooseExts] where
   γn : NetNames GF
   owner : GoString → w64
   γreg : GName
@@ -129,7 +129,7 @@ instance pipeReq_persistent (Rh : RaftHttp GF) (R : http.HReq) (γk : GName) :
 end defs
 
 section lemmas
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

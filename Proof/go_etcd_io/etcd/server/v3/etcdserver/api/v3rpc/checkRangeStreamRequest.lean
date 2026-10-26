@@ -25,13 +25,13 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.api
   go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.api.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-omit [FfiSyntax] in
+omit [GooseExts] in
 /-- An `int32` enumeration value widened as `rangeOpOf` does is `c` iff the value is `c`. -/
 theorem v3rpc.w64_of_w32_eq (x : w32) (c : Int) (hc0 : 0 ≤ c) (hc : c < 2 ^ 31) :
     (W64 (sint.Z x) : w64) = W64 c ↔ x = W32 c := by

@@ -17,7 +17,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 /-- The unstable struct's hit test is the log's: the suffix starts at `logOffset`, and
 the log's term at an index of the suffix is the entry's. -/
-private theorem stableHit_unstable [FfiSyntax] (lv : raftLog) (ls : LogState) (id : entryID)
+private theorem stableHit_unstable [GooseExts] (lv : raftLog) (ls : LogState) (id : entryID)
     (Hoff : uint.Z lv.unstable'.offset' = logOffset ls) :
     StableHit ls id ↔ UnstableHit (unstableOf lv ls) id := by
   simp only [StableHit, UnstableHit, logOffset, plogTermAt] at Hoff ⊢
@@ -46,7 +46,7 @@ private theorem stableHit_unstable [FfiSyntax] (lv : raftLog) (ls : LogState) (i
     simp [ht]
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]

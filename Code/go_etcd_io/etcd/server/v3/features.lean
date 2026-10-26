@@ -21,45 +21,45 @@ end pkg_id
 
 namespace go_etcd_io.etcd.server.v3.features
 
-@[reducible] noncomputable def StopGRPCServiceOnDefrag [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def StopGRPCServiceOnDefrag [GooseExts] [GoGlobalContext] : val :=
   #(go!"StopGRPCServiceOnDefrag")
 
-@[reducible] noncomputable def TxnModeWriteWithSharedBuffer [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def TxnModeWriteWithSharedBuffer [GooseExts] [GoGlobalContext] : val :=
   #(go!"TxnModeWriteWithSharedBuffer")
 
-axiom InitialCorruptCheck [FfiSyntax] [GoGlobalContext] : val
+axiom InitialCorruptCheck [GooseExts] [GoGlobalContext] : val
 
-axiom CompactHashCheck [FfiSyntax] [GoGlobalContext] : val
+axiom CompactHashCheck [GooseExts] [GoGlobalContext] : val
 
-@[reducible] noncomputable def LeaseCheckpoint [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def LeaseCheckpoint [GooseExts] [GoGlobalContext] : val :=
   #(go!"LeaseCheckpoint")
 
-@[reducible] noncomputable def LeaseCheckpointPersist [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def LeaseCheckpointPersist [GooseExts] [GoGlobalContext] : val :=
   #(go!"LeaseCheckpointPersist")
 
-axiom SetMemberLocalAddr [FfiSyntax] [GoGlobalContext] : val
+axiom SetMemberLocalAddr [GooseExts] [GoGlobalContext] : val
 
-axiom FastLeaseKeepAlive [FfiSyntax] [GoGlobalContext] : val
+axiom FastLeaseKeepAlive [GooseExts] [GoGlobalContext] : val
 
-@[reducible] noncomputable def PriorityRequest [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def PriorityRequest [GooseExts] [GoGlobalContext] : val :=
   #(go!"PriorityRequest")
 
-axiom NonBlockingDefrag [FfiSyntax] [GoGlobalContext] : val
+axiom NonBlockingDefrag [GooseExts] [GoGlobalContext] : val
 
-noncomputable def DefaultEtcdServerFeatureGates [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def DefaultEtcdServerFeatureGates [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/features.DefaultEtcdServerFeatureGates"
 
-axiom DefaultEtcdServerFeatureGates.init [FfiSyntax] [GoGlobalContext] : val
+axiom DefaultEtcdServerFeatureGates.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def NewDefaultServerFeatureGate [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewDefaultServerFeatureGate [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/features.NewDefaultServerFeatureGate"
 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.features where
   pkgImportedPkgs := [pkg_id.go_etcd_io.etcd.pkg.v3.featuregate]
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.server.v3.features)) (Lam BAnon
   (App (Val exceptionDo)
@@ -69,7 +69,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.initialize') (Val #()))))))))
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   import_featuregate_Assumption : _root_.Perennial.go_etcd_io.etcd.pkg.v3.featuregate.Assumptions
 
 attribute [instance] Assumptions.import_featuregate_Assumption

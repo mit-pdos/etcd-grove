@@ -27,7 +27,7 @@ namespace adt
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.pkg.v3.adt
 
 section top
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- The top of a path: the node at the top of the context `A` (whose frames' parents and other
 children are `ls`, innermost first) over the hole `n` (child of `p`), and its parent. -/
@@ -52,7 +52,7 @@ def topAt : RbCtx Entry → List (Loc × Loc) → Loc → Loc → Loc × Loc
 end top
 
 section ctx
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

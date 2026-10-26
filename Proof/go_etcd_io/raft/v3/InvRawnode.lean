@@ -121,7 +121,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
   the `Ready` and the `Advance` moves the boundary, not `stored`;
 - `applyAck ents`: `MsgStorageApplyResp` carrying the committed entries handed out for
   applying. -/
-inductive Pending [FfiSyntax] where
+inductive Pending [GooseExts] where
   | self (pv : Bool) (t : w64)
   | appendAck (term : w64) (base : entryID) (last : Option entryID) (sn : Option SnapshotM)
   | applyAck (ents : List EntryM)
@@ -130,7 +130,7 @@ inductive Pending [FfiSyntax] where
 (the voters fixed at `γ.reCfg`, conf-change entries data) or dynamic (the configuration changes
 by applied conf entries: a decoder `dec` and an initial configuration `c0`; B5's
 `ownRaftGhostR`). -/
-inductive RNMode [FfiSyntax] where
+inductive RNMode [GooseExts] where
   | static
   | dyn (dec : CCDec) (c0 : CCState) (h0 : CfgOk c0) (h1 : CCGood c0)
 
@@ -140,14 +140,14 @@ at `ptr` (`rd.Snapshot`, half of it: the queued acknowledgement shares the point
 the committed log up to the snapshot (`dlv`, `isCommitted`); the application gives both back with
 `Advance` (`snapReceipt`), which steps the acknowledgement and hands the committed log over
 (`RNState.delivered := dlv`). -/
-structure SnapLoan [FfiSyntax] where
+structure SnapLoan [GooseExts] where
   ptr : Loc
   snap : SnapshotM
   fl : w64
   dlv : List EntryM
 
 /-- What the application sees of a `RawNode` (2026-10-09). -/
-structure RNState [FfiSyntax] where
+structure RNState [GooseExts] where
   /-- The committed log handed out so far, from the start (as `isCommitted` takes it):
   every `Ready`'s `CommittedEntries`, in order, after the entries applied before the
   node was built. -/
@@ -218,7 +218,7 @@ structure RNState [FfiSyntax] where
   phs : HardStateM := HardStateM.mk (W64 0) (W64 0) (W64 0)
 
 section defs
-variable [FfiSyntax]
+variable [GooseExts]
 
 def RNMode.isDyn : RNMode → Bool
   | .static => false
@@ -606,12 +606,12 @@ def NetMsgOk (id : w64) (st : MsgSt) : Prop :=
 theorem NetMsgOk.resps {id : w64} {st : MsgSt} (h : NetMsgOk id st) : st.resps = [] := by
   unfold NetMsgOk at h; exact h.2.2.2.2.2.2.2
 
-omit [FfiSyntax] in
+omit [GooseExts] in
 theorem netStepTypes_nonneg {t : w32} (h : t ∈ netStepTypes) : 0 ≤ sint.Z t := by
   simp only [netStepTypes, List.mem_cons, List.not_mem_nil, _root_.or_false] at h
   rcases h with h | h | h | h | h | h | h | h | h | h | h | h | h | h | h | h <;> rw [h] <;> decide
 
-omit [FfiSyntax] in
+omit [GooseExts] in
 theorem netStepTypes_ne_prop {t : w32} (h : t ∈ netStepTypes) : t ≠ MsgProp := by
   intro he
   rw [he] at h
@@ -725,7 +725,7 @@ def ccEntryM (o : Option CCMsg) (bs : List w8) : EntryM := ⟨W64 0, W64 0, ccEn
 end defs
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
@@ -1202,7 +1202,7 @@ theorem ownRaftPhysC_preFacts (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s 
 end proof
 
 section rawnode
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 -- `hlc := HasLC.hasLC`: the predicate holds the ghost state (`ownRaftGhost`), as in
 -- `Spec/raft__Step.lean`
@@ -1411,7 +1411,7 @@ theorem isEntryR_term_nz (γ : RaftNames) (e : EntryM) (pt : w64) :
     obtain ⟨-, -, Ht, -⟩ := Hb
     rw [Ht]; word
 
-omit [FfiSemantics ext ffi] go_gctx [StorageModel GF] sem package_sem in
+omit [GooseSemantics] go_gctx [StorageModel GF] sem package_sem in
 /-- (Lean helper, as `StepGhost.lean`'s.) -/
 private theorem ite_pos_elim' {PROP : Type _} [BI PROP] {c : Prop} [Decidable c] (P Q : PROP)
     (h : c) : (if c then P else Q) ⊢ P := by

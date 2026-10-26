@@ -57,7 +57,7 @@ structure GoNames where
   chi : BroadcastInternalNames
 
 section addrs
-variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
 abbrev srvWgAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"wg" s
 abbrev srvWgMuAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"wgMu" s
@@ -67,7 +67,7 @@ abbrev srvStoppingAddr' (s : Loc) : Loc := structFieldRef EtcdServer go!"stoppin
 end addrs
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -160,7 +160,7 @@ instance wgMuP_fractional (γ : GoNames) : Fractional (wgMuP (GF := GF) γ) wher
 end defs
 
 section lemmas
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

@@ -110,7 +110,7 @@ def ApplyOut.waived : ApplyOut → Bool
 
 /-- **What `apply.Apply` does to the rest buckets and the cluster's members** (D22, 2026-10-23):
 a dispatched request's `restAfter`; a skipped or rejected one nothing. -/
-def restOut [FfiSyntax] (rq : IRRModel) (v3 : Bool) : ApplyOut → RestM → RestM
+def restOut [GooseExts] (rq : IRRModel) (v3 : Bool) : ApplyOut → RestM → RestM
   | .dispatched _ _, r => restAfter rq v3 r
   | _, r => r
 
@@ -130,7 +130,7 @@ def applyFloorOk (rq : IRRModel) (v3 : Bool) (F log : mvcc.Log) : ApplyOut → P
   | _ => True
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

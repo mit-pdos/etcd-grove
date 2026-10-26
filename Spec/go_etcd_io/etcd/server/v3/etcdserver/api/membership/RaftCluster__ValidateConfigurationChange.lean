@@ -22,7 +22,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.raft.v3
 
 section pure
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- A peer URL some member of `mems` (each member's peer URLs) has. -/
 def membership.urlTaken (mems : GMap w64 (List GoString)) (u : GoString) : Prop :=
@@ -41,7 +41,7 @@ def membership.ccValidM (mems : GMap w64 (List GoString)) (rmv : GMap w64 Bool) 
 end pure
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

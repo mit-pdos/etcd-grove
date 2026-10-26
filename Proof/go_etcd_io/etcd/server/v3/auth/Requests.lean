@@ -36,7 +36,7 @@ def pwSureP (pw hpw : GoString) (nob : Bool) : Prop :=
   nob = true ∨ (pw = [] ∧ ∃ bs : List w8, hpw = stdB64Enc bs)
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

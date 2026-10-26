@@ -16,7 +16,7 @@ namespace EtcdGrove
 open go_etcd_io.etcd.cache.v3
 
 section axioms
-variable [ext : FfiSyntax] [go_gctx : GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [go_gctx : GoGlobalContext] [GoSemanticsFunctions]
 
 /-- **An `EtcdError`'s description is its `desc`** (an axiom; D29): `errDesc` is what
 `rpctypes.ErrorDesc` returns; an `EtcdError` has no `GRPCStatus` method

@@ -30,13 +30,13 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-omit [FfiSyntax] ffi [FfiInterp ffi] [FfiSemantics ext ffi] [GoGlobalContext] in
+omit [GooseExts] [GooseInterp] [GooseSemantics] [GoGlobalContext] in
 /-- One vote short (`votesToWin = 1`): `quorum - 1` granted votes. -/
 theorem votesToWin_one {S : GSet w64} {votes : GMap w64 Bool}
     (h : W64 (votesToWin S votes : Int) = W64 1) (hs : (GMap.size S : Int) ≤ 2 ^ 62) :

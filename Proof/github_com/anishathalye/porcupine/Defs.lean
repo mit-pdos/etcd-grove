@@ -71,10 +71,10 @@ namespace github_com.anishathalye.porcupine
 open Theory
 
 /-- An operation's content: its input and output. -/
-abbrev OpV [FfiSyntax] := GoInterface × GoInterface
+abbrev OpV [GooseExts] := GoInterface × GoInterface
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -181,7 +181,7 @@ end defs
 /-! The model's specs that mention its context (`stepCtxSpec`), stated at
 `HeapGS HasLC.hasLC GF` as Perennial's `context.isContext` is. -/
 section defs_hasLC
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -241,7 +241,7 @@ end defs_hasLC
 /-! ## Histories and entries -/
 
 section hist
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- An `Operation`'s abstract operation. -/
 def opOf (o : Operation) : Theory.Op OpV :=

@@ -91,7 +91,7 @@ theorem maj_symdiff_overlap (l r q1 q2 : GSet w64) (hd : symdiffN l r ≤ 1)
 /-! ### One configuration change -/
 
 section model
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- A configuration a node can be in (see the file header). -/
 def CfgOk (s : CCState) : Prop :=

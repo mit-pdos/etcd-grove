@@ -20,161 +20,161 @@ end pkg_id
 
 namespace k8s_io.apimachinery.pkg.api.validate.content
 
-axiom decimalIntegerErrMsg [FfiSyntax] [GoGlobalContext] : val
+axiom decimalIntegerErrMsg [GooseExts] [GoGlobalContext] : val
 
-axiom dns1123LabelFmt [FfiSyntax] [GoGlobalContext] : val
+axiom dns1123LabelFmt [GooseExts] [GoGlobalContext] : val
 
-axiom dns1123LabelErrMsg [FfiSyntax] [GoGlobalContext] : val
+axiom dns1123LabelErrMsg [GooseExts] [GoGlobalContext] : val
 
-axiom DNS1123LabelMaxLength [FfiSyntax] [GoGlobalContext] : val
+axiom DNS1123LabelMaxLength [GooseExts] [GoGlobalContext] : val
 
-axiom dns1123SubdomainFmt [FfiSyntax] [GoGlobalContext] : val
+axiom dns1123SubdomainFmt [GooseExts] [GoGlobalContext] : val
 
-axiom dns1123SubdomainFmtCaseless [FfiSyntax] [GoGlobalContext] : val
+axiom dns1123SubdomainFmtCaseless [GooseExts] [GoGlobalContext] : val
 
-axiom dns1123SubdomainErrorMsg [FfiSyntax] [GoGlobalContext] : val
+axiom dns1123SubdomainErrorMsg [GooseExts] [GoGlobalContext] : val
 
-axiom dns1123SubdomainCaselessErrorMsg [FfiSyntax] [GoGlobalContext] : val
+axiom dns1123SubdomainCaselessErrorMsg [GooseExts] [GoGlobalContext] : val
 
-axiom DNS1123SubdomainMaxLength [FfiSyntax] [GoGlobalContext] : val
+axiom DNS1123SubdomainMaxLength [GooseExts] [GoGlobalContext] : val
 
-axiom cIdentifierFmt [FfiSyntax] [GoGlobalContext] : val
+axiom cIdentifierFmt [GooseExts] [GoGlobalContext] : val
 
-axiom identifierErrMsg [FfiSyntax] [GoGlobalContext] : val
+axiom identifierErrMsg [GooseExts] [GoGlobalContext] : val
 
-axiom conditionReasonFmt [FfiSyntax] [GoGlobalContext] : val
+axiom conditionReasonFmt [GooseExts] [GoGlobalContext] : val
 
-axiom conditionReasonErrMsg [FfiSyntax] [GoGlobalContext] : val
+axiom conditionReasonErrMsg [GooseExts] [GoGlobalContext] : val
 
-axiom labelKeyCharFmt [FfiSyntax] [GoGlobalContext] : val
+axiom labelKeyCharFmt [GooseExts] [GoGlobalContext] : val
 
-axiom labelKeyExtCharFmt [FfiSyntax] [GoGlobalContext] : val
+axiom labelKeyExtCharFmt [GooseExts] [GoGlobalContext] : val
 
-axiom labelKeyFmt [FfiSyntax] [GoGlobalContext] : val
+axiom labelKeyFmt [GooseExts] [GoGlobalContext] : val
 
-axiom labelKeyErrMsg [FfiSyntax] [GoGlobalContext] : val
+axiom labelKeyErrMsg [GooseExts] [GoGlobalContext] : val
 
-axiom labelKeyMaxLength [FfiSyntax] [GoGlobalContext] : val
+axiom labelKeyMaxLength [GooseExts] [GoGlobalContext] : val
 
-axiom labelValueFmt [FfiSyntax] [GoGlobalContext] : val
+axiom labelValueFmt [GooseExts] [GoGlobalContext] : val
 
-axiom labelValueErrMsg [FfiSyntax] [GoGlobalContext] : val
+axiom labelValueErrMsg [GooseExts] [GoGlobalContext] : val
 
-axiom LabelValueMaxLength [FfiSyntax] [GoGlobalContext] : val
+axiom LabelValueMaxLength [GooseExts] [GoGlobalContext] : val
 
-noncomputable def dns1123LabelRegexp [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def dns1123LabelRegexp [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/validate/content.dns1123LabelRegexp"
 
-axiom dns1123LabelRegexp.init [FfiSyntax] [GoGlobalContext] : val
+axiom dns1123LabelRegexp.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def dns1123SubdomainRegexp [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def dns1123SubdomainRegexp [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/validate/content.dns1123SubdomainRegexp"
 
-axiom dns1123SubdomainRegexp.init [FfiSyntax] [GoGlobalContext] : val
+axiom dns1123SubdomainRegexp.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def dns1123SubdomainCaselessRegexp [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def dns1123SubdomainCaselessRegexp [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/validate/content.dns1123SubdomainCaselessRegexp"
 
-axiom dns1123SubdomainCaselessRegexp.init [FfiSyntax] [GoGlobalContext] : val
+axiom dns1123SubdomainCaselessRegexp.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def cIdentifierRegexp [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def cIdentifierRegexp [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/validate/content.cIdentifierRegexp"
 
-axiom cIdentifierRegexp.init [FfiSyntax] [GoGlobalContext] : val
+axiom cIdentifierRegexp.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def conditionReasonRegexp [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def conditionReasonRegexp [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/validate/content.conditionReasonRegexp"
 
-axiom conditionReasonRegexp.init [FfiSyntax] [GoGlobalContext] : val
+axiom conditionReasonRegexp.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def labelKeyRegexp [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def labelKeyRegexp [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/validate/content.labelKeyRegexp"
 
-axiom labelKeyRegexp.init [FfiSyntax] [GoGlobalContext] : val
+axiom labelKeyRegexp.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def IsQualifiedName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsQualifiedName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/validate/content.IsQualifiedName"
 
-axiom IsQualifiedName.init [FfiSyntax] [GoGlobalContext] : val
+axiom IsQualifiedName.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def labelValueRegexp [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def labelValueRegexp [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/validate/content.labelValueRegexp"
 
-axiom labelValueRegexp.init [FfiSyntax] [GoGlobalContext] : val
+axiom labelValueRegexp.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def pathSegmentNameMayNotBe [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def pathSegmentNameMayNotBe [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/validate/content.pathSegmentNameMayNotBe"
 
-axiom pathSegmentNameMayNotBe.init [FfiSyntax] [GoGlobalContext] : val
+axiom pathSegmentNameMayNotBe.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def pathSegmentNameMayNotContain [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def pathSegmentNameMayNotContain [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/validate/content.pathSegmentNameMayNotContain"
 
-axiom pathSegmentNameMayNotContain.init [FfiSyntax] [GoGlobalContext] : val
+axiom pathSegmentNameMayNotContain.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def IsDecimalInteger [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsDecimalInteger [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/validate/content.IsDecimalInteger"
 
-noncomputable def IsDNS1123Label [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsDNS1123Label [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/validate/content.IsDNS1123Label"
 
-noncomputable def IsDNS1123Subdomain [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsDNS1123Subdomain [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/validate/content.IsDNS1123Subdomain"
 
-noncomputable def IsDNS1123SubdomainCaseless [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsDNS1123SubdomainCaseless [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/validate/content.IsDNS1123SubdomainCaseless"
 
-noncomputable def isDNS1123Subdomain [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def isDNS1123Subdomain [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/validate/content.isDNS1123Subdomain"
 
-noncomputable def MinError [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def MinError [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/validate/content.MinError"
 
-noncomputable def MaxError [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def MaxError [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/validate/content.MaxError"
 
-noncomputable def MaxLenError [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def MaxLenError [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/validate/content.MaxLenError"
 
-noncomputable def EmptyError [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def EmptyError [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/validate/content.EmptyError"
 
-noncomputable def RegexError [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def RegexError [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/validate/content.RegexError"
 
-noncomputable def NEQError [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NEQError [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/validate/content.NEQError"
 
-noncomputable def IsCIdentifier [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsCIdentifier [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/validate/content.IsCIdentifier"
 
-noncomputable def IsValidReason [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsValidReason [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/validate/content.IsValidReason"
 
-noncomputable def IsLabelKey [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsLabelKey [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/validate/content.IsLabelKey"
 
-noncomputable def IsLabelValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsLabelValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/validate/content.IsLabelValue"
 
-noncomputable def prefixEach [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def prefixEach [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/validate/content.prefixEach"
 
-noncomputable def IsPrefixedLabelKey [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsPrefixedLabelKey [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/validate/content.IsPrefixedLabelKey"
 
-noncomputable def IsPathSegmentName [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsPathSegmentName [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/validate/content.IsPathSegmentName"
 
-noncomputable def IsPathSegmentPrefix [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsPathSegmentPrefix [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/api/validate/content.IsPathSegmentPrefix"
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.api.validate.content where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.apimachinery.pkg.api.validate.content)) (Lam BAnon
   (App (Val exceptionDo)
@@ -208,7 +208,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val dns1123LabelRegexp.init) (Val #()))))))))
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop
 
 end k8s_io.apimachinery.pkg.api.validate.content
 

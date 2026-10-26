@@ -40,7 +40,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.raft.v3
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
@@ -184,7 +184,7 @@ end defs
 /-! ## The pure side of `Bootstrap` (2026-10-16, stage R8b) -/
 
 section pure
-variable [ext : FfiSyntax] [go_gctx : GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [go_gctx : GoGlobalContext] [GoSemanticsFunctions]
 
 /-- `Bootstrap`'s change of the peer `p` (`AddNode p` as `(&pb.ConfChange{...}).AsV2()` renders
 it) at the voters `V`, `p` not a voter yet: `p` joins the voters, no learner. -/

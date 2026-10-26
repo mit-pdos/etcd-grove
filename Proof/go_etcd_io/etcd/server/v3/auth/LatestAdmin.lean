@@ -24,7 +24,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.auth auth
 namespace auth
 
 section pure
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- **`IsAdminPermitted`'s verdict at the latest state** of the admin side's authority `hs` (pure):
 in `on γa`, the check passes exactly when the latest state admits the principal (`adminOk`: auth
@@ -39,7 +39,7 @@ def adminVerdictL (M : AuthMode) (hs : List AuthState) (ai : Option AuthInfoM) (
 end pure
 
 section res
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -126,7 +126,7 @@ end res
 end auth
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -147,7 +147,7 @@ abbrev auth.authStore.IsAdminPermitted.specL : Prop :=
 end spec
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
