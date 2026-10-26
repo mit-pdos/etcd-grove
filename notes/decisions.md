@@ -21359,11 +21359,9 @@ changes.
   which `run`'s loop keeps (`ai' = ai + |ce|`) and starts from `isServerRun`'s `srvWTAt γp ai₀`
   (unchanged). A token taken for no entry (the merged snapshot's, J4's `Commit`) need not raise the
   count's lower bound: `srvWTTaken` is a lower bound.
-- **Deviation from J0's item 4**: J0 had `applyRes` keep `⌜γ.reNoSnap = true → w = ai⌝`. Equality
-  is false once J4's `snapshot` takes a token for `Commit` without an entry (`w` may then stay, as
-  a lower bound, but the pool's count moves past it; equality of the lower bound to `ai` would still
-  hold, but nothing needs it), and the condition on the mode has no reader before the snapshot case
-  exists. So J5 keeps `uint.Z ai ≤ w` unconditionally; **J8a**, which adds `applyAll`'s snapshot
-  case (where `ai` jumps past `w`), makes it conditional on the mode (or drops it for the
-  compaction's bound by `γs.cap ≥ 2^61`, L3) and drops `applyAll.spec`'s premise `uint.Z ai ≤ w`
-  in the snapshot case.
+- **Deviation from J0's item 4**: J0 had `applyRes` keep `⌜γ.reNoSnap = true → w = ai⌝`. Only
+  `uint.Z ai ≤ w` is read (the compaction's bound), and the condition on the mode has no reader
+  before a snapshot case exists, so J5 keeps `uint.Z ai ≤ w` unconditionally. **J8a**, which adds
+  `applyAll`'s snapshot case (where `ai` jumps past `w`), makes it conditional on the mode (or
+  replaces the compaction's bound by `γs.cap ≥ 2^61`, L3) and drops `applyAll.spec`'s premise
+  `uint.Z ai ≤ w` there.
