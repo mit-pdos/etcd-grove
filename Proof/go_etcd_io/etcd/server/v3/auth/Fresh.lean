@@ -83,6 +83,7 @@ variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ff
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
 /-- **The freshness read by a reader with the lower bound `i`**: the atomic's value is no older
 than `i` (the published index is at least the reader's bound, `authPubAuth_lb_le`). -/
@@ -157,6 +158,105 @@ theorem enG_fresh (st : Loc) (R : IProp GF) (M : AuthMode) (i : Nat) (q : Qp) (b
     iframe Hg
     simp only [enabledVerdictFrom]
     itrivial
+
+set_option synthInstance.maxSize 512 in
+/-- **Publication** (the auth plan's E3h): the apply thread, after an admin step's batch is committed
+(`Unlock`), with the admin side's authority at `hs` whose latest state is `stl`, its halves of the
+flag and of the cache with the latest state's flag and permissions (`hb`, `hc`: the tie), raises
+the published index to the latest one, `hs.length - 1`, and gets its lower bound (what the waiter's
+reply is to carry: a client then holds what it observed). -/
+theorem authPublish (st : Loc) (R : IProp GF) (M : AuthMode) (hs : List AuthState) (b : Bool)
+    (sc stl : AuthState) (hl : ∀ γa, M = .on γa → hs.getLast? = some stl)
+    (hb : ∀ γa, M = .on γa → b = stl.enabled) (hc : ∀ γa, M = .on γa → permView sc = permView stl) :
+    authInv (GF := GF) st R M ⊢ authOwn M hs -∗ flagAt st M b -∗ cacheAt st M sc ={⊤}=∗
+      authOwn M hs ∗ flagAt st M b ∗ cacheAt st M sc ∗ authPubLbM M (hs.length - 1) := by
+  cases M with
+  | on γa =>
+    have hl := hl γa rfl
+    have hb := hb γa rfl
+    have hc := hc γa rfl
+    iintro #Hinv Hown Hfl Hca
+    iunfold flagAt at Hfl
+    icases Hfl with ⟨Hfp, Hfq⟩
+    iunfold enG at Hfq
+    iunfold cacheAt at Hca
+    icases Hca with ⟨%mp, %Mp, Hcp, #HM, #Hof, Hcq⟩
+    iunfold caA at Hcq
+    icases Hcq with ⟨%jc, %sjc, Hcq, #Hsjc, %Hpv⟩
+    iunfold authInv at Hinv
+    icases Hinv with ⟨-, #Hrev, -⟩
+    iinv Hrev with Hi Hclose
+    iunfold revInv at Hi
+    icases Hi with ⟨%r, Hr, Hv, >Hc, >Hf⟩
+    iunfold revFresh at Hf
+    icases Hf with ⟨%p, Hp, #Hsp, -, ⟨%b0, Hq0, -⟩, ⟨%v0, Hcq0, -⟩⟩
+    icombine Hfq Hq0 gives %Hb0
+    obtain ⟨-, Hb0⟩ := Hb0
+    subst Hb0
+    icombine Hcq Hcq0 gives %Hv0
+    obtain ⟨-, Hv0⟩ := Hv0
+    subst Hv0
+    icases Hsp with ⟨%sp, #Hsp⟩
+    ihave ⟨Hown, %stl', %Hl', #Hst⟩ := authOwn_lastAt γa hs p sp $$ [Hown]
+    · iframe Hown Hsp
+    have hstl : stl' = stl := by rw [hl] at Hl'; exact (Option.some.inj Hl'.1).symm
+    -- the atomic is the latest state's revision (the latest state's ghost variable's halves agree)
+    iunfold revCur at Hc
+    icases Hc with ⟨%stc, Hcur, %Hrc⟩
+    iunfold authOwn at Hown
+    icases Hown with ⟨Hhh, %stl'', %Hl'', Hcur'⟩
+    iunfold authCurHalf at Hcur
+    iunfold authCurHalf at Hcur'
+    icombine Hcur Hcur' gives %Hcc
+    obtain ⟨-, Hcc⟩ := Hcc
+    have h2 : stl'' = stl := by rw [hl] at Hl''; exact (Option.some.inj Hl'').symm
+    -- the published index raised to the latest one
+    iunfold authPubAuth at Hp
+    imod (mono_nat_own_update (γ := γa.pub) (hs.length - 1) Hl'.2) $$ Hp with ⟨Hp, #Hlb⟩
+    imod Hclose $$ [Hr Hv Hcur Hp Hq0 Hcq0] with -
+    · inext
+      iunfold revInv
+      iexists r
+      iframe Hr Hv
+      isplitl [Hcur]
+      · iunfold revCur; iexists stc; iunfold authCurHalf; iframe Hcur; ipureintro; exact Hrc
+      iunfold revFresh
+      iexists hs.length - 1
+      isplitl [Hp]
+      · iunfold authPubAuth; iexact Hp
+      isplitl []
+      · iexists stl'; iexact Hst
+      isplitl []
+      · iexists hs.length - 1, stl'; iframe Hst; ipureintro
+        refine ⟨Nat.le_refl _, ?_⟩
+        rw [Hrc, Hcc, h2, hstl]
+      isplitl [Hq0]
+      · iexists b; iframe Hq0; iexists hs.length - 1, stl'; iframe Hst; ipureintro
+        exact ⟨Nat.le_refl _, by rw [hstl]; exact hb⟩
+      iexists (mp, jc); iframe Hcq0; iexists sjc, hs.length - 1, stl'; iframe Hsjc Hst; ipureintro
+      exact ⟨Nat.le_refl _, by rw [Hpv, hc, hstl]⟩
+    imodintro
+    isplitl [Hhh Hcur']
+    · iunfold authOwn
+      isplitl [Hhh]
+      · iexact Hhh
+      iexists stl''; iunfold authCurHalf; iframe Hcur'; ipureintro; exact Hl''
+    isplitl [Hfp Hfq]
+    · iunfold flagAt; iframe Hfp; iunfold enG; iexact Hfq
+    isplitl [Hcp Hcq]
+    · iunfold cacheAt; iexists mp, Mp; iframe Hcp HM Hof; iunfold caA; iexists jc, sjc; iframe Hcq Hsjc
+      ipureintro; exact Hpv
+    iunfold authPubLbM; iunfold authPubLb; iexact Hlb
+  | off =>
+    simp only [authPubLbM]
+    iintro - Hown Hfl Hca
+    imodintro
+    iframe Hown Hfl Hca
+  | any =>
+    simp only [authPubLbM]
+    iintro - Hown Hfl Hca
+    imodintro
+    iframe Hown Hfl Hca
 
 end ghost
 
