@@ -19376,3 +19376,23 @@ phase 1"). Two gaps the statements found, both closed with what is true of the c
 - `isRaftStatus`/`isSnapshotServer`/`isConsistentIndexer` of the new options are built from the
   server's method specs, as `NewServer` does (the old applier's options say nothing of `s`), so
   `wp_proof_snap` takes the `Leader`, `Term`, `ForceSnapshot` specs (unlinked: nothing else moves).
+
+## D22 S8d step 3: the consistent index's resources must be loaded (2026-10-26 · a bug in this repository's spec, found by S8d step 3; the fix the user's decision)
+
+**The bug.** `srvCiC γ ci` (`InvApplier.lean`, the environment's `E.ciC`, what the applier's
+`isConsistentIndexer` lends `ConsistentIndex` under) admitted every not-pending state `st`, and
+`isConsistentIndexer` promises `{{ C }} ConsistentIndex() {{ C }}`. For a state with `st.k = 0`
+the index loads the backend's stored meta index (`wp_ci_get` gives back `stLoaded γ st`, `k :=
+γ.m0.1`), so the contract is false once `γ.m0.1 ≠ 0`. At boot `γ.m0 = (0, 0)` and `stLoaded` is the
+identity (`NewServer`'s `hLoaded`), so nothing noticed; after a snapshot `γ'.m0.1` is the snapshot's
+index, and `snap_backendOptsOk`'s `isConsistentIndexer (ciIface ci) (srvCiC γ' ci)` was unprovable.
+The state is reachable (the protocol invariant cannot exclude it: `ci.SetBackend` resets `ci` to 0
+until the next `ConsistentIndex` loads it), so the fix is not in `consInv` but in the apply thread's
+own knowledge.
+
+**The fix.** `srvCiC` requires `stLoaded γ st = st` (the index is not 0, or the backend's meta index
+is). Its one witness is `applyEntryNormal`'s (with `v3`), whose state is `apply`'s after its
+`ConsistentIndex` call, `stLoaded γ st'`: loaded by idempotence (`stLoaded_idem`, `InvServer.lean`).
+So `EtcdServer.applyEntryNormal.spec`'s `v3` premise gains `stLoaded γ st = st` (an internal spec,
+proved; `apply`'s proof supplies it), and `NewServer`'s and `snap_isConsistentIndexer`'s proofs
+(`SnapApplyOptsLemmas.lean`) use it. No closed theorem's statement and no trusted statement changed.

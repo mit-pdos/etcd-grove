@@ -316,21 +316,16 @@ theorem snap_isSnapshotServer
 
 /-! ## The consistent indexer -/
 
-/-- **`srvCiC` restricted to loaded states** (`stLoaded γ st = st`: the index is not 0, or the
-backend's meta index is): the resources over which `ConsistentIndex` leaves the protocol's state
-as it was. -/
-def srvCiCLoaded (γ : ApplyNames) (ci : Loc) (C : IProp GF) : Prop :=
-  ∃ (st : ApplyState) (b : GoInterface),
-    C = iprop(applyThread γ st ∗ applyBackend γ ci b) ∧ st.pending = false ∧ stLoaded γ st = st
-
-/-- The consistent index as an indexer, over the loaded states (what `wp_ci_get` gives: it
-returns the state `stLoaded γ st`, which is `st` exactly for these). -/
-theorem isConsistentIndexer_loaded
+/-- The consistent index as the new options' indexer, over `srvCiC`'s loaded states (`wp_ci_get`
+returns `stLoaded γ st`, which is `st` for them; D22 receiver epochs, S8d, 2026-10-26: `srvCiC`
+admitted unloaded states until then, over which the contract is false once `γ.m0.1 ≠ 0`, after a
+snapshot). -/
+theorem snap_isConsistentIndexer
     (hCIg : consistentIndex.ConsistentIndex.spec (GF := GF) (hG := hG))
     (s : Loc) (γ : ApplyNames) (ci : Loc) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerCI s γ ci ⊢
-    apply.isConsistentIndexer (ciIface ci) (srvCiCLoaded γ ci) := by
+    apply.isConsistentIndexer (ciIface ci) (srvCiC γ ci) := by
   iintro ⟨#Hpkg, #HCI⟩
   ihave #Hcipkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.cindex
     $$ []
@@ -361,21 +356,6 @@ theorem isConsistentIndexer_loaded
   · iintro %w ⟨HΦ', %Hw, HP⟩
     subst Hw
     iapply HΦ' $$ HP
-
-/-- **The consistent indexer over `srvCiC γ' ci` at the snapshot's names: not provable as
-stated.** `srvCiC` admits a state with `st.k = 0`; `ConsistentIndex` then loads the backend's
-meta index `γ'.m0.1` (`wp_ci_get`'s `stLoaded`), which after a snapshot is the snapshot's index,
-so the state it gives back is not `st` (`isConsistentIndexer`'s `{{ C }} … {{ C }}`). At boot
-`γ.m0.1 = 0` and `stLoaded` is the identity (`NewServer`'s `hLoaded`). The fix is `srvCiC` with
-`stLoaded γ st = st` (`srvCiCLoaded`, proved: `isConsistentIndexer_loaded`), true of every
-state the apply thread lends. -/
-theorem snap_isConsistentIndexer
-    (hCIg : consistentIndex.ConsistentIndex.spec (GF := GF) (hG := hG))
-    (s : Loc) (γ : ApplyNames) (ci : Loc) :
-    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServerCI s γ ci ⊢
-    apply.isConsistentIndexer (ciIface ci) (srvCiC γ ci) := by
-  sorry
 
 end proof
 end EtcdGrove

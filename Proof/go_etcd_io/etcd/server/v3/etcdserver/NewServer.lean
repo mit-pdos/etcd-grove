@@ -1516,7 +1516,7 @@ theorem NewServer.wp_proof
       isplitr
       · ipureintro; rfl
       iintro !> %C %HC
-      obtain ⟨cst, cb, hC, hcp⟩ := HC
+      obtain ⟨cst, cb, hC, hcp, -⟩ := HC
       subst hC
       iintro %Φ' !> Hpre HΦ'
       iapply (wp_wand (Φ := fun w => iprop((∀ x : w64,
