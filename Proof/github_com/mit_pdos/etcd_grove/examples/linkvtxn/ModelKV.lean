@@ -62,12 +62,12 @@ theorem findKey_putKv_val (s : List EtcdKv) (hs : s.Pairwise etcdKvLess) (r : w6
 /-- What `kvOpStep` does with a plain put: commit its one change at the next revision. -/
 theorem kvOpStep_put_kvs (k v : GoString) (σ : KVState) :
     (kvOpStep (.put (putOp k v)) σ).kvs = putKv (W64 ((σ.rev + 1 : Nat) : Int)) k v (W64 0) σ.kvs := by
-  simp [kvOpStep, KVState.commit_kvs, txn.needsPrev, txn.putOpOf, op_simps, txn.putChangeOf,
+  simp [kvOpStep, KVState.commit_kvs, KVState.leaseMissing, txn.needsPrev, txn.putOpOf, op_simps, txn.putChangeOf,
     txn.putValOf, txn.putLeaseOf, mvcc.applyChanges, mvcc.applyChange]
 
 theorem kvOpStep_put_rev (k v : GoString) (σ : KVState) :
     (kvOpStep (.put (putOp k v)) σ).rev = σ.rev + 1 := by
-  simp [kvOpStep, KVState.commit_rev, txn.needsPrev, txn.putOpOf, op_simps]
+  simp [kvOpStep, KVState.commit_rev, KVState.leaseMissing, txn.needsPrev, txn.putOpOf, op_simps]
 
 /-- **A get changes nothing.** -/
 theorem kvOpStep_get (k : GoString) (σ : KVState) : kvOpStep (.range (getOp k)) σ = σ := rfl

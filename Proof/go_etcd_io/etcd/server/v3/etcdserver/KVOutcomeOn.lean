@@ -34,9 +34,9 @@ section pure
 variable [ext : FfiSyntax]
 
 /-- A KV kind is dispatched through the chain (`dispatchLog`'s chain case). -/
-theorem dispatchLog_kv (c : apply.Chain) (rq : apply.IRRModel) (log : mvcc.Log)
+theorem dispatchLog_kv (c : apply.Chain) (rq : apply.IRRModel) (lt : LeaseTable) (log : mvcc.Log)
     (hk : apply.isKVKind (apply.dispatchKind rq) = true) :
-    dispatchLog c rq true log = chainLog c rq log := by
+    dispatchLog c rq true lt log = chainLog c rq lt log := by
   unfold dispatchLog
   cases h : apply.dispatchKind rq <;> simp_all [apply.isKVKind, apply.preV3Kind, apply.storeKind]
 
@@ -71,16 +71,16 @@ theorem outcomeOn_of_authOutL (c₀ : w64) (s : auth.AuthState × mvcc.Log) (m :
     have hng : ¬ (apply.isKVKind (apply.dispatchKind rq) = true ∧ ¬ kvGranted s.1 rq) := by
       rintro ⟨-, hn⟩; exact hn hg
     rw [if_neg hng]
-    have hlog : oc.logAfter s.2 = chainLog (.quota .backend) rq s.2 := by
-      rcases chainStep_plain (.quota .backend) rq s.2 oc hp hc with h | ⟨-, hx⟩
+    have hlog : oc.logAfter s.2 = chainLog (.quota .backend) rq [] s.2 := by
+      rcases chainStep_plain [] (.quota .backend) rq s.2 oc hp hc with h | ⟨-, hx⟩
       · exact h
       · exact absurd hx (by decide)
-    have hkv : kvEntry c₀ (apply.alarmChain true false false) s.2 m =
-        chainLog (.quota .backend) rq s.2 := by
+    have hkv : kvEntry c₀ (apply.alarmChain true false false) [] s.2 m =
+        chainLog (.quota .backend) rq [] s.2 := by
       unfold kvEntry
       rw [if_pos ht, if_neg hd, hdec]
       simp only [decide_eq_true hv]
-      rw [dispatchLog_kv _ rq s.2 hk]
+      rw [dispatchLog_kv _ rq [] s.2 hk]
       rfl
     rw [hlog, hkv]
 

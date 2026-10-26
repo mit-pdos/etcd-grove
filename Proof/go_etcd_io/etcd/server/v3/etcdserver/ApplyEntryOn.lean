@@ -47,7 +47,7 @@ theorem kvOn_after_kv (c₀ : w64) (st : auth.AuthState) (x x' : apply.ApplyKV) 
     (hout : ∀ o b, out = .dispatched o b →
       apply.kvOutL (.on γa) hs (auth.authInfoM (apply.principalOf rq)) (.quota .backend) rq x.log o) :
     x'.chain = x.chain ∧ (st, x'.log) = kvEntryOn c₀ x.chain (st, x.log) m := by
-  have hc := (applyStep_plain rq true x x' out hp hstep).1
+  have hc := (applyStep_plain [] rq true x x' out hp hstep).1
   refine ⟨hc, ?_⟩
   cases out with
   | skipped =>

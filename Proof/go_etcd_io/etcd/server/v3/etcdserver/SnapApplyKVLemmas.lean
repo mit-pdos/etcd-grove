@@ -83,9 +83,9 @@ theorem kvOwn_snap (E : apply.AEnv GF) (γ' : ApplyNames) (TM' : MetaCI → IPro
       mvcc.writerFrag (γw.st.withPhys p') ∗ mvcc.watchWriter γw ([[], []] ++ R) ∗
       (mvcc.storeRT (γw.st.withPhys p') -∗ mvcc.writerOwn (γw.st.withPhys p')) ∗
       mvcc.bkRTx d'.γB d'.P d'.be ∗
-      lease.leaseOwn E.γ.leases [] ∗ lease.lessorRdOf E.γ.leases ∗ E.RD ⊢
+      lease.leaseOwn E.γ.leases [] ∅ ∗ lease.lessorRdOf E.γ.leases ∗ lease.leaseRevokers E.γ.leases [] ∗ E.RD ⊢
     apply.kvOwn (snapE E γ' TM' ci p' g γB al ast lp cl d'.be) ([[], []] ++ R) := by
-  iintro ⟨#Hws, Hrd, Hfrag, Hww, Hwo, Hrt, Hlo, Hlr, HRD⟩
+  iintro ⟨#Hws, Hrd, Hfrag, Hww, Hwo, Hrt, Hlo, Hlr, Hrv, HRD⟩
   iunfold apply.kvOwn
   rw [storeReader_snapE, snapE_γ, snapE_s, snapE_RD]
   rw [← hγw]
@@ -119,7 +119,9 @@ theorem kvOwn_snap (E : apply.AEnv GF) (γ' : ApplyNames) (TM' : MetaCI → IPro
     ihave #Hlk := leasesKnown_restore (GF := GF) R hRok
     iframe Hlk
     rw [show (γw.st.withPhys p').leases = γw.st.leases from rfl]
-    iframe Hlo Hlr
+    ihave Hlo := lease.leaseOwn_eq (mvcc.leaseItemsOf_zero _
+      (mvcc.stateAfter_leaseZero _ (logNoLease_restore R hRok))).symm $$ Hlo
+    iframe Hlo Hlr Hrv
 
 end proof
 

@@ -72,21 +72,40 @@ theorem prefix_cmp_of {α : Type _} {a b c d : List α} (ha : a <+: c) (hb : b <
     · exact Or.inl (List.prefix_of_prefix_length_le ha hb' hl)
     · exact Or.inr (List.prefix_of_prefix_length_le hb' ha hl)
 
-/-- An operation's step commits some changes. -/
-theorem kvOpStep_commit (op : KVOp) (σ : KVState) : ∃ cs, kvOpStep op σ = σ.commit cs := by
-  cases op with
-  | put o =>
-    simp only [kvOpStep]
-    split
-    · exact ⟨[], (KVState.commit_nil σ).symm⟩
-    · exact ⟨_, rfl⟩
-  | range o => exact ⟨[], (KVState.commit_nil σ).symm⟩
-  | deleteRange o => exact ⟨_, rfl⟩
-  | txn t =>
-    simp only [kvOpStep]
-    split
-    · exact ⟨_, rfl⟩
-    · exact ⟨[], (KVState.commit_nil σ).symm⟩
+/-- An operation's step commits some changes (unit T3: a lease's grant or revocation also changes
+the table, so the step agrees with a commit on the changes and the revision). -/
+theorem kvOpStep_commit (op : KVOp) (σ : KVState) : ∃ cs,
+    (kvOpStep op σ).changes = (σ.commit cs).changes ∧ (kvOpStep op σ).rev = (σ.commit cs).rev := by
+  have h : ∃ cs, (kvOpStep op σ).changes = (σ.commit cs).changes ∧
+      (kvOpStep op σ).compacted = (σ.commit cs).compacted := by
+    have hn : (σ.commit []) = σ := KVState.commit_nil σ
+    cases op with
+    | put o =>
+      simp only [kvOpStep]
+      split
+      · exact ⟨[], by rw [hn]; exact ⟨rfl, rfl⟩⟩
+      split
+      · exact ⟨[], by rw [hn]; exact ⟨rfl, rfl⟩⟩
+      · exact ⟨_, rfl, rfl⟩
+    | range o => exact ⟨[], by rw [hn]; exact ⟨rfl, rfl⟩⟩
+    | deleteRange o => exact ⟨_, rfl, rfl⟩
+    | txn t =>
+      simp only [kvOpStep]
+      split
+      · exact ⟨_, rfl, rfl⟩
+      · exact ⟨[], by rw [hn]; exact ⟨rfl, rfl⟩⟩
+    | leaseGrant id ttl =>
+      simp only [kvOpStep]
+      split
+      · exact ⟨[], by rw [hn]; exact ⟨rfl, rfl⟩⟩
+      · exact ⟨[], by rw [hn]; exact ⟨rfl, rfl⟩⟩
+    | leaseRevoke id =>
+      simp only [kvOpStep]
+      split
+      · exact ⟨_, rfl, rfl⟩
+      · exact ⟨[], by rw [hn]; exact ⟨rfl, rfl⟩⟩
+  obtain ⟨cs, h1, h2⟩ := h
+  exact ⟨cs, h1, by unfold KVState.rev; rw [h1, h2]⟩
 
 /-- A commit extends the changes, and the revision by one if it changed the state. -/
 theorem commit_changes (σ : KVState) (cs : List Change) :
@@ -529,9 +548,10 @@ theorem km_write_au (γ : KMNames) (l0 : List (List Change)) (op : KVOp)
     iempintro
   · iintro Hσ
     imod Hclose2 with -
-    obtain ⟨cs, hcs⟩ := kvOpStep_commit op σ
+    obtain ⟨cs, hc1, hc2⟩ := kvOpStep_commit op σ
     obtain ⟨hpre, hrev⟩ := commit_changes σ cs
-    rw [← hcs] at hpre hrev
+    rw [← hc1] at hpre
+    rw [← hc2] at hrev
     imod (monoListAuthOwn_update (kvOpStep op σ).changes hpre) $$ Hc with ⟨Hc, #Hlb'⟩
     by_cases hr : (kvOpStep op σ).rev = σ.rev + 1
     · -- a new revision: its token

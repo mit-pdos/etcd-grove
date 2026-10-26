@@ -17,6 +17,18 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### Translation: `sort.StringSlice`'s methods (2026-10-25, leases T3, branch `leases-t3`)
+
+- **Missing.** Perennial's `sort` declares the type `sort.StringSlice` but none of its methods
+  (`Len`, `Less`, `Swap`, `Sort`, `Search`), so `sort.StringSlice(keys).Sort()` does not resolve.
+- **Needed by.** `lessor.Revoke` (`server/lease/lessor.go`): it sorts the lease's keys before
+  deleting them (`notes/leases-plan.md`, L2d).
+- **Workaround here.** A trust-boundary spec, `Spec/sort/StringSlice__Sort.lean` (the statement
+  of Perennial's `sort.Strings.spec`), an axiom.
+- **Proposed change.** Translate the methods in Perennial's `sort` and prove `Sort` as
+  `sort.Strings` is proved; then the axiom here goes.
+- **Status.** Open.
+
 ### Tooling: incremental proof checks, and long `·` blocks as auxiliary theorems
 
 - **Missing.** A way to check a proof after an edit without elaborating the whole file
