@@ -594,6 +594,11 @@ Three of the watch client's local workarounds (D25, `notes/decisions.md`, "S1c's
   Held D` elaborates, and `wp_apply` of the same shape worked for `hRL` two calls earlier (before
   `D` existed). Workaround: `wp_bind` the call, then `iapply (hRU ...) $$ [Hpkg Htxf Hrtx HD]`,
   prove the precondition goal by `iframe`, `inext`, `iintro HR`.
+- **A third instance** (2026-10-26, `heap.up.wp_proof`/`heap.down.wp_proof`): `wp_apply HSwap $$
+  %ys %p %jv [HR] as HR`, `HSwap` an Iris hypothesis (the `heap.Interface`'s `Swap` triple), after a
+  `cases b` on a Boolean an earlier `wp_apply HLess ... as %b HR` introduced: no error, the
+  following tactics "never executed", and only "declaration uses `sorry`"; `wp_apply_core` of the
+  same reports "unknown free variable". The same `wp_apply` of `HLess` before the `cases` worked.
 - **Workaround here.** Prepare the hypothesis with `ihave` and frame it with `$`; check every new
   proof for the "declaration uses `sorry`" warning; at a deferred call, `wp_bind` and `iapply`.
 - **Proposed change.** Not designed: a minimal reproduction first, then make the tactic report
