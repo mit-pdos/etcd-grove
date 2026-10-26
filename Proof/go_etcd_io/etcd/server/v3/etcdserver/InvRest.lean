@@ -33,6 +33,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBackend
 public import Proof.go_etcd_io.etcd.server.v3.auth.InvAuth
 public import Proof.go_etcd_io.etcd.server.v3.lease.LessorBackend
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.Defs
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Defs
 
 @[expose] public section
 
@@ -239,12 +240,8 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- **The cluster `c`'s in-memory member list is `mem`** (opaque, exclusive; D22, 2026-10-23,
-option (i) of "D22c decided"): `c.members` (each member as the record its JSON unmarshals to).
-`bootstrap`'s contract gives it at the boot log's members (`memBoot`); the cluster's contracts
-(`isCluster`'s `UpdateAttributes`, `applyConfChange`'s `AddMember`) take it and give it back
-changed as `restUpdateAttrs`/`ccRest` say. -/
-opaque membership.clusterMem (c : Loc) (mem : GMap w64 apply.MemberM) : IProp GF
+/- `membership.clusterMem` (the cluster's in-memory members) is defined in the membership
+package's `Defs.lean` since D43 M5b (2026-10-26; opaque here until then). -/
 
 /-- **The server's `AEnv.RO`**: the backend `γB`'s tracked buckets' client half and the cluster
 `c`'s in-memory members, at `r`. -/

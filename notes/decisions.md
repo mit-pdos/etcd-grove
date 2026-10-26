@@ -18799,6 +18799,17 @@ member and a `RemoveNode`, in sub-stages M5a-M5e (`notes/membership-plan.md`).
   code), so the map is owned through `trLockP`, `NewLeaderStats` hands it out and `Follower` is
   translated and proved over it (one axiom fewer), its own mutex guarding nothing the proof needs.
 
+**M5 scoped further (2026-10-26; the user's decisions).** (i) `membership.clusterMem` (opaque: the
+cluster's in-memory members, which the axioms of `bootstrap`'s contract, `UpdateAttributes`,
+`Recover` and `applyConfChange` take) becomes **defined** from the cluster's lock invariant: a ghost
+model of the members map in the invariant (each owned member agreeing with it), the apply thread
+holding the other half; the axioms that mention it restated with the cluster's ghost name
+(alternative: coupling axioms per writer, rejected). (ii) `MustReadMembersFromBackend` (what
+`ValidateConfigurationChange`'s `beReadOk` needs) a **contract axiom** over the backend's tracked
+buckets (the members and removed map they decode to), replacing the opaque `ccValidOn`
+(alternative: translate `readMembersFromBackend` with a read transaction's `UnsafeForEach` spec and
+a `json.Unmarshal` axiom, rejected as a detour).
+
 **M5a carried out (2026-10-26, branch `membership-m5`).** rafthttp's peer removal.
 - The leader stats' followers' map (`v2stats.lsFollowers`: the `Followers` field read-only, the map
   fractional, its values non-nil) is the transport's lock's (`trStats` in `trLockP`, from

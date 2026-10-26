@@ -29,10 +29,10 @@ local macro "clone_fin" : tactic => `(tactic| (
   (try wp_auto)
   iapply HΦ
   isplitl [Hid Hpu Hil Hnm Hcu Hpus Hcus]
-  · iunfold membership.memberIs
+  · iunfold membership.memberAt
     isplitr
     · ipureintro; exact Hmnn
-    iexists _, _, il, nm, pus, cus
+    iexists _, _
     iframe
     ipureintro; exact Hpok
   · iunfold membership.memberIs
@@ -40,7 +40,7 @@ local macro "clone_fin" : tactic => `(tactic| (
     · ipureintro; exact Hr0nn
     icases Hpm with ⟨%npu, Hpm1, Hpm2⟩
     icases Hcm with ⟨%ncu, Hcm1, Hcm2⟩
-    iexists npu, ncu, il, nm, pus, cus
+    iexists npu, ncu, mm.isLearner, mm.name, mm.peerURLs, mm.clientURLs
     iframe
     ipureintro; exact Hpok))
 
@@ -51,10 +51,10 @@ local macro "clone_tail" : tactic => `(tactic| (
   ihave %Hcul := ownSlice_len _ _ _ $$ Hcus
   wp_if_destruct
   · (try wp_auto)
-    ihave Hcm : iprop(∃ ncu : GoSlice, membership.mClientURLsAddr «$r0_ptr» ↦ ncu ∗ ncu ↦* cus)
+    ihave Hcm : iprop(∃ ncu : GoSlice, membership.mClientURLsAddr «$r0_ptr» ↦ ncu ∗ ncu ↦* mm.clientURLs)
       $$ [ClientURLs]
     · iexists slice.nil; iframe ClientURLs
-      have hc : cus = [] := List.eq_nil_of_length_eq_zero (by rw [Hcul.1]; rfl)
+      have hc : mm.clientURLs = [] := List.eq_nil_of_length_eq_zero (by rw [Hcul.1]; rfl)
       rw [hc]; iapply ownSlice_nil
     clone_fin
   · wp_apply wp_slice_make2 (V := GoString) _ as %ncu ⟨Hncu, -⟩
@@ -62,23 +62,23 @@ local macro "clone_tail" : tactic => `(tactic| (
     (try wp_auto)
     wp_apply +noauto wp_slice_copy $$ [Hncu Hcus] as %n2 ⟨-, Hncu, Hcus⟩
     · iframe
-    have Hcp : (cus.take (List.replicate (sint.nat cu.len) (zero_val GoString)).length ++
-        (List.replicate (sint.nat cu.len) (zero_val GoString)).drop cus.length) = cus := by
+    have Hcp : (mm.clientURLs.take (List.replicate (sint.nat cu.len) (zero_val GoString)).length ++
+        (List.replicate (sint.nat cu.len) (zero_val GoString)).drop mm.clientURLs.length) = mm.clientURLs := by
       rw [List.length_replicate, List.take_of_length_le (by rw [Hcul.1]; exact Nat.le_refl _),
         List.drop_of_length_le (by rw [List.length_replicate, Hcul.1]; exact Nat.le_refl _),
         List.append_nil]
     rw [Hcp]
-    ihave Hcm : iprop(∃ ncu : GoSlice, membership.mClientURLsAddr «$r0_ptr» ↦ ncu ∗ ncu ↦* cus)
+    ihave Hcm : iprop(∃ ncu : GoSlice, membership.mClientURLsAddr «$r0_ptr» ↦ ncu ∗ ncu ↦* mm.clientURLs)
       $$ [ClientURLs Hncu]
     · iexists ncu; iframe
     clone_fin))
 
 theorem membership.Member.Clone.wp_proof :
     membership.Member.Clone.spec (GF := GF) (hG := hG) := by
-  intro m id
+  intro m q mm
   wp_start as Hm
-  iunfold membership.memberIs at Hm
-  icases Hm with ⟨%Hmnn, %pu, %cu, %il, %nm, %pus, %cus, Hid, Hpu, Hil, Hnm, Hcu, Hpus, Hcus, %Hpok⟩
+  iunfold membership.memberAt at Hm
+  icases Hm with ⟨%Hmnn, %pu, %cu, Hid, Hpu, Hil, Hnm, Hcu, Hpus, Hcus, %Hpok⟩
   wp_auto
   rw [decide_eq_false Hmnn]
   wp_auto
@@ -90,23 +90,23 @@ theorem membership.Member.Clone.wp_proof :
   ihave %Hpul := ownSlice_len _ _ _ $$ Hpus
   wp_if_destruct
   · (try wp_auto)
-    ihave Hpm : iprop(∃ npu : GoSlice, membership.mPeerURLsAddr «$r0_ptr» ↦ npu ∗ npu ↦* pus)
+    ihave Hpm : iprop(∃ npu : GoSlice, membership.mPeerURLsAddr «$r0_ptr» ↦ npu ∗ npu ↦* mm.peerURLs)
       $$ [PeerURLs]
     · iexists slice.nil; iframe PeerURLs
-      have hp : pus = [] := List.eq_nil_of_length_eq_zero (by rw [Hpul.1]; rfl)
+      have hp : mm.peerURLs = [] := List.eq_nil_of_length_eq_zero (by rw [Hpul.1]; rfl)
       rw [hp]; iapply ownSlice_nil
     clone_tail
   · wp_apply wp_slice_make2 (V := GoString) _ as %npu ⟨Hnpu, -⟩
     · ipureintro; exact Hpul.2
     (try wp_auto)
     wp_apply +noauto wp_slice_copy $$ [$Hnpu $Hpus] as %n1 ⟨-, Hnpu, Hpus⟩
-    have Hcp : (pus.take (List.replicate (sint.nat pu.len) (zero_val GoString)).length ++
-        (List.replicate (sint.nat pu.len) (zero_val GoString)).drop pus.length) = pus := by
+    have Hcp : (mm.peerURLs.take (List.replicate (sint.nat pu.len) (zero_val GoString)).length ++
+        (List.replicate (sint.nat pu.len) (zero_val GoString)).drop mm.peerURLs.length) = mm.peerURLs := by
       rw [List.length_replicate, List.take_of_length_le (by rw [Hpul.1]; exact Nat.le_refl _),
         List.drop_of_length_le (by rw [List.length_replicate, Hpul.1]; exact Nat.le_refl _),
         List.append_nil]
     rw [Hcp]
-    ihave Hpm : iprop(∃ npu : GoSlice, membership.mPeerURLsAddr «$r0_ptr» ↦ npu ∗ npu ↦* pus)
+    ihave Hpm : iprop(∃ npu : GoSlice, membership.mPeerURLsAddr «$r0_ptr» ↦ npu ∗ npu ↦* mm.peerURLs)
       $$ [PeerURLs Hnpu]
     · iexists npu; iframe
     clone_tail

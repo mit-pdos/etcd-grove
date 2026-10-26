@@ -33,6 +33,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.InvRequest
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBbolt
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.MemberModel
 
 @[expose] public section
 
@@ -41,17 +42,6 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 namespace apply
-
-/-- **A cluster member, as a value** (`membership.Member`: its id, its `RaftAttributes`' peer
-URLs and learner flag, its `Attributes`' name and client URLs): what `json.Unmarshal` of a
-member's JSON gives (the members' records and a conf change's context are the members' JSON). -/
-structure MemberM where
-  id : w64
-  peerURLs : List GoString
-  isLearner : Bool
-  name : GoString
-  clientURLs : List GoString
-  deriving Inhabited
 
 /-- **The rest buckets and the cluster's in-memory members** (see the file header): each rest
 bucket's contents (absent if absent: `backend.rbData`'s value) and the cluster's member list. -/
