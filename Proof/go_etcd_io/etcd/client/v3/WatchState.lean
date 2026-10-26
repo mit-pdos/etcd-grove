@@ -40,6 +40,7 @@ module
 
 public import Proof.go_etcd_io.etcd.client.v3.InvWatch
 public import Proof.go_etcd_io.etcd.client.v3.KVService
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVApply
 
 @[expose] public section
 
@@ -90,6 +91,92 @@ theorem rangeEvents_kvStateOf (l : mvcc.Log) (o : OpFull) (lo hi : Nat) (h0 : 0 
   rw [revEvents_kvStateOf l m (by omega) (by omega)]
 
 end pure
+
+/-! ## Firing the caller's read update at a watched log -/
+
+section fire
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
+
+open Iris.ProofMode in
+/-- **A read update fired at a certified log** (`kv_cert_floor`'s, with the state): with the
+server's KV invariants, the start log sealed (`NewStore`'s `[[], []]`, the KV's start log), and a
+sealed log `L` the server certified, the caller's persistent read update of `γ`'s state (the KV
+invariant's state variable) fires at the committed state, the state of a log `C` that `L` is a
+prefix of: `L` is the model of a committed raft prefix (`kv_cert_read`, `srvRLog_lb`) or has at
+most two revisions (then a prefix of the start log, the sealed logs being in prefix order). -/
+theorem watch_fire (E : apply.AEnv GF) (γr : ReadNames) (γ : KVNames) (hst : γ.st = γr.kv.st)
+    (hlog : γr.kv.log0 = [[], []]) (L : mvcc.Log) (Q : KVState → IProp GF) :
+    ⊢ srvKVInvs E γr -∗ mvcc.idxSealed E.γ.idx [[], []] -∗ mvcc.idxSealed E.γ.idx L -∗
+      mvcc.certOk E.γ L -∗
+      □ (AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
+        <{ etcdKV γ σ, COMM □ Q σ }>) ={⊤}=∗
+      ∃ C : mvcc.Log, □ Q (kvStateOf C) ∗ ⌜L <+: C⌝ := by
+  have Hsub : ((⊤ \ ↑srvRaftN) \ ↑kvN : CoPset) ⊆ ⊤ \ ↑kvN := by
+    intro p hp
+    rw [Iris.Std.LawfulSet.mem_diff, Iris.Std.LawfulSet.mem_diff] at hp
+    rw [Iris.Std.LawfulSet.mem_diff]
+    exact ⟨CoPset.mem_full, hp.2⟩
+  iintro #Hinvs #H0 #HL #Hc #Hau
+  iunfold srvKVInvs at Hinvs
+  icases Hinvs with ⟨#HkI, #HcI, #HrI, %Hcok⟩
+  imod kv_cert_read γr.raft γr.kv E.γ Hcok ⊤ (fun _ _ => CoPset.mem_full) L $$ HcI Hc with Hcase
+  ihave %Hp0 := mvcc.idxSealed_prefix E.γ.idx [[], []] L $$ [H0 HL]
+  · iframe H0 HL
+  iunfold kvInv at HkI
+  iinv HkI with >Hi Hclose
+  icases Hi with ⟨%Lf, HLf, Hσ', %Hok', #Hw⟩
+  -- `L` is a prefix of the committed log's model
+  ihave Hp : iprop(|={⊤ \ ↑kvN}=> srvRLog γr.raft Lf ∗ ⌜L <+: kvModel γr.kv Lf⌝) $$ [HLf Hcase]
+  · icases Hcase with (%hl | ⟨%A, #HA, %hA⟩)
+    · imodintro
+      iframe HLf
+      ipureintro
+      have hb : [[], []] <+: kvModel γr.kv Lf := by
+        have := kvRaftOf_extends γr.kv.c0 γr.kv.ch0 γr.kv.log0 Lf
+        unfold kvModel; rw [← hlog]; exact this
+      rcases Hp0 with h | h
+      · have hl2 : ([[], []] : mvcc.Log).length = L.length := by
+          have := h.length_le; simp at this ⊢; omega
+        rw [← h.eq_of_length hl2]; exact hb
+      · exact h.trans hb
+    · imod srvRLog_lb γr.raft (⊤ \ ↑kvN) (mask_ndot_ne' nroot "raft_commit" "server_kv" (by decide))
+        Lf A $$ HrI HLf HA with ⟨HLf, -, %Hp⟩
+      imodintro
+      iframe HLf
+      ipureintro
+      rw [← hA]
+      unfold kvModel
+      exact kvRaftOf_prefix _ _ _ A Lf Hp
+  imod Hp with ⟨HLf, %HpL⟩
+  -- the update, fired at the committed state
+  imod (fupd_mask_subseteq Hsub) with Hback
+  ihave Hacc := aupd_aacc $$ Hau
+  unfold atomic_acc
+  imod Hacc with Hacc
+  isimp only [texist_cons, texist_nil, Std.Tele.app, ULift.down] at Hacc
+  icases Hacc with ⟨%σ, Hc', Hucl⟩
+  iunfold etcdKV at Hc'
+  ihave Hc2 : ghostVar (GF := GF) γr.kv.st (1 : Qp).half σ $$ [Hc']
+  · rw [← hst]; iexact Hc'
+  ihave %Hag := ghostVar_agree γr.kv.st _ _ _ _ $$ Hσ' Hc2
+  icases Hucl with ⟨-, Hcommit⟩
+  isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcommit
+  imod Hcommit $$ [Hc2] with #HQ0
+  · iunfold etcdKV; rw [hst]; iexact Hc2
+  imod Hback with -
+  imod Hclose $$ [HLf Hσ'] with -
+  · inext; iexists Lf; iframe HLf Hσ' Hw; ipureintro; exact Hok'
+  imodintro
+  iexists kvModel γr.kv Lf
+  rw [Hag]
+  iframe HQ0
+  ipureintro; exact HpL
+
+end fire
 
 /-! ## A response of a watch, as a read of the state -/
 
