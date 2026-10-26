@@ -367,12 +367,19 @@ instance authTxReads_persistent (ti : GoInterfaceOk) (R : IProp GF) (Hs : AuthSt
 /-- **The backend's read transaction** `tx` (an `AuthReadTx`, not nil; a contract) for the read
 resource `R` in the mode `M`: `RLock()` turns `R` into the held token `Hs st` of a state `st` of
 the mode (`authSnap M st`), under which its reads are the state's (`authTxReads`) and which
-`RUnlock()` turns back into `R`. (The auth plan's S1, 2026-10-23; until then: a token holding no
-state, `UnsafeGetUser` returning any pointer.) -/
+`RUnlock()` turns back into `R`; and, for a caller holding the admin side's authority at `hs`
+(`authOwn`: outside a batch transaction, so no write is pending), the state is the latest
+(`histLast M hs st`; the auth plan's E2r, 2026-10-26: the apply thread, the store's only writer,
+reads what its last batch committed; a real backend's `Unlock` writes its batch back to the read
+buffer before the next read transaction begins). (The auth plan's S1, 2026-10-23; until then: a
+token holding no state, `UnsafeGetUser` returning any pointer.) -/
 def authReadTxOk (tx : GoInterface) (R : IProp GF) (M : AuthMode) : IProp GF :=
   iprop(∃ ti : GoInterfaceOk, ⌜tx = GoInterface.ok ti⌝ ∗ ∃ Hs : AuthState → IProp GF,
     □ ({{ R }} (App (Val #(methods ti.ty go!"RLock" ti.v)) (Val #()))
       {{ RET #(); ∃ st : AuthState, Hs st ∗ authSnap M st }}) ∗
+    □ (∀ hs : List AuthState,
+      {{ R ∗ authOwn M hs }} (App (Val #(methods ti.ty go!"RLock" ti.v)) (Val #()))
+      {{ RET #(); ∃ st : AuthState, Hs st ∗ authSnap M st ∗ authOwn M hs ∗ ⌜histLast M hs st⌝ }}) ∗
     authTxReads ti R Hs)
 
 instance authReadTxOk_persistent (tx : GoInterface) (R : IProp GF) (M : AuthMode) :
@@ -523,6 +530,15 @@ reads are the state's (`authTxReads`) and which `RUnlock()` turns back into `R`.
 def authReadTxLocked (tx : GoInterface) (R : IProp GF) (M : AuthMode) : IProp GF :=
   iprop(∃ ti : GoInterfaceOk, ⌜tx = GoInterface.ok ti⌝ ∗
     ∃ (sta : AuthState) (Hs : AuthState → IProp GF), Hs sta ∗ authSnap M sta ∗ authTxReads ti R Hs)
+
+/-- **A locked read transaction at the latest state** of the admin side's authority `hs` (what
+`lockedReadTx` returns to a caller holding `authOwn M hs`; the auth plan's E2r): as
+`authReadTxLocked`, the state the latest (`histLast`). -/
+def authReadTxLockedL (tx : GoInterface) (R : IProp GF) (M : AuthMode) (hs : List AuthState) :
+    IProp GF :=
+  iprop(∃ ti : GoInterfaceOk, ⌜tx = GoInterface.ok ti⌝ ∗
+    ∃ (sta : AuthState) (Hs : AuthState → IProp GF), Hs sta ∗ authSnap M sta ∗
+      ⌜histLast M hs sta⌝ ∗ authTxReads ti R Hs)
 
 /-- The latest state's revision (S4): in `on γa`, half the ghost variable of the latest state
 (`authCurHalf`; the admin side's authority holds the other, `authOwn`), whose revision the atomic
