@@ -238,7 +238,7 @@ theorem auth.authStore.RoleAdd.wp_tie
     iright
     iexists st0, (.next (bump (putRole st0 name [])))
     isplitr
-    · ipureintro; exact tieStep_keep' M hs _ b0 sc0 st0 _ Hl0 Hl1 rfl hc
+    · ipureintro; exact tieStep_keep' M hs _ b0 sc0 st0 _ Hl0 Hl1 rfl (permView_putRole_empty st0 name Hnone) hc
     isplitr
     · ipureintro; exact ⟨Hl0, hstep.symm⟩
     simp only [outRes]

@@ -242,7 +242,9 @@ theorem authStoreKit_on
   -- (E2v) the halves tied to the start's history, whose states are disabled
   ihave ⟨Hown', HX⟩ := auth.tieRes_of_disabled stp γa [auth.bootState, auth.bump auth.bootState]
     (by intro s hs; simp only [List.mem_cons, List.not_mem_nil, or_false] at hs
-        rcases hs with rfl | rfl <;> rfl) $$ [Hown' Hen Hca]
+        rcases hs with rfl | rfl <;> rfl)
+    (by intro s hs s' hs'; simp only [List.mem_cons, List.not_mem_nil, or_false] at hs hs'
+        rcases hs with rfl | rfl <;> rcases hs' with rfl | rfl <;> rfl) $$ [Hown' Hen Hca]
   · iframe Hown' Hen Hca
   ihave HAR : authApplyResAt (.on γa) stp (auth.bump auth.bootState) $$ [Hown' Hfu HT' HX HtpAd]
   · unfold authApplyResAt

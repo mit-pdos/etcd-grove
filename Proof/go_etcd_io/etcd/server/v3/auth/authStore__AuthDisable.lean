@@ -178,7 +178,7 @@ theorem auth.authStore.AuthDisable.wp_tie
   iright
   iexists st0, (.next (bump { st0 with enabled := false }))
   isplitr
-  · ipureintro; exact tieStep_set M hs _ _ _ false sc0 _ Hl1 rfl (fun h => by cases h)
+  · ipureintro; exact tieStep_setKeep M hs _ _ sc0 st0 false _ Hl0 Hl1 rfl (fun h => by cases h) rfl
   isplitr
   · ipureintro; exact ⟨Hl0, hstep.symm⟩
   simp only [outRes]

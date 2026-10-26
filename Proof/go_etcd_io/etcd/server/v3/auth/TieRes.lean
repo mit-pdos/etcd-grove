@@ -261,9 +261,12 @@ theorem keep_pure {A : IProp GF} {φ : Prop} (h : A ⊢ ⌜φ⌝) : A ⊢ A ∗ 
 
 /-- **The tie at a history of disabled states** (the store's start: `NewAuthStore`'s
 `[bootState, bump bootState]`): the flag's half is `false` (its verdict is a recorded state's flag,
-and the admin side's half of the history holds every recorded state), so the halves are tied. -/
+and the admin side's half of the history holds every recorded state), and the cache's state, a
+recorded one, has the latest state's permissions when the history's states all have the same
+(`hpv`, the auth plan's E3j), so the halves are tied. -/
 theorem tieRes_of_disabled (st : Loc) (γa : AuthNames) (hs : List AuthState)
-    (hdis : ∀ s ∈ hs, s.enabled = false) :
+    (hdis : ∀ s ∈ hs, s.enabled = false)
+    (hpv : ∀ s ∈ hs, ∀ s' ∈ hs, permView s = permView s') :
     authOwn (GF := GF) (.on γa) hs ∗ enabledHalf st (.on γa) ∗ cacheHalf st (.on γa) ⊢
       authOwn (.on γa) hs ∗ tieRes st (.on γa) hs := by
   iintro ⟨Ho, Hen, Hca⟩
@@ -280,6 +283,12 @@ theorem tieRes_of_disabled (st : Loc) (γa : AuthNames) (hs : List AuthState)
   · iframe Hh Hat
   icases Hk with ⟨⟨Hh, -⟩, %Hi⟩
   have hb : b = false := by rw [Hb]; exact hdis st' (List.mem_of_getElem? Hi)
+  ihave #Hs' := Hs
+  iunfold authSnap at Hs'
+  icases Hs' with ⟨%j, #Hj⟩
+  ihave Hk2 := (keep_pure (authHistHalf_lookup (GF := GF) γa hs j sc)) $$ [Hh]
+  · iframe Hh Hj
+  icases Hk2 with ⟨⟨Hh, -⟩, %Hj'⟩
   isplitl [Hh Hc]
   · iunfold authOwn
     isplitl [Hh]
@@ -290,7 +299,8 @@ theorem tieRes_of_disabled (st : Loc) (γa : AuthNames) (hs : List AuthState)
   iframe Hfl Hev Hca Hs
   ipureintro
   intro stl hl
-  refine ⟨?_, fun h => absurd (hb ▸ h) (by simp)⟩
+  refine ⟨?_, fun h => absurd (hb ▸ h) (by simp),
+    hpv sc (List.mem_of_getElem? Hj') stl (List.mem_of_getLast? hl)⟩
   rw [hb, hdis stl (List.mem_of_getLast? hl)]
 
 end res

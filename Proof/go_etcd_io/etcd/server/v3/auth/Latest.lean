@@ -116,12 +116,16 @@ section pure
 variable [ext : FfiSyntax]
 
 /-- **The tie of the admin side's halves to the latest state** of `hs` (the auth plan's E2r): in
-`on γa`, the flag's half holds the latest state's flag, and while auth is enabled the cache's half
-is the latest state's cache. (What the apply thread's resource is to keep across its steps: they
+`on γa`, the flag's half holds the latest state's flag, while auth is enabled the cache's half
+is the latest state's cache, and always the cache's state has the latest state's permissions
+(`permView`, the auth plan's E3j: every admin operation but `RoleAdd`, which adds a role without
+permissions, and `AuthDisable`, which changes no user or role, refreshes the cache from the state it
+commits, whatever the flag). (What the apply thread's resource is to keep across its steps: they
 set the flag at `AuthEnable`/`AuthDisable` and refresh the cache from the state they commit.) -/
 def latestTie (M : AuthMode) (hs : List AuthState) (b : Bool) (sc : AuthState) : Prop :=
   match M with
-  | .on _ => ∀ stl, hs.getLast? = some stl → b = stl.enabled ∧ (b = true → sc = stl)
+  | .on _ => ∀ stl, hs.getLast? = some stl →
+      b = stl.enabled ∧ (b = true → sc = stl) ∧ permView sc = permView stl
   | _ => True
 
 /-- **`isRangeOpPermitted`'s verdict at the cache's state `sc`** (pure): for a request of the shape
@@ -234,7 +238,7 @@ theorem permVerdictL_on_refused (γa : AuthNames) (hs : List AuthState) (sc : Au
             ∀ u', stl.users !! ai.user = some u' → ¬ covers stl u' op key rangeEnd)) :
     permVerdictL (.on γa) hs ai key rangeEnd op err := by
   intro stl hl
-  obtain ⟨he, hc⟩ := ht stl hl
+  obtain ⟨he, hc, -⟩ := ht stl hl
   refine ⟨fun h => absurd h herr, fun _ => ?_⟩
   exact ⟨he.symm, hwhy stl hl (hc rfl)⟩
 
@@ -248,7 +252,7 @@ theorem permVerdictL_on_pass (γa : AuthNames) (hs : List AuthState) (sc : AuthS
         (isRoot u ∨ (reqShape key rangeEnd → covers stl u op key rangeEnd))) :
     permVerdictL (.on γa) hs ai key rangeEnd op GoInterface.nil := by
   intro stl hl
-  obtain ⟨-, hc⟩ := ht stl hl
+  obtain ⟨-, hc, -⟩ := ht stl hl
   obtain ⟨h0, hrev, u, hu, hcov⟩ := hok stl hl (hc rfl)
   exact ⟨fun _ => ⟨Or.inr ⟨h0, u, hu, hcov⟩, Or.inr hrev⟩, fun h => absurd rfl h⟩
 

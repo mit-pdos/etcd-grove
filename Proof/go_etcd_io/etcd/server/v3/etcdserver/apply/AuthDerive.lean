@@ -164,6 +164,101 @@ theorem authErrIs_authApplyErrIs (err : GoInterface) :
   rcases Hg with rfl | rfl | rfl | rfl | rfl <;>
     simp [go_etcd_io.etcd.server.v3.auth.authErrMsgs]
 
+/-- **One of the auth package's error variables, as the checks' contracts state its error**
+(`authApplyErrIs`; the auth plan's E3j): from its package fact (`authErrVar`). -/
+theorem authErrVar_authApplyErrIs (g : GoString)
+    (hg : g ∈ (go_etcd_io.etcd.server.v3.auth.authErrMsgs).map Prod.fst) (err : GoInterface) :
+    go_etcd_io.etcd.server.v3.auth.authErrVar (GF := GF) g ⊢
+      (∃ e : GoInterfaceOk, globalAddr g ↦□ GoInterface.ok e ∗ ⌜err = GoInterface.ok e⌝) -∗
+      authApplyErrIs err := by
+  iintro #HX #Herr
+  ihave #Hv : errVarLeaf (GF := GF) g $$ []
+  · iunfold go_etcd_io.etcd.server.v3.auth.authErrVar at HX
+    iunfold errVarLeaf; iunfold errLeaf; iunfold errMsgOk; iexact HX
+  ihave #Happ := errVar_applyErrIs g err $$ Hv Herr
+  iunfold authApplyErrIs
+  iframe Happ
+  iunfold authErrVarIs
+  iunfold errVarLeaf at Hv
+  icases Hv with ⟨%e', #He', %hl, -⟩
+  icases Herr with ⟨%e, #Hge, %He⟩
+  icombine Hge He' gives %Heq
+  have he : e = e' := by injection Heq
+  subst he
+  iright
+  iexists g, e
+  iframe Hge
+  ipureintro
+  exact ⟨⟨hg, hl⟩, He⟩
+
+/-- **An admin operation's error** (`auth.authErrOf`, the model's `AuthErr`) **as the checks'
+contracts state it** (`authApplyErrIs`; the auth plan's E3j): each `AuthErr`'s variable is one of
+the package's, with its package fact. -/
+theorem authErrOf_authApplyErrIs (e : auth.AuthErr) (err : GoInterface) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗
+      auth.authErrOf e err ⊢ authApplyErrIs err := by
+  iintro ⟨#Hpkg, #Herr⟩
+  ihave Hai : (go_etcd_io.etcd.server.v3.auth.authInit : IProp GF) $$ []
+  · iapply isPkgInit_access $$ Hpkg
+  icases Hai with ⟨#HUE, #HUNF, #HPD, #HOR, #HIT, -, -, #HRUNE, #HRRNE, #HUAE, #HRAE, #HRNF, #HRE,
+    #HPNG, #HNPU, #HRNG, #HPNGr, #HIAM, #HAF, #HANE, -, -, -, -⟩
+  iunfold auth.authErrOf at Herr
+  cases e
+  · iapply authErrVar_authApplyErrIs go_etcd_io.etcd.server.v3.auth.ErrRootUserNotExist
+      (by simp [go_etcd_io.etcd.server.v3.auth.authErrMsgs]) err $$ HRUNE
+    iExactEq Herr <;> rfl
+  · iapply authErrVar_authApplyErrIs go_etcd_io.etcd.server.v3.auth.ErrRootRoleNotExist
+      (by simp [go_etcd_io.etcd.server.v3.auth.authErrMsgs]) err $$ HRRNE
+    iExactEq Herr <;> rfl
+  · iapply authErrVar_authApplyErrIs go_etcd_io.etcd.server.v3.auth.ErrUserAlreadyExist
+      (by simp [go_etcd_io.etcd.server.v3.auth.authErrMsgs]) err $$ HUAE
+    iExactEq Herr <;> rfl
+  · iapply authErrVar_authApplyErrIs go_etcd_io.etcd.server.v3.auth.ErrUserEmpty
+      (by simp [go_etcd_io.etcd.server.v3.auth.authErrMsgs]) err $$ HUE
+    iExactEq Herr <;> rfl
+  · iapply authErrVar_authApplyErrIs go_etcd_io.etcd.server.v3.auth.ErrUserNotFound
+      (by simp [go_etcd_io.etcd.server.v3.auth.authErrMsgs]) err $$ HUNF
+    iExactEq Herr <;> rfl
+  · iapply authErrVar_authApplyErrIs go_etcd_io.etcd.server.v3.auth.ErrRoleAlreadyExist
+      (by simp [go_etcd_io.etcd.server.v3.auth.authErrMsgs]) err $$ HRAE
+    iExactEq Herr <;> rfl
+  · iapply authErrVar_authApplyErrIs go_etcd_io.etcd.server.v3.auth.ErrRoleNotFound
+      (by simp [go_etcd_io.etcd.server.v3.auth.authErrMsgs]) err $$ HRNF
+    iExactEq Herr <;> rfl
+  · iapply authErrVar_authApplyErrIs go_etcd_io.etcd.server.v3.auth.ErrRoleEmpty
+      (by simp [go_etcd_io.etcd.server.v3.auth.authErrMsgs]) err $$ HRE
+    iExactEq Herr <;> rfl
+  · iapply authErrVar_authApplyErrIs go_etcd_io.etcd.server.v3.auth.ErrPermissionNotGiven
+      (by simp [go_etcd_io.etcd.server.v3.auth.authErrMsgs]) err $$ HPNG
+    iExactEq Herr <;> rfl
+  · iapply authErrVar_authApplyErrIs go_etcd_io.etcd.server.v3.auth.ErrNoPasswordUser
+      (by simp [go_etcd_io.etcd.server.v3.auth.authErrMsgs]) err $$ HNPU
+    iExactEq Herr <;> rfl
+  · iapply authErrVar_authApplyErrIs go_etcd_io.etcd.server.v3.auth.ErrPermissionDenied
+      (by simp [go_etcd_io.etcd.server.v3.auth.authErrMsgs]) err $$ HPD
+    iExactEq Herr <;> rfl
+  · iapply authErrVar_authApplyErrIs go_etcd_io.etcd.server.v3.auth.ErrRoleNotGranted
+      (by simp [go_etcd_io.etcd.server.v3.auth.authErrMsgs]) err $$ HRNG
+    iExactEq Herr <;> rfl
+  · iapply authErrVar_authApplyErrIs go_etcd_io.etcd.server.v3.auth.ErrPermissionNotGranted
+      (by simp [go_etcd_io.etcd.server.v3.auth.authErrMsgs]) err $$ HPNGr
+    iExactEq Herr <;> rfl
+  · iapply authErrVar_authApplyErrIs go_etcd_io.etcd.server.v3.auth.ErrAuthOldRevision
+      (by simp [go_etcd_io.etcd.server.v3.auth.authErrMsgs]) err $$ HOR
+    iExactEq Herr <;> rfl
+  · iapply authErrVar_authApplyErrIs go_etcd_io.etcd.server.v3.auth.ErrInvalidAuthToken
+      (by simp [go_etcd_io.etcd.server.v3.auth.authErrMsgs]) err $$ HIT
+    iExactEq Herr <;> rfl
+  · iapply authErrVar_authApplyErrIs go_etcd_io.etcd.server.v3.auth.ErrInvalidAuthMgmt
+      (by simp [go_etcd_io.etcd.server.v3.auth.authErrMsgs]) err $$ HIAM
+    iExactEq Herr <;> rfl
+  · iapply authErrVar_authApplyErrIs go_etcd_io.etcd.server.v3.auth.ErrAuthFailed
+      (by simp [go_etcd_io.etcd.server.v3.auth.authErrMsgs]) err $$ HAF
+    iExactEq Herr <;> rfl
+  · iapply authErrVar_authApplyErrIs go_etcd_io.etcd.server.v3.auth.ErrAuthNotEnabled
+      (by simp [go_etcd_io.etcd.server.v3.auth.authErrMsgs]) err $$ HANE
+    iExactEq Herr <;> rfl
+
 /-- **`isAuthStore`'s `Revision` clause, of the real store** (as the contract states it). -/
 theorem authRevision_of_authInv
     (hRev : auth.authStore.Revision.spec (GF := GF) (hG := hG))
