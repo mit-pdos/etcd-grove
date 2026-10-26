@@ -1,6 +1,6 @@
 ---
 upstream: reported
-checked: 2026-10-20
+checked: 2026-10-26
 links:
   - etcd-io/etcd#20704 issue closed: same bug for cases 3 and 4 (its bugs 3 and 1: Update increments Version, Update after Delete); cases 1-2 (WithIgnoreValue, WithLease) not in it; closed by the stale bot as not planned, unfixed
 ---

@@ -687,11 +687,14 @@ def DynNoSnap (rs : RNState) (m : MessageM) : Prop :=
 /-- `DynCCPre` (below) on its components (2026-10-15, stage N): the committed log handed out
 `D`, the configuration index `ca` and configuration `cfg`, and the change as `AsV2` makes it
 (`op`); what `node.go`'s `confc` arm checks against the run loop's `RawNode` from what the
-driver knows. -/
+driver knows. (D43 M3, 2026-10-25) The change `op` applied need not be the decoder's `op'`, only
+have its effect on `cfg` (`ccStepB`): the ghost step folds `op'`, the code applies `op`, both
+giving `cs'` (etcd hands raft a failed validation's change with `NodeId` `0`, a no-op, in place
+of the entry's `AddNode` of a member, also a no-op). -/
 def DynCCPreOp (dec : CCDec) (D : List EntryM) (ca : Nat) (cfg : CCState) (op : CCOp)
     (k : Nat) (e : EntryM) (cs' : CCState) : Prop :=
   ca ≤ k ∧ k < D.length ∧ D[k]? = some e ∧ IsConfEnt e ∧
-  NoConfIn D ca k ∧ dec (D.take k) e = some op ∧
+  NoConfIn D ca k ∧ (∃ op', dec (D.take k) e = some op' ∧ ccStepB op' cfg = some cs') ∧
   ccStepB op cfg = some cs' ∧ cs'.cfg.autoLeave = false
 
 /-- The dynamic mode's premises of `ApplyConfChange` (2026-10-14, stage B7 part 2), at the change

@@ -7,7 +7,9 @@ translate = ["!*", "ShouldApplyV3", "ApplyBoth", "ApplyV2storeOnly", "RaftCluste
   # the mutex's methods, promoted through the embedded `sync.Mutex` (`MethodUnfold` wrappers)
   "RaftCluster.Lock", "RaftCluster.Unlock",
   # (D21 M2) `Process`'s check of the sender
-  "RaftCluster.IsIDRemoved"]
+  "RaftCluster.IsIDRemoved",
+  # the server's `IsLearner` and `IsMemberExist` (the unary and stream interceptors' checks)
+  "RaftCluster.IsLocalMemberLearner", "RaftCluster.IsMemberExist"]
 imports = ["!*", "sort", "sync", "go.uber.org/zap", "go.etcd.io/etcd/client/pkg/v3/types", "github.com/Masterminds/semver/v3", "go.etcd.io/etcd/pkg/v3/notify", "go.etcd.io/etcd/server/v3/etcdserver/version"]
 
 # translate the definitions of all type declarations goose supports

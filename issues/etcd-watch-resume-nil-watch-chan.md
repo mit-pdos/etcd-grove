@@ -1,7 +1,8 @@
 ---
-upstream: unchecked
-checked: 2026-10-20
-links: []
+upstream: none
+checked: 2026-10-26
+links:
+  - etcd-io/etcd#7938 pr closed: related, different (2017, unmerged): canceled watchers left in `resuming` across a reconnect; not the nil `outc`
 ---
 
 # A watch canceled during a reconnect can be handed a nil `WatchChan`

@@ -4,6 +4,16 @@ Why the Lean port is the way it is. Newest last. The design of the proof itself 
 recorded on `main` (`notes/decisions.md`); this file only covers choices the port
 had to make.
 
+**These decisions are not binding** (the user, 2026-10-25). Many of them were made to get a proof
+through and later turned out wrong or worse than an alternative: too-generic specs (the client's
+KV specs generic in a `GrpcSpec`, D43), indirections that hide what a spec supports (the
+workload's `writes` predicate, D23, removed by D43), choices recorded as "rejected" that were
+later adopted. Read an entry as the reasoning at the time, not as a rule. When a change would
+improve a spec or a proof (simpler, more direct, more faithful to the Go code, easier to audit),
+do not keep a design because a decision here chose it: say what the entry got wrong, mark it
+*superseded* (in part, if so) with a pointer to the new entry, and record the new choice. What
+does bind is in `CLAUDE.md` and what the user has asked for.
+
 ---
 
 ## The Rocq module discipline, in Lean
@@ -17292,7 +17302,7 @@ four questions as decided above. Each commit a full build.
   (+ `TS`), `rnParts`, `isRaftNode`; intermediate specs `raftNode.stop`, `raftNode.onStop`,
   `NewServer` (`srvEr … (netPeers γn id)`); the examples' `memberBuilt` (the same). No closed
   theorem's text changed.
-- Found on the way: `issues/etcd-rafthttp-leaderstats-followers-race.md` (`removePeer` writes the
+- Found on the way: `issues/nonissues/etcd-rafthttp-leaderstats-followers-race.md` (`removePeer` writes the
   leader stats' map without its lock, `JSON` marshals it unlocked).
 
 **W2, the auth store across `Recover`: no restatement of `NewAuthStore` needed.** The server's auth
@@ -18691,6 +18701,60 @@ commit fact's configuration index (`cqAt`'s dynamic part).
   `⟨0, cfgState V ∅, []⟩`, the tracker's learners empty). The server's `newRaftNode` passes `.static`
   (M3 moves it).
 
+**M3: the server in the dynamic mode, scoped (2026-10-25, the user; branch `membership-m3`).**
+Three decisions, each the recommended option:
+- *The leader's `Advance`.* In the dynamic mode `node.Advance` asks that the committed log's conf
+  entries be applied first (A1, `NoConfIn ds ca`); etcd's raft loop waits for its apply loop only on
+  a follower or candidate, the leader calls `Advance` at once
+  (`issues/etcd-leader-advance-before-applyconfchange.md`, a real safety gap), so no proof over that
+  code. **Decided: the fork fix** (M3a), the upstream candidate's: the leader does the follower's
+  second `notifyc` send (fork branch `goose-lean-leaderwait`, `4d9282b0f`). A change to the verified
+  code, like the earlier fork fixes; the alternative, a premise, would have been unsound.
+- *The static mode at the server.* Every server example's `bootPremise` says `γ.reDyn = none`, so
+  a dynamic-only server changes the definitions inside every closed theorem's statement. **Decided:
+  parametric**: the server takes the node's mode, its dynamic-only resources stated as raft's
+  specs state them (`⌜static⌝ ∨ nodeCfg … ∗ dlvLb …`); the static examples keep their statements;
+  the removal example (M8) uses the dynamic instance.
+- *`EtcdServer.applyConfChange`'s axiom.* Its call `s.r.ApplyConfChange` needs, in the dynamic mode,
+  the driver's view (`nodeCfg ca cfg`, `dlvLb ds`) and raft's `DynCCPreOp`, and returns
+  `nodeCfg (k + 1) cs'`. **Decided: restate the axiom** (a trust-boundary statement change, same
+  axiom count; M5 proves the restated statement) rather than pulling M5's `AddNode` part forward:
+  static case unchanged, dynamic case as raft's `node.ApplyConfChange` has it, for `ApplyBoth`
+  only (without `v3` Go does not call raft).
+
+**M3 carried out (2026-10-25, branch `membership-m3`).** The server's proofs are parametric in
+raft's mode; the static examples' statements are unchanged (trust base 718 axioms, 5 sorries).
+- *M3a* (the fork): `raftNode.start`'s leader branch does the second `notifyc` send on a conf
+  batch (`goose-lean-leaderwait`, `4d9282b0f`); its proof mirrors the follower's.
+- *The view.* `rnCfgAt γ L` (`InvRaftNode.lean`) is the driver's `nodeCfg`, in the dynamic mode with
+  every conf entry of `pre ++ L` applied and the voters' simple configuration (`srvCfgView`,
+  `srvCfgOk`, `InvCfgView.lean`); `rnDrv`/`rnBusy` hold it, `Advance` takes it after the batch, which
+  gives A1 (`rnCfgAt_open`). A batch with a `ConfChange` in the dynamic mode (`rnHands`) sends it to
+  the apply thread in the `toApply` (`rnApGive`, with the committed log handed out, `dlvLb`); the
+  apply thread's `<-apply.notifyc` deposits the view after the batch (`rnApR`) and the raft loop's
+  second send claims it (`NotifyC.lean`: the receive and the second send on a fresh capacity-1
+  channel, over the raw channel state). Without a conf entry the loop keeps the view
+  (`rnCfgAt_back_false`: the server's committed entries are normal or `ConfChange`, `srvIdxOkW`);
+  the conf-change scan's result is `ccIn ce`.
+- *The apply side* has no `RNNames`: `apply`, `applyEntries`, `applyAll`, `run_job_body` take an
+  optional view `dv : Option NodeNames` (`dvView`, `dvRes`, `dvOk`; `run` picks `rnDv`), threaded
+  through the scheduler's job resource. A server conf entry (`ccApplyOk`, the policy's) meets
+  `DynCCPreOp` at the server's decoder `srvDec` for both changes Go may hand raft
+  (`srvCfgOk_cc`); raft's `DynCCPreOp` was generalized for that: the change applied need only have
+  the decoded change's effect (`ccStepB`), as a failed validation's `NodeId 0` has.
+- *Contracts.* `isRaftNodeIfc` carries raft's dynamic `ApplyConfChange` (`raftApplyCCDyn`) in the
+  dynamic mode; `raftPropose`'s static clause is guarded by `reDyn = none`; `rnEnvOk` says the mode
+  is static exactly when raft's names are (raft's `StartNode` now states it, `ownRawNode_mode`) and
+  the dynamic mode's decoder is `srvDec`. The axiom `applyConfChange` restated (`dvCCPre`,
+  `dvCCPost`).
+- *A fresh start.* The dynamic mode excludes a replay (an entry at or below the consistent index:
+  Go hands a replayed conf change to no one, so raft's configuration index would stall):
+  `isServerRun`'s `HEr` (and `srvBuilt`'s, `InvStart`'s) says `c₀ ≤ ai₀` in the dynamic mode;
+  `NewServer` starts at `0, 0`.
+- *M3e.* `bootstrappedRaft.newRaftNode.spec` and `NodeStartSpec` take `md` (the ghost state
+  `bootInit γ md`, in the dynamic mode at `srvDec` and the peers' configuration); `NewServer`
+  passes `.static`.
+
 ## S5e of the auth plan: the simple token provider with no hypothesis (2026-10-25 · `notes/auth-plan.md`, branch `auth-s5e`)
 
 **Problem.** S5d left the simple provider meeting the token contract over two hypotheses: the TTL
@@ -18737,7 +18801,7 @@ invariant over the context-premised contract (with `NewAuthStore`).
   `store.Restore` are proved (their statements differ from the axioms S8c and S6 wrote: S8d uses the
   proved ones). S8c's W3 commit is reverted before the merge (`72a1cb065b`): the peers right
   (`netPeers`, `netTrIs`, `transportAddRight`, `RNEnv.TS`) is to be re-expressed over the proved
-  transport, with W8. The issue it filed (`issues/etcd-rafthttp-leaderstats-followers-race.md`) is
+  transport, with W8. The issue it filed (`issues/nonissues/etcd-rafthttp-leaderstats-followers-race.md`) is
   kept.
 - **W5** (the user): `storage.snapOpensOk` stays its own environment premise (not folded into
   `dbOpensOk`); it may become a premise of closed theorems at S-l.
@@ -19293,6 +19357,122 @@ the old backend's `isStopChans` and `bOpen ½` (W7, the user's (c)); the transpo
 W8's coverage (the user's), `Members()`' boot contract (`Hmembers`), `8 · |peers|` of `lgMu`'s reader
 slots for the `AddPeer`s; `receiptBound ≤ wbInit` (the new backend's write-backs).
 
+## E2e of the auth plan: the auth store at the server's boot, in the mode `on` (2026-10-25 · `notes/auth-plan.md`)
+
+The parts of bringing the auth store's invariant and the admin authority to the server that need
+no D22. What landed, and what did not:
+
+- **The names at boot** (`auth.authBoot_alloc`, `Proof/go_etcd_io/etcd/server/v3/auth/Boot.lean`):
+  over the boot state `bootState` (disabled, revision `0`, no user, no role: what freshly created
+  buckets hold), with the token provider's names `γt`, `γf` (the simple provider's,
+  `tokenSimple_new`), a fresh `γa` with the admin side's authority `authOwn (.on γa) [bootState]`,
+  the other half of the latest state's ghost variable (the store's revision invariant's) and the
+  batch lock's half of the history at the boot state (`authLockI (.on γa) bootState`, the
+  backend's). The tokens' one-time issue rights: `auth.tokFresh_mint` mints the right of any token
+  not minted before from the rights' authority (`tokenSimple_new`'s `ghostMapAuth γf 1 ∅`).
+- **`NewAuthStore` at boot** (`auth.newAuthStore_boot`; restated as `auth_store_boot_on` in
+  `etcdserver/Results.lean`, linked, no `sorry`, no new axiom): the names allocated, the lock's
+  half handed to the backend, `newAuthStore_on` run; the post is the store's invariant
+  (`authInv`), the admin side's write resource (`authWR`), the provider's share (`tpAdmin`) and the
+  admin side's authority at `[bootState, bump bootState]` (the constructor's `commitRevision` of
+  revision `0`), with `γa`'s token parts the provider's. Two named premises:
+  - `auth.authSchemaBoot ab bi γt γf R P f T` -- **D22's part**: for any names with the provider's
+    token names, the lock's half at the boot state makes schema's auth backend meet the store's
+    backend contracts for those names (`authBackendOk`, `authWBackendOkR`, `CreateAuthBuckets` as
+    one transaction keeping `T`). The real backend discharges it by keeping
+    `∃ st, buckets(st) ∗ authLockI M st` under its batch lock ("S4f of the auth plan"), which needs
+    the backend's lock to take a resource after it is made (at the auth store's construction).
+  - `auth.tokenProviderBoot tp γt γf A`: the provider's contract for any names with its token
+    names; the simple provider's `tokenSimple_okA`.
+- **`srvAuthBound` of the real store** (`srvAuthBound_of_authInv`, `AuthBound.lean`; restated as
+  `srv_auth_bound_of_inv`): a server whose `authStore` field holds a store with `authInv` in the
+  server's mode, its reader resource the store's `authRd`, has the bound request side. So
+  `srvAuthBound` is derivable at any server whose boot takes the store from `newAuthStore_boot`.
+
+**Not done, and why.** `NewAuthStore`'s axiom (`NewAuthStore.spec`, mode `off`) is neither retired
+nor shrunk: the server's statement (`NewServer.spec`) is for auth off (its post fixes
+`E.authOn = false`, its proof instantiates the apply contract at `.off` in ten places, and every
+closed theorem's environment is `env₀`'s `authMode := .off`), so the server cannot take the store
+from `newAuthStore_boot` until it runs in the mode `on γa`; and the axiom's off-mode post needs an
+off-mode proof of `NewAuthStore` (E2a: its own cache premise, `permsFit` of a state the off
+contract leaves open) and the admin clauses `isAuthStoreAdmin` (`HasRole`, `Authenticate` with
+`CheckPassword`, `UserGet`, `RoleGet`, the lists), none of which is this stage's. Threading
+`authOwn` to the apply thread (`apply.isAuthSteps` at the server) waits on the same: the server's
+environment admits no auth request (`AEnv.RW` is `False` for the auth store), so its apply thread
+has nowhere to use the authority. Auth's `Recover` in the server's terms (D22 S8d's premise,
+decided (a)) is left to D22, which states it: its auth side is `authStore.Recover.spec` (the
+store's invariant, `authOwnF`, the new backend's contracts) with the split `authOwnF_lockI_split`
+handing the new backend its lock's half.
+
+**Next for the end-to-end theorem.** The server in the mode `on γa`: `NewServer.spec` generic in the
+auth mode (the store from `newAuthStore_boot` in `on`, from the axiom in `off`), `E.authOn` no
+longer fixed, the apply thread admitting auth requests (`AEnv.RW` the auth buckets' write right,
+the authority `authOwn` in the apply thread's resources, the dispatch through the `stepSpec`s of
+`apply/AuthSteps.lean`, `Authenticate` minting its token's right); the server's token provider
+from `NewTokenProvider` with `"simple"` (names-only today: its spec gives only `tp ≠ nil`).
+
+**Trust base.** Unchanged (720 axioms, 6 sorries).
+
+## E2f of the auth plan: authkv's client side -- the checks proved, the contract over the contexts' metadata (2026-10-26 · `notes/auth-plan.md`)
+
+The parts of `examples/authkv`'s `Main` proof on the client's side that need no D22 and no server
+in the mode `on` (E2e's next step, another fork's).
+
+**The checks, proved and linked** (`Proof/.../authkv/`, `Spec/.../authkv/`): `keyOf`, `refused`,
+`Principals`, `Writer`, `LastIn`, `CheckHistory`, `checkKVs`, `checkTxnReads`, over the pure
+functions of `Checks.lean` (`keyOfK`; `writerK`, the first principal `who` with `x/<who>/` a
+proper prefix of the key; `histOk`, every event above the set-up's revision but the last write's a
+write its key's principal was permitted; `lastIn`). The replies are read as the client's reply
+lemmas give them: `txn.kvsIs` for a range's key-values, `opRespsMsg` for a transaction's
+responses. `checkTxnReads` runs `ResponseOp.GetResponseRange` from its code for every response
+kind (`wp_method_call`; the type assertion of a put's, delete's or nested transaction's wrapper
+fails and the getter returns `nil`): its spec, `ResponseOp__GetResponseRange.lean`, is of a range's
+only, and generalizing it would change its callers' proofs (the client's recipes, leasing,
+kubernetes, the server's `txn`, linkvtxn). `Writer` uses
+`wp_string_len`'s bound (`len(k) < 2^63`) to read `len(k) > len(p)` as the lengths' order.
+
+**The contract over the contexts' metadata** (`ClientAuth.lean`, `grpc/metadata/Outgoing.lean`).
+`metadata.outgoingOf` is the counterpart of E2c's `incomingOf` (opaque, a context being
+immutable), with `mdAdd` (a value appended to a key's) and `mdVals`. E2b's four parts:
+- C1, `userAttemptOk γa u h`: an attempt's handler context `h` of a client with the user name `u`
+  carries no token or one issued to `u` (`auth.ctxTokenOf`, `auth.tokIssued`);
+- C2 and C4, `deliversOutgoing c h`: a no-user client's attempt delivers its caller's outgoing
+  metadata as the handler's incoming metadata;
+- C3, the trust-boundary spec `metadata.AppendToOutgoingContext.spec` (**+1 axiom**: grpc's
+  `metadata` is names-only): from an `isContext`, a context with the same descriptor but its
+  values (as `withVersion`'s: grpc's code is `context.WithValue`, which delegates `Deadline`,
+  `Done`, `Err` and the context package's own key to its parent) whose outgoing metadata is the
+  argument's with the pair appended (a lower-case key; `FromOutgoingContext` and the transport
+  merge `added` after `md`).
+`reqCtx` is proved over C3 and `client.wp_WithTimeout_bg`: a `ctxOk` context whose `Err()`
+returns client errors (`ctxErrClient`, from `ctxErrClientAllW_of` for the appended context), the
+timeout context itself or, for the bad principal, it with `token: badtoken` appended.
+`badCtx_unbound`: a handler context delivering outgoing metadata whose token values are
+`[badtoken]` gives `AuthInfoFromCtx` no auth info in the mode `on γa` (E2c's `tokIssued_badToken`).
+Restated in `authkv/Results.lean` with the checks (`authkv_CheckHistory`, `authkv_checkKVs`,
+`authkv_checkTxnReads`, `authkv_reqCtx`, `authkv_bad_unbound`).
+
+**Not stated: the timeout context has no outgoing token.** True of Go (only grpc stores under its
+metadata key, and `context.WithTimeout(context.Background(), d)` stores nothing), but Perennial's
+context model describes no value at another package's key (`ContextDesc.Values` is unused by
+`isContext`), and `outgoingOf` is opaque. Options: strengthen `context.WithTimeoutBackground.spec`
+(this repository's, proved from Perennial's) with `⌜outgoingOf ctx' = none⌝` as a new premise-free
+fact (an axiom, its users' patterns to adapt: the read loop's `sendReadIndex` among them), or model
+the outgoing metadata by the descriptor's `Values` once Perennial's `Value` spec covers other
+keys. Left with `Main`.
+
+**Not done, and why.** `SetUp` and `Work` (and so `Main`): `SetUp`'s admin calls go through the
+client's `Auth` field, which `isNewClient`'s model does not describe (`NewAuth`, `RetryAuthClient`
+and the `authClient` methods are untranslated), to the server's Auth service, for whose methods no `isGrpcRpc`
+contract is stated (the KV service's are, `client/v3/ServerKV*.lean`); and both need the server in the mode `on` (E2e's next step). `Work`'s calls need,
+besides, each reply at the server's verdict for its principal (an error for a refused request: A1,
+A4, the API layer's checks, at the server's `isGrpcRpc` specs, which today are for auth off), and
+C1, C2/C4 in the client's attempt contract (`grpcInvokerOk` says nothing of metadata). `Main.lean`'s
+header lists these.
+
+**Trust base.** 721 axioms (+1, `metadata.AppendToOutgoingContext.wp_proof`), 6 sorries;
+collection `authkv` gains it and `context.ErrAny.wp_proof` (`reqCtx`'s).
+
 ## D22 S8d: the auth store's Recover a named premise (2026-10-25 · the user's decision, (a))
 
 `applySnapshot.spec` takes the triple of `st.Recover(ab)` in the server's terms as a named premise
@@ -19477,3 +19657,362 @@ Net trust base after the track, revised: −1 axiom (−2, +1), −1 `sorry`; re
 `os.Rename`, `storage.Release`, `NewAuthStore`, `Transport.ActiveSince` (and `bootOk`'s storage
 source if it is an axiom). Order: J5 now precedes J4; J8b and L3 wait on the Perennial reader-slot
 change or the fallback premise.
+
+## E2g of the auth plan: the token provider's constructor proved; the server in the mode `on` not reached (2026-10-26 · `notes/auth-plan.md`)
+
+The brief: (1) `NewServer.spec` generic in the auth mode, the store from `newAuthStore_boot` in the
+mode `on`; (2) the server's environment admitting auth requests, `authOwn` threaded to the apply
+thread; (3) `NewTokenProvider` with `"simple"` proved. Only (3) is done.
+
+**(3) `NewTokenProvider` proved** (`Proof/go_etcd_io/etcd/server/v3/auth/NewTokenProvider.lean`;
+until now the axiom of unit N1). Translated with bodies (`auth.toml`): `NewTokenProvider`,
+`decomposeOpts`, `newTokenProviderNop`, the constants `tokenTypeSimple`/`tokenTypeJWT` and the error
+`ErrInvalidAuthOpts` (which joins `authInit`, appended, through `etc/gen-init.py`'s auth errors;
+its initializer leaves `opaqueInitsOk`'s list). Proved: `decomposeOpts` (Perennial's
+`strings.wp_Split`, the loop over the `key=value` fields into the map; its error only with more
+than one field, so that `"simple"` cannot fail), `newTokenProviderNop`, and
+`newTokenProviderSimple` under a spec of its own with no premise (`Spec/.../newTokenProviderSimple.lean`:
+the index waiter's field read-only, and the provider's facts for a positive TTL only; S5e's
+`tokenSimple_new`, with its TTL and waiter premises, is now derived from it). The JWT provider's
+constructor is names-only: its axiom `auth.newTokenProviderJWT.wp_proof` (it returns; its spec's
+docstring says why, including `edKey`'s unchecked type assertions, which golang-jwt's PEM parsers
+make safe) replaces `NewTokenProvider`'s.
+
+**Exported statement changed:** `auth.NewTokenProvider.spec`'s post keeps `err = nil → tp ≠ nil`
+and adds: unless the options are not `"simple"` or the TTL is not positive, `err = nil`, the
+provider is `*tokenSimple` `p` with its index waiter's field `iw` (read-only), and, under fresh
+names, `simpleOk`, `simpleAdmin` and the rights' authority -- what `tokenSimple_okA` turns into
+the token provider's contract (E2e's `tokenProviderBoot`). `NewServer`'s proof takes the first
+conjunct only (`⟨%Htp, -⟩`); no other statement changed.
+
+**(1), (2): why not.** The server's apply environment in the mode `on γa` needs the apply layer's
+contract `apply.isAuthStore … (.on γa) E.RW` of the store, at the server's write right `E.RW`
+(the tracked buckets' half lent with the auth backend's, `authApplyOk`'s `rwLens`, shared with the
+alarm store, the lessor and the cluster): its permission checks, `IsAuthEnabled` and `Revision`
+are the real store's (`isAuthStore_of_authInv`), but its admin clauses (`AuthEnable` ...,
+`HasRole`, `Authenticate`, the eleven requests and the four reads) are stated over the batch
+lock's `csContract` and `RW` with no authority: in the mode `on` they need the admin side's
+authority `authOwn` (S4f: an append needs both halves of the history), which `RW` would have to
+lend, and they need `HasRole`, `Authenticate` with `CheckPassword` (bcrypt), `UserGet`, `RoleGet`,
+`UserList` and `RoleList` proved (`isAuthStoreAdmin`'s premise, E2a). So (1) and (2) are one step:
+restate `isAuthStore`'s admin clauses in the mode `on` as `apply/AuthSteps.lean`'s step specs (the
+authority in the apply thread's resources, as `kvOwn`'s `E.RD`), derive them of the real store from
+S4's proofs, prove (or bound at the trust boundary) the admin reads and `CheckPassword`, then
+generalize `NewServer`'s ten `.off` instantiations and its post `E.authOn = false` (every closed
+theorem keeps `env₀`'s `.off`, its form derived), the store from `newAuthStore_boot` in the mode
+`on` with `authSchemaBoot` (D22's) and `tokenProviderBoot` (from this stage's post and
+`tokenSimple_okA_run`, over `ValidSpec`: the simple provider's `isValidSimpleToken` is proved on
+contexts only, `tokenSimple_okCtx`) as premises. Not attempted in this stage. The server's
+Auth-service gRPC contracts (`isGrpcRpc`) wait on the same.
+
+**Trust base.** Count unchanged: `auth.NewTokenProvider.wp_proof` replaced by
+`auth.newTokenProviderJWT.wp_proof` (baseline and the eight collections listing it updated).
+
+## E2h of the auth plan: clientv3's Auth API, and `SetUp` over the Auth service as a premise (2026-10-26 · `notes/auth-plan.md`)
+
+What `examples/authkv`'s `SetUp` needs on the client's side (E2f's "Not done": the client's `Auth`
+field, `NewAuth`, `RetryAuthClient`, the `authClient` methods untranslated, and no contract for
+the server's Auth service).
+
+**Translated and proved** (`Code/go_etcd_io/etcd/client/v3.toml`, `api/v3/etcdserverpb.toml`):
+the generated Auth stub's `NewAuthClient` and `authClient.{UserAdd, UserGrantRole, RoleAdd,
+RoleGrantPermission, AuthEnable}` (`Invoke` with `StaticMethod`, the KV stub's shape), the retry
+client's `RetryAuthClient` and its five (no retry option: an admin call has the default
+`nonRepeatable` policy), the client's `NewAuth` and `authClient`'s five (the request built, the
+error through `ContextError`; `RoleGrantPermission` builds the permission from `[]byte(key)`,
+`[]byte(rangeEnd)`); client/v3 now imports `authpb` (the init chains regenerated). `NewAuth`'s
+trust-boundary axiom (item 5) is now a theorem: **-1 axiom**. `isNewClient` gains its last part,
+the `Auth` field holding a `*authClient` over the connection (`authObjAt`); `LeaseClient`'s
+pattern adapted, the other users' patterns end in `-`.
+
+**The vocabulary** (`client/v3/InvAuthConn.lean`): the messages as `ProtoMsg`s whose decoded copy
+is the auth store's own request predicate (`auth.userAddReqIs` with the password,
+`auth.userGrantRoleReqIs`, `auth.roleAddReqIs`, `auth.roleGrantPermissionReqIs` with the
+permission's `auth.ownPermW`), so that the server's handlers can hand the request on as it is; the
+responses carry nothing the client reads (`Unit`); `authCallOut Q resp err`, a call's answer
+(`nil` and `Q ()`, or a client error), `putCallOut`'s shape. Every call is specified for any spec
+`Spec` the server registered for the method and a **persistent** precondition `□ ▷ Spec m Q`:
+the retry interceptor may deliver an admin request several times (a call that failed before it was
+sent, a refreshed token), and D29's write-once mode is for the KV methods only (`kvMethod`).
+
+**`SetUp`, over the Auth service as a premise** (`Spec/.../authkv/SetUp.lean`): `setupAuthOk ep
+Su Sg Sr Sp Se Q`, the five methods' specs at the endpoint (`isGrpcRpc`) and each of the eight
+calls' `□ ▷ Spec m (fun _ => Q i)`; `SetUp` returns `ok`, and if `ok` every `Q i`. Its puts go
+through `client_Put_any` (new in `ClientPutGet.lean`: `New`'s client with a persistent update, the
+first case of `client_put_any`, no write-once premise), since authkv's server refuses and so is
+not refusal-free (E2d). How the server's side discharges `setupAuthOk` (E2i's Auth-service
+contracts): its `Su`, ... are the handlers' over the apply layer's admin steps
+(`apply.isAuthSteps`); with a persistent precondition, a `Q i` is a persistent witness of the
+step's effect (the history's lower bound holding the step), which the set-up's sole admin client
+then knows for each call.
+
+**Not done.** `Main` (still a `sorry`): it needs the server in the mode `on` (E2i), the
+Auth service's contracts discharging `setupAuthOk`, and `Work` (E2b's, E2f's lists).
+
+**Trust base.** 721 → 720 axioms (-1, `NewAuth.wp_proof` gone), sorries unchanged (6); the nine
+collections that listed it updated, and `authkv` gains the client's existing gRPC trust-boundary axioms
+(`StaticMethod`, `grpcConn`, `status.FromError`, ...) that `SetUp` reaches.
+
+## D44: one stated spec per KV method; the client's KV calls specified over one KV, its members hidden (2026-10-25 · the user; branch `kv-stated-specs`)
+
+*Supersedes in part* "A generic gRPC specification" (the client's KV specs generic in a `GrpcSpec`)
+and "The client meets the server (unit C1)"'s branch note "Where the two sides meet" (the client
+keeping its specs generic, `client_put_etcd` instantiating them).
+
+**The user's request.** `kv.Put.spec` (and `kv.Get`, ...) said only "whatever spec is registered at
+the gRPC endpoint, the call provides": too generic. There should be one stated gRPC spec for `Put`
+(each KV method) that the client and the server both refer to, and a precondition of the client's
+calls (`isKv`) that holds the registrations of every server the client talks to. Asked which
+statement should be the functions' specs (the members' or one KV's), the user chose one KV's, the
+members' statements internal lemmas ("Abstract only").
+
+**Three layers.**
+- *The stated gRPC specs* (`client/v3/KVService.lean`, moved from `client/v3/Results.lean`):
+  `etcdPutSpec`, `etcdRangeSpec`, `etcdDeleteSpec`, `etcdTxnSpec` and their replies (`putReplied`,
+  `rangeReplyOk`, `deleteReplied`, `txnReplied`), at a member's apply environment, read names and
+  ids; `SrvAt` and `kvRegsAt` (a member's four registrations), `anySpec` (a call through a client
+  of several members passes the conjunction). The server's handlers are proved against these
+  definitions (`Results.lean`'s `etcd_putMethodOk`, ..., `etcd_kv_served`, `etcd_kv_started`); the
+  client's proofs use the same ones. Only the transport stays generic in a `GrpcSpec`:
+  `ClientConn.Invoke`, the generated stub (`kVClient.*`), the retry client (`retryKVClient.*`).
+- *The members' lemmas* (`KVMembers.lean`'s `kv.Put.specM`, ...; proved as `kv.Put.wp_members`,
+  ..., linked in `LinkMembers.lean` as `v3.kv.wp_PutM`, ...): over `isKV api ms` (the `*kv`'s
+  connection to the members' endpoints and every member's `kvRegsAt`), the caller's side at each
+  member (`floorsAt`, `knownAt`, `putUpd`, ...), the reply some member's (`putAns`, ...). What the
+  results about the server's own model use (`ServerKV*.lean`, the recipes', the cache's,
+  `Results.lean`'s `client_*_any` and `client_*_end_to_end`): a member's reply carries the server's
+  certificates, the revision's token and the applied index's witness, which no KV-level statement
+  can (they are per member).
+- *The functions' specs* (`Spec/go_etcd_io/etcd/client/v3/{kv__Put,kv__Get,kv__Delete,kv__Do,
+  txn__Commit}.lean`): over `isKv kv γ dup`, the `*kv` a client of etcd's KV `γ`: `∃ ms` (hidden),
+  `isKV`'s facts, every member's start (`srvStart`: the floor `[]`, the committed index `0`, free),
+  every member at `γ`'s state name (`x.γr.kv.st = γ.st`: a cluster booted together), and, unless
+  `dup` (a write may be delivered more than once), every member refusal-free. The caller gives the
+  atomic update itself, written out in the spec: `□?dup (AU <{ ∃∃ σ, etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \
+  ↑kvN, ∅ <{ etcdKV γ (kvOpStep op σ), COMM Q σ }>)` for a write (persistent only if `dup`), a
+  persistent read AU (or none) for a range. The postcondition is written out too: `nil` and the
+  reply's message with `Q σ` and the reply's fields as functions of `σ`, or a client error
+  (`kvErr`). The parameters are named after the Go arguments (`kv`, `ctx`, `key`, `val`,
+  `opts_sl`/`opts`, `op`). The proofs: the
+  member-level `kv.Do`/`txn.Commit` at the hidden members (`putUpd_of`, ...: one update at `γ` is
+  each member's, `kvOpAu1_names`), the replies read back as the state's (`putAns_st`, ...).
+
+**Choices made in the abstract specs** (the open points of the design, decided here):
+- *A write's update* under `□?dup` (the user: the AU in the spec; the optional `□` is Iris's
+  `intuitionisticallyIf`): persistent if the client's retry interceptor may resend the write
+  (`issues/etcd-client-retry-put-ctx-error.md`), fired at most once on a refusal-free client (D29).
+- *Ranges at the latest revision only* (`kv.Get.spec`, `kv.Do.spec`'s range case: `rev = 0`): a
+  reply at an earlier revision is not a function of the current state. Every client-level caller
+  reads at `0`; the server-model results (the recipes' gets at a revision) use the members' lemma.
+- *Leases, `WithFromKey` deletes*: excluded as before (`leaseID = 0`, `rangeEnd ≠ [0]`: what
+  etcd's specs cover).
+- *The update's mask* is `kvAu1`'s (`(⊤ \ ↑srvRaftN) \ ↑kvN`).
+- *The workload's `writes`* (D23's premise `γ.wl.writes op` of every update) removed (D45): the
+  server admits every KV write (`admits_kv`). watchkv's `srvNoDupKeys_wk`, which used it, is
+  broken until redone in watchkv's own proof.
+- *`kv.Txn`, `txn.If`/`Then`/`Else`* unchanged (no request: generic in the builder's addresses);
+  `txn.Commit.spec` takes the builder, its `txnKvIs tp api` and `isKv api γ rf`, the builder's
+  connection swapped for the `*kv`'s (`txnObjAt_conn`, by the `kv` field's agreement).
+
+**One set of read names per member.** The server registers `Put`/`DeleteRange` at the request
+path's read names `ρ.rd`, `Range` at the read loop's `γr`, `Txn` at both; a started server has
+`ρ.rd = γr` (`InvStart`, `InvBuild`, `ReadServer`). `SrvAt`/`kvRegsAt` take one (`γr`), so the
+results that carried both (`ServerKV*`'s `γw γr`, the recipes', `client_txn_any`'s `γw`,
+`kvWritesOk`) take one now; `etcd_kv_started` still gives the four registrations at `ρ.rd`/`γr`,
+from which a caller with `ρ.rd = γr` assembles `kvRegsAt`.
+
+**Rejected.** Keeping the client's specs generic and instantiating them in `Results.lean` (branch
+`kv-put-link`, 2026-10-15, never merged): the generic triple says nothing about etcd. The members'
+statements as the functions' specs (`isKV api ms`, an update per member, a member's reply): the
+user's choice was one KV; the members' are kept for the results that need a member's reply's
+server facts. A cluster-level gname (`KVCluster`) distinct from `KVNames`: `isKv` takes a
+`KVNames` and uses only its `st`, the field the boot makes common.
+
+## D45: the client spec supports what the proof supports; a client's own facts in its invariant; no built-in restriction on the raft log (2026-10-25 · the user)
+
+*Supersedes* D19q's workload parameter (`SrvWorkload`: the requests the server admits, the
+lessor's grant guard) and D23's `writes` (the operations a client may deposit, which watchkv
+restricted to its plan's puts to get `srvNoDupKeys`).
+
+**The decision.**
+- *The etcd client's specs allow any operation the proof supports so far.* What is not supported
+  yet is a precondition stated directly in the spec (e.g. `kv.Put`'s `leaseID = 0`, `kv.Delete`'s
+  range end not `[0]`, `txn.Commit`'s plain transactions); widening it is future work on the
+  proof, not a parameter.
+- *Facts a particular client needs belong to that client's proof*, maintained with an invariant of
+  its own (over `etcdKV γ σ` and its own ghost state), not a restriction built into the server or
+  the client specs. watchkv's "no key written twice in one revision" is the case in point: it
+  moves from a workload restriction to watchkv's own argument (to be redone).
+- *No built-in restriction on the requests that enter the raft log.* The server's proofs are not
+  parameterized by an admission predicate: what enters the log is what the server's verified
+  proposers send (`EtcdServer.Put`/`DeleteRange`/`Txn`, the monitors), and any shape fact the apply
+  proof needs of committed entries follows from that, not from a configurable workload. So
+  `SrvWorkload` goes: D44 removed `writes`; `admits` and `grant` follow (the grant guard is the
+  lessor's fact that no lease is granted, which no supported request does).
+
+**Why.** An arbitrary predicate in a ghost-name record (`γ.wl`), with separate obligations that it
+let the expected operations through, made the specs say less than they seemed to and was hard to
+audit; the client spec should say directly what it supports. (D23 considered a fact in the
+client's proof and rejected it; see this file's header: decisions are not binding.)
+
+## D46: the client specs over etcd's whole KV state: a multi-revision store of maps (2026-10-25 · the user)
+
+*Supersedes* "Every KV operation as a persistent atomic update on the whole state" (unit T2)'s
+state, the store at its latest revision (`KVState := ⟨kvs : List EtcdKv, rev⟩`).
+
+**The user's request.** The etcd spec should be stated on the entire client-visible state, which
+is mvcc's KV state at every revision a client can read (reads at a revision, watches from one), not
+only the latest; and not as a log of operations: a multi-revision KV state, which compaction trims
+(not append-only). Each revision's store a map, not a list.
+
+**The state** (`KVModelDefs.lean`, `KVStore.lean`).
+- `KVRec`: a key's record at a revision (`mvccpb.KeyValue` without the key: value, create and mod
+  revisions, version, lease); `KVStore := GMap GoString KVRec`, the store at one revision.
+- `KVState := ⟨compacted, base, later⟩`: the compaction revision, the store at it, the stores at
+  each later revision up to the current one. Accessors: `rev` (the current revision), `store` (the
+  current store), `at r` (the store at revision `r`), `readRev rev` (the revision a range reads).
+  A write adds the next revision (`commit`); a compaction would raise `compacted` and drop stores
+  (not in the server's model yet: the server's state has `compacted = 0`). Non-emptiness is by
+  construction (`base`), so `commit`'s laws need no side condition.
+- `σ.kvs`, the current store listed in key order, stays as a derived view: the range semantics
+  (`txn.srvRangeOk`, `srvCount`, `rangeIn`, the transaction runs) and the server's model are
+  stated over sorted lists; `storeOf`/`KVStore.kvs` are inverse on sorted lists (`kvs_storeOf`,
+  `storeOf_kvs`), so nothing is lost.
+- The server's side: `kvStateOf log` is the store of each revision of the log (`mvcc.stateAt`);
+  `kvStateOf_rev`, `kvStateOf_kvs`, `kvStateOf_at`, `kvStateOf_commitLog`, `kvStateOf_backendLog`.
+
+**What the specs gain.** `kv.Get` at any revision the state keeps: the reply is the selection of
+`σ.at (σ.readRev rev)` (the premise "latest revision only" of D44 is gone). A put's previous
+key-value is the key's binding in `σ.store`. The watch facts (each revision's changes) become
+statable over `σ` (two consecutive stores), so an application can keep a fact like "no key
+written twice in a revision" in its own invariant, or the server can prove it; and the cache's and
+recipes' separate history model (`EtcdModel`, certified logs) could be restated over it.
+
+**Rejected.** The server's `mvcc.Log` as the client's state: it is a log of changes, append-only,
+and a revision's changes are not a state. A function `GoString → Option KVRec` per revision: not
+countable (the ghost variable needs `Pos.Countable`) and not finite; `GMap` is both, with
+extensional equality.
+
+## D47: the state's later revisions are their changes, in order; a watch is repeated reads of it (2026-10-25 · the user)
+
+*Supersedes* D46's `later : List KVStore` (a store per revision) and its "Rejected" paragraph
+(a revision's changes are not a state).
+
+**The user's decision.** `KVState` holds the list of every change, so the updates of a
+transaction are ordered in the abstract state; the watch spec guarantees that the events it
+returns are computed as etcd computes them from its key bucket (`rangeEvents`/`kvsToEvents`).
+
+**Why** (what etcd does, `server/storage/mvcc`). etcd never stores a store per revision: each change
+of a write transaction is a record of the backend's `key` bucket at its own revision
+`(main, sub)` (`kvstore_txn.go`: a put's `KeyValue`, a delete's tombstone), and both ways a
+watch's events are built read those changes: a synced watcher's from the transaction's change list
+(`watchableStoreTxnWrite.End`), an unsynced one's from the bucket over `[minRev, curRev + 1)`
+(`kvsToEvents`). A store per revision is a derived view, lossy when a revision writes a key twice
+(`[put k v₁, put k v₂]`, `[put j, del j]` with `j` absent: the stores of `[put k v₂]` and of
+nothing), which etcd's check allows (`issues/etcd-txn-check-intervals-sibling.md`); so the watch
+facts (`srvNoDupKeys`, watchkv's `WkLog`) could not be stated over it. Compaction fits:
+compacting at `c` keeps each key's latest record at or below `c` and every later one, the store
+at `c` and the later revisions' changes.
+
+**The state** (`KVModelDefs.lean`; the field named after mvcc's `tw.changes`, a write transaction's changes). `KVState ⟨compacted, base, changes⟩` with `changes : List (List
+mvcc.Change)`: the changes of revisions `compacted + 1, ..., rev`, each in order. The views D46 had
+are computed (`runFrom`, `mvcc.stateAt`'s step): `KVState.at r`, `store`, `kvs`, `rev`, and
+`changesAt r`; `commit cs` appends `cs`; `kvStateOf l = ⟨0, storeOf (stateAt l 0), l.drop 1⟩`.
+The lemmas D46's users rely on keep their statements (`kvStateOf_at`, `commit_kvs`, ...), so the
+KV specs are unchanged. The name `KVState` stays for now: `EtcdState` would sit beside the
+cache's `etcdState` and `EtcdStateWf`, which the watch's restatement will touch.
+
+**The watch (candidate, `client/v3/WatchState.lean`, `watcher.Watch.specσ`).** As a linearizable
+`Get`, the caller gives a persistent read update of `σ`; each response is one firing of it (`□ Q
+σ`), and its events are exactly `σ.rangeEvents o (c + 1) (c' + 1)`: revision `r`'s events
+`mvcc.evsOfRevM r (σ.at (r - 1)).kvs (σ.changesAt r)` (one per change, in order: a put's the
+key-value it wrote, a delete's the key with `ModRevision = r`), filtered by the range. A progress
+notification at `p ≤ σ.rev` says no event in `(c, p]`. `rangeEvents_kvStateOf`: at a log's state
+these are mvcc's `logEvents`, what the server sends. Neither `srvNoDupKeys` nor `startOk` is a
+premise. The candidate keeps the current completeness promise's scope (a non-empty prefix not all
+`0xff`, `rev ≥ 1`) and one member (`isKvWatcher`); the existing `watcher.Watch.spec` and its
+proofs are unchanged until the candidate is audited.
+
+## D48: the clients' model of etcd an adapter over the KV state; the specs say the state is a well-formed log's (2026-10-26 · the user: "keep EtcdModel as an adapter on top of the new spec", "do (a)")
+
+**The question.** The libraries (the cache, the recipes; concurrency and leasing over an abstract
+model) state their results over `EtcdModel GF`, which the server instantiated with its own facts
+(`v3rpc.etcdModelOfServer`: sealed logs, certificates, the apply thread's revision tokens); their
+contracts were proved at the server's members. With the client's specs stated over etcd's KV state
+(D44, D47), the libraries should rest on those specs only.
+
+**The adapter** (`client/v3/EtcdModelKV.lean`, `etcdModelOfKV γ`). A client keeps the KV state's
+half in an invariant (`kmInv`, D45's "a client's own facts in its invariant") with the append-only
+list of the state's changes (`monoListAuthOwn γ.ch`: every change of the KV is some client's
+update, which fires in the invariant) and the revisions' tokens. `etcdState`/`EtcdStep` are the
+server's definitions over logs the client saw (`kmLog`: a prefix of `[] :: l` for a lower bound
+`l` of the changes, well formed and small), `etcdReachedAt`/`etcdReadAt` a lower bound,
+`etcdRevToken` minted by the adapter's write update (`km_write_au`). Every law is the server's
+proof over `kmLog`: two logs a client saw are in prefix order, as two sealed logs were.
+
+**An application's facts in the adapter's invariant** (2026-10-26, for the examples). The
+invariant holds the client's half of `etcdKV`, so it is where a client's own fact about the KV's
+changes must live (D45: watchkv's "each revision from 2 is one of the plan's puts"): `KMNames.W`, a
+property of the changes the invariant keeps. A read keeps it trivially (the read-side contracts
+hold for any `W`); a write's update needs the write to keep it (`km_write_au`'s premise), and the
+libraries' write contracts take `KMWritable γ` (every operation keeps it; `fun _ => True`).
+
+**What the specs had to add (option (a)).** The laws (positive versions, `createRev ≤ modRev ≤ r`)
+are facts about well-formed small logs (`txn.stateAt_client_revs`), which an arbitrary `σ` need
+not be. So every successful KV reply gives `kvLogOk σ` (`KVLogOk.lean`: `σ = kvStateOf σ.log`, its
+log `LogWf'`, fewer than `2 ^ 63` revisions, at most `2 ^ 62` changes); a write's reply also of the
+state after (the log after the write is the certificate's); a watch response that moves the
+position gives `kvLogOkTo σ c'` (through the new position only: the update fires at the committed
+state, whose log the store has not applied, so has no bound; the events are of a sealed prefix).
+The server proves them from the reply's certificate and the receipts' bound, which `isKv` and the
+watch's member facts now carry (`receiptBound GF ≤ 2 ^ 62`, pure: the end-to-end results bound it).
+
+**What the adapter cannot give.** A serializable read fires no update, so the client's model learns
+nothing from it: the get contracts (`isEtcdKVE`, `isEtcdKVTodo`) take linearizable gets
+(`serializable = false`), as every get of the cache and the recipes is; STM's serializable reads
+(`concurrency/stm.go`) could not be connected this way. A write's token needs its update fired at
+most once: the write contracts are proved for a client that sends a write at most once
+(`isKv api γ false`).
+
+**Rejected.** A per-reply persistent "this state is the KV's" fact in the specs (it would answer
+serializable reads too): a second, server-maintained history at the KV's names, against D44's
+abstract `isKv`. Keeping `etcdModelOfServer` for the libraries: the watch spec's responses are
+read updates the caller chooses, so they cannot carry the server's sealed logs.
+
+## The server's compaction and membership checks proved (2026-10-26 · three trust-boundary axioms discharged)
+
+`EtcdServer.compactRaftLog`, `EtcdServer.IsLearner` and `EtcdServer.IsMemberExist` were
+names-only trust-boundary axioms (the request path's unit 4b, P3b); they are now translated with
+their bodies (`Code/.../etcdserver.toml`) and proved, over raft's proved `MemoryStorage.Compact`
+and over two membership methods translated and proved with them
+(`RaftCluster.IsLocalMemberLearner`, `RaftCluster.IsMemberExist`, `membership.toml`), both under
+the cluster's lock invariant `rcLockInv` as `IsIDRemoved` is. `IsLocalMemberLearner`'s `Panic`
+branch is dead by `rcLocalIn` (the local member's entry, `localKept`); the specs are unchanged.
+v3rpc's interceptors now link the two wrappers through the server's Link (`@`).
+
+**`compactRaftLog`** (`EtcdServer__compactRaftLog.lean`): the atomic `inflightSnapshots` read in
+its invariant (`srvInflight`), `compacti` within `Compact.spec`'s premises (at most `snapi`, hence
+the floor and the snapshot; the cap from the spec's premise). `Compact` returns `nil` or raft's
+`ErrCompacted`, and of the latter `errors.Is` is `true`, so the `Panic` is dead. That needs
+`ErrCompacted` to be the `errors.New` error it is: raft's `isInitialized` gains
+`"#ErrCompactedNew" ∷ errorsNewVar ErrCompacted msg` (as `ErrStoppedNew`; its init proof already
+had it), and the proof takes the semantic premise `ErrorStringLeaf` (a `*errorString` is a leaf
+error without `Is`). `gen-link.py` carries the premise to the results that reach it:
+`applyAll`, `run`, `start`, `Start` and their restatements in the server's `Results.lean`
+(`applyAll_model`, `server_run`, `server_start`, `server_Start`, `start_gives_views`). Every
+example result that starts the server already took `ErrorStringLeaf` (rafthttp's handlers), so no
+example's statement changes.
+
+Two spec-side changes the proof needed: `compactRaftLog.spec` takes the logger's cell
+(`srvLgAddr s ↦□ l`, `l ≠ null`, which `Logger.spec` needs), and `isServerApplyAll` carries it
+(`start` has it from `srvFieldsAt`), so `snapshotIfNeededAndCompactRaftLog` passes it on.
+
+**Phantom `StorageModel` binders dropped.** `MemoryStorage.Compact`'s and `lastIndex`'s spec and
+proof files, and `InvMemstorage.lean`'s `section proof`, declared `[StorageModel GF]` without using
+it: theorems take such an instance argument anyway, and `gen-link.py` adds it to the result when
+the spec file mentions it, so `MemoryStorage.wp_Compact` asked for a storage model the server's
+Link (no `MemStorReg`) does not have. None of them uses one (the `MemoryStorage`'s own predicates
+are not stated over the abstract model); removed, the results are unchanged but for the binder.
+
+**Trust base.** -3 axioms (`EtcdServer.compactRaftLog.wp_proof`, `EtcdServer.IsLearner.wp_proof`,
+`EtcdServer.IsMemberExist.wp_proof`); `ErrorStringLeaf` is an existing semantic premise.

@@ -1,6 +1,6 @@
 ---
 upstream: none
-checked: 2026-10-23
+checked: 2026-10-26
 links:
   - etcd-io/etcd#12196 pr merged: added cancellableContext (the window dates from it); not about the Err/Done order
   - golang/go#75533 issue closed: the same Err-before-Done window in Go's own cancelCtx, fixed by golang/go@8ca209ec39

@@ -54,20 +54,28 @@ batch's share of the write budget (`txn.storeWTs`, one token per entry of `ce`) 
 theorem run_job_body (hAA : EtcdServer.applyAll.spec (GF := GF) (hG := hG))
     (C : ApplyCtx GF) (A ce : List EntryModel)
     (apL : Loc) (es : GoSlice) (ceL : List Loc) (rac nc : GoChan) (γs : schedule.SchedNames)
+    (dv : Option NodeNames) (γnc : NotifyNames)
     (hidx : srvIdxOk C.ai₀ (A ++ ce)) (hok : logShape (A ++ ce))
-    (hw : C.γw = C.ρ.wait) :
+    (hw : C.γw = C.ρ.wait)
+    -- (D43 M3, 2026-10-25) the driver's view, `applyAll`'s (`dvOk`): without one, raft's static
+    -- mode or no conf entry; with one, a fresh start (`c₀ ≤ ai₀`) at the server's decoder
+    (hdvn : dv = none → C.ρ.raft.raft.reDyn = none ∨ ∀ m, m ∈ ce → m.typ ≠ W32 1)
+    (hdvs : ∀ γn, dv = some γn → uint.Z C.c₀ ≤ uint.Z C.ai₀ ∧ γn.raft = C.ρ.raft.raft ∧
+      ∃ c0 h0 h1, γn.mode = .dyn srvDec c0 h0 h1) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerApplyAll C.s C.γr ∗ batchWaitOk C.ρ C.E (A ++ ce) ∗
         taEntriesAddr apL ↦□ es ∗ taRaftAdvancedCAddr apL ↦□ rac ∗
         rnAdvChan rac (memFloorAtLeast C.ms C.γs (uint.Z C.ai₀ + ((A ++ ce).length : Int))) ∗
-        taSnapshotAddr apL ↦□ (null : Loc) ∗ taNotifycAddr apL ↦□ nc ∗ isUnitBag nc ∗
+        taSnapshotAddr apL ↦□ (null : Loc) ∗ taNotifycAddr apL ↦□ nc ∗
+        isNotify γnc nc (dvView C.ρ.raft dv (A ++ ce)) ∗ notifyRcv γnc ∗
+        dvView C.ρ.raft dv A ∗ dvRes C.s C.ρ.raft dv (A ++ ce) ∗
         es ↦*□ ceL ∗ entriesAt ceL ce ∗ batchCommittedIdx C.γr ce ∗ schedule.schedRunning γs ∗
         applyRes C A ∗ srvWTPool C.E C.wt ∗ srvRLogLb C.ρ.raft (A ++ ce) }}
       (App (App (Val (C.s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyAll")) (Val #C.ep))
         (Val #apL))
     {{ RET #(); schedule.schedRunning γs ∗ applyRes C (A ++ ce) }} := by
-  iintro %Φ ⟨#Hpkg, #Hsa, #Hbw, #Hes, #Hrac, #Hracc, #Hsn, #Hnc, #Hncb, #Hesl, #Hents, #Hbc, Hrun, HR,
-    #HWc, #Hlbr⟩ HΦ
+  iintro %Φ ⟨#Hpkg, #Hsa, #Hbw, #Hes, #Hrac, #Hracc, #Hsn, #Hnc, #Hncb, Hnrc, Hdv, #Hdvr, #Hesl,
+    #Hents, #Hbc, Hrun, HR, #HWc, #Hlbr⟩ HΦ
   iunfold applyRes at HR
   icases HR with ⟨%B, %st, %ai, %at', %a, %t, %cs, %x, %HB, #Hsrv, Hai, Hat, Hcs, Hss, Hst, Hbe, Happ, Hlr, Hbr,
     Hwr, HKV, Hao, #Hlog, Hkr, HRS, #HWA, %Hpure⟩
@@ -88,6 +96,18 @@ theorem run_job_body (hAA : EtcdServer.applyAll.spec (GF := GF) (hG := hG))
     push_cast at h1
     have : (0 : Int) ≤ ce.length := by omega
     omega
+  -- (D43 M3) the view's premise: a fresh start's consistent index is at most the applied one
+  have hdv : dvOk C.ρ.raft dv (ciEff B.γ st.k) (ai + 1) (unapplied ai ce) := by
+    rw [hun]
+    refine ⟨hdvn, fun γn h => ⟨?_, (hdvs γn h).2⟩⟩
+    have hc0 := (hdvs γn h).1
+    have hai1 : uint.Z (ai + 1) = uint.Z ai + 1 := by word
+    rw [hai1]
+    rcases HJ with h1 | ⟨-, h2⟩
+    · rw [h1]
+      have : (0 : Int) ≤ A.length := by omega
+      omega
+    · omega
   have hms : ce = [] ∨ (entriesFrom (ai + 1) ce ∧ uint.Z (ai + 1) ≤ uint.Z ai + 1) := by
     by_cases hne : ce = []
     · left; exact hne
@@ -123,12 +143,14 @@ theorem run_job_body (hAA : EtcdServer.applyAll.spec (GF := GF) (hG := hG))
   ihave Hbr : iprop(srvBemuReaderAt C.s B.E.γbe) $$ [Hbr]
   · rw [beSucc_γbe HB]; iexact Hbr
   iapply (hAA C.s B.γ C.ci B.TM B.E C.ρ C.γr B.b C.ep apL es ceL ce (ai + 1) rac nc st ai at' a t cs x A
-      C.ms C.γs C.wt hms hb1 Hloop hok' Hcap) $$ [Hai Hat Hcs Hss Hst Hbe Happ Hlr Hwr Htok Hbr HKV Hao Hka HRS]
+      C.ms C.γs C.wt dv γnc hms hb1 Hloop hok' Hcap hdv)
+    $$ [Hai Hat Hcs Hss Hst Hbe Happ Hlr Hwr Htok Hbr HKV Hao Hka HRS Hnrc Hdv]
   · rw [hun]
     iframe HWc' Hracc' Hkb Hbw' HWA Hlog Hsrv Hbc Hents Hesl Hncb Hnc Hsn Hrac Hes Hsa Hpkg
     iframe
     iunfold srvGoRes
     iframe
+    iexact Hdvr
   inext
   iintro ⟨%γ', %TM', %E', %b', %st', %ai', %at'', %a', %t', %cs', %HB', #Hsrv', Hai, Hat, Hcs, Hss, Hst, Hbe, Happ, Hlr, Hgr, Hbr, Hao,
       #Hlb, #HWA', ⟨%x', HKV, %Hx', #Hlog', Hka, HRS⟩, %Hpost⟩
@@ -219,7 +241,7 @@ theorem EtcdServer.run.wp_proof
   wp_start as Hpre
   iunfold isServerRun at Hpre
   iNamed Hpre
-  obtain ⟨HEC, HEγr⟩ := HEr
+  obtain ⟨HEC, HEγr, Hc0a⟩ := HEr
   icases HWB with ⟨%γp, #HWB, #HWA0⟩
   wp_apply wp_with_defer as %defer defer
   ihave #Hsrv' := Hsrv
@@ -448,7 +470,7 @@ theorem EtcdServer.run.wp_proof
   -- `expiredLeaseC`: the lessor is non-nil (`lessorOk`)
   ihave #Hlok' := Hlok
   iunfold lessorOk at Hlok'
-  icases Hlok' with ⟨%li, %Hli, -, -, #HExp, %HnoG⟩
+  icases Hlok' with ⟨%li, %Hli, -, -, #HExp⟩
   rw [Hli]
   (try wp_auto)
   wp_apply HExp as %elc ⟨%γel, #Helc⟩
@@ -472,7 +494,7 @@ theorem EtcdServer.run.wp_proof
   · iunfold kvRun; iframe Hka0; ipureintro; exact Hkc0
   ihave #Henv' := Henv
   iunfold rnEnvOk at Henv'
-  icases Henv' with ⟨-, %Hnm, -, %Hcap0, -⟩
+  icases Henv' with ⟨-, %Hnm, %Hmd, %Hcap0, -⟩
   have Hpre0 : uint.Z ai₀ = (γn.pre.length : Int) := by
     rw [← Hkc0.2, ← HEγr]; exact Hnm.2.2
   ihave HR0 : iprop(applyRes ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ⟩ []) $$
@@ -544,7 +566,54 @@ theorem EtcdServer.run.wp_proof
     simp only [↓reduceIte]
     icases Hrecv with ⟨HP, Hcons⟩
     icases rnApplyTok_recv Er γn rcv A apv $$ Hcons Hidx HP with
-      ⟨%ce, %ceL, Happly, #Hents, #Hentsat, #HC, %Hsnap, #Hnc, #Hrac, #Hcl⟩
+      ⟨%ce, %ceL, Happly, #Hents, #Hentsat, #HC, %Hsnap, Hnc, HG, #Hrac, #Hcl⟩
+    -- (D43 M3) `notifyc` and the driver's view, at the apply side (`rnDv`)
+    icases Hnc with ⟨%γnc, #Hncb0, Hnrc⟩
+    have hρ : ρ.raft = Er.γr.raft := by rw [HEγr, ← Hrd]
+    have hpre : γn.pre = ρ.raft.pre := by rw [hρ]; exact Hnm.2.1.symm
+    ihave #Hncb : isNotify γnc apv.notifyc' (dvView ρ.raft (rnDv γn ce) (A ++ ce)) $$ []
+    · rw [← rnApR_dv γn ρ.raft hpre A ce]; iexact Hncb0
+    ihave #Hdyn := srvRaftNodeDyn_of_isRaftNode Er γn s $$ Hrn
+    icases rnApGive_dv s γn ρ.raft hpre A ce $$ [Hdyn HG] with ⟨Hdv, #Hdvr⟩
+    · iframe Hdyn HG
+    have hdvn : rnDv γn ce = none → ρ.raft.raft.reDyn = none ∨ ∀ m, m ∈ ce → m.typ ≠ W32 1 := by
+      intro h
+      unfold rnDv at h
+      by_cases hh : rnHands γn ce
+      · rw [ite_eq_left hh] at h; cases h
+      unfold rnHands at hh
+      cases hd : γn.node.mode.isDyn
+      · left
+        have hst : γn.node.mode = .static := by
+          cases hm : γn.node.mode with
+          | static => rfl
+          | dyn => rw [hm] at hd; simp [RNMode.isDyn] at hd
+        rw [hρ, Hnm.1]
+        exact Hmd.1.1 hst
+      · right
+        rw [hd] at hh
+        simp only [Bool.true_and, Bool.not_eq_true] at hh
+        intro m hm hty
+        unfold ccIn at hh
+        have := List.any_eq_false.1 hh m hm
+        simp [hty] at this
+    have hdvs : ∀ γn', rnDv γn ce = some γn' → uint.Z c₀ ≤ uint.Z ai₀ ∧
+        γn'.raft = ρ.raft.raft ∧ ∃ c0 h0 h1, γn'.mode = .dyn srvDec c0 h0 h1 := by
+      intro γn' h
+      unfold rnDv at h
+      by_cases hh : rnHands γn ce
+      · rw [ite_eq_left hh] at h
+        cases h
+        have hd : γn.node.mode.isDyn = true := by
+          unfold rnHands at hh; simp only [Bool.and_eq_true] at hh; exact hh.1
+        refine ⟨Hc0a hd, by rw [hρ, Hnm.1], ?_⟩
+        cases hm : γn.node.mode with
+        | static => rw [hm] at hd; simp [RNMode.isDyn] at hd
+        | dyn dec c0 h0 h1 =>
+          have := Hmd.2.1 dec c0 h0 h1 hm
+          subst this
+          exact ⟨c0, h0, h1, rfl⟩
+      · rw [ite_eq_right hh] at h; cases h
     ihave #HC' : iprop(srvC ρ E ai₀ c₀ x₀ (A ++ ce)) $$ []
     · rw [← HEC]; iexact HC
     (try wp_auto)
@@ -563,11 +632,11 @@ theorem EtcdServer.run.wp_proof
       iapply batchCommittedIdx_of_last Er.γr ai₀ A ce hidx $$ Hcl
     imod (schedule.savedProp_alloc (applyRes ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ⟩ (A ++ ce)))
       with ⟨%post, #Hpost⟩
-    wp_apply hNJ γs _ _ R Q
+    wp_apply hNJ γs _ _ iprop(R ∗ notifyRcv γnc ∗ dvView ρ.raft (rnDv γn ce) A) Q
         iprop(applyRes ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ⟩ (A ++ ce)) $$ [] as %j #Hj
     · iframe #
       iunfold schedule.jobFnSpec
-      iintro !> %ctx %cd !> %Φj ⟨Hrun, HR', HQ, -⟩ HΦj
+      iintro !> %ctx %cd !> %Φj ⟨Hrun, ⟨HR', Hnrc, Hdv⟩, HQ, -⟩ HΦj
       ihave Hres := HQR $$ [HQ HR']
       · iframe
       wp_auto
@@ -579,9 +648,10 @@ theorem EtcdServer.run.wp_proof
           simp only [List.length_append]; push_cast; omega]
         iexact Hrac
       iapply (run_job_body hAA ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ⟩ A ce ap_ptr
-        apv.entries' ceL apv.raftAdvancedC' apv.notifyc' γs hidx hok rfl) $$ [Hrun Hres]
+        apv.entries' ceL apv.raftAdvancedC' apv.notifyc' γs (rnDv γn ce) γnc hidx hok rfl hdvn hdvs)
+        $$ [Hrun Hres Hnrc Hdv]
       · iframe #
-        iframe Hrun Hres
+        iframe Hrun Hres Hnrc Hdv
         rw [← Hsnap]; iexact snapshotA
       inext
       iintro ⟨Hrun, Hres⟩
@@ -589,9 +659,9 @@ theorem EtcdServer.run.wp_proof
       iapply HΦj
       iframe
     -- `sched.Schedule(f)`, tracked: `Q` the job's `Prev`, its `Post` saved as `post`
-    wp_apply hSch sci γs j R Q
+    wp_apply hSch sci γs j iprop(R ∗ notifyRcv γnc ∗ dvView ρ.raft (rnDv γn ce) A) Q
         iprop(applyRes ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ⟩ (A ++ ce)) (some (Ps, pl, post))
-      $$ [HR Hq] as Hq
+      $$ [HR Hnrc Hdv Hq] as Hq
     · iframe #
       iframe
       simp only [schedule.schedPre]
@@ -626,8 +696,7 @@ theorem EtcdServer.run.wp_proof
     iintro %ls Hf
     icases Hf with ⟨%id, Hf⟩
     iunfold srvGrantGuard at Hf
-    icases Hf with %Hg
-    exact absurd Hg (HnoG id)
+    iexfalso; iexact Hf
   -- `err := <-s.errorc`: nothing is sent on it (D19m: `apply` never asks `stopWithDelay` to
   -- stop the server, the transport has no peer that reports this member removed)
   iapply BigAndL.bigAndL_cons.2

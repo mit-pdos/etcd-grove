@@ -1,6 +1,6 @@
 ---
 upstream: none
-checked: 2026-10-23
+checked: 2026-10-26
 links:
   - etcd-io/etcd#20221 issue closed: related, different trigger: a watch from a future revision got old events through a periodic progress notification from a lagging member (closed by #20229)
   - etcd-io/etcd#20229 pr merged: the server fix (973847aa24, `progressIfSync`'s `rev < w.startRev` refusal); does not cover a broadcast computed before the watch was registered

@@ -54,6 +54,19 @@ instance etcdKVAt_persistent (addr : GoString) (E : apply.AEnv GF) (ρ : ReqName
     (γr : ReadNames) (cid mid : w64) : Persistent (etcdKVAt (GF := GF) addr E ρ γr cid mid) := by
   unfold etcdKVAt; infer_instance
 
+/-- **etcd's KV registrations at the address are the member's** (`client.kvRegsAt`, what the
+client's calls take, D44) when the request path's and the read loop's read names are one (a
+started server's, `ρ.rd = γr`). -/
+theorem etcdKVAt_regs (addr : GoString) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames)
+    (cid mid : w64) (hρ : ρ.rd = γr) :
+    etcdKVAt (GF := GF) addr E ρ γr cid mid ⊢
+      client.kvRegsAt (⟨addr, E, γr, cid, mid⟩ : client.SrvAt GF) := by
+  subst hρ
+  iintro #H
+  iunfold etcdKVAt at H
+  unfold client.kvRegsAt
+  iexact H
+
 /-- **The member never refuses** (see the file header): `etcd_noRefusal` at `grpcUp`'s gRPC
 server and listener. -/
 theorem grpcUp_noRefusal (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (gs : Loc)

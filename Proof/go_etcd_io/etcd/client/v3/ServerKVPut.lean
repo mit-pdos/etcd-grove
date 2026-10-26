@@ -197,7 +197,7 @@ theorem putResult_of_reply (E : apply.AEnv GF) (γw : ReadNames) (F : Log) (lo :
   icases Hrep with ⟨%hm, %x, %x', %l, %skip, %Hp, #Hcert, HMint, -, #Hcok, %Hfl⟩
   obtain ⟨Hst, -, -, -, -, -, H2, H4⟩ := Hp
   have hlog := put_applied_exact o hm x x' l skip Hst
-  have hFl : lf.length ≤ x.log.length := by simp only [kvStateOf] at Hfl; omega
+  have hFl : lf.length ≤ x.log.length := by simp only [kvStateOf_rev, kvStateOf_kvs] at Hfl; omega
   obtain ⟨hg, hd, ht, hres⟩ := putTxnOp_putLike o
   iunfold revMinted at HMint
   icases HMint with (%He | ⟨%cs, %He, Htok⟩)
@@ -300,15 +300,15 @@ quiet or model context with `ctxErrClient`): `putResult`. 2026-10-15 (unit T2): 
 lease with the caller's update `kvAnyAu` (etcd's `Put` spec over the whole state), one with a
 lease by the premise `kvLeasedPutTodo`. -/
 theorem kv_put_result (api : Loc) (addr : List GoString) (s : Loc) (E : apply.AEnv GF)
-    (γw γr : ReadNames) (cid mid : w64) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+    (γr : ReadNames) (cid mid : w64) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (key val : GoString) (sl : GoSlice) (gs : List (OpFull → OpFull)) (op : TxnOp) (lo : w64)
     (pfx : GoString)
     (h : ¬ (opPutModel key val gs).putPanics ∧ txnOpOf (opPutModel key val gs) = some op ∧
       op.Under pfx ∧ (opPutModel key val gs).t = W64 2) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isServerRead s E γr ∗
-        kvObjAt api addr ∗ isGrpcRpcs addr go!"/etcdserverpb.KV/Put" (etcdPutSpec E γw cid mid) ∗
+        kvObjAt api addr ∗ kvRegs (srvsAt addr E γr cid mid) ∗
         ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl gs ∗
-        etcdReached (EM := v3rpc.etcdModelOfServer E) lo ∗ kvAnyAu E γw ∗ kvLeasedPutTodo api E }}
+        etcdReached (EM := v3rpc.etcdModelOfServer E) lo ∗ kvAnyAu E γr ∗ kvLeasedPutTodo api E }}
       (App (App (App (App (Val #(methods (kvIfaceOf api).ty go!"Put" (kvIfaceOf api).v))
         (Val #(GoInterface.ok ci))) (Val #key)) (Val #val)) (Val #sl))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
@@ -327,35 +327,35 @@ theorem kv_put_result (api : Loc) (addr : List GoString) (s : Loc) (E : apply.AE
   ihave #Hsm := storeSmall_of_read s E γr $$ Hsrd
   iunfold kvAnyAu at Hany
   imod Hany $$ %(KVOp.put (putWireOf (opPutModel key val gs))) %lf Hcl with #Hau
-  iapply (v3.kv.wp_Put api addr ci cd key val sl gs (etcdPutSpec E γw cid mid)
-    (putReplied E γw F (putWireOf (opPutModel key val gs))
-      (fun σ => iprop(⌜lf.length ≤ σ.rev + 1⌝)) cid mid)) $$ []
+  -- (2026-10-19, D21 M6) a persistent update, its result persistent
+  ihave #Hau1 : □ kvOpAu1 γr.kv (.put (putWireOf (opPutModel key val gs)))
+      (fun σ => iprop(□ ⌜lf.length ≤ σ.rev + 1⌝)) $$ []
+  · imodintro; iapply kvOpAu_one $$ Hau
+  ihave #Hus := putUpd_srvsAt addr E γr cid mid _ _ $$ Hau1
+  iapply (v3.kv.wp_PutM api (srvsAt addr E γr cid mid) ci cd key val sl gs
+    (fun σ => iprop(□ ⌜lf.length ≤ σ.rev + 1⌝)) F) $$ []
   · iframe #
     isplitl []
-    · ipureintro; exact ⟨hpan, ht⟩
-    -- (2026-10-19, D21 M6) a persistent update, its result persistent
+    · iapply isKV_srvsAt $$ [Hkv Hrpc]; iframe #
+    isplitl []
+    · ipureintro; exact ⟨hpan, ht, hl⟩
+    isplitl []
+    · iapply floorsAt_srvsAt $$ HF
     iapply kvReqPre_box
     imodintro
     inext
-    unfold etcdPutSpec
-    iexists F
-    iframe HF
-    iexists (fun σ => iprop(□ ⌜lf.length ≤ σ.rev + 1⌝))
-    isplitr
-    · ipureintro; exact hl
-    isplitr
-    · iapply kvOpAu_one $$ Hau
-    iintro %m Hm
-    iapply putReplied_mono E γw F _ (fun σ => iprop(□ ⌜lf.length ≤ σ.rev + 1⌝))
-      (fun σ => iprop(⌜lf.length ≤ σ.rev + 1⌝)) cid mid m (fun _ => intuitionistically_elim) $$ Hm
+    iexact Hus
   inext
   iintro %resp %err Hout
   iapply HΦ
   iunfold putCallOut at Hout
   icases Hout with (⟨%Herr, %m, -, Hq⟩ | ⟨%Herr, -⟩)
   · subst Herr
+    ihave Hq := putAns_srvsAt addr E γr cid mid F _ _ m $$ Hq
+    ihave Hq := putReplied_mono E γr F _ (fun σ => iprop(□ ⌜lf.length ≤ σ.rev + 1⌝))
+      (fun σ => iprop(⌜lf.length ≤ σ.rev + 1⌝)) cid mid m (fun _ => intuitionistically_elim) $$ Hq
     rw [← hw] at hu ⊢
-    iapply putResult_of_reply E γw F lo pfx _ cid mid m hu lf Hll $$ [$Hsm $Hq]
+    iapply putResult_of_reply E γr F lo pfx _ cid mid m hu lf Hll $$ [$Hsm $Hq]
   · unfold putResult
     ileft
     ipureintro; exact Herr.1
@@ -365,17 +365,17 @@ theorem kv_put_result (api : Loc) (addr : List GoString) (s : Loc) (E : apply.AE
 registration of etcd's `Put` at `addr`, the server's read side (`isServerRead`: the first
 certificate and `storeSmall`), and that `errors.As` can take `*rpctypes.EtcdError` (`hAs`). -/
 theorem isEtcdPutKVTodo_of_kv (api : Loc) (addr : List GoString) (s : Loc) (E : apply.AEnv GF)
-    (γw γr : ReadNames) (cid mid : w64) (pfx : GoString)
+    (γr : ReadNames) (cid mid : w64) (pfx : GoString)
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isServerRead s E γr ∗
-        kvObjAt api addr ∗ isGrpcRpcs addr go!"/etcdserverpb.KV/Put" (etcdPutSpec E γw cid mid) ∗
-        kvAnyAu E γw ∗ kvLeasedPutTodo api E ⊢
+        kvObjAt api addr ∗ kvRegs (srvsAt addr E γr cid mid) ∗
+        kvAnyAu E γr ∗ kvLeasedPutTodo api E ⊢
       isEtcdPutKVTodo (EM := v3rpc.etcdModelOfServer E) (kvIfaceOf api) pfx := by
   iintro ⟨#Pc, #Hsrd, #Hkv, #Hrpc, #Hany, #Hlp⟩
   unfold isEtcdPutKVTodo
   iintro !> %key %val %sl %gs %op %lo %Φ !> ⟨#Hopts, #Hlo, %Hp⟩ HΦ
   imod (todo_ctx (GF := GF) hAs) with ⟨%cd, #Hctx, #Hce⟩
-  iapply (kv_put_result api addr s E γw γr cid mid todoCtxVal cd key val sl gs op lo pfx Hp) $$ []
+  iapply (kv_put_result api addr s E γr cid mid todoCtxVal cd key val sl gs op lo pfx Hp) $$ []
   · iframe #
   iexact HΦ
 
@@ -404,7 +404,7 @@ theorem deleteResult_of_reply (E : apply.AEnv GF) (γw : ReadNames) (F : Log) (l
   have hop' : op' = deleteWireOf o := Hz hnz
   subst hop'
   have hlog := delete_applied_exact _ _ hm rq' x x' l skip Hw Hop Hst
-  have hFl : lf.length ≤ x.log.length := by simp only [kvStateOf] at Hfl; omega
+  have hFl : lf.length ≤ x.log.length := by simp only [kvStateOf_rev, kvStateOf_kvs] at Hfl; omega
   have hrin : rangeIn (stateAfter x.log) (deleteWireOf o) = rangeIn (stateAfter x.log) o := rfl
   have happ : ∀ r st, applyTxnOp r st (.delete (deleteWireOf o)) = applyTxnOp r st (.delete o) :=
     fun _ _ => rfl
@@ -484,16 +484,15 @@ theorem deleteResult_of_reply (E : apply.AEnv GF) (γw : ReadNames) (F : Log) (l
 /-- **`kv.Delete` on a `*kv` over a connection to etcd's server, in the clients' model** (at a
 quiet or model context with `ctxErrClient`): `deleteResult`. -/
 theorem kv_delete_result (api : Loc) (addr : List GoString) (s : Loc) (E : apply.AEnv GF)
-    (γw γr : ReadNames) (cid mid : w64) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
+    (γr : ReadNames) (cid mid : w64) (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
     (key : GoString) (sl : GoSlice) (gs : List (OpFull → OpFull)) (lo : w64) (pfx : GoString)
     (h : ¬ opDeletePanics key gs ∧
       KeyRangeUnder pfx (opDeleteModel key gs).key (opDeleteModel key gs).base.rangeEnd ∧
       (opDeleteModel key gs).base.rangeEnd ≠ [W8 0] ∧ (opDeleteModel key gs).t = W64 3) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isServerRead s E γr ∗
-        kvObjAt api addr ∗
-        isGrpcRpcs addr go!"/etcdserverpb.KV/DeleteRange" (etcdDeleteSpec E γw cid mid) ∗
+        kvObjAt api addr ∗ kvRegs (srvsAt addr E γr cid mid) ∗
         ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl gs ∗
-        etcdReached (EM := v3rpc.etcdModelOfServer E) lo ∗ kvAnyAu E γw }}
+        etcdReached (EM := v3rpc.etcdModelOfServer E) lo ∗ kvAnyAu E γr }}
       (App (App (App (Val #(methods (kvIfaceOf api).ty go!"Delete" (kvIfaceOf api).v))
         (Val #(GoInterface.ok ci))) (Val #key)) (Val #sl))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
@@ -505,34 +504,34 @@ theorem kv_delete_result (api : Loc) (addr : List GoString) (s : Loc) (E : apply
   ihave #Hsm := storeSmall_of_read s E γr $$ Hsrd
   iunfold kvAnyAu at Hnp
   imod Hnp $$ %(KVOp.deleteRange (deleteWireOf (opDeleteModel key gs))) %lf Hcl with #Hau
-  iapply (v3.kv.wp_Delete api addr ci cd key sl gs (etcdDeleteSpec E γw cid mid)
-    (deleteReplied E γw F (deleteWireOf (opDeleteModel key gs))
-      (fun σ => iprop(⌜lf.length ≤ σ.rev + 1⌝)) cid mid)) $$ []
+  -- (2026-10-20, linkv-txn stage A) a persistent update, its result persistent
+  ihave #Hau1 : □ kvOpAu1 γr.kv (.deleteRange (deleteWireOf (opDeleteModel key gs)))
+      (fun σ => iprop(□ ⌜lf.length ≤ σ.rev + 1⌝)) $$ []
+  · imodintro; iapply kvOpAu_one $$ Hau
+  ihave #Hus := delUpd_srvsAt addr E γr cid mid _ _ $$ Hau1
+  iapply (v3.kv.wp_DeleteM api (srvsAt addr E γr cid mid) ci cd key sl gs
+    (fun σ => iprop(□ ⌜lf.length ≤ σ.rev + 1⌝)) F) $$ []
   · iframe #
     isplitl []
-    · ipureintro; exact ⟨hpan, ht⟩
-    -- (2026-10-20, linkv-txn stage A) a persistent update, its result persistent
+    · iapply isKV_srvsAt $$ [Hkv Hrpc]; iframe #
+    isplitl []
+    · ipureintro; exact ⟨hpan, ht, by simpa [deleteWireOf, txn.deleteOpOf] using hz⟩
+    isplitl []
+    · iapply floorsAt_srvsAt $$ HF
     iapply kvReqPre_box
     imodintro
     inext
-    unfold etcdDeleteSpec
-    iexists F
-    iframe HF
-    iexists (fun σ => iprop(□ ⌜lf.length ≤ σ.rev + 1⌝))
-    isplitr
-    · ipureintro; simpa [deleteWireOf, txn.deleteOpOf] using hz
-    isplitr
-    · iapply kvOpAu_one $$ Hau
-    iintro %m Hm
-    iapply deleteReplied_mono E γw F _ (fun σ => iprop(□ ⌜lf.length ≤ σ.rev + 1⌝))
-      (fun σ => iprop(⌜lf.length ≤ σ.rev + 1⌝)) cid mid m (fun _ => intuitionistically_elim) $$ Hm
+    iexact Hus
   inext
   iintro %resp %err Hout
   iapply HΦ
   iunfold deleteCallOut at Hout
   icases Hout with (⟨%Herr, %m, -, Hq⟩ | ⟨%Herr, -⟩)
   · subst Herr
-    iapply deleteResult_of_reply E γw F lo pfx _ cid mid m hu hz lf Hll $$ [$Hsm $Hq]
+    ihave Hq := delAns_srvsAt addr E γr cid mid F _ _ m $$ Hq
+    ihave Hq := deleteReplied_mono E γr F _ (fun σ => iprop(□ ⌜lf.length ≤ σ.rev + 1⌝))
+      (fun σ => iprop(⌜lf.length ≤ σ.rev + 1⌝)) cid mid m (fun _ => intuitionistically_elim) $$ Hq
+    iapply deleteResult_of_reply E γr F lo pfx _ cid mid m hu hz lf Hll $$ [$Hsm $Hq]
   · unfold deleteResult
     ileft
     ipureintro; exact Herr.1
@@ -540,18 +539,17 @@ theorem kv_delete_result (api : Loc) (addr : List GoString) (s : Loc) (E : apply
 /-- **A real `*kv` meets the recipes' delete contract** (`isEtcdDeleteKVTodo`) at the server's
 model: `kv.Delete(context.TODO(), ...)` returns `deleteResult` (see the file header). -/
 theorem isEtcdDeleteKVTodo_of_kv (api : Loc) (addr : List GoString) (s : Loc) (E : apply.AEnv GF)
-    (γw γr : ReadNames) (cid mid : w64) (pfx : GoString)
+    (γr : ReadNames) (cid mid : w64) (pfx : GoString)
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isServerRead s E γr ∗
-        kvObjAt api addr ∗
-        isGrpcRpcs addr go!"/etcdserverpb.KV/DeleteRange" (etcdDeleteSpec E γw cid mid) ∗
-        kvAnyAu E γw ⊢
+        kvObjAt api addr ∗ kvRegs (srvsAt addr E γr cid mid) ∗
+        kvAnyAu E γr ⊢
       isEtcdDeleteKVTodo (EM := v3rpc.etcdModelOfServer E) (kvIfaceOf api) pfx := by
   iintro ⟨#Pc, #Hsrd, #Hkv, #Hrpc, #Hnp⟩
   unfold isEtcdDeleteKVTodo
   iintro !> %key %sl %gs %lo %Φ !> ⟨#Hopts, #Hlo, %Hp⟩ HΦ
   imod (todo_ctx (GF := GF) hAs) with ⟨%cd, #Hctx, #Hce⟩
-  iapply (kv_delete_result api addr s E γw γr cid mid todoCtxVal cd key sl gs lo pfx Hp) $$ []
+  iapply (kv_delete_result api addr s E γr cid mid todoCtxVal cd key sl gs lo pfx Hp) $$ []
   · iframe #
   iexact HΦ
 

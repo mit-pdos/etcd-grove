@@ -1,6 +1,6 @@
 ---
 upstream: none
-checked: 2026-10-23
+checked: 2026-10-26
 links:
   - etcd-io/bbolt#931 issue closed: huge values panicking after a refactor shrank MaxAllocSize (fixed by #968); one value, a different cause
   - etcd-io/bbolt#182 issue closed: a slice-bounds panic in leafPageElement.key with small values (corruption); not this

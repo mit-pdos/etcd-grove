@@ -336,7 +336,7 @@ theorem txn_Commit_st [go_etcd_io.etcd.cache.v3.Assumptions] (tp : Loc)
         BigAndL.bigAndL_persistent fun {_ _} _ => inferInstance
       exact intuitionistic_alias.trans (intuitionistically_mono (BigAndL.bigAndL_mono hm))
     ihave #Hau' := hbox $$ Hau
-    wp_apply (client.client_txn_any tp ms client.SrvAt.γr (W64 0) ci cd b Q [] hp hin) $$ [Hobj]
+    wp_apply (client.client_txn_any tp ms (W64 0) ci cd b Q [] hp hin) $$ [Hobj]
       as %resp %err Hout
     · iframe Hobj
       iframe #
@@ -351,7 +351,7 @@ theorem txn_Commit_st [go_etcd_io.etcd.cache.v3.Assumptions] (tp : Loc)
       icases Hr with ⟨%log, -, -, %Hp, -, #HQ⟩
       obtain ⟨hlen, hb3, -, hrev, -, -, hok, hrel⟩ := Hp
       have hr : ((kvStateOf log).rev + 1 : Nat) = log.length := client.kvStateOf_rev_succ _ hlen
-      have hs : (kvStateOf log).kvs = mvcc.stateAfter log := rfl
+      have hs : (kvStateOf log).kvs = mvcc.stateAfter log := kvStateOf_kvs _
       iexists m, kvStateOf log
       iframe Hm HQ
       ipureintro
@@ -359,11 +359,10 @@ theorem txn_Commit_st [go_etcd_io.etcd.cache.v3.Assumptions] (tp : Loc)
       refine ⟨hok, hrel, ?_, ?_⟩
       · rw [hrev]
         (try simp only [Bool.false_eq_true, ↓reduceIte])
-        unfold kvStateOf
-        simp only
+        rw [kvStateOf_rev]
         congr 1
         omega
-      · unfold kvStateOf; simp only; omega
+      · rw [kvStateOf_rev]; omega
     · iright
       isplitl
       · ipureintro; first | exact Herr | exact Herr.1
@@ -384,7 +383,7 @@ theorem txn_Commit_st [go_etcd_io.etcd.cache.v3.Assumptions] (tp : Loc)
         rw [hw]
         iExactEq H; rfl
     ihave Hau' := (BigAndL.bigAndL_mono hm) $$ Hau
-    wp_apply (client.client_txn_any tp ms client.SrvAt.γr (W64 0) ci cd b Q [] hp hin)
+    wp_apply (client.client_txn_any tp ms (W64 0) ci cd b Q [] hp hin)
       $$ [Hobj Hau' Hone]
       as %resp %err Hout
     · iframe Hobj
@@ -405,7 +404,7 @@ theorem txn_Commit_st [go_etcd_io.etcd.cache.v3.Assumptions] (tp : Loc)
       have ht : t' = linkv.txnOf cs t e := Hz (irrNoZeroEnd_txnOf cs t e)
       subst ht hsk
       have hr : ((kvStateOf y.log).rev + 1 : Nat) = y.log.length := client.kvStateOf_rev_succ _ hlen
-      have hs : (kvStateOf y.log).kvs = mvcc.stateAfter y.log := rfl
+      have hs : (kvStateOf y.log).kvs = mvcc.stateAfter y.log := kvStateOf_kvs _
       iexists m, kvStateOf y.log
       iframe Hm HQ
       ipureintro
@@ -413,7 +412,7 @@ theorem txn_Commit_st [go_etcd_io.etcd.cache.v3.Assumptions] (tp : Loc)
       refine ⟨hok, hrel, ?_, ?_⟩
       · (try simp only [↓reduceIte])
         rw [kvOpStep_txnOf_eq, hrev, ← hs, client.kvStateOf_commit_rev _ _ hlen, hs, hr]
-      · unfold kvStateOf; simp only; omega
+      · rw [kvStateOf_rev]; omega
     · iright
       isplitl
       · ipureintro; first | exact Herr | exact Herr.1

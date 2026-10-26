@@ -14,7 +14,6 @@ then, which cachekv's repeated). Lean-first (no Rocq counterpart).
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.common.WatchBase
-public import Proof.go_etcd_io.etcd.client.v3.CacheClient
 public import Proof.go_etcd_io.etcd.client.v3.Results
 public import Proof.go_etcd_io.etcd.client.v3.ClientPutGet
 

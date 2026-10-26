@@ -50,6 +50,26 @@ withRepeatablePolicy:
 retryKVClient__Range: withRepeatablePolicy kVClient__Range
 retryKVClient__DeleteRange: kVClient__DeleteRange
 retryKVClient__Txn: kVClient__Txn
+# (2026-10-26, the auth plan's E2h) the Auth stub (api/etcdserverpb/rpc_grpc.pb.go), the retry
+# client's Auth calls (client/v3/retry.go) and the client's Auth API (client/v3/auth.go) of the
+# admin calls `examples/authkv`'s `SetUp` makes
+NewAuthClient:
+RetryAuthClient: NewAuthClient
+etcdserverpb_authClient__UserAdd: grpc_StaticMethod grpc_ClientConn__Invoke
+etcdserverpb_authClient__UserGrantRole: grpc_StaticMethod grpc_ClientConn__Invoke
+etcdserverpb_authClient__RoleAdd: grpc_StaticMethod grpc_ClientConn__Invoke
+etcdserverpb_authClient__RoleGrantPermission: grpc_StaticMethod grpc_ClientConn__Invoke
+etcdserverpb_authClient__AuthEnable: grpc_StaticMethod grpc_ClientConn__Invoke
+retryAuthClient__UserAdd: etcdserverpb_authClient__UserAdd
+retryAuthClient__UserGrantRole: etcdserverpb_authClient__UserGrantRole
+retryAuthClient__RoleAdd: etcdserverpb_authClient__RoleAdd
+retryAuthClient__RoleGrantPermission: etcdserverpb_authClient__RoleGrantPermission
+retryAuthClient__AuthEnable: etcdserverpb_authClient__AuthEnable
+v3_authClient__UserAdd: retryAuthClient__UserAdd ContextError
+v3_authClient__UserGrantRole: retryAuthClient__UserGrantRole ContextError
+v3_authClient__RoleAdd: retryAuthClient__RoleAdd ContextError
+v3_authClient__RoleGrantPermission: retryAuthClient__RoleGrantPermission ContextError
+v3_authClient__AuthEnable: retryAuthClient__AuthEnable ContextError
 # The KV (client/v3/kv.go, client.go's `ContextError`); grpc's `status.FromError` is an axiom
 # (not translated); `rpctypes.Error`, `ErrorDesc`, `EtcdError.Error` are proved (unit P3a).
 v3_NewKV: RetryKVClient
@@ -198,7 +218,7 @@ NewLeaseFromLeaseClient: WithRequireLeader Client__GetLogger
 # (`NewClient`, the option constructors, `insecure.NewCredentials`; `InvDial.lean`), the client's
 # names-only `internal/resolver` (`New`, `SetEndpoints`, `Close`) and `internal/endpoint`
 # (`RequiresCredentials`), `streamClientInterceptor`, `roundRobinQuorumBackoff` (floats), the API
-# constructors `NewCluster`/`NewAuth`/`NewMaintenance` (`NewLease` proved since item 1), `strings.SplitN`,
+# constructors `NewCluster`/`NewMaintenance` (`NewLease` proved since item 1, `NewAuth` since E2h), `strings.SplitN`,
 # `context.WithCancel(TODO())`, `fmt.Sprintf` with a `*Client`.
 grpc_NewClient:
 grpc_WithUnaryInterceptor:
@@ -226,7 +246,7 @@ Client__streamClientInterceptor:
 Client__roundRobinQuorumBackoff:
 v3_NewCluster:
 v3_NewLease: RetryLeaseClient NewLeaseFromLeaseClient
-v3_NewAuth:
+v3_NewAuth: RetryAuthClient
 v3_NewMaintenance:
 Client__SetEndpoints: resolver_EtcdManualResolver__SetEndpoints
 Client__credentialsForEndpoint: endpoint_RequiresCredentials

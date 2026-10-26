@@ -1,6 +1,7 @@
 # The authentication example (examples/authkv; the auth plan's E2b): the results of
 # Proof/github_com/mit_pdos/etcd_grove/examples/authkv/Results.lean: `authkv_Main` (not proved
-# yet: its `sorry`), `authkv_Permitted` and the pure `authkv_granted_iff`, `authkv_badToken`.
+# yet: its `sorry`), `authkv_Permitted` and the pure `authkv_granted_iff`, `authkv_badToken`; the
+# checks, `authkv_reqCtx` and `authkv_bad_unbound` (E2f).
 #
 #   etc/tcb-report.py --collection etc/tcb-collections/authkv.txt            what it rests on
 #   etc/tcb-report.py --collection etc/tcb-collections/authkv.txt --check    against the lines below
@@ -18,6 +19,19 @@ axiom backend.rtxSnap
 axiom backend.rtxStats
 axiom backend.txDB
 axiom backend.txLive
+axiom context.ErrAny.wp_proof
+axiom grpc.ClientConn.Invoke.wp_proof
+axiom grpc.StaticMethod.wp_proof
+axiom grpcConn
+axiom grpcConn_persistent
+axiom grpcPeerOpt
+axiom grpcServes
+axiom grpcServesStream
+axiom grpcServes_persistent
+axiom grpcWrotePeer
+axiom metadata.AppendToOutgoingContext.wp_proof
 axiom netAddrFree
 axiom promSrvMetrics
+axiom rpctypes.errDesc_etcdError
+axiom status.FromError.wp_proof
 sorry authkv.Main.wp_proof

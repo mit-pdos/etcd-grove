@@ -53,8 +53,8 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.cachekv.Assumptions]
 
 theorem collect.wp_proof : collect.spec (GF := GF) (hG := hG) := by
-  intro CS VS E γr P wch γ rangeEnd upTo hwl hlog hpk hkeys
-  wp_start as ⟨#Hw, Hcons, #Hinvs, #H0⟩
+  intro CS VS γk P wch γ rangeEnd upTo hW hpk hkeys
+  wp_start as ⟨#Hw, Hcons, #Hinv⟩
   (try wp_auto)
   wp_if_destruct
   · -- `upTo == 0`: no event needed
@@ -75,14 +75,14 @@ theorem collect.wp_proof : collect.spec (GF := GF) (hG := hG) := by
       (wv : go_etcd_io.etcd.client.v3.WatchResponse),
       "wresp" ∷ wresp_ptr ↦ wv ∗ "evs" ∷ evs_ptr ↦ sl ∗ "last" ∷ last_ptr ↦ lv ∗ "Hs" ∷ sl ↦* evs0 ∗
       "Hcap" ∷ ownSliceCap cev sl (DFrac.own 1) ∗
-      "Hcons" ∷ cacheWatchConsumer γ (etcdStepCert (EM := v3rpc.etcdModelOfServer E) ckPfx)
+      "Hcons" ∷ cacheWatchConsumer γ (etcdStepCert (EM := client.etcdModelOfKV γk) ckPfx)
         (some (keyPredForRange ckPfx rangeEnd)) (W64 2) rs ∗
       "%Hc" ∷ ⌜(∀ r ∈ rs, r.canceled = false) ∧ evs0.length = (eventsOf rs).length ∧
         (evs0 ≠ [] → sint.Z lv = 1 + evs0.length) ∧
         ∀ (i : Nat) (e : cev), evs0[i]? = some e →
           e.Put' = true ∧ sint.Z e.Rev' = 2 + i ∧ (e.Key', e.Val') ∈ P⌝ ∗
       "#Hrevs" ∷ □ ∀ (i : Nat) (e : cev), ⌜evs0[i]? = some e⌝ -∗
-        watchkv.revAt E (2 + i) e.Key' e.Val' :
+        common.kmRevAt γk (2 + i) e.Key' e.Val' :
       IProp GF) $$ [wresp evs last Hcons]
   · iexists [], slice.nil, _, [], _
     iframe
@@ -97,7 +97,7 @@ theorem collect.wp_proof : collect.spec (GF := GF) (hG := hG) := by
     iintro !> %i %e %h
     simp at h
   wp_for IH
-  wp_apply (wp_cacheWatch_receive (EM := v3rpc.etcdModelOfServer E) wch γ (etcdStepCert (EM := v3rpc.etcdModelOfServer E) ckPfx)
+  wp_apply (wp_cacheWatch_receive (EM := client.etcdModelOfKV γk) wch γ (etcdStepCert (EM := client.etcdModelOfKV γk) ckPfx)
       (some (keyPredForRange ckPfx rangeEnd)) (W64 2) rs) $$ [Hcons] as %v %ok H
   · iframe #; iframe
   cases ok
@@ -134,14 +134,14 @@ theorem collect.wp_proof : collect.spec (GF := GF) (hG := hG) := by
     rcases List.mem_append.mp hr' with h | h
     · exact Hc.1 r' h
     · simp at h; rw [h]; exact hcan
-  ihave #Hlog' : cacheWatchLog (etcdStepCert (EM := v3rpc.etcdModelOfServer E) ckPfx)
+  ihave #Hlog' : cacheWatchLog (etcdStepCert (EM := client.etcdModelOfKV γk) ckPfx)
       (some (keyPredForRange ckPfx rangeEnd)) (W64 2) (rs ++ [r]) $$ []
   · icases Hlog with (%h | #H)
     · simp at h
     · iexact H
-  imod log_ck E γr P hwl hlog hpk rangeEnd hkeys (rs ++ [r]) hc' $$ Hinvs H0 Hlog' with #Hall
+  imod log_ck γk P hW hpk rangeEnd hkeys (rs ++ [r]) hc' $$ Hinv Hlog' with #Hall
   ihave #Hevf : □ ∀ (j : Nat) (e : EvModel), ⌜r.events[j]? = some e⌝ -∗
-      watchkv.evFact E P (2 + evs0.length + j) e $$ []
+      evFact γk P (2 + evs0.length + j) e $$ []
   · iintro !> %j %e %hj
     have he : (eventsOf (rs ++ [r]))[(eventsOf rs).length + j]? = some e := by
       simp only [eventsOf, List.map_append, List.flatten_append, List.map_cons, List.map_nil,
@@ -163,7 +163,7 @@ theorem collect.wp_proof : collect.spec (GF := GF) (hG := hG) := by
         ∀ (i : Nat) (w : cev), ws[i]? = some w →
           w.Put' = true ∧ sint.Z w.Rev' = 2 + evs0.length + i ∧ (w.Key', w.Val') ∈ P⌝ ∗
       "#Hws" ∷ □ ∀ (i : Nat) (w : cev), ⌜ws[i]? = some w⌝ -∗
-        watchkv.revAt E (2 + evs0.length + i) w.Key' w.Val' : IProp GF) $$ [i e evs last Hs Hcap]
+        common.kmRevAt γk (2 + evs0.length + i) w.Key' w.Val' : IProp GF) $$ [i e evs last Hs Hcap]
   · iexists W64 0, _, sl, lv, []
     simp only [List.append_nil]
     iframe
@@ -187,7 +187,7 @@ theorem collect.wp_proof : collect.spec (GF := GF) (hG := hG) := by
     ihave #Hf := Hevf $$ %(sint.nat j) %e %he
     iunfold eventAt at Hea
     icases Hea with ⟨%keySl, #Hty, #Hkvf, #Hkey, #HkeyS, #Hmod⟩
-    iunfold watchkv.evFact at Hf
+    iunfold evFact at Hf
     iunfold common.evFactR at Hf
     icases Hf with ⟨%Hfe, %val, %kvv, #Hkvv, %Hval, #Hra⟩
     iunfold kvValAt at Hkvv

@@ -59,7 +59,7 @@ theorem New.wp_proof
     (wp_TypeOf : reflect.TypeOf.spec (GF := GF) (hG := hG)) :
     New.spec (GF := GF) (hG := hG) := by
   intro _ _ Obj _ S kc cl ms V γh cmp codec nf nlf rkf pfx0 rp gr vi ti di lmc hp hrp hrp1
-  wp_start as ⟨#Hkc, #Hnc, #Hwo, #Hregs, %Hwl, ⟨%cx, #Hcx⟩, #Hcon, #Hnf⟩
+  wp_start as ⟨#Hkc, #Hnc, #Hwo, #Hregs, ⟨%cx, #Hcx⟩, #Hcon, #Hnf⟩
   ihave #Pft : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.util.feature $$ []
   · iPkgInit
   ihave #Hft : (k8s_io.apiserver.pkg.storage.etcd3.featureInit : IProp GF) $$ []
@@ -161,7 +161,7 @@ theorem New.wp_proof
       simp only
       iframe #
       ipureintro
-      exact ⟨Hsn, Hlt, Hwl⟩
+      exact ⟨Hsn, Hlt⟩
 
 end proof
 

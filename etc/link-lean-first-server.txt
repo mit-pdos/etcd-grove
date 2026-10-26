@@ -360,12 +360,15 @@ EtcdServer__CommittedIndex: EtcdServer__getCommittedIndex
 # The apply loop's step `applyAll` (server.go; the request path's unit 4b): `applySnapshot` under
 # raft's no-snapshot contract, the backend getter, the snapshot trigger, with bodies; the
 # trust boundary (`axiom … .wp_proof`): backend's VerifyBackendConsistency (verification code),
-# and the names-only snapshot and compaction methods. See InvApplyAll.lean. (The merged-snapshot
+# and the names-only snapshot method. See InvApplyAll.lean. (The merged-snapshot
 # methods `createMergedSnapshotMessage`/`sendMergedSnap` were its callees until D19p, 2026-10-18:
 # `msgSnapC` never delivers in a one-member cluster.)
 backend_VerifyBackendConsistency:
 EtcdServer__snapshot:
-EtcdServer__compactRaftLog:
+# (2026-10-26) translated and proved: the compaction over raft's `MemoryStorage.Compact` (linked
+# in raft's Link)
+MemoryStorage__Compact: @
+EtcdServer__compactRaftLog: EtcdServer__Logger MemoryStorage__Compact errors_Is zap_Logger__Info zap_Uint64 zap_Logger__Debug
 EtcdServer__applySnapshot: IsEmptySnap
 EtcdServer__Backend:
 EtcdServer__shouldSnapshotToDisk:
@@ -514,7 +517,8 @@ bootstrappedRaft__newRaftNode: StartNode newRaftNode
 # `PeerDialTimeout`, `addFeatureGateMetrics`, `newCorruptionChecker`, mvcc's
 # `store.HashStorage`, `math.Ceil`; schema's auth and alarm backends' constructors proved from
 # their bodies since unit N4, 2026-10-17); and the constructors' contracts, axioms true of
-# the Go code (unit N1: `auth.NewTokenProvider`; unit N4, D14d/D14e: `lease.NewLessor`,
+# the Go code (unit N1: `auth.NewTokenProvider`, proved since the auth plan's E2g, 2026-10-25, over
+# the JWT provider's constructor's axiom; unit N4, D14d/D14e: `lease.NewLessor`,
 # `auth.NewAuthStore`, `v3compactor.New`, `v3alarm.NewAlarmStore`, `rafthttp.Transport`'s
 # `Start`/`AddRemote`/`AddPeer`; their specs' docstrings say why). `bootstrap`'s contract is a premise of
 # `NewServer.spec` (D13b). raft's node methods (for the wrapper's composition, `NodeStart.lean`),
@@ -537,7 +541,14 @@ schema_NewMembershipBackend:
 mvcc_store__HashStorage:
 math_Ceil:
 lease_NewLessor:
-auth_NewTokenProvider:
+# (the auth plan's E2g, 2026-10-25) the token provider's constructor proved: the options'
+# decomposition, the simple and no-op providers' constructors; the JWT provider's an axiom (`crypto`,
+# `golang-jwt`: its spec's docstring)
+auth_decomposeOpts: zap_Logger__Error zap_String
+auth_newTokenProviderSimple: zap_NewNop
+auth_newTokenProviderJWT:
+auth_newTokenProviderNop:
+auth_NewTokenProvider: auth_decomposeOpts auth_newTokenProviderSimple auth_newTokenProviderJWT auth_newTokenProviderNop zap_Logger__Warn zap_String zap_Error
 auth_NewAuthStore:
 v3compactor_New:
 v3alarm_NewAlarmStore:
@@ -561,6 +572,12 @@ proto_SizeMessage:
 RaftCluster__IsIDRemoved:
 EtcdServer__Process: EtcdServer__Logger RaftCluster__IsIDRemoved EtcdServer__MemberID Message__GetFrom raftpb_Message__GetTo Message__GetType types_ID__String proto_SizeMessage v2stats_ServerStats__RecvAppendReq
 EtcdServer__IsIDRemoved: RaftCluster__IsIDRemoved
+# (2026-10-26) the interceptors' membership checks (the trust boundary of unit P3b until then),
+# over the cluster's lock invariant (`rcLockInv`)
+RaftCluster__IsLocalMemberLearner:
+RaftCluster__IsMemberExist:
+EtcdServer__IsLearner: RaftCluster__IsLocalMemberLearner
+EtcdServer__IsMemberExist: RaftCluster__IsMemberExist
 EtcdServer__ReportUnreachable:
 EtcdServer__ReportSnapshot:
 # (notes/partition-plan.md, S1/S2, 2026-10-20) etcd's partition hooks: `CutPeer`/`MendPeer` with

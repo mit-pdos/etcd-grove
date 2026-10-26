@@ -263,7 +263,7 @@ theorem NewServer.wp_proof
     (h92 : EtcdServer.ReportUnreachable.spec (GF := GF) (hG := hG))
     (h93 : EtcdServer.ReportSnapshot.spec (GF := GF) (hG := hG)) :
     NewServer.spec (GF := GF) (hG := hG) := by
-  intro cfg U γ bud id bootLog ρ E₀ N Φs γn dir HρRaft Hpol Hc0 Hch0 Hlog0 Hcok HnoG Hlgnn Hcbl Hacr
+  intro cfg U γ bud id bootLog ρ E₀ N Φs γn dir HρRaft Hpol Hc0 Hch0 Hlog0 Hcok Hlgnn Hcbl Hacr
     Hbnd Hrb HrbN HrbS Hboot Hpfx HΦs Hfgp Hdirok
   wp_start
   iNamed Hpre
@@ -347,10 +347,13 @@ theorem NewServer.wp_proof
   imod (srvSendKey_alloc (GF := GF)) with ⟨%γk, Hk⟩
   ihave #Htkok' : rnTickerOk (srvEr ρ E₀ (W64 0) (W64 0) bootKV bud id (srvTrKey γn γk)) $$ []
   · iapply rnTickerOk_srvEr_S $$ Htkok
-  wp_apply (hNS (srvEr ρ E₀ (W64 0) (W64 0) bootKV bud id (srvTrKey γn γk)) γ bud bs.raft' bs.ss' bw.w' bc.cl'
+  -- (D43 M3) raft's static mode: the servers' (`bootInit`'s static case is the ghost state)
+  ihave Hghost : bootInit γ .static id (GMap.listToSet ps) bootLog $$ [Hghost]
+  · unfold bootInit; iexact Hghost
+  wp_apply (hNS (srvEr ρ E₀ (W64 0) (W64 0) bootKV bud id (srvTrKey γn γk)) γ .static bud bs.raft' bs.ss' bw.w' bc.cl'
     (DFrac.own 1) bv cv lok γs pv ps ctxs bootLog Hrlg Hrhb Hrvalid Hrlok Hrstor Hrinfl Hrdpf
     Hrro Hrdccv Hrsizes Hrasync Hrapplied Hrps Hrpsne Hrnodup Hr0 Hrpslen Hrmem Hrcfg Hrboot
-    Hrbok (by simp [srvEr, HρRaft]) (by simp [srvEr, HρRaft]) (by simp [srvEr, HρRaft])
+    Hrbok (fun _ _ _ _ h => by cases h) (by simp [srvEr, HρRaft]) (by simp [srvEr, HρRaft]) (by simp [srvEr, HρRaft])
     (by simpa [srvEr] using Hpol) (fun _ => by rw [Hnosnap.2]; exact Int.le_refl _))
     $$ [Hbv Hc Hstor Hpeers Hghost Htok]
     as %r ⟨%γrn, %rvr, %Hrnames, Hr, Hrtm, #HstepI, Hloop, Happly, #Hrli, Hinst, Hbv, Hpeers, Htok⟩
@@ -479,13 +482,12 @@ theorem NewServer.wp_proof
   icases ownToks_add_1 1 (N + 6) d.γB.wb $$ Hwb with ⟨Hwb, Hwl⟩
   -- `lease.NewLessor`
   rw [Hbe0]
-  -- the grant guard: the workload's (`srvGrantGuard ρ.rd.kv.wl`, D19n, D19q), which grants no
-  -- lease (`HnoG`), so the lessor's `expiredC` never delivers
+  -- the grant guard `False` (`srvGrantGuard`, D19n, D45): the lessor's `expiredC` never delivers
   -- (D22, 2026-10-23) the rest buckets: the tracked buckets' half, at the fresh file's
   have hDl : ∀ n ∈ mvcc.restBuckets, ((backend.rbData d.P D).lookup n).getD ∅ = ∅ :=
     fun n hn => by rw [rbData_real_lookup d D n hn]; exact HDr.1 n hn
   wp_apply (h24 cfg.Logger' _ _ d (mvcc.lateW d.gx) (batchLockInv γA (metaTM d.γB d.P)) (1 : Qp).half
-      (srvGrantGuard ρ.rd.kv.wl) (backend.rbData d.P D))
+      (srvGrantGuard) (backend.rbData d.P D))
     $$ [Hopen Hwl Hrbo]
     as %l ⟨Hopen, Hrbo, %lp, %γl, %Hl, #Hlinv, #Hlcfg, #Hlexp, -, Hlrd, Hlown, #Hlck, HleOn, #Hlbe, #Hllk⟩
   · iframe HB Hclok
@@ -497,7 +499,7 @@ theorem NewServer.wp_proof
   ihave #Hapkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth $$ []
   · iPkgInit
   wp_func_lits
-  wp_apply h25 as %tp %terr %Htp
+  wp_apply h25 as %tp %terr ⟨%Htp, -⟩
   · ipureintro; exact Hlgnn
   (try wp_auto)
   cases terr with
@@ -713,7 +715,8 @@ theorem NewServer.wp_proof
   wp_apply h37 as -
   · iframe Hcid
   (try wp_auto)
-  obtain ⟨Hrn1, Hrn2, Hrn3, Hrn4, Hrn5, Hrn5n, Hrn6, Hrn7, Hrn8, Hrn9, Hrn10, Hrn11, Hrn12, Hrn13, Hrn14⟩ :=
+  obtain ⟨Hrn1, Hrn2, Hrn3, Hrn4, Hrn4d, Hrn5, Hrn5n, Hrn6, Hrn7, Hrn8, Hrn9, Hrn10, Hrn11, Hrn12, Hrn13,
+    Hrn14⟩ :=
     Hrnames
   -- (D21 M2) what the transport's calls into the server read (`srvProcOk`): the wrapper's
   -- fixed fields split off its struct (the node's among them), the member id, the stats
@@ -1021,7 +1024,8 @@ theorem NewServer.wp_proof
   · iapply (rnEnvOk_of_cluster ρ E₀ (W64 0) (W64 0) bootKV bud γrn
       (by rw [Hrn1, hργ]) (by rw [Hrn6]; simp only [ReqNames.raft, HρRaft])
       (by rw [Hrn6]; simp [ReqNames.raft, HρRaft]) (by simp only [ReqNames.raft, HρRaft])
-      Hrn4 (by rw [Hrn3, Hrn7]) Hrn2
+      ⟨fun _ => by rw [Hrn1]; exact Hrn4d.1 rfl, fun _ => Hrn4⟩ (fun dec c0 h0 h1 h => by rw [Hrn4] at h; cases h)
+      (by rw [Hrn3, Hrn7]) Hrn2
       (by first | (rw [← hργ]; exact Hnosnap.1) | (rw [hργ]; exact Hnosnap.1) | exact Hnosnap.1)
       (by rw [Hrn8, Hnosnap.2]; exact Int.le_refl _) id (srvTrKey γn γk)
       (by rw [Hrn5n, Hrid]))
@@ -1057,8 +1061,8 @@ theorem NewServer.wp_proof
   iunfold isRaftNode at Hrn'
   iNamedPrefix Hrn' "N"
   -- the lessor
-  ihave #Hlok : lessorOk ρ.rd.kv.wl (lease.lessorIface lp) $$ []
-  · iapply lessorOk_of_lessorInv h57 h58 h59 ρ.rd.kv.wl HnoG lp γl
+  ihave #Hlok : lessorOk (lease.lessorIface lp) $$ []
+  · iapply lessorOk_of_lessorInv h57 h58 h59 lp γl
     iframe Hlexp Hlcfg Hlinv Hlspkg
   ihave #Hapl : apply.isApplyLessor (lease.lessorIface lp) kst γw.st
       (batchLockInv γA (metaTM d.γB d.P)) #hook (srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be)) $$ []
@@ -1289,7 +1293,7 @@ theorem NewServer.wp_proof
     ipureintro; exact (Hγw.2.2.2.2.trans Hcok.symm)
   isplitr
   · ipureintro
-    refine ⟨?_, rfl⟩
+    refine ⟨?_, rfl, fun _ => Int.le_refl _⟩
     unfold srvEr
     simp only
     exact (srvC_agree ρ _ E₀ (W64 0) (W64 0) bootKV hγs).symm

@@ -1,7 +1,9 @@
 ---
-upstream: unchecked
-checked: 2026-10-23
-links: []
+upstream: none
+checked: 2026-10-26
+links:
+  - etcd-io/etcd#19328 pr merged: related, not this bug: renamed `experimental-downgrade-check-time` to `downgrade-check-time`, no validation added
+  - etcd-io/etcd#22476 pr open: related, not this bug: replaces `monitorDowngrade`'s `time.After(t)` by `time.NewTicker(t)` after the `t == 0` check, so merged as is a negative value panics at startup instead of spinning (as `etcd-corrupt-check-time-negative-panic`)
 ---
 
 # A negative `--downgrade-check-time` makes the downgrade monitor spin
@@ -19,6 +21,12 @@ links: []
   (and, on the leader, reads the cluster's versions in a tight loop).
 - **Expected**: the flag rejected at startup with an error, as `--compact-hash-check-time` is.
 - **How the proof handles it**: outside the verified code.
+- **Upstream change in flight**: etcd-io/etcd#22476 (open, unreviewed, 2026-09-25) replaces the
+  loop's `time.After(t)` by a `time.NewTicker(t)` after the `t == 0` check; merged as is, a negative
+  value panics at startup instead of spinning, as
+  [etcd-corrupt-check-time-negative-panic](etcd-corrupt-check-time-negative-panic.md). Rechecked on
+  `main` `f3221acd1` (2026-10-26), and `<-time.After(-1s)` returns at once (a Go 1.27 program: about
+  87,500 iterations in 100 ms).
 - **Possible fixes**: in `Config.Validate`, reject `DowngradeCheckTime < 0`. Could go in one PR
   with [etcd-corrupt-check-time-negative-panic](etcd-corrupt-check-time-negative-panic.md) and
   [etcd-compaction-negative-batch-limit](etcd-compaction-negative-batch-limit.md).

@@ -6,5 +6,29 @@
 # the program's verdict, the model's at the set-up's state (Model.lean)
 authkv_InRange:
 authkv_Permitted: authkv_InRange
+# the checks' helpers (the auth plan's E2f)
+authkv_keyOf:
+authkv_refused:
+authkv_Principals:
+authkv_Writer: authkv_Principals
+authkv_LastIn: authkv_InRange
+authkv_CheckHistory: authkv_Writer authkv_Permitted
+authkv_checkKVs: authkv_Permitted
+authkv_checkTxnReads: authkv_checkKVs
+# the request contexts: the timeout context, and the bad principal's token appended (C3, grpc's
+# `metadata` a trust boundary)
+context_WithTimeoutBackground:
+context_ErrAny: @
+metadata_AppendToOutgoingContext:
+authkv_reqCtx: context_WithTimeoutBackground context_ErrAny metadata_AppendToOutgoingContext
+# (the auth plan's E2h) `SetUp`: the puts with a persistent update (`client_Put_any`), the
+# admin calls through the client's Auth API (client/v3's, linked in its `Link.lean`) over the
+# Auth service's premise `setupAuthOk`
+v3_authClient__UserAdd: @
+v3_authClient__UserGrantRole: @
+v3_authClient__RoleAdd: @
+v3_authClient__RoleGrantPermission: @
+v3_authClient__AuthEnable: @
+authkv_SetUp: context_WithTimeoutBackground context_ErrAny authkv_Principals authkv_keyOf v3_authClient__UserAdd v3_authClient__UserGrantRole v3_authClient__RoleAdd v3_authClient__RoleGrantPermission v3_authClient__AuthEnable
 # `Main`: not proved yet (a `sorry`; Main.lean lists what its proof needs)
 authkv_Main:

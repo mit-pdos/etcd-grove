@@ -109,7 +109,14 @@ translate = ["!*", "ResponseHeader", "ResponseHeader.GetRevision", "Compare.GetK
   "Lease_LeaseRevoke_FullMethodName", "Lease_LeaseKeepAlive_FullMethodName",
   "Lease_LeaseKeepAliveClient", "Lease_LeaseKeepAliveServer", "LeaseKeepAliveRequest",
   "LeaseKeepAliveResponse", "LeaseGrantResponse.GetHeader", "LeaseKeepAliveResponse.GetHeader",
-  "_Lease_LeaseGrant_Handler", "_Lease_LeaseRevoke_Handler", "_Lease_LeaseKeepAlive_Handler"]
+  "_Lease_LeaseGrant_Handler", "_Lease_LeaseRevoke_Handler", "_Lease_LeaseKeepAlive_Handler",
+  # the auth plan's E2h (2026-10-26): the generated Auth stub (client side) of the admin calls
+  # `examples/authkv`'s `SetUp` makes, their method names and the one request not yet translated
+  "NewAuthClient", "AuthClient", "authClient", "authClient.UserAdd", "authClient.UserGrantRole",
+  "authClient.RoleAdd", "authClient.RoleGrantPermission", "authClient.AuthEnable",
+  "Auth_UserAdd_FullMethodName", "Auth_UserGrantRole_FullMethodName",
+  "Auth_RoleAdd_FullMethodName", "Auth_RoleGrantPermission_FullMethodName",
+  "Auth_AuthEnable_FullMethodName", "AuthEnableRequest"]
 imports = ["!*", "go.etcd.io/etcd/api/v3/mvccpb", "go.etcd.io/etcd/api/v3/membershippb",
   "go.etcd.io/etcd/api/v3/authpb",
   "google.golang.org/protobuf/runtime/protoimpl", "google.golang.org/grpc", "context"]

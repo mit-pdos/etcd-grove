@@ -16,6 +16,14 @@ counterpart).
   is not one the simple provider makes; **`authkv_badToken_not_issued`** (`tokIssued_badToken`,
   the auth plan's E2c): it was issued to no one, every issued token having the simple provider's
   shape; **`authkv_token_one_user`** (`auth.tokIssued_agree`, E2c): a token is issued to one user.
+* The checks `Main` makes (the auth plan's E2f): **`authkv_CheckHistory`** (the history's check
+  returns when every event after the set-up is a write its key's principal was permitted,
+  `histOk`, the principal the key names, `writerK`), **`authkv_checkKVs`** and
+  **`authkv_checkTxnReads`** (a reply's check returns when its keys are the principal's to read);
+  **`authkv_reqCtx`** (a request's context: the bad principal's carries `badtoken` appended to its
+  outgoing metadata, over the trust-boundary spec of grpc's `AppendToOutgoingContext`, contract
+  C3); and **`authkv_bad_unbound`** (`ClientAuth.lean`'s `badCtx_unbound`): a handler context
+  delivering such metadata (C2, C4) gives no auth info in the mode `on γa`.
 -/
 module
 
@@ -48,6 +56,35 @@ theorem authkv_Main : authkv.Main.spec (GF := GF) (hG := hG) :=
 theorem authkv_Permitted : authkv.Permitted.spec (GF := GF) (hG := hG) :=
   authkv.wp_Permitted
 
+/-- **The history's check** (`Link.lean`'s `authkv.wp_CheckHistory`; E2f). -/
+theorem authkv_CheckHistory : authkv.CheckHistory.spec (GF := GF) (hG := hG) :=
+  authkv.wp_CheckHistory
+
+/-- **A range reply's check** (`Link.lean`'s `authkv.wp_checkKVs`; E2f). -/
+theorem authkv_checkKVs : authkv.checkKVs.spec (GF := GF) (hG := hG) :=
+  authkv.wp_checkKVs
+
+/-- **A transaction reply's check** (`Link.lean`'s `authkv.wp_checkTxnReads`; E2f). -/
+theorem authkv_checkTxnReads : authkv.checkTxnReads.spec (GF := GF) (hG := hG) :=
+  authkv.wp_checkTxnReads
+
+/-- **A request's context** (`Link.lean`'s `authkv.wp_reqCtx`; E2f). -/
+theorem authkv_reqCtx : authkv.reqCtx.spec (GF := GF) (hG := hG) :=
+  authkv.wp_reqCtx
+
+/-- **The set-up** (`Link.lean`'s `authkv.wp_SetUp`; E2h): the puts, then the admin calls
+through the client's Auth API over the Auth service's premise `setupAuthOk`. -/
+theorem authkv_SetUp : authkv.SetUp.spec (GF := GF) (hG := hG) :=
+  authkv.wp_SetUp
+
+/-- **The bad principal's request has no principal** (`ClientAuth.lean`'s `badCtx_unbound`;
+E2f). -/
+theorem authkv_bad_unbound (γa : auth.AuthNames) (c h : GoInterface) (a : Loc)
+    (hd : authkv.deliversOutgoing c h)
+    (ht : metadata.mdVals (metadata.outgoingOf c) go!"token" = [authkv.badToken]) :
+    auth.ctxBound (GF := GF) (.on γa) h a ⊢ ⌜a = null⌝ :=
+  authkv.badCtx_unbound γa c h a hd ht
+
 end results
 
 /-- **The program's verdict is the model's at the set-up's state**, for a point request of a
@@ -77,6 +114,12 @@ theorem authkv_token_one_user {GF : BundledGFunctors} [AllG GF] (γa : auth.Auth
 #print axioms authkv_badToken
 #print axioms authkv_badToken_not_issued
 #print axioms authkv_token_one_user
+#print axioms authkv_CheckHistory
+#print axioms authkv_checkKVs
+#print axioms authkv_checkTxnReads
+#print axioms authkv_reqCtx
+#print axioms authkv_SetUp
+#print axioms authkv_bad_unbound
 
 end EtcdGrove
 end Perennial

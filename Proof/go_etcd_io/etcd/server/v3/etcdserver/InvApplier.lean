@@ -32,6 +32,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvServer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftpb
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Wait
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRequest
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvCfgView
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRest
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.InvUber
 public import Perennial.Proof.errors
@@ -425,31 +426,28 @@ predicate is (Perennial's channel specs are), and the apply package's. -/
 
 /-- **The server's grant guard** (D19n, 2026-10-18; D19q: the workload's): the predicate on lease
 ids the server gives its lessor (`lease.NewLessor`'s `GA`): only a lease that meets it can be
-granted, and the lessor's `expiredC` carries only such leases. The workload's `grant`
-(`SrvWorkload.grant`): `False` for the leases-off `putgetWorkload`, whose `plainReq` admits no
-`LeaseGrant`, so `run`'s receive from `expiredC` is dead. -/
-def srvGrantGuard (W : SrvWorkload) : w64 → IProp GF := fun id => iprop(⌜W.grant id⌝)
+granted, and the lessor's `expiredC` carries only such leases. `False`: no request the server's
+verified proposers send grants a lease (`plainReq` admits no `LeaseGrant`), so `run`'s receive
+from `expiredC` is dead (D45: until then the workload's `grant`). -/
+def srvGrantGuard : w64 → IProp GF := fun _ => iprop(False)
 
 /-- `l` is a `lease.Lessor` whose `Promote` returns (in memory: no backend writes); and
 (2026-10-13, the request path's unit 4c: the server's `run`) whose `Demote` returns and whose
 `ExpiredLeasesC` returns a channel of slices of expired leases, each carrying a lease of the
-lessor's grant guard, the workload `W`'s `srvGrantGuard` (D19n, D19q; until D19n a bag with no
-logical content, which `run` passed to the names-only `revokeExpiredLeases`). And (D19q, until the
-lease path is proved: `revokeExpiredLeases` with a true spec) the workload grants no lease
-(`W.noGrant`), so nothing is sent on that channel. A trust-boundary contract (the lessor is
-names-only). -/
-def lessorOk (W : SrvWorkload) (l : GoInterface) : IProp GF :=
+lessor's grant guard `srvGrantGuard` (D19n; until D19n a bag with no logical content, which `run`
+passed to the names-only `revokeExpiredLeases`), `False`: nothing is sent on that channel. A
+trust-boundary contract (the lessor is names-only). -/
+def lessorOk (l : GoInterface) : IProp GF :=
   iprop(∃ li : GoInterfaceOk, ⌜l = GoInterface.ok li⌝ ∗
     □ (∀ d : w64,
       {{ True }} (App (Val #(methods li.ty go!"Promote" li.v)) (Val #d)) {{ RET #(); True }}) ∗
     □ ({{ True }} (App (Val #(methods li.ty go!"Demote" li.v)) (Val #())) {{ RET #(); True }}) ∗
     □ ({{ True }} (App (Val #(methods li.ty go!"ExpiredLeasesC" li.v)) (Val #()))
       {{ (c : GoChan), RET #c; ∃ γc : ChanNames,
-        isChanBag γc c (V := GoSlice) (fun _ => iprop(∃ id : w64, srvGrantGuard W id)) }}) ∗
-    ⌜W.noGrant⌝)
+        isChanBag γc c (V := GoSlice) (fun _ => iprop(∃ id : w64, srvGrantGuard id)) }}))
 
-instance lessorOk_persistent (W : SrvWorkload) (l : GoInterface) :
-    Persistent (lessorOk (GF := GF) W l) := by
+instance lessorOk_persistent (l : GoInterface) :
+    Persistent (lessorOk (GF := GF) l) := by
   unfold lessorOk; infer_instance
 
 /-- **The apply thread's right to `s.forceDiskSnapshot`** (D14i, 2026-10-17): what the applier's
@@ -490,7 +488,7 @@ def srvFieldsAt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF
       srvWAddr s ↦□ v.w ∗ waitInv v.w ρ E ∗
       ⌜E.P = batchLockInv γ TM ∧ E.f = v.hook⌝ ∗ ⌜srvEnvOk s γ ci E v.cluster⌝ ∗
       hookSpec γ ci TM v.hook ∗
-      srvLessorAddr s ↦□ v.lessor ∗ lessorOk ρ.kv.wl v.lessor ∗
+      srvLessorAddr s ↦□ v.lessor ∗ lessorOk v.lessor ∗
       srvFirstCommitAddr s ↦□ v.firstCommit ∗ srvAlarmStoreAddr s ↦□ v.alarmStore ∗
       srvClusterAddr s ↦□ v.cluster ∗ membership.isRaftCluster v.cluster ∗
       srvQuotaAddr s ↦□ v.quota ∗

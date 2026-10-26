@@ -1,6 +1,6 @@
 ---
 upstream: none
-checked: 2026-10-23
+checked: 2026-10-26
 links:
   - etcd-io/etcd#15220 issue closed: related, different: a requested progress response overtook a watch's queued events (progress request after the create)
   - etcd-io/etcd#15237 pr merged: the fix of #15220 (progress responses through mvcc's watch channel); leaves the created response on ctrlStream, which overtakes the progress response here
