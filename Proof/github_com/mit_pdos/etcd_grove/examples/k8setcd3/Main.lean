@@ -173,7 +173,7 @@ theorem Main.wp_proof
   imod ownSlice_persist _ _ _ $$ Heps with #Heps
   ihave #Pkc : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.kubernetes $$ []
   · iPkgInit
-  let V : client.WEnv GF := EtcdGrove.client.srvWEnv R go!"127.0.0.1:23896" [] null null [] null
+  let V : client.WEnv GF := EtcdGrove.client.srvWEnv R go!"127.0.0.1:23896" [] null null [] null default
   wp_apply (wp_kNew _ [go!"127.0.0.1:23896"] V) $$ [] as %kc %cerr Hcl
   · iframe #
     iunfold clientCfgOk

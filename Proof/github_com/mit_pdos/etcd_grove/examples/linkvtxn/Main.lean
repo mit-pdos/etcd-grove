@@ -144,7 +144,7 @@ theorem Main.wp_proof
   icases Hkv with ⟨#HPut, #HRange, #HDel, #HTxn⟩
   -- `NewClient(clientAddr, lg)` (etcd's default client configuration, its default retries)
   wp_apply (wp_NewClient go!"127.0.0.1:23796" lg
-      (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23796" [] null null [] null) Hlg
+      (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23796" [] null null [] null default) Hlg
       (by unfold plainEndpoint; decide) Htb) as %cl %cerr Hcl
   icases Hcl with (⟨%Hcerr, #Hnc⟩ | %Hcfail)
   rotate_left
