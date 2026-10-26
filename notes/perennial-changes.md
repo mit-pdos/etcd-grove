@@ -17,6 +17,22 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### Tooling: incremental proof checks, and long `·` blocks as auxiliary theorems
+
+- **Missing.** A way to check a proof after an edit without elaborating the whole file
+  (`lake build` and `lake env lean` start over each time; Perennial's tutorial checks a file
+  with `lake build`), and a way to keep the once-per-declaration work of a long Iris proof
+  (instantiation, sharing, the kernel's check of one huge term) from being redone on every edit.
+- **Needed by.** Every proof here and in Perennial; most for the longest
+  (`watchGRPCStream.run`, 3368 lines: an edit near its end costs about its fresh time).
+- **Workaround here.** `etc/lean-check.py` (a kept Lean server; `--fast`, `-e`, `--goal`,
+  `--split`) and `Proof/AbstractBullets.lean` (option `abstractBullets`), both generic: the
+  script names no project, the tactic module nothing of this repository's.
+- **Proposed change.** Move both to Perennial (`etc/lean-check.py`, the tactic in its
+  `PerennialMeta` library), document the loop in `docs/PERENNIAL_PROOF_TUTORIAL.md` beside
+  `lake build`; `lean-check.py` here then imports nothing of its own (`SPLIT_MODULE`).
+- **Status.** Open (2026-10-26, `notes/STATUS.md`, "Checking proofs while editing them").
+
 ### Specs: `(*Time).After`
 
 - **Missing.** The pointer-receiver form of `time.Time.After` (Perennial's `Proof/time/PtrMethods.lean`
@@ -700,3 +716,30 @@ Three of the watch client's local workarounds (D25, `notes/decisions.md`, "S1c's
   no trusted-base change. Limitation: one thread token borrows one copy at a time, so a thread holding
   two thread-paid read locks at once pays the second with a stock token. The pin bump is still to do
   (with J8b).
+
+### `strconv.NumError`'s `Error()` has no spec
+
+- **Missing.** Perennial specifies `strconv.ParseUint`'s errors as fresh `*NumError`s
+  (`strconv.numErrorOf`) but not `(*NumError).Error` (`"strconv." + Func + ": parsing " +
+  Quote(Num) + ": " + Err.Error()`, through `strconv.Quote`), so a caller that must show the error
+  prints (`http.errStrOk`, `zap.Error`'s callers) cannot. Found 2026-10-26 when trying
+  `types.IDFromString` (`strconv.ParseUint(s, 16, 64)`): its proof would need a new axiom for
+  `NumError.Error` in place of the one it discharges, so it stays an axiom.
+- **Workaround here.** None: `types.IDFromString.wp_proof` stays a trust-boundary axiom. Its success
+  case is provable over `ParseUint.spec` (a pure lemma that `parseUint (types.idStr x) 16 64 = .ok
+  x`, by induction on `types.hexNatF`'s fuel with `parseDigits_append_ok`).
+- **Proposed change.** A spec of `(*NumError).Error` (returns some string; or the string, with a
+  spec of `Quote`) in Perennial's `Proof/strconv`.
+
+### `errors.Is`/`errors.As` at non-pointer targets and for leaves
+
+- **Missing.** Perennial's `errors.Is.spec` takes a `nil` or pointer target, and its
+  `errors.As.spec` allows any result. Four axioms here are specializations it does not cover
+  (2026-10-26 survey): `errors.IsDeadlineExceeded` and `errors.IsCtxErr` (the target
+  `context.DeadlineExceeded`, an empty struct), `errors.IsStatusErr` (an `EtcdError` value
+  target), `errors.AsLeaf` (`As` of an `errors.New` error against a type whose set excludes
+  `*errorString` returns `false`).
+- **Workaround here.** The four stay trust-boundary axioms (`Proof/errors/`).
+- **Proposed change.** `errors.Is.spec` for a comparable non-pointer target (Go's `Is` compares
+  with `==` first, which does not panic for a comparable target type), and an `errors.As` spec that
+  says `false` for a leaf error not in the target's type set; then the four are proved here.

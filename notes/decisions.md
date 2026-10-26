@@ -21294,3 +21294,33 @@ changed, and no closed theorem proves less:
 - J7's axiom `membership.clusterImageOk_restModel` is stated over `isRaftCluster`, which membership
   M4 (merged in the second `lean`) generalized (`rcLockInv` at any side condition): the build
   passes; no root reaches the axiom yet (J8b).
+
+## `verify.Assert` proved; the axiom survey of 2026-10-26 (2026-10-26 · reducing the axiom count)
+
+`verify.Assert` is translated with its body (`Code/.../client/pkg/v3/verify.toml`: `Assert`, and
+`fmt` imported for its panic message; the rest of `verify` stays names-only, since `Verify` reads
+`ETCD_VERIFY` through `os.Getenv`) and proved: its spec is for a true condition, so the `panic`
+branch is not taken. `verify`'s package init now runs `fmt`'s (`etc/gen-init.py`: its `Init.lean`
+and the examples' `PkgTable.lean`). Trust base -1 (721 → 720).
+
+**The survey** (the etcd-level axioms outside grpc, the filesystem and the clients, which other
+tracks own): what blocks the rest, so that the next pass starts from it.
+- Floats, which Perennial's semantics does not step: `v2stats.FollowerStats.Succ`,
+  `lease.lessor.Promote`, `scheduleCheckpointIfNeeded`, `txn.ApplySecObserve`/`RangeSecObserve`.
+- crc32 (no Perennial model): the mvcc hasher's four.
+- protobuf and JSON encoding: `schema.MustUnsafePutLease`, `MustUnsafeSaveConfStateToBackend`,
+  `v3alarm.AlarmStore.restore`, `pbutil.MustUnmarshalMessage`, the generated enums' `String`.
+- Specs that own nothing of what the body touches (a no-op contract, D38), so a proof needs a new
+  predicate threaded through the callers: `storage.BackendQuota.Cost` (reads the request's fields
+  with only `r ≠ null`), `EtcdServer.adjustTicks`, the `v2stats` methods (and `serverStats`'s
+  anonymous struct field, which Goose does not translate; decided 2026-10-22: not now).
+- Perennial specs missing (`notes/perennial-changes.md`): `strconv.NumError.Error`
+  (`types.IDFromString`: its success case is provable, its error case would need a new axiom),
+  `errors.Is` at non-pointer targets and `errors.As` of leaves (`errors.IsCtxErr`,
+  `IsDeadlineExceeded`, `IsStatusErr`, `AsLeaf`), `sort.Stable` (translated by Perennial, no spec:
+  a proof belongs in Perennial, beside its `insertionSort`/`pdqsort`).
+- A design question: `lease.lessor.Demote` needs `demotec`'s close right in the lessor's
+  fractional lock invariant (a channel's close right is not fractional; `Renew` also waits on the
+  channel and is unspecified), and `Promote`'s axiom would then claim it keeps that right.
+- Taken up in parallel: `container/heap`'s `Fix`/`Push` and `unicode/utf8`'s `ValidString`
+  (translated here, names-only until now).
