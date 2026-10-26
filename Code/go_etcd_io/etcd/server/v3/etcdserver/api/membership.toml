@@ -9,7 +9,9 @@ translate = ["!*", "ShouldApplyV3", "ApplyBoth", "ApplyV2storeOnly", "RaftCluste
   # (D21 M2) `Process`'s check of the sender
   "RaftCluster.IsIDRemoved",
   # (D43 M4) the request path's learner check (the fork's: no panic for a removed local member)
-  "RaftCluster.IsLocalMemberLearner"]
+  "RaftCluster.IsLocalMemberLearner",
+  # (D43 M4) the membership writer of a removal (its metric update names only)
+  "RaftCluster.RemoveMember"]
 imports = ["!*", "sort", "sync", "go.uber.org/zap", "go.etcd.io/etcd/client/pkg/v3/types", "github.com/Masterminds/semver/v3", "go.etcd.io/etcd/pkg/v3/notify", "go.etcd.io/etcd/server/v3/etcdserver/version"]
 
 # translate the definitions of all type declarations goose supports

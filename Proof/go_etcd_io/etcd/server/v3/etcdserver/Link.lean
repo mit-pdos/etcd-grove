@@ -122,6 +122,8 @@ public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.PutRequest__GetKey
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.PutRequest__GetLease
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__IsIDRemoved
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__Members
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__RemoveMember
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__updateMembershipMetric
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest__GetCountOnly
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest__GetKey
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest__GetKeysOnly
@@ -909,6 +911,22 @@ theorem wp_NewConsistentIndex :
     NewConsistentIndex.spec (GF := GF) (hG := hG) :=
   NewConsistentIndex.wp_proof
 
+theorem membership.RaftCluster.wp_updateMembershipMetric :
+    membership.RaftCluster.updateMembershipMetric.spec (GF := GF) (hG := hG) :=
+  membership.RaftCluster.updateMembershipMetric.wp_proof
+
+theorem zap.wp_Strings :
+    zap.Strings.spec (GF := GF) (hG := hG) :=
+  zap.Strings.wp_proof
+
+theorem zap.wp_Bool :
+    zap.Bool.spec (GF := GF) (hG := hG) :=
+  zap.Bool.wp_proof
+
+theorem membership.RaftCluster.wp_RemoveMember :
+    membership.RaftCluster.RemoveMember.spec (GF := GF) (hG := hG) :=
+  membership.RaftCluster.RemoveMember.wp_proof membership.RaftCluster.wp_updateMembershipMetric types.ID.wp_String_ptr zap.Logger.wp_Info zap.Logger.wp_Warn zap.wp_String zap.wp_Strings zap.wp_Bool
+
 theorem auth.authStore.wp_Revision :
     auth.authStore.Revision.spec (GF := GF) (hG := hG) :=
   auth.authStore.Revision.wp_proof
@@ -1057,10 +1075,6 @@ theorem auth.authStore.wp_UserAdd :
     auth.authStore.UserAdd.spec (GF := GF) (hG := hG) :=
   auth.authStore.UserAdd.wp_proof auth.authStore.wp_commitRevision auth.authStore.wp_refreshRangePermCache auth.authStore.wp_selectPassword zap.wp_String zap.Logger.wp_Info
 
-theorem zap.wp_Strings :
-    zap.Strings.spec (GF := GF) (hG := hG) :=
-  zap.Strings.wp_proof
-
 theorem auth.authStore.wp_UserChangePassword :
     auth.authStore.UserChangePassword.spec (GF := GF) (hG := hG) :=
   auth.authStore.UserChangePassword.wp_proof auth.authStore.wp_commitRevision auth.authStore.wp_refreshRangePermCache auth.authStore.wp_selectPassword zap.wp_String zap.wp_Strings zap.Logger.wp_Info
@@ -1144,10 +1158,6 @@ theorem schema.wp_NewAuthBackend :
 theorem raftpb.MessageType.wp_String :
     raftpb.MessageType.String.spec (GF := GF) (hG := hG) :=
   raftpb.MessageType.String.wp_proof
-
-theorem zap.wp_Bool :
-    zap.Bool.spec (GF := GF) (hG := hG) :=
-  zap.Bool.wp_proof
 
 theorem fmt.wp_ErrorfPlain :
     fmt.ErrorfPlain.spec (GF := GF) (hG := hG) :=

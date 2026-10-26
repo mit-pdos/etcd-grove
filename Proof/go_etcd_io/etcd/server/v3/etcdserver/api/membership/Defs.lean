@@ -54,6 +54,9 @@ abbrev membership.rcVersionChangedAddr (c : Loc) : Loc :=
   structFieldRef membership.RaftCluster go!"versionChanged" c
 abbrev membership.rcRemovedAddr (c : Loc) : Loc :=
   structFieldRef membership.RaftCluster go!"removed" c
+abbrev membership.rcLgAddr (c : Loc) : Loc := structFieldRef membership.RaftCluster go!"lg" c
+abbrev membership.rcBeAddr (c : Loc) : Loc := structFieldRef membership.RaftCluster go!"be" c
+abbrev membership.rcCidAddr (c : Loc) : Loc := structFieldRef membership.RaftCluster go!"cid" c
 
 end addrs
 

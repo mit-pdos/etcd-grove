@@ -561,6 +561,11 @@ proto_SizeMessage:
 RaftCluster__IsIDRemoved:
 EtcdServer__Process: EtcdServer__Logger RaftCluster__IsIDRemoved EtcdServer__MemberID Message__GetFrom raftpb_Message__GetTo Message__GetType types_ID__String proto_SizeMessage v2stats_ServerStats__RecvAppendReq
 EtcdServer__IsIDRemoved: RaftCluster__IsIDRemoved
+# (D43 M4, 2026-10-26) the cluster's writer of a removal (`RemoveMember`, with its body; the
+# backend's delete a triple its caller gives); the trust boundary: its metric update
+# (`updateMembershipMetric`, a prometheus gauge).
+RaftCluster__updateMembershipMetric:
+RaftCluster__RemoveMember: RaftCluster__updateMembershipMetric types_ID__String_ptr zap_Logger__Info zap_Logger__Warn zap_String zap_Strings zap_Bool
 EtcdServer__ReportUnreachable:
 EtcdServer__ReportSnapshot:
 # (notes/partition-plan.md, S1/S2, 2026-10-20) etcd's partition hooks: `CutPeer`/`MendPeer` with

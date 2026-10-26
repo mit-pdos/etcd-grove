@@ -320,6 +320,111 @@ noncomputable def RaftCluster.IsIDRemoved.impl [FfiSyntax] [GoGlobalContext] : v
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType RaftCluster.ty) go!"Lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RaftCluster.ty)))) (Var "c"))) (Val #()))))))))))
 
+/-- RemoveMember removes a member from the store.
+    The given id MUST exist, or the function panics.
+
+    go: cluster.go:429:23 -/
+noncomputable def RaftCluster.RemoveMember.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "c"
+  (Lam "id"
+  (Lam "shouldApplyV3"
+  (App (Val wrapDefer)
+  (Lam "$defer"
+  (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType RaftCluster.ty)))) (Var "c"))
+  (Let "shouldApplyV3" (App (Val (GoInstruction (GoAlloc ShouldApplyV3.ty))) (Var "shouldApplyV3"))
+  (Let "id" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (Var "id"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoLoad ShouldApplyV3.ty))) (Var "shouldApplyV3"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (App (App (Val (map.lookup2 _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty (go.GoType.PointerType Member.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty (go.GoType.PointerType Member.ty))))) (App (Val (GoInstruction (StructFieldRef RaftCluster.ty go!"members"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RaftCluster.ty)))) (Var "c"))))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (Var "id")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Member.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Member.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok"))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"removed member"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (Val #(go!"cluster-id"))
+  (Let "$a1" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty) go!"String"))) (App (Val (GoInstruction (StructFieldRef RaftCluster.ty go!"cid"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RaftCluster.ty)))) (Var "c")))) (Val #()))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.String []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$sl1" (Let "$a0" (Val #(go!"local-member-id"))
+  (Let "$a1" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty) go!"String"))) (App (Val (GoInstruction (StructFieldRef RaftCluster.ty go!"localID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RaftCluster.ty)))) (Var "c")))) (Val #()))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.String []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$sl2" (Let "$a0" (Val #(go!"removed-remote-peer-id"))
+  (Let "$a1" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty) go!"String"))) (Var "id")) (Val #()))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.String []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$sl3" (Let "$a0" (Val #(go!"removed-remote-peer-urls"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (StructFieldRef RaftAttributes.ty go!"PeerURLs"))) (App (Val (GoInstruction (StructFieldRef Member.ty go!"RaftAttributes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Member.ty)))) (Var "m")))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Strings []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$sl4" (Let "$a0" (Val #(go!"removed-remote-peer-is-learner"))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef RaftAttributes.ty go!"IsLearner"))) (App (Val (GoInstruction (StructFieldRef Member.ty go!"RaftAttributes"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Member.ty)))) (Var "m")))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.Bool' []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl1"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl2"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl3"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl4")))])))))))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Info"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef RaftCluster.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RaftCluster.ty)))) (Var "c"))))) (Var "$a0")) (Var "$a1")))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"skipped removing already removed member"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (Val #(go!"cluster-id"))
+  (Let "$a1" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty) go!"String"))) (App (Val (GoInstruction (StructFieldRef RaftCluster.ty go!"cid"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RaftCluster.ty)))) (Var "c")))) (Val #()))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.String []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$sl1" (Let "$a0" (Val #(go!"local-member-id"))
+  (Let "$a1" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty) go!"String"))) (App (Val (GoInstruction (StructFieldRef RaftCluster.ty go!"localID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RaftCluster.ty)))) (Var "c")))) (Val #()))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.String []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$sl2" (Let "$a0" (Val #(go!"removed-remote-peer-id"))
+  (Let "$a1" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty) go!"String"))) (Var "id")) (Val #()))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.String []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl1"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl2")))])))))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Warn"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef RaftCluster.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RaftCluster.ty)))) (Var "c"))))) (Var "$a0")) (Var "$a1"))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (Var "id"))
+  (Let "$a1" (Val #false)
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType RaftCluster.ty) go!"updateMembershipMetric"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RaftCluster.ty)))) (Var "c"))) (Var "$a0")) (Var "$a1"))))))))
+  (App (Val doExecute)
+  (App (App (App (Val (map.insert _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty go.bool)))) (App (Val (GoInstruction (StructFieldRef RaftCluster.ty go!"removed"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RaftCluster.ty)))) (Var "c"))))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (Var "id"))) (Var "$r0")))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty (go.GoType.PointerType Member.ty))))) (App (Val (GoInstruction (StructFieldRef RaftCluster.ty go!"members"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RaftCluster.ty)))) (Var "c"))))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (Var "id"))
+  (App (App (App (Val (GoInstruction (FuncResolve go.delete [(go.GoType.MapType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty (go.GoType.PointerType Member.ty))]))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Member.ty)))) (Pair (Var "m") (Var "$r0"))))))))))))))
+  (App (Val doExecute)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (Var "id"))
+  (App (App (Val (GoInstruction (MethodResolve MembershipBackend.ty go!"MustDeleteMemberFromBackend"))) (App (Val (GoInstruction (GoLoad MembershipBackend.ty))) (App (Val (GoInstruction (StructFieldRef RaftCluster.ty go!"be"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RaftCluster.ty)))) (Var "c"))))) (Var "$a0")))))
+  (App (Val doExecute)
+  (Let "$a0" (Val #(go!"ignore already removed member"))
+  (Let "$a1" (Let "$sl0" (Let "$a0" (Val #(go!"cluster-id"))
+  (Let "$a1" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty) go!"String"))) (App (Val (GoInstruction (StructFieldRef RaftCluster.ty go!"cid"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RaftCluster.ty)))) (Var "c")))) (Val #()))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.String []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$sl1" (Let "$a0" (Val #(go!"local-member-id"))
+  (Let "$a1" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty) go!"String"))) (App (Val (GoInstruction (StructFieldRef RaftCluster.ty go!"localID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RaftCluster.ty)))) (Var "c")))) (Val #()))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.String []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (Let "$sl2" (Let "$a0" (Val #(go!"removed-remote-peer-id"))
+  (Let "$a1" (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty) go!"String"))) (Var "id")) (Val #()))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.go_uber_org.zap.String []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType _root_.Perennial.go_uber_org.zap.Field.ty)))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl0"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl1"))), (KeyedElement none (ElementExpression _root_.Perennial.go_uber_org.zap.Field.ty (Var "$sl2")))])))))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) go!"Info"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (App (Val (GoInstruction (StructFieldRef RaftCluster.ty go!"lg"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RaftCluster.ty)))) (Var "c"))))) (Var "$a0")) (Var "$a1"))))))))
+  (App (Val doExecute)
+  (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType RaftCluster.ty) go!"Unlock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RaftCluster.ty)))) (Var "c")))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (Var "$f") (Val #()))
+  (App (Var "$oldf") (Val #()))))))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType RaftCluster.ty) go!"Lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RaftCluster.ty)))) (Var "c"))) (Val #())))))))))))))
+
 /-- IsLocalMemberLearner returns if the local member is raft learner
 
     go: cluster.go:786:23 -/
@@ -603,6 +708,7 @@ class RaftCluster.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
   ptr_Lock_unfold : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"Lock" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef RaftCluster.ty go!"Mutex"))) (Var "$r"))))
   ptr_Members_unfold : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"Members" RaftCluster.Members.impl
+  ptr_RemoveMember_unfold : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"RemoveMember" RaftCluster.RemoveMember.impl
   ptr_Unlock_unfold : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"Unlock" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef RaftCluster.ty go!"Mutex"))) (Var "$r"))))
 
@@ -635,6 +741,7 @@ attribute [instance] RaftCluster.TypeAssumptions.type_repr
   RaftCluster.TypeAssumptions.ptr_IsLocalMemberLearner_unfold
   RaftCluster.TypeAssumptions.ptr_Lock_unfold
   RaftCluster.TypeAssumptions.ptr_Members_unfold
+  RaftCluster.TypeAssumptions.ptr_RemoveMember_unfold
   RaftCluster.TypeAssumptions.ptr_Unlock_unfold
 
 structure RaftAttributes [FfiSyntax] where
