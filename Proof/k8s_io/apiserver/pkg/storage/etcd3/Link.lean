@@ -48,6 +48,7 @@ public import Proof.k8s_io.apiserver.pkg.storage.etcd3.refreshOnError
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.store__Create
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.store__Delete
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.store__Get
+public import Proof.k8s_io.apiserver.pkg.storage.etcd3.store__GetCurrentResourceVersion
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.store__GuaranteedUpdate
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.store__conditionalDelete
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.store__deleteOnce
@@ -291,6 +292,10 @@ theorem store.wp_validateMinimumResourceVersion :
 theorem store.wp_Get :
     EtcdGrove.k8s.store.Get.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8s.store.Get.wp_proof store.wp_prepareKey store.wp_validateMinimumResourceVersion storage.wp_NewKeyNotFoundError tracing.wp_Start tracing.Span.wp_AddEvent tracing.Span.wp_End «attribute».wp_String «attribute».wp_Int audit.wp_GetAuditIDTruncated metrics.OperationLatencyTracker.wp_Record kubernetes.Client.wp_Get
+
+theorem store.wp_GetCurrentResourceVersion :
+    EtcdGrove.k8s.store.GetCurrentResourceVersion.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.k8s.store.GetCurrentResourceVersion.wp_proof store.wp_prepareKey metrics.wp_RecordEtcdRequest kubernetes.Client.wp_Get fmt.wp_Errorf
 
 theorem store.wp_updateState :
     EtcdGrove.k8s.store.updateState.spec (GF := GF) (hG := hG) :=
