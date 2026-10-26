@@ -78,14 +78,14 @@ def apply.irrEmpty : apply.IRRModel where
   authUserDelete := false
   authUserGet := none
   authUserChangePassword := false
-  authUserGrantRole := false
+  authUserGrantRole := none
   authUserRevokeRole := false
   authUserList := false
   authRoleList := false
   authRoleAdd := none
   authRoleDelete := false
   authRoleGet := none
-  authRoleGrantPermission := false
+  authRoleGrantPermission := none
   authRoleRevokePermission := false
   clusterVersionSet := none
   clusterMemberAttrSet := none
@@ -127,11 +127,11 @@ def reqTypeName (rq : apply.IRRModel) : GoString :=
   else if rq.authUserAdd.isSome then go!"AuthUserAdd"
   else if rq.authUserDelete then go!"AuthUserDelete"
   else if rq.authUserChangePassword then go!"AuthUserChangePassword"
-  else if rq.authUserGrantRole then go!"AuthUserGrantRole"
+  else if rq.authUserGrantRole.isSome then go!"AuthUserGrantRole"
   else if rq.authUserGet.isSome then go!"AuthUserGet"
   else if rq.authUserRevokeRole then go!"AuthUserRevokeRole"
   else if rq.authRoleAdd.isSome then go!"AuthRoleAdd"
-  else if rq.authRoleGrantPermission then go!"AuthRoleGrantPermission"
+  else if rq.authRoleGrantPermission.isSome then go!"AuthRoleGrantPermission"
   else if rq.authRoleGet.isSome then go!"AuthRoleGet"
   else if rq.authRoleRevokePermission then go!"AuthRoleRevokePermission"
   else if rq.authRoleDelete then go!"AuthRoleDelete"
@@ -182,14 +182,16 @@ def irrNoHdrIs (p : Loc) (rq : apply.IRRModel) : IProp GF :=
     apply.irrField p go!"AuthUserDelete" (fun l => apply.presentIs l rq.authUserDelete) ∗
     apply.irrField p go!"AuthUserGet" (fun l => apply.optReqIs l rq.authUserGet apply.authUserGetIs) ∗
     apply.irrField p go!"AuthUserChangePassword" (fun l => apply.presentIs l rq.authUserChangePassword) ∗
-    apply.irrField p go!"AuthUserGrantRole" (fun l => apply.presentIs l rq.authUserGrantRole) ∗
+    apply.irrField p go!"AuthUserGrantRole"
+      (fun l => apply.optReqIs l rq.authUserGrantRole apply.authUserGrantRoleIs) ∗
     apply.irrField p go!"AuthUserRevokeRole" (fun l => apply.presentIs l rq.authUserRevokeRole) ∗
     apply.irrField p go!"AuthUserList" (fun l => apply.presentIs l rq.authUserList) ∗
     apply.irrField p go!"AuthRoleList" (fun l => apply.presentIs l rq.authRoleList) ∗
     apply.irrField p go!"AuthRoleAdd" (fun l => apply.optReqIs l rq.authRoleAdd apply.authRoleAddIs) ∗
     apply.irrField p go!"AuthRoleDelete" (fun l => apply.presentIs l rq.authRoleDelete) ∗
     apply.irrField p go!"AuthRoleGet" (fun l => apply.optReqIs l rq.authRoleGet apply.authRoleGetIs) ∗
-    apply.irrField p go!"AuthRoleGrantPermission" (fun l => apply.presentIs l rq.authRoleGrantPermission) ∗
+    apply.irrField p go!"AuthRoleGrantPermission"
+      (fun l => apply.optReqIs l rq.authRoleGrantPermission apply.authRoleGrantPermissionIs) ∗
     apply.irrField p go!"AuthRoleRevokePermission" (fun l => apply.presentIs l rq.authRoleRevokePermission) ∗
     apply.irrField p go!"ClusterVersionSet" (fun l => apply.optReqIs l rq.clusterVersionSet apply.clusterVersionSetIs) ∗
     apply.irrField p go!"ClusterMemberAttrSet"
