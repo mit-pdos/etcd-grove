@@ -8,6 +8,7 @@ hand.
 -/
 module
 
+public import Proof.k8s_io.apiserver.pkg.storage.cacher.Cacher__get
 public import Proof.k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester__Add
 public import Proof.k8s_io.apiserver.pkg.storage.cacher.progress.ConditionalProgressRequester__Remove
 public import Proof.k8s_io.component_base.metrics.HistogramVec__WithContext
@@ -86,13 +87,53 @@ theorem storage.wp_NewTooLargeResourceVersionError :
     EtcdGrove.storage.NewTooLargeResourceVersionError.spec (GF := GF) (hG := hG) :=
   EtcdGrove.storage.NewTooLargeResourceVersionError.wp_proof
 
-theorem tracing.Span.wp_AddEvent :
-    EtcdGrove.tracing.Span.AddEvent.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.tracing.Span.AddEvent.wp_proof
+theorem watchCache.wp_waitUntilFreshLocked :
+    EtcdGrove.cacher.watchCache.waitUntilFreshLocked.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cacher.watchCache.waitUntilFreshLocked.wp_proof ConditionalProgressRequester.wp_Add ConditionalProgressRequester.wp_Remove kmetrics.HistogramVec.wp_WithContext time.Duration.wp_Seconds storage.wp_NewTooLargeResourceVersionError
+
+theorem btreeStore.wp_ResourceVersion :
+    EtcdGrove.cacher.btreeStore.ResourceVersion.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cacher.btreeStore.ResourceVersion.wp_proof
+
+theorem watchCache.wp_checkSnapshotResourceVersion :
+    EtcdGrove.cacher.watchCache.checkSnapshotResourceVersion.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cacher.watchCache.checkSnapshotResourceVersion.wp_proof btreeStore.wp_ResourceVersion
 
 theorem WatchCacheStorage.wp_LatestSnapshot :
     EtcdGrove.cacher.WatchCacheStorage.LatestSnapshot.spec (GF := GF) (hG := hG) :=
   EtcdGrove.cacher.WatchCacheStorage.LatestSnapshot.wp_proof
+
+theorem tracing.wp_SpanFromContext :
+    EtcdGrove.tracing.SpanFromContext.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.tracing.SpanFromContext.wp_proof
+
+theorem tracing.Span.wp_AddEvent :
+    EtcdGrove.tracing.Span.AddEvent.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.tracing.Span.AddEvent.wp_proof
+
+theorem watchCache.wp_getLatestSnapshotLocked :
+    EtcdGrove.cacher.watchCache.getLatestSnapshotLocked.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cacher.watchCache.getLatestSnapshotLocked.wp_proof watchCache.wp_checkSnapshotResourceVersion WatchCacheStorage.wp_LatestSnapshot tracing.wp_SpanFromContext tracing.Span.wp_AddEvent
+
+theorem watchCache.wp_waitAndGetLatestSnapshot :
+    EtcdGrove.cacher.watchCache.waitAndGetLatestSnapshot.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cacher.watchCache.waitAndGetLatestSnapshot.wp_proof watchCache.wp_waitUntilFreshLocked watchCache.wp_getLatestSnapshotLocked tracing.wp_SpanFromContext tracing.Span.wp_AddEvent
+
+theorem btreeStore.wp_getByKey :
+    EtcdGrove.cacher.btreeStore.getByKey.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cacher.btreeStore.getByKey.wp_proof btree.BTree.wp_Get
+
+theorem btreeStore.wp_GetByKey :
+    EtcdGrove.cacher.btreeStore.GetByKey.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cacher.btreeStore.GetByKey.wp_proof btreeStore.wp_getByKey
+
+theorem watchCache.wp_WaitUntilFreshAndGet :
+    EtcdGrove.cacher.watchCache.WaitUntilFreshAndGet.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cacher.watchCache.WaitUntilFreshAndGet.wp_proof watchCache.wp_waitAndGetLatestSnapshot WatchCacheStorage.wp_LatestSnapshot btreeStore.wp_ResourceVersion btreeStore.wp_GetByKey tracing.wp_SpanFromContext tracing.Span.wp_AddEvent
+
+theorem Cacher.wp_get :
+    EtcdGrove.cacher.Cacher.get.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cacher.Cacher.get.wp_proof watchCache.wp_WaitUntilFreshAndGet
 
 theorem btreeStore.wp_Clone :
     EtcdGrove.cacher.btreeStore.Clone.spec (GF := GF) (hG := hG) :=
@@ -134,49 +175,13 @@ theorem WatchCacheStorage.wp_UpdateStore :
     EtcdGrove.cacher.WatchCacheStorage.UpdateStore.spec (GF := GF) (hG := hG) :=
   EtcdGrove.cacher.WatchCacheStorage.UpdateStore.wp_proof btreeStore.wp_addOrUpdateElem btreeStore.wp_deleteElem btreeStore.wp_Clone indexer.wp_updateElem snapshotter.wp_Add
 
-theorem btreeStore.wp_getByKey :
-    EtcdGrove.cacher.btreeStore.getByKey.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.cacher.btreeStore.getByKey.wp_proof btree.BTree.wp_Get
-
-theorem btreeStore.wp_GetByKey :
-    EtcdGrove.cacher.btreeStore.GetByKey.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.cacher.btreeStore.GetByKey.wp_proof btreeStore.wp_getByKey
-
 theorem btreeStore.wp_Replace :
     EtcdGrove.cacher.btreeStore.Replace.spec (GF := GF) (hG := hG) :=
   EtcdGrove.cacher.btreeStore.Replace.wp_proof btree.BTree.wp_Clear btreeStore.wp_addOrUpdateElem
 
-theorem btreeStore.wp_ResourceVersion :
-    EtcdGrove.cacher.btreeStore.ResourceVersion.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.cacher.btreeStore.ResourceVersion.wp_proof
-
 theorem wp_newBtreeStore :
     EtcdGrove.cacher.newBtreeStore.spec (GF := GF) (hG := hG) :=
   EtcdGrove.cacher.newBtreeStore.wp_proof btree.wp_New
-
-theorem tracing.wp_SpanFromContext :
-    EtcdGrove.tracing.SpanFromContext.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.tracing.SpanFromContext.wp_proof
-
-theorem watchCache.wp_waitUntilFreshLocked :
-    EtcdGrove.cacher.watchCache.waitUntilFreshLocked.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.cacher.watchCache.waitUntilFreshLocked.wp_proof ConditionalProgressRequester.wp_Add ConditionalProgressRequester.wp_Remove kmetrics.HistogramVec.wp_WithContext time.Duration.wp_Seconds storage.wp_NewTooLargeResourceVersionError
-
-theorem watchCache.wp_checkSnapshotResourceVersion :
-    EtcdGrove.cacher.watchCache.checkSnapshotResourceVersion.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.cacher.watchCache.checkSnapshotResourceVersion.wp_proof btreeStore.wp_ResourceVersion
-
-theorem watchCache.wp_getLatestSnapshotLocked :
-    EtcdGrove.cacher.watchCache.getLatestSnapshotLocked.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.cacher.watchCache.getLatestSnapshotLocked.wp_proof watchCache.wp_checkSnapshotResourceVersion WatchCacheStorage.wp_LatestSnapshot tracing.wp_SpanFromContext tracing.Span.wp_AddEvent
-
-theorem watchCache.wp_waitAndGetLatestSnapshot :
-    EtcdGrove.cacher.watchCache.waitAndGetLatestSnapshot.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.cacher.watchCache.waitAndGetLatestSnapshot.wp_proof watchCache.wp_waitUntilFreshLocked watchCache.wp_getLatestSnapshotLocked tracing.wp_SpanFromContext tracing.Span.wp_AddEvent
-
-theorem watchCache.wp_WaitUntilFreshAndGet :
-    EtcdGrove.cacher.watchCache.WaitUntilFreshAndGet.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.cacher.watchCache.WaitUntilFreshAndGet.wp_proof watchCache.wp_waitAndGetLatestSnapshot WatchCacheStorage.wp_LatestSnapshot btreeStore.wp_ResourceVersion btreeStore.wp_GetByKey tracing.wp_SpanFromContext tracing.Span.wp_AddEvent
 
 end links_hasLC
 
