@@ -6,6 +6,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApplier
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvGoAttach
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApRes
 
 @[expose] public section
 
@@ -52,7 +53,9 @@ returns `shouldStop = false`, since `applyConfChange` removes no member (`ccAppl
 caller's `stopWithDelay` is never reached. **The driver's view** (D43 M3, 2026-10-25; raft's
 dynamic mode): with a view `dv` (`dvOk`: no replay, the node at the server's decoder), the view
 after `A` goes to the view after `A ++ ms`, each conf entry applied through `applyConfChange`;
-without, nothing (raft's static mode, or no conf entry in the batch). -/
+without, nothing (raft's static mode, or no conf entry in the batch). **The membership** (D43
+M5e, 2026-10-26): the apply thread's membership resource (`srvApRes`: the fields and the cluster
+and transport `applyConfChange` writes) from `A` to `A ++ ms`. -/
 abbrev EtcdServer.apply.spec : Prop :=
   ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF) (ρ : ReqNames)
     (b : GoInterface) (es : GoSlice) (ents : List Loc) (ms : List EntryModel) (f0 : w64) (ep : Loc) (cs : Loc)
@@ -66,11 +69,12 @@ abbrev EtcdServer.apply.spec : Prop :=
       appliedLogAt γr (f0 - 1) x.log ∗ batchCommittedIdx γr ms ∗ srvWTPool E γp ∗
       srvWTAt γp (f0 - 1) ∗ srvFS s ∗
       kvApplied γr.raft γr.kv A x ∗ srvRest E γr A ∗ kvBatch γr (ciEff γ st.k) (f0 - 1) A ms ∗
-      dvView ρ.raft dv A ∗ dvRes s ρ.raft dv (A ++ ms) }}
+      dvView ρ.raft dv A ∗ dvRes s ρ.raft dv (A ++ ms) ∗ srvApRes s γr A }}
     (App (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"apply"))
       (Val #es)) (Val #ep)) (Val #rac))
   {{ (appliedt appliedi : w64) (shouldStop : Bool),
       RET (PairV (PairV #appliedt #appliedi) #shouldStop); srvFS s ∗ dvView ρ.raft dv (A ++ ms) ∗
+      srvApRes s γr (A ++ ms) ∗
       ∃ (st' : ApplyState) (a' at' : w64) (csl : Loc),
         applyThread γ st' ∗ applyBackend γ ci b ∗ ciApplying ci a' at' ∗
         epConfState ep csl ∗ srvLgReader s ∗ srvGoRes s ∗ srvAppliedOwn γr appliedi ∗

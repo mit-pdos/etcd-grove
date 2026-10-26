@@ -116,9 +116,18 @@ def trReadTok (Rh : RaftHttp GF) (t : Loc) (lid : w64) (γd : GName) (R : IProp 
 def trRemN : Namespace := nroot.@"rafthttp_tr_remotes"
 
 /-- **The peers' ids `rs`, for good** (persistent): the half of `γr` no longer with the owner
-(`trLive`: no more `AddPeer`, `RemovePeer`). -/
+(`trLive`: no more `AddPeer`, `RemovePeer`). (D43 M5e, 2026-10-26, the user's (B): a quarter
+always here, the other quarter the stop token `trFrozenTok` while not stopped, here once
+stopped: `Stop` takes the token.) -/
 def trRemotesFrozen (γr : GName) (rs : trIds) : IProp GF :=
-  inv trRemN (∃ sb : Bool, ghostVar (GF := GF) γr (1 : Qp).half (rs, sb))
+  inv trRemN iprop(∃ sb : Bool, ghostVar (GF := GF) γr (1 : Qp).half.half (rs, sb) ∗
+    (if sb then ghostVar (GF := GF) γr (1 : Qp).half.half (rs, sb) else iprop(True)))
+
+/-- **The frozen transport's stop token** (exclusive; D43 M5e, 2026-10-26, the user's (B)): the
+quarter of `γr` at "not stopped" that `Stop` takes; its holder (the static server's apply thread)
+knows the transport is not stopped (`AddPeer_frozen`). -/
+def trFrozenTok (γr : GName) (rs : trIds) : IProp GF :=
+  ghostVar (GF := GF) γr (1 : Qp).half.half (rs, false)
 
 instance trRemotesFrozen_persistent (γr : GName) (rs : trIds) :
     Persistent (trRemotesFrozen (GF := GF) γr rs) := by
@@ -260,10 +269,10 @@ theorem trRemotes_agree (γr : GName) (rs rs' : trIds) (sb : Bool) (q : Qp) :
   iintro #Hinv Hg
   unfold trRemotesFrozen
   iinv Hinv with Hi Hclose
-  imod Hi with ⟨%sb', Hi⟩
+  imod Hi with ⟨%sb', Hi, Hx⟩
   ihave %Hag := ghostVar_agree γr _ _ _ _ $$ Hi Hg
-  imod Hclose $$ [Hi] with -
-  · iexists sb'; iexact Hi
+  imod Hclose $$ [Hi Hx] with -
+  · iexists sb'; iframe
   imodintro
   iframe
   ipureintro; cases Hag; rfl
@@ -356,19 +365,34 @@ theorem trStop_take (Rh : RaftHttp GF) (R : IProp GF) (γs : GName) (L : List w6
   imodintro
   iframe
 
-/-- **The transport marked stopped** (`Stop`, under the write lock): both halves of `γr`. -/
+/-- **The transport marked stopped** (`Stop`, under the write lock): both halves of `γr`, the
+frozen record's with the stop token (D43 M5e). -/
 theorem trRemotes_stop (γr : GName) (rs : trIds) (sb : Bool) :
-    ⊢ trRemotesFrozen (GF := GF) γr rs -∗ ghostVar γr (1 : Qp).half (rs, sb) ={⊤}=∗
-      ghostVar γr (1 : Qp).half (rs, true) := by
-  iintro #Hinv Hg
-  unfold trRemotesFrozen
+    ⊢ trRemotesFrozen (GF := GF) γr rs -∗ trFrozenTok γr rs -∗
+      ghostVar γr (1 : Qp).half (rs, sb) ={⊤}=∗ ghostVar γr (1 : Qp).half (rs, true) := by
+  iintro #Hinv Htk Hg
+  unfold trRemotesFrozen trFrozenTok
   iinv Hinv with Hi Hclose
-  imod Hi with ⟨%sb', Hi⟩
-  imod ghostVar_update_halves (rs, true) γr _ _ $$ Hi Hg with ⟨Hi, Hg⟩
-  imod Hclose $$ [Hi] with -
-  · iexists true; iexact Hi
+  imod Hi with ⟨%sb', Hi, Hx⟩
+  ihave %Hag := ghostVar_agree γr _ _ _ _ $$ Hi Htk
+  cases Hag
+  ihave Hh := (ghostVar_split_half (GF := GF) γr (1 : Qp).half (rs, false)).2 $$ [Hi Htk]
+  · iframe
+  imod ghostVar_update_halves (rs, true) γr _ _ $$ Hh Hg with ⟨Hh, Hg⟩
+  icases (ghostVar_split_half (GF := GF) γr (1 : Qp).half (rs, true)).1 $$ Hh with ⟨Hi, Hi'⟩
+  imod Hclose $$ [Hi Hi'] with -
+  · inext; iexists true; iframe Hi; simp only [↓reduceIte]; iexact Hi'
   imodintro
   iexact Hg
+
+/-- **The stop token says "not stopped"** (D43 M5e): with a share of `γr`, its stopped flag is
+`false` and its ids the frozen ones. -/
+theorem trFrozenTok_agree (γr : GName) (rs rs' : trIds) (sb : Bool) (q : Qp) :
+    trFrozenTok (GF := GF) γr rs ∗ ghostVar γr q (rs', sb) ⊢ ⌜rs' = rs ∧ sb = false⌝ := by
+  unfold trFrozenTok
+  iintro ⟨Ht, Hg⟩
+  ihave %Hag := ghostVar_agree γr _ _ _ _ $$ Ht Hg
+  ipureintro; cases Hag; exact ⟨rfl, rfl⟩
 
 /-- A pool entry stays one when more ids are taken. -/
 theorem trPoolE_mono (R : IProp GF) (T : List w64) (id x : w64) :

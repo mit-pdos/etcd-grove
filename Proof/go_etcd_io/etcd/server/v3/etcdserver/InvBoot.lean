@@ -349,6 +349,10 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : RaftNames
     -- the cluster
     "#Hcl" ∷ rnClusterOk bc.cl' ∗ "#Hrc" ∷ membership.isRaftCluster bc.cl' ∗
     "#Hcid" ∷ membership.clusterCid bc.cl' cid ∗ "%Hid" ∷ ⌜bc.nodeID' = id⌝ ∗
+    -- (D43 M5e, 2026-10-26, the user's decision) its logger, read-only, not nil
+    -- (`NewClusterFromURLsMap` sets `lg` from the configuration's logger): what `AddMember` and
+    -- `RemoveMember` log through, `applyConfChange`'s
+    "#Hclg" ∷ (∃ lgc : Loc, membership.rcLgAddr bc.cl' ↦□ lgc ∗ ⌜lgc ≠ null⌝) ∗
     -- (audit B4a, 2026-10-18) its `versionChanged` field, owned (the cluster not yet shared):
     -- `NewServer`'s `SetVersionChangedNotifier` writes it without the lock, and the cluster's
     -- apply contract `Hisc` (whose `SetVersion` reads it) is for after, the field read-only
@@ -399,6 +403,12 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : RaftNames
     -- the consistent index and the apply protocol
     "%Hci" ∷ ⌜bk.ci' = ciIface cil ∧ γA.m0 = (W64 0, W64 0)⌝ ∗
     "#HisCI" ∷ isCI cil γA.ci ∗ "#Hcons" ∷ inv applyN (consInv γA) ∗
+    -- (D43 M5e, 2026-10-26, the user's decision) the backend's hooks, as `NewBackendHooks(cfg.Logger,
+    -- ci)` makes them (`bootstrapBackend`, `bootstrap.go:258`): the server's `s.beHooks`, whose
+    -- `SetConfState` `applyConfChange` calls
+    "#Hbh" ∷ (∃ lgh : Loc, storage.isBackendHooks bk.beHooks'
+      ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty, #cil⟩
+      lgh) ∗
     "Hthr" ∷ applyThread γA ⟨W64 0, W64 0, W64 0, false⟩ ∗
     "Happ" ∷ ciApplying cil (W64 0) (W64 0) ∗ "Hown" ∷ ciOwner cil bk.be' ∗
     "#Hmeta" ∷ isMetaBackend bk.be' (⊤ \ ↑applyN) (readView γA) ∗
@@ -624,6 +634,22 @@ theorem netTransport_of_key (γn : NetNames GF) (lid : w64) (tr : GoInterface) (
   isplitr
   · iexact Hstop
   · iexact Hsnap
+
+/-- **No one may stop it** (D43 M5e, 2026-10-26): a network transport whose `Stop` asks nothing
+it is given (`False`), the static server's raft wrapper's (its transport frozen, the stop token
+the apply thread's, `srvApRes`; M6 hands it to the wrapper). -/
+theorem netTransport_noStop (γn : NetNames GF) (lid : w64) (tr : GoInterface) (T TS : IProp GF) :
+    netTransport (GF := GF) γn lid tr T TS ⊢ netTransport γn lid tr T iprop(False) := by
+  iintro #Htr
+  iunfold netTransport at Htr
+  icases Htr with ⟨%ti, %Hti, #Hsend, #Hstop, #Hsnap⟩
+  iunfold netTransport
+  iexists ti
+  isplitr
+  · ipureintro; exact Hti
+  iframe Hsend Hsnap
+  iintro !> %Φ !> Hf -
+  iexfalso; iexact Hf
 
 /-- **The raft wrapper's transport from the network's** (D21 M2): an environment whose messages
 carry their bundle from the member `lid` (`E.M m` gives `netBundle`) can send them through it. -/

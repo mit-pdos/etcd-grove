@@ -33,7 +33,8 @@ error, or the transport live with no peer or remote yet (`trLive`: `AddPeer`, `R
 `RemoveAllPeers` record the peers' ids), all its lock's reader tokens (`trTok`), the network's
 transport of its member (`netTransport`: `Send` of the member's messages with a token,
 `SendSnapshot`, and `Stop` with the live right, `Stop_live`; or, once frozen, `trFrozen`,
-`trLive_freeze`, a free `Stop`) and its `ActiveSince` (`isTransporter`).
+`trLive_freeze`, a `Stop` taking the freeze's stop token, `trFrozenTok`, D43 M5e, 2026-10-26:
+free until then) and its `ActiveSince` (`isTransporter`).
 
 (Until stage 6d it also took the member's slot, `netSlot`, and `netProcSlots` copies of `R`,
 and asserted what the transport's goroutines and handlers do; these are now proved: each peer's
@@ -62,7 +63,7 @@ abbrev rafthttp.Transport.Start.spec : Prop :=
         rafthttp.isTransporter (interface.mkOk (go.GoType.PointerType rafthttp.Transport.ty) #t) ∗
         □ (∀ rs : trIds, trFrozen γn t c rs -∗
           netTransport γn c.lid (interface.mkOk (go.GoType.PointerType rafthttp.Transport.ty) #t)
-            (trTok γn t c) iprop(True)) }}
+            (trTok γn t c) (trFrozenTok c.γr rs)) }}
 
 end spec
 

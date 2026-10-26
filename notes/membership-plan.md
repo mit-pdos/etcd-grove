@@ -256,7 +256,7 @@ the requests in flight finish (`ErrStopped`). *(B)* Also `Stop`/`HardStop` from 
     `AddNode`'s member from `json.Unmarshal`, the static mode's `AddPeer` on a freely stoppable
     transport, the dynamic mode's `AddPeer`); M5d waits with it. Decided the same day; started (`Unmarshal`
     restated, the `be` field, the translation), then blocked on `s.beHooks`: D43 "M5e started, then
-    blocked again".
+    blocked again". **Done (2026-10-26)**: D43 "M5e carried out" (721 → 723 axioms).
 - **M6. The stopping server** (Q4 (A)): `apply`'s `shouldStop`, `stopWithDelay` translated, `errorc`
   carrying a stop request, `run`'s return and deferred shutdown (`Cleanup`, `raftNode.stop`,
   `transport.Stop` consuming the peers right), the "server open" token (D19m (B)) through every

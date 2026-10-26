@@ -26,7 +26,6 @@
 roots ^Proof/go_etcd_io/etcd/server/v3/etcdserver/(Link|Results)\.lean$
 axiom DescribeConfChange.wp_proof
 axiom EtcdServer.adjustTicks.wp_proof
-axiom EtcdServer.applyConfChange.wp_proof
 axiom EtcdServer.monitorClusterVersions.wp_proof
 axiom EtcdServer.monitorCompactHash.wp_proof
 axiom EtcdServer.monitorDowngrade.wp_proof
@@ -217,6 +216,9 @@ axiom rate.NewLimiter.wp_proof
 axiom reflect.ValueOf.wp_proof
 axiom schema.MustUnsafePutLease.wp_proof
 axiom schema.MustUnsafeSaveConfStateToBackend.wp_proof
+axiom schema.membershipBackend.MustDeleteMemberFromBackend.wp_proof
+axiom schema.membershipBackend.MustReadMembersFromBackend.wp_proof
+axiom schema.membershipBackend.MustSaveMemberToBackend.wp_proof
 axiom semver.MustParse.wp_proof
 axiom semver.New.wp_proof
 axiom semver.Version.LessThan.wp_proof

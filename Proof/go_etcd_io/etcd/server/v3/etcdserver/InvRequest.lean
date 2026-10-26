@@ -264,6 +264,13 @@ leaves raft's configuration as it is (the node is a voter already: `ccRaftOk`). 
 def ccApplyOk (cfg : GSet w64) (m : CCV1M) : Prop :=
   m.type = W32 0 ∧ m.nodeId ∈ cfg ∧ membership.ccContextOf m.context = some (m.nodeId, false)
 
+/-- **A conf change `applyConfChange` takes, in the server's mode** (D43 M5d/M5e, 2026-10-26, the
+user's decision): `ccApplyOk`, and in raft's dynamic mode also a `RemoveNode` of a member of the
+configuration (the local member excluded per server, until M6: `applyConfChange`'s premise). -/
+def ccApplyOkM (γs : ServerRaftNames) (m : CCV1M) : Prop :=
+  ccApplyOk γs.raft.reCfg m ∨
+    (γs.raft.reDyn.isSome = true ∧ m.type = W32 1 ∧ m.nodeId ∈ γs.raft.reCfg)
+
 /-- The bytes `d` of a conf-change entry decode to a change `applyConfChange` takes. -/
 def ccBootOk (cfg : GSet w64) (d : List w8) : Prop :=
   ∀ m, ccDecodeV1 d = some m → ccApplyOk cfg m

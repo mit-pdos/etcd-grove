@@ -83,13 +83,19 @@ tracked buckets `bk` (`membersOfBk`); `true` when it returns `nil`. -/
 def membership.ccValidOn [FfiSyntax] (bk : GMap GoString backend.BktData) (m : CCV1M) : Bool :=
   decide (membership.ccValidM (membership.membersOfBk bk).1 (membership.membersOfBk bk).2 m)
 
+/-- **The member an `AddNode`'s `AddMember` adds** (D43 M5e, 2026-10-26): the context's member
+(`ccMemberOf`) with the change's node as its id (`json.Unmarshal`'s `ID` field, which
+`applyConfChange` checks against the change's `NodeId`). -/
+def membership.ccMemberAt [FfiSyntax] (m : CCV1M) : apply.MemberM :=
+  { membership.ccMemberOf m.context with id := m.nodeId }
+
 /-- The value `MustDeleteMemberFromBackend` puts under a removed member's key in
 `members_removed` (`[]byte("removed")`). -/
 def membership.removedVal [FfiSyntax] : GoString := go!"removed"
 
 /-- **What `applyConfChange(cc, ep, v3)` does to the rest buckets and the members** (D22,
 2026-10-23; D43 M5b′, 2026-10-26: with `RemoveNode`): with `v3`, a change that validates
-(`ccValidOn`): an `AddNode` adds the context's member, in memory and in `members` (`AddMember`'s
+(`ccValidOn`): an `AddNode` adds the context's member (`ccMemberAt`), in memory and in `members` (`AddMember`'s
 `MustSaveMemberToBackend` and `c.members[m.ID] = m`); a `RemoveNode` deletes the member from
 `members` and records it in `members_removed` (`RemoveMember`'s `MustDeleteMemberFromBackend`)
 and from memory (`delete(c.members, id)`). Anything else nothing (a failed validation; without
@@ -97,8 +103,8 @@ and from memory (`delete(c.members, id)`). Anything else nothing (a failed valid
 def ccRest [FfiSyntax] (v3 : Bool) (m : CCV1M) (r : apply.RestM) : apply.RestM :=
   if v3 = true ∧ membership.ccValidOn r.bk m = true then
     if m.type = W32 0 then
-      ({ r with mem := r.mem.insert m.nodeId (membership.ccMemberOf m.context) } : apply.RestM).putIn
-        go!"members" (apply.memberKey m.nodeId) (apply.memberEnc (membership.ccMemberOf m.context))
+      ({ r with mem := r.mem.insert m.nodeId (membership.ccMemberAt m) } : apply.RestM).putIn
+        go!"members" (apply.memberKey m.nodeId) (apply.memberEnc (membership.ccMemberAt m))
     else if m.type = W32 1 then
       (({ r with mem := r.mem.delete m.nodeId } : apply.RestM).delIn go!"members"
         (apply.memberKey m.nodeId)).putIn go!"members_removed" (apply.memberKey m.nodeId)

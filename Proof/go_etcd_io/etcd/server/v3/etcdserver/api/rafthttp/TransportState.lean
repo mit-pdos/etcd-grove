@@ -152,20 +152,25 @@ instance trFrozen_persistent (γn : NetNames GF) (t : Loc) (c : TrN GF) (rs : tr
 def trTok (γn : NetNames GF) (t : Loc) (c : TrN GF) : IProp GF :=
   trReadTok (netRh γn) t c.lid c.γd c.R c.γs c.γr
 
-/-- **The freeze**: a live transport given up for good. -/
+/-- **The freeze**: a live transport given up for good, with the stop token (D43 M5e). -/
 theorem trLive_freeze (γn : NetNames GF) (t : Loc) (c : TrN GF) (rs : trIds) (E : CoPset) :
-    ⊢ trLive γn t c rs ={E}=∗ trFrozen γn t c rs := by
+    ⊢ trLive γn t c rs ={E}=∗ trFrozen γn t c rs ∗ trFrozenTok c.γr rs := by
   iintro Hl
   iunfold trLive at Hl
   icases Hl with ⟨#Hst, Hg⟩
-  imod inv_alloc trRemN E iprop(∃ sb : Bool, ghostVar (GF := GF) c.γr (1 : Qp).half (rs, sb))
+  icases (ghostVar_split_half (GF := GF) c.γr (1 : Qp).half (rs, false)).1 $$ Hg with ⟨Hg, Htk⟩
+  imod inv_alloc trRemN E iprop(∃ sb : Bool, ghostVar (GF := GF) c.γr (1 : Qp).half.half (rs, sb) ∗
+      (if sb then ghostVar (GF := GF) c.γr (1 : Qp).half.half (rs, sb) else iprop(True)))
     $$ [Hg] with #Hi
-  · inext; iexists false; iexact Hg
+  · inext; iexists false; iframe; simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
   imodintro
   iunfold trFrozen
   iframe Hst
-  iunfold trRemotesFrozen
-  iexact Hi
+  isplitr
+  · iunfold trRemotesFrozen
+    iexact Hi
+  iunfold trFrozenTok
+  iexact Htk
 
 /-- The lock's reader tokens are the transport's (`n` kept abstract: the kernel would unfold a
 literal count). -/

@@ -19,7 +19,6 @@ axiom Client.roundRobinQuorumBackoff.wp_proof
 axiom Client.streamClientInterceptor.wp_proof
 axiom DescribeConfChange.wp_proof
 axiom EtcdServer.adjustTicks.wp_proof
-axiom EtcdServer.applyConfChange.wp_proof
 axiom EtcdServer.monitorClusterVersions.wp_proof
 axiom EtcdServer.monitorCompactHash.wp_proof
 axiom EtcdServer.monitorDowngrade.wp_proof
@@ -316,6 +315,7 @@ axiom context.ValueStartTime.wp_proof
 axiom context.WithCancelBackground.wp_proof
 axiom context.WithCancelTodo.wp_proof
 axiom context.WithValue.wp_proof
+axiom encoding.json.Unmarshal.wp_proof
 axiom endpoint.RequiresCredentials.wp_proof
 axiom errors.AsLeaf.wp_proof
 axiom errors.IsCtxErr.wp_proof
@@ -432,6 +432,8 @@ axiom lease.lessor.scheduleCheckpointIfNeeded.wp_proof
 axiom math.Ceil.wp_proof
 axiom membership.RaftCluster.SetVersionChangedNotifier.wp_proof
 axiom membership.RaftCluster.String.wp_proof
+axiom membership.RaftCluster.updateMembershipMetric.wp_proof
+axiom membership.setIsLearnerMetric.wp_proof
 axiom metadata.FromIncomingContext.wp_proof
 axiom metadata.MD.Get.wp_proof
 axiom monitorFileDescriptor.wp_proof
@@ -496,6 +498,9 @@ axiom resolver.EtcdManualResolver.SetEndpoints.wp_proof
 axiom resolver.New.wp_proof
 axiom rpctypes.errDesc_etcdError
 axiom schema.MustUnsafePutLease.wp_proof
+axiom schema.membershipBackend.MustDeleteMemberFromBackend.wp_proof
+axiom schema.membershipBackend.MustReadMembersFromBackend.wp_proof
+axiom schema.membershipBackend.MustSaveMemberToBackend.wp_proof
 axiom semver.MustParse.wp_proof
 axiom semver.New.wp_proof
 axiom semver.Version.LessThan.wp_proof

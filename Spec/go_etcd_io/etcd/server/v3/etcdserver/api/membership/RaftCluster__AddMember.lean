@@ -43,7 +43,7 @@ map keeps, with the in-memory members' apply-thread half at `mem` (`clusterMem`)
 `m` of value `mm` (the map, with `mm`'s id, of at most `2 ^ 62` members): with `v3`, it calls the
 backend's save (`c.be`, an interface `bi` read-only, whose triple the caller gives: the backend's
 buckets are the caller's, `Ps` to `Qs`) and puts `m` into the map, its half and the apply thread's
-half now at `mem` with `mm` at its id (`m` given up: the map holds it); without, nothing (`m`
+half now at `mem` with `mm` at its id, the map's entry `m` (`clusterMemIn`, D43 M5e: `m` given up, the map holds it); without, nothing (`m`
 back). Its other reads are of read-only fields: the logger (non-nil), the cluster id, the local
 id. -/
 abbrev membership.RaftCluster.AddMember.spec : Prop :=
@@ -59,7 +59,7 @@ abbrev membership.RaftCluster.AddMember.spec : Prop :=
     (App (App (Val (c @!! go.GoType.PointerType
       go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty @!!
       go!"AddMember")) (Val #m)) (Val #v3))
-  {{ RET #(); membership.rcBeAddr c ↦{dqb} GoInterface.ok bi ∗ if v3 then iprop(Qs ∗ membership.clusterMem c (GMap.insert mm.id mm mem))
+  {{ RET #(); membership.rcBeAddr c ↦{dqb} GoInterface.ok bi ∗ if v3 then iprop(Qs ∗ membership.clusterMemIn c (GMap.insert mm.id mm mem) mm.id m)
       else iprop(membership.clusterMem c mem ∗ membership.memberAt m 1 mm) }}
 
 end spec

@@ -85,6 +85,10 @@ theorem RestM.putIn_bk (r : RestM) (n k v : GoString) : (r.putIn n k v).bk = bkP
 
 theorem RestM.delIn_bk (r : RestM) (n k : GoString) : (r.delIn n k).bk = bkDel r.bk n k := rfl
 
+theorem RestM.putIn_mem (r : RestM) (n k v : GoString) : (r.putIn n k v).mem = r.mem := rfl
+
+theorem RestM.delIn_mem (r : RestM) (n k : GoString) : (r.delIn n k).mem = r.mem := rfl
+
 /-- **`SetVersion` of the version `MustParse(s)`** (see the file header). -/
 def restSetVersion [FfiSyntax] (v3 : Bool) (s : GoString) (r : RestM) : RestM :=
   if v3 then r.putIn go!"cluster" clusterVersionKey (semverNorm s) else r

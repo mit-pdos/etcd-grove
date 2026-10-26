@@ -7,6 +7,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApplier
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvGoAttach
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApRes
 
 @[expose] public section
 
@@ -60,10 +61,11 @@ abbrev EtcdServer.applyEntries.spec : Prop :=
       srvApplyKV s E ρ.wait x ∗ srvAppliedOwn γr ai ∗ appliedLogAt γr ai x.log ∗
       batchCommittedIdx γr ms ∗ srvWTPool E γp ∗ srvWTAt γp ai ∗ srvFS s ∗
       kvApplied γr.raft γr.kv A x ∗ srvRest E γr A ∗ kvBatch γr (ciEff γ st.k) ai A (unapplied ai ms) ∗
-      dvView ρ.raft dv A ∗ dvRes s ρ.raft dv (A ++ unapplied ai ms) }}
+      dvView ρ.raft dv A ∗ dvRes s ρ.raft dv (A ++ unapplied ai ms) ∗ srvApRes s γr A }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyEntries"))
       (Val #ep)) (Val #ap))
   {{ RET #(); srvFS s ∗ dvView ρ.raft dv (A ++ unapplied ai ms) ∗
+      srvApRes s γr (A ++ unapplied ai ms) ∗
       ∃ (st' : ApplyState) (ai' at' a' t' : w64) (cs' : Loc),
         epAppliedIAddr ep ↦ ai' ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs' ∗
         applyThread γ st' ∗ applyBackend γ ci b ∗ ciApplying ci a' t' ∗ srvLgReader s ∗ srvGoRes s ∗

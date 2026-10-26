@@ -6,7 +6,6 @@ axiom Client.roundRobinQuorumBackoff.wp_proof
 axiom Client.streamClientInterceptor.wp_proof
 axiom DescribeConfChange.wp_proof
 axiom EtcdServer.adjustTicks.wp_proof
-axiom EtcdServer.applyConfChange.wp_proof
 axiom EtcdServer.monitorClusterVersions.wp_proof
 axiom EtcdServer.monitorCompactHash.wp_proof
 axiom EtcdServer.monitorDowngrade.wp_proof
@@ -617,6 +616,9 @@ axiom resolver.New.wp_proof
 axiom rpctypes.errDesc_etcdError
 axiom schema.MustUnsafePutLease.wp_proof
 axiom schema.MustUnsafeSaveConfStateToBackend.wp_proof
+axiom schema.membershipBackend.MustDeleteMemberFromBackend.wp_proof
+axiom schema.membershipBackend.MustReadMembersFromBackend.wp_proof
+axiom schema.membershipBackend.MustSaveMemberToBackend.wp_proof
 axiom semver.MustParse.wp_proof
 axiom semver.New.wp_proof
 axiom semver.Version.LessThan.wp_proof

@@ -173,11 +173,13 @@ contract, `rafthttp.Transport`, asking nothing of them) with its bundle (`srvMsg
 M1), a tick's resource raft's tick credit of the budget `bud`, the read names `ρ.rd`, raft's read
 registrations. (2026-10-24, rafthttp stage 6d) Of the member `id` (its messages' sender), the
 transport's `Send` borrowing `S` (the server's: the raft loop's key, `srvTrKey`); (D43 M5c) its
-`Stop` taking nothing (`ST := True`: the static server's transport is frozen). -/
+`Stop` (D43 M5e, 2026-10-26) asked of no one (`ST := False`: the static server's transport is
+frozen, its stop token the apply thread's, `srvApRes`, which M6's stopping server hands over; until
+then `True`, a free `Stop`, which Go's `AddPeer` on a stopped transport made unsound). -/
 def srvEr (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV)
     (bud : BudgetNames) (id : w64) (S : IProp GF) : RNEnv GF :=
   ⟨srvC ρ E ai₀ c₀ x₀, fun m => iprop(srvMsgNet ρ.raft.raft bud id m ∗ srvMsgNoSnap m),
-    iprop(True), ρ.rd, srvRQ ρ.rd.raft, S, iprop(True)⟩
+    iprop(True), ρ.rd, srvRQ ρ.rd.raft, S, iprop(False)⟩
 
 /-- The ticker's contract does not read the transport's borrow (`isRNTicker` reads `E.T`). -/
 theorem rnTickerOk_srvEr_S (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64)
@@ -284,7 +286,7 @@ def applyBuiltNA (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (E : a
     ciApplying ci a t ∗ srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗ srvBeOwn s E ∗
     revAuth E x₀.log ∗ srvAuthApplyRes s E ∗
     srvAppliedOwn γr ai₀ ∗ appliedLogAt γr ai₀ x₀.log ∗ kvRun γr ai₀ c₀ [] x₀ ∗ srvRest E γr [] ∗
-    srvForceSnapAddr s ↦ f)
+    srvApRes s γr [] ∗ srvForceSnapAddr s ↦ f)
 
 /-- **The built part** (`NewServer.spec`'s postcondition, on success): `isServerBuilt` but the
 rows of `srvBuildGap` (named as `isServerBuilt`'s; `#Hfb`, `#Hrdb`, `Happ` without their KV

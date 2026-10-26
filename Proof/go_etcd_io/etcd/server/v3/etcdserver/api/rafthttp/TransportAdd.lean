@@ -389,6 +389,55 @@ theorem rafthttp.Transport.AddRemote_frozen
     simp only [Option.isSome_some, _root_.decide_true]
     arf_return
 
+set_option maxRecDepth 8000 in
+set_option maxHeartbeats 8000000 in
+/-- **`t.AddPeer(id, us)` of a current peer, not stopped** (D43 M5e, 2026-10-26, the user's (B) and
+`AddPeer_known`): with a share of `γr` at the peers' ids `rs` and "not stopped" (the live
+transport's half, or the frozen transport's stop token), of an id among them, it returns at once
+(Go's known-peer check: `t.peers` not `nil`, `id` in it), nothing changed. -/
+theorem rafthttp.Transport.AddPeer_known_core
+    (Rh : RaftHttp GF) (t : Loc) (lid : w64) (γd : GName) (R : IProp GF) (γs γr : GName)
+    (rs : trIds) (q : Qp) (id : w64) (us : GoSlice) (Hid : id ∈ rs) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
+        sync.isRWMutexGuard (t.[rafthttp.Transport, go!"mu"]) (trLockP Rh t lid γd R γs γr) ∗
+        ghostVar γr q (rs, false) }}
+      (App (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"AddPeer")) (Val #id))
+        (Val #us))
+    {{ RET #(); ghostVar γr q (rs, false) }} := by
+  wp_start as ⟨#Hgd, Hlive⟩
+  ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
+  · iPkgInit
+  wp_apply wp_with_defer as %defer defer
+  (try wp_auto)
+  wp_apply sync.RWMutex.wp_Lock_guard $$ [] as ⟨Hwl, HP⟩
+  · iframe #
+  iunfold trLockP at HP
+  icases HP with ⟨%pm, %rm, %PM, %RM, %T, %rs', %sb, Hp, Hr, Hpm, Hrm, Hg, Hgr, %Hrs, #Hpo, #Hro,
+    Hts⟩
+  ihave %Hag := ghostVar_agree γr _ _ _ _ $$ Hlive Hgr
+  cases Hag
+  obtain ⟨Hnn, Hcov, HT⟩ := Hrs
+  obtain ⟨Hpmnn, Hrmnn⟩ := Hnn rfl
+  (try wp_auto)
+  rw [_root_.decide_eq_false (show ¬ pm = map.nil from Hpmnn)]
+  (try wp_auto)
+  wp_apply wp_lookup2_mapOrNil _ pm _ PM id $$ [Hpm] as Hpm
+  · iframe Hpm
+  (try wp_auto)
+  have hsome := Hcov Hrmnn id Hid
+  cases hp : PM !! id with
+  | none => rw [hp] at hsome; exact absurd hsome (by simp)
+  | some pi =>
+    simp only [Option.getD_some, Option.isSome_some, _root_.decide_true]
+    (try wp_auto)
+    wp_apply sync.RWMutex.wp_Unlock_guard $$ [Hwl Hp Hr Hpm Hrm Hg Hgr Hts]
+    · iframe #; iframe Hwl
+      inext
+      iunfold trLockP; iexists pm, rm, PM, RM, T, rs, false; iframe; iframe #
+      ipureintro; exact ⟨fun _ => ⟨Hpmnn, Hrmnn⟩, Hcov, HT⟩
+    (try wp_auto)
+    iapply HΦ; iframe
+
 end proof
 
 end EtcdGrove

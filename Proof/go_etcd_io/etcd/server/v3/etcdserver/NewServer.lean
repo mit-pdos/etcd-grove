@@ -748,6 +748,7 @@ theorem NewServer.wp_proofM (on : Bool)
     iNamed Hfix
     iexact NodeC
   ipersist memberID
+  ipersist beHooks
   ipersist stats
   ihave #Hprocok : srvProcOk γn s id $$ []
   · iunfold srvProcOk
@@ -965,11 +966,12 @@ theorem NewServer.wp_proofM (on : Bool)
     ⟨Hγw.2.2.2.1, Hγw.2.2.2.2, rfl⟩
   -- the transport, started: (rafthttp stage 6d) frozen, every other member a peer; the network's
   -- transport, its `Send` with the raft loop's key (fixed to it now)
-  imod (trLive_freeze γn t c L ⊤) $$ Htlive with #Hfz
+  imod (trLive_freeze γn t c L ⊤) $$ Htlive with ⟨#Hfz, Htk⟩
   ihave #Htrall0 := Htstart $$ %L Hfz
   imod (srvSendKey_fix γk s t c) $$ Hk with #Hkx
-  ihave #Htrall : netTransport γn id (transportIface t) (srvTrKey γn γk) iprop(True) $$ []
+  ihave #Htrall : netTransport γn id (transportIface t) (srvTrKey γn γk) iprop(False) $$ []
   · rw [← Hcl]
+    iapply netTransport_noStop
     iapply (netTransport_of_key γn c.lid (transportIface t) γk s t c HcR) $$ Hkx Htrall0
   -- the transport's reader tokens: the raft loop's key, `CutPeer`'s and `MendPeer`'s, and the
   -- requests' its handler serves
@@ -1070,7 +1072,7 @@ theorem NewServer.wp_proofM (on : Bool)
         (srvEr ρ E₀ (W64 0) (W64 0) (bootKVOf on) bud id (srvTrKey γn γk)).ST $$ []
     · rw [show (srvEr ρ E₀ (W64 0) (W64 0) (bootKVOf on) bud id (srvTrKey γn γk)).S = srvTrKey γn γk
         from rfl,
-        show (srvEr ρ E₀ (W64 0) (W64 0) (bootKVOf on) bud id (srvTrKey γn γk)).ST = iprop(True)
+        show (srvEr ρ E₀ (W64 0) (W64 0) (bootKVOf on) bud id (srvTrKey γn γk)).ST = iprop(False)
         from rfl]
       iexact Htrall
     iapply isRNTransport_of_net γn id $$ [] Htrall'
@@ -1367,7 +1369,7 @@ theorem NewServer.wp_proofM (on : Bool)
   · iexists _; iexact Hcmown
   isplitl [Hnot]
   · iexact Hnot
-  isplitl [Hthr Happ Hown Hlr5 Hbmr beA HγbA Hrev HAR Haown Hkhi2 forceDiskSnapshot Hrbo Hmem HalOn HauthOn HleOn HclBe]
+  isplitl [Hthr Happ Hown Hlr5 Hbmr beA HγbA Hrev HAR Haown Hkhi2 forceDiskSnapshot Hrbo Hmem HalOn HauthOn HleOn HclBe Htk]
   · -- `Happ`
     unfold applyBuiltNA srvBemuReaderAt
     iexists ⟨W64 0, W64 0, W64 0, false⟩, W64 0, W64 0, false
@@ -1390,7 +1392,7 @@ theorem NewServer.wp_proofM (on : Bool)
     · iexact HAR
     isplitr
     · simp only [bootKVOf]; rw [← Hlog0]; iexact Hal0
-    isplitr [Hrbo Hmem HalOn HauthOn HleOn HclBe]
+    isplitr [Hrbo Hmem HalOn HauthOn HleOn HclBe Htk]
     · unfold kvRun kvApplied kvAppliedL kvCert
       iframe Hrlb
       isplitl [Hkhi2]
@@ -1410,8 +1412,39 @@ theorem NewServer.wp_proofM (on : Bool)
       have hboot : ρ.rd.raft.raft.reBoot = bootLog := by rw [HρRaft]; exact Hrboot
       rw [hpre, hboot, List.append_nil, restModel_nil]
       dsimp only
-      unfold srvRestOwnH srvRestOwn restBoot srvObjsOn
-      iframe Hrbo Hmem HalOn HauthOn HleOn HclBe
+      isplitl [Hrbo Hmem HalOn HauthOn HleOn HclBe]
+      · unfold srvRestOwnH srvRestOwn restBoot srvObjsOn
+        iframe Hrbo Hmem HalOn HauthOn HleOn HclBe
+      -- (D43 M5e) the apply thread's membership resource: the frozen transport's stop token
+      have hdn : γ.reDyn = none := Hrn4d.mp rfl
+      have hργ : ρ.rd.raft.raft = γ := by rw [HρRaft]
+      iunfold srvApRes
+      icases Hbh with ⟨%lgh, #Hbhi⟩
+      icases Hclg with ⟨%lgc, #Hclgf, %Hlgcnn⟩
+      iunfold membership.clusterCid at Hcid
+      iexists bk.beHooks',
+        ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.cindex.consistentIndex.ty, #cil⟩,
+        lgh, t, id, bc.cl', lgc, cid, L
+      rw [← Hid]
+      iframe beHooks Hbhi Htrf memberID cluster Hclgf Hcid
+      isplitr
+      · ipureintro; exact Hlgcnn
+      unfold ccMembRes srvDynLog
+      rw [hργ, hdn]
+      dsimp only
+      iframe Hrc
+      isplitl [Htk]
+      · iexists γn, c
+        iframe Hfz Htk
+        ipureintro; rw [Hcl, Hid]
+      ipureintro
+      refine ⟨⟨fun _ f hf hne => ?_, ?_⟩, trivial⟩
+      · apply Hcov f _ (by rw [Hid] at hne; exact hne)
+        rw [netRh_member, Hγn.2]
+        rw [hργ, Hrcfg, GMap.elem_of_list_to_set] at hf
+        exact (Hdirps.1 f).2 hf
+      · exact srvMemOk_boot _ _ γ.reCCOk ps (by rw [HρRaft]) (by rw [hργ]; exact Hrcfg) Hrnodup
+          Hrpslen (by rw [hργ, Hrboot]; exact Hrbok)
   iframe Hlr3 Hlr4
   isplitl [Hfcr]
   · iexists fcn

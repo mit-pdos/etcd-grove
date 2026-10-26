@@ -120,10 +120,16 @@ ConfChange__GetId: @
 # The applier (`apply.Apply`): proved in the apply package (`--apply`), linked in its
 # `Link.lean` (`@`; since the apply package's unit 3, 2026-10-12).
 apply_Apply: @
-# The apply thread's trust boundary (`axiom … .wp_proof`), see InvApplier.lean: the
-# membership change's contract, and names-only callees (zap, the alarm store, ...).
-EtcdServer__applyConfChange:
+# The apply thread's trust boundary (`axiom … .wp_proof`), see InvApplier.lean: names-only
+# callees (zap, the alarm store, ...).
 pbutil_MustUnmarshalMessage:
+# (D43 M5e, 2026-10-26) `applyConfChange`, with its body (it was the trust boundary until
+# then); the membership backend's three writers and reader are the trust boundary (their
+# contracts over the rest model, storage/schema/membershipBackend__*.lean).
+schema_membershipBackend__MustSaveMemberToBackend:
+schema_membershipBackend__MustDeleteMemberFromBackend:
+schema_membershipBackend__MustReadMembersFromBackend:
+EtcdServer__applyConfChange: EtcdServer__Logger EtcdServer__MemberID RaftCluster__ValidateConfigurationChange RaftCluster__AddMember RaftCluster__RemoveMember schema_membershipBackend__MustSaveMemberToBackend schema_membershipBackend__MustDeleteMemberFromBackend schema_membershipBackend__MustReadMembersFromBackend storage_BackendHooks__SetConfState consistentIndex__ConsistentApplyingIndex rafthttp_Transport__RemovePeer raftpb_ConfChange__GetType raftpb_ConfChange__GetNodeId json_Unmarshal zap_Logger__Error zap_Bool zap_Error
 # The apply thread's small callees, with bodies (proved): the server's leader test and
 # logger (server.go), the notifier (pkg/notify), the election timeout (server/config), the
 # alarm store's Get (api/v3alarm).

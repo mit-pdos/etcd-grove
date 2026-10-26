@@ -181,9 +181,10 @@ theorem membership.RaftCluster.AddMember.wp_proof
       iframe Hbe
       try simp only [↓reduceIte]
       iframe HQs
-      iunfold membership.clusterMem
+      iunfold membership.clusterMemIn
       iexists _
-      iexact Hcm
+      iframe Hcm
+      ipureintro; exact GMap.lookup_insert _ _ _
 
 end proof
 

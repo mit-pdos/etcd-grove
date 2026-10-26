@@ -199,7 +199,7 @@ def applyBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (E : app
     (∃ ua : GoInterface, srvUberApplyAddr s ↦ ua ∗ apply.applierFor ua E ∗ apply.applyKV E ua x₀) ∗
     revAuth E x₀.log ∗ srvAuthApplyRes s E ∗
     srvAppliedOwn γr ai₀ ∗ appliedLogAt γr ai₀ x₀.log ∗ kvRun γr ai₀ c₀ [] x₀ ∗ srvRest E γr [] ∗
-    srvForceSnapAddr s ↦ f)
+    srvApRes s γr [] ∗ srvForceSnapAddr s ↦ f)
 
 /-- **The construction premise** (see the file header; named conjuncts, what a `NewServer` proof
 discharges). -/

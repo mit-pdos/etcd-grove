@@ -134,6 +134,13 @@ log's members (`memBoot`); the cluster's writers take it and give it back change
 def membership.clusterMem (c : Loc) (mem : GMap w64 apply.MemberM) : IProp GF :=
   iprop(∃ ms : GMap w64 Loc, membership.memAt c (1 : Qp).half ms mem)
 
+/-- **`clusterMem` with the location of one member** (D43 M5e, 2026-10-26): the apply thread's
+half of the members map, the member `id`'s record at `m` (`AddMember`'s answer, whose fields
+`applyConfChange` reads afterwards). -/
+def membership.clusterMemIn (c : Loc) (mem : GMap w64 apply.MemberM) (id : w64) (m : Loc) :
+    IProp GF :=
+  iprop(∃ ms : GMap w64 Loc, membership.memAt c (1 : Qp).half ms mem ∗ ⌜ms !! id = some m⌝)
+
 /-- The member `m`, owned (some id). -/
 def membership.ownMember (m : Loc) : IProp GF :=
   iprop(∃ id : w64, membership.memberIs m id)
@@ -586,6 +593,34 @@ theorem membership.memMembers_insert (q : Qp) (ms : GMap w64 Loc) (mem : GMap w6
   rw [GMap.lookup_insert]
   simp only [Option.getD_some]
   iexact Hm
+
+/-- `clusterMemIn` is `clusterMem` (forgetting the location). -/
+theorem membership.clusterMemIn_mem (c : Loc) (mem : GMap w64 apply.MemberM) (id : w64) (m : Loc) :
+    membership.clusterMemIn (GF := GF) c mem id m ⊢ membership.clusterMem c mem := by
+  unfold membership.clusterMemIn membership.clusterMem
+  iintro ⟨%ms, H, -⟩
+  iexists ms
+  iexact H
+
+/-- The member `id` of `clusterMemIn`, borrowed at half. -/
+theorem membership.clusterMemIn_acc (c : Loc) (mem : GMap w64 apply.MemberM) (id : w64) (m : Loc) :
+    membership.clusterMemIn (GF := GF) c mem id m ⊢
+      membership.memberAt m (1 : Qp).half ((mem !! id).getD default) ∗
+      (membership.memberAt m (1 : Qp).half ((mem !! id).getD default) -∗
+        membership.clusterMemIn c mem id m) := by
+  unfold membership.clusterMemIn
+  iintro ⟨%ms, H, %Hl⟩
+  icases membership.memAt_open c _ ms mem $$ H with ⟨%mp, Hf, Hm, Hms, Hback⟩
+  icases (BigSepM.bigSepM_lookup_acc (Φ := fun k m' =>
+      membership.memberAt (GF := GF) m' (1 : Qp).half ((mem !! k).getD default)) Hl).1 $$ Hms
+    with ⟨Hmm, Hms⟩
+  iframe Hmm
+  iintro Hmm
+  iexists ms
+  isplitl
+  · iapply Hback $$ Hf Hm
+    iapply Hms $$ Hmm
+  ipureintro; exact Hl
 
 end lemmas
 

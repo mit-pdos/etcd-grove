@@ -19051,6 +19051,42 @@ transport's stop token (`trFrozenTok`, `Stop_full`, `trLive_freeze`, `Transport.
 `ccRest`, `InvApRes.lean` (`ccMembRes`, `ccPeersAfter`), `applyConfChange`'s restated spec and its
 proof through the `v3 = false` branch's `AddMember` call.
 
+**M5e carried out (2026-10-26, branch `membership-m5`; the user's decisions on the three
+blockers: `Unmarshal` restated, (B) one apply-thread resource, `AddPeer_known` with the positional
+policy, `beHooks` and the cluster's logger in `bootOk`, `ccMemberAt` in `ccRest`).** The trust base
+721 → 723 axioms (5 `sorry`s): the member backend's three contracts linked, the
+`applyConfChange` axiom gone.
+- `EtcdServer.applyConfChange` proved (`Proof/.../EtcdServer__applyConfChange.lean`) from its
+  translation, over `ValidateConfigurationChange`, `AddMember`, `RemoveMember`, the three backend
+  contracts, `BackendHooks.SetConfState`, `ConsistentApplyingIndex`, `Transport.RemovePeer`,
+  `json.Unmarshal`, raft's getters and zap; its spec restated: the policy `ccApplyOkM` (the boot
+  `AddNode`s, and in raft's dynamic mode a `RemoveNode` of a member of the configuration), the
+  local member never removed, an `AddNode`'s node local or a known peer, the members map within
+  `2^62` (`ccMemberAt`), the two buckets present; it takes the server's `beHooks`, transport,
+  member id, the cluster's logger and id, the logger's reader and the apply thread's membership
+  resource (`ccMembRes`), and gives the transport's peers after (`ccPeersAfter`).
+- `ccRest`'s `AddNode` adds `ccMemberAt m` (the context's member with the change's node as its
+  id: `applyConfChange` checks the decoded `ID` against `NodeId`, so the member `AddMember` adds
+  is that), approved. `AddMember`'s post locates the member (`clusterMemIn`, new in
+  `membership/Defs.lean`).
+- The static transport's stop token: `trRemotesFrozen` holds a quarter of `γr` at "not stopped"
+  (and another once stopped); `trFrozenTok γr rs` is the other quarter, which `trLive_freeze`
+  returns, `Stop_full` consumes and `AddPeer_frozen` (a known peer, while not stopped) lends
+  back; `Transport.Start`'s post restated (`trFrozen_net`'s `TS` is the token). The static raft
+  wrapper's stop right `srvEr`'s `ST` is `False`: only the apply thread holds the token (M6's
+  stopping server will route it). `AddPeer_known` (live transport, known id) proved.
+- The apply-thread resource `srvApRes s γr A` (`InvApRes.lean`): the server's `beHooks`,
+  transport, member id, cluster (its logger, its id) fields; `ccMembRes` (static: the cluster's
+  `isRaftCluster`, `trFrozen` and the token; dynamic: `trLive`, `isRaftClusterG (rcDyn γ)`,
+  `rcRemovedOwn`); the peers covering every other member of raft's configuration not yet
+  removed (`srvPeersCover`); the members model's keys (`srvMemOk`); and the dynamic mode's
+  positional policy (`srvDynLog`, an assumption of the dynamic mode, M8's to establish). Threaded
+  through `apply`/`applyEntries`/`applyAll` (`A` to `A ++ ms`), `run`'s job body and `run`;
+  `NewServer` produces it at `[]` (`srvMemOk_boot`, the static token from `trLive_freeze`).
+- `bootOk` states the backend hooks (`isBackendHooks` of `NewBackendHooks(cfg.Logger, ci)`) and
+  the boot cluster's logger (approved), stronger premises of every server example's closed
+  theorem whose statement text is unchanged; `netTransport_noStop` (any `TS`, `False`).
+
 ## S5e of the auth plan: the simple token provider with no hypothesis (2026-10-25 · `notes/auth-plan.md`, branch `auth-s5e`)
 
 **Problem.** S5d left the simple provider meeting the token contract over two hypotheses: the TTL
