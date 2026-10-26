@@ -231,11 +231,12 @@ theorem newClient.wp_proof
     · isplitr
       · ipureintro; exact Hcnn
       ipureintro; exact Htb
-    wp_apply wp_NewAuth «$r0_ptr» $$ [$Hcore] as %va -
+    wp_apply wp_NewAuth «$r0_ptr» eps $$ [$Hkv] as %va ⟨%ap, %Hva, #Hap⟩
     wp_apply wp_NewMaintenance «$r0_ptr» $$ [$Hcore] as %vm -
     ipersist KV
     ipersist Watcher
     ipersist Lease
+    ipersist Auth
     ihave #Hcfgf := cfg
     iStructNamed Hcfgf
     wp_auto
@@ -298,9 +299,13 @@ theorem newClient.wp_proof
     · iexists w, conn, wc, wlg, [ic]
       subst Hwi
       iframe Watcher Hgc Hcw
-    iexists lp
-    subst Hvl
-    iframe Lease Hlp
+    isplitl []
+    · iexists lp
+      subst Hvl
+      iframe Lease Hlp
+    iexists ap
+    subst Hva
+    iframe Auth Hap
   · cases derr with
     | nil => exact absurd rfl Hderr
     | ok e =>
