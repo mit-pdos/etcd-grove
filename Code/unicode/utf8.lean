@@ -27,7 +27,9 @@ attribute [irreducible] acceptRange.ty
 
 axiom RuneError [FfiSyntax] [GoGlobalContext] : val
 
-axiom RuneSelf [FfiSyntax] [GoGlobalContext] : val
+/-- characters below RuneSelf are represented as themselves in a single byte. -/
+@[reducible] noncomputable def RuneSelf [FfiSyntax] [GoGlobalContext] : val :=
+  #(128 : Int)
 
 axiom MaxRune [FfiSyntax] [GoGlobalContext] : val
 
@@ -63,27 +65,47 @@ axiom rune2Max [FfiSyntax] [GoGlobalContext] : val
 
 axiom rune3Max [FfiSyntax] [GoGlobalContext] : val
 
-axiom locb [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def locb [FfiSyntax] [GoGlobalContext] : val :=
+  #(128 : Int)
 
-axiom hicb [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def hicb [FfiSyntax] [GoGlobalContext] : val :=
+  #(191 : Int)
 
-axiom xx [FfiSyntax] [GoGlobalContext] : val
+/-- invalid: size 1 -/
+@[reducible] noncomputable def xx [FfiSyntax] [GoGlobalContext] : val :=
+  #(241 : Int)
 
-axiom as' [FfiSyntax] [GoGlobalContext] : val
+/-- ASCII: size 1 -/
+@[reducible] noncomputable def as' [FfiSyntax] [GoGlobalContext] : val :=
+  #(240 : Int)
 
-axiom s1 [FfiSyntax] [GoGlobalContext] : val
+/-- accept 0, size 2 -/
+@[reducible] noncomputable def s1 [FfiSyntax] [GoGlobalContext] : val :=
+  #(2 : Int)
 
-axiom s2 [FfiSyntax] [GoGlobalContext] : val
+/-- accept 1, size 3 -/
+@[reducible] noncomputable def s2 [FfiSyntax] [GoGlobalContext] : val :=
+  #(19 : Int)
 
-axiom s3 [FfiSyntax] [GoGlobalContext] : val
+/-- accept 0, size 3 -/
+@[reducible] noncomputable def s3 [FfiSyntax] [GoGlobalContext] : val :=
+  #(3 : Int)
 
-axiom s4 [FfiSyntax] [GoGlobalContext] : val
+/-- accept 2, size 3 -/
+@[reducible] noncomputable def s4 [FfiSyntax] [GoGlobalContext] : val :=
+  #(35 : Int)
 
-axiom s5 [FfiSyntax] [GoGlobalContext] : val
+/-- accept 3, size 4 -/
+@[reducible] noncomputable def s5 [FfiSyntax] [GoGlobalContext] : val :=
+  #(52 : Int)
 
-axiom s6 [FfiSyntax] [GoGlobalContext] : val
+/-- accept 0, size 4 -/
+@[reducible] noncomputable def s6 [FfiSyntax] [GoGlobalContext] : val :=
+  #(4 : Int)
 
-axiom s7 [FfiSyntax] [GoGlobalContext] : val
+/-- accept 4, size 4 -/
+@[reducible] noncomputable def s7 [FfiSyntax] [GoGlobalContext] : val :=
+  #(68 : Int)
 
 axiom runeErrorByte0 [FfiSyntax] [GoGlobalContext] : val
 
@@ -91,19 +113,17 @@ axiom runeErrorByte1 [FfiSyntax] [GoGlobalContext] : val
 
 axiom runeErrorByte2 [FfiSyntax] [GoGlobalContext] : val
 
-axiom ptrSize [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def ptrSize [FfiSyntax] [GoGlobalContext] : val :=
+  #(8 : Int)
 
-axiom hiBits [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def hiBits [FfiSyntax] [GoGlobalContext] : val :=
+  #(9259542123273814144 : Int)
 
 noncomputable def first [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"unicode/utf8.first"
 
-axiom first.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def acceptRanges [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"unicode/utf8.acceptRanges"
-
-axiom acceptRanges.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def FullRune [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"unicode/utf8.FullRune"
@@ -165,6 +185,144 @@ noncomputable def ValidString [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def ValidRune [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"unicode/utf8.ValidRune"
 
+/-- go: utf8.go:462:6 -/
+noncomputable def word.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+  (LamV "s"
+  (App (Val exceptionDo)
+  (Let "s" (App (Val (GoInstruction (GoAlloc T))) (Var "s"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert go.uint64 go.uintptr))) (App (Val (GoInstruction (GoOp GoOr go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoOr go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoOr go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoOr go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoOr go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoOr go.uint64))) (Pair (App (Val (GoInstruction (GoOp GoOr go.uint64))) (Pair (App (Val (GoInstruction (Convert go.byte go.uint64))) (App (Val (GoInstruction (Index T))) (Pair (App (Val (GoInstruction (GoLoad T))) (Var "s")) (Val #(W64 0))))) (App (Val (GoInstruction (GoOp GoShiftl go.uint64))) (Pair (App (Val (GoInstruction (Convert go.byte go.uint64))) (App (Val (GoInstruction (Index T))) (Pair (App (Val (GoInstruction (GoLoad T))) (Var "s")) (Val #(W64 1))))) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(8 : Int))))))) (App (Val (GoInstruction (GoOp GoShiftl go.uint64))) (Pair (App (Val (GoInstruction (Convert go.byte go.uint64))) (App (Val (GoInstruction (Index T))) (Pair (App (Val (GoInstruction (GoLoad T))) (Var "s")) (Val #(W64 2))))) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(16 : Int))))))) (App (Val (GoInstruction (GoOp GoShiftl go.uint64))) (Pair (App (Val (GoInstruction (Convert go.byte go.uint64))) (App (Val (GoInstruction (Index T))) (Pair (App (Val (GoInstruction (GoLoad T))) (Var "s")) (Val #(W64 3))))) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(24 : Int))))))) (App (Val (GoInstruction (GoOp GoShiftl go.uint64))) (Pair (App (Val (GoInstruction (Convert go.byte go.uint64))) (App (Val (GoInstruction (Index T))) (Pair (App (Val (GoInstruction (GoLoad T))) (Var "s")) (Val #(W64 4))))) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(32 : Int))))))) (App (Val (GoInstruction (GoOp GoShiftl go.uint64))) (Pair (App (Val (GoInstruction (Convert go.byte go.uint64))) (App (Val (GoInstruction (Index T))) (Pair (App (Val (GoInstruction (GoLoad T))) (Var "s")) (Val #(W64 5))))) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(40 : Int))))))) (App (Val (GoInstruction (GoOp GoShiftl go.uint64))) (Pair (App (Val (GoInstruction (Convert go.byte go.uint64))) (App (Val (GoInstruction (Index T))) (Pair (App (Val (GoInstruction (GoLoad T))) (Var "s")) (Val #(W64 6))))) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(48 : Int))))))) (App (Val (GoInstruction (GoOp GoShiftl go.uint64))) (Pair (App (Val (GoInstruction (Convert go.byte go.uint64))) (App (Val (GoInstruction (Index T))) (Pair (App (Val (GoInstruction (GoLoad T))) (Var "s")) (Val #(W64 7))))) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(56 : Int)))))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (Val #false))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoOp GoOr go.uintptr))) (Pair (App (Val (GoInstruction (GoOp GoOr go.uintptr))) (Pair (App (Val (GoInstruction (GoOp GoOr go.uintptr))) (Pair (App (Val (GoInstruction (Convert go.byte go.uintptr))) (App (Val (GoInstruction (Index T))) (Pair (App (Val (GoInstruction (GoLoad T))) (Var "s")) (Val #(W64 0))))) (App (Val (GoInstruction (GoOp GoShiftl go.uintptr))) (Pair (App (Val (GoInstruction (Convert go.byte go.uintptr))) (App (Val (GoInstruction (Index T))) (Pair (App (Val (GoInstruction (GoLoad T))) (Var "s")) (Val #(W64 1))))) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(8 : Int))))))) (App (Val (GoInstruction (GoOp GoShiftl go.uintptr))) (Pair (App (Val (GoInstruction (Convert go.byte go.uintptr))) (App (Val (GoInstruction (Index T))) (Pair (App (Val (GoInstruction (GoLoad T))) (Var "s")) (Val #(W64 2))))) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(16 : Int))))))) (App (Val (GoInstruction (GoOp GoShiftl go.uintptr))) (Pair (App (Val (GoInstruction (Convert go.byte go.uintptr))) (App (Val (GoInstruction (Index T))) (Pair (App (Val (GoInstruction (GoLoad T))) (Var "s")) (Val #(W64 3))))) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(24 : Int))))))))
+  (App (Val doExecute)
+  (Val #())))))))
+
+/-- ValidString reports whether s consists entirely of valid UTF-8-encoded runes.
+
+    go: utf8.go:522:6 -/
+noncomputable def ValidString.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "s"
+  (App (Val exceptionDo)
+  (Let "s" (App (Val (GoInstruction (GoAlloc go.string))) (Var "s"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #true))))
+  (App (App (App (Val doFor) (Lam BAnon
+  (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "s"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Index go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "s")) (Val #(W64 0))))
+  (Let "s0" (App (Val (GoInstruction (GoAlloc go.byte))) (App (Val (GoInstruction (GoZeroVal go.byte))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.uint8))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 256 go.uint8)))) (Pair (App (Val (GoInstruction (GlobalVarAddr first))) (Val #())) (App (Val (GoInstruction (Convert go.byte go.int))) (App (Val (GoInstruction (GoLoad go.byte))) (Var "s0"))))))
+  (Let "x" (App (Val (GoInstruction (GoAlloc go.uint8))) (App (Val (GoInstruction (GoZeroVal go.uint8))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.uint8 go.int))) (App (Val (GoInstruction (GoOp GoAnd go.uint8))) (Pair (App (Val (GoInstruction (GoLoad go.uint8))) (Var "x")) (Val #(W8 7)))))
+  (Let "size" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad acceptRange.ty))) (App (Val (GoInstruction (IndexRef (go.GoType.ArrayType 16 acceptRange.ty)))) (Pair (App (Val (GoInstruction (GlobalVarAddr acceptRanges))) (Val #())) (App (Val (GoInstruction (Convert go.uint8 go.int))) (App (Val (GoInstruction (GoOp GoShiftr go.uint8))) (Pair (App (Val (GoInstruction (GoLoad go.uint8))) (Var "x")) (App (Val (GoInstruction (Convert go.untypedInt go.uint64))) (Val #(4 : Int)))))))))
+  (Let "accept" (App (Val (GoInstruction (GoAlloc acceptRange.ty))) (App (Val (GoInstruction (GoZeroVal acceptRange.ty))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$sw" (App (Val (GoInstruction (GoLoad go.int))) (Var "size"))
+  (If (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Var "$sw") (Val #(W64 2))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$s" (App (Val (GoInstruction (GoLoad go.string))) (Var "s"))
+  (App (Val (GoInstruction (Slice go.string))) (Pair (Pair (Var "$s") (Val #(W64 2))) (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$s")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "s") (Var "$r0")))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (If (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "s"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))) (Val #(W64 2)))) (Val #true) (App (Val (GoInstruction (GoOp GoLt go.uint8))) (Pair (App (Val (GoInstruction (Index go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "s")) (Val #(W64 1)))) (App (Val (GoInstruction (GoLoad go.uint8))) (App (Val (GoInstruction (StructFieldRef acceptRange.ty go!"lo"))) (Var "accept")))))) (Val #true) (App (Val (GoInstruction (GoOp GoLt go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.uint8))) (App (Val (GoInstruction (StructFieldRef acceptRange.ty go!"hi"))) (Var "accept"))) (App (Val (GoInstruction (Index go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "s")) (Val #(W64 1))))))))
+  (App (Val doReturn)
+  (Val #false))
+  (App (Val doExecute)
+  (Val #()))))
+  (If (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Var "$sw") (Val #(W64 3))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$s" (App (Val (GoInstruction (GoLoad go.string))) (Var "s"))
+  (App (Val (GoInstruction (Slice go.string))) (Pair (Pair (Var "$s") (Val #(W64 3))) (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$s")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "s") (Var "$r0")))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (If (If (If (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "s"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))) (Val #(W64 3)))) (Val #true) (App (Val (GoInstruction (GoOp GoLt go.uint8))) (Pair (App (Val (GoInstruction (Index go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "s")) (Val #(W64 1)))) (App (Val (GoInstruction (GoLoad go.uint8))) (App (Val (GoInstruction (StructFieldRef acceptRange.ty go!"lo"))) (Var "accept")))))) (Val #true) (App (Val (GoInstruction (GoOp GoLt go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.uint8))) (App (Val (GoInstruction (StructFieldRef acceptRange.ty go!"hi"))) (Var "accept"))) (App (Val (GoInstruction (Index go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "s")) (Val #(W64 1))))))) (Val #true) (App (Val (GoInstruction (GoOp GoLt go.byte))) (Pair (App (Val (GoInstruction (Index go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "s")) (Val #(W64 2)))) (App (Val (GoInstruction (Convert go.untypedInt go.byte))) (Val locb))))) (Val #true) (App (Val (GoInstruction (GoOp GoLt go.byte))) (Pair (App (Val (GoInstruction (Convert go.untypedInt go.byte))) (Val hicb)) (App (Val (GoInstruction (Index go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "s")) (Val #(W64 2))))))))
+  (App (Val doReturn)
+  (Val #false))
+  (App (Val doExecute)
+  (Val #()))))
+  (If (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Var "$sw") (Val #(W64 4))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$s" (App (Val (GoInstruction (GoLoad go.string))) (Var "s"))
+  (App (Val (GoInstruction (Slice go.string))) (Pair (Pair (Var "$s") (Val #(W64 4))) (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$s")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "s") (Var "$r0")))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (If (If (If (If (If (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "s"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))) (Val #(W64 4)))) (Val #true) (App (Val (GoInstruction (GoOp GoLt go.uint8))) (Pair (App (Val (GoInstruction (Index go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "s")) (Val #(W64 1)))) (App (Val (GoInstruction (GoLoad go.uint8))) (App (Val (GoInstruction (StructFieldRef acceptRange.ty go!"lo"))) (Var "accept")))))) (Val #true) (App (Val (GoInstruction (GoOp GoLt go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.uint8))) (App (Val (GoInstruction (StructFieldRef acceptRange.ty go!"hi"))) (Var "accept"))) (App (Val (GoInstruction (Index go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "s")) (Val #(W64 1))))))) (Val #true) (App (Val (GoInstruction (GoOp GoLt go.byte))) (Pair (App (Val (GoInstruction (Index go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "s")) (Val #(W64 2)))) (App (Val (GoInstruction (Convert go.untypedInt go.byte))) (Val locb))))) (Val #true) (App (Val (GoInstruction (GoOp GoLt go.byte))) (Pair (App (Val (GoInstruction (Convert go.untypedInt go.byte))) (Val hicb)) (App (Val (GoInstruction (Index go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "s")) (Val #(W64 2))))))) (Val #true) (App (Val (GoInstruction (GoOp GoLt go.byte))) (Pair (App (Val (GoInstruction (Index go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "s")) (Val #(W64 3)))) (App (Val (GoInstruction (Convert go.untypedInt go.byte))) (Val locb))))) (Val #true) (App (Val (GoInstruction (GoOp GoLt go.byte))) (Pair (App (Val (GoInstruction (Convert go.untypedInt go.byte))) (Val hicb)) (App (Val (GoInstruction (Index go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "s")) (Val #(W64 3))))))))
+  (App (Val doReturn)
+  (Val #false))
+  (App (Val doExecute)
+  (Val #()))))
+  (App (Val doReturn)
+  (Val #false))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore acceptRange.ty))) (Pair (Var "accept") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "size") (Var "$r0")))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.uint8))) (Pair (Var "x") (Var "$r0")))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.byte))) (Pair (App (Val (GoInstruction (GoLoad go.byte))) (Var "s0")) (App (Val (GoInstruction (Convert go.untypedInt go.byte))) (Val RuneSelf)))))
+  (Let "$r0" (Let "$s" (App (Val (GoInstruction (GoLoad go.string))) (Var "s"))
+  (App (Val (GoInstruction (Slice go.string))) (Pair (Pair (Var "$s") (Val #(W64 1))) (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$s")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doContinue) (Val #()))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "s"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))) (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val ptrSize)))) (App (Val (GoInstruction (GoOp GoEquals go.uintptr))) (Pair (App (Val (GoInstruction (GoOp GoAnd go.uintptr))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "s"))
+  (App (App (Val (GoInstruction (FuncResolve word [go.string]))) (Val #())) (Var "$a0"))) (App (Val (GoInstruction (Convert go.untypedInt go.uintptr))) (Val hiBits)))) (Val #(W64 0)))) (Val #false)))
+  (Let "$r0" (Let "$s" (App (Val (GoInstruction (GoLoad go.string))) (Var "s"))
+  (App (Val (GoInstruction (Slice go.string))) (Pair (Pair (Var "$s") (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val ptrSize))) (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$s")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "s"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))) (Val #(W64 16)))) (App (Val (GoInstruction (GoOp GoEquals go.uintptr))) (Pair (App (Val (GoInstruction (GoOp GoAnd go.uintptr))) (Pair (App (Val (GoInstruction (GoOp GoOr go.uintptr))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "s"))
+  (App (App (Val (GoInstruction (FuncResolve word [go.string]))) (Val #())) (Var "$a0"))) (Let "$a0" (Let "$s" (App (Val (GoInstruction (GoLoad go.string))) (Var "s"))
+  (App (Val (GoInstruction (Slice go.string))) (Pair (Pair (Var "$s") (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val ptrSize))) (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$s")))))
+  (App (App (Val (GoInstruction (FuncResolve word [go.string]))) (Val #())) (Var "$a0"))))) (App (Val (GoInstruction (Convert go.untypedInt go.uintptr))) (Val hiBits)))) (Val #(W64 0)))) (Val #false)))
+  (Let "$r0" (Let "$s" (App (Val (GoInstruction (GoLoad go.string))) (Var "s"))
+  (App (Val (GoInstruction (Slice go.string))) (Pair (Pair (Var "$s") (Val #(W64 16))) (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$s")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (App (Val doFor) (Lam BAnon
+  (If (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "s"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$a0"))) (Val #(W64 32)))) (App (Val (GoInstruction (GoOp GoEquals go.uintptr))) (Pair (App (Val (GoInstruction (GoOp GoAnd go.uintptr))) (Pair (App (Val (GoInstruction (GoOp GoOr go.uintptr))) (Pair (App (Val (GoInstruction (GoOp GoOr go.uintptr))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "s"))
+  (App (App (Val (GoInstruction (FuncResolve word [go.string]))) (Val #())) (Var "$a0"))) (Let "$a0" (Let "$s" (App (Val (GoInstruction (GoLoad go.string))) (Var "s"))
+  (App (Val (GoInstruction (Slice go.string))) (Pair (Pair (Var "$s") (App (Val (GoInstruction (Convert go.untypedInt go.int))) (Val ptrSize))) (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$s")))))
+  (App (App (Val (GoInstruction (FuncResolve word [go.string]))) (Val #())) (Var "$a0"))))) (App (Val (GoInstruction (GoOp GoOr go.uintptr))) (Pair (Let "$a0" (Let "$s" (App (Val (GoInstruction (GoLoad go.string))) (Var "s"))
+  (App (Val (GoInstruction (Slice go.string))) (Pair (Pair (Var "$s") (Val #(W64 16))) (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$s")))))
+  (App (App (Val (GoInstruction (FuncResolve word [go.string]))) (Val #())) (Var "$a0"))) (Let "$a0" (Let "$s" (App (Val (GoInstruction (GoLoad go.string))) (Var "s"))
+  (App (Val (GoInstruction (Slice go.string))) (Pair (Pair (Var "$s") (Val #(W64 24))) (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$s")))))
+  (App (App (Val (GoInstruction (FuncResolve word [go.string]))) (Val #())) (Var "$a0"))))))) (App (Val (GoInstruction (Convert go.untypedInt go.uintptr))) (Val hiBits)))) (Val #(W64 0)))) (Val #false)))) (Lam BAnon
+  (Let "$r0" (Let "$s" (App (Val (GoInstruction (GoLoad go.string))) (Var "s"))
+  (App (Val (GoInstruction (Slice go.string))) (Pair (Pair (Var "$s") (Val #(W64 32))) (App (App (Val (GoInstruction (FuncResolve go.len [go.string]))) (Val #())) (Var "$s")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "s") (Var "$r0")))))))
+  (Lam BAnon
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "s") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "s") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "s") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.byte))) (Pair (Var "s0") (Var "$r0")))))))))
+  (Lam BAnon
+  (Val #())))))))
+
 noncomputable instance info' : PkgInfo pkg_id.unicode.utf8 where
   pkgImportedPkgs := []
 
@@ -175,10 +333,284 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (package.init pkg_id.unicode.utf8)) (Lam BAnon
   (App (Val exceptionDo)
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$v0" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v1" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v2" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v3" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v4" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v5" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v6" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v7" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v8" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v9" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v10" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v11" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v12" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v13" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v14" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v15" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v16" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v17" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v18" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v19" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v20" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v21" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v22" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v23" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v24" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v25" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v26" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v27" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v28" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v29" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v30" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v31" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v32" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v33" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v34" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v35" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v36" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v37" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v38" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v39" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v40" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v41" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v42" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v43" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v44" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v45" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v46" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v47" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v48" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v49" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v50" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v51" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v52" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v53" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v54" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v55" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v56" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v57" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v58" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v59" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v60" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v61" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v62" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v63" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v64" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v65" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v66" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v67" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v68" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v69" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v70" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v71" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v72" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v73" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v74" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v75" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v76" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v77" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v78" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v79" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v80" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v81" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v82" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v83" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v84" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v85" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v86" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v87" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v88" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v89" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v90" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v91" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v92" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v93" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v94" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v95" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v96" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v97" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v98" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v99" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v100" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v101" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v102" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v103" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v104" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v105" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v106" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v107" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v108" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v109" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v110" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v111" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v112" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v113" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v114" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v115" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v116" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v117" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v118" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v119" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v120" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v121" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v122" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v123" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v124" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v125" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v126" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v127" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val as'))
+  (Let "$v128" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v129" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v130" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v131" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v132" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v133" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v134" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v135" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v136" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v137" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v138" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v139" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v140" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v141" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v142" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v143" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v144" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v145" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v146" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v147" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v148" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v149" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v150" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v151" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v152" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v153" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v154" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v155" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v156" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v157" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v158" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v159" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v160" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v161" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v162" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v163" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v164" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v165" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v166" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v167" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v168" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v169" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v170" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v171" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v172" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v173" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v174" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v175" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v176" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v177" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v178" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v179" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v180" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v181" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v182" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v183" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v184" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v185" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v186" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v187" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v188" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v189" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v190" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v191" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v192" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v193" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v194" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val s1))
+  (Let "$v195" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val s1))
+  (Let "$v196" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val s1))
+  (Let "$v197" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val s1))
+  (Let "$v198" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val s1))
+  (Let "$v199" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val s1))
+  (Let "$v200" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val s1))
+  (Let "$v201" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val s1))
+  (Let "$v202" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val s1))
+  (Let "$v203" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val s1))
+  (Let "$v204" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val s1))
+  (Let "$v205" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val s1))
+  (Let "$v206" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val s1))
+  (Let "$v207" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val s1))
+  (Let "$v208" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val s1))
+  (Let "$v209" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val s1))
+  (Let "$v210" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val s1))
+  (Let "$v211" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val s1))
+  (Let "$v212" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val s1))
+  (Let "$v213" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val s1))
+  (Let "$v214" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val s1))
+  (Let "$v215" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val s1))
+  (Let "$v216" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val s1))
+  (Let "$v217" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val s1))
+  (Let "$v218" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val s1))
+  (Let "$v219" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val s1))
+  (Let "$v220" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val s1))
+  (Let "$v221" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val s1))
+  (Let "$v222" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val s1))
+  (Let "$v223" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val s1))
+  (Let "$v224" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val s2))
+  (Let "$v225" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val s3))
+  (Let "$v226" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val s3))
+  (Let "$v227" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val s3))
+  (Let "$v228" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val s3))
+  (Let "$v229" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val s3))
+  (Let "$v230" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val s3))
+  (Let "$v231" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val s3))
+  (Let "$v232" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val s3))
+  (Let "$v233" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val s3))
+  (Let "$v234" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val s3))
+  (Let "$v235" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val s3))
+  (Let "$v236" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val s3))
+  (Let "$v237" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val s4))
+  (Let "$v238" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val s3))
+  (Let "$v239" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val s3))
+  (Let "$v240" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val s5))
+  (Let "$v241" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val s6))
+  (Let "$v242" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val s6))
+  (Let "$v243" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val s6))
+  (Let "$v244" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val s7))
+  (Let "$v245" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v246" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v247" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v248" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v249" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v250" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v251" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v252" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v253" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v254" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (Let "$v255" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val xx))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.ArrayType 256 go.uint8)))) (LiteralValue [(KeyedElement none (ElementExpression go.uint8 (Var "$v0"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v1"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v2"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v3"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v4"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v5"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v6"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v7"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v8"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v9"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v10"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v11"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v12"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v13"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v14"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v15"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v16"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v17"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v18"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v19"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v20"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v21"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v22"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v23"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v24"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v25"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v26"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v27"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v28"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v29"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v30"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v31"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v32"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v33"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v34"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v35"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v36"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v37"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v38"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v39"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v40"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v41"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v42"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v43"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v44"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v45"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v46"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v47"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v48"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v49"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v50"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v51"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v52"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v53"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v54"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v55"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v56"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v57"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v58"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v59"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v60"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v61"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v62"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v63"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v64"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v65"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v66"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v67"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v68"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v69"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v70"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v71"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v72"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v73"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v74"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v75"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v76"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v77"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v78"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v79"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v80"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v81"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v82"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v83"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v84"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v85"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v86"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v87"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v88"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v89"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v90"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v91"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v92"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v93"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v94"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v95"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v96"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v97"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v98"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v99"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v100"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v101"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v102"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v103"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v104"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v105"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v106"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v107"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v108"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v109"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v110"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v111"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v112"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v113"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v114"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v115"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v116"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v117"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v118"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v119"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v120"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v121"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v122"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v123"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v124"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v125"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v126"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v127"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v128"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v129"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v130"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v131"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v132"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v133"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v134"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v135"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v136"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v137"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v138"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v139"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v140"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v141"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v142"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v143"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v144"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v145"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v146"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v147"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v148"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v149"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v150"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v151"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v152"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v153"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v154"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v155"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v156"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v157"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v158"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v159"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v160"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v161"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v162"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v163"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v164"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v165"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v166"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v167"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v168"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v169"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v170"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v171"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v172"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v173"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v174"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v175"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v176"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v177"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v178"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v179"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v180"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v181"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v182"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v183"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v184"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v185"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v186"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v187"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v188"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v189"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v190"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v191"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v192"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v193"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v194"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v195"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v196"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v197"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v198"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v199"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v200"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v201"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v202"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v203"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v204"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v205"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v206"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v207"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v208"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v209"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v210"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v211"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v212"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v213"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v214"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v215"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v216"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v217"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v218"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v219"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v220"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v221"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v222"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v223"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v224"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v225"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v226"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v227"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v228"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v229"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v230"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v231"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v232"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v233"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v234"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v235"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v236"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v237"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v238"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v239"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v240"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v241"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v242"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v243"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v244"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v245"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v246"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v247"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v248"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v249"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v250"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v251"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v252"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v253"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v254"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v255")))]))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$v0" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val locb))
+  (Let "$v1" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val hicb))
+  (Let "$v2" (Val #(W8 160))
+  (Let "$v3" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val hicb))
+  (Let "$v4" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val locb))
+  (Let "$v5" (Val #(W8 159))
+  (Let "$v6" (Val #(W8 144))
+  (Let "$v7" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val hicb))
+  (Let "$v8" (App (Val (GoInstruction (Convert go.untypedInt go.uint8))) (Val locb))
+  (Let "$v9" (Val #(W8 143))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.ArrayType 16 acceptRange.ty)))) (LiteralValue [(KeyedElement (some (KeyInteger 0)) (ElementLiteralValue [(KeyedElement none (ElementExpression go.uint8 (Var "$v0"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v1")))])), (KeyedElement (some (KeyInteger 1)) (ElementLiteralValue [(KeyedElement none (ElementExpression go.uint8 (Var "$v2"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v3")))])), (KeyedElement (some (KeyInteger 2)) (ElementLiteralValue [(KeyedElement none (ElementExpression go.uint8 (Var "$v4"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v5")))])), (KeyedElement (some (KeyInteger 3)) (ElementLiteralValue [(KeyedElement none (ElementExpression go.uint8 (Var "$v6"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v7")))])), (KeyedElement (some (KeyInteger 4)) (ElementLiteralValue [(KeyedElement none (ElementExpression go.uint8 (Var "$v8"))), (KeyedElement none (ElementExpression go.uint8 (Var "$v9")))]))]))))))))))))
   (App (Val doExecute)
-  (App (Val acceptRanges.init) (Val #())))))
+  (App (Val (GoInstruction (GoStore (go.GoType.ArrayType 16 acceptRange.ty)))) (Pair (App (Val (GoInstruction (GlobalVarAddr acceptRanges))) (Val #())) (Var "$r0")))))))
   (App (Val doExecute)
-  (App (Val first.init) (Val #()))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.ArrayType 256 go.uint8)))) (Pair (App (Val (GoInstruction (GlobalVarAddr first))) (Val #())) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc first (go.GoType.ArrayType 256 go.uint8))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc acceptRanges (go.GoType.ArrayType 16 acceptRange.ty))) (Val #()))))))))
 
 structure acceptRange [FfiSyntax] where
   mk ::
@@ -219,8 +651,12 @@ attribute [instance] acceptRange.TypeAssumptions.type_repr
 
 class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   acceptRange_instance : acceptRange.TypeAssumptions
+  word_unfold : ∀ (T : go.GoType), FuncUnfold word [T] (word.impl T)
+  ValidString_unfold : FuncUnfold ValidString [] ValidString.impl
 
 attribute [instance] Assumptions.acceptRange_instance
+  Assumptions.word_unfold
+  Assumptions.ValidString_unfold
 
 end unicode.utf8
 
