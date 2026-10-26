@@ -217,10 +217,14 @@ removed, ..., adequacy coverage" below.
     ignores `clusterMem` (a gap in a trusted statement, no proof uses it yet) and `lessor.Recover`'s
     wants `leaseOwn γl []`. Both restated (the user's (a)). **Since 2026-10-26**: `specSnap` stated
     and proved from `applySnapshot_walk` (the whole code, proved) and `srvSnapApplied_of_walk` (the
-    post's assembly: **`sorry`**, its seven steps listed in `notes/snapshot-s8-plan.md`, "S8d, where
-    it stopped"); not linked (linking adds the cache's assumptions to `applyAll_model` and the run
+    post's assembly, its seven steps listed in `notes/snapshot-s8-plan.md`, "S8d, where it
+    stopped"); not linked (linking adds the cache's assumptions to `applyAll_model` and the run
     results: ok for now, the user's; the linking is S-j1's; `notes/decisions.md`, "D22 S8d: the spec
-    stated, the walk proved").
+    stated, the walk proved"). **Phase 1 of the assembly done (2026-10-26)**: the names
+    (`SnapApplyNames.lean`, proved) and `srvSnapApplied_of_walk` proved from five step lemmas, each a
+    **`sorry`** in a module of its own (`SnapApply{IsServer,Opts,KV,Rest,Closer}.lean`, independent:
+    phase 2 proves them in parallel; briefs in their docstrings and `notes/snapshot-s8-plan.md`, "S8d
+    phase 1"); `specSnap` gained the named premise `E.authMode = .off`.
   - **S-j, the receiver** (`raftNode.start`'s snapshot branch; `applySnapshot` past the empty
     case: the backend swap, the `Recover`s, `kv.Restore`, the transport's peers re-made; +6 to +8
     axioms estimated) and **S-k** (the quota after the swap, with S-j): wait on the epochs.

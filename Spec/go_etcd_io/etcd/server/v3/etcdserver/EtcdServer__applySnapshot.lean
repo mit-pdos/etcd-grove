@@ -45,7 +45,7 @@ cluster recover from it, `s.be` is swapped under `bemu`, the old backend is clos
 monitor's shares the swap gathers), the transport's peers are removed and the members re-added
 (W8), and `NewUberApplier` rebuilds the applier: `srvSnapApplied`. Named premises (S-j1's to
 discharge): the image's facts (`hmeta`, `hkI`, `hRok`, `hpre`, `hlease`, `halarm`, `hauthb`,
-`hmemb`, `himg`, `hA'`), the auth store's `Recover` (`srvAuthRecoverOk`, the auth track's E
+`hmemb`, `himg`, `hA'`), the auth store's mode `.off` (`hoff`), the auth store's `Recover` (`srvAuthRecoverOk`, the auth track's E
 stage), the members' directory (`srvMembersDir`) and `8·|ps|` reader slots of the transport's
 `lgMu`, the KV's closer, `NewUberApplier`'s fields and feature gate, the stores' contracts on
 whichever backend (`alarmApplyOk`, `authApplyOk`, `lessorApplyOk`, `clusterApplyOk`). -/
@@ -92,7 +92,10 @@ abbrev EtcdServer.applySnapshot.specSnap : Prop :=
     (A' : List EntryModel)
     (hA' : (restModel γr.kv.c0 γr.raft.raft.reBoot (γr.raft.pre ++ A')).bk =
         <[go!"alarm" := ∅]> (<[go!"lease" := ∅]> (backend.rbData d.P D)) ∧
-      (restModel γr.kv.c0 γr.raft.raft.reBoot (γr.raft.pre ++ A')).mem = memI),
+      (restModel γr.kv.c0 γr.raft.raft.reBoot (γr.raft.pre ++ A')).mem = memI)
+    -- (S8d's named premise, S-j1's: `NewServer`'s environment, kept by `beSucc`) the auth store's
+    -- contract mode is `.off`, the mode `authApplyOk` gives the store's contract in
+    (hoff : E.authMode = auth.AuthMode.off),
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
        isServer s γ ci TM E ρ γr ∗
        taSnapshotAddr ap ↦□ sn ∗ ownSnapM sn DFrac.discard sv ∗

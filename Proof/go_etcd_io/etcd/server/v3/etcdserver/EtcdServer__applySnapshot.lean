@@ -108,9 +108,12 @@ theorem EtcdServer.applySnapshot.wp_proof_snap
     (hLk : lease.lessor.Lookup.spec (GF := GF) (hG := hG))
     (hGrant : lease.lessor.Grant.spec (GF := GF) (hG := hG))
     (hCk : lease.lessor.Checkpoint.spec (GF := GF) (hG := hG))
-    (hTTL : lease.Lease.TTL.spec (GF := GF) (hG := hG)) :
+    (hTTL : lease.Lease.TTL.spec (GF := GF) (hG := hG))
+    (hLead : EtcdServer.Leader.spec (GF := GF) (hG := hG))
+    (hTerm : EtcdServer.Term.spec (GF := GF) (hG := hG))
+    (hFS : EtcdServer.ForceSnapshot.spec (GF := GF) (hG := hG)) :
     EtcdServer.applySnapshot.specSnap (GF := GF) (hG := hG) := by
-  · intro s ep ap sn sv γ ci TM E ρ γr ai at0 dsi nc cfg ss hk hi d D lgh hkb hdbo hsop hP hcfgl hmeta st b hle al ast lp cl x A hRO hlease hwq R hpre hRok hkI hbr γp hrbw stp γd γt img nt hstp hnt halarm hauthb hmemb memI himg γn t c rs dir ps idm hdir hdok hps hlid msi cs0 fg quota wad Tal zal hbuq A' hA'
+  · intro s ep ap sn sv γ ci TM E ρ γr ai at0 dsi nc cfg ss hk hi d D lgh hkb hdbo hsop hP hcfgl hmeta st b hle al ast lp cl x A hRO hlease hwq R hpre hRok hkI hbr γp hrbw stp γd γt img nt hstp hnt halarm hauthb hmemb memI himg γn t c rs dir ps idm hdir hdok hps hlid msi cs0 fg quota wad Tal zal hbuq A' hA' hoff
     iintro %Φ Hpre HΦ
     icases Hpre with ⟨#Hpkg, #Hsrv, #Hsn, #Hsnap, #Hnc, #Hncb, Hai, Hat, Hdsi, Hlr, Hbr, #Hcfg, #Hssf, #Hhkf, #Hiss, Hfile, Hpath, #Hfg, #Hbh, Hst, Hab, HKV, HRS, #Hlinv, #Hlpf, Hkvc, #Hkvex, #Hcok, #HkSz, #HWP, #Hstpf, #Hsdinv, Hγt, #Half, #HisAl, #Haustf, #Hclf, #Hirc, #Htrf, Htlive, #Hmidf, HR8s, #Hmembers, Hmsi, Hcs0, #Hfgf, #Hfgok, #Hqbf, #Hwadf, #HalG, HTal, #HoSC, HoOh, #HauR, #HalA, #HauA, #HleA, #HclA, #Hlcfg, #Hllk, #Hrcn, HRD2, #HmetaB⟩
     iapply wp_fupd
@@ -118,7 +121,7 @@ theorem EtcdServer.applySnapshot.wp_proof_snap
     · iframe #
       iframe Hai Hat Hdsi Hlr Hbr Hfile Hpath Hst Hab HKV HRS Hkvc Hγt Htlive HR8s Hmsi Hcs0 HTal HoOh
     iintro !> Hw
-    ihave Hpost := (srvSnapApplied_of_walk hGL hAt hDt hSRD hLk hGrant hCk hTTL s ep ap sn sv γ ci TM E ρ γr ai at0 dsi nc cfg ss hk hi d D lgh hkb hdbo hsop hP hcfgl hmeta st b hle al ast lp cl x A hRO hlease hwq R hpre hRok hkI hbr γp hrbw stp γd γt img nt hstp hnt halarm hauthb hmemb memI himg γn t c rs dir ps idm hdir hdok hps hlid msi cs0 fg quota wad Tal zal hbuq A' hA') $$ [Hw HRD2]
+    ihave Hpost := (srvSnapApplied_of_walk hGL hAt hDt hSRD hLk hGrant hCk hTTL hMID hLead hTerm hFS hCIg s ep ap sn sv γ ci TM E ρ γr ai at0 dsi nc cfg ss hk hi d D lgh hkb hdbo hsop hP hcfgl hmeta st b hle al ast lp cl x A hRO hlease hwq R hpre hRok hkI hbr γp hrbw stp γd γt img nt hstp hnt halarm hauthb hmemb memI himg γn t c rs dir ps idm hdir hdok hps hlid msi cs0 fg quota wad Tal zal hbuq A' hA' hoff) $$ [Hw HRD2]
     · iframe #
       iframe Hw HRD2
     imod Hpost

@@ -304,3 +304,50 @@ gate, `alarmGetIs`/`Tal`; the contracts `alarmApplyOk`, `authApplyOk`, `lessorAp
 `clusterApplyOk`, `lessorCfg`, `lessorLookupOk`, `rcVersionChangedAddr`; a second `E.RD`, from
 `NewServer`'s dropped remainder of `HRDs`; W7's `isStopChans`/`bOpen ½`); `kvApplied` after the
 jump (`kv_cert_jump`); the instance question above.
+
+## S8d phase 1: the assembly split into step lemmas (2026-10-26)
+
+`srvSnapApplied_of_walk` (`SnapApplyPost.lean`) is proved (no `sorry` of its own) from the walk's
+result and five step lemmas, each a `sorry` in a module of its own that imports only
+`SnapApplyNames` (and, for step 3, the specs it calls), so the five can be proved in parallel. Each
+lemma's docstring is its prover's brief. The statements are what the assembly feeds them (the
+walk's resources, `snapWalkPost`'s, under the same names, with `γB` substituted by `d'.γB` in the
+assembly) and what it needs back; a phase-2 prover should not need to change one.
+
+- **Step 1, `SnapApplyNames.lean`** (proved): `snapγ γ π0 γB := γ.withPh (futPhys π0 γB)`,
+  `snapSt γ' i := stLoaded γ' ⟨0, i, i, false⟩` (abbrevs, so they match the walk's terms),
+  `snapE E γ' TM' ci p' g γB al ast lp cl be := E.onBe p' (batchLockInv γ' TM') #g (srvCiC γ' ci)
+  (srvRestOwnH γB cl (srvObjsOn …)) (srvRestRWH γB (srvObjsOn …))` (a `def`, with `@[simp]`
+  projection lemmas `snapE_*`); `TM' = metaTM γB d.P`. Facts: `snapE_beSucc`, `snapE_kb`,
+  `snapSt_ciEff`, `snapSt_loopOk`, and by `rfl` `waitInv_snapE`, `srvAtomics_snapE`,
+  `srvGenAt_snapE`, `revAuth_snapE`, `storeReader_snapE`, `srvWTPool_snapE` (what the view reads of
+  the environment is of the logical names; `idxCert` reads only `hist` and `log`, which `withPhys`
+  keeps).
+- **Step 2, `SnapApplyIsServer.lean`, `snap_isServer`**: the old `isServer`, `srvClusterAddr s ↦□ cl`,
+  the walk's `isServerCI` and `hookSpec` at `γ'` ⊢ `isServer s γ' ci TM' E' ρ γr`.
+- **Step 3, `SnapApplyOpts.lean`, `snap_backendOptsOk`**: ⊢ `apply.backendOptsOk E' opts'`, from the
+  stores' contracts (`alarmApplyOk` …, `lessorInv`), the walk's `isBackend`, `plHookRO` (the
+  assembly persists the walk's `plHook`), `hookP`, `isWatchableStore`, the old `isServer`; with the
+  eight lease specs and the server's `MemberID`, `Leader`, `Term`, `ForceSnapshot` and the consistent
+  index's `ConsistentIndex` specs (`isRaftStatus`, `isSnapshotServer`, `isConsistentIndexer`, as
+  `NewServer` builds them: the old applier's options say nothing of `s`).
+- **Step 4, `SnapApplyKV.lean`, `snap_applyKV`**: `|={⊤}=> ∃ x', ⌜x'.log = [[], []] ++ R ∧ ∃ ns cr,
+  x'.chain = alarmChain E.authOn ns cr ∧ (zal → ¬ns ∧ ¬cr)⌝ ∗ srvApplyKV s E' ρ.wait x'`, consuming
+  `Hube` (with step 3's `backendOptsOk`), the KV's resources, `srvBeOwn`'s parts, `revAuth`, the
+  wait. **The open point (`x'.chain`)**: the chain is the one `NewUberApplier` builds, stated as the
+  walk gives it; `srvSnapApplied` fixes only `x'.log`, so nothing here constrains it, and S-j1's
+  `kvApplied` (`x.chain = γk.ch0`) gets from the step what is true (`alarmChain E.authOn ns cr`, with
+  `ns = cr = false` when the alarm store has no alarm, `zal`); if S-j1 needs the chain in
+  `srvSnapApplied`, it is one more pure conjunct there, proved from this conclusion.
+- **Step 5, `SnapApplyRest.lean`, `snap_srvRest`**: `rbOwn d'.γB bk`, `clusterMem cl memI` and the four
+  `*BeOn` at `d'.be` ⊢ `srvRest E' γr A'` (with `hA'`).
+- **Step 6, `SnapApplyCloser.lean`, `snap_kvCloser`**: the walk's closer parts ⊢ `srvKVCloser s E'`.
+- **Step 7** is the assembly's own framing (`epCsOk_of_csOptA` for `epConfState`), proved.
+
+Changes phase 1 made to statements (none closed, none trusted, none another track's):
+`snapWalkPost` carries `g ≠ func.nil` (the walk had it from `getTxPostLockInsideApplyHook`;
+`mvcc.hookOk`'s `hookFn` needs it); `specSnap` (and `srvSnapApplied_of_walk`) take
+`hoff : E.authMode = .off` (a named premise, S-j1's: `NewServer`'s environment is in mode `.off`
+and `beSucc` keeps it; `authApplyOk` gives the auth store's contract in mode `.off` only, so
+`backendOptsOk E'`'s `isAuthStore … E'.authMode` needs it); `wp_proof_snap` takes the `Leader`,
+`Term`, `ForceSnapshot` specs (step 3's).

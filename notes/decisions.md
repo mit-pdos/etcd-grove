@@ -19357,3 +19357,22 @@ slots) are named premises of `applySnapshot.spec` like the others (the orchestra
   (for `srvKVCloser` at the new names); InvBoot's `addPeer_dir`, `membersCov_step`,
   `membersCov_done` omit the section's unused `MemStorReg` instance (it would have put the instance
   on `applySnapshot`'s proof). No statement of a closed theorem or a trusted statement changed.
+
+## D22 S8d phase 1: the post's assembly split into step lemmas (2026-10-26 · the orchestrator's plan)
+
+`srvSnapApplied_of_walk` is proved from the names (`SnapApplyNames.lean`) and five step lemmas, each
+a `sorry` in an independent module, for parallel phase-2 provers (`notes/snapshot-s8-plan.md`, "S8d
+phase 1"). Two gaps the statements found, both closed with what is true of the code:
+- **The new post-lock hook's non-nil fact** was dropped by the walk (`getTxPostLockInsideApplyHook`'s
+  `g ≠ func.nil`); `backendOptsOk`'s `mvcc.hookOk` needs it (`bkHookIs`). Added to `snapWalkPost`
+  (a strengthening of the walk's result, which had it in context).
+- **The auth store's mode.** `backendOptsOk E'` wants `isAuthStore … E'.authMode`, and the premise
+  `authApplyOk` (`NewAuthStore`'s contract, the trust boundary) gives it in mode `.off` only; nothing
+  in `specSnap` said `E.authMode = .off`. Options: (a) a named premise `E.authMode = .off` of
+  `specSnap` (true of the server: `NewServer`'s environment is `.off`, `beSucc` keeps the mode);
+  (b) restate `authApplyOk` at any mode (a trust-boundary contract, the auth track's E stage).
+  Taken: (a), a named premise of the pre-approved kind (S-j1's input); the auth track's E stage,
+  bringing other modes to the server, replaces it with whatever `authApplyOk` becomes.
+- `isRaftStatus`/`isSnapshotServer`/`isConsistentIndexer` of the new options are built from the
+  server's method specs, as `NewServer` does (the old applier's options say nothing of `s`), so
+  `wp_proof_snap` takes the `Leader`, `Term`, `ForceSnapshot` specs (unlinked: nothing else moves).
