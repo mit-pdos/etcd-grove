@@ -2208,14 +2208,16 @@ theorem isKeyBackendG_of_backend
       isplitr
       · iapply bt_create hCB hID hName hSafe hP γ W Pk b t $$ [$Hpkg $Hsch $Hb $Ht]
       iapply bt_unlockO hUL γ P W Pk b t $$ [$Hpkg $Hb $Ht]
-    -- `BatchTx()` returns this batch transaction again: the field is read-only
+    -- the read-only `batchTx` field, which `BatchTx()` returns
     iunfold bkBt
-    iintro !> !> %Φ' !> - HΦ'
+    iintro !>
+    iexists t
+    iframe Ht
+    isplitr
+    · ipureintro; rfl
+    iintro !> %Φ' !> - HΦ'
     wp_apply (hBT γ P W Pk b) $$ [$Hb] as %t' #Ht'
-    ihave %ht := typedPointsto_agree_wand _ _ _ _ _ $$ Ht Ht'
-    subst ht
-    iapply HΦ'
-    itrivial
+    iapply HΦ' $$ Ht'
   isplitr
   · iapply bk_forceCommit hFC γ P W Pk b $$ [$Hpkg $Hb]
   isplitr

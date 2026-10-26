@@ -107,6 +107,17 @@ lease_lessor__Checkpoint: lease_lessor__shouldPersistCheckpoints lease_Lease__pe
 lease_lessor__ExpiredLeasesC:
 lease_lessor__Promote:
 lease_lessor__Demote:
+# Revoke (unit T3, 2026-10-25): the lease's keys (`Lease.Keys`), sorted (`sort.StringSlice.Sort`,
+# the trust boundary: Perennial's `sort` has the type only), deleted through the store's range
+# deleter (mvcc's metrics/watchable write transaction), the lease's record deleted
+# (`schema.UnsafeDeleteLease`, names-only: the trust boundary). Not reached from NewServer: the
+# apply thread's `Revoke` clause is still vacuous (L3).
+lease_Lease__Keys:
+sort_StringSlice__Sort:
+schema_UnsafeDeleteLease:
+mvcc_metricsTxnWrite__DeleteRange: @
+mvcc_watchableStoreTxnWrite__End: @
+lease_lessor__Revoke: lease_Lease__Keys sort_StringSlice__Sort schema_UnsafeDeleteLease mvcc_metricsTxnWrite__DeleteRange mvcc_watchableStoreTxnWrite__End
 schema_bucket__ID:
 schema_bucket__Name:
 schema_bucket__IsSafeRangeBucket:

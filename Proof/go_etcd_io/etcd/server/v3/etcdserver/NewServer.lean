@@ -490,7 +490,7 @@ theorem NewServer.wp_proof
   wp_apply (h24 cfg.Logger' _ _ d (mvcc.lateW d.gx) (batchLockInv γA (metaTM d.γB d.P)) qo
       (srvGrantGuard ρ.rd.kv.wl) (backend.rbData d.P D))
     $$ [Hopen Hwl Hrbo]
-    as %l ⟨Hopen, Hrbo, %lp, %γl, %Hl, #Hlinv, #Hlcfg, #Hlexp, -, Hlrd, Hlown, Hro, #Hlck, HleOn, #Hlbe, #Hllk⟩
+    as %l ⟨Hopen, Hrbo, %lp, %γl, %Hl, #Hlinv, #Hlcfg, #Hlexp, -, Hlrd, Hlown, Hlrvk, Hro, #Hlck, HleOn, #Hlbe, #Hllk⟩
   · iframe HB Hclok
     unfold backend.wbTok
     iframe Hopen Hwl Hrbo
@@ -1575,7 +1575,7 @@ theorem NewServer.wp_proof
     simp [mvcc.applyChanges] at ha
   iunfold lease.lessorUser
   rw [Hγw.2.1]
-  iframe Hlrd2
+  iframe Hlrd2 Hlrvk
   -- the initial state has no key: its item map is the lessor's, empty
   have h0 : (∅ : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64) =
       mvcc.leaseItemsOf (mvcc.stateAfter ([[], []] : mvcc.Log)) := GMap.ext fun _ => rfl

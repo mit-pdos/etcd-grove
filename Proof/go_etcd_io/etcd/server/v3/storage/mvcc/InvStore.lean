@@ -1519,12 +1519,19 @@ def kbRb : Option KBReal → GMap GoString backend.BktData → IProp GF
 /-- The store's right to write the tracked buckets (`kbRb`). -/
 abbrev storeRb (γ : StoreNames) : GMap GoString backend.BktData → IProp GF := kbRb γ.kb
 
-/-- The real backend at `be` returns the batch transaction `bt` from `BatchTx()` (persistent). -/
+/-- **The real backend at `be` has the batch transaction `bt`** (persistent): its `batchTx`
+field, read-only, holds `bt`'s pointer, and `BatchTx()` returns the field's value (so a call
+returns `bt`: the field's points-to agree). -/
 def bkBt (be : Loc) (bt : GoInterfaceOk) : IProp GF :=
-  iprop(□ ({{ True }}
-    (App (Val #(methods (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
-      go!"BatchTx" #be)) (Val #()))
-    {{ RET #(GoInterface.ok bt); True }}))
+  iprop(∃ t : Loc, ⌜bt = ⟨go.GoType.PointerType
+      go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty, #t⟩⌝ ∗
+    backend.bF go!"batchTx" be ↦□ t ∗
+    □ ({{ True }}
+      (App (Val #(methods (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
+        go!"BatchTx" #be)) (Val #()))
+      {{ (t' : Loc), RET #(interface.mkOk (go.GoType.PointerType
+          go_etcd_io.etcd.server.v3.storage.backend.batchTxBuffered.ty) #t');
+        backend.bF go!"batchTx" be ↦□ t' }}))
 
 instance bkBt_persistent (be : Loc) (bt : GoInterfaceOk) : Persistent (bkBt (GF := GF) be bt) := by
   unfold bkBt; infer_instance

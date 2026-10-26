@@ -46,7 +46,8 @@ Why it is true of the Go code (`newLessor`, `initAndRecover`, `runLoop`, at the 
   `Unlock` finds nothing pending and does not write back (the backend's `ForceCommit.spec` charges
   a token: the spec is coarser than the code). Its commit runs the backend's hooks (`isBackend`).
   So the live set is empty (`leaseOwn γl [] ∅`), and so is the item map (`le.itemMap`, made
-  by `newLessor`: the lock holds half of it, the caller the other half, unit T3, L2b).
+  by `newLessor`: the lock holds half of it, the caller the other half, unit T3, L2b), with no
+  lease to revoke (`leaseRevokers γl []`).
   The range deleter `rd` is unset (`nil`): `newLessor` does not set it, and the caller owns the
   half of the field that the lock does not hold (`rdOwn γl func.nil`, unit T3).
 * `go l.runLoop()`: until the lessor is promoted it only takes its lock, finds no expired lease
@@ -103,7 +104,7 @@ abbrev lease.NewLessor.spec : Prop :=
       ⌜l = lease.lessorIface lp⌝ ∗ lease.lessorInv lp γl ∗ lease.lessorCfg lp ∗
       lease.lessorExpiredC lp GA ∗ lease.lessorGuard γl GA ∗
       ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), lease.lessorRdOf γl) ∗
-      lease.leaseOwn γl [] ∅ ∗ lease.rdOwn γl func.nil ∗ lessorCkptOk l ∗ lease.lessorBeOn lp d.be ∗ lessorApplyOk lp ∗
+      lease.leaseOwn γl [] ∅ ∗ lease.leaseRevokers γl [] ∗ lease.rdOwn γl func.nil ∗ lessorCkptOk l ∗ lease.lessorBeOn lp d.be ∗ lessorApplyOk lp ∗
       □ (∀ id : w64,
         {{ True }} (App (Val (lp @!! go.GoType.PointerType
           go_etcd_io.etcd.server.v3.lease.lessor.ty @!! go!"Lookup")) (Val #id))

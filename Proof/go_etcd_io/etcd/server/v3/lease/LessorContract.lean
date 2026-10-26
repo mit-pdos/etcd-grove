@@ -92,7 +92,7 @@ theorem isTxnLessor_of_lessorInv
   icases Hinv' with ⟨%Hlp, #Hpin, -⟩
   iintro !> %id %L %I %Φ !> Hu HΦ
   iunfold lessorUser at Hu
-  icases Hu with ⟨Hown, Hrdo⟩
+  icases Hu with ⟨Hown, Hrdo, Hrvk⟩
   iunfold lessorRdOf at Hrdo
   icases Hrdo with ⟨%lp', #Hpin', Hrd⟩
   ihave %Heq := lessorPin_agree γl lp lp' $$ [$Hpin $Hpin']
@@ -103,8 +103,8 @@ theorem isTxnLessor_of_lessorInv
   · iframe Hpkg Hinv Hrd Hown
   iintro !> %l ⟨Hrd, Hown, %Hl, -⟩
   iapply HΦ
-  isplitl [Hrd Hown Hcls]
-  · iunfold lessorUser; iunfold leaseOwn; iframe Hown Hcls
+  isplitl [Hrd Hown Hcls Hrvk]
+  · iunfold lessorUser; iunfold leaseOwn; iframe Hown Hcls Hrvk
     iunfold lessorRdOf; iexists lp; iframe Hpin Hrd
   by_cases hn : l = null
   · ileft; ipureintro; exact hn

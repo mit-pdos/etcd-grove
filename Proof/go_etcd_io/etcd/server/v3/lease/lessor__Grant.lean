@@ -42,7 +42,7 @@ theorem lease.lessor.Grant.wp_proof
     (hSched : lease.lessor.scheduleCheckpointIfNeeded.spec (GF := GF) (hG := hG)) :
     lease.lessor.Grant.spec (GF := GF) (hG := hG) := by
   intro lp γl id ttl L I0 P f T R Pre Q Post
-  wp_start as ⟨#Hinv, #Hcfg, #Hbe, Hown, Hcs, Hwtk, Hrtk, #Hgr⟩
+  wp_start as ⟨#Hinv, #Hcfg, #Hbe, Hown, Hrvk, Hcs, Hwtk, Hrtk, #Hgr⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   ihave Hli : (leaseInit : IProp GF) $$ []
@@ -76,7 +76,7 @@ theorem lease.lessor.Grant.wp_proof
     ileft
     iunfold mvcc.csContract at Hcs
     icases Hcs with ⟨HPre, -, -⟩
-    iframe Hown HPre
+    iframe Hown Hrvk HPre
     isplitr
     · ipureintro; intro h; cases h
     iunfold lessorErrIs
@@ -92,7 +92,7 @@ theorem lease.lessor.Grant.wp_proof
     ileft
     iunfold mvcc.csContract at Hcs
     icases Hcs with ⟨HPre, -, -⟩
-    iframe Hown HPre
+    iframe Hown Hrvk HPre
     isplitr
     · ipureintro; intro h; cases h
     iunfold lessorErrIs
@@ -120,7 +120,7 @@ theorem lease.lessor.Grant.wp_proof
   · inext; iunfold leaseItems; iexists sm, ∅; iframe
   rw [hmax, List.replicate_succ]
   icases (BigSepL.bigSepL_cons (PROP := IProp GF)).1 $$ HmuRs with ⟨HmuR, -⟩
-  icases sync.ownRWMutex_guard _ _ $$ HmuR with ⟨-, #HmuG⟩
+  icases sync.ownRWMutex_guard _ _ $$ HmuR with ⟨HmuR, #HmuG⟩
   (try wp_auto)
   wp_apply sync.RWMutex.wp_Lock_guard $$ [$Hmu] as ⟨Hlk, HR⟩
   iunfold lessorMu at HR
@@ -153,7 +153,7 @@ theorem lease.lessor.Grant.wp_proof
     iunfold mvcc.csContract at Hcs
     icases Hcs with ⟨HPre, -, -⟩
     iunfold leaseOwn
-    iframe Hown Hcls HPre
+    iframe Hown Hcls Hrvk HPre
     isplitr
     · ipureintro; intro h; cases h
     iunfold lessorErrIs
@@ -217,8 +217,8 @@ theorem lease.lessor.Grant.wp_proof
       wp_join_done
     (try wp_auto)
     -- the live set grows; the lessor's state with the new lease
-    imod closers_grant γl lp L M id l rc I0 sm hM HL $$ [$Ha $Hcls $Hrc $Hrcl $HiS' $Hsm']
-      with ⟨Ha, Hcls⟩
+    imod closers_grant γl lp L M id l rc I0 sm hM HL $$ [$Ha $Hcls $Hrvk $Hrc $Hrcl $HiS' $Hsm' $HmuR]
+      with ⟨Ha, Hcls, Hrvk⟩
     imod lessor_live_grant γl lp L (M.insert id l) id $$ [$Ha $Hg $Hown $Hgr] with ⟨Ha, Hg, Hown⟩
     ihave Hml : leaseMeta id l 1 $$ [Hrem Hexp]
     · iunfold leaseMeta
@@ -261,7 +261,7 @@ theorem lease.lessor.Grant.wp_proof
     iframe Hrtk
     iright
     iunfold leaseOwn
-    iframe Hown Hcls HPost HID
+    iframe Hown Hcls Hrvk HPost HID
     isplitr
     · ipureintro; exact ⟨rfl, Hlnn, hnot⟩
     iexists t; iexact Httl

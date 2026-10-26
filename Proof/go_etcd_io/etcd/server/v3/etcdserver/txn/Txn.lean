@@ -320,7 +320,7 @@ theorem txn.Txn_sole
       (interface.mkOk tyX vX) false log rt t sl skip L
     simp only [Bool.not_false, ↓reduceIte, Bool.false_eq_true] at htxn'
     iunfold EtcdGrove.lease.lessorUser at Hu
-    icases Hu with ⟨Hown, Hrdo⟩
+    icases Hu with ⟨Hown, Hrdo, Hrvk⟩
     wp_apply htxn'
       $$ [$Htw $Hctx' $Hct' $Hnd' $Hrt $Hsl $Hleases $Hknown Hown] as %resp %err Hres
     · isplitl [Hown]
@@ -378,8 +378,8 @@ theorem txn.Txn_sole
     rw [stateAfter_commitLog]
     simp only [srvRunTxn]
     iframe Hresp Hsw Hk2 Hhdr
-    isplitl [Hown Hrdo]
-    · iunfold EtcdGrove.lease.lessorUser; iframe Hown Hrdo
+    isplitl [Hown Hrdo Hrvk]
+    · iunfold EtcdGrove.lease.lessorUser; iframe Hown Hrdo Hrvk
     simp only [hro, Bool.false_eq_true, ↓reduceIte]
     iexact HPost
 

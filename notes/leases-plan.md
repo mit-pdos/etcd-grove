@@ -185,6 +185,27 @@ derived in `isApplyLessor_of_lessorInv`.
   `traceutil.TODO`'s specs) and returns `∃ rd, rdOwn γl rd ∗ rdIs rd s st γ`, as do `New`,
   `server_kv_watchable(_of)`. Left in L2d: `Lease.Keys` and `Revoke`, whose spec waits for L2b (the
   keys `Revoke` deletes are the item set's, which L2b gives a meaning).
+  *`Lease.Keys` and `Revoke` done (2026-10-25, after L2b).* `Keys()` (read lock, a map range,
+  `append`): the keys the owner's item map puts on the lease, a fresh slice, no key twice (the
+  owner's half of the item set and a reader slot of the lease's lock, kept in its `closerAt`).
+  `Revoke` (`lessor__Revoke.lean`), at the watchable store's sole writer (as `watchableStore.Write`
+  takes it), over the real backend `d` (`lessorBeOn`, `γw.st.kb = some d`), with the tracked
+  buckets' right `storeRb γw.st r` and the store's package initialized: `id` not live,
+  `ErrLeaseNotFound` and nothing changed; live, the keys sorted (`sort.StringSlice.Sort`'s premise:
+  the state has at most `2^62` keys) deleted at one revision through `rd()`'s transaction
+  (`DeleteRange(key, nil)` deletes the one key, `filter_key_sorted`), the lease's record deleted
+  under the same batch lock (`schema.UnsafeDeleteLease`, its triple from `isWatchTxnWrite_leaseDel`),
+  `End` (the watchers notified), `id` out of the live set, `revokec` closed (`wp_revokec_close`).
+  Three changes it needed: **`leaseRevokers γl L`**, the owner's per-lease close rights and the other
+  half of the closers' map's element, apart from `leaseOwn` (which the deletes take whole and give
+  back behind fresh existentials): `Revoke` keeps it, and its half agrees, after the deletes, that
+  the lessor's map still has the lease it looked up; `lessorUser` holds both, `Grant` takes both,
+  `NewLessor`'s axiom gives `leaseRevokers γl []`. **`bkBt be bt`** now carries the backend's
+  read-only `batchTx` field (`bF "batchTx" be ↦□ t`): two calls of `BatchTx()` agree by it (a
+  triple alone did not say so). **`rdIs`** says the deleter is not `nil`. Linked
+  (`lease.lessor.wp_Revoke`, `lease.Lease.wp_Keys`), not yet reached from the server: the apply
+  thread's `Revoke` clause is still vacuous (L3), which will also lend `storeRb` and give the size
+  bound.
 
 **L3. The apply thread with leases.** `leasesKnown` becomes an equality: the lessor's live set
 (`leaseOwn γ.leases L`) is the model's table's ids. `plainCover` admits `LeaseGrant`,

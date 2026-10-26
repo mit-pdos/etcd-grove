@@ -40,7 +40,7 @@ theorem apply.applierV3backend.LeaseGrant.wp_proof
   iunfold apply.leasesLive at Hlive
   icases Hlive with ⟨%L, #Hknown, Hu⟩
   iunfold EtcdGrove.lease.lessorUser at Hu
-  icases Hu with ⟨Hown, Hrdo⟩
+  icases Hu with ⟨Hown, Hrdo, Hrvk⟩
   ihave #Hb' := Hb
   iunfold apply.backendIs at Hb'
   icases Hb' with ⟨%opts, #Hopts, #Hok⟩
@@ -54,15 +54,16 @@ theorem apply.applierV3backend.LeaseGrant.wp_proof
   wp_auto
   rw [Hli]
   wp_auto
-  wp_apply HGrant $$ [$Hcs $HRW $Hown $Hwt $Hrt $Hgr] as %l %err ⟨HPP, Hrt, ⟨%L', Hown, %HLL, Hl⟩, #HeI⟩
+  wp_apply HGrant $$ [$Hcs $HRW $Hown $Hrvk $Hwt $Hrt $Hgr] as %l %err
+    ⟨HPP, Hrt, ⟨%L', Hown, Hrvk, %HLL, Hl⟩, #HeI⟩
   ihave Hwo := Hrdb $$ Hrt
-  ihave Hlive : apply.leasesLive E.γ (mvcc.stateAfter log) $$ [Hown Hrdo]
+  ihave Hlive : apply.leasesLive E.γ (mvcc.stateAfter log) $$ [Hown Hrdo Hrvk]
   · iunfold apply.leasesLive
     iexists L'
     isplitl []
     · iapply EtcdGrove.apply.leasesKnown_mono L L' _ HLL $$ Hknown
     iunfold EtcdGrove.lease.lessorUser
-    iframe Hown Hrdo
+    iframe Hown Hrdo Hrvk
   icases Hl with (%Hne | ⟨%He, %id', #Hlease, -⟩)
   · cases err with
     | nil => exact absurd rfl Hne

@@ -178,7 +178,7 @@ theorem txn.Put.wp_proof
     tyX vX
   simp only [txn.pendState_nil, List.nil_append, List.length_nil] at hp
   iunfold EtcdGrove.lease.lessorUser at Hu
-  icases Hu with ⟨Hown, Hrdo⟩
+  icases Hu with ⟨Hown, Hrdo, Hrvk⟩
   -- the owner's item map: the pinned log's state's
   ihave %HI := HIp $$ %ilog %Hpin
   ihave Hown : EtcdGrove.lease.leaseOwn γ.leases L (mvcc.pendItems ilog []) $$ [Hown]
@@ -214,7 +214,7 @@ theorem txn.Put.wp_proof
   iframe Hresp Hhdr Hc Hlok2 Hwl
   isplitl []
   · ipureintro; exact ⟨rfl, Hn⟩
-  iunfold EtcdGrove.lease.lessorUser; iframe Hrdo
+  iunfold EtcdGrove.lease.lessorUser; iframe Hrdo Hrvk
   rw [mvcc.stateAfter_append]
   iexact Hown
 

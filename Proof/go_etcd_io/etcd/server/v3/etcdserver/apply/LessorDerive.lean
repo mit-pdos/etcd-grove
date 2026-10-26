@@ -87,17 +87,17 @@ theorem isApplyLessor_of_lessorInv
   isplitr
   · ipureintro; rfl
   isplitr
-  · iintro !> %id %ttl %L %I %Pre %Q %Post %Φ !> ⟨Hcs, Hown, Hwt, Hrt, #Hgr, HRW⟩ HΦ
+  · iintro !> %id %ttl %L %I %Pre %Q %Post %Φ !> ⟨Hcs, Hown, Hrvk, Hwt, Hrt, #Hgr, HRW⟩ HΦ
     iapply (hGrant lp γ.leases id ttl L I P f iprop(mvcc.storeWT γ ∗ RW) (mvcc.storeRT γ) Pre Q Post)
-      $$ [Hcs Hown Hwt Hrt HRW]
+      $$ [Hcs Hown Hrvk Hwt Hrt HRW]
     · iframe; iframe #
-    iintro !> %l %err ⟨Hrt, (⟨%Hne, #Herr, Hown, HPre⟩ | ⟨%Hok, Hown, HPost, #HID, ⟨%t, #Ht⟩⟩)⟩
+    iintro !> %l %err ⟨Hrt, (⟨%Hne, #Herr, Hown, Hrvk, HPre⟩ | ⟨%Hok, Hown, Hrvk, HPost, #HID, ⟨%t, #Ht⟩⟩)⟩
     · iapply HΦ
       iframe Hrt
       isplitl [HPre]
       · iright; iexact HPre
-      isplitl [Hown]
-      · iexists L; iframe Hown
+      isplitl [Hown Hrvk]
+      · iexists L; iframe Hown Hrvk
         isplitr
         · ipureintro; intro x hx; exact hx
         ileft; ipureintro; exact Hne
@@ -108,8 +108,8 @@ theorem isApplyLessor_of_lessorInv
       iframe Hrt
       isplitl [HPost]
       · ileft; iexact HPost
-      isplitl [Hown]
-      · iexists (L ++ [id]); iframe Hown
+      isplitl [Hown Hrvk]
+      · iexists (L ++ [id]); iframe Hown Hrvk
         isplitr
         · ipureintro; intro x hx; exact List.mem_append_left _ hx
         iright

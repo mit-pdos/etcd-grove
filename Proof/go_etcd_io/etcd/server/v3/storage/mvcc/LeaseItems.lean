@@ -145,6 +145,43 @@ theorem pendItems_absent (ilog : Log) (pend : List Change) (k : GoString)
   rw [KvMatch_none_left hm]
   rfl
 
+/-- In a sorted state, the key-values of key `k` are `k`'s one, if any. -/
+theorem filter_key_sorted (k : GoString) :
+    ∀ s : List EtcdKv, s.Pairwise etcdKvLess →
+      (s.filter (fun v => decide (v.key = k))).map EtcdKv.key =
+        if (findKey k s).isSome then [k] else []
+  | [], _ => by simp [findKey]
+  | v :: s, hs => by
+    have ih := filter_key_sorted k s hs.of_cons
+    rw [findKey_cons]
+    by_cases hv : v.key = k
+    · have hnone : s.filter (fun w => decide (w.key = k)) = [] := by
+        apply List.filter_eq_nil_iff.2
+        intro w hw hk
+        have hlt := (List.pairwise_cons.1 hs).1 w hw
+        unfold etcdKvLess at hlt
+        rw [hv, of_decide_eq_true hk] at hlt
+        exact go.goStringLt_irrefl _ hlt
+      simp [hv, hnone]
+    · rw [List.filter_cons_of_neg (by simpa using hv), ih]
+      simp [hv]
+
+/-- **The item map after deleting the keys `ks`**: none for them, the rest unchanged. -/
+theorem leaseItemsOf_dels (r : w64) (ks : List GoString) :
+    ∀ (s : List EtcdKv) (it : LeaseItem),
+      (leaseItemsOf (applyChanges r s (ks.map Change.del))).lookup it =
+        if it.Key' ∈ ks then none else (leaseItemsOf s).lookup it := by
+  induction ks with
+  | nil => intro s it; rfl
+  | cons k ks ih =>
+    intro s it
+    have h : applyChanges r s ((k :: ks).map Change.del) =
+        applyChanges r (applyChange r s (.del k)) (ks.map Change.del) := rfl
+    rw [h, ih]
+    simp only [applyChange]
+    rw [leaseItemsOf_del]
+    by_cases h1 : it.Key' = k <;> by_cases h2 : it.Key' ∈ ks <;> simp [h1, h2]
+
 end items
 
 end mvcc

@@ -172,6 +172,8 @@ theorem mvcc.newWatchableStore.wp_proof
   · iexists _; rw [← hγl]; iframe Hro
     -- the deleter: `s.Write(traceutil.TODO())`, as a `lease.TxnDelete`
     iunfold mvcc.rdIs
+    isplitr
+    · ipureintro; intro h; injection h with _ _ h3; cases h3
     iintro !> %L %Pw %Pre %Q %fw %Φ' !> ⟨Hrd, Hwt, Hww, %Hlen, Hh, Hpre, #Hfw⟩ HΦ'
     ihave #Htpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.traceutil $$ []
     · iPkgInit

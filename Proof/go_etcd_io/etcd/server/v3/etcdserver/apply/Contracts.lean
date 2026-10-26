@@ -302,11 +302,13 @@ def isApplyLessor (le : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (P : IProp
   iprop(txn.isTxnLessor le γ.leases ∗ ∃ li : GoInterfaceOk, ⌜le = GoInterface.ok li⌝ ∗
     □ (∀ (id ttl : w64) (L : List w64) (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64)
         (Pre Q Post : IProp GF),
-      {{ mvcc.csContract P f Pre Q Post ∗ lease.leaseOwn γ.leases L I ∗ mvcc.storeWT γ ∗ mvcc.storeRT γ ∗
+      {{ mvcc.csContract P f Pre Q Post ∗ lease.leaseOwn γ.leases L I ∗ lease.leaseRevokers γ.leases L ∗
+          mvcc.storeWT γ ∗ mvcc.storeRT γ ∗
           lease.leaseGranted γ.leases id ∗ RW }}
         (App (App (Val #(methods li.ty go!"Grant" li.v)) (Val #id)) (Val #ttl))
       {{ (l : Loc) (err : GoInterface), RET (PairV #l #err); (Post ∨ Pre) ∗ mvcc.storeRT γ ∗
-          (∃ L' : List w64, lease.leaseOwn γ.leases L' I ∗ ⌜∀ x ∈ L, x ∈ L'⌝ ∗
+          (∃ L' : List w64, lease.leaseOwn γ.leases L' I ∗ lease.leaseRevokers γ.leases L' ∗
+            ⌜∀ x ∈ L, x ∈ L'⌝ ∗
             (⌜err ≠ GoInterface.nil⌝ ∨
               (⌜err = GoInterface.nil⌝ ∗ ∃ id' : w64, leaseTTLIs l id' ∗ ⌜id' ∈ L'⌝))) ∗
           applyErrIs err }}) ∗

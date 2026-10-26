@@ -174,6 +174,44 @@ theorem lessor_live_grant (γl : GName) (lp : Loc) (L : List w64) (M : GMap w64 
   iapply ((ghostMapElem_fractional (GF := GF) true γl (Sum.inr (L ++ [id]) : LessorGV)).fractional
     (1 : Qp).half (1 : Qp).half).1 $$ H
 
+/-- A conjunction over a list gives the one over a filter of it. -/
+theorem bigSepL_filter (P : w64 → IProp GF) (p : w64 → Bool) :
+    ∀ L : List w64, ([∗list] x ∈ L, P x) ⊢ [∗list] x ∈ L.filter p, P x
+  | [] => by simp only [List.filter_nil]; exact .rfl
+  | x :: L => by
+    iintro H
+    icases BigSepL.bigSepL_cons.1 $$ H with ⟨Hx, H⟩
+    ihave H := bigSepL_filter P p L $$ H
+    rw [List.filter_cons]
+    split
+    · iapply BigSepL.bigSepL_cons.2; iframe Hx H
+    · iexact H
+
+/-- **The live set loses a lease** (`Revoke`), with both halves (the lessor's under `le.mu`, the
+owner's): the live set without `id`. -/
+theorem lessor_live_revoke (γl : GName) (lp : Loc) (L : List w64) (M : GMap w64 Loc) (id : w64) :
+    lessorAuth (GF := GF) γl 1 lp L M ∗ leaseFrag γl (1 : Qp).half L ∗
+      leaseFrag γl (1 : Qp).half L ==∗
+      lessorAuth γl 1 lp (L.filter (· != id)) M ∗ leaseFrag γl (1 : Qp).half (L.filter (· != id)) ∗
+        leaseFrag γl (1 : Qp).half (L.filter (· != id)) := by
+  unfold lessorAuth leaseFrag
+  iintro ⟨⟨%γga, %γcl, Ha, Hcl, #Hgr⟩, H1, H2⟩
+  ihave #Hl := bigSepL_filter (fun x => leaseGranted (GF := GF) γl x) (· != id) L $$ Hgr
+  icases ghostMapElem_combine true γl _ _ _ _ $$ H1 H2 with ⟨H, -⟩
+  ihave H : ghostMapElem (GF := GF) γl true (DFrac.own 1) (Sum.inr L : LessorGV) $$ [H]
+  · rw [dfrac_own_half_half 1]; iexact H
+  imod ghost_map_update (Sum.inr (L.filter (· != id)) : LessorGV) $$ Ha H with ⟨Ha, H⟩
+  rw [lessorGhost_insert]
+  isplitl [Ha Hcl]
+  · iexists γga, γcl
+    iframe Ha Hcl
+    iframe Hl
+  ihave H : ghostMapElem (GF := GF) γl true (DFrac.own ((1 : Qp).half + (1 : Qp).half))
+      (Sum.inr (L.filter (· != id)) : LessorGV) $$ [H]
+  · rw [Qp.half_add_half]; iexact H
+  iapply ((ghostMapElem_fractional (GF := GF) true γl
+    (Sum.inr (L.filter (· != id)) : LessorGV)).fractional (1 : Qp).half (1 : Qp).half).1 $$ H
+
 /-- The lessor's authority names the pin's closers' map. -/
 theorem lessorAuth_pin (γl : GName) (q : Qp) (lp lp' : Loc) (L : List w64) (M : GMap w64 Loc)
     (γga γcl : GName) :
@@ -195,18 +233,26 @@ theorem lessorAuth_pin (γl : GName) (q : Qp) (lp lp' : Loc) (L : List w64) (M :
   iframe Ha Hcl Hgr
 
 /-- **A granted lease's closer joins the owner's** (unit T3): the closers' map gains the lease
-(with the lessor's map), the owner its element, the right to close its `revokec` and (L2b) its
-half of the lease's item set, empty (no item of the item map is on a lease not yet live). -/
+(with the lessor's map), the owner its element (half in `leaseOwn`'s closers, half in the
+revokers, with the right to close its `revokec`) and (L2b) its half of the lease's item set,
+empty (no item of the item map is on a lease not yet live). -/
 theorem closers_grant (γl : GName) (lp : Loc) (L : List w64) (M : GMap w64 Loc) (id : w64)
     (l : Loc) (c : GoChan) (I : GMap LeaseItem w64) (sm : Loc) (hM : M.lookup id = none)
     (hL : ∀ x : w64, x ∈ L ↔ (M.lookup x).isSome) :
-    lessorAuth (GF := GF) γl 1 lp L M ∗ leaseClosers γl L I ∗ lsF go!"revokec" l ↦□ c ∗
+    lessorAuth (GF := GF) γl 1 lp L M ∗ leaseClosers γl L I ∗ leaseRevokers γl L ∗
+        lsF go!"revokec" l ↦□ c ∗
         revokeCloser c ∗ lsF go!"itemSet" l ↦{DFrac.own (1 : Qp).half} sm ∗
-        sm ↦${DFrac.own (1 : Qp).half} (∅ : GMap LeaseItem Unit) ==∗
-      lessorAuth γl 1 lp L (M.insert id l) ∗ leaseClosers γl (L ++ [id]) I := by
-  iintro ⟨Ha, Hcls, #Hrc, Hrcl, Hsm, HS⟩
+        sm ↦${DFrac.own (1 : Qp).half} (∅ : GMap LeaseItem Unit) ∗
+        sync.ownRWMutex (lsF go!"mu" l) (leaseItems l) ==∗
+      lessorAuth γl 1 lp L (M.insert id l) ∗ leaseClosers γl (L ++ [id]) I ∗
+        leaseRevokers γl (L ++ [id]) := by
+  iintro ⟨Ha, Hcls, Hrvk, #Hrc, Hrcl, Hsm, HS, Hslot⟩
   iunfold leaseClosers at Hcls
   icases Hcls with ⟨%lp', %γga, %γcl, %C, %im, #Hp, %HC, Him, HI, %HIL, Hcs⟩
+  iunfold leaseRevokers at Hrvk
+  icases Hrvk with ⟨%lp'', %γga', %γcl', %C', #Hp', %HC', Hrs⟩
+  ihave %Hpp := lessorPinG_agree γl lp' lp'' γga γga' γcl γcl' $$ [$Hp $Hp']
+  obtain ⟨rfl, rfl, rfl⟩ := Hpp
   icases lessorAuth_pin γl 1 lp lp' L M γga γcl $$ [$Ha $Hp] with ⟨%Hlp, Hcl, Hback⟩
   subst Hlp
   have hnotL : id ∉ L := by
@@ -215,9 +261,39 @@ theorem closers_grant (γl : GName) (lp : Loc) (L : List w64) (M : GMap w64 Loc)
     cases h : C.lookup id with
     | none => rfl
     | some _ => exact absurd ((HC id).2 (by rw [h]; rfl)) hnotL
+  have hC' : C'.lookup id = none := by
+    cases h : C'.lookup id with
+    | none => rfl
+    | some _ => exact absurd ((HC' id).2 (by rw [h]; rfl)) hnotL
   imod ghost_map_insert id l hM $$ Hcl with ⟨Hcl, He⟩
+  icases (ghostMapElem_fractional (GF := GF) id γcl l).fractional (1 : Qp).half (1 : Qp).half |>.1
+    $$ [He] with ⟨He, He'⟩
+  · rw [Qp.half_add_half]; iexact He
   ihave Ha := Hback $$ %(M.insert id l) Hcl
   iframe Ha
+  isplitr [Hrs He' Hrcl]
+  rotate_left
+  · iunfold leaseRevokers
+    iexists lp, γga, γcl, (C'.insert id l)
+    iframe Hp
+    isplitr
+    · ipureintro
+      intro x
+      rw [List.mem_append, List.mem_singleton, HC' x]
+      by_cases hx : id = x
+      · subst hx; simp [GMap.lookup_insert_eq_iff, hC']
+      · have : (C'.insert id l).lookup x = C'.lookup x := GMap.lookup_insert_ne C' l hx
+        rw [this]
+        constructor
+        · rintro (h | h)
+          · exact h
+          · exact absurd h.symm hx
+        · intro h; exact Or.inl h
+    iapply (BigSepM.bigSepM_insert (Φ := fun (i : w64) (x : Loc) =>
+      iprop(ghostMapElem (GF := GF) γcl i (DFrac.own (1 : Qp).half) x ∗
+        ∃ c : GoChan, lsF go!"revokec" x ↦□ c ∗ revokeCloser c)) hC').2
+    iframe Hrs He'
+    iexists c; iframe Hrc Hrcl
   iunfold leaseClosers
   iexists lp, γga, γcl, (C.insert id l), im
   iframe Hp Him HI
@@ -241,10 +317,7 @@ theorem closers_grant (γl : GName) (lp : Loc) (L : List w64) (M : GMap w64 Loc)
   iapply (BigSepM.bigSepM_insert (Φ := fun (i : w64) (x : Loc) => closerAt (GF := GF) γcl I i x) hC).2
   iframe Hcs
   iunfold closerAt
-  iframe He
-  isplitl [Hrcl]
-  · iexists c
-    iframe Hrc Hrcl
+  iframe He Hslot
   iunfold leaseItemsOwn
   iexists sm, ∅
   iframe Hsm HS
@@ -260,28 +333,28 @@ that attaches the same items to every other lease. -/
 theorem closers_items (γcl : GName) (C : GMap w64 Loc) (id : w64) (l : Loc)
     (I : GMap LeaseItem w64) (hC : C.lookup id = some l) :
     ([∗map] i ↦ x ∈ C, closerAt (GF := GF) γcl I i x) ⊢
-      ghostMapElem γcl id (DFrac.own 1) l ∗ leaseItemsOwn l I id ∗
+      ghostMapElem γcl id (DFrac.own (1 : Qp).half) l ∗ leaseItemsOwn l I id ∗
       ∀ I' : GMap LeaseItem w64,
         ⌜∀ id' : w64, id' ≠ id → ∀ it : LeaseItem, I'.lookup it = some id' ↔ I.lookup it = some id'⌝ -∗
-        ghostMapElem γcl id (DFrac.own 1) l -∗ leaseItemsOwn l I' id -∗
+        ghostMapElem γcl id (DFrac.own (1 : Qp).half) l -∗ leaseItemsOwn l I' id -∗
         [∗map] i ↦ x ∈ C, closerAt γcl I' i x := by
   iintro H
   icases (BigSepM.bigSepM_delete (Φ := fun i x => closerAt (GF := GF) γcl I i x) hC).1 $$ H
     with ⟨Hc, Hrest⟩
   iunfold closerAt at Hc
-  icases Hc with ⟨He, Hcl, Hit⟩
+  icases Hc with ⟨He, Hit, Hslot⟩
   iframe He Hit
   iintro %I' %Hoth He Hit
   iapply (BigSepM.bigSepM_delete (Φ := fun i x => closerAt (GF := GF) γcl I' i x) hC).2
-  isplitl [He Hcl Hit]
+  isplitl [He Hit Hslot]
   · iunfold closerAt; iframe
   iapply BigSepM.bigSepM_impl $$ Hrest
   iintro !> %k %v %hk Hc
   have hne : k ≠ id := fun h => (Iris.Std.LawfulPartialMap.get?_delete_some_iff.1 hk).1 h.symm
   iunfold closerAt at Hc
   iunfold closerAt
-  icases Hc with ⟨He, Hcl, Hit⟩
-  iframe He Hcl
+  icases Hc with ⟨He, Hit, Hslot⟩
+  iframe He Hslot
   iunfold leaseItemsOwn at Hit
   iunfold leaseItemsOwn
   icases Hit with ⟨%sm, %S, Hsm, HS, %HSI⟩
@@ -340,6 +413,38 @@ theorem detach_other (I : GMap LeaseItem w64) (id id' : w64) (xs : List LeaseIte
     rw [hxs it hi]; intro h; cases h; exact hne rfl
   · simp [hi]
 
+/-- **The owner's whole resource of one live lease, taken out** (unit T3: `Revoke`), and back at
+any item map attaching the same items to every other lease. -/
+theorem closers_take (γcl : GName) (C : GMap w64 Loc) (id : w64) (l : Loc)
+    (I : GMap LeaseItem w64) (hC : C.lookup id = some l) :
+    ([∗map] i ↦ x ∈ C, closerAt (GF := GF) γcl I i x) ⊢
+      closerAt γcl I id l ∗
+      ∀ I' : GMap LeaseItem w64,
+        ⌜∀ id' : w64, id' ≠ id → ∀ it : LeaseItem, I'.lookup it = some id' ↔ I.lookup it = some id'⌝ -∗
+        closerAt γcl I' id l -∗ [∗map] i ↦ x ∈ C, closerAt γcl I' i x := by
+  iintro H
+  icases (BigSepM.bigSepM_delete (Φ := fun i x => closerAt (GF := GF) γcl I i x) hC).1 $$ H
+    with ⟨Hc, Hrest⟩
+  iframe Hc
+  iintro %I' %Hoth Hc
+  iapply (BigSepM.bigSepM_delete (Φ := fun i x => closerAt (GF := GF) γcl I' i x) hC).2
+  iframe Hc
+  iapply BigSepM.bigSepM_impl $$ Hrest
+  iintro !> %k %v %hk Hc
+  have hne : k ≠ id := fun h => (Iris.Std.LawfulPartialMap.get?_delete_some_iff.1 hk).1 h.symm
+  iunfold closerAt at Hc
+  iunfold closerAt
+  icases Hc with ⟨He, Hit, Hslot⟩
+  iframe He Hslot
+  iunfold leaseItemsOwn at Hit
+  iunfold leaseItemsOwn
+  icases Hit with ⟨%sm, %S, Hsm, HS, %HSI⟩
+  iexists sm, S
+  iframe Hsm HS
+  ipureintro
+  intro it
+  rw [HSI it, Hoth k hne it]
+
 /-- Two whole points-to of one `int` field contradict. -/
 theorem w64Field_excl (a : Loc) (v w : w64) :
     a ↦ v ∗ a ↦ w ⊢ (False : IProp GF) := by
@@ -373,6 +478,38 @@ theorem listSwap_eq {A : Type} (xs : List A) (i j : Nat) (a b : A) (ha : xs[i]? 
   unfold listSwap; rw [ha, hb]
 
 end lemmas
+
+section closeLemmas
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+/-- **`close(c)` by the closer of a lease's `revokec`** (unit T3: `Revoke`'s deferred close): the
+channel idle, owned, so the close does not panic. -/
+theorem wp_revokec_close {ty : go.GoType} {dir : go.ChanDir}
+    [ty ↓u go.ChannelType dir (go.StructType [])] (c : GoChan) :
+    {{ revokeCloser (GF := GF) c }} (App (Val #(functions go.close [ty])) (Val #c))
+    {{ RET #(); True }} := by
+  iintro %Φ Hcl HΦ
+  iunfold revokeCloser at Hcl
+  icases Hcl with ⟨%γc, #Hch, Hown⟩
+  iapply chan.wp_close (ct := ty) (V := Unit) c γc $$ Hch
+  iintro _
+  unfold closeAu
+  iapply fupd_mask_intro Std.LawfulSet.empty_subset
+  iintro Hmask
+  inext
+  iexists .Idle
+  dsimp only
+  iframe Hown
+  iintro -
+  imod Hmask with -
+  imodintro
+  iapply HΦ
+  itrivial
+
+end closeLemmas
 
 end lease
 end EtcdGrove

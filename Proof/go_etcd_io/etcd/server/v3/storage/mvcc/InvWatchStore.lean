@@ -1675,15 +1675,49 @@ theorem isWatchTxnWrite_leaseDel (tw s st : Loc) (γ : WsNames) (trace : Loc) (i
   iframe Htx Htoks Hwlog
   iframe #
 
+/-- **The watchable write transaction's batch transaction is the backend's** (`storeBt`),
+keeping the transaction (leases T3: `Revoke` calls the lessor's `le.b.BatchTx()` with it). -/
+theorem isWatchTxnWrite_bt (tw s st : Loc) (γ : WsNames) (trace : Loc) (ilog : Log)
+    (pend : List Change) (puts deletes putSize : w64) (ld : Bool) :
+    isWatchTxnWrite (GF := GF) tw s st γ trace ilog pend puts deletes putSize ld ⊢
+      isWatchTxnWrite tw s st γ trace ilog pend puts deletes putSize ld ∗
+        ∃ bt : GoInterfaceOk, storeBt γ.st bt := by
+  iintro H
+  iunfold isWatchTxnWrite at H
+  iNamed H
+  irename Htw => Hwtw
+  irename Htoks => Hwtoks
+  irename Hcert => Hwcert
+  iunfold isTxnWrite at Htx
+  icases Htx with ⟨%tw', %ranges, Hmw, Htw', Htrc⟩
+  iunfold storeTxnWriteIs at Htw'
+  icases Htw' with ⟨%ti, %bt, %Locked, %chs, %ps, %ntok, %Pw, %fw, %Dep, Hst⟩
+  iNamed Hst
+  isplitl
+  · iunfold isWatchTxnWrite
+    iexists mw
+    simp only [named]
+    iframe Hwtw Hws Hwcert Hwtoks Hwlog
+    iunfold isTxnWrite
+    iexists tw', ranges
+    iframe Hmw Htrc
+    iunfold storeTxnWriteIs
+    iexists ti, bt, Locked, chs, ps, ntok, Pw, fw, Dep
+    simp only [named]
+    iframe
+    iframe #
+    ipureintro; exact ⟨Hbudget, Hps, Hne, Htrnn, Hcrev⟩
+  iexists bt; iexact HbtB
+
 /-- **The range deleter `rd`** of the watchable store `s` (inner store `st`, names `γ`;
 persistent; leases T3, L2d (iii), 2026-10-25): `newWatchableStore` gives the lessor the closure
 `func() lease.TxnDelete { return s.Write(traceutil.TODO()) }`, which, called by the store's sole
 writer at its committed log `L` (what `watchableStore.Write` takes: a reader's slot, the write
 token, `watchWriter`, the post-lock hook run on the caller's `Pre`), opens a watchable write
 transaction on a fresh trace and returns it as a `lease.TxnDelete` (the lessor's `Revoke`
-deletes the lease's keys through it). -/
+deletes the lease's keys through it); not `nil` (`Revoke` tests it). -/
 def rdIs (rd : GoFunc) (s st : Loc) (γ : WsNames) : IProp GF :=
-  iprop(□ (∀ (L : Log) (P Pre Q : IProp GF) (f : val),
+  iprop(⌜rd ≠ func.nil⌝ ∗ □ (∀ (L : Log) (P Pre Q : IProp GF) (f : val),
     {{ storeReader st γ.st ∗ storeWT γ.st ∗ watchWriter γ L ∗ ⌜L.length + 4 ≤ 2 ^ 63⌝ ∗
         hookIs γ.st P f ∗ Pre ∗ □ ({{ P ∗ Pre }} (App (Val f) (Val #())) {{ RET #(); Q }}) }}
       (App (Val #rd) (Val #()))
