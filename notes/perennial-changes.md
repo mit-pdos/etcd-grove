@@ -638,3 +638,30 @@ Three of the watch client's local workarounds (D25, `notes/decisions.md`, "S1c's
   `iintro`.
 - **Proposed change.** Not designed: a minimal reproduction first; the tactic should report
   where and why it fails.
+
+### `strconv.NumError`'s `Error()` has no spec
+
+- **Missing.** Perennial specifies `strconv.ParseUint`'s errors as fresh `*NumError`s
+  (`strconv.numErrorOf`) but not `(*NumError).Error` (`"strconv." + Func + ": parsing " +
+  Quote(Num) + ": " + Err.Error()`, through `strconv.Quote`), so a caller that must show the error
+  prints (`http.errStrOk`, `zap.Error`'s callers) cannot. Found 2026-10-26 when trying
+  `types.IDFromString` (`strconv.ParseUint(s, 16, 64)`): its proof would need a new axiom for
+  `NumError.Error` in place of the one it discharges, so it stays an axiom.
+- **Workaround here.** None: `types.IDFromString.wp_proof` stays a trust-boundary axiom. Its success
+  case is provable over `ParseUint.spec` (a pure lemma that `parseUint (types.idStr x) 16 64 = .ok
+  x`, by induction on `types.hexNatF`'s fuel with `parseDigits_append_ok`).
+- **Proposed change.** A spec of `(*NumError).Error` (returns some string; or the string, with a
+  spec of `Quote`) in Perennial's `Proof/strconv`.
+
+### `errors.Is`/`errors.As` at non-pointer targets and for leaves
+
+- **Missing.** Perennial's `errors.Is.spec` takes a `nil` or pointer target, and its
+  `errors.As.spec` allows any result. Four axioms here are specializations it does not cover
+  (2026-10-26 survey): `errors.IsDeadlineExceeded` and `errors.IsCtxErr` (the target
+  `context.DeadlineExceeded`, an empty struct), `errors.IsStatusErr` (an `EtcdError` value
+  target), `errors.AsLeaf` (`As` of an `errors.New` error against a type whose set excludes
+  `*errorString` returns `false`).
+- **Workaround here.** The four stay trust-boundary axioms (`Proof/errors/`).
+- **Proposed change.** `errors.Is.spec` for a comparable non-pointer target (Go's `Is` compares
+  with `==` first, which does not panic for a comparable target type), and an `errors.As` spec that
+  says `false` for a leaf error not in the target's type set; then the four are proved here.
