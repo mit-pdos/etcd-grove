@@ -328,7 +328,7 @@ theorem auth.authStore.AuthEnable.wp_tie
   iright
   iexists st0, (.next { st0 with enabled := true })
   isplitr
-  · ipureintro; exact tieStep_set M hs _ _ _ true _ _ Hl1 rfl (fun _ => rfl)
+  · ipureintro; exact tieStep_set M hs _ _ _ true _ _ Hl1 rfl (fun _ => rfl) rfl
   isplitr
   · ipureintro; exact ⟨Hl0, hstep.symm⟩
   simp only [outRes]

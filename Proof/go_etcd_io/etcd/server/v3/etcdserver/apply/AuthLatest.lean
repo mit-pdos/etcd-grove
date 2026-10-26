@@ -209,7 +209,7 @@ def isAuthStoreL (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode)
     permCheck3L ai go!"IsDeleteRangePermitted" RD M .write L ∗
     □ (∀ (a : Loc) (info : auth.AuthInfo) (dq : DFrac) (hs : List auth.AuthState),
       {{ a ↦{dq} info ∗ RD ∗ L hs }} (App (Val #(methods ai.ty go!"IsAdminPermitted" ai.v)) (Val #a))
-      {{ (err : GoInterface), RET #err; a ↦{dq} info ∗ RD ∗ L hs ∗ applyErrIs err ∗
+      {{ (err : GoInterface), RET #err; a ↦{dq} info ∗ RD ∗ L hs ∗ authApplyErrIs err ∗
           ⌜auth.adminVerdictL M hs (some (auth.authInfoM info)) err⌝ }}))
 
 instance isAuthStoreL_persistent (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode)
@@ -308,7 +308,7 @@ theorem isAuthStoreL_of_authInv
   isplitl [Hown Hfl Hca]
   · iunfold auth.latestRes; iframe Hown; iexists b, sc; iframe Hfl Hca Hev Hsn; ipureintro; exact Htie
   isplitl []
-  · iapply authErrIs_applyErrIs err $$ [$Hpkg $Herr]
+  · iapply authErrIs_authApplyErrIs err $$ [$Hpkg $Herr]
   · ipureintro; exact Hv
 
 end proof

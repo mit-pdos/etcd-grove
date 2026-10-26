@@ -74,6 +74,7 @@ public import Proof.go_etcd_io.etcd.server.v3.auth.Boot
 public import Proof.go_etcd_io.etcd.server.v3.auth.Latest
 public import Proof.go_etcd_io.etcd.server.v3.auth.ReadLb
 public import Proof.go_etcd_io.etcd.server.v3.auth.FreshCheck
+public import Proof.go_etcd_io.etcd.server.v3.auth.FreshWrap
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__UserAdd_sure
 public import Proof.go_etcd_io.etcd.server.v3.auth.LatestAdmin
 public import Proof.go_etcd_io.etcd.server.v3.auth.LatestTie
@@ -90,6 +91,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ApplyTieOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.ApplyFnAdminL
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ApplyEntryOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NoSpaceDeadOn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NoSpaceDeadAdminOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AppliedOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.UberOn
 
@@ -1339,6 +1341,18 @@ theorem auth_op_permitted_lb : auth.authStore.isOpPermitted.specLb (GF := GF) :=
     zap.wp_ByteString zap.wp_Error zap.Logger.wp_Warn zap.wp_String zap.Logger.wp_Error
     auth.wp_hasRootRole auth.authStore.lockedReadTx.wp_lb auth_range_op_permitted_lb
 
+/-- **The read wrappers no older than a reader's lower bound** (the auth plan's E3j,
+`auth/FreshWrap.lean`): `IsRangePermitted` (the read path's check), `IsPutPermitted`,
+`IsDeleteRangePermitted` over `isOpPermitted.specLb`, every callee linked. -/
+theorem auth_range_permitted_lb : auth.authStore.IsRangePermitted.specLb (GF := GF) :=
+  auth.authStore.IsRangePermitted.wp_lb auth_op_permitted_lb
+
+theorem auth_put_permitted_lb : auth.authStore.IsPutPermitted.specLb (GF := GF) :=
+  auth.authStore.IsPutPermitted.wp_lb auth_op_permitted_lb
+
+theorem auth_delete_range_permitted_lb : auth.authStore.IsDeleteRangePermitted.specLb (GF := GF) :=
+  auth.authStore.IsDeleteRangePermitted.wp_lb auth_op_permitted_lb
+
 end readLb
 
 #print axioms Perennial.EtcdGrove.auth_locked_read_tx_lb
@@ -1346,6 +1360,9 @@ end readLb
 #print axioms Perennial.EtcdGrove.auth_enabled_lb
 #print axioms Perennial.EtcdGrove.auth_range_op_permitted_lb
 #print axioms Perennial.EtcdGrove.auth_op_permitted_lb
+#print axioms Perennial.EtcdGrove.auth_range_permitted_lb
+#print axioms Perennial.EtcdGrove.auth_put_permitted_lb
+#print axioms Perennial.EtcdGrove.auth_delete_range_permitted_lb
 
 section latestApply
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -2203,6 +2220,25 @@ theorem server_apply_not_nospace_on (rq : EtcdGrove.apply.IRRModel) (x x' : Etcd
         structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.Result go!"Err" ar ↦□ err ∗
         notNoSpaceErr err) :=
   applyResultIs_notNoSpaceOn rq x x' ar out hp hch hs
+
+/-- **`apply.Apply`'s result on an admitted admin entry with auth on is not `ErrNoSpace`'s** (the
+auth plan's E3j, `NoSpaceDeadAdminOn.lean`): with `apply.Apply.adminSpecL`'s postcondition (the
+admin outcome and the rejection's error), the result is `nil` or its error one of the auth
+package's, so `applyEntryNormal`'s NOSPACE branch is dead for admin entries too. -/
+theorem server_apply_admin_not_nospace_on
+    (Own : auth.AuthNames → List auth.AuthState → IProp GF) (γa : auth.AuthNames)
+    (M : auth.AuthMode) (hs : List auth.AuthState) (rq : EtcdGrove.apply.IRRModel)
+    (log : mvcc.Log) (ar : Loc) (out : EtcdGrove.apply.ApplyOut) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗
+      go_etcd_io.etcd.server.v3.etcdserver.apply.applyErrVars ⊢
+      EtcdGrove.apply.applyResultIs rq true log ar out -∗
+      EtcdGrove.apply.adminOut Own γa M hs rq true ar out -∗ EtcdGrove.apply.adminRejErr ar out -∗
+      EtcdGrove.apply.applyResultIs rq true log ar out ∗
+      EtcdGrove.apply.adminOut Own γa M hs rq true ar out ∗
+      (⌜ar = null⌝ ∨ ∃ err : GoInterface,
+        structFieldRef go_etcd_io.etcd.server.v3.etcdserver.apply.Result go!"Err" ar ↦□ err ∗
+        notNoSpaceErr err) :=
+  applyResultIs_notNoSpaceAdmin Own γa M hs rq log ar out
 
 end applyStateOn
 
