@@ -268,6 +268,49 @@ instance authSnap_persistent (M : AuthMode) (st : AuthState) :
     Persistent (authSnap (GF := GF) M st) := by
   unfold authSnap; cases M <;> infer_instance
 
+/-- **A reader's lower bound of the published index** `i` in the mode `M` (persistent; the auth
+plan's E3g): in `on γa`, `authPubLb γa i`; otherwise nothing. -/
+def authPubLbM (M : AuthMode) (i : Nat) : IProp GF :=
+  match M with
+  | .on γa => authPubLb γa i
+  | _ => iprop(True)
+
+instance authPubLbM_persistent (M : AuthMode) (i : Nat) :
+    Persistent (authPubLbM (GF := GF) M i) := by
+  unfold authPubLbM; cases M <;> infer_instance
+
+/-- **A state of the mode no older than the index `i`** (persistent; the auth plan's E3g): as
+`authSnap`, in `on γa` recorded at an index at least `i`. -/
+def authSnapFrom (M : AuthMode) (i : Nat) (st : AuthState) : IProp GF :=
+  match M with
+  | .off => iprop(⌜st.enabled = false⌝)
+  | .any => iprop(True)
+  | .on γa => iprop(∃ j : Nat, authStateAt γa j st ∗ ⌜i ≤ j⌝)
+
+instance authSnapFrom_persistent (M : AuthMode) (i : Nat) (st : AuthState) :
+    Persistent (authSnapFrom (GF := GF) M i st) := by
+  unfold authSnapFrom; cases M <;> infer_instance
+
+/-- A state no older than an index is a state of the mode. -/
+theorem authSnapFrom_snap (M : AuthMode) (i : Nat) (st : AuthState) :
+    authSnapFrom (GF := GF) M i st ⊢ authSnap M st := by
+  cases M
+  · simp only [authSnapFrom, authSnap]; iintro H; iexact H
+  · simp only [authSnapFrom, authSnap]; iintro -; itrivial
+  · simp only [authSnapFrom, authSnap]
+    iintro ⟨%j, #H, -⟩
+    iexists j; iexact H
+
+/-- Every state of the mode is no older than `0`. -/
+theorem authSnapFrom_zero (M : AuthMode) (st : AuthState) :
+    authSnap (GF := GF) M st ⊢ authSnapFrom M 0 st := by
+  cases M
+  · simp only [authSnapFrom, authSnap]; iintro H; iexact H
+  · simp only [authSnapFrom, authSnap]; iintro -; itrivial
+  · simp only [authSnapFrom, authSnap]
+    iintro ⟨%j, #H⟩
+    iexists j; iframe H; ipureintro; omega
+
 theorem authSnap_any (st : AuthState) : ⊢ authSnap (GF := GF) .any st := by
   unfold authSnap; ipureintro; trivial
 
