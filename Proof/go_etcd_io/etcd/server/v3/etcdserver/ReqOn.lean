@@ -506,6 +506,57 @@ theorem deletePermitOn_reqPropOk (γk : KVNames) (op : OpFull) (Q : KVState → 
   rw [hq]
   iapply reqPropOkM_true_write γk (irrDeleteRange op) (.deleteRange op) Q γc hp hop hz hs ha $$ Hau
 
+/-- **What a writing transaction of `t` needs in the mode `on`** (the auth plan's E3d,
+2026-10-27): `txnPermit`'s, and every permission the transaction's checks need of the shape the
+permission cache decides (`kvShapeAll`: its comparisons' and operations' keys and range ends). -/
+def txnPermitOn (γk : KVNames) (t : TxnModel) (Q : KVState → IProp GF) : IProp GF :=
+  iprop(txnPermit γk t Q ∗ ⌜kvShapeAll (irrTxn t)⌝)
+
+/-- **A writing transaction's result in the mode `on`** (`putQhOn`'s). -/
+def txnQhOn (γk : KVNames) (t : TxnModel) (γc : GName) (Q : KVState → IProp GF)
+    (hm : apply.HeaderModel) (L : List EntryModel) : IProp GF :=
+  grantedRes γk srvAuthSt0 (apply.withHeader (irrTxn t) hm) γc Q L
+
+theorem irrTxn_kind (t : TxnModel) : apply.dispatchKind (irrTxn t) = .txn := by
+  simp [apply.dispatchKind, irrTxn, apply.irrEmpty]
+
+/-- **A writing transaction's permission in the mode `on` is its proposal's**
+(`txnPermit_reqPropOk`'s). -/
+theorem txnPermitOn_reqPropOk (γk : KVNames) (t : TxnModel) (Q : KVState → IProp GF)
+    (γc : GName) :
+    txnPermitOn (GF := GF) γk t Q ⊢ reqPropOkM true γk (irrTxn t) (txnQhOn γk t γc Q) := by
+  unfold txnPermitOn txnPermit
+  iintro ⟨⟨%Ht, Hau⟩, %Ha⟩
+  have hk := irrTxn_kind t
+  have hpl : plainCover (irrTxn t) := by
+    unfold plainCover
+    rw [hk]
+    refine ⟨by simp [apply.noSideEffect, irrTxn, apply.irrEmpty],
+      by simp [apply.needAdminPermission, irrTxn, apply.irrEmpty], ?_⟩
+    intro t' h; simp only [irrTxn, Option.some.injEq] at h; subst h; exact Ht.1
+  have hp : plainReq (irrTxn t) := ⟨hpl, putgetKind_kv _ (by simp only [hk]; simp)⟩
+  have hop : reqKVOp (irrTxn t) = some (.txn t) := by unfold reqKVOp; rw [hk]; rfl
+  have hz : irrNoZeroEnd (irrTxn t) := by
+    refine ⟨?_, ?_, ?_⟩
+    · intro _ h; simp [irrTxn, apply.irrEmpty] at h
+    · intro _ h; simp [irrTxn, apply.irrEmpty] at h
+    · intro t' h; simp only [irrTxn, Option.some.injEq] at h; subst h; exact Ht.2.1
+  have hs : rqShape (irrTxn t) := rqShape_of_txn _ hpl hk (fun t' h => by
+    simp only [irrTxn, Option.some.injEq] at h; subst h; exact Ht.2.2)
+  have hq : txnQhOn (GF := GF) γk t γc Q =
+      fun hm => grantedRes γk srvAuthSt0 (apply.withHeader (irrTxn t) hm) γc Q := rfl
+  rw [hq]
+  iapply reqPropOkM_true_write γk (irrTxn t) (.txn t) Q γc hp hop hz hs Ha $$ Hau
+
+/-- `grantedRes_applied` for a writing transaction. -/
+theorem txnQhOn_res (γk : KVNames) (t : TxnModel) (γc : GName) (Q : KVState → IProp GF)
+    (hm : apply.HeaderModel) (L : List EntryModel) (lb log' : mvcc.Log) (skip : Bool)
+    (h : modelOutM true γk (apply.withHeader (irrTxn t) hm) L lb
+      (.dispatched (.applied log' false) skip)) :
+    txnQhOn (GF := GF) γk t γc Q hm L ⊢ kvRes γc Q (kvStateOf lb) :=
+  grantedRes_applied γk _ γc Q L lb log' skip
+    (by rw [dispatchKind_withHeader, irrTxn_kind]; rfl) h
+
 end put
 
 end EtcdGrove
