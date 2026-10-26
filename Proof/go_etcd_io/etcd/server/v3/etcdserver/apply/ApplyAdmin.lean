@@ -7,7 +7,7 @@ A second triple of `apply.uberApplier.Apply` (`uber_applier.go`), beside its spe
 (`adminKindOk`): the current applier's `Apply` (the chain's `applierTriples` clause, which takes
 any `applyFunc` with a triple of its own) runs `dispatch` through its admin triple
 (`dispatch.adminSpec`, `DispatchAdmin.lean`), whose admin triples of the current applier come from
-the base applier's and the current applier's shape (`applierAdmin_cur`). The auth layer's admin
+the base applier's and the current applier's shape (`applierAdmin_curG`). The auth layer's admin
 check either passes (the request's admin outcome, `adminDone`) or rejects the request (the
 authority, its receipt and `W` back). The current chain is unchanged (`dispatch` keeps it).
 -/
@@ -38,10 +38,11 @@ variable [sem : go.Semantics]
 /-- **The admin outcome of `Apply`'s result** `ar` for the outcome `out` (the auth plan's E2o):
 a dispatched request's `adminDone` (its step or the model's refusal); a rejected or skipped one
 ran nothing, and the authority with its fuel and the unspent receipt come back. -/
-def apply.adminOut (γa : auth.AuthNames) (M : auth.AuthMode) (hs : List auth.AuthState)
-    (rq : apply.IRRModel) (v3 : Bool) (ar : Loc) : apply.ApplyOut → IProp GF
-  | .dispatched _ _ => apply.adminDone γa M hs rq v3 ar
-  | _ => iprop(auth.authOwnFu γa hs ∗ ⧗ 1)
+def apply.adminOut (Own : auth.AuthNames → List auth.AuthState → IProp GF) (γa : auth.AuthNames) (M : auth.AuthMode)
+    (hs : List auth.AuthState) (rq : apply.IRRModel) (v3 : Bool) (ar : Loc) :
+    apply.ApplyOut → IProp GF
+  | .dispatched _ _ => apply.adminDone Own γa M hs rq v3 ar
+  | _ => iprop(Own γa hs ∗ ⧗ 1)
 
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
@@ -55,21 +56,23 @@ leaves, `restAfter_other`), with `W` back and the admin outcome (`adminOut`). -/
 abbrev apply.uberApplier.Apply.adminSpec : Prop :=
   ∀ (E : apply.AEnv GF) (p : Loc) (opts : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions)
     (x : apply.ApplyKV) (r : Loc) (rq : apply.IRRModel) (skip v3 : Bool)
-    (Pre Q Post : IProp GF) (W : IProp GF) (γa : auth.AuthNames) (hs : List auth.AuthState),
+    (Pre Q Post : IProp GF) (W : IProp GF) (γa : auth.AuthNames) (hs : List auth.AuthState)
+    (Own : auth.AuthNames → List auth.AuthState → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ apply.uberIs E p opts ∗
       apply.irrWrapperIs r rq skip ∗ apply.uberOwn E p x.chain ∗ apply.kvOwn E x.log ∗
       apply.cPre v3 E.P E.f Pre Q Post ∗
-      apply.isAuthSteps opts.AuthStore' E.P E.f E.authMode W ∗
+      (∃ base : GoInterface, structFieldRef uberApplier go!"applyV3base" p ↦□ base ∗
+        apply.applierAdmin E (apply.baseChain E.authOn) base W Own) ∗
       ⌜E.authMode = .on γa ∧ apply.adminKindOk rq ∧ apply.dispatchOk E.authOn rq ∧
         receiptBound GF ≤ 2 ^ 48⌝ ∗ ⌜skip = true → rq.txn.isSome = true⌝ ∗
-      auth.authOwnFu γa hs ∗ ⧗ 1 ∗ W }}
+      Own γa hs ∗ ⧗ 1 ∗ W }}
     (App (App (Val (p @!! go.GoType.PointerType uberApplier.ty @!! go!"Apply")) (Val #r)) (Val #v3))
   {{ (ar : Loc), RET #ar; ∃ (x' : apply.ApplyKV) (out : apply.ApplyOut),
       apply.uberOwn E p x'.chain ∗ apply.kvOwn E x'.log ∗ apply.cPost v3 Pre Post ∗
       ⌜apply.applyStep rq v3 x x' out ∧ (out = .rejected ∨ ∃ o, out = .dispatched o skip)⌝ ∗
       apply.resTrace ar ∗ apply.applyResultIs rq v3 x.log ar out ∗
       apply.applyAuthRes E.authMode x.chain rq v3 out ∗ W ∗
-      apply.adminOut γa E.authMode hs rq v3 ar out }}
+      apply.adminOut Own γa E.authMode hs rq v3 ar out }}
 
 end defs
 
@@ -87,21 +90,15 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 theorem apply.uberApplier.Apply.wp_admin
-    (hD : apply.uberApplier.dispatch.adminSpec (GF := GF) (hG := hG))
-    (hUA : apply.applierV3backend.UserAdd.fuelSpec (GF := GF) (hG := hG))
-    (hRA : apply.applierV3backend.RoleAdd.fuelSpec (GF := GF) (hG := hG))
-    (hUGR : apply.applierV3backend.UserGrantRole.fuelSpec (GF := GF) (hG := hG))
-    (hRGP : apply.applierV3backend.RoleGrantPermission.fuelSpec (GF := GF) (hG := hG))
-    (hAE : apply.applierV3backend.AuthEnable.fuelSpec (GF := GF) (hG := hG)) :
+    (hD : apply.uberApplier.dispatch.adminSpec (GF := GF) (hG := hG)) :
     apply.uberApplier.Apply.adminSpec (GF := GF) (hG := hG) := by
-  intro E p opts x r rq skip v3 Pre Q Post W γa hs
+  intro E p opts x r rq skip v3 Pre Q Post W γa hs Own
   wp_start as ⟨#Hu, #Hw, Hown, Hkv, Hcs, #Hst, %Hok, %Hskip, Ho, Hrc, HW⟩
   ihave #Hpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply $$ []
   · iPkgInit
   iunfold apply.uberOwn at Hown
   icases Hown with ⟨%a, Ha, #Hs, %HcE, #Hsh⟩
-  ihave #Had := apply.applierAdmin_cur hUA hRA hUGR hRGP hAE E W p opts x.chain a
-    $$ [Hpkg Hu Hst Hsh]
+  ihave #Had := apply.applierAdmin_curG E W Own p x.chain a $$ [Hst Hsh]
   · iframe #
   ihave #Hs' := Hs
   iunfold apply.applierSpec at Hs'
@@ -114,16 +111,16 @@ theorem apply.uberApplier.Apply.wp_admin
   wp_apply HApply $$ %r %rq %skip %v3
       %(methods (go.GoType.PointerType uberApplier.ty) go!"dispatch" #p)
       %(iprop(structFieldRef uberApplier go!"applyV3" p ↦ (GoInterface.ok ai) ∗ apply.kvOwn E x.log ∗
-        apply.cPre v3 E.P E.f Pre Q Post ∗ auth.authOwnFu γa hs ∗ ⧗ 1 ∗ W))
+        apply.cPre v3 E.P E.f Pre Q Post ∗ Own γa hs ∗ ⧗ 1 ∗ W))
       %(fun ar => iprop(structFieldRef uberApplier go!"applyV3" p ↦ (GoInterface.ok ai) ∗
         ∃ o : apply.Outcome, apply.kvOwn E (o.logAfter x.log) ∗ apply.cPost v3 Pre Post ∗
           ⌜apply.dispatchStep x.chain rq v3 x.log o⌝ ∗ apply.resTrace ar ∗
-          apply.dispatchResult rq v3 x.log skip ar o ∗ W ∗ apply.adminDone γa E.authMode hs rq v3 ar))
+          apply.dispatchResult rq v3 x.log skip ar o ∗ W ∗ apply.adminDone Own γa E.authMode hs rq v3 ar))
       [Ha Hkv Hcs Ho Hrc HW] as %ar Hpost
   · iframe Hw Ha Hkv Hcs Ho Hrc HW
     imodintro
     iintro %Φ' ⟨Hres, Ha, Hkv, Hcs, Ho, Hrc, HW⟩ HΦ'
-    iapply (hD E p opts x.chain (.ok ai) r rq skip v3 x.log Pre Q Post (apply.principalOf rq) W γa hs)
+    iapply (hD E p opts x.chain (.ok ai) r rq skip v3 x.log Pre Q Post (apply.principalOf rq) W γa hs Own)
       $$ [Hres Ha Hkv Hcs Ho Hrc HW]
     · iframe #
       iframe Hres Ha Hkv Hcs Ho Hrc HW

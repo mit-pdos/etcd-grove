@@ -41,6 +41,7 @@ module
 
 public import Code.go_etcd_io.etcd.server.v3.auth
 public import Perennial.Ghost.MonoList
+public import Perennial.Ghost.MonoNat
 public import Perennial.Ghost.GhostVar
 public import Perennial.Golang.Theory.String
 public import Perennial.Std.GMap
@@ -330,12 +331,15 @@ the auth plan's S5, 2026-10-24: `tokIssued`, `Tokens.lean`), a ghost map whose p
 elements say which user a token was issued to; and the tokens not yet issued (`fresh`; the auth
 plan's S5b, 2026-10-24: `tokFresh`, `Tokens.lean`), a ghost map whose exclusive elements are the
 right to issue a token, which the simple provider's `assign` needs to rule out its panic on a
-token issued twice. -/
+token issued twice; and the history's published index (`pub`; the auth plan's E3g, 2026-10-27:
+`authPubLb`, a monotone natural whose lower bound a reader holds: every state up to it is
+committed to the backend, so a read begun afterwards sees a state no older). -/
 structure AuthNames where
   hist : GName
   cur : GName
   tok : GName
   fresh : GName
+  pub : GName
 
 /-- **A contract's mode** (see the file header). -/
 inductive AuthMode where
@@ -389,6 +393,47 @@ instance authStateAt_persistent (γa : AuthNames) (i : Nat) (st : AuthState) :
     Persistent (authStateAt (GF := GF) γa i st) := by
   unfold authStateAt; infer_instance
 
+/-- **The published index's authority** (the auth plan's E3g): the history's index up to which
+every state is committed to the backend (the store's freshness invariant is to hold it; until then
+it is allocated with the history at `0`, `authHist_alloc`, and its holder publishes nothing). -/
+def authPubAuth (γa : AuthNames) (p : Nat) : IProp GF :=
+  monoNatAuthOwn γa.pub 1 p
+
+/-- **A lower bound of the published index** (persistent; the auth plan's E3g, 2026-10-27): what a
+reader holds of the history it has observed, the index `i` published (every state up to `i`
+committed to the backend). A read begun afterwards sees a state at an index at least `i`
+(`authReadTxOk`'s third clause): the reads' freshness the user chose (`notes/decisions.md`, "E3g
+of the auth plan"). -/
+def authPubLb (γa : AuthNames) (i : Nat) : IProp GF :=
+  monoNatLbOwn γa.pub i
+
+instance authPubLb_persistent (γa : AuthNames) (i : Nat) :
+    Persistent (authPubLb (GF := GF) γa i) := by
+  unfold authPubLb; infer_instance
+
+/-- A lower bound is one of every smaller index. -/
+theorem authPubLb_le (γa : AuthNames) {i : Nat} (i' : Nat) (h : i' ≤ i) :
+    authPubLb (GF := GF) γa i ⊢ authPubLb γa i' := by
+  unfold authPubLb
+  iintro H
+  iapply (monoNatLbOwn_le i' h) $$ H
+
+/-- The authority's lower bound. -/
+theorem authPubAuth_lb (γa : AuthNames) (p : Nat) :
+    authPubAuth (GF := GF) γa p ⊢ authPubAuth γa p ∗ authPubLb γa p := by
+  unfold authPubAuth authPubLb
+  iintro H
+  ihave #Hlb := monoNatLbOwn_get γa.pub 1 p $$ H
+  iframe H Hlb
+
+/-- A lower bound is below the authority. -/
+theorem authPubAuth_lb_le (γa : AuthNames) (p i : Nat) :
+    authPubAuth (GF := GF) γa p ∗ authPubLb γa i ⊢ ⌜i ≤ p⌝ := by
+  unfold authPubAuth authPubLb
+  iintro ⟨H, #Hlb⟩
+  icases monoNatLbOwn_valid γa.pub 1 p i $$ H Hlb with %Hv
+  ipureintro; exact Hv.2
+
 theorem authStateAt_permKeysOk (γa : AuthNames) (i : Nat) (st : AuthState) :
     authStateAt (GF := GF) γa i st ⊢ ⌜permKeysOk st⌝ := by
   unfold authStateAt
@@ -423,14 +468,15 @@ theorem authHist_alloc (γt γf : GName) (hs : List AuthState) (cur : AuthState)
     (hk : ∀ st ∈ hs, permKeysOk st) :
     ⊢ |==> ∃ γa : AuthNames, ⌜γa.tok = γt ∧ γa.fresh = γf⌝ ∗ authHist (GF := GF) γa hs ∗
       authCurHalf γa cur ∗
-      authCurHalf γa cur := by
-  unfold authHist authCurHalf
+      authCurHalf γa cur ∗ authPubAuth γa 0 := by
+  unfold authHist authCurHalf authPubAuth
   iintro
   imod (mono_list_own_alloc (GF := GF) hs) with ⟨%γ, H, -⟩
   imod (ghostVar_alloc (GF := GF) cur) with ⟨%γc, Hc⟩
+  imod (mono_nat_own_alloc (GF := GF) 0) with ⟨%γp, Hp, -⟩
   imodintro
-  iexists ⟨γ, γc, γt, γf⟩
-  iframe H
+  iexists ⟨γ, γc, γt, γf, γp⟩
+  iframe H Hp
   isplitr
   · ipureintro; exact ⟨rfl, rfl⟩
   isplitr

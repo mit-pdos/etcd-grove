@@ -846,7 +846,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
   have h159 : GetIsPkgInitProp pkg_id.go_etcd_io.etcd.server.v3.etcdserver (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h6, h100, h28, h101, h0, h13, h7, h60, h5, h102, h18, h41, h92, h103, h99, h108, h107, h125, h110, h134, h135, h136, h129, h137, h120, h106, h53, h4, h148, h111, h114, h37, h149, h112, h1, h97, h150, h104, h144, h140, h151, h132, h152, h121, h153, h154, h156, h157, h158, h143, h83, h147, h155, True.intro⟩
+    exact ⟨h6, h100, h28, h101, h0, h13, h7, h60, h5, h102, h18, h41, h92, h103, h99, h108, h107, h125, h110, h134, h135, h136, h129, h137, h120, h106, h53, h4, h148, h111, h114, h37, h149, h112, h1, h97, h150, h104, h144, h140, h151, h132, h152, h121, h153, h154, h156, h157, h158, h143, h56, h83, h147, h131, h155, True.intro⟩
   have h160 : GetIsPkgInitProp pkg_id.google_golang_org.grpc.reflection (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl

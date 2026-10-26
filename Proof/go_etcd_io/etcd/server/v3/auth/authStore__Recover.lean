@@ -70,7 +70,7 @@ theorem auth.authStore.Recover.wp_proof
   (try wp_auto)
   wp_apply HRT as %tx Htx
   iunfold authReadTxOk at Htx
-  icases Htx with ⟨%ti, %Hti, %Hs, #HRL, -, #Hreads⟩
+  icases Htx with ⟨%ti, %Hti, %Hs, #HRL, -, -, #Hreads⟩
   subst Hti
   iunfold authTxReads at Hreads
   icases Hreads with ⟨#Hrd, #HRU⟩
