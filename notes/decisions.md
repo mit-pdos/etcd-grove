@@ -22133,8 +22133,8 @@ applyErrIs err` (`rejErrIs .auth`), which does not rule `ErrNoSpace` out.
   clauses state `authApplyErrIs`.
 
 **Blocker 3: the definitions and the deposit; their construction left** (`AppliedOn.lean`; each
-today's at `false` by `rfl`): `kvLogAtM`, `kvLogsOkM` (`kvLogsOkM_insert`), `srvAppliedInvM` (the
-applied logs the mode's model, `kvModelM`), `applied_predepositM` (restated
+today's at `false` by `rfl`): `kvLogAtM`, `kvLogsOkM` (`kvLogsOkM_insert`), `srvAppliedBodyM`/`srvAppliedInvM` (D22
+J5's body, the atomic lagging the ghost index; the applied logs the mode's model, `kvModelM`), `applied_predepositM` (restated
 `server_applied_predeposit_on`), `appliedLogAt_kvLogAtM`; `srvAtomicsM` (with `srvKVInvsM`),
 `srvFieldsAtM` (with `waitInvM`), `isServerM`; and `srvApplyKVOn s E γw x st ci L W Own`
 (`srvApplyKV`'s with `srvAuthApplyResAt s E st` in place of `srvAuthApplyRes`, and the server

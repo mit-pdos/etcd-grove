@@ -99,15 +99,22 @@ theorem kvLogsOkM_insert (on : Bool) (γr : ReadNames) (M : GMap w64 mvcc.Log) (
     · obtain ⟨A', h1, h2, h3⟩ := Hm k L' hk
       exact ⟨A', h1.trans h, h2, h3⟩
 
-/-- **The applied index's invariant in the mode `on`** (`srvAppliedInv` at `false`): its applied
-logs the mode's KV models (`kvLogsOkM`). -/
-def srvAppliedInvM (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) : IProp GF :=
-  inv srvN iprop(∃ (v : w64) (L : mvcc.Log) (M : GMap w64 mvcc.Log) (p : Bool),
+/-- **The applied index's invariant's body in the mode `on`** (`srvAppliedBody` at `false`): its
+applied logs the mode's KV models (`kvLogsOkM`). -/
+def srvAppliedBodyM (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) : IProp GF :=
+  iprop(∃ (v a : w64) (L : mvcc.Log) (M : GMap w64 mvcc.Log) (p : Bool),
     sync.atomic.ownUint64 (srvAppliedIndexAddr s) (DFrac.own 1) v ∗
-    monoNatAuthOwn γr.applied (1 : Qp).half (uint.nat v) ∗
+    monoNatAuthOwn γr.applied (1 : Qp).half (uint.nat a) ∗
     ghostMapAuth γr.logs 1 M ∗ ghostVar γr.pend (1 : Qp).half p ∗
-    ⌜appliedKeysOk M v p ∧ appliedMonoMap M⌝ ∗
-    appliedLogAt γr v L ∗ mvcc.idxCert E.γ.idx L ∗ kvLogsOkM on γr M)
+    ⌜uint.Z v ≤ uint.Z a ∧ appliedKeysOk M a p ∧ appliedMonoMap M⌝ ∗
+    appliedLogAt γr a L ∗ mvcc.idxCert E.γ.idx L ∗ kvLogsOkM on γr M)
+
+theorem srvAppliedBodyM_false (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
+    srvAppliedBodyM (GF := GF) false s E γr = srvAppliedBody s E γr := rfl
+
+/-- **The applied index's invariant in the mode `on`** (`srvAppliedInv` at `false`). -/
+def srvAppliedInvM (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) : IProp GF :=
+  inv srvN (srvAppliedBodyM on s E γr)
 
 instance srvAppliedInvM_persistent (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
     Persistent (srvAppliedInvM on s E γr) := by
@@ -126,7 +133,8 @@ theorem applied_predepositM (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : Rea
   iintro #Hinv Hown #HL₀ #HkA
   iunfold srvAppliedInvM at Hinv
   iinv Hinv with Hi Hclose
-  icases Hi with ⟨%v0, %Lc, %M, %p, Hat, >Hauth, >HM, >Hp, >%HMk, >#HLc, >#Hc, >#Hkl⟩
+  iunfold srvAppliedBodyM at Hi
+  icases Hi with ⟨%vat, %v0, %Lc, %M, %p, Hat, >Hauth, >HM, >Hp, >%HMk, >#HLc, >#Hc, >#Hkl⟩
   iunfold srvAppliedOwn at Hown
   icases Hown with ⟨Hown, Hpo⟩
   ihave %Hag := monoNatAuthOwn_agree γr.applied _ _ _ _ $$ Hown Hauth
@@ -144,7 +152,7 @@ theorem applied_predepositM (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : Rea
     iapply ghost_map_lookup $$ HM HLc
   have hk : ∀ k L', M.lookup k = some L' → uint.Z k ≤ uint.Z v0 := by
     intro k L' h
-    rcases HMk.1 k L' h with h | ⟨h, -⟩
+    rcases HMk.2.1 k L' h with h | ⟨h, -⟩
     · exact h
     · cases h
   have hfresh : M.lookup v' = none := by
@@ -157,10 +165,11 @@ theorem applied_predepositM (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : Rea
   · iframe Hkl HkA
   imod Hclose $$ [Hat Hauth HM Hp] with -
   · inext
-    iexists v0, Lc, M.insert v' L, true
+    iunfold srvAppliedBodyM
+    iexists vat, v0, Lc, M.insert v' L, true
     iframe Hat Hauth HM Hp HLc Hc Hkl'
     ipureintro
-    refine ⟨?_, appliedMonoMap_insert M v0 v' Lc L hk HMk.2 HMv hp hv⟩
+    refine ⟨HMk.1, ?_, appliedMonoMap_insert M v0 v' Lc L hk HMk.2.2 HMv hp (by omega)⟩
     intro k L' h
     rw [GMap.lookup_insert_Some] at h
     rcases h with ⟨rfl, -⟩ | ⟨-, h⟩
@@ -181,13 +190,15 @@ theorem appliedLogAt_kvLogAtM (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : R
   iintro #Hinv #H1
   iunfold srvAppliedInvM at Hinv
   iinv Hinv with Hi Hclose
-  icases Hi with ⟨%v, %L, %M, %p, Hat, >Hauth, >HM, >Hp, >%HMk, >#HL, >#Hc, >#Hkl⟩
+  iunfold srvAppliedBodyM at Hi
+  icases Hi with ⟨%vat, %v, %L, %M, %p, Hat, >Hauth, >HM, >Hp, >%HMk, >#HL, >#Hc, >#Hkl⟩
   ihave %Hm1 : iprop(⌜M.lookup i = some L1⌝) $$ [HM]
   · iunfold appliedLogAt at H1
     iapply ghost_map_lookup $$ HM H1
   imod Hclose $$ [Hat Hauth HM Hp] with -
   · inext
-    iexists v, L, M, p
+    iunfold srvAppliedBodyM
+    iexists vat, v, L, M, p
     iframe Hat Hauth HM Hp HL Hc Hkl
     ipureintro; exact HMk
   imodintro
