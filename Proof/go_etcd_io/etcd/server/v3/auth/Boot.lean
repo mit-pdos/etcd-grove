@@ -174,6 +174,7 @@ theorem newAuthStore_boot
     · exact absurd rfl h0
     · simpa using h1
   subst Hhs'
+  ihave HWR := authWRAt_authWR stp (.on γa) P f T ab $$ HWR
   iapply HΦ
   iexists γa, stp
   iframe Hinv HWR HtpAd HPost Hown' Hslots

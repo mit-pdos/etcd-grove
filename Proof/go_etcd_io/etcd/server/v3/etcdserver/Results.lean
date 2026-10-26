@@ -69,6 +69,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.LessorDerive
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BuildLemmas
 public import Proof.go_etcd_io.etcd.server.v3.auth.NewAuthStoreOn
 public import Proof.go_etcd_io.etcd.server.v3.auth.Boot
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthSrv
 public import Proof.go_uber_org.zap.Int
 
 @[expose] public section
@@ -1225,7 +1226,8 @@ theorem auth_store_new_on (lg : Loc) (ab tp : GoInterface) (cost : w64) (bi : Go
       (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.auth.NewAuthStore)) (Val #lg))
         (Val #ab)) (Val #tp)) (Val #cost))
     {{ (st : GoInterface), RET #st; ∃ (stp : Loc) (hs' : List auth.AuthState),
-        ⌜st = auth.authIface stp⌝ ∗ auth.authInv stp R (.on γa) ∗ auth.authWR stp (.on γa) P f T ∗
+        ⌜st = auth.authIface stp⌝ ∗ auth.authInv stp R (.on γa) ∗
+        auth.authWRAt stp (.on γa) P f T ab ∗
         auth.tpAdmin stp (.on γa) ∗ Post ∗ auth.authOwn (.on γa) hs' ∗
         ⌜(stl.revision ≠ 0 ∧ hs' = hs) ∨ (stl.revision = 0 ∧ hs' = hs ++ [auth.bump stl])⌝ ∗
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
@@ -1275,6 +1277,41 @@ end tokens
 #print axioms Perennial.EtcdGrove.auth_store_new_on
 #print axioms Perennial.EtcdGrove.auth_store_boot_on
 #print axioms Perennial.EtcdGrove.srv_auth_bound_of_inv
+
+section serverAuth
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+
+/-- **The server's token provider and auth store with auth on** (the auth plan's E2i;
+`authSrvTP_on`, `Proof/go_etcd_io/etcd/server/v3/etcdserver/AuthSrv.lean`): `NewTokenProvider`
+with the simple provider gives the auth names allocated over the boot state and `NewAuthStore`'s
+construction in the mode `on γa` (`authStoreKit`): the store from its proofs, not
+`NewAuthStore`'s axiom, its request side and apply contract of its invariant (its admin clauses
+vacuous: `apply.adminAdmitted`). Its named premises: D22's part (`authSchemaSrv`) and
+`isValidSimpleToken`'s spec for any context (`auth.ValidSpec`). What `NewServer`'s proof will take
+with auth on (`notes/decisions.md`, "E2i of the auth plan"). -/
+theorem srv_auth_tp_on (hValid : auth.ValidSpec (GF := GF) (hG := hG))
+    (hD22 : ⊢ authSchemaSrv (GF := GF)) : authSrvTP (GF := GF) (hG := hG) true :=
+  authSrvTP_on auth.wp_NewTokenProvider hValid zap.Logger.wp_Debug zap.String.wp_proof
+    zap.Logger.wp_Warn zap.Int'.wp_proof auth.authStore.wp_Revision auth.authStore.wp_commitRevision
+    auth.authStore.wp_setupMetricsReporter auth.authStore.wp_refreshRangePermCache
+    auth.authStore.wp_AuthInfoFromCtx auth.authStore.wp_AuthInfoFromTLS
+    auth.authStore.wp_IsPutPermitted auth.authStore.wp_IsRangePermitted
+    auth.authStore.wp_IsDeleteRangePermitted auth.authStore.wp_IsAdminPermitted
+    auth.authStore.wp_IsAuthEnabled hD22
+
+/-- **The same with auth off** (`authSrvTP_off`): of `NewTokenProvider`'s proof and
+`NewAuthStore`'s axiom, what `NewServer`'s proof takes today. -/
+theorem srv_auth_tp_off : authSrvTP (GF := GF) (hG := hG) false :=
+  authSrvTP_off auth.wp_NewTokenProvider auth.wp_NewAuthStore
+
+end serverAuth
+
+#print axioms Perennial.EtcdGrove.srv_auth_tp_on
+#print axioms Perennial.EtcdGrove.srv_auth_tp_off
 
 section goroutines
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]

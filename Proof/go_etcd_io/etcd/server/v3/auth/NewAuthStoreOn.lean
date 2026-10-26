@@ -156,6 +156,24 @@ theorem slots_rd (n : Nat) (st : Loc) (R : IProp GF) (M : AuthMode) :
   iapply BigSepL.bigSepL_sep_eqv.2
   iframe H2 H3
 
+/-- **The admin side's write resource at the backend `be` the store's field holds** (the auth
+plan's E2i, 2026-10-26: `newAuthStore_on`'s post, so that the server's `authBeOn` can name the
+backend; `authWR` forgets it, `authWRAt_authWR`). -/
+def authWRAt (st : Loc) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF)
+    (be : AuthBackend) : IProp GF :=
+  iprop((aF go!"be" st ↦{DFrac.own (1 : Qp).half} be ∗ authWBackendOk be M P f T) ∗ T ∗
+    enabledHalf st M)
+
+theorem authWRAt_authWR (st : Loc) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF)
+    (be : AuthBackend) : authWRAt (GF := GF) st M P f T be ⊢ authWR st M P f T := by
+  iintro H
+  iunfold authWRAt at H
+  icases H with ⟨⟨Hbe, #Hok⟩, HT, Hen⟩
+  iunfold authWR
+  iframe HT Hen
+  iexists be
+  iframe Hbe Hok
+
 /-- The provider's contract with its admin resource gives the invariant's. -/
 theorem tokenProviderOk_of_A (tp : GoInterface) (M : AuthMode) (A : IProp GF) :
     tokenProviderOkA (GF := GF) tp M A ⊢ tokenProviderOk tp M := by
@@ -197,7 +215,7 @@ theorem newAuthStore_on
       (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.auth.NewAuthStore)) (Val #lg))
         (Val #ab)) (Val #tp)) (Val #cost))
     {{ (st : GoInterface), RET #st; ∃ (stp : Loc) (hs' : List AuthState),
-        ⌜st = authIface stp⌝ ∗ authInv stp R (.on γa) ∗ authWR stp (.on γa) P f T ∗
+        ⌜st = authIface stp⌝ ∗ authInv stp R (.on γa) ∗ authWRAt stp (.on γa) P f T ab ∗
         tpAdmin stp (.on γa) ∗ Post ∗ authOwn (.on γa) hs' ∗
         ⌜(stl.revision ≠ 0 ∧ hs' = hs) ∨ (stl.revision = 0 ∧ hs' = hs ++ [bump stl])⌝ ∗
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
@@ -440,10 +458,10 @@ theorem newAuthStore_on
   · ipureintro; rfl
   iframe Hinv HPost Hown
   isplitl [Hbe2 HT Hen2]
-  · iunfold authWR
+  · iunfold authWRAt
     iframe HT
     isplitl [Hbe2]
-    · iexists (GoInterface.ok bi); iframe Hbe2 Hwok
+    · iframe Hbe2 Hwok
     · iunfold enabledHalf; iexists b; iframe Hen2
       iunfold enabledVerdict; iexists _, st0; iframe Hst0; ipureintro; exact Hb
   isplitl [HA]

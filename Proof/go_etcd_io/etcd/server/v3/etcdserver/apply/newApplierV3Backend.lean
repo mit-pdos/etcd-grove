@@ -232,10 +232,11 @@ theorem apply.newApplierV3Backend.wp_proof
     · iapply (hAuthEnable E p log Pre Q Post info) $$ [Hpre] HΦ'
       iframe
       iframe #
-      try (ipureintro; exact hon rfl)
+      try (ipureintro; exact ⟨hon.2, hon.1 rfl⟩)
     · iapply (hAuthDisable E p log Pre Q Post info) $$ [Hpre] HΦ'
       iframe
       iframe #
+      try (ipureintro; exact hon.2)
   isplitr
   · -- `AuthStatus`
     imodintro

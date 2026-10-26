@@ -843,21 +843,28 @@ theorem mPost_backend {E : AEnv GF} {a : GoInterface} {log : mvcc.Log} {Pre Post
   iapply chainResAny_backend
 
 /-- The request facts of a one-argument method that leaves the log as it is, by method: what
-the layers read of the request (`R r`); `True` for those passed on unread to the auth store. -/
+the layers read of the request (`R r`); `True` for those passed on unread to the auth store. The
+auth store's requests are admitted in the environment's mode only (`adminAdmitted`, the auth plan's
+E2i). -/
 def reqFacts (E : AEnv GF) (m : GoString) (r : Loc) : IProp GF :=
   if m = go!"LeaseGrant" then
     iprop((∃ g : LeaseGrantModel, leaseGrantIs r g ∗ lease.leaseGranted E.γ.leases g.id) ∗ E.RW)
   else if m = go!"LeaseCheckpoint" then
     iprop((∃ cms : List CheckpointModel, leaseCheckpointIs r cms ∗ ⌜cms.length ≤ 1⌝) ∗ E.RW)
   else if m = go!"Alarm" then iprop((∃ am : AlarmModel, alarmRequestIs r am) ∗ E.RW)
-  else if m = go!"Authenticate" then iprop((∃ am : AuthenticateModel, authenticateIs r am) ∗ E.RW)
-  else if m = go!"UserGet" then iprop((∃ n : GoString, authUserGetIs r n) ∗ E.RW)
+  else if m = go!"Authenticate" then
+    iprop(((∃ am : AuthenticateModel, authenticateIs r am) ∗ E.RW) ∗ ⌜adminAdmitted E.authMode⌝)
+  else if m = go!"UserGet" then
+    iprop(((∃ n : GoString, authUserGetIs r n) ∗ E.RW) ∗ ⌜adminAdmitted E.authMode⌝)
   else if m = go!"UserAdd" then
-    iprop((∃ n : GoString, authUserAddIs r n ∗ ⌜n.length ≤ backend.maxKeySize⌝) ∗ E.RW)
+    iprop(((∃ n : GoString, authUserAddIs r n ∗ ⌜n.length ≤ backend.maxKeySize⌝) ∗ E.RW) ∗
+      ⌜adminAdmitted E.authMode⌝)
   else if m = go!"RoleAdd" then
-    iprop((∃ n : GoString, authRoleAddIs r n ∗ ⌜n.length ≤ backend.maxKeySize⌝) ∗ E.RW)
-  else if m = go!"RoleGet" then iprop((∃ n : GoString, authRoleGetIs r n) ∗ E.RW)
-  else E.RW
+    iprop(((∃ n : GoString, authRoleAddIs r n ∗ ⌜n.length ≤ backend.maxKeySize⌝) ∗ E.RW) ∗
+      ⌜adminAdmitted E.authMode⌝)
+  else if m = go!"RoleGet" then
+    iprop(((∃ n : GoString, authRoleGetIs r n) ∗ E.RW) ∗ ⌜adminAdmitted E.authMode⌝)
+  else iprop(E.RW ∗ ⌜adminAdmitted E.authMode⌝)
 
 /-- **A cluster method's request facts** (D22, 2026-10-23): the request `r` of the method `m`
 (`ClusterReq.method`) holds `cr`; `DowngradeInfoSet`'s with the write right `E.RW`. -/
@@ -951,7 +958,7 @@ def applierTriples (E : AEnv GF) (c : Chain) (ai : GoInterfaceOk) : IProp GF :=
           mPost E c (.ok ai) log Pre Post ∗ applyErrIs err }}) ∗
     □ (∀ (m : GoString) (log : mvcc.Log) (Pre Q Post : IProp GF)
         (info : go_etcd_io.etcd.server.v3.auth.AuthInfo), ⌜m ∈ resp0Methods⌝ -∗
-      ⌜m = go!"AuthEnable" → E.authOn = true⌝ -∗
+      ⌜(m = go!"AuthEnable" → E.authOn = true) ∧ adminAdmitted E.authMode⌝ -∗
       {{ mPre E c (.ok ai) info log Pre Q Post ∗ mvcc.storeWT E.γ ∗ E.RW }}
         (App (Val #(methods ai.ty m ai.v)) (Val #()))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);

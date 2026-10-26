@@ -28,7 +28,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 theorem apply.authApplierV3.UserGet.wp_proof :
     apply.authApplierV3.UserGet.spec (GF := GF) (hG := hG) := by
   intro E c inner p r log Pre Q Post info
-  wp_start as ⟨#Hauth, #Hinner, ⟨⟨%n, #Hr⟩, HRW⟩, Hm, Hwt, #Hsp⟩
+  wp_start as ⟨#Hauth, #Hinner, ⟨⟨⟨%n, #Hr⟩, HRW⟩, #Hgate⟩, Hm, Hwt, #Hsp⟩
   iunfold apply.authIs at Hauth
   icases Hauth with ⟨#Happ, ⟨%st, #Hasf, #Hst⟩, -, -⟩
   iunfold apply.mPre at Hm
@@ -62,6 +62,7 @@ theorem apply.authApplierV3.UserGet.wp_proof :
       iunfold apply.mPre
       iframe
       iframe Hsp
+      iframe Hgate
       iexists _; iexact Hr
     ihave #Hug : iprop(∀ _ : err' = GoInterface.nil, ∃ n : GoString,
         apply.authUserGetIs r n ∗ apply.userGetClass E.authMode info n) $$ []
@@ -88,6 +89,7 @@ theorem apply.authApplierV3.UserGet.wp_proof :
         iunfold apply.mPre
         iframe
         iframe Hsp
+        iframe Hgate
         iexists _; iexact Hr
       ihave #Hug : iprop(∀ _ : err' = GoInterface.nil, ∃ n : GoString,
           apply.authUserGetIs r n ∗ apply.userGetClass E.authMode info n) $$ []

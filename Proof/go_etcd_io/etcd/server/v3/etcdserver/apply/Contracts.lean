@@ -119,13 +119,27 @@ def respHdrOk (T : Type) (resp : Loc) : IProp GF :=
 
 /-! ## The auth store -/
 
+/-- **Whether the auth store's admin requests are admitted** in the mode `M` (the auth plan's E2i,
+2026-10-26): in the mode `off`; in the modes `on γa` and `any` not yet. `isAuthStore`'s admin
+clauses (`HasRole`, `AuthEnable`, `AuthDisable`, `Authenticate`, the user and role requests) take
+it: in the mode `on` they need the admin side's authority `auth.authOwn` and the step premises
+`auth.stepOk` (`apply/AuthSteps.lean`), which the request's admission will carry once the server's
+workload admits an auth request (`rqOk` admits none: `notes/decisions.md`, "E2i of the auth plan").
+In the mode `on` the clauses are then vacuous, and the real store meets them
+(`isAuthStoreAdmin_on`). -/
+def adminAdmitted (M : auth.AuthMode) : Prop := M.isOn = false
+
+theorem adminAdmitted_on (γa : auth.AuthNames) : ¬ adminAdmitted (.on γa) := by
+  simp [adminAdmitted, auth.AuthMode.isOn]
+
 /-- An auth-store method taking a request `r` and returning `(resp, err)` with `resp` of type
 `T`: a `csContract` (a write under the batch lock, or none), with the write right `RW` of the
-rest buckets it writes (D22, 2026-10-23: the backend over every bucket), given back. -/
+rest buckets it writes (D22, 2026-10-23: the backend over every bucket), given back; admitted in
+the mode `M` only (`adminAdmitted`, E2i). -/
 def authReqContract (ai : GoInterfaceOk) (m : GoString) (T : Type) (γ : mvcc.StoreNames)
-    (P : IProp GF) (f : val) (RW : IProp GF) : IProp GF :=
+    (P : IProp GF) (f : val) (RW : IProp GF) (M : auth.AuthMode) : IProp GF :=
   iprop(□ (∀ (r : Loc) (Pre Q Post : IProp GF),
-    {{ mvcc.csContract P f Pre Q Post ∗ mvcc.storeWT γ ∗ mvcc.storeRT γ ∗ RW }} (App (Val #(methods ai.ty m ai.v)) (Val #r))
+    {{ ⌜adminAdmitted M⌝ ∗ mvcc.csContract P f Pre Q Post ∗ mvcc.storeWT γ ∗ mvcc.storeRT γ ∗ RW }} (App (Val #(methods ai.ty m ai.v)) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ mvcc.storeRT γ ∗
         respHdrOk T resp ∗ applyErrIs err ∗ RW }}))
 
@@ -135,9 +149,10 @@ the new record's bbolt key, and a longer one makes the backend's put fatal
 (`issues/etcd-auth-useradd-long-name-fatal.md`; unit N4, D14g, 2026-10-17: until then the
 clause took any request, false of the Go code). The workload clause bounds the names (`rqOk`). -/
 def authReqContractN (ai : GoInterfaceOk) (m : GoString) (T : Type) (γ : mvcc.StoreNames)
-    (P : IProp GF) (f : val) (RW : IProp GF) (Is : Loc → GoString → IProp GF) : IProp GF :=
+    (P : IProp GF) (f : val) (RW : IProp GF) (Is : Loc → GoString → IProp GF) (M : auth.AuthMode) :
+    IProp GF :=
   iprop(□ (∀ (r : Loc) (n : GoString) (Pre Q Post : IProp GF),
-    {{ Is r n ∗ ⌜n.length ≤ backend.maxKeySize⌝ ∗ mvcc.csContract P f Pre Q Post ∗
+    {{ ⌜adminAdmitted M⌝ ∗ Is r n ∗ ⌜n.length ≤ backend.maxKeySize⌝ ∗ mvcc.csContract P f Pre Q Post ∗
         mvcc.storeWT γ ∗ mvcc.storeRT γ ∗ RW }} (App (Val #(methods ai.ty m ai.v)) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ mvcc.storeRT γ ∗
         respHdrOk T resp ∗ applyErrIs err ∗ RW }}))
@@ -174,7 +189,8 @@ lock with invariant `P` and hook `f`, and whose request side takes the caller's 
 read transaction, a reader slot each; `auth.authRd st R` of the real store). The permission checks,
 `IsAdminPermitted`, `IsAuthEnabled` and `Revision` are the real store's (`isAuthStore_of_authInv`,
 `AuthDerive.lean`); `HasRole` and the admin requests (`AuthEnable` ...) are its contract
-(`isAuthStoreAdmin`, the premise).
+(`isAuthStoreAdmin`, the premise), admitted in the mode `off` only (`adminAdmitted`; the auth plan's
+E2i, 2026-10-26: in the mode `on` vacuous, the real store's `isAuthStoreAdmin_on`).
 
 **Its mode `M`** (`auth.AuthMode`; 2026-10-14, unit T1, as a boolean; 2026-10-23, the auth plan's
 A0, with the verdicts): in the mode `off` the store is disabled and stays so (Go's `isOpPermitted`
@@ -208,39 +224,40 @@ def isAuthStore (st : GoInterface) (γ : mvcc.StoreNames) (P : IProp GF) (f : va
       {{ (err : GoInterface), RET #err; a ↦{dq} info ∗ RD ∗ applyErrIs err ∗
           ⌜M.isOn = false → err = GoInterface.nil⌝ ∗ auth.adminVerdict M (some info) err }}) ∗
     □ (∀ (u r : GoString),
-      {{ True }} (App (App (Val #(methods ai.ty go!"HasRole" ai.v)) (Val #u)) (Val #r))
+      {{ ⌜adminAdmitted M⌝ }} (App (App (Val #(methods ai.ty go!"HasRole" ai.v)) (Val #u)) (Val #r))
       {{ (b : Bool), RET #b; True }}) ∗
     □ ({{ RD }} (App (Val #(methods ai.ty go!"IsAuthEnabled" ai.v)) (Val #()))
       {{ (b : Bool), RET #b; RD ∗ auth.enabledVerdict M b }}) ∗
     □ ({{ True }} (App (Val #(methods ai.ty go!"Revision" ai.v)) (Val #()))
       {{ (x : w64), RET #x; auth.revisionVerdict M x }}) ∗
     □ (∀ (Pre Q Post : IProp GF),
-      {{ ⌜M.isOn = true⌝ ∗ mvcc.csContract P f Pre Q Post ∗ mvcc.storeWT γ ∗ mvcc.storeRT γ ∗ RW }}
+      {{ ⌜adminAdmitted M⌝ ∗ ⌜M.isOn = true⌝ ∗ mvcc.csContract P f Pre Q Post ∗ mvcc.storeWT γ ∗
+          mvcc.storeRT γ ∗ RW }}
         (App (Val #(methods ai.ty go!"AuthEnable" ai.v)) (Val #()))
       {{ (err : GoInterface), RET #err; (Post ∨ Pre) ∗ mvcc.storeRT γ ∗ applyErrIs err ∗ RW }}) ∗
     □ (∀ (Pre Q Post : IProp GF),
-      {{ mvcc.csContract P f Pre Q Post ∗ mvcc.storeWT γ ∗ mvcc.storeRT γ ∗ RW }}
+      {{ ⌜adminAdmitted M⌝ ∗ mvcc.csContract P f Pre Q Post ∗ mvcc.storeWT γ ∗ mvcc.storeRT γ ∗ RW }}
         (App (Val #(methods ai.ty go!"AuthDisable" ai.v)) (Val #()))
       {{ RET #(); (Post ∨ Pre) ∗ mvcc.storeRT γ ∗ RW }}) ∗
     □ (∀ (ctx : GoInterface) (name pw : GoString) (Pre Q Post : IProp GF),
-      {{ mvcc.csContract P f Pre Q Post ∗ mvcc.storeWT γ ∗ mvcc.storeRT γ ∗ RW }}
+      {{ ⌜adminAdmitted M⌝ ∗ mvcc.csContract P f Pre Q Post ∗ mvcc.storeWT γ ∗ mvcc.storeRT γ ∗ RW }}
         (App (App (App (Val #(methods ai.ty go!"Authenticate" ai.v)) (Val #ctx)) (Val #name))
           (Val #pw))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ mvcc.storeRT γ ∗
           respHdrOk etcdserverpb.AuthenticateResponse resp ∗ applyErrIs err ∗ RW }}) ∗
-    authReqContractN ai go!"UserAdd" etcdserverpb.AuthUserAddResponse γ P f RW authUserAddIs ∗
-    authReqContract ai go!"UserDelete" etcdserverpb.AuthUserDeleteResponse γ P f RW ∗
-    authReqContract ai go!"UserChangePassword" etcdserverpb.AuthUserChangePasswordResponse γ P f RW ∗
-    authReqContract ai go!"UserGrantRole" etcdserverpb.AuthUserGrantRoleResponse γ P f RW ∗
-    authReqContract ai go!"UserGet" etcdserverpb.AuthUserGetResponse γ P f RW ∗
-    authReqContract ai go!"UserRevokeRole" etcdserverpb.AuthUserRevokeRoleResponse γ P f RW ∗
-    authReqContractN ai go!"RoleAdd" etcdserverpb.AuthRoleAddResponse γ P f RW authRoleAddIs ∗
-    authReqContract ai go!"RoleGrantPermission" etcdserverpb.AuthRoleGrantPermissionResponse γ P f RW ∗
-    authReqContract ai go!"RoleGet" etcdserverpb.AuthRoleGetResponse γ P f RW ∗
-    authReqContract ai go!"RoleRevokePermission" etcdserverpb.AuthRoleRevokePermissionResponse γ P f RW ∗
-    authReqContract ai go!"RoleDelete" etcdserverpb.AuthRoleDeleteResponse γ P f RW ∗
-    authReqContract ai go!"UserList" etcdserverpb.AuthUserListResponse γ P f RW ∗
-    authReqContract ai go!"RoleList" etcdserverpb.AuthRoleListResponse γ P f RW ∗
+    authReqContractN ai go!"UserAdd" etcdserverpb.AuthUserAddResponse γ P f RW authUserAddIs M ∗
+    authReqContract ai go!"UserDelete" etcdserverpb.AuthUserDeleteResponse γ P f RW M ∗
+    authReqContract ai go!"UserChangePassword" etcdserverpb.AuthUserChangePasswordResponse γ P f RW M ∗
+    authReqContract ai go!"UserGrantRole" etcdserverpb.AuthUserGrantRoleResponse γ P f RW M ∗
+    authReqContract ai go!"UserGet" etcdserverpb.AuthUserGetResponse γ P f RW M ∗
+    authReqContract ai go!"UserRevokeRole" etcdserverpb.AuthUserRevokeRoleResponse γ P f RW M ∗
+    authReqContractN ai go!"RoleAdd" etcdserverpb.AuthRoleAddResponse γ P f RW authRoleAddIs M ∗
+    authReqContract ai go!"RoleGrantPermission" etcdserverpb.AuthRoleGrantPermissionResponse γ P f RW M ∗
+    authReqContract ai go!"RoleGet" etcdserverpb.AuthRoleGetResponse γ P f RW M ∗
+    authReqContract ai go!"RoleRevokePermission" etcdserverpb.AuthRoleRevokePermissionResponse γ P f RW M ∗
+    authReqContract ai go!"RoleDelete" etcdserverpb.AuthRoleDeleteResponse γ P f RW M ∗
+    authReqContract ai go!"UserList" etcdserverpb.AuthUserListResponse γ P f RW M ∗
+    authReqContract ai go!"RoleList" etcdserverpb.AuthRoleListResponse γ P f RW M ∗
     □ ({{ RD }} (App (Val #(methods ai.ty go!"IsAdminPermitted" ai.v)) (Val #(null : Loc)))
       {{ (err : GoInterface), RET #err; RD ∗ applyErrIs err ∗
           ⌜M.isOn = false → err = GoInterface.nil⌝ ∗ auth.adminVerdict M none err }}))
