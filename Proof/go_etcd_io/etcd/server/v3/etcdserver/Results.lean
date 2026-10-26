@@ -73,6 +73,7 @@ public import Proof.go_etcd_io.etcd.server.v3.auth.NewAuthStoreOn
 public import Proof.go_etcd_io.etcd.server.v3.auth.Boot
 public import Proof.go_etcd_io.etcd.server.v3.auth.Latest
 public import Proof.go_etcd_io.etcd.server.v3.auth.LatestAdmin
+public import Proof.go_etcd_io.etcd.server.v3.auth.LatestTie
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.AuthApplyLatestTxn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthSrv
 public import Proof.go_uber_org.zap.Int
@@ -1344,6 +1345,54 @@ theorem apply_txn_latest :
     (EtcdGrove.apply.CheckTxnAuth.wp_latest
       (EtcdGrove.apply.checkTxnPermission.wp_latest apply_check_put_latest))
 
+/-- **The admin operations keep the apply thread's tie** (the auth plan's E2s, `auth/LatestTie.lean`):
+each operation's spec with the admin side's halves of the flag and the cache exposed
+(`authWRx`), carried from the latest state before to the latest state after (`tieStep`), every
+callee linked. -/
+theorem auth_auth_enable_tie :
+    auth.authStore.AuthEnable.specT (GF := GF) (hG := hG) :=
+  auth.authStore.AuthEnable.wp_tie auth.authStore.wp_refreshRangePermCache auth.authStore.wp_setRevision auth.wp_hasRootRole zap.Logger.wp_Info
+
+theorem auth_auth_disable_tie :
+    auth.authStore.AuthDisable.specT (GF := GF) (hG := hG) :=
+  auth.authStore.AuthDisable.wp_tie auth.authStore.wp_commitRevision zap.Logger.wp_Info
+
+theorem auth_user_add_tie :
+    auth.authStore.UserAdd.specT (GF := GF) (hG := hG) :=
+  auth.authStore.UserAdd.wp_tie auth.authStore.wp_commitRevision auth.authStore.wp_refreshRangePermCache auth.authStore.wp_selectPassword zap.wp_String zap.Logger.wp_Info
+
+theorem auth_user_delete_tie :
+    auth.authStore.UserDelete.specT (GF := GF) (hG := hG) :=
+  auth.authStore.UserDelete.wp_tie auth.authStore.wp_commitRevision auth.authStore.wp_refreshRangePermCache zap.wp_String zap.wp_Strings zap.Logger.wp_Error zap.Logger.wp_Info
+
+theorem auth_user_change_password_tie :
+    auth.authStore.UserChangePassword.specT (GF := GF) (hG := hG) :=
+  auth.authStore.UserChangePassword.wp_tie auth.authStore.wp_commitRevision auth.authStore.wp_refreshRangePermCache auth.authStore.wp_selectPassword zap.wp_String zap.wp_Strings zap.Logger.wp_Info
+
+theorem auth_user_grant_role_tie :
+    auth.authStore.UserGrantRole.specT (GF := GF) (hG := hG) :=
+  auth.authStore.UserGrantRole.wp_tie auth.authStore.wp_commitRevision auth.authStore.wp_refreshRangePermCache zap.wp_String zap.wp_Strings zap.Logger.wp_Warn zap.Logger.wp_Info
+
+theorem auth_user_revoke_role_tie :
+    auth.authStore.UserRevokeRole.specT (GF := GF) (hG := hG) :=
+  auth.authStore.UserRevokeRole.wp_tie auth.authStore.wp_commitRevision auth.authStore.wp_refreshRangePermCache zap.wp_String zap.wp_Strings zap.Logger.wp_Error zap.Logger.wp_Info
+
+theorem auth_role_add_tie :
+    auth.authStore.RoleAdd.specT (GF := GF) (hG := hG) :=
+  auth.authStore.RoleAdd.wp_tie auth.authStore.wp_commitRevision zap.wp_String zap.Logger.wp_Info
+
+theorem auth_role_delete_tie :
+    auth.authStore.RoleDelete.specT (GF := GF) (hG := hG) :=
+  auth.authStore.RoleDelete.wp_tie auth.authStore.wp_commitRevision auth.authStore.wp_refreshRangePermCache zap.wp_String zap.Logger.wp_Error zap.Logger.wp_Info
+
+theorem auth_role_grant_permission_tie :
+    auth.authStore.RoleGrantPermission.specT (GF := GF) (hG := hG) :=
+  auth.authStore.RoleGrantPermission.wp_tie auth.authStore.wp_commitRevision auth.authStore.wp_refreshRangePermCache auth.wp_isValidPermissionRange zap.wp_String zap.wp_ByteString zap.Logger.wp_Info
+
+theorem auth_role_revoke_permission_tie :
+    auth.authStore.RoleRevokePermission.specT (GF := GF) (hG := hG) :=
+  auth.authStore.RoleRevokePermission.wp_tie auth.authStore.wp_commitRevision auth.authStore.wp_refreshRangePermCache zap.wp_String zap.Logger.wp_Info
+
 end latestApply
 
 #print axioms Perennial.EtcdGrove.auth_admin_permitted_latest
@@ -1352,6 +1401,17 @@ end latestApply
 #print axioms Perennial.EtcdGrove.apply_delete_range_latest
 #print axioms Perennial.EtcdGrove.apply_put_latest
 #print axioms Perennial.EtcdGrove.apply_txn_latest
+#print axioms Perennial.EtcdGrove.auth_auth_enable_tie
+#print axioms Perennial.EtcdGrove.auth_auth_disable_tie
+#print axioms Perennial.EtcdGrove.auth_user_add_tie
+#print axioms Perennial.EtcdGrove.auth_user_delete_tie
+#print axioms Perennial.EtcdGrove.auth_user_change_password_tie
+#print axioms Perennial.EtcdGrove.auth_user_grant_role_tie
+#print axioms Perennial.EtcdGrove.auth_user_revoke_role_tie
+#print axioms Perennial.EtcdGrove.auth_role_add_tie
+#print axioms Perennial.EtcdGrove.auth_role_delete_tie
+#print axioms Perennial.EtcdGrove.auth_role_grant_permission_tie
+#print axioms Perennial.EtcdGrove.auth_role_revoke_permission_tie
 
 section tokens
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
