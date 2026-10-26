@@ -414,29 +414,97 @@ theorem putPermitOn_reqPropOk (γk : KVNames) (op : OpFull) (Q : KVState → IPr
   rw [hq]
   iapply reqPropOkM_true_write γk (irrPut op) (.put op) Q γc hp hop hz hs ha $$ Hau
 
-/-- **A put applied without an error was granted, so its client's result is there** (the mode-`on`
-success): the apply thread's outcome `.applied` is not the auth layer's rejection, so the model's
-auth state the entry met grants it (`authTie`), and `grantedRes` gives the result at the state of
-the log the entry met. -/
-theorem putQhOn_res (γk : KVNames) (op : OpFull) (γc : GName) (Q : KVState → IProp GF)
-    (hm : apply.HeaderModel) (L : List EntryModel) (lb log' : mvcc.Log) (skip : Bool)
-    (h : modelOutM true γk (apply.withHeader (irrPut op) hm) L lb
-      (.dispatched (.applied log' false) skip)) :
-    putQhOn (GF := GF) γk op γc Q hm L ⊢ kvRes γc Q (kvStateOf lb) := by
+/-- **A KV write applied without an error was granted, so its client's result is there** (the
+mode-`on` success): the apply thread's outcome `.applied` is not the auth layer's rejection, so the
+model's auth state the entry met grants it (`authTie`), and `grantedRes` gives the result at the
+state of the log the entry met. -/
+theorem grantedRes_applied (γk : KVNames) (rq : apply.IRRModel) (γc : GName)
+    (Q : KVState → IProp GF) (L : List EntryModel) (lb log' : mvcc.Log) (skip : Bool)
+    (hkv : apply.isKVKind (apply.dispatchKind rq) = true)
+    (h : modelOutM true γk rq L lb (.dispatched (.applied log' false) skip)) :
+    grantedRes (GF := GF) γk srvAuthSt0 rq γc Q L ⊢ kvRes γc Q (kvStateOf lb) := by
   obtain ⟨st, hst, htie⟩ := h
-  have hkv : apply.isKVKind (apply.dispatchKind (apply.withHeader (irrPut op) hm)) = true := by
-    rw [dispatchKind_withHeader, irrPut_kind]; rfl
-  have hg : kvGranted st (apply.withHeader (irrPut op) hm) := by
+  have hg : kvGranted st rq := by
     have := htie hkv _ _ rfl
     exact Classical.byContradiction fun hn => apply.Outcome.noConfusion (this.2 hn)
-  have hga : grantedAt γk srvAuthSt0 (apply.withHeader (irrPut op) hm) L := by
+  have hga : grantedAt γk srvAuthSt0 rq L := by
     unfold grantedAt; rw [hst]; exact hg
   have hlb : kvModelOn γk srvAuthSt0 L = lb := by unfold kvModelOn; rw [hst]
-  unfold putQhOn grantedRes
+  unfold grantedRes
   rw [hlb]
   iintro (⟨-, H⟩ | %Hn)
   · iexact H
   · exact absurd hga Hn
+
+/-- `grantedRes_applied` for a put. -/
+theorem putQhOn_res (γk : KVNames) (op : OpFull) (γc : GName) (Q : KVState → IProp GF)
+    (hm : apply.HeaderModel) (L : List EntryModel) (lb log' : mvcc.Log) (skip : Bool)
+    (h : modelOutM true γk (apply.withHeader (irrPut op) hm) L lb
+      (.dispatched (.applied log' false) skip)) :
+    putQhOn (GF := GF) γk op γc Q hm L ⊢ kvRes γc Q (kvStateOf lb) :=
+  grantedRes_applied γk _ γc Q L lb log' skip
+    (by rw [dispatchKind_withHeader, irrPut_kind]; rfl) h
+
+/-- **What a delete of `op` needs in the mode `on`** (`deletePermit`'s, and its key and range end
+of the shape the permission cache decides, `auth.reqShape`). -/
+def deletePermitOn (γk : KVNames) (op : OpFull) (Q : KVState → IProp GF) : IProp GF :=
+  iprop(deletePermit γk op Q ∗ ⌜auth.reqShape op.key op.base.rangeEnd⌝)
+
+/-- **A delete's result in the mode `on`** (`putQhOn`'s). -/
+def deleteQhOn (γk : KVNames) (op : OpFull) (γc : GName) (Q : KVState → IProp GF)
+    (hm : apply.HeaderModel) (L : List EntryModel) : IProp GF :=
+  grantedRes γk srvAuthSt0 (apply.withHeader (irrDeleteRange op) hm) γc Q L
+
+theorem irrDeleteRange_kind (op : OpFull) :
+    apply.dispatchKind (irrDeleteRange op) = .deleteRange := by
+  simp [apply.dispatchKind, irrDeleteRange, apply.irrEmpty]
+
+/-- A mode-`on` delete's range end is not `[0]`. -/
+theorem deletePermitOn_nz (γk : KVNames) (op : OpFull) (Q : KVState → IProp GF) :
+    deletePermitOn (GF := GF) γk op Q ⊢
+      ⌜op.base.rangeEnd ≠ [W8 0]⌝ ∗ deletePermitOn γk op Q := by
+  unfold deletePermitOn deletePermit
+  iintro ⟨⟨%Hz, Hau⟩, %Hs⟩
+  isplitr
+  · ipureintro; exact Hz
+  iframe Hau
+  ipureintro; exact ⟨Hz, Hs⟩
+
+/-- **A delete's permission in the mode `on` is its proposal's** (`deletePermit_reqPropOk`'s). -/
+theorem deletePermitOn_reqPropOk (γk : KVNames) (op : OpFull) (Q : KVState → IProp GF)
+    (γc : GName) :
+    deletePermitOn (GF := GF) γk op Q ⊢
+      reqPropOkM true γk (irrDeleteRange op) (deleteQhOn γk op γc Q) := by
+  unfold deletePermitOn deletePermit
+  iintro ⟨⟨%Hz, Hau⟩, %Hs⟩
+  have hk := irrDeleteRange_kind op
+  have hpl : plainCover (irrDeleteRange op) := by
+    unfold plainCover
+    rw [hk]
+    exact ⟨by simp [apply.noSideEffect, irrDeleteRange, apply.irrEmpty],
+      by simp [apply.needAdminPermission, irrDeleteRange, apply.irrEmpty]⟩
+  have hp : plainReq (irrDeleteRange op) := ⟨hpl, putgetKind_kv _ (by simp only [hk]; simp)⟩
+  have hop : reqKVOp (irrDeleteRange op) = some (.deleteRange op) := by
+    unfold reqKVOp; rw [hk]; rfl
+  have hz : irrNoZeroEnd (irrDeleteRange op) := by
+    refine ⟨?_, ?_, ?_⟩
+    · intro _ h; simp [irrDeleteRange, apply.irrEmpty] at h
+    · intro o h; simp only [irrDeleteRange, Option.some.injEq] at h; subst h; exact Hz
+    · intro _ h; simp [irrDeleteRange, apply.irrEmpty] at h
+  have hs : rqShape (irrDeleteRange op) := rqShape_of_plain _ hpl (by rw [hk]; decide)
+  have ha : kvShapeAll (irrDeleteRange op) := by
+    intro x hx
+    have hr : reqPerms (irrDeleteRange op) = (op.key, op.base.rangeEnd, .write) ::
+        if op.base.prevKV then [(op.key, op.base.rangeEnd, .read)] else [] := by
+      unfold reqPerms; rw [hk]; rfl
+    rw [hr] at hx
+    cases hpk : op.base.prevKV <;> rw [hpk] at hx <;> simp at hx
+    · subst hx; exact Hs
+    · rcases hx with rfl | rfl <;> exact Hs
+  have hq : deleteQhOn (GF := GF) γk op γc Q =
+      fun hm => grantedRes γk srvAuthSt0 (apply.withHeader (irrDeleteRange op) hm) γc Q := rfl
+  rw [hq]
+  iapply reqPropOkM_true_write γk (irrDeleteRange op) (.deleteRange op) Q γc hp hop hz hs ha $$ Hau
 
 end put
 
