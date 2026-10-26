@@ -21279,3 +21279,62 @@ and everything in `ReqOn.lean`.
    model's states (E2l's `authSmall`, nodup roles, along `kvRaftOfOn`), with `server_user_add_sure`
    (E2x) for `pwSure`.
 5. *The apply thread's side* (E3a): handing `resultΨOn` (with `authTie`) to the waiter.
+
+## E3a of the auth plan: the apply layer's `UserAdd` determinate; the apply thread's tie lemmas; the apply loop in the mode `on` left (2026-10-26 · `notes/auth-plan.md`)
+
+**Done.**
+- *The apply layer's `UserAdd` through E2u's/E2y's sure-password specs.* `isAuthSteps`'s and
+  `isAuthStepsX`'s `UserAdd` clauses, the backend's `stepSpec`/`stepSpecX` and the fueled
+  `fuelSpec`/`fuelSpecX` take `auth.userAddSure r` and give the step's outcome alone
+  (`auth.noExtra`, no `ErrNoPasswordUser`); the real store meets them from `UserAdd.specSure`
+  (`isAuthSteps_of_authInv`) and `UserAdd.specTSure` (`isAuthStepsX_of_authInvT`). The admin
+  chain's `AdminReq.reqIs` for `UserAdd` adds `userAddSure`, `AdminReq.result` drops the extra;
+  the dispatch gets `userAddSure` from the decoded request (`authUserAddIs_sure`) because
+  `apply.adminKindOk` now admits a `UserAdd` only with `UserAddModel.pwSure` (the server's own
+  form, which `EtcdServer.UserAdd` proposes: E2x's `server_user_add_sure`). So an admitted
+  `UserAdd` is determinate at the apply thread (E2t's `adminStateR` keeps the state on `UserAdd`
+  only when not `pwSure`).
+- *The tie of the model's auth state to the admin side's history* (`etcdserver/ApplyTieOn.lean`):
+  the apply loop keeps `hs.getLast? = some st` (`hs` the history of `authApplyRes`, `st` the auth
+  state `kvAppliedOn` reaches). A KV entry's outcomes keep the auth state
+  (`outcomeOn_auth_keep`); an admin entry's result without an extra error gives the authority at
+  the history after the outcome (`adminOutX_on_noExtra`, `histAfter`), whose latest state is the
+  outcome's (`histAfter_last`), a successor of the model's admin step when the admin check passed
+  at the latest state (`adminStateR_of_step`, for `UserAdd`, `RoleAdd`, `UserGrantRole`,
+  `RoleGrantPermission`) or the state kept when it failed (`adminStateR_refused`), hence
+  `outcomeOn`'s (`outcomeOn_of_adminStateR`).
+
+**Not done: the apply loop in the mode `on`** (`start`/`run`/`applyAll`/`applyEntryNormal` over
+`kvRunOn`). What blocks it, in order:
+1. *The admin check at the latest state on the apply path.* `uberApplier.Apply.adminSpec`/
+   `apply.Apply.adminSpec` (E2o) give, for a dispatched admin request, `adminPass` (S3's verdict
+   at some recorded state, `auth.adminVerdict`) and nothing for a rejected one; `adminStateR` needs
+   `auth.adminOk` at the latest state both ways. Needed: `authApplierV3.Apply`'s admin check
+   through `isAuthStoreL`'s `IsAdminPermitted` (E2s's `adminVerdictL`), lifted as E2y did for the
+   KV path (an `adminSpecL`).
+2. *`AuthEnable` at the latest state.* `AdminReq.result`'s `AuthEnable` gives the flag the store
+   read at some recorded state (`auth.enabledVerdict`); the model steps at the latest state's flag
+   (`auth.authEnableF st.enabled`). The tie-carrying instance has the flag's half tied to the latest
+   state (E2s's `AuthEnable.specT`), so `AdminReq.result` can state it there.
+3. *The tie at boot.* `authApplyRes` hides its history (`∃ hs`), and `NewServer.specM on`'s
+   construction (E2k's `authStoreKit_on`, at `[bootState, bump bootState]`) does not expose it, so
+   `isServerBuiltOn` cannot yet give `hs.getLast? = some srvAuthSt0`. Needed: the history as an
+   index of the apply thread's auth resource through `srvBuiltG true` and `applyBuiltOn`, which
+   touches `NewServer.wp_proofM`.
+4. *`applyEntryNormal` in the mode `on`*: the server's invariants in the mode `on` (`isServer`'s
+   `srvKVInvs` is mode-off; `srvKVInvsM true` is in `isServerBuiltOn` only), the wait's results in
+   the mode `on` (E3b's), and the KV/admin cases through `apply.Apply.kvSpecL` (E2y, with `uberKVL`
+   of the server's uber-applier and `lessorNil` of its lessor) and `apply.Apply.adminSpec` with the
+   receipt at an apply-thread step and the borrow of `be`'s half; then `applyAll`, `run`, `start`.
+
+**Exported statements changed.**
+- *Specs:* `applierV3backend.UserAdd.stepSpec`, `.fuelSpec`, `.stepSpecX`, `.fuelSpecX` (the
+  request's `userAddSure`; `auth.noExtra`).
+- *Definitions:* `apply.isAuthSteps`, `apply.isAuthStepsX` (their `UserAdd` clauses),
+  `apply.AdminReq.reqIs`, `apply.AdminReq.result` (their `UserAdd` cases), `apply.adminKindOk`
+  (`UserAdd`: `pwSure`).
+- *Theorems:* `isAuthSteps_of_authInv` takes `UserAdd.specSure`, `isAuthStepsX_of_authInvT`
+  `UserAdd.specTSure`. The restatements `auth_apply_steps`, `apply_auth_steps_tie` keep their
+  statements (they are of the changed definitions). No closed theorem changed.
+
+**Trust base.** Unchanged.
