@@ -21324,3 +21324,29 @@ tracks own): what blocks the rest, so that the next pass starts from it.
   channel and is unspecified), and `Promote`'s axiom would then claim it keeps that right.
 - Taken up in parallel: `container/heap`'s `Fix`/`Push` and `unicode/utf8`'s `ValidString`
   (translated here, names-only until now).
+
+## D49: the DaemonSet controller over a model API server; client-go's libraries verified (2026-10-26 · the user: "What we should *avoid* verifying is the apiserver itself", "Some of these libaries (util/workqueue) are better off being verified directly")
+
+**The goal.** Safety of the real DaemonSet controller (`k8s.io/kubernetes/pkg/controller/daemon`),
+first `MaxOnePodPerNode` (kubernetes/kubernetes#139657's robustness test), in every execution of a
+Go example that runs it (`notes/k8s-daemonset-plan.md`).
+
+**The cut.** The API server is modeled, not verified: the model implements the typed clients the
+controller and its informers call (`k8s.io/client-go/kubernetes`, `kubernetes/typed/{apps,core}/v1`:
+the few CRUD methods, `List`, `Watch`), over one shared state, with nondeterministic failures (a
+failed write has no effect) and watch ends; its spec is the trusted statement of the API server.
+Everything above it is real code: client-go's informers (the reflector, the FIFO, the shared
+informer: they reach the server only through the `ListWatch` closures over the typed clients'
+`List`/`Watch`), its leaf libraries (`util/workqueue`, `tools/cache`'s stores and indexers, the
+listers, `util/flowcontrol`, `util/retry`, `features`: none reaches `k8s.io/client-go/rest`), and
+the controller. The event recorder (`tools/record`) reaches the server only at its sink; events do
+not affect safety, so it is a trusted no-op or verified over a no-op sink (open).
+
+**Why not mock the informers too** (the first proposal, at the controller's constructor). The
+consistency store's guarantee is only as good as the informer's `LastStoreSyncResourceVersion`;
+a mocked informer would make that contract an assumption. Verifying the informers over List/Watch
+proves it from the API server's List/Watch semantics, which are simpler and better understood.
+
+**Why not the real API server.** The etcd3 store's proofs cover its unary methods only (`GetList`
+and the watcher do not translate: G2, G1 of `notes/k8s-etcd3-goose.md`), and kube-apiserver's
+handlers, registry, admission and serialization are far larger than the controller.
