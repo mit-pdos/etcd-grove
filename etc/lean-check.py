@@ -19,13 +19,16 @@ does, `FILE:LINE:COL: error: ...`, with the time it took and whether it reused t
 open file (`incremental`) or opened it (`fresh`), and exits 1 if there are errors.
 Lines are 1-based, columns 0-based, as in Lean's messages. `--goal LINE[:COL]` (COL
 defaults to the line's end) prints the proof state there, the goals before the tactic
-at that position, after the check; `--goal` may be repeated. `-e`/`--first-error` returns
-as soon as the server reports an error in what the edit changed (from the first changed line to
-the end of its declaration; anywhere on a first check), or as soon as that declaration is
-elaborated without one, printing the messages so far, older errors elsewhere in the file
-included; the server goes on elaborating the rest (the declarations after it, and, when the
-early return is for an error, the once-per-declaration work), which the next check reuses or
-cancels.
+at that position, after the check; `--goal` may be repeated.
+
+A check returns as soon as the server reports an error in what the edit changed (from the
+first changed line to the end of its declaration; anywhere on a first check), or as soon as
+that declaration is elaborated without one, printing the messages so far (older errors
+elsewhere in the file included) and the first line not yet checked; the server goes on
+elaborating the rest (the declarations after it, and, when the early return is for an error,
+the once-per-declaration work), which the next check reuses or cancels. Checking again without
+an edit, or `-a`/`--all`, waits for the whole file: do so before relying on a file being
+done, since an edit (to a statement, say) can break a later declaration.
 
 What an edit costs: the tactics from the edit on, then, for the declaration edited, the
 work done once its proof is complete, which no snapshot saves: instantiating its proof
@@ -306,7 +309,7 @@ class Server:
                     os.path.relpath(stale[0], ROOT) + (" and %d more" % (len(stale) - 1)
                                                       if len(stale) > 1 else "")
                     if stale else "imports")
-        # the lines whose errors `-e` returns at (0-based, end exclusive): the declaration the
+        # the lines whose errors a check returns at (0-based, end exclusive): the declaration the
         # edit starts in, from the first changed line on (everything on a fresh open)
         watch = (0, None)
         if ent["text"] is not None and text != ent["text"]:
@@ -326,6 +329,7 @@ class Server:
                 "contentChanges": [{"text": sent}]})
         else:
             mode = "unchanged"
+            first_error = False  # checking again without an edit: wait for the whole file
         ent["text"] = text
         ent["opts"] = (fast, split)
         v = ent["version"]
@@ -373,9 +377,11 @@ class Server:
         if split:
             mode += ", split %d" % split
         if stopped_early:
-            mode += (", stopped at the first error" if has_error() else
+            prog = self.progress.get(uri, (None, []))[1] or []
+            mode += (", stopped at the edit's first error" if has_error() else
                      ", stopped when the edited declaration was done") + \
-                " (the server goes on elaborating)"
+                ("; NOT YET CHECKED: from line %d on (check again, or -a, to wait for it)"
+                 % first_line(prog) if prog else "")
         out = {"file": path, "mode": mode, "seconds": time.time() - t0, "diagnostics": diags,
                "goals": []}
         lines = text.split("\n")
@@ -624,8 +630,10 @@ def main():
     ap.add_argument("--goal", action="append", default=[], metavar="LINE[:COL]",
                     help="print the goal at this position of the (first) file")
     ap.add_argument("-q", "--quiet", action="store_true", help="only errors")
-    ap.add_argument("-e", "--first-error", action="store_true",
-                    help="return at the first error, without waiting for the rest of the file")
+    ap.add_argument("-a", "--all", action="store_true",
+                    help="wait for the whole file (by default a check returns at the edit's first "
+                         "error, or when its declaration is done)")
+    ap.add_argument("-e", "--first-error", action="store_true", help=argparse.SUPPRESS)
     ap.add_argument("--split", action="store_true",
                     help="prove each long `·` block as an auxiliary theorem (see above)")
     ap.add_argument("--split-min", type=int, default=20, metavar="N",
@@ -666,7 +674,7 @@ def main():
     r = call(connect(args, start=True), {"cmd": "check", "files": files, "goals": goals,
                                                "fast": args.fast,
                                                "split": args.split_min if args.split else 0,
-                                               "first_error": args.first_error})
+                                               "first_error": not args.all})
     if "error" in r:
         sys.exit("lean-check: " + r["error"])
     bad = False
