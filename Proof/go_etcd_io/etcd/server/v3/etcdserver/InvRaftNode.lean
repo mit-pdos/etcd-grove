@@ -598,15 +598,12 @@ theorem rn_ready_recv (E : RNEnv GF) (γ : RNNames) (L : List EntryModel) (p : H
   obtain ⟨Hraft, Hpre, Hai0⟩ := Hn
   obtain ⟨-, -, Hstor, Hns⟩ := Hmode
   iunfold rnReadyP at HP
-  -- (D22 S-d4) no snapshot: raft's no-snapshot mode
-  icases readyP_none γ.node rd (.inl Hns) $$ HP with ⟨%d, %ce, %es, %ms, %p0, %p', Hd, Hrof, Hdata, #Hlb⟩
   iunfold rnDrv at Hdrv
   icases Hdrv with ⟨Hdrv, Hcfg⟩
-  iunfold nodeDriver at Hdrv
-  icases Hdrv with ⟨#Hnode, Hds, -, Hreq⟩
-  ihave %Heq := dghostVar_agree _ _ _ _ _ $$ Hd Hds
-  simp only [Prod.mk.injEq] at Heq
-  obtain ⟨rfl, rfl⟩ := Heq
+  -- (D22 S-d4) no snapshot: raft's no-snapshot mode; (2026-10-26) through raft's law, the payload
+  -- and the driver's token being sealed (`readyP_take_ns`)
+  icases readyP_take_ns γ.node γ.id γ.nl rd _ _ (.inl Hns) $$ HP Hdrv with
+    ⟨%ce, %es, %ms, %p', Hdata, Hbusy, #Hlb⟩
   iunfold rnLogFits at Hfits
   icases Hfits with %Hrb
   iunfold readyData at Hdata
@@ -679,22 +676,14 @@ theorem rn_ready_recv (E : RNEnv GF) (γ : RNNames) (L : List EntryModel) (p : H
       iframe Hvs
       iapply rnReadStates_of_raft E γ vs sts $$ Hbr Hrs2 Hrsok
     ipureintro; exact Hsnap
-  isplitl [Hcfg Hd Hds Hrof Hreq]
+  isplitl [Hcfg Hbusy]
   · iunfold rnBusy
     iframe Hcfg
     iunfold rnBusyN
-    iunfold nodeDriverBusy
-    iframe Hnode
     rw [EntryModel.map_toM_ofM, rnLogOf_append, EntryModel.map_toM_ofM]
-    isplitr
-    · iunfold dlvLb; iexact Hlb
-    iexists rnLogOf γ L, ce, _
-    iframe Hd Hds Hrof
-    isplitr
-    · ipureintro; rfl
-    iexact Hreq
+    iexact Hbusy
   · rw [rnLogOf_append, EntryModel.map_toM_ofM]
-    iunfold dlvLb; iexact Hlb
+    iexact Hlb
 
 /-! ## The other components -/
 

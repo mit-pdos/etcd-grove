@@ -75,7 +75,11 @@ channel carries one).
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvRawnodeReady
+public import Proof.go_etcd_io.raft.v3.ApiVocab
+public import Proof.go_etcd_io.raft.v3.CCApply
+public import Proof.go_etcd_io.raft.v3.InvConfchange
+public import Proof.go_etcd_io.raft.v3.InvStorage
+import Proof.go_etcd_io.raft.v3.InvRawnodeReady
 -- (2026-10-16, stage R5) `netStepTypes`, `NetMsgOk`, `DynCCPreOp`, `propEntryM` are
 -- `InvRawnode.lean`'s (until then `RawNode__Step`'s, `RawNode__Propose`'s,
 -- `RawNode__ApplyConfChange`'s)
@@ -83,7 +87,7 @@ public import Perennial.Golang.Theory.Chan.Idioms.Handshake
 public import Proof.go_etcd_io.etcd.cache.v3.Handoff
 public import Perennial.Ghost.MonoNat
 public import Proof.go_etcd_io.raft.v3.Protocol.Facts
-public import Proof.go_etcd_io.raft.v3.InvApplyConf
+import Proof.go_etcd_io.raft.v3.InvApplyConf
 public import Perennial.Ghost.MonoList
 
 @[expose] public section
@@ -449,7 +453,7 @@ which `run` is the producer (a `Handoff`: `run` sends the error, `stepErr`, and 
 (2026-10-16, stage R5: the message at `pm.m'`, owned (`msgIn`), holding `propMsgM` and the one
 entry `propEntryM d`, D6: the data's bytes `d`. Stage R7c: the result channel's value is
 `stepErr`; until then nothing was promised of it.) -/
-def propP (γ : NodeNames) (pm : msgWithResult) : IProp GF :=
+@[no_expose] def propP (γ : NodeNames) (pm : msgWithResult) : IProp GF :=
   iprop((∃ (d : List w8) (γr : HandoffNames),
     msgIn pm.m' (DFrac.own 1) ⟨propMsgM, [propEntryM d], none, [], []⟩ ∗
     propData γ.raft (propEntryM d) ∗ entTk γ.raft (propEntryM d) ∗
@@ -690,7 +694,7 @@ theorem readyDataL_none (γ : NodeNames) (rd : Ready) (d ce es : List EntryM)
 of its record, and the data. (D22 S-d4, 2026-10-21) The record has the `Ready`'s snapshot, if any
 (the loan `L`, `RNState.slent`), so that `run` recognizes its own loan at `Advance`; the lower bound
 is of the committed log handed out after the `Ready` (`dlvAfter`). -/
-def readyP (γ : NodeNames) (rd : Ready) : IProp GF :=
+@[no_expose] def readyP (γ : NodeNames) (rd : Ready) : IProp GF :=
   iprop(∃ (d ce es : List EntryM) (ms : List QMsg) (p p' : HardStateM) (L : Option SnapLoan),
     dghostVar γ.dlv (DFrac.own (1 : Qp).half) (d, p) ∗
     dghostVar γ.rof (DFrac.own (1 : Qp).half) (d, ce, es, p', L) ∗
@@ -727,7 +731,7 @@ def advReceipt (st : Storage) (es : List EntryM) : Option SnapLoan → IProp GF
 and the receipt of the append of the `Ready`'s entries. (D22 S-d4, 2026-10-21) For the `Ready`'s
 loan `L`: the committed log handed out after it (`dlvAfter`), and the receipt for it
 (`advReceipt`). -/
-def advanceP (γ : NodeNames) (L : Option SnapLoan) : IProp GF :=
+@[no_expose] def advanceP (γ : NodeNames) (L : Option SnapLoan) : IProp GF :=
   iprop(∃ (d ce es : List EntryM) (p' : HardStateM),
     dghostVar γ.dlv (DFrac.own (1 : Qp).half) (dlvAfter d ce L, p') ∗
     dghostVar γ.rof (DFrac.own (1 : Qp).half) (d, ce, es, p', L) ∗ advReceipt γ.stor es L ∗
@@ -766,12 +770,12 @@ theorem reqWit_none (γ : NodeNames) (ds : List EntryM)
   iexact Hw
 
 /-- The tick channel: one credit per buffered tick. -/
-def tickInv (γ : NodeNames) : IProp GF :=
+@[no_expose] def tickInv (γ : NodeNames) : IProp GF :=
   iprop(∃ l : List Unit, ownChan γ.tick Unit (.Buffered l) ∗ tickCred γ.bud l.length)
 
 /-- The committed log handed out so far is at least `ds` (2026-10-15, stage N; persistent): what
 the driver knows of `run`'s, for a conf change's entry. -/
-def dlvLb (γ : NodeNames) (ds : List EntryM) : IProp GF :=
+@[no_expose] def dlvLb (γ : NodeNames) (ds : List EntryM) : IProp GF :=
   monoListLbOwn γ.dlm ds
 
 instance dlvLb_persistent (γ : NodeNames) (ds : List EntryM) :
@@ -782,7 +786,7 @@ instance dlvLb_persistent (γ : NodeNames) (ds : List EntryM) :
 and the configuration `cfg` as of the last conf change it applied (`node.ApplyConfChange`;
 `cap`'s half, a lower bound of `cam`), and the answer slot `ccq`, whole. `RestartNode` hands it
 out at `0` and the initial configuration; in the static mode it never moves. -/
-def nodeCfg (γ : NodeNames) (ca : Nat) (cfg : CCState) : IProp GF :=
+@[no_expose] def nodeCfg (γ : NodeNames) (ca : Nat) (cfg : CCState) : IProp GF :=
   iprop(dghostVar γ.cap (DFrac.own (1 : Qp).half) (ca, cfg) ∗
     (∃ x : Nat × CCState, dghostVar γ.ccq (DFrac.own (1 : Qp).half) x ∗
       dghostVar γ.ccq (DFrac.own (1 : Qp).half) x) ∗ monoNatLbOwn γ.cam ca)
@@ -795,7 +799,7 @@ entry. (D22 S-d4, 2026-10-21) A node that takes snapshots (`snapIn`) is outside 
 mode and in the static mode; one that does not has no snapshot pending or lent (from D22 S-c to
 S-d4 none at all); while a snapshot `Ready` is lent the committed log handed out is the loan's
 (`rsDlv`), which extends `delivered`. -/
-def runCfg (γ : NodeNames) (rs : RNState) : IProp GF :=
+@[no_expose] def runCfg (γ : NodeNames) (rs : RNState) : IProp GF :=
   iprop(⌜rs.mode = γ.mode ∧ rs.capplied ≤ rs.delivered.length ∧
       -- (D19i part 1) the floor not raised past `applied` (`RNState.flw`): `run` raises it only
       -- in its `advancec` arm, right before `Advance`
@@ -847,7 +851,7 @@ taken back by a `select` that fires another case. -/
 
 /-- `run`'s node at the `advancec` rendezvous, before the floor is raised: `runMid_busy`'s.
 (D22 S-d4) Its record names the loan (`rs.slent`). -/
-def advDep (γ : NodeNames) (rn : Loc) (id : w64) : IProp GF :=
+@[no_expose] def advDep (γ : NodeNames) (rn : Loc) (id : w64) : IProp GF :=
   iprop(∃ (rs : RNState) (d ce : List EntryM), ownRawNode γ.raft rn id rs ∗
     termLB γ.bud rs.tc ∗ runCfg γ rs ∗
     dghostVar γ.rof (DFrac.own (1 : Qp).half) (d, ce, rs.unpersisted, rs.phs, rs.slent) ∗
@@ -858,7 +862,7 @@ def advDep (γ : NodeNames) (rn : Loc) (id : w64) : IProp GF :=
 (D22 S-d4, 2026-10-21) Or, after a snapshot `Ready`, the receipt for its loan (`loanRet`), the
 entries not appended here, and the floor not raised; `dlv` at the committed log handed out
 (`rsDlv`, the loan's). -/
-def advRet (γ : NodeNames) (rn : Loc) (id : w64) : IProp GF :=
+@[no_expose] def advRet (γ : NodeNames) (rn : Loc) (id : w64) : IProp GF :=
   iprop(∃ (rs : RNState) (ca_d : Nat), ownRawNode γ.raft rn id rs ∗
     termLB γ.bud rs.tc ∗ runCfg γ { rs with flw := false } ∗
     dghostVar γ.dlv (DFrac.own (1 : Qp).half) (rsDlv rs, rs.phs) ∗
@@ -870,7 +874,7 @@ def advRet (γ : NodeNames) (rn : Loc) (id : w64) : IProp GF :=
 
 /-- The `advancec` protocol (see above). (D22 S-d4) The driver's payload for its `Ready`'s loan
 `L`, its request `reqOf L ds`, `run`'s answer `reqWit`. -/
-def advInv (γ : NodeNames) (rn : Loc) (id : w64) : IProp GF :=
+@[no_expose] def advInv (γ : NodeNames) (rn : Loc) (id : w64) : IProp GF :=
   iprop(∃ s, "Hch" ∷ ownChan γ.advancec Unit s ∗
     (match s with
      | .Idle => iprop(True)
@@ -885,7 +889,7 @@ def advInv (γ : NodeNames) (rn : Loc) (id : w64) : IProp GF :=
 def advN : Namespace := nroot.@"raft_advancec"
 
 /-- `advancec` (D19i part 1): the channel and its protocol. -/
-def isAdvChan (γ : NodeNames) (rn : Loc) (id : w64) (ch : Loc) : IProp GF :=
+@[no_expose] def isAdvChan (γ : NodeNames) (rn : Loc) (id : w64) (ch : Loc) : IProp GF :=
   iprop(isChan ch γ.advancec Unit ∗ inv advN (advInv γ rn id))
 
 instance isAdvChan_persistent (γ : NodeNames) (rn : Loc) (id : w64) (ch : Loc) :
@@ -899,7 +903,7 @@ view of the configuration (`cap`'s half at `(ca, cfg)`), the answer it expects (
 `(k + 1, cs')`), a lower bound `ds` of the committed log handed out, and that the change is that
 of the next conf entry of `ds`, at position `k` (`DynCCPreOp`). (2026-10-16, stage R5: a
 `*pb.ConfChangeV2` at `v`, read-only (`ownCCV2 v □ ccm`, R1), its content `ccm`.) -/
-def confcP (γ : NodeNames) (v : Loc) : IProp GF :=
+@[no_expose] def confcP (γ : NodeNames) (v : Loc) : IProp GF :=
   iprop(∃ ccm : CCV2M, ownCCV2 v DFrac.discard ccm ∗
     ((⌜γ.mode = .static ∧ CCShrink γ.raft.reCfg ccm.transition ccm.changes⌝) ∨
      (∃ (ds : List EntryM) (ca : Nat) (cfg : CCState) (k : Nat) (e : EntryM)
@@ -927,7 +931,7 @@ the dynamic mode, the driver's view of the configuration back (`cap`'s half), th
 half at the same value (the driver's other half names the answer it expects) with the index's
 lower bound, and the `ConfState` of the configuration. (2026-10-16, stage R5: the fresh
 `*pb.ConfState` at `cs` `applyConfChange` returns, owned, `csPts cs 1 c true`.) -/
-def confstateP (γ : NodeNames) (cs : Loc) : IProp GF :=
+@[no_expose] def confstateP (γ : NodeNames) (cs : Loc) : IProp GF :=
   iprop(∃ c : ConfStateM, csPts cs (DFrac.own 1) c true ∗
     ((⌜γ.mode = .static ∧ confstateS γ c⌝) ∨
      (⌜γ.mode.isDyn = true⌝ ∗ ∃ v : Nat × CCState,
@@ -935,7 +939,7 @@ def confstateP (γ : NodeNames) (cs : Loc) : IProp GF :=
       monoNatLbOwn γ.cam v.1 ∗ ⌜confstateOk c v.2.cfg⌝)))
 
 /-- See the file header. -/
-def isNode (γ : NodeNames) (id : w64) (n : Loc) : IProp GF :=
+@[no_expose] def isNode (γ : NodeNames) (id : w64) (n : Loc) : IProp GF :=
   iprop(∃ (nv : node) (r : Loc) (lok : GoInterfaceOk),
     "#Hn" ∷ n ↦□ nv ∗
     "#Hrnraft" ∷ nv.rn'.[RawNode, go!"raft"] ↦□ r ∗
@@ -968,7 +972,7 @@ instance isNode_persistent (γ : NodeNames) (id : w64) (n : Loc) :
 
 /-- The driver's token: the committed log it was handed so far is `ds`; (D22l) the hard state of
 the last `Ready` it was handed with a non-empty one is `p` (`RNState.phs`; zero at the start). -/
-def nodeDriver (γ : NodeNames) (id : w64) (n : Loc) (ds : List EntryM) (p : HardStateM) :
+@[no_expose] def nodeDriver (γ : NodeNames) (id : w64) (n : Loc) (ds : List EntryM) (p : HardStateM) :
     IProp GF :=
   iprop(isNode γ id n ∗ dghostVar γ.dlv (DFrac.own (1 : Qp).half) (ds, p) ∗ dlvLb γ ds ∗
     -- (D19i part 1) the request on `advancec` (`advInv`)
@@ -980,7 +984,7 @@ def nodeDriver (γ : NodeNames) (id : w64) (n : Loc) (ds : List EntryM) (p : Har
 `p'` is `prevHardSt` after the `Ready` (`readyData`'s). (D22 S-d4, 2026-10-21) `L` the `Ready`'s
 snapshot, if any (its loan, `run`'s record names it): `ds` is then the committed log up to the
 snapshot (`dlvAfter`), and the storage is the application's until `Advance` (`advReceipt`). -/
-def nodeDriverBusy (γ : NodeNames) (id : w64) (n : Loc) (ds es : List EntryM)
+@[no_expose] def nodeDriverBusy (γ : NodeNames) (id : w64) (n : Loc) (ds es : List EntryM)
     (p' : HardStateM) (L : Option SnapLoan := none) : IProp GF :=
   iprop(isNode γ id n ∗ dlvLb γ ds ∗
     ∃ (d ce : List EntryM) (p : HardStateM), dghostVar γ.dlv (DFrac.own (1 : Qp).half) (d, p) ∗
@@ -1059,6 +1063,80 @@ theorem nodeDriverBusy_lb (γ : NodeNames) (id : w64) (n : Loc) (ds es : List En
   iintro H
   unfold nodeDriverBusy
   icases H with ⟨-, $, -⟩
+
+/-! ### Laws of the sealed node predicates (2026-10-26, raft's signature, stage 1)
+
+`isNode`, `nodeDriver`, `nodeDriverBusy`, `readyP` and the channel protocols are `@[no_expose]`:
+a client of raft does not see their bodies (`Spec/go_etcd_io/raft/v3/Sig.lean`). What clients
+need of them is stated here, in the API's vocabulary. -/
+
+/-- The node's names are of its id (`isNode`'s `Hgid`). -/
+theorem isNode_id (γ : NodeNames) (id : w64) (n : Loc) :
+    isNode (GF := GF) γ id n ⊢ ⌜γ.id = id⌝ := by
+  iintro #Hnode
+  unfold isNode
+  icases Hnode with ⟨%nv, %r, %lok, #Hnode⟩
+  iNamed Hnode
+  ipureintro; exact Hgid
+
+/-- The cluster's commit invariant, from a node (what the client's ghost lemmas over the
+committed log, `committed_data`, `prop_register`, `read_deposit`, open). -/
+theorem isNode_commitInv (γ : NodeNames) (id : w64) (n : Loc) :
+    isNode (GF := GF) γ id n ⊢ raftCommitInv γ.raft := by
+  iintro #Hnode
+  unfold isNode
+  icases Hnode with ⟨%nv, %r, %lok, #Hnode⟩
+  iNamed Hnode
+  iexact Hcinv
+
+/-- The driver's token holds the node. -/
+theorem nodeDriver_isNode (γ : NodeNames) (id : w64) (n : Loc) (ds : List EntryM)
+    (p : HardStateM) :
+    nodeDriver (GF := GF) γ id n ds p ⊢ nodeDriver γ id n ds p ∗ isNode γ id n := by
+  iintro Hdrv
+  unfold nodeDriver
+  icases Hdrv with ⟨#Hnode, Hds, #Hlb, Hreq⟩
+  iframe Hnode Hds Hlb Hreq
+
+/-- **Taking a `Ready`'s payload** (`readyP`, what a receive on the `Ready` channel gives,
+`isReadyChan`): with the driver's token at the committed log handed out `ds`, the `Ready`'s data
+for `ds`, the token busy with it, and the committed log handed out after it. What
+`node_ready_receive` does after the receive, for a client that receives in a `select`. -/
+theorem readyP_take (γ : NodeNames) (id : w64) (n : Loc) (rd : Ready) (ds : List EntryM)
+    (p : HardStateM) :
+    ⊢ readyP (GF := GF) γ rd -∗ nodeDriver γ id n ds p -∗
+      ∃ (ce es : List EntryM) (ms : List QMsg) (p' : HardStateM) (L : Option SnapLoan),
+        readyDataL γ rd ds ce es ms p p' L ∗ nodeDriverBusy γ id n (dlvAfter ds ce L) es p' L ∗
+        dlvLb γ (dlvAfter ds ce L) := by
+  iintro HP Hdrv
+  unfold nodeDriver
+  icases Hdrv with ⟨#Hnode, Hds, -, Hreq⟩
+  unfold readyP
+  icases HP with ⟨%d, %ce, %es, %ms, %p0, %p', %L, Hd, Hrof, Hdata, #Hlb⟩
+  ihave %Heq := dghostVar_agree _ _ _ _ _ $$ Hd Hds
+  cases Heq
+  iexists ce, es, ms, p', L
+  iframe Hdata
+  unfold nodeDriverBusy dlvLb
+  iframe Hnode Hlb
+  iexists ds, ce, p
+  iframe Hd Hds Hrof Hreq
+  ipureintro; rfl
+
+/-- `readyP_take` for a client that cannot be handed a snapshot (`readyDataL_none`). -/
+theorem readyP_take_ns (γ : NodeNames) (id : w64) (n : Loc) (rd : Ready) (ds : List EntryM)
+    (p : HardStateM) (H : γ.raft.reNoSnap = true ∨ γ.mode.isDyn = true ∨ γ.snapIn = false) :
+    ⊢ readyP (GF := GF) γ rd -∗ nodeDriver γ id n ds p -∗
+      ∃ (ce es : List EntryM) (ms : List QMsg) (p' : HardStateM),
+        readyData γ rd ds ce es ms p p' ∗ nodeDriverBusy γ id n (ds ++ ce) es p' ∗
+        dlvLb γ (ds ++ ce) := by
+  iintro HP Hdrv
+  icases readyP_take γ id n rd ds p $$ HP Hdrv with ⟨%ce, %es, %ms, %p', %L, Hdata, Hbusy, #Hlb⟩
+  icases readyDataL_none γ rd ds ce es ms p p' L H $$ Hdata with ⟨%HL, Hdata⟩
+  subst HL
+  iexists ce, es, ms, p'
+  rw [show ds ++ ce = dlvAfter ds ce none from rfl]
+  iframe Hdata Hbusy Hlb
 
 /-- The handshake's send, where the payload is made only when the send happens (a ghost
 update inside the atomic update): `run` hands out the storage's append right with a

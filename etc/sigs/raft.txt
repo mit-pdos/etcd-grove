@@ -1,0 +1,20 @@
+# raft's signature (Spec/go_etcd_io/raft/v3/Sig.lean): what clients of raft's proof may use.
+# etc/sig-check.py etc/sigs/raft.txt --check: no module outside raft reaches the modules below.
+#
+# Stage 1 (2026-10-26): the node API. Its modules (`InvNode`, `InvNodeCtx`, `ApiVocab`) are public,
+# with the channel and ghost machinery `@[no_expose]`; the `RawNode` invariants and the raft
+# struct's ownership below them are internal; the protocol's ghost vocabulary
+# (`Protocol/*`: `isCommitted`, the proposal deposits, the read index), the protobuf model
+# (`InvPb*`), the `Storage` contract and `MemoryStorage` are still reachable (later stages).
+
+inside Proof/go_etcd_io/raft/
+inside Spec/go_etcd_io/raft/
+
+internal Proof.go_etcd_io.raft.v3.InvNodeRun
+internal Proof.go_etcd_io.raft.v3.InvRawnode
+internal Proof.go_etcd_io.raft.v3.InvRawnodeReady
+internal Proof.go_etcd_io.raft.v3.InvRawnodeC
+internal Proof.go_etcd_io.raft.v3.InvBoot
+internal Proof.go_etcd_io.raft.v3.InvRaftPhys
+
+exempt (^|/)(Link|MainLinked|Results|Adequacy\w*)\.lean$

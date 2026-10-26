@@ -114,6 +114,20 @@ GiB, measured 2026-10-08; `notes/decisions.md`, "Lean's module system"). A
 definition sealed inside its file (`ownRaftPhys`) is `@[no_expose]`. New files follow
 the same pattern; Perennial's are modules too.
 
+## Package signatures
+
+A package's clients use it only through its signature: `Spec/<pkg>/Sig.lean`, the module a client
+imports, and the API modules it lists. An API module imports the package's internals
+non-publicly and marks what clients must not see inside `@[no_expose]`, so Lean refuses a client
+that unfolds it or names an internal declaration; the package's own proofs `import all` the API
+module. `etc/sig-check.py etc/sigs/<pkg>.txt --check` closes the gap Lean leaves: no module
+outside the package may import its internal modules, even through public imports (linking files,
+`Link`/`Results`/`Adequacy*`, are exempt). When a proof outside the package needs a fact of a
+sealed predicate, add a law to the API module; do not unseal it. Raft's node API is the first
+(stage 1, 2026-10-26; `notes/decisions.md`, "Package signatures"): `Spec/go_etcd_io/raft/v3/Sig.lean`,
+`InvNode`/`InvNodeCtx` (the API modules), `ApiVocab` (the vocabulary moved out of the internals),
+`Linked` (raft's linked results for proofs outside the linking files, `open RaftLink`).
+
 ## Issues in the verified code
 
 When you find a bug in the Go code being verified (a reachable panic, a wrong result) or

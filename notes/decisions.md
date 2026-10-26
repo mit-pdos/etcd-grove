@@ -19587,3 +19587,85 @@ Auth service's contracts discharging `setupAuthOk`, and `Work` (E2b's, E2f's lis
 **Trust base.** 721 → 720 axioms (-1, `NewAuth.wp_proof` gone), sorries unchanged (6); the nine
 collections that listed it updated, and `authkv` gains the client's existing gRPC trust-boundary axioms
 (`StaticMethod`, `grpcConn`, `status.FromError`, ...) that `SetUp` reaches.
+
+## Package signatures, enforced by Lean's module system: raft's node API first (2026-10-26 · the user's request, carried out)
+
+**The problem** (`notes/raft-spec-review.md`, "Modularity review"): nothing in raft's proof was
+sealed but `ownRaftPhys`, so clients proved things by opening raft's predicates (`isNode`'s
+channels, `nodeDriver`'s ghost halves, `readyP`), re-proved raft's lemmas (the server's
+`rn_ready_recv`), and reached raft's internals through any import (1099 modules outside raft
+reached `InvNode`'s or `InvRaftPhys`'s). A change inside raft rippled into the server and the
+examples. The user asked for a module signature per package, as a Rocq `Module Type`, which
+proofs above are written against and cannot see past "even if they wanted".
+
+**Decision: the signature is enforced by the module system, in place.** A package's API module
+is a public module (`@[expose] public section`) whose imports of the package's internals are
+non-public (`import`, not `public import`): its statements can mention only public names (Lean
+refuses a public statement over a privately imported name), the bodies of its `@[no_expose]`
+definitions are invisible to importers (they cannot `unfold`, `delta` or reduce them), and the
+internal modules are not loaded downstream. The package's own proofs `import all` the API module
+to see the bodies. Checked on Lean v4.34.1 (`$CLAUDE_JOB_DIR/tmp/sigtest`, 2026-10-26): a client
+cannot unfold a `@[no_expose]` predicate nor name a privately imported declaration; `import all`
+unseals; a sealed body may use a `private` helper, but a public statement in another module may
+not mention one, even with `import all` (so helpers that raft's internal specs mention stay
+public, sealed).
+
+`etc/sig-check.py etc/sigs/<pkg>.txt --check` closes the one gap Lean leaves (it cannot forbid a
+client from importing an internal module directly): no module outside the package may import a
+module the configuration marks `internal`, directly or through a chain of public imports; linking
+files (`Link`, `Results`, `Adequacy*`, `MainLinked`) are exempt, and a chain stops at them. A
+non-linking module that imports a linking file is a warning (`--strict`: an error).
+
+**This is not the 2026-10-14 attempt (branch `raft-sig`, never merged).** That one listed the API in
+`raftSig` structures and checked clients' constant uses with a script (`etc/api-check.py`), and
+rejected `@[no_expose]` because "the package's own proofs are other modules, and need the bodies
+too". `import all` answers that: here Lean itself rejects a client that opens a sealed predicate.
+Its open item, the vocabulary mixed with internal lemmas in `Proof/` files, is what stage 1 had to
+untangle (`ApiVocab.lean`).
+
+**Raft, stage 1: the node API** (what the server, rafthttp and the examples use).
+- `Spec/go_etcd_io/raft/v3/Sig.lean`: the module a client imports (the node specs, the API
+  modules), with the signature's description.
+- `InvNode.lean` and `InvNodeCtx.lean` are the API modules: `InvNode` imports `InvRawnodeReady`
+  and `InvApplyConf` non-publicly; the channel and ghost machinery is `@[no_expose]` (`isNode`,
+  `nodeDriver`, `nodeDriverBusy`, `readyP`, `propP`, `advanceP`, `confcP`, `confstateP`,
+  `isAdvChan`/`advInv`/`advDep`/`advRet`, `tickInv`, `nodeCfg`, `runCfg`, `dlvLb`); what a client
+  receives or builds stays transparent (`readyData`, `netP`/`fwdP`/`stepP`, `propArg`, the term
+  budget, the errors). New laws, for what clients opened the predicates for: `isNode_id`,
+  `isNode_commitInv`, `nodeDriver_isNode`, `readyP_take`, `readyP_take_ns` (the server's
+  `rn_ready_recv` now uses it instead of re-deriving `node_ready_receive`'s ghost step).
+- `ApiVocab.lean`: the records and pure predicates the API's statements use that lived in the
+  internal modules, moved unchanged (same names): from `InvRaftPhys` (`QMsg`, `msgAbs`, `SentMsgOk`,
+  `AppShape`, `AppFrom`, `NsCap`), `InvRawnode` (`Pending`, `RNMode`, `SnapLoan`, `RNState`,
+  `NetMsgOk`, `DynCCPreOp`, `isRaftMsg`, `msgDat`, `propEntryM`), `InvRawnodeReady` (`readyDq`,
+  `stTks`, `readyIdx`, `readyOut`, `softStateRO`, `snapReceipt`), `InvBoot` (`bootInit`,
+  `bootMarshal`, `peersCtx`) and the `RawNode`-level specs (`rnInit`, `HsEmpty`, `ConfigValid`,
+  `CCAllowed`).
+- `Linked.lean` (`RaftLink`): the linked results proofs outside the linking files use as lemmas
+  (`wp_StartNode`, `wp_RestartNode`, the `MemoryStorage` ones, `wp_IsEmpty*`), restated over raft's
+  `Link.lean` imported non-publicly. `MemstorageInstance` imports `Link` non-publicly; kv's `Base`
+  imports the facade and the signature instead of raft's `Link`.
+- Sealed below the API (`etc/sigs/raft.txt`): `InvRawnode`, `InvRawnodeReady`, `InvRawnodeC`,
+  `InvNodeRun`, `InvBoot`, `InvRaftPhys` and everything importing them.
+
+**No statement changed**: every spec, law and closed theorem says what it said; definitions moved
+under their names, and `@[no_expose]` changes only who may unfold. The trust base is unchanged
+(`etc/tcb-report.py --check`).
+
+**Debt, in the open** (for later stages):
+- still public and transparent: the protocol's ghost vocabulary (`Protocol/*`), the protobuf model
+  (`InvPb*`), the `Storage` contract and `MemoryStorage`'s predicates (`InvStorage`,
+  `InvMemstorage`), and in `ApiVocab` records that encode internals (`RNState.steps : List Pending`,
+  `readyDq`'s half fractions; `notes/raft-spec-review.md`, leaks 3 and 5);
+- `NodeNames` is a public structure: its channel fields are visible, though useless without the
+  sealed predicates' bodies (a later stage makes it abstract);
+- the `RawNode` API's specs are stated over the internals and are not in the signature;
+- other packages' non-linking modules that import a linking file (`sig-check` warnings: the client
+  library's `ReplyValues`/`InvServerKV`/`ServeFromStart` import `client/v3/Results`, `InvAuth`
+  imports `adt`'s `Link`, ...) reach every package's internals through it.
+
+**How to extend it** (the next package, or raft's next stage): mark the internals in
+`etc/sigs/<pkg>.txt`; make the API module's imports of them non-public; move the vocabulary its
+statements need into a public module; seal what clients must not see inside; give the package's
+proofs `import all`; let the compiler list the client sites that open a sealed predicate, and give
+each a law.

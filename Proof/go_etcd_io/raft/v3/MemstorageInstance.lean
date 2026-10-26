@@ -49,7 +49,7 @@ own premise: the batch's last index at most `2^61`.
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.Link
+import Proof.go_etcd_io.raft.v3.Link
 public import Proof.go_etcd_io.raft.v3.MemCertLink
 
 @[expose] public section

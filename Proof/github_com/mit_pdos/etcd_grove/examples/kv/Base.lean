@@ -21,7 +21,9 @@ register: one value, `Put` and `Get`.)
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.Link
+public import Proof.go_etcd_io.raft.v3.Linked
+public import Spec.go_etcd_io.raft.v3.Sig
+public import Proof.go_etcd_io.raft.v3.LemmasMemstorage
 public import GeneratedProof.github_com.mit_pdos.etcd_grove.examples.kv
 public import Perennial.Proof.encoding.binary
 public import Proof.github_com.mit_pdos.etcd_grove.examples.lintest.Base

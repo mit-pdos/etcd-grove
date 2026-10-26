@@ -38,6 +38,10 @@ public import Spec.go_etcd_io.raft.v3.raft__applyConfChange
 public import Proof.go_etcd_io.raft.v3.InvRawnodeC
 -- `Step.commit_mono`
 public import Proof.go_etcd_io.raft.v3.Protocol.Facts
+import all Proof.go_etcd_io.raft.v3.InvNode
+public import Proof.go_etcd_io.raft.v3.InvRawnodeReady
+public import Proof.go_etcd_io.raft.v3.InvApplyConf
+public import Spec.go_etcd_io.raft.v3.RawNode__ProposeConfChange
 
 @[expose] public section
 
