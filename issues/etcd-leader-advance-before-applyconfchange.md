@@ -8,6 +8,12 @@ candidate: issues/upstream/etcd-leader-advance-before-applyconfchange/
 
 # etcdserver: the leader calls raft's Advance before its apply loop has applied a conf change, which lets raft accept an overlapping membership change
 
+**2026-10-25: fixed in the fork** (D43 M3): branch `goose-lean-leaderwait` of `upamanyus/etcd` (`4d9282b0f`, on
+`bc9c3868c`, the pin of `etc/goose.py`) adds the follower's second `notifyc` send to the leader branch of
+`raftNode.start` (the upstream candidate's fix) and runs `TestConfigChangeBlocksApply` for the leader too (it fails
+without the fix). The proof needs it: in raft's dynamic mode `node.Advance` asks that a `Ready`'s conf entries be
+applied first (A1).
+
 **2026-10-23 (investigation: a bad execution is possible, nothing in etcd prevents it; still not reproduced end-to-end).**
 Re-checked against upstream `main` 3aaab3479 and `go.etcd.io/raft/v3` v3.7.0. Verdict: **no etcd check or ordering
 closes the window** — the leader-lag safety violation (two overlapping membership changes both applied, giving

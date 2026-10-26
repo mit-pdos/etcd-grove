@@ -8,9 +8,21 @@ hand.
 -/
 module
 
+public import Proof.github_com.mit_pdos.etcd_grove.examples.authkv.CheckHistory
 public import Proof.github_com.mit_pdos.etcd_grove.examples.authkv.InRange
+public import Proof.github_com.mit_pdos.etcd_grove.examples.authkv.LastIn
 public import Proof.github_com.mit_pdos.etcd_grove.examples.authkv.Main
 public import Proof.github_com.mit_pdos.etcd_grove.examples.authkv.Permitted
+public import Proof.github_com.mit_pdos.etcd_grove.examples.authkv.Principals
+public import Proof.github_com.mit_pdos.etcd_grove.examples.authkv.Writer
+public import Proof.github_com.mit_pdos.etcd_grove.examples.authkv.checkKVs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.authkv.checkTxnReads
+public import Proof.github_com.mit_pdos.etcd_grove.examples.authkv.keyOf
+public import Proof.github_com.mit_pdos.etcd_grove.examples.authkv.refused
+public import Proof.github_com.mit_pdos.etcd_grove.examples.authkv.reqCtx
+public import Proof.context.WithTimeoutBackground
+public import Proof.google_golang_org.grpc.metadata.AppendToOutgoingContext
+public import Proof.context.Link
 
 @[expose] public section
 
@@ -29,6 +41,14 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.authkv.Assumptions]
 
+theorem wp_Principals :
+    EtcdGrove.authkv.Principals.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.authkv.Principals.wp_proof
+
+theorem wp_Writer :
+    EtcdGrove.authkv.Writer.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.authkv.Writer.wp_proof wp_Principals
+
 theorem wp_InRange :
     EtcdGrove.authkv.InRange.spec (GF := GF) (hG := hG) :=
   EtcdGrove.authkv.InRange.wp_proof
@@ -36,6 +56,26 @@ theorem wp_InRange :
 theorem wp_Permitted :
     EtcdGrove.authkv.Permitted.spec (GF := GF) (hG := hG) :=
   EtcdGrove.authkv.Permitted.wp_proof wp_InRange
+
+theorem wp_CheckHistory :
+    EtcdGrove.authkv.CheckHistory.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.authkv.CheckHistory.wp_proof wp_Writer wp_Permitted
+
+theorem wp_LastIn :
+    EtcdGrove.authkv.LastIn.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.authkv.LastIn.wp_proof wp_InRange
+
+theorem wp_checkKVs :
+    EtcdGrove.authkv.checkKVs.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.authkv.checkKVs.wp_proof wp_Permitted
+
+theorem wp_keyOf :
+    EtcdGrove.authkv.keyOf.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.authkv.keyOf.wp_proof
+
+theorem wp_refused :
+    EtcdGrove.authkv.refused.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.authkv.refused.wp_proof
 
 end links
 
@@ -51,6 +91,22 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.authkv.Assumptio
 theorem wp_Main :
     EtcdGrove.authkv.Main.spec (GF := GF) (hG := hG) :=
   EtcdGrove.authkv.Main.wp_proof
+
+theorem wp_checkTxnReads :
+    EtcdGrove.authkv.checkTxnReads.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.authkv.checkTxnReads.wp_proof wp_checkKVs
+
+theorem context.wp_WithTimeoutBackground :
+    EtcdGrove.context.WithTimeoutBackground.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.context.WithTimeoutBackground.wp_proof
+
+theorem metadata.wp_AppendToOutgoingContext :
+    EtcdGrove.metadata.AppendToOutgoingContext.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.metadata.AppendToOutgoingContext.wp_proof
+
+theorem wp_reqCtx :
+    EtcdGrove.authkv.reqCtx.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.authkv.reqCtx.wp_proof context.wp_WithTimeoutBackground context.wp_ErrAny metadata.wp_AppendToOutgoingContext
 
 end links_hasLC
 

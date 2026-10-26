@@ -69,16 +69,32 @@ leaves, a frame), with `v3`, `ValidateConfigurationChange` reads the `members` a
 thread, their only writer, last wrote, `Unlock` having written back) and returns `nil` iff
 `membership.ccValidOn rs.bk m`; then `AddMember` saves the context's member
 (`membership.ccMemberOf m.context`: `members/<id> := json(m)`) and puts it in `c.members`; on a
-failed validation, or without `v3`, nothing. -/
+failed validation, or without `v3`, nothing.
+
+**Raft's dynamic mode** (D43 M3, 2026-10-25, the user's decision: the axiom restated): `dv` is the
+driver's view, `none` in raft's static mode (`reDyn = none`, the call through `raftPropose`'s
+static clause), or `some γn`, the node's names in the dynamic mode. Then it is `ApplyBoth` (Go
+calls raft only then, or on a failed validation), the server's node meets the dynamic contract
+(`srvRaftNodeDyn`), and the caller hands over the view `nodeCfg γn ca cfg` with the committed log
+`ds` handed out (`dlvLb`): the entry `e` at position `k` is the next conf entry, and both changes
+Go may hand raft -- the entry's `m`, or on a failed validation `m` with `NodeId` `0` -- meet raft's
+premise (`DynCCPreOp`: the decoder's effect, `cs'`); it gives back the view at `(k + 1, cs')`
+(`dvCCPre`, `dvCCPost`). -/
 abbrev EtcdServer.applyConfChange.spec : Prop :=
   ∀ (s cc ep : Loc) (m : CCV1M) (cs : Loc) (v3 : Bool) (ci : Loc) (ua : GoInterface)
     (E : apply.AEnv GF) (γs : ServerRaftNames) (Pre Q Post Adv : IProp GF) (i t : w64)
-    (γB : backend.BNames) (cl : Loc) (rs : apply.RestM) (d : mvcc.KBReal) (al st lp : Loc),
+    (γB : backend.BNames) (cl : Loc) (rs : apply.RestM) (d : mvcc.KBReal) (al st lp : Loc)
+    (dv : Option NodeNames) (ds : List EntryM) (ca k : Nat) (cfg cs' : CCState) (e : EntryM),
   ccApplyOk γs.raft.reCfg m → E.RO = srvRestOwnH γB cl (srvObjsOn al st lp cl d.be) →
   E.γ.kb = some d → d.γB = γB →
+  (dv = none → γs.raft.reDyn = none) →
+  (∀ γn, dv = some γn → v3 = true ∧ ∀ dec c0 h0 h1, γn.mode = .dyn dec c0 h0 h1 →
+    DynCCPreOp dec ds ca cfg (ccV2Of (.v1 m)) k e cs' ∧
+    DynCCPreOp dec ds ca cfg (ccV2Of (.v1 { m with nodeId := W64 0 })) k e cs') →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       srvCIAddr s ↦□ ciIface ci ∗ srvUberApplyAddr s ↦ ua ∗ apply.applierFor ua E ∗
       srvRaftNode s γs ∗ srvClusterAddr s ↦□ cl ∗ E.RO rs ∗
+      dvCCPre s dv ca cfg ds ∗
       ownCCV1 cc (DFrac.own 1) m ∗ epConfState ep cs ∗
       (if v3 then iprop(□ ({{ E.P ∗ Pre }} (App (Val E.f) (Val #())) {{ RET #(); Q }}) ∗
           (Q ={⊤}=∗ E.P ∗ Post) ∗
@@ -89,9 +105,10 @@ abbrev EtcdServer.applyConfChange.spec : Prop :=
       (Val #cc)) (Val #ep)) (Val #v3))
   {{ (removed : Bool) (err : GoInterface), RET (PairV #removed #err);
       ⌜removed = false⌝ ∗ srvUberApplyAddr s ↦ ua ∗
-      (∃ (m' : CCV1M) (cs' : Loc), ownCCV1 cc DFrac.discard m' ∗ ⌜m'.id = m.id⌝ ∗
-        epConfState ep cs') ∗
-      E.RO (ccRest v3 m rs) ∗ (if v3 then iprop(Post ∨ Adv) else Pre) }}
+      (∃ (m' : CCV1M) (csl : Loc), ownCCV1 cc DFrac.discard m' ∗ ⌜m'.id = m.id⌝ ∗
+        epConfState ep csl) ∗
+      E.RO (ccRest v3 m rs) ∗ (if v3 then iprop(Post ∨ Adv) else Pre) ∗
+      dvCCPost dv k cs' }}
 
 end spec
 

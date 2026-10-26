@@ -68,6 +68,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.LessorOk
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.LessorDerive
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BuildLemmas
 public import Proof.go_etcd_io.etcd.server.v3.auth.NewAuthStoreOn
+public import Proof.go_etcd_io.etcd.server.v3.auth.Boot
 public import Proof.go_uber_org.zap.Int
 
 @[expose] public section
@@ -233,7 +234,7 @@ theorem node_contract_ifc (E : RNEnv GF) (γ : RNNames) (s : Loc) :
   letI : MemStorReg GF := ⟨γ.reg⟩
   isRaftNodeIfc_of_isNode E γ s node.wp_Ready
     node.wp_Advance node.wp_Tick
-    node.wp_ReadIndex
+    node.wp_ReadIndex node.wp_ApplyConfChange
 
 /-- **The node meets the request path's `raftPropose`** (stage R7b, D10): from raft's linked
 `node.wp_Propose` and, since audit phase B3 (2026-10-18), `node.wp_ApplyConfChange`
@@ -1234,11 +1235,46 @@ theorem auth_store_new_on (lg : Loc) (ab tp : GoInterface) (cost : w64) (bi : Go
     auth.authStore.wp_refreshRangePermCache lg ab tp cost bi γa R P f T A Pre Q Post hs stl hlast
     hfit hempty
 
+/-- **`NewAuthStore` at the server's boot, in the mode `on γa`** (the auth plan's E2e;
+`auth.newAuthStore_boot`, `Proof/go_etcd_io/etcd/server/v3/auth/Boot.lean`): the auth names
+allocated over the boot state with the token provider's names, the batch lock's half of the history
+handed to the backend, whose contracts for the new names are the named premise D22 discharges
+(`auth.authSchemaBoot`); the store's invariant, the admin side's write resource, the provider's
+share and the admin side's authority at `[bootState, bump bootState]`. -/
+theorem auth_store_boot_on (lg : Loc) (ab tp : GoInterface) (cost : w64) (bi : GoInterfaceOk)
+    (γt γf : GName) (R P : IProp GF) (f : val) (T A Pre Q Post : IProp GF) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ ⌜lg ≠ null⌝ ∗
+        ⌜ab = GoInterface.ok bi⌝ ∗ auth.authSchemaBoot ab bi γt γf R P f T ∗
+        T ∗ mvcc.csContract P f Pre Q Post ∗ auth.tokenProviderBoot tp γt γf A ∗ A }}
+      (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.auth.NewAuthStore)) (Val #lg))
+        (Val #ab)) (Val #tp)) (Val #cost))
+    {{ (st : GoInterface), RET #st; ∃ (γa : auth.AuthNames) (stp : Loc),
+        ⌜γa.tok = γt ∧ γa.fresh = γf⌝ ∗ ⌜st = auth.authIface stp⌝ ∗ auth.authInv stp R (.on γa) ∗
+        auth.authWR stp (.on γa) P f T ∗ auth.tpAdmin stp (.on γa) ∗ Post ∗
+        auth.authOwn (.on γa) [auth.bootState, auth.bump auth.bootState] ∗
+        ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
+          auth.enabledRd stp (.on γa) ∗ auth.cacheRd stp (.on γa) ∗ auth.beRd stp R (.on γa)) }} :=
+  auth.newAuthStore_boot zap.Logger.wp_Warn zap.Int'.wp_proof auth.authStore.wp_Revision
+    auth.authStore.wp_commitRevision auth.authStore.wp_setupMetricsReporter
+    auth.authStore.wp_refreshRangePermCache lg ab tp cost bi γt γf R P f T A Pre Q Post
+
+/-- **The server's bound request side, of the real store** (the auth plan's E2e;
+`srvAuthBound_of_authInv`, `AuthBound.lean`): `srvAuthBound` from the store's invariant in the
+server's mode, the guards' bound variants' premise. -/
+theorem srv_auth_bound_of_inv (s stp : Loc) (R : IProp GF) (E : apply.AEnv GF)
+    (hRD : E.RD = auth.authRd stp R E.authMode) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗
+      structFieldRef EtcdServer go!"authStore" s ↦□ auth.authIface stp ∗
+      auth.authInv stp R E.authMode ⊢ srvAuthBound s E :=
+  srvAuthBound_of_authInv auth.authStore.wp_AuthInfoFromCtx s stp R E hRD
+
 end tokens
 
 #print axioms Perennial.EtcdGrove.token_simple_new
 #print axioms Perennial.EtcdGrove.token_simple_ok
 #print axioms Perennial.EtcdGrove.auth_store_new_on
+#print axioms Perennial.EtcdGrove.auth_store_boot_on
+#print axioms Perennial.EtcdGrove.srv_auth_bound_of_inv
 
 section goroutines
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
