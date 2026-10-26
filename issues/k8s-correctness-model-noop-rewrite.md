@@ -1,5 +1,13 @@
 ---
-upstream: unchecked
+upstream: none
+checked: 2026-10-26
+links:
+  - kubernetes/kubernetes#141652 issue open: the tracking issue of the model-based correctness tests; lists "No-op update" as covered, nothing on stale or non-canonical stored data
+  - kubernetes/kubernetes#141729 pr merged: added `correctness.Model`
+  - kubernetes/kubernetes#142089 pr merged: added updates to the Model, with the no-op check this finding is about
+  - kubernetes/kubernetes#143303 pr merged: transformer variants of the correctness tests (its transformer is never stale and the test writes all the data, so the case is still not reached)
+  - kubernetes/kubernetes#48394 pr merged: the store's rule (`GuaranteedUpdate` writes when the stored data is not canonical) the Model does not follow
+  - kubernetes/kubernetes#143129 pr open: touches `model.go` (NotFound tolerance), not the no-op path; related, different (also #143131, #143153, the same change)
 ---
 
 # k8s correctness.Model: a no-op update of non-canonical or stale stored data is rejected, but the etcd3 store rewrites it by design
@@ -11,7 +19,12 @@ upstream: unchecked
   test's codec and identity transformer. A run that starts from data written in another
   encoding (`NewModelFromStorage` builds the Model from such a store), or with a transformer
   that reports `stale` (an encryption key rotation), would fail the linearizability check on a
-  correct store.
+  correct store. Closer since: the integration `TestCorrectness`
+  (`test/integration/apiserver/storage/correctness_test.go:344`) now seeds its Model from a store
+  listing (`NewModelFromStorage`), and since kubernetes/kubernetes#143303 (merged 2026-10-22) runs
+  transformer variants; their `prefixTransformer` never reports `stale` and the test writes all the
+  data, so the case is still not reached (rechecked at master `765dd1d`, 2026-10-26: `store.go:573`,
+  `model.go:325-337`).
 - **Where** (kubernetes master `d9cafe4`, `staging/src/k8s.io/apiserver/pkg/storage/`):
   - `etcd3/store.go:547` (`GuaranteedUpdate`): the write is skipped only when
     `!origState.stale && bytes.Equal(data, origState.data)`. The new encoding must be

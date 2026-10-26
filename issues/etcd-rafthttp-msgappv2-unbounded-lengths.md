@@ -1,7 +1,11 @@
 ---
-upstream: unchecked
-checked: 2026-10-22
-links: []
+upstream: known
+checked: 2026-10-26
+links:
+  - etcd-io/etcd#21874 pr open: same bug and fix (entry count and sizes capped at `readBytesLimit`, `ErrExceedSizeLimit`), by someone else, with an e2e test; no review since the maintainer asked for the reproduction; labeled stale 2026-09-29
+  - etcd-io/etcd#5386 issue closed: the same bug in the other codec (`messageDecoder`, `msg_codec.go`)
+  - etcd-io/etcd#6349 pr merged: #5386's fix (the `readBytesLimit` check before allocating) that msgappv2 never got
+  - etcd-io/etcd#20152 issue closed: related only: an OOM with `msgAppV2Decoder.decode` in the profile, from legitimate traffic
 ---
 
 # rafthttp: the msgappv2 decoder allocates whatever lengths the stream says
@@ -11,6 +15,10 @@ encoder (a misbehaving or incompatible member, or a corrupted stream) can make a
 up to `2^63` entries' pointers or bytes from a single frame, which panics (`makeslice: len out of
 range`) or exhausts memory. The streams' other codec bounds the same thing:
 `messageDecoder.decode` refuses a message over `readBytesLimit` (512 MiB, `ErrExceedSizeLimit`).
+Unchanged on upstream `main` `f3221acd1` and release-3.6/3.5 (rechecked 2026-10-26); etcd-io/etcd#21874
+(open, by someone else, stalled) has the fix. The same peer can also panic the decoder with
+malformed entry or message bytes, bounded lengths or not: `pbutil.MustUnmarshalMessage` (`:225`,
+`:243`).
 
 **Where** (etcd `goose-lean` `188113160d`, `server/etcdserver/api/rafthttp/msgappv2_codec.go`):
 `msgAppV2Decoder.decode` (line 179) reads an AppEntries frame's entry count `l` and allocates
