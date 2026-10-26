@@ -78,7 +78,7 @@ theorem EtcdServer.Process.wp_proof
   wp_apply wp_GetFrom.1 ml _ _ _ sm' $$ [Hm] as Hm
   · iframe #; iframe Hm
   (try wp_auto)
-  wp_apply wp_IsIDRemoved c sm'.msg.From'
+  wp_apply (membership.RaftCluster.IsIDRemoved.spec_static wp_IsIDRemoved c sm'.msg.From')
   · iframe #
   (try wp_auto)
   -- `s.MemberID() != m.GetTo()`: the message is addressed to `id`

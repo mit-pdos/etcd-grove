@@ -187,12 +187,7 @@ instance encoding_base64_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.encoding.base64 :=
   build_get_is_pkg_init_wf
 
-instance encoding_json_is_pkg_init_inst :
-    IsPkgInit (IProp GF) pkg_id.encoding.json :=
-  define_is_pkg_init iprop(True)
-instance encoding_json_get_is_pkg_init_wf_inst :
-    GetIsPkgInitWf (IProp GF) pkg_id.encoding.json :=
-  build_get_is_pkg_init_wf
+-- `encoding/json`'s instance: `etcdserver/apply/Base.lean` (D43 M4, 2026-10-26: membership's).
 
 instance path_is_pkg_init_inst :
     IsPkgInit (IProp GF) pkg_id.path :=

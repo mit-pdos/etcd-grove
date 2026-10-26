@@ -247,11 +247,9 @@ theorem EtcdServer.start.wp_proof
   ihave #Hpmem : isPkgInit (PROP := IProp GF)
     pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership $$ []
   · iPkgInit
-  ihave #Hmi : iprop(∃ gv : Loc,
-      globalAddr go_etcd_io.etcd.server.v3.etcdserver.api.membership.ClusterVersionMetrics ↦□ gv ∗
-      ⌜prometheus.vecLabels gv [go!"cluster_version"]⌝) $$ []
+  ihave #Hmi : (go_etcd_io.etcd.server.v3.etcdserver.api.membership.membershipInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpmem
-  icases Hmi with ⟨%cvm, #Hcvm, %Hcvml⟩
+  icases Hmi with ⟨⟨%cvm, #Hcvm, %Hcvml⟩, -⟩
   ihave #Hptypes : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.types $$ []
   · iPkgInit
   ihave #Hpsemver : isPkgInit (PROP := IProp GF) pkg_id.github_com.Masterminds.semver.v3 $$ []
