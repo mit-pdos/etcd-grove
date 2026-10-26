@@ -649,3 +649,10 @@ Three of the watch client's local workarounds (D25, `notes/decisions.md`, "S1c's
   bounded by the threads, which is the real reason Go's counter does not overflow. A reader token
   then need not be held between critical sections. Not yet designed; general (any program whose
   goroutines read-lock a long-lived `RWMutex`), not shaped by this proof.
+- **Landed** (2026-10-26, Perennial `3c64ae292`, branch `rlock-thread-token`): `Perennial/Proof/ThreadPool.lean`
+  (`threadPool.isThreadPool N γ R`: at least `threadBound - 1` copies of `R`, a thread token swapped for
+  a copy, `borrow`/`borrow_lc`/`giveBack`) and `Perennial/Proof/sync/RWMutexThreads.lean`
+  (`init_RWMutex_threadPool`: every reader token in a pool, premise `threadBound GF ≤ 2^30`). Additive,
+  no trusted-base change. Limitation: one thread token borrows one copy at a time, so a thread holding
+  two thread-paid read locks at once pays the second with a stock token. The pin bump is still to do
+  (with J8b).
