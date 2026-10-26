@@ -33,7 +33,7 @@ theorem apply.uberApplier.Alarm.wp_proof
   wp_start as ⟨#Hu, Ha, #Hs, #Hr, Hpre, Hwt, #Hsp, HRW⟩
   ihave #Hu' := Hu
   iunfold apply.uberIs at Hu'
-  icases Hu' with ⟨-, #Hok, #Hlgf, #Hasf, #Hwadf, %base, #Hbsf, #Hbase⟩
+  icases Hu' with ⟨-, #Hok, #Hlgf, #Hasf, #Hwadf, %base, #Hbsf, #Hbase, -⟩
   ihave #Hok' := Hok
   iunfold apply.backendOptsOk at Hok'
   icases Hok' with ⟨-, -, -, -, -, #Hal, -⟩

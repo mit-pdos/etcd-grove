@@ -1,6 +1,10 @@
 # Plan: specifying and proving etcd's authentication and authorization (auth, RBAC)
 
-**Status.** E2m in part (2026-10-26; `notes/decisions.md`, "E2m of the auth plan"): the apply
+**Status.** E2m, continued (2026-10-26; `notes/decisions.md`, "E2m of the auth plan"): the
+uber-applier's base applier's admin triples (`applierAdmin_uber`, from the chain constructors'
+shapes, `baseShape`), the mode-on admission clause `rqOkM` (`rqOk` untouched; `UserGrantRole` and
+`RoleGrantPermission` need their names in the request model first); trust base unchanged; not done:
+`dispatch`'s admin cases, the witness to the waiter, the Auth service's contracts. Before it: E2m in part (2026-10-26; `notes/decisions.md`, "E2m of the auth plan"): the apply
 thread holds its auth resource (`srvAuthApplyRes` in `srvApplyKV`, from `NewServer`'s `srvBuilt`
 through `start`; no `AEnv` field), the store's half of `be` to be borrowed from the rest (not
 split); the five `SetUp` admin requests through every layer of the applier chain in the mode `on`

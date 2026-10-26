@@ -284,6 +284,31 @@ def rqOk (log : mvcc.Log) (rq : IRRModel) : Prop :=
   | .authRoleList => False
   | _ => True
 
+/-- **The admin requests admitted in the mode `on`** (the auth plan's E2m, continued): their shape
+only, the names within bbolt's key bound (the step specs' premise; the fuel bounds the rest,
+`AuthFuel.lean`). `SetUp`'s `UserAdd`, `RoleAdd`, `AuthEnable`; not yet `UserGrantRole` and
+`RoleGrantPermission`, whose user's and role's names the request model does not record (`IRRModel`
+keeps only their presence), nor the other admin kinds. -/
+def adminKindOk (rq : IRRModel) : Prop :=
+  match dispatchKind rq with
+  | .authUserAdd => ∀ n, rq.authUserAdd = some n → n.length ≤ backend.maxKeySize
+  | .authRoleAdd => ∀ n, rq.authRoleAdd = some n → n.length ≤ backend.maxKeySize
+  | .authEnable => True
+  | _ => False
+
+/-- **The per-request premise in the auth mode `M`** (E2m, continued): `rqOk`, or, in the mode `on`
+only, an admitted admin request (`adminKindOk`). A second clause rather than a mode-indexed
+`rqOk`: `rqOk` and every statement written with it (the entries' claims, the examples' workloads)
+keep their text, and in the mode `off` the two agree (`rqOkM_off`). -/
+def rqOkM (M : auth.AuthMode) (log : mvcc.Log) (rq : IRRModel) : Prop :=
+  rqOk log rq ∨ (M.isOn = true ∧ adminKindOk rq)
+
+theorem rqOkM_off (log : mvcc.Log) (rq : IRRModel) : rqOkM .off log rq ↔ rqOk log rq := by
+  simp [rqOkM, auth.AuthMode.isOn]
+
+theorem rqOkM_of_rqOk (M : auth.AuthMode) (log : mvcc.Log) (rq : IRRModel) (h : rqOk log rq) :
+    rqOkM M log rq := Or.inl h
+
 section defs
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -1063,6 +1088,21 @@ def authIs (E : AEnv GF) (p : Loc) (inner : GoInterface) : IProp GF :=
 instance authIs_persistent (E : AEnv GF) (p : Loc) (inner : GoInterface) :
     Persistent (authIs E p inner) := by
   unfold authIs; infer_instance
+
+/-- **The shape of `newApplierV3`'s applier** `a` (the auth plan's E2m, 2026-10-26): an auth
+applier over a quota applier over a backend applier with the options `opts`, their fields
+read-only (what `applierAdmin`'s layers, `AdminChain.lean`, need of the chain's values). -/
+def baseShape (opts : ApplierOptions) (a : GoInterface) : IProp GF :=
+  iprop(∃ pa pq pb : Loc, ⌜a = interface.mkOk (go.GoType.PointerType authApplierV3.ty) #pa⌝ ∗
+    structFieldRef authApplierV3 go!"applierV3" pa ↦□
+      (interface.mkOk (go.GoType.PointerType quotaApplierV3.ty) #pq : GoInterface) ∗
+    structFieldRef quotaApplierV3 go!"applierV3" pq ↦□
+      (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #pb : GoInterface) ∗
+    structFieldRef applierV3backend go!"options" pb ↦□ opts)
+
+instance baseShape_persistent (opts : ApplierOptions) (a : GoInterface) :
+    Persistent (baseShape (GF := GF) opts a) := by
+  unfold baseShape; infer_instance
 
 end defs
 

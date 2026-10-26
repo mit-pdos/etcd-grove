@@ -94,6 +94,8 @@ theorem apply.newApplierV3Backend.wp_proof
   ipersist options
   wp_auto
   iapply HΦ
+  isplitr
+  · iexists p; iframe options; ipureintro; rfl
   iintro !> %E #Hopts
   ihave #Hbk : apply.backendIs E p $$ []
   · iunfold apply.backendIs

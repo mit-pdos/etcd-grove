@@ -172,7 +172,7 @@ theorem apply.uberApplier.dispatch.wp_proof
   wp_start as ⟨#Hu, #Hw, Hres, Ha, #Hs, Hkv, #Hcp, Hwt, Hc, %Hok, %HcE, #HF, HFS, HSp, HRO⟩
   ihave #Hu' := Hu
   iunfold apply.uberIs at Hu'
-  icases Hu' with ⟨%Hpn, #Hopts, #Hlg, #Has, #Hwad, %base, #Hbase, #Hbs⟩
+  icases Hu' with ⟨%Hpn, #Hopts, #Hlg, #Has, #Hwad, %base, #Hbase, #Hbs, -⟩
   ihave #Hopts' := Hopts
   iunfold apply.backendOptsOk at Hopts'
   icases Hopts' with ⟨%HlgN, -⟩

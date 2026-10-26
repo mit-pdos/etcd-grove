@@ -161,7 +161,9 @@ def uberIs (E : AEnv GF) (p : Loc) (opts : ApplierOptions) : IProp GF :=
     structFieldRef uberApplier go!"alarmStore" p ↦□ opts.AlarmStore' ∗
     structFieldRef uberApplier go!"warningApplyDuration" p ↦□ opts.WarningApplyDuration' ∗
     ∃ base : GoInterface, structFieldRef uberApplier go!"applyV3base" p ↦□ base ∗
-      applierSpec E (baseChain E.authOn) base)
+      applierSpec E (baseChain E.authOn) base ∗
+      -- (the auth plan's E2m) its shape, for its admin triples (`applierAdmin_base`)
+      baseShape opts base)
 
 instance uberIs_persistent (E : AEnv GF) (p : Loc) (opts : ApplierOptions) :
     Persistent (uberIs E p opts) := by

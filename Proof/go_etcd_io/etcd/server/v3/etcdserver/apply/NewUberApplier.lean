@@ -34,7 +34,7 @@ theorem apply.NewUberApplier.wp_proof
   intro opts RD T z Hbuq
   wp_start as ⟨Hard, #HGet, HT⟩
   wp_auto
-  wp_apply (hN opts RD Hbuq) $$ [Hard] as %base #Hbase
+  wp_apply (hN opts RD Hbuq) $$ [Hard] as %base ⟨#Hshape, #Hbase⟩
   · iframe
   ihave ⟨Hu, %Hun⟩ := typedPointsto_not_null_dup _ _ _ $$ «$r0»
   iStructNamed Hu

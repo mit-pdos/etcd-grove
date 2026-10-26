@@ -19939,3 +19939,43 @@ unchanged. New: `apply.AdminReq`, `apply.adminTriples`, `apply.applierAdmin`, `a
 `applierAdmin_quota`, `applierAdmin_capped`, `applierAdmin_corrupt`, `applierAdmin_auth`, and the restatement `apply_admin_backend` (`etcdserver/Results.lean`).
 
 **Trust base.** Unchanged (no axiom or `sorry` added).
+
+**E2m, continued (2026-10-26; the coordinator's order: the admin triples at the uber-applier,
+`rqOk` for the auth kinds, `dispatch`'s admin cases, the witness to the waiter, the Auth service's
+contracts).** Done: the first two; the rest not.
+
+- *The admin triples at the uber-applier.* The chain's constructors expose their shape beside their
+  `applierSpec` posts (`newApplierV3Backend`: its options read-only; `newQuotaApplierV3`,
+  `newAuthApplierV3`: their `applierV3` field read-only), `newApplierV3`'s post gives the base
+  chain's (`apply.baseShape opts a`, `Chain.lean`), and `uberIs` keeps it for the base applier
+  (appended, so the two destructuring sites, `uberApplier.Alarm` and `dispatch`, only gained a `-`).
+  `apply.applierAdmin_base` (from the shape, the options' contracts and the store's `isAuthSteps …
+  W`) and `apply.applierAdmin_uber` (from `uberIs`) give the base applier's admin triples. Shapes,
+  not `applierAdmin` itself, in the constructors' posts: `applierAdmin` of the backend needs E2l's
+  fuel triples, which the constructors' proofs would then take as hypotheses that the generated
+  links do not name; the shape is pure structure, and the fuel enters where the admin triples are
+  used. Not done: the current applier's (`uberOwn`, after `restoreAlarms`' capped and corrupt
+  wrappers: their constructors' shapes and `restoreAlarms`' post); with no alarm set, as in
+  `examples/authkv`, the current chain is the base chain.
+- *`rqOk` for the auth kinds* (`apply.rqOkM`, `Chain.lean`): `rqOk log rq ∨ (M.isOn ∧ adminKindOk
+  rq)`, `adminKindOk` the shape only (the name within the key bound) of `UserAdd`, `RoleAdd`,
+  `AuthEnable`. *Considered:* `rqOk` indexed by the mode, its off case equal to today's. *Rejected:*
+  every statement that names `rqOk` (the entries' claims, `srvC`, the examples' workloads) would
+  take the mode, a textual change to each even where it is equal by `simp`. *Chosen:* the second
+  clause only in the mode `on`, `rqOk` untouched; `rqOkM_off` (the two agree in the mode `off`),
+  `rqOkM_of_rqOk`. Not threaded yet: the mode-on server's request path takes `rqOkM E.authMode`
+  where it takes `rqOk` (with `dispatch`'s admin cases). **Found:** `UserGrantRole` and
+  `RoleGrantPermission` cannot be admitted by shape yet: the request model (`IRRModel`) records
+  only their presence (`authUserGrantRole : Bool`), not the user's or role's name the step specs
+  bound; the decode (`irrDecode`) must keep the name first (as `authUserAdd`'s, D14g).
+- *Not done:* `dispatch`'s admin cases in the mode `on` (a second triple of `dispatch` for an
+  admitted admin request: the receipt at a Go step, the borrow of the rest's half of `be`, the call
+  through `applierAdmin_uber`, the result in `dispatchResult`); its use at `uberApplier.Apply` and
+  `applyEntryNormal`; (3) the step's persistent witness to the waiter; (4) the Auth service's
+  contracts for `setupAuthOk`.
+
+**Exported statements changed (continued).** The posts of `apply.newApplierV3Backend.spec`,
+`apply.newQuotaApplierV3.spec`, `apply.newAuthApplierV3.spec` and `apply.newApplierV3.spec` gain the
+shape conjunct (first); the definition `apply.uberIs` gains `baseShape`. New: `apply.baseShape`,
+`apply.applierAdmin_base`, `apply.applierAdmin_uber`, `apply.adminKindOk`, `apply.rqOkM`,
+`apply.rqOkM_off`, `apply.rqOkM_of_rqOk`. Trust base unchanged.

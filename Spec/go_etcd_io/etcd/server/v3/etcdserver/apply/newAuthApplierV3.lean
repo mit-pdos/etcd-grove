@@ -33,6 +33,8 @@ abbrev apply.newAuthApplierV3.spec : Prop :=
     (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.newAuthApplierV3))
       (Val #st)) (Val #base)) (Val #le))
   {{ (p : Loc), RET #p;
+      -- (the auth plan's E2m) its shape: an auth applier over `base`, read-only
+      structFieldRef authApplierV3 go!"applierV3" p ↦□ base ∗
       □ (∀ (E : AEnv GF) (c : apply.Chain), ⌜E.RD = RD⌝ -∗
         apply.isAuthStore st E.γ E.P E.f E.RD E.authMode E.RW -∗ apply.isApplyLessor le E.s E.γ E.P E.f E.RW -∗
         apply.applierSpec E c base -∗

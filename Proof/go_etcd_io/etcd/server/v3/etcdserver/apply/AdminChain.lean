@@ -23,6 +23,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.AuthFuel
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Packaging
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.InvUber
 
 @[expose] public section
 
@@ -327,6 +328,53 @@ theorem applierAdmin_auth (E : AEnv GF) (on : Bool) (c : Chain) (p : Loc) (inner
     icases Hpost with ⟨Hkv, Hres, HPP⟩
     iframe HeI Hkv HPP HW HR
     iapply chainResAny_auth_in c p (.ok bi) info $$ Hf Hi Hres
+
+/-- **The base chain's admin triples** (E2m, continued): `newApplierV3`'s applier (its shape,
+`baseShape`), whose backend's options hold the store `opts.AuthStore'` with its admin steps at `W`
+(`isAuthSteps`, of the real store `isAuthSteps_of_authInv`). -/
+theorem applierAdmin_base
+    (hUA : applierV3backend.UserAdd.fuelSpec (GF := GF) (hG := hG))
+    (hRA : applierV3backend.RoleAdd.fuelSpec (GF := GF) (hG := hG))
+    (hUGR : applierV3backend.UserGrantRole.fuelSpec (GF := GF) (hG := hG))
+    (hRGP : applierV3backend.RoleGrantPermission.fuelSpec (GF := GF) (hG := hG))
+    (hAE : applierV3backend.AuthEnable.fuelSpec (GF := GF) (hG := hG))
+    (E : AEnv GF) (W : IProp GF) (opts : ApplierOptions) (a : GoInterface) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
+      baseShape opts a ∗ backendOptsOk E opts ∗ isAuthSteps opts.AuthStore' E.P E.f E.authMode W ⊢
+      applierAdmin E (baseChain E.authOn) a W := by
+  iintro ⟨#Hpkg, #Hsh, #Hopts, #Hst⟩
+  iunfold baseShape at Hsh
+  icases Hsh with ⟨%pa, %pq, %pb, %Ha, #Hpa, #Hpq, #Hpb⟩
+  subst Ha
+  ihave #Hbk : backendIs E pb $$ []
+  · iunfold backendIs; iexists opts; iframe Hpb Hopts
+  ihave #Hbs : backendAuthSteps E pb W $$ []
+  · iunfold backendAuthSteps; iexists opts; iframe Hpb Hst
+  ihave #Hb := applierAdmin_backend hUA hRA hUGR hRGP hAE E W pb $$ [Hpkg Hbk Hbs]
+  · iframe #
+  ihave #Hq := applierAdmin_quota E .backend pq _ W $$ Hpq Hb
+  unfold baseChain
+  iapply applierAdmin_auth E E.authOn (.quota .backend) pa _ W $$ Hpa Hq
+
+/-- **The uber-applier's base applier's admin triples** (E2m, continued): from `uberIs`. -/
+theorem applierAdmin_uber
+    (hUA : applierV3backend.UserAdd.fuelSpec (GF := GF) (hG := hG))
+    (hRA : applierV3backend.RoleAdd.fuelSpec (GF := GF) (hG := hG))
+    (hUGR : applierV3backend.UserGrantRole.fuelSpec (GF := GF) (hG := hG))
+    (hRGP : applierV3backend.RoleGrantPermission.fuelSpec (GF := GF) (hG := hG))
+    (hAE : applierV3backend.AuthEnable.fuelSpec (GF := GF) (hG := hG))
+    (E : AEnv GF) (W : IProp GF) (p : Loc) (opts : ApplierOptions) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
+      uberIs E p opts ∗ isAuthSteps opts.AuthStore' E.P E.f E.authMode W ⊢
+      ∃ base : GoInterface, structFieldRef uberApplier go!"applyV3base" p ↦□ base ∗
+        applierAdmin E (baseChain E.authOn) base W := by
+  iintro ⟨#Hpkg, #Hu, #Hst⟩
+  iunfold uberIs at Hu
+  icases Hu with ⟨-, #Hopts, -, -, -, %base, #Hbf, -, #Hsh⟩
+  iexists base
+  iframe Hbf
+  iapply applierAdmin_base hUA hRA hUGR hRGP hAE E W opts base $$ [Hpkg Hsh Hopts Hst]
+  iframe #
 
 end proof
 
