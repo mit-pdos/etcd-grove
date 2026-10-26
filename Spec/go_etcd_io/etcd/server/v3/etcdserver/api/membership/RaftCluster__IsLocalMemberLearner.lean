@@ -26,11 +26,12 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- `c.IsLocalMemberLearner()` (`c` a cluster, `isRaftCluster`) returns some boolean. -/
+/-- `c.IsLocalMemberLearner()` (`c` a cluster, `isRaftClusterG`, at any side condition: the local
+member need not be in the map) returns some boolean. -/
 abbrev membership.RaftCluster.IsLocalMemberLearner.spec : Prop :=
-  ∀ (c : Loc),
+  ∀ (c : Loc) (RM : membership.RcSide GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership ∗
-      membership.isRaftCluster c }}
+      membership.isRaftClusterG c RM }}
     (App (Val (c @!! go.GoType.PointerType
       go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty @!!
       go!"IsLocalMemberLearner")) (Val #()))

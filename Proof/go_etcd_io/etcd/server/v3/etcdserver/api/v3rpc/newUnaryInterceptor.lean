@@ -121,7 +121,7 @@ theorem v3rpc.newUnaryInterceptor.wp_proof
     · wp_auto
       ileft; iframe; ipureintro; rfl
     wp_auto
-    wp_apply wp_IsLearner s c $$ [] as %b2 -
+    wp_apply (EtcdServer.IsLearner.spec_static wp_IsLearner s c) $$ [] as %b2 -
     · iframe #
     cases b2
     · wp_auto

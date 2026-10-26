@@ -148,6 +148,73 @@ instance membership.localKept_persistent (c : Loc) :
 theorem membership.localKept_of_isRaftCluster (c : Loc) :
     membership.isRaftCluster (GF := GF) c ⊢ membership.localKept c := .rfl
 
+/-- The type of the lock invariant's side condition: of the local id, the members map and the
+removed map. -/
+abbrev membership.RcSide (GF : BundledGFunctors) := w64 → GMap w64 Loc → GMap w64 Bool → IProp GF
+
+/-- **The cluster's lock invariant, generally** (D43 M4, 2026-10-26): `rcLockInv` with the side
+condition `RM` of the local id (`c.localID`, read-only: `SetID` writes it at bootstrap), the
+members map and the removed map (`rcLockInv` is the static instance, `rcStatic`; the dynamic one
+tracks the removed map, `rcDyn`). -/
+def membership.rcLockInvG (c : Loc) (RM : membership.RcSide GF) : IProp GF :=
+  iprop(∃ (mp : Loc) (ms : GMap w64 Loc), membership.rcMembersAddr c ↦ mp ∗ mp ↦$ ms ∗
+    ⌜GMap.size ms ≤ 2 ^ 62⌝ ∗ ([∗map] _k ↦ m ∈ ms, membership.ownMember m) ∗
+    ∃ (lid : w64) (rp : Loc) (rm : GMap w64 Bool), membership.rcLocalIDAddr c ↦□ lid ∗
+      membership.rcRemovedAddr c ↦ rp ∗ rp ↦$ rm ∗ RM lid ms rm)
+
+/-- **The cluster `c`, generally** (persistent): its mutex, guarding `rcLockInvG c RM`. -/
+def membership.isRaftClusterG (c : Loc) (RM : membership.RcSide GF) : IProp GF :=
+  sync.isMutex (membership.rcMutexAddr c) (membership.rcLockInvG c RM)
+
+instance membership.isRaftClusterG_persistent (c : Loc) (RM : membership.RcSide GF) :
+    Persistent (membership.isRaftClusterG (GF := GF) c RM) := by
+  unfold membership.isRaftClusterG; infer_instance
+
+/-- The static side condition: the local member in the map, the removed map empty. -/
+def membership.rcStatic : membership.RcSide GF :=
+  fun lid ms rm => iprop(⌜ms !! lid ≠ none ∧ rm = ∅⌝)
+
+/-- The dynamic side condition: the removed map, half of it the apply thread's
+(`membership.rcRemovedOwn`), which `RemoveMember` extends. -/
+def membership.rcDyn (γ : GName) : membership.RcSide GF :=
+  fun _ _ rm => dghostVar γ (DFrac.own (1 : Qp).half) rm
+
+/-- The writer's half of the removed map (the apply thread's, in the dynamic instance). -/
+def membership.rcRemovedOwn (γ : GName) (rm : GMap w64 Bool) : IProp GF :=
+  dghostVar γ (DFrac.own (1 : Qp).half) rm
+
+/-- `rcLockInv` is the static instance. -/
+theorem membership.rcLockInv_static (c : Loc) :
+    membership.rcLockInv (GF := GF) c ⊣⊢ membership.rcLockInvG c membership.rcStatic := by
+  unfold membership.rcLockInv membership.rcLockInvG membership.rcStatic membership.rcLocalIn
+  constructor
+  · iintro ⟨%mp, %ms, Hmf, Hmap, %Hsz, Hmems, ⟨%lid, #Hlid, %Hin⟩, %rp, Hrf, Hrm⟩
+    iexists mp, ms
+    iframe Hmf Hmap Hmems
+    isplitr
+    · ipureintro; exact Hsz
+    iexists lid, rp, ∅
+    iframe Hrf Hrm Hlid
+    ipureintro; exact ⟨Hin, rfl⟩
+  · iintro ⟨%mp, %ms, Hmf, Hmap, %Hsz, Hmems, %lid, %rp, %rm, #Hlid, Hrf, Hrm, %Hside⟩
+    obtain ⟨Hin, Hrm0⟩ := Hside
+    subst Hrm0
+    iexists mp, ms
+    iframe Hmf Hmap Hmems
+    isplitr
+    · ipureintro; exact Hsz
+    isplitr
+    · iexists lid; iframe Hlid; ipureintro; exact Hin
+    iexists rp
+    iframe
+
+/-- `isRaftCluster` is the static instance. -/
+theorem membership.isRaftCluster_static (c : Loc) :
+    membership.isRaftCluster (GF := GF) c ⊣⊢ membership.isRaftClusterG c membership.rcStatic := by
+  unfold membership.isRaftCluster membership.isRaftClusterG
+  rw [(membership.rcLockInv_static c).to_eq]
+  exact .rfl
+
 end defs
 
 

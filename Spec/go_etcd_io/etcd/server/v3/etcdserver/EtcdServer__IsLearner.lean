@@ -28,11 +28,22 @@ under the cluster's mutex, `isRaftCluster`) returns some boolean. (Until D43 M4,
 that the local member is in the members map, `membership.localKept`: `IsLocalMemberLearner`
 panicked otherwise; the fork's fix returns `false`.) -/
 abbrev EtcdServer.IsLearner.spec : Prop :=
-  ∀ (s c : Loc),
+  -- (D43 M4, 2026-10-26) at any side condition of the cluster's lock invariant
+  ∀ (s c : Loc) (RM : membership.RcSide GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      srvClusterAddr s ↦□ c ∗ membership.isRaftClusterG c RM }}
+    (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"IsLearner")) (Val #()))
+  {{ (b : Bool), RET #b; True }}
+
+/-- The static cluster's (`isRaftCluster`). -/
+theorem EtcdServer.IsLearner.spec_static (h : EtcdServer.IsLearner.spec (GF := GF) (hG := hG))
+    (s c : Loc) :
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       srvClusterAddr s ↦□ c ∗ membership.isRaftCluster c }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"IsLearner")) (Val #()))
-  {{ (b : Bool), RET #b; True }}
+  {{ (b : Bool), RET #b; True }} := by
+  rw [(membership.isRaftCluster_static c).to_eq]
+  exact h s c _
 
 end spec
 

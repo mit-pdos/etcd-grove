@@ -26,13 +26,13 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 theorem EtcdServer.IsLearner.wp_proof
     (wp_IsLocalMemberLearner : membership.RaftCluster.IsLocalMemberLearner.spec (GF := GF) (hG := hG)) :
     EtcdServer.IsLearner.spec (GF := GF) (hG := hG) := by
-  intro s c
+  intro s c RM
   wp_start as ⟨#Hcl, #Hrc⟩
   ihave #Hmpkg : isPkgInit (PROP := IProp GF)
       pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership $$ []
   · iPkgInit
   wp_auto
-  wp_apply wp_IsLocalMemberLearner c as %b -
+  wp_apply wp_IsLocalMemberLearner c RM as %b -
   · iframe #
   iapply HΦ
   itrivial
