@@ -177,16 +177,16 @@ local macro "piro_tail" : tactic => `(tactic| (
     icases Hfresh with ⟨Hunc, Hslot, %Hpfx⟩
     imod srv_claim_mint ρ E v.gen id bs rq' F Hdec Hidrq Hpfx $$ HidGen Hmint Hunc HF
       with ⟨%γf, #Hclaim, #Hfl, Hpf⟩
-    iunfold waitInv at Hwi
+    iunfold waitInvM at Hwi
     icases Hwi with ⟨⟨%RD, #Hwait⟩, #Hwn⟩
     iunfold isWait at Hwait
     icases Hwait with ⟨%wi, %Hwi', #HReg, #HTrig, -⟩
     rw [Hwi']
     (try wp_auto)
-    wp_apply HReg $$ %id %(resultΨ E ρ rq' F) [Hslot] as %ch ⟨%γh, Hrecv, #Hregd⟩
+    wp_apply HReg $$ %id %(resultΨM on E ρ rq' F) [Hslot] as %ch ⟨%γh, Hrecv, #Hregd⟩
     · iframe Hslot
       imodintro
-      iunfold reqWaitR
+      iunfold reqWaitRM
       iexists bs, rq', γf, F
       iframe Hclaim Hfl
       ipureintro; exact ⟨Hdec, rfl, Hpfx⟩
@@ -211,15 +211,15 @@ local macro "piro_tail" : tactic => `(tactic| (
     icases Hrn with ⟨%nd, #Hnd, #Hprop⟩
     iunfold raftPropose at Hprop
     icases Hprop with ⟨%ni, %Hni, #HrLog, #HWits, #HPropose, -⟩
-    ihave HokW := reqPropOk_wire ρ.kv rq rq' ⟨id, hv.Username', hv.AuthRevision'⟩ Qr Hwire $$ Hok
     -- (linkv-txn stage B1) the id registered in this member's registry, before the proposal
     ihave #Hireg : iprop(idRegd ρ.ids id) $$ []
     · iunfold idRegd
       iexists ρ.wait, γh.takenName
       rw [Hpfx]
       iframe Hwn Hregd
-    imod kv_prop_au ρ.raft ρ.kv bs rq' Qr (Hbsne (by simp [apply.withHeader])) Hdec id γf Hidrq ⊤
-      CoPset.subseteq_top $$ Hclog Hclaim Hireg HokW with Hau
+    imod kv_prop_au_M on ρ.raft ρ.kv bs rq rq' ⟨id, hv.Username', hv.AuthRevision'⟩ Qh
+      (Hbsne (by simp [apply.withHeader])) Hdec Hwire id γf Hidrq ⊤
+      CoPset.subseteq_top $$ Hclog Hclaim Hireg Hok with Hau
     rw [method_unfold (t := go.GoType.PointerType raftNode.ty) (m := go!"Propose")]
     (try wp_auto)
     rw [method_unfold (t := go.GoType.PointerType raftNodeConfig.ty) (m := go!"Propose")]
@@ -227,7 +227,7 @@ local macro "piro_tail" : tactic => `(tactic| (
     (try wp_auto)
     rw [Hni]
     (try wp_auto)
-    wp_apply HPropose $$ %cctx %_ %dsl %bs %Qr [Hpf Hau] as %perr Hpres
+    wp_apply HPropose $$ %cctx %_ %dsl %bs %(Qh ⟨id, hv.Username', hv.AuthRevision'⟩) [Hpf Hau] as %perr Hpres
     · iframe Hbs
       isplitr
       · iunfold mvcc.txnCtx; iright; iexact Hcctx
@@ -265,8 +265,8 @@ local macro "piro_tail" : tactic => `(tactic| (
           ⌜v = returnVal (PairV #res #e)⌝ ∗ start_ptr ↦ start ∗ srvLeadTimeReader s ∗ E.RD ∗
           ((⌜e = GoInterface.nil⌝ ∗ ∃ hm rq',
               ⌜irrWireOf (apply.withHeader rq hm) rq'⌝ ∗ apply.resTrace res ∗
-              ∃ lb, resultIsW E ρ.rd rq' F res lb ∗ ∃ L, srvRLogLb ρ.raft L ∗ ⌜kvModel ρ.kv L = lb⌝ ∗
-                □ Qr L) ∨
+              ∃ lb, resultIsW E ρ.rd rq' F res lb ∗ ∃ L, srvRLogLb ρ.raft L ∗ ⌜kvModelM on ρ.kv L = lb⌝ ∗
+                □ Qh hm L) ∨
             ⌜res = null ∧ e ≠ GoInterface.nil⌝ ∗ applyErrIs e ∗ srvMaybeDeposited ρ rq)))
         at (let: "$ch1" := _ in _) with [-HΦ defer reqType err]
       · ihave #Hcctx' := Hcctx
@@ -289,7 +289,7 @@ local macro "piro_tail" : tactic => `(tactic| (
           · ipureintro; rfl
           isplitr
           · iexact Hchan
-          iapply handoff_rcv_au γh ch (waitVal γh (resultΨ E ρ rq' F)) iprop(True) iprop(False) false _
+          iapply handoff_rcv_au γh ch (waitVal γh (resultΨM on E ρ rq' F)) iprop(True) iprop(False) false _
             $$ Hho Hlc1 Hcons
           inext
           iintro %x %ok ⟨Hcons', Hgot⟩
@@ -307,11 +307,11 @@ local macro "piro_tail" : tactic => `(tactic| (
           · iunfold handoffConsumer at Hcons' Hc2
             ihave %Hbad := dghostVar_agree _ _ _ _ _ $$ Hcons' Hc2
             cases Hbad
-          iunfold resultΨ at Hres
+          iunfold resultΨM at Hres
           icases Hres with ⟨%ar, %lb, %Hx, HTr, Hri, #HeW⟩
           subst Hx
           wp_auto_lc 2
-          iunfold entryWit at HeW
+          iunfold entryWitM at HeW
           icases HeW with ⟨%Lw, %mw, %ew, %idw, %γw, #HLw, #Hclw, %Hew⟩
           obtain ⟨hlk, het, hdecw, hidw, hlbw⟩ := Hew
           have hidd : idw = id := by rw [Hidrq] at hidw; cases hidw; rfl
@@ -320,7 +320,7 @@ local macro "piro_tail" : tactic => `(tactic| (
           replace Hdd := Hdd.1
           ihave #HWits' := HWits
           iunfold srvPropWits at HWits'
-          imod HWits' $$ %bs %Qr %Lw %mw %ew HisP HLw [] [Hlc1 Hlc2] with #HQr
+          imod HWits' $$ %bs %(Qh ⟨idw, hv.Username', hv.AuthRevision'⟩) %Lw %mw %ew HisP HLw [] [Hlc1 Hlc2] with #HQr
           · ipureintro; exact ⟨hlk, het, Hdd, Hbsne (by simp [apply.withHeader])⟩
           · iapply (lc_split (n := 1) (m := 1)).2; iframe
           ihave #HLt : iprop(srvRLogLb ρ.raft (Lw.take mw)) $$ []
@@ -366,7 +366,7 @@ local macro "piro_tail" : tactic => `(tactic| (
           wp_apply hPE s E ρ cerr start Hcerr $$ [Hrd] as %perr ⟨Hrd, %Hperr, #HaE⟩
           · iframe Hrd
             isplitl
-            · iunfold isServerReq; iexists v; iexact Hv
+            · iunfold isServerReqM; iexists v; iexact Hv
             iexact Hcerrv
           (try wp_auto)
           exit_dep_q
@@ -401,7 +401,7 @@ local macro "piro_tail" : tactic => `(tactic| (
 
 set_option maxRecDepth 20000 in
 set_option maxHeartbeats 4000000 in
-theorem EtcdServer.processInternalRaftRequestOnce.wp_proof
+theorem EtcdServer.processInternalRaftRequestOnce.wp_proofM (on : Bool)
     (hAI : EtcdServer.getAppliedIndex.spec (GF := GF) (hG := hG))
     (hCI : EtcdServer.getCommittedIndex.spec (GF := GF) (hG := hG))
     (hFE : EtcdServer.FeatureEnabled.spec (GF := GF) (hG := hG))
@@ -412,19 +412,19 @@ theorem EtcdServer.processInternalRaftRequestOnce.wp_proof
     (hM : proto.MarshalIRR.spec (GF := GF) (hG := hG))
     (hTO : config.ServerConfig.ReqTimeout.spec (GF := GF) (hG := hG))
     (hSp : trace.SpanFromContext.spec (GF := GF) (hG := hG))
-    (hPE : EtcdServer.parseProposeCtxErr.spec (GF := GF) (hG := hG))
+    (hPE : EtcdServer.parseProposeCtxErr.specM (GF := GF) (hG := hG) on)
     (hED : context.ErrDone.spec (GF := GF) (hG := hG))
     (hFB : strconv.FormatBool.spec (GF := GF) (hG := hG))
     (hSec : time.Duration.Seconds.spec (GF := GF) (hG := hG))
     (hWL : prometheus.HistogramVec.WithLabelValues.spec (GF := GF) (hG := hG)) :
-    EtcdServer.processInternalRaftRequestOnce.spec (GF := GF) (hG := hG) := by
-  intro s E ρ ctx cd p rq Qr F Hid0
+    EtcdServer.processInternalRaftRequestOnce.specM (GF := GF) (hG := hG) on := by
+  intro s E ρ ctx cd p rq Qh F Hid0
   wp_start as ⟨#Hsrv, Hrd, Hard, Hcred, #Hctx, #Hirr, Hok, ⟨%h0, Hhdr⟩, #HF⟩
   wp_apply wp_with_defer as %defer defer
-  iunfold isServerReq at Hsrv
+  iunfold isServerReqM at Hsrv
   icases Hsrv with ⟨%v, #Hv⟩
   ihave #Hv' := Hv
-  iunfold srvReqFieldsAt at Hv'
+  iunfold srvReqFieldsAtM at Hv'
   icases Hv' with ⟨#Hgen, #HidGen, #Hw, #Hwi, #Hrn, #Hmrb, #Hfgf, #Hfg, #Hcca, #Het, #Htm,
     #Has, #Hras, #Hdone, #Hdonec, #Hmid, #Hlead, #Hcl, #Htr, #Hpeers, #Hidx, #Hmint, #Hclog, %Hcfgnn⟩
   ihave #Pidutil : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.pkg.v3.idutil $$ []
@@ -558,6 +558,37 @@ theorem EtcdServer.processInternalRaftRequestOnce.wp_proof
     iexists false
     simp only [Bool.false_eq_true, ↓reduceIte]
     itrivial
+
+/-- **The mode-off spec, from the generic one** (a constant result: `reqPropOkM_of_false`). -/
+theorem EtcdServer.processInternalRaftRequestOnce.wp_proof
+    (hAI : EtcdServer.getAppliedIndex.spec (GF := GF) (hG := hG))
+    (hCI : EtcdServer.getCommittedIndex.spec (GF := GF) (hG := hG))
+    (hFE : EtcdServer.FeatureEnabled.spec (GF := GF) (hG := hG))
+    (hEx : exceedsRequestLimit.spec (GF := GF) (hG := hG))
+    (hNext : idutil.Generator.Next.spec (GF := GF) (hG := hG))
+    (hAuth : EtcdServer.AuthInfoFromCtx.spec (GF := GF) (hG := hG))
+    (hRT : getRequestType.spec (GF := GF) (hG := hG))
+    (hM : proto.MarshalIRR.spec (GF := GF) (hG := hG))
+    (hTO : config.ServerConfig.ReqTimeout.spec (GF := GF) (hG := hG))
+    (hSp : trace.SpanFromContext.spec (GF := GF) (hG := hG))
+    (hPE : EtcdServer.parseProposeCtxErr.spec (GF := GF) (hG := hG))
+    (hED : context.ErrDone.spec (GF := GF) (hG := hG))
+    (hFB : strconv.FormatBool.spec (GF := GF) (hG := hG))
+    (hSec : time.Duration.Seconds.spec (GF := GF) (hG := hG))
+    (hWL : prometheus.HistogramVec.WithLabelValues.spec (GF := GF) (hG := hG)) :
+    EtcdServer.processInternalRaftRequestOnce.spec (GF := GF) (hG := hG) := by
+  intro s E ρ ctx cd p rq Qr F Hid0
+  iintro %Φ Hpre HΦ
+  iapply (EtcdServer.processInternalRaftRequestOnce.wp_proofM false hAI hCI hFE hEx hNext hAuth
+    hRT hM hTO hSp hPE hED hFB hSec hWL s E ρ ctx cd p rq (fun _ => Qr) F Hid0) $$ [Hpre] [HΦ]
+  · icases Hpre with ⟨Ha, Hb, Hc, Hd, He, Hf, Hg, Hok, Hi, Hj⟩
+    ihave Hok' := reqPropOkM_of_false ρ.kv rq Qr $$ Hok
+    rw [isServerReqM_false]
+    iframe Ha Hb Hc Hd He Hf Hg Hok' Hi Hj
+  · iintro !> %res %err Hpost
+    iapply HΦ
+    simp only [kvModelM_false]
+    iexact Hpost
 
 end proof
 
