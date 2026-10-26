@@ -1,7 +1,9 @@
 # Types and names only: function and method bodies are axiomatized (project k8s-apiserver;
-# notes/k8s-etcd3-goose.md).
+# notes/kep-6404-plan.md). It imports the cacher's `metrics` (names only), so that the watch cache,
+# which imports this package but not `metrics` (Goose's gap G3, `cacher.toml`), reaches its names
+# through this module's public import.
 translate = ["!*"]
-imports = ["!*"]
+imports = ["k8s.io/apiserver/pkg/storage/cacher/metrics"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

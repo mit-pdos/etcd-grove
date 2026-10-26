@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import GeneratedProof.k8s_io.apiserver.pkg.storage.cacher.metrics
 public import Perennial.Golang.Theory
 public import Code.k8s_io.apiserver.pkg.storage.cacher.consistency
 
