@@ -1,25 +1,29 @@
 /-
-**The recipes' client contracts, derived at the server's model** (the vertical slice's unit V2b,
-2026-10-14). Lean-first, no Rocq counterpart.
+**The recipes' client contracts, from the client's specs** (D47, 2026-10-26; until then at the
+server's model, the vertical slice's unit V2b). Lean-first, no Rocq counterpart.
 
-`isRecipesKV_of_kv`: a real `*kv` (`kvIfaceOf api`) over a connection to a gRPC server at `addr`
-where etcd's `Range`, `Put`, `DeleteRange` and `Txn` are registered (`etcd_kv_served`'s
-conclusion) meets `isRecipesKV` in the server's model (`v3rpc.etcdModelOfServer E`), from the four
-contracts of `client/v3/ServerKV{Get,Put,Txn}.lean`. `isEtcdRecipesClient_of_kv`: a client whose
-`KV` field is that `*kv` and whose `Watcher` meets the closable watcher contract
-(`isEtcdRangeWatcher`, a premise here; etcd's client watcher meets it,
-`isEtcdRangeWatcher_of_watcher`, which `queue_end_to_end_client` uses) meets
+`isRecipesKV_of_km`: a `*kv` of etcd's KV `γ.kv` that sends a write at most once (`isKv api γ.kv
+false`) meets `isRecipesKV` at the clients' model over the KV state (`client.etcdModelOfKV γ`,
+with the adapter's invariant `kmInv γ`), from the four contracts of
+`client/v3/KM{Get,Txn,Put}.lean`. `isEtcdRecipesClient_of_km`: a client whose `KV` field is that
+`*kv` and whose `Watcher` meets the closable watcher contract (`isEtcdRangeWatcher`, a premise:
+the client's Watch spec covers prefix watches only, `notes/STATUS.md`) meets
 `isEtcdRecipesClient`.
 
-Premises beyond the registrations and the server's read side: a prefix other than `[]`
-(`isEtcdKVTodo_of_kv`'s), `sortNamesOk` (`grpc`'s status names of the sort enums, for a get with a
-sort option), `clientErrsIs` (the client's errors as `errors.Is` sees them, for
-`txnCommitErrTodo`), and `hAs` (`errors.As` can take `*rpctypes.EtcdError`).
+Premises beyond the specs': a prefix other than `[]` (`isEtcdKVTodo_of_km`'s), `sortNamesOk`
+(`grpc`'s status names of the sort enums), `clientErrsIs` (the client's errors as `errors.Is` sees
+them), `hAs` (`errors.As` can take `*rpctypes.EtcdError`), and `kmRecipesRest`: that the client saw
+revision `1` (`kmReachedAt γ 1`: the contracts' revisions are positive, which the KV state's model
+does not say) and the contracts of the requests the specs do not serve (`kmPutRestTodo`: leased
+puts and those that need the key's previous value; `kmTxnUncoveredTodo`: serializable read-only
+transactions and leased or `IgnoreValue` writes), as the server-model bridge's `kvWritesOk`.
 -/
 module
 
 public import Proof.go_etcd_io.etcd.client.v3.experimental.recipes.InvRecipesClient
-public import Proof.go_etcd_io.etcd.client.v3.ServerKVTxn
+public import Proof.go_etcd_io.etcd.client.v3.KMGet
+public import Proof.go_etcd_io.etcd.client.v3.KMTxn
+public import Proof.go_etcd_io.etcd.client.v3.KMPut
 
 @[expose] public section
 
@@ -42,59 +46,60 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
-variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
-/-- **A real `*kv` meets the recipes' `KV` contracts** (`isRecipesKV`) at the server's model:
-gets, transactions, deletes and puts at `context.TODO()` (see the file header). -/
-theorem isRecipesKV_of_kv (api : Loc) (addr : List GoString) (s : Loc) (E : apply.AEnv GF)
-    (γr : ReadNames) (cid mid : w64) (pfx : GoString) (hpfx : pfx ≠ [])
+/-- **What the recipes' contracts need beyond the specs** (persistent; see the file header). -/
+def kmRecipesRest (api : Loc) (γ : client.KMNames) (pfx : GoString) : IProp GF :=
+  iprop(client.kmReachedAt γ (W64 1) ∗ client.kmPutRestTodo api γ pfx ∗
+    client.kmTxnUncoveredTodo api γ)
+
+instance kmRecipesRest_persistent (api : Loc) (γ : client.KMNames) (pfx : GoString) :
+    Persistent (kmRecipesRest (GF := GF) api γ pfx) := by
+  unfold kmRecipesRest; infer_instance
+
+/-- **A client of etcd's KV meets the recipes' `KV` contracts** (`isRecipesKV`) at the adapter's
+model: gets, transactions, deletes and puts at `context.TODO()` (see the file header). -/
+theorem isRecipesKV_of_km (api : Loc) (γ : client.KMNames) (pfx : GoString) (hpfx : pfx ≠ [])
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) :
-    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isServerRead s E γr ∗
-        kvObjAt api addr ∗
-        EtcdGrove.client.kvRegs (EtcdGrove.client.srvsAt addr E γr cid mid) ∗
-        sortNamesOk ∗ EtcdGrove.client.clientErrsIs ∗
-        EtcdGrove.client.kvWritesOk api addr E γr cid mid ⊢
-      isRecipesKV (EM := v3rpc.etcdModelOfServer E) (GoInterface.ok (EtcdGrove.client.kvIfaceOf api)) pfx := by
-  iintro ⟨#Pc, #Hsrd, #Hkv, #Hregs, #Hsn, #Hcei, #Hnp⟩
-  iunfold EtcdGrove.client.kvWritesOk at Hnp
-  icases Hnp with ⟨#Hany, #Hlp, #Hlc⟩
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
+        client.isKv api γ.kv false ∗ client.kmInv γ ∗ sortNamesOk ∗
+        EtcdGrove.client.clientErrsIs ∗ kmRecipesRest api γ pfx ⊢
+      isRecipesKV (EM := client.etcdModelOfKV γ) (GoInterface.ok (client.kvIfaceOf api)) pfx := by
+  iintro ⟨#Pc, #Hkv, #Hinv, #Hsn, #Hcei, #Hrest⟩
+  iunfold kmRecipesRest at Hrest
+  icases Hrest with ⟨#H1, #Hput, #Htxn⟩
   unfold isRecipesKV
   simp only
   isplitl []
-  · iapply EtcdGrove.client.isEtcdKVTodo_of_kv api addr s E γr cid mid pfx hpfx hAs
+  · iapply client.isEtcdKVTodo_of_km api γ false pfx hpfx hAs
     iframe #
   isplitl []
-  · iapply EtcdGrove.client.isEtcdTxnKVTodo_of_kv api addr s E γr cid mid pfx hAs
+  · iapply client.isEtcdTxnKVTodo_of_km api γ pfx hAs
     iframe #
   isplitl []
-  · iapply EtcdGrove.client.isEtcdDeleteKVTodo_of_kv api addr s E γr cid mid pfx hAs
+  · iapply client.isEtcdDeleteKVTodo_of_km api γ pfx hAs
     iframe #
-  · iapply EtcdGrove.client.isEtcdPutKVTodo_of_kv api addr s E γr cid mid pfx hAs
+  · iapply client.isEtcdPutKVTodo_of_km api γ pfx hAs
     iframe #
 
-/-- **A client over a real `*kv` meets the recipes' client contract** (`isEtcdRecipesClient`) at
-the server's model: its `KV` field the `*kv` (`isRecipesKV_of_kv`), its `Watcher` field a watcher
-meeting the watcher contract (`isEtcdRangeWatcher`, whose channel may close: a premise here,
-discharged for etcd's client watcher by `isEtcdRangeWatcher_of_watcher`). -/
-theorem isEtcdRecipesClient_of_kv (cl : Loc) (w : GoInterfaceOk) (api : Loc) (addr : List GoString)
-    (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64) (pfx : GoString)
-    (hpfx : pfx ≠ [])
+/-- **A client over a `*kv` of etcd's KV meets the recipes' client contract**
+(`isEtcdRecipesClient`) at the adapter's model: its `KV` field the `*kv` (`isRecipesKV_of_km`), its
+`Watcher` field a watcher meeting the watcher contract (`isEtcdRangeWatcher`, a premise). -/
+theorem isEtcdRecipesClient_of_km (cl : Loc) (w : GoInterfaceOk) (api : Loc) (γ : client.KMNames)
+    (pfx : GoString) (hpfx : pfx ≠ [])
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) :
-    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isServerRead s E γr ∗
-        kvObjAt api addr ∗
-        clientKVAddr cl ↦□ GoInterface.ok (EtcdGrove.client.kvIfaceOf api) ∗
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
+        clientKVAddr cl ↦□ GoInterface.ok (client.kvIfaceOf api) ∗
         clientWatcherAddr cl ↦□ GoInterface.ok w ∗
-        isEtcdRangeWatcher (EM := v3rpc.etcdModelOfServer E) w pfx ∗
-        EtcdGrove.client.kvRegs (EtcdGrove.client.srvsAt addr E γr cid mid) ∗
-        sortNamesOk ∗ EtcdGrove.client.clientErrsIs ∗
-        EtcdGrove.client.kvWritesOk api addr E γr cid mid ⊢
-      isEtcdRecipesClient (EM := v3rpc.etcdModelOfServer E) cl pfx := by
-  iintro ⟨#Pc, #Hsrd, #Hkv, #HKV, #HW, #Hw, #Hregs, #Hsn, #Hcei, #Hnp⟩
-  ihave #HK := isRecipesKV_of_kv api addr s E γr cid mid pfx hpfx hAs $$ []
+        isEtcdRangeWatcher (EM := client.etcdModelOfKV γ) w pfx ∗
+        client.isKv api γ.kv false ∗ client.kmInv γ ∗ sortNamesOk ∗
+        EtcdGrove.client.clientErrsIs ∗ kmRecipesRest api γ pfx ⊢
+      isEtcdRecipesClient (EM := client.etcdModelOfKV γ) cl pfx := by
+  iintro ⟨#Pc, #HKV, #HW, #Hw, #Hkv, #Hinv, #Hsn, #Hcei, #Hrest⟩
+  ihave #HK := isRecipesKV_of_km api γ pfx hpfx hAs $$ []
   · iframe #
   unfold isEtcdRecipesClient
-  iexists (EtcdGrove.client.kvIfaceOf api), w
+  iexists (client.kvIfaceOf api), w
   iframe #
 
 end proofs

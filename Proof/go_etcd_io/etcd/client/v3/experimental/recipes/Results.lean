@@ -598,151 +598,35 @@ variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions
 variable [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
-open go_etcd_io.etcd.server.v3.etcdserver in
-/-- A real `*kv` meets the recipes' `KV` contracts at the server's model (`isRecipesKV_of_kv`). -/
-theorem recipes_kv_of_server (api : Loc) (addr : GoString) (s : Loc) (E : apply.AEnv GF)
-    (γr : ReadNames) (cid mid : w64) (pfx : GoString) (hpfx : pfx ≠ [])
+/-- A client of etcd's KV meets the recipes' `KV` contracts at the clients' model over the KV
+state (`isRecipesKV_of_km`). -/
+theorem recipes_kv_of_km (api : Loc) (γ : client.KMNames) (pfx : GoString) (hpfx : pfx ≠ [])
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) :
-    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isServerRead s E γr ∗
-        kvObjAt api [addr] ∗
-        EtcdGrove.client.kvRegsAt (⟨addr, E, γr, cid, mid⟩ : EtcdGrove.client.SrvAt GF) ∗
-        sortNamesOk ∗ EtcdGrove.client.clientErrsIs ∗
-        EtcdGrove.client.kvWritesOk api [addr] E γr cid mid ⊢
-      isRecipesKV (EM := v3rpc.etcdModelOfServer E) (GoInterface.ok (EtcdGrove.client.kvIfaceOf api)) pfx := by
-  iintro ⟨#Pc, #Hsrd, #Hkv, #Hreg, #Hsn, #Hcei, #Hnp⟩
-  ihave #Hregs := EtcdGrove.client.kvRegs_one addr E γr cid mid $$ Hreg
-  iapply (isRecipesKV_of_kv api [addr] s E γr cid mid pfx hpfx hAs)
-  iframe #
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
+        client.isKv api γ.kv false ∗ client.kmInv γ ∗ sortNamesOk ∗
+        EtcdGrove.client.clientErrsIs ∗ kmRecipesRest api γ pfx ⊢
+      isRecipesKV (EM := client.etcdModelOfKV γ) (GoInterface.ok (client.kvIfaceOf api)) pfx :=
+  isRecipesKV_of_km api γ pfx hpfx hAs
 
-open go_etcd_io.etcd.server.v3.etcdserver in
-/-- A client over a real `*kv` meets the recipes' client contract at the server's model
-(`isEtcdRecipesClient_of_kv`). -/
-theorem recipes_client_of_server (cl : Loc) (w : GoInterfaceOk) (api : Loc) (addr : GoString)
-    (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64) (pfx : GoString)
-    (hpfx : pfx ≠ [])
+/-- A client over a client of etcd's KV meets the recipes' client contract at the adapter's model
+(`isEtcdRecipesClient_of_km`; its watcher contract a premise). -/
+theorem recipes_client_of_km (cl : Loc) (w : GoInterfaceOk) (api : Loc) (γ : client.KMNames)
+    (pfx : GoString) (hpfx : pfx ≠ [])
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) :
-    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isServerRead s E γr ∗
-        kvObjAt api [addr] ∗
-        clientKVAddr cl ↦□ GoInterface.ok (EtcdGrove.client.kvIfaceOf api) ∗
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
+        clientKVAddr cl ↦□ GoInterface.ok (client.kvIfaceOf api) ∗
         clientWatcherAddr cl ↦□ GoInterface.ok w ∗
-        isEtcdRangeWatcher (EM := v3rpc.etcdModelOfServer E) w pfx ∗
-        EtcdGrove.client.kvRegsAt (⟨addr, E, γr, cid, mid⟩ : EtcdGrove.client.SrvAt GF) ∗
-        sortNamesOk ∗ EtcdGrove.client.clientErrsIs ∗
-        EtcdGrove.client.kvWritesOk api [addr] E γr cid mid ⊢
-      isEtcdRecipesClient (EM := v3rpc.etcdModelOfServer E) cl pfx := by
-  iintro ⟨#Pc, #Hsrd, #Hkv, #HKV, #HW, #Hw, #Hreg, #Hsn, #Hcei, #Hnp⟩
-  ihave #Hregs := EtcdGrove.client.kvRegs_one addr E γr cid mid $$ Hreg
-  iapply (isEtcdRecipesClient_of_kv cl w api [addr] s E γr cid mid pfx hpfx hAs)
-  iframe #
-
-open go_etcd_io.etcd.server.v3.etcdserver in
-/-- **The queue end to end** (`queue_vertical`). -/
-theorem queue_end_to_end (cl : Loc) (w : GoInterfaceOk) (api : Loc) (addr : GoString) (s : Loc)
-    (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64) (kp : GoString) (hkp : kp ≠ [])
-    (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗
-        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isServerRead s E γr ∗
-        kvObjAt api [addr] ∗
-        clientKVAddr cl ↦□ GoInterface.ok (EtcdGrove.client.kvIfaceOf api) ∗
-        clientWatcherAddr cl ↦□ GoInterface.ok w ∗
-        isEtcdRangeWatcher (EM := v3rpc.etcdModelOfServer E) w kp ∗
-        EtcdGrove.client.kvRegsAt (⟨addr, E, γr, cid, mid⟩ : EtcdGrove.client.SrvAt GF) ∗
-        sortNamesOk ∗ EtcdGrove.client.clientErrsIs ∗
-        EtcdGrove.client.kvWritesOk api [addr] E γr cid mid }}
-      (App (App (Val (@! go_etcd_io.etcd.client.v3.experimental.recipes.NewQueue)) (Val #cl))
-        (Val #kp))
-    {{ (q : Loc), RET #q;
-        (□ ∀ (val : GoString) (lo : w64),
-          {{ etcdReached (EM := v3rpc.etcdModelOfServer E) lo }}
-            (App (Val (q @!! go.GoType.PointerType Queue.ty @!! go!"Enqueue")) (Val #val))
-          {{ (err : GoInterface), RET #err;
-              (⌜err = GoInterface.nil⌝ ∗ ∃ (key : GoString) (r : w64),
-                etcdReached (EM := v3rpc.etcdModelOfServer E) r ∗
-                keyCreatedAt (EM := v3rpc.etcdModelOfServer E) kp key val (W64 0) r ∗
-                ⌜(kp ++ go!"/") <+: key ∧ sint.Z lo ≤ sint.Z r⌝) ∨
-              ⌜err ≠ GoInterface.nil⌝ }}) ∗
-        (□ ∀ (lo : w64),
-          {{ context.isClosedchanInit ∗ etcdReached (EM := v3rpc.etcdModelOfServer E) lo ∗
-              ⌜0 ≤ sint.Z lo⌝ }}
-            (App (Val (q @!! go.GoType.PointerType Queue.ty @!! go!"Dequeue")) (Val #()))
-          {{ (v : GoString) (err : GoInterface), RET (PairV #v #err);
-              (⌜err = GoInterface.nil⌝ ∗ ∃ (it : EtcdKv) (r : w64), queueTaken E kp it r ∗
-                dequeueOrder (EM := v3rpc.etcdModelOfServer E) kp kp modRevLe it r ∗
-                ⌜v = it.value ∧ sint.Z lo ≤ sint.Z r⌝) ∨
-              ⌜err ≠ GoInterface.nil⌝ }}) }} :=
-  queue_vertical cl w api addr s E γr cid mid kp hkp hAs
-
-open go_etcd_io.etcd.server.v3.etcdserver in
-/-- **The queue end to end over etcd's client watcher** (unit W-Q): `queue_end_to_end` for a client
-whose `Watcher` field is a `*watcher` `w` of etcd's client (`isClientWatcher V w`, what `NewWatcher`
-returns over a connection to the server's `Watch` stream; its premises are the wire's,
-`watchConnFacts V`) over the same server (`V.R.E = E`: the clients' model of the watcher is the
-server's, `V.EM = v3rpc.etcdModelOfServer E`) for the queue's prefix (`V.pfx = kp`). The watcher
-contract is `client.isEtcdRangeWatcher_of_watcher` at the linked `watcher.Watch`: the closable one
-(a closed or canceled watch makes `Dequeue` return an error: the verified fork's closed-watch fix). -/
-theorem queue_end_to_end_client (cl : Loc) (V : client.WEnv GF) (w : Loc) (api : Loc)
-    (addr : GoString) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (cid mid : w64)
-    (kp : GoString) (hkp : kp ≠ []) (hE : V.R.E = E) (hV : V.pfx = kp)
-    (hWM : V.WM = v3rpc.etcdModelOfServer V.R.E)
-    (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗
-        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
-        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb ∗
-        isPkgInit (PROP := IProp GF) pkg_id.context ∗ isServerRead s E γr ∗
-        kvObjAt api [addr] ∗
-        clientKVAddr cl ↦□ GoInterface.ok (EtcdGrove.client.kvIfaceOf api) ∗
-        clientWatcherAddr cl ↦□ GoInterface.ok (client.watcherIfaceOf w) ∗
-        client.isClientWatcher V w ∗
-        EtcdGrove.client.kvRegsAt (⟨addr, E, γr, cid, mid⟩ : EtcdGrove.client.SrvAt GF) ∗
-        sortNamesOk ∗ EtcdGrove.client.clientErrsIs ∗
-        EtcdGrove.client.kvWritesOk api [addr] E γr cid mid }}
-      (App (App (Val (@! go_etcd_io.etcd.client.v3.experimental.recipes.NewQueue)) (Val #cl))
-        (Val #kp))
-    {{ (q : Loc), RET #q;
-        (□ ∀ (val : GoString) (lo : w64),
-          {{ etcdReached (EM := v3rpc.etcdModelOfServer E) lo }}
-            (App (Val (q @!! go.GoType.PointerType Queue.ty @!! go!"Enqueue")) (Val #val))
-          {{ (err : GoInterface), RET #err;
-              (⌜err = GoInterface.nil⌝ ∗ ∃ (key : GoString) (r : w64),
-                etcdReached (EM := v3rpc.etcdModelOfServer E) r ∗
-                keyCreatedAt (EM := v3rpc.etcdModelOfServer E) kp key val (W64 0) r ∗
-                ⌜(kp ++ go!"/") <+: key ∧ sint.Z lo ≤ sint.Z r⌝) ∨
-              ⌜err ≠ GoInterface.nil⌝ }}) ∗
-        (□ ∀ (lo : w64),
-          {{ context.isClosedchanInit ∗ etcdReached (EM := v3rpc.etcdModelOfServer E) lo ∗
-              ⌜0 ≤ sint.Z lo⌝ }}
-            (App (Val (q @!! go.GoType.PointerType Queue.ty @!! go!"Dequeue")) (Val #()))
-          {{ (v : GoString) (err : GoInterface), RET (PairV #v #err);
-              (⌜err = GoInterface.nil⌝ ∗ ∃ (it : EtcdKv) (r : w64), queueTaken E kp it r ∗
-                dequeueOrder (EM := v3rpc.etcdModelOfServer E) kp kp modRevLe it r ∗
-                ⌜v = it.value ∧ sint.Z lo ≤ sint.Z r⌝) ∨
-              ⌜err ≠ GoInterface.nil⌝ }}) }} := by
-  subst hE hV
-  iintro %Φ ⟨#Pr, #Pc, #Ppb, #Pctx, #Hsrd, #Hkv, #HKV, #HW, #Hw, #Hreg, #Hsn, #Hcei, #Hnp⟩ HΦ
-  ihave #Hrw0 := client.isEtcdRangeWatcher_of_watcher client.v3.watcher.wp_Watch V w $$ []
-  · iframe #
-  -- (W3) the watcher's contract is at the server's model
-  ihave #Hrw : isEtcdRangeWatcher (EM := v3rpc.etcdModelOfServer V.R.E) (client.watcherIfaceOf w)
-      V.pfx $$ []
-  · iapply (show isEtcdRangeWatcher (EM := V.WM) (client.watcherIfaceOf w) V.pfx ⊢
-        isEtcdRangeWatcher (EM := v3rpc.etcdModelOfServer V.R.E) (client.watcherIfaceOf w) V.pfx
-      from by rw [hWM]) $$ Hrw0
-  iapply (queue_end_to_end cl (client.watcherIfaceOf w) api addr s V.R.E γr cid mid V.pfx hkp
-    hAs) $$ [] HΦ
-  iframe #
-
-/-- **Dequeued at most once, in the server's terms** (`queue_vertical_once`). -/
-theorem queue_end_to_end_once (E : apply.AEnv GF) (kp : GoString) (it1 it2 : EtcdKv) (r : w64) :
-    queueTaken E kp it1 r ∗ queueTaken E kp it2 r ⊢ (False : IProp GF) :=
-  queue_vertical_once E kp it1 it2 r
+        isEtcdRangeWatcher (EM := client.etcdModelOfKV γ) w pfx ∗
+        client.isKv api γ.kv false ∗ client.kmInv γ ∗ sortNamesOk ∗
+        EtcdGrove.client.clientErrsIs ∗ kmRecipesRest api γ pfx ⊢
+      isEtcdRecipesClient (EM := client.etcdModelOfKV γ) cl pfx :=
+  isEtcdRecipesClient_of_km cl w api γ pfx hpfx hAs
 
 end slice
 
-#print axioms Perennial.EtcdGrove.recipes.recipes_kv_of_server
-#print axioms Perennial.EtcdGrove.recipes.recipes_client_of_server
-#print axioms Perennial.EtcdGrove.recipes.queue_end_to_end
-#print axioms Perennial.EtcdGrove.recipes.queue_end_to_end_client
-#print axioms Perennial.EtcdGrove.recipes.queue_end_to_end_once
+#print axioms Perennial.EtcdGrove.recipes.recipes_kv_of_km
+#print axioms Perennial.EtcdGrove.recipes.recipes_client_of_km
+#print axioms Perennial.EtcdGrove.recipes.queue_vertical
 
 end recipes
 end EtcdGrove
