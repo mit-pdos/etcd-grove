@@ -1058,7 +1058,7 @@ theorem wp_applyConf_dyn
         csPts cs (DFrac.own 1) (ConfStateM.mk xs ls os lns cs'.cfg.autoLeave) true ∗
         ⌜xs ≡ₚ elements cs'.cfg.incoming ∧ os ≡ₚ elements cs'.cfg.outgoing ∧
           ls ≡ₚ elements cs'.cfg.learners ∧ lns ≡ₚ elements cs'.cfg.learnersNext⌝ }} := by
-  obtain ⟨Hk1, Hk2, Hke, Hconf, Hnoc, Hdec, Hstep, Hal'⟩ := Hpre
+  obtain ⟨Hk1, Hk2, Hke, Hconf, Hnoc, ⟨op', Hdec, Hstep'⟩, Hstep, Hal'⟩ := Hpre
   iintro %Φ ⟨#Hpkg, Hrn, Hphys, Hghost, #Hsdrf, #Hsoft, #Hhard, Hsteps, Hcap, Hpend, #Hdeliv,
     #Hstrecs, #Hloanc, Hch, Hlc⟩ HΦ
   let g : RGh := ⟨rs.capplied, rs.cfg, fp⟩
@@ -1127,12 +1127,12 @@ theorem wp_applyConf_dyn
       rw [List.take_add_one, Hfull_k]; rfl, cfgFold_snoc, H0, Option.bind_some]
     unfold entStep
     rw [ite_eq_left Hconf, Htake, Hdec, Option.bind_some]
-    exact Hstep
+    exact Hstep'
   have HR1 : StepR (AdmS dec c0 (fun l => l = (rOf s g).full.take (k + 1))) dec id 0 (rOf s g) []
       (rOf s g') :=
-    StepR.applyConf (rOf s g) k e (ccm.transition, ccm.changes) cs'
+    StepR.applyConf (rOf s g) k e op' cs'
       (by simp [rOf, Hsnap (.inr (by rw [hm]; rfl))]) Hk1 Hkc Hfull_k Hconf
-      Hnoc' (by rw [Htake]; exact Hdec) Hstep Hadm
+      Hnoc' (by rw [Htake]; exact Hdec) Hstep' Hadm
   have HR2 := applyCCOkC_stepR (B := 0) (Adm := AdmS dec c0 (fun l => l = (rOf s g).full.take (k + 1)))
     (dec := dec) cs'.cfg id s s' g' Hok rfl
   have HR := StepR.trans _ _ _ _ _ HR1 HR2
@@ -1912,7 +1912,7 @@ theorem dynCCPreOp_transfer {dec : CCDec} {D D' : List EntryM} {ca ca' : Nat}
     {cfg : CCState} {op : CCOp} {k : Nat} {e : EntryM} {cs' : CCState}
     (Hp : DynCCPreOp dec D ca cfg op k e cs') (Hpre : D <+: D') (Hca : ca ≤ ca')
     (Hnc : NoConfIn D' ca ca') : DynCCPreOp dec D' ca' cfg op k e cs' := by
-  obtain ⟨Hk1, Hk2, Hke, Hconf, Hnoc, Hdec, Hstep, Hal⟩ := Hp
+  obtain ⟨Hk1, Hk2, Hke, Hconf, Hnoc, ⟨op', Hdec, Hstep'⟩, Hstep, Hal⟩ := Hp
   have Hke' : D'[k]? = some e := prefix_getElem? Hpre Hke
   have Hlen : D.length ≤ D'.length := Hpre.length_le
   have Hk1' : ca' ≤ k := by
@@ -1927,7 +1927,7 @@ theorem dynCCPreOp_transfer {dec : CCDec} {D D' : List EntryM} {ca ca' : Nat}
     exact Hnoc j x (by omega) hj2 hx'
   · obtain ⟨t, rfl⟩ := Hpre
     rw [List.take_append_of_le_length (by omega)]
-    exact Hdec
+    exact ⟨op', Hdec, Hstep'⟩
 
 omit ffi [FfiInterp ffi] [FfiSemantics ext ffi] go_gctx in
 /-- `NoConfIn` over two adjacent ranges. -/

@@ -234,7 +234,7 @@ theorem node_contract_ifc (E : RNEnv GF) (γ : RNNames) (s : Loc) :
   letI : MemStorReg GF := ⟨γ.reg⟩
   isRaftNodeIfc_of_isNode E γ s node.wp_Ready
     node.wp_Advance node.wp_Tick
-    node.wp_ReadIndex
+    node.wp_ReadIndex node.wp_ApplyConfChange
 
 /-- **The node meets the request path's `raftPropose`** (stage R7b, D10): from raft's linked
 `node.wp_Propose` and, since audit phase B3 (2026-10-18), `node.wp_ApplyConfChange`

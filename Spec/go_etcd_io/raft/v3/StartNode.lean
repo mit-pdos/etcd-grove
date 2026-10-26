@@ -135,6 +135,8 @@ abbrev StartNode.spec : Prop :=
       R ∗ ∃ (γn : NodeNames) (n : Loc),
         ⌜γn.raft = γ ∧ γn.bud = bud ∧ γn.stor = interface.ok si ∧ γn.mode = md ∧
          γn.snapIn = sn ∧ nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗
+        -- (D43 M3, 2026-10-25) the mode is static exactly when the names are (`ownRawNode_mode`)
+        ⌜md = .static ↔ γ.reDyn = none⌝ ∗
         isNode γn cv.ID' n ∗ nodeDriver γn cv.ID' n [] hsZero ∗
         -- the driver's view of the configuration: the peers'
         nodeCfg γn 0 (cfgState (GMap.listToSet ps) ∅) ∗

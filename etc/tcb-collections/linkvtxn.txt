@@ -254,7 +254,7 @@ axiom attribute.Int.wp_proof
 axiom attribute.Int64.wp_proof
 axiom attribute.String.wp_proof
 axiom auth.NewAuthStore.wp_proof
-axiom auth.NewTokenProvider.wp_proof
+axiom auth.newTokenProviderJWT.wp_proof
 axiom backend.ValidateCalledInsideApply.wp_proof
 axiom backend.ValidateCalledOutSideApply.wp_proof
 axiom backend.VerifyBackendConsistency.wp_proof

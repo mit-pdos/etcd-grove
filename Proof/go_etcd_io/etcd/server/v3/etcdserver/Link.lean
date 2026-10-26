@@ -174,10 +174,14 @@ public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__setRevision
 public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__setupMetricsReporter
 public import Proof.go_etcd_io.etcd.server.v3.auth.checkKeyInterval
 public import Proof.go_etcd_io.etcd.server.v3.auth.checkKeyPoint
+public import Proof.go_etcd_io.etcd.server.v3.auth.decomposeOpts
 public import Proof.go_etcd_io.etcd.server.v3.auth.getMergedPerms
 public import Proof.go_etcd_io.etcd.server.v3.auth.hasRootRole
 public import Proof.go_etcd_io.etcd.server.v3.auth.isOpenEnded
 public import Proof.go_etcd_io.etcd.server.v3.auth.isValidPermissionRange
+public import Proof.go_etcd_io.etcd.server.v3.auth.newTokenProviderJWT
+public import Proof.go_etcd_io.etcd.server.v3.auth.newTokenProviderNop
+public import Proof.go_etcd_io.etcd.server.v3.auth.newTokenProviderSimple
 public import Proof.go_etcd_io.etcd.server.v3.auth.redactToken
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.VerifyBackendConsistency
 public import Proof.encoding.binary.ReadUint64
@@ -908,6 +912,18 @@ theorem snap.Message.wp_CloseNotify :
 theorem wp_NewConsistentIndex :
     NewConsistentIndex.spec (GF := GF) (hG := hG) :=
   NewConsistentIndex.wp_proof
+
+theorem auth.wp_decomposeOpts :
+    auth.decomposeOpts.spec (GF := GF) (hG := hG) :=
+  auth.decomposeOpts.wp_proof zap.Logger.wp_Error zap.wp_String
+
+theorem auth.wp_newTokenProviderJWT :
+    auth.newTokenProviderJWT.spec (GF := GF) (hG := hG) :=
+  auth.newTokenProviderJWT.wp_proof
+
+theorem auth.wp_newTokenProviderNop :
+    auth.newTokenProviderNop.spec (GF := GF) (hG := hG) :=
+  auth.newTokenProviderNop.wp_proof
 
 theorem auth.authStore.wp_Revision :
     auth.authStore.Revision.spec (GF := GF) (hG := hG) :=
@@ -2088,9 +2104,13 @@ theorem auth.wp_NewAuthStore :
     auth.NewAuthStore.spec (GF := GF) (hG := hG) :=
   auth.NewAuthStore.wp_proof
 
+theorem auth.wp_newTokenProviderSimple :
+    auth.newTokenProviderSimple.spec (GF := GF) (hG := hG) :=
+  auth.newTokenProviderSimple.wp_proof zap.wp_NewNop
+
 theorem auth.wp_NewTokenProvider :
     auth.NewTokenProvider.spec (GF := GF) (hG := hG) :=
-  auth.NewTokenProvider.wp_proof
+  auth.NewTokenProvider.wp_proof auth.wp_decomposeOpts auth.wp_newTokenProviderSimple auth.wp_newTokenProviderJWT auth.wp_newTokenProviderNop zap.Logger.wp_Warn zap.wp_String zap.wp_Error
 
 theorem wp_newRaftNode :
     newRaftNode.spec (GF := GF) (hG := hG) :=

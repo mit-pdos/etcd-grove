@@ -838,14 +838,14 @@ _AUTH_ERRS = ['ErrRootUserNotExist', 'ErrRootRoleNotExist', 'ErrUserAlreadyExist
               'ErrUserNotFound', 'ErrRoleAlreadyExist', 'ErrRoleNotFound', 'ErrRoleEmpty',
               'ErrPermissionNotGiven', 'ErrAuthFailed', 'ErrNoPasswordUser', 'ErrPermissionDenied',
               'ErrRoleNotGranted', 'ErrPermissionNotGranted', 'ErrAuthNotEnabled', 'ErrAuthOldRevision',
-              'ErrInvalidAuthToken', 'ErrInvalidAuthMgmt']
+              'ErrInvalidAuthToken', 'ErrInvalidAuthOpts', 'ErrInvalidAuthMgmt']
 def _auth_news(names):
     return [f'wp_apply _root_.Perennial.context.wp_New_errorString as %x{n} #M{n}' for n in names]
 SPECIAL['go_etcd_io.etcd.server.v3.auth'] = dict(
     doc='''Its fact (`authInit`, `Base.lean`): its error variables `ErrUserEmpty`, `ErrUserNotFound`,
 `ErrPermissionDenied`, `ErrAuthOldRevision`, `ErrInvalidAuthToken`, and the admin side's eleven
 (the auth plan's S4, 2026-10-24: `ErrRootUserNotExist`, ..., `ErrInvalidAuthMgmt`), and S5's two
-(`ErrAuthFailed`, `ErrAuthNotEnabled`; translated
+(`ErrAuthFailed`, `ErrAuthNotEnabled`), and E2g's `ErrInvalidAuthOpts` (translated
 `errors.New` calls: leaf pointer errors without `Is`, by `EtcdGrove.ErrorStringLeaf`, whose
 `Error()` returns), and `rpctypes`' token keys (from `rpctypes`' fact). Its other variables'
 initializers are untranslated (`opaqueInitsOk`).''',
@@ -863,8 +863,7 @@ initializers are untranslated (`opaqueInitsOk`).''',
     before={
         # the recipes run before the next untranslated variable's initializer, consuming the
         # translated `errors.New` calls that precede it in `store.go`'s order
-        'ErrInvalidAuthOpts': _auth_news(_AUTH_ERRS[0:17]),
-        'ErrInvalidAuthMethod': _auth_news(_AUTH_ERRS[17:18]),
+        'ErrInvalidAuthMethod': _auth_news(_AUTH_ERRS),
     },
     finish=[f'ipersist H{n}' for n in _AUTH_ERRS] + ['ipersist HsimpleTokenTTLResolution'] +
            [f'ihave #T{n} := EtcdGrove.errorMsg_triple _ _ _ $$ M{n}' for n in _AUTH_ERRS] + [
@@ -879,8 +878,8 @@ initializers are untranslated (`opaqueInitsOk`).''',
             'ihave ⟨-, #GRP⟩ := sync.ownRWMutex_slots_guard _ _ $$ HRP'] + FIN_PRE[:6] + [
             'imodintro', 'unfold authInit authErrVar', 'iframe #', 'dsimp only', 'iframe #',
             'repeat (first | (isplitl []; · (ipureintro; exact EtcdGrove.errorString_leaf _)) | (ipureintro; exact EtcdGrove.errorString_leaf _))',
-            # the keeper's tick (S5e): `1 * time.Second`, read-only
-            'ipureintro', 'decide'],
+            # the keeper's tick (S5e): `1 * time.Second`, read-only; then E2g's error variable
+            'all_goals first | (ipureintro; decide) | (ipureintro; exact EtcdGrove.errorString_leaf _) | (ipureintro; exact ⟨by decide, EtcdGrove.errorString_leaf _⟩)'],
 )
 
 # Item 8, step 3 (2026-10-17): facts moved into their owners' packages.

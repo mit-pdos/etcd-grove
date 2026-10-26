@@ -18689,6 +18689,60 @@ commit fact's configuration index (`cqAt`'s dynamic part).
   `⟨0, cfgState V ∅, []⟩`, the tracker's learners empty). The server's `newRaftNode` passes `.static`
   (M3 moves it).
 
+**M3: the server in the dynamic mode, scoped (2026-10-25, the user; branch `membership-m3`).**
+Three decisions, each the recommended option:
+- *The leader's `Advance`.* In the dynamic mode `node.Advance` asks that the committed log's conf
+  entries be applied first (A1, `NoConfIn ds ca`); etcd's raft loop waits for its apply loop only on
+  a follower or candidate, the leader calls `Advance` at once
+  (`issues/etcd-leader-advance-before-applyconfchange.md`, a real safety gap), so no proof over that
+  code. **Decided: the fork fix** (M3a), the upstream candidate's: the leader does the follower's
+  second `notifyc` send (fork branch `goose-lean-leaderwait`, `4d9282b0f`). A change to the verified
+  code, like the earlier fork fixes; the alternative, a premise, would have been unsound.
+- *The static mode at the server.* Every server example's `bootPremise` says `γ.reDyn = none`, so
+  a dynamic-only server changes the definitions inside every closed theorem's statement. **Decided:
+  parametric**: the server takes the node's mode, its dynamic-only resources stated as raft's
+  specs state them (`⌜static⌝ ∨ nodeCfg … ∗ dlvLb …`); the static examples keep their statements;
+  the removal example (M8) uses the dynamic instance.
+- *`EtcdServer.applyConfChange`'s axiom.* Its call `s.r.ApplyConfChange` needs, in the dynamic mode,
+  the driver's view (`nodeCfg ca cfg`, `dlvLb ds`) and raft's `DynCCPreOp`, and returns
+  `nodeCfg (k + 1) cs'`. **Decided: restate the axiom** (a trust-boundary statement change, same
+  axiom count; M5 proves the restated statement) rather than pulling M5's `AddNode` part forward:
+  static case unchanged, dynamic case as raft's `node.ApplyConfChange` has it, for `ApplyBoth`
+  only (without `v3` Go does not call raft).
+
+**M3 carried out (2026-10-25, branch `membership-m3`).** The server's proofs are parametric in
+raft's mode; the static examples' statements are unchanged (trust base 718 axioms, 5 sorries).
+- *M3a* (the fork): `raftNode.start`'s leader branch does the second `notifyc` send on a conf
+  batch (`goose-lean-leaderwait`, `4d9282b0f`); its proof mirrors the follower's.
+- *The view.* `rnCfgAt γ L` (`InvRaftNode.lean`) is the driver's `nodeCfg`, in the dynamic mode with
+  every conf entry of `pre ++ L` applied and the voters' simple configuration (`srvCfgView`,
+  `srvCfgOk`, `InvCfgView.lean`); `rnDrv`/`rnBusy` hold it, `Advance` takes it after the batch, which
+  gives A1 (`rnCfgAt_open`). A batch with a `ConfChange` in the dynamic mode (`rnHands`) sends it to
+  the apply thread in the `toApply` (`rnApGive`, with the committed log handed out, `dlvLb`); the
+  apply thread's `<-apply.notifyc` deposits the view after the batch (`rnApR`) and the raft loop's
+  second send claims it (`NotifyC.lean`: the receive and the second send on a fresh capacity-1
+  channel, over the raw channel state). Without a conf entry the loop keeps the view
+  (`rnCfgAt_back_false`: the server's committed entries are normal or `ConfChange`, `srvIdxOkW`);
+  the conf-change scan's result is `ccIn ce`.
+- *The apply side* has no `RNNames`: `apply`, `applyEntries`, `applyAll`, `run_job_body` take an
+  optional view `dv : Option NodeNames` (`dvView`, `dvRes`, `dvOk`; `run` picks `rnDv`), threaded
+  through the scheduler's job resource. A server conf entry (`ccApplyOk`, the policy's) meets
+  `DynCCPreOp` at the server's decoder `srvDec` for both changes Go may hand raft
+  (`srvCfgOk_cc`); raft's `DynCCPreOp` was generalized for that: the change applied need only have
+  the decoded change's effect (`ccStepB`), as a failed validation's `NodeId 0` has.
+- *Contracts.* `isRaftNodeIfc` carries raft's dynamic `ApplyConfChange` (`raftApplyCCDyn`) in the
+  dynamic mode; `raftPropose`'s static clause is guarded by `reDyn = none`; `rnEnvOk` says the mode
+  is static exactly when raft's names are (raft's `StartNode` now states it, `ownRawNode_mode`) and
+  the dynamic mode's decoder is `srvDec`. The axiom `applyConfChange` restated (`dvCCPre`,
+  `dvCCPost`).
+- *A fresh start.* The dynamic mode excludes a replay (an entry at or below the consistent index:
+  Go hands a replayed conf change to no one, so raft's configuration index would stall):
+  `isServerRun`'s `HEr` (and `srvBuilt`'s, `InvStart`'s) says `c₀ ≤ ai₀` in the dynamic mode;
+  `NewServer` starts at `0, 0`.
+- *M3e.* `bootstrappedRaft.newRaftNode.spec` and `NodeStartSpec` take `md` (the ghost state
+  `bootInit γ md`, in the dynamic mode at `srvDec` and the peers' configuration); `NewServer`
+  passes `.static`.
+
 ## S5e of the auth plan: the simple token provider with no hypothesis (2026-10-25 · `notes/auth-plan.md`, branch `auth-s5e`)
 
 **Problem.** S5d left the simple provider meeting the token contract over two hypotheses: the TTL
@@ -19406,3 +19460,85 @@ header lists these.
 
 **Trust base.** 721 axioms (+1, `metadata.AppendToOutgoingContext.wp_proof`), 6 sorries;
 collection `authkv` gains it and `context.ErrAny.wp_proof` (`reqCtx`'s).
+
+## D22 S8d: the auth store's Recover a named premise (2026-10-25 · the user's decision, (a))
+
+`applySnapshot.spec` takes the triple of `st.Recover(ab)` in the server's terms as a named premise
+(`srvAuthRecoverOk`: S8c's statement, `authBeOn st oldbe` to `authBeOn st newbe` given the new
+backend's contract, an open share, a write-back token and its tracked buckets with the auth buckets
+at the server's), which the auth track discharges in its E stage when the authority reaches the
+server (`notes/auth-plan.md`, E).
+
+## D22 S8d, second pass against the callees: two of S8's own axioms to restate (2026-10-25 · questions for the user)
+
+Laying the proof against the apply thread's resources found two statements of this track (S8c, W6)
+that do not fit, one of them too strong:
+
+- **`RaftCluster.Recover`'s axiom ignores the cluster's in-memory members (a gap in a trusted
+  statement, W6, 2026-10-25).** `Recover` replaces `c.members` with the image's (`UnsafeLoad`), but
+  the axiom neither takes nor gives `membership.clusterMem c mem` (opaque: "`c.members` is
+  `mem`"), which the apply thread holds in its rest resource (`srvRestOwn`) and the cluster's
+  contracts read (`UpdateAttributes`, `AddMember`). As stated, a caller keeps `clusterMem c mem`
+  of the old members after `Recover`: too strong whenever the image's members differ from the
+  apply thread's model (their attributes, say). No proof uses the axiom yet (S8d is its first
+  caller), so nothing proved rests on the gap. Options: (a) restate it: take `clusterMem c mem`,
+  give `clusterMem c mem'`, with the image premise naming the members it decodes to
+  (`clusterImageOk c r mem'`); (b) keep it and take `clusterMem`'s refresh as a separate premise of
+  `applySnapshot.spec`. Recommendation: (a), the statement true of the code.
+- **`lessor.Recover`'s axiom wants the lease owner's live set empty (`leaseOwn γl []`), but the
+  apply thread holds it at some `L`** (`apply.leasesLive`, existential: nothing in the apply
+  thread's state says `L = []`, though the workload grants none). Options: (a) restate it: any `L`,
+  `leaseOwn γl []` after (true of Go: `Recover`'s `initAndRecover` rebuilds the lease map from the
+  new backend's lease bucket, empty in the image), the ghost's other half in `lessorInv` updated by
+  the axiom; (b) a premise `L = []` of `applySnapshot.spec`, from the workload (`noGrant`), which
+  S-j1 would have to carry as an invariant. Recommendation: (a).
+
+## E2g of the auth plan: the token provider's constructor proved; the server in the mode `on` not reached (2026-10-26 · `notes/auth-plan.md`)
+
+The brief: (1) `NewServer.spec` generic in the auth mode, the store from `newAuthStore_boot` in the
+mode `on`; (2) the server's environment admitting auth requests, `authOwn` threaded to the apply
+thread; (3) `NewTokenProvider` with `"simple"` proved. Only (3) is done.
+
+**(3) `NewTokenProvider` proved** (`Proof/go_etcd_io/etcd/server/v3/auth/NewTokenProvider.lean`;
+until now the axiom of unit N1). Translated with bodies (`auth.toml`): `NewTokenProvider`,
+`decomposeOpts`, `newTokenProviderNop`, the constants `tokenTypeSimple`/`tokenTypeJWT` and the error
+`ErrInvalidAuthOpts` (which joins `authInit`, appended, through `etc/gen-init.py`'s auth errors;
+its initializer leaves `opaqueInitsOk`'s list). Proved: `decomposeOpts` (Perennial's
+`strings.wp_Split`, the loop over the `key=value` fields into the map; its error only with more
+than one field, so that `"simple"` cannot fail), `newTokenProviderNop`, and
+`newTokenProviderSimple` under a spec of its own with no premise (`Spec/.../newTokenProviderSimple.lean`:
+the index waiter's field read-only, and the provider's facts for a positive TTL only; S5e's
+`tokenSimple_new`, with its TTL and waiter premises, is now derived from it). The JWT provider's
+constructor is names-only: its axiom `auth.newTokenProviderJWT.wp_proof` (it returns; its spec's
+docstring says why, including `edKey`'s unchecked type assertions, which golang-jwt's PEM parsers
+make safe) replaces `NewTokenProvider`'s.
+
+**Exported statement changed:** `auth.NewTokenProvider.spec`'s post keeps `err = nil → tp ≠ nil`
+and adds: unless the options are not `"simple"` or the TTL is not positive, `err = nil`, the
+provider is `*tokenSimple` `p` with its index waiter's field `iw` (read-only), and, under fresh
+names, `simpleOk`, `simpleAdmin` and the rights' authority -- what `tokenSimple_okA` turns into
+the token provider's contract (E2e's `tokenProviderBoot`). `NewServer`'s proof takes the first
+conjunct only (`⟨%Htp, -⟩`); no other statement changed.
+
+**(1), (2): why not.** The server's apply environment in the mode `on γa` needs the apply layer's
+contract `apply.isAuthStore … (.on γa) E.RW` of the store, at the server's write right `E.RW`
+(the tracked buckets' half lent with the auth backend's, `authApplyOk`'s `rwLens`, shared with the
+alarm store, the lessor and the cluster): its permission checks, `IsAuthEnabled` and `Revision`
+are the real store's (`isAuthStore_of_authInv`), but its admin clauses (`AuthEnable` ...,
+`HasRole`, `Authenticate`, the eleven requests and the four reads) are stated over the batch
+lock's `csContract` and `RW` with no authority: in the mode `on` they need the admin side's
+authority `authOwn` (S4f: an append needs both halves of the history), which `RW` would have to
+lend, and they need `HasRole`, `Authenticate` with `CheckPassword` (bcrypt), `UserGet`, `RoleGet`,
+`UserList` and `RoleList` proved (`isAuthStoreAdmin`'s premise, E2a). So (1) and (2) are one step:
+restate `isAuthStore`'s admin clauses in the mode `on` as `apply/AuthSteps.lean`'s step specs (the
+authority in the apply thread's resources, as `kvOwn`'s `E.RD`), derive them of the real store from
+S4's proofs, prove (or bound at the trust boundary) the admin reads and `CheckPassword`, then
+generalize `NewServer`'s ten `.off` instantiations and its post `E.authOn = false` (every closed
+theorem keeps `env₀`'s `.off`, its form derived), the store from `newAuthStore_boot` in the mode
+`on` with `authSchemaBoot` (D22's) and `tokenProviderBoot` (from this stage's post and
+`tokenSimple_okA_run`, over `ValidSpec`: the simple provider's `isValidSimpleToken` is proved on
+contexts only, `tokenSimple_okCtx`) as premises. Not attempted in this stage. The server's
+Auth-service gRPC contracts (`isGrpcRpc`) wait on the same.
+
+**Trust base.** Count unchanged: `auth.NewTokenProvider.wp_proof` replaced by
+`auth.newTokenProviderJWT.wp_proof` (baseline and the eight collections listing it updated).
