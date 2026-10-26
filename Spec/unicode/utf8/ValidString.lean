@@ -1,6 +1,6 @@
 /-
-`utf8.ValidString` (Go's `unicode/utf8`, names-only here: the trust boundary of unit P3b; the
-server's unary interceptor checks the client's API version with it). Lean-first.
+`utf8.ValidString` (Go's `unicode/utf8`, translated with its body; until 2026-10-26 an axiom:
+the server's unary interceptor checks the client's API version with it). Lean-first.
 -/
 module
 

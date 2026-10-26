@@ -78,7 +78,6 @@ axiom time.Time.IsZero.wp_proof
 axiom trace.SpanFromContext.wp_proof
 axiom trace.WithAttributes.wp_proof
 axiom traceutil.Tracer.Start.wp_proof
-axiom utf8.ValidString.wp_proof
 axiom v3rpc.isClientCtxErr.wp_proof
 axiom verify.Assert.wp_proof
 axiom verify.Verify.wp_proof

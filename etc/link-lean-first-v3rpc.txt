@@ -59,8 +59,9 @@ headerFillingRangeStream__Send: header__fillWithoutRevision
 # cluster's). Trust boundary (axioms): the apply package's
 # `storage.NewBackendQuota` (under `apply.backendUnderQuota`; since audit B3 no `EtcdServer.Alarm`),
 # `api.IsCapabilityEnabled`, grpc's
-# `metadata.FromIncomingContext`/`MD.Get`, `utf8.ValidString`, prometheus's
-# `CounterVec.WithLabelValues`, and `logUnaryRequestStats` (zap, peer, proto.Size).
+# `metadata.FromIncomingContext`/`MD.Get`, prometheus's `CounterVec.WithLabelValues`, and
+# `logUnaryRequestStats` (zap, peer, proto.Size). `utf8.ValidString` is proved (2026-10-26; until
+# then an axiom), over `utf8.word`.
 _KV_Put_Handler:
 _KV_Range_Handler:
 _KV_DeleteRange_Handler:
@@ -83,7 +84,8 @@ EtcdServer__IsMemberExist: @
 EtcdServer__IsLearner: @
 api_IsCapabilityEnabled:
 metadata_MD__Get:
-utf8_ValidString:
+utf8_word:
+utf8_ValidString: utf8_word
 prometheus_CounterVec__WithLabelValues:
 logUnaryRequestStats:
 isRPCSupportedForLearner:

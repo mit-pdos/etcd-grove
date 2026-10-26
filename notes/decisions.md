@@ -20902,3 +20902,33 @@ lose their workload parameter, with the same meaning: `plainEntryOn m`, `plainLo
 `NewServer.spec` did. `kv_cert_floor_on` reads the revision through `kvStateOf_rev` (the KV state
 became a record of compaction, base and changes). After the merge: 718 axioms, 6 sorries (lean's 721
 less the three server axioms `origin/lean` proved).
+
+## `utf8.ValidString` proved (2026-10-26)
+
+`utf8.ValidString.wp_proof` (`Spec/unicode/utf8/ValidString.lean`, unchanged: it returns
+`decide (utf8Valid s)`) was a trust-boundary axiom, `unicode/utf8` names-only. It is now a theorem
+over Go 1.27's source:
+
+- **Translation.** `Code/unicode/utf8.toml` translates `ValidString`, `word` (generic over
+  `string | []byte`; goose instantiates it at `string`, `FuncUnfold word [T]`), the tables `first`
+  and `acceptRanges` (their initializers: array literals) and the constants they use (`ptrSize`
+  evaluates to `8`: the 64-bit build, so `word`'s 32-bit branch is `if false`). The rest stays
+  names-only.
+- **Package fact.** `utf8Init` (`Proof/unicode/utf8/Base.lean`, where the `IsPkgInit` instance
+  moved from `v3rpc/Base.lean`): `first ↦□ array.mk 256 firstTable` and
+  `acceptRanges ↦□ array.mk 16 acceptTable`, the tables as Lean lists. `etc/gen-init.py`'s
+  `SPECIAL['unicode.utf8']` proves it from the initializer (the stored literals are the lists, by
+  `rfl`; `first`'s 256 `let`s need `maxRecDepth`). With both initializers translated the package's
+  `opaqueInitsOk` axiom is gone too.
+- **Proof.** `Proof/unicode/utf8/word.lean` (`word(s)` is `wordOf s`, the first eight bytes
+  little-endian); `ValidAscii.lean` (pure: ASCII bytes do not change `utf8ValidB`; the mask test
+  `wordOf s &&& 0x8080808080808080 = 0` makes the eight bytes ASCII, bit by bit, not `bv_decide`,
+  whose proof rests on native evaluation); `ValidTable.lean` (pure: the tables against
+  `utf8Lead`, by `decide +kernel` over the 256 bytes, and `validB_lead`, one step of `utf8ValidB`
+  at a byte `≥ 0x80` as Go's switch on `first[b] & 7` with `acceptRanges[first[b] >> 4]`);
+  `ValidString.lean`: the loop invariant is `utf8ValidB s = utf8ValidB str` for the remaining
+  `s`, the same for the ASCII fast path's inner loop (joined with `wp_join … at next`).
+  `utf8ValidB` turned out to be exactly Go's `ValidString`: no mismatch.
+
+Trust base: 721 → 719 axioms (`utf8.ValidString.wp_proof`, `unicode.utf8.opaqueInitsOk`), 6
+`sorry`s unchanged; the baseline and the nine collections that listed them updated.
