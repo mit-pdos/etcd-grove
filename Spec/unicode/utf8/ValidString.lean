@@ -4,7 +4,7 @@ server's unary interceptor checks the client's API version with it). Lean-first.
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Base
+public import Proof.unicode.utf8.Base
 public import Proof.unicode.utf8.Valid
 
 @[expose] public section

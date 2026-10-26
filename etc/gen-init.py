@@ -247,6 +247,21 @@ states `linkHeartbeatMessage`'s and `linkHeartbeatSize_init` `linkHeartbeatSize`
 FIN_PRE = ['iframe Hown', 'imodintro', 'isplitr', '· ipureintro', '  exact isPanic_intoVal _',
            'is_pkg_init_finish', 'try (isplitl []; · (imodintro; itrivial))', 'imodintro']
 
+# (2026-10-26) `ValidString` with its body: the tables it reads are translated
+SPECIAL['unicode.utf8'] = dict(
+    doc='''Its fact (`utf8Init`, `Base.lean`): the tables `first` and `acceptRanges` (`utf8.go`) hold
+their values (`firstTable`, `acceptTable`), read-only for good. Its initializer allocates them and
+stores their translated array literals.''',
+    alloc_types={'first': 'GoArray w8 256',
+                 'acceptRanges': 'GoArray _root_.Perennial.unicode.utf8.acceptRange 16'},
+    # `first`'s literal is 256 `let`s
+    pre=['set_option maxRecDepth 20000', ''],
+    heavy=True,
+    finish=['ipersist Hfirst', 'ipersist HacceptRanges'] + FIN_PRE + [
+        'unfold EtcdGrove.utf8.utf8Init', 'isplit',
+        '· iExactEq Hfirst', '  rfl', '· iExactEq HacceptRanges', '  rfl'],
+)
+
 # (2026-10-24, the auth plan's A3c: the Lock and Election servers bring the client's concurrency
 # package into the closure) its five error variables, translated `errors.New` calls
 _CC = [('ErrElectionNotLeader', 'N'), ('ErrElectionNoLeader', 'O'), ('ErrLocked', 'L'),

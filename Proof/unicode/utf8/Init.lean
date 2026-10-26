@@ -2,13 +2,13 @@
 Package initialization of `unicode.utf8`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
-Its fact is `True`. Its initializer initializes its imports and runs the untranslated
-initializers of its variables (`X.init`, axioms of the translation), which the
-trust-boundary axiom `opaqueInitsOk` says run without panicking.
+Its fact (`utf8Init`, `Base.lean`): the tables `first` and `acceptRanges` (`utf8.go`) hold
+their values (`firstTable`, `acceptTable`), read-only for good. Its initializer allocates them and
+stores their translated array literals.
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Base
+public import Proof.unicode.utf8.Base
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -27,24 +27,7 @@ local macro "mem_tac" : tactic =>
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
-section opaqueInits
-namespace unicode.utf8
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
-variable [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-
-/-- **The trust boundary: `unicode.utf8`'s untranslated variable initializers run.**
-Goose translates them names-only, so each `X.init` is an axiom of the translation; Go
-runs them at program start, and etcd starts, so each returns without panicking.
-Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
-axiom opaqueInitsOk :
-    ∀ v ∈ ([first.init,
-        acceptRanges.init] : List val),
-    {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
-
-end unicode.utf8
-end opaqueInits
+set_option maxRecDepth 20000
 
 section init
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -55,6 +38,7 @@ variable [package_sem : _root_.Perennial.unicode.utf8.Assumptions]
 
 namespace unicode.utf8
 
+set_option maxHeartbeats 8000000 in
 theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
     (Hinit : GetIsPkgInitProp pkg_id.unicode.utf8 get_is_pkg_init) (σ0 : GMap GoString Bool) :
     {{ EtcdGrove.ownInitLb get_is_pkg_init σ0 }}
@@ -66,10 +50,27 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
-  wp_apply (opaqueInitsOk first.init (by mem_tac))
-  wp_apply (opaqueInitsOk acceptRanges.init (by mem_tac))
+  iapply wp_fupd
+  wp_apply wp_GlobalAlloc (V := GoArray _root_.Perennial.unicode.utf8.acceptRange 16) acceptRanges _ as HacceptRanges
+  wp_apply wp_GlobalAlloc (V := GoArray w8 256) first _ as Hfirst
+  -- translated initializer of first))
+  -- translated initializer of acceptRanges))
+  ipersist Hfirst
+  ipersist HacceptRanges
   iframe Hown
+  imodintro
+  isplitr
+  · ipureintro
+    exact isPanic_intoVal _
   is_pkg_init_finish
+  try (isplitl []; · (imodintro; itrivial))
+  imodintro
+  unfold EtcdGrove.utf8.utf8Init
+  isplit
+  · iExactEq Hfirst
+    rfl
+  · iExactEq HacceptRanges
+    rfl
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)
