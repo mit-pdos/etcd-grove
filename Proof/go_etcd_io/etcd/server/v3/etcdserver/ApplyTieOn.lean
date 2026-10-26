@@ -25,6 +25,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVApplyOn
 public import Proof.go_etcd_io.etcd.server.v3.auth.TieRes
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.ApplyAdminL
 
 @[expose] public section
 
@@ -114,6 +115,21 @@ theorem adminStateR_of_step (rq : apply.IRRModel) (st : auth.AuthState) (o : aut
   · rw [hk]; simp only [hn]; exact ⟨o, h, rfl⟩
   · rw [hk]; simp only [hu]; exact ⟨o, h, rfl⟩
   · rw [hk]; simp only [hn]; exact ⟨o, h, rfl⟩
+
+/-- **An admin check refused at the latest state** (E3c's `adminRejL`, from `uberApplier.Apply`'s
+latest-state admin triple): the admin step keeps the state. -/
+theorem adminStateR_of_rejL (γa : auth.AuthNames) (hs : List auth.AuthState) (st : auth.AuthState)
+    (rq : apply.IRRModel) (hl : hs.getLast? = some st)
+    (h : apply.adminRejL (.on γa) hs rq) : adminStateR rq st st :=
+  adminStateR_refused rq st (h st hl)
+
+/-- **An admin check passed at the latest state** (E3c's `adminPassL`): the latest state admits
+the request's principal, `adminStateR_of_step`'s premise. -/
+theorem adminOk_of_passL (γa : auth.AuthNames) (hs : List auth.AuthState) (st : auth.AuthState)
+    (rq : apply.IRRModel) (hl : hs.getLast? = some st) (hn : apply.needAdminPermission rq = true)
+    (h : apply.adminPassL (.on γa) hs rq) :
+    auth.adminOk st (some (auth.authInfoM (apply.principalOf rq))) :=
+  h hn st hl
 
 end pure
 
