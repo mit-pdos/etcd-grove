@@ -19346,3 +19346,63 @@ the authority `authOwn` in the apply thread's resources, the dispatch through th
 from `NewTokenProvider` with `"simple"` (names-only today: its spec gives only `tp ≠ nil`).
 
 **Trust base.** Unchanged (720 axioms, 6 sorries).
+
+## E2f of the auth plan: authkv's client side -- the checks proved, the contract over the contexts' metadata (2026-10-26 · `notes/auth-plan.md`)
+
+The parts of `examples/authkv`'s `Main` proof on the client's side that need no D22 and no server
+in the mode `on` (E2e's next step, another fork's).
+
+**The checks, proved and linked** (`Proof/.../authkv/`, `Spec/.../authkv/`): `keyOf`, `refused`,
+`Principals`, `Writer`, `LastIn`, `CheckHistory`, `checkKVs`, `checkTxnReads`, over the pure
+functions of `Checks.lean` (`keyOfK`; `writerK`, the first principal `who` with `x/<who>/` a
+proper prefix of the key; `histOk`, every event above the set-up's revision but the last write's a
+write its key's principal was permitted; `lastIn`). The replies are read as the client's reply
+lemmas give them: `txn.kvsIs` for a range's key-values, `opRespsMsg` for a transaction's
+responses. `checkTxnReads` runs `ResponseOp.GetResponseRange` from its code for every response
+kind (`wp_method_call`; the type assertion of a put's, delete's or nested transaction's wrapper
+fails and the getter returns `nil`): its spec, `ResponseOp__GetResponseRange.lean`, is of a range's
+only, and generalizing it would change its callers' proofs (the client's recipes, leasing,
+kubernetes, the server's `txn`, linkvtxn). `Writer` uses
+`wp_string_len`'s bound (`len(k) < 2^63`) to read `len(k) > len(p)` as the lengths' order.
+
+**The contract over the contexts' metadata** (`ClientAuth.lean`, `grpc/metadata/Outgoing.lean`).
+`metadata.outgoingOf` is the counterpart of E2c's `incomingOf` (opaque, a context being
+immutable), with `mdAdd` (a value appended to a key's) and `mdVals`. E2b's four parts:
+- C1, `userAttemptOk γa u h`: an attempt's handler context `h` of a client with the user name `u`
+  carries no token or one issued to `u` (`auth.ctxTokenOf`, `auth.tokIssued`);
+- C2 and C4, `deliversOutgoing c h`: a no-user client's attempt delivers its caller's outgoing
+  metadata as the handler's incoming metadata;
+- C3, the trust-boundary spec `metadata.AppendToOutgoingContext.spec` (**+1 axiom**: grpc's
+  `metadata` is names-only): from an `isContext`, a context with the same descriptor but its
+  values (as `withVersion`'s: grpc's code is `context.WithValue`, which delegates `Deadline`,
+  `Done`, `Err` and the context package's own key to its parent) whose outgoing metadata is the
+  argument's with the pair appended (a lower-case key; `FromOutgoingContext` and the transport
+  merge `added` after `md`).
+`reqCtx` is proved over C3 and `client.wp_WithTimeout_bg`: a `ctxOk` context whose `Err()`
+returns client errors (`ctxErrClient`, from `ctxErrClientAllW_of` for the appended context), the
+timeout context itself or, for the bad principal, it with `token: badtoken` appended.
+`badCtx_unbound`: a handler context delivering outgoing metadata whose token values are
+`[badtoken]` gives `AuthInfoFromCtx` no auth info in the mode `on γa` (E2c's `tokIssued_badToken`).
+Restated in `authkv/Results.lean` with the checks (`authkv_CheckHistory`, `authkv_checkKVs`,
+`authkv_checkTxnReads`, `authkv_reqCtx`, `authkv_bad_unbound`).
+
+**Not stated: the timeout context has no outgoing token.** True of Go (only grpc stores under its
+metadata key, and `context.WithTimeout(context.Background(), d)` stores nothing), but Perennial's
+context model describes no value at another package's key (`ContextDesc.Values` is unused by
+`isContext`), and `outgoingOf` is opaque. Options: strengthen `context.WithTimeoutBackground.spec`
+(this repository's, proved from Perennial's) with `⌜outgoingOf ctx' = none⌝` as a new premise-free
+fact (an axiom, its users' patterns to adapt: the read loop's `sendReadIndex` among them), or model
+the outgoing metadata by the descriptor's `Values` once Perennial's `Value` spec covers other
+keys. Left with `Main`.
+
+**Not done, and why.** `SetUp` and `Work` (and so `Main`): `SetUp`'s admin calls go through the
+client's `Auth` field, which `isNewClient`'s model does not describe (`NewAuth`, `RetryAuthClient`
+and the `authClient` methods are untranslated), to the server's Auth service, for whose methods no `isGrpcRpc`
+contract is stated (the KV service's are, `client/v3/ServerKV*.lean`); and both need the server in the mode `on` (E2e's next step). `Work`'s calls need,
+besides, each reply at the server's verdict for its principal (an error for a refused request: A1,
+A4, the API layer's checks, at the server's `isGrpcRpc` specs, which today are for auth off), and
+C1, C2/C4 in the client's attempt contract (`grpcInvokerOk` says nothing of metadata). `Main.lean`'s
+header lists these.
+
+**Trust base.** 721 axioms (+1, `metadata.AppendToOutgoingContext.wp_proof`), 6 sorries;
+collection `authkv` gains it and `context.ErrAny.wp_proof` (`reqCtx`'s).
