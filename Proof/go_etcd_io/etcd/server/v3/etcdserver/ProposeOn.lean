@@ -158,7 +158,7 @@ instance grantedRes_persistent (γk : KVNames) (st₀ : auth.AuthState) (rq : ap
 /-- **An admin proposal's result in the mode `on`** at the committed log `L` before its entry: the
 users' roles sorted there and the entry determinate, so the auth state after it is the model's step
 `adminNext rq` of the state after `L` (the auth plan's E3m). -/
-def adminRes (γk : KVNames) (st₀ : auth.AuthState) (rq : apply.IRRModel) (L : List EntryModel) :
+def adminPropRes (γk : KVNames) (st₀ : auth.AuthState) (rq : apply.IRRModel) (L : List EntryModel) :
     IProp GF :=
   iprop(⌜rolesSorted (kvRaftOfOn γk.c0 γk.ch0 (st₀, γk.log0) L).1 ∧
     authDet rq (kvRaftOfOn γk.c0 γk.ch0 (st₀, γk.log0) L).1⌝)
@@ -167,7 +167,7 @@ def adminRes (γk : KVNames) (st₀ : auth.AuthState) (rq : apply.IRRModel) (L :
 request with no KV write (`Qr` trivial); or a plain request of the KV operation `op` with its
 client's update fired at most once, `Qr` its result if granted (`grantedRes`). Either with every
 permission of the cache's shape (`kvShapeAll`). Or (E3m) an admin request meeting `adminPropOk`,
-`Qr` its step's determinacy at the commit (`adminRes`). -/
+`Qr` its step's determinacy at the commit (`adminPropRes`). -/
 def reqPropOkOn (γk : KVNames) (st₀ : auth.AuthState) (rq : apply.IRRModel)
     (Qr : List EntryModel → IProp GF) : IProp GF :=
   iprop((⌜plainReq rq ∧ ¬ writeKind (apply.dispatchKind rq) ∧ irrNoZeroEnd rq ∧ rqShape rq ∧
@@ -176,7 +176,7 @@ def reqPropOkOn (γk : KVNames) (st₀ : auth.AuthState) (rq : apply.IRRModel)
         reqKVOp rq = some op ∧ irrNoZeroEnd rq ∧ rqShape rq ∧ kvShapeAll rq ∧
         Qr = grantedRes γk st₀ rq γc Q⌝ ∗
       kvOpAu1 γk op Q) ∨
-    ⌜adminPropOk st₀ rq ∧ irrNoZeroEnd rq ∧ Qr = adminRes γk st₀ rq⌝)
+    ⌜adminPropOk st₀ rq ∧ irrNoZeroEnd rq ∧ Qr = adminPropRes γk st₀ rq⌝)
 
 end defs
 
@@ -419,7 +419,7 @@ theorem kv_prop_au_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthS
         exact kvInvOn_facts_snoc γ γk st₀ L e Hok hidx' hc
       imodintro
       iintro !>
-      iunfold adminRes
+      iunfold adminPropRes
       ipureintro
       have hs := rolesSorted_kvRaftOfOn γk.c0 γk.ch0 (st₀, γk.log0) L hadm.2.2.2.2
       refine ⟨hs, authDet_of_sorted rq _ hs ⟨hadm.2.2.1, fun r w ps hr _ => ?_⟩⟩
