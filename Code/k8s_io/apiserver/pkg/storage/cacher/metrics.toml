@@ -1,0 +1,10 @@
+# Types and names only: function and method bodies are axiomatized (project k8s-apiserver;
+# notes/kep-6404-plan.md). It imports component-base's `metrics` (names only), whose types its
+# variables are of, so that the watch cache's uses of them reach the names through this module's
+# public import (Goose's gap G3: the cacher does not import component-base's `metrics`, and does
+# not import this package either, `cacher.toml`).
+translate = ["!*"]
+imports = ["k8s.io/component-base/metrics"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

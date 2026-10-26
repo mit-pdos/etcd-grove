@@ -82,7 +82,6 @@ axiom bbolt.Tx.Size_kv.wp_proof
 axiom bbolt.Tx.Stats_kv.wp_proof
 axiom sort.Stable.wp_proof
 axiom time.Duration.Seconds.wp_proof
-axiom verify.Assert.wp_proof
 axiom verify.Verify.wp_proof
 axiom zap.Error.wp_proof
 axiom zap.Logger.Fatal.wp_proof

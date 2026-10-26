@@ -127,7 +127,10 @@ abbrev NewServer.spec : Prop :=
     (id : w64) (bootLog : List EntryM) (ρ : ReqNames) (E₀ : apply.AEnv GF) (N : Nat)
     (Φs : w64 → w64 → List w8 → GName → IProp GF)
     -- (D21 M2, 2026-10-19) the raft network and its URL directory
-    (γn : NetNames GF) (dir : w64 → List GoString),
+    (γn : NetNames GF) (dir : w64 → List GoString)
+    -- (2026-10-26, D22 J2, R-loc) the member's snapshot directory's names (raft's
+    -- `RaftNames.reSnapLoc`)
+    (γd : GName),
   -- the read names: at the cluster's raft names, the start log empty, the start index `0`, the
   -- conf-change policy; the KV's start values, its certificate map the store's
   ρ.rd.raft = ⟨γ, [], W64 0⟩ → srvCCPolicy ρ.rd.raft →
@@ -192,6 +195,10 @@ abbrev NewServer.spec : Prop :=
       -- directory `bootstrap`'s (until then the named premise `transportEffectsOk`); (2026-10-24,
       -- rafthttp stage 6d) its HTTP side ready (until then the member's slot, `netSlot γn id`)
       "#Hnet" ∷ netHttpOk γn id ∗ "%Hγn" ∷ ⌜γn.N = srvNet γ bud ∧ γn.dir = dir⌝ ∗
+      -- (2026-10-26, D22 J2, R-loc) the member's snapshot directory, empty, at the names raft's
+      -- names give the member (`RaftNames.reSnapLoc`; until then `NewServer` allocated it,
+      -- `snapDir_alloc`), so that a received snapshot's `snapSaved` is raft's `snapLocal`
+      "%Hsloc" ∷ ⌜γ.reSnapLoc id = some γd⌝ ∗ "Hsdir" ∷ ghostMapAuth γd 1 (∅ : GMap w64 Unit) ∗
       -- the named premises of the constructors' axioms (D14e, unit N4): the lessor's
       -- checkpointer's effects and the auth store's record bound
       "%Hckok" ∷ ⌜ckptEffectsOk⌝ ∗ "%Haufit" ∷ ⌜authRecordsFit⌝ ∗
@@ -257,7 +264,10 @@ abbrev NewServer.specM (on : Bool) : Prop :=
     (id : w64) (bootLog : List EntryM) (ρ : ReqNames) (E₀ : apply.AEnv GF) (N : Nat)
     (Φs : w64 → w64 → List w8 → GName → IProp GF)
     -- (D21 M2, 2026-10-19) the raft network and its URL directory
-    (γn : NetNames GF) (dir : w64 → List GoString),
+    (γn : NetNames GF) (dir : w64 → List GoString)
+    -- (2026-10-26, D22 J2, R-loc) the member's snapshot directory's names (raft's
+    -- `RaftNames.reSnapLoc`)
+    (γd : GName),
   -- the read names: at the cluster's raft names, the start log empty, the start index `0`, the
   -- conf-change policy; the KV's start values, its certificate map the store's
   ρ.rd.raft = ⟨γ, [], W64 0⟩ → srvCCPolicy ρ.rd.raft →
@@ -326,6 +336,10 @@ abbrev NewServer.specM (on : Bool) : Prop :=
       -- directory `bootstrap`'s (until then the named premise `transportEffectsOk`); (2026-10-24,
       -- rafthttp stage 6d) its HTTP side ready (until then the member's slot, `netSlot γn id`)
       "#Hnet" ∷ netHttpOk γn id ∗ "%Hγn" ∷ ⌜γn.N = srvNet γ bud ∧ γn.dir = dir⌝ ∗
+      -- (2026-10-26, D22 J2, R-loc) the member's snapshot directory, empty, at the names raft's
+      -- names give the member (`RaftNames.reSnapLoc`; until then `NewServer` allocated it,
+      -- `snapDir_alloc`), so that a received snapshot's `snapSaved` is raft's `snapLocal`
+      "%Hsloc" ∷ ⌜γ.reSnapLoc id = some γd⌝ ∗ "Hsdir" ∷ ghostMapAuth γd 1 (∅ : GMap w64 Unit) ∗
       -- the named premises of the constructors' axioms (D14e, unit N4): the lessor's
       -- checkpointer's effects and the auth store's record bound
       "%Hckok" ∷ ⌜ckptEffectsOk⌝ ∗ "%Haufit" ∷ ⌜authRecordsFit⌝ ∗

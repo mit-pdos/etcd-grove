@@ -120,7 +120,7 @@ theorem srv_be_swap (s : Loc) (E : apply.AEnv GF) (γp : GName) (d' : mvcc.KBRea
     srvWTPool E γp ⊢ bemuP s E.γbe 1 -∗ srvBeOwn s E -∗ srvBeRO d' -∗ ownToks d'.γB.wb n' -∗
       mvcc.bkRTx d'.γB d'.P d'.be -∗ £ 1 -∗
       |={⊤}=> ∃ d : mvcc.KBReal, ⌜E.γ.kb = some d⌝ ∗ srvBeAddr s ↦ srvBeIface d.be ∗
-        (∃ n : Nat, ownToks d.γB.wb n) ∗ mvcc.bkRTx d.γB d.P d.be ∗
+        (∃ n : Nat, ownToks d.γB.wb n) ∗ mvcc.bkRTx d.γB d.P d.be ∗ srvBeRO d ∗
         (srvBeAddr s ↦ srvBeIface d'.be -∗ bemuP s E.γbe 1 ∗
           srvBeAddr s ↦{DFrac.own (1 : Qp).half} srvBeIface d'.be ∗
           dghostVar E.γbe (DFrac.own (1 : Qp).half.half) d') := by
@@ -163,7 +163,7 @@ theorem srv_be_swap (s : Loc) (E : apply.AEnv GF) (γp : GName) (d' : mvcc.KBRea
     ileft; iexact Hrt'
   imodintro
   iexists d1
-  iframe Hbe Hrt
+  iframe Hbe Hrt Hro1
   isplitr
   · ipureintro; exact Hd
   isplitl [Hn]

@@ -49,7 +49,7 @@ local macro "early_return" e:term : tactic => `(tactic| (
       (fun h => Hsnap (h.imp_left fun h' => ⟨Hps' h'.1, h'.2⟩)) Hstok Htrm Hstor Hpvoff
       Hrs_out Hrs_unst Hrs_clb Hrnfl
       (Hloan.step rs.term rfl (fun _ => ⟨.inl rfl, rfl, rfl, rfl, rfl, Int.le_refl _⟩))
-      $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc
+      $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hloanc Hsloc
   ipureintro
   refine ⟨Int.le_refl _, by rw [Htrm, Hpvoff.2.1]; exact Hpvoff.2.2.1, fun _ => ?_⟩
   split <;> omega))
@@ -154,7 +154,7 @@ theorem RawNode.Step.wp_proof
         -- (2026-10-20, D22 S-c) a snapshot's facts, at the static mode
         imodintro
         iintro %h
-        icases Hsnap $$ %h with ⟨%sv0, %scfg0, %Hp0, #Hm0, #Hd0⟩
+        icases Hsnap $$ %h with ⟨%sv0, %scfg0, %Hp0, #Hm0, #Hd0, -⟩
         iexists sv0, scfg0
         rw [Hstat h]
         simp only [RNMode.toG, GMode.SnapDyn]
@@ -173,9 +173,15 @@ theorem RawNode.Step.wp_proof
         -- S-d3b) any queue, the acknowledgement's facts carried across the restore (`ackInv_snap`)
         have Hst := Hstat Hs
         obtain ⟨⟨Ha, Hu, Hsd, Hsg, Hpre, Hgh, Hfl', Hap', Ht1, Ht2, Hpcs⟩, Hco, Hsl⟩ := Hsfr Hs
-        icases Hsnap $$ %Hs with ⟨%sv0, %scfg0, %Hp0, #Hm0, -⟩
+        icases Hsnap $$ %Hs with ⟨%sv0, %scfg0, %Hp0, #Hm0, -, #Hloc0⟩
         obtain ⟨Hsn0, Hcl0, -⟩ := Hp0
         have Hsl0 := Hsl sv0 Hsn0
+        -- (2026-10-26, D22 J2) the pending snapshot kept, or the message's, local to the node
+        ihave #Hsloc' : snapLocOk γ id s'.logst.snap $$ []
+        · rcases Hsl0 with ⟨-, h2, -, -⟩ | ⟨-, -, h2, -, -, -⟩
+          · rw [h2]; iexact Hsloc
+          · rw [h2]; iapply (snapLocOk_some γ id (snapId sv0)).2
+            rw [show (snapId sv0).index' = sv0.Metadata'.Index' from rfl]; iexact Hloc0
         have Hmd : md' = rs.mode.toG ⟨rs.capplied, rs.cfg, fp⟩ := by
           rw [Hst] at Href ⊢; exact Href.1
         -- (D22 S-b′4) the restored lists' static facts, from the message's certificate (under
@@ -232,7 +238,7 @@ theorem RawNode.Step.wp_proof
                   rcases Hsl0 with ⟨-, h2, -, -⟩ | ⟨-, -, h2, -, h3, -⟩
                   · exact .inl h2
                   · exact .inr ⟨_, h2, h3, by simp [Hs]⟩, Hfl', Hsd, Hu, Ha, Hc⟩))
-              $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc
+              $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc Hsloc'
         ipureintro
         rw [Htrm]
         exact ⟨Ht1, by rw [Hpvoff.2.1]; exact Hle, Ht3'⟩
@@ -270,6 +276,8 @@ theorem RawNode.Step.wp_proof
           ihave #Hents := isMessage_app_leadFull γ m ents $$ Hm'
           iapply ackInv_app γ rfl Hstok Ht1 Hpv Hsn Hsd (Htrc Happ) Hrel Hpr.1 $$ Hstrecs Hents
         · iapply ackInv_keep γ rfl Hstok Ht1 Hpv Hsn Hsd (Hip4 Happ) $$ Hstrecs
+      ihave #Hsloc' : snapLocOk γ id s'.logst.snap $$ []
+      · rw [Hsn]; iexact Hsloc
       wp_auto
       iapply HΦ $$ %err %s'.term
       isplitl
@@ -283,7 +291,7 @@ theorem RawNode.Step.wp_proof
             (by rw [Hgh]; exact Hrs_out) (by rw [Hgh]; exact Hrs_unst) (Int.le_trans Hrs_clb Hc)
             (RNFl.keep Hrnfl Hfl' Hap' Ha)
             (Hloan.step s'.term Hgh (fun _ => ⟨.inl Hsn, Hfl', Hsd, Hu, Ha, Hc⟩))
-            $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc
+            $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstr' Hloanc Hsloc'
       ipureintro
       rw [Htrm]
       exact ⟨Ht1, by rw [Hpvoff.2.1]; exact Hle, Ht3'⟩)
