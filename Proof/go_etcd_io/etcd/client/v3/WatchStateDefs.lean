@@ -133,6 +133,22 @@ instance watchStateRespOk_persistent (o : OpFull) (σ : KVState) (c c' : w64)
     Persistent (watchStateRespOk (GF := GF) o σ c c' v r) := by
   unfold watchStateRespOk; infer_instance
 
+open Iris.ProofMode in
+/-- A response's header, owned (`watchHdrOwn`: a response with events owns its `Revision`), made
+read-only (`hdrAt`, `respAt`'s). -/
+theorem hdrAt_of_hdrOwn (h : Loc) (r : RespModel) :
+    watchHdrOwn (GF := GF) h r ⊢ |==> hdrAt h r.hdrRev := by
+  unfold watchHdrOwn
+  split
+  · iintro #H; imodintro; iexact H
+  · iintro ⟨%hn, H⟩
+    ipersist H
+    imodintro
+    unfold hdrAt
+    iright
+    iframe H
+    ipureintro; exact hn
+
 /-- **The `i`-th response `v` of a watch of `o` with the read update's `Q`**: modelled by some `r`
 (`respAt`: its events, header and flags), the update's `□ Q σ` at the state `σ` it fired at, and
 `watchStateRespOk` at the positions `i` and `i + 1` of the watch's cursor. -/

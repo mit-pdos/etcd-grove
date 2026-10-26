@@ -39,58 +39,67 @@ instance isBlockLogger_persistent' {α : Type} (bl : Loc) (A : α → IProp GF) 
 instance bufLogOk_persistent' (ws bl : Loc) : Persistent (bufLogOk (GF := GF) ws bl) := by
   unfold bufLogOk; infer_instance
 
-/-- **Publishing a response** at the producer's position `i` (the cursor's positions `C`, one more
-than the responses published, ending at `hiB`): the cursor extended by `hiA`, the contract's
-element. -/
+/-- **Publishing a response** at the producer's position `i` (the first cursor's positions `C`,
+one more than the responses published, ending at `hiB`): the first cursor extended by `hiA`, and
+the caller's channel's element (`outcElem`, D46: the read update's firing at the second cursor's
+positions; the response's header read-only). -/
 theorem publish_elem (V : WEnv GF) (P : WsPrm GF) (C : List w64) (i : Nat)
     (v : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel) (hiB hiA : w64)
     (hC : C.length = i + 1) (hl : C.getLast? = some hiB)
     (hf : v.CompactRevision' = r.compactRev ∧ v.Canceled' = r.canceled ∧ v.Created' = r.created)
-    :
+    (hcpl : P.γ.cpl = true) :
     monoListAuthOwn (GF := GF) P.γ.cur 1 C ∗ eventsAt v.Events' r.events ∗
       watchHdrOwn v.Header' r ∗ rangeWatchRespOk (EM := V.WM) V.pfx P.o P.rev hiB hiA r ∗
       statusErrOk v.closeErr' ∗
-      (⌜P.γ.cpl = false⌝ ∨ ∃ c2 c2' : w64, monoListIdxOwn P.γ.cur2 i c2 ∗
-        monoListIdxOwn P.γ.cur2 (i + 1) c2' ∗ watchRespOk (EM := V.WM) P.o.key c2 c2' v r) ⊢
-    |==> (monoListAuthOwn P.γ.cur 1 (C ++ [hiA]) ∗
-      rangeWatchElem (EM := V.WM) P.γ V.pfx P.o P.rev (i : Int) v) := by
-  iintro ⟨Hauth, #Hev, Hhdr, #Hok, #Hse, #Hc2⟩
-  imod monoListAuthOwn_update_app (GF := GF) [hiA] $$ Hauth with ⟨Hauth, #Hlb⟩
-  have h1 : (C ++ [hiA])[i]? = some hiB := by
-    rw [List.getElem?_append_left (by omega)]; exact getElem?_of_getLast? hC hl
-  have h2 : (C ++ [hiA])[i + 1]? = some hiA := by
-    rw [List.getElem?_append_right (by omega)]; simp [hC]
-  ihave #Hi1 := monoListIdxOwn_get (GF := GF) i hiB h1 $$ Hlb
-  ihave #Hi2 := monoListIdxOwn_get (GF := GF) (i + 1) hiA h2 $$ Hlb
+      (⌜P.γ.cpl = false⌝ ∨ ∃ (c2 c2' : w64) (σ : KVState), monoListIdxOwn P.γ.cur2 i c2 ∗
+        monoListIdxOwn P.γ.cur2 (i + 1) c2' ∗ □ P.Q σ ∗ watchStateRespOk P.o σ c2 c2' v r) ⊢
+    |==> (monoListAuthOwn P.γ.cur 1 (C ++ [hiA]) ∗ outcElem P.γ P.o P.Q (i : Int) v) := by
+  iintro ⟨Hauth, #Hev, Hhdr, -, -, #Hc2⟩
+  imod monoListAuthOwn_update_app (GF := GF) [hiA] $$ Hauth with ⟨Hauth, -⟩
+  icases Hc2 with (%Hf | ⟨%c2, %c2', %σ, #H1, #H2, #HQ, #Hs⟩)
+  · rw [hcpl] at Hf; cases Hf
+  imod hdrAt_of_hdrOwn v.Header' r $$ Hhdr with #Hh
   imodintro
   iframe Hauth
-  unfold rangeWatchElem
-  iexists r, hiB, hiA
+  unfold outcElem watchStateElem respAt
+  iexists r, σ, c2, c2'
   simp only [Int.toNat_natCast]
-  iframe Hev Hhdr Hi1 Hi2 Hok Hse
-  isplitr
-  · ipureintro; exact hf
-  iexact Hc2
+  iframe Hev Hh H1 H2 HQ Hs
+  ipureintro; exact hf
 
-/-- A created response without events keeps the cache's contract's position. -/
-theorem watchRespOk_created (V : WEnv GF) (pfx : GoString) (c c' : w64) (v : go_etcd_io.etcd.client.v3.WatchResponse)
-    (r : RespModel) (hc : r.created = true) (he : r.events = []) :
-    watchRespOk (EM := V.WM) pfx c c' v r ⊢ ⌜c' = c⌝ := by
-  unfold watchRespOk
-  iintro (⟨%H, -⟩ | %H | ⟨%H, -, -⟩ | ⟨%H, -⟩)
+/-- A created response without events keeps the server-level contract's position. -/
+theorem rawRespOk_created (γst : mvcc.StoreNames) (o : OpFull) (c c' : w64)
+    (v : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel) (hc : r.created = true)
+    (he : r.events = []) :
+    rawRespOk (GF := GF) γst o c c' v r ⊢ ⌜c' = c⌝ := by
+  unfold rawRespOk
+  iintro (⟨%H, -⟩ | %H | ⟨%H, -⟩ | ⟨%H, -⟩)
   · ipureintro; exact H.2
   · ipureintro; exact H.2.2.2
   · exfalso; simp [RespModel.isProgressNotify, hc] at H
   · exact absurd he H.2.1
 
-/-- **Publishing a received response, the second cursor** (K2e-7): the `kk`th received response's
-contract at the second dispatch cursor's positions becomes the published one's at `γ.cur2`'s. -/
+/-- A created response without events keeps the state contract's position. -/
+theorem watchStateRespOk_created (o : OpFull) (σ : KVState) (c c' : w64)
+    (v : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel) (hc : r.created = true)
+    (he : r.events = []) :
+    watchStateRespOk (GF := GF) o σ c c' v r ⊢ ⌜c' = c⌝ := by
+  unfold watchStateRespOk
+  iintro (⟨%H, -⟩ | %H | %H | ⟨%H, -⟩)
+  · ipureintro; exact H.2
+  · ipureintro; exact H.2.2.2
+  · exfalso; simp [RespModel.isProgressNotify, hc] at H
+  · exact absurd he H.2.1
+
+/-- **Publishing a received response, the second cursor** (K2e-7, D46): the `kk`th received
+response's read update firing at the second dispatch cursor's positions becomes the published
+one's at `γ.cur2`'s. -/
 theorem publish_cmpl (V : WEnv GF) (P : WsPrm GF) (i k : Nat) (kk : Int) (hk : kk.toNat = k)
     (v : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel) :
     cur2Pos (GF := GF) P i k ∗ recvCmpl V P kk v r ⊢
     |==> (cur2Pos P (i + 1) (k + 1) ∗
-      (⌜P.γ.cpl = false⌝ ∨ ∃ c2 c2' : w64, monoListIdxOwn P.γ.cur2 i c2 ∗
-        monoListIdxOwn P.γ.cur2 (i + 1) c2' ∗ watchRespOk (EM := V.WM) P.o.key c2 c2' v r)) := by
+      (⌜P.γ.cpl = false⌝ ∨ ∃ (c2 c2' : w64) (σ : KVState), monoListIdxOwn P.γ.cur2 i c2 ∗
+        monoListIdxOwn P.γ.cur2 (i + 1) c2' ∗ □ P.Q σ ∗ watchStateRespOk P.o σ c2 c2' v r)) := by
   unfold cur2Pos recvCmpl
   rw [hk]
   iintro ⟨(%H | ⟨%C2, %cl2, Ha, %HC, #Hk⟩), #Hc⟩
@@ -98,7 +107,7 @@ theorem publish_cmpl (V : WEnv GF) (P : WsPrm GF) (i k : Nat) (kk : Int) (hk : k
     isplitl []
     · ileft; ipureintro; exact H
     · ileft; ipureintro; exact H
-  icases Hc with (%H | ⟨%h2B, %h2A, #HB, #HA, #Hok⟩)
+  icases Hc with (%H | ⟨%h2B, %h2A, #HB, #HA, -, %σ, #HQ, #Hok⟩)
   · imodintro
     isplitl []
     · ileft; ipureintro; exact H
@@ -119,11 +128,11 @@ theorem publish_cmpl (V : WEnv GF) (P : WsPrm GF) (i k : Nat) (kk : Int) (hk : k
     iframe Ha HA
     ipureintro; simp [HC.1]
   iright
-  iexists h2B, h2A
-  iframe Hi1 Hi2 Hok
+  iexists h2B, h2A, σ
+  iframe Hi1 Hi2 HQ Hok
 
 /-- **A created response, not published** (K2e-7): the second cursor's position moves past it
-(it keeps the cache's contract's position). -/
+(it keeps the server-level contract's position). -/
 theorem skip_cmpl (V : WEnv GF) (P : WsPrm GF) (i k : Nat) (kk : Int) (hk : kk.toNat = k)
     (v : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel) (hc : r.created = true)
     (he : r.events = []) :
@@ -132,11 +141,11 @@ theorem skip_cmpl (V : WEnv GF) (P : WsPrm GF) (i k : Nat) (kk : Int) (hk : kk.t
   rw [hk]
   iintro ⟨(%H | ⟨%C2, %cl2, Ha, %HC, #Hk⟩), #Hc⟩
   · ileft; ipureintro; exact H
-  icases Hc with (%H | ⟨%h2B, %h2A, #HB, #HA, #Hok⟩)
+  icases Hc with (%H | ⟨%h2B, %h2A, #HB, #HA, ⟨%γst, #Hok⟩, -⟩)
   · ileft; ipureintro; exact H
   ihave %Hb := mono_list_idx_agree P.γh2 _ _ _ $$ HB Hk
   subst Hb
-  ihave %Ha := watchRespOk_created V P.o.key h2B h2A v r hc he $$ Hok
+  ihave %Ha := rawRespOk_created γst P.o h2B h2A v r hc he $$ Hok
   subst Ha
   iright
   iexists C2, h2A
@@ -407,7 +416,7 @@ theorem watchGRPCStream.serveSubstream.wp_proof
     Hγt, #Hrc, Hx, Hwg, Hwstok⟩
   ihave #HP' := HP
   iunfold wsIs at HP'
-  icases HP' with ⟨#Hro, #Hfrecvc, #Houtc, #Hrecvc, #Hctx, #Hretcb, %HPws, #Hsok, -⟩
+  icases HP' with ⟨#Hro, #Hfrecvc, #Houtc, #Hrecvc, #Hctx, #Hretcb, %HPws, #Hsok, -, %HPkc⟩
   ihave #HG' := HG
   iunfold isWGS at HG'
   icases HG' with ⟨%Hwgs, -, #Hsf, %Hlg, #Fowner, #Fremote, #FcallOpts, #Fctx, #FctxKey, #Fcancel,
@@ -549,7 +558,7 @@ theorem watchGRPCStream.serveSubstream.wp_proof
       $$ [Hc2 Hcm] with ⟨Hc2, #Hc2e⟩
     · iframe Hc2 Hcm
     imod publish_elem V P C sent.length v0 r hiB hiA HC.1 HC.2
-      ⟨Hv.2.2.1, Hv.2.2.2.1, Hv.2.2.2.2.1⟩ $$ [Hauth Hhdr] with ⟨Hauth, Helem⟩
+      ⟨Hv.2.2.1, Hv.2.2.2.1, Hv.2.2.2.2.1⟩ HPkc.2 $$ [Hauth Hhdr] with ⟨Hauth, Helem⟩
     · iframe Hauth Hev Hok Hhdr Hc2e
       rw [Hv.2.1]; iapply statusErrOk_nil
     imodintro
@@ -748,7 +757,7 @@ theorem watchGRPCStream.serveSubstream.wp_proof
               imod publish_cmpl V P sent.length 0 0 rfl v r $$ [Hc2 Hcm] with ⟨Hc2, #Hc2e⟩
               · iframe Hc2 Hcm
               imod publish_elem V P C sent.length v r hiA hiA HC.1 HC.2
-                ⟨Hv.2.2.1, Hv.2.2.2.1, Hv.2.2.2.2.1⟩ $$ [Hauth] with ⟨Hauth, Helem⟩
+                ⟨Hv.2.2.1, Hv.2.2.2.1, Hv.2.2.2.2.1⟩ HPkc.2 $$ [Hauth] with ⟨Hauth, Helem⟩
               · iframe Hauth Hev Hok Hc2e
                 isplitl []
                 · iapply (watchHdrOwn_nil _ _ Hcr.2).2; iexact Hhdr
@@ -766,9 +775,9 @@ theorem watchGRPCStream.serveSubstream.wp_proof
         ihave ⟨%h2A, #Hh2A, #Hw2⟩ := recvCmpl_at V P 0 v r c20 $$ [Hcm Hc20']
         · iframe Hcm; simp only [Int.toNat_zero]; iexact Hc20'
         ihave %Hh2e : ⌜P.γ.cpl = true → h2A = c20⌝ $$ []
-        · icases Hw2 with (%Hcf | #Hw2)
+        · icases Hw2 with (%Hcf | ⟨%γst, #Hw2⟩)
           · ipureintro; intro h; rw [Hcf] at h; cases h
-          ihave %H := watchRespOk_created V P.o.key c20 h2A v r Hcr.1 Hcr.2 $$ Hw2
+          ihave %H := rawRespOk_created γst P.o c20 h2A v r Hcr.1 Hcr.2 $$ Hw2
           ipureintro; intro _; exact H
         ihave %Hhi0e := mono_list_idx_agree P.γhi 0 _ _ $$ HiB Hhi0
         have hl0 : nr' = P.rev ∨ sint.Z hiA < 0 := by
@@ -840,9 +849,9 @@ theorem watchGRPCStream.serveSubstream.wp_proof
         · iframe Hcm; simp only [Int.toNat_natCast]; iexact Hc20'
         simp only [Int.toNat_natCast] at *
         ihave %Hh2e : ⌜P.γ.cpl = true → h2A = c20⌝ $$ []
-        · icases Hw2 with (%Hcf | #Hw2)
+        · icases Hw2 with (%Hcf | ⟨%γst, #Hw2⟩)
           · ipureintro; intro h; rw [Hcf] at h; cases h
-          ihave %H := watchRespOk_created V P.o.key c20 h2A v r Hcr.1 Hcr.2 $$ Hw2
+          ihave %H := rawRespOk_created γst P.o c20 h2A v r Hcr.1 Hcr.2 $$ Hw2
           ipureintro; intro _; exact H
         ihave #Hh2A' : iprop(⌜P.γ.cpl = false⌝ ∨ monoListIdxOwn P.γh2 (rcv.length + 1) c20) $$ []
         · icases Hh2A with (%Hcf | #Hh2A)
