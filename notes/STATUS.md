@@ -313,6 +313,10 @@ removed, ..., adequacy coverage" below.
 - Goose: imports of packages whose types a body names, and same-named packages (a silent
   mistranslation).
 - Specs of `reflect`: the k8s store's unary methods.
+- Goose (client-go survey, 2026-10-26): a generic struct's promoted methods through a pointer (C2:
+  blocks the workqueue's interface calls), an axiomatized alias's name (C3), `min`/`max` of a named
+  type (C4: `flowcontrol.Backoff.Next`), a field named like a type (C5: `intstr`), range over a
+  string (C1: `resourceversion.isWellFormed`).
 - Standard library: `encoding/json`, `encoding/base64`, `iter`, `path` not translated; specs of
   `strconv`, `fmt.Sprint*`, ...; `hash` (types-only here; `hash/crc32` has no model).
 
@@ -407,6 +411,24 @@ Other notes in use: `notes/snapshot-receiver-epochs.md` (S5's plan),
 # Raft and the witness part
 
 In status-history.md: the raft v3.7 retarget ("Retargeting raft to v3.7, stage R0" to "stage R8b"), reconfiguration (stages 0, A1-A3, B1-B8, D, L, N), the read index and proposals (stage R, stage F), CheckQuorum and PreVote, the multi-member stages "D21 M0" to "D21 M6", and the witness stages W1-W3b-A and W5.
+
+## client-go's leaf libraries translated (2026-10-26, branch `k8s-clientgo-leaf`)
+
+Phase 1 of the DaemonSet plan, its leaf-library half (`notes/k8s-clientgo-goose.md`, D49): in
+project `k8s-apiserver` of `etc/goose.py`, with bodies `util/workqueue`, `util/consistency`,
+`util/flowcontrol`, `util/retry`, `features` (its initialization names only), `tools/cache`'s local
+half (store, thread-safe map, indexers, keys, listers' helpers, `WaitForNamedCacheSyncWithContext`;
+an explicit `translate` list, which sidesteps the `comparable` blocker), the listers
+(`listers`, DaemonSet, ControllerRevision, Node and Pod listers), apimachinery's `util/sets`,
+`util/resourceversion` and `wait.ExponentialBackoff`; types only `k8s.io/api/{apps,core}/v1` (all
+361 types concrete), `api/resource`, `util/intstr`, `util/naming`, `util/version`,
+`k8s.io/utils/trace`, `github.com/go-logr/logr`. Gaps C1-C7 (Perennial entries for C1-C5); C2 blocks the
+queue's proofs through its interface until a Goose fix (one line, tried locally) and a pin bump.
+Package initialization: `etc/gen-init.py`'s `ROOTS` gain workqueue, consistency, retry and the two
+listers packages (`SPECIAL` entries for cache, workqueue, retry: composite-literal initializers);
+the instances in `Proof/k8s_io/client_go/Base.lean` (and, for what `tools/cache` and klog import now,
+the watch cache's and etcd3's `Base.lean`). No specs or proofs. Trust base: one new axiom,
+`logr.opaqueInitsOk` (k8setcd3's init chain; baseline and its collection updated).
 
 ## watchkv over the KV's specs, without the adapter (2026-10-26, branch `watchkv-no-adapter`)
 

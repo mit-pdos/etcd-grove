@@ -1,0 +1,12 @@
+# The DaemonSet controller's listers with bodies (project k8s-apiserver;
+# notes/k8s-clientgo-goose.md): DaemonSets (with `GetPodDaemonSets`, `GetHistoryDaemonSets`) and
+# ControllerRevisions; the other resources' listers names only.
+translate = ["!*",
+  "DaemonSetLister", "daemonSetLister", "daemonSetLister.*", "NewDaemonSetLister",
+  "DaemonSetNamespaceLister", "daemonSetNamespaceLister", "daemonSetNamespaceLister.*",
+  "DaemonSetListerExpansion", "DaemonSetNamespaceListerExpansion",
+  "ControllerRevisionLister", "controllerRevisionLister", "controllerRevisionLister.*",
+  "NewControllerRevisionLister", "ControllerRevisionNamespaceLister",
+  "controllerRevisionNamespaceLister", "controllerRevisionNamespaceLister.*",
+  "ControllerRevisionListerExpansion", "ControllerRevisionNamespaceListerExpansion"]
+imports = ["*"]

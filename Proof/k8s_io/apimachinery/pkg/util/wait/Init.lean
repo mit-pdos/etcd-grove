@@ -9,6 +9,9 @@ trust-boundary axiom `opaqueInitsOk` says run without panicking.
 module
 
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.Base
+public import Perennial.Proof.context.Link
+public import Perennial.Proof.time.Link
+public import Proof.k8s_io.utils.clock.Init
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -58,6 +61,8 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.k8s_io.apimachinery.pkg.util.wait.Assumptions]
+variable [_root_.Perennial.context.ErrorStringIsError]
+  [_root_.Perennial.context.DeadlineExceededIsError]
 
 namespace k8s_io.apimachinery.pkg.util.wait
 
@@ -72,6 +77,11 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
+  wp_apply (_root_.Perennial.k8s_io.utils.clock.wp_initialize'_lb _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.time _root_.Perennial.time.initialize'
+      EtcdGrove.ExternalInit.time _root_.Perennial.time.wp_initialize' _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.context _root_.Perennial.context.initialize'
+      EtcdGrove.ExternalInit.context _root_.Perennial.context.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   wp_apply (opaqueInitsOk ErrWaitTimeout.init (by mem_tac))
   wp_apply (opaqueInitsOk errWaitTimeout.init (by mem_tac))
   wp_apply (opaqueInitsOk RealTimer.init (by mem_tac))

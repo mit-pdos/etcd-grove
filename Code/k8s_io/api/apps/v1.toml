@@ -1,0 +1,10 @@
+# Types and names only: function and method bodies (the generated `DeepCopy`, protobuf and
+# registration code) are axiomatized (project k8s-apiserver; notes/k8s-clientgo-goose.md). It
+# imports what its types name, so that the API types (`DaemonSet`, `ControllerRevision`, ...) are
+# concrete structs the listers read fields of (gap G4 of notes/k8s-etcd3-goose.md).
+translate = ["!*"]
+imports = ["!*", "k8s.io/api/core/v1", "k8s.io/apimachinery/pkg/apis/meta/v1",
+  "k8s.io/apimachinery/pkg/runtime", "k8s.io/apimachinery/pkg/util/intstr"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

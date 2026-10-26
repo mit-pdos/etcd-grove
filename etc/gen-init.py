@@ -54,7 +54,12 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
          'go_etcd_io.etcd.client.v3.kubernetes',
          'github_com.mit_pdos.etcd_grove.examples.k8setcd3',
          # KEP-6404 (2026-10-26): the watch cache and its store
-         'k8s_io.apiserver.pkg.storage.cacher']
+         'k8s_io.apiserver.pkg.storage.cacher',
+         # client-go's leaf libraries (2026-10-26, notes/k8s-clientgo-goose.md; `util/flowcontrol`
+         # not yet: its `math/rand` instance is the gRPC server's, `Proof/k8s_io/client_go/Base.lean`)
+         'k8s_io.client_go.util.workqueue', 'k8s_io.client_go.util.consistency',
+         'k8s_io.client_go.util.retry', 'k8s_io.client_go.listers.apps.v1',
+         'k8s_io.client_go.listers.core.v1']
 # Packages of the closure still without a `wp_initialize'` (their facts are assumed: notes/STATUS.md,
 # "Item 8: package initialization"); see also `ASSUMED`.
 NOT_YET = set()
@@ -426,6 +431,37 @@ its imports and runs the translated initializers.''',
         'try wp_auto']},
     finish=['ipersist HRequestWatchProgress', 'ipersist HtooLargeResourceVersionCauseMsg'] +
            FIN_PRE[:7] + ['imodintro', 'iexists _, _', 'iframe #'],
+)
+
+# client-go's leaf libraries (2026-10-26, notes/k8s-clientgo-goose.md): their facts are `True`; their
+# translated initializers are composite literals (no call), which `wp_auto` runs.
+SPECIAL['k8s_io.client_go.tools.cache'] = dict(
+    doc='''Its fact is `True`. Its initializer allocates its translated variables (`informer_metrics.go`:
+`globalInformerMetricsProvider`, a `noopInformerMetricsProvider{}`, and the zero
+`setInformerMetricsProviderOnce`), initializes its imports, runs the other variables' untranslated
+initializers, which the trust-boundary axiom `opaqueInitsOk` says run without panicking, and the
+translated one, and its untranslated `init` functions, which `initFuncsOk` says return.''',
+    alloc_types={'setInformerMetricsProviderOnce': '_root_.Perennial.sync.Once',
+                 'globalInformerMetricsProvider': 'GoInterface'},
+    before={'$end': ['try wp_auto']},
+)
+
+SPECIAL['k8s_io.client_go.util.workqueue'] = dict(
+    doc='''Its fact is `True`. Its initializer allocates its variables (`metrics.go`:
+`globalMetricsProvider`, a `noopMetricsProvider{}`, and the zero `setGlobalMetricsProviderOnce`),
+initializes its imports and runs the translated initializer.''',
+    alloc_types={'setGlobalMetricsProviderOnce': '_root_.Perennial.sync.Once',
+                 'globalMetricsProvider': 'GoInterface'},
+    before={'$end': ['try wp_auto']},
+)
+
+SPECIAL['k8s_io.client_go.util.retry'] = dict(
+    doc='''Its fact is `True`. Its initializer allocates its variables (`util.go`: `DefaultRetry`,
+`DefaultBackoff`, `wait.Backoff` literals), initializes its imports and runs the translated
+initializers.''',
+    alloc_types={x: '_root_.Perennial.k8s_io.apimachinery.pkg.util.wait.Backoff'
+                 for x in ['DefaultRetry', 'DefaultBackoff']},
+    before={'$end': ['try wp_auto']},
 )
 
 # the driver's error variables and the tags of their `errors.New` results

@@ -1,0 +1,26 @@
+# With bodies (project k8s-apiserver; notes/k8s-clientgo-goose.md): the typed queue, the delaying
+# queue, the rate-limiting queue and the rate limiters, for the DaemonSet controller
+# (notes/k8s-daemonset-plan.md, phase 2); the metrics providers too (no-ops by default).
+#
+# Excluded: the methods the generic structs `delayingType[T]`, `rateLimitingType[T]` and
+# `TypedBucketRateLimiter[T]` promote from their embedded fields. The pinned Goose writes the
+# pointer receiver's unfolding of such a method with the struct's type without its type argument
+# (`StructFieldRef delayingType.ty ...`, ill-typed: gap C2), so they are left out of the method
+# sets: no `MethodUnfold` for `(*delayingType[T]).Add`, ... (a proof calling them through the
+# interfaces needs the fix proposed in notes/perennial-changes.md and a pin bump). Their own
+# methods (`AddAfter`, `ShutDown`, `waitingLoop`, `AddRateLimited`, `Forget`, `NumRequeues`, `When`)
+# translate.
+# (`!_`: the `var _ I = &T{}` interface assertions, compile-time only, names only: translated, each
+# would be an allocation for `etc/gen-init.py`'s `Init.lean` to step through)
+translate = ["*", "!_",
+  "!delayingType.Add", "!delayingType.Len", "!delayingType.Get", "!delayingType.Done",
+  "!delayingType.ShutDownWithDrain", "!delayingType.ShuttingDown",
+  "!rateLimitingType.Add", "!rateLimitingType.Len", "!rateLimitingType.Get",
+  "!rateLimitingType.Done", "!rateLimitingType.ShutDown", "!rateLimitingType.ShutDownWithDrain",
+  "!rateLimitingType.ShuttingDown", "!rateLimitingType.AddAfter",
+  # (`*rate.Limiter`'s methods, exported and not)
+  "!TypedBucketRateLimiter.*", "TypedBucketRateLimiter.When", "TypedBucketRateLimiter.NumRequeues",
+  "TypedBucketRateLimiter.Forget"]
+imports = ["*"]
+
+translate_types = true

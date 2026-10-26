@@ -1,7 +1,9 @@
 # Types and names only: function and method bodies are axiomatized (project k8s-apiserver;
-# notes/k8s-etcd3-goose.md).
-translate = ["!*"]
-imports = ["!*"]
+# notes/k8s-etcd3-goose.md), but `ExponentialBackoff`, the loop client-go's `retry.OnError` runs
+# (notes/k8s-clientgo-goose.md). It imports `time`, `context` and `k8s.io/utils/clock`, so that
+# `Backoff` (whose literals `retry`'s variables are) and the function types translate.
+translate = ["!*", "ExponentialBackoff"]
+imports = ["!*", "time", "context", "k8s.io/utils/clock"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

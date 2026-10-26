@@ -639,7 +639,10 @@ PROJECTS = [
         lean_roots=["k8s.io=", "go.etcd.io/etcd=", "google.golang.org=", "go.uber.org=",
                     "go.opentelemetry.io=", "net=", "encoding/json=", "encoding/base64=",
                     "iter=", "path=", "github.com/mit-pdos/etcd-grove=",
-                    "github.com/anishathalye/porcupine="],
+                    "github.com/anishathalye/porcupine=",
+                    # the etcd project's names-only translations, which client-go's workqueue
+                    # and flowcontrol name (notes/k8s-clientgo-goose.md)
+                    "golang.org/x/time=", "container/heap=", "github.com/go-logr="],
         packages=[
             ".",
             "k8s.io/apiserver/pkg/storage/etcd3",
@@ -656,6 +659,18 @@ PROJECTS = [
             "k8s.io/apiserver/pkg/storage/cacher/consistency",
             "k8s.io/apiserver/pkg/storage/cacher/key",
             "k8s.io/client-go/tools/cache",
+            # client-go's leaf libraries, with bodies (notes/k8s-clientgo-goose.md; the DaemonSet
+            # controller, notes/k8s-daemonset-plan.md)
+            "k8s.io/client-go/util/workqueue",
+            "k8s.io/client-go/util/consistency",
+            "k8s.io/apimachinery/pkg/util/sets",
+            "k8s.io/apimachinery/pkg/util/resourceversion",
+            "k8s.io/client-go/util/flowcontrol",
+            "k8s.io/client-go/util/retry",
+            "k8s.io/client-go/features",
+            "k8s.io/client-go/listers",
+            "k8s.io/client-go/listers/apps/v1",
+            "k8s.io/client-go/listers/core/v1",
             # types and names only (their .toml): what the two name
             "k8s.io/apimachinery/pkg/api/errors",
             "k8s.io/apimachinery/pkg/api/validate/content",
@@ -673,6 +688,13 @@ PROJECTS = [
             "k8s.io/apimachinery/pkg/util/runtime",
             "k8s.io/apimachinery/pkg/util/validation/field",
             "k8s.io/apimachinery/pkg/util/wait",
+            "k8s.io/apimachinery/pkg/util/version",
+            "k8s.io/apimachinery/pkg/util/naming",
+            "k8s.io/apimachinery/pkg/util/intstr",
+            "k8s.io/apimachinery/pkg/api/resource",
+            # (the API types the listers return: concrete structs, notes/k8s-clientgo-goose.md)
+            "k8s.io/api/apps/v1",
+            "k8s.io/api/core/v1",
             "k8s.io/apimachinery/pkg/watch",
             "k8s.io/apiserver/pkg/audit",
             "k8s.io/apiserver/pkg/endpoints/request",
@@ -685,16 +707,22 @@ PROJECTS = [
             "k8s.io/component-base/tracing",
             "k8s.io/component-base/featuregate",
             "k8s.io/klog/v2",
+            # (logr: the target of klog's alias `Logger`, notes/k8s-clientgo-goose.md)
+            "github.com/go-logr/logr",
             "k8s.io/utils/clock",
+            "k8s.io/utils/trace",
             "encoding/json",
             "encoding/base64",
             "iter",
             # (`path` is the etcd project's, with the bodies rafthttp needs: `Code/path.toml`)
         ],
         owned=[os.path.join("k8s_io", "apiserver"), os.path.join("k8s_io", "apimachinery"),
+               os.path.join("k8s_io", "api"),
                os.path.join("k8s_io", "client_go"),
                os.path.join("k8s_io", "klog"), os.path.join("k8s_io", "component_base"),
-               os.path.join("k8s_io", "utils", "clock"), os.path.join("encoding", "json"),
+               os.path.join("k8s_io", "utils", "clock"), os.path.join("k8s_io", "utils", "trace"),
+               os.path.join("encoding", "json"),
+               os.path.join("github_com", "go_logr"),
                os.path.join("encoding", "base64"), "iter",
                os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "k8setcd3")],
         counted_modules=["k8s.io/apiserver"],

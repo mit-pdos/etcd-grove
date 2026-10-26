@@ -2,14 +2,36 @@
 Package initialization of `k8s_io.client_go.tools.cache`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
-Its fact is `True`. Its initializer initializes its imports, runs the untranslated
-initializers of its variables (`X.init`, axioms of the translation), which the
-trust-boundary axiom `opaqueInitsOk` says run without panicking, and its untranslated
-`init` functions, which the trust-boundary axiom `initFuncsOk` says return.
+Its fact is `True`. Its initializer allocates its translated variables (`informer_metrics.go`:
+`globalInformerMetricsProvider`, a `noopInformerMetricsProvider{}`, and the zero
+`setInformerMetricsProviderOnce`), initializes its imports, runs the other variables' untranslated
+initializers, which the trust-boundary axiom `opaqueInitsOk` says run without panicking, and the
+translated one, and its untranslated `init` functions, which `initFuncsOk` says return.
 -/
 module
 
 public import Proof.k8s_io.apiserver.pkg.storage.cacher.Base
+public import Perennial.Proof.context.Link
+public import Perennial.Proof.errors.Link
+public import Perennial.Proof.fmt.Link
+public import Perennial.Proof.strconv.Link
+public import Perennial.Proof.strings.Link
+public import Perennial.Proof.sync.Link
+public import Perennial.Proof.sync.atomic.Link
+public import Perennial.Proof.time.Link
+public import Proof.k8s_io.apimachinery.pkg.api.errors.Init
+public import Proof.k8s_io.apimachinery.pkg.api.meta.Init
+public import Proof.k8s_io.apimachinery.pkg.apis.meta.v1.Init
+public import Proof.k8s_io.apimachinery.pkg.labels.Init
+public import Proof.k8s_io.apimachinery.pkg.runtime.Init
+public import Proof.k8s_io.apimachinery.pkg.runtime.schema.Init
+public import Proof.k8s_io.apimachinery.pkg.types.Init
+public import Proof.k8s_io.apimachinery.pkg.util.runtime.Init
+public import Proof.k8s_io.apimachinery.pkg.util.sets.Init
+public import Proof.k8s_io.apimachinery.pkg.util.wait.Init
+public import Proof.k8s_io.client_go.features.Init
+public import Proof.k8s_io.klog.v2.Init
+public import Proof.k8s_io.utils.trace.Init
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -52,7 +74,6 @@ axiom opaqueInitsOk :
         «_».init,
         «_».init,
         informerNameRegistry.init,
-        globalInformerMetricsProvider.init,
         «_».init,
         «_».init,
         «_».init,
@@ -102,9 +123,12 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.k8s_io.client_go.tools.cache.Assumptions]
+variable [_root_.Perennial.context.ErrorStringIsError]
+  [_root_.Perennial.context.DeadlineExceededIsError]
 
 namespace k8s_io.client_go.tools.cache
 
+set_option maxHeartbeats 8000000 in
 theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
     (Hinit : GetIsPkgInitProp pkg_id.k8s_io.client_go.tools.cache get_is_pkg_init) (σ0 : GMap GoString Bool) :
     {{ EtcdGrove.ownInitLb get_is_pkg_init σ0 }}
@@ -116,6 +140,37 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
+  wp_apply wp_GlobalAlloc (V := _root_.Perennial.sync.Once) setInformerMetricsProviderOnce _ as HsetInformerMetricsProviderOnce
+  wp_apply wp_GlobalAlloc (V := GoInterface) globalInformerMetricsProvider _ as HglobalInformerMetricsProvider
+  wp_apply (_root_.Perennial.k8s_io.apimachinery.pkg.types.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd21⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.strconv _root_.Perennial.strconv.initialize'
+      EtcdGrove.ExternalInit.strconv _root_.Perennial.strconv.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd20⟩
+  wp_apply (_root_.Perennial.k8s_io.apimachinery.pkg.labels.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd19⟩
+  wp_apply (_root_.Perennial.k8s_io.apimachinery.pkg.api.errors.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd18⟩
+  wp_apply (_root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd17⟩
+  wp_apply (_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd16⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.sync.atomic _root_.Perennial.sync.atomic.initialize'
+      EtcdGrove.ExternalInit.sync_atomic _root_.Perennial.sync.atomic.wp_initialize' _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd15⟩
+  wp_apply (_root_.Perennial.k8s_io.utils.trace.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd14⟩
+  wp_apply (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd13⟩
+  wp_apply (_root_.Perennial.k8s_io.klog.v2.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd12⟩
+  wp_apply (_root_.Perennial.k8s_io.client_go.features.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd11⟩
+  wp_apply (_root_.Perennial.k8s_io.apimachinery.pkg.util.wait.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd10⟩
+  wp_apply (_root_.Perennial.k8s_io.apimachinery.pkg.util.runtime.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd9⟩
+  wp_apply (_root_.Perennial.k8s_io.apimachinery.pkg.runtime.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd8⟩
+  wp_apply (_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd7⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.time _root_.Perennial.time.initialize'
+      EtcdGrove.ExternalInit.time _root_.Perennial.time.wp_initialize' _ Hinit.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd6⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.sync _root_.Perennial.sync.initialize'
+      EtcdGrove.ExternalInit.sync _root_.Perennial.sync.wp_initialize' _ Hinit.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd5⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.strings _root_.Perennial.strings.initialize'
+      EtcdGrove.ExternalInit.strings _root_.Perennial.strings.wp_initialize' _ Hinit.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd4⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.fmt _root_.Perennial.fmt.initialize'
+      EtcdGrove.ExternalInit.fmt _root_.Perennial.fmt.wp_initialize' _ Hinit.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd3⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.errors _root_.Perennial.errors.initialize'
+      EtcdGrove.ExternalInit.errors _root_.Perennial.errors.wp_initialize' _ Hinit.2.2.1) _ $$ Hown as ⟨Hown, #Hd2⟩
+  wp_apply (EtcdGrove.initLb_of_spec pkg_id.context _root_.Perennial.context.initialize'
+      EtcdGrove.ExternalInit.context _root_.Perennial.context.wp_initialize' _ Hinit.2.1) _ $$ Hown as ⟨Hown, #Hd1⟩
   wp_apply (opaqueInitsOk «_».init (by mem_tac))
   wp_apply (opaqueInitsOk «_».init (by mem_tac))
   wp_apply (opaqueInitsOk «_».init (by mem_tac))
@@ -128,7 +183,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (opaqueInitsOk «_».init (by mem_tac))
   wp_apply (opaqueInitsOk «_».init (by mem_tac))
   wp_apply (opaqueInitsOk informerNameRegistry.init (by mem_tac))
-  wp_apply (opaqueInitsOk globalInformerMetricsProvider.init (by mem_tac))
+  -- translated initializer of globalInformerMetricsProvider))
   wp_apply (opaqueInitsOk «_».init (by mem_tac))
   wp_apply (opaqueInitsOk «_».init (by mem_tac))
   wp_apply (opaqueInitsOk «_».init (by mem_tac))
@@ -158,6 +213,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (opaqueInitsOk batchable.init (by mem_tac))
   wp_apply (opaqueInitsOk «_».init (by mem_tac))
   wp_apply (initFuncsOk init.«0» (by mem_tac))
+  try wp_auto
   iframe Hown
   is_pkg_init_finish
 

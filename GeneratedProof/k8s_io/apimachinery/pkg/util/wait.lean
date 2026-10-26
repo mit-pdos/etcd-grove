@@ -2,6 +2,9 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import Perennial.GeneratedProof.context
+public import GeneratedProof.k8s_io.utils.clock
+public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory
 public import Code.k8s_io.apimachinery.pkg.util.wait
 
@@ -25,12 +28,101 @@ variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.util.wait.Assumptions]
 
 noncomputable instance Backoff_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.wait.Backoff :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.wait.Backoff where
+  typedPointstoDef l v dq := iprop(
+    "Duration" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.Backoff go!"Duration" l) v.Duration' dq ∗
+    "Factor" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.Backoff go!"Factor" l) v.Factor' dq ∗
+    "Jitter" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.Backoff go!"Jitter" l) v.Jitter' dq ∗
+    "Steps" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.Backoff go!"Steps" l) v.Steps' dq ∗
+    "Cap" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.Backoff go!"Cap" l) v.Cap' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance Backoff_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.wait.Backoff k8s_io.apimachinery.pkg.util.wait.Backoff.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.wait.Backoff k8s_io.apimachinery.pkg.util.wait.Backoff.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance Backoff_access_load_Duration (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.Backoff) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.Backoff go!"Duration" l) v.Duration' dq)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.Backoff go!"Duration" l) v.Duration' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Backoff_access_store_Duration (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.Backoff) (Duration' : time.Duration) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.Backoff go!"Duration" l) v.Duration' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.Backoff go!"Duration" l) Duration' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Duration' := Duration' } : k8s_io.apimachinery.pkg.util.wait.Backoff) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Backoff_access_load_Factor (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.Backoff) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.Backoff go!"Factor" l) v.Factor' dq)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.Backoff go!"Factor" l) v.Factor' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Backoff_access_store_Factor (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.Backoff) (Factor' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.Backoff go!"Factor" l) v.Factor' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.Backoff go!"Factor" l) Factor' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Factor' := Factor' } : k8s_io.apimachinery.pkg.util.wait.Backoff) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Backoff_access_load_Jitter (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.Backoff) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.Backoff go!"Jitter" l) v.Jitter' dq)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.Backoff go!"Jitter" l) v.Jitter' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Backoff_access_store_Jitter (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.Backoff) (Jitter' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.Backoff go!"Jitter" l) v.Jitter' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.Backoff go!"Jitter" l) Jitter' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Jitter' := Jitter' } : k8s_io.apimachinery.pkg.util.wait.Backoff) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Backoff_access_load_Steps (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.Backoff) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.Backoff go!"Steps" l) v.Steps' dq)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.Backoff go!"Steps" l) v.Steps' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Backoff_access_store_Steps (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.Backoff) (Steps' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.Backoff go!"Steps" l) v.Steps' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.Backoff go!"Steps" l) Steps' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Steps' := Steps' } : k8s_io.apimachinery.pkg.util.wait.Backoff) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Backoff_access_load_Cap (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.Backoff) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.Backoff go!"Cap" l) v.Cap' dq)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.Backoff go!"Cap" l) v.Cap' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance Backoff_access_store_Cap (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.Backoff) (Cap' : time.Duration) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.Backoff go!"Cap" l) v.Cap' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.Backoff go!"Cap" l) Cap' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Cap' := Cap' } : k8s_io.apimachinery.pkg.util.wait.Backoff) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end Backoff
@@ -54,25 +146,6 @@ noncomputable instance backoffManager_into_val_typed :
 end def_
 end backoffManager
 
-namespace BackoffManager
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.util.wait.Assumptions]
-
-noncomputable instance BackoffManager_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.wait.BackoffManager :=
-  sorry -- axiomatized type
-
-noncomputable instance BackoffManager_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.wait.BackoffManager k8s_io.apimachinery.pkg.util.wait.BackoffManager.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end BackoffManager
-
 namespace exponentialBackoffManagerImpl
 section def_
 
@@ -82,12 +155,118 @@ variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.util.wait.Assumptions]
 
 noncomputable instance exponentialBackoffManagerImpl_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl where
+  typedPointstoDef l v dq := iprop(
+    "backoff" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl go!"backoff" l) v.backoff' dq ∗
+    "backoffTimer" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl go!"backoffTimer" l) v.backoffTimer' dq ∗
+    "lastBackoffStart" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl go!"lastBackoffStart" l) v.lastBackoffStart' dq ∗
+    "initialBackoff" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl go!"initialBackoff" l) v.initialBackoff' dq ∗
+    "backoffResetDuration" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl go!"backoffResetDuration" l) v.backoffResetDuration' dq ∗
+    "clock" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl go!"clock" l) v.clock' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance exponentialBackoffManagerImpl_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance exponentialBackoffManagerImpl_access_load_backoff (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl go!"backoff" l) v.backoff' dq)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl go!"backoff" l) v.backoff' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance exponentialBackoffManagerImpl_access_store_backoff (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl) (backoff' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl go!"backoff" l) v.backoff' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl go!"backoff" l) backoff' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with backoff' := backoff' } : k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance exponentialBackoffManagerImpl_access_load_backoffTimer (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl go!"backoffTimer" l) v.backoffTimer' dq)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl go!"backoffTimer" l) v.backoffTimer' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance exponentialBackoffManagerImpl_access_store_backoffTimer (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl) (backoffTimer' : k8s_io.utils.clock.Timer) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl go!"backoffTimer" l) v.backoffTimer' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl go!"backoffTimer" l) backoffTimer' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with backoffTimer' := backoffTimer' } : k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance exponentialBackoffManagerImpl_access_load_lastBackoffStart (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl go!"lastBackoffStart" l) v.lastBackoffStart' dq)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl go!"lastBackoffStart" l) v.lastBackoffStart' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance exponentialBackoffManagerImpl_access_store_lastBackoffStart (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl) (lastBackoffStart' : time.Time) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl go!"lastBackoffStart" l) v.lastBackoffStart' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl go!"lastBackoffStart" l) lastBackoffStart' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with lastBackoffStart' := lastBackoffStart' } : k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance exponentialBackoffManagerImpl_access_load_initialBackoff (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl go!"initialBackoff" l) v.initialBackoff' dq)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl go!"initialBackoff" l) v.initialBackoff' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance exponentialBackoffManagerImpl_access_store_initialBackoff (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl) (initialBackoff' : time.Duration) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl go!"initialBackoff" l) v.initialBackoff' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl go!"initialBackoff" l) initialBackoff' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with initialBackoff' := initialBackoff' } : k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance exponentialBackoffManagerImpl_access_load_backoffResetDuration (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl go!"backoffResetDuration" l) v.backoffResetDuration' dq)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl go!"backoffResetDuration" l) v.backoffResetDuration' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance exponentialBackoffManagerImpl_access_store_backoffResetDuration (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl) (backoffResetDuration' : time.Duration) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl go!"backoffResetDuration" l) v.backoffResetDuration' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl go!"backoffResetDuration" l) backoffResetDuration' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with backoffResetDuration' := backoffResetDuration' } : k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance exponentialBackoffManagerImpl_access_load_clock (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl go!"clock" l) v.clock' dq)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl go!"clock" l) v.clock' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance exponentialBackoffManagerImpl_access_store_clock (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl) (clock' : k8s_io.utils.clock.Clock) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl go!"clock" l) v.clock' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl go!"clock" l) clock' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with clock' := clock' } : k8s_io.apimachinery.pkg.util.wait.exponentialBackoffManagerImpl) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end exponentialBackoffManagerImpl
@@ -101,34 +280,87 @@ variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.util.wait.Assumptions]
 
 noncomputable instance jitteredBackoffManagerImpl_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl where
+  typedPointstoDef l v dq := iprop(
+    "clock" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl go!"clock" l) v.clock' dq ∗
+    "duration" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl go!"duration" l) v.duration' dq ∗
+    "jitter" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl go!"jitter" l) v.jitter' dq ∗
+    "backoffTimer" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl go!"backoffTimer" l) v.backoffTimer' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance jitteredBackoffManagerImpl_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance jitteredBackoffManagerImpl_access_load_clock (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl go!"clock" l) v.clock' dq)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl go!"clock" l) v.clock' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance jitteredBackoffManagerImpl_access_store_clock (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl) (clock' : k8s_io.utils.clock.Clock) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl go!"clock" l) v.clock' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl go!"clock" l) clock' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with clock' := clock' } : k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance jitteredBackoffManagerImpl_access_load_duration (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl go!"duration" l) v.duration' dq)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl go!"duration" l) v.duration' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance jitteredBackoffManagerImpl_access_store_duration (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl) (duration' : time.Duration) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl go!"duration" l) v.duration' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl go!"duration" l) duration' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with duration' := duration' } : k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance jitteredBackoffManagerImpl_access_load_jitter (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl go!"jitter" l) v.jitter' dq)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl go!"jitter" l) v.jitter' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance jitteredBackoffManagerImpl_access_store_jitter (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl) (jitter' : w64) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl go!"jitter" l) v.jitter' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl go!"jitter" l) jitter' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with jitter' := jitter' } : k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance jitteredBackoffManagerImpl_access_load_backoffTimer (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl go!"backoffTimer" l) v.backoffTimer' dq)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl go!"backoffTimer" l) v.backoffTimer' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance jitteredBackoffManagerImpl_access_store_backoffTimer (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl) (backoffTimer' : k8s_io.utils.clock.Timer) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl go!"backoffTimer" l) v.backoffTimer' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl go!"backoffTimer" l) backoffTimer' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with backoffTimer' := backoffTimer' } : k8s_io.apimachinery.pkg.util.wait.jitteredBackoffManagerImpl) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end jitteredBackoffManagerImpl
-
-namespace DelayFunc
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.util.wait.Assumptions]
-
-noncomputable instance DelayFunc_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.wait.DelayFunc :=
-  sorry -- axiomatized type
-
-noncomputable instance DelayFunc_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.wait.DelayFunc k8s_io.apimachinery.pkg.util.wait.DelayFunc.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end DelayFunc
 
 namespace errInterrupted
 section def_
@@ -170,25 +402,6 @@ noncomputable instance errInterrupted_access_store_cause (l : Loc) (v : k8s_io.a
 end def_
 end errInterrupted
 
-namespace Timer
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.util.wait.Assumptions]
-
-noncomputable instance Timer_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.wait.Timer :=
-  sorry -- axiomatized type
-
-noncomputable instance Timer_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.wait.Timer k8s_io.apimachinery.pkg.util.wait.Timer.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end Timer
-
 namespace noopTimer
 section def_
 
@@ -198,12 +411,33 @@ variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.util.wait.Assumptions]
 
 noncomputable instance noopTimer_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.wait.noopTimer :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.wait.noopTimer where
+  typedPointstoDef l v dq := iprop(
+    "closedCh" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.noopTimer go!"closedCh" l) v.closedCh' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance noopTimer_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.wait.noopTimer k8s_io.apimachinery.pkg.util.wait.noopTimer.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.wait.noopTimer k8s_io.apimachinery.pkg.util.wait.noopTimer.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance noopTimer_access_load_closedCh (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.noopTimer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.noopTimer go!"closedCh" l) v.closedCh' dq)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.noopTimer go!"closedCh" l) v.closedCh' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance noopTimer_access_store_closedCh (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.noopTimer) (closedCh' : GoChan) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.noopTimer go!"closedCh" l) v.closedCh' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.noopTimer go!"closedCh" l) closedCh' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with closedCh' := closedCh' } : k8s_io.apimachinery.pkg.util.wait.noopTimer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end noopTimer
@@ -217,12 +451,67 @@ variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.util.wait.Assumptions]
 
 noncomputable instance variableTimer_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.wait.variableTimer :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.wait.variableTimer where
+  typedPointstoDef l v dq := iprop(
+    "fn" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.variableTimer go!"fn" l) v.fn' dq ∗
+    "t" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.variableTimer go!"t" l) v.t' dq ∗
+    "new" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.variableTimer go!"new" l) v.new' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance variableTimer_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.wait.variableTimer k8s_io.apimachinery.pkg.util.wait.variableTimer.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.wait.variableTimer k8s_io.apimachinery.pkg.util.wait.variableTimer.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance variableTimer_access_load_fn (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.variableTimer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.variableTimer go!"fn" l) v.fn' dq)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.variableTimer go!"fn" l) v.fn' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance variableTimer_access_store_fn (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.variableTimer) (fn' : k8s_io.apimachinery.pkg.util.wait.DelayFunc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.variableTimer go!"fn" l) v.fn' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.variableTimer go!"fn" l) fn' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with fn' := fn' } : k8s_io.apimachinery.pkg.util.wait.variableTimer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance variableTimer_access_load_t (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.variableTimer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.variableTimer go!"t" l) v.t' dq)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.variableTimer go!"t" l) v.t' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance variableTimer_access_store_t (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.variableTimer) (t' : k8s_io.utils.clock.Timer) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.variableTimer go!"t" l) v.t' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.variableTimer go!"t" l) t' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with t' := t' } : k8s_io.apimachinery.pkg.util.wait.variableTimer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance variableTimer_access_load_new (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.variableTimer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.variableTimer go!"new" l) v.new' dq)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.variableTimer go!"new" l) v.new' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance variableTimer_access_store_new (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.variableTimer) (new' : GoFunc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.variableTimer go!"new" l) v.new' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.variableTimer go!"new" l) new' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with new' := new' } : k8s_io.apimachinery.pkg.util.wait.variableTimer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end variableTimer
@@ -236,12 +525,67 @@ variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.apimachinery.pkg.util.wait.Assumptions]
 
 noncomputable instance fixedTimer_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.wait.fixedTimer :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.wait.fixedTimer where
+  typedPointstoDef l v dq := iprop(
+    "interval" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.fixedTimer go!"interval" l) v.interval' dq ∗
+    "t" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.fixedTimer go!"t" l) v.t' dq ∗
+    "new" ∷ typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.fixedTimer go!"new" l) v.new' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance fixedTimer_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.wait.fixedTimer k8s_io.apimachinery.pkg.util.wait.fixedTimer.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.wait.fixedTimer k8s_io.apimachinery.pkg.util.wait.fixedTimer.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance fixedTimer_access_load_interval (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.fixedTimer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.fixedTimer go!"interval" l) v.interval' dq)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.fixedTimer go!"interval" l) v.interval' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance fixedTimer_access_store_interval (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.fixedTimer) (interval' : time.Duration) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.fixedTimer go!"interval" l) v.interval' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.fixedTimer go!"interval" l) interval' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with interval' := interval' } : k8s_io.apimachinery.pkg.util.wait.fixedTimer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance fixedTimer_access_load_t (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.fixedTimer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.fixedTimer go!"t" l) v.t' dq)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.fixedTimer go!"t" l) v.t' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance fixedTimer_access_store_t (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.fixedTimer) (t' : k8s_io.utils.clock.Ticker) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.fixedTimer go!"t" l) v.t' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.fixedTimer go!"t" l) t' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with t' := t' } : k8s_io.apimachinery.pkg.util.wait.fixedTimer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance fixedTimer_access_load_new (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.fixedTimer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.fixedTimer go!"new" l) v.new' dq)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.fixedTimer go!"new" l) v.new' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance fixedTimer_access_store_new (l : Loc) (v : k8s_io.apimachinery.pkg.util.wait.fixedTimer) (new' : GoFunc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.fixedTimer go!"new" l) v.new' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.apimachinery.pkg.util.wait.fixedTimer go!"new" l) new' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with new' := new' } : k8s_io.apimachinery.pkg.util.wait.fixedTimer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end fixedTimer
@@ -264,25 +608,6 @@ noncomputable instance Group_into_val_typed :
 
 end def_
 end Group
-
-namespace ConditionWithContextFunc
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.util.wait.Assumptions]
-
-noncomputable instance ConditionWithContextFunc_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.wait.ConditionWithContextFunc :=
-  sorry -- axiomatized type
-
-noncomputable instance ConditionWithContextFunc_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.wait.ConditionWithContextFunc k8s_io.apimachinery.pkg.util.wait.ConditionWithContextFunc.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end ConditionWithContextFunc
 
 namespace channelContext
 section def_
@@ -323,25 +648,6 @@ noncomputable instance channelContext_access_store_stopCh (l : Loc) (v : k8s_io.
 
 end def_
 end channelContext
-
-namespace waitWithContextFunc
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.apimachinery.pkg.util.wait.Assumptions]
-
-noncomputable instance waitWithContextFunc_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.apimachinery.pkg.util.wait.waitWithContextFunc :=
-  sorry -- axiomatized type
-
-noncomputable instance waitWithContextFunc_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.apimachinery.pkg.util.wait.waitWithContextFunc k8s_io.apimachinery.pkg.util.wait.waitWithContextFunc.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end waitWithContextFunc
 
 end k8s_io.apimachinery.pkg.util.wait
 end

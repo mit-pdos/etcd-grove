@@ -197,10 +197,75 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   (client-go's `tools/cache.Object`: `interface { GetName() string; GetNamespace() string;
   comparable }`) and emits `go.type_term.TypeTerm go.comparable`, which Perennial does not define
   (`Unknown identifier go.comparable`).
-- **Needed by.** Nothing yet: the watch cache's store names `tools/cache`'s indexer types only.
-- **Workaround here.** `client_go/tools/cache.toml` without `translate_types` (types axiomatized).
+- **Needed by.** Nothing yet: the watch cache's store names `tools/cache`'s indexer types only;
+  (2026-10-26) the local half of `tools/cache` (store, thread-safe map, indexers) does not use
+  `Object`; the typed informers (`TypedResourceEventHandler[T Object]`, DaemonSet plan phase 4) will.
+- **Workaround here.** `client_go/tools/cache.toml` without `translate_types`: the types it
+  translates are listed by name (2026-10-26, `notes/k8s-clientgo-goose.md`, C6), `Object` stays
+  axiomatized.
 - **Proposed.** Either a `go.comparable` type set in Perennial's semantics, or Goose rejecting
   (axiomatizing) such an interface under `translate_types`, as it does other unsupported types.
+- **Status.** Not started.
+
+### Goose: a promoted method of a generic struct, through a pointer (2026-10-26, client-go survey C2)
+
+- **Missing.** For a generic struct `S[T]` with an embedded field, the pointer receiver's unfolding
+  of a promoted method (`ptr_M_unfold` in `S.TypeAssumptions`, `goose/lean_types.go:338`) names the
+  struct as `ctx.glangType(t.Obj(), t)`, the generic type without its type argument
+  (`StructFieldRef delayingType.ty ...`, ill-typed); the value receiver's case uses `ty`.
+- **Needed by.** client-go's workqueue (`delayingType[T]`, `rateLimitingType[T]`,
+  `TypedBucketRateLimiter[T]`): every call through `TypedRateLimitingInterface[T]` (the DaemonSet
+  controller's `Get`, `Done`, `AddRateLimited`) resolves through these unfolds.
+- **Workaround here.** The promoted methods excluded in `Code/k8s_io/client_go/util/workqueue.toml`
+  (no `MethodUnfold` for them).
+- **Proposed.** `glang.VerbatimExpr(ty)` for the struct there (one line; tried in a scratch copy of
+  the pinned translator: workqueue's translation then elaborates, nothing else changes), with a
+  Goose test of a generic struct embedding an interface.
+- **Status.** Not started.
+
+### Goose: an axiomatized type alias is declared under another name than its uses (2026-10-26, client-go survey C3)
+
+- **Missing.** An axiomatized alias is declared `axiom X : go.GoType` (`goose/types.go:65`) but
+  referred to as `X.ty` like every type.
+- **Needed by.** client-go's workqueue (`klog.Logger = logr.Logger` in its configs).
+- **Workaround here.** klog's config imports `github.com/go-logr/logr` (names only), so the alias
+  translates.
+- **Proposed.** Declare the axiomatized alias as `X.ty`.
+- **Status.** Not started.
+
+### Goose: `min`/`max` of a named integer type (2026-10-26, client-go survey C4)
+
+- **Missing.** `min(a, b)` on `time.Duration` is rejected (`comparison between non-assignable
+  types`): `goose.go:926` joins the first parameter's underlying type with the others' types.
+- **Needed by.** client-go's `flowcontrol.Backoff.Next` and `tools/cache`'s
+  `threadSafeMap.Transaction` (names only here).
+- **Workaround here.** The two names only.
+- **Proposed.** Emit `go.min` at the parameters' (named) type and let its semantics take the
+  underlying type (type choices are the Lean semantics', Perennial's `AGENTS.md`); joining the
+  underlying types in Goose also works (tried in a scratch copy: both translate and elaborate) but
+  makes that choice in Goose.
+- **Status.** Not started.
+
+### Goose: a struct field named like a type of its package (2026-10-26, client-go survey C5)
+
+- **Missing.** In `S.TypeAssumptions` (in `S`'s namespace), a field type that is a package type of
+  the same name as a field (`intstr.IntOrString`'s field `Type` of type `Type`) resolves to the
+  field's projection (`(y : Type')` is `IntOrString.Type'`).
+- **Needed by.** `k8s.io/apimachinery/pkg/util/intstr.IntOrString` (the DaemonSet's rolling-update
+  fields).
+- **Workaround here.** `intstr`'s structs axiomatized (`translate_types_except_structs`).
+- **Proposed.** Qualify package-level types in the generated lemmas (`_root_.Perennial.<pkg>.T'`).
+- **Status.** Not started.
+
+### Goose: range over a string (2026-10-26, client-go survey C1)
+
+- **Missing.** `for i := range s` over a string (`[unsupported]: range over string`).
+- **Needed by.** apimachinery's `resourceversion.isWellFormed` (the consistency store's
+  comparisons).
+- **Workaround here.** `isWellFormed` names only (a trust-boundary spec, or a trusted model as the
+  byte loop, which computes the same result).
+- **Proposed.** Range over a string, stepping by `utf8` decoding (needs a model of
+  `utf8.DecodeRuneInString`).
 - **Status.** Not started.
 
 ### Specs: `reflect`
@@ -221,7 +286,10 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 - **Missing translations.** `encoding/json`, `encoding/base64`, `iter`, `path` (Perennial
   translates none of them).
-- **Missing specs.** `strconv.ParseInt`, `ParseUint`, `FormatInt`, `FormatUint`, `ParseBool`;
+- **Missing specs.** (2026-10-26) client-go's leaf libraries add `sync.WaitGroup.Go`,
+  `container/heap.Init`/`Pop`, `math.Pow`, `os.LookupEnv`, `time.Time.Add/Before/Sub`,
+  `math/rand.New`/`Rand.Float64` (the full list per package: `notes/k8s-clientgo-goose.md`).
+  Earlier: `strconv.ParseInt`, `ParseUint`, `FormatInt`, `FormatUint`, `ParseBool`;
   some of `strings`; `fmt.Sprint`, `Sprintln`, `Fprintf`; `os.Getenv`; `json.Marshal`,
   `Unmarshal`; `base64.RawURLEncoding`'s methods; `path.Join`, `Clean`. (2026-10-24, rafthttp stage 7d)
   `io.MultiReader` (names-only: an axiom here, `Proof/io/MultiReader.lean`, stated over the

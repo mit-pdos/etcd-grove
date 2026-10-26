@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import GeneratedProof.github_com.go_logr.logr
 public import Perennial.Golang.Theory
 public import Code.k8s_io.klog.v2
 
@@ -99,12 +100,50 @@ variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.klog.v2.Assumptions]
 
 noncomputable instance logWriter_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.klog.v2.logWriter :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) k8s_io.klog.v2.logWriter where
+  typedPointstoDef l v dq := iprop(
+    "Logger" ∷ typedPointsto (structFieldRef k8s_io.klog.v2.logWriter go!"Logger" l) v.Logger' dq ∗
+    "writeKlogBuffer" ∷ typedPointsto (structFieldRef k8s_io.klog.v2.logWriter go!"writeKlogBuffer" l) v.writeKlogBuffer' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance logWriter_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.klog.v2.logWriter k8s_io.klog.v2.logWriter.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) k8s_io.klog.v2.logWriter k8s_io.klog.v2.logWriter.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance logWriter_access_load_Logger (l : Loc) (v : k8s_io.klog.v2.logWriter) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.klog.v2.logWriter go!"Logger" l) v.Logger' dq)
+      (typedPointsto (structFieldRef k8s_io.klog.v2.logWriter go!"Logger" l) v.Logger' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance logWriter_access_store_Logger (l : Loc) (v : k8s_io.klog.v2.logWriter) (Logger' : github_com.go_logr.logr.Logger) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.klog.v2.logWriter go!"Logger" l) v.Logger' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.klog.v2.logWriter go!"Logger" l) Logger' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Logger' := Logger' } : k8s_io.klog.v2.logWriter) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance logWriter_access_load_writeKlogBuffer (l : Loc) (v : k8s_io.klog.v2.logWriter) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.klog.v2.logWriter go!"writeKlogBuffer" l) v.writeKlogBuffer' dq)
+      (typedPointsto (structFieldRef k8s_io.klog.v2.logWriter go!"writeKlogBuffer" l) v.writeKlogBuffer' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance logWriter_access_store_writeKlogBuffer (l : Loc) (v : k8s_io.klog.v2.logWriter) (writeKlogBuffer' : GoFunc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.klog.v2.logWriter go!"writeKlogBuffer" l) v.writeKlogBuffer' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.klog.v2.logWriter go!"writeKlogBuffer" l) writeKlogBuffer' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with writeKlogBuffer' := writeKlogBuffer' } : k8s_io.klog.v2.logWriter) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end logWriter

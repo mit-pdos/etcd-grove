@@ -2,7 +2,8 @@
 
 Status: planning (2026-10-26, branch `daemonset-plan`). Decisions: D49 in `notes/decisions.md`
 (the cut: model the API server at the typed clientset, verify client-go's leaf libraries and
-informers). Nothing translated or proved yet; phase 0 is next.
+informers). Nothing proved yet. (2026-10-26, branch `k8s-clientgo-leaf`) Phase 1's leaf-library
+half is translated: `notes/k8s-clientgo-goose.md` (gaps C1-C7).
 
 ## Goal
 
@@ -152,7 +153,20 @@ records it.
    the check loop over the model's state, not an informer). A Go test that runs `Main` with many
    seeds, under `-race`. A variant whose failed creates may commit, to try the suspected bug above.
    Decide: the pin; replacement module vs. constructor-level mock; the event recorder.
-1. **The translation survey** (as `notes/k8s-etcd3-goose.md`): a project `k8s-daemonset` in
+1. **The translation survey** (as `notes/k8s-etcd3-goose.md`). **Leaf libraries done**
+   (2026-10-26, `notes/k8s-clientgo-goose.md`): in project `k8s-apiserver` (not a new project:
+   `tools/cache` and apimachinery are shared with the KEP-6404 watch cache), with bodies
+   `util/workqueue`, `util/consistency`, `util/flowcontrol` (`Backoff`), `util/retry`, `features`,
+   `tools/cache`'s local half, the listers (DaemonSet, ControllerRevision, Node, Pod), apimachinery's
+   `util/sets` and `util/resourceversion`; `k8s.io/api/{apps,core}/v1` types concrete (G4 done,
+   cheap). Gaps: C1 (range over a string: `resourceversion.isWellFormed` names only), C2 (a generic
+   struct's promoted methods through a pointer: the workqueue's `Get`/`Done`/... unfolds missing;
+   **blocks phase 2's queue proofs until a Perennial fix and pin bump**), C3 (axiomatized alias,
+   worked around), C4 (`min` on `time.Duration`: `Backoff.Next`, `threadSafeMap.Transaction` names
+   only), C5 (`intstr.IntOrString` axiomatized), C6 (`cache.Object`'s `comparable`, for phase 4), C7 (`features`' initialization names only:
+   its `Init.lean` would need hand-written steps).
+   Still to do in this phase: the controller's packages (`pkg/controller/...`, after phase 0's pin),
+   the informers' half of `tools/cache`, the API types' `DeepCopy`. As first planned: a project `k8s-daemonset` in
    `etc/goose.py` translating the packages of "The cut" with bodies, the rest names-only, and a
    list of what the pinned Goose rejects (G-numbered, `notes/k8s-daemonset-goose.md`). Known in
    advance (from the call-graph survey, 2026-10-26):

@@ -1,0 +1,6 @@
+# With bodies (project k8s-apiserver; notes/k8s-clientgo-goose.md): the generic `ResourceIndexer[T]`
+# the typed listers embed.
+translate = ["*"]
+imports = ["*"]
+
+translate_types = true

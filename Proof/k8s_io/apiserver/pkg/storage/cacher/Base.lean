@@ -69,6 +69,43 @@ instance k8s_io_apiserver_pkg_storage_cacher_key_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.cacher.key :=
   build_get_is_pkg_init_wf
 
+-- (what `tools/cache`'s local half, translated with bodies since 2026-10-26, imports:
+-- notes/k8s-clientgo-goose.md; `features` has translated initializers, `Init.lean` proves them)
+instance k8s_io_apimachinery_pkg_util_naming_is_pkg_init_inst :
+    IsPkgInit (IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.naming :=
+  define_is_pkg_init iprop(True)
+instance k8s_io_apimachinery_pkg_util_naming_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.naming :=
+  build_get_is_pkg_init_wf
+
+instance k8s_io_apimachinery_pkg_util_version_is_pkg_init_inst :
+    IsPkgInit (IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.version :=
+  define_is_pkg_init iprop(True)
+instance k8s_io_apimachinery_pkg_util_version_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.version :=
+  build_get_is_pkg_init_wf
+
+instance k8s_io_client_go_features_is_pkg_init_inst :
+    IsPkgInit (IProp GF) pkg_id.k8s_io.client_go.features :=
+  define_is_pkg_init iprop(True)
+instance k8s_io_client_go_features_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.client_go.features :=
+  build_get_is_pkg_init_wf
+
+instance k8s_io_apimachinery_pkg_util_sets_is_pkg_init_inst :
+    IsPkgInit (IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.sets :=
+  define_is_pkg_init iprop(True)
+instance k8s_io_apimachinery_pkg_util_sets_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.sets :=
+  build_get_is_pkg_init_wf
+
+instance k8s_io_utils_trace_is_pkg_init_inst :
+    IsPkgInit (IProp GF) pkg_id.k8s_io.utils.trace :=
+  define_is_pkg_init iprop(True)
+instance k8s_io_utils_trace_get_is_pkg_init_wf_inst :
+    GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.utils.trace :=
+  build_get_is_pkg_init_wf
+
 instance k8s_io_client_go_tools_cache_is_pkg_init_inst :
     IsPkgInit (IProp GF) pkg_id.k8s_io.client_go.tools.cache :=
   define_is_pkg_init iprop(True)
