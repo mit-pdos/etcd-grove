@@ -1,6 +1,6 @@
 # Plan: KEP-6404 (API server write throughput) — GETs served from the watch cache
 
-Status: noted 2026-10-26, not started. The user asked (2026-10-26) to start "proving code related
+Status: started 2026-10-26 (branch `kep-6404`); "Progress" below. The user asked (2026-10-26) to start "proving code related
 to" [KEP-6404](https://github.com/kubernetes/enhancements/blob/master/keps/sig-api-machinery/6404-apiserver-write-throughput/README.md)
 after watchkv's move off the adapter, autonomously; the message was cut off after "Our goal is
 to." The goal below is this note's reading of it, to be confirmed.
@@ -62,3 +62,38 @@ generic specs (phase 4 of the etcd3 plan) still hold with the cache in the loop.
 4. Tie the cache's state to the KV state through the client's Watch spec (no adapter, no members,
    as watchkv since 2026-10-26).
 5. The KEP's conflict path, on a fork branch if upstream has not implemented it yet.
+
+## Progress (2026-10-26, branch `kep-6404`)
+
+- **Translation** (project `k8s-apiserver` of `etc/goose.py`): `cacher/store` with bodies; the
+  cacher (`Code/k8s_io/apiserver/pkg/storage/cacher.toml`) with `watch_cache.go`'s `watchCache`
+  methods' bodies, the rest names-only; `cacher/progress`'s `Add`/`Remove`; names-only
+  `consistency`, `key`, `delegator`, `metrics`, client-go's `tools/cache` (its indexer types
+  translated), `util/consistencydetector`, `util/watchlist`, component-base's `metrics`; `watch`'s
+  event-type constants. Goose gaps hit: G3 (a type of a package the file does not import: the
+  cacher's metrics; worked around, at the cost of `watchCacheEvent` being axiomatized, so
+  `processEvent` and `watchCache.UpdateResourceVersion` cannot be proved until G3's general fix)
+  and a constraint interface's `comparable` (`notes/perennial-changes.md`).
+- **A bug** (`issues/k8s-watchcache-index-error-partial-update.md`, reproduced): an index function's
+  error leaves the update in the store's B-tree, and the next snapshot serves it, without the
+  event in the history.
+- **The store** (`Proof/k8s_io/apiserver/pkg/storage/cacher/store/`; `Defs.lean`, `DefsWCS.lean`;
+  specs reviewed by a fresh subagent, its findings applied): `btreeStore`'s `newBtreeStore`,
+  `Clone`, `ResourceVersion`, `getByKey`, `GetByKey`, `addOrUpdateElem`, `deleteElem` proved over
+  the verified B-tree; `snapshotter.Add`/`UpdateResourceVersion` proved (their panics unreachable);
+  `WatchCacheStorage.LatestSnapshot` (the lock-free read: the caller's view shift at the atomic
+  load, against the published state; `isWCS`'s caller fact `Ψ` of every published state),
+  `UpdateStore` and `UpdateResourceVersion` (the publication at the atomic store, the ghost state
+  split between the invariant, the lock and the writer, `wcs_update`) proved.
+  `indexer.updateElem` is `sorry` (its map loops); `btreeStore.Replace`'s proof, `Replace`,
+  `NewWatchCacheStorage` and the read-locked methods (they need reader tokens) are left.
+- **The progress requester**'s `Add`/`Remove` proved (`isPR`).
+- **Next**: the watch cache's freshness (`waitUntilFreshLocked`, `getLatestSnapshotLocked`,
+  `checkSnapshotResourceVersion`, `waitAndGetLatestSnapshot`, `WaitUntilFreshAndGet`): its lock
+  resource `∃ st, resourceVersion ↦{q} st.2 ∗ wcsOwn γ q st` (a reader under the read lock holds
+  part of the writer's token, so the snapshot it loads is the cache's state at
+  `w.resourceVersion`, and `checkSnapshotResourceVersion`'s panic is unreachable); the callees'
+  trust specs: the config's clock (`Now`, `Since`, `After`'s channel), component-base's
+  `HistogramVec.WithContext` chain (the label count, as prometheus's `vecLabels`), the cacher
+  metrics' package fact (`WatchCacheReadWait`'s labels), `tracing.SpanFromContext` (done),
+  `storage.NewTooLargeResourceVersionError`.

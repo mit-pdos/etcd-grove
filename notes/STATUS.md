@@ -290,7 +290,10 @@ T3).
 ### Plan files (`notes/*-plan.md`)
 
 - `kep-6404-plan.md`: KEP-6404 (GETs served from the watch cache): prove a cached GET is a
-  linearizable read and the conflict re-read is fresh enough. Noted 2026-10-26, not started.
+  linearizable read and the conflict re-read is fresh enough. **Active** (branch `kep-6404`): the
+  watch cache translated, its store's writes and lock-free read proved over the B-tree (a quarter
+  ghost split; `indexer.updateElem` `sorry`), the freshness wait next; a bug found
+  (`issues/k8s-watchcache-index-error-partial-update.md`).
 
 - `auth-plan.md`: etcd's authentication and authorization (the auth store, RBAC at the API
   layer, an auth-enabled closed theorem; etcd-io/etcd#22595, #22540). **Active**: A0 done
