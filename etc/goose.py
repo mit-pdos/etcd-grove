@@ -170,12 +170,15 @@ PROJECTS = [
         # leader's raft loop waits for its apply loop before `Advance` when a `Ready` commits a
         # conf change, as a follower's does (4d9282b0f,
         # issues/etcd-leader-advance-before-applyconfchange.md; raft's dynamic mode needs a
-        # `Ready`'s conf changes applied before `Advance`).
+        # `Ready`'s conf changes applied before `Advance`). Then (D43 M4, 2026-10-26) branch
+        # `goose-lean-learnerfix` (on 4d9282b0f): a removed local member is no learner, rather
+        # than a panic (c00a2dc06, issues/etcd-unary-interceptor-learner-removed.md;
+        # etcd-io/etcd#22188's fix).
         # Branch
         # `goose` (upstream main of 2026-03) stays as it is: the Rocq translations
         # (etcd-grove `main`, Perennial `master`) are regenerated from it by name.
         repo="https://github.com/upamanyus/etcd",
-        rev="4d9282b0fb0922133a0a9b92d05268aef7efa44a",
+        rev="c00a2dc062245b2afbc37678b4e5423eff351bfd",
         # go.etcd.io/raft/v3 (etcd's go.mod: v3.7.0) is the raft above (v3.7.0 plus the
         # read-index fix), translated by the raft project: not translated here.
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",

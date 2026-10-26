@@ -4192,6 +4192,17 @@ noncomputable def EtcdServer.GoAttach.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"wgMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s")))) (Val #())))))))))))
 
+/-- IsLearner returns if the local member is raft learner
+
+    go: server.go:2453:22 -/
+noncomputable def EtcdServer.IsLearner.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "s"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))
+  (App (Val doReturn)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty) go!"IsLocalMemberLearner"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty)))) (App (Val (GoInstruction (StructFieldRef EtcdServer.ty go!"cluster"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType EtcdServer.ty)))) (Var "s"))))) (Val #())))))))
+
 /-- go: server.go:2471:22 -/
 noncomputable def EtcdServer.getTxPostLockInsideApplyHook.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "s"
@@ -8133,6 +8144,7 @@ class EtcdServer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
   ptr_ForceSnapshot_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"ForceSnapshot" EtcdServer.ForceSnapshot.impl
   ptr_GoAttach_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"GoAttach" EtcdServer.GoAttach.impl
   ptr_IsIDRemoved_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"IsIDRemoved" EtcdServer.IsIDRemoved.impl
+  ptr_IsLearner_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"IsLearner" EtcdServer.IsLearner.impl
   ptr_KV_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"KV" EtcdServer.KV.impl
   ptr_Lead_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"Lead" EtcdServer.Lead.impl
   ptr_Leader_unfold : MethodUnfold (go.GoType.PointerType EtcdServer.ty) go!"Leader" EtcdServer.Leader.impl
@@ -8318,6 +8330,7 @@ attribute [instance] EtcdServer.TypeAssumptions.type_repr
   EtcdServer.TypeAssumptions.ptr_ForceSnapshot_unfold
   EtcdServer.TypeAssumptions.ptr_GoAttach_unfold
   EtcdServer.TypeAssumptions.ptr_IsIDRemoved_unfold
+  EtcdServer.TypeAssumptions.ptr_IsLearner_unfold
   EtcdServer.TypeAssumptions.ptr_KV_unfold
   EtcdServer.TypeAssumptions.ptr_Lead_unfold
   EtcdServer.TypeAssumptions.ptr_Leader_unfold

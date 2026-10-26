@@ -17,7 +17,6 @@ axiom Client.getToken.wp_proof
 axiom Client.roundRobinQuorumBackoff.wp_proof
 axiom Client.streamClientInterceptor.wp_proof
 axiom DescribeConfChange.wp_proof
-axiom EtcdServer.IsLearner.wp_proof
 axiom EtcdServer.IsMemberExist.wp_proof
 axiom EtcdServer.adjustTicks.wp_proof
 axiom EtcdServer.applyConfChange.wp_proof

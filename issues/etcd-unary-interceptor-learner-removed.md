@@ -11,7 +11,9 @@ links:
 
 # server: the unary interceptor's learner check panics if the local member is removed meanwhile
 
-- **Status**: open (a narrow race: a reachable panic of a member that is being removed).
+- **Status**: open upstream; **fixed in the fork** 2026-10-26 (D43 M4: branch `goose-lean-learnerfix` of
+  `upamanyus/etcd`, `c00a2dc06`, `IsLocalMemberLearner` returns `false` for a removed local member,
+  as etcd-io/etcd#22188, with `TestIsLocalMemberLearnerRemoved`; `EtcdServer.IsLearner` proved over it) (a narrow race: a reachable panic of a member that is being removed).
 - **Where**: `server/etcdserver/api/v3rpc/interceptor.go` at the pinned revision
   (`etc/goose.py`, bc8b52a50319): `newUnaryInterceptor`'s
   `s.IsMemberExist(s.MemberID()) && s.IsLearner() && !isRPCSupportedForLearner(req)`;

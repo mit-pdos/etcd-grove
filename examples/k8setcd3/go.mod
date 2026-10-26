@@ -2,15 +2,15 @@ module github.com/mit-pdos/etcd-grove/examples/k8setcd3
 
 go 1.27.1
 
-replace go.etcd.io/etcd/api/v3 => github.com/upamanyus/etcd/api/v3 v3.0.0-20261025210951-4d9282b0fb09
+replace go.etcd.io/etcd/api/v3 => github.com/upamanyus/etcd/api/v3 v3.0.0-20261026002227-c00a2dc06224
 
-replace go.etcd.io/etcd/client/pkg/v3 => github.com/upamanyus/etcd/client/pkg/v3 v3.0.0-20261025210951-4d9282b0fb09
+replace go.etcd.io/etcd/client/pkg/v3 => github.com/upamanyus/etcd/client/pkg/v3 v3.0.0-20261026002227-c00a2dc06224
 
-replace go.etcd.io/etcd/client/v3 => github.com/upamanyus/etcd/client/v3 v3.0.0-20261025210951-4d9282b0fb09
+replace go.etcd.io/etcd/client/v3 => github.com/upamanyus/etcd/client/v3 v3.0.0-20261026002227-c00a2dc06224
 
-replace go.etcd.io/etcd/pkg/v3 => github.com/upamanyus/etcd/pkg/v3 v3.0.0-20261025210951-4d9282b0fb09
+replace go.etcd.io/etcd/pkg/v3 => github.com/upamanyus/etcd/pkg/v3 v3.0.0-20261026002227-c00a2dc06224
 
-replace go.etcd.io/etcd/server/v3 => github.com/upamanyus/etcd/server/v3 v3.0.0-20261025210951-4d9282b0fb09
+replace go.etcd.io/etcd/server/v3 => github.com/upamanyus/etcd/server/v3 v3.0.0-20261026002227-c00a2dc06224
 
 replace go.etcd.io/raft/v3 => github.com/upamanyus/etcd/v3 v3.0.0-20261019023206-c8217eb91ae5
 

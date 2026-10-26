@@ -42,6 +42,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.NewMaintenanc
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.NewQuotaKVServer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.NewQuotaLeaseServer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.NewWatchServer
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__IsLocalMemberLearner
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.RegisterAuthServer
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.RegisterClusterServer
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.RegisterKVServer
@@ -199,6 +200,10 @@ theorem status.wp_Error :
 theorem wp_togRPCError :
     EtcdGrove.v3rpc.togRPCError.spec (GF := GF) (hG := hG) :=
   EtcdGrove.v3rpc.togRPCError.wp_proof errors.wp_Is errors.wp_IsDeadlineExceeded status.wp_Error
+
+theorem membership.RaftCluster.wp_IsLocalMemberLearner :
+    EtcdGrove.membership.RaftCluster.IsLocalMemberLearner.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.membership.RaftCluster.IsLocalMemberLearner.wp_proof
 
 theorem rand.wp_Int63n :
     EtcdGrove.rand.Int63n.spec (GF := GF) (hG := hG) :=
@@ -445,7 +450,7 @@ theorem AuthServer.wp_UserRevokeRole :
 
 theorem EtcdServer.wp_IsLearner :
     EtcdGrove.EtcdServer.IsLearner.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.EtcdServer.IsLearner.wp_proof
+  EtcdGrove.EtcdServer.IsLearner.wp_proof membership.RaftCluster.wp_IsLocalMemberLearner
 
 theorem EtcdServer.wp_IsMemberExist :
     EtcdGrove.EtcdServer.IsMemberExist.spec (GF := GF) (hG := hG) :=

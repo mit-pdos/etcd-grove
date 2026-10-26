@@ -57,7 +57,7 @@ headerFillingRangeStream__Send: header__fillWithoutRevision
 # interceptors (interceptor.go, util.go's `isRPCSupportedForLearner`). The server's getters are
 # linked in the server's Link (`@`). Trust boundary (axioms): the apply package's
 # `storage.NewBackendQuota` (under `apply.backendUnderQuota`; since audit B3 no `EtcdServer.Alarm`),
-# `IsMemberExist`, `IsLearner` (the cluster's), `api.IsCapabilityEnabled`, grpc's
+# `IsMemberExist`, `api.IsCapabilityEnabled`, grpc's
 # `metadata.FromIncomingContext`/`MD.Get`, `utf8.ValidString`, prometheus's
 # `CounterVec.WithLabelValues`, and `logUnaryRequestStats` (zap, peer, proto.Size).
 _KV_Put_Handler:
@@ -79,7 +79,10 @@ EtcdServer__Leader: @
 metadata_FromIncomingContext:
 storage_NewBackendQuota:
 EtcdServer__IsMemberExist:
-EtcdServer__IsLearner:
+# (D43 M4, 2026-10-26) `IsLearner` over the cluster's `IsLocalMemberLearner` (the fork's: no panic
+# for a removed local member), both with their bodies (until then `IsLearner` an axiom).
+RaftCluster__IsLocalMemberLearner:
+EtcdServer__IsLearner: RaftCluster__IsLocalMemberLearner
 api_IsCapabilityEnabled:
 metadata_MD__Get:
 utf8_ValidString:
