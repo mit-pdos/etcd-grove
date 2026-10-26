@@ -53,6 +53,21 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [btree_sem : k8s_io.utils.third_party.forked.golang.btree.Assumptions]
 
+open Iris.ProofMode in
+/-- The builtin `max` on `uint64` (a copy of raft's `wp_max2_uint64` and mvcc's
+`sw_wp_max_int64`: a candidate for Perennial, `notes/perennial-changes.md`). -/
+theorem wp_max_uint64 (x y : w64) :
+    {{ (True : IProp GF) }}
+      (App (App (Val #(functions go.max [go.uint64, go.uint64])) (Val #x)) (Val #y))
+    {{ RET #(if uint.Z y < uint.Z x then x else y); True }} := by
+  wp_start
+  wp_if_destruct
+  all_goals
+    first
+    | rw [ite_cond_eq_true _ _ (eq_true (by omega))]
+    | rw [ite_cond_eq_false _ _ (eq_false (by omega))]
+    iapply HΦ; itrivial
+
 /-! ## Elements and the indexer -/
 
 /-- **An index function that never fails** on an element (`cache.IndexFunc`, here
@@ -102,7 +117,7 @@ stored snapshots (published ones, each `isSnap`), and its resource version, at m
 def ownSnapshotter (l : Loc) (dq : DFrac) (rv : w64) : IProp GF :=
   iprop(∃ (t : Loc) (srv : w64) (en : Bool) (ss : List (Loc × w64)),
     structFieldRef snapshotter go!"snapshots" l ↦{dq} t ∗ btree.ownBTree snapOrder t dq ss ∗
-    ([∗list] x ∈ ss, ∃ s, isSnap x.1 s x.2) ∗
+    □ (∀ x, ⌜x ∈ ss⌝ -∗ ∃ s, isSnap x.1 s x.2) ∗
     structFieldRef snapshotter go!"resourceVersion" l ↦{dq} srv ∗
     structFieldRef snapshotter go!"enabled" l ↦{dq} en ∗
     ⌜uint.Z srv ≤ uint.Z rv⌝)
