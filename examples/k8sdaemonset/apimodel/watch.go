@@ -1,8 +1,6 @@
 package apimodel
 
 import (
-	"github.com/goose-lang/primitive"
-
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/watch"
@@ -123,7 +121,7 @@ func (w *watcher) run() {
 		var ev watch.Event
 		if bookmark {
 			b := w.t.empty()
-			b.SetResourceVersion(primitive.UInt64ToString(s.rev))
+			b.SetResourceVersion(rvString(s.rev))
 			w.sentRV = s.rev
 			ev = watch.Event{Type: watch.Bookmark, Object: b}
 		} else {

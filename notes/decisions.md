@@ -21364,8 +21364,8 @@ its package documentation (`doc.go`) says how, operation by operation, with the 
 
 **What follows for the code.** The model is written to be read and to be stepped through: one
 mutex and condition variable, maps, one append-only change log per resource, resource versions
-issued as `primitive.UInt64ToString(n)` (injective; never parsed: issued versions are looked up),
-no reflection, no `fmt`, nondeterminism only through `primitive.RandomUint64` gated by `Config`
+issued as `strconv.FormatUint(n, 10)` (injective; never parsed: issued versions are looked up),
+no reflection, no `fmt`, nondeterminism only through `math/rand.Int63n` gated by `Config`
 flags. Client-go's typed interfaces are embedded with nil values, so a method the model does not
 implement panics: the no-panic theorem shows none is called (a Goose check pending: an embedded
 interface field).

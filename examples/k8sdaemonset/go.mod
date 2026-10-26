@@ -3,7 +3,6 @@ module github.com/mit-pdos/etcd-grove/examples/k8sdaemonset
 go 1.27.1
 
 require (
-	github.com/goose-lang/primitive v0.2.2-0.20260212023729-cb7f52217e65
 	k8s.io/api v0.0.0-20261020174351-067c983ccbc3
 	k8s.io/apimachinery v0.0.0-20261021173754-0b7d352f711c
 	k8s.io/client-go v0.0.0-20261021054439-569675c57fa3

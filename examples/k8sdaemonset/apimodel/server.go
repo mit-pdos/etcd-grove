@@ -2,9 +2,9 @@ package apimodel
 
 import (
 	"errors"
+	"math/rand"
+	"strconv"
 	"sync"
-
-	"github.com/goose-lang/primitive"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -24,7 +24,7 @@ type Config struct {
 	ExpireWatches   bool
 	Bookmarks       bool
 	// FaultPercent is the probability, in percent, of each flagged choice when run in Go.
-	FaultPercent uint64
+	FaultPercent int64
 }
 
 // object is what the server stores: every API type the model serves is both.
@@ -91,7 +91,12 @@ func (s *Server) chance(flag bool, admin bool) bool {
 	if !flag || admin {
 		return false
 	}
-	return primitive.RandomUint64()%100 < s.cfg.FaultPercent
+	return rand.Int63n(100) < s.cfg.FaultPercent
+}
+
+// rvString is a resource version's string form (decimal; injective).
+func rvString(n uint64) string {
+	return strconv.FormatUint(n, 10)
 }
 
 func copyObject(o object) object {
@@ -101,7 +106,7 @@ func copyObject(o object) object {
 // nextRV issues the next resource version. Called with mu held.
 func (s *Server) nextRV() (uint64, string) {
 	s.rev = s.rev + 1
-	rv := primitive.UInt64ToString(s.rev)
+	rv := rvString(s.rev)
 	s.rvs[rv] = s.rev
 	return s.rev, rv
 }
@@ -151,7 +156,7 @@ func (s *Server) create(t *table, ns string, in object, prepare func(object), ad
 			s.mu.Unlock()
 			return nil, apierrors.NewBadRequest("name or generateName is required")
 		}
-		obj.SetName(obj.GetGenerateName() + primitive.UInt64ToString(s.rev+1))
+		obj.SetName(obj.GetGenerateName() + rvString(s.rev+1))
 	}
 	key := types.NamespacedName{Namespace: obj.GetNamespace(), Name: obj.GetName()}
 	if _, ok := t.objs[key]; ok {
@@ -159,7 +164,7 @@ func (s *Server) create(t *table, ns string, in object, prepare func(object), ad
 		return nil, apierrors.NewAlreadyExists(t.resource, obj.GetName())
 	}
 	s.uids = s.uids + 1
-	obj.SetUID(types.UID("uid-" + primitive.UInt64ToString(s.uids)))
+	obj.SetUID(types.UID("uid-" + rvString(s.uids)))
 	obj.SetCreationTimestamp(metav1.Now())
 	prepare(obj)
 	n, rv := s.nextRV()
@@ -204,7 +209,7 @@ func (s *Server) list(t *table, ns string, opts metav1.ListOptions, admin bool) 
 			out = append(out, copyObject(obj))
 		}
 	}
-	return out, primitive.UInt64ToString(s.rev), nil
+	return out, rvString(s.rev), nil
 }
 
 // update replaces a stored object (the package documentation's Update and UpdateStatus).
