@@ -50,7 +50,7 @@ variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 real `*kv` and etcd's server returns a queue whose `Enqueue` meets its spec, and whose `Dequeue`'s
 `(v, nil)` is an item `it` with the value `v`, taken by this call in the server's terms
 (`queueTaken`), at a revision at least the caller's `lo`, in order (`dequeueOrder`). -/
-theorem queue_vertical (cl : Loc) (w : GoInterfaceOk) (api : Loc) (γ : client.KMNames)
+theorem queue_vertical (cl : Loc) (w : GoInterfaceOk) (api : Loc) (γ : client.KMNames) [client.KMWritable γ]
     (kp : GoString) (hkp : kp ≠ [])
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3.experimental.recipes ∗

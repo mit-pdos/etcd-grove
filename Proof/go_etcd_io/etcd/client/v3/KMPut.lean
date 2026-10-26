@@ -58,7 +58,7 @@ variable [sem : go.Semantics]
 that needs no previous key-value) of the operation `op` under `pfx`, the reply's state `σ` met
 after the changes `l0` (at least `lo` of them), `σ` and the state after the put well formed:
 `putResult`, its revision `σ`'s next, with its token. -/
-theorem putResult_of_km (γ : KMNames) (pfx : GoString) (lo : w64) (w : OpFull) (op : TxnOp)
+theorem putResult_of_km (γ : KMNames) [KMWritable γ] (pfx : GoString) (lo : w64) (w : OpFull) (op : TxnOp)
     (hw : putTxnOp w = op) (hu : op.Under pfx) (hnp : txn.needsPrev w = false)
     (l0 : List (List Change)) (hlo : sint.Z lo ≤ l0.length) (σ : KVState) (hok : kvLogOk σ)
     (h63 : σ.rev + 4 < 2 ^ 63) (hpost : kvLogOk (kvOpStep (.put w) σ)) :
@@ -123,7 +123,7 @@ theorem putResult_of_km (γ : KMNames) (pfx : GoString) (lo : w64) (w : OpFull) 
 of a range under `pfx` (the server's `deleteWireOf o`), the reply's state `σ` met after the
 changes `l0` (at least `lo` of them, and one), `σ` and the state after the delete well formed:
 `deleteResult`, its revision `σ`'s next if it deleted a key, `σ`'s otherwise. -/
-theorem deleteResult_of_km (γ : KMNames) (pfx : GoString) (lo : w64) (o : OpFull)
+theorem deleteResult_of_km (γ : KMNames) [KMWritable γ] (pfx : GoString) (lo : w64) (o : OpFull)
     (hu : KeyRangeUnder pfx o.key o.base.rangeEnd)
     (l0 : List (List Change)) (hlo : sint.Z lo ≤ l0.length) (h1 : 1 ≤ l0.length)
     (σ : KVState) (hok : kvLogOk σ)
@@ -229,7 +229,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 `ServerKVPut.lean`'s `kvLeasedPutTodo`): the recipes' put contract for a put with a lease, or one
 that needs the key's previous key-value (`WithIgnoreValue`, `WithIgnoreLease`: `txn.needsPrev`;
 the spec's reply does not say that such a put wrote, so gives no revision token). -/
-def kmPutRestTodo (api : Loc) (γ : KMNames) (pfx : GoString) : IProp GF :=
+def kmPutRestTodo (api : Loc) (γ : KMNames) [KMWritable γ] (pfx : GoString) : IProp GF :=
   iprop(□ ∀ (key val : GoString) (sl : GoSlice) (gs : List (OpFull → OpFull)) (op : TxnOp)
       (lo : w64),
     ⌜¬ (opPutModel key val gs).putPanics ∧ txnOpOf (opPutModel key val gs) = some op ∧
@@ -242,7 +242,7 @@ def kmPutRestTodo (api : Loc) (γ : KMNames) (pfx : GoString) : IProp GF :=
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
         putResult (EM := etcdModelOfKV γ) pfx lo op err }})
 
-instance kmPutRestTodo_persistent (api : Loc) (γ : KMNames) (pfx : GoString) :
+instance kmPutRestTodo_persistent (api : Loc) (γ : KMNames) [KMWritable γ] (pfx : GoString) :
     Persistent (kmPutRestTodo (GF := GF) api γ pfx) := by
   unfold kmPutRestTodo; infer_instance
 
@@ -251,7 +251,7 @@ model: `kv.Put(context.TODO(), ...)` returns `putResult` (`putResult_of_km`), a 
 that needs no previous key-value by `kv.Put.spec` with the adapter's write update (fired at most
 once: `isKv api γ.kv false`), any other by the premise `kmPutRestTodo`; `errors.As` can take
 `*rpctypes.EtcdError` (`hAs`, `todo_ctx`). -/
-theorem isEtcdPutKVTodo_of_km (api : Loc) (γ : KMNames) (pfx : GoString)
+theorem isEtcdPutKVTodo_of_km (api : Loc) (γ : KMNames) [KMWritable γ] (pfx : GoString)
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isKv api γ.kv false ∗
         kmInv γ ∗ kmPutRestTodo api γ pfx ⊢
@@ -275,7 +275,7 @@ theorem isEtcdPutKVTodo_of_km (api : Loc) (γ : KMNames) (pfx : GoString)
     iframe #
   imod (todo_ctx (GF := GF) hAs) with ⟨%cd, #Hctx, #Hce⟩
   imod km_reached_lb γ lo $$ Hlo with ⟨%l0, #Hl0, %Hll⟩
-  ihave Hau := km_write_au γ l0 (.put (putWireOf (opPutModel key val gs))) $$ [$Hinv $Hl0]
+  ihave Hau := km_write_au γ l0 (.put (putWireOf (opPutModel key val gs))) (KMWritable.keep _) $$ [$Hinv $Hl0]
   iunfold kvOpAu1 at Hau
   iunfold kvAu1 at Hau
   iapply (v3.kv.wp_Put api γ.kv false todoCtxVal cd key val sl gs
@@ -301,7 +301,7 @@ by `kv.Delete.spec` with the adapter's write update (fired at most once: `isKv a
 given that etcd has reached revision `1` (`kmReachedAt γ (W64 1)`: a delete that deletes nothing
 answers the state's revision, which the contract has positive; etcd's store starts at revision
 `1`) and that `errors.As` can take `*rpctypes.EtcdError` (`hAs`). -/
-theorem isEtcdDeleteKVTodo_of_km (api : Loc) (γ : KMNames) (pfx : GoString)
+theorem isEtcdDeleteKVTodo_of_km (api : Loc) (γ : KMNames) [KMWritable γ] (pfx : GoString)
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isKv api γ.kv false ∗
         kmInv γ ∗ kmReachedAt γ (W64 1) ⊢
@@ -324,7 +324,7 @@ theorem isEtcdDeleteKVTodo_of_km (api : Loc) (γ : KMNames) (pfx : GoString)
       have := h.length_le; omega
     · iexists l0; iframe Hl0; ipureintro
       have := h.length_le; omega
-  ihave Hau := km_write_au γ L (.deleteRange (deleteWireOf (opDeleteModel key gs))) $$ [$Hinv $HL]
+  ihave Hau := km_write_au γ L (.deleteRange (deleteWireOf (opDeleteModel key gs))) (KMWritable.keep _) $$ [$Hinv $HL]
   iunfold kvOpAu1 at Hau
   iunfold kvAu1 at Hau
   iapply (v3.kv.wp_Delete api γ.kv false todoCtxVal cd key sl gs

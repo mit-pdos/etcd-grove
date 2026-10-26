@@ -49,17 +49,17 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptio
 variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
 /-- **What the recipes' contracts need beyond the specs** (persistent; see the file header). -/
-def kmRecipesRest (api : Loc) (γ : client.KMNames) (pfx : GoString) : IProp GF :=
+def kmRecipesRest (api : Loc) (γ : client.KMNames) [client.KMWritable γ] (pfx : GoString) : IProp GF :=
   iprop(client.kmReachedAt γ (W64 1) ∗ client.kmPutRestTodo api γ pfx ∗
     client.kmTxnUncoveredTodo api γ)
 
-instance kmRecipesRest_persistent (api : Loc) (γ : client.KMNames) (pfx : GoString) :
+instance kmRecipesRest_persistent (api : Loc) (γ : client.KMNames) [client.KMWritable γ] (pfx : GoString) :
     Persistent (kmRecipesRest (GF := GF) api γ pfx) := by
   unfold kmRecipesRest; infer_instance
 
 /-- **A client of etcd's KV meets the recipes' `KV` contracts** (`isRecipesKV`) at the adapter's
 model: gets, transactions, deletes and puts at `context.TODO()` (see the file header). -/
-theorem isRecipesKV_of_km (api : Loc) (γ : client.KMNames) (pfx : GoString) (hpfx : pfx ≠ [])
+theorem isRecipesKV_of_km (api : Loc) (γ : client.KMNames) [client.KMWritable γ] (pfx : GoString) (hpfx : pfx ≠ [])
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
         client.isKv api γ.kv false ∗ client.kmInv γ ∗ sortNamesOk ∗
@@ -85,7 +85,7 @@ theorem isRecipesKV_of_km (api : Loc) (γ : client.KMNames) (pfx : GoString) (hp
 /-- **A client over a `*kv` of etcd's KV meets the recipes' client contract**
 (`isEtcdRecipesClient`) at the adapter's model: its `KV` field the `*kv` (`isRecipesKV_of_km`), its
 `Watcher` field a watcher meeting the watcher contract (`isEtcdRangeWatcher`, a premise). -/
-theorem isEtcdRecipesClient_of_km (cl : Loc) (w : GoInterfaceOk) (api : Loc) (γ : client.KMNames)
+theorem isEtcdRecipesClient_of_km (cl : Loc) (w : GoInterfaceOk) (api : Loc) (γ : client.KMNames) [client.KMWritable γ]
     (pfx : GoString) (hpfx : pfx ≠ [])
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗

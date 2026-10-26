@@ -113,11 +113,14 @@ variable [sem : go.Semantics]
 /-! ## The ghost state -/
 
 /-- The adapter's ghost names: the KV's (its state variable), the list of its changes, the
-revisions' tokens. -/
+revisions' tokens; and an application's property of the changes that the invariant keeps (`W`:
+every change of the KV is some client's update firing in the invariant, so a client's own fact
+about them, D44, e.g. that each revision is one of a plan's writes; `fun _ => True` for none). -/
 structure KMNames where
   kv : KVNames
   ch : GName
   tok : GName
+  W : List (List Change) → Prop
 
 /-- **A log the client saw** (persistent; see the file header): a prefix of the log of a state
 whose changes the client knows a lower bound of, well formed and small. -/
@@ -398,35 +401,37 @@ theorem kmN_mask : (↑kmN : CoPset) ⊆ (⊤ \ ↑srvRaftN) \ ↑kvN := by
     fun h => ndot_ne_disjoint nroot (by decide) p ⟨hp, h⟩⟩
 
 /-- **The adapter's invariant** (see the file header): the KV state's half, the list of its
-changes, the revisions' tokens minted (each at most the state's revision). -/
+changes, the revisions' tokens minted (each at most the state's revision), and the application's
+property of the changes (`γ.W`). -/
 def kmInv (γ : KMNames) : IProp GF :=
   inv kmN iprop(∃ (σ : KVState) (m : GMap Nat Unit), etcdKV γ.kv σ ∗
     monoListAuthOwn γ.ch 1 σ.changes ∗ ghostMapAuth γ.tok 1 m ∗
-    ⌜∀ n, m.lookup n ≠ none → n ≤ σ.rev⌝)
+    ⌜(∀ n, m.lookup n ≠ none → n ≤ σ.rev) ∧ γ.W σ.changes⌝)
 
 instance kmInv_persistent (γ : KMNames) : Persistent (kmInv (GF := GF) γ) := by
   unfold kmInv; infer_instance
 
-/-- **The adapter's start** from the KV state's half: its invariant, and the start's changes
-seen. -/
-theorem kmInv_alloc (γk : KVNames) (σ0 : KVState) :
-    etcdKV (GF := GF) γk σ0 ⊢ |={⊤}=> ∃ γ : KMNames, ⌜γ.kv = γk⌝ ∗ kmInv γ ∗
+/-- **The adapter's start** from the KV state's half, with an application's property of its
+changes (`W`, true of the start's): its invariant, and the start's changes seen. -/
+theorem kmInv_alloc (γk : KVNames) (σ0 : KVState) (W : List (List Change) → Prop)
+    (hW : W σ0.changes) :
+    etcdKV (GF := GF) γk σ0 ⊢ |={⊤}=> ∃ γ : KMNames, ⌜γ.kv = γk ∧ γ.W = W⌝ ∗ kmInv γ ∗
       monoListLbOwn γ.ch σ0.changes := by
   iintro Hσ
   imod (mono_list_own_alloc (GF := GF) σ0.changes) with ⟨%γc, Hc, #Hlb⟩
   imod (ghost_map_alloc_empty (GF := GF) (K := Nat) (V := Unit)) with ⟨%γt, Ht⟩
   imod (inv_alloc kmN ⊤ iprop(∃ (σ : KVState) (m : GMap Nat Unit), etcdKV (GF := GF) γk σ ∗
       monoListAuthOwn γc 1 σ.changes ∗ ghostMapAuth γt 1 m ∗
-      ⌜∀ n, m.lookup n ≠ none → n ≤ σ.rev⌝)) $$ [Hσ Hc Ht] with #Hinv
+      ⌜(∀ n, m.lookup n ≠ none → n ≤ σ.rev) ∧ W σ.changes⌝)) $$ [Hσ Hc Ht] with #Hinv
   · inext
     iexists σ0, ∅
     iframe
     ipureintro
-    intro n hn; simp at hn
+    exact ⟨fun n hn => by simp at hn, hW⟩
   imodintro
-  iexists ⟨γk, γc, γt⟩
+  iexists ⟨γk, γc, γt, W⟩
   isplitr
-  · ipureintro; rfl
+  · ipureintro; exact ⟨rfl, rfl⟩
   iframe Hlb
   unfold kmInv
   iexact Hinv
@@ -487,9 +492,17 @@ def kmWriteQ (γ : KMNames) (l0 : List (List Change)) (op : KVOp) (σ : KVState)
       ghostMapElem (K := Nat) (V := Unit) γ.tok (σ.rev + 1) (DFrac.own 1) ()
      else iprop(True)))
 
+/-- **Every operation keeps the application's property** (`γ.W`; e.g. none, `fun _ => True`,
+`KMWritable.of_true`): what the clients' write contracts take, any write being allowed. -/
+class KMWritable (γ : KMNames) : Prop where
+  keep : ∀ (op : KVOp) (σ : KVState), γ.W σ.changes → γ.W (kvOpStep op σ).changes
+
+theorem KMWritable.of_true (γ : KMNames) (h : ∀ c, γ.W c) : KMWritable γ := ⟨fun _ _ _ => h _⟩
+
 /-- **A write's update at the adapter** (fired at most once): the KV's step by `op`, minting the
-token of the revision it makes. -/
-theorem km_write_au (γ : KMNames) (l0 : List (List Change)) (op : KVOp) :
+token of the revision it makes; the step keeps the application's property (`hW`). -/
+theorem km_write_au (γ : KMNames) (l0 : List (List Change)) (op : KVOp)
+    (hW : ∀ σ : KVState, γ.W σ.changes → γ.W (kvOpStep op σ).changes) :
     kmInv (GF := GF) γ ∗ monoListLbOwn γ.ch l0 ⊢ kvOpAu1 γ.kv op (kmWriteQ γ l0 op) := by
   have Hm := kmN_mask
   iintro ⟨#Hinv, #Hl0⟩
@@ -525,18 +538,18 @@ theorem km_write_au (γ : KMNames) (l0 : List (List Change)) (op : KVOp) :
       have hfresh : m.lookup (σ.rev + 1) = none := by
         cases h : m.lookup (σ.rev + 1) with
         | none => rfl
-        | some _ => have := Hm _ (by rw [h]; simp); omega
+        | some _ => have := Hm.1 _ (by rw [h]; simp); omega
       imod (ghost_map_insert (σ.rev + 1) () hfresh) $$ Ht with ⟨Ht, Htok⟩
       imod Hclose $$ [Hσ Hc Ht] with -
       · inext; iexists kvOpStep op σ, _; iframe
         ipureintro
-        intro n hn
+        refine ⟨fun n hn => ?_, hW σ Hm.2⟩
         by_cases hn1 : n = σ.rev + 1
         · omega
         · have : m.lookup n ≠ none := by
             have h' := GMap.lookup_insert_ne m (v := ()) (Ne.symm hn1)
             exact fun h0 => hn (by rw [← h0]; exact h')
-          have := Hm n this; omega
+          have := Hm.1 n this; omega
       imodintro
       unfold kmWriteQ
       iframe Hlb' Hlb
@@ -547,8 +560,8 @@ theorem km_write_au (γ : KMNames) (l0 : List (List Change)) (op : KVOp) :
     · imod Hclose $$ [Hσ Hc Ht] with -
       · inext; iexists kvOpStep op σ, m; iframe
         ipureintro
-        intro n hn
-        have := Hm n hn
+        refine ⟨fun n hn => ?_, hW σ Hm.2⟩
+        have := Hm.1 n hn
         rcases hrev with h | h <;> omega
       imodintro
       unfold kmWriteQ

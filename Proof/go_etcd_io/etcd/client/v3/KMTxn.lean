@@ -121,7 +121,7 @@ theorem srvRunTxn_km (σ : KVState) (t : TxnModel) (hp : TxnModel.plain t) (hok 
 /-! ## The reply at the adapter's model -/
 
 /-- **A transaction that changed nothing**: its revision the state's, the state the one it read. -/
-theorem km_result_nowrite (γ : KMNames) (lo : w64) (pfx : GoString) (t : TxnModel) (resp : Loc)
+theorem km_result_nowrite (γ : KMNames) [KMWritable γ] (lo : w64) (pfx : GoString) (t : TxnModel) (resp : Loc)
     (m : TxnRespM) (σ : KVState) (hp : TxnModel.plain t) (hu : t.Under pfx)
     (hg : ∀ o : OpFull, TxnOp.get o ∈ t.thenOps ++ t.elseOps → o.getExact)
     (hok : kvLogOk σ) (h1 : 1 ≤ σ.rev) (h63 : σ.rev + 3 < 2 ^ 63)
@@ -187,7 +187,7 @@ theorem km_result_nowrite (γ : KMNames) (lo : w64) (pfx : GoString) (t : TxnMod
 /-- **A transaction that wrote**: its revision the next, the state it read etcd's at the one
 before, the state after it (`σ'`, the commit of its changes: `kvLogOk`, the spec's) etcd's at its
 revision, and the revision's token. -/
-theorem km_result_wrote (γ : KMNames) (lo : w64) (pfx : GoString) (t : TxnModel) (resp : Loc)
+theorem km_result_wrote (γ : KMNames) [KMWritable γ] (lo : w64) (pfx : GoString) (t : TxnModel) (resp : Loc)
     (m : TxnRespM) (σ σ' : KVState) (hp : TxnModel.plain t) (hu : t.Under pfx)
     (hng : ∀ o : OpFull, TxnOp.get o ∉ t.thenOps ++ t.elseOps)
     (hok : kvLogOk σ) (h63 : σ.rev + 3 < 2 ^ 63) (hlo : sint.Z lo ≤ (σ.rev : Int))
@@ -283,7 +283,7 @@ def kmCovered (t : TxnModel) : Prop :=
 
 /-- **`Commit()` on a builder of a client of etcd's KV, at the adapter's model** (a covered
 transaction, `kmCovered`): `txnCommitResultTok` from `etcdReached lo`, its error a client error. -/
-theorem kv_txn_commit_km (api tp : Loc) (addr : List GoString) (γ : KMNames) (ci : GoInterfaceOk)
+theorem kv_txn_commit_km (api tp : Loc) (addr : List GoString) (γ : KMNames) [KMWritable γ] (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (b : TxnBuild) (lo : w64) (pfx : GoString)
     (hp : TxnModel.plain b.model) (hu : b.model.Under pfx) (hx : b.model.exactGets)
     (hk : kmCovered b.model) :
@@ -351,7 +351,7 @@ theorem kv_txn_commit_km (api tp : Loc) (addr : List GoString) (γ : KMNames) (c
       · iright; ipureintro; exact ⟨Herr.1, Hce⟩
   · -- writing, covered: the write's update after the floor
     have hl := kmFree_leaseFree _ hfree
-    ihave Hau := km_write_au γ lf (.txn (txnWireOf b.model)) $$ [$Hinv $Hlf]
+    ihave Hau := km_write_au γ lf (.txn (txnWireOf b.model)) (KMWritable.keep _) $$ [$Hinv $Hlf]
     iapply (v3.txn.wp_Commit tp addr api γ.kv false ci cd b
       (kmWriteQ γ lf (.txn (txnWireOf b.model)))) $$ [Hobj Hau]
     · iframe
@@ -402,7 +402,7 @@ theorem kv_txn_commit_km (api tp : Loc) (addr : List GoString) (γ : KMNames) (c
 
 /-- **`Commit()` on a builder of a client of etcd's KV, any result** (`txnAnyResult`): a
 read-only transaction with no update, a covered writing one with a write's update. -/
-theorem kv_txn_commit_any_km (api tp : Loc) (addr : List GoString) (γ : KMNames)
+theorem kv_txn_commit_any_km (api tp : Loc) (addr : List GoString) (γ : KMNames) [KMWritable γ]
     (ci : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (b : TxnBuild)
     (hp : TxnModel.plain b.model) (hx : b.model.exactGets)
     (hk : txn.txnReadonly (txnWireOf b.model) = true ∨ TxnModel.kmFree b.model) :
@@ -427,7 +427,7 @@ theorem kv_txn_commit_any_km (api tp : Loc) (addr : List GoString) (γ : KMNames
         rcases hk with h | h
         · rw [hro] at h; cases h
         · exact h
-      ihave Hau := km_write_au γ [] (.txn (txnWireOf b.model)) $$ [$Hinv $H0]
+      ihave Hau := km_write_au γ [] (.txn (txnWireOf b.model)) (KMWritable.keep _) $$ [$Hinv $H0]
       iexists (kmWriteQ γ [] (.txn (txnWireOf b.model)))
       iright; iright
       isplitl []
@@ -465,7 +465,7 @@ persistent; see the file header): for a builder of `api` whose `exactGets` trans
 `kmCovered` (read-only and serializable, or writing with a lease or an `IgnoreValue` put),
 `txnCommitResultTok` from `etcdReached lo` under a prefix, with a client error; and, for a writing
 one, `txnAnyResult`. -/
-def kmTxnUncoveredTodo (api : Loc) (γ : KMNames) : IProp GF :=
+def kmTxnUncoveredTodo (api : Loc) (γ : KMNames) [KMWritable γ] : IProp GF :=
   iprop(□ ∀ (tp : Loc) (addr : List GoString) (ci : GoInterfaceOk)
       (cd : context.ContextDesc (IProp GF)) (b : TxnBuild),
     ⌜TxnModel.plain b.model ∧ b.model.exactGets ∧ ¬ kmCovered b.model⌝ -∗ txnKvIs tp api -∗
@@ -480,7 +480,7 @@ def kmTxnUncoveredTodo (api : Loc) (γ : KMNames) : IProp GF :=
         (App (Val #(methods (txnIfaceOf tp).ty go!"Commit" (txnIfaceOf tp).v)) (Val #()))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); txnAnyResult resp err }})))
 
-instance kmTxnUncoveredTodo_persistent (api : Loc) (γ : KMNames) :
+instance kmTxnUncoveredTodo_persistent (api : Loc) (γ : KMNames) [KMWritable γ] :
     Persistent (kmTxnUncoveredTodo (GF := GF) api γ) := by
   unfold kmTxnUncoveredTodo; infer_instance
 
@@ -496,7 +496,7 @@ adapter's model (see the file header). Premises: that `errors.As` can take
 `*rpctypes.EtcdError` (`hAs`), that the client's errors are client errors as `errors.Is` sees
 them (`clientErrsIs`), a state of revision `1` seen (`kmReachedAt γ (W64 1)`), and the uncovered
 transactions' commits (`kmTxnUncoveredTodo`). -/
-theorem isEtcdTxnKVTodo_of_km (api : Loc) (γ : KMNames) (pfx : GoString)
+theorem isEtcdTxnKVTodo_of_km (api : Loc) (γ : KMNames) [KMWritable γ] (pfx : GoString)
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isKv api γ.kv false ∗
         kmInv γ ∗ kmReachedAt γ (W64 1) ∗ clientErrsIs ∗ kmTxnUncoveredTodo api γ ⊢

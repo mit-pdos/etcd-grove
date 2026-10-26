@@ -600,7 +600,7 @@ variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
 /-- A client of etcd's KV meets the recipes' `KV` contracts at the clients' model over the KV
 state (`isRecipesKV_of_km`). -/
-theorem recipes_kv_of_km (api : Loc) (γ : client.KMNames) (pfx : GoString) (hpfx : pfx ≠ [])
+theorem recipes_kv_of_km (api : Loc) (γ : client.KMNames) [client.KMWritable γ] (pfx : GoString) (hpfx : pfx ≠ [])
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
         client.isKv api γ.kv false ∗ client.kmInv γ ∗ sortNamesOk ∗
@@ -610,7 +610,7 @@ theorem recipes_kv_of_km (api : Loc) (γ : client.KMNames) (pfx : GoString) (hpf
 
 /-- A client over a client of etcd's KV meets the recipes' client contract at the adapter's model
 (`isEtcdRecipesClient_of_km`; its watcher contract a premise). -/
-theorem recipes_client_of_km (cl : Loc) (w : GoInterfaceOk) (api : Loc) (γ : client.KMNames)
+theorem recipes_client_of_km (cl : Loc) (w : GoInterfaceOk) (api : Loc) (γ : client.KMNames) [client.KMWritable γ]
     (pfx : GoString) (hpfx : pfx ≠ [])
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
