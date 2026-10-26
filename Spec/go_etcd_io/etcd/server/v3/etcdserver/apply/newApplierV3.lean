@@ -36,6 +36,8 @@ abbrev apply.newApplierV3.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗ RD }}
     (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.newApplierV3)) (Val #opts))
   {{ (a : GoInterface), RET #a;
+      -- (the auth plan's E2m) its shape: auth over quota over the backend with `opts`
+      apply.baseShape opts a ∗
       □ (∀ E : AEnv GF, ⌜E.RD = RD⌝ -∗ apply.backendOptsOk E opts -∗
         apply.applierSpec E (apply.baseChain E.authOn) a) }}
 

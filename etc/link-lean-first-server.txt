@@ -480,6 +480,15 @@ auth_authStore__RoleDelete: auth_authStore__commitRevision auth_authStore__refre
 auth_authStore__UserGrantRole: auth_authStore__commitRevision auth_authStore__refreshRangePermCache zap_String zap_Strings zap_Logger__Warn zap_Logger__Info
 auth_authStore__RoleGrantPermission: auth_authStore__commitRevision auth_authStore__refreshRangePermCache auth_isValidPermissionRange zap_String zap_ByteString zap_Logger__Info
 auth_authStore__HasRole: zap_String zap_Logger__Warn
+# The admin reads (the auth plan's E2j, 2026-10-26): over the backend's reads (`authBackendReads`,
+# `InvAuth.lean`), each from the latest state; `CheckPassword` over the locked read transaction,
+# bcrypt's comparison the trust boundary (D-AU6).
+auth_authStore__UserGet:
+auth_authStore__RoleGet:
+auth_authStore__UserList:
+auth_authStore__RoleList:
+bcrypt_CompareHashAndPassword:
+auth_authStore__CheckPassword: auth_authStore__IsAuthEnabled auth_authStore__lockedReadTx bcrypt_CompareHashAndPassword zap_String zap_Logger__Info
 auth_authStore__UserChangePassword: auth_authStore__commitRevision auth_authStore__refreshRangePermCache auth_authStore__selectPassword zap_String zap_Strings zap_Logger__Info
 auth_authStore__AuthDisable: auth_authStore__commitRevision zap_Logger__Info
 auth_authStore__AuthEnable: auth_authStore__refreshRangePermCache auth_authStore__setRevision auth_hasRootRole zap_Logger__Info

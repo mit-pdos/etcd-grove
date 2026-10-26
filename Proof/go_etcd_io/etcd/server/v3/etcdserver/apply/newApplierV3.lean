@@ -36,11 +36,18 @@ theorem apply.newApplierV3.wp_proof
   intro opts RD Hbuq
   wp_start as Hard
   wp_auto
-  wp_apply (hB opts) $$ [] as %b #Hb
-  wp_apply (hQ opts.Logger' opts.QuotaBackendBytesCfg' opts.Backend' b Hbuq) $$ [] as %q #Hq
-  wp_apply (hA opts.AuthStore' q opts.Lessor' RD) $$ [Hard] as %p #Hp
+  wp_apply (hB opts) $$ [] as %b ⟨⟨%pb, %Hpb, #Hpbo⟩, #Hb⟩
+  wp_apply (hQ opts.Logger' opts.QuotaBackendBytesCfg' opts.Backend' b Hbuq) $$ []
+    as %q ⟨⟨%pq, %Hpq, #Hpqf⟩, #Hq⟩
+  wp_apply (hA opts.AuthStore' q opts.Lessor' RD) $$ [Hard] as %p ⟨#Hpaf, #Hp⟩
   · iframe
   iapply HΦ
+  isplitr
+  · iunfold apply.baseShape
+    iexists p, pq, pb
+    subst Hpb Hpq
+    iframe Hpaf Hpqf Hpbo
+    ipureintro; rfl
   iintro !> %E %hRD #Hopts
   ihave #Hok := Hopts
   iunfold apply.backendOptsOk at Hok

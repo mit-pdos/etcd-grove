@@ -4,6 +4,7 @@ Proof of the spec of the same name (the auth plan's S4, 2026-10-24). Lean-first 
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__RoleAdd
+public import Proof.go_etcd_io.etcd.server.v3.auth.LatestTie
 public import Proof.go_etcd_io.etcd.server.v3.auth.VerdictLemmas
 public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__commitRevision
 public import Spec.go_uber_org.zap.String
@@ -28,12 +29,12 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
-theorem auth.authStore.RoleAdd.wp_proof
+theorem auth.authStore.RoleAdd.wp_tie
     (h_commitRevision : auth.authStore.commitRevision.spec (GF := GF) (hG := hG))
     (h_String : zap.String.spec (GF := GF) (hG := hG))
     (h_Info : zap.Logger.Info.spec (GF := GF) (hG := hG)) :
-    auth.authStore.RoleAdd.spec (GF := GF) (hG := hG) := by
-  intro st R M P f T hs Pre Q Post r name
+    auth.authStore.RoleAdd.specT (GF := GF) (hG := hG) := by
+  intro st R M P f T hs Pre Q Post r name b0 sc0
   wp_start as ⟨#Hinv, #Hr, %Hlen, Hown, HWR, Hcs, %Hok⟩
   icases authErrVar_of_init .roleEmpty $$ Hpkg with ⟨%eRE, #HeRE⟩
   icases authErrVar_of_init .roleAlreadyExist $$ Hpkg with ⟨%eRAE, #HeRAE⟩
@@ -43,8 +44,8 @@ theorem auth.authStore.RoleAdd.wp_proof
   icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, %Hlgnn⟩, -, -, -, -⟩
   iunfold roleAddReqIs at Hr
   icases Hr with ⟨%Hrnn, #HN⟩
-  iunfold authWR at HWR
-  icases HWR with ⟨⟨%be, Hbe, #Hbeok⟩, HT, Hen⟩
+  iunfold authWRx at HWR
+  icases HWR with ⟨⟨%be, Hbe, #Hbeok⟩, HT, Hfl, #Hev, Hca, #Hcsn⟩
   ihave #Hbeok' := Hbeok
   iunfold authWBackendOk at Hbeok'
   icases Hbeok' with ⟨%bi, %Hbi, #HBatch, #HFC, -⟩
@@ -56,19 +57,22 @@ theorem auth.authStore.RoleAdd.wp_proof
   · -- an empty name
     (try wp_auto)
     iapply HΦ
+    iexists b0, sc0
     isplitl [Hcs]
     · iapply csContract_noWrite $$ Hcs
-    isplitl [Hbe HT Hen]
-    · iunfold authWR; iframe HT Hen; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+    isplitl [Hbe HT Hfl Hca]
+    · iunfold authWRx; iframe HT Hfl Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
     isplitr
     · iunfold respOk; isplitr
       · ipureintro; intro _; rfl
       · ileft; ipureintro; rfl
-    iunfold adminOut
+    iunfold adminOutP
     iright
     ihave %Hl := authOwn_exists_last M hs $$ Hown
     obtain ⟨st0, Hl⟩ := Hl
     iexists st0, (.err .roleEmpty)
+    isplitr
+    · ipureintro; exact tieStep_same _ _ _ _
     isplitr
     · ipureintro
       refine ⟨Hl, ?_⟩
@@ -117,17 +121,20 @@ theorem auth.authStore.RoleAdd.wp_proof
     · ipureintro; exact Hl0
     (try wp_auto)
     iapply HΦ
+    iexists b0, sc0
     isplitl [HPost]
     · ileft; iexact HPost
-    isplitl [Hbe HT Hen]
-    · iunfold authWR; iframe HT Hen; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+    isplitl [Hbe HT Hfl Hca]
+    · iunfold authWRx; iframe HT Hfl Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
     isplitr
     · iunfold respOk; isplitr
       · ipureintro; intro _; rfl
       · ileft; ipureintro; rfl
-    iunfold adminOut
+    iunfold adminOutP
     iright
     iexists st0, (.err .roleAlreadyExist)
+    isplitr
+    · ipureintro; exact tieStep_same _ _ _ _
     isplitr
     · ipureintro
       refine ⟨Hl0, ?_⟩
@@ -190,25 +197,63 @@ theorem auth.authStore.RoleAdd.wp_proof
     · iExactEq HL; rfl
     ipureintro; exact Hl1
   (try wp_auto)
-  iapply HΦ
-  isplitl [HPost]
-  · ileft; iexact HPost
-  isplitl [Hbe HT Hen]
-  · iunfold authWR; iframe HT Hen; iexists (GoInterface.ok bi); iframe Hbe Hbeok
-  isplitl [Header]
-  · iunfold respOk; isplitr
-    · ipureintro; intro h; exact absurd rfl h
-    · iright; iexists _; iexact Header
-  iunfold adminOut
-  iright
-  iexists st0, (.next (bump (putRole st0 name [])))
-  isplitr
-  · ipureintro; exact ⟨Hl0, hstep.symm⟩
-  simp only [outRes]
-  isplitl [Hown]
-  · iExactEq Hown
-    all_goals rfl
-  · ipureintro; trivial
+  by_cases hc : b0 = true ∧ sc0 = st0
+  · ihave Hca := cacheAt_congr st sc0 ({ putRole st0 rrN.name rrN.toRole with revision := rev })
+      (by rw [hc.2]; rfl) (fun u => by
+        rw [hc.2]; exact (userPerms_putRole_empty st0 name Hnone u).symm) $$ Hca
+    ihave ⟨Hown, #Hsn'⟩ := authSnap_of_own_last M _ _ Hl1 $$ Hown
+    iapply HΦ
+    iexists b0, ({ putRole st0 rrN.name rrN.toRole with revision := rev } : AuthState)
+    isplitl [HPost]
+    · ileft; iexact HPost
+    isplitl [Hbe HT Hfl Hca]
+    · iunfold authWRx; iframe HT Hfl Hev Hca Hsn'; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+    isplitl [Header]
+    · iunfold respOk; isplitr
+      · ipureintro; intro h; exact absurd rfl h
+      · iright; iexists _; iexact Header
+    iunfold adminOutP
+    iright
+    iexists st0, (.next (bump (putRole st0 name [])))
+    isplitr
+    · ipureintro; exact tieStep_refresh M hs _ b0 sc0 _ st0 Hl0 Hl1 rfl
+    isplitr
+    · ipureintro; exact ⟨Hl0, hstep.symm⟩
+    simp only [outRes]
+    isplitl [Hown]
+    · iExactEq Hown
+      all_goals rfl
+    · ipureintro; trivial
+  · iapply HΦ
+    iexists b0, sc0
+    isplitl [HPost]
+    · ileft; iexact HPost
+    isplitl [Hbe HT Hfl Hca]
+    · iunfold authWRx; iframe HT Hfl Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+    isplitl [Header]
+    · iunfold respOk; isplitr
+      · ipureintro; intro h; exact absurd rfl h
+      · iright; iexists _; iexact Header
+    iunfold adminOutP
+    iright
+    iexists st0, (.next (bump (putRole st0 name [])))
+    isplitr
+    · ipureintro; exact tieStep_keep' M hs _ b0 sc0 st0 _ Hl0 Hl1 rfl hc
+    isplitr
+    · ipureintro; exact ⟨Hl0, hstep.symm⟩
+    simp only [outRes]
+    isplitl [Hown]
+    · iExactEq Hown
+      all_goals rfl
+    · ipureintro; trivial
+
+
+theorem auth.authStore.RoleAdd.wp_proof
+    (h_commitRevision : auth.authStore.commitRevision.spec (GF := GF) (hG := hG))
+    (h_String : zap.String.spec (GF := GF) (hG := hG))
+    (h_Info : zap.Logger.Info.spec (GF := GF) (hG := hG)) :
+    auth.authStore.RoleAdd.spec (GF := GF) (hG := hG) :=
+  auth.authStore.RoleAdd.spec_of_T (auth.authStore.RoleAdd.wp_tie h_commitRevision h_String h_Info)
 
 end proof
 

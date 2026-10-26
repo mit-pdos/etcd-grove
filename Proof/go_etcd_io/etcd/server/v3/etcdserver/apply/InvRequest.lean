@@ -28,6 +28,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Base
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.txn.Requests
+public import Proof.go_etcd_io.etcd.server.v3.auth.Requests
 
 @[expose] public section
 
@@ -75,6 +76,22 @@ structure AuthenticateModel where
   password : GoString
   simpleToken : GoString
 
+/-- An `AuthUserAddRequest`'s `Name`, `Password`, `HashedPassword` and its options' `NoPassword`
+(`Options` nil reads as `false`, as `UserAdd` does). The auth plan's E2t (2026-10-26): the request
+model keeps the password choice, which decides `UserAdd`'s `ErrNoPasswordUser`. -/
+structure UserAddModel where
+  name : GoString
+  password : GoString
+  hashed : GoString
+  noPassword : Bool
+
+/-- **The password choice cannot fail** (`UserAdd`'s `ErrNoPasswordUser` is not possible): no
+password asked for, or the server's own form of a password (`EtcdServer.UserAdd`, since 3.5: the
+password cleared and its bcrypt hash in `HashedPassword`, base64-encoded), which `selectPassword`
+decodes without an error. -/
+def UserAddModel.pwSure (m : UserAddModel) : Prop :=
+  auth.pwSureP m.password m.hashed m.noPassword
+
 /-- A `ClusterMemberAttrSetRequest`'s `Member_ID` and its `MemberAttributes`' `Name` and
 `ClientUrls`. -/
 structure MemberAttrModel where
@@ -105,12 +122,15 @@ structure IRRModel where
   authStatus : Bool
   authenticate : Option AuthenticateModel
   /-- the user's name (unit N4, D14g, 2026-10-17: a `Bool` until then; the auth store's
-  `UserAdd` makes it a bbolt key, `issues/etcd-auth-useradd-long-name-fatal.md`) -/
-  authUserAdd : Option GoString
+  `UserAdd` makes it a bbolt key, `issues/etcd-auth-useradd-long-name-fatal.md`; with its passwords
+  and options since the auth plan's E2t, 2026-10-26, `UserAddModel`) -/
+  authUserAdd : Option UserAddModel
   authUserDelete : Bool
   authUserGet : Option GoString
   authUserChangePassword : Bool
-  authUserGrantRole : Bool
+  /-- the user's and the role's names (the auth plan's E2n, 2026-10-26: a `Bool` until then; the
+  step specs bound the user's name, `apply.adminKindOk`) -/
+  authUserGrantRole : Option (GoString × GoString)
   authUserRevokeRole : Bool
   authUserList : Bool
   authRoleList : Bool
@@ -118,7 +138,8 @@ structure IRRModel where
   authRoleAdd : Option GoString
   authRoleDelete : Bool
   authRoleGet : Option GoString
-  authRoleGrantPermission : Bool
+  /-- the role's name and the permission (as `authUserGrantRole`'s) -/
+  authRoleGrantPermission : Option (GoString × Option auth.PermW)
   authRoleRevokePermission : Bool
   clusterVersionSet : Option GoString
   clusterMemberAttrSet : Option MemberAttrModel
@@ -178,11 +199,11 @@ def dispatchKind (rq : IRRModel) : ReqKind :=
   else if rq.authUserAdd.isSome then .authUserAdd
   else if rq.authUserDelete then .authUserDelete
   else if rq.authUserChangePassword then .authUserChangePassword
-  else if rq.authUserGrantRole then .authUserGrantRole
+  else if rq.authUserGrantRole.isSome then .authUserGrantRole
   else if rq.authUserGet.isSome then .authUserGet
   else if rq.authUserRevokeRole then .authUserRevokeRole
   else if rq.authRoleAdd.isSome then .authRoleAdd
-  else if rq.authRoleGrantPermission then .authRoleGrantPermission
+  else if rq.authRoleGrantPermission.isSome then .authRoleGrantPermission
   else if rq.authRoleGet.isSome then .authRoleGet
   else if rq.authRoleRevokePermission then .authRoleRevokePermission
   else if rq.authRoleDelete then .authRoleDelete
@@ -199,7 +220,8 @@ def noSideEffect (rq : IRRModel) : Bool :=
 or disable auth, or list users or roles. -/
 def needAdminPermission (rq : IRRModel) : Bool :=
   [rq.authEnable, rq.authDisable, rq.authUserAdd.isSome, rq.authUserDelete, rq.authUserChangePassword,
-    rq.authUserGrantRole, rq.authUserRevokeRole, rq.authRoleAdd.isSome, rq.authRoleGrantPermission,
+    rq.authUserGrantRole.isSome, rq.authUserRevokeRole, rq.authRoleAdd.isSome,
+    rq.authRoleGrantPermission.isSome,
     rq.authRoleRevokePermission, rq.authRoleDelete, rq.authUserList, rq.authRoleList].or
 
 /-- A KV request: what the txn package applies (and the corrupt applier rejects). -/
@@ -302,13 +324,65 @@ def authUserGetIs (u : Loc) (name : GoString) : IProp GF :=
 def authRoleGetIs (r : Loc) (role : GoString) : IProp GF :=
   iprop(⌜r ≠ null⌝ ∗ structFieldRef etcdserverpb.AuthRoleGetRequest go!"Role" r ↦□ role)
 
-/-- The `*pb.AuthUserAddRequest` `u` (not nil): its `Name`, read-only (unit N4, 2026-10-17). -/
-def authUserAddIs (u : Loc) (name : GoString) : IProp GF :=
-  iprop(⌜u ≠ null⌝ ∗ structFieldRef etcdserverpb.AuthUserAddRequest go!"Name" u ↦□ name)
+/-- The `*pb.AuthUserAddRequest` `u` (not nil): its `Name` (unit N4, 2026-10-17), its passwords
+and its options' `NoPassword` (the auth plan's E2n and E2t, 2026-10-26), read-only. It gives the
+auth store's request model (`auth.userAddReqIs`, `authUserAddIs_req`), which its `UserAdd` reads. -/
+def authUserAddIs (u : Loc) (m : UserAddModel) : IProp GF :=
+  iprop(⌜u ≠ null⌝ ∗ structFieldRef etcdserverpb.AuthUserAddRequest go!"Name" u ↦□ m.name ∗
+    structFieldRef etcdserverpb.AuthUserAddRequest go!"Password" u ↦□ m.password ∗
+    structFieldRef etcdserverpb.AuthUserAddRequest go!"HashedPassword" u ↦□ m.hashed ∗
+    ∃ o : Loc, structFieldRef etcdserverpb.AuthUserAddRequest go!"Options" u ↦□ o ∗
+      auth.userOptsAt o m.noPassword)
+
+/-- The request model gives the auth store's (`auth.userAddReqIs`). -/
+theorem authUserAddIs_req (u : Loc) (m : UserAddModel) :
+    authUserAddIs (GF := GF) u m ⊢ auth.userAddReqIs u m.name := by
+  unfold authUserAddIs auth.userAddReqIs
+  iintro ⟨%hu, #Hn, #Hp, #Hh, %o, #Ho, #Hb⟩
+  isplit; · ipureintro; exact hu
+  isplit; · iexact Hn
+  isplit; · iexists m.password, m.hashed; isplit <;> iassumption
+  iexists o, m.noPassword; isplit <;> iassumption
+
+/-- A request whose model's password choice cannot fail gives the auth store's `userAddSure`
+(the auth plan's E2u: `UserAdd.specSure`). -/
+theorem authUserAddIs_sure (u : Loc) (m : UserAddModel) (h : m.pwSure) :
+    authUserAddIs (GF := GF) u m ⊢ auth.userAddSure u := by
+  unfold authUserAddIs auth.userAddSure
+  iintro ⟨%hu, #Hn, #Hp, #Hh, %o, #Ho, #Hb⟩
+  iexists m.password, m.hashed, o, m.noPassword
+  iframe Hp Hh Ho Hb
+  ipureintro; exact h
 
 /-- The `*pb.AuthRoleAddRequest` `r` (not nil): its `Name`, read-only (unit N4, 2026-10-17). -/
 def authRoleAddIs (r : Loc) (name : GoString) : IProp GF :=
   iprop(⌜r ≠ null⌝ ∗ structFieldRef etcdserverpb.AuthRoleAddRequest go!"Name" r ↦□ name)
+
+/-- The `*pb.AuthUserGrantRoleRequest` `r` (not nil): its `User` and `Role`, read-only (the auth
+store's request model, `auth.userGrantRoleReqIs`; the auth plan's E2n). -/
+def authUserGrantRoleIs (r : Loc) (ur : GoString × GoString) : IProp GF :=
+  auth.userGrantRoleReqIs r ur.1 ur.2
+
+/-- The `*pb.AuthRoleGrantPermissionRequest` `r` (not nil): its `Name` and its `Perm`, read-only
+(`auth.roleGrantPermissionReqIs`; the auth plan's E2n). -/
+def authRoleGrantPermissionIs (r : Loc) (nw : GoString × Option auth.PermW) : IProp GF :=
+  auth.roleGrantPermissionReqIs r nw.1 nw.2
+
+instance authUserGrantRoleIs_persistent (r : Loc) (ur : GoString × GoString) :
+    Persistent (authUserGrantRoleIs (GF := GF) r ur) := by
+  unfold authUserGrantRoleIs; infer_instance
+
+instance authRoleGrantPermissionIs_persistent (r : Loc) (nw : GoString × Option auth.PermW) :
+    Persistent (authRoleGrantPermissionIs (GF := GF) r nw) := by
+  unfold authRoleGrantPermissionIs; infer_instance
+
+theorem authUserGrantRoleIs_nn (l : Loc) (ur : GoString × GoString) :
+    authUserGrantRoleIs (GF := GF) l ur ⊢ ⌜l ≠ null⌝ := by
+  unfold authUserGrantRoleIs auth.userGrantRoleReqIs; iintro ⟨%h, -⟩; ipureintro; exact h
+
+theorem authRoleGrantPermissionIs_nn (l : Loc) (nw : GoString × Option auth.PermW) :
+    authRoleGrantPermissionIs (GF := GF) l nw ⊢ ⌜l ≠ null⌝ := by
+  unfold authRoleGrantPermissionIs auth.roleGrantPermissionReqIs; iintro ⟨%h, -⟩; ipureintro; exact h
 
 /-- The `*membershippb.ClusterVersionSetRequest` `c` (not nil): its `Ver`, read-only. -/
 def clusterVersionSetIs (c : Loc) (ver : GoString) : IProp GF :=
@@ -358,7 +432,7 @@ instance authUserGetIs_persistent (u : Loc) (name : GoString) : Persistent (auth
 instance authRoleGetIs_persistent (r : Loc) (role : GoString) : Persistent (authRoleGetIs (GF := GF) r role) := by
   unfold authRoleGetIs; infer_instance
 
-instance authUserAddIs_persistent (u : Loc) (name : GoString) : Persistent (authUserAddIs (GF := GF) u name) := by
+instance authUserAddIs_persistent (u : Loc) (m : UserAddModel) : Persistent (authUserAddIs (GF := GF) u m) := by
   unfold authUserAddIs; infer_instance
 
 instance authRoleAddIs_persistent (r : Loc) (name : GoString) : Persistent (authRoleAddIs (GF := GF) r name) := by
@@ -399,14 +473,15 @@ def internalRaftRequestIs (p : Loc) (rq : IRRModel) : IProp GF :=
     irrField p go!"AuthUserDelete" (fun l => presentIs l rq.authUserDelete) ∗
     irrField p go!"AuthUserGet" (fun l => optReqIs l rq.authUserGet authUserGetIs) ∗
     irrField p go!"AuthUserChangePassword" (fun l => presentIs l rq.authUserChangePassword) ∗
-    irrField p go!"AuthUserGrantRole" (fun l => presentIs l rq.authUserGrantRole) ∗
+    irrField p go!"AuthUserGrantRole" (fun l => optReqIs l rq.authUserGrantRole authUserGrantRoleIs) ∗
     irrField p go!"AuthUserRevokeRole" (fun l => presentIs l rq.authUserRevokeRole) ∗
     irrField p go!"AuthUserList" (fun l => presentIs l rq.authUserList) ∗
     irrField p go!"AuthRoleList" (fun l => presentIs l rq.authRoleList) ∗
     irrField p go!"AuthRoleAdd" (fun l => optReqIs l rq.authRoleAdd authRoleAddIs) ∗
     irrField p go!"AuthRoleDelete" (fun l => presentIs l rq.authRoleDelete) ∗
     irrField p go!"AuthRoleGet" (fun l => optReqIs l rq.authRoleGet authRoleGetIs) ∗
-    irrField p go!"AuthRoleGrantPermission" (fun l => presentIs l rq.authRoleGrantPermission) ∗
+    irrField p go!"AuthRoleGrantPermission"
+      (fun l => optReqIs l rq.authRoleGrantPermission authRoleGrantPermissionIs) ∗
     irrField p go!"AuthRoleRevokePermission" (fun l => presentIs l rq.authRoleRevokePermission) ∗
     irrField p go!"ClusterVersionSet" (fun l => optReqIs l rq.clusterVersionSet clusterVersionSetIs) ∗
     irrField p go!"ClusterMemberAttrSet"
@@ -418,7 +493,7 @@ instance internalRaftRequestIs_persistent (p : Loc) (rq : IRRModel) :
     Persistent (internalRaftRequestIs (GF := GF) p rq) := by
   unfold internalRaftRequestIs headerIs compactionIs leaseGrantIs leaseRevokeIs alarmRequestIs
     leaseCheckpointIs checkpointIs authenticateIs authUserGetIs authRoleGetIs authUserAddIs
-    authRoleAddIs clusterVersionSetIs
+    authRoleAddIs authUserGrantRoleIs authRoleGrantPermissionIs clusterVersionSetIs
     memberAttrSetIs downgradeInfoSetIs
   infer_instance
 

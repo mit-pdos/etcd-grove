@@ -38,7 +38,7 @@ theorem auth.authStore.HasRole.wp_proof
   iunfold authInv at Hinv'
   icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, %Hlgnn⟩, -, -, -, -⟩
   iunfold authWR at HWR
-  icases HWR with ⟨⟨%be, Hbe, #Hbeok⟩, HT, Hen⟩
+  icases HWR with ⟨⟨%be, Hbe, #Hbeok⟩, HT, Hen, Hca⟩
   ihave #Hbeok' := Hbeok
   iunfold authWBackendOk at Hbeok'
   icases Hbeok' with ⟨%bi, %Hbi, #HBatch, #HFC⟩
@@ -86,8 +86,8 @@ theorem auth.authStore.HasRole.wp_proof
     (try wp_auto)
     iapply HΦ
     iframe HPost Hown
-    isplitl [Hbe HT Hen]
-    · iunfold authWR; iframe HT Hen; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+    isplitl [Hbe HT Hen Hca]
+    · iunfold authWR; iframe HT Hen Hca; iexists (GoInterface.ok bi); iframe Hbe Hbeok
     ipureintro
     exact ⟨st0, Hl0, by simp [Hnone]⟩
   ihave Hu' := auth.userOut_some_named _ st0 user Hif $$ Hu
@@ -128,8 +128,8 @@ theorem auth.authStore.HasRole.wp_proof
       wp_for_post
       iapply HΦ
       iframe HPost Hown
-      isplitl [Hbe HT Hen]
-      · iunfold authWR; iframe HT Hen; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+      isplitl [Hbe HT Hen Hca]
+      · iunfold authWR; iframe HT Hen Hca; iexists (GoInterface.ok bi); iframe Hbe Hbeok
       ipureintro
       refine ⟨st0, Hl0, ?_⟩
       have hm : rn ∈ ur.roles := by
@@ -157,8 +157,8 @@ theorem auth.authStore.HasRole.wp_proof
     (try wp_auto)
     iapply HΦ
     iframe HPost Hown
-    isplitl [Hbe HT Hen]
-    · iunfold authWR; iframe HT Hen; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+    isplitl [Hbe HT Hen Hca]
+    · iunfold authWR; iframe HT Hen Hca; iexists (GoInterface.ok bi); iframe Hbe Hbeok
     ipureintro
     refine ⟨st0, Hl0, ?_⟩
     have hnm : rn ∉ ur.roles := by have := Hn.2.2; rwa [hall, List.take_length] at this
