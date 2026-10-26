@@ -359,8 +359,6 @@ theorem etcdModelOfServer_etcdState (E : apply.AEnv GF) :
     (etcdModelOfServer E).etcdState = srvEtcdState E := rfl
 theorem etcdModelOfServer_etcdReachedAt (E : apply.AEnv GF) :
     (etcdModelOfServer E).etcdReachedAt = srvReachedAt E := rfl
-theorem etcdModelOfServer_etcdReadAt (E : apply.AEnv GF) :
-    (etcdModelOfServer E).etcdReadAt = srvReadAt E := rfl
 theorem etcdModelOfServer_etcdRevToken (E : apply.AEnv GF) :
     (etcdModelOfServer E).etcdRevToken = revTok E := rfl
 theorem etcdModelOfServer_EtcdStep (E : apply.AEnv GF) :

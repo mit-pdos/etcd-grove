@@ -120,7 +120,7 @@ theorem recon_alive (V : WEnv GF) (γs γs' : StreamNames) (Dm Dm' : List v3rpc.
     ihave %HCh := mono_list_auth_idx_lookup _ _ _ _ _ $$ Hauth Hhl
     unfold cur2St
     icases Hc2 with ⟨%C2, Hauth2, Hc2st⟩
-    ihave ⟨Hauth2, Hgx, %HC2⟩ : iprop(monoListAuthOwn P.γh2 1 C2 ∗ dghostVar P.γx (DFrac.own 1) false ∗
+    ihave ⟨Hauth2, Hgx, %HC2⟩ : iprop(cur2Places P C2 ∗ dghostVar P.γx (DFrac.own 1) false ∗
         ⌜P.γ.cpl = true → C2.length = sent.length + 1 ∧ C2.getLast? = some (nr - W64 1)⌝)
         $$ [Hauth2 Hc2st Hgx]
     · cases hcp : P.γ.cpl
@@ -131,7 +131,9 @@ theorem recon_alive (V : WEnv GF) (γs γs' : StreamNames) (Dm Dm' : List v3rpc.
         cases Hv
       icases Hc2i with (%Hf | #Hc2i)
       · cases Hf
-      ihave %HC2i := mono_list_auth_idx_lookup _ _ _ _ _ $$ Hauth2 Hc2i
+      ihave ⟨Ha2, Hback⟩ := cur2Places_auth P C2 $$ Hauth2
+      ihave %HC2i := mono_list_auth_idx_lookup _ _ _ _ _ $$ Ha2 Hc2i
+      ihave Hauth2 := Hback $$ Ha2
       iframe Hauth2 Hgx
       ipureintro
       intro _
@@ -242,6 +244,7 @@ theorem recon_dead (V : WEnv GF) (γs γs' : StreamNames) (Dm Dm' : List v3rpc.W
     icases Hrest with ⟨%B, %w, %rg, %fcs, %lo, %sent, %C, %HB, #HsoB, -, Hprod, Hauth, -, Hc2⟩
     unfold cur2St
     icases Hc2 with ⟨%C2, Hauth2, -⟩
+    ihave ⟨Hauth2, -⟩ := cur2Places_auth P C2 $$ Hauth2
     iunfold stopBody at Hsb
     icases Hsb with ⟨%rc, %q, %nr, %dc, Hoc, Hrc, Hret, Hrev, #Hrs, Hdnf⟩
     icases Hrs with ⟨%hl, %c2, #Hrs⟩

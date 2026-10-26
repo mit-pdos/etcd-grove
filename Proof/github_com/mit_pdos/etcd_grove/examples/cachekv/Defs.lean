@@ -11,7 +11,8 @@ watchkv's (`Proof/.../watchkv/Defs.lean`) at cachekv's names, ports and prefix:
   client watcher's reconnection is verified).
 * The program's values: `genKeys`/`genVals` (`Gen`'s, under the prefix `ck/`), `pairOf` (a `kv`'s
   key and value), `CheckOk` (what `check` needs not to panic).
-* The workload (`watchkv.workload`), its logs (`watchkv.WkLog`) and `watchkv.revAt` are watchkv's.
+* The plan's fact about the KV state's changes (`watchkv.wkW`) and its logs (`watchkv.WkLog`) are
+  watchkv's.
 -/
 module
 
@@ -39,8 +40,6 @@ variable [ext : FfiSyntax]
 /-- The program's structs (`kv`, `event`, `putRec`), by short names. -/
 abbrev ckv := common.wkv
 abbrev cev := common.wev
-abbrev crec := common.wrec
-
 /-- `Main`'s peer URL, `http://127.0.0.1:23883`. -/
 def peerURL : _root_.Perennial.net.url.URL :=
   { (zero_val _root_.Perennial.net.url.URL) with Scheme' := go!"http", Host' := go!"127.0.0.1:23883" }

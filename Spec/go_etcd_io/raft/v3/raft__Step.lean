@@ -253,17 +253,35 @@ one past the larger of the node's and the message's term: a step-down to the mes
 term, then a campaign. And (2026-10-17, for the pre-candidate's budget at the `RawNode` layer)
 a node that is a pre-candidate afterwards was one before, or stepped a `MsgHup` (a pre-campaign),
 and is at the same term (`PreCandStep`). -/
-def PreCandStep [FfiSyntax] (m : MessageM) (s s' : NState) : Prop :=
-  s'.role = .preCandidate → s'.term = s.term ∧ (s.role = .preCandidate ∨ m.Type' = MsgHup)
+def PreKeep [FfiSyntax] (s s' : NState) : Prop :=
+  s'.logst.prev = s.logst.prev ∧ s'.logst.sents ++ s'.logst.uents = s.logst.sents ++ s.logst.uents ∧
+  s'.logst.committed = s.logst.committed ∧ (s.logst.snap = none → s'.logst.snap = none) ∧
+  uint.Z s.logst.applied ≤ uint.Z s'.logst.applied
 
-/-- `PreCandStep` for a concrete end state: the role and term kept, or a role that is no
+/-- (2026-10-25, T-M M2b) What `hup` checked when it made the node a pre-candidate (`HupGuard`):
+the log unchanged, no snapshot pending, no conf entry committed and not applied, and the log
+facts that make that check `StepR.campaign`'s guard on the full log (`noConfIn_of_unapplied`). -/
+def HupFact [FfiSyntax] (s s' : NState) : Prop :=
+  s'.logst = s.logst ∧ s.logst.snap = none ∧ (¬ ∃ e ∈ unappliedEnts s.logst, IsConfEnt e) ∧
+  uint.Z s.logst.prev.index' ≤ uint.Z s.logst.applied ∧
+  uint.Z s.logst.applied ≤ uint.Z s.logst.committed ∧ uint.Z s.logst.committed + 1 < 2 ^ 64
+
+/-- (2026-10-25, T-M M2b) and a pre-candidate that stays one keeps its log, commit and pending
+snapshot (`PreKeep`: nothing of its term reached it, which would have made it a follower), and
+one that a `MsgHup` made one has `hup`'s check (`HupFact`): what keeps `StepR.campaign`'s guard
+from the pre-campaign to the campaign a won pre-vote runs (`PreGuard`). -/
+def PreCandStep [FfiSyntax] (m : MessageM) (s s' : NState) : Prop :=
+  s'.role = .preCandidate → s'.term = s.term ∧
+    ((s.role = .preCandidate ∧ PreKeep s s') ∨ (m.Type' = MsgHup ∧ HupFact s s'))
+
+/-- `PreCandStep` for a concrete end state: the role, term and log kept, or a role that is no
 pre-candidate's (2026-10-17). -/
 macro "pc_tac" : tactic => `(tactic| first
-  | (intro h; exact ⟨rfl, .inl h⟩)
+  | (intro h; exact ⟨rfl, .inl ⟨h, rfl, rfl, rfl, fun h => h, Int.le_refl _⟩⟩)
   | (intro h; cases h)
   | (intro h; exact absurd h (by decide))
-  | (intro h; exact ⟨rfl, .inr ‹_›⟩)
-  | (intro h; simp_all))
+  | (intro h; simp_all)
+  | (intro h; exact ⟨rfl, .inl ⟨h, by simp_all [PreKeep]⟩⟩))
 
 def TermStep [FfiSyntax] (m : MessageM) (s s' : NState) : Prop :=
   uint.Z s.term ≤ uint.Z s'.term ∧
@@ -285,7 +303,7 @@ theorem TermStep.of_term [FfiSyntax] {m : MessageM} {s s' : NState}
     fun _ => by have := Int.le_max_left (uint.Z s.term) (uint.Z m.Term'); omega, hpc⟩
 
 theorem TermStep.refl [FfiSyntax] (m : MessageM) (s : NState) : TermStep m s s :=
-  TermStep.of_term rfl (fun _ => Int.le_refl _) (fun h => ⟨rfl, .inl h⟩)
+  TermStep.of_term rfl (fun _ => Int.le_refl _) (fun h => ⟨rfl, .inl ⟨h, rfl, rfl, rfl, fun h => h, Int.le_refl _⟩⟩)
 
 /-- A step to a term between the start's and the message's, for a message other than
 `MsgHup` (a step-down to `m.Term`, then a handler that keeps it). -/
@@ -298,10 +316,38 @@ theorem TermStep.of_le [FfiSyntax] {m : MessageM} {s s' : NState}
   ⟨h1, fun h => absurd h hup, fun _ _ _ => Int.le_trans h2 (Int.le_max_right _ _), hi,
    fun _ => by have := Int.le_max_right (uint.Z s.term) (uint.Z m.Term'); omega, hpc⟩
 
-/-- A local step's frame keeps the term and does not move `offsetInProgress` back. -/
+/-- A local step's frame keeps the term and does not move `offsetInProgress` back; (2026-10-25,
+T-M M2b) at a pre-candidate it keeps the log and the commit index (`PreKeep`). -/
 theorem TermStep.of_local [FfiSyntax] {m : MessageM} {s s' : NState}
-    (h : LocalFrame s s') : TermStep m s s' :=
-  TermStep.of_term h.1 (fun _ => h.2.1) (fun hp => ⟨h.1, .inl (h.2.2.2.2.2.2.2.2.2.1 ▸ hp)⟩)
+    (h : LocalFrame s s') (hk : s.role = .preCandidate → PreKeep s s') : TermStep m s s' :=
+  TermStep.of_term h.1 (fun _ => h.2.1) (fun hp =>
+    have hr : s.role = .preCandidate := h.2.2.2.2.2.2.2.2.2.1 ▸ hp
+    ⟨h.1, .inl ⟨hr, hk hr⟩⟩)
+
+/-- (2026-10-25, T-M M2b) **A step keeps a pre-candidate's campaign guard** (`PreGuardF`: over a
+full prefix of the log's boundary's length): a pre-candidate that stays one kept its boundary, log,
+commit index and pending snapshot, and `applied` did not move back (`PreKeep`); one that a `MsgHup`
+made one has `hup`'s check (`HupFact`), which is the guard on the full log (`noConfIn_of_unapplied`). -/
+theorem PreGuardF.pc [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions] {m : MessageM}
+    {s s' : NState} (h : PreCandStep m s s') {fp : List EntryM} (hg : PreGuardF fp s) :
+    PreGuardF fp s' := by
+  intro hl hp
+  obtain ⟨-, ⟨hr, hpr, hlog, hc, hsn, ha⟩ | ⟨-, hls, hsn, hno, h1, h2, h3⟩⟩ := h hp
+  · obtain ⟨hsn0, hno0⟩ := hg (by rw [← hpr]; exact hl) hr
+    refine ⟨hsn hsn0, ?_⟩
+    rw [hlog, hc]
+    intro k e hk1 hk2 he
+    have := uint_nat_eq s.logst.applied
+    have := uint_nat_eq s'.logst.applied
+    exact hno0 k e (by omega) hk2 he
+  · rw [hls] at hl ⊢
+    exact ⟨hsn, noConfIn_of_unapplied s.logst fp hl h1 h2 h3 hno⟩
+
+/-- `PreGuardF.pc` for a `TermStep`. -/
+theorem PreGuardF.step [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions] {m : MessageM}
+    {s s' : NState} (h : TermStep m s s') {fp : List EntryM} (hg : PreGuardF fp s) :
+    PreGuardF fp s' :=
+  PreGuardF.pc h.2.2.2.2.2 hg
 
 /-- What a response does to the role and the term (2026-10-10), beyond `TermStep`: a
 stale `MsgVoteResp` or `MsgAppResp` (from a term below the node's) leaves the role; a
@@ -369,7 +415,7 @@ theorem AppTrunc.of_ip [FfiSyntax] {m : MessageM} {ents : List EntryM} {s s' : N
 /-- A dropped snapshot's step. -/
 theorem SnapStep.refl [FfiSyntax] (m : MessageM) (s : NState) : SnapStep m s s :=
   ⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, Int.le_refl _, Int.le_max_left _ _,
-    fun h => ⟨rfl, .inl h⟩⟩
+    fun h => ⟨rfl, .inl ⟨h, rfl, rfl, rfl, fun h => h, Int.le_refl _⟩⟩⟩
 
 /-- (D22 S-d3b, 2026-10-21) **What a `MsgSnap`'s step does to the log**, for its snapshot `sv`: the
 log's boundary, entries, pending snapshot and `offsetInProgress` kept (a stale snapshot, or one the
@@ -570,8 +616,9 @@ abbrev raft.Step.spec : Prop :=
   -- state `ps` the ghost state was about: now `toPState s`, in `ownStepGhost`)
   NStateWf s →
   -- (2026-10-14, stage B7) the dynamic mode's premises (`GMode.Pre`): no `MsgSnap` (a
-  -- snapshot restore at a dynamic configuration is stage B8), no pre-candidate (pre-vote is
-  -- off at the `RawNode` API), A1 at a `MsgStorageApplyResp` (no conf entry between the
+  -- snapshot restore at a dynamic configuration is stage B8), a pre-candidate only with its
+  -- campaign guard (`PreGuardF`; 2026-10-25, T-M M2b: until then none, pre-vote off at the
+  -- `RawNode` API), A1 at a `MsgStorageApplyResp` (no conf entry between the
   -- configuration index and the acknowledged index: `ApplyConfChange` before `Advance`), and a
   -- log short enough for a dropped proposal's `pendingConfIndex`; none in the static mode
   md.Pre m ents s →

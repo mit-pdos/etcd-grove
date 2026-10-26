@@ -26,7 +26,7 @@ the lemmas of this file.
   - `client_Txn_st`: `cli.Txn(ctx)`, the builder made from the client's `*kv`, with
     `txnWriteOnce` for its `Commit`.
 - What a call starts from at each member: `srvStart` (free, `srvStart_alloc`); the members'
-  registrations by method from `kvRegsAt` (`kvRegs_put`, ...).
+  registrations, `kvRegsAt` (the `*kv`'s calls take them all, D44).
 -/
 module
 
@@ -61,20 +61,18 @@ variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
 /-- **The client's invariant at a log's state** (allocated with the put not fired; every log's
 state is sorted by key, `mvcc.stateAfter_sorted`): from the client's `etcdKV` at `kvStateOf l`
 (the bootstrap log's model, as the server's allocation gives it, `srvBootOut`). -/
-theorem putGetInv_alloc_log (γr : ReadNames) (l : mvcc.Log) (key val : GoString)
-    (hW : γr.kv.wl.writes (.put (putKeyOp key val))) (Em : CoPset) :
+theorem putGetInv_alloc_log (γr : ReadNames) (l : mvcc.Log) (key val : GoString) (Em : CoPset) :
     etcdKV (GF := GF) γr.kv (kvStateOf l) ⊢ |={Em}=> ∃ γf : GName, putGetInv γr γf key val := by
   iintro Hσ
   imod (mono_nat_own_alloc (GF := GF) 0) with ⟨%γf, Hm, -⟩
   imod inv_alloc kvClientN Em (iprop(∃ (σ : KVState) (n : Nat), etcdKV γr.kv σ ∗
       monoNatAuthOwn γf 1 n ∗ ⌜putGetOk key val σ n⌝)) $$ [Hσ Hm] with #Hinv
   · inext; iexists kvStateOf l, 0; iframe Hσ Hm
-    ipureintro; exact ⟨mvcc.stateAfter_sorted l, fun h => absurd h (by omega)⟩
+    ipureintro; exact ⟨KVState.kvs_sorted _, fun h => absurd h (by omega)⟩
   imodintro
   iexists γf
   iunfold putGetInv
-  iframe Hinv
-  ipureintro; exact hW
+  iexact Hinv
 
 /-- **`cli.Put(ctx, key, val)` by `New`'s client `cl`** (`client_put_end_to_end` at `putAu_of_putGetInv`, through the
 `KV` field):
@@ -83,7 +81,7 @@ theorem client_Put_own (cl : Loc) (ep : GoString) (V : WEnv GF) (E : apply.AEnv 
     (γr : ReadNames) (γf : GName) (cid mid : w64) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (key val : GoString) (sl : GoSlice) (F : mvcc.Log) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isNewClient cl [ep] V ∗
-        isGrpcRpc ep go!"/etcdserverpb.KV/Put" (etcdPutSpec E γr cid mid) ∗
+        kvRegsAt (⟨ep, E, γr, cid, mid⟩ : SrvAt GF) ∗
         ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗
         putGetInv γr γf key val ∗ mvcc.idxCert E.γ.idx F }}
       (App (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
@@ -94,7 +92,7 @@ theorem client_Put_own (cl : Loc) (ep : GoString) (V : WEnv GF) (E : apply.AEnv 
             monoNatLbOwn γf 1) ∨
           ⌜err ≠ GoInterface.nil ∧ resp = null⌝ }} := by
   iintro %Φ ⟨#Pc, #Hcl, #Hrpc0, #Hctx, #Hce, #Hopts, #Hinv, #HF⟩ HΦ
-  ihave #Hrpc := (isGrpcRpcs_singleton ep _ _).1 $$ Hrpc0
+  ihave #Hrpc := kvRegs_one ep E γr cid mid $$ Hrpc0
   iunfold isNewClient at Hcl
   icases Hcl with ⟨-, -, ⟨%api, #Hkvf, #Hkv⟩, -⟩
   rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Put_unfold.method_unfold]
@@ -129,7 +127,7 @@ theorem client_Get_own (cl : Loc) (ep : GoString) (V : WEnv GF) (E : apply.AEnv 
     (γr : ReadNames) (γf : GName) (c cid mid : w64) (ci : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (key val : GoString) (sl : GoSlice) (F : mvcc.Log) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ isNewClient cl [ep] V ∗
-        isGrpcRpc ep go!"/etcdserverpb.KV/Range" (etcdRangeSpec E γr cid mid) ∗
+        kvRegsAt (⟨ep, E, γr, cid, mid⟩ : SrvAt GF) ∗
         ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗ committedAtLeast γr c ∗
         putGetInv γr γf key val ∗ monoNatLbOwn γf 1 ∗ mvcc.idxCert E.γ.idx F }}
       (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
@@ -139,7 +137,7 @@ theorem client_Get_own (cl : Loc) (ep : GoString) (V : WEnv GF) (E : apply.AEnv 
             ⌜m.kvs.head?.map EtcdKv.value = some val⌝) ∨
           ⌜err ≠ GoInterface.nil ∧ resp = null⌝ }} := by
   iintro %Φ ⟨#Pc, #Hcl, #Hrpc0, #Hctx, #Hce, #Hopts, #Hc, #Hinv, #Hlb, #HF⟩ HΦ
-  ihave #Hrpc := (isGrpcRpcs_singleton ep _ _).1 $$ Hrpc0
+  ihave #Hrpc := kvRegs_one ep E γr cid mid $$ Hrpc0
   iunfold isNewClient at Hcl
   icases Hcl with ⟨-, -, ⟨%api, #Hkvf, #Hkv⟩, -⟩
   rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Get_unfold.method_unfold]
@@ -205,84 +203,14 @@ theorem rangeReply_state_bnd (E : apply.AEnv GF) (γr : ReadNames) (c cid mid : 
   iexists kvStateOf l
   iframe HQ
   ipureintro
+  try rw [kvStateOf_kvs]
   refine ⟨hsel, ?_, ?_⟩
   · rw [hrev]
-    unfold kvStateOf
-    simp only
+    simp only [kvStateOf_rev, kvStateOf_kvs]
     congr 1
     omega
-  · unfold kvStateOf
-    simp only
+  · simp only [kvStateOf_rev, kvStateOf_kvs]
     omega
-
-/-- **What a call starts from at a member** (persistent): its committed index at least `0` and the
-floor `[]` (both free, `srvStart_alloc`). -/
-def srvStart (x : SrvAt GF) : IProp GF :=
-  iprop(committedAtLeast x.γr (W64 0) ∗ mvcc.idxCert x.E.γ.idx [])
-
-instance srvStart_persistent (x : SrvAt GF) : Persistent (srvStart x) := by
-  unfold srvStart; infer_instance
-
-/-- The registrations of `Put` at the members. -/
-theorem kvRegs_put (ms : List (SrvAt GF)) :
-    ([∗list] x ∈ ms, kvRegsAt x) ⊢ [∗list] x ∈ ms,
-      isGrpcRpc x.addr go!"/etcdserverpb.KV/Put" (etcdPutSpec x.E x.γr x.cid x.mid) :=
-  BigSepL.bigSepL_mono fun _ => by
-    iintro #H; iunfold kvRegsAt at H; icases H with ⟨#H1, -, -, -⟩; iexact H1
-
-/-- The registrations of `Range` at the members. -/
-theorem kvRegs_range (ms : List (SrvAt GF)) :
-    ([∗list] x ∈ ms, kvRegsAt x) ⊢ [∗list] x ∈ ms,
-      isGrpcRpc x.addr go!"/etcdserverpb.KV/Range" (etcdRangeSpec x.E x.γr x.cid x.mid) :=
-  BigSepL.bigSepL_mono fun _ => by
-    iintro #H; iunfold kvRegsAt at H; icases H with ⟨-, #H1, -, -⟩; iexact H1
-
-/-- The registrations of `DeleteRange` at the members. -/
-theorem kvRegs_del (ms : List (SrvAt GF)) :
-    ([∗list] x ∈ ms, kvRegsAt x) ⊢ [∗list] x ∈ ms,
-      isGrpcRpc x.addr go!"/etcdserverpb.KV/DeleteRange"
-        (etcdDeleteSpec x.E x.γr x.cid x.mid) :=
-  BigSepL.bigSepL_mono fun _ => by
-    iintro #H; iunfold kvRegsAt at H; icases H with ⟨-, -, #H1, -⟩; iexact H1
-
-/-- The registrations of `Txn` at the members. -/
-theorem kvRegs_txn (ms : List (SrvAt GF)) :
-    ([∗list] x ∈ ms, kvRegsAt x) ⊢ [∗list] x ∈ ms,
-      isGrpcRpc x.addr go!"/etcdserverpb.KV/Txn" (etcdTxnSpec x.E x.γr x.γr x.cid x.mid) :=
-  BigSepL.bigSepL_mono fun _ => by
-    iintro #H; iunfold kvRegsAt at H; icases H with ⟨-, -, -, #H1⟩; iexact H1
-
-/-- The members' floors. -/
-theorem srvStart_idx (ms : List (SrvAt GF)) :
-    ([∗list] x ∈ ms, srvStart x) ⊢ [∗list] x ∈ ms, mvcc.idxCert x.E.γ.idx [] :=
-  BigSepL.bigSepL_mono fun _ => by
-    iintro #H; iunfold srvStart at H; icases H with ⟨-, #H1⟩; iexact H1
-
-/-- The members' committed indices and floors. -/
-theorem srvStart_both (ms : List (SrvAt GF)) :
-    ([∗list] x ∈ ms, srvStart x) ⊢
-      [∗list] x ∈ ms, committedAtLeast x.γr (W64 0) ∗ mvcc.idxCert x.E.γ.idx [] :=
-  BigSepL.bigSepL_mono fun _ => by
-    iintro #H; iunfold srvStart at H; iexact H
-
-/-- **A call's start at every member**: the committed index at least `0` and the floor `[]`, both
-free. -/
-theorem srvStart_alloc (ms : List (SrvAt GF)) :
-    ⊢ |==> [∗list] x ∈ ms, srvStart (GF := GF) x := by
-  induction ms with
-  | nil => iintro; imodintro; iapply BigSepL.bigSepL_nil.2; itrivial
-  | cons x ms ih =>
-    iintro
-    imod mvcc.idxCert_nil (GF := GF) x.E.γ.idx with #HF0
-    imod monoNatLbOwn_0 (GF := GF) x.γr.committed with #Hc0
-    imod ih with #Hr
-    imodintro
-    iapply BigSepL.bigSepL_cons.2
-    iframe Hr
-    iunfold srvStart
-    iframe HF0
-    iunfold committedAtLeast
-    iExactEq Hc0; rfl
 
 /-- **The members' read updates, persistent** (each is: a read update, or none). -/
 theorem readUpds_box (ms : List (SrvAt GF)) (Q : KVState → IProp GF) :
@@ -300,8 +228,7 @@ theorem client_Get_st (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : GoIn
     (Q : KVState → IProp GF) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
         isNewClient cl (ms.map SrvAt.addr) V ∗
-        ([∗list] x ∈ ms, isGrpcRpc x.addr go!"/etcdserverpb.KV/Range"
-          (etcdRangeSpec x.E x.γr x.cid x.mid)) ∗ ([∗list] x ∈ ms, srvStart x) ∗
+        ([∗list] x ∈ ms, kvRegsAt x) ∗ ([∗list] x ∈ ms, srvStart x) ∗
         ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗
         □ ([∧list] x ∈ ms, ⌜Q = fun _ => iprop(True)⌝ ∨ kvReadAu x.γr.kv Q) }}
       (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
@@ -373,8 +300,7 @@ theorem client_Put_rep (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : GoI
     (Q : KVState → IProp GF) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
         isNewClient cl (ms.map SrvAt.addr) V ∗ clientWriteOnce cl (ms.map SrvAt.addr) ∗
-        ([∗list] x ∈ ms, isGrpcRpc x.addr go!"/etcdserverpb.KV/Put"
-          (etcdPutSpec x.E x.γr x.cid x.mid)) ∗ ([∗list] x ∈ ms, mvcc.idxCert x.E.γ.idx []) ∗
+        ([∗list] x ∈ ms, kvRegsAt x) ∗ ([∗list] x ∈ ms, mvcc.idxCert x.E.γ.idx []) ∗
         ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗
         ([∧list] x ∈ ms, kvOpAu1 x.γr.kv (.put (putKeyOp key val)) Q) }}
       (App (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
@@ -408,6 +334,45 @@ theorem client_Put_rep (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : GoI
     · ipureintro; exact Herr.1
     · iexact Hke
 
+/-- `cli.Put(ctx, key, val)` by `New`'s client of the members `ms` with a persistent update, one
+per member (the auth plan's E2h): the put may be delivered several times, so neither the client's
+write-once premise nor refusal-free members are needed (the persistent case of
+`client_put_any`, E2d); `nil`, the reply's message and some member's `putReplied`; or an
+error. -/
+theorem client_Put_any (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : GoInterfaceOk)
+    (cd : context.ContextDesc (IProp GF)) (key val : GoString) (sl : GoSlice)
+    (Q : KVState → IProp GF) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
+        isNewClient cl (ms.map SrvAt.addr) V ∗
+        ([∗list] x ∈ ms, kvRegsAt x) ∗ ([∗list] x ∈ ms, mvcc.idxCert x.E.γ.idx []) ∗
+        ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗
+        □ ([∧list] x ∈ ms, kvOpAu1 x.γr.kv (.put (putKeyOp key val)) Q) }}
+      (App (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
+          go!"Put")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #val)) (Val #sl))
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+        (⌜err = GoInterface.nil⌝ ∗ ∃ m : PutRespM, putRespMsg resp m ∗ ∃ x : SrvAt GF, ⌜x ∈ ms⌝ ∗
+            putReplied x.E x.γr [] (putKeyOp key val) Q x.cid x.mid m) ∨
+          (⌜err ≠ GoInterface.nil⌝ ∗ kvErr err) }} := by
+  iintro %Φ ⟨#Pc, #Hcl, #Hrr, #HF, #Hctx, #Hce, #Hopts, #Hau⟩ HΦ
+  iunfold isNewClient at Hcl
+  icases Hcl with ⟨-, -, ⟨%api, #Hkvf, #Hkv⟩, -⟩
+  rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Put_unfold.method_unfold]
+  wp_pures
+  wp_auto
+  wp_apply (client_put_any api ms ci cd key val sl Q []) $$ [] as %resp %err Hout
+  · iframe #
+  iapply HΦ
+  icases Hout with (⟨%Herr, %m, #Hm, Hr⟩ | ⟨%Herr, #Hke⟩)
+  · ileft
+    isplitl []
+    · ipureintro; exact Herr
+    iexists m
+    iframe Hm Hr
+  · iright
+    isplitl
+    · ipureintro; exact Herr.1
+    · iexact Hke
+
 /-- `cli.Put(ctx, key, val)` by `New`'s client of the members `ms` that sends a write at most
 once, with an update fired at most once, one per member (see the file header): `nil`, `Q σ` and
 the reply's header revision, the put's at `σ`; or an error. -/
@@ -416,8 +381,7 @@ theorem client_Put_st (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : GoIn
     (Q : KVState → IProp GF) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
         isNewClient cl (ms.map SrvAt.addr) V ∗ clientWriteOnce cl (ms.map SrvAt.addr) ∗
-        ([∗list] x ∈ ms, isGrpcRpc x.addr go!"/etcdserverpb.KV/Put"
-          (etcdPutSpec x.E x.γr x.cid x.mid)) ∗ ([∗list] x ∈ ms, mvcc.idxCert x.E.γ.idx []) ∗
+        ([∗list] x ∈ ms, kvRegsAt x) ∗ ([∗list] x ∈ ms, mvcc.idxCert x.E.γ.idx []) ∗
         ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗
         ([∧list] x ∈ ms, kvOpAu1 x.γr.kv (.put (putKeyOp key val)) Q) }}
       (App (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
@@ -442,7 +406,7 @@ theorem client_Put_st (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : GoIn
     ipureintro
     refine ⟨?_, ?_⟩
     · rw [hrev, kvStateOf_rev_succ _ hlen]
-    · unfold kvStateOf; simp only; omega
+    · simp only [kvStateOf_rev, kvStateOf_kvs]; omega
   · iright
     isplitl
     · ipureintro; exact Herr
@@ -455,8 +419,7 @@ theorem client_Delete_st (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : G
     (Q : KVState → IProp GF) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
         isNewClient cl (ms.map SrvAt.addr) V ∗ clientWriteOnce cl (ms.map SrvAt.addr) ∗
-        ([∗list] x ∈ ms, isGrpcRpc x.addr go!"/etcdserverpb.KV/DeleteRange"
-          (etcdDeleteSpec x.E x.γr x.cid x.mid)) ∗ ([∗list] x ∈ ms, mvcc.idxCert x.E.γ.idx []) ∗
+        ([∗list] x ∈ ms, kvRegsAt x) ∗ ([∗list] x ∈ ms, mvcc.idxCert x.E.γ.idx []) ∗
         ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗
         ([∧list] x ∈ ms, kvOpAu1 x.γr.kv (.deleteRange (txn.deleteOpOf key [] false)) Q) }}
       (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
@@ -500,12 +463,11 @@ theorem client_Delete_st (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : G
     iexists m, kvStateOf y.log
     iframe Hm HQ
     ipureintro
-    refine ⟨hdel, ?_, ?_⟩
+    refine ⟨by rw [kvStateOf_kvs]; exact hdel, ?_, ?_⟩
     · rw [hrev]
       unfold kvOpStep
-      rw [kvStateOf_commit_rev _ _ hlen]
-      rfl
-    · unfold kvStateOf; simp only; omega
+      rw [kvStateOf_commit_rev _ _ hlen, kvStateOf_kvs]
+    · simp only [kvStateOf_rev, kvStateOf_kvs]; omega
   · iright
     isplitl
     · ipureintro; exact Herr.1
@@ -544,6 +506,61 @@ theorem client_Txn_st (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : GoIn
   iexact Hwo
 
 end family
+
+/-! ## `New`'s client over the KV's specs (no members) -/
+
+section kv_api
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
+
+/-- **`cli.Put(ctx, key, val)` by a client whose `KV` field is a `*kv` of etcd's KV `γ`**
+(`isKv`): `kv.Put.spec` (linked, `v3.kv.wp_Put`) through the field, with no options: the
+caller's update of `γ`'s state by the put (persistent if `dup`), and the reply as the state the
+update fired at says. -/
+theorem client_Put_kv (cl api : Loc) (γ : KVNames) (dup : Bool) (ci : GoInterfaceOk)
+    (cd : context.ContextDesc (IProp GF)) (key val : GoString) (sl : GoSlice)
+    (Q : KVState → IProp GF) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
+        structFieldRef go_etcd_io.etcd.client.v3.Client go!"KV" cl ↦□ GoInterface.ok (kvIfaceOf api) ∗
+        isKv api γ dup ∗
+        ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗
+        □?dup (AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
+          <{ etcdKV γ (kvOpStep (.put (putWireOf (opPutModel key val []))) σ), COMM Q σ }>) }}
+      (App (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
+          go!"Put")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #val)) (Val #sl))
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+        (⌜err = GoInterface.nil⌝ ∗ ∃ (m : PutRespM) (σ : KVState), putRespMsg resp m ∗ Q σ ∗
+          ⌜m.hdr.revision = W64 ((σ.rev + 1 : Nat) : Int) ∧ σ.rev + 4 < 2 ^ 63 ∧ kvLogOk σ ∧
+            kvLogOk (kvOpStep (.put (putWireOf (opPutModel key val []))) σ)⌝) ∨
+          (⌜err ≠ GoInterface.nil⌝ ∗ kvErr err) }} := by
+  iintro %Φ ⟨#Pc, #Hkvf, #Hkv, #Hctx, #Hce, #Hopts, Hau⟩ HΦ
+  rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Put_unfold.method_unfold]
+  wp_pures
+  wp_auto
+  wp_apply (v3.kv.wp_Put api γ dup ci cd key val sl [] Q) $$ [Hau] as %resp %err Hout
+  · iframe #
+    iframe Hau
+    ipureintro
+    refine ⟨?_, rfl, rfl⟩
+    unfold opPutModel OpFull.putPanics opFold OpFull.putInit OpFull.newOp OpModel.zero
+    simp
+  iapply HΦ
+  icases Hout with (⟨%Herr, %m, %σ, #Hm, HQ, %Hs⟩ | ⟨%Herr, #Hke⟩)
+  · ileft
+    isplitl []
+    · ipureintro; exact Herr
+    iexists m, σ
+    iframe Hm HQ
+    ipureintro; exact ⟨Hs.1, Hs.2.2.1, Hs.2.2.2⟩
+  · iright
+    isplitl []
+    · ipureintro; exact Herr.1
+    · iexact Hke
+
+end kv_api
 
 end client
 end EtcdGrove

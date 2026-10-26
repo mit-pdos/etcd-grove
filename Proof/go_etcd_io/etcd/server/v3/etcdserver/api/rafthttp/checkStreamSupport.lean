@@ -41,7 +41,7 @@ theorem rafthttp.checkStreamSupport.wp_proof
   ihave Hri : (go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.rafthttpInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hri with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -,
-    %m, %M, #Hss, #Hm, #HM⟩
+    ⟨%m, %M, #Hss, #Hm, #HM⟩, -⟩
   ihave #Hspkg : isPkgInit (PROP := IProp GF) pkg_id.github_com.Masterminds.semver.v3 $$ []
   · iPkgInit
   wp_auto

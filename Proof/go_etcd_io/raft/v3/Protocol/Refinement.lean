@@ -1430,9 +1430,9 @@ theorem ownRaftGhost_step_commit (γ : RaftNames) (c : CfgM) (id : w64)
         · iright
           ihave #Hw := Hwo $$ %hD
           unfold witsB
-          iintro %k %Hk
+          iintro %k %Hk %Hb
           by_cases hkc : k < (uint.Z s.commit).toNat
-          · ihave Hk' := Hw $$ %k %(⟨Hk.1, hkc⟩ : IsConfPos (fp ++ s.log) k ∧ k < (uint.Z s.commit).toNat)
+          · ihave Hk' := Hw $$ %k %(⟨Hk.1, hkc⟩ : IsConfPos (fp ++ s.log) k ∧ k < (uint.Z s.commit).toNat) %Hb
             icases Hk' with ⟨%t', %n', %G', %a', %c', %q', %Hwo, #Hcw⟩
             iexists t', n', G', a', c', q'
             iexists Hwo

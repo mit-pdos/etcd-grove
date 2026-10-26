@@ -29,6 +29,17 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   `sort.Strings` is proved; then the axiom here goes.
 - **Status.** Open.
 
+### Specs: `(*Time).After`
+
+- **Missing.** The pointer-receiver form of `time.Time.After` (Perennial's `Proof/time/PtrMethods.lean`
+  has `Add`, `Before`, `Sub` only).
+- **Needed by.** etcd's TTL keeper (`simpleTokenTTLKeeper.run`: `nowtime.After(tokenendtime)` on an
+  addressable `Time`; the auth plan's S5e, 2026-10-25).
+- **Workaround here.** `auth/TokenKeeperRun.lean`'s `time_wp_ptr_After`, the shape of
+  `Time.wp_ptr_Before_of`.
+- **Proposed change.** `Time.wp_ptr_After_of`/`Time.wp_ptr_After` beside `Before`'s.
+- **Status.** Open.
+
 ### Specs: `sort.Search` without monotonicity
 
 - **Missing.** A spec of `sort.Search(n, f)` for a predicate that need not go from false to true:
@@ -156,6 +167,37 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   make `pkgRef` an error, never a substitution, when the package is not imported under its own
   name.
 - **Status.** Not started. The substitution is worth fixing first: it is wrong, not missing.
+- **Also the watch cache (2026-10-26, branch `kep-6404`, `notes/kep-6404-plan.md`).** The cacher's
+  `processEvent`, `UpdateResourceVersion` and `waitUntilFreshLocked` use the cacher's `metrics`
+  variables, of component-base's `metrics` types (`CounterVec`, `HistogramVec`), which the cacher
+  does not import: the substitution names them `cacher.metrics.CounterVec` (`Unknown identifier`).
+  Workaround here: `cacher.toml` drops its import of the cacher's `metrics` (both are then named
+  by their paths) and the names arrive through `consistency`'s public import of the cacher's
+  `metrics` and its of component-base's (names only). Its cost: `watchCacheEvent`, whose
+  `timeline` field is a `metrics.DispatchTimeline`, is axiomatized (`translate_types` skips a type
+  naming a package not imported), so `processEvent` and `UpdateResourceVersion`, which build one,
+  cannot be proved until the general fix.
+
+### Specs: the builtin `max` (2026-10-26, branch `kep-6404`)
+
+- **Missing.** No spec of the predeclared `max` (`functions go.max [t, t]`): each proof proves its
+  own: raft's `wp_max2_uint64` (`raft/v3/InvTracker.lean`), mvcc's `sw_wp_max_int64`
+  (`watchableStore__syncWatchers.lean`), the watch cache store's `wp_max_uint64` (`cacher/store/
+  DefsWCS.lean`).
+- **Proposed.** A spec of `max`/`min` on the integer types in Perennial's predeclared theory.
+- **Status.** Not started.
+
+### Goose: a constraint interface's `comparable` term (2026-10-26, branch `kep-6404`)
+
+- **Missing.** `translate_types` accepts an interface that embeds `comparable`
+  (client-go's `tools/cache.Object`: `interface { GetName() string; GetNamespace() string;
+  comparable }`) and emits `go.type_term.TypeTerm go.comparable`, which Perennial does not define
+  (`Unknown identifier go.comparable`).
+- **Needed by.** Nothing yet: the watch cache's store names `tools/cache`'s indexer types only.
+- **Workaround here.** `client_go/tools/cache.toml` without `translate_types` (types axiomatized).
+- **Proposed.** Either a `go.comparable` type set in Perennial's semantics, or Goose rejecting
+  (axiomatizing) such an interface under `translate_types`, as it does other unsupported types.
+- **Status.** Not started.
 
 ### Specs: `reflect`
 
@@ -177,7 +219,13 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   translates none of them).
 - **Missing specs.** `strconv.ParseInt`, `ParseUint`, `FormatInt`, `FormatUint`, `ParseBool`;
   some of `strings`; `fmt.Sprint`, `Sprintln`, `Fprintf`; `os.Getenv`; `json.Marshal`,
-  `Unmarshal`; `base64.RawURLEncoding`'s methods; `path.Join`, `Clean`.
+  `Unmarshal`; `base64.RawURLEncoding`'s methods; `path.Join`, `Clean`. (2026-10-24, rafthttp stage 7d)
+  `io.MultiReader` (names-only: an axiom here, `Proof/io/MultiReader.lean`, stated over the
+  snapshot pipe's `readerStreams`); `bytes.Buffer`'s methods (a struct without method bodies: the
+  k8s-etcd3 axioms `ownBuffer_new` and `Buffer.Write`, which the snapshot sender also uses). (2026-10-25,
+  rafthttp stage 7e) `fmt.Sprintf` of non-basic arguments (`fmt.SprintfArgs`, over `fmt.argsOk`, as
+  `Printf`/`Errorf`: Perennial's `wp_Sprintf` takes basic types only); `(*time.Duration).String`
+  (`time` is translated without `Duration.String`, so its pointer wrapper is missing too).
 - **Needed by.** The k8s etcd3 store and `k8s.io/apiserver/pkg/storage`: continue tokens (JSON in
   base64), `prepareKey` (`path`), resource versions (`strconv`), `GetList`'s iterators (`iter`).
 - **Workaround here.** The four packages names-only in this repository's configuration (survey
@@ -402,6 +450,27 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   canceled"`, as this repository's `errStrCell`), and `"#HDeadlineExceeded"` with its dynamic type
   (`deadlineExceededError`); then `ErrAny` drops the two facts.
 - **Status.** Not started (found 2026-10-23).
+
+### `encoding/base64` (the auth plan's E2u, 2026-10-26; E2x)
+
+- **Missing.** Perennial has no `encoding/base64`, not even names-only. etcd's
+  `EtcdServer.UserAdd` and `UserChangePassword` hash the password with bcrypt and put the hash in
+  the request base64-encoded (`v3_server.go`); the k8s etcd3 store's continue tokens are JSON in
+  base64.
+- **Workaround here** (E2x, 2026-10-26; the user chose this over a Perennial model). The package is
+  names-only in this repository's configuration (`Code/encoding/base64.toml`, the k8s-apiserver
+  project's translation; the etcd project maps `encoding/base64=` to it, `etc/goose.py`). Its
+  package fact (`Proof/encoding/base64/Base.lean`, `base64Init`) says `StdEncoding` holds a fixed
+  `*Encoding` whose `EncodeToString` returns the opaque `encoding.base64.stdEnc` of its argument's
+  bytes; the trust-boundary axiom `StdEncoding_init` (`Proof/encoding/base64/Init.lean`,
+  `etc/gen-init.py`) establishes it. `auth.stdB64Enc` is that `stdEnc`, and `selectPassword`'s
+  boundary spec says its decoding of such an encoding has no error, so `EtcdServer.UserAdd` is
+  proved to propose a `pwSure` request (`server_user_add_sure`).
+- **Proposed change (later).** `encoding/base64` in Perennial: `StdEncoding` (a package variable
+  with its fact), `EncodeToString` and `DecodeString` with a model of the standard encoding (or at
+  least `DecodeString (EncodeToString b) = (b, nil)`), translated or as trusted models. It would
+  turn `StdEncoding_init`'s method clause and `selectPassword`'s decode clause into theorems, and
+  serve the k8s etcd3 store's continue tokens.
 
 ## Landed
 

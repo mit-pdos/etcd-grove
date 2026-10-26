@@ -7,6 +7,7 @@ since the role was not there (`pairwise_lt_of_sorted_perm`).
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__UserGrantRole
+public import Proof.go_etcd_io.etcd.server.v3.auth.LatestTie
 public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__refreshRangePermCache
 public import Spec.go_uber_org.zap.Strings
 public import Spec.go_uber_org.zap.Logger__Warn
@@ -37,15 +38,15 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
-theorem auth.authStore.UserGrantRole.wp_proof
+theorem auth.authStore.UserGrantRole.wp_tie
     (h_commitRevision : auth.authStore.commitRevision.spec (GF := GF) (hG := hG))
     (h_refresh : auth.authStore.refreshRangePermCache.spec (GF := GF) (hG := hG))
     (h_String : zap.String.spec (GF := GF) (hG := hG))
     (h_Strings : zap.Strings.spec (GF := GF) (hG := hG))
     (h_Warn : zap.Logger.Warn.spec (GF := GF) (hG := hG))
     (h_Info : zap.Logger.Info.spec (GF := GF) (hG := hG)) :
-    auth.authStore.UserGrantRole.spec (GF := GF) (hG := hG) := by
-  intro st R M P f T hs Pre Q Post r user rn
+    auth.authStore.UserGrantRole.specT (GF := GF) (hG := hG) := by
+  intro st R M P f T hs Pre Q Post r user rn b0 sc0
   wp_start as ⟨#Hinv, #Hr, %Hnamelen, Hown, HWR, Hcs, %Hbound, %Hok⟩
   icases authErrVar_of_init .userNotFound $$ Hpkg with ⟨%eUNF, #HeUNF⟩
   icases authErrVar_of_init .roleNotFound $$ Hpkg with ⟨%eRNF, #HeRNF⟩
@@ -57,8 +58,8 @@ theorem auth.authStore.UserGrantRole.wp_proof
   icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, %Hlgnn⟩, -, -, -, -⟩
   iunfold userGrantRoleReqIs at Hr
   icases Hr with ⟨%Hrnn, #HU, #HR⟩
-  iunfold authWR at HWR
-  icases HWR with ⟨⟨%be, Hbe, #Hbeok⟩, HT, Hen⟩
+  iunfold authWRx at HWR
+  icases HWR with ⟨⟨%be, Hbe, #Hbeok⟩, HT, Hfl, #Hev, Hca, #Hcsn⟩
   ihave #Hbeok' := Hbeok
   iunfold authWBackendOk at Hbeok'
   icases Hbeok' with ⟨%bi, %Hbi, #HBatch, #HFC⟩
@@ -93,17 +94,20 @@ theorem auth.authStore.UserGrantRole.wp_proof
     · ipureintro; exact Hl0
     (try wp_auto)
     iapply HΦ
+    iexists b0, sc0
     isplitl [HPost]
     · ileft; iexact HPost
-    isplitl [Hbe HT Hen]
-    · iunfold authWR; iframe HT Hen; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+    isplitl [Hbe HT Hfl Hca]
+    · iunfold authWRx; iframe HT Hfl Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
     isplitr
     · iunfold respOk; isplitr
       · ipureintro; intro _; rfl
       · ileft; ipureintro; rfl
-    iunfold adminOut
+    iunfold adminOutP
     iright
     iexists st0, (.err .userNotFound)
+    isplitr
+    · ipureintro; exact tieStep_same _ _ _ _
     isplitr
     · ipureintro
       refine ⟨Hl0, ?_⟩
@@ -136,17 +140,20 @@ theorem auth.authStore.UserGrantRole.wp_proof
     · ipureintro; exact Hl0
     (try wp_auto)
     iapply HΦ
+    iexists b0, sc0
     isplitl [HPost]
     · ileft; iexact HPost
-    isplitl [Hbe HT Hen]
-    · iunfold authWR; iframe HT Hen; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+    isplitl [Hbe HT Hfl Hca]
+    · iunfold authWRx; iframe HT Hfl Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
     isplitr
     · iunfold respOk; isplitr
       · ipureintro; intro _; rfl
       · ileft; ipureintro; rfl
-    iunfold adminOut
+    iunfold adminOutP
     iright
     iexists st0, (.err .roleNotFound)
+    isplitr
+    · ipureintro; exact tieStep_same _ _ _ _
     isplitr
     · ipureintro
       refine ⟨Hl0, ?_⟩
@@ -235,17 +242,20 @@ theorem auth.authStore.UserGrantRole.wp_proof
         · ipureintro; exact Hl0
         (try wp_auto)
         iapply HΦ
+        iexists b0, sc0
         isplitl [HPost]
         · ileft; iexact HPost
-        isplitl [Hbe HT Hen]
-        · iunfold authWR; iframe HT Hen; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+        isplitl [Hbe HT Hfl Hca]
+        · iunfold authWRx; iframe HT Hfl Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
         isplitl [Header]
         · iunfold respOk; isplitr
           · ipureintro; intro h; exact absurd rfl h
           · iright; iexists _; iexact Header
-        iunfold adminOut
+        iunfold adminOutP
         iright
         iexists st0, .same
+        isplitr
+        · ipureintro; exact tieStep_same _ _ _ _
         isplitr
         · ipureintro
           refine ⟨Hl0, ?_⟩
@@ -309,7 +319,7 @@ theorem auth.authStore.UserGrantRole.wp_proof
       inext
       iintro ⟨HL, Huu⟩
       (try wp_auto)
-      ihave %Hpk := authOwn_last_permKeysOk M hs $$ Hown
+      ihave %Hpk := authOwnF_last_permKeysOk M hs $$ Hown
       have Hstep := Hok st0 Hl0
       ihave HL : Lk (putUser st0 user xs') Post $$ [HL]
       · iExactEq HL; rw [Hurn]
@@ -321,14 +331,16 @@ theorem auth.authStore.UserGrantRole.wp_proof
         refine ⟨Hl0, rfl, Hrevfit, fun h1 h2 => permKeysOk_putUser _ _ _ (Hpk st0 Hl0 h1 h2), ?_⟩
         intro hM; subst hM; exact Hl0
       have Hl1 := histLast_after M hs (putUser st0 user xs') rev (fun h => by subst h; exact Hl0) Hrev
-      imod (authSnap_of_last M _ _ Hl1) $$ Hown with ⟨Hown, #Hsnap⟩
+      imod (authSnapF_of_last M _ _ Hl1) $$ Hown with ⟨Hown, #Hsnap⟩
       (try wp_auto)
       wp_bind (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"refreshRangePermCache"))
         (Val #(GoInterface.ok ti)))
       iapply (h_refresh st R M ti (fun x => Lk x Post)
           ({ putUser st0 user xs' with revision := rev } : AuthState))
-        $$ [HL]
+        $$ [HL Hca]
       · iframe Hpkg Hinv
+        isplitl [Hca]
+        · iapply (cacheHalf_of_at _ _ _) $$ Hca Hcsn
         isplitr
         · iapply HRd
         isplitl [HL]
@@ -337,7 +349,7 @@ theorem auth.authStore.UserGrantRole.wp_proof
         iframe Hsnap
         ipureintro; exact permsFit_rev _ rev Hfit'
       inext
-      iintro HL
+      iintro ⟨HL, Hca⟩
       (try wp_auto)
       wp_apply h_String _ _ as %f1 -
       (try wp_auto)
@@ -372,17 +384,20 @@ theorem auth.authStore.UserGrantRole.wp_proof
         ipureintro; exact Hl1
       (try wp_auto)
       iapply HΦ
+      iexists b0, ({ putUser st0 user xs' with revision := rev } : AuthState)
       isplitl [HPost]
       · ileft; iexact HPost
-      isplitl [Hbe HT Hen]
-      · iunfold authWR; iframe HT Hen; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+      isplitl [Hbe HT Hfl Hca]
+      · iunfold authWRx; iframe HT Hfl Hev Hca Hsnap; iexists (GoInterface.ok bi); iframe Hbe Hbeok
       isplitl [Header]
       · iunfold respOk; isplitr
         · ipureintro; intro h; exact absurd rfl h
         · iright; iexists _; iexact Header
-      iunfold adminOut
+      iunfold adminOutP
       iright
       iexists st0, (.next (bump (putUser st0 user xs')))
+      isplitr
+      · ipureintro; exact tieStep_refresh M hs _ b0 sc0 _ st0 Hl0 Hl1 rfl
       isplitr
       · ipureintro; exact ⟨Hl0, hstepR⟩
       simp only [outRes]
@@ -391,6 +406,17 @@ theorem auth.authStore.UserGrantRole.wp_proof
         all_goals rfl
       · ipureintro; trivial
   )
+
+
+theorem auth.authStore.UserGrantRole.wp_proof
+    (h_commitRevision : auth.authStore.commitRevision.spec (GF := GF) (hG := hG))
+    (h_refresh : auth.authStore.refreshRangePermCache.spec (GF := GF) (hG := hG))
+    (h_String : zap.String.spec (GF := GF) (hG := hG))
+    (h_Strings : zap.Strings.spec (GF := GF) (hG := hG))
+    (h_Warn : zap.Logger.Warn.spec (GF := GF) (hG := hG))
+    (h_Info : zap.Logger.Info.spec (GF := GF) (hG := hG)) :
+    auth.authStore.UserGrantRole.spec (GF := GF) (hG := hG) :=
+  auth.authStore.UserGrantRole.spec_of_T (auth.authStore.UserGrantRole.wp_tie h_commitRevision h_refresh h_String h_Strings h_Warn h_Info)
 
 end proof
 

@@ -108,13 +108,20 @@ theorem wp_Step_MsgHup (_P : raft.Step.Postulates (GF := GF) (hG := hG))
             simp [campaignPreElection] at this
     have HCD := stepCD_hup (B := B) (m := m) Hok Hnowrap Hlogf
     have Hpc := fun h => HupGuard.precand Hok.2.2.2.2 h
+    have Hhg := Hok.2.2.2.2
     obtain ⟨Hwf', Hstep, ⟨Hl, Ht1, Ht2, Hpv', Hg'⟩, -⟩ := Hok
+    -- (2026-10-25, T-M M2b) a pre-candidate afterwards: one before, unchanged, or made one by
+    -- the pre-campaign, with `hup`'s check (`HupFact`)
+    have Hpcs : PreCandStep m s s' := fun h => ⟨Hpc h, by
+      rcases Hhg with rfl | ⟨-, -, Hsn, Hno, -⟩
+      · exact .inl ⟨h, rfl, rfl, rfl, fun h => h, Int.le_refl _⟩
+      · exact .inr ⟨Hty, Hl, Hsn, Hno, Hlogf.1 Hsn, Hlogf.2.1, Hlogf.2.2⟩⟩
     iapply HΦ $$ %interface.nil %s'
     iframe Hphys
     ipureintro
     exact ⟨Hwf', HCD, rfl, NetFrame.of_logst Hl Hpv' Hg', Ht1, fun _ => Ht2,
       fun h _ _ => absurd Hty h, fun _ => by rw [Hl]; exact Int.le_refl _,
-      fun h => absurd (Hty.symm.trans h) (by w32_ne), fun h => ⟨Hpc h, .inr Hty⟩⟩
+      fun h => absurd (Hty.symm.trans h) (by w32_ne), Hpcs⟩
 
 end StepProof
 

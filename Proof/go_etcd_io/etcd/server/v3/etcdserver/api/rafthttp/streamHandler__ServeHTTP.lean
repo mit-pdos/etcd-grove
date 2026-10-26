@@ -147,7 +147,8 @@ local macro "stream_rest" : tactic => `(tactic| (
           simp only [raftHttpNet]
           isplitr
           · imodintro
-            iapply raftProto_resp_stream_200 Rh R γk _ (Hpath ▸ streamPath_ne_raft _ _) $$ Hreg
+            iapply raftProto_resp_stream_200 Rh R γk _
+              ⟨Hpath ▸ streamPath_ne_raft _ _, Hpath ▸ streamPath_ne_snap _ _⟩ $$ Hreg
           isplitr
           · ipureintro; decide
           simp only [http.hdrsReady]

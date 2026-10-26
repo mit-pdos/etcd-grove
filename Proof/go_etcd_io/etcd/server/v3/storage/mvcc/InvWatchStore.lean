@@ -91,8 +91,6 @@ def watchEvents (log : Log) (r : WatchRange) (lo hi : Nat) : List EvM :=
 def filtered (fs : List (EvM → Bool)) (evs : List EvM) : List EvM :=
   evs.filter fun ev => fs.all fun p => !(p ev)
 
-theorem filtered_nil (fs : List (EvM → Bool)) : filtered fs [] = [] := rfl
-
 theorem logEvents_empty (log : Log) {lo hi : Nat} (h : hi ≤ lo) : logEvents log lo hi = [] := by
   unfold logEvents; rw [show hi - lo = 0 by omega]; rfl
 

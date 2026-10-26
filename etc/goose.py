@@ -166,12 +166,19 @@ PROJECTS = [
         # `goose-lean-getproph2` (on 188113160; `goose-lean-getproph`'s 942601555 made on
         # 2aed163b1, cherry-picked): `kubernetes.Client.Get` resolves a prophecy with its
         # response's revision and the key's mod revision (bc9c3868c; verification only, a no-op
-        # in Go).
+        # in Go). Then (D43 M3, 2026-10-25) branch `goose-lean-leaderwait` (on bc9c3868c): the
+        # leader's raft loop waits for its apply loop before `Advance` when a `Ready` commits a
+        # conf change, as a follower's does (4d9282b0f,
+        # issues/etcd-leader-advance-before-applyconfchange.md; raft's dynamic mode needs a
+        # `Ready`'s conf changes applied before `Advance`). Then (D43 M4, 2026-10-26) branch
+        # `goose-lean-learnerfix` (on 4d9282b0f): a removed local member is no learner, rather
+        # than a panic (c00a2dc06, issues/etcd-unary-interceptor-learner-removed.md;
+        # etcd-io/etcd#22188's fix).
         # Branch
         # `goose` (upstream main of 2026-03) stays as it is: the Rocq translations
         # (etcd-grove `main`, Perennial `master`) are regenerated from it by name.
         repo="https://github.com/upamanyus/etcd",
-        rev="bc9c3868ced67e518fb2fecba44ce0fa70b7303b",
+        rev="c00a2dc062245b2afbc37678b4e5423eff351bfd",
         # go.etcd.io/raft/v3 (etcd's go.mod: v3.7.0) is the raft above (v3.7.0 plus the
         # read-index fix), translated by the raft project: not translated here.
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",
@@ -180,8 +187,15 @@ PROJECTS = [
                     "net=", "hash=", "path=", "internal/bytealg=",
                     "encoding/hex=", "container/heap=", "unicode/utf8=",
                     "github.com/Masterminds/semver=", "go.etcd.io/raft/v3=",
-                    "golang.org/x/time=", "github.com/xiang90/probing=", "crypto/tls=",
-                    "github.com/grpc-ecosystem="],
+                    "golang.org/x/time=", "golang.org/x/crypto=", "github.com/xiang90/probing=",
+                    "crypto/tls=",
+                    # (D43 M4, 2026-10-26) membership's `json.Unmarshal` (the k8s-apiserver
+                    # project's names-only translation, `Code/encoding/json.lean`)
+                    "encoding/json=",
+                    "github.com/grpc-ecosystem=",
+                    # the server's UserAdd/UserChangePassword (the auth plan's E2x): base64 names
+                    # only, the k8s-apiserver project's translation (Code/encoding/base64.toml)
+                    "encoding/base64="],
         packages=[
             # with bodies (cache/v3.toml)
             "go.etcd.io/etcd/cache/v3",
@@ -248,6 +262,8 @@ PROJECTS = [
             # types only: the lease's protobuf message (the lessor's persistTo, Revoke)
             "go.etcd.io/etcd/server/v3/lease/leasepb",
             "go.etcd.io/etcd/server/v3/auth",
+            # names only but for the cost bounds `auth.NewAuthStore` reads (the auth plan's E2a)
+            "golang.org/x/crypto/bcrypt",
             "go.etcd.io/etcd/pkg/v3/contention",
             "go.etcd.io/etcd/pkg/v3/idutil",
             "go.etcd.io/etcd/pkg/v3/notify",
@@ -378,6 +394,7 @@ PROJECTS = [
                os.path.join("crypto", "tls"),
                os.path.join("container", "heap"), os.path.join("unicode", "utf8"),
                os.path.join("github_com", "dustin"), os.path.join("golang_org", "x", "time"),
+               os.path.join("golang_org", "x", "crypto"),
                os.path.join("github_com", "xiang90"),
                os.path.join("github_com", "grpc_ecosystem")],
         # etcd itself: not its tests, tools or root module
@@ -499,6 +516,22 @@ PROJECTS = [
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "watchkv")],
     ),
     Project(
+        name="authkv",
+        # The authentication example (notes/auth-plan.md, D-AU5): one member started in-process
+        # with the simple token provider, auth set up and enabled through a client, four
+        # principals (two users, no token, an invalid token) running a workload inside and outside
+        # the one granted range, and checks that the server refused what the auth state does not
+        # permit. A package of the examples' Go module (examples/go.mod); its imports are the
+        # etcd project's translations (names reached through the empty root).
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "authkv"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
+                    "go.uber.org=", "google.golang.org=", "net="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "authkv")],
+    ),
+    Project(
         name="cachekv",
         # watchkv with the watch read through etcd's cache: one member started in-process, as in
         # putget, a cache of the prefix over the client, a cache watch from revision 2, writer
@@ -614,6 +647,18 @@ PROJECTS = [
             ".",
             "k8s.io/apiserver/pkg/storage/etcd3",
             "k8s.io/apiserver/pkg/storage",
+            # the watch cache's store, with bodies (notes/kep-6404-plan.md)
+            "k8s.io/apiserver/pkg/storage/cacher",
+            "k8s.io/apiserver/pkg/storage/cacher/store",
+            "k8s.io/apiserver/pkg/storage/cacher/delegator",
+            "k8s.io/apiserver/pkg/storage/cacher/metrics",
+            "k8s.io/apiserver/pkg/storage/cacher/progress",
+            "k8s.io/client-go/util/consistencydetector",
+            "k8s.io/client-go/util/watchlist",
+            "k8s.io/component-base/metrics",
+            "k8s.io/apiserver/pkg/storage/cacher/consistency",
+            "k8s.io/apiserver/pkg/storage/cacher/key",
+            "k8s.io/client-go/tools/cache",
             # types and names only (their .toml): what the two name
             "k8s.io/apimachinery/pkg/api/errors",
             "k8s.io/apimachinery/pkg/api/validate/content",
@@ -650,6 +695,7 @@ PROJECTS = [
             # (`path` is the etcd project's, with the bodies rafthttp needs: `Code/path.toml`)
         ],
         owned=[os.path.join("k8s_io", "apiserver"), os.path.join("k8s_io", "apimachinery"),
+               os.path.join("k8s_io", "client_go"),
                os.path.join("k8s_io", "klog"), os.path.join("k8s_io", "component_base"),
                os.path.join("k8s_io", "utils", "clock"), os.path.join("encoding", "json"),
                os.path.join("encoding", "base64"), "iter",

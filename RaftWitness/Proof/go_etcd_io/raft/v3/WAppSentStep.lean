@@ -47,17 +47,6 @@ theorem SendWAppOk.congr {c : CfgM} {id : w64} {p p' : PState} {m : Msg}
   simp only [ha]
   exact H
 
-theorem SendWAppOk.stepC {c : CfgM} {id : w64} {B : Int} {p : PState} {m : Msg}
-    (Hr : p.role = .leader) (H : SendWAppOk c id p m) : StepC c id B p [] (psendMsgs p [m]) := by
-  obtain ⟨Hw, Hwin, Hx, Hxin, i, e, vs, He, Het, Hes, Hsz, Hvs, rfl⟩ := H
-  exact .sendWApp p i e vs Hr Hw Hx Hxin He Het Hes Hsz Hvs
-
-theorem SendWAppOk.stepR {Adm : List EntryM → CCState → Prop} {dec : CCDec} {id : w64} {B : Int}
-    {r : RState} {m : Msg} (Hr : r.p.role = .leader) (H : SendWAppOk r.cfg.cfg id r.p m) :
-    StepR Adm dec id B r [] { r with p := psendMsgs r.p [m] } := by
-  obtain ⟨Hw, Hwin, Hx, Hxin, i, e, vs, He, Het, Hes, Hsz, Hvs, rfl⟩ := H
-  exact .sendWApp r i e vs Hr Hw Hwin Hx Hxin He Het Hes Hsz Hvs
-
 /-- The count of a half's `Match` values at least `N ≠ 0` (`rsAcked`, its replication set's
 non-witness voters) is at most the count of `ackedBy` in them. -/
 theorem countGe_rsAcked_le {V : GSet w64} {pvs : GMap w64 Progress} {r : RSM} {k : Nat}

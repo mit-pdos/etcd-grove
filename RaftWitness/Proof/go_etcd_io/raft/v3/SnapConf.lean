@@ -105,15 +105,6 @@ theorem SnapConfOk.restoreM_eq {dec : CCDec} {c0 : CCState} {pre : List EntryM}
   refine ⟨s, Hf, ?_⟩
   rw [restoreM_wf vo v l ln al Hwf, Hc, cfgStateC_of_good (cfgFold_good Hg Hf)]
 
-/-- The obligation gives the snapshot's index within the applied entries and `Restore`'s
-answer, the configuration of the applied prefix up to it. -/
-theorem SnapObl.restoreM_eq {dec : CCDec} {c0 : CCState} {applied : List EntryM}
-    {i : w64} {vo v l ln : List w64} {al : Bool} (H : SnapObl dec c0 applied i vo v l ln al)
-    (Hg : CCGood c0) :
-    uint.nat i ≤ applied.length ∧ ∃ s, cfgFold dec c0 (applied.take (uint.nat i)) = some s ∧
-      restoreM vo v l ln al = some s :=
-  ⟨H.1, H.2.restoreM_eq Hg⟩
-
 end model
 
 /-! ### The certificate, stated on the ghost records (2026-10-15, stage S)

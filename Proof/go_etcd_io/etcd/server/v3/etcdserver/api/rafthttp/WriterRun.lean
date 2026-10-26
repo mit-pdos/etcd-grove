@@ -82,8 +82,9 @@ theorem wp_stream_encode
     subst He
     cases Hei
     (try wp_auto)
-    wp_apply hMsg e wi ml st Wr A h hok.1 $$ [$HWr]
-      as %err ⟨#Herr, %h', HWr, %Hok⟩
+    ihave #HwrF := writerAt_F wi Wr A $$ Hwr
+    wp_apply hMsg e wi ml st Wr A h false hok.1 $$ [$HWr]
+      as %err ⟨#Herr, -, %h', HWr, %Hok⟩
     · iframe #
       iintro !> %bs %Hw
       isplitl

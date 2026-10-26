@@ -42,7 +42,7 @@ private theorem wp_store_state_leader (c : CfgM) (r : Loc) (id : w64) (s : NStat
       (App (Val (GoInstruction (GoStore StateType.ty)))
         (Val (PairV #(r.[raft, go!"state"]) go_etcd_io.raft.v3.StateLeader)))
     {{ RET #(); ownRaftPhysCV c c.voters r id { s with role := .leader } }} :=
-  raft.wp_store_stateC c r id s .leader (fun _ => Hcfg) (Hpr := fun _ => Hpr)
+  raft.wp_store_stateC c r id s .leader (fun _ _ => Hcfg) (Hpr := fun _ => Hpr)
 
 theorem raft.becomeLeader.wp_proof
     (wp_raft_reset : raft.reset.spec (GF := GF) (hG := hG))
@@ -51,14 +51,14 @@ theorem raft.becomeLeader.wp_proof
     (wp_raft_appendEntry : raft.appendEntry.spec (GF := GF) (hG := hG))
     (wp_Progress_BecomeReplicate : tracker.Progress.BecomeReplicate.spec (GF := GF) (hG := hG)) :
     raft.becomeLeader.spec (GF := GF) (hG := hG) := by
-  intro c r id s Hrole Hnz
+  intro c r id s Hrole Hnl Hnz
   wp_start as Hphys
   -- (2026-10-19, D21 M3) in the no-snapshot mode the log is not empty (it holds the bootstrap
   -- log, committed), so `reset`'s `Next = lastIndex + 1` is at least `2` (`PrLo`)
   icases ownRaftPhysC_ns_last c r id s $$ Hphys with ⟨%Hli1, Hphys⟩
   -- the node is a voter (`ownRaftPhysC`'s `Hvoter`: it is not a follower), so tracked
   icases ownRaftPhysC_voter c r id s $$ Hphys with ⟨%Hv, Hphys⟩
-  have Hcfg : id ∈ c.voters := Hv Hrole
+  have Hcfg : id ∈ c.voters := Hv Hrole Hnl
   -- (stage R8a) `lastIndex() + 1` does not wrap: `reset`'s values are within the log
   icases ownRaftPhysC_prvals_ok c r id s $$ Hphys with ⟨-, %Hnw, Hphys⟩
   wp_auto

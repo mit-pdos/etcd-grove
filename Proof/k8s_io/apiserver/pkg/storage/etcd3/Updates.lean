@@ -44,10 +44,11 @@ def KvNext (σ σ' : KVState) : Prop :=
 
 /-- A commit is such a step. -/
 theorem kvNext_commit (σ : KVState) (cs : List mvcc.Change) : KvNext σ (σ.commit cs) := by
-  unfold KVState.commit
-  split
-  · exact Or.inl rfl
-  · refine Or.inr ⟨rfl, fun v hv => ?_⟩
+  by_cases hc : cs = []
+  · subst hc; exact Or.inl (KVState.commit_nil σ)
+  · refine Or.inr ⟨KVState.commit_rev σ cs hc, fun v hv => ?_⟩
+    rw [KVState.commit_kvs σ cs hc] at hv
+    rw [KVState.commit_rev σ cs hc]
     by_cases hm : v.modRev = W64 ((σ.rev + 1 : Nat) : Int)
     · exact Or.inr hm
     · exact Or.inl (txn.mem_applyChanges_modRev cs _ v hv hm)
@@ -257,7 +258,7 @@ theorem k8sAuRW_kvAu1 (γk : KVNames) (c : StoreCfg GF Obj) (step : KSt Obj → 
 conditional transaction (`k8sAuRW_kvAu1` at each member). -/
 theorem k8sAusRW_kvAu1 (ms : List (client.SrvAt GF)) (c : StoreCfg GF Obj)
     (step : KSt Obj → KSt Obj) (W : IProp GF) (Φ : KVState → IProp GF) (op : KVOp) (hop : op.isKV)
-    (ok hand : KVState → Bool) (A : KVState → Prop) (hw : ∀ x ∈ ms, x.γr.kv.wl.writes op)
+    (ok hand : KVState → Bool) (A : KVState → Prop)
     (h : ∀ σ, kvWf c σ → σ.rev + 2 < 2 ^ 63 → A σ →
       (ok σ = true → kvWf c (kvOpStep op σ) ∧ c.abs (kvOpStep op σ) = step (c.abs σ)) ∧
       (ok σ = false → kvOpStep op σ = σ ∧ (hand σ = true → step (c.abs σ) = c.abs σ))) :
@@ -268,8 +269,6 @@ theorem k8sAusRW_kvAu1 (ms : List (client.SrvAt GF)) (c : StoreCfg GF Obj)
   intro x hx
   iintro ⟨⟨HW, #HA⟩, #Hx⟩
   unfold kvOpAu1
-  isplitr
-  · ipureintro; exact hw x hx
   iapply k8sAuRW_kvAu1 x.γr.kv c step W Φ op hop ok hand A h
   iframe Hx HW HA
 

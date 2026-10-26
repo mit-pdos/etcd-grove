@@ -33,6 +33,8 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Base
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.errors.Base
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Base
 public import Proof.go_etcd_io.raft.v3.InvPbMsg
+-- (the auth plan's E2x, 2026-10-26) `UserAdd`'s `base64.StdEncoding`: the server imports it
+public import Proof.encoding.base64.Base
 
 @[expose] public section
 
@@ -218,7 +220,32 @@ abbrev rafthttpInit : IProp GF :=
     -- untranslated): a map of slices, read-only for good (the stream reader's
     -- `checkStreamSupport` looks a peer's version up)
     (∃ (m : Loc) (M : GMap GoString GoSlice), globalAddr supportedStream ↦□ m ∗ m ↦$□ M ∗
-      □ ∀ (k : GoString) (sl : GoSlice), ⌜M !! k = some sl⌝ -∗ ∃ ts : List GoString, sl ↦*□ ts))
+      □ ∀ (k : GoString) (sl : GoSlice), ⌜M !! k = some sl⌝ -∗ ∃ ts : List GoString, sl ↦*□ ts) ∗
+    -- (2026-10-24, rafthttp stage 7d) `errStopped`'s cell, which tells it from `errMemberRemoved`
+    -- (the snapshot sender's `post` returns it)
+    EtcdGrove.errVarCells [(errStopped, go!"stopped")] ∗
+    -- (2026-10-24, rafthttp stage 7d) the snapshot sender's and handler's metric vectors
+    -- (`metrics.go`), with their label names
+    (∃ v : Loc, globalAddr snapshotSend ↦□ v ∗ ⌜EtcdGrove.prometheus.vecLabels v [go!"To"]⌝) ∗
+    (∃ v : Loc, globalAddr snapshotSendInflights ↦□ v ∗
+      ⌜EtcdGrove.prometheus.vecLabels v [go!"To"]⌝) ∗
+    (∃ v : Loc, globalAddr snapshotSendFailures ↦□ v ∗
+      ⌜EtcdGrove.prometheus.vecLabels v [go!"To"]⌝) ∗
+    (∃ v : Loc, globalAddr snapshotSendSeconds ↦□ v ∗
+      ⌜EtcdGrove.prometheus.vecLabels v [go!"To"]⌝) ∗
+    (∃ v : Loc, globalAddr snapshotReceive ↦□ v ∗ ⌜EtcdGrove.prometheus.vecLabels v [go!"From"]⌝) ∗
+    (∃ v : Loc, globalAddr snapshotReceiveInflights ↦□ v ∗
+      ⌜EtcdGrove.prometheus.vecLabels v [go!"From"]⌝) ∗
+    (∃ v : Loc, globalAddr snapshotReceiveFailures ↦□ v ∗
+      ⌜EtcdGrove.prometheus.vecLabels v [go!"From"]⌝) ∗
+    (∃ v : Loc, globalAddr snapshotReceiveSeconds ↦□ v ∗
+      ⌜EtcdGrove.prometheus.vecLabels v [go!"From"]⌝) ∗
+    -- (2026-10-24, rafthttp stage 7d) the snapshot sender's response-read timeout
+    -- (`snapshot_sender.go`, untranslated): some duration, read-only for good
+    (∃ d : time.Duration, globalAddr snapResponseReadTimeout ↦□ d) ∗
+    -- (2026-10-24, rafthttp stage 7d) `SendSnapshot`'s error for a message without a peer
+    -- (`util.go`, untranslated): some error, read-only for good
+    (∃ e : GoInterface, globalAddr errMemberNotFound ↦□ e))
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp :=
   define_is_pkg_init rafthttpInit
@@ -408,10 +435,14 @@ abbrev srvRaftInit : IProp GF :=
 /-- The apply loop's part of the server's package facts (2026-10-13, the request path's unit 4b,
 `applyAll`): the metric `proposalsApplied` holds a fixed gauge (`Set`), and `schema.AllBuckets`
 (the buckets `VerifyBackendConsistency` checks; stated here rather than in `schema`'s facts, as
-`srvErrVars` states other packages' errors) some slice. -/
+`srvErrVars` states other packages' errors) some slice; (D22 receiver epochs, S8c, 2026-10-24)
+`applySnapshotInProgress` a fixed gauge (`applySnapshot`'s `Inc`/`Dec`). -/
 abbrev srvApplyLoopInit : IProp GF :=
   iprop((∃ g : GoInterfaceOk, globalAddr proposalsApplied ↦□ GoInterface.ok g ∗ gaugeSetSpec g) ∗
-    (∃ sl : GoSlice, globalAddr go_etcd_io.etcd.server.v3.storage.schema.AllBuckets ↦□ sl))
+    (∃ sl : GoSlice, globalAddr go_etcd_io.etcd.server.v3.storage.schema.AllBuckets ↦□ sl) ∗
+    -- (D22 receiver epochs, S8c, 2026-10-24) `applySnapshot`'s gauge (`Inc`, `Dec`)
+    (∃ g : GoInterfaceOk, globalAddr applySnapshotInProgress ↦□ GoInterface.ok g ∗
+      go_etcd_io.etcd.server.v3.storage.mvcc.gaugeSpec g))
 
 /-- **The server package's facts**: the raft wrapper's (`srvRaftInit`), the request path's
 (`srvReqInit`), merged 2026-10-12, and the apply loop's (`srvApplyLoopInit`, 2026-10-13). All are

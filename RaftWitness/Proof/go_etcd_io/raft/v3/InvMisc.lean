@@ -53,11 +53,6 @@ like a queued message's (`msgAbs`). -/
 section records
 variable [FfiSyntax]
 
-/-- The read-index scope of the election and replication proofs: no `ReadState`, no queued
-or pending request. -/
-def RdScope (rd : RdState) : Prop :=
-  rd.states = [] ∧ rd.ro.pending = [] ∧ rd.pend = []
-
 /-- `recvAck` changes only the acks, so not the heartbeat context. -/
 theorem hbCtx_recvAck (r : ReadOnly) (src : w64) (ctx : List w8) :
     hbCtx (readonlyRecvAck r src ctx) = hbCtx r := by

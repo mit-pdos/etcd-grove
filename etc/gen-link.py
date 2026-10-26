@@ -44,8 +44,10 @@ usage: etc/gen-link.py --raft > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --linkv3p > Proof/github_com/mit_pdos/etcd_grove/examples/linkv3p/Link.lean
        etc/gen-link.py --watchkv > Proof/github_com/mit_pdos/etcd_grove/examples/watchkv/Link.lean
        etc/gen-link.py --cachekv > Proof/github_com/mit_pdos/etcd_grove/examples/cachekv/Link.lean
+       etc/gen-link.py --authkv > Proof/github_com/mit_pdos/etcd_grove/examples/authkv/Link.lean
        etc/gen-link.py --k8s > Proof/go_etcd_io/etcd/client/v3/kubernetes/Link.lean
        etc/gen-link.py --k8s-etcd3 > Proof/k8s_io/apiserver/pkg/storage/etcd3/Link.lean
+       etc/gen-link.py --cacher > Proof/k8s_io/apiserver/pkg/storage/cacher/Link.lean
        etc/gen-link.py --k8setcd3 > Proof/github_com/mit_pdos/etcd_grove/examples/k8setcd3/Link.lean
        etc/gen-link.py --common > Proof/github_com/mit_pdos/etcd_grove/examples/common/Link.lean
 
@@ -331,6 +333,12 @@ LEAN_FIRST = {
                   "github_com.mit_pdos.etcd_grove.examples.watchkv",
                   "github_com.mit_pdos.etcd_grove.examples.watchkv.Assumptions",
                   "The watch example's proofs (`examples/watchkv`)", [""]),
+    # the authentication example (examples/authkv, the auth plan's E2b): its pure checks and
+    # `Main` (not proved yet)
+    "--authkv": ("link-lean-first-authkv.txt",
+                 "github_com.mit_pdos.etcd_grove.examples.authkv",
+                 "github_com.mit_pdos.etcd_grove.examples.authkv.Assumptions",
+                 "The authentication example's proofs (`examples/authkv`)", [""]),
     # the cache watch example (examples/cachekv): watchkv's functions, the cache watch's options,
     # and `Main` (over the server's, v3rpc's, the client's, `context`'s and the cache's, `@`)
     "--cachekv": ("link-lean-first-cachekv.txt",
@@ -359,6 +367,13 @@ LEAN_FIRST = {
                     "k8s_io.apiserver.pkg.storage.etcd3 k8s_io.apiserver.pkg.storage",
                     "k8s_io.apiserver.pkg.storage.etcd3.Assumptions",
                     "The Kubernetes etcd3 store's proofs (`k8s.io/apiserver/pkg/storage/etcd3`)", [""]),
+    # the Kubernetes watch cache's reads (k8s.io/apiserver/pkg/storage/cacher, its store and
+    # progress requester; KEP-6404, notes/kep-6404-plan.md), over the B-tree's (`@`)
+    "--cacher": ("link-lean-first-cacher.txt",
+                 "k8s_io.apiserver.pkg.storage.cacher k8s_io.apiserver.pkg.storage.cacher.store "
+                 "k8s_io.apiserver.pkg.storage.cacher.progress",
+                 "k8s_io.apiserver.pkg.storage.cacher.Assumptions",
+                 "The Kubernetes watch cache's proofs (`k8s.io/apiserver/pkg/storage/cacher`)", [""]),
     # the examples' shared start (examples/common, D33): a member's configuration and server
     # (over the server's, `@`), its gRPC service (over v3rpc's, `@`) and a client (over the
     # client's `New`, `@`), which the examples' Links take as `@` callees
@@ -370,7 +385,7 @@ LEAN_FIRST = {
 # The mode whose results are put in a namespace of their own (see the docstring).
 NAMESPACED = {"--backend": "backend", "--client": "client", "--concurrency": "concurrency", "--leasing": "leasing", "--recipes": "recipes", "--v3lock": "v3lock", "--v3election": "v3election",
               "--txn": "txn", "--porcupine": "porcupine", "--lintest": "lintest",
-              "--lintest-counter": "lintest", "--linkv3p": "linkv3p", "--linkvtxn": "linkvtxn", "--watchkv": "watchkv", "--cachekv": "cachekv", "--common": "common", "--k8s": "kubernetes", "--k8s-etcd3": "k8s", "--k8setcd3": "k8setcd3", "--apply": "apply", "--v3rpc": "v3rpc", "--read": "read"}
+              "--lintest-counter": "lintest", "--linkv3p": "linkv3p", "--linkvtxn": "linkvtxn", "--watchkv": "watchkv", "--authkv": "authkv", "--cachekv": "cachekv", "--common": "common", "--k8s": "kubernetes", "--k8s-etcd3": "k8s", "--cacher": "cacher", "--k8setcd3": "k8setcd3", "--apply": "apply", "--v3rpc": "v3rpc", "--read": "read"}
 # The Links a mode imports for the callees' results they already define (see "Reuse" above), by
 # their module below `Proof/`, beside those of its `@` callees.
 REUSES = {"--server": ["Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Link"]}
@@ -382,7 +397,11 @@ EXTRA_IMPORTS = {"--v3rpc": ["Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3r
                  "--server": ["Proof.net.http.Axioms", "Perennial.Proof.time.Link",
                               "Perennial.Proof.sync.Link", "Perennial.Proof.context.Link",
                               "Perennial.Proof.strings.Link",
-                              "Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Lemmas"]}
+                              "Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Lemmas",
+                              # (rafthttp stage 7d) the snapshot sender's: `bytes.Buffer.Write`'s
+                              # axiom, net/http's errors not `errMemberRemoved`
+                              "Proof.bytes.Buffer__Write",
+                              "Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.NetErr"]}
 # The modes whose specs are stated over the clients' model of etcd (the class `EtcdModel`,
 # `cache/v3/EtcdModel.lean`, the vertical slice's unit V1): their sections take it as a variable.
 EM_MODES = {"--cache", "--concurrency", "--leasing", "--recipes", "--v3lock", "--v3election"}

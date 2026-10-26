@@ -360,17 +360,6 @@ theorem CfgStatic.isQuorum {γ : RaftNames} {c : CfgM} (HC : CfgStatic γ c) {q 
   have hi : c.incoming ≠ ∅ := by rw [HC.1]; exact γ.reCfg_ne
   rw [← HC.1]; exact (JQuorum_of_out hi HC.2.1 q).1 H
 
-theorem CfgStatic.quorumAcked {γ : RaftNames} {c : CfgM} (HC : CfgStatic γ c)
-    {f : w64 → w64} {N : w64} (H : JQuorumAcked c f N) : QuorumAcked γ.reCfg f N := by
-  have hi : c.incoming ≠ ∅ := by rw [HC.1]; exact γ.reCfg_ne
-  rw [← HC.1]; exact (JQuorumAcked_of_out hi HC.2.1 f N).1 H
-
-/-- A step at a static configuration is `Step` at the ghost state's voters. -/
-theorem CfgStatic.toStep [FfiSyntax] (γ : RaftNames) (lrn : GSet w64) (id : w64) (B : Int)
-    (s : PState) (ms : List Msg) (s' : PState) :
-    StepC (CfgM.simple γ.reCfg lrn) id B s ms s' → Step γ.reCfg id B s ms s' :=
-  step_of_stepC (CfgM.simple γ.reCfg lrn) id B γ.reCfg_ne rfl rfl
-
 /-- **The node `id` at the configuration `c` within the ghost state's tracked bound** (D19p,
 2026-10-18): what the node's static ghost state keeps (`ghostRest`), with `c` its tracker's
 configuration. A `MsgSnap` it sends goes from it to an id of `c`, so from and to ids of the
@@ -410,9 +399,6 @@ theorem TrackedOk.of_sub {γ : RaftNames} {P : GSet w64} {id : w64} (hP : P ⊆ 
   rcases (GMap.elem_of_union _ _ _).1 hk with h | h
   · exact h
   · exact (GMap.elem_of_subseteq _ _).1 hP _ ((GMap.elem_of_difference _ _ _).1 h).1
-
-theorem TrackedOk.of_none {γ : RaftNames} (c : CfgM) (id : w64) (h : γ.reTracked = none) :
-    TrackedOk γ c id := fun T hT => by rw [h] at hT; cases hT
 
 /-- No bound in the dynamic mode. -/
 theorem RaftNames.reTracked_of_dyn {γ : RaftNames} (h : γ.reDyn ≠ none) : γ.reTracked = none := by
@@ -681,12 +667,6 @@ theorem ownCommitted_extend (γ : RaftNames) (l l' : List EntryM) :
   intro Hp
   rw [ownCommitted_unseal, isCommitted_unseal]; unfold ownCommittedDef isCommittedDef
   exact monoListAuthOwn_update _ Hp
-
-/-- (Rocq `Local`.) -/
-theorem ownCommitted_alloc :
-    ⊢ |==> ∃ γc : GName, monoListAuthOwn (GF := GF) γc 1 ([] : List EntryM) ∗
-                         monoListLbOwn γc ([] : List EntryM) := by
-  exact mono_list_own_alloc _
 
 /-- The committed log allocated at `l` (2026-10-16, stage R8b: the bootstrap log). -/
 theorem ownCommitted_alloc_at (l : List EntryM) :
@@ -1152,10 +1132,6 @@ theorem propMulti_deposited (γ : RaftNames) (d : List w8) :
     propMulti (GF := GF) γ d ⊢ deposited γ d := by
   unfold propMulti deposited; iintro ⟨%p, #Hp, -⟩; iexists p; iexact Hp
 
-theorem propOnce_deposited (γ : RaftNames) (d : List w8) :
-    propOnce (GF := GF) γ d ⊢ deposited γ d := by
-  unfold propOnce deposited; iintro ⟨%p, #Hp, -⟩; iexists p; iexact Hp
-
 /-- A proposal is not both. -/
 theorem propOnce_multi (γ : RaftNames) (d : List w8) :
     ⊢ propOnce (GF := GF) γ d -∗ propMulti γ d -∗ False := by
@@ -1311,10 +1287,6 @@ theorem propDataIs_stamp (γ : RaftNames) (e : EntryM) (t i st : w64) (o : Optio
       propDataIs γ e o := by
   cases o <;> rfl
 
-theorem propData_stamp (γ : RaftNames) (e : EntryM) (t i st : w64) :
-    propData (GF := GF) γ { e with Term' := t, Index' := i, Subterm' := st } = propData γ e := by
-  unfold propData; simp only [propDataIs_stamp]
-
 /-- **The ticket a proposed entry carries** (D21 M6): a client operation's (a normal entry with
 bytes), its data's ticket, or that its data may be proposed any number of times; nothing for
 any other entry. -/
@@ -1434,24 +1406,11 @@ theorem msgsTks_subperm (γ : RaftNames) (ms ms' : List Msg)
   unfold msgsTks
   exact BigSepL.bigSepL_submseteq (l := r) ((hp.symm.append_right r).trans hr.symm)
 
-/-- A list with the same proposals has the same tickets. -/
-theorem msgsTks_props_eq (γ : RaftNames) (ms ms' : List Msg) (h : propsOf ms' = propsOf ms) :
-    msgsTks (GF := GF) γ ms ⊢ msgsTks γ ms' :=
-  msgsTks_subperm γ ms ms' (by rw [h])
-
 /-- The empty normal entry (`pb.Entry{}`) is no client operation (2026-10-13). -/
 theorem propData_zero (γ : RaftNames) : ⊢ propData (GF := GF) γ (zero_val EntryM) := by
   unfold propData
   iexists none
   unfold propDataIs
-  ileft
-  ipureintro
-  exact ⟨rfl, rfl⟩
-
-theorem entData_zero (γ : RaftNames) : ⊢ entData (GF := GF) γ (zero_val EntryM) := by
-  unfold entData
-  iexists none
-  unfold entDataIs propDataIs
   ileft
   ipureintro
   exact ⟨rfl, rfl⟩
@@ -2914,18 +2873,6 @@ instance isCommittedIdx_timeless (γ : RaftNames) (i : w64) :
     Timeless (isCommittedIdx (GF := GF) γ i) := by
   unfold isCommittedIdx; infer_instance
 
-theorem isCommittedIdx_0 (γ : RaftNames) : ⊢ isCommittedIdx (GF := GF) γ (W64 0) := by
-  unfold isCommittedIdx
-  ileft; ipureintro
-  rw [show uint.Z (W64 0) = 0 from rfl]; exact Int.natCast_nonneg _
-
-/-- A commit index within the bootstrap log is committed (2026-10-16, stage R8b). -/
-theorem isCommittedIdx_boot (γ : RaftNames) (i : w64) :
-    uint.Z i ≤ γ.reBoot.length → ⊢ isCommittedIdx (GF := GF) γ i := by
-  intro H
-  unfold isCommittedIdx
-  ileft; ipureintro; exact H
-
 /-- What is committed up to `i` is committed up to anything below. -/
 theorem isCommittedIdx_le (γ : RaftNames) (i j : w64) :
     uint.Z j ≤ uint.Z i → ⊢ isCommittedIdx (GF := GF) γ i -∗ isCommittedIdx γ j := by
@@ -3098,19 +3045,6 @@ theorem commitIn_agree (γ : RaftNames) (F F' : List EntryM) (c tm tm' : w64) :
     · iright
       ihave #Hw' := witsB_agree γ F F' _ _ Htk $$ Hw
       iapply witsB_le γ F' _ _ _ _ (Nat.le_refl _) (by omega) $$ Hw'
-
-/-- At commit index `0` there is nothing to justify. -/
-theorem commitIn_zero (γ : RaftNames) (F : List EntryM) (c tm : w64) (h : uint.Z c = 0) :
-    ⊢ commitIn (GF := GF) γ F c tm := by
-  unfold commitIn
-  isplitr
-  · unfold commitJ; ileft; ipureintro
-    refine ⟨by rw [h]; exact Int.natCast_nonneg _, ?_⟩
-    unfold plogTermAt; rw [base0_index, h]; simp
-  · unfold dynOn; iright
-    unfold witsB
-    iintro %k %Hk
-    exfalso; have := Hk.2; omega
 
 /-- `commitIn` moves to a log with records that agrees at `c` with one with records. -/
 theorem commitIn_move (γ : RaftNames) (F F' : List EntryM) (c tm tm' : w64) :

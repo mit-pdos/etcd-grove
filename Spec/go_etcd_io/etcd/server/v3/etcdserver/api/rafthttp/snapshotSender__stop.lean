@@ -1,6 +1,6 @@
 /-
-`(*snapshotSender).stop()` (`snapshot_sender.go`, untranslated; rafthttp stage 6b): the trust
-boundary (D39). Lean-first.
+`(*snapshotSender).stop()` (`snapshot_sender.go`; rafthttp stage 6b, an axiom until stage 7d).
+Lean-first.
 -/
 module
 

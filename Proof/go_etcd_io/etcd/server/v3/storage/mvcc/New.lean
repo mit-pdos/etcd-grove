@@ -51,7 +51,7 @@ theorem mvcc.New.wp_proof
   wp_apply (hNew _ _ _ _ _ _ _ _ f _ γi γok γtag Hcfg0 Hrb0)
     $$ [$Hbk $Hbv $Hncmp $Hrg $Hwt1 $Hwt2 $Hrts $Hlrd $Hlessor $Hro $Hifresh $Hok0]
     as %s ⟨%st, %γ, %Hγ, #Hws, Hro, #Hhook, Hww, Htw, Hok, Hreaders,
-    ⟨%stc, #Hstc, Hstop⟩, Hsclose, Hfrag, Hwg⟩
+    ⟨%stc, #Hstc, Hstop⟩, Hsclose, Hfrag, Hret, Hwg⟩
   (try wp_auto)
   imod sync.init_WaitGroup mvcc.wsWgWGN (mvcc.wsWgAddr s) $$ Hwg with ⟨%γwg, #HisWg, Hctr, Hwaiters⟩
   wp_apply mvcc.wp_wsWg_Add2_init s γwg $$ [$Hctr $Hwaiters] as ⟨Hctr, Hwaiters⟩
@@ -85,7 +85,7 @@ theorem mvcc.New.wp_proof
   (try wp_auto)
   iapply HΦ
   iexists st, γ
-  iframe Hws Hro Hhook Hww Htw Hok Hreaders Hfrag
+  iframe Hws Hro Hhook Hww Htw Hok Hreaders Hfrag Hret
   isplitr
   · ipureintro; exact Hγ
   iunfold mvcc.wsCloser

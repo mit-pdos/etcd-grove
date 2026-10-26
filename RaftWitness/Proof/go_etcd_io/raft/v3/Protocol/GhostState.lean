@@ -981,17 +981,6 @@ instance committedJust_persistent (γ : RaftNames) (l : List EntryM) :
     Persistent (committedJust (GF := GF) γ l) := by
   unfold committedJust; infer_instance
 
-/-- A justified committed log is well-formed from `base0`: entry `k` has index `k + 1`
-(`cq_full`; 2026-10-16, stage R7). -/
-theorem committedJust_wf (γ : RaftNames) (l : List EntryM) :
-    ⊢ committedJust (GF := GF) γ l -∗ ⌜PlogWf base0 l⌝ := by
-  unfold committedJust
-  iintro #H
-  icases H with (%H0 | ⟨%t, %n, %G, %ldr, #Hcq, %HlG, -, -⟩)
-  · ipureintro; rw [H0.1]; exact H0.2
-  · icases cq_full γ t n G $$ Hcq with ⟨%Hwf, -⟩
-    ipureintro; subst HlG; exact PlogWf_take _ _ _ Hwf
-
 def raftN : Namespace := nroot .@ "raft_commit"
 
 /-! ### The client's log, the registries and the commit invariant (2026-10-14, stage R)
@@ -1162,12 +1151,6 @@ def propAu1 (γ : RaftNames) (d : List w8) (Q : List EntryM → IProp GF) : IPro
               <{ ∀∀ (e : EntryM), rLog γ (L ++ [e]) ∗ entDataIs γ e (some d) ∗
                    ⌜uint.Z e.Index' = (L.length : Int) + 1⌝,
                  COMM □ Q L }>)
-
-/-- A persistent update can be fired once. -/
-theorem propAu_one (γ : RaftNames) (d : List w8) (Q : List EntryM → IProp GF) :
-    propAu (GF := GF) γ d Q ⊢ propAu1 γ d Q := by
-  unfold propAu propAu1
-  exact intuitionistically_elim
 
 /-- The update a deposit takes (D21 M6): fired at most once if deposited `once`, persistent
 otherwise. -/
@@ -2472,19 +2455,6 @@ theorem matchedOk_eq (γ : RaftNames) (s1 s2 : PState) :
   intro H1 H2 H3
   unfold matchedOk; rw [H1, H2, H3]
   iintro H; iexact H
-
-theorem ownRaftGhost_excl (γ : RaftNames) (id : w64) (s1 s2 : PState) :
-    ⊢ ownRaftGhost (GF := GF) γ id s1 md -∗ ownRaftGhost γ id s2 md -∗ False := by
-  -- the vote map is half the node's since 2026-10-05; the term-log map is whole
-  unfold ownRaftGhost ownLogGhost
-  iintro ⟨%γ1, %v1, %k1, H1⟩ ⟨%γ2, %v2, %k2, H2⟩
-  icases H1 with ⟨_, _, _, _, _, _, _, _, ⟨%γm1, %t1, H1⟩, _⟩
-  icases H2 with ⟨_, _, _, _, _, _, _, _, ⟨%γm2, %t2, H2⟩, _⟩
-  icases H1 with ⟨%_, %_, %_, %_, %_, %_, %_, %_, %_, %Hn1, H1, _⟩
-  icases H2 with ⟨%_, %_, %_, %_, %_, %_, %_, %_, %_, %Hn2, H2, _⟩
-  rw [Hn1] at Hn2; cases Hn2
-  icases ghostMapAuth_valid_2 _ _ _ _ _ $$ H1 H2 with %Hq
-  exfalso; have := Hq.1; simp at this; grind
 
 /-- Everything in a node's outbox was legitimately put there. -/
 theorem ownRaftGhost_outbox (γ : RaftNames) (id : w64) (s : PState) :

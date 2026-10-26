@@ -65,7 +65,8 @@ process or publicly through etcd-io/etcd#22395 was the user's decision: a securi
 5. **[etcd-watch-progress-closed-substream](etcd-watch-progress-closed-substream.md)**, with
    [etcd-watch-resume-closing-substream](etcd-watch-resume-closing-substream.md) (the same cause):
    the client library panics on a send to a closed channel (for Kubernetes, the API server).
-   etcd-io/etcd#22191 has the fix, open with no review; the value is in reviving it, with
+   etcd-io/etcd#22191 has the fix, open with no review and labeled stale 2026-10-24 (the bot
+   closes it within weeks unless someone acts); the value is in reviving it, with
    [etcd-watch-resume-stale-canceled-id](etcd-watch-resume-stale-canceled-id.md), which must go
    with it: the fix keeps the canceled substream's id, so after a reconnect a resumed watch that
    reuses the id is deleted by the old substream's teardown: it silently gets no more events, its
@@ -225,7 +226,8 @@ what is left to do:
    with our fix #22616; someone else's fix #22615 was opened an hour earlier, all open. #22615
    changes `IsDefaultOrdering` itself and so would also fix
    [etcd-rangestream-sort-none](etcd-rangestream-sort-none.md); if the maintainers prefer it, ours
-   closes.
+   closes. Jefftree (cc'd by serathius) agreed with the problem and fix on the issue (2026-10-21),
+   doubting how often it is hit; no PR reviewed yet (2026-10-26).
 4. **[cache-ready-after-retry](cache-ready-after-retry.md)**: reported, etcd-io/etcd#22614 (open,
    2026-10-19); no PR of ours, but someone else's #22618 (open, 2026-10-19, `needs-ok-to-test`) is
    our candidate's fix and test verbatim, crediting the report. A one-line fix with a
@@ -239,7 +241,8 @@ what is left to do:
 7. **[bbolt-commit-meta-error-frees-reader-pages](bbolt-commit-meta-error-frees-reader-pages.md)**:
    reported, etcd-io/bbolt#1311 with our fix PR #1312 (both open, filed 2026-10-23). A `Commit` that
    fails after its meta page reached the file frees pages an open read transaction still reads (a
-   serializability violation); not reachable through etcd. Left to do: see the PR through review.
+   serializability violation); not reachable through etcd. `ok-to-test` 2026-10-24 and CI green,
+   no review yet (2026-10-26). Left to do: see the PR through review.
 
 Earlier filings of ours that the files link as related but not the finding: etcd-io/etcd#19091 and
 its fix #19092 (2024-12, the leasing session-expiry stale read, closed unmerged; linked from
@@ -289,11 +292,14 @@ Also [raft-reportsnapshot-finish-not-noop](raft-reportsnapshot-finish-not-noop.m
   (2026-10-22): the msgappv2 stream decoder allocates whatever entry count and sizes the stream
   says (a panic at `2^63`, or exhaustion), where the other stream codec caps messages at
   `readBytesLimit`; between etcd members the counts are an encoder's, so only a misbehaving peer or
-  a corrupted stream reaches it. A small fix (the same `ErrExceedSizeLimit` check); low priority.
+  a corrupted stream reaches it. A small fix (the same `ErrExceedSizeLimit` check); low priority;
+  someone else's etcd-io/etcd#21874 (open, stalled) has it, so supporting that PR is the step.
   [etcd-rafthttp-stream-dial-bad-server-version-panic](etcd-rafthttp-stream-dial-bad-server-version-panic.md)
   (2026-10-23): a stream dial's response with a malformed `X-Server-Version` panics the dialing
   member (`semver.MustParse` outside any handler), with a test; between members the header is
-  always valid. A small fix (`semver.NewVersion` and a failed dial); low priority.
+  always valid on `main`, but on 3.5/3.6 a `v`-prefixed custom build's is not (etcd-io/etcd#22261).
+  A small fix (`semver.NewVersion` and a failed dial); low priority; someone else's
+  etcd-io/etcd#21829 (open, unreviewed, needs a rebase) has it.
 - **Internal-API preconditions etcd never violates**:
   [etcd-alarm-activate-none-zero-fatal](etcd-alarm-activate-none-zero-fatal.md),
   [etcd-auth-token-md-empty](etcd-auth-token-md-empty.md),
@@ -319,7 +325,8 @@ Also [raft-reportsnapshot-finish-not-noop](raft-reportsnapshot-finish-not-noop.m
   [etcd-corrupt-check-time-negative-panic](etcd-corrupt-check-time-negative-panic.md) and
   [etcd-downgrade-check-time-negative-spin](etcd-downgrade-check-time-negative-spin.md) (the last
   three one validation PR: `Config.Validate` already rejects the comparable
-  `--compact-hash-check-time <= 0`; 2026-10-23).
+  `--compact-hash-check-time <= 0`; 2026-10-23; open etcd-io/etcd#22476 would turn the downgrade
+  spin into the same startup panic, rechecked 2026-10-26).
 - **Not issues**: moved to [nonissues/](nonissues/README.md) on review (2026-10-23), with
   the documentation findings parked there for now: [election-campaign-key-check](nonissues/election-campaign-key-check.md)
   (`not-filing`: `Campaign` returning nil after its own key was deleted is the same as the session
@@ -329,7 +336,9 @@ Also [raft-reportsnapshot-finish-not-noop](raft-reportsnapshot-finish-not-noop.m
   remote), a raft regression with no realistic trigger
   ([raft-confstate-unknown-fields-panic](nonissues/raft-confstate-unknown-fields-panic.md)),
   raft behavior the review accepted ([raft-prevote-stale-grant](nonissues/raft-prevote-stale-grant.md),
-  discussed upstream in 2017) and the documentation-only findings listed there.
+  discussed upstream in 2017), a race only release-3.5 with `--enable-v2` has
+  ([etcd-rafthttp-leaderstats-followers-race](nonissues/etcd-rafthttp-leaderstats-followers-race.md),
+  moved 2026-10-26) and the documentation-only findings listed there.
 - **Client-triggered, with clients trusted**:
   [etcd-auth-useradd-long-name-fatal](etcd-auth-useradd-long-name-fatal.md) (a `UserAdd` or
   `RoleAdd` name over 32 KiB is fatal on every member and again on replay; root-only with auth
@@ -350,14 +359,20 @@ Also [raft-reportsnapshot-finish-not-noop](raft-reportsnapshot-finish-not-noop.m
   the leader's first commit are not released when `switchToConfig`'s commit is that commit; not a
   bug for an application that applies conf changes before `Advance`, so not filing: it is one more
   consequence of the misuse in item 7), [go-itab-reinterpret-assert](go-itab-reinterpret-assert.md)
-  (Go, not etcd; a golang/go issue drafted, not filed).
+  (Go, not etcd; a golang/go issue drafted, not filed),
+  [go-overlapping-named-array-copy](go-overlapping-named-array-copy.md) (Go's compiler, not
+  etcd: a miscompiled overlapping array copy in safe Go; already fixed upstream, golang/go#78371,
+  go1.26.2).
 - **Metrics**: [etcd-apply-alarm-gauge-reactivate](etcd-apply-alarm-gauge-reactivate.md),
   [etcd-apply-authstatus-metric-label](etcd-apply-authstatus-metric-label.md) (trivial fixes, easy
   merges, little impact).
 
 [etcd-unsafe-range-limit-buffer](etcd-unsafe-range-limit-buffer.md) (2026-10-23): a limited
 `ReadTx.UnsafeRange` is a prefix of the range only with no buffered entry in it; its one pager
-(`store.restore`) meets that, as far as checked. A doc line at most.
+(`store.restore`) meets that, rechecked on `main` 2026-10-26. A doc line at most today, but
+someone else's open etcd-io/etcd#22594 adds a second pager, `syncWatchers`' `rangeEvents` over the
+newest revisions (what the read buffer holds), which would miss watch events: a review comment
+there, if that PR moves, is worth more than a doc PR.
 
 ## bbolt (etcd's storage; none reachable through etcd as configured)
 
@@ -385,6 +400,11 @@ For Kubernetes' sig-api-machinery, not etcd's maintainers:
 storage test model `correctness.Model` rejects the store's intended rewrite of non-canonical or
 stale data on a no-op update. It is a test-only bug that `TestCorrectness` does not reach, with a
 Go reproduction and a small fix in the Model.
+[k8s-watchcache-index-error-partial-update](k8s-watchcache-index-error-partial-update.md)
+(2026-10-26): the watch cache keeps (and soon serves) an object whose update failed in its
+indexer, with no event in its history; reproduced at the store. Only reached through an index
+function that fails, which Kubernetes' own do only on an object of the wrong type: worth a small
+robustness fix (index before mutating), not urgent.
 
 ## How to bring them
 

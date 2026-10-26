@@ -78,20 +78,10 @@ Goose translates them names-only, so each `X.init` is an axiom of the translatio
 runs them at program start, and etcd starts, so each returns without panicking.
 Satisfiable whatever the semantics (the `X.init`s are uninterpreted constants). -/
 axiom opaqueInitsOk :
-    ∀ v ∈ ([snapshotSend.init,
-        snapshotSendInflights.init,
-        snapshotSendFailures.init,
-        snapshotSendSeconds.init,
-        snapshotReceive.init,
-        snapshotReceiveInflights.init,
-        snapshotReceiveFailures.init,
-        snapshotReceiveSeconds.init,
-        ConnWriteTimeout.init,
+    ∀ v ∈ ([ConnWriteTimeout.init,
         proberInterval.init,
         statusMonitoringInterval.init,
-        statusErrorInterval.init,
-        snapResponseReadTimeout.init,
-        errMemberNotFound.init] : List val),
+        statusErrorInterval.init] : List val),
     {{ (True : IProp GF) }} (App (Val v) (Val #())) {{ RET #(); True }}
 
 /-- **The trust boundary: `go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp`'s untranslated `init` functions return.** Goose
@@ -171,6 +161,64 @@ axiom disconnectedPeers_init :
 axiom rttSec_init :
     {{ (True : IProp GF) }} (App (Val rttSec.init) (Val #()))
     {{ RET #(); ∃ v : Loc, globalAddr rttSec ↦ v }}
+
+/-- `snapshotSend = prometheus.NewCounterVec(..., []string{"To"})`
+(`metrics.go`): a `*CounterVec` with those label names (`vecLabels`). -/
+axiom snapshotSend_init :
+    {{ (True : IProp GF) }} (App (Val snapshotSend.init) (Val #()))
+    {{ RET #(); ∃ v : Loc, globalAddr snapshotSend ↦ v ∗ ⌜EtcdGrove.prometheus.vecLabels v [go!"To"]⌝ }}
+
+/-- `snapshotSendInflights = prometheus.NewGaugeVec(..., []string{"To"})`
+(`metrics.go`): a `*GaugeVec` with those label names (`vecLabels`). -/
+axiom snapshotSendInflights_init :
+    {{ (True : IProp GF) }} (App (Val snapshotSendInflights.init) (Val #()))
+    {{ RET #(); ∃ v : Loc, globalAddr snapshotSendInflights ↦ v ∗ ⌜EtcdGrove.prometheus.vecLabels v [go!"To"]⌝ }}
+
+/-- `snapshotSendFailures = prometheus.NewCounterVec(..., []string{"To"})`
+(`metrics.go`): a `*CounterVec` with those label names (`vecLabels`). -/
+axiom snapshotSendFailures_init :
+    {{ (True : IProp GF) }} (App (Val snapshotSendFailures.init) (Val #()))
+    {{ RET #(); ∃ v : Loc, globalAddr snapshotSendFailures ↦ v ∗ ⌜EtcdGrove.prometheus.vecLabels v [go!"To"]⌝ }}
+
+/-- `snapshotSendSeconds = prometheus.NewHistogramVec(..., []string{"To"})`
+(`metrics.go`): a `*HistogramVec` with those label names (`vecLabels`). -/
+axiom snapshotSendSeconds_init :
+    {{ (True : IProp GF) }} (App (Val snapshotSendSeconds.init) (Val #()))
+    {{ RET #(); ∃ v : Loc, globalAddr snapshotSendSeconds ↦ v ∗ ⌜EtcdGrove.prometheus.vecLabels v [go!"To"]⌝ }}
+
+/-- `snapshotReceive = prometheus.NewCounterVec(..., []string{"From"})`
+(`metrics.go`): a `*CounterVec` with those label names (`vecLabels`). -/
+axiom snapshotReceive_init :
+    {{ (True : IProp GF) }} (App (Val snapshotReceive.init) (Val #()))
+    {{ RET #(); ∃ v : Loc, globalAddr snapshotReceive ↦ v ∗ ⌜EtcdGrove.prometheus.vecLabels v [go!"From"]⌝ }}
+
+/-- `snapshotReceiveInflights = prometheus.NewGaugeVec(..., []string{"From"})`
+(`metrics.go`): a `*GaugeVec` with those label names (`vecLabels`). -/
+axiom snapshotReceiveInflights_init :
+    {{ (True : IProp GF) }} (App (Val snapshotReceiveInflights.init) (Val #()))
+    {{ RET #(); ∃ v : Loc, globalAddr snapshotReceiveInflights ↦ v ∗ ⌜EtcdGrove.prometheus.vecLabels v [go!"From"]⌝ }}
+
+/-- `snapshotReceiveFailures = prometheus.NewCounterVec(..., []string{"From"})`
+(`metrics.go`): a `*CounterVec` with those label names (`vecLabels`). -/
+axiom snapshotReceiveFailures_init :
+    {{ (True : IProp GF) }} (App (Val snapshotReceiveFailures.init) (Val #()))
+    {{ RET #(); ∃ v : Loc, globalAddr snapshotReceiveFailures ↦ v ∗ ⌜EtcdGrove.prometheus.vecLabels v [go!"From"]⌝ }}
+
+/-- `snapshotReceiveSeconds = prometheus.NewHistogramVec(..., []string{"From"})`
+(`metrics.go`): a `*HistogramVec` with those label names (`vecLabels`). -/
+axiom snapshotReceiveSeconds_init :
+    {{ (True : IProp GF) }} (App (Val snapshotReceiveSeconds.init) (Val #()))
+    {{ RET #(); ∃ v : Loc, globalAddr snapshotReceiveSeconds ↦ v ∗ ⌜EtcdGrove.prometheus.vecLabels v [go!"From"]⌝ }}
+
+/-- `snapResponseReadTimeout = 5 * time.Second` (`snapshot_sender.go`): some duration, read-only for good. -/
+axiom snapResponseReadTimeout_init :
+    {{ (True : IProp GF) }} (App (Val snapResponseReadTimeout.init) (Val #()))
+    {{ RET #(); ∃ d : time.Duration, globalAddr snapResponseReadTimeout ↦ d }}
+
+/-- `errMemberNotFound = errors.New("member not found")` (`util.go`): some error, read-only for good. -/
+axiom errMemberNotFound_init :
+    {{ (True : IProp GF) }} (App (Val errMemberNotFound.init) (Val #()))
+    {{ RET #(); ∃ e : GoInterface, globalAddr errMemberNotFound ↦ e }}
 
 end go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp
 end opaqueInits
@@ -283,14 +331,14 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply receivedBytes_init as ⟨%vreceivedBytes, HreceivedBytes, #LreceivedBytes⟩
   wp_apply sentFailures_init as ⟨%vsentFailures, HsentFailures, #LsentFailures⟩
   wp_apply recvFailures_init as ⟨%vrecvFailures, HrecvFailures, #LrecvFailures⟩
-  wp_apply (opaqueInitsOk snapshotSend.init (by mem_tac))
-  wp_apply (opaqueInitsOk snapshotSendInflights.init (by mem_tac))
-  wp_apply (opaqueInitsOk snapshotSendFailures.init (by mem_tac))
-  wp_apply (opaqueInitsOk snapshotSendSeconds.init (by mem_tac))
-  wp_apply (opaqueInitsOk snapshotReceive.init (by mem_tac))
-  wp_apply (opaqueInitsOk snapshotReceiveInflights.init (by mem_tac))
-  wp_apply (opaqueInitsOk snapshotReceiveFailures.init (by mem_tac))
-  wp_apply (opaqueInitsOk snapshotReceiveSeconds.init (by mem_tac))
+  wp_apply snapshotSend_init as ⟨%vsnapshotSend, HsnapshotSend, #LsnapshotSend⟩
+  wp_apply snapshotSendInflights_init as ⟨%vsnapshotSendInflights, HsnapshotSendInflights, #LsnapshotSendInflights⟩
+  wp_apply snapshotSendFailures_init as ⟨%vsnapshotSendFailures, HsnapshotSendFailures, #LsnapshotSendFailures⟩
+  wp_apply snapshotSendSeconds_init as ⟨%vsnapshotSendSeconds, HsnapshotSendSeconds, #LsnapshotSendSeconds⟩
+  wp_apply snapshotReceive_init as ⟨%vsnapshotReceive, HsnapshotReceive, #LsnapshotReceive⟩
+  wp_apply snapshotReceiveInflights_init as ⟨%vsnapshotReceiveInflights, HsnapshotReceiveInflights, #LsnapshotReceiveInflights⟩
+  wp_apply snapshotReceiveFailures_init as ⟨%vsnapshotReceiveFailures, HsnapshotReceiveFailures, #LsnapshotReceiveFailures⟩
+  wp_apply snapshotReceiveSeconds_init as ⟨%vsnapshotReceiveSeconds, HsnapshotReceiveSeconds, #LsnapshotReceiveSeconds⟩
   wp_apply rttSec_init as ⟨%vrttSec, HrttSec⟩
   -- translated initializer of readBytesLimit))
   wp_apply (errorsNewVarsInit ErrExceedSizeLimit.init ErrExceedSizeLimit go!"rafthttp: error limit exceeded" (by mem_tac))
@@ -304,7 +352,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (opaqueInitsOk proberInterval.init (by mem_tac))
   wp_apply (opaqueInitsOk statusMonitoringInterval.init (by mem_tac))
   wp_apply (opaqueInitsOk statusErrorInterval.init (by mem_tac))
-  wp_apply (opaqueInitsOk snapResponseReadTimeout.init (by mem_tac))
+  wp_apply snapResponseReadTimeout_init as ⟨%dsnapResponseReadTimeout, HsnapResponseReadTimeout⟩
   wp_apply (errorsNewVarsInit errUnsupportedStreamType.init errUnsupportedStreamType go!"unsupported stream type" (by mem_tac))
     as ⟨%xerrUnsupportedStreamType, HerrUnsupportedStreamType, #MerrUnsupportedStreamType, #CerrUnsupportedStreamType⟩
   wp_apply supportedStream_init as ⟨%msupportedStream, %MsupportedStream, HsupportedStream, #MMsupportedStream, #MEsupportedStream⟩
@@ -312,11 +360,21 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply linkHeartbeatSize_init as ⟨%nlinkHeartbeatSize, HlinkHeartbeatSize, %BlinkHeartbeatSize⟩
   wp_apply (errorsNewVarsInit errMemberRemoved.init errMemberRemoved go!"the member has been permanently removed from the cluster" (by mem_tac))
     as ⟨%xerrMemberRemoved, HerrMemberRemoved, #MerrMemberRemoved, #CerrMemberRemoved⟩
-  wp_apply (opaqueInitsOk errMemberNotFound.init (by mem_tac))
+  wp_apply errMemberNotFound_init as ⟨%eerrMemberNotFound, HerrMemberNotFound⟩
   wp_apply (initFuncsOk init.«0» (by mem_tac))
   -- translated initializer of RaftPrefix))
   -- translated initializer of RaftPrefix))
   -- translated initializer of RaftPrefix))
+  ipersist HerrMemberNotFound
+  ipersist HsnapResponseReadTimeout
+  ipersist HsnapshotSend
+  ipersist HsnapshotSendInflights
+  ipersist HsnapshotSendFailures
+  ipersist HsnapshotSendSeconds
+  ipersist HsnapshotReceive
+  ipersist HsnapshotReceiveInflights
+  ipersist HsnapshotReceiveFailures
+  ipersist HsnapshotReceiveSeconds
   ipersist HreceivedBytes
   ipersist HrecvFailures
   ipersist HsentBytes

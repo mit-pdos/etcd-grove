@@ -33,17 +33,21 @@ theorem auth.authStore.Recover.wp_proof
     (h_setRevision : auth.authStore.setRevision.spec (GF := GF) (hG := hG)) :
     auth.authStore.Recover.spec (GF := GF) (hG := hG) := by
   intro st R M P f T hs be
-  wp_start as ⟨#Hinv, Hown, HWR, HR, %Hbenn, #Hbeok, #Hwbeok, #Hfit⟩
+  wp_start as ⟨#Hinv, Hown, HWR, Htpa, HR, %Hbenn, #Hbeok, #HwbeokR, #Hfit⟩
+  ihave #Hwbeok := authWBackendOk_of_R _ M P f T $$ HwbeokR
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   ihave #Hinv' := Hinv
   iunfold authInv at Hinv'
-  icases Hinv' with ⟨%Hst, -, -, #HbeGuard, ⟨%tp, #Htp, #Htpok⟩, #Hguard, -⟩
-  iunfold tokenProviderOk at Htpok
+  icases Hinv' with ⟨%Hst, -, -, #HbeGuard, ⟨%tp0, -, -⟩, #Hguard, -⟩
+  iunfold tpAdmin at Htpa
+  icases Htpa with ⟨%tp, %Atp, #Htp, #HtpokA, HA⟩
+  ihave #Htpok := HtpokA
+  iunfold tokenProviderOkA at Htpok
   icases Htpok with ⟨%tpi, %Htpi, -, #HEnable, -, -, -⟩
   subst Htpi
   iunfold authWR at HWR
-  icases HWR with ⟨⟨%be0, Hbe, -⟩, HT, Hen⟩
+  icases HWR with ⟨⟨%be0, Hbe, -⟩, HT, Hen, Hca⟩
   iunfold enabledHalf at Hen
   icases Hen with ⟨%en, Hen, -⟩
   ihave #Hbeok' := Hbeok
@@ -66,7 +70,7 @@ theorem auth.authStore.Recover.wp_proof
   (try wp_auto)
   wp_apply HRT as %tx Htx
   iunfold authReadTxOk at Htx
-  icases Htx with ⟨%ti, %Hti, %Hs, #HRL, #Hreads⟩
+  icases Htx with ⟨%ti, %Hti, %Hs, #HRL, -, #Hreads⟩
   subst Hti
   iunfold authTxReads at Hreads
   icases Hreads with ⟨#Hrd, #HRU⟩
@@ -116,11 +120,12 @@ theorem auth.authStore.Recover.wp_proof
   (try wp_auto)
   wp_bind (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"refreshRangePermCache"))
     (Val #(GoInterface.ok ti)))
-  iapply (h_refresh st R M ti Hs sta) $$ [Htok]
-  · iframe Hpkg Hinv Hrd Htok Hsnap
+  iapply (h_refresh st R M ti Hs sta) $$ [Htok Hca]
+  · iframe Hpkg Hinv Hca Hrd Htok Hsnap
     ipureintro; exact Hfit'
   inext
-  iintro Htok
+  iintro ⟨Htok, Hca⟩
+  ihave Hca := cacheHalf_of_at _ _ _ $$ Hca Hsnap
   (try wp_auto)
   wp_bind (App (Val #(methods ti.ty go!"RUnlock" ti.v)) (Val #()))
   iapply HRU $$ %sta Htok
@@ -137,13 +142,13 @@ theorem auth.authStore.Recover.wp_proof
   (try wp_auto)
   ihave #Hev : enabledVerdict M enb $$ []
   · rw [Henb]; iapply enabledVerdict_of_snap M sta $$ Hsnap
-  wp_join with [Hen «as»]
+  wp_join with [Hen «as» HA]
   · (try wp_auto)
     wp_bind (App (Val #(methods tpi.ty go!"enable" tpi.v)) (Val #()))
-    iapply HEnable $$ [] [-]
-    · itrivial
+    iapply HEnable $$ [HA] [-]
+    · iexact HA
     inext
-    iintro -
+    iintro HA
     (try wp_auto)
     wp_join_done
   ihave ⟨Hen, Hen'⟩ := (typedPointsto_half_split _ _ (1 : Qp)).1 $$ Hen
@@ -151,9 +156,13 @@ theorem auth.authStore.Recover.wp_proof
   · inext; iunfold enabledP; iexists enb; iframe Hen'; iexact Hev
   (try wp_auto)
   iapply HΦ
+
+  isplitl [HA]
+
+  · iunfold tpAdmin; iexists (GoInterface.ok tpi), Atp; iframe HA; iframe #
   iframe HR
-  isplitl [Hbe HT Hen]
-  · iunfold authWR; iframe HT; isplitl [Hbe]
+  isplitl [Hbe HT Hen Hca]
+  · iunfold authWR; iframe HT Hca; isplitl [Hbe]
     · iexists (GoInterface.ok bi); iframe Hbe Hwbeok
     · iunfold enabledHalf; iexists enb; iframe Hen Hev
   iexists sta

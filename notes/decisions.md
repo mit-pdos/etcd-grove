@@ -4,6 +4,16 @@ Why the Lean port is the way it is. Newest last. The design of the proof itself 
 recorded on `main` (`notes/decisions.md`); this file only covers choices the port
 had to make.
 
+**These decisions are not binding** (the user, 2026-10-25). Many of them were made to get a proof
+through and later turned out wrong or worse than an alternative: too-generic specs (the client's
+KV specs generic in a `GrpcSpec`, D43), indirections that hide what a spec supports (the
+workload's `writes` predicate, D23, removed by D43), choices recorded as "rejected" that were
+later adopted. Read an entry as the reasoning at the time, not as a rule. When a change would
+improve a spec or a proof (simpler, more direct, more faithful to the Go code, easier to audit),
+do not keep a design because a decision here chose it: say what the entry got wrong, mark it
+*superseded* (in part, if so) with a pointer to the new entry, and record the new choice. What
+does bind is in `CLAUDE.md` and what the user has asked for.
+
 ---
 
 ## The Rocq module discipline, in Lean
@@ -17244,6 +17254,170 @@ risk false trusted statements or a second restatement; S8a and S8b do not depend
 `applyAll` still calls the empty case (its proof unchanged); the general spec and its wiring wait
 for S8d.
 
+## D22 S8's four questions decided (2026-10-24 · decided by the orchestrator for the user's goal)
+
+The questions W1-W4 of "D22 receiver epochs, S8 carried out" (`notes/snapshot-s8-plan.md`, "S8c/S8d,
+callee by callee"), decided by the orchestrating session for the user's goal (finish the snapshot
+code's proofs):
+- **W1.** The snapshot directory's removal fact is `Rm j := snapTaken j ∨ appliedAtLeast γr (j + 1)`,
+  `snapTaken` minted from an exclusive claim raft's hand-off gives `applySnapshot(i)` (S-j1 supplies
+  the claim). S8d takes the snapshot file in its precondition; `storage.Release`'s axiom is stated
+  over this `Rm`. If `Rm` is false of the Go code (with the fork fix), stop and say why.
+- **W2.** `NewAuthStore`'s reader resource `RD` is restated, minimally, as a reader resource of
+  whichever backend the auth store currently uses (keyed by its backend half or the server's
+  `γbe`, whichever is smaller and true); `authStore.Recover` is written over it. Only what W2
+  needs is touched, with a dated note in `notes/auth-plan.md`.
+- **W3.** An exclusive peers right that the transport's `Stop` consumes: `Transport.Start`'s axiom
+  and the raft node's transport contract restated, the right passed from the apply thread to the
+  raft node's stop when `run` returns; `RemoveAllPeers` over `transportStarted`, `AddPeer` over the
+  right. Stop and report if a closed theorem's statement would change.
+- **W4.** Designed and done here (`kvApplied` at the image's prefix through `kvInv`, the committed
+  prefix's certificate); raft-side facts only S-j1 can give become premises of `applySnapshot.spec`,
+  listed for S-j1.
+
+## D22 receiver epochs, S8c carried out (2026-10-24)
+
+The callees' trust boundary for `applySnapshot` (`notes/snapshot-s8-plan.md`, items 1-17), with the
+four questions as decided above. Each commit a full build.
+
+**W3, the transport's peers right** (`Net.lean`, `InvBoot.lean`, `InvRaftNode.lean`,
+`InvNodeStart.lean`, `InvBuild.lean`, `NewServer.lean`, `raftNode.{start,stop,onStop}`,
+`newRaftNode`).
+- `netPeers γn id` (opaque, exclusive): member `id`'s transport's peers right; `netTrIs γn id tr`
+  (persistent, `□` of an opaque core): `tr` is the transport started for `id`.
+  `Transport.Start`'s axiom gives both (restated: the conversion of `transportLive` gives them
+  besides `transportStarted` and `transportRemotes`; true: ghost resources minted once per start,
+  which takes the member's `netSlot`); `netTransport`'s `Stop` takes them (restated: weaker).
+- `AddPeer`'s axiom (restated) takes `transportAddRight γn t rs live`: `transportLive` (`live`,
+  `NewServer`'s) or `transportPeers γn t ∗ transportStarted γn t` (`applySnapshot`'s); true since
+  `Stop`, the only way to a stopped transport, takes the right. `RemoveAllPeers`, a new axiom over
+  `transportStarted` (no panic on a stopped transport).
+- `RNEnv.TS`, what the transport's `Stop` takes (`isRNTransport`); the `stopped` channel carries it
+  (`rnStopBag`: `raftNode.stop` sends it, `start`'s loop receives it for `onStop`); `srvEr` takes it
+  (`netPeers γn id`); `isRNTransport_of_net` with `netTrIs`. `NewServer` gets the right from
+  `Start` and keeps it for `applySnapshot` (to be threaded to `run` with S8d); `run` never returns
+  in the runs covered, so the raft node's stop is not reached, but its spec now asks for the right.
+- Statements changed: trusted `Transport.Start`, `Transport.AddPeer` (restated), new axiom
+  `Transport.RemoveAllPeers`; definitions `netTransport`, `isRNTransport`, `RNEnv`, `srvEr`
+  (+ `TS`), `rnParts`, `isRaftNode`; intermediate specs `raftNode.stop`, `raftNode.onStop`,
+  `NewServer` (`srvEr … (netPeers γn id)`); the examples' `memberBuilt` (the same). No closed
+  theorem's text changed.
+- Found on the way: `issues/nonissues/etcd-rafthttp-leaderstats-followers-race.md` (`removePeer` writes the
+  leader stats' map without its lock, `JSON` marshals it unlocked).
+
+**W2, the auth store across `Recover`: no restatement of `NewAuthStore` needed.** The server's auth
+store is in mode `.off` for its whole life (`E.authOn = false`, `authApplyOk … .off`: `AuthEnable`
+only at `on = true`), and with auth disabled the permission checks return before reading the
+backend (`IsPutPermitted` and the others: `if !as.IsAuthEnabled() { return nil }`); so `RD`, which
+the checks borrow, is used only for `enabledMu`'s read and never names a backend's read rights:
+it stays a valid reader resource after `Recover` moves the store, as `isReqAuth st RD` (persistent)
+and `authApplyOk stl RD` (for whichever backend `authBeOn` names, S7c) need. The decided
+restatement is thus a docstring clarification (`NewAuthStore`'s `RD`, backend-independent in mode
+`.off`), and `authStore.Recover`'s axiom is stated in mode `.off`, over an image whose auth buckets
+are the boot ones (the workload: `bkRestAt_boot`). A server with auth on would need `RD` to carry
+the current backend's read rights and the old backend's `Close` to wait for in-flight readers
+(Go's `Close` does, bbolt's `db.Close` waits for read transactions; the backend's `Close` spec takes
+all of `bOpen`): not needed for the runs covered.
+
+**W1, the snapshot directory's `Rm`: the decided form is not establishable at `Release`.** With
+`Rm j := snapTaken j ∨ appliedAtLeast γr (j + 1)`, `storage.Release(snap)` (called inside
+`applySnapshot(i)` after the open, the fork fix) removes every `.snap.db` file `j < i`, including
+files of snapshots saved by the transport but never applied (raft took a later one; or `j ≤ a0`,
+the index applied by entries), and at that point nothing has published `appliedAtLeast γr (j + 1)`
+(the applied index moves to `i` only after `applySnapshot` returns, `applyAll`'s
+`setAppliedIndex`/`Trigger`), nor was `j` taken. So the removal would need `Rm j` that no one can
+show. A form that works: a monotone counter of the highest snapshot index opened, `Rm j :=
+snapTakenLb γt j` (some snapshot at index `≥ j` was opened), whose authority the apply thread keeps
+at most its applied index: at `applySnapshot(i)`'s start `Rm i` is refuted (opened ≤ applied `< i`),
+the open raises it to `i` (minting `Rm i`), and `Release(i)`'s removals `j < i` follow from `Rm i`.
+Per the decision ("stop and say why"), `storage.Release`'s axiom is not written over the decided
+`Rm`; S8d takes the file in its precondition regardless, and the counter variant is proposed for
+the orchestrator's confirmation (it needs no claim from raft's hand-off).
+
+**The other callees** (second S8c commit).
+- `schema.NewMembershipBackend` translated (`schema.toml`) and proved from its body (returns the
+  `*membershipBackend`, its fields read-only).
+- New trust-boundary axioms, each over S7's per-backend fragments and true of the Go code (their
+  docstrings argue it line by line): `membership.RaftCluster.SetBackend` (`clusterBeOn c oldbe` to
+  `clusterBeOn c newbe`, `MustCreateBackendBuckets` over present buckets: one write-back),
+  `lease.lessor.Recover` (`lessorBeOn` moved, no lease live before or after, the image's lease
+  bucket empty: two write-backs), `auth.authStore.Recover` (mode `.off`, `authBeOn` moved, the image's
+  auth buckets the boot ones, a reader token borrowed); the gauge `applySnapshotInProgress`'s
+  initializer (`etc/gen-init.py`: an opaque initializer turned into a gauge fact, `srvApplyLoopInit`).
+- Lemmas for S8d (`etcdserver/SnapApply.lean`): `kv_cert_jump` (W4: the apply thread's KV ghost
+  state moved to a longer committed prefix in one step, the image's model certified there) and
+  `srv_be_swap` (`s.be`'s swap: the current backend's ghost variable gathered from `bemuP 1`,
+  `srvBeOwn` and the write budget, moved to the new backend, the budget refilled, the old tokens out).
+
+**Where S8 stops now (S8d not started).** Four more questions surfaced while laying `applySnapshot`'s
+proof against the callees (`notes/snapshot-s8-plan.md`, "Where S8 stops, second pass"):
+W5 an environment premise for the snapshot file's directory read and rename (`DBFilePath`'s and
+`os.Rename`'s axioms allow I/O errors, on which `applySnapshot` panics), W6 `RaftCluster.Recover`'s
+members (the network directory facts `AddPeer` needs and the in-memory members' agreement with the
+rest model), W7 the old backend's `Close` (its `isStopChans` dropped at boot by `NewServer`, and all
+of its open token to gather), and W1's `Rm` (the variant to confirm).
+
+## D22 S8d's premises: W1's `Rm` and W5's named premise (2026-10-24 · W1 decided by the orchestrator)
+
+- **W1 (supersedes the earlier W1 decision).** The snapshot directory's removal fact is
+  `Rm j := snapTakenLb γt j` (`rafthttp/Net.lean`): a lower bound of a monotone counter `γt` of the
+  highest snapshot index `applySnapshot` has opened, whose authority the apply thread keeps at most
+  its applied index. Sound as long as raft never hands `applySnapshot` an index at or below the
+  applied one (Go's panic guard, `server.go:1039`) and the apply thread keeps the counter at most its
+  applied index. `storage.storage.Release`'s axiom is stated over it (a new axiom,
+  `Spec/.../storage/storage__Release.lean`: the removals below `i` from `snapTakenLb γt i`); the
+  server's storage is named by `storageSnap p ss` (opaque: `NewStorage`'s storage over `ss`; its
+  struct is not translated), which `applySnapshot`'s spec takes for S-j1 to supply.
+- **W5, pending the user's decision.** `applySnapshot` panics when the snapshot directory's read,
+  the rename onto the backend's path, or the release fails. Three named environment facts, opaque
+  `Prop`s each stated where the operation is: `snap.dirReadOk ss`, `backend.renameOk src dst`,
+  `storage.releaseOk`; their trust-boundary axioms say an error implies the fact fails
+  (`snap.Snapshotter.DBFilePath`, now over the held file, `os.Rename`, `storage.storage.Release`;
+  true: each fact is defined as that operation not failing for the environment's reasons), and
+  `OpenSnapshotBackend`'s spec carries it. `storage.snapOpensOk` (`InvOpen.lean`) bundles them; S8d's
+  spec takes it as a premise; where it comes from (a premise of `NewServer.spec` and the closed
+  theorems, as `dbOpensOk` is) is the user's decision, not made here.
+
+## D22 S8d: W6 and W7 as decided do not go through (2026-10-24 · stopped, for the orchestrator)
+
+Both were laid against the code and the definitions before writing anything; each needs a change
+the S8 rules leave to the orchestrator.
+
+- **W6 (`RaftCluster.Recover`'s members with their directory facts).** The `AddPeer` loop reads the
+  members through `s.cluster.Members()` (`server.go:1155`), after `Recover`: clones of the map's
+  members, read under `c`'s mutex, whose invariant is `rcLockInv c` (`isRaftCluster`). `rcLockInv`
+  holds each member as `ownMember` (owned fields, `peerURLsOk`), with nothing about the network
+  directory, so whatever `Recover`'s axiom says of the members it installs cannot reach
+  `Members()`'s result: the facts would have to live in the mutex's invariant. Making `rcLockInv`
+  say "each member's peer URLs are `dir id`" changes `isRaftCluster`'s body (or adds a `dir`
+  parameter), and `isRaftCluster` is in a closed theorem's statement
+  (`api/v3rpc/Results.lean:729`) and in `bootOk`'s contract. (A second invariant on the same mutex is
+  not possible; a separate Iris invariant cannot speak of the members' fields, which `rcLockInv`
+  owns.) Options: (a) `rcLockInv` with the directory (each member `memberDirIs dir m id`, `dir` the
+  network's, a parameter of `isRaftCluster` or fixed by the cluster's names), `Members()`' spec
+  giving `memberDirIs`, `bootstrap`'s contract giving the stronger cluster (true of Go: the boot
+  cluster's members are the configured peers); a closed theorem's statement changes. (b) Leave the
+  `AddPeer` loop to a premise of `applySnapshot.spec` (a fact about `Members()` after `Recover`), which
+  is (a) postponed.
+- **W7 (the old backend's `Close`: its stop channels and open token kept from `NewServer`).** Keeping
+  `isStopChans` is easy (persistent; `bootBackend_of_newPost` drops it). The open token is not:
+  `backend.Close.spec` takes `bOpen γ 1` (the stop protocol's `stop_take`: no client may commit after
+  the stop), and the boot backend's token is split into `qo` and the readers' tokens, each `bkRTx` /
+  `mvcc.kbRT` = `rdTok ∗ ∃ q, bOpen γ q`: an existential fraction, so the shares, even all of them,
+  do not add up to a known `1`. Moreover `store.Restore.spec` (the restore track's, not to be
+  changed) returns `k + 1` of the old tokens with `k` existential (`k + 1 ≤ nReaders`), and the
+  monitor's (`srv_be_swap`) is one more: nothing says these are all of them. And `Close`'s
+  post is `True` about `err`, while the goroutine panics on an error (`server.go:1137`): a fourth
+  environment fact (bbolt's `DB.Close` failing: munmap, file close, flock) would be needed, with
+  `DB.Close_kv`'s axiom saying an error implies it fails. Options: (a) the readers' tokens at a fixed
+  fraction (`kbRT`'s `bOpen` at `1 / (2 · nReaders)`, say) and `Restore` returning exactly the
+  pool's count (no slot out under `s.mu`: `k = nReaders - 2` at the server, the two retired ones
+  known), plus a `closeOk` premise: changes `kbRT` (`InvStore.lean`) and `store.Restore.spec`
+  (another track's); (b) a `Close` for a backend whose readers may be in flight (bbolt's `Close`
+  waits for read transactions on `mmaplock`; the backend's stop protocol letting readers keep
+  `bOpen` shares after the stop, since they do not commit): a backend proof change, no closed
+  theorem; (c) the old backend's `Close` as a premise of `applySnapshot.spec`, postponed.
+
 ## A4 of the auth plan: the watch service's request shapes, the registered watcher's authorization in the stream specification (2026-10-24 · `notes/auth-plan.md`, branch `auth-a4`)
 
 **Problem.** A1 proved `serverWatchStream.isWatchPermitted` returns, when it passes, the class
@@ -18044,7 +18218,7 @@ axiom until 6f links rafthttp. `Start`'s post also gives, once frozen, the netwo
 Two new trust-boundary axioms there: `Transport.SendSnapshot` (untranslated, D22's contract, cut
 out of `Start`'s as the stage-6 choice (1) said) and `Transport.ActiveSince` (translated; its
 read lock taken with no reader token: the server's request path calls it from any goroutine, at
-most `2^30 - 1` at once, physically). Gone: the opaque `transportLive`, `transportStarted`,
+most `2^30 - 1` at once, physically; why it stays an axiom: "`ActiveSince` stays an axiom", below). Gone: the opaque `transportLive`, `transportStarted`,
 `transportRemotes`, `raftHandlerOf`; `netSlot` is no longer used by the server (kept in
 `Net.lean`, D22's interface). `CutPeer`/`MendPeer` take `PeerPausable` as a premise (the link
 cannot supply a class), and the examples that reach them (linkv3p) as an instance.
@@ -18124,6 +18298,81 @@ credits, Perennial's contexts are not), and that is where the gap is. The keeper
 `assign` premise carries no right to issue there, which the panic's refutation needs); the JWT
 provider; threading the binding into A2's guards and A4's watch (blocked on `NewAuthStore`: its axiom
 states the unbound `isReqAuth`, so the server's guards cannot get `isReqAuthBound` without proving it).
+
+## D42: the snapshot stream proved over a streamed request body (2026-10-24 · rafthttp stage 7a; the user: "go with (A) for D42"; `notes/rafthttp-plan.md`, "Stage 7")
+
+rafthttp's snapshot sender and handler are its last code still assumed (`SendSnapshot`,
+`newSnapshotSender`, `snapshotSender.stop`, `newSnapshotHandler`, the opaque `snapReq`). Their
+transfer is a chunked `POST` whose body is a stream (the envelope, then the merged snapshot's
+pipe) that the sender never sees, which the HTTP boundary's requests (a body fixed at
+`NewRequest`) cannot carry.
+
+- *(A, chosen)* A streamed-body request kind beside the fixed one: its body a reader with a
+  stream contract (`backend.readerStreams`), the protocol stated of what a server reads to `EOF`
+  (the physical assumption: a chunked body read to `EOF` is a complete stream of the client's
+  reader). `snapReq` defined over it: the envelope's encoding, then a bbolt image of `D` with the
+  certificate `N.img i D`, and the message's one-shot part deposited under the request's ticket
+  (as the pipeline's `pipeDeposit`). The sender and handler are then proved; `SaveDBFrom` stays a
+  boundary spec in `snap` (D22's), its statement agreed with the D22 owner.
+- *(B, not taken)* The stream's transfer stays one smaller axiom pair (the sender's `post`, the handler's body
+  reads with `SaveDBFrom`); the rest proved.
+
+Either way `SendSnapshot`'s and the handler's statements are unchanged, so no closed theorem
+changes; (A) leaves fewer assumptions and touches D22's interfaces only through `SaveDBFrom`'s spec.
+
+The user chose (A): it leaves fewer assumptions, and both sides of the transfer are proved. The D22
+owner's agreement on `SaveDBFrom`'s statement and on the streamed body's use of `readerStreams`
+was left open, then settled by the user ("D22's interface settled", below).
+
+**7b's shape (2026-10-24).** The kind of a request's body is the protocol's, not the request's
+(`Proto.streamed`): the server cannot tell a chunked body from a fixed one by anything the
+handler sees, so the handler's body (`reqBody`) is chosen by the protocol, and `RoundTrip` checks
+the client agrees (`reqSendOk`: a fixed body only for a request the protocol does not stream, a
+stream only for one it does, with its `sreq`). Without the check a fixed body sent to the
+snapshot path would reach a handler expecting the protocol's stream contract, which the client
+never gave. A stream's contract has two parts: `Pre` of every prefix (the handler decodes the
+envelope before the stream ends, and needs to know the frame it reads is the sender's: `Pre`
+says every prefix is comparable with that frame, which the sender knows when it builds the body)
+and `Φ` of a complete stream (the image, learned only at `EOF`). The certificates (`N.P`, the
+deposit, `N.img i D`) are in `sreq`, persistent at send time: only the image-ness of the bytes is
+learned at the end. The client's stream reader is a `Read` contract (`streamReaderOk`), not an
+opaque predicate, so that the sender's `ReaderAndCloser` wrapper is proved; D22's opaque
+`readerStreams` enters only through `io.MultiReader`'s spec. `RoundTrip` gives the request back
+after consuming a stream; a second send of it would need another `sreq` (another deposit) and its
+reader yields nothing, so `prefixClosed` asks `Pre []`.
+
+**7d (2026-10-24), the user's two choices.** (1) A response body read by two goroutines (the
+snapshot sender's `io.ReadAll` and its timer's `GracefulClose`): either may take bytes the other
+would have read, so the boundary gives a weaker, shared read (`respReadAny`, given up from the
+exclusive reader) rather than keeping `post` an axiom; the sender reads only the status
+(`checkPostResponse`), so nothing is lost. (2) The server's error channel carries `False` (a static
+cluster's member is never removed), so `send` must show `errors.Is(err, errMemberRemoved)` false of
+every error `post` returns: net/http's errors are tagged (`netErr`) and one rafthttp axiom says they
+are not it, rather than making critical errors reachable in the server's proof.
+
+**7e (2026-10-25).** The handler reads one body twice, the envelope then the rest, with no split
+lemma: the decoder reads the stream (`bodyStream`) through `readFullAt` with what is known of the
+bytes read `⌜Pre⌝`, and `Pre` says every prefix is comparable with the sender's frame, so the
+decoded frame is the sender's (`msgFrame_prefix_eq`); `SaveDBFrom` then continues the same
+`bodyStream` from that frame, and `Φ` of the whole stream gives the rest's image. The user chose a
+`fmt.Sprintf` boundary over `fmt.argsOk` (as `Printf`'s and `Errorf`'s) to keep `ServeHTTP` proved
+rather than an axiom.
+
+**D22's interface settled (2026-10-25).** The user decided the three `snap` statements for the D22
+owner ("can we decide on behalf of D22 owner? it seems small if we need to adjust"):
+`snap.Message.fields` (with `0 ≤ TotalSize`), `snap.Message.CloseWithError` and
+`snap.Snapshotter.SaveDBFrom` (with `0 ≤ n` on success) stand as stated. They are axioms on D22's
+interface and no proof depends on how D22 would prove them, so a revision by the owner is local:
+the statement, and the few lines of `send`/`createSnapBody` or `ServeHTTP` that use it. The owner
+is told, not asked.
+
+**`ActiveSince` stays an axiom (2026-10-25, the user's choice).** Its body is translated; what
+keeps it an axiom is the read lock taken without a reader token. Checked and rejected: minting a
+token (`trState ⊢ |==> trTok`) is unsound, ghost steps alone mint `2^30` of them; one axiom giving
+`RLock` without a token is unsound too, since Perennial's `RUnlock` returns a real token, so one
+goroutine looping `RLock`/`RUnlock` collects them. The sound form is two axioms (a token-free
+`RLock` giving an opaque read-locked fact, an `RUnlock` consuming it, contradicted only by `2^30`
+goroutines at once, as `netProcSlots`): one more axiom than now, for a map lookup and a status read.
 
 ## S4d of the auth plan: `RoleGrantPermission` performs the model's step (2026-10-24 · `notes/auth-plan.md`, branch `auth-s4d`)
 
@@ -18285,3 +18534,2858 @@ changes, each wider than this stage:
   persistent element per keeper). `run`'s loop is then the map range with deletion
   (`wp_map_for_range_gen`), the delete callback over the provider's map, the ticker's channel bag
   and `stopc` (a bag), `donec` a broadcast channel `run` closes and `stop` waits on.
+
+## S5d of the auth plan: the simple token provider meets the contract, with the admin side's share (2026-10-25 · `notes/auth-plan.md`, branch `auth-s5d`)
+
+**Problem.** S5c left the simple provider's `enable`, `disable`, `invalidateUser` and the keeper
+unproved, for two reasons: `invalidateUser` reads the keeper field outside `simpleTokensMu` (so the
+contract's `{{ True }}` clauses could not be met), and a keeper's goroutine could not find its map
+after relocking (the lock invariant's keepers were an existential list).
+
+**The admin side's share.** `tokenProviderOkA tp M A` (`InvAuth.lean`) gives `enable`, `disable`,
+`invalidateUser` the precondition `A` and gives it back; `tokenProviderOk tp M` (the store's
+invariant's) is it at some `A`. The holder is the store's admin side: `tpAdmin st M` (the store's
+provider, its contract at `A`, and `A`), a precondition and postcondition of the five operations
+that call the three (`AuthEnable`, `AuthDisable`, `Recover`, `UserDelete`, `UserChangePassword`;
+`RoleDelete` does not), and part of the write resource of the apply layer's steps of the real store
+(`authWR st M P f T ∗ tpAdmin st M`, `isAuthSteps_of_authInv`, `auth_apply_steps`). Chosen over a
+field of `authWR` (81 destructurings) and over a token-exchange invariant: a provider-chosen `A`
+held by the caller matches the Go discipline (the three are serialized by their callers:
+`enable`/`disable` under `enabledMu`, `invalidateUser` on the apply thread), and the no-op provider
+takes `A = True`. Like `authOwn`, nothing produces `tpAdmin` yet: `NewAuthStore` (an axiom) states
+`authInv` only; E's closed theorem will.
+
+**The simple provider** (`auth/TokenSimpleAdmin.lean`): `simpleAdmin p` is half the keeper field
+(`simpleLk` holds the other) and, for a set keeper, its stop channels (`keeperStop`: `stopc` a
+bag, `donec` a broadcast channel). `simpleLk` keeps the keepers as a ghost set (`γk`, hidden in
+`simpleOk`) with each keeper's element next to its map, so a goroutine holding its element finds
+its map after relocking, and `enable` needs no freshness argument for the new keeper's address
+(Perennial has no typed points-to validity lemma). Proved: `deleteSimpleToken`, `stop` (a send on
+`stopc` or `donec` closed, then `donec`), `disable` (the keeper stopped, the map emptied: S5's
+issued map is keyed by (token, user), so a token may be reissued), `invalidateUser` (the user's
+tokens removed from both maps, `wp_map_for_range_mut`), `enable` (the keeper allocated, the delete
+callback's contract `delfOk` proved, the goroutine forked), and `tokenSimple_okA`: the provider
+meets `tokenProviderOkA` in `on γa` with `A = simpleAdmin p`.
+
+**What stays hypothesis** (not axioms): `ValidSpec` for `info` (the contract's `info` clause has no
+context premise; S5c); `RunSpec`, the keeper goroutine `run` (a `time.Ticker` loop, a `select` on
+the ticker's channel and `stopc`, a range with deletion over the keeper's map under the mutex
+through `delfOk`): true of the Go code, its resources (`keeperRun`) what `enable` gives; not
+proved for lack of turns. The S5b `info` lemmas now take the continuation under a later, as the
+contract's triples give it. Not done: `newTokenProviderSimple` (it would give `simpleOk`,
+`simpleWaitOk` and `simpleAdmin`; the zero mutex by `init_Mutex`), the modes `off`/`any` for the
+simple provider, JWT. Trust base unchanged.
+
+## D43: membership changes, the scope of track T-M (2026-10-25 · `notes/membership-plan.md`, M0)
+
+**Problem.** etcd's server runs raft in the static mode (D21d (A)); T-M is D21d (B), a closed
+theorem whose cluster changes at run time. Raft's dynamic mode is proved, but not as etcd's server
+configures it: the dynamic mode assumes pre-vote off and `StepDownOnRemoval` on, and its start is
+`RestartNode` only; etcd runs pre-vote on (`embed/config.go:544`), `StepDownOnRemoval` off, and
+starts with `StartNode`.
+
+**Decisions (the user's, each the recommended option):**
+- *Q1 (A), removal only first*: `RemoveMember` of another member and of oneself. No member joins,
+  so no join bootstrap (`bootstrapExistingClusterNoWAL`, `GetClusterFromRemotePeers`), no snapshot
+  to a newcomer (T-S's bound untouched), no `encoding/json`, no learners. Adding a voter is a later
+  plan (M9).
+- *Q2 (A), pre-vote in the dynamic mode proved* (M2b), keeping etcd's default: the paper argument
+  (`notes/reconfiguration-safety.md` 4.1) already covers a pre-candidate (the campaign's guard,
+  checked at `hup`, still holds when the pre-vote is won); the Lean dynamic mode never carried it.
+  Fallback, if M2b fails: the example's `PreVote: false` as a premise.
+- *Q3 (A), `StepDownOnRemoval = false` in the dynamic mode proved* (M2c), not a fork change: 4.11
+  says the safety argument does not need the step-down (a removed leader stays leader,
+  unpromotable, committing with its configuration's quorums); what stage A2's code-level spec
+  wanted it for is M2c's first question.
+- *Q4 (A), the removed member's own stop*: `stopWithDelay` -> `errorc` -> `run` returns -> its
+  deferred shutdown, with D19m (B)'s "server open" token so that the requests in flight end with
+  `ErrStopped`. The application's `Stop`/`HardStop` stay out.
+
+**Why.** Removal is the change that needs no other track's unfinished work, and both raft
+extensions keep the verified code as etcd ships it.
+
+**W3 settled (2026-10-25, the user for the D22 owner; `notes/snapshot-s8-plan.md` item 16).** The
+peers right that a true `AddPeer`/`RemovePeer` after `Start` needs, and that `Stop` consumes, is the
+transport's `trLive γn t c rs` (D41, stage 6d: half of the ids record `γr`, the other half in the
+lock's resource; `AddPeer`/`AddRemote` already take it). W3's text predates D41 (the opaque
+`transportStarted`). What changes, in T-M's M5 (and S8d uses the same):
+- `NewServer` no longer freezes the transport (`trLive_freeze`): the right goes to the apply
+  thread, which uses it for `applyConfChange`'s `RemovePeer`/`AddPeer` and `applySnapshot`'s
+  `RemoveAllPeers`/`AddPeer` loop, and hands it to the raft node's stop when `run` returns (Go's
+  order, `server.go:818-825`).
+- `Transport.Stop` on `trLive` (a `Stop_live` beside `Stop_full`): consumes the right, sets the
+  flag; after it no `AddPeer` can be called, so its panic on a stopped transport is unreachable.
+- `RemovePeer`/`RemoveAllPeers`/`removePeer` specs on `trLive`: the ids `rs` lose the peer.
+- The readers (`Send`, `CutPeer`, `MendPeer`, `Handler`, `ActiveSince`, `SendSnapshot`) are restated
+  over `trState` and a reader's token with the ids read under the lock (a message to a removed
+  peer is dropped, as Go's `Send` logs and ignores an unknown id), instead of `trFrozen`'s fixed
+  `rs`; `netTransport` (`Net.lean`, shared with D22) keeps its statement if its `Send` does not
+  name the ids (to check in M5).
+
+**M2b: pre-vote in the dynamic mode (2026-10-25, branch `membership-m2`).** Q2 (A) carried out, with
+no premise and the trust base unchanged. A pre-candidate in the dynamic mode carries its campaign
+guard instead of being excluded:
+- `PreGuard fp s` (`StepLemmasR.lean`): a pre-candidate has no snapshot pending and no conf entry at
+  the full log's positions `[applied, committed)`, which is `StepR.campaign`'s guard on `rOf s g`.
+  `PreGuardF` is the same at a full prefix of the boundary's length (what the `RawNode` keeps without
+  `FullOk` at hand). `DynHyp` and `GMode.Pre` take the guard where they took "no pre-candidate";
+  `GMode.Guard` is it at the mode's ghost part.
+- Kept across a step through `PreCandStep` (`raft.Step`'s `TermStep`), strengthened: a pre-candidate
+  that stays one kept its boundary, log, commit index and `applied` order, with no snapshot pending
+  appearing (`PreKeep`); one that a `MsgHup` made one has `hup`'s check (`HupFact`), which
+  `noConfIn_of_unapplied` turns into the guard. `PreGuardF.pc`/`.step` (spec level). The local
+  branches state `PreKeep` at a pre-candidate (`%Hpk`: a pre-candidate drops proposals, `stableTo`
+  only moves entries stable, `appliedTo` and a snapshot's acknowledgement touch neither log nor commit).
+- The win: `stepR_prevoteRespResult` (`prevote_lemmas.lean`): waiting is no step, a loss `abandon`, a
+  win `StepR.campaign` from the guard; `StepCD.of_excluded` only excludes a `MsgSnap` now.
+- The `RawNode` layer: `RNPv rs fp s`'s first conjunct is the guard (was `isDyn → prevote = false`);
+  `PreFacts md s` takes the mode; `tickElection`/`tickHeartbeat` take `md.Guard s` and `TickStep`
+  carries the guard; `Advance`'s loop carries it (`%Hpg1`); `acceptReady` keeps it
+  (`readyNstate_guard`); `wp_applyConf_dyn` excludes a pre-candidate by the guard as it excluded a
+  candidate by `RInv.cand`.
+- `RestartNode.spec` loses its premise `md.isDyn = true → cv.PreVote' = false`.
+
+**M2c: `StepDownOnRemoval` off in the dynamic mode (2026-10-25, branch `membership-m2`).** Q3 (A)
+carried out, with no premise and the trust base unchanged. As 4.11 said, the protocol's ghost
+needed nothing; what required the flag was the code level's "a leader is a voter":
+- `ownRaftPhysC`'s `Hvoter` is now `role ≠ follower → role ≠ leader → id ∈ V` (a candidate or
+  pre-candidate is a voter; a leader need not be). `becomeLeader.spec` takes "not a leader" (it is
+  a candidate's, `stepCandidate`).
+- `switchToConfig`: a removed or demoted leader steps down with `stepDownOnRemoval` and otherwise
+  returns, still leader (`SwitchOkC`'s new branch; the premise `id ∉ voters → s.sdr = true` is gone,
+  a voter keeps `MatchKept`). `applyCCOkC_step`/`applyCCOkC_stepR`: that case is `reMatch` only, in
+  both models. `applyConfChange.spec` loses its `sdr` premise; `specS` (static) takes `id ∈ cfg`,
+  which its static callers have (`ownRawNode`'s `Hin`).
+- `stepLeader`: a proposal at a leader without its own `Progress` is dropped (Go's
+  `Progress[r.id] == nil` branch, `raft.go:1298-1302`, reachable now); the heartbeat response's
+  quorum needs a voter in the configuration, which `stepLeader` now takes (`Hhr`'s third conjunct)
+  and `raft.Step` reads off the ghost state (`ghostRest_voters_ne`: statically `reCfg_ne`,
+  dynamically `cfgFold_ok`); the append response did not use it.
+- `sdrOk` is the read-only field only; `RestartNode.spec` loses `md.isDyn → StepDownOnRemoval' = true`.
+
+**M2a: `StartNode`/`Bootstrap` in the dynamic mode (2026-10-25, branch `membership-m2`).** A new
+cluster's boot log in the dynamic mode, with the trust base unchanged. Until now the allocation
+took "static unless the boot log is empty" (`ownRaftGhost_alloc_core`'s `dyn = none ∨ L = []`):
+the boot log's conf entries are committed with no quorum (D12's `commitJ` boot arm), and the dynamic
+ghost wants a commit-fact **witness** for every conf entry below a commit index (`witsB`) or a
+commit fact's configuration index (`cqAt`'s dynamic part).
+- *The paper check* (`notes/reconfiguration-safety.md`, section 0, "The boot log"): witnesses are
+  read only in the far cases (`lc_far_older`, the winners table's two far cases, the read index's
+  two): a conf entry `k2` of one log with one more conf entry before it than the other side's
+  configuration prefix has, the other side holding I1 there. Every commit fact's log and every
+  campaign log starts with the boot log (`cq_boot`, `isCamp_boot`, `leadFull_boot`), so at
+  `k2 < |boot|` the two logs agree through `k2`, and `far_older` (I1) already closes the case. So a
+  conf entry of the boot log needs no witness: `cqAt`, `cqDyn`, `witsB` and `doomed`'s witnesses
+  take `γ.reBoot.length ≤ k` (a binder after the position's), and each far case splits on it.
+  Nothing else changed in the protocol proof; the adjacent cases did not use witnesses.
+- *The configuration index starts at `0`* (`rboot c0 bootLog`, `ResultsDyn.lean`): Go's `Bootstrap`
+  installs the peers in the tracker but applies nothing (`applied = 0`), and the application
+  re-applies the boot entries through the first `Ready` (`ApplyConfChange` of `AddNode` of a voter,
+  a no-op). With `capplied = 0` and the configuration `c0` (the peers', `cfg = cfgFold c0 []`),
+  that re-application is the dynamic mode's ordinary `ApplyConfChange` (`DynCCPreOp`, in order from
+  `0`); `RInv_rboot` holds (I1 at the commit index, the log's end, holds of any log). Starting at
+  `|boot|` instead would have needed a new "re-application below the configuration index" case in
+  `ApplyConfChange` and the fold of the boot log to be `c0`; at `0` neither is needed, and nothing
+  asks the boot entries' fold to be `c0` (that `dec` decodes them so that `ccStepB` succeeds is the
+  application's `ApplyConfChange` premise, as for any conf entry: M3's).
+- The allocation: `ownRaftGhost_alloc_core` loses `dyn = none ∨ L = []` (the initial `witsB` holds
+  vacuously below `|boot|`); `raft_dyn_alloc_boot` (`ResultsDyn.lean`) is the dynamic instance, every
+  member at `rboot c0 bootLog` (`ownRaftGhostR`), in the no-snapshot and no-transfer modes or not.
+- The code: `bootInit γ md id V bootLog` (`InvBoot.lean`, as `rnInit` for `RestartNode`: statically
+  `ownRaftGhost γ id (bootPState bootLog)`, dynamically `rboot` at `c0 = cfgState V ∅`);
+  `RawNode.Bootstrap.spec`, `setupNode.spec` and `StartNode.spec` take the mode `md` and close the
+  node in it (`StartNode`'s `snapIn` premise gains `md = .static`, as `RestartNode`'s). `Bootstrap`'s
+  dynamic case closes `ownRawNode` as `RestartNode`'s does (`ownStepGhost_dyn` at
+  `⟨0, cfgState V ∅, []⟩`, the tracker's learners empty). The server's `newRaftNode` passes `.static`
+  (M3 moves it).
+
+**M3: the server in the dynamic mode, scoped (2026-10-25, the user; branch `membership-m3`).**
+Three decisions, each the recommended option:
+- *The leader's `Advance`.* In the dynamic mode `node.Advance` asks that the committed log's conf
+  entries be applied first (A1, `NoConfIn ds ca`); etcd's raft loop waits for its apply loop only on
+  a follower or candidate, the leader calls `Advance` at once
+  (`issues/etcd-leader-advance-before-applyconfchange.md`, a real safety gap), so no proof over that
+  code. **Decided: the fork fix** (M3a), the upstream candidate's: the leader does the follower's
+  second `notifyc` send (fork branch `goose-lean-leaderwait`, `4d9282b0f`). A change to the verified
+  code, like the earlier fork fixes; the alternative, a premise, would have been unsound.
+- *The static mode at the server.* Every server example's `bootPremise` says `γ.reDyn = none`, so
+  a dynamic-only server changes the definitions inside every closed theorem's statement. **Decided:
+  parametric**: the server takes the node's mode, its dynamic-only resources stated as raft's
+  specs state them (`⌜static⌝ ∨ nodeCfg … ∗ dlvLb …`); the static examples keep their statements;
+  the removal example (M8) uses the dynamic instance.
+- *`EtcdServer.applyConfChange`'s axiom.* Its call `s.r.ApplyConfChange` needs, in the dynamic mode,
+  the driver's view (`nodeCfg ca cfg`, `dlvLb ds`) and raft's `DynCCPreOp`, and returns
+  `nodeCfg (k + 1) cs'`. **Decided: restate the axiom** (a trust-boundary statement change, same
+  axiom count; M5 proves the restated statement) rather than pulling M5's `AddNode` part forward:
+  static case unchanged, dynamic case as raft's `node.ApplyConfChange` has it, for `ApplyBoth`
+  only (without `v3` Go does not call raft).
+
+**M3 carried out (2026-10-25, branch `membership-m3`).** The server's proofs are parametric in
+raft's mode; the static examples' statements are unchanged (trust base 718 axioms, 5 sorries).
+- *M3a* (the fork): `raftNode.start`'s leader branch does the second `notifyc` send on a conf
+  batch (`goose-lean-leaderwait`, `4d9282b0f`); its proof mirrors the follower's.
+- *The view.* `rnCfgAt γ L` (`InvRaftNode.lean`) is the driver's `nodeCfg`, in the dynamic mode with
+  every conf entry of `pre ++ L` applied and the voters' simple configuration (`srvCfgView`,
+  `srvCfgOk`, `InvCfgView.lean`); `rnDrv`/`rnBusy` hold it, `Advance` takes it after the batch, which
+  gives A1 (`rnCfgAt_open`). A batch with a `ConfChange` in the dynamic mode (`rnHands`) sends it to
+  the apply thread in the `toApply` (`rnApGive`, with the committed log handed out, `dlvLb`); the
+  apply thread's `<-apply.notifyc` deposits the view after the batch (`rnApR`) and the raft loop's
+  second send claims it (`NotifyC.lean`: the receive and the second send on a fresh capacity-1
+  channel, over the raw channel state). Without a conf entry the loop keeps the view
+  (`rnCfgAt_back_false`: the server's committed entries are normal or `ConfChange`, `srvIdxOkW`);
+  the conf-change scan's result is `ccIn ce`.
+- *The apply side* has no `RNNames`: `apply`, `applyEntries`, `applyAll`, `run_job_body` take an
+  optional view `dv : Option NodeNames` (`dvView`, `dvRes`, `dvOk`; `run` picks `rnDv`), threaded
+  through the scheduler's job resource. A server conf entry (`ccApplyOk`, the policy's) meets
+  `DynCCPreOp` at the server's decoder `srvDec` for both changes Go may hand raft
+  (`srvCfgOk_cc`); raft's `DynCCPreOp` was generalized for that: the change applied need only have
+  the decoded change's effect (`ccStepB`), as a failed validation's `NodeId 0` has.
+- *Contracts.* `isRaftNodeIfc` carries raft's dynamic `ApplyConfChange` (`raftApplyCCDyn`) in the
+  dynamic mode; `raftPropose`'s static clause is guarded by `reDyn = none`; `rnEnvOk` says the mode
+  is static exactly when raft's names are (raft's `StartNode` now states it, `ownRawNode_mode`) and
+  the dynamic mode's decoder is `srvDec`. The axiom `applyConfChange` restated (`dvCCPre`,
+  `dvCCPost`).
+- *A fresh start.* The dynamic mode excludes a replay (an entry at or below the consistent index:
+  Go hands a replayed conf change to no one, so raft's configuration index would stall):
+  `isServerRun`'s `HEr` (and `srvBuilt`'s, `InvStart`'s) says `c₀ ≤ ai₀` in the dynamic mode;
+  `NewServer` starts at `0, 0`.
+- *M3e.* `bootstrappedRaft.newRaftNode.spec` and `NodeStartSpec` take `md` (the ghost state
+  `bootInit γ md`, in the dynamic mode at `srvDec` and the peers' configuration); `NewServer`
+  passes `.static`.
+
+**M4 carried out (2026-10-26, branch `membership-m4`; the user's decisions).** The membership
+writers of a removal, and the validation, proved; the static examples unchanged.
+- *M4a* (the user's decision: the fork fix): `IsLocalMemberLearner` returns `false` for a removed
+  local member (`goose-lean-learnerfix`, `c00a2dc06`, as etcd-io/etcd#22188;
+  `issues/etcd-unary-interceptor-learner-removed.md`); it and `EtcdServer.IsLearner` translated and
+  proved (`EtcdServer.IsLearner.wp_proof` no longer an axiom), `IsLearner`'s spec without
+  `localKept`. (`lean` proved both meanwhile, `4bbd466c3a`, over the unfixed code with the premise
+  `localKept`; the merge keeps M4's, without it, and `lean`'s `IsMemberExist`, over `isRaftCluster`.)
+- *M4b.* `isRaftCluster` keeps its definition (the boot contract names it: the static examples'
+  premises); the lock invariant generally, `rcLockInvG c RM` (the side condition `RM` of the local
+  id, the members map and the removed map; the local id's read-only cell now the invariant's own),
+  `isRaftCluster` its static instance (`rcStatic`, by `isMutex`'s non-expansiveness:
+  `isRaftCluster_static`), the dynamic one `rcDyn γ` (the removed map's ghost halves, the writer's
+  `rcRemovedOwn`). `Members`, `IsIDRemoved` (the removed map's entry, under what `RM` says of it),
+  `IsLocalMemberLearner` and `IsLearner` proved at any `RM`; their callers use the static
+  corollaries (`spec_static`), so no caller's statement changed.
+- *M4c.* `RemoveMember` translated and proved in the dynamic instance: the backend's delete by the
+  caller's triple (`beDeleteOk`: the buckets are the caller's, M5's), the member out of the map,
+  the removed map and both ghost halves extended, the log lines. Trust boundary +1:
+  `updateMembershipMetric` (names only: the `known_peers` gauge).
+- *M4d* (the user's decision: proved, `json.Unmarshal` an axiom): `ValidateConfigurationChange`
+  translated and proved for `AddNode` (not a promotion) and `RemoveNode`: the backend's read by the
+  caller's triple (`beReadOk`, its answer `membersRead` of the members' peer URLs and the removed
+  map), the verdict `ccValidM` (not removed; an `AddNode` of a non-member whose peer URLs no member
+  has; a `RemoveNode` of a member), `nil` exactly when it holds. Trust boundary +2:
+  `encoding.json.Unmarshal.wp_proof` (into a `*ConfigChangeContext`, over the opaque
+  `ccContextOf`/`ccMemberOf`) and membership's `errorsNewVarsInit` (its six error variables'
+  `errors.New`, now package facts, `membershipInit`; they leave `opaqueInitsOk`). The membership
+  package imports `raftpb` and `encoding/json` (the k8s-apiserver project's names-only translation,
+  its package instance moved to `etcdserver/apply/Base.lean`).
+
+## S5e of the auth plan: the simple token provider with no hypothesis (2026-10-25 · `notes/auth-plan.md`, branch `auth-s5e`)
+
+**Problem.** S5d left the simple provider meeting the token contract over two hypotheses: the TTL
+keeper's goroutine (`RunSpec`) and `isValidSimpleToken` on any context (`ValidSpec`, because the
+contract's `info` clause has no context premise); and the constructor unproved.
+
+**Done** (`auth/TokenKeeperRun.lean`):
+- `keeper_run` proves `simpleTokenTTLKeeper.run`, discharging `RunSpec`: the ticker loop
+  (Perennial's `time.NewTicker`, a channel bag of arbitrary times), its `select` over the tick and
+  `stopc`; on a tick, under the provider's mutex, the keeper's own map found through its element of
+  the keepers' ghost set (S5d's `simpleLk`), and every token `Time.After` calls expired (some
+  boolean: Perennial has no order on times) deleted through the callback `delfOk` and from the
+  keeper's map; on `stopc`, the deferred `Ticker.Stop` and the close of `donec`. The later credits
+  the select's receive needs come from the calls before it (`NewTicker`, then `Now` on each tick),
+  carried in the loop's invariant: the loop head has too few steps.
+- **The keeper's tick is a package fact.** `NewTicker` needs a positive duration; the tick is the
+  package variable `simpleTokenTTLResolution`, read-only in the package's code (etcd's tests write
+  it, outside what is verified). It is appended to the auth package's fact `authInit` (read-only,
+  positive), `etc/gen-init.py` persisting it; the two full destructurings of `authInit`
+  (`InvAuth.lean`'s `authErrVar_of_init`, `AuthSteps.lean`'s) take one more `-`.
+- `tokenSimple_new` proves `newTokenProviderSimple`: for a positive TTL and an index waiter whose
+  channels are `anyRecv`, under fresh names, `simpleOk`, `simpleWaitOk`, the admin share
+  `simpleAdmin` (no keeper), and the authority over the rights to issue tokens (`ghostMapAuth γf 1
+  ∅`: whoever chooses tokens, the apply thread, mints one right per raft index).
+- **`info`'s context premise, as a lemma.** `tokenProviderOkCtx` is `tokenProviderOkA` at
+  `HasLC.hasLC` with `info` given `context.isContext ci cd`; `tokenSimple_okCtx` proves the simple
+  provider meets it in mode `on γa` with no hypothesis. `tokenProviderOkA` itself is unchanged: it,
+  `tokenProviderOk` and the store's invariant over them are generic in the later credits (67
+  files), and Perennial's contexts exist only at `HasLC.hasLC`; specializing them is the wider
+  change E (or `NewAuthStore`'s proof) would make. `ValidSpec` remains only on S5d's
+  `tokenSimple_okA`, the generic form.
+- A local `(*Time).After` lemma (`time_wp_ptr_After`): Perennial has the pointer-receiver form of
+  `Before` only (`notes/perennial-changes.md`).
+- Restated in the server's `Results.lean`: `token_simple_new`, `token_simple_ok`.
+
+**Not done.** The JWT provider; the `off`/`any` modes of the simple provider; the store's
+invariant over the context-premised contract (with `NewAuthStore`).
+
+## D22 S8d after the merge of 2026-10-25: W3 reverted, W5/W6 settled, W7 and W8 open (decided by the orchestrator: W5 the user's, W6 (a), W7 (b))
+
+- **The merge.** rafthttp's stages 5-7 proved the transport over its lock's state (`trLive`,
+  `trFrozen`, `trTok`, `TransportState.lean`), replacing the axioms S8c's W3 had restated
+  (`Transport.Start`, `AddPeer`, and the new `RemoveAllPeers`); `auth.authStore.Recover` and
+  `store.Restore` are proved (their statements differ from the axioms S8c and S6 wrote: S8d uses the
+  proved ones). S8c's W3 commit is reverted before the merge (`72a1cb065b`): the peers right
+  (`netPeers`, `netTrIs`, `transportAddRight`, `RNEnv.TS`) is to be re-expressed over the proved
+  transport, with W8. The issue it filed (`issues/nonissues/etcd-rafthttp-leaderstats-followers-race.md`) is
+  kept.
+- **W5** (the user): `storage.snapOpensOk` stays its own environment premise (not folded into
+  `dbOpensOk`); it may become a premise of closed theorems at S-l.
+- **W6** (option (a) decided; a better home found first, as asked). `bootOk`'s contract already
+  holds the members' directory facts for good: `Hmembers` is a persistent triple of the cluster's
+  `Members()` (members whose peer URLs are `dir`'s, raft's peers in order), not a fact of a moment.
+  So `applySnapshot`'s `AddPeer` loop can use it as `NewServer`'s does, and `rcLockInv` need not
+  change: no closed theorem's statement changes. What `Recover` must not break is that contract's
+  truth, which needs every image a member applies to hold the static cluster's members: a premise
+  on the image (`membership.clusterImageOk c r`, opaque, of the three membership buckets), which
+  `RaftCluster.Recover`'s axiom takes so that it returns (no decode panic, no downgrade panic,
+  `rcLockInv` re-established). The contract reaches `applySnapshot` as a premise of its spec (the
+  same triple, threaded by S-j1 from `NewServer`).
+- **W7** (option (b) decided) **does not go through as stated.** A `Close` while readers may still
+  run is not what the Go code tolerates for the backend's shared read transaction:
+  `CommitAndStop`'s commit leaves `readTx.tx` `nil` (the model: `rtx = null ∗ bStopped`,
+  `ReadSide.lean`), and a reader of `ReadTx()` after it dereferences the nil transaction; only a
+  `ConcurrentReadTx` already holding its bbolt transaction is waited for (bbolt's `Close` on
+  `mmaplock`, which `DB.Close_kv`'s axiom already allows). So `Close` needs that no client of the
+  shared transaction remains, which is what the clients' whole open token (`bOpen 1`) says; the
+  server does hold every old token after `Restore`, `srv_be_swap` and the constructors (no store
+  reader outlives `s.mu`, the monitor is under `bemu`), but the bookkeeping loses it: each
+  reader's `bOpen` share is existential (`kbRT`, `bkRTx`), and `Restore` returns `k + 1` of them,
+  `k` existential. Sound ways out, each the orchestrator's: count the shares (reader tokens at a
+  fixed fraction and `Restore` returning the pool's exact count: `kbRT` and `store.Restore.spec`);
+  or a stop protocol keyed on the readers' tokens rather than their `opn` fractions (`rdTok`
+  already carries a counted `ownToks γ.rdt 1`: a `Close` that takes all `nReaders` reader tokens
+  and the remainder share would exclude every reader by counting, a redesign of `bStopped`'s
+  exclusion `bOpen_stopped` and of `run`'s `CommitAndStop`), still with all reader tokens back.
+  The close-error fact is in already: `backend.dbCloseOk` (opaque, `InvBbolt.lean`), bbolt's
+  `DB.Close_kv` axiom restated (an error implies `¬ dbCloseOk`; true: the fact is defined as the
+  close not failing for the environment's reasons), `backend.Close`'s spec with it (its proof passes
+  bbolt's result on), and the fourth member of `storage.snapOpensOk`.
+- **W8** (open; `notes/snapshot-s8-plan.md`): `RemoveAllPeers` and the proved transport's peer
+  coverage (rafthttp's note in D40). Not resolved here: the window's `AddRemote` adds a remote with
+  the request's URLs (Go's behavior, and Go's `AddPeer` does not stop it afterwards), so either the
+  protocol carries the sender's peer URLs as the directory's (the remote's facts provable) or
+  `RemoveAllPeers` keeps the coverage some other way; a design in rafthttp's invariants, left for
+  S-j1 with the rafthttp track.
+
+## The static `ownRaftPhys` as an alias of `ownRaftPhysC` (2026-10-24 · branch `cleanup/2026-10-24`)
+
+Until now the static `ownRaftPhys cfg r id s` was a sealed predicate of its own, `ownRaftPhysG
+(ownTracker cfg) ownRaftLog cfg` (`ownRaftPhysDef`), beside `ownRaftPhysCV c V` (stage A1's one body
+over two tracker predicates), with conversions both ways (`ownRaftPhys_toC`, `ownRaftPhysC_toPhys`
+through `ownTracker_toC`/`ownTrackerC_toSimple`) and its own interface (`ownRaftPhys_intro`, the
+`iNamed_phys`/`reseal` macros, a static copy of every accessor's proof).
+
+- **The alias.** `ownRaftPhys cfg r id s` is now the sealed alias of `ownRaftPhysC (CfgM.simple cfg
+  (domSet s.progress \ cfg)) r id s` (`InvRaftPhys.lean`; `ownRaftPhys_toC`/`ownRaftPhys_ofC`). The
+  learners are the tracked ids outside `cfg`, so the alias is a function of the state, as the old
+  predicate was. Every static accessor keeps its statement and is a corollary of its `C`
+  counterpart; `ownRaftPhysDef`, `ownRaftPhys_intro` (callers seal at `C` and convert),
+  `ownRaftPhys_tracker` and the static macros are gone.
+- **No second tracker predicate.** `ownTracker cfg` (`InvTracker.lean`) went with its lemmas and
+  the conversions: the static tracker is `ownTrackerC` at the simple configuration
+  (`ownTrackerC_resimple`: a non-joint tracker is at its simple configuration;
+  `ownTrackerC_empty` for `newRaft`). `ownRaftPhys_tracker_same`/`ownRaftPhys_intro_trk`
+  (intermediate) hand out and take `ownTrackerC (CfgM.simple cfg (domSet prs \ cfg))`.
+- **One conf-change result.** `raft.applyConfChange.specS` (the static derivation three callers
+  share) returns `ApplyCCOkC (CfgM.simple cfg lrn') id s s'` with `lrn' = domSet s'.progress \ cfg`
+  (was `ApplyCCOk cfg id s s'` with `domSet s'.progress ⊆ cfg ∪ lrn'`), read by `applyCCOkC_step`;
+  the static `ApplyCCOk`/`applyCCOk_step` (a 90-line second proof of the same protocol step),
+  `SwitchOk`, `LeaderSwitch`, `CommitOk` are gone.
+- **What is left static**: `ownRaftPhys` itself, the static callers' view (`rawNodeFresh`,
+  `newRaft.spec`, `raft.loadState.spec`, `RestartNode`, `RawNode.Bootstrap`,
+  `ownRawNode_static_open`); it goes with the static mode (`notes/STATUS.md`, "Clean-up: unused
+  declarations removed, ...", the server's static mode). No exported result's statement reached
+  `ownRaftPhys`, `ownTracker`, `ApplyCCOk`, `SwitchOk` or `CommitOk` (`.lake/tcb.json`), so no
+  top-level statement changed.
+
+## E2b of the auth plan: `examples/authkv`, its client-side contract, the closed theorem stated (2026-10-25 · `notes/auth-plan.md`, branch `auth-e2b`)
+
+The example side of D-AU5, in parallel with E2a (`NewAuthStore` over provisional schema axioms,
+the user's 2026-10-25 decision to proceed past D22).
+
+**The program** (`examples/authkv/authkv.go`, project `authkv` of `etc/goose.py`). One member
+started as `common.StartServer` does but with `AuthToken: "simple"` (etcd's default; with no
+`AuthToken`, `NewTokenProvider` gives the no-op provider, whose tokens no request can use). It
+has its own `startServer` rather than a parameter of `common`'s `newServer`, so the other
+examples' specs are untouched. `SetUp`, through a client with no user name while auth is off:
+puts the keys the deletes may remove (`x/<who>/d`), then `UserAdd root`, `UserGrantRole root
+root`, `RoleAdd r`, `RoleGrantPermission r [a, b) READWRITE`, `UserAdd u`, `UserGrantRole u r`,
+`UserAdd v`, `AuthEnable`. Then clients that authenticate as root, `u` and `v`, and four
+principals run `Work` at once: `u`, `v`, `anon` (the set-up's client, no token) and `bad` (the
+same client, each request's context carrying `token: badtoken` through
+`metadata.AppendToOutgoingContext`). `Work`: puts, ranges (`[a, b)`, the prefix `c/`, `[a, d)`),
+transactions (one in `[a, b)` with a read, then ones writing outside it in the then branch, in
+the else branch and in a nested transaction), deletes, and a watch of `c/` from revision 1.
+
+**The checks are the theorem** (as in every example: `Main` does not panic):
+- every request the auth state refuses returned an error, and every refused watch reported no
+  event: the API layer's and the apply layer's checks together (A1, A4);
+- every reply holds only keys its principal may read: `u`'s range and transaction reads, `u`'s
+  watch of `[a, b)` from revision 1;
+- the history: root's watch of every key from revision 1, read up to root's last write `z/end`,
+  shows only writes their principal was permitted. A key names its principal (`x/<who>/...`:
+  once auth is on only `<who>` touches it), so attribution needs no ghost state in the program.
+  Writes after `z/end` are not seen: a refused write cannot be applied later either, but the Go
+  check covers the history up to `z/end` only.
+The Go test (`authkv_test.go`) also asks, after `Main`, why each principal's requests are refused
+(`ErrPermissionDenied` for `u` outside `[a, b)` and for `v`, `ErrUserEmpty` with no token,
+`ErrInvalidAuthToken` for the bad token, `ErrAuthFailed` for a wrong password) and which keys
+exist, so that the checks are not vacuous. It passes, also under `-race` (about 40s: the bad
+principal's writes are retried by the client, below).
+
+**The bad token has no dot.** A token of the simple provider's shape (`x.1`) could in principle be
+issued (its random prefix), and then the bad principal would act as that user. `badtoken` cannot:
+`assign` issues only `<prefix>.<index>` (`auth.simpleTok`, `fmt.Sprintf("%s.%d")`), and
+`isValidSimpleToken` refuses a token with no dot before the map is read
+(`simpleTok_ne_badToken`, `ClientAuth.lean`).
+
+**Passwords do not matter to the theorem.** Only the user clients call `Authenticate`, each for
+its own name, so whatever `CheckPassword` (bcrypt) answers, a token is only ever issued to the
+name its client asked for. A wrong answer can only make `Main` return `Failed`. bcrypt stays a
+contract that need not say more than "returns".
+
+**The client's auth side as a contract** (D-AU6 keeps clientv3's auth outside the verified code;
+`ClientAuth.lean` states the decision, `Main.lean` lists it as a need). Four parts:
+- C1. A client `clientv3.New` built with a user name `u` (and `getToken`'s `Authenticate`, its
+  retry interceptor's `refreshToken`) sends with each attempt no token, or one `t` with
+  `tokIssued γa t u` at the auth names `γa` of the member at its endpoint. The server side of
+  this is S5's `Authenticate` (the reply's token is issued to the request's name); the wire
+  carries the fact as it carries the KV replies' (the handler's theorem transported). Today
+  `Client.getToken`'s axiom promises only `nil` or a client error.
+- C2. A client with no user name adds no token: an attempt's outgoing metadata is its caller's
+  context's.
+- C3. `metadata.AppendToOutgoingContext(ctx, "token", t)` returns a context whose outgoing
+  metadata has `token: t` (grpc: untranslated, a trust-boundary spec).
+- C4. gRPC delivers an attempt's outgoing metadata as the handler's incoming metadata, which
+  `AuthInfoFromCtx` reads (grpc's transport; the same kind as D21j's at-most-once).
+
+**What the server side must say, found in stating this** (for E2a and after):
+- `AuthInfoFromCtx`'s binding must name the context's token. Today `ctxBound M a` says the info
+  is `nil` or bound to *some* token issued to its user, which a bad principal's request satisfies
+  as soon as anyone holds a token: it cannot tell the bad principal from root. Needed:
+  `a = null ∨ ∃ t, ctxToken ctx t ∗ infoBound M t a`.
+- Every token issued in the server's mode is the simple provider's (`tokIssued γa t u → ∃ pre
+  idx, t = simpleTok pre idx`): `authnCtx`'s right to issue (`freshOk`) is only ever given for a
+  `simpleTok`, a fact `NewAuthStore`'s allocation of the fresh-token names must state.
+- A token is issued to one user (`tokIssued γa t u ∗ tokIssued γa t u' → u = u'`: the right to
+  issue `t` is exclusive and spent).
+- The history after `SetUp` is `setupSt rev` at every later position (`Model.lean`): the
+  set-up's admin requests are the only ones applied (no later request is an admin one, and the
+  program is closed), so every later check reads states of that shape.
+- **Refusal-freedom is false here.** D29's `noRefusalAt` (and the axiom `etcd_noRefusal`) is for
+  members with auth off; this member refuses the bad principal's KV requests with
+  `"etcdserver: invalid auth token"`, a refusal, and the client's retry interceptor resends a
+  refused write (`refreshToken` returns `nil` with no token bundle) until its retries or its
+  context end. Every attempt is refused again, so nothing is applied, but the client's write
+  spec must be proved without `noRefusalAt` for this client: a write sent many times, each
+  attempt with the same principal.
+
+**Proved now.** `InRange` and `Permitted` (the program's verdict, `Permitted.lean`), and the
+model's verdict at the set-up's state (`Model.lean`: `setupSt`, `granted_setupSt_iff` -- for a
+point request of a non-empty key by `u` or `v` with a revision, granted exactly when `Permitted`
+says so; `granted_rev0` for a principal without one; `granted_setupSt_range` for `u`'s `[a, b)`;
+`not_coversRange_past`, `not_coversRange_c` for the two ranges the role does not cover), and
+`simpleTok_ne_badToken`. Restated in `Results.lean`; collection `etc/tcb-collections/authkv.txt`.
+
+**Not proved.** `Main` (`Main.lean`: a `sorry`, `authkv.Main.wp_proof`): its spec states the
+closed theorem's triple with watchkv's premises for the server's start, which an auth-enabled
+start may change. Left, in order: E2a's server start with auth's authority; the server-side
+facts above; the client contract C1-C4 (axioms at the client's and grpc's trust boundary, or
+C1 proved over `getToken`); the client's write path without refusal-freedom; `SetUp`'s admin
+calls (the client's `Auth` methods over the API layer's A3 entry points); the workload's and the
+checks' proofs (`keyOf`, `refused`, `checkKVs`, `checkTxnReads`, `Writer`, `CheckHistory`,
+`LastIn`, `Work`, `SetUp`).
+
+## E2a of the auth plan: `NewAuthStore`'s code proved over the store's contracts; no provisional schema axioms (2026-10-25 · `notes/auth-plan.md`, branch `auth-e2a`)
+
+The user approved (2026-10-25) going past D22 with provisional trust-boundary axioms for schema's
+auth write side, to be reconciled with D22 later. What was done, and why the axioms were not
+written.
+
+**Proved.** `NewAuthStore` and `authStore.setupMetricsReporter` are translated (`auth.toml`; with
+the three bcrypt cost bounds `NewAuthStore` compares against, `Code/golang_org/x/crypto/bcrypt.toml`,
+the rest of bcrypt names only); the metrics reporter's lock is a package fact (`authInit`'s last
+conjunct, `reportP`, made by `gen-init.py` as mvcc's reporters). `setupMetricsReporter` is proved
+and linked. `auth.newAuthStore_on` (`auth/NewAuthStoreOn.lean`, restated with its callees linked as
+`auth_store_new_on` in `etcdserver/Results.lean`) is the constructor's own code in the mode
+`on γa`: over an `AuthBackend` meeting the store's backend contracts (`authBackendOk`, S1's read
+side; `authWBackendOk`, S4's write side; `CreateAuthBuckets` as one transaction keeping the write
+token), a token provider meeting `tokenProviderOkA` with its admin resource, and the admin side's
+authority at a history `hs` whose latest state is `stl` (with the other half of its ghost
+variable), it returns a store whose invariant holds (`authInv`: the revision's invariant, the three
+locks' guards, made here), the admin side's write resource (`authWR`), the provider's share
+(`tpAdmin`), the transaction's `Post`, the authority (with `bump stl` appended when `stl`'s revision
+is `0`: `commitRevision`), and every lock's reader slots. The bcrypt cost check, the logger, the
+`enable()` of a provider of an enabled state and the revision's commit are all covered.
+
+- *The initial cache* (a premise, `∃ s ∈ hs, s.users = ∅`): `NewAuthStore` makes the cache's map
+  empty and refreshes it only after `Revision()` and `commitRevision`, which (with
+  `refreshRangePermCache`) take the invariant; the cache lock is made with the empty map, which
+  `cacheOk (on)` accepts only as the map of a recorded state without users. No reader can see it
+  (the store is not shared yet); the history of a store whose buckets were created empty starts
+  with such a state.
+- *The readers' slots*: combining the three `List.replicate (2 ^ 30 - 1)` lists made the kernel
+  unfold the list (a deterministic timeout); `slots_rd` does it for an abstract count.
+
+**Not proved: `auth.NewAuthStore.spec` stays an axiom.** The server's statement is over schema's
+real auth backend on the real backend in the mode `off`, its post the apply contract on every
+backend (`authApplyOk`). From `newAuthStore_on` (or its `off` analogue) it would still need: (1)
+the real backend meeting the contracts (below); (2) `isAuthStoreAdmin`'s clauses of the real store,
+of which `HasRole`, `Authenticate` (with `CheckPassword`), `UserGet`, `RoleGet`, `UserList`,
+`RoleList` are not proved; (3) for `off`, the cache premise and `refreshRangePermCache`'s
+`permsFit` of a state the `off` contract does not name (`histLast off` is only "disabled").
+
+**Why no provisional schema axioms.** Two findings, both before any axiom could be stated true:
+
+1. *The auth buckets are D22's tracked buckets.* The server's statement and the backend's proved
+   specs (`batchTxBuffered.UnsafePut`, `rbPut`) put every write to a tracked bucket under the
+   client's half of `backend.rbOwn γB r`, the whole map's ghost variable, which the server hands to
+   the alarm store, the lessor and the cluster too (`srvRestRW`). A local predicate "the auth
+   buckets hold `D`" given out by `CreateAuthBuckets` beside `rbOwn` would be false (`rbOwn` still
+   allows writing the auth buckets, so what a reader of the auth buckets sees would not be the
+   local predicate's); one that consumes the auth part of `rbOwn` needs `rbOwn` split per bucket
+   or the auth buckets untracked, which changes D22's snapshot image (`authBoot`, `InvImage`). And
+   what a read transaction of the auth buckets sees (a recorded state, S1's `authRTx` over
+   `authBE`) is the D22 question of what readers of a tracked bucket see between write-backs.
+   Both are D22's to decide.
+2. *S4's write contract is not derivable in the mode `on` as stated* (a bug in this repository's
+   contracts, not in Go). `authBatchTxLk`'s `Lock()` promises, for *any* history `hs` whose
+   authority the caller holds, that the buckets hold `hs`'s latest state (`histLast`). Nothing ties
+   the buckets to the authority: `authOwn (on γa) hs` is the history's full authority and one half
+   of the latest state's ghost variable, the other half is in the revision's invariant
+   (`revCur`), so no share is left for the batch lock to hold, and the authority can be appended
+   to without a transaction (`authHist_append`). A real backend can meet the contract only if the
+   lock holds a share linked to the authority (e.g. a third share of the latest state's variable,
+   updated at `Unlock`, or the authority itself under the batch lock), which changes `authOwn`,
+   `revInv` and the S4 proofs' appends. In the mode `off` the contract is derivable (an invariant
+   "every unlocked state is disabled").
+
+**What D22 must discharge** (the provisional boundary, once (2) is fixed; (2) fixed by S4f, which
+restates this list against the backend's own contract, "S4f of the auth plan"): that schema's
+`authBackend` over the real backend `d` meets, for the auth names `γa` allocated at
+`NewAuthStore`, `authBackendOk ab R (on γa)` (every read transaction sees a recorded state),
+`authWBackendOk ab (on γa) Pk f (wbTok d.γB ∗ …)` (the batch transaction's reads and writes are the
+latest state's, its `Lock` is `LockInsideApply` under the frozen hook, its `Unlock` one write-back),
+and `CreateAuthBuckets` (one transaction, from `rbOwn` with the auth buckets absent or empty), with
+the tracked buckets' half (`rbOwn`/`srvRestRW`) related to the latest state of the authority.
+`newAuthStore_on` then gives the store; E2b's server needs, besides, `ctxBound` naming the
+request's own token, the simple provider's tokens' shape and one user per token, and the auth
+history fixed after the set-up (`notes/decisions.md`, "E2b of the auth plan").
+
+**Trust base.** +1 axiom: bcrypt's `opaqueInitsOk` (its untranslated initializers, as every
+names-only package's); the root collections reaching the auth package's initializer
+(`cachekv`, `k8setcd3`, `linkv3p`, `linkvtxn`, `putget`, `putget3`, `watchkv`) list it.
+`newAuthStore_on` adds none (its callees are proved but `zap`'s, axioms already).
+
+## S4f of the auth plan: the history's authority split between the admin side and the batch lock (2026-10-25 · `notes/auth-plan.md`, decided by the user: option (b))
+
+E2a found S4's write contract not derivable in the mode `on` ("E2a of the auth plan", item 2):
+`authBatchTxLk`'s `Lock()` promised the buckets hold the latest state of whatever history the
+caller's authority names, with nothing on the backend's side tied to that authority, and the
+authority could be appended to without a transaction. Of the two fixes put to the user, (a) a
+third share of the latest state's ghost variable under the lock, (b) the history's ownership
+under the batch lock, the user chose (b).
+
+**The design** (`auth/Model.lean`, `Steps.lean`, `InvAuth.lean`):
+- The history's authority (`authHist γa hs`, the mono list's whole fraction) is two halves: the
+  admin side's (`authHistHalf`, with the states' valid permission keys) and the batch lock's
+  (`authLockHalf`; `authHist_split`, `authHistHalf_lock_agree`). An append needs both, so it
+  happens only while the lock is held.
+- `authOwn M hs`, the admin side's authority (the apply thread's, as before), is in `on γa` the
+  admin side's half and half the latest state's ghost variable; `authLockShare M hs` is the lock's
+  half (nothing in `off`/`any`); `authOwnF M hs`, the authority inside a transaction, is the old
+  `authOwn` (the whole history), `authOwnF_split : authOwnF ⊣⊢ authOwn ∗ authLockShare`.
+- What the lock holds with the buckets at `st`: `authLockI M st`, its share of some history whose
+  latest state (`histLast`) is `st`.
+- **The backend's contract** (what D22 discharges): `authBatchTxLkR`, as S4's but `Lock()` takes
+  only the critical-section contract and the write token and gives the token of the buckets'
+  state `st` with `authLockI M st`; `Unlock()` takes the token and `authLockI M st` back and gives
+  the token's `X` and `T`. No admin-side resource is mentioned: a real backend meets it with
+  `∃ st, buckets(st) ∗ authLockI M st` among what its batch lock protects.
+  `authBatchTxOkR`/`authWBackendOkR` wrap it as `authBatchTxOk`/`authWBackendOk` wrap the store's
+  view (`GetUser`, schema's `Lock`/`UnsafeGetUser`/`Unlock`, is kept a clause, with `authOwn`:
+  it follows from the transaction's clauses with the join).
+- **The store's view** (`authBatchTxLk`, `authWBackendOk`, unchanged in name, what the operations'
+  proofs use): `Lock()` from `authOwn M hs` gives `authOwnF M hs` and the latest state
+  (`authOwn_lockI_join`: the two halves agree, so the buckets hold the admin side's latest
+  state), `Unlock()` from `authOwnF M hs` at the token's state gives `authOwn M hs` back
+  (`authOwnF_lockI_split`). Derived: `authBatchTxLk_of_R`, `authBatchTxOk_of_R`,
+  `authWBackendOk_of_R`.
+- The specs called inside a transaction take `authOwnF` (`commitRevision`, `setRevision`); the
+  admin operations' specs, `adminOut`/`outRes`, `isAuthSteps` keep `authOwn` (now the admin side's
+  half): their statements are textually unchanged. `Revision`'s optional authority
+  (`authOwnOpt`) is the admin side's (`revCur_agree_own`; `Authenticate` reads the revision
+  outside a transaction), so `commitRevision` and `newAuthStore_on` split the lock's share off
+  around the call.
+- `NewAuthStore` (`newAuthStore_on`) takes the backend's contract (`authWBackendOkR`) and the
+  admin side's authority; the lock's share is the backend's from the start (whoever allocates
+  `γa` installs it with the buckets, D22).
+- `Recover` takes no batch lock but appends the new backend's state, so it takes and gives the
+  whole authority (`authOwnF`): the backend swap (D22's restore, its caller) hands it the old
+  backend's lock share and installs the share with the new state appended under the new
+  backend's lock, whose write side is given as the backend states it (`authWBackendOkR`).
+- **E2b's "the auth history stays fixed after the set-up"**: `authHistHalf_lookup` (while the
+  admin side holds its half at `hs`, every recorded state, which the readers' verdicts are
+  relative to, is in `hs`): with no admin request applied after the set-up, the apply thread's
+  `authOwn M hs` pins the history. What is left is threading that authority through the
+  server's apply thread to `examples/authkv` (with `NewAuthStore`'s server statement).
+
+**What D22 must discharge** (the list of "E2a of the auth plan", restated): that schema's
+`authBackend` over the real backend `d` meets, for the auth names `γa` allocated with the store,
+- `authBackendOk ab R (on γa)` (every read transaction sees a recorded state);
+- `authWBackendOkR ab (on γa) Pk f (wbTok d.γB ∗ …)`: the batch transaction's reads and writes are
+  its token's state's, its `Lock` is `LockInsideApply` under the frozen hook, its `Unlock` one
+  write-back, and its lock protects `∃ st, buckets(st) ∗ authLockI (on γa) st` (the buckets'
+  tracked contents, in `rbOwn`, at the encoding of `st`, S1's `auth/Buckets.lean`);
+- its reads (`authBackendReads`, appended by E2j, 2026-10-26: "E2j of the auth plan"): `GetUser`,
+  `GetRole` and `GetAllUsers` schema's read transaction answering from the latest state while the
+  admin side holds its half of the history (the auth buckets' only writer is the apply thread,
+  whose batch transactions write back at `Unlock`), `GetAllRoles` the batch transaction;
+- the read transaction's latest-state clause (appended by E2r, 2026-10-26: "E2r of the auth
+  plan"): `RLock()` begun while the admin side holds its authority (`authOwn`, outside a batch
+  transaction) holds the latest state (`histLast`), true of the real backend, whose batch writes
+  back to the read buffer at `Unlock`;
+- `CreateAuthBuckets` (one transaction, from `rbOwn` with the auth buckets absent or empty);
+- at a backend swap (`applySnapshot`'s restore, `Recover`), the old lock's `authLockI` given out
+  and the new one's installed (the share with the restored state appended, `Recover`'s post).
+The allocation of `γa` with the lock's share installed is where the server's boot creates the
+store (with `NewAuthStore`'s server statement, still an axiom).
+
+**Trust base.** Unchanged (718 axioms, 5 sorries): no axiom or `sorry` added; every changed
+statement is a contract or a spec of this repository's own proofs.
+
+## D22 S8d, W7 carried out (first part): the readers' shares counted, `store.Restore` exact (2026-10-25 · decided by the orchestrator: option 1)
+
+**Problem.** The old backend's `Close` needs the whole open token (`bOpen 1`), and after `Restore`
+the server holds every old reader token, but neither their `bOpen` shares (existential in `kbRT`,
+`bkRTx`) nor their number (`Restore` returned `k + 1` with `k` existential) were known.
+
+**Decision (minimal).**
+- *Fixed shares.* `backend.rdOpen := ½ / nReaders` (`InvBackend.lean`, section `shares`, with
+  `bOpen_add`, `bOpen_rep`, `bOpen_one_shares : bOpen 1 ⊣⊢ bOpen ½ ∗ [∗ nReaders] bOpen rdOpen`);
+  `mvcc.bkRTx` and `mvcc.kbRT` carry exactly `bOpen rdOpen` (until now `∃ q`). `NewServer` keeps
+  the constructors' half `bOpen ½` (until now some remainder `qo`) and the boot backend's stop
+  channels (`bootBackend_of_newPost` no longer drops `isStopChans`).
+- *The retired count, exact.* The readers' pool (`poolBody`) now says its slots in, out and
+  retired are exactly `nReaders` (until now at most), and the retired count `r` is a ghost
+  variable half the pool's, half the store's creator's (`mvcc.retiredAt γ r`; `NewStore` gives it at
+  `0`, each `storeReader_retire` counts one; until now the retirees held `ownToks γ.tkr 1` each).
+  The etcd server, the only creator that retires, retires two (the monitor's, the writer's), and
+  `writerOwn γ` carries `retiredAt γ 2` (until now the writer's retired ticket).
+- *`Restore` exact.* `restore_switch` learns no slot is out (none under the watchable store's lock:
+  the caller's `wsDep`; none under `s.mu`: the writer's invariant, restoring because the switch
+  holds all of `cur`, holds `s.mu`'s deposit ghost whole; a second later credit, `wp_auto_lc 3`) and
+  so the pool holds `nReaders - 2` slots; `store.Restore` and `watchableStore.Restore` return
+  `nReaders - 1` old tokens (the pool's and the writer's) and one new token, no `k`.
+- *Not changed:* `backend.Close.spec` (it still takes `bOpen 1`, which `bOpen_one_shares`
+  reassembles from the half, the `nReaders - 1` returned tokens and the monitor's).
+
+**Restated statements** (all intermediate; the definitions changed are reached by closed theorems'
+statements through the server's state, as the orchestrator accepted): `mvcc.kbRT`, `mvcc.bkRTx`
+(and `bkRT_x`, `crt_locked`, `rt_locked` lose their share parameter), `mvcc.poolBody`,
+`mvcc.writerOwn`, new `mvcc.retiredAt`, `mvcc.readerPool_retire`, `mvcc.storeReader_retire` (take
+and return the count), `mvcc.NewStore.spec`, `mvcc.newWatchableStore.spec`, `mvcc.New.spec` (their
+posts gain `retiredAt γ 0`), `mvcc.restore_switch`, `mvcc.store.Restore.spec`,
+`mvcc.watchableStore.Restore.spec`, `server_kv_watchable_of`, `bkRTx_of_rdToks`,
+`bootBackend_of_newPost`. No axiom added or removed.
+
+**User-confirmed (2026-10-25, via the orchestrator).** W7 = count the shares (fixed-fraction reader
+tokens, `store.Restore` returning the exact count: carried out above); W8 = a named premise of
+`applySnapshot.spec`, discharged in S-j1 with the rafthttp track. From now on a design choice that
+would change a trusted statement, a closed theorem, a premise or another track's statement goes to
+the orchestrator as a question with options and a recommendation.
+
+**W7's second part, open (a question for the user).** `Close` of the old backend needs, besides
+the reader tokens (now all counted and back after `Restore` and `srv_be_swap`), the old backend's
+stop channels and the constructors' half `bOpen ½`, which `NewServer` now keeps but drops at its
+end: they must reach `applySnapshot` through the apply thread's state. Every route goes through a
+predicate a closed theorem's statement reaches (`srvApplyKV`, in `Results.lean:431`, and the run
+loop's state). Options: (a) in `srvBeOwn` (the apply thread's part of `s.be`, already per current
+backend; `applySnapshot` moves it to the new backend with `OpenSnapshotBackend`'s own half and
+stop channels): a two-conjunct addition, `srv_be_swap` returning the old ones; a patch is ready
+(not committed); (b) a separate conjunct of the run loop's state beside `srvApplyKV`, which leaves
+`srvApplyKV`'s closed theorem alone but changes `run`'s and `applyAll`'s specs; (c) leave `Close`'s
+resources as a premise of `applySnapshot.spec` for S-j1 (it then has to thread them anyway).
+Recommendation: (a), the smallest change, in the predicate whose meaning is "the apply thread's
+part of the current backend".
+
+## E2c of the auth plan: the server's token facts -- the context's own token, the simple shape, one user per token (2026-10-25 · `notes/auth-plan.md`, branch `auth-e2c`)
+
+The server-side facts E2b found `Main`'s proof needs ("E2b of the auth plan", "What the server
+side must say"), but the auth history fixed after the set-up, which S4f gave
+(`authHistHalf_lookup`).
+
+**The context's own token.** `ctxBound M a` said the auth info `AuthInfoFromCtx` returns is `nil`
+or bound to *some* token issued to its user, which a bad principal's request satisfies as soon as
+anyone holds a token. The token is now the context's:
+- `metadata.incomingOf ctx` (`Proof/google_golang_org/grpc/metadata/Incoming.lean`, opaque): a
+  context's incoming metadata, `none` or each key's values. A context is immutable, so its metadata
+  is a function of the context value. `metadata.FromIncomingContext`'s trust-boundary spec now says
+  `ok` exactly when it is `some md0`, and the map has `md0`'s keys, each slice holding that key's
+  strings (still at least one). Its callers that only read the map (`newUnaryInterceptor`) take
+  the old shape, `weakSpec`, through `FromIncomingContext.weaken` (`FromIncomingWeak.lean`).
+- `rpctypes.TokenFieldNameGRPC`/`TokenFieldNameSwagger`'s initializer axioms now state the strings
+  (`"token"`, `"authorization"`; `metadatafields.go`), so `rpctypesInit` and `authInit` hold them
+  as such (`etc/gen-init.py`). Same axioms, stronger statements.
+- `auth.ctxTokenOf ctx` (`InvAuth.lean`): what `AuthInfoFromCtx` reads -- the first value under
+  `token`, else under `authorization`, `"Bearer "` trimmed.
+- **Changed statements**, each gaining the request context:
+  - `auth.ctxBound M ctx a := a = null ∨ ∃ t, ctxTokenOf ctx = some t ∗ infoBound M t a`;
+  - `authStore.AuthInfoFromCtx.spec`'s post: `ctxBound M ctx a`;
+  - `isReqAuthBound`'s `AuthInfoFromCtx` clause: `ctxBound M (ok ctx) a`;
+  - `ctxBoundOrTLS s M ctx a`;
+  - `principalBound s M ctx ai`: the user is the one the context's token was issued to;
+  - `adminOutB`/`authedOutB s M ctx err`, `principalBoundI s M ctx info`;
+  - the guards' bound variants, for `ctx` the guarded request's:
+    - `EtcdServer.AuthInfoFromCtx`;
+    - `checkMembershipOperationPermission`;
+    - `requireAuthInfo`;
+    - `AuthAdmin.isPermitted`/`requireAuthInfo`;
+    - the maintenance server's `requireAuthInfo`;
+    - `isWatchPermitted`, at the stream's `r.ci`.
+
+  Their proofs changed only by threading `ctx`.
+
+**One user per token, the simple shape.** `tokIssued γa t u` was an element of a ghost map keyed by
+the pair `(t, u)`, so that a token could be issued again after `disable()` cleared the simple
+provider's map, possibly to another user. But every issue spends a right `tokFresh γa t` that is
+exclusive and comes once per token, `<prefix>.<raft index>`. So the key is now the token:
+- **`tokIssued`.** `tokIssued γa t u := t ↪[γa.tok]□ u ∗ ⌜tokShape t⌝`, where `tokShape t` is
+  `∃ pre idx, t = simpleTok pre idx`.
+- **Issuing.** `tokIssue` spends the right: it makes it read-only, and it needs the shape.
+- **The authority.** `tokAuth γt γf S` (token to user) keeps, for each issued token, its element,
+  its spent right and its shape. A held right is therefore not that of an issued token
+  (`tokSpent_ne`), and `tokIssue` inserts.
+- **New facts:**
+  - `tokIssued_agree`: a token is issued to one user;
+  - `tokIssued_shape`;
+  - authkv's `tokIssued_badToken`, restated in its `Results.lean` with `authkv_token_one_user`.
+- **The simple provider's map entries** hold the spent right instead of the exclusive one.
+  `assignSimpleTokenToUser`'s panic on a token already in the map is refuted against it before
+  issuing (`big_fresh_none`). `info` reads the shape from the authority (`big_issued`,
+  `tokAuth_lookup`).
+
+**The shape is the simple provider's.** No other provider is proved. The JWT provider, when it is,
+issues signed tokens of another shape. `tokShape` would then be the mode's (a provider's shape in
+the contract), or JWT tokens recorded under names of their own. Recorded, not done.
+
+**Trust base.** Unchanged (718 axioms, 5 sorries). `FromIncomingContext.wp_proof` and the two
+`rpctypes` initializer axioms say more than before. `incomingOf` is an `opaque`, not an axiom.
+
+**Not done (E2's server side, for `Main`):**
+- the client's contract C1-C4 over `metadata.incomingOf`: what `AppendToOutgoingContext` and gRPC's
+  delivery make of a call's context;
+- where the server allocates `γa` and the fresh rights (`Authenticate`'s `<prefix>.<index>`, once
+  per raft index);
+- `NewAuthStore`'s server statement, still an axiom;
+- the client's write path without refusal-freedom (E2d).
+
+## E2d of the auth plan: the client's write path with refusals, and `clientv3.New` with a user name (2026-10-25 · `notes/auth-plan.md`)
+
+**The question.** E2b found D29's refusal-freedom (`noRefusalAt`, the axiom `etcd_noRefusal`)
+false of `examples/authkv`'s member: with auth on, the server refuses the bad principal's KV
+requests with `"etcdserver: invalid auth token"` and the no-token client's with `"user name is
+empty"`, and a user's write after a revision bump with `"revision of auth store is old"`. Which
+client specs does a client of such a member use?
+
+**What the retry interceptor does with them** (the fork's `retry_interceptor.go` at the pin):
+`shouldRefreshToken` is true for `ErrUserEmpty` only with a token bundle (a client with a user
+name), and for `ErrInvalidAuthToken`/`ErrAuthOldRevision` with `retryAuth` (the default); then
+`refreshToken` (`getToken`: `Authenticate` with the bundle, nothing without) and the write is sent
+again, up to `MaxUnaryRetries` (100) attempts. So the bad principal's write is sent 100 times,
+every attempt refused, then fails with the last error; the no-token client's fails at once
+(`isSafeRetry` is false for a `nonRepeatable` call on an etcd error); `PermissionDenied`
+(`"etcdserver: permission denied"`, a user without the role, a key outside its range) is no
+refusal and fails at once. No refused attempt applies anything: the invalid-token and user-empty
+refusals are made before the proposal (`AuthInfoFromCtx`), the old-revision one at apply (the
+entry applied as a refusal), the learner one by the server's interceptor.
+
+**Decision: no new client spec for the KV calls.** The client's KV results already have a write
+path with no `noRefusalAt`: a persistent update (`□`, `client_put_any`'s, `client_delete_any`'s
+and `client_txn_any`'s first case, the `client_*_end_to_end` results'), sent any number of times
+through the retry interceptor's contract for any number of attempts (`etcdInterceptorOk`, proved
+over `refreshToken`/`getToken`), the update firing at each committed occurrence and none for a
+refused attempt. That is authkv's case: its theorem attributes a write by the key's writer and
+reads the server's permission verdicts, so its updates need not be fired at most once. Documented
+in `client/v3/Results.lean`'s section header; every existing spec and example theorem unchanged.
+*Rejected:* an at-most-once variant for refusing members (the attempt contract giving back the
+request's precondition after a refusal), which needs a new members' axiom (a refused attempt does
+not use its request's precondition) and, for the old-revision refusal at apply, a hand-back of the
+precondition through the wait registry; nothing needs it yet.
+
+**What authkv's clients did lack: `clientv3.New` with a user name and password.** `New`'s
+configuration premise (`clientCfgOk`) required `Username`/`Password` empty. Now any (the `Token`
+still empty): with both, `newClient` sets them and makes a token bundle
+(`credentials.NewPerRPCCredentialBundle`, translated with bodies with
+`perRPCCredentialBundle.PerRPCCredentials`, both proved: `tokenBundleAt`), `Client.dial` passes
+the bundle's credentials to grpc (`WithPerRPCCredentials`, a new dial option descriptor
+`.perRPCCreds`, which sets no interceptor and no resolver: `unaryIcsOf_perRPCCreds`,
+`dialOk_perRPCCreds`), and the token is fetched once the connection is up (`getToken`, the existing
+axiom); if that fails, `newClient` closes the client and returns the error. The dial specs take the
+bundle, if any (`tokenBundleOk`). Which token an attempt then carries stays E2b's contract C1 (the
+attempt contract says nothing of metadata).
+
+**Trust base: +2 axioms.** `grpc.WithPerRPCCredentials.wp_proof` (grpc's option constructor, as
+`WithKeepaliveParams`'s) and `Client.Close.wp_proof` (`client.go`'s `Close`, names only: it returns;
+its steps keep the invariants of the client's objects). Translating `Close` instead was tried and
+dropped: it reaches `lessor.Close` (not translated), grpc's `ClientConn.Close` (no axiom) and
+`ContextError`, whose spec needs the client context's error facts (`ctxErrClient`, the class
+premises `ContextReadErrs`/`ContextErrsClient`), which `newClient`'s spec does not take.
+Since `New`'s proof covers both configurations, the closed theorems of the examples whose clients
+`New` builds (collections `cachekv`, `client`, `k8s`, `k8setcd3`, `linkv3p`, `linkvtxn`, `putget`,
+`putget3`, `watchkv`) list the two axioms, although their clients have no user name.
+
+**Not a Go issue, noted:** a client with no token bundle that sends a token of its own in its
+metadata (authkv's bad principal) gets its refused write retried 100 times, `refreshToken` doing
+nothing each time: wasteful, not wrong (nothing is applied).
+
+## D22 S8d: the user's answers on W7's second part and `RemoveAllPeers` (2026-10-25 · the user's decisions, via the orchestrator)
+
+- **W7, second part: (c).** The old backend's stop channels and the constructors' half of its open
+  token (`backend.isStopChans`, `backend.bOpen ½`) are a named premise of `applySnapshot.spec`;
+  S-j1 threads them from `NewServer` to the apply thread (the reverted patch putting them in
+  `srvBeOwn`, `srv_be_swap` returning the old ones, is described in `notes/snapshot-s8-plan.md`,
+  "For S-j1").
+- **`RemoveAllPeers`: (b).** Its spec is stated now over `trLive` (the ids `(rs.1, [])` after,
+  the remotes kept); its proof is a `sorry` on purpose, for the membership track's M5 to prove
+  rather than restate (`notes/membership-plan.md`, M5). The trust base gains the `sorry` on purpose
+  (`etc/tcb-baseline.txt` updated with `--check --update`).
+
+## D22 S8d, laid against the callees after the merge: one question before the proof (2026-10-25 · for the user)
+
+**`authStore.Recover` on the snapshot's backend.** The merge took the auth track's *proved*
+`auth.authStore.Recover.spec` (over `authInv st R M`, `authOwn`, `authWR`, `tpAdmin`, `R` and the
+new backend's `authBackendOk`/`authWBackendOk`) in place of S8c's server-level axiom (over
+`authBeOn st oldbe` and `authApplyOk` in mode `.off`). The server does not hold those predicates:
+its auth store comes from `NewAuthStore`'s axiom, which gives `authBeOn`, `isReqAuth st RD` and
+`authApplyOk stl RD`, not `authInv` (the auth plan's E stage, "the authority to the server", is not
+done), and nothing proves `authBackendOk` of schema's auth backend over a real backend. So
+`applySnapshot`'s `s.authStore.Recover(NewAuthBackend(lg, newbe))` has no usable spec. Options:
+- (a) a named premise of `applySnapshot.spec`: the triple of `st.Recover(ab)` in the server's terms
+  (S8c's statement: `authBeOn st oldbe` to `authBeOn st newbe`, the new backend's contract, an open
+  share, a write-back token, its tracked buckets with the auth buckets at the server's), discharged
+  when the auth track brings `authInv` to the server (its E stage);
+- (b) the auth track restates `NewAuthStore`'s server statement to give `authInv`, `authWR`,
+  `tpAdmin` and the backend contracts (their E stage), and S8d waits;
+- (c) a server-mode wrapper axiom for `Recover` beside the proved spec (two specs of one function:
+  against the layout).
+Recommendation: (a): S8d proceeds now, and the premise is exactly what (b) will prove.
+
+**Decided (2026-10-25, the user, via the auth session): (a).** `applySnapshot.spec` takes the auth
+store's `Recover` on the new backend as a named premise in the server's terms; the auth track
+discharges it when it brings the store's invariant to the server (its E stage, the server's boot).
+State the premise against S4f's contracts ("S4f of the auth plan"): `Recover` takes the admin
+side's whole authority (`authOwnF`), and the backend swap hands the batch lock's half of the history
+(`authLockI`) from the old backend to the new one (the new backend's `authWBackendOkR`).
+
+**The named premises S8d takes otherwise** (S-j1's inputs and threading, as the orchestrator
+directed; listed so S-j1 sees them): the snapshot message (non-nil, read-only metadata at index `i`
+and term, `i > ep.appliedi`, `ciEff ≤ i`); the snapshot file `fileHolds (snapDBPath ss i) D` with
+its image certificate (the KV log `A'` of the image, `A <+: A'`, the image's buckets: the key bucket
+at `kvModel A'`, the meta bucket's consistent index `i`, the rest buckets at `restModel A'`, the
+lease and alarm buckets empty, `clusterImageOk`, the auth buckets the server's) and its `certOk` in
+the server's `cok` map; `storageSnap`, the snapshot directory's invariant and the counter `γt`'s
+authority at most `ai`; `snapOpensOk`, `dbOpensOk`, the feature gate, `pathOwn` of the backend path;
+the old backend's `isStopChans` and `bOpen ½` (W7, the user's (c)); the transport's `trLive` and
+W8's coverage (the user's), `Members()`' boot contract (`Hmembers`), `8 · |peers|` of `lgMu`'s reader
+slots for the `AddPeer`s; `receiptBound ≤ wbInit` (the new backend's write-backs).
+
+## E2e of the auth plan: the auth store at the server's boot, in the mode `on` (2026-10-25 · `notes/auth-plan.md`)
+
+The parts of bringing the auth store's invariant and the admin authority to the server that need
+no D22. What landed, and what did not:
+
+- **The names at boot** (`auth.authBoot_alloc`, `Proof/go_etcd_io/etcd/server/v3/auth/Boot.lean`):
+  over the boot state `bootState` (disabled, revision `0`, no user, no role: what freshly created
+  buckets hold), with the token provider's names `γt`, `γf` (the simple provider's,
+  `tokenSimple_new`), a fresh `γa` with the admin side's authority `authOwn (.on γa) [bootState]`,
+  the other half of the latest state's ghost variable (the store's revision invariant's) and the
+  batch lock's half of the history at the boot state (`authLockI (.on γa) bootState`, the
+  backend's). The tokens' one-time issue rights: `auth.tokFresh_mint` mints the right of any token
+  not minted before from the rights' authority (`tokenSimple_new`'s `ghostMapAuth γf 1 ∅`).
+- **`NewAuthStore` at boot** (`auth.newAuthStore_boot`; restated as `auth_store_boot_on` in
+  `etcdserver/Results.lean`, linked, no `sorry`, no new axiom): the names allocated, the lock's
+  half handed to the backend, `newAuthStore_on` run; the post is the store's invariant
+  (`authInv`), the admin side's write resource (`authWR`), the provider's share (`tpAdmin`) and the
+  admin side's authority at `[bootState, bump bootState]` (the constructor's `commitRevision` of
+  revision `0`), with `γa`'s token parts the provider's. Two named premises:
+  - `auth.authSchemaBoot ab bi γt γf R P f T` -- **D22's part**: for any names with the provider's
+    token names, the lock's half at the boot state makes schema's auth backend meet the store's
+    backend contracts for those names (`authBackendOk`, `authWBackendOkR`, `CreateAuthBuckets` as
+    one transaction keeping `T`). The real backend discharges it by keeping
+    `∃ st, buckets(st) ∗ authLockI M st` under its batch lock ("S4f of the auth plan"), which needs
+    the backend's lock to take a resource after it is made (at the auth store's construction).
+  - `auth.tokenProviderBoot tp γt γf A`: the provider's contract for any names with its token
+    names; the simple provider's `tokenSimple_okA`.
+- **`srvAuthBound` of the real store** (`srvAuthBound_of_authInv`, `AuthBound.lean`; restated as
+  `srv_auth_bound_of_inv`): a server whose `authStore` field holds a store with `authInv` in the
+  server's mode, its reader resource the store's `authRd`, has the bound request side. So
+  `srvAuthBound` is derivable at any server whose boot takes the store from `newAuthStore_boot`.
+
+**Not done, and why.** `NewAuthStore`'s axiom (`NewAuthStore.spec`, mode `off`) is neither retired
+nor shrunk: the server's statement (`NewServer.spec`) is for auth off (its post fixes
+`E.authOn = false`, its proof instantiates the apply contract at `.off` in ten places, and every
+closed theorem's environment is `env₀`'s `authMode := .off`), so the server cannot take the store
+from `newAuthStore_boot` until it runs in the mode `on γa`; and the axiom's off-mode post needs an
+off-mode proof of `NewAuthStore` (E2a: its own cache premise, `permsFit` of a state the off
+contract leaves open) and the admin clauses `isAuthStoreAdmin` (`HasRole`, `Authenticate` with
+`CheckPassword`, `UserGet`, `RoleGet`, the lists), none of which is this stage's. Threading
+`authOwn` to the apply thread (`apply.isAuthSteps` at the server) waits on the same: the server's
+environment admits no auth request (`AEnv.RW` is `False` for the auth store), so its apply thread
+has nowhere to use the authority. Auth's `Recover` in the server's terms (D22 S8d's premise,
+decided (a)) is left to D22, which states it: its auth side is `authStore.Recover.spec` (the
+store's invariant, `authOwnF`, the new backend's contracts) with the split `authOwnF_lockI_split`
+handing the new backend its lock's half.
+
+**Next for the end-to-end theorem.** The server in the mode `on γa`: `NewServer.spec` generic in the
+auth mode (the store from `newAuthStore_boot` in `on`, from the axiom in `off`), `E.authOn` no
+longer fixed, the apply thread admitting auth requests (`AEnv.RW` the auth buckets' write right,
+the authority `authOwn` in the apply thread's resources, the dispatch through the `stepSpec`s of
+`apply/AuthSteps.lean`, `Authenticate` minting its token's right); the server's token provider
+from `NewTokenProvider` with `"simple"` (names-only today: its spec gives only `tp ≠ nil`).
+
+**Trust base.** Unchanged (720 axioms, 6 sorries).
+
+## E2f of the auth plan: authkv's client side -- the checks proved, the contract over the contexts' metadata (2026-10-26 · `notes/auth-plan.md`)
+
+The parts of `examples/authkv`'s `Main` proof on the client's side that need no D22 and no server
+in the mode `on` (E2e's next step, another fork's).
+
+**The checks, proved and linked** (`Proof/.../authkv/`, `Spec/.../authkv/`): `keyOf`, `refused`,
+`Principals`, `Writer`, `LastIn`, `CheckHistory`, `checkKVs`, `checkTxnReads`, over the pure
+functions of `Checks.lean` (`keyOfK`; `writerK`, the first principal `who` with `x/<who>/` a
+proper prefix of the key; `histOk`, every event above the set-up's revision but the last write's a
+write its key's principal was permitted; `lastIn`). The replies are read as the client's reply
+lemmas give them: `txn.kvsIs` for a range's key-values, `opRespsMsg` for a transaction's
+responses. `checkTxnReads` runs `ResponseOp.GetResponseRange` from its code for every response
+kind (`wp_method_call`; the type assertion of a put's, delete's or nested transaction's wrapper
+fails and the getter returns `nil`): its spec, `ResponseOp__GetResponseRange.lean`, is of a range's
+only, and generalizing it would change its callers' proofs (the client's recipes, leasing,
+kubernetes, the server's `txn`, linkvtxn). `Writer` uses
+`wp_string_len`'s bound (`len(k) < 2^63`) to read `len(k) > len(p)` as the lengths' order.
+
+**The contract over the contexts' metadata** (`ClientAuth.lean`, `grpc/metadata/Outgoing.lean`).
+`metadata.outgoingOf` is the counterpart of E2c's `incomingOf` (opaque, a context being
+immutable), with `mdAdd` (a value appended to a key's) and `mdVals`. E2b's four parts:
+- C1, `userAttemptOk γa u h`: an attempt's handler context `h` of a client with the user name `u`
+  carries no token or one issued to `u` (`auth.ctxTokenOf`, `auth.tokIssued`);
+- C2 and C4, `deliversOutgoing c h`: a no-user client's attempt delivers its caller's outgoing
+  metadata as the handler's incoming metadata;
+- C3, the trust-boundary spec `metadata.AppendToOutgoingContext.spec` (**+1 axiom**: grpc's
+  `metadata` is names-only): from an `isContext`, a context with the same descriptor but its
+  values (as `withVersion`'s: grpc's code is `context.WithValue`, which delegates `Deadline`,
+  `Done`, `Err` and the context package's own key to its parent) whose outgoing metadata is the
+  argument's with the pair appended (a lower-case key; `FromOutgoingContext` and the transport
+  merge `added` after `md`).
+`reqCtx` is proved over C3 and `client.wp_WithTimeout_bg`: a `ctxOk` context whose `Err()`
+returns client errors (`ctxErrClient`, from `ctxErrClientAllW_of` for the appended context), the
+timeout context itself or, for the bad principal, it with `token: badtoken` appended.
+`badCtx_unbound`: a handler context delivering outgoing metadata whose token values are
+`[badtoken]` gives `AuthInfoFromCtx` no auth info in the mode `on γa` (E2c's `tokIssued_badToken`).
+Restated in `authkv/Results.lean` with the checks (`authkv_CheckHistory`, `authkv_checkKVs`,
+`authkv_checkTxnReads`, `authkv_reqCtx`, `authkv_bad_unbound`).
+
+**Not stated: the timeout context has no outgoing token.** True of Go (only grpc stores under its
+metadata key, and `context.WithTimeout(context.Background(), d)` stores nothing), but Perennial's
+context model describes no value at another package's key (`ContextDesc.Values` is unused by
+`isContext`), and `outgoingOf` is opaque. Options: strengthen `context.WithTimeoutBackground.spec`
+(this repository's, proved from Perennial's) with `⌜outgoingOf ctx' = none⌝` as a new premise-free
+fact (an axiom, its users' patterns to adapt: the read loop's `sendReadIndex` among them), or model
+the outgoing metadata by the descriptor's `Values` once Perennial's `Value` spec covers other
+keys. Left with `Main`.
+
+**Not done, and why.** `SetUp` and `Work` (and so `Main`): `SetUp`'s admin calls go through the
+client's `Auth` field, which `isNewClient`'s model does not describe (`NewAuth`, `RetryAuthClient`
+and the `authClient` methods are untranslated), to the server's Auth service, for whose methods no `isGrpcRpc`
+contract is stated (the KV service's are, `client/v3/ServerKV*.lean`); and both need the server in the mode `on` (E2e's next step). `Work`'s calls need,
+besides, each reply at the server's verdict for its principal (an error for a refused request: A1,
+A4, the API layer's checks, at the server's `isGrpcRpc` specs, which today are for auth off), and
+C1, C2/C4 in the client's attempt contract (`grpcInvokerOk` says nothing of metadata). `Main.lean`'s
+header lists these.
+
+**Trust base.** 721 axioms (+1, `metadata.AppendToOutgoingContext.wp_proof`), 6 sorries;
+collection `authkv` gains it and `context.ErrAny.wp_proof` (`reqCtx`'s).
+
+## D22 S8d: the auth store's Recover a named premise (2026-10-25 · the user's decision, (a))
+
+`applySnapshot.spec` takes the triple of `st.Recover(ab)` in the server's terms as a named premise
+(`srvAuthRecoverOk`: S8c's statement, `authBeOn st oldbe` to `authBeOn st newbe` given the new
+backend's contract, an open share, a write-back token and its tracked buckets with the auth buckets
+at the server's), which the auth track discharges in its E stage when the authority reaches the
+server (`notes/auth-plan.md`, E).
+
+## D22 S8d, second pass against the callees: two of S8's own axioms to restate (2026-10-25 · questions for the user)
+
+Laying the proof against the apply thread's resources found two statements of this track (S8c, W6)
+that do not fit, one of them too strong:
+
+- **`RaftCluster.Recover`'s axiom ignores the cluster's in-memory members (a gap in a trusted
+  statement, W6, 2026-10-25).** `Recover` replaces `c.members` with the image's (`UnsafeLoad`), but
+  the axiom neither takes nor gives `membership.clusterMem c mem` (opaque: "`c.members` is
+  `mem`"), which the apply thread holds in its rest resource (`srvRestOwn`) and the cluster's
+  contracts read (`UpdateAttributes`, `AddMember`). As stated, a caller keeps `clusterMem c mem`
+  of the old members after `Recover`: too strong whenever the image's members differ from the
+  apply thread's model (their attributes, say). No proof uses the axiom yet (S8d is its first
+  caller), so nothing proved rests on the gap. Options: (a) restate it: take `clusterMem c mem`,
+  give `clusterMem c mem'`, with the image premise naming the members it decodes to
+  (`clusterImageOk c r mem'`); (b) keep it and take `clusterMem`'s refresh as a separate premise of
+  `applySnapshot.spec`. Recommendation: (a), the statement true of the code.
+- **`lessor.Recover`'s axiom wants the lease owner's live set empty (`leaseOwn γl []`), but the
+  apply thread holds it at some `L`** (`apply.leasesLive`, existential: nothing in the apply
+  thread's state says `L = []`, though the workload grants none). Options: (a) restate it: any `L`,
+  `leaseOwn γl []` after (true of Go: `Recover`'s `initAndRecover` rebuilds the lease map from the
+  new backend's lease bucket, empty in the image), the ghost's other half in `lessorInv` updated by
+  the axiom; (b) a premise `L = []` of `applySnapshot.spec`, from the workload (`noGrant`), which
+  S-j1 would have to carry as an invariant. Recommendation: (a).
+
+## E2g of the auth plan: the token provider's constructor proved; the server in the mode `on` not reached (2026-10-26 · `notes/auth-plan.md`)
+
+The brief: (1) `NewServer.spec` generic in the auth mode, the store from `newAuthStore_boot` in the
+mode `on`; (2) the server's environment admitting auth requests, `authOwn` threaded to the apply
+thread; (3) `NewTokenProvider` with `"simple"` proved. Only (3) is done.
+
+**(3) `NewTokenProvider` proved** (`Proof/go_etcd_io/etcd/server/v3/auth/NewTokenProvider.lean`;
+until now the axiom of unit N1). Translated with bodies (`auth.toml`): `NewTokenProvider`,
+`decomposeOpts`, `newTokenProviderNop`, the constants `tokenTypeSimple`/`tokenTypeJWT` and the error
+`ErrInvalidAuthOpts` (which joins `authInit`, appended, through `etc/gen-init.py`'s auth errors;
+its initializer leaves `opaqueInitsOk`'s list). Proved: `decomposeOpts` (Perennial's
+`strings.wp_Split`, the loop over the `key=value` fields into the map; its error only with more
+than one field, so that `"simple"` cannot fail), `newTokenProviderNop`, and
+`newTokenProviderSimple` under a spec of its own with no premise (`Spec/.../newTokenProviderSimple.lean`:
+the index waiter's field read-only, and the provider's facts for a positive TTL only; S5e's
+`tokenSimple_new`, with its TTL and waiter premises, is now derived from it). The JWT provider's
+constructor is names-only: its axiom `auth.newTokenProviderJWT.wp_proof` (it returns; its spec's
+docstring says why, including `edKey`'s unchecked type assertions, which golang-jwt's PEM parsers
+make safe) replaces `NewTokenProvider`'s.
+
+**Exported statement changed:** `auth.NewTokenProvider.spec`'s post keeps `err = nil → tp ≠ nil`
+and adds: unless the options are not `"simple"` or the TTL is not positive, `err = nil`, the
+provider is `*tokenSimple` `p` with its index waiter's field `iw` (read-only), and, under fresh
+names, `simpleOk`, `simpleAdmin` and the rights' authority -- what `tokenSimple_okA` turns into
+the token provider's contract (E2e's `tokenProviderBoot`). `NewServer`'s proof takes the first
+conjunct only (`⟨%Htp, -⟩`); no other statement changed.
+
+**(1), (2): why not.** The server's apply environment in the mode `on γa` needs the apply layer's
+contract `apply.isAuthStore … (.on γa) E.RW` of the store, at the server's write right `E.RW`
+(the tracked buckets' half lent with the auth backend's, `authApplyOk`'s `rwLens`, shared with the
+alarm store, the lessor and the cluster): its permission checks, `IsAuthEnabled` and `Revision`
+are the real store's (`isAuthStore_of_authInv`), but its admin clauses (`AuthEnable` ...,
+`HasRole`, `Authenticate`, the eleven requests and the four reads) are stated over the batch
+lock's `csContract` and `RW` with no authority: in the mode `on` they need the admin side's
+authority `authOwn` (S4f: an append needs both halves of the history), which `RW` would have to
+lend, and they need `HasRole`, `Authenticate` with `CheckPassword` (bcrypt), `UserGet`, `RoleGet`,
+`UserList` and `RoleList` proved (`isAuthStoreAdmin`'s premise, E2a). So (1) and (2) are one step:
+restate `isAuthStore`'s admin clauses in the mode `on` as `apply/AuthSteps.lean`'s step specs (the
+authority in the apply thread's resources, as `kvOwn`'s `E.RD`), derive them of the real store from
+S4's proofs, prove (or bound at the trust boundary) the admin reads and `CheckPassword`, then
+generalize `NewServer`'s ten `.off` instantiations and its post `E.authOn = false` (every closed
+theorem keeps `env₀`'s `.off`, its form derived), the store from `newAuthStore_boot` in the mode
+`on` with `authSchemaBoot` (D22's) and `tokenProviderBoot` (from this stage's post and
+`tokenSimple_okA_run`, over `ValidSpec`: the simple provider's `isValidSimpleToken` is proved on
+contexts only, `tokenSimple_okCtx`) as premises. Not attempted in this stage. The server's
+Auth-service gRPC contracts (`isGrpcRpc`) wait on the same.
+
+**Trust base.** Count unchanged: `auth.NewTokenProvider.wp_proof` replaced by
+`auth.newTokenProviderJWT.wp_proof` (baseline and the eight collections listing it updated).
+
+## E2h of the auth plan: clientv3's Auth API, and `SetUp` over the Auth service as a premise (2026-10-26 · `notes/auth-plan.md`)
+
+What `examples/authkv`'s `SetUp` needs on the client's side (E2f's "Not done": the client's `Auth`
+field, `NewAuth`, `RetryAuthClient`, the `authClient` methods untranslated, and no contract for
+the server's Auth service).
+
+**Translated and proved** (`Code/go_etcd_io/etcd/client/v3.toml`, `api/v3/etcdserverpb.toml`):
+the generated Auth stub's `NewAuthClient` and `authClient.{UserAdd, UserGrantRole, RoleAdd,
+RoleGrantPermission, AuthEnable}` (`Invoke` with `StaticMethod`, the KV stub's shape), the retry
+client's `RetryAuthClient` and its five (no retry option: an admin call has the default
+`nonRepeatable` policy), the client's `NewAuth` and `authClient`'s five (the request built, the
+error through `ContextError`; `RoleGrantPermission` builds the permission from `[]byte(key)`,
+`[]byte(rangeEnd)`); client/v3 now imports `authpb` (the init chains regenerated). `NewAuth`'s
+trust-boundary axiom (item 5) is now a theorem: **-1 axiom**. `isNewClient` gains its last part,
+the `Auth` field holding a `*authClient` over the connection (`authObjAt`); `LeaseClient`'s
+pattern adapted, the other users' patterns end in `-`.
+
+**The vocabulary** (`client/v3/InvAuthConn.lean`): the messages as `ProtoMsg`s whose decoded copy
+is the auth store's own request predicate (`auth.userAddReqIs` with the password,
+`auth.userGrantRoleReqIs`, `auth.roleAddReqIs`, `auth.roleGrantPermissionReqIs` with the
+permission's `auth.ownPermW`), so that the server's handlers can hand the request on as it is; the
+responses carry nothing the client reads (`Unit`); `authCallOut Q resp err`, a call's answer
+(`nil` and `Q ()`, or a client error), `putCallOut`'s shape. Every call is specified for any spec
+`Spec` the server registered for the method and a **persistent** precondition `□ ▷ Spec m Q`:
+the retry interceptor may deliver an admin request several times (a call that failed before it was
+sent, a refreshed token), and D29's write-once mode is for the KV methods only (`kvMethod`).
+
+**`SetUp`, over the Auth service as a premise** (`Spec/.../authkv/SetUp.lean`): `setupAuthOk ep
+Su Sg Sr Sp Se Q`, the five methods' specs at the endpoint (`isGrpcRpc`) and each of the eight
+calls' `□ ▷ Spec m (fun _ => Q i)`; `SetUp` returns `ok`, and if `ok` every `Q i`. Its puts go
+through `client_Put_any` (new in `ClientPutGet.lean`: `New`'s client with a persistent update, the
+first case of `client_put_any`, no write-once premise), since authkv's server refuses and so is
+not refusal-free (E2d). How the server's side discharges `setupAuthOk` (E2i's Auth-service
+contracts): its `Su`, ... are the handlers' over the apply layer's admin steps
+(`apply.isAuthSteps`); with a persistent precondition, a `Q i` is a persistent witness of the
+step's effect (the history's lower bound holding the step), which the set-up's sole admin client
+then knows for each call.
+
+**Not done.** `Main` (still a `sorry`): it needs the server in the mode `on` (E2i), the
+Auth service's contracts discharging `setupAuthOk`, and `Work` (E2b's, E2f's lists).
+
+**Trust base.** 721 → 720 axioms (-1, `NewAuth.wp_proof` gone), sorries unchanged (6); the nine
+collections that listed it updated, and `authkv` gains the client's existing gRPC trust-boundary axioms
+(`StaticMethod`, `grpcConn`, `status.FromError`, ...) that `SetUp` reaches.
+
+## D44: one stated spec per KV method; the client's KV calls specified over one KV, its members hidden (2026-10-25 · the user; branch `kv-stated-specs`)
+
+*Supersedes in part* "A generic gRPC specification" (the client's KV specs generic in a `GrpcSpec`)
+and "The client meets the server (unit C1)"'s branch note "Where the two sides meet" (the client
+keeping its specs generic, `client_put_etcd` instantiating them).
+
+**The user's request.** `kv.Put.spec` (and `kv.Get`, ...) said only "whatever spec is registered at
+the gRPC endpoint, the call provides": too generic. There should be one stated gRPC spec for `Put`
+(each KV method) that the client and the server both refer to, and a precondition of the client's
+calls (`isKv`) that holds the registrations of every server the client talks to. Asked which
+statement should be the functions' specs (the members' or one KV's), the user chose one KV's, the
+members' statements internal lemmas ("Abstract only").
+
+**Three layers.**
+- *The stated gRPC specs* (`client/v3/KVService.lean`, moved from `client/v3/Results.lean`):
+  `etcdPutSpec`, `etcdRangeSpec`, `etcdDeleteSpec`, `etcdTxnSpec` and their replies (`putReplied`,
+  `rangeReplyOk`, `deleteReplied`, `txnReplied`), at a member's apply environment, read names and
+  ids; `SrvAt` and `kvRegsAt` (a member's four registrations), `anySpec` (a call through a client
+  of several members passes the conjunction). The server's handlers are proved against these
+  definitions (`Results.lean`'s `etcd_putMethodOk`, ..., `etcd_kv_served`, `etcd_kv_started`); the
+  client's proofs use the same ones. Only the transport stays generic in a `GrpcSpec`:
+  `ClientConn.Invoke`, the generated stub (`kVClient.*`), the retry client (`retryKVClient.*`).
+- *The members' lemmas* (`KVMembers.lean`'s `kv.Put.specM`, ...; proved as `kv.Put.wp_members`,
+  ..., linked in `LinkMembers.lean` as `v3.kv.wp_PutM`, ...): over `isKV api ms` (the `*kv`'s
+  connection to the members' endpoints and every member's `kvRegsAt`), the caller's side at each
+  member (`floorsAt`, `knownAt`, `putUpd`, ...), the reply some member's (`putAns`, ...). What the
+  results about the server's own model use (`ServerKV*.lean`, the recipes', the cache's,
+  `Results.lean`'s `client_*_any` and `client_*_end_to_end`): a member's reply carries the server's
+  certificates, the revision's token and the applied index's witness, which no KV-level statement
+  can (they are per member).
+- *The functions' specs* (`Spec/go_etcd_io/etcd/client/v3/{kv__Put,kv__Get,kv__Delete,kv__Do,
+  txn__Commit}.lean`): over `isKv kv γ dup`, the `*kv` a client of etcd's KV `γ`: `∃ ms` (hidden),
+  `isKV`'s facts, every member's start (`srvStart`: the floor `[]`, the committed index `0`, free),
+  every member at `γ`'s state name (`x.γr.kv.st = γ.st`: a cluster booted together), and, unless
+  `dup` (a write may be delivered more than once), every member refusal-free. The caller gives the
+  atomic update itself, written out in the spec: `□?dup (AU <{ ∃∃ σ, etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \
+  ↑kvN, ∅ <{ etcdKV γ (kvOpStep op σ), COMM Q σ }>)` for a write (persistent only if `dup`), a
+  persistent read AU (or none) for a range. The postcondition is written out too: `nil` and the
+  reply's message with `Q σ` and the reply's fields as functions of `σ`, or a client error
+  (`kvErr`). The parameters are named after the Go arguments (`kv`, `ctx`, `key`, `val`,
+  `opts_sl`/`opts`, `op`). The proofs: the
+  member-level `kv.Do`/`txn.Commit` at the hidden members (`putUpd_of`, ...: one update at `γ` is
+  each member's, `kvOpAu1_names`), the replies read back as the state's (`putAns_st`, ...).
+
+**Choices made in the abstract specs** (the open points of the design, decided here):
+- *A write's update* under `□?dup` (the user: the AU in the spec; the optional `□` is Iris's
+  `intuitionisticallyIf`): persistent if the client's retry interceptor may resend the write
+  (`issues/etcd-client-retry-put-ctx-error.md`), fired at most once on a refusal-free client (D29).
+- *Ranges at the latest revision only* (`kv.Get.spec`, `kv.Do.spec`'s range case: `rev = 0`): a
+  reply at an earlier revision is not a function of the current state. Every client-level caller
+  reads at `0`; the server-model results (the recipes' gets at a revision) use the members' lemma.
+- *Leases, `WithFromKey` deletes*: excluded as before (`leaseID = 0`, `rangeEnd ≠ [0]`: what
+  etcd's specs cover).
+- *The update's mask* is `kvAu1`'s (`(⊤ \ ↑srvRaftN) \ ↑kvN`).
+- *The workload's `writes`* (D23's premise `γ.wl.writes op` of every update) removed (D45): the
+  server admits every KV write (`admits_kv`). watchkv's `srvNoDupKeys_wk`, which used it, is
+  broken until redone in watchkv's own proof.
+- *`kv.Txn`, `txn.If`/`Then`/`Else`* unchanged (no request: generic in the builder's addresses);
+  `txn.Commit.spec` takes the builder, its `txnKvIs tp api` and `isKv api γ rf`, the builder's
+  connection swapped for the `*kv`'s (`txnObjAt_conn`, by the `kv` field's agreement).
+
+**One set of read names per member.** The server registers `Put`/`DeleteRange` at the request
+path's read names `ρ.rd`, `Range` at the read loop's `γr`, `Txn` at both; a started server has
+`ρ.rd = γr` (`InvStart`, `InvBuild`, `ReadServer`). `SrvAt`/`kvRegsAt` take one (`γr`), so the
+results that carried both (`ServerKV*`'s `γw γr`, the recipes', `client_txn_any`'s `γw`,
+`kvWritesOk`) take one now; `etcd_kv_started` still gives the four registrations at `ρ.rd`/`γr`,
+from which a caller with `ρ.rd = γr` assembles `kvRegsAt`.
+
+**Rejected.** Keeping the client's specs generic and instantiating them in `Results.lean` (branch
+`kv-put-link`, 2026-10-15, never merged): the generic triple says nothing about etcd. The members'
+statements as the functions' specs (`isKV api ms`, an update per member, a member's reply): the
+user's choice was one KV; the members' are kept for the results that need a member's reply's
+server facts. A cluster-level gname (`KVCluster`) distinct from `KVNames`: `isKv` takes a
+`KVNames` and uses only its `st`, the field the boot makes common.
+
+## D45: the client spec supports what the proof supports; a client's own facts in its invariant; no built-in restriction on the raft log (2026-10-25 · the user)
+
+*Supersedes* D19q's workload parameter (`SrvWorkload`: the requests the server admits, the
+lessor's grant guard) and D23's `writes` (the operations a client may deposit, which watchkv
+restricted to its plan's puts to get `srvNoDupKeys`).
+
+**The decision.**
+- *The etcd client's specs allow any operation the proof supports so far.* What is not supported
+  yet is a precondition stated directly in the spec (e.g. `kv.Put`'s `leaseID = 0`, `kv.Delete`'s
+  range end not `[0]`, `txn.Commit`'s plain transactions); widening it is future work on the
+  proof, not a parameter.
+- *Facts a particular client needs belong to that client's proof*, maintained with an invariant of
+  its own (over `etcdKV γ σ` and its own ghost state), not a restriction built into the server or
+  the client specs. watchkv's "no key written twice in one revision" is the case in point: it
+  moves from a workload restriction to watchkv's own argument (to be redone).
+- *No built-in restriction on the requests that enter the raft log.* The server's proofs are not
+  parameterized by an admission predicate: what enters the log is what the server's verified
+  proposers send (`EtcdServer.Put`/`DeleteRange`/`Txn`, the monitors), and any shape fact the apply
+  proof needs of committed entries follows from that, not from a configurable workload. So
+  `SrvWorkload` goes: D44 removed `writes`; `admits` and `grant` follow (the grant guard is the
+  lessor's fact that no lease is granted, which no supported request does).
+
+**Why.** An arbitrary predicate in a ghost-name record (`γ.wl`), with separate obligations that it
+let the expected operations through, made the specs say less than they seemed to and was hard to
+audit; the client spec should say directly what it supports. (D23 considered a fact in the
+client's proof and rejected it; see this file's header: decisions are not binding.)
+
+## D46: the client specs over etcd's whole KV state: a multi-revision store of maps (2026-10-25 · the user)
+
+*Supersedes* "Every KV operation as a persistent atomic update on the whole state" (unit T2)'s
+state, the store at its latest revision (`KVState := ⟨kvs : List EtcdKv, rev⟩`).
+
+**The user's request.** The etcd spec should be stated on the entire client-visible state, which
+is mvcc's KV state at every revision a client can read (reads at a revision, watches from one), not
+only the latest; and not as a log of operations: a multi-revision KV state, which compaction trims
+(not append-only). Each revision's store a map, not a list.
+
+**The state** (`KVModelDefs.lean`, `KVStore.lean`).
+- `KVRec`: a key's record at a revision (`mvccpb.KeyValue` without the key: value, create and mod
+  revisions, version, lease); `KVStore := GMap GoString KVRec`, the store at one revision.
+- `KVState := ⟨compacted, base, later⟩`: the compaction revision, the store at it, the stores at
+  each later revision up to the current one. Accessors: `rev` (the current revision), `store` (the
+  current store), `at r` (the store at revision `r`), `readRev rev` (the revision a range reads).
+  A write adds the next revision (`commit`); a compaction would raise `compacted` and drop stores
+  (not in the server's model yet: the server's state has `compacted = 0`). Non-emptiness is by
+  construction (`base`), so `commit`'s laws need no side condition.
+- `σ.kvs`, the current store listed in key order, stays as a derived view: the range semantics
+  (`txn.srvRangeOk`, `srvCount`, `rangeIn`, the transaction runs) and the server's model are
+  stated over sorted lists; `storeOf`/`KVStore.kvs` are inverse on sorted lists (`kvs_storeOf`,
+  `storeOf_kvs`), so nothing is lost.
+- The server's side: `kvStateOf log` is the store of each revision of the log (`mvcc.stateAt`);
+  `kvStateOf_rev`, `kvStateOf_kvs`, `kvStateOf_at`, `kvStateOf_commitLog`, `kvStateOf_backendLog`.
+
+**What the specs gain.** `kv.Get` at any revision the state keeps: the reply is the selection of
+`σ.at (σ.readRev rev)` (the premise "latest revision only" of D44 is gone). A put's previous
+key-value is the key's binding in `σ.store`. The watch facts (each revision's changes) become
+statable over `σ` (two consecutive stores), so an application can keep a fact like "no key
+written twice in a revision" in its own invariant, or the server can prove it; and the cache's and
+recipes' separate history model (`EtcdModel`, certified logs) could be restated over it.
+
+**Rejected.** The server's `mvcc.Log` as the client's state: it is a log of changes, append-only,
+and a revision's changes are not a state. A function `GoString → Option KVRec` per revision: not
+countable (the ghost variable needs `Pos.Countable`) and not finite; `GMap` is both, with
+extensional equality.
+
+## D47: the state's later revisions are their changes, in order; a watch is repeated reads of it (2026-10-25 · the user)
+
+*Supersedes* D46's `later : List KVStore` (a store per revision) and its "Rejected" paragraph
+(a revision's changes are not a state).
+
+**The user's decision.** `KVState` holds the list of every change, so the updates of a
+transaction are ordered in the abstract state; the watch spec guarantees that the events it
+returns are computed as etcd computes them from its key bucket (`rangeEvents`/`kvsToEvents`).
+
+**Why** (what etcd does, `server/storage/mvcc`). etcd never stores a store per revision: each change
+of a write transaction is a record of the backend's `key` bucket at its own revision
+`(main, sub)` (`kvstore_txn.go`: a put's `KeyValue`, a delete's tombstone), and both ways a
+watch's events are built read those changes: a synced watcher's from the transaction's change list
+(`watchableStoreTxnWrite.End`), an unsynced one's from the bucket over `[minRev, curRev + 1)`
+(`kvsToEvents`). A store per revision is a derived view, lossy when a revision writes a key twice
+(`[put k v₁, put k v₂]`, `[put j, del j]` with `j` absent: the stores of `[put k v₂]` and of
+nothing), which etcd's check allows (`issues/etcd-txn-check-intervals-sibling.md`); so the watch
+facts (`srvNoDupKeys`, watchkv's `WkLog`) could not be stated over it. Compaction fits:
+compacting at `c` keeps each key's latest record at or below `c` and every later one, the store
+at `c` and the later revisions' changes.
+
+**The state** (`KVModelDefs.lean`; the field named after mvcc's `tw.changes`, a write transaction's changes). `KVState ⟨compacted, base, changes⟩` with `changes : List (List
+mvcc.Change)`: the changes of revisions `compacted + 1, ..., rev`, each in order. The views D46 had
+are computed (`runFrom`, `mvcc.stateAt`'s step): `KVState.at r`, `store`, `kvs`, `rev`, and
+`changesAt r`; `commit cs` appends `cs`; `kvStateOf l = ⟨0, storeOf (stateAt l 0), l.drop 1⟩`.
+The lemmas D46's users rely on keep their statements (`kvStateOf_at`, `commit_kvs`, ...), so the
+KV specs are unchanged. The name `KVState` stays for now: `EtcdState` would sit beside the
+cache's `etcdState` and `EtcdStateWf`, which the watch's restatement will touch.
+
+**The watch (candidate, `client/v3/WatchState.lean`, `watcher.Watch.specσ`).** As a linearizable
+`Get`, the caller gives a persistent read update of `σ`; each response is one firing of it (`□ Q
+σ`), and its events are exactly `σ.rangeEvents o (c + 1) (c' + 1)`: revision `r`'s events
+`mvcc.evsOfRevM r (σ.at (r - 1)).kvs (σ.changesAt r)` (one per change, in order: a put's the
+key-value it wrote, a delete's the key with `ModRevision = r`), filtered by the range. A progress
+notification at `p ≤ σ.rev` says no event in `(c, p]`. `rangeEvents_kvStateOf`: at a log's state
+these are mvcc's `logEvents`, what the server sends. Neither `srvNoDupKeys` nor `startOk` is a
+premise. The candidate keeps the current completeness promise's scope (a non-empty prefix not all
+`0xff`, `rev ≥ 1`) and one member (`isKvWatcher`); the existing `watcher.Watch.spec` and its
+proofs are unchanged until the candidate is audited.
+
+## D48: the clients' model of etcd an adapter over the KV state; the specs say the state is a well-formed log's (2026-10-26 · the user: "keep EtcdModel as an adapter on top of the new spec", "do (a)")
+
+**The question.** The libraries (the cache, the recipes; concurrency and leasing over an abstract
+model) state their results over `EtcdModel GF`, which the server instantiated with its own facts
+(`v3rpc.etcdModelOfServer`: sealed logs, certificates, the apply thread's revision tokens); their
+contracts were proved at the server's members. With the client's specs stated over etcd's KV state
+(D44, D47), the libraries should rest on those specs only.
+
+**The adapter** (`client/v3/EtcdModelKV.lean`, `etcdModelOfKV γ`). A client keeps the KV state's
+half in an invariant (`kmInv`, D45's "a client's own facts in its invariant") with the append-only
+list of the state's changes (`monoListAuthOwn γ.ch`: every change of the KV is some client's
+update, which fires in the invariant) and the revisions' tokens. `etcdState`/`EtcdStep` are the
+server's definitions over logs the client saw (`kmLog`: a prefix of `[] :: l` for a lower bound
+`l` of the changes, well formed and small), `etcdReachedAt`/`etcdReadAt` a lower bound,
+`etcdRevToken` minted by the adapter's write update (`km_write_au`). Every law is the server's
+proof over `kmLog`: two logs a client saw are in prefix order, as two sealed logs were.
+
+**An application's facts in the adapter's invariant** (2026-10-26, for the examples). The
+invariant holds the client's half of `etcdKV`, so it is where a client's own fact about the KV's
+changes must live (D45: watchkv's "each revision from 2 is one of the plan's puts"): `KMNames.W`, a
+property of the changes the invariant keeps. A read keeps it trivially (the read-side contracts
+hold for any `W`); a write's update needs the write to keep it (`km_write_au`'s premise), and the
+libraries' write contracts take `KMWritable γ` (every operation keeps it; `fun _ => True`).
+
+**What the specs had to add (option (a)).** The laws (positive versions, `createRev ≤ modRev ≤ r`)
+are facts about well-formed small logs (`txn.stateAt_client_revs`), which an arbitrary `σ` need
+not be. So every successful KV reply gives `kvLogOk σ` (`KVLogOk.lean`: `σ = kvStateOf σ.log`, its
+log `LogWf'`, fewer than `2 ^ 63` revisions, at most `2 ^ 62` changes); a write's reply also of the
+state after (the log after the write is the certificate's); a watch response that moves the
+position gives `kvLogOkTo σ c'` (through the new position only: the update fires at the committed
+state, whose log the store has not applied, so has no bound; the events are of a sealed prefix).
+The server proves them from the reply's certificate and the receipts' bound, which `isKv` and the
+watch's member facts now carry (`receiptBound GF ≤ 2 ^ 62`, pure: the end-to-end results bound it).
+
+**What the adapter cannot give.** A serializable read fires no update, so the client's model learns
+nothing from it: the get contracts (`isEtcdKVE`, `isEtcdKVTodo`) take linearizable gets
+(`serializable = false`), as every get of the cache and the recipes is; STM's serializable reads
+(`concurrency/stm.go`) could not be connected this way. A write's token needs its update fired at
+most once: the write contracts are proved for a client that sends a write at most once
+(`isKv api γ false`).
+
+**Rejected.** A per-reply persistent "this state is the KV's" fact in the specs (it would answer
+serializable reads too): a second, server-maintained history at the KV's names, against D44's
+abstract `isKv`. Keeping `etcdModelOfServer` for the libraries: the watch spec's responses are
+read updates the caller chooses, so they cannot carry the server's sealed logs.
+
+## The server's compaction and membership checks proved (2026-10-26 · three trust-boundary axioms discharged)
+
+`EtcdServer.compactRaftLog`, `EtcdServer.IsLearner` and `EtcdServer.IsMemberExist` were
+names-only trust-boundary axioms (the request path's unit 4b, P3b); they are now translated with
+their bodies (`Code/.../etcdserver.toml`) and proved, over raft's proved `MemoryStorage.Compact`
+and over two membership methods translated and proved with them
+(`RaftCluster.IsLocalMemberLearner`, `RaftCluster.IsMemberExist`, `membership.toml`), both under
+the cluster's lock invariant `rcLockInv` as `IsIDRemoved` is. `IsLocalMemberLearner`'s `Panic`
+branch is dead by `rcLocalIn` (the local member's entry, `localKept`); the specs are unchanged.
+v3rpc's interceptors now link the two wrappers through the server's Link (`@`).
+
+**`compactRaftLog`** (`EtcdServer__compactRaftLog.lean`): the atomic `inflightSnapshots` read in
+its invariant (`srvInflight`), `compacti` within `Compact.spec`'s premises (at most `snapi`, hence
+the floor and the snapshot; the cap from the spec's premise). `Compact` returns `nil` or raft's
+`ErrCompacted`, and of the latter `errors.Is` is `true`, so the `Panic` is dead. That needs
+`ErrCompacted` to be the `errors.New` error it is: raft's `isInitialized` gains
+`"#ErrCompactedNew" ∷ errorsNewVar ErrCompacted msg` (as `ErrStoppedNew`; its init proof already
+had it), and the proof takes the semantic premise `ErrorStringLeaf` (a `*errorString` is a leaf
+error without `Is`). `gen-link.py` carries the premise to the results that reach it:
+`applyAll`, `run`, `start`, `Start` and their restatements in the server's `Results.lean`
+(`applyAll_model`, `server_run`, `server_start`, `server_Start`, `start_gives_views`). Every
+example result that starts the server already took `ErrorStringLeaf` (rafthttp's handlers), so no
+example's statement changes.
+
+Two spec-side changes the proof needed: `compactRaftLog.spec` takes the logger's cell
+(`srvLgAddr s ↦□ l`, `l ≠ null`, which `Logger.spec` needs), and `isServerApplyAll` carries it
+(`start` has it from `srvFieldsAt`), so `snapshotIfNeededAndCompactRaftLog` passes it on.
+
+**Phantom `StorageModel` binders dropped.** `MemoryStorage.Compact`'s and `lastIndex`'s spec and
+proof files, and `InvMemstorage.lean`'s `section proof`, declared `[StorageModel GF]` without using
+it: theorems take such an instance argument anyway, and `gen-link.py` adds it to the result when
+the spec file mentions it, so `MemoryStorage.wp_Compact` asked for a storage model the server's
+Link (no `MemStorReg`) does not have. None of them uses one (the `MemoryStorage`'s own predicates
+are not stated over the abstract model); removed, the results are unchanged but for the binder.
+
+**Trust base.** -3 axioms (`EtcdServer.compactRaftLog.wp_proof`, `EtcdServer.IsLearner.wp_proof`,
+`EtcdServer.IsMemberExist.wp_proof`); `ErrorStringLeaf` is an existing semantic premise.
+
+## E2j of the auth plan: the admin reads and `CheckPassword` proved (2026-10-26 · `notes/auth-plan.md`)
+
+The reads E2a and E2g list as unproved for `isAuthStoreAdmin`'s clauses and `NewAuthStore`'s
+server statement: `HasRole` and `Authenticate` were already proved (S4c, S5); this stage proves
+`UserGet`, `RoleGet`, `UserList`, `RoleList` and `CheckPassword`, linked in the server's
+`Link.lean` (`etc/link-lean-first-server.txt`).
+
+**The backend's reads** (`InvAuth.lean`, `authBackendReads`, a clause group of both
+`authWBackendOk` and the backend's `authWBackendOkR`, copied by `authWBackendOk_of_R`): with the
+write token `T` and the admin side's authority `authOwn M hs`, each answers from the latest state
+(`histLast`) and keeps both: `GetUser(name)` (`userOut`), `GetRole(name)` (`roleOut`),
+`GetAllUsers()` (`usersOut`: one message per user, each once, in no promised order),
+`GetAllRoles()` (`rolesOut`). The first three are schema's read transaction (`ReadTx`, `RLock`,
+the read, `RUnlock`: `schema/auth_users.go`, `auth_roles.go`), so they run no hook and take no
+critical-section contract; `GetAllRoles` is the batch transaction (`Lock` is `LockInsideApply`,
+the hook runs: it takes `mvcc.csContract` and gives `Post`). Its read transaction's twin
+`UnsafeGetAllRoles` panics (`issues/etcd-auth-readtx-getallroles-panics.md`); etcd's
+`GetAllRoles` does not use it, and the contract names only the backend's `GetAllRoles`.
+
+**A bug in this repository's contract, fixed.** S5's `GetUser` clause (appended to
+`authWBackendOk` for `Authenticate`) said schema's `GetUser` was the batch transaction's `Lock`,
+`UnsafeGetUser`, `Unlock`, and gave the hook's post `Post` from the caller's `csContract`. Go's
+`GetUser` is the read transaction: no hook runs, so no real backend could produce `Post` (it
+needs the hook's resource `P`). The clause now takes and gives no `csContract`;
+`Authenticate`'s proof turns its `csContract` into `Pre` first (`csContract_noWrite`), within its
+post's `Post ∨ Pre`, which is unchanged. S4f's docstring of `authWBackendOkR` repeated the
+mistake; corrected.
+
+**The specs** (`Spec/.../auth/authStore__{UserGet,RoleGet,UserList,RoleList,CheckPassword}.lean`;
+the replies in `auth/Reads.lean`):
+- `UserGet(r)` (`userGetReqIs r name`), `RoleGet(r)` (`roleGetReqIs`), `UserList(r)` with
+  `authInv`, `authOwn M hs`, `authWR` (the store's user's half of `be`: these read `as.be`
+  without `beMu`, as `HasRole` does; the apply thread, which runs them, is also `Recover`'s only
+  caller): the latest state's reply (`userGetOut`: `ErrUserNotFound` and no response, or the
+  user's roles copied; `roleGetOut`: `ErrRoleNotFound`, or for a role other than `root` its
+  stored permissions as read-only messages whose known ones are the state's, `root`'s reply the
+  package's `rootPerm`, left open; `userListOut`: the users' names, each once). No hook, no
+  `csContract`: the apply layer's `authReqContract` clauses (`Post ∨ Pre`) follow with
+  `csContract_noWrite`.
+- `RoleList(r)` likewise with `csContract`, giving `Post` (`roleListOut`).
+- `CheckPassword(username, password)` with `enabledRd`, `beRd` and `R` (the request side's
+  resources, as the permission checks'; it is the API layer's, before `Authenticate` is proposed):
+  `passwordChecked`: an error, or no error with auth enabled at a recorded state and the revision
+  of a recorded state that has the user (`authSnap`, the locked read transaction's). Nothing about
+  the password.
+
+**The trust base: bcrypt.** `CheckPassword` is translated now (`auth.toml`); its comparison
+`bcrypt.CompareHashAndPassword` stays names only, and its spec
+(`Spec/golang_org/x/crypto/bcrypt/CompareHashAndPassword.lean`) is a new trust-boundary axiom
+(D-AU6, password hashing out of scope): it returns some error and keeps its two slices. Faithful
+to x/crypto v0.57.0 (etcd's `server/go.mod`): `newFromHash` errors on a short hash or a bad
+version or cost, its slicing after the length check is in range, `bcrypt` errors on a bad salt,
+the comparison is constant-time; no panic, no write to the arguments. Safety does not rest on the
+answer: a wrong one would let a client authenticate as the user it names, which the plan's
+results treat as that user.
+
+**Proofs.** `UserList`/`RoleList` loop over `GetAllUsers`'s messages: their names are made
+read-only first (`ReadsLemmas.lean`, `usersOut_names`/`rolesOut_names`: an update of each
+message's `Name` field to a persistent points-to, the other fields dropped), and the response's
+`make`'d slice holds the names copied so far (`take_replicate_set`). `CheckPassword`'s closure
+(its `defer tx.RUnlock()`) runs over `lockedReadTx`; the user's `Options` and `Password` fields
+are read-only once read.
+
+**Not done.** The apply layer's clauses of `isAuthStore` in the mode `on` (E2g's step: they need
+`authOwn` in the apply thread's resources, E2i's) and the off mode of these reads (the specs are
+generic in the mode `M`; only `NewAuthStore`'s server statement is off-mode).
+
+**Trust base.** +1 axiom: `bcrypt.CompareHashAndPassword.wp_proof`.
+
+## E2i of the auth plan: the store's apply contract in the mode `on`, the server's auth store in either mode; `NewServer` generic not reached (2026-10-26 · `notes/auth-plan.md`)
+
+The brief (E2g's "what's left", steps 1, 3, 4): (1) `apply.isAuthStore`'s admin clauses in the mode
+`on` as the step specs of `apply/AuthSteps.lean`, the authority in the apply thread's resources; (2)
+`NewServer.spec` generic in the auth mode, the store from `newAuthStore_boot`; (3) if reachable, the
+server's Auth-service gRPC contracts in the mode `on`. Done: a first form of (1) and the auth half of
+(2); (2) itself and (3) not.
+
+**(1) The admin clauses gated by an admission premise** (`apply.adminAdmitted M := M.isOn = false`,
+`apply/Contracts.lean`). The real admin clauses in the mode `on` need, besides the authority
+`auth.authOwn` (which the server's write right could lend), the step premises `auth.stepOk` (the
+revision below `2 ^ 64` after the bump, a next state's permissions within the cache trees'
+`2 ^ 63`), which no resource of the apply thread implies at an arbitrary history: they are a budget
+the workload has to hand each admin request (a ticket per request, the authority's invariant
+`revision + tickets outstanding` bounded, and per-entity counts bounded by the revision; or a pure
+bound the request's admission carries), and the request's caller has to get the authority back to
+observe the step (the E2 theorem needs the history after `SetUp`). Neither exists yet: the server's
+workload admits no auth request (`rqOk`). So this stage states what is true now and shapes the place
+the admission goes: every admin clause of `isAuthStore` (`HasRole`, `AuthEnable`, `AuthDisable`,
+`Authenticate`, the eleven user and role requests and the four reads; `authReqContract`,
+`authReqContractN` take the mode) takes `⌜adminAdmitted M⌝`, true in the mode `off`, false in `on`
+and `any`; the request facts `reqFacts` of the auth methods and `applierTriples`' `AuthEnable` /
+`AuthDisable` clause carry `⌜adminAdmitted E.authMode⌝`, and the sixteen `applierV3backend` admin
+specs and `authApplierV3`'s `UserGet`/`RoleGet` take it (`Spec/.../apply/applierV3backend__*.lean`;
+the layers pass it on unchanged; `dispatch` discharges every auth request by `rqOk`). In the mode
+`on` the clauses are vacuous, so the real store meets `isAuthStore (.on γa)` from its invariant
+(`apply.isAuthStoreAdmin_on`, `authApplyOkM_on`, `AuthApplyOn.lean`). The admission premise is
+where (1) proper goes: replace `⌜adminAdmitted M⌝` in the mode `on` by the request's admission
+(the authority with the step's premises at its history, given back after the step), and the
+`applierV3backend` specs' posts by `AuthSteps.lean`'s step results.
+
+**(2), its auth half: the server's auth store in either mode** (`AuthSrv.lean`). `NewServer` calls
+`NewTokenProvider`, then `mvcc.New` (whose owner tag names the auth mode, so the mode, and with auth
+on the auth names, must exist before it), then `NewAuthStore`. `authSrvTP on` states the two auth
+calls as one contract: `NewTokenProvider`, with no error, gives a mode `M` with `M.isOn = on` and
+`authStoreKit M tp`, `NewAuthStore`'s axiom's triple with the apply contract in the mode `M`
+(`authApplyOkM`, `InvBoot.lean`; `authApplyOk` is its mode `off`) at a resource the kit holds.
+`authSrvTP_off` (of `NewTokenProvider`'s proof and `NewAuthStore`'s axiom) is what `NewServer`'s
+proof uses today; `authSrvTP_on` (restated `srv_auth_tp_on`, `etcdserver/Results.lean`): the simple
+provider (options `"simple"`, a positive TTL), the auth names allocated over the boot state with the
+provider's token names (`auth.authBoot_alloc`), the provider's contract (`tokenSimple_okA_run`, over
+`auth.ValidSpec`, a premise: `isValidSimpleToken` is proved on contexts only), and the store from
+`auth.newAuthStore_on`, not the axiom, with its request side and apply contract of its invariant.
+What only D22 can prove is the named premise `authSchemaSrv`: given the batch lock's half of the
+history at the boot state, schema's auth backend over the server's backend meets the store's
+backend contracts, taking the backend resources the axiom takes and giving back what it gives back
+(E2e's `auth.authSchemaBoot` at the server's backend). `auth.newAuthStore_on`'s post names the
+backend the store's field holds (`auth.authWRAt`, forgotten to `authWR` by `authWRAt_authWR`), so
+that the server's `authBeOn` can name it.
+
+**(2) itself, not reached.** `NewServer.wp_proof` generic in `on` (its `h25`, `h30` replaced by
+`authSrvTP on`, the start's chain `alarmChain on false false` for `bootKV`, the environment's mode
+`M`, the post `E.authOn = on`) was written (the edit is mechanical: ten literals, the two calls, the
+`mvcc.New` tag, the post; `word` must not see `M.isOn = on` in the Lean context, it substitutes `on`
+and breaks later goals: keep it in the Iris context), but its compile exceeded 17 GB and was
+stopped (the module compiles in a few GB at the mode `off`); not committed. Next: find which step
+the abstract mode makes blow up (bisect with `sorry`s; suspects the `envAgree`/`srvFloorFact`
+equations and `iExactEq Huo; rfl` over the literal environment), or state the generic proof over an
+environment variable `E` with `E.authMode = M` instead of the literal.
+
+**E2j's reads** (landed while this ran: `UserGet`, `RoleGet`, `UserList`, `RoleList`,
+`CheckPassword` proved over `authBackendReads`) fit `authReqContract`'s `Post ∨ Pre` and are what
+(1) proper uses for the reads' clauses in the mode `on` (with their admission); in the mode `off`
+the clauses stay `NewAuthStore`'s axiom's.
+
+**(3) not attempted.** The server's Auth-service gRPC contracts in the mode `on` (to discharge E2h's
+`setupAuthOk`) need (1) proper: the admin requests admitted.
+
+**Exported statements changed** (each with a premise more, or a post more): the sixteen
+`apply.applierV3backend.{AuthEnable, AuthDisable, Authenticate, UserAdd, UserDelete,
+UserChangePassword, UserGrantRole, UserGet, UserRevokeRole, RoleAdd, RoleGrantPermission, RoleGet,
+RoleRevokePermission, RoleDelete, UserList, RoleList}.spec` and `apply.authApplierV3.{UserGet,
+RoleGet}.spec` (`⌜adminAdmitted E.authMode⌝`); `apply.isAuthStore`, `apply.isAuthStoreAdmin` (its
+mode argument), `apply.reqFacts`, `apply.applierTriples` (definitions); `auth_store_new_on`'s post
+(`authWRAt`). New: `srv_auth_tp_on`, `srv_auth_tp_off`.
+
+**Trust base.** Unchanged (no axiom or `sorry` added).
+
+## E2l of the auth plan: the admin steps' budget from time receipts; the admission designed (2026-10-26 · `notes/auth-plan.md`)
+
+The brief (E2i's "not done"): (1) a design for handing `stepOk`'s budget in with an admin request;
+(2) `rqOk`, the admission, extended to the auth admin requests in the mode `on`, `adminAdmitted`
+replaced by the real step specs, the authority in the apply thread; (3) the server's Auth-service
+contracts in the mode `on`, shaped to discharge E2h's `setupAuthOk`. Done: (1), and of (2) the
+apply layer's step triples from the budget; the admission itself and (3) not.
+
+**(1) The budget is time receipts, not a ticket.** `auth.stepOk M hs R` asks, at the state the
+batch transaction finds, the revision below `2 ^ 64 - 1` after the bump and a next state's
+permissions within the cache trees' `2 ^ 63` (and the step specs of `UserGrantRole` and
+`RoleDelete` ask a user's roles below `2 ^ 62` and every user's name a bbolt key). No single state
+implies them: they bound how much the admin side has written. *Considered:* a ticket per request
+(minted for the request's sender, spent by its application, the authority's invariant bounding
+the revision plus the tickets outstanding). *Rejected:* E2h's client specs give the server a
+**persistent** precondition (`□ ▷ Spec m Q`), because the retry interceptor may deliver an admin
+request several times; a ticket is not persistent, and a pool of tickets needs a bound on the
+deliveries, which the client's code does not give in general. *Chosen:* D19b's rule (the server's
+lifetime bounds are counts backed by time receipts, under the premise `receiptBound GF ≤ 2 ^ 48`
+the server already takes). The admin side holds, with its authority, its **fuel**
+(`auth.authFuel hs`, `auth/Fuel.lean`): `⧗ k` with the latest state's revision at most `k + 1` and
+the latest state **small** (`auth.authSmall`: every user's roles without duplicates and at most
+the revision in number, every user's name a bbolt key, all the roles' permissions together at
+most the revision). An admin request's application takes one receipt at a Go step of the apply
+thread (`wp_go_step_receipt'`, as an applied entry's write token, `srvWTPool_take_extra`):
+`⧗ (k + 1)`, so `k + 1 < receiptBound GF ≤ 2 ^ 48` (`auth.authFuel_charge`); the premises follow
+(`auth.stepOk_of_fuel`: the revision below `2 ^ 48`, a user's permissions at most all the roles'
+since its roles have no duplicates, `auth.userPerms_le`, so at most the revision). Every step keeps
+the state small and raises the revision by at most one (`auth.StepSmall`, proved of the eleven
+step relations, `stepSmall_*`; `UserAdd`'s with its name's key bound, the request's premise), so
+the fuel follows the authority to the step's result (`auth.adminOut_fu`: `auth.adminOutFu`,
+`adminOut` with `authOwnFu = authOwn ∗ authFuel`). The store's start: `auth.authFuel_init` (a
+latest state small with revision at most one, as `NewAuthStore`'s `[bootState, bump bootState]`,
+from `⧗ 0`; `auth.authFuel_boot`, `Boot.lean`, at that history). Nothing of S4's proofs changes; nothing is asked of the request's sender, so a
+request delivered several times costs a receipt per application.
+
+**(2), its first part: the apply layer's step triples from the budget** (`apply/AuthFuel.lean`;
+restated `apply_X_fuel`, `etcdserver/Results.lean`): for each of the eleven admin requests (the
+five `examples/authkv`'s `SetUp` sends among them), `applierV3backend.X.fuelSpec` in the mode `on γa`
+takes `auth.authOwnFu γa hs` and one receipt
+`⧗ 1` (with `receiptBound GF ≤ 2 ^ 48`) for `AuthSteps.lean`'s `authOwn` and `stepOk` (and
+`UserGrantRole`'s roles bound, `RoleDelete`'s users' names bound, both of the latest state's size),
+and gives `auth.adminOutFu` for `adminOut`; each derived from its
+step triple (`wp_fuel`).
+
+**(2) itself, designed, not done** (the order of the work):
+- *The apply thread's auth resource.* A field of the environment for the mode `on` (`AEnv`, beside
+  `RW`, which the alarm store, the lessor and the cluster also take): `∃ hs, auth.authOwnFu γa hs ∗
+  auth.authWR stl (.on γa) P f T ∗ auth.tpAdmin stl (.on γa)`, held in the apply thread's state
+  (`srvApplyKV`) and lent to an admin request's application. Its source is the store's
+  construction: E2i's kit in the mode `on` (`authStoreKit_on`, `AuthSrv.lean`) keeps the authority,
+  `authWR` and `tpAdmin` of `newAuthStore_on`'s post inside the kit; they have to come out of the
+  server's construction to the apply thread (with `auth.authFuel_init`), which is E2k's
+  `NewServer` work.
+- *The admission.* `rqOk`'s auth admin kinds: the request's shape only (the names within the key
+  bound, as `authReqContractN` and the step specs take them); no size clause, the fuel is the
+  apply thread's. `isAuthStore`'s admin clauses in the mode `on`: `⌜adminAdmitted M⌝` replaced by
+  the step triples' form (`isAuthSteps`, from the apply thread's resource, posts `adminOutFu`), the
+  mode `off` keeping today's clauses; the sixteen `applierV3backend` admin specs and the chain's
+  layers pass it on; `dispatch`'s auth cases take the receipt at a Go step before the call and use
+  the fuel triples.
+- *The result to the waiter.* An applied admin request hands its waiter (`waitOk`) a persistent
+  witness of its step (the new latest state recorded, `auth.authStateAt`, or the refusal), which
+  the gRPC handler turns into the client's `Q i` of `setupAuthOk`.
+- *For D22.* In the mode `on` the auth buckets' content is under the batch lock (`authLockI`,
+  S4f), not in the apply thread's rest model: `restAfter` leaves `RestM` for an auth request, and
+  the server's tracked buckets' half (`RestM.bk`) must stop naming the auth buckets' content once
+  auth requests are admitted (today they hold the boot content, `authBucketsAfter`), part of what
+  D22's `authSchemaSrv` discharges.
+
+**(3) not attempted**: it needs the admission and the result to the waiter above.
+
+**Exported statements changed.** None. New: the eleven `apply_X_fuel` (and the
+definitions `auth.authSmall`, `auth.StepSmall`, `auth.fuelOk`, `auth.authFuel`, `auth.authFuelT`,
+`auth.authOwnFu`, `auth.adminOutFu`, `apply.applierV3backend.X.fuelSpec`).
+
+**Trust base.** Unchanged (no axiom or `sorry` added).
+
+## E2k of the auth plan: `NewServer` generic in the auth mode; the apply thread's auth resource out of the server's construction (2026-10-26 · `notes/auth-plan.md`)
+
+The brief (E2i's "(2) itself, not reached"): `NewServer.spec` generic in the auth mode, the store
+with auth on from `srv_auth_tp_on` with its named premises, the mode off's statement kept; and, for
+E2l's next step, the apply thread's auth resource brought out of the store's construction.
+
+**The blow-up was one `rfl`, not the abstract mode.** E2i's proof generic in `on` (its WIP, unchanged
+but for two lines) compiled past 17 GB. Bisected with `sorry` cuts (the module elaborated alone under
+a memory cap): every step through the post's framing runs as in the mode off (about 100 s, 5.3 GiB);
+the step `isplitl [Huo]; · iExactEq Huo; rfl` (the apply thread's `uberOwn` at the start's chain)
+never finishes. Its goal asks `uberOwn E up (alarmChain E.authOn false false) = uberOwn E up
+(alarmChain on false false)`: with the mode a literal, `E.authOn` reduces to `false`; with a variable,
+`E.authOn` is `M.isOn` and `on` is another variable, the two sides are not definitionally equal, and
+`rfl` unfolds `uberOwn` without end looking for it. Now by the mode's equation (`HM : M.isOn = on`,
+kept in the Iris context per E2i's note on `word`): `simp only [apply.AEnv.authOn, HM']`. Also
+`tokenTTL_pos` (`time.Duration(ttl) * time.Second` positive for `ttl ∈ (0, 2 ^ 32)`): `word` timed out
+on the product; proved through the product's `uint.Z` and `word` on a generalized value. The module
+now compiles in about 100 s at a peak of 5.3 GiB, as before.
+
+**`NewServer.specM on`** (`Spec/.../etcdserver/NewServer.lean`, beside `NewServer.spec`): the start's
+chain `alarmChain on false false` (`bootKVOf on`, `InvBuild.lean`; `bootKV` is `bootKVOf false`), with
+auth on the configuration's token provider `"simple"` with a TTL in `(0, 2 ^ 32)` seconds, the post's
+`E.authOn = on`, and (below) `srvAuthApplyRes srv E`. `NewServer.wp_proofM on` proves it over
+`authSrvTP on` in place of `NewTokenProvider`'s and `NewAuthStore`'s specs. `NewServer.wp_proof` keeps
+its statement: the mode off of `wp_proofM` with `authSrvTP_off` (`NewTokenProvider`'s proof and
+`NewAuthStore`'s axiom), dropping the post's auth resource (`True` in the mode off); so the link and
+every closed theorem are unchanged. **`server_new_auth_on`** (`etcdserver/Results.lean`):
+`NewServer.specM true` with every callee linked as in `wp_NewServer` and the store from
+`srv_auth_tp_on`, over its named premises `auth.ValidSpec` and D22's `authSchemaSrv`; it does not reach
+`NewAuthStore`'s axiom (`etc/tcb-report.py --roots server_new_auth_on`).
+
+**The apply thread's auth resource** (E2l's "what's left", first item; `AuthSrv.lean`):
+`authApplyRes M stl`, in the mode `on γa` the admin side's authority with its fuel at some history
+(`auth.authOwnFu γa hs`), the admin side's write resource `auth.authWR` but for the store's user's half
+of `be` (the backend's write side `authWBackendOk`, the write token `T`, `enabledHalf`), and the
+provider's admin share `auth.tpAdmin`; `True` in the other modes. `authStoreKit`'s post gives it:
+`authStoreKit_on` from `newAuthStore_on`'s post (the history `[bootState, bump bootState]`, the boot
+state's revision being `0`) and `auth.authFuel_boot`; `authStoreKit_off` gives `True`.
+`NewServer.specM`'s post hands it out as `srvAuthApplyRes srv E` (the store the server's `authStore`
+field holds, `auth.authIface stl`, with `authApplyRes E.authMode stl`). *The half of `be`:* the store's
+user's half is `authBeOn`'s, in the server's rest (D22's backend swap takes it with `beMu`'s half for
+`Recover`); `authWR` asks the same half, so the admin request's application must borrow it from the
+rest while it runs (or the half splits in two quarters, which changes `authBeOn`, `authWR` and
+`Recover`'s spec): left to the admission's design. Not done (E2l's scope): the field of the
+environment (`AEnv`) for the resource, the apply thread holding it (`srvApplyKV`), the admission.
+
+**Exported statements changed.** None (`NewServer.spec` and its link unchanged). New:
+`NewServer.specM`, `NewServer.wp_proofM`, `server_new_auth_on`, `bootKVOf`, `authApplyRes`,
+`srvAuthApplyRes`; `authStoreKit`'s post gains `authApplyRes M stl` (a definition E2i introduced).
+
+**Trust base.** Unchanged (no axiom or `sorry` added).
+
+## E2m of the auth plan: the apply thread holds its auth resource; the admin requests through the applier chain (2026-10-26 · `notes/auth-plan.md`)
+
+The brief (E2l's and E2k's "what's left"): (1) an `AEnv` field for the apply thread's auth resource,
+held by the apply thread (`srvApplyKV`), and the store's half of `be` for `authWR`; (2) the
+admission: `rqOk` for the auth kinds, `isAuthStore`'s admin clauses in the mode `on` from E2l's fuel
+triples, the chain's layers passing them through, `dispatch`'s auth cases with the receipt at a Go
+step; (3) the applied admin request's persistent record to its waiter; (4) the server's Auth-service
+contracts discharging E2h's `setupAuthOk`. Done: (1), and of (2) the chain's layers; the rest not.
+
+**(1) The apply thread holds its auth resource; no `AEnv` field.** `srvAuthApplyRes s E` (E2k's,
+moved with `authApplyRes` to `etcdserver/AuthApplyRes.lean` so that `InvApplier.lean` can import it)
+is now a conjunct of `srvApplyKV s E γw x`, after `revAuth`, and of `applyBuiltNA`/`applyBuilt`
+(`InvBuild.lean`, `InvStart.lean`): `NewServer.wp_proofM` puts it in `srvBuilt`'s `applyBuiltNA`
+(instead of E2k's separate post item, removed from `NewServer.specM`), `srvBuildGap` and `start` hand
+it on, and `applyEntryNormal` keeps it. *Considered:* a field `AEnv.AR` with the resource. *Rejected:*
+the resource names the server's `authStore` field (`srvAuthApplyRes s E`, the store `stl` the field
+holds), which the apply package's environment does not know; a field would hold a predicate fixed
+when `E` is chosen, before `NewAuthStore` returns the store, and every literal environment
+(`env₀`, `AEnv.onBe`, `NewServer`'s) would carry it. The apply package does not need it either: its
+admin triples take the authority and the write resource as preconditions (below), which the apply
+thread lends from `srvApplyKV` at the admin request's application. In the mode `off` the resource is
+`True` (`authApplyRes .off`), so nothing changes for the closed theorems (`NewServer.spec`'s
+statement unchanged; the destructuring patterns of the sites that take `srvApplyKV` apart keep
+their shape, the resource in the tail they bind as a whole).
+
+**The store's half of `be`: borrowed, not split.** `authWR` (the store's write resource, `W` of the
+step triples) asks the store's user's half of `be`, which the server's rest holds (`authBeOn`, the
+half `Recover`'s backend swap takes with `beMu`'s half). *Chosen:* the admin request's application
+borrows it from the rest for its duration (the apply thread holds both: its rest model and its auth
+resource), so `authBeOn`, `authWR` and D22's `Recover` spec keep their statements. *Rejected:* two
+quarters (one in the rest, one in the auth resource), which change `authBeOn`, `authWR` and the
+`Recover` spec D22 discharges, for no gain: the apply thread is the only writer of both, and raft
+applies serially, so a borrow never overlaps a swap. Not done: the borrow itself (at `dispatch`).
+
+**(2), the chain's layers** (`apply/AdminChain.lean`): `AdminReq` (the five requests `SetUp` sends:
+`UserAdd`, `RoleAdd`, `UserGrantRole`, `RoleGrantPermission`, `AuthEnable`) and
+`applierAdmin E c a W`, a persistent fact beside `applierSpec` (as `isAuthSteps` beside
+`isAuthStore`): in the mode `on γa`, from `auth.authOwnFu γa hs`, one receipt `⧗ 1` and `W`, the
+request's method returns `mPost`, `W` and the request's result (`AdminReq.result`: E2l's
+`adminOutFu`). The backend's is E2l's fuel triples (`applierAdmin_backend`); each wrapper's follows
+from its inner's with the wrapper's `applierV3` field read-only (`applierAdmin_quota`, `_capped`,
+`_corrupt`, `_auth`): none of `quota.go`, `capped.go`, `corrupt.go`, `auth.go` overrides the five
+methods, so the wrapper's is the inner's, promoted. `applierSpec`'s admin clauses stay as they are:
+what the mode `off` needs, `adminAdmitted` in the mode `on` (E2i).
+
+**Not done, in order:**
+- *`applierAdmin` at the uber-applier's chain:* the constructors (`newApplierV3Backend`,
+  `newQuotaApplierV3`, `newAuthApplierV3`, `restoreAlarms`' capped and corrupt) give `applierSpec`
+  only; their posts (or `applierFor`) gain `applierAdmin` of the value, with `backendAuthSteps E p W`
+  at the backend's (from `isAuthSteps_of_authInv` of the real store, `W = auth.authWR …`).
+- *`rqOk` for the auth kinds:* `rqOk` takes no mode, and the mode `off`'s server has `AEnv.RW =
+  False`, so the auth kinds stay `False` there; the mode `on`'s admission needs `rqOk` in the mode
+  (`rqOkM`) or a second clause in the entry's claims (`entryWaitOk`): a change to the request path's
+  premises, which every example's workload states.
+- *`dispatch`'s admin cases* in the mode `on`: the receipt at a Go step before the call
+  (`wp_go_step_receipt'`), the borrow of the rest's half of `be`, the call through `applierAdmin`, the
+  result into `dispatchResult`.
+- *(3) the result to the waiter* and *(4) the Auth-service contracts* for `setupAuthOk`.
+- *For D22:* in the mode `on` the auth buckets' content is under the batch lock (`authLockI`, S4f),
+  not in the apply thread's rest model: once auth requests are admitted, `restAfter` must leave the
+  auth buckets out of `RestM` for an auth request, and the server's tracked buckets' half
+  (`RestM.bk`) must stop naming their content (today the boot content, `authBucketsAfter`), part of
+  what D22's `authSchemaSrv` discharges (E2l's note, restated).
+
+**Exported statements changed.** `NewServer.specM`'s post loses `srvAuthApplyRes srv E` (now inside
+`srvBuilt`); the definitions `srvApplyKV`, `applyBuilt`, `applyBuiltNA` gain it. `NewServer.spec`
+unchanged. New: `apply.AdminReq`, `apply.adminTriples`, `apply.applierAdmin`, `applierAdmin_backend`,
+`applierAdmin_quota`, `applierAdmin_capped`, `applierAdmin_corrupt`, `applierAdmin_auth`, and the restatement `apply_admin_backend` (`etcdserver/Results.lean`).
+
+**Trust base.** Unchanged (no axiom or `sorry` added).
+
+**E2m, continued (2026-10-26; the coordinator's order: the admin triples at the uber-applier,
+`rqOk` for the auth kinds, `dispatch`'s admin cases, the witness to the waiter, the Auth service's
+contracts).** Done: the first two; the rest not.
+
+- *The admin triples at the uber-applier.* The chain's constructors expose their shape beside their
+  `applierSpec` posts (`newApplierV3Backend`: its options read-only; `newQuotaApplierV3`,
+  `newAuthApplierV3`: their `applierV3` field read-only), `newApplierV3`'s post gives the base
+  chain's (`apply.baseShape opts a`, `Chain.lean`), and `uberIs` keeps it for the base applier
+  (appended, so the two destructuring sites, `uberApplier.Alarm` and `dispatch`, only gained a `-`).
+  `apply.applierAdmin_base` (from the shape, the options' contracts and the store's `isAuthSteps …
+  W`) and `apply.applierAdmin_uber` (from `uberIs`) give the base applier's admin triples. Shapes,
+  not `applierAdmin` itself, in the constructors' posts: `applierAdmin` of the backend needs E2l's
+  fuel triples, which the constructors' proofs would then take as hypotheses that the generated
+  links do not name; the shape is pure structure, and the fuel enters where the admin triples are
+  used. Not done: the current applier's (`uberOwn`, after `restoreAlarms`' capped and corrupt
+  wrappers: their constructors' shapes and `restoreAlarms`' post); with no alarm set, as in
+  `examples/authkv`, the current chain is the base chain.
+- *`rqOk` for the auth kinds* (`apply.rqOkM`, `Chain.lean`): `rqOk log rq ∨ (M.isOn ∧ adminKindOk
+  rq)`, `adminKindOk` the shape only (the name within the key bound) of `UserAdd`, `RoleAdd`,
+  `AuthEnable`. *Considered:* `rqOk` indexed by the mode, its off case equal to today's. *Rejected:*
+  every statement that names `rqOk` (the entries' claims, `srvC`, the examples' workloads) would
+  take the mode, a textual change to each even where it is equal by `simp`. *Chosen:* the second
+  clause only in the mode `on`, `rqOk` untouched; `rqOkM_off` (the two agree in the mode `off`),
+  `rqOkM_of_rqOk`. Not threaded yet: the mode-on server's request path takes `rqOkM E.authMode`
+  where it takes `rqOk` (with `dispatch`'s admin cases). **Found:** `UserGrantRole` and
+  `RoleGrantPermission` cannot be admitted by shape yet: the request model (`IRRModel`) records
+  only their presence (`authUserGrantRole : Bool`), not the user's or role's name the step specs
+  bound; the decode (`irrDecode`) must keep the name first (as `authUserAdd`'s, D14g).
+- *Not done:* `dispatch`'s admin cases in the mode `on` (a second triple of `dispatch` for an
+  admitted admin request: the receipt at a Go step, the borrow of the rest's half of `be`, the call
+  through `applierAdmin_uber`, the result in `dispatchResult`); its use at `uberApplier.Apply` and
+  `applyEntryNormal`; (3) the step's persistent witness to the waiter; (4) the Auth service's
+  contracts for `setupAuthOk`.
+
+**Exported statements changed (continued).** The posts of `apply.newApplierV3Backend.spec`,
+`apply.newQuotaApplierV3.spec`, `apply.newAuthApplierV3.spec` and `apply.newApplierV3.spec` gain the
+shape conjunct (first); the definition `apply.uberIs` gains `baseShape`. New: `apply.baseShape`,
+`apply.applierAdmin_base`, `apply.applierAdmin_uber`, `apply.adminKindOk`, `apply.rqOkM`,
+`apply.rqOkM_off`, `apply.rqOkM_of_rqOk`. Trust base unchanged.
+
+## E2n of the auth plan: the grant requests' names in the request model; `dispatch`'s admin triple (2026-10-26 · `notes/auth-plan.md`)
+
+The brief (E2m's "what's left"): (a) `IRRModel` keeps the user's and role's names of
+`UserGrantRole` and `RoleGrantPermission`, and `adminKindOk` admits them; (b) the current chain's
+admin triples (`uberOwn` after `restoreAlarms`), or the restriction to no alarm as a premise; (c) a
+second triple of `dispatch` for the admin cases in the mode `on`, then its use at
+`uberApplier.Apply` and `applyEntryNormal`; (d) the applied request's persistent witness to its
+waiter. Done: (a), and of (c) the `dispatch` triple; (b) as the triple's premise; the rest not.
+
+**(a) The request model.** `IRRModel.authUserGrantRole : Option (GoString × GoString)` (the user,
+the role) and `authRoleGrantPermission : Option (GoString × Option auth.PermW)` (the role, the
+permission), `Bool`s until now; their fields in `internalRaftRequestIs` and the proposer's
+`irrNoHdrIs` are `optReqIs` of `apply.authUserGrantRoleIs`/`authRoleGrantPermissionIs`, which are
+the auth store's request models (`auth.userGrantRoleReqIs`, `auth.roleGrantPermissionReqIs`,
+`auth/Requests.lean`, now imported by `apply/InvRequest.lean`). `apply.authUserAddIs` became the
+auth store's `userAddReqIs` (the name, and the passwords and options `UserAdd` reads; the name only
+until now): the admin triple of `UserAdd` (E2l, `AdminReq.reqIs`) asks it, and only the decoder's
+trust-boundary statement (the `InternalRaftRequest` a committed entry's bytes decode to) produces
+it, as for every other field: a decoded message's fields are read-only, which is what `proto.Unmarshal`
+gives. `adminKindOk` admits `UserGrantRole` and `RoleGrantPermission` with the user's/role's name
+within bbolt's key bound (the step specs' premise, `AdminReq.nameOk`). The server's
+`EtcdServer.UserGrantRole`/`RoleGrantPermission` specs take the request's names and their models
+(`irrUserGrantRole user role`, `irrRoleGrantPermission name w`), as `RoleAdd`'s took its name.
+*Considered:* separate `Option` fields beside the `Bool`s, so that the proposer's models
+(`AuthEntry.lean`) and the two server specs stay as they were. *Rejected:* two models of one field
+must agree, and the server's proposal would then carry no names, so the mode `on` could not admit
+what the server proposes.
+
+**(c) `dispatch` on an admitted admin request** (`apply.uberApplier.dispatch.adminSpec`,
+`wp_admin`, `apply/DispatchAdmin.lean`): beside `dispatch.spec`, not in it, as the brief asked (its
+714-line case chain unchanged). Its precondition: `dispatch.spec`'s but for the KV floor, the
+store's write token, the rest buckets and the certificates (an admin request uses none), with
+`adminKindOk rq` and the mode `on γa` in place of `rqOk`, and the current applier's admin triples
+(`applierAdmin E c a W`), the authority with its fuel (`auth.authOwnFu γa hs`), one time receipt
+(`⧗ 1`) and `W`. Its postcondition: as a request that leaves the log as it is (`fin_same`), with
+`W` back and the admin outcome `adminDone` (with `v3`: the request's `AdminReq.result` at the
+result's error, E2l's `adminOutFu`; without: the authority as it was). `adminReqOf rq` names the
+`AdminReq` the request carries. The proof walks the same code as the spec's (generated from it:
+each other kind's branch closes on `adminKindOk`), and calls the method through `applierAdmin`'s
+triple. No `sorry`; it rests on `time.Now`'s and the types' axioms only (`#print axioms`).
+- *The receipt is the caller's* (`⧗ 1` in the precondition), not taken at `dispatch`'s own Go
+  step as the brief suggested: the method's resolution (`MethodResolve` of `applyV3`) is consumed
+  by the load tactics before `wp_take_receipt` can bind it, and a receipt taken at `time.Now`'s
+  resolution would equally be one of `dispatch`'s steps. *Chosen:* the apply thread, which takes
+  receipts already (`EtcdServer.apply`, `srvWTPool_take_extra`), takes it at a step of its own
+  before the call, which is what E2l's design asks ("one receipt per application").
+- *(b) as a premise:* the triple takes the current applier's admin triples (`applierAdmin E c a W`
+  of `applyV3`'s value). What gives them at the apply thread is not done: `applierAdmin_uber`
+  gives the base applier's (`applyV3base`), and `uberOwn` does not record that the current applier
+  is the base one wrapped by `restoreAlarms`' capped and corrupt (`applierAdmin_capped`,
+  `_corrupt` lift the triples through them); recording it (the current value's shape over the base,
+  kept by `restoreAlarms` and `Alarm`) changes `uberOwn` and every proof that takes it apart. With
+  no alarm set, as in `examples/authkv`, the current applier is the base one.
+- *`W` is a parameter*, so the borrow of the rest's half of `be` (E2m's choice) is the caller's: it
+  lends `W` (the store's write resource with that half) for the call and takes it back.
+
+**Not done, in order:** the mode-on request path: `uberApplier.Apply` and `applyEntryNormal` taking
+`rqOkM E.authMode` where they take `rqOk`, calling `wp_admin` for an admitted admin request (the
+applier chain's `Apply` hands `dispatch` as its `applyFunc`, whose spec is `dispatch.spec`'s
+shape: the admin case needs a second `applyFunc` contract through the chain's `Apply`s, or the
+admin request routed around them in the proof); the receipt at the apply thread's step; the borrow
+of `be`'s half; the current applier's admin triples at the apply thread ((b)); (d) the step's
+persistent witness to the waiter (`AdminReq.result` holds the authority after the step, not a
+persistent record: a persistent fragment of the history's step, e.g. `authHist` at `hs ++ [st']`,
+handed through `dispatchResult` to the waiter); the Auth service's contracts for E2h's
+`setupAuthOk`; for D22 (E2m's note): the rest model must stop tracking the auth buckets in the mode
+`on`.
+
+**Exported statements changed.** The definitions `apply.IRRModel` (two field types),
+`apply.dispatchKind`, `apply.needAdminPermission`, `apply.internalRaftRequestIs`, `irrNoHdrIs`,
+`reqTypeName`, `apply.irrEmpty`, `apply.authUserAddIs`, `apply.adminKindOk`, `irrUserGrantRole`,
+`irrRoleGrantPermission`; the specs `EtcdServer.UserGrantRole.spec` and
+`EtcdServer.RoleGrantPermission.spec` (the request's names and model). No closed theorem's
+statement changed (their workloads name `dispatchKind`, unchanged on their requests). New:
+`apply.authUserGrantRoleIs`, `apply.authRoleGrantPermissionIs` (with their persistence and
+non-null lemmas), `apply.adminReqOf`, `apply.adminDone`, `apply.uberApplier.dispatch.adminSpec`,
+`apply.uberApplier.dispatch.wp_admin`.
+
+**Trust base.** Unchanged (721 axioms, 6 sorries); the decoder's trust-boundary axiom
+(`pbutil.MustUnmarshalMessage.wp_proof`, its post `internalRaftRequestIs`) says
+more of a decoded `AuthUserAdd`, `AuthUserGrantRole` and `AuthRoleGrantPermission` request (their
+fields, read-only), as of every other request field.
+
+## E2o of the auth plan: the admin request through `uberApplier.Apply` and `apply.Apply`; the current applier's shape (2026-10-26 · `notes/auth-plan.md`)
+
+The brief (E2n's "not done"): (1) a second `applyFunc` contract through the chain's `Apply` so that
+`uberApplier.Apply` runs `dispatch.wp_admin` for an admitted admin request; (2) `applyEntryNormal`
+in the mode `on` (the receipt at a Go step of the apply thread, the borrow of the rest's half of
+`be` as `W`, `srvAuthApplyRes`); (3) the current applier's admin triples at the apply thread
+((b): `uberOwn` after `restoreAlarms`); (4) the applied admin request's persistent witness to its
+waiter. Done: (1), (3), and `apply.Apply`'s admin triple (the first layer of (2)); (2)'s
+`applyEntryNormal` and (4) not (below).
+
+**(1) No second `applyFunc` contract was needed.** The chain's `Apply` clause
+(`applierTriples`' last) is already parametric in its `applyFunc`: it takes any function `af` with
+a triple `{chainRes c a (principalOf rq) ∗ A} af r v3 {chainResAny c a ∗ B ar}` of the caller's
+choosing. `apply.uberApplier.Apply.adminSpec`/`wp_admin` (new `apply/ApplyAdmin.lean`) instantiates
+it with `dispatch` and `dispatch.adminSpec`'s triple (E2n), `A` the authority with its fuel, the
+receipt and `W`, `B` `dispatch.adminSpec`'s post. Its precondition is `Apply.spec`'s but for the KV
+floor, the store's write token, the rest buckets and the certificates, with `adminKindOk rq` in
+place of `rqOk`, `isAuthSteps` of the options' auth store (for the base applier's admin triples),
+`auth.authOwnFu γa hs ∗ ⧗ 1 ∗ W`; its post is `Apply.spec`'s (`applyStep`, `applyResultIs`,
+`applyAuthRes`, the uber-applier's state) but for the rest buckets (`restAfter` leaves them for an
+admin request, `restAfter_other`), with `W` back and `adminOut` (the dispatched request's
+`adminDone`; for a rejected one the authority and the unspent receipt back). The `applyAuthRes` of
+an admin request comes from `chainClass_nonKV` (new `adminKindOk_nonKV`).
+
+**`apply.Apply`'s admin triple** (`apply.Apply.adminSpec`/`wp_admin`, new
+`apply/ApplyFnAdmin.lean`): the same walk as `Apply.wp_proof` (decode, ID, the waiter check, the
+wrapper), with the uber-applier through its admin triple; a skipped request (no waiter, no side
+effect) spends nothing (`adminOut .skipped`: the authority and the receipt back). The uber-applier
+is given with its auth store's admin step facts (`apply.uberAuthSteps ua E W`, which implies
+`applierFor`).
+
+**(3) The current applier's shape in `uberOwn`, not a premise.** *Chosen:* `uberOwn E p c` gains
+`uberShape E p c a` (persistent): `c = alarmChain E.authOn ns cr` and `a` is the base applier
+(`applyV3base`) wrapped as those alarms ask (`alarmShape ns cr base a`, `Chain.lean`: the capped
+wrapper's and the corrupt wrapper's fields read-only, `cappedShape`/`corruptShape`).
+`applierAdmin_alarm` lifts the base's admin triples through the wrappers (E2m's
+`applierAdmin_capped`/`_corrupt`), `applierAdmin_cur` gives the current applier's from
+`applierAdmin_uber` and the shape (the two `applyV3base` points-to agree). *Considered:* "no alarm
+set" as a premise examples/authkv meets. *Rejected:* it is not smaller — the current applier is
+hidden in `uberOwn`'s existential, so even "no alarm" needs `uberOwn` to say which value the field
+holds; and the shape covers every alarm state, with no premise for the example to discharge.
+*Why it was cheap:* `uberOwn` has three users that take it apart (`uberApplier.Apply`,
+`NewUberApplier`, `InvApplier.applyKV_authOn`), not every proof that names it; and `dispatch`
+never changes the current applier (no alarm request is admitted, `rqOk`; its `Alarm` branch is
+dismissed), so `dispatch.spec`'s post now says so (`a' = a ∧ c' = c`), and the shape is kept by
+`Apply`. `restoreAlarms`' post gives the shape (from the capped and corrupt constructors' posts,
+which now give their fields).
+
+**(2) `applyEntryNormal` in the mode `on`: not done; the blocker is the committed log's
+invariant, not the apply call.** The server's KV invariants keep every committed normal entry's
+request "plain" (`kv_log_plain`, `plainCover`, `KVModelDefs.lean`: puts, deletes, plain
+transactions and two cluster requests, `| _ => False` for every auth request) and of a good shape
+(`entryShape`/`rqShape`, `WorkloadDefs.lean`); `applyEntryNormal` reads both (`Hpc0`, `Hpl`,
+`entryOk_of_shape`), and they are the proposer's guarantee about what reaches the log
+(`InvProposer.lean`, `InvRest.lean`, `KVModel.lean`, `NoSpaceDead.lean`, `WorkloadDefs.lean`: about
+40 uses). An admin entry in the log makes them false, so the mode `on` needs them to admit
+`adminKindOk` entries (as an entry that leaves the KV log, the rest model and the members as they
+are: `restAfter_other`), at the proposer (`processInternalRaftRequestOnce`'s premises, E2n's
+`irrUserGrantRole`/`irrRoleGrantPermission` names) and in the KV model's step (`kv_applied_step`).
+That is the next stage, before `applyEntryNormal`'s second triple, which then: takes the receipt at
+a Go step of the apply thread (`EtcdServer.apply` takes receipts already); lends `W` (the store's
+write resource with the rest's half of `be`, E2m's choice) out of `srvRest`/`srvApplyKV` for the
+call and back; uses `apply.Apply.wp_admin` with `srvAuthApplyRes`'s authority and fuel, and puts
+`adminOut`'s authority back into `srvAuthApplyRes`.
+
+**(4) Not done:** it needs (2): the waiter's delivery is `applyEntryNormal`'s (`entryDelivered`).
+The witness itself: `AdminReq.result` holds the authority after the step (`adminOutFu`), not a
+persistent record; a persistent fragment of the history (`authHist` at `hs ++ [st']`) handed
+through `dispatchResult` to the waiter is E2n's sketch, unchanged.
+
+**Exported statements changed.** The definitions `apply.uberOwn` (gains `uberShape`); the specs'
+posts of `apply.newApplierV3Capped` (its result's shape over `base`, `cappedIs`),
+`apply.newApplierV3Corrupt` (`corruptIs p a`), `apply.uberApplier.restoreAlarms`
+(`alarmShape ns cr base a'`) and `apply.uberApplier.dispatch` (`a' = a ∧ c' = c` in its pure
+conjunct). No closed theorem's statement changed. New: `apply.cappedShape`, `apply.corruptShape`,
+`apply.alarmShape`, `apply.uberShape` (with their persistence, and `cappedIs`'s and `corruptIs`'),
+`apply.applierAdmin_alarm`, `apply.applierAdmin_cur`, `apply.adminOut`, `apply.adminKindOk_nonKV`,
+`apply.uberApplier.Apply.adminSpec`/`wp_admin`, `apply.uberAuthSteps`,
+`apply.Apply.adminSpec`/`wp_admin`.
+
+**Trust base.** Unchanged (721 axioms, 6 sorries).
+
+## E2p of the auth plan: stopped at a finding -- the server with auth on is vacuous; the KV invariant must take the mode (2026-10-26 · `notes/auth-plan.md`)
+
+The brief: (1) the committed log's invariants (`plainCover`, `entryShape`/`rqShape`) admit
+`adminKindOk` entries in the mode `on` as entries that leave the KV log, the rest model and the
+members unchanged; (2) `applyEntryNormal`'s admin triple in the mode `on`; (3) the step's witness to
+the waiter. None of (1)-(3) is done: reading the invariant they change showed that the mode `on`
+has no KV invariant to change, and that the server's mode-`on` statement is vacuous. A bug in this
+repository's specs (not in Go), recorded here and checked in Lean.
+
+**The finding: `server_new_auth_on` (E2k) has an unsatisfiable precondition.**
+`NewServer.specM on` takes the KV invariant `#Hkvinv ∷ kvInv ρ.rd.raft ρ.rd.kv` and the premise
+`ρ.rd.kv.ch0 = apply.alarmChain on false false`. `kvInv` keeps `γk.ch0 = apply.alarmChain false
+false false` (its pure conjunct; `kv_log_plain` reads it), so at `on = true` the two disagree on the
+chain's auth layer (`alarmChain_authOn`). `KVChainOff.lean` checks it: `kvInv_ch0_off` (the
+invariant's start chain has the auth layer off) and `kvInv_ch0_on_false` (`kvInv γ γk` with
+`γk.ch0 = alarmChain true false false` updates to `False`). So `NewServer.specM true`, and
+`server_new_auth_on` with it, hold of no caller; E2i-E2o's mode-`on` triples below the server
+(`dispatch.wp_admin`, `uberApplier.Apply.wp_admin`, `apply.Apply.wp_admin`, the fuel, the boot)
+are not vacuous (none takes `kvInv`), but nothing yet uses them at a satisfiable server. E2k's
+check that `server_new_auth_on` does not reach `NewAuthStore`'s axiom was right but says nothing
+here: a vacuous statement reaches nothing. Every mode-`off` statement is unaffected (its premise is
+`alarmChain false false false`).
+
+**Why admitting admin entries (the brief's (1)) is not the fix.** The KV invariant's model is
+`kvModel γk L = kvRaftOf γk.c0 γk.ch0 γk.log0 L`, the fold of `kvEntry` over the committed log at
+the one chain `ch0`, and the apply thread's step (`kv_applied_step`) needs that chain `kvExact`
+(no enabled auth layer, no cap): only then is an entry's outcome the model's (`chainStep_plain`'s
+first case). With the auth layer enabled, a KV entry's outcome is the write or a refusal (the log
+unchanged), by the auth store's verdict for the entry's principal (`principalOf rq`: the header's
+user and auth revision) at the time of its application. So the mode `on` needs a KV model that
+knows the auth state at each entry; admitting admin entries into today's invariant would only
+move the vacuity.
+
+**What the mode `on` needs (the design for the next stage, E2q):**
+1. *The KV invariant takes the mode.* `kvInv`'s chain conjunct becomes `γk.ch0 = alarmChain γk.on
+   false false` (a mode in the KV names, or the workload's), with the model at `on = false`
+   today's `kvRaftOf` (a `_false` lemma, so every mode-`off` statement keeps its text).
+2. *The model in the mode `on` folds the auth state with the KV log.* An admin entry steps the auth
+   state and leaves the KV log; a KV entry writes iff the auth state at that point permits its
+   principal (`permitted st (principalOf rq) …`, and `st.enabled = false ∨ st.revision ≤ rev`, the
+   applier's stale-revision refusal), and leaves the log otherwise. Two of the eleven steps are
+   relations, not functions (`userGrantRoleR`, `roleGrantPermissionR`, `auth/Steps.lean`), so the
+   model either makes them functions (they are deterministic in Go) or records the auth state each
+   entry was applied at in ghost state (an index into the auth history, `authStateAt`) rather than
+   recomputing it.
+3. *The verdict at the latest state.* Today's checks give their verdict at *some* recorded state
+   (`permVerdict`: `∃ i st, authStateAt γa i st ∗ …`), which is all a concurrent reader can be
+   promised. The apply thread is the only writer and holds the admin half (`authOwn`, S4f), so it
+   can be promised the latest state: a check spec for a caller holding `authOwnFu γa hs` whose
+   verdict is at `histLast hs`, resting on the backend's read contract strengthened the same way
+   (`authBackendOk`: a read transaction begun while the admin half is held sees the latest state;
+   true of a real backend, whose batch commits precede the read; one more clause for D22's list).
+   Without it, a KV write could be "permitted" by the boot state (auth disabled) after `AuthEnable`.
+4. *Then* the brief's (1)-(3): `plainLog`/`entryShape` admit `adminKindOk` entries in the mode `on`
+   (the proposers `EtcdServer.UserAdd`/... establish it), `applyEntryNormal`'s admin triple (the
+   receipt, the borrow of `be`'s half, `apply.Apply.wp_admin`, the authority back into
+   `srvAuthApplyRes`), its KV triple in the mode `on` (the model's step from item 3's verdict), and
+   the waiter's witness.
+5. *`NewServer.specM on` over the mode-`on` invariant*: its premise and `kvInv` agree, and
+   `kvInv_ch0_on_false` goes.
+
+**Exported statements changed.** None. New: `kvInv_ch0_off`, `kvInv_ch0_on_false`
+(`KVChainOff.lean`).
+
+**Trust base.** Unchanged (721 axioms, 6 sorries).
+
+## E2q of the auth plan: the KV invariant in the mode `on`, over a model folding the auth state with the KV log (2026-10-26 · `notes/auth-plan.md`)
+
+The brief: E2p's design items 1-2 (the KV invariant parametric in the auth mode, the mode-`on`
+model) and, if time remained, item 4's log premises. Done, additively, in the new file
+`etcdserver/KVAuthModel.lean`; nothing existing changed. Item 3 (the apply thread's latest-state
+verdict) is the parallel fork E2r's.
+
+**(1) The mode as a parameter: `kvInvM on γ γk st₀`**, `kvInv γ γk` at `on = false` *by
+definition* (`kvInvM_false`, `rfl`), the new `kvInvOn γ γk st₀` at `on = true`. A separate
+invariant rather than a mode field in `KVNames` or a branch inside `kvInv`: every proof that opens
+`kvInv` (about 40 sites) and every mode-`off` statement keeps its text, and the mode-`on` one has
+its own pure conjunct, `γk.ch0 = alarmChain true false false` (`kvInvOn_ch0`, the counterpart of
+`kvInv_ch0_off`). It is satisfiable: `kvInvOn_alloc` allocates it at the empty committed log (unlike
+`kvInv` at a mode-`on` chain, `kvInv_ch0_on_false`). `st₀` is the auth store's state at the
+server's start, a parameter fixed with the names, as `log0` is.
+
+**(2) The mode-`on` model** (`kvRaftOfOn`, `kvModelOn γk st₀ L`, the fold of `kvEntryOn` over the
+committed log from `(st₀, log0)`):
+- an admin entry above the consistent index steps the auth state and keeps the log
+  (`kvEntryOn_admin`): with its principal admin-permitted at that state (`auth.adminOk`:
+  `authApplierV3.Apply` checks `IsAdminPermitted` of every `needAdminPermission` request), its
+  kind's S4 step, as a relation on states (`adminStateR`; the steps' flag `en` is the state's own:
+  the apply thread applies at the latest state, E2r's item); otherwise nothing;
+- a KV entry the auth layer refuses keeps both (`kvEntryOn_of_refused`); one it lets through is
+  today's `kvEntry` (`kvEntryOn_of_granted`). "Lets through" is `kvGranted st rq`: auth disabled, or
+  the principal's revision not `0` and not below the store's (`ErrUserEmpty`,
+  `ErrAuthOldRevision`) and its user with the root role or covering each permission the request
+  needs (`reqPerms`: `apply.reqClass`'s keys, purely; the model's range end, see the file header);
+- every other entry is today's `kvEntry`.
+`kvRaftOfOn_disabled`: with the start's auth disabled and no admin entry, the model is
+`kvRaftOf`'s (the mode-`off` model), the sanity check that the two agree where they should.
+
+**The choice: a function of the committed log, with determinacy a premise of the log; not a
+per-entry ghost record.** The KV invariant ties `etcdKV`'s ghost variable to the model of raft's
+*committed* log, and a client's update fires when its entry commits (`kvAu`), before any member
+applies it; so the model must be a function of the committed log. Recording the auth state an
+entry was applied at in ghost state would have the committer (raft's commit, not the apply
+thread) record an outcome the apply thread must later reproduce: sound only if the outcome is a
+function of the prefix, which is the same requirement. In Go it is a function of the prefix
+(every member applies the same entries), but three of the model's steps are relations:
+`userGrantRoleR` (the roles sorted: unique when the roles have no duplicates, which E2l's
+`authSmall` keeps), `roleGrantPermissionR` (the record's order after an unstable sort, and a
+permission of an unknown type, decide between appending and replacing, and the two differ in
+coverage), and `UserAdd`'s `ErrNoPasswordUser` (decided by the request's password fields, which
+`IRRModel.authUserAdd` does not carry). So the model's step is the unique successor where there is
+one (`authDet`, `adminNext`; `adminNext_of_det`: any successor the step allows is the model's), and
+the mode-`on` log premise asks every committed entry to be determinate at the state it is applied
+at (`detLogOn`, `entryDetOn`: an admin entry has one successor, a KV entry's check is decided --
+`kvDet`, every permission of the shape the permission cache decides, `auth.reqShape`, outside of
+which the cache's answer is not stated). Both are the workload's, as `plainLog` is today. Making the
+three relations functions instead would need the record's order in the model (and Go's `pdqsort`)
+for `RoleGrantPermission`.
+
+**What this leaves for `examples/authkv`** (its `SetUp` must commit determinate entries): `UserAdd`
+is never determinate in today's request model (`ErrNoPasswordUser` or the user added: two
+successors); the request model must carry the password choice (`IRRModel.authUserAdd` the
+`userAddReqIs` fields, as E2n did for the grant requests) and `adminStateR` decide the refusal from
+it (`selectPassword`'s condition). `RoleGrantPermission` of a known type into a role with no
+permission on its key is determinate (append); `UserGrantRole` is, at a state whose users' roles
+have no duplicates; `RoleAdd` and `AuthEnable` always are.
+
+**(4), the log premises, additively**: `plainEntryOn`/`plainLogOn` (a plain request of the
+workload, or an admitted admin request, `apply.adminKindOk`), `entryShapeOn`/`logShapeOn`
+(`entryShape`, whose `rqShape` excludes every admin kind, or an admitted admin request with an id),
+`kvWorkOn` (`kvWork` with `logShapeOn`; `kvWorkOn_of_kvWork`). `kvInvOn` keeps these.
+`kv_log_plain_on` (`kv_log_plain`'s counterpart) gives the apply thread a committed prefix's
+`plainLogOn`, `detLogOn` and the chain; `detLogOn_last` the entry it applies determinate at the
+state before it. The proposers establishing them (`EtcdServer.UserAdd`/... and the workload's
+admission) are not done.
+
+**Not done.**
+- The Iris-level counterpart of `kv_applied_step` in the mode `on`: it needs the apply thread's
+  mode-`on` ghost state (`kvApplied`'s log the mode-`on` model's, with the auth state) and the KV
+  certificates' invariant over `kvModelOn` (`kvCertInv`, `kv_cert_read`, which read `kvModel`),
+  and E2r's latest-state verdict to show the apply thread's outcome is the model's
+  (`kvEntryOn_of_granted`/`_of_refused`, `adminNext_of_det` are the pure steps it will use).
+- The committer's side: raft's commit extending `kvInvOn`'s log must show the new entry
+  `plainEntryOn` and determinate at the model's state (the workload's premise on what it proposes).
+- `NewServer.specM on` over `kvInvM on` (`kvInv_ch0_on_false` stops applying there; kept until
+  then).
+
+**Exported statements changed.** None. New (`KVAuthModel.lean`): `outState`, `relState`,
+`adminStateR`, `authDet`, `adminNext`, `adminNext_of_det`, `opPerms`/`opsPerms`, `reqPerms`,
+`kvGranted`, `kvDet`, `kvEntryOn`, `kvRaftOfOn` (`_nil`, `_append`, `_snoc`, `_disabled`),
+`kvEntryOn_admin`, `kvEntryOn_of_granted`, `kvEntryOn_of_refused`, `plainEntryOn`, `plainLogOn`,
+`plainEntryOn_of_plain`, `entryDetOn`, `detLogOn` (`_nil`, `_snoc`, `_prefix`, `_last`),
+`entryShapeOn`, `logShapeOn`, `entryShapeOn_of_entryShape`, `kvModelOn` (`_nil`), `kvWorkOn`
+(`kvWorkOn_of_kvWork`), `kvInvOn`, `kvInvM` (`_false`, `_true`), `kvInvOn_ch0`, `kvInvOn_alloc`,
+`kv_log_plain_on`.
+
+**Trust base.** Unchanged (721 axioms, 6 sorries); the new file has no axiom and no `sorry`.
+
+## E2r of the auth plan: the apply thread's checks at the latest state (2026-10-26 · `notes/auth-plan.md`)
+
+Item 3 of E2p's design: the checks' specs give their verdict at *some* recorded state per read
+(S3's `permVerdict`: the flag, the revision, the user and the cache each at its own), all a
+concurrent reader can be promised; the apply thread, the store's only writer, holds the admin side's
+authority between its batch transactions, and E2q's model step needs its checks at the latest state.
+Of the four reads, the revision was already latest (`Revision`'s `authOwnOpt`, S4); the other three
+needed a tie to the authority:
+- **The user (the backend's read transaction).** `authReadTxOk` gains a second `RLock()` clause:
+  begun while the caller holds `authOwn M hs`, the state is the latest (`histLast M hs st`). True of
+  the real backend (the apply thread's batch writes back to the read buffer at `Unlock`, before its
+  next read transaction), added to D22's list (S4f's "What D22 must discharge"). No proof constructs
+  `authReadTxOk` (it is a premise everywhere: `NewAuthStore`'s axiom, `authSchemaBoot`/`Srv`,
+  `Recover`), so the two consumers that destructure it (`lockedReadTx`, `Recover`) skip the clause.
+  `lockedReadTx.specL` uses it (`authReadTxLockedL`).
+- **The flag.** The admin side already holds half of `enabled` (`enabledHalf`, S4); `flagAt st b` is
+  that half with its value exposed, and `IsAuthEnabled.specL` returns it (the guard's half agrees).
+- **The cache.** Like the flag: the field `rangePermCache` is now split between `rangePermCacheMu`'s
+  guard (`cacheP`, at `q.half`) and the admin side (`cacheHalf`, in `authWR` and so in every admin
+  operation's resources, and in the apply thread's `authApplyRes`); `refreshRangePermCache`, the
+  only writer of the field (from an admin operation, `NewAuthStore` or `Recover`, all the apply
+  thread's or the boot's), joins the halves to replace it and hands the admin side back the cache at
+  the refreshed state (`cacheAt st sta`: the field's half, the map read-only, `cacheOf sta`). The
+  map is read-only once built (`mp ↦$□`: Go never writes a published map again), so the two halves
+  agree on it (`ownMap_agree`). `isRangeOpPermitted.specL` gives the verdict at the admin side's
+  state (`cacheVerdictP`).
+- **The tie.** `latestTie M hs b sc`: in `on`, the flag's half is the latest state's flag and, while
+  enabled, the cache's half is the latest state's cache (`AuthDisable` does not refresh; the check
+  returns before the cache then). `isOpPermitted.specL` takes the authority, the two halves and the
+  tie and gives `permVerdictL` (pure): at the latest state `stl`, a pass is `permitted stl` with the
+  token's revision not below `stl.revision` (or auth disabled), a refusal `refusedV ⟨stl,stl,stl,stl⟩`;
+  for a request of the cache's shape exact (`permVerdictL_iff`), and in `kvGranted`'s form for one
+  permission (`permVerdictL_granted`). `IsPutPermitted`/`IsRangePermitted`/`IsDeleteRangePermitted`
+  `.specL` follow. Restated linked in `etcdserver/Results.lean` (`auth_op_permitted_latest`,
+  `auth_put_permitted_latest`, `auth_range_permitted_latest`, `auth_delete_range_permitted_latest`);
+  the specs and proofs are in `auth/Latest.lean`, beside the generic ones (S3's split stays right for
+  concurrent readers: the API layer's checks).
+
+**Why halves rather than a ghost name for the cache.** A ghost variable of the cache's state would
+need a fifth name in `AuthNames` (its allocation, `ModeTag`'s encoding); the field's half is the
+same device as `enabled`'s, costs no ghost state, and tells the admin side the map itself.
+
+**Exported statements changed.** Definitions: `authReadTxOk` (the second clause), `cacheP` (the
+field at `q.half`, the map read-only), `authWR` (`∗ cacheHalf`), `authWRAt` and `authApplyRes`
+(likewise); the spec `refreshRangePermCache.spec` (pre `cacheHalf`, post `cacheAt st sta`). Every
+admin operation's and `NewAuthStore`'s statement keeps its text (they carry `authWR`). New:
+`authReadTxLockedL`, `flagAt` (`enabledHalf_flagAt`, `flagAt_enabledHalf`), `cacheOf`, `cacheAt`,
+`cacheHalf` (`cacheHalf_of_at`), `latestTie`, `cacheVerdictP` (`_entry`, `_absent`,
+`_false_not_covers`, `_true_covers`), `permVerdictL` (`_iff`, `_granted`, `_permOp`, `_on_disabled`,
+`_on_refused`, `_on_pass`), the `specL`s and `wp_latest`s above.
+
+**Not done.**
+- The tie's maintenance: the apply thread's resource keeping `latestTie` across its steps (the admin
+  operations' posts giving the flag's value and the refreshed cache at the new latest state; today
+  `authWR`'s halves come back existentially, `refreshRangePermCache` already gives `cacheAt` at the
+  committed state).
+- The auth applier's KV triples in the mode `on` (`authApplierV3`'s `Put`/`Range`/`DeleteRange`/`Txn`
+  and `checkTxnReqsPermission`'s loop, over `isAuthStore` clauses at the latest state), for E2q's
+  `kvEntryOn_of_granted`/`_of_refused`: the store-level checks they call are now these `specL`s.
+- `IsAdminPermitted` at the latest state (the same pieces: flag, user).
+
+**Trust base.** Unchanged (721 axioms, 6 sorries). The strengthened `authReadTxOk` makes the
+premises that state it (`NewAuthStore`'s axiom, D22's `authSchemaBoot`/`authSchemaSrv`) say more of
+the real backend: the clause above, true of it.
+
+## E2t of the auth plan: `UserAdd` determinate; the apply thread's mode-`on` KV step (2026-10-26 · `notes/auth-plan.md`)
+
+E2q found `examples/authkv`'s `SetUp` unable to commit a determinate `UserAdd` (the request model
+did not carry the password choice, so `ErrNoPasswordUser` and "added" were both successors), and
+left the mode-`on` counterpart of `kv_applied_step`. E2t does both, and states the committer's
+side as an obligation.
+
+1. **The request model keeps `UserAdd`'s password choice.** `apply.IRRModel.authUserAdd` is now
+   `Option apply.UserAddModel` (the name, `Password`, `HashedPassword`, the options' `NoPassword`;
+   `Options` nil reads as `false`, as `UserAdd` does), and `apply.authUserAddIs u m` holds the four
+   exactly, read-only (it gives the store's `auth.userAddReqIs u m.name`: `authUserAddIs_req`). The
+   decode axiom `pbutil.MustUnmarshalMessage.wp_proof` keeps its text and says more (the decoded
+   message's fields, as for E2n's grant requests): true of protobuf's decoding. **`UserAddModel.pwSure`**
+   says the choice cannot fail: no password, or the server's own form since 3.5 (`EtcdServer.UserAdd`
+   clears `Password` and puts its bcrypt hash, base64-encoded, in `HashedPassword`), which
+   `selectPassword` decodes without an error. `stdB64Enc` (base64's standard encoding) is `opaque`:
+   the model only needs its range. E2q's `adminStateR` keeps the state on `UserAdd` only when
+   `¬ pwSure`, so a `pwSure` `UserAdd` has one successor (its step's). `SetUp`'s three `UserAdd`s
+   (clientv3 sends `NoPassword: false`) go through `EtcdServer.UserAdd`, so in Go they are `pwSure`
+   (not yet proved: below).
+   - *For the apply side* (with E2s's triples): `UserAdd`'s triple must exclude `ErrNoPasswordUser`
+     when `pwSure`: `authStore.selectPassword`'s trust-boundary spec (today: an error, any) must say
+     that `selectPassword("", stdB64Enc bs)` returns no error (`base64.StdEncoding.DecodeString` of
+     its own encoding), a strengthening of the axiom, not a new one.
+   - *For the proposer side:* `EtcdServer.UserAdd` (untranslated today) gives `pwSure` of its
+     request: `base64.StdEncoding.EncodeToString`'s result is `stdB64Enc` of the hash (a boundary
+     spec of `encoding/base64`, when it is proved).
+   - Why the request's fields and not a premise "every committed `UserAdd` succeeds": the outcome is
+     decided by the request alone, and the request model is where the decoded fields already are.
+2. **The apply thread's mode-`on` KV step** (`etcdserver/KVApplyOn.lean`): `kv_applied_step`'s
+   counterpart over E2q's model. `kvCertInvOn` (the certificates' invariant, `certMapOkOn` over
+   `kvModelOn`), `kvAppliedLOn`/`kvAppliedOn` (the apply thread at the applied raft log `A`, its auth
+   state and KV log the mode-`on` model of `A`, the log certified), `srvKVInvsOn`;
+   `kv_cert_step_on` (the certificate of the next model log); **`kv_applied_step_on`**: the next
+   committed entry admitted (`plainEntryOn`) and determinate at the apply thread's state
+   (`entryDetOn`), the chain the start's with auth on, and the state after it `kvEntryOn`'s,
+   certified. What the apply thread does is the auth applier's (E2s): **`outcomeOn`** is the relation
+   its triples give (an admin entry: a successor of its step, `adminStateR`, the log kept; a KV entry
+   refused at the latest state: nothing; otherwise the entry's write), and at a determinate entry
+   every such outcome is the model's (`outcomeOn_eq`; `outcomeOn_model` the converse), so
+   **`kv_applied_out_on`** takes the outcome the apply thread reached, as a hypothesis until E2s's
+   triples land, to the next `kvAppliedLOn`. Separate definitions (not `kvCertInv`/`kvAppliedL`
+   generalized over the model) keep every mode-off statement's text and the proofs that open them.
+3. **The committer's side, as an obligation** (same file): `commitOkOn` (the new entry admitted and
+   determinate at the model's state after the committed log `L`), which the workload's entry claims
+   and the proposers establish as `plainEntry` today; `logOn_snoc` (the log stays a mode-`on` log,
+   determinate), and the KV state at the commit, where the client's update fires:
+   `kvModelOn_snoc_granted` (a granted plain write steps it by its request: the auth layer does not
+   change a write, `kvEntry_alarmChain_on`), `kvModelOn_snoc_admin`, `kvModelOn_snoc_refused` (kept).
+   `kvRaftOfOn_extends`, `kvEntryOn_grow` are their pure facts.
+
+**Exported statements changed.** Definitions: `apply.IRRModel` (`authUserAdd`'s type),
+`apply.authUserAddIs` (the model, the four fields exactly), `apply.adminKindOk` (the name of the
+model), `apply.adminReqOf`, `irrUserAdd` (takes the model), `adminStateR` (the state kept only when
+`¬ pwSure`), `isAuthStore`'s `UserAdd` contract (`authReqContractN` at `auth.userAddReqIs`, what
+`authUserAddIs` was by definition before), the chain's `UserAdd` clause (`∃ m : UserAddModel`); the
+spec `apply.applierV3backend.UserAdd.spec` (`∃ m : apply.UserAddModel, apply.authUserAddIs r m ∗
+⌜m.name.length ≤ …⌝`). No closed theorem changed; the examples' workload premises do not name the
+field. New: `stdB64Enc`, `UserAddModel`, `UserAddModel.pwSure`, `authUserAddIs_req`, and the
+definitions and theorems of `KVApplyOn.lean` above.
+
+**Not done.**
+- `outcomeOn` from the auth applier's triples (E2s): the hypothesis of `kv_applied_out_on`.
+- `UserAdd`'s triple excluding `ErrNoPasswordUser` at `pwSure` (the `selectPassword` boundary, item
+  1); `EtcdServer.UserAdd` giving `pwSure`.
+- The KV invariant's readers in the mode `on` (`kv_cert_read`, `kv_cert_floor`, the client's update at
+  the commit) over `kvCertInvOn`/`kvInvOn`, and `NewServer.specM on` over `kvInvM on` (then
+  `kvInv_ch0_on_false` stops applying).
+
+**Trust base.** Unchanged (721 axioms, 6 sorries). The decode axiom says more, as above.
+
+## E2s of the auth plan: the checks on the apply thread at the latest state, the auth applier's KV methods, the tie kept across the admin operations (2026-10-26 · `notes/auth-plan.md`)
+
+What E2r left (its "Not done"), in three parts; trust base unchanged (721 axioms, 6 sorries), no
+exported statement changed except as listed.
+
+**`IsAdminPermitted` at the latest state** (`auth/LatestAdmin.lean`): `IsAdminPermitted.specL`,
+for the caller holding the authority and the flag's half tied to the latest state, gives
+`adminVerdictL`: the check passes exactly when the latest state admits the principal (`adminOk`).
+`latestRes st M hs` bundles the apply thread's resource (`authOwn`, `flagAt`, `cacheAt`, the tie).
+`latestSnap`/`authOwn_latestSnap`: the latest state recorded, without an update (a half of a
+monotone list's authority keeps its lower bound, `monoListAuthOwn_keep_lb`, from Iris's
+`auth_lb_op`); `permVerdict_of_L`: S3's verdict over recorded states from the latest one, so the
+apply layer keeps its class statements (`chainClass`) while the outcome is decided at the latest
+state.
+
+**The apply package's checks and the auth applier's KV methods** (`apply/AuthLatest.lean`,
+`apply/AuthApplyLatest{,Put,Txn}.lean`): `isAuthStoreL st RD M L` states the three permission checks
+and `IsAdminPermitted` over a resource family `L hs` the caller holds (the latest verdict and S3's);
+the real store meets it with `L := auth.latestRes st M` (`isAuthStoreL_of_authInv`). The verdicts in
+`kvGranted`'s form, one permission at a time: `granted1`, `passedL`/`refusedL`, under the premise that
+the permissions are of the cache's shape whenever auth is enabled (`shapedL`, the model's `kvDet`).
+Then `Range`, `DeleteRange`, `Put`, `Txn` `.specL`: the methods' posts (`rangePost`, `kvPostF`, as
+`rangePostL`/`kvPostFL` with a property of the outcome) with the outcome decided at the latest state
+(`authOutL`): the auth layer's rejection with a checked permission refused there, or the inner chain's
+outcome with every checked permission granted there. The checked permissions are the model's with
+the range end as the check saw it (`authEndOf`; equal unless the request's `RangeEnd` is a non-`nil`
+empty slice, which protobuf never decodes). `Put` and `Txn` take `lessorNil` (the lessor finds no
+lease: with one, `checkLeasePuts` checks the lease's keys beyond the request's own permissions); a
+transaction's checked permissions are a relation (`txnChecked`: a nested put's `PrevKv` read is
+checked but not in `TxnOp`), its refusal a permission that may be checked (`txnMay`) refused. Restated
+linked in `etcdserver/Results.lean` (`apply_auth_store_latest`, `apply_{range,delete_range,put,txn}_latest`,
+`auth_admin_permitted_latest`). `KVAuthBridge.lean`: the per-permission verdicts in `kvGranted`'s
+terms (`granted1_of_kvGranted`, `kvGranted_of_granted1`).
+
+**Found (a gap in E2q's model, recorded for the next stage):** `kvGranted` asks, with auth enabled,
+the principal's revision and user even of a request needing no permission (`reqPerms rq = []`: a
+transaction without comparisons or operations), which the code applies without any check. Both keep
+the log (such a transaction writes nothing), so the KV state agrees, but `outcomeOn` would call it
+refused; `kvGranted_of_granted1` needs `reqPerms rq ≠ []`. Either `kvGranted` says "or no
+permission", or the bridge treats the empty case.
+
+**The tie kept across the admin operations** (`auth/LatestTie.lean`): each of the eleven operations
+has `X.specT`, its spec with the admin side's halves exposed (`authWRx st M P f T b sc`: the flag at `b`
+with its verdict, the cache at `sc`, a recorded state) and the tie carried (`adminOutP … (tieStep M hs
+b0 sc0 b sc)`: if the halves before were tied to the latest state of `hs`, those after are tied to the
+latest state of the history after). The proofs: the flag set (`AuthEnable`, `AuthDisable`,
+`tieStep_set`) or kept, the cache refreshed from the committed state (`tieStep_refresh`), `RoleAdd` (no
+refresh) carrying the cache over (`cacheAt_congr`: a new role without permissions changes no user's,
+`userPerms_putRole_empty`; else `tieStep_keep'`). Each operation's proof is now `X.wp_tie`;
+`X.wp_proof` follows (`X.spec_of_T`), its statement unchanged. Restated linked (`auth_*_tie`).
+
+**Exported statements changed.** None of the existing ones. New: the `specL`s and `wp_latest`s
+above, `X.specT`/`X.wp_tie`/`X.spec_of_T`, and the definitions listed.
+
+**Not done.**
+- The apply layer's admin triples (`applierV3backend.X.stepSpec`/`fuelSpec`, `applierAdmin`,
+  `dispatch.wp_admin`) over `specT`, so that the apply thread's `latestRes` survives an admin entry;
+  the `authWR` inside `authApplyRes` becoming `authWRx` with the tie.
+- The KV methods' outcome (`authOutL` with the applier's `authInfo`) tied to the entry's principal
+  (`principalOf rq`, set by `authApplierV3.Apply` from the header) and lifted through `dispatch` and
+  `applyEntryNormal` to E2t's `outcomeOn` (`kv_applied_out_on`'s hypothesis), with `kvDet` for the
+  shape, the wire's `RangeEnd`, `lessorNil` of the server's lessor, and the empty-request gap above.
+
+## E2u of the auth plan: `UserAdd` without `ErrNoPasswordUser`; the KV invariant's readers in the mode `on`; why `NewServer.specM on` is not yet over `kvInvM on` (2026-10-26 · `notes/auth-plan.md`)
+
+E2t left four items (its "Not done"): `UserAdd`'s triple excluding `ErrNoPasswordUser` at a sure
+password choice, `EtcdServer.UserAdd` giving that choice, the KV invariant's readers in the mode
+`on`, and `NewServer.specM on` over `kvInvM on` (so that `server_new_auth_on`, which E2p found
+vacuous, `KVChainOff.lean`, holds for some caller). E2u does the first and the third; the second
+needs a Perennial change; the fourth is the server's whole KV path in the mode `on` (below).
+
+1. **`selectPassword`'s boundary says more** (the axiom `auth.authStore.selectPassword.wp_proof`
+   keeps its name; its spec, `Spec/.../auth/authStore__selectPassword.lean`, is strengthened): the
+   error is `nil` when `password` is empty and `hashedPassword` is `stdB64Enc` of some bytes. True
+   of the Go code: with `password == ""`, `selectPassword` returns
+   `base64.StdEncoding.DecodeString(hashedPassword)`, and `DecodeString` accepts whatever
+   `EncodeToString` produced (the alphabet's characters, padded to a multiple of 4). `stdB64Enc`
+   (opaque, `encoding/base64`'s `StdEncoding.EncodeToString`) moved from the apply package's request
+   model to the auth package's (`auth/Requests.lean`), so that the auth store's boundary can name
+   it, with **`auth.pwSureP pw hpw nob`** (no password, or `pw` empty and `hpw` an encoding);
+   `apply.UserAddModel.pwSure` is now `auth.pwSureP` of the model's fields (the same proposition).
+   - **`auth.userAddSure r`** (persistent): the request's `Password`, `HashedPassword` and options'
+     `NoPassword` satisfy `pwSureP`; `apply.authUserAddIs_sure` gives it from the request model and
+     `UserAddModel.pwSure`.
+   - **`auth.authStore.UserAdd.specSure`** (beside `UserAdd.spec`, whose text stays): with
+     `userAddSure r`, the post's extra errors are `noExtra`: the outcome is the step's alone.
+     Proved by `UserAdd.wp_sure` (`auth/authStore__UserAdd_sure.lean`): `UserAdd.wp_proof`'s proof,
+     with the options' `NoPassword` carried through the join (`b = nob`) and the error branch of
+     `selectPassword` ruled out (the fields agree with `userAddSure`'s, `userOptsAt_agree`).
+     Restated with its callees linked as `auth_user_add_sure` (`etcdserver/Results.lean`).
+   - *Why a second spec, not `UserAdd.spec` strengthened:* the apply package's `UserAdd` clause and
+     the stage E2s (running beside E2u) work on `UserAdd.spec`'s post; a separate spec leaves their
+     text alone. The apply layer's `UserAdd` triple can switch to `specSure` once E2s's posts land
+     (the request model gives `userAddSure` when `pwSure`).
+2. **`EtcdServer.UserAdd` giving `pwSure`: not done, a Perennial change.** The handler hashes the
+   password (bcrypt, names-only since E2a) and encodes the hash with `encoding/base64`, a standard
+   library package: Perennial's, and Perennial has no `encoding/base64` (not even names-only), so
+   the handler cannot be translated here (the reason A3 left it out, `etcdserver.toml`). Recorded in
+   `notes/perennial-changes.md` ("`encoding/base64`"): `StdEncoding`'s `EncodeToString` with a
+   spec whose result is `stdB64Enc` of its input (or a model of the encoding), and `DecodeString`'s
+   round trip; then `EtcdServer.UserAdd`'s proof gives `pwSure` of its request (clientv3 sends
+   `NoPassword: false`, the handler clears `Password` and sets `HashedPassword`). No axiom is added
+   here for it: until then, `pwSure` of a committed `UserAdd` is the proposer's obligation in
+   `commitOkOn` (E2t), which `examples/authkv`'s workload states.
+3. **The KV invariant's readers in the mode `on`** (`etcdserver/KVReadOn.lean`, new):
+   `kvRaftOfOn_prefix` (the mode-`on` model monotone in the raft log), **`kv_cert_read_on`**
+   (`kv_cert_read`'s: a certified store log has at most two revisions or is the mode-`on` model of
+   a committed raft prefix, over `kvCertInvOn`), **`kv_cert_floor_on`** (`kv_cert_floor`'s: a
+   certified log is below the committed KV state, over `kvInvOn`/`kvCertInvOn`), and the commit's
+   ghost step where a client's update fires: `kvInvOn_facts_snoc` (the invariant's pure facts one
+   entry on, from the committer's `commitOkOn`), **`kvInvOn_commit_granted`** (a granted plain
+   write: the invariant's half and the client's `etcdKV` agree and move to the request's step, the
+   mode-`on` model's state after the entry, `kvModelOn_snoc_granted`), `kvInvOn_commit_keep` (an
+   admin entry or a refused one: the state kept, no update fires).
+4. **`NewServer.specM on` over `kvInvM on`: not done; what it needs.** `kvInv` is not only
+   `NewServer`'s premise: it is part of the server's start fact (`InvStart.lean`, `srvMintInv ρ ∗
+   kvInv ρ.raft ρ.kv`), of the apply thread's invariants (`InvApplier.lean`, `srvKVInvs`), of the
+   proposers' request path (`InvProposer.lean`: every KV handler's proposal opens it at the commit to
+   fire its client's update, `KVLemmas.lean`), and of `BuildGap`/`BuildAlloc`. Moving the mode `on`
+   to `kvInvOn` means each of these in the mode `on`:
+   - the apply thread (`applyEntryNormal`) over `srvKVInvsOn`, with E2s's auth-applier triples
+     (`outcomeOn`) and E2t's `kv_applied_out_on`;
+   - **the proposers' update in the mode `on`, a design question:** a client's update for a KV
+     write fires at the commit only if the auth state after the committed log grants it
+     (`kvInvOn_commit_granted`); for a refused one nothing fires, and the client's result must say
+     so (an `ErrPermissionDenied` reply, `Q` of the refusal). Today's `kvOpAu`/`kvOpAu1` always
+     fire (the mode off has no refusal at the apply), so the mode `on` needs an update of the form
+     "the step if granted at the commit's auth state, else the refusal", whose `Q` the handler
+     returns to the client; and the proposer must establish `commitOkOn` (the entry admitted and
+     determinate) at the commit, which for a KV request is `kvDet` of the auth state then: the
+     permission cache decides the request's shape (E2q). Both are the workload's and the client's
+     (examples/authkv's `Work`), so they are designed with the closed theorem;
+   - the start fact and `BuildGap`/`BuildAlloc` over `kvInvM on`, the reads (`kv_read_log`'s
+     users) over `kv_cert_read_on`.
+   `kvInv_ch0_on_false` keeps its role (the mode-`on` `NewServer.specM` is vacuous) until then.
+
+**Exported statements changed.** The spec `auth.authStore.selectPassword.spec` (its post gains the
+pure clause); the definition `apply.UserAddModel.pwSure` (now `auth.pwSureP` of the fields: the same
+proposition); `stdB64Enc` moved from `apply` to `auth` (`auth.stdB64Enc`). No closed theorem
+changed. New: `auth.pwSureP`, `auth.userAddSure`, `apply.authUserAddIs_sure`,
+`auth.authStore.UserAdd.specSure`, `UserAdd.wp_sure`, `userOptsAt_agree`, `auth_user_add_sure`, and
+`KVReadOn.lean`'s theorems.
+
+**Trust base.** Unchanged in count (721 axioms, 6 sorries): the `selectPassword` axiom says more,
+as above, a strengthening that holds of `encoding/base64`.
+
+**Ported to D44** (2026-10-26, merging `origin/lean`): the workload record `SrvWorkload` and
+`KVNames.wl` are gone (D44/D45: `plainReq` is at the proposers' kinds), so the mode-`on` log premises
+lose their workload parameter, with the same meaning: `plainEntryOn m`, `plainLogOn A`,
+`plainEntryOn_of_plain m`, `commitOkOn c₀ ch s₀ L m` and `logOn_snoc c₀ ch s₀ L m` (each was
+`… W …`/`… wl …` at `γk.wl`). `NewServer.specM` drops the `ρ.rd.kv.wl.noGrant` premise as
+`NewServer.spec` did. `kv_cert_floor_on` reads the revision through `kvStateOf_rev` (the KV state
+became a record of compaction, base and changes). After the merge: 718 axioms, 6 sorries (lean's 721
+less the three server axioms `origin/lean` proved).
+
+## E2x of the auth plan: `encoding/base64` names-only here with a package fact; `EtcdServer.UserAdd` proposes a `pwSure` request (2026-10-26 · `notes/auth-plan.md`, the user's option (1))
+
+The handler `EtcdServer.UserAdd` (`v3_server.go`) hashes the password
+(`bcrypt.GenerateFromPassword(pw, s.authStore.BcryptCost())`), puts the hash in the request
+`base64.StdEncoding.EncodeToString`-encoded and clears the password, unless the request asks for
+no password. E2t/E2u left "the proposed request's password choice cannot fail" (`pwSure`) a
+proposer's obligation, because Perennial has no `encoding/base64`. The user chose (2026-10-26)
+the minimal fix here over a Perennial model.
+
+- **Names-only `encoding/base64` here.** It already was, for the k8s-apiserver project
+  (`Code/encoding/base64.toml`); the etcd project now maps `encoding/base64=` to it
+  (`etc/goose.py`) and `etcdserver.toml` translates `EtcdServer.UserAdd` and
+  `EtcdServer.UserChangePassword` (importing `golang.org/x/crypto/bcrypt` and `encoding/base64`).
+  No Perennial change.
+- **base64's package fact** (`Proof/encoding/base64/Base.lean`, `base64Init`): `StdEncoding` holds
+  a fixed `*Encoding` `e` (`↦□`: Go never writes the variable after initialization) on which
+  `EncodeToString(src)` returns `stdEnc` of `src`'s bytes, reading and keeping the slice; stated as
+  the method call's own WP, since `Encoding` is axiomatized (its methods are not named), as the
+  k8s store's `featureInit`. `stdEnc` is opaque: what any proof needs of it is only
+  `selectPassword`'s boundary (a standard encoding decodes without an error, E2u). The instance
+  moved out of `k8s_io/apiserver/pkg/storage/etcd3/Base.lean`, whose import closure includes the
+  server (the server now imports base64); `auth.stdB64Enc` became `abbrev … := stdEnc`
+  (`auth/Requests.lean`), so `selectPassword`'s spec is unchanged in text.
+- **Two trust-boundary axioms** (+2):
+  - `encoding.base64.StdEncoding_init` (`Proof/encoding/base64/Init.lean`, generated:
+    `etc/gen-init.py`'s `SPECIAL['encoding.base64']`), the variable's initializer giving the fact;
+    `opaqueInitsOk` keeps the other three variables. Faithful: `StdEncoding =
+    NewEncoding(encodeStd)`, a fresh `*Encoding`; `EncodeToString` allocates
+    `enc.EncodedLen(len(src))` bytes, `Encode`s into them (indexes within the computed length) and
+    returns them as a string; no panic, no write to `src`.
+  - `bcrypt.GenerateFromPassword.wp_proof` (`Spec/golang_org/x/crypto/bcrypt/`): a fresh slice and
+    no error, or some error; the password read and kept. Faithful to x/crypto v0.57.0: an error
+    for a password over 72 bytes, a cost over `MaxCost` or a failed salt read; the key is copied
+    before use (`append(key[:len(key):len(key)], 0)`); no panic. Nothing about the hash's bytes
+    (D-AU6).
+- **`EtcdServer.UserAdd.spec`** (`Spec/…/etcdserver/EtcdServer__UserAdd.lean`): the request's
+  name read-only, its passwords owned (the handler writes them), its options read-only
+  (`auth.userOptsAt`), the server's `authStore` field read-only with `BcryptCost()` returning
+  (`bcryptCostOk`, a definition so that `wp_start` does not unfold the interface's method), and
+  `authRaftOk` for any request model with the same name and options that is `pwSure`; the outcome
+  is the hashing's error before any proposal (`nil`, the error and `P` back) or `authEntryOut`.
+  Proved for the three cases (no options, options with `NoPassword` false, true); the proposal as
+  in `EtcdServer.UserGrantRole`. Linked (`etc/link-lean-first-server.txt`), restated as
+  `server_user_add_sure` (`etcdserver/Results.lean`).
+- **Left.** `UserChangePassword` is translated, not proved (its request model has no password
+  fields yet). `BcryptCost()`'s contract is a premise: `authStore.BcryptCost` is untranslated
+  (it returns the read-only field `bcryptCost`). The full `encoding/base64` model in Perennial
+  stays proposed (`notes/perennial-changes.md`), also for the k8s store's continue tokens.
+
+## E2w of the auth plan: the server's construction over the mode's KV invariant (2026-10-26 · `notes/auth-plan.md`, E2p's item 5)
+
+**Done.** `NewServer.specM on` takes the mode's KV invariant `kvInvM on ρ.rd.raft ρ.rd.kv srvAuthSt0`
+(`kvInvOn` at `on = true`, E2q) instead of `kvInv`, so `server_new_auth_on`'s precondition is no
+longer unsatisfiable (E2p's finding): `kvInvOn`'s start chain agrees with the spec's
+(`kvInvOn_ch0`), and it is allocated at the bootstrap log as `kvInv` is (`kvInvOn_alloc_boot`,
+`ServerOn.lean`). `NewServer`'s proof hands its KV invariant to four rows; each now has a
+mode-indexed counterpart (`ServerOn.lean`), today's at `on = false` by definition:
+
+- the raft environment's committed-log clause: `srvCM on` (`srvC` with `logShapeM on`: `logShapeOn`
+  admits the admitted admin requests), `srvErM on`, the workload clause `clusterWorkloadOkM on` and
+  its derivation from `kvInvM on` (`clusterWorkloadOkM_of`; mode on: `clusterWorkloadOkOn_of`, over
+  `batchWaitOk_of_claims`, which needs only the conf changes' ids), the raft wrapper's discharge
+  (`rnEnvOk_of_clusterM`), the ticker (`rnTickerOk_srvErM_S`), `srvCM_agree`;
+- the certificates' invariant `kvCertInvM on` (`kvCertInvOn`, E2t) and its allocation;
+- the request path's row `srvReqBuiltM on` and the apply thread's `srvKVInvsM on` (at `on = true`
+  `srvKVInvsOn … srvAuthSt0`, `srvKVInvsM_true`);
+- the built part `srvBuiltG on` (`srvBuilt` with the three above).
+
+The proof of `NewServer.wp_proofM` changed only in names (`srvErM on`, `kvCertInvM_alloc on`,
+`rnEnvOk_of_clusterM on`, `clusterWorkloadOkM_of on`, `unfold srvBuiltG/srvReqBuiltM/srvKVInvsM`,
+`srvCM_agree on`); `NewServer.wp_proof` rewrites the mode-off instances (`kvInvM_false`,
+`srvErM_false`, `srvBuiltG_false`).
+
+**The start's auth state.** The mode-`on` KV model starts from `srvAuthSt0 := bump bootState`, the
+store's latest at the server's start (`newAuthStore_boot`'s history `[bootState, bump bootState]`).
+Fixed in the definitions rather than a parameter of the spec: the apply thread's later proof must tie
+the model's auth state to the store's, which holds only at that state.
+
+**The proposal's update in the mode `on`** (`ProposeOn.lean`, `kv_prop_au_on`; the design decided
+2026-10-26): over `kvInvOn`, a proposal (`reqPropOkOn`: `reqPropOk`'s no-write case and its
+at-most-once write case, with every permission of the cache's shape, `kvShapeAll`, so the entry is
+determinate at any state, `commitOkOn_plain`) gives raft's `srvPropAu1`. A write's client update
+fires at the commit only if the model's auth state after the committed log grants it (`grantedAt`);
+otherwise the client's update is put back unfired, the KV state kept (`kvModelOn_snoc_refused`) and
+the result says so (`grantedRes`: granted with `kvRes`, or `⌜¬ grantedAt⌝`). A write-free request
+keeps the state either way (`kvEntryOn_nonwrite`).
+
+**Also.** `KVAuthModel.lean`'s `relState` is renamed `authRelState`: it clashed with raft's
+`relState` (`releasePendingReadIndexMessages.lean`) in any module importing both, as `ServerOn.lean`
+and `NewServer.lean` do.
+
+**Exported statements changed.** `NewServer.specM` (its precondition's KV invariant and ticker
+environment, its post's built part and raft environment); `KVAuthModel`'s `relState` renamed. No
+closed theorem changed; `NewServer.spec` keeps its text. New: `ServerOn.lean`'s and
+`ProposeOn.lean`'s definitions and theorems.
+
+**Trust base.** Unchanged (718 axioms, 6 sorries).
+
+**Not done** (the mode-`on` server's run; each consumes `srvBuiltG true`):
+1. `start`/`run` and the apply thread over `srvKVInvsOn`: `isServerBuilt_of_gap`'s mode-`on`
+   counterpart, the apply loop's step `kv_applied_step_on` with E2s's outcome (`outcomeOn`, E2v).
+2. The proposers (`EtcdServer.Put`/`Txn`/`DeleteRange`, `InvProposer`'s `isServerReq`) over
+   `srvReqBuiltM true` and `kv_prop_au_on`; the gRPC handlers turning `grantedRes`'s refusal and the
+   apply thread's refusal into the client's error; the read path (`kvReadAu`, `kv_read_compose`)
+   over `kvInvOn`.
+3. The admin proposers (`setupAuthOk`): `reqPropOkOn` has no admin case yet; an admin entry keeps
+   the KV state (`kvModelOn_snoc_admin`) but needs its determinacy (`authDet`) at the commit's
+   state.
+4. `NewServerAlloc`'s mode-`on` allocation path (the callers': `kvInvOn_alloc_boot` is its KV part).
+
+## E2v of the auth plan: the empty request granted; the admin chain carrying the tie; the auth applier's outcome as the model's (2026-10-26 · `notes/auth-plan.md`)
+
+Three items from E2s/E2t/E2u's "left".
+
+**(1) The model's gap (E2s's finding) fixed.** `kvGranted st rq` is now per permission: every
+permission of `reqPerms rq` passes (`st.enabled = false`, or the principal's revision not `0` and not
+below the store's, and its user existing, root or covering it). Before, it asked the revision and
+the user once for the whole request, so a request needing no permission (a transaction without
+comparisons or operations), which the code applies unchecked, was refused by the model whenever the
+principal was invalid. Equal to the old definition for a request needing at least one permission;
+`kvGranted_of_disabled`, `kvGranted_of_nil`; `KVAuthBridge.lean`'s lemmas are now the definition
+(`kvGranted_of_granted1`, `kvGranted_of_passedL` lose their `reqPerms rq ≠ []` premise). The mode-off
+model does not mention `kvGranted`.
+
+**(2) The admin chain carrying the tie.** E2s's `X.specT` keep the admin side's halves of the flag
+and the cache tied to the latest state, with their values in the write resource (`authWRx`); the
+apply layer's admin chain (E2l–E2o) carries the write resource as a constant `W`, and a step's
+result as the authority after it (`adminOut`, `adminOutFu`). The tie depends on the history the step
+makes, so it moves to the authority's side:
+- `auth/TieRes.lean`: `tieRes st M hs` (the halves at values tied to `hs`'s latest state, with their
+  verdict and snapshot), `authOwnT`, `authWB` (the write resource but the halves: what stays
+  constant), the result for an authority family `Own` (`adminOutX`; `adminOut` and `adminOutFu` are its
+  instances, `adminOut_eq_X`, `adminOutFu_eq_X`), `adminOutP_tieRes` (a tie-keeping step's result is
+  `adminOutX` for `authOwnT`), `adminOutX_fu`, `tieRes_of_disabled` (the tie at a history of disabled
+  states: the store's start).
+- `apply/AuthStepsX.lean`: `isAuthStepsX st P f M X W` (`SetUp`'s five admin operations with a
+  resource `X` of the history beside the authority), the real store's with `X = tieRes st M` and
+  `W = authWB ∗ tpAdmin` (`isAuthStepsX_of_authInvT`, from the five `X.specT`), the backend's
+  `stepSpecX`/`fuelSpecX` and their proofs (copies of `AuthSteps.lean`'s and `AuthFuel.lean`'s with `X`).
+- The chain layers are generic in the authority family `Own : AuthNames → List AuthState → IProp`
+  (`AdminReq.result`, `adminTriples`, `applierAdmin`, the four lifts, `dispatch.adminSpec`,
+  `adminDone`, `uberApplier.Apply.adminSpec`, `adminOut`, `apply.Apply.adminSpec`, `uberAuthSteps`):
+  E2l's `auth.authOwnFu` (`applierAdmin_backend`, `_base`, `_uber`, `_cur`, `uberAuthSteps_of_steps`)
+  or the tie's `fun γa h => authOwnFu γa h ∗ X h` (`applierAdmin_backendX`, `_baseX`, `_uberX`,
+  `uberAuthSteps_of_stepsX`), through the generic `applierAdmin_baseG`, `_uberG`, `_curG`.
+  `uberApplier.Apply.adminSpec` and `uberAuthSteps` now take the base applier's admin triples (what
+  `applierAdmin_uber`/`_uberX` give) in place of the store's `isAuthSteps`, so `Apply.wp_admin` no
+  longer takes the fuel triples.
+- `authApplyRes` (the apply thread's auth resource) holds `tieRes stl (.on γa) hs` in place of
+  `enabledHalf ∗ cacheHalf`; `authStoreKit_on` builds it at the start's history
+  (`tieRes_of_disabled`). So the latest-state checks' resource (`latestRes`, `latestRes_of_T`) and
+  the admin steps' resource are the same, and survive an admin entry.
+
+**Not done in (2): `UserAdd` through `specSure`.** E2u's `UserAdd.specSure` (no `ErrNoPasswordUser`
+at a sure password choice) and E2s's `UserAdd.specT` (the tie) are separate specs of one function,
+and their posts do not combine; the apply layer's `UserAdd` stays `specT`'s (with the
+`noPasswordUser` refusal). It needs a `UserAdd.specTSure` (its proof is `wp_tie`'s with `wp_sure`'s
+`selectPassword` case).
+
+**(3) The auth applier's outcome as the model's, in part.** `KVOutcomeOn.lean`'s
+`outcomeOn_of_authOutL`: for a plain KV request of an entry above `c₀`, applied at the start chain
+with auth on and no alarm, whose checked permissions are its own (`reqPerms`), at a history whose
+latest state is the model's, E2s's verdict (`authOutL`: refused at the latest state, or the inner
+chain's write with every permission granted there) gives E2t's `outcomeOn` (the model's refusal
+or write, `chainStep_plain`, `dispatchLog_kv`). Not done (the Iris lift to `kv_applied_out_on`'s
+hypothesis):
+- `dispatch`'s KV cases in the mode `on` through the auth applier's latest-state triples (a
+  `dispatch` triple beside `dispatch.spec`, as `dispatch.wp_admin` is for the admin kinds), then
+  `uberApplier.Apply`'s and `apply.Apply`'s, with `latestRes` from the apply thread's `authApplyRes`
+  (`latestRes_of_T`);
+- the principal: `authApplierV3.Apply` sets `authInfo` from the request's header, so the checked
+  principal is `principalOf rq` (a fact of `Apply`'s auth-layer proof, not yet stated);
+- the checked permissions are the request's own only up to the range end the check saw
+  (`authEndOf`: equal unless a non-`nil` empty `RangeEnd`, which no wire request has: a premise of the
+  workload) and, for a transaction, the order and the early exit (`txnChecked`, `txnMay`: the
+  refusal is of some permission of `reqPerms`, the pass of all);
+- `lessorNil` for the server's lessor (E2s's `Put`/`Txn` premise; `examples/authkv` grants no lease).
+
+**Exported statements changed.** Definitions: `kvGranted` (per permission), `apply.AdminReq.result`,
+`apply.adminTriples`, `apply.applierAdmin`, `apply.adminDone`, `apply.adminOut`, `apply.uberAuthSteps`
+(each gains `Own`; `uberAuthSteps` holds the base applier's admin triples), `authApplyRes` (the tie);
+specs: `apply.uberApplier.dispatch.adminSpec`, `apply.uberApplier.Apply.adminSpec` (the base
+applier's admin triples in place of `isAuthSteps`), `apply.Apply.adminSpec` (each gains `Own`);
+theorems: `kvGranted_of_granted1`, `kvGranted_of_passedL` (no `≠ []` premise),
+`apply.uberApplier.Apply.wp_admin` (no fuel triples), `apply_admin_backend` (at `auth.authOwnFu`).
+No closed theorem changed. New: `auth/TieRes.lean`, `apply/AuthStepsX.lean`, `KVOutcomeOn.lean`'s
+theorems, and in `etcdserver/Results.lean` `apply_auth_steps_tie`, `apply_X_fuelX`,
+`apply_admin_backendX`.
+
+**Trust base.** Unchanged by E2v (721 axioms, 6 sorries after merging `lean` at b8877b9fc6).
+
+## E2z of the auth plan: the allocation with auth on; `start`'s premise with auth on; what the server's run with auth on needs (2026-10-26 · `notes/auth-plan.md`, E2w's "Not done")
+
+**Done.**
+1. *The allocation with auth on* (`NewServerAllocOn.lean`; E2w's item 4). `kv_noop_au_on`: raft's
+   standing update for its own entries from `kvInvOn` (an empty entry or a conf change keeps the
+   mode-`on` model, `kvEntryOn_noop`, and meets the committer's obligation vacuously,
+   `commitOkOn_noop`). With it, `srvBootClientOn`/`srvRaftBootOn_alloc`/`srvClusterBootOn_alloc`
+   (`NewServerAlloc.lean`'s, with `kvInvOn _ _ srvAuthSt0` allocated at the bootstrap log by
+   `kvInvOn_alloc_boot` and the start chain `alarmChain true false false`) and
+   `srvMemberBootOn_alloc` (a member's names, giving `kvInvM true`, via `kvInvOn_congr`): a caller of
+   `server_new_auth_on` can build its KV premise. Restated as `server_cluster_alloc_on`,
+   `server_member_alloc_on` (`etcdserver/Results.lean`).
+2. *`start`'s construction premise with auth on* (`StartOn.lean`; the first piece of E2w's item 1).
+   `kvRunOn` (the apply thread's KV ghost state over `kvAppliedOn`, at some auth state the model
+   reaches), `applyBuiltOn`, `isServerBuiltOn` (`isServerBuilt` with `srvReqBuiltM true`,
+   `srvKVInvsM true`, `srvCM true`, `applyBuiltOn`), `isServerBuiltM` (today's at `false` by
+   definition); `isServerBuilt_of_gapM`: `NewServer.specM on`'s built part and the residual give it
+   (at the empty applied log the mode-off `kvRun` gives `kvRunOn`, `kvRun_nil_on`: both models start
+   at the start's log). Restated as `server_built_gap_on`.
+
+**Also.** `ProposeOn.lean`'s `plainReq_noAdmin` is renamed `plainReq_noAdminP`: it clashed with
+`NoSpaceDead.lean`'s (a different statement, over `plainCover`) in any module importing both, as
+`Results.lean` now does.
+
+**Found** (for the stages after this one):
+- *The proposer's result is at the wire request.* `grantedRes`/`reqPropOkOn` (E2w) are stated at
+  the caller's `rq`, but `kvGranted` reads `principalOf rq`, the header's user and auth revision,
+  which `processInternalRaftRequestOnce` fills in from `AuthInfoFromCtx` before it proposes. The
+  mode-`on` proposer spec must therefore take its result at the wire request `withHeader rq hm` for
+  the header it fills (`Qr` a function of `hm`), with a wire lemma that `reqPerms`/`kvShapeAll` do
+  not read the header; a caller (the gRPC handler) learns which principal was checked from the
+  bound context (E2c's `ctxBound`).
+- *The wait's results are tied to the mode-off model.* `entryWit` (`kvModel ρ.kv (L.take m) = lb`),
+  `resultΨ`, `reqWaitR`, `waitInv` (in `srvReqFieldsAt`), `processInternalRaftRequestOnce.spec`'s
+  post (`kvModel ρ.kv L = lb`) and the applied-log rows of `InvRequest.lean` (`L = kvModel γr.kv A`)
+  all name `kvModel`. The mode-`on` server needs each over `kvModelOn ρ.kv srvAuthSt0`.
+  Recommended: mode-indexed counterparts beside them (`entryWitM on`, ...), today's at `false` by
+  definition, as E2w did for the construction's rows; not a change to `kvModel` (about 40 proofs
+  unfold it).
+- *Admin determinacy needs the auth state's shape.* `userGrantRoleR`'s successor is a strictly
+  sorted permutation of the user's roles with the new one: it exists and is unique only when the
+  user's roles have no duplicates, so `authDet` of a grant does not hold at every state.
+  `reqPropOkOn`'s admin case (E2w's item 3) cannot ask for determinacy at any state, as its KV case
+  does with `kvShapeAll`; it needs the model's states to keep a shape invariant (E2l's `authSmall`
+  has the roles' `nodup`), proved along `kvRaftOfOn`, and `authDet` from it for the admitted kinds
+  (`UserAdd` at `pwSure`, E2t/E2x).
+
+**Exported statements changed.** `ProposeOn`'s `plainReq_noAdmin` renamed. Everything else is new.
+No closed theorem changed.
+
+**Trust base.** Unchanged (no axiom, no `sorry`).
+
+**Not done** (the server's run with auth on; in order):
+1. `start` over `isServerBuiltOn` (the mode-`on` `start` spec: it hands `run` the mode-`on` rows),
+   then `run`/`applyAll`/`applyEntryNormal` over `kvRunOn`: the KV step by `kv_applied_step_on` with
+   the apply-level outcome (`kv_applied_out_on`'s hypothesis, E2y), the admin entries by E2v's
+   admin triples with the receipt and the borrow of `be`'s half, and the tie of `kvRunOn`'s auth
+   state to `authApplyRes`'s history (the apply thread's latest state).
+2. The mode-indexed wait results (above), then `processInternalRaftRequestOnce` with auth on over
+   `reqPropOkOn` at the wire request and `kv_prop_au_on`; `Put`/`Txn`/`DeleteRange` over it, and the
+   gRPC handlers turning `grantedRes`'s refusal into the client's error; the read path over
+   `kvInvOn`.
+3. The admin proposers (`setupAuthOk`): `reqPropOkOn`'s admin case over the model's shape
+   invariant (above), with `server_user_add_sure` (E2x) discharging `UserAdd`'s `pwSure`.
+
+## E2y of the auth plan: the KV path at the latest state through `dispatch` and both `Apply`s; the outcome as the model's; `UserAdd.specTSure` (2026-10-26 · `notes/auth-plan.md`)
+
+E2v's "left" (2) and (3): the auth applier's KV outcome at the latest state (E2s) lifted to an
+applied entry, and from there to E2t's `outcomeOn` (`kv_applied_out_on`'s hypothesis).
+
+**(1) The KV triples at the latest state, through the chain** (new files, beside the spec
+triples, none of which changes):
+- `apply/DispatchKVL.lean`: `applierKVL E c ci a L` (an applier's persistent KV triples with the
+  latest-state resource family `L`, the verdict `authOutL` of the auth applier's inner chain `ci`;
+  `applierTriples`' four KV clauses with `L hs` and the checked permissions' shape), of the auth
+  applier from its methods' `specL` (`applierKVL_auth`, over `authIsL` and the premise
+  `lessorNil`); `kvOutL` (the outcome per request kind, as the methods' `specL` give it) and
+  `kvShapedL` (the shape the methods' exact verdicts take); `dispatch.kvSpecL`/`wp_kvL`: a second
+  triple of `dispatch` for a KV request (`isKVKind`), `dispatch.spec`'s with `applierKVL` of the
+  current applier and `L hs`, giving `L hs` back and, when applied, `kvOutL`. Its proof is
+  `dispatch.wp_proof`'s walk with the four KV branches through `applierKVL` and every other kind
+  ruled out at its branch (`isKVKind`); `dispatch.spec` is unchanged.
+- `apply/ApplyKVL.lean`: `uberApplier.Apply.kvSpecL`/`wp_kvL`, with no alarm set (the current
+  chain the base one; `applierKVL_cur`: then the current applier is the base one, `uberShape`,
+  `alarmChain_eq_base`); the auth applier hands `dispatch` the request's principal
+  (`principalOf rq`, from its header: `authApplierV3.Apply.spec`'s `applyFunc` contract), so the
+  verdict is at the request's own principal (the principal tie: already a fact of `Apply`'s
+  contract, nothing new needed).
+- `apply/ApplyFnKVL.lean`: `apply.Apply.kvSpecL`/`wp_kvL` (the entry's decode, ID, waiter and
+  wrapper as `Apply.wp_proof`'s), over `uberKVL` (the uber-applier with its base applier's
+  `applierKVL`): a dispatched and applied entry's outcome is `kvOutL` at `principalOf rq`.
+
+**(3) The outcome as the model's** (`KVOutcomeOn.lean`): `authOutL_of_kvOutL` (the dispatched
+verdict on the request's own permissions, `reqPerms`) and `outcomeOn_of_kvOutL` (with E2v's
+`outcomeOn_of_authOutL`: `outcomeOn`, E2t's `kv_applied_out_on` hypothesis). Two premises of the
+request, named:
+- `noZeroEnds rq`: no model range end is `"\x00"` — the one end at which the check sees another
+  range than the model's (`authEndOf`: a non-`nil` empty `RangeEnd` on the wire reads as `"\x00"`).
+- `txnVerdictOwn M hs rq`, for transactions: a refusal is of a permission the model asks, a pass
+  covers every one it asks. **Found (a gap in E2q's model, not in Go):** inside a transaction,
+  `checkTxnReqsPermission` checks a put with `checkPutAuth`, which with `PrevKv` also checks the
+  key's read; the model's operation `TxnOp.put` records no `PrevKv`, so `opPerms` asks only the
+  write. A transaction whose put has `PrevKv`, by a user with write but not read on the key, is
+  refused by the code and granted by the model. Until `TxnOp.put` carries `PrevKv` (a change to
+  the transaction model, `txn/`, and its decoders), `txnVerdictOwn` is the transaction's premise.
+
+**(4) `UserAdd.specTSure`** (`auth/authStore__UserAdd_tieSure.lean`): E2s's `specT` and E2u's
+`specSure` in one triple (`wp_tieSure`: `wp_tie`'s proof with `wp_sure`'s `selectPassword` case);
+restated linked as `auth_user_add_tie_sure`. **Not done:** the apply layer's `UserAdd` through it
+(`isAuthStepsX`'s `UserAdd` clause, `stepSpecX`/`fuelSpecX`, `AdminReq.result` would take the
+request's `pwSure` and drop the `noPasswordUser` extra).
+
+**Left.** The apply thread's use of `apply.Apply.wp_kvL` (`applyEntryNormal` in the mode `on`,
+E2z's), `L hs` (`latestRes`, `latestRes_of_T`) from the apply thread's `authApplyRes`, the
+`uberKVL` of the server's uber-applier (`applierKVL_auth` at its base auth applier, with
+`lessorNil` of the server's lessor: `examples/authkv` grants no lease), the premises `noZeroEnds`,
+`kvShapedL` (E2q's `kvDet`) and `txnVerdictOwn` from the workload; with alarms, the capped and
+corrupt wrappers' KV triples at the latest state.
+
+**Exported statements changed.** None: every triple and definition is new (`apply.kvOutL`,
+`apply.kvShapedL`, `apply.applierKVL`, `apply.uberKVL`, `noZeroEnds`, `txnVerdictOwn`,
+`dispatch.kvSpecL`, `uberApplier.Apply.kvSpecL`, `apply.Apply.kvSpecL`, `UserAdd.specTSure`).
+
+**Trust base.** Unchanged.
+
+## E3b of the auth plan: the proposer path in the auth mode `on` (2026-10-26 · `notes/auth-plan.md`, E2z's "Not done" (2), the request side of E3)
+
+**Done** (`etcdserver/ReqOn.lean`, new; every row today's at `on = false` by definition):
+1. *The mode-indexed request rows* (E2z's recommendation: counterparts beside today's, not a change
+   to `kvModel`): `kvModelM`, `resultΨM` (`resultΨ` off, `resultΨOn` on), `reqWaitRM`, `waitInvM`,
+   `srvReqFieldsAtM`, `isServerReqM` (`_false` lemmas by `rfl`).
+2. *The mode-`on` result carries the auth layer's verdict* (`resultΨOn`): `resultIsWOn` is
+   `resultIsW` with `authTie st rq out` (a KV request dispatched to `o` was rejected by the auth layer
+   exactly when the auth state `st` the entry met does not grant it, `kvGranted`), and `entryWitOn`
+   ties `(st, lb)` to the mode-`on` model of the raft prefix before the entry (`kvRaftOfOn`). **This
+   is the interface the apply thread in the mode `on` (E3a) must meet** when it hands a result to
+   its waiter: E2t's `outcomeOn` at the apply layer (E2y's `outcomeOn_of_kvOutL`) gives `authTie`.
+   Without it a proposer could not tell a success from a refusal the model made.
+3. *The proposal at the wire* (E2z's first finding): `reqPropOkM` (off `reqPropOk` at a constant
+   result; on `∀ hm, reqPropOkOn γk srvAuthSt0 (withHeader rq hm) (Qh hm)`: the result a function of
+   the header the server stamps, one resource, the client's update spent once at the header actually
+   stamped); the wire lemmas (`reqPerms_withHeader`, `kvShapeAll_withHeader`, `reqKVOp_withHeader`,
+   `principalOf_withHeader`, `irrWireOf_eq`: the stamped request is the decoded one when no range end
+   is `[0]`); `kv_prop_au_M` (`kv_prop_au` off through `reqPropOk_wire`, `kv_prop_au_on` on).
+4. *The proposers in either mode*: `processInternalRaftRequestOnce.specM on`/`wp_proofM` (its
+   success post at the committed prefix `L` before the entry: `resPostM` with `modelOutM`, in the
+   mode `on` the auth state the entry met and `authTie`), `parseProposeCtxErr.specM`/`wp_proofM` (it
+   reads none of the mode's rows), `raftRequest.specM`/`wp_proofM` (`appliedOkM`); the three
+   mode-off proofs (`wp_proof`) derived, their statements unchanged
+   (`processInternalRaftRequestOnce.specM_false_of_spec` for `raftRequest.wp_proof`'s hypothesis).
+5. *Put and DeleteRange in the mode `on`* (`Put.specOn`/`wp_proofOn`, `DeleteRange.specOn`/
+   `wp_proofOn`, beside today's): the same posts as today's, at `putPermitOn`/`deletePermitOn`
+   (today's permission and the key/range of the cache's shape, `kvShapeAll`); a success (an applied
+   outcome, no error) is a write the auth state its entry met granted (`authTie`, then `grantedRes`:
+   `grantedRes_applied`), so the client's update fired and its result holds at the log the entry
+   met; a refusal is an error (`appliedErr`, the auth layer's rejection). Restated linked:
+   `server_process_irr_on`, `server_raft_request_on`, `server_put_on`, `server_delete_range_on`
+   (`etcdserver/Results.lean`; no `sorry`).
+
+**Exported statements changed.** None of today's: `processInternalRaftRequestOnce.spec`,
+`parseProposeCtxErr.spec`, `raftRequest.spec`, `Put.spec`, `DeleteRange.spec` keep their text
+(their `wp_proof`s are now derived from the generic proofs). New: the `specM`/`specOn` statements
+and everything in `ReqOn.lean`.
+
+**Trust base.** Unchanged (no axiom, no `sorry`).
+
+**Not done** (in order):
+1. *The model fix for a transaction's put with `PrevKv`* (E2y's finding). `TxnOp.put` is the
+   client's shared transaction model (`cache/v3/InvEtcdTxn.lean`, about 140 files name it: the
+   cache, leasing, recipes, the client), so adding `PrevKv` to it is out of proportion to the gap.
+   Proposed instead: a server-side wire tree of the transaction's operations (`TxnOpW`: an `OpFull`
+   per put, `toTxnOp` to today's), kept by the request model next to `IRRModel.txn` and related to
+   the wire by the decoder (`requestOpIs`'s `OpFull`, which the decode axiom already names), with
+   `opPerms` over it; then `txnVerdictOwn` (E2y) is proved rather than premised. Until then
+   `txnVerdictOwn` stays the transaction's premise.
+2. *Txn in the mode `on`* (`Txn.specOn`: the same pattern as Put's, with a read-only transaction's
+   no-write case, `reqPropOkM_true_nowrite`), and the read path over `kvInvOn` (`Range`, the read
+   loop's `readQs`/`kvLogAt` over the mode-`on` model).
+3. *The gRPC handlers* (v3rpc's `Put`/`DeleteRange`/`Txn`) over the mode-`on` server (`isServerReqM
+   true`): the refusal is already an error (`applyErrIs`), so the handler's error path carries over;
+   what changes is the server's view they take.
+4. *The admin proposers for `setupAuthOk`*: `reqPropOkOn`'s admin case over a shape invariant of the
+   model's states (E2l's `authSmall`, nodup roles, along `kvRaftOfOn`), with `server_user_add_sure`
+   (E2x) for `pwSure`.
+5. *The apply thread's side* (E3a): handing `resultΨOn` (with `authTie`) to the waiter.
+
+## E3a of the auth plan: the apply layer's `UserAdd` determinate; the apply thread's tie lemmas; the apply loop in the mode `on` left (2026-10-26 · `notes/auth-plan.md`)
+
+**Done.**
+- *The apply layer's `UserAdd` through E2u's/E2y's sure-password specs.* `isAuthSteps`'s and
+  `isAuthStepsX`'s `UserAdd` clauses, the backend's `stepSpec`/`stepSpecX` and the fueled
+  `fuelSpec`/`fuelSpecX` take `auth.userAddSure r` and give the step's outcome alone
+  (`auth.noExtra`, no `ErrNoPasswordUser`); the real store meets them from `UserAdd.specSure`
+  (`isAuthSteps_of_authInv`) and `UserAdd.specTSure` (`isAuthStepsX_of_authInvT`). The admin
+  chain's `AdminReq.reqIs` for `UserAdd` adds `userAddSure`, `AdminReq.result` drops the extra;
+  the dispatch gets `userAddSure` from the decoded request (`authUserAddIs_sure`) because
+  `apply.adminKindOk` now admits a `UserAdd` only with `UserAddModel.pwSure` (the server's own
+  form, which `EtcdServer.UserAdd` proposes: E2x's `server_user_add_sure`). So an admitted
+  `UserAdd` is determinate at the apply thread (E2t's `adminStateR` keeps the state on `UserAdd`
+  only when not `pwSure`).
+- *The tie of the model's auth state to the admin side's history* (`etcdserver/ApplyTieOn.lean`):
+  the apply loop keeps `hs.getLast? = some st` (`hs` the history of `authApplyRes`, `st` the auth
+  state `kvAppliedOn` reaches). A KV entry's outcomes keep the auth state
+  (`outcomeOn_auth_keep`); an admin entry's result without an extra error gives the authority at
+  the history after the outcome (`adminOutX_on_noExtra`, `histAfter`), whose latest state is the
+  outcome's (`histAfter_last`), a successor of the model's admin step when the admin check passed
+  at the latest state (`adminStateR_of_step`, for `UserAdd`, `RoleAdd`, `UserGrantRole`,
+  `RoleGrantPermission`) or the state kept when it failed (`adminStateR_refused`), hence
+  `outcomeOn`'s (`outcomeOn_of_adminStateR`).
+
+**Not done: the apply loop in the mode `on`** (`start`/`run`/`applyAll`/`applyEntryNormal` over
+`kvRunOn`). What blocks it, in order:
+1. *The admin check at the latest state on the apply path.* `uberApplier.Apply.adminSpec`/
+   `apply.Apply.adminSpec` (E2o) give, for a dispatched admin request, `adminPass` (S3's verdict
+   at some recorded state, `auth.adminVerdict`) and nothing for a rejected one; `adminStateR` needs
+   `auth.adminOk` at the latest state both ways. Needed: `authApplierV3.Apply`'s admin check
+   through `isAuthStoreL`'s `IsAdminPermitted` (E2s's `adminVerdictL`), lifted as E2y did for the
+   KV path (an `adminSpecL`).
+2. *`AuthEnable` at the latest state.* `AdminReq.result`'s `AuthEnable` gives the flag the store
+   read at some recorded state (`auth.enabledVerdict`); the model steps at the latest state's flag
+   (`auth.authEnableF st.enabled`). The tie-carrying instance has the flag's half tied to the latest
+   state (E2s's `AuthEnable.specT`), so `AdminReq.result` can state it there.
+3. *The tie at boot.* `authApplyRes` hides its history (`∃ hs`), and `NewServer.specM on`'s
+   construction (E2k's `authStoreKit_on`, at `[bootState, bump bootState]`) does not expose it, so
+   `isServerBuiltOn` cannot yet give `hs.getLast? = some srvAuthSt0`. Needed: the history as an
+   index of the apply thread's auth resource through `srvBuiltG true` and `applyBuiltOn`, which
+   touches `NewServer.wp_proofM`.
+4. *`applyEntryNormal` in the mode `on`*: the server's invariants in the mode `on` (`isServer`'s
+   `srvKVInvs` is mode-off; `srvKVInvsM true` is in `isServerBuiltOn` only), the wait's results in
+   the mode `on` (E3b's), and the KV/admin cases through `apply.Apply.kvSpecL` (E2y, with `uberKVL`
+   of the server's uber-applier and `lessorNil` of its lessor) and `apply.Apply.adminSpec` with the
+   receipt at an apply-thread step and the borrow of `be`'s half; then `applyAll`, `run`, `start`.
+
+**Exported statements changed.**
+- *Specs:* `applierV3backend.UserAdd.stepSpec`, `.fuelSpec`, `.stepSpecX`, `.fuelSpecX` (the
+  request's `userAddSure`; `auth.noExtra`).
+- *Definitions:* `apply.isAuthSteps`, `apply.isAuthStepsX` (their `UserAdd` clauses),
+  `apply.AdminReq.reqIs`, `apply.AdminReq.result` (their `UserAdd` cases), `apply.adminKindOk`
+  (`UserAdd`: `pwSure`).
+- *Theorems:* `isAuthSteps_of_authInv` takes `UserAdd.specSure`, `isAuthStepsX_of_authInvT`
+  `UserAdd.specTSure`. The restatements `auth_apply_steps`, `apply_auth_steps_tie` keep their
+  statements (they are of the changed definitions). No closed theorem changed.
+
+**Trust base.** Unchanged.
+
+## E3d of the auth plan: a writing transaction in the auth mode `on`; the `PrevKv` fix, the read path and the handlers left, with why (2026-10-27 · `notes/auth-plan.md`, E3b's "Not done" (1)-(3))
+
+**Done.** *A writing `Txn` in the mode `on`* (`EtcdServer.Txn.specOn`/`wp_proofOn`, beside `spec`,
+which keeps its text): a transaction that is not read-only (`⌜txn.txnReadonly t = false⌝`), at the
+server as a proposer sees it in the mode `on` (`isServerReqM true`), with `s.Logger()`'s field and
+reader slot (`EnsureTrace` reads it; `spec` took it from the read side's `srvRdCall`), `E.RD`, and
+`txnPermitOn` (`txnPermit` and every permission the transaction's checks need of the permission
+cache's shape, `kvShapeAll`); the post is `spec`'s writing case: a success (`txnAppliedOk`) is a
+transaction the auth state its entry met granted, so its client's update fired there and `Q` holds
+at the log the entry met (`txnQhOn_res`, through E3b's `grantedRes_applied`); a refusal is an error
+(`txnErrOk`). `ReqOn.lean` gains `txnPermitOn`, `txnQhOn`, `irrTxn_kind`, `txnPermitOn_reqPropOk`,
+`txnQhOn_res`. Restated linked: `server_txn_on` (`etcdserver/Results.lean`). No exported statement
+changed; trust base unchanged.
+
+**Not done.**
+1. *The `PrevKv` model fix* (E2y's finding; E3b's proposed wire tree). Designed further, not built:
+   - *The wire tree must be a function of the heap.* `proto.MarshalIRR`'s axiom says the encoding of
+     the request `internalRaftRequestIs p rq` holds decodes to `rq` (no range end `[0]`), and the
+     decoding `irrDecode` is a function; so `internalRaftRequestIs p` must determine `rq`. A field
+     the predicate leaves open (e.g. a `txnW : Option TxnModelW` that may be `none` when the heap has
+     a transaction) would let two models hold of one heap, and the axiom would then give `False` from
+     one deterministic `Marshal`. So the server-side tree has to be pinned by the heap like every
+     other field.
+   - *So the proposers name it.* `irrTxn t` (about 45 uses: `InvProposer`, `InvRead`, `EtcdServer__Txn`,
+     the client's `KVService`/`ServerKVTxn`, `examples/linkvtxn`, v3rpc's `ServerKV`) would take the
+     wire tree (`irrTxn tw`, `t = tw.toModel`), changing those statements' text (not their meaning).
+     The proposer gets the tree from the heap: `txnRequestIs r t ⊢ ∃ tw, txnRequestIsW r tw ∗
+     ⌜tw.toModel = t⌝` is derivable, since `requestOpIs` keeps each put's `OpFull` (existentially).
+   - *Recommended shape*: `IRRModel.txn : Option TxnModelW` (an `OpFull` per put, `toModel` to
+     today's `TxnModel` through `putTxnOp`), `txnRequestIsW` beside `txnRequestIs` (the latter derived),
+     the apply side reading `rq.txn.map toModel` where it reads `TxnModel` today, `opPerms` over
+     `TxnOpW` (a put with `PrevKv` also needs read, as `checkPutAuth`); then `txnVerdictOwn` is proved.
+     The client's `TxnOp` stays as it is. A refactor of its own (the request model and every
+     transaction statement on the server side), not a lemma; until then `txnVerdictOwn` stays the
+     transaction's premise, and `Txn.specOn`'s success rests on the apply thread's `authTie`, which
+     for a transaction with such a put the apply thread can give only under that premise.
+2. *A read-only `Txn` and `Range` in the mode `on` (the read path).* Both read through
+   `doSerialize` at the read side's view (`isServerRead`), whose KV invariants (`srvKVInvs`,
+   `srvAppliedInv`'s `appliedLogAt`, `readWit_fire` in `KVRead.lean`) are the mode-off model's. The
+   mode-`on` read needs those over `kvInvOn`/`kvModelOn`, which the apply loop in the mode `on`
+   maintains (E3a's blocker 4: `applyEntryNormal` over `kvRunOn`, the applied logs published); so
+   it waits on that. Also open there: what a read promises in the mode `on`. `doSerialize` checks
+   at the auth store (S3's verdict: permitted at *some* recorded state), reads, and then refuses
+   (`ErrAuthOldRevision`) when the principal's revision is not `0` and differs from the store's
+   revision after the read; the read's statement (E2b's "no reply reveals a key outside the
+   principal's read permissions") is at that recorded state, bounded by the revision check.
+3. *The gRPC handlers* (v3rpc's `kvServer`): `ServerKV.lean` builds the handlers' answers
+   (`srvKVAns`, `kvTxnOk_of_server` and the others) from all four server methods, the read side
+   included, so they wait on (2); `Put`/`DeleteRange`/writing `Txn` in the mode `on` are ready for
+   them (`server_put_on`, `server_delete_range_on`, `server_txn_on`).

@@ -1,8 +1,8 @@
 /- Lean-first (no Rocq counterpart). The proof of `writer` (W4d of `notes/watch-cut-plan.md`;
 watchkv's, with linkv3p's `Apply`'s pick of a client): the loop over `tried[lo:hi]`; each put
 through the client at `RandomUint64() % len(clis)`, with the writer's update at every member
-(`put_au` at the history's names, `kvOpAu1_congr`); each successful put's reply, some member's,
-gives `okFactH` (`okFactH_of_reply`), logged under the lock. -/
+(the adapter's write update, `km_put_au`, at the cluster's KV state variable); each successful
+put's result gives `okFactK` (`okFactK_of_put`), logged under the lock. -/
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.linkv3p.writer
@@ -37,7 +37,7 @@ set_option maxHeartbeats 400000 in
 theorem writer.wp_proof (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG))
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG)) :
     writer.spec (GF := GF) (hG := hG) := by
-  intro CS CRE CEC clis cls ms V γr w tsl tried lo hi P hAs hwl hP hrb hne hlo hlh hhi
+  intro CS CRE CEC clis cls ms V γ w tsl tried lo hi P hAs hW hP hne hlo hlh hhi
   wp_start as ⟨#Hcls, #Hcl, #Hms, #Ht, #Hkv, #Hmu⟩
   ihave #Pc : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 $$ []
   · iPkgInit
@@ -59,13 +59,8 @@ theorem writer.wp_proof (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG
     imodintro
     iintro %i %f %g %Hf %Hg
     simp at Hf
-  -- the members' registrations and empty logs, out of `memberPut`
-  ihave #Hregs : ([∗list] x ∈ ms, client.kvRegsAt x) $$ [Hms]
-  · iapply (BigSepL.bigSepL_mono (Φ := fun _ x => memberPut (GF := GF) γr x) fun _ => by
-      iintro #H; iunfold memberPut at H; icases H with ⟨#H1, -⟩; iexact H1) $$ Hms
-  ihave #HF : ([∗list] x ∈ ms, mvcc.idxCert x.E.γ.idx []) $$ [Hms]
-  · iapply (BigSepL.bigSepL_mono (Φ := fun _ x => memberPut (GF := GF) γr x) fun _ => by
-      iintro #H; iunfold memberPut at H; icases H with ⟨-, -, #H1, -⟩; iexact H1) $$ Hms
+  -- the writes' floor: no change seen
+  imod (monoListLbOwn_nil (GF := GF) (A := List mvcc.Change) γ.ch) with #H0
   have hlen : cls.length ≠ 0 := fun h => hne (List.eq_nil_of_length_eq_zero h)
   ihave HI : (∃ (k : w64), "k" ∷ k_ptr ↦ k ∗
       "%Hk" ∷ ⌜sint.Z lo ≤ sint.Z k ∧ sint.Z k ≤ sint.Z hi⌝ : IProp GF) $$ [k]
@@ -81,18 +76,8 @@ theorem writer.wp_proof (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG
     · iframe #; ipureintro; exact Hx_lookup
     have hxP : (x.Key', x.Val') ∈ P := by
       rw [← hP]; exact List.mem_map.2 ⟨x, List.mem_of_getElem? Hx_lookup, rfl⟩
-    -- the writer's update, at every member's names
-    have hau := client.bigAndL_of_sep ms (watchkv.wkKV (GF := GF) γr)
-      (fun y : client.SrvAt GF => memberPut γr y)
-      (fun y : client.SrvAt GF =>
-        kvOpAu1 y.γr.kv (.put (client.putKeyOp x.Key' x.Val')) (fun _ => iprop(True)))
-      (fun y _ => by
-        iintro ⟨#Hk, #Hm⟩
-        iunfold memberPut at Hm
-        icases Hm with ⟨-, -, -, %h⟩
-        rw [kvOpAu1_congr y.γr.kv γr.kv h.2.1 h.2.2]
-        iapply watchkv.put_au γr P hwl x.Key' x.Val' hxP $$ Hk)
-    ihave Hau := hau $$ [Hkv Hms]
+    -- the writer's update, the adapter's
+    ihave Hau := km_put_au γ P hW x.Key' x.Val' hxP $$ [Hkv H0]
     · iframe #
     (try wp_auto)
     -- `cli := clis[RandomUint64() % len(clis)]`
@@ -140,19 +125,17 @@ theorem writer.wp_proof (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG
       as %cctx %ccd %ccancel ⟨#Hccancel, #Hcctx, #Hcce, -⟩
     (try wp_auto)
     -- `resp, err := cli.Put(ctx, p.Key, p.Val)`
-    wp_apply (client_Put_hist cl ms V cctx ccd x.Key' x.Val' slice.nil
-        (fun _ => iprop(True))) $$ [Hau] as %resp %err Hout
+    wp_apply (client_Put_km cl ms V γ.kv cctx ccd x.Key' x.Val' slice.nil
+        (client.kmWriteQ γ [] (.put (client.putKeyOp x.Key' x.Val')))) $$ [Hau] as %resp %err Hout
     · iframe #; iexact Hau
     -- `cancel()`
     (try wp_auto)
     wp_apply Hccancel
-    icases Hout with (⟨%Herr, %m, #Hm, %y, %hy, Hr⟩ | %Herr)
+    icases Hout with (⟨%Herr, %m, %σ, #Hm, HQ, %Hσ⟩ | %Herr)
     · subst Herr
-      ihave #Hy := (BigSepL.bigSepL_mem (Φ := fun y => memberPut (GF := GF) γr y) hy) $$ Hms
-      iunfold memberPut at Hy
-      icases Hy with ⟨-, #Hinvs, -, %hmy⟩
-      imod okFactH_of_reply γr y.E y.γr hmy.1 hrb [] x.Key' x.Val' _ y.cid y.mid m
-        $$ Hinvs Hr with #Hok
+      ihave #Hok0 := okFactK_of_put γ x.Key' x.Val' σ Hσ.2.1 Hσ.2.2.1 Hσ.2.2.2 $$ HQ
+      ihave #Hok : okFactK γ ⟨m.hdr.revision, x.Key', x.Val'⟩ $$ []
+      · rw [Hσ.1]; iexact Hok0
       (try wp_auto)
       wp_apply sync.Mutex.wp_Lock $$ [] as ⟨Hown, Hinv⟩
       · iframe #
@@ -172,7 +155,7 @@ theorem writer.wp_proof (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG
       wp_apply wp_slice_append $$ [$Hos $Hocap $Hl1] as %osl' ⟨Hos, Hocap, -⟩
       (try wp_auto)
       wp_apply (sync.Mutex.wp_Unlock (structFieldRef
-          github_com.mit_pdos.etcd_grove.examples.common.Writes go!"Mu" w) (wsInvH w γr))
+          github_com.mit_pdos.etcd_grove.examples.common.Writes go!"Mu" w) (wsInvH w γ))
         $$ [Hown Hof Hos Hocap]
       · iframe #
         iframe Hown

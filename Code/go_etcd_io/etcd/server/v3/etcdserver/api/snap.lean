@@ -149,6 +149,10 @@ class Message.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [Go
   set_TotalSize : ∀ (x : Message) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Message.underlying go!"TotalSize") (PairV #x #y) (Val #(({ x with TotalSize' := y } : Message)))
   get_closeC : ∀ (x : Message), go.IsGoStepPureDetTagged under (StructFieldGet Message.underlying go!"closeC") #x (Val #(x.closeC'))
   set_closeC : ∀ (x : Message) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Message.underlying go!"closeC") (PairV #x #y) (Val #(({ x with closeC' := y } : Message)))
+  GetTo_unfold : MethodUnfold Message.ty go!"GetTo" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetTo"))) (App (Val (GoInstruction (StructFieldGet Message.ty go!"Message"))) (Var "$r"))))
+  ptr_GetTo_unfold : MethodUnfold (go.GoType.PointerType Message.ty) go!"GetTo" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetTo"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (App (Val (GoInstruction (StructFieldRef Message.ty go!"Message"))) (Var "$r")))))
 
 attribute [instance] Message.TypeAssumptions.type_repr
   Message.TypeAssumptions.underlying
@@ -160,6 +164,8 @@ attribute [instance] Message.TypeAssumptions.type_repr
   Message.TypeAssumptions.set_TotalSize
   Message.TypeAssumptions.get_closeC
   Message.TypeAssumptions.set_closeC
+  Message.TypeAssumptions.GetTo_unfold
+  Message.TypeAssumptions.ptr_GetTo_unfold
 
 axiom Snapshotter : Type
 axiom Snapshotter.zero_val : ZeroVal Snapshotter

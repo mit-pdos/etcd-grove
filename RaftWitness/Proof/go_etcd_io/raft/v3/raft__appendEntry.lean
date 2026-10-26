@@ -79,29 +79,6 @@ private theorem ownRaftLog_facts (l : Loc) (ls : LogState) :
 
 /-! The batch, as `appendEntry` rewrites it: `stamp` (`Protocol/Model.lean`). -/
 
-private theorem lookup_take_drop {A : Type _} (l1 l2 : List A) (k : Nat) (hk : k ≤ l1.length) :
-    (l1.take k ++ l2.drop k)[k]? = l2[k]? := by
-  rw [List.getElem?_append_right (by simp only [List.length_take]; omega)]
-  simp only [List.length_take, Nat.min_eq_left hk, Nat.sub_self, List.getElem?_drop, Nat.add_zero]
-
-/-- One iteration of the loop, on the list: the prefix already stamped grows
-by one. -/
-private theorem stamp_step (tm sb li : w64) (ents : List EntryM) (n : Nat) (e : EntryM)
-    (He : ents[n]? = some e) :
-    ((ents.mapIdx (stampS tm sb li)).take n ++ ents.drop n).set n
-        { e with Term' := tm, Index' := li + W64 1 + W64 n, Subterm' := sb }
-      = (ents.mapIdx (stampS tm sb li)).take (n+1) ++ ents.drop (n+1) := by
-  have Hlt : n < ents.length := by
-    rcases (List.getElem?_eq_some_iff.1 He) with ⟨h, _⟩; exact h
-  have Hl : ((ents.mapIdx (stampS tm sb li)).take n).length = n := by
-    simp only [List.length_take, List.length_mapIdx]; omega
-  rw [List.set_append_right _ _ (by omega), Hl, Nat.sub_self]
-  rw [List.take_add_one, List.getElem?_mapIdx, He]
-  rw [List.drop_eq_getElem_cons Hlt]
-  simp only [Option.map_some, Option.toList_some, List.set_cons_zero, List.append_assoc,
-    List.singleton_append]
-  rfl
-
 /-- Stamping touches only `Term` and `Index`: a property of the other fields carries
 over to the stamped batch (Rocq `stamped_empty`, `stamped_normal`). -/
 private theorem stamped_mem (tm sb li : w64) (ents : List EntryM) (P : EntryM → Prop)

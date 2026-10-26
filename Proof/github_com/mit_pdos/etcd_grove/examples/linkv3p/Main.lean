@@ -3,7 +3,7 @@ Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/linkv3p/Main.lean` (the p
 S3b, 2026-10-20). Lean-first (no Rocq counterpart).
 
 linkv3's `Main` (`Proof/.../linkv3/Main.lean`) at linkv3p's configuration, with every member
-served: the logger; the cluster (`startCluster`, at putget's workload, since W4 of
+served: the logger; the cluster (`startCluster`, since W4 of
 `notes/watch-cut-plan.md` (2026-10-22) its own function, until then inline here: `clusterUp`, its
 clients at a watch environment `Main` never uses); the partitioner forked on the schedule (every
 member's `srvNetMember`, every bridge owned and not blackholed); the instance's invariant at the
@@ -66,8 +66,8 @@ theorem Main.wp_proof
   (try wp_auto)
   wp_apply wp_NewNop as %lg %Hlg
   (try wp_auto)
-  -- the cluster, at putget's workload (no lease), its clients' watch environment unused
-  wp_apply (wp_startCluster N id₁ id₂ id₃ bootLog lg putgetWorkload [] Hbf putgetWorkload_noGrant
+  -- the cluster, its clients' watch environment unused
+  wp_apply (wp_startCluster N id₁ id₂ id₃ bootLog lg [] Hbf
       Hlg Htb Hrb48 HrbN Hck Haf Hbuq Hdbo Hms)
     $$ [Ha₁ Ha₂ Ha₃ Hc₁ Hc₂ Hc₃ Hba₁ Hba₂ Hba₃ Hf₁ Hf₂ Hf₃ Htok] as %srvs %brs %clis %ok Hup
   · iframe; iframe #
@@ -81,7 +81,7 @@ theorem Main.wp_proof
   icases Hup with ⟨%γ, %γn, %ρ₁, %ρ₂, %ρ₃, %E₁', %E₂', %E₃', %cid₁, %cid₂, %cid₃, %mid₁, %mid₂,
     %mid₃, %R₁, %R₂, %R₃, %s₁, %s₂, %s₃, %cl₁, %cl₂, %cl₃, %br₁, %br₂, %br₃, #Hsrvs, #Hbrs, #Hclis,
     #Hm₁, #Hm₂, #Hm₃, Hctl₁, Hctl₂, Hctl₃, Hob₁, Hob₂, Hob₃, #Hnc₁, #Hnc₂, #Hnc₃, Hetcd, %Hal⟩
-  obtain ⟨hwl₁, hst₂, hwl₂, hst₃, hwl₃⟩ := Hal
+  obtain ⟨hst₂, hst₃⟩ := Hal
   iunfold memberAt at Hm₁ Hm₂ Hm₃
   icases Hm₁ with ⟨#Hfw₁, -, #HPut₁, #HRange₁, #HDel₁, #HTxn₁, %Hnr₁, -, -, -, %Hp₁⟩
   icases Hm₂ with ⟨#Hfw₂, -, #HPut₂, #HRange₂, #HDel₂, #HTxn₂, %Hnr₂, -, -, -, -⟩
@@ -128,12 +128,12 @@ theorem Main.wp_proof
   (try wp_auto)
   -- the instance's invariant, at the cluster's start store (empty), for every member's names
   imod (linkvtxn.linkvInv_alloc_boot ρ₁.rd.kv hlog₁ (ccOk (ids id₁ id₂ id₃)) (ids id₁ id₂ id₃)
-      bootLog Hbf.boot (by rw [hwl₁]; intro; trivial) ⊤) $$ Hetcd
+      bootLog Hbf.boot ⊤) $$ Hetcd
     with ⟨%γl, #Hlinv, Hst⟩
   ihave #Hlinv₂ : linkvtxn.linkvInv γl ρ₂.rd.kv $$ []
-  · rw [linkvInv_congr γl ρ₂.rd.kv ρ₁.rd.kv hst₂ hwl₂]; iexact Hlinv
+  · rw [linkvInv_congr γl ρ₂.rd.kv ρ₁.rd.kv hst₂]; iexact Hlinv
   ihave #Hlinv₃ : linkvtxn.linkvInv γl ρ₃.rd.kv $$ []
-  · rw [linkvInv_congr γl ρ₃.rd.kv ρ₁.rd.kv hst₃ hwl₃]; iexact Hlinv
+  · rw [linkvInv_congr γl ρ₃.rd.kv ρ₁.rd.kv hst₃]; iexact Hlinv
   -- every client's members: the three, at their bridges' addresses
   let ms : List (EtcdGrove.client.SrvAt GF) :=
     [⟨bridgeAddr₁, E₁', ρ₁.rd, cid₁, mid₁⟩, ⟨bridgeAddr₂, E₂', ρ₂.rd, cid₂, mid₂⟩,

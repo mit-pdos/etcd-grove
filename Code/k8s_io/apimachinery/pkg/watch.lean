@@ -145,15 +145,20 @@ axiom incomingQueueLength [FfiSyntax] [GoGlobalContext] : val
 
 axiom internalRunFunctionMarker [FfiSyntax] [GoGlobalContext] : val
 
-axiom Added [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def Added [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"ADDED")
 
-axiom Modified [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def Modified [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"MODIFIED")
 
-axiom Deleted [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def Deleted [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"DELETED")
 
-axiom Bookmark [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def Bookmark [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"BOOKMARK")
 
-axiom Error [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def Error [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"ERROR")
 
 noncomputable def DefaultChanSize [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/watch.DefaultChanSize"

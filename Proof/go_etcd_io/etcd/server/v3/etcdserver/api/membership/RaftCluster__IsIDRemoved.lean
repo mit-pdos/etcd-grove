@@ -1,7 +1,8 @@
 /-
 Proof of `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/membership/RaftCluster__IsIDRemoved.lean`.
 Lean-first (no Rocq counterpart); D21 M2 (2026-10-19): under the cluster's mutex, the removed
-map, empty (`rcLockInv`), has no entry for `id`.
+map's entry for `id` (D43 M4, 2026-10-26: at any side condition, `rcLockInvG`; until then the
+static cluster's empty map).
 -/
 module
 
@@ -27,34 +28,37 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 theorem membership.RaftCluster.IsIDRemoved.wp_proof :
     membership.RaftCluster.IsIDRemoved.spec (GF := GF) (hG := hG) := by
-  intro c id
+  intro c RM Pr id HPr
   wp_start as #Hrc
-  iunfold membership.isRaftCluster at Hrc
+  iunfold membership.isRaftClusterG at Hrc
   wp_apply wp_with_defer as %defer defer
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   wp_method_call
   wp_call
   wp_apply sync.Mutex.wp_Lock $$ [$Hrc] as ⟨Hlocked, Hinv⟩
-  iunfold membership.rcLockInv at Hinv
-  icases Hinv with ⟨%mp, %mm, Hmf, Hmap, %Hsz, Hmems, #Hloc, %rp, Hrf, Hrm⟩
+  iunfold membership.rcLockInvG at Hinv
+  icases Hinv with ⟨%mp, %mm, Hmf, Hmap, %Hsz, Hmems, %lid, %rp, %rm, #Hlid, Hrf, Hrm, HRM⟩
+  icases HPr lid mm rm $$ HRM with ⟨%Hp, HRM⟩
   (try wp_auto)
-  wp_apply wp_map_lookup1 _ _ rp (∅ : GMap w64 Bool) id (DFrac.own 1) $$ [$Hrm] as Hrm
+  wp_apply wp_map_lookup1 _ _ rp rm id (DFrac.own 1) $$ [$Hrm] as Hrm
   (try wp_auto)
   wp_method_call
   wp_call
-  wp_apply sync.Mutex.wp_Unlock $$ [$Hrc $Hlocked Hmf Hmap Hmems Hrf Hrm]
+  wp_apply sync.Mutex.wp_Unlock $$ [$Hrc $Hlocked Hmf Hmap Hmems Hrf Hrm HRM]
   · inext
-    iunfold membership.rcLockInv
+    iunfold membership.rcLockInvG
     iexists mp, mm
-    iframe Hmf Hmap Hmems Hloc
+    iframe Hmf Hmap Hmems
     isplitr
     · ipureintro; exact Hsz
-    iexists rp
+    iexists lid, rp, rm
     iframe
+    iexact Hlid
   (try wp_auto)
   iapply HΦ
-  itrivial
+  ipureintro
+  exact ⟨rm, Hp, rfl⟩
 
 end proof
 

@@ -1,13 +1,12 @@
 /-
 **watchkv's workload** (D23, 2026-10-20). Lean-first (no Rocq counterpart).
 
-The server's workload parameter (`SrvWorkload`, D19q; `writes`, D23) at watchkv's instance: the
-requests let into the log are puts of the plan `P` (the writers' Puts, picked before the member
-starts: a key and a value of `P`, no lease, neither ignore flag) and the monitors' cluster
-requests; the operations a client may deposit are those puts and reads. So the KV model of a
-committed log of this workload (`kvRaftOf` at the start log `[[], []]` and the base chain) has,
-at each revision from `2` on, exactly one change, a put of the plan (`WkLog`,
-`kvRaftOf_wk`), which gives `NoDupKeysPerRev` (`WkLog.noDup`).
+Until D45 (2026-10-25) the server's workload parameter restricted the log to the plan's puts;
+now the plan is watchkv's own fact, kept with the KV state's changes in the adapter's invariant
+(`client.kmInv` at `γ.W = wkW P`): every change is a writer's put of the plan `P` (`wkW_put`). Its
+pure part: a watchkv log (`WkLog`: revisions `0` and `1` empty, every later one exactly one put of
+the plan), which gives `NoDupKeysPerRev` (`WkLog.noDup`), and `wkW P l`, the fact about the state's
+changes `l` (the log `[] :: l` a watchkv log).
 -/
 module
 
@@ -23,52 +22,6 @@ namespace EtcdGrove
 namespace watchkv
 
 open go_etcd_io.etcd.server.v3.etcdserver
-
-/-- A put of the plan `P`: its key and value one of `P`'s, no lease, no ignore flag. -/
-def putOk (P : List (GoString × GoString)) (o : OpFull) : Prop :=
-  (o.key, o.val) ∈ P ∧ o.leaseID = W64 0 ∧ o.ignoreValue = false ∧ o.ignoreLease = false
-
-/-- The requests the workload lets into the log. -/
-def admitsWk (P : List (GoString × GoString)) (rq : apply.IRRModel) : Prop :=
-  (apply.dispatchKind rq = .put ∧ ∀ o, rq.put = some o → putOk P o) ∨
-  apply.dispatchKind rq = .clusterMemberAttrSet ∨ apply.dispatchKind rq = .clusterVersionSet
-
-/-- The operations a client may deposit: the plan's puts, and reads. -/
-def writesWk (P : List (GoString × GoString)) (op : KVOp) : Prop :=
-  (∃ o, op = .put o ∧ putOk P o) ∨ ∃ o, op = .range o
-
-/-- **watchkv's workload** (see the file header). -/
-def workload (P : List (GoString × GoString)) : SrvWorkload where
-  admits := admitsWk P
-  grant _ := False
-  writes := writesWk P
-  admits_header rq hm h := by
-    unfold admitsWk at h ⊢
-    simpa [apply.dispatchKind] using h
-  admits_write rq op hk hop hw := by
-    unfold admitsWk
-    rcases hw with ⟨o, rfl, ho⟩ | ⟨o, rfl⟩
-    · left
-      rcases hk with hk | hk | hk
-      · refine ⟨hk, fun o' ho' => ?_⟩
-        unfold reqKVOp at hop
-        rw [hk, ho'] at hop
-        simp at hop
-        subst hop; exact ho
-      · unfold reqKVOp at hop; rw [hk] at hop
-        cases h : rq.deleteRange <;> rw [h] at hop <;> simp at hop
-      · unfold reqKVOp at hop; rw [hk] at hop
-        cases h : rq.txn <;> rw [h] at hop <;> simp at hop
-    · exfalso
-      rcases hk with hk | hk | hk <;> unfold reqKVOp at hop <;> rw [hk] at hop
-      · cases h : rq.put <;> rw [h] at hop <;> simp at hop
-      · cases h : rq.deleteRange <;> rw [h] at hop <;> simp at hop
-      · cases h : rq.txn <;> rw [h] at hop <;> simp at hop
-  writes_range o := Or.inr ⟨o, rfl⟩
-  admits_cluster _ h := Or.inr h
-
-theorem workload_noGrant (P : List (GoString × GoString)) : (workload P).noGrant :=
-  fun _ h => h
 
 /-- A revision of a watchkv log from `2` on: one put of the plan, no lease. -/
 def wkRev (P : List (GoString × GoString)) (cs : List mvcc.Change) : Prop :=
@@ -119,65 +72,41 @@ theorem WkLog.noDup {P : List (GoString × GoString)} {L : mvcc.Log} (h : WkLog 
   · obtain ⟨k, v, -, rfl⟩ := h.2 j cs h2 hj
     simp
 
-/-- The chain of a fresh server's apply (`alarmChain false false false`) is the backend's. -/
-theorem chainLog_fresh (rq : apply.IRRModel) (log : mvcc.Log) :
-    chainLog (apply.alarmChain false false false) rq log = backendLog rq log := by
-  simp [apply.alarmChain, apply.baseChain, chainLog]
+/-- **The plan's fact about the KV state's changes** (the adapter's `γ.W`, `client.KMNames`): the
+log of the changes is a watchkv log, and the changes hold revision `1`'s (so a put appends a
+revision from `2` on). -/
+def wkW (P : List (GoString × GoString)) (l : List (List mvcc.Change)) : Prop :=
+  WkLog P ([] :: l) ∧ l ≠ []
 
-/-- **One entry of a watchkv log** (`kvEntry` of a plain entry of the workload): no revision, or
-one put of the plan. -/
-theorem kvEntry_wk (P : List (GoString × GoString)) (c₀ : w64) (log : mvcc.Log)
-    (m : EntryModel) (hm : plainEntry (workload P) m) :
-    kvEntry c₀ (apply.alarmChain false false false) log m = log ∨
-      ∃ cs, wkRev P cs ∧ kvEntry c₀ (apply.alarmChain false false false) log m = log ++ [cs] := by
-  unfold kvEntry
-  split
-  · rename_i ht
-    split
-    · left; rfl
-    · rename_i hd
-      split
-      · rename_i rq hdec
-        have hp := hm ht hd rq hdec
-        obtain ⟨-, hadm⟩ := hp
-        unfold dispatchLog
-        split
-        · left; rfl
-        · split
-          · rw [chainLog_fresh]
-            unfold backendLog
-            rcases hadm with ⟨hk, hput⟩ | hk | hk
-            · rw [hk]
-              cases hrp : rq.put with
-              | none => left; rfl
-              | some o =>
-                obtain ⟨hkv, hl, hiv, hil⟩ := hput o hrp
-                have hnp : txn.needsPrev o = false := by
-                  simp [txn.needsPrev, hiv, hil]
-                right
-                refine ⟨[txn.putChangeOf o (mvcc.findKey o.key (mvcc.stateAfter log))], ?_, ?_⟩
-                · refine ⟨o.key, o.val, hkv, ?_⟩
-                  simp [txn.putChangeOf, txn.putValOf, txn.putLeaseOf, hiv, hil, hl]
-                · simp [hnp]
-            · rw [hk]; left; rfl
-            · rw [hk]; left; rfl
-          · left; rfl
-      · left; rfl
-  · left; rfl
+/-- The start state's changes (`kvStateOf [[], []]`'s, revision `1` empty). -/
+theorem wkW_start (P : List (GoString × GoString)) : wkW P [[]] :=
+  ⟨WkLog.start P, by simp⟩
 
-/-- **The KV model of a committed watchkv log** is a watchkv log (from the start log). -/
-theorem kvRaftOf_wk (P : List (GoString × GoString)) (c₀ : w64) :
-    ∀ (A : List EntryModel) (log : mvcc.Log), plainLog (workload P) A → WkLog P log →
-      2 ≤ log.length → WkLog P (kvRaftOf c₀ (apply.alarmChain false false false) log A)
-  | [], log, _, h, _ => h
-  | m :: A, log, hA, h, hl => by
-    have hm : plainEntry (workload P) m := hA m (List.mem_cons_self ..)
-    have hA' : plainLog (workload P) A := fun x hx => hA x (List.mem_cons_of_mem _ hx)
-    show WkLog P (kvRaftOf c₀ _ (kvEntry c₀ _ log m) A)
-    rcases kvEntry_wk P c₀ log m hm with he | ⟨cs, hcs, he⟩
-    · rw [he]; exact kvRaftOf_wk P c₀ A log hA' h hl
-    · rw [he]
-      exact kvRaftOf_wk P c₀ A _ hA' (h.snoc hl hcs) (by simp; omega)
+/-- The put of `k ↦ v` with no options, a put of the plan, keeps the fact. -/
+theorem wkW_put (P : List (GoString × GoString)) (k v : GoString) (h : (k, v) ∈ P)
+    (σ : KVState) (hW : wkW P σ.changes) :
+    wkW P (kvOpStep (.put (txn.putOpOf k v (W64 0) false false false)) σ).changes := by
+  have hnp : txn.needsPrev (txn.putOpOf k v (W64 0) false false false) = false := by
+    simp [txn.needsPrev, txn.putOpOf]
+  have hlm : ¬ σ.leaseMissing (txn.putOpOf k v (W64 0) false false false).leaseID := by
+    simp [txn.putOpOf, KVState.leaseMissing]
+  simp only [kvOpStep, hlm, hnp, Bool.false_and, Bool.false_eq_true, ↓reduceIte, KVState.commit,
+    List.cons_ne_nil]
+  refine ⟨?_, by simp⟩
+  have hc : txn.putChangeOf (txn.putOpOf k v (W64 0) false false false)
+      (mvcc.findKey k σ.kvs) = .put k v (W64 0) := by
+    simp [txn.putChangeOf, txn.putValOf, txn.putLeaseOf, txn.putOpOf]
+  have hl : 2 ≤ ([] :: σ.changes : mvcc.Log).length := by
+    have := List.length_pos_iff.2 hW.2; simp; omega
+  have := hW.1.snoc hl (cs := [txn.putChangeOf (txn.putOpOf k v (W64 0) false false false)
+      (mvcc.findKey (txn.putOpOf k v (W64 0) false false false).key σ.kvs)])
+    ⟨k, v, h, by simp [txn.putOpOf] at hc ⊢; exact hc⟩
+  simpa using this
+
+/-- A prefix of the changes the fact holds of is a prefix of a watchkv log. -/
+theorem wkW_prefix {P : List (GoString × GoString)} {l l' : List (List mvcc.Change)}
+    (hW : wkW P l') (hp : l <+: l') {L : mvcc.Log} (hL : L <+: [] :: l) : WkLog P L :=
+  hW.1.prefix (hL.trans (List.prefix_cons_inj _ |>.2 hp))
 
 end watchkv
 end EtcdGrove

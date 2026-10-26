@@ -34,7 +34,7 @@ theorem auth.authStore.authInfoFromToken.wp_proof
   iunfold authInv at Hinv'
   icases Hinv' with ⟨%Hst, -, -, -, ⟨%tp, #Htp, #Htpok⟩, -, -⟩
   iunfold tokenProviderOk at Htpok
-  icases Htpok with ⟨%ti, %Hti, #Hinfo, -⟩
+  icases Htpok with ⟨%Atp, %ti, %Hti, #Hinfo, -⟩
   subst Hti
   (try wp_auto)
   wp_apply (h_Revision st R M none) $$ [$Hinv] as %rev -

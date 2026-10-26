@@ -207,12 +207,31 @@ derived in `isApplyLessor_of_lessorInv`.
   thread's `Revoke` clause is still vacuous (L3), which will also lend `storeRb` and give the size
   bound.
 
-**L3. The apply thread with leases.** `leasesKnown` becomes an equality: the lessor's live set
-(`leaseOwn γ.leases L`) is the model's table's ids. `plainCover` admits `LeaseGrant`,
-`LeaseRevoke` and leased puts and transactions; `SrvWorkload` gains `writes` for the lease ops;
-the apply chain's dispatch of the two lease kinds (the backend applier's proofs exist) steps the
-model; the apply thread lends the lease bucket's right `RW` to a grant or revoke. The txn path's
-`checkLease`/`checkLeasePuts` rejections are the model's identity steps.
+**L3. The apply thread with leases.** Staged (2026-10-26, after lean's D45: there is no workload
+parameter any more, `plainReq` is `plainCover` at the proposers' kinds, so admitting a lease request
+is widening `plainCover`):
+
+- *L3a. The model's table.* The committed log's model folds the lease table beside the mvcc log:
+  `backendLog`, `chainLog`, `dispatchLog`, `kvEntry` take the table (a leased put or transaction is
+  rejected iff its lease is not in it, a revocation deletes the lease's keys), and `backendTable`,
+  ..., `kvTable` step it (a grant adds a new id, a revocation removes a live one; independent of the
+  log). `kvRaftOf` folds both from the start table `[]` (the lessor `NewLessor` gives is empty);
+  `kvLeases γk L` is the committed log's table and `kvInv`'s state `kvModelSt γk L` (`kvStateOf` with
+  that table). `kvStateOf_backendLog` holds of every request (no `reqLeaseFree`). The model's grant
+  also refuses id `0` and a TTL above `MaxLeaseTTL` (`lessor.Grant`'s two other errors). `plainCover`
+  is unchanged (nothing new admitted yet), so the table stays empty on every server.
+- *L3b. Leased puts and transactions.* `plainCover` admits a put with any lease and any transaction
+  without `IgnoreLease` (the txn's lease checks are `checkLease`/`checkLeasePuts`, proved). The apply
+  layer's state carries the table (`ApplyKV.leases`), `backendStep` is exact on a leased write
+  (rejected iff its lease is not live), and `kvOwn` ties the lessor's live set to it
+  (`leasesLive`: `L = lt.ids`). The auth mode `on` keeps lease-free requests (`plainEntryOn`).
+- *L3c. Grant and revoke through the apply thread.* `plainCover` admits `LeaseGrant`/`LeaseRevoke`;
+  `rqOk` gives their premises; `isApplyLessor`'s `Revoke` clause from `lessor.Revoke` (the apply
+  environment gets `rdIs` from `NewServer`), `Grant`'s exact (`L' = L ++ [id]`); the apply thread
+  lends `storeRb`/`RW`; the rest model (`RestModel.lean`) gains the lease bucket's effects (the
+  user's choice, 2026-10-26: extend the rest model, an opaque encoding of a lease's record made
+  precise in the lessor's backend contract).
+- *L3d.* The server's results restated; notes.
 
 **L4. The server's entry points.** `EtcdServer.LeaseGrant` (the id from `reqIDGen` when `0`,
 then `raftRequestOnce`) and `EtcdServer.LeaseRevoke` (`raftRequestOnce`, the response) proved

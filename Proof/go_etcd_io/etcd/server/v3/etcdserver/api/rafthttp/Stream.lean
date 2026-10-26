@@ -391,37 +391,63 @@ theorem verHdrOk_set (hs : List (GoString × GoString)) (k v : GoString)
 6c). -/
 def snapPath : GoString := go!"/raft/snapshot"
 
-/-- `snapReq`'s fact, raw (opaque). -/
-opaque snapReqRaw (Rh : RaftHttp GF) (R : http.HReq) (γk : GName) : IProp GF
-
-/-- **A snapshot request of ticket `γk`** (persistent; rafthttp stage 6c): a `POST` of a snapshot
-that a started transport's snapshot sender makes (`SendSnapshot`'s, D22's contract), which the
-snapshot handler's axiom takes. Opaque: only the snapshot stream's axioms (the sender's, which posts
-it, and the handler's) speak of it, so no other client can make one. -/
-def snapReq (Rh : RaftHttp GF) (R : http.HReq) (γk : GName) : IProp GF :=
-  iprop(□ snapReqRaw Rh R γk)
+/-- **A snapshot request** (rafthttp stage 6c; defined 2026-10-24, stage 7b, D42, was opaque): a
+`POST` to the snapshot path from another member (`fromOkAt`, as a pipeline request's), with a
+streamed body (`snapStreamed`), whose contract is `snapSReq`'s. -/
+def snapReq (Rh : RaftHttp GF) (R : http.HReq) (_γk : GName) : IProp GF :=
+  iprop(⌜fromOkAt Rh (Rh.owner R.host) R.hdr⌝)
 
 instance snapReq_persistent (Rh : RaftHttp GF) (R : http.HReq) (γk : GName) :
     Persistent (snapReq Rh R γk) := by
   unfold snapReq; infer_instance
 
+/-- **The raft protocol's streamed requests** (D42): the snapshot's `POST`s. -/
+def snapStreamed (R : http.HReq) : Prop := R.meth = go!"POST" ∧ R.path = snapPath
+
+/-- **A snapshot request's body** (persistent; D42, stage 7b): every prefix of its stream is
+comparable with the frame of an encoding `bs` of a message `st` (`Pre`), and every complete stream
+is that frame followed by a bbolt image of some `D` (`Φ`), `st` a `MsgSnap` of a snapshot of index
+`i` for the member owning the request's host, without responses; with `□ N.P st`, the deposit of
+its one-shot part under the request's ticket (`pipeDeposit`, as a pipeline request's: the handler
+withdraws it once) and the image's certificate `□ N.img i D`. The sender's body is
+`io.MultiReader` of the envelope's buffer and the merged message's reader (`readerStreams`), whose
+stream contract is this one; what the handler decodes of the prefix is `st`, and what
+`SaveDBFrom` saves of the rest an image of `D`. -/
+def snapSReq (Rh : RaftHttp GF) (R : http.HReq) (γk : GName) (Pre Φ : List w8 → Prop) :
+    IProp GF :=
+  iprop(∃ (st : MsgSt) (bs : List w8) (sn : SnapshotM) (D : backend.Data),
+    ⌜MsgWireOk st bs ∧ bs.length < 2 ^ 63 ∧ st.msg.To' = Rh.owner R.host ∧
+      st.msg.Type' = MsgSnap ∧ st.snap = some sn ∧ st.resps = [] ∧
+      (∀ x, Pre x → x <+: msgFrame bs ∨ msgFrame bs <+: x) ∧
+      (∀ x, Φ x → ∃ t, x = msgFrame bs ++ t ∧ backend.boltImage t D)⌝ ∗
+    □ Rh.γn.N.P st ∗ pipeDeposit Rh.γn.N γk st ∗ □ Rh.γn.N.img sn.Metadata'.Index' D)
+
+instance snapSReq_persistent (Rh : RaftHttp GF) (R : http.HReq) (γk : GName)
+    (Pre Φ : List w8 → Prop) : Persistent (snapSReq Rh R γk Pre Φ) := by
+  unfold snapSReq; infer_instance
+
 /-- **A raft member's address's protocol** (stage 4: the pipeline's part; stage 5a: the streams';
 stage 6c: the prober's): a `POST` to `/raft` is a pipeline request, a `GET` of another path than
 the prober's (`probingPath`) a stream request; a `/raft` response is not a `403` (the status
-`errMemberRemoved` is reported for, which no member of a static cluster answers), and a `200` of
+`errMemberRemoved` is reported for, which no member of a static cluster answers; 2026-10-24,
+stage 7d: nor a snapshot response, whose handler's statuses are `204`, `400`, `405`, `412`, `500`
+and a `writerToResponse`'s, none here), and a `200` of
 another path than the prober's is a stream's (`streamResp`; the pipeline answers `204`), a
-`POST` to the snapshot path a snapshot sender's (`snapReq`); its response headers are
-`verHdrOk`. The prober's `GET`s (`addPeerToProber`'s axiom) and their
+`POST` to the snapshot path a snapshot sender's (`snapReq`), (D42) with a streamed body
+(`snapStreamed`, its contract `snapSReq`); its response headers are `verHdrOk`. The prober's `GET`s (`addPeerToProber`'s axiom) and their
 answers (`probing.NewHandler`'s) are anything else. -/
 def raftProto (Rh : RaftHttp GF) : http.Proto GF where
   req R γk := iprop((⌜R.meth = go!"POST" ∧ R.path = go!"/raft"⌝ → pipeReq Rh R γk) ∗
     (⌜R.meth = go!"GET" ∧ R.path ≠ probingPath⌝ → streamReq Rh R γk) ∗
     (⌜R.meth = go!"POST" ∧ R.path = snapPath⌝ → snapReq Rh R γk))
   req_pers R γk := by infer_instance
-  resp R γk st w := iprop(⌜(R.path = go!"/raft" → st ≠ W64 403) ∧ st ≠ W64 410⌝ ∗
+  resp R γk st w := iprop(⌜(R.path = go!"/raft" ∨ R.path = snapPath → st ≠ W64 403) ∧ st ≠ W64 410⌝ ∗
     (⌜R.path ≠ probingPath⌝ → streamResp Rh R γk st w))
   resp_pers R γk st w := by infer_instance
   rhdr _ hs := verHdrOk hs
+  streamed R := snapStreamed R
+  sreq R γk Pre Φ := snapSReq Rh R γk Pre Φ
+  sreq_pers R γk Pre Φ := by infer_instance
 
 /-- The raft network's HTTP network: every address's protocol is a raft member's. -/
 def raftHttpNet (Rh : RaftHttp GF) : http.HttpNet GF := ⟨fun _ => raftProto Rh⟩
@@ -452,7 +478,7 @@ theorem streamResp_not200 (Rh : RaftHttp GF) (R : http.HReq) (γk : GName) (st :
 theorem raftProto_resp_of (Rh : RaftHttp GF) (R : http.HReq) (γk : GName) (st : w64)
     (w : List w8) (h403 : st ≠ W64 403) (h200 : st ≠ W64 200) (h410 : st ≠ W64 410) :
     ⊢ (raftProto Rh).resp R γk st w := by
-  show ⊢ iprop(⌜(R.path = go!"/raft" → st ≠ W64 403) ∧ st ≠ W64 410⌝ ∗
+  show ⊢ iprop(⌜(R.path = go!"/raft" ∨ R.path = snapPath → st ≠ W64 403) ∧ st ≠ W64 410⌝ ∗
     (⌜R.path ≠ probingPath⌝ → streamResp Rh R γk st w))
   isplitr
   · ipureintro; exact ⟨fun _ => h403, h410⟩
@@ -469,14 +495,15 @@ theorem streamSent_nil (C : StreamCodec) (N : NetPayload GF) (γw : GName) (rid 
   itrivial
 
 /-- **A stream request's `200`, before any byte** (the stream handler's `WriteHeader(200)`): in the
-protocol, for a request registered as a stream's, of a path other than `/raft`. -/
+protocol, for a request registered as a stream's, of a path other than `/raft` and the
+snapshot's. -/
 theorem raftProto_resp_stream_200 (Rh : RaftHttp GF) (R : http.HReq) (γk : GName) (c : StreamKey)
-    (hp : R.path ≠ go!"/raft") :
+    (hp : R.path ≠ go!"/raft" ∧ R.path ≠ snapPath) :
     ⊢ streamReg Rh γk c -∗ (raftProto Rh).resp R γk (W64 200) [] := by
   iintro #Hreg
   simp only [raftProto]
   isplitr
-  · ipureintro; exact ⟨fun h => absurd h hp, by decide⟩
+  · ipureintro; exact ⟨fun h => h.elim (absurd · hp.1) (absurd · hp.2), by decide⟩
   iintro -
   unfold streamResp
   iintro -
@@ -490,10 +517,17 @@ theorem streamPath_ne_raft (t : StreamTy) (rid : w64) : streamPath t rid ≠ go!
   have := congrArg List.length h
   cases t <;> simp [streamPath, StreamTy.endpoint] at this <;> omega
 
-/-- A member's `/raft` response is not a `403`. -/
+/-- A stream's path is not the snapshot's. -/
+theorem streamPath_ne_snap (t : StreamTy) (rid : w64) : streamPath t rid ≠ snapPath := by
+  intro h
+  have := congrArg (List.take 13) h
+  cases t <;> simp [streamPath, StreamTy.endpoint, snapPath] at this
+
+/-- A member's `/raft` or snapshot response is not a `403`. -/
 theorem raftProto_resp_403 (Rh : RaftHttp GF) (R : http.HReq) (γk : GName) (st : w64)
-    (w : List w8) : (raftProto Rh).resp R γk st w ⊢ ⌜R.path = go!"/raft" → st ≠ W64 403⌝ := by
-  show iprop(⌜(R.path = go!"/raft" → st ≠ W64 403) ∧ st ≠ W64 410⌝ ∗
+    (w : List w8) :
+    (raftProto Rh).resp R γk st w ⊢ ⌜R.path = go!"/raft" ∨ R.path = snapPath → st ≠ W64 403⌝ := by
+  show iprop(⌜(R.path = go!"/raft" ∨ R.path = snapPath → st ≠ W64 403) ∧ st ≠ W64 410⌝ ∗
     (⌜R.path ≠ probingPath⌝ → streamResp Rh R γk st w)) ⊢ _
   iintro ⟨%h, -⟩
   ipureintro; exact h.1
@@ -502,7 +536,7 @@ theorem raftProto_resp_403 (Rh : RaftHttp GF) (R : http.HReq) (γk : GName) (st 
 `netRaftOk`'s `IsIDRemoved` is `false`, so the stream handler does not answer it). -/
 theorem raftProto_resp_410 (Rh : RaftHttp GF) (R : http.HReq) (γk : GName) (st : w64)
     (w : List w8) : (raftProto Rh).resp R γk st w ⊢ ⌜st ≠ W64 410⌝ := by
-  show iprop(⌜(R.path = go!"/raft" → st ≠ W64 403) ∧ st ≠ W64 410⌝ ∗
+  show iprop(⌜(R.path = go!"/raft" ∨ R.path = snapPath → st ≠ W64 403) ∧ st ≠ W64 410⌝ ∗
     (⌜R.path ≠ probingPath⌝ → streamResp Rh R γk st w)) ⊢ _
   iintro ⟨%h, -⟩
   ipureintro; exact h.2
@@ -524,6 +558,24 @@ theorem raftProto_req_of_pipe (Rh : RaftHttp GF) (R : http.HReq) (γk : GName)
   · iintro %hs
     rw [hp] at hs
     exact absurd hs.2 (by simp [snapPath])
+
+/-- A snapshot request is in a member's protocol (D42, stage 7d). -/
+theorem raftProto_req_of_snap (Rh : RaftHttp GF) (R : http.HReq) (γk : GName)
+    (h : R.meth = go!"POST") (hp : R.path = snapPath) :
+    snapReq Rh R γk ⊢ (raftProto Rh).req R γk := by
+  show snapReq Rh R γk ⊢ iprop((⌜R.meth = go!"POST" ∧ R.path = go!"/raft"⌝ → pipeReq Rh R γk) ∗
+    (⌜R.meth = go!"GET" ∧ R.path ≠ probingPath⌝ → streamReq Rh R γk) ∗
+    (⌜R.meth = go!"POST" ∧ R.path = snapPath⌝ → snapReq Rh R γk))
+  iintro #Hs
+  isplitr
+  · iintro %hr
+    rw [hp] at hr
+    exact absurd hr.2 (by simp [snapPath])
+  isplitr
+  · iintro %hg
+    rw [h] at hg
+    exact absurd hg.1 (by decide)
+  · iintro -; iexact Hs
 
 /-- A member's protocol of a `POST` to `/raft`: a pipeline request. -/
 theorem raftProto_req_pipe (Rh : RaftHttp GF) (R : http.HReq) (γk : GName) :
@@ -575,7 +627,7 @@ theorem raftProto_resp_probing (Rh : RaftHttp GF) (R : http.HReq) (γk : GName) 
   · ipureintro
     refine ⟨fun h => ?_, h410⟩
     rw [hp] at h
-    exact absurd h (by simp [probingPath])
+    exact absurd h (by simp [probingPath, snapPath])
   iintro %h
   exact absurd hp h
 

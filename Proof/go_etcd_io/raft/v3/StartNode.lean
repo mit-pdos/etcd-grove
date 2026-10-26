@@ -31,14 +31,14 @@ theorem StartNode.wp_proof
     (wp_setupNode : setupNode.spec (GF := GF) (hG := hG))
     (wp_node_run : node.run.spec (GF := GF) (hG := hG)) :
     StartNode.spec (GF := GF) (hG := hG) := by
-  intro γ bud c cv lok si σ hs csm R peers dq pv ps ctxs bootLog sn P1 P2 P3 P4 P5 P6 P7 P8 P9 P11
+  intro γ md bud c cv lok si σ hs csm R peers dq pv ps ctxs bootLog sn P1 P2 P3 P4 P5 P6 P7 P8 P9 P11
     P12 P13 P14 P15 P16 Q1 Q2 Q3 Q4 Q5 R1 R2 R3 R4 R5 R6 R7 R8 R9 Hfl0 Hsn0
   wp_start as ⟨Hc, #Hlg, #Hsto, Hown, Hinit, Hpeers, #Hctx, #Hmarshal, Hghost, #Hcommitted,
     #Hbud, #Hlb1, #Hnscap, #Hcl⟩
   ihave #Hcinv : raftCommitInv γ $$ [Hghost]
-  · iapply ownRaftGhost_inv γ cv.ID' (bootPState bootLog) $$ Hghost
+  · iapply bootInit_inv γ md cv.ID' _ bootLog $$ Hghost
   wp_auto
-  wp_apply wp_setupNode γ c cv lok si σ hs csm R peers dq pv ps ctxs bootLog P1 P2 P3 P4 P5 P6 P7
+  wp_apply wp_setupNode γ md c cv lok si σ hs csm R peers dq pv ps ctxs bootLog P1 P2 P3 P4 P5 P6 P7
     P8 P9 P11 P12 P13 P14 P15 P16 Q1 Q2 Q3 Q4 Q5 R1 R2 R3 R4 R5 R6 R7 R8 R9 Hfl0
     $$ [$Hc $Hlg $Hsto $Hown $Hinit $Hpeers $Hctx $Hmarshal $Hghost $Hcommitted $Hnscap $Hcl]
     as %np ⟨HR, %nv, %rn, Hn, %Hnvrn, Hchans, Hrn, Hpeers⟩
@@ -66,7 +66,7 @@ theorem StartNode.wp_proof
   let γn : NodeNames := { raft := γ, id := cv.ID', bud := bud, stor := interface.ok si, propc := γp,
                           recvc := γr, confc := γc, confstatec := γcs, readyc := γrd, advancec := γa, tick := γt,
                           done := γd, stop := γs, status := γst, dlv := γdlv, rof := γrof,
-                          mode := RNMode.static, dlm := γdlm, cap := γcap, ccq := γccq, cam := γcam, req := γreq,
+                          mode := md, dlm := γdlm, cap := γcap, ccq := γccq, cam := γcam, req := γreq,
                           snapIn := sn }
   imod start_handshake nv.propc' (propP γn) iprop(True) γp $$ Hcp Hop with #Hhp
   imod start_handshake nv.recvc' (netP γn cv.ID') iprop(True) γr $$ Hcr Hor with #Hhr
@@ -87,6 +87,7 @@ theorem StartNode.wp_proof
     iexists []
     iframe
   icases ownRawNode_shared γ rn cv.ID' _ $$ Hrn with ⟨%r, %lok', #Hrr, #Hrid, #Hrlg, #Hlg', Hrn⟩
+  icases ownRawNode_mode γ rn cv.ID' _ $$ Hrn with ⟨%Hmd, Hrn⟩
   ihave #Hnode : isNode γn cv.ID' np $$ []
   · unfold isNode
     iexists nv, r, lok'
@@ -109,7 +110,7 @@ theorem StartNode.wp_proof
       unfold runCfg
       isplitr
       · ipureintro
-        exact ⟨rfl, Nat.le_refl _, rfl, fun _ => ⟨rfl, rfl⟩, (fun h => ⟨Hsn0 h, rfl⟩), fun _ h => by cases h⟩
+        exact ⟨rfl, Nat.le_refl _, rfl, fun _ => ⟨rfl, rfl⟩, Hsn0, fun _ h => by cases h⟩
       isplitl [Hdlm]
       · iExactEq Hdlm; rfl
       iexists 0
@@ -121,6 +122,8 @@ theorem StartNode.wp_proof
   iexists γn, np
   isplitr
   · ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩
+  isplitr
+  · ipureintro; exact Hmd
   iframe Hnode Hpeers
   isplitl [Hdlv2 Hreq1 Hreq2]
   · unfold nodeDriver dlvLb

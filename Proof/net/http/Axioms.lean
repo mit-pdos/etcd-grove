@@ -58,6 +58,16 @@ axiom Serve_ok (H : HttpNet GF) : Serve_spec H
 `Content-Length` or chunked body; a body cut short is `io.ErrUnexpectedEOF`, not `EOF`. -/
 axiom bodyRead_ok : bodyRead_spec (GF := GF)
 
+/-- (D42, rafthttp stage 7e: the snapshot handler's) A streamed request body's `Read`
+(`bodyStreamRead_spec`): Go's server reader of a chunked body, whose bytes are a prefix of what the
+client's reader yielded, `EOF` only where its stream ended (the file header's physical assumption,
+`Boundary.lean`). -/
+axiom bodyStreamRead_ok : bodyStreamRead_spec (GF := GF)
+
+/-- (D42, stage 7e: the snapshot handler's envelope) `io.ReadFull` of a streamed request body
+(`ReadFull_stream_spec`): `Read`s of it (`bodyStreamRead_ok`) until the slice is full or an error. -/
+axiom ReadFull_stream_ok : ReadFull_stream_spec (GF := GF)
+
 /-- `ResponseWriter.WriteHeader` of a final status (`respWriteHeader_spec`). -/
 axiom respWriteHeader_ok (H : HttpNet GF) : respWriteHeader_spec H
 
@@ -90,6 +100,12 @@ axiom WithContext_ok : WithContext_spec (GF := GF)
 
 /-- `io.ReadAll` of a response body (`ReadAll_resp_spec`). -/
 axiom ReadAll_resp_ok (H : HttpNet GF) : ReadAll_resp_spec H
+
+/-- A response body's reader gives up its guarantee (`respReadAny_of_spec`; stage 7d). -/
+axiom respReadAny_of_ok (H : HttpNet GF) : respReadAny_of_spec H
+
+/-- `io.ReadAll` of a response body read without a guarantee (`ReadAll_any_spec`; stage 7d). -/
+axiom ReadAll_any_ok : ReadAll_any_spec (GF := GF)
 
 /-- A response body's `Close` (`RespClose_spec`). -/
 axiom RespClose_ok (H : HttpNet GF) : RespClose_spec H

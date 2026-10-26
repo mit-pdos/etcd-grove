@@ -78,14 +78,14 @@ def apply.irrEmpty : apply.IRRModel where
   authUserDelete := false
   authUserGet := none
   authUserChangePassword := false
-  authUserGrantRole := false
+  authUserGrantRole := none
   authUserRevokeRole := false
   authUserList := false
   authRoleList := false
   authRoleAdd := none
   authRoleDelete := false
   authRoleGet := none
-  authRoleGrantPermission := false
+  authRoleGrantPermission := none
   authRoleRevokePermission := false
   clusterVersionSet := none
   clusterMemberAttrSet := none
@@ -127,11 +127,11 @@ def reqTypeName (rq : apply.IRRModel) : GoString :=
   else if rq.authUserAdd.isSome then go!"AuthUserAdd"
   else if rq.authUserDelete then go!"AuthUserDelete"
   else if rq.authUserChangePassword then go!"AuthUserChangePassword"
-  else if rq.authUserGrantRole then go!"AuthUserGrantRole"
+  else if rq.authUserGrantRole.isSome then go!"AuthUserGrantRole"
   else if rq.authUserGet.isSome then go!"AuthUserGet"
   else if rq.authUserRevokeRole then go!"AuthUserRevokeRole"
   else if rq.authRoleAdd.isSome then go!"AuthRoleAdd"
-  else if rq.authRoleGrantPermission then go!"AuthRoleGrantPermission"
+  else if rq.authRoleGrantPermission.isSome then go!"AuthRoleGrantPermission"
   else if rq.authRoleGet.isSome then go!"AuthRoleGet"
   else if rq.authRoleRevokePermission then go!"AuthRoleRevokePermission"
   else if rq.authRoleDelete then go!"AuthRoleDelete"
@@ -182,14 +182,16 @@ def irrNoHdrIs (p : Loc) (rq : apply.IRRModel) : IProp GF :=
     apply.irrField p go!"AuthUserDelete" (fun l => apply.presentIs l rq.authUserDelete) ∗
     apply.irrField p go!"AuthUserGet" (fun l => apply.optReqIs l rq.authUserGet apply.authUserGetIs) ∗
     apply.irrField p go!"AuthUserChangePassword" (fun l => apply.presentIs l rq.authUserChangePassword) ∗
-    apply.irrField p go!"AuthUserGrantRole" (fun l => apply.presentIs l rq.authUserGrantRole) ∗
+    apply.irrField p go!"AuthUserGrantRole"
+      (fun l => apply.optReqIs l rq.authUserGrantRole apply.authUserGrantRoleIs) ∗
     apply.irrField p go!"AuthUserRevokeRole" (fun l => apply.presentIs l rq.authUserRevokeRole) ∗
     apply.irrField p go!"AuthUserList" (fun l => apply.presentIs l rq.authUserList) ∗
     apply.irrField p go!"AuthRoleList" (fun l => apply.presentIs l rq.authRoleList) ∗
     apply.irrField p go!"AuthRoleAdd" (fun l => apply.optReqIs l rq.authRoleAdd apply.authRoleAddIs) ∗
     apply.irrField p go!"AuthRoleDelete" (fun l => apply.presentIs l rq.authRoleDelete) ∗
     apply.irrField p go!"AuthRoleGet" (fun l => apply.optReqIs l rq.authRoleGet apply.authRoleGetIs) ∗
-    apply.irrField p go!"AuthRoleGrantPermission" (fun l => apply.presentIs l rq.authRoleGrantPermission) ∗
+    apply.irrField p go!"AuthRoleGrantPermission"
+      (fun l => apply.optReqIs l rq.authRoleGrantPermission apply.authRoleGrantPermissionIs) ∗
     apply.irrField p go!"AuthRoleRevokePermission" (fun l => apply.presentIs l rq.authRoleRevokePermission) ∗
     apply.irrField p go!"ClusterVersionSet" (fun l => apply.optReqIs l rq.clusterVersionSet apply.clusterVersionSetIs) ∗
     apply.irrField p go!"ClusterMemberAttrSet"
@@ -215,7 +217,6 @@ theorem putPermit_reqPropOk (γk : KVNames) (op : OpFull) (Q : KVState → IProp
       reqPropOk γk (irrPut op) (fun L => kvRes γc Q (kvStateOf (kvModel γk L))) := by
   unfold putPermit reqPropOk
   iintro ⟨%Hl, Hau⟩
-  icases kvOpAu1_writes γk (.put op) Q $$ Hau with ⟨%Hwr, Hau⟩
   iright; iright
   iexists .put op, Q, γc
   iframe Hau
@@ -231,7 +232,7 @@ theorem putPermit_reqPropOk (γk : KVNames) (op : OpFull) (Q : KVState → IProp
     simp only [irrPut, Option.some.injEq] at hop'
     subst hop'
     exact Hl
-  refine ⟨⟨hpl, γk.wl.admits_write _ _ (by simp only [hk]; simp) (by unfold reqKVOp; rw [hk]; rfl) Hwr⟩, ?_, ?_,
+  refine ⟨⟨hpl, putgetKind_kv _ (by simp only [hk]; simp)⟩, ?_, ?_,
     rqShape_of_plain _ hpl (by rw [hk]; decide), rfl⟩
   · unfold reqKVOp; rw [hk]; rfl
   · refine ⟨?_, ?_, ?_⟩ <;> intro _ h <;> simp [irrPut, apply.irrEmpty] at h
@@ -243,7 +244,6 @@ theorem deletePermit_reqPropOk (γk : KVNames) (op : OpFull) (Q : KVState → IP
       reqPropOk γk (irrDeleteRange op) (fun L => kvRes γc Q (kvStateOf (kvModel γk L))) := by
   unfold deletePermit reqPropOk
   iintro ⟨%Hz, Hau⟩
-  icases kvOpAu1_writes γk (.deleteRange op) Q $$ Hau with ⟨%Hwr, Hau⟩
   iright; iright
   iexists .deleteRange op, Q, γc
   iframe Hau
@@ -255,7 +255,7 @@ theorem deletePermit_reqPropOk (γk : KVNames) (op : OpFull) (Q : KVState → IP
     rw [hk]
     exact ⟨by simp [apply.noSideEffect, irrDeleteRange, apply.irrEmpty],
       by simp [apply.needAdminPermission, irrDeleteRange, apply.irrEmpty]⟩
-  refine ⟨⟨hpl, γk.wl.admits_write _ _ (by simp only [hk]; simp) (by unfold reqKVOp; rw [hk]; rfl) Hwr⟩, ?_, ?_,
+  refine ⟨⟨hpl, putgetKind_kv _ (by simp only [hk]; simp)⟩, ?_, ?_,
     rqShape_of_plain _ hpl (by rw [hk]; decide), rfl⟩
   · unfold reqKVOp; rw [hk]; rfl
   · refine ⟨?_, ?_, ?_⟩
@@ -270,7 +270,6 @@ theorem txnPermit_reqPropOk (γk : KVNames) (t : TxnModel) (Q : KVState → IPro
       reqPropOk γk (irrTxn t) (fun L => kvRes γc Q (kvStateOf (kvModel γk L))) := by
   unfold txnPermit reqPropOk
   iintro ⟨%Ht, Hau⟩
-  icases kvOpAu1_writes γk (.txn t) Q $$ Hau with ⟨%Hwr, Hau⟩
   iright; iright
   iexists .txn t, Q, γc
   iframe Hau
@@ -283,7 +282,7 @@ theorem txnPermit_reqPropOk (γk : KVNames) (t : TxnModel) (Q : KVState → IPro
     refine ⟨by simp [apply.noSideEffect, irrTxn, apply.irrEmpty],
       by simp [apply.needAdminPermission, irrTxn, apply.irrEmpty], ?_⟩
     intro t' h; simp only [irrTxn, Option.some.injEq] at h; subst h; exact Ht.1
-  refine ⟨⟨hpl, γk.wl.admits_write _ _ (by simp only [hk]; simp) (by unfold reqKVOp; rw [hk]; rfl) Hwr⟩, ?_, ?_,
+  refine ⟨⟨hpl, putgetKind_kv _ (by simp only [hk]; simp)⟩, ?_, ?_,
     rqShape_of_txn _ hpl hk ?_, rfl⟩
   · unfold reqKVOp; rw [hk]; rfl
   · refine ⟨?_, ?_, ?_⟩

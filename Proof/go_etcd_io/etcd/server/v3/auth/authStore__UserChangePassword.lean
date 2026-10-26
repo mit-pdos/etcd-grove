@@ -4,6 +4,7 @@ Proof of the spec of the same name (the auth plan's S4, 2026-10-24). Lean-first 
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__UserChangePassword
+public import Proof.go_etcd_io.etcd.server.v3.auth.LatestTie
 public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__selectPassword
 public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__refreshRangePermCache
 public import Spec.go_uber_org.zap.Strings
@@ -31,29 +32,32 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
-theorem auth.authStore.UserChangePassword.wp_proof
+theorem auth.authStore.UserChangePassword.wp_tie
     (h_commitRevision : auth.authStore.commitRevision.spec (GF := GF) (hG := hG))
     (h_refresh : auth.authStore.refreshRangePermCache.spec (GF := GF) (hG := hG))
     (h_selectPassword : auth.authStore.selectPassword.spec (GF := GF) (hG := hG))
     (h_String : zap.String.spec (GF := GF) (hG := hG))
     (h_Strings : zap.Strings.spec (GF := GF) (hG := hG))
     (h_Info : zap.Logger.Info.spec (GF := GF) (hG := hG)) :
-    auth.authStore.UserChangePassword.spec (GF := GF) (hG := hG) := by
-  intro st R M P f T hs Pre Q Post r name
-  wp_start as ⟨#Hinv, #Hr, %Hlen, Hown, HWR, Hcs, %Hok⟩
+    auth.authStore.UserChangePassword.specT (GF := GF) (hG := hG) := by
+  intro st R M P f T hs Pre Q Post r name b0 sc0
+  wp_start as ⟨#Hinv, #Hr, %Hlen, Hown, HWR, Htpa, Hcs, %Hok⟩
   icases authErrVar_of_init .userNotFound $$ Hpkg with ⟨%eUNF, #HeUNF⟩
   icases authErrVar_of_init .noPasswordUser $$ Hpkg with ⟨%eNPU, #HeNPU⟩
   simp only [AuthErr.var]
   ihave #Hinv' := Hinv
   iunfold authInv at Hinv'
-  icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, %Hlgnn⟩, -, ⟨%tp, #Htp, #Htpok⟩, -, -⟩
-  iunfold tokenProviderOk at Htpok
+  icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, %Hlgnn⟩, -, ⟨%tp0, -, -⟩, -, -⟩
+  iunfold tpAdmin at Htpa
+  icases Htpa with ⟨%tp, %Atp, #Htp, #HtpokA, HA⟩
+  ihave #Htpok := HtpokA
+  iunfold tokenProviderOkA at Htpok
   icases Htpok with ⟨%tpi, %Htpi, -, -, -, #HInval, -⟩
   subst Htpi
   iunfold userChangePasswordReqIs at Hr
   icases Hr with ⟨%Hrnn, #HN, ⟨%pw, %hpw, #Hpw, #Hhpw⟩⟩
-  iunfold authWR at HWR
-  icases HWR with ⟨⟨%be, Hbe, #Hbeok⟩, HT, Hen⟩
+  iunfold authWRx at HWR
+  icases HWR with ⟨⟨%be, Hbe, #Hbeok⟩, HT, Hfl, #Hev, Hca, #Hcsn⟩
   ihave #Hbeok' := Hbeok
   iunfold authWBackendOk at Hbeok'
   icases Hbeok' with ⟨%bi, %Hbi, #HBatch, #HFC, -⟩
@@ -88,17 +92,24 @@ theorem auth.authStore.UserChangePassword.wp_proof
     · ipureintro; exact Hl0
     (try wp_auto)
     iapply HΦ
+    iexists b0, sc0
+
+    isplitl [HA]
+
+    · iunfold tpAdmin; iexists (GoInterface.ok tpi), Atp; iframe HA; iframe #
     isplitl [HPost]
     · ileft; iexact HPost
-    isplitl [Hbe HT Hen]
-    · iunfold authWR; iframe HT Hen; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+    isplitl [Hbe HT Hfl Hca]
+    · iunfold authWRx; iframe HT Hfl Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
     isplitr
     · iunfold respOk; isplitr
       · ipureintro; intro _; rfl
       · ileft; ipureintro; rfl
-    iunfold adminOut
+    iunfold adminOutP
     iright
     iexists st0, (.err .userNotFound)
+    isplitr
+    · ipureintro; exact tieStep_same _ _ _ _
     isplitr
     · ipureintro
       refine ⟨Hl0, ?_⟩
@@ -113,7 +124,7 @@ theorem auth.authStore.UserChangePassword.wp_proof
   icases typedPointsto_split _ _ _ $$ Hup with Hup
   simp only [TypedPointsto.typedPointstoDef]
   iNamed Hup
-  ihave %Hpk := authOwn_last_permKeysOk M hs $$ Hown
+  ihave %Hpk := authOwnF_last_permKeysOk M hs $$ Hown
   have Hstep := (Hok st0 Hl0)
   (try wp_auto)
   wp_join (Q := fun v => iprop(⌜v = #(decide (uo = null ∨ ur.noPassword = false))⌝ ∗ user_ptr ↦ u ∗
@@ -135,7 +146,7 @@ theorem auth.authStore.UserChangePassword.wp_proof
   wp_if_destruct
   · -- the password selected
     (try wp_auto)
-    wp_apply (h_selectPassword st pw hpw) as %pwsl %e ⟨%pwb, #Hpwsl⟩
+    wp_apply (h_selectPassword st pw hpw) as %pwsl %e ⟨%pwb, #Hpwsl, -⟩
     · ipureintro; exact Hst
     (try wp_auto)
     cases e with
@@ -146,17 +157,24 @@ theorem auth.authStore.UserChangePassword.wp_proof
       · ipureintro; exact Hl0
       (try wp_auto)
       iapply HΦ
+      iexists b0, sc0
+
+      isplitl [HA]
+
+      · iunfold tpAdmin; iexists (GoInterface.ok tpi), Atp; iframe HA; iframe #
       isplitl [HPost]
       · ileft; iexact HPost
-      isplitl [Hbe HT Hen]
-      · iunfold authWR; iframe HT Hen; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+      isplitl [Hbe HT Hfl Hca]
+      · iunfold authWRx; iframe HT Hfl Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
       isplitr
       · iunfold respOk; isplitr
         · ipureintro; intro _; rfl
         · ileft; ipureintro; rfl
-      iunfold adminOut
+      iunfold adminOutP
       ileft
       iexists .noPasswordUser
+      isplitr
+      · ipureintro; exact tieStep_same _ _ _ _
       iframe Hown
       isplitr
       · ipureintro; rfl
@@ -201,13 +219,15 @@ theorem auth.authStore.UserChangePassword.wp_proof
         refine ⟨Hl0, rfl, Hrevfit, fun h1 h2 => Hpk st0 Hl0 h1 h2, ?_⟩
         intro hM; subst hM; exact Hl0
       have Hl1 := histLast_after M hs st0 rev (fun h => by subst h; exact Hl0) Hrev
-      imod (authSnap_of_last M _ _ Hl1) $$ Hown with ⟨Hown, #Hsnap⟩
+      imod (authSnapF_of_last M _ _ Hl1) $$ Hown with ⟨Hown, #Hsnap⟩
       (try wp_auto)
       wp_bind (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"refreshRangePermCache"))
         (Val #(GoInterface.ok ti)))
       iapply (h_refresh st R M ti (fun x => Lk x Post) ({ st0 with revision := rev } : AuthState))
-        $$ [HL]
+        $$ [HL Hca]
       · iframe Hpkg Hinv
+        isplitl [Hca]
+        · iapply (cacheHalf_of_at _ _ _) $$ Hca Hcsn
         isplitr
         · iapply HRd
         isplitl [HL]
@@ -216,13 +236,13 @@ theorem auth.authStore.UserChangePassword.wp_proof
         iframe Hsnap
         ipureintro; exact permsFit_rev _ rev Hfit'
       inext
-      iintro HL
+      iintro ⟨HL, Hca⟩
       (try wp_auto)
       wp_bind (App (Val #(methods tpi.ty go!"invalidateUser" tpi.v)) (Val #name))
-      iapply HInval $$ %name [] [-]
-      · itrivial
+      iapply HInval $$ %name [HA] [-]
+      · iexact HA
       inext
-      iintro -
+      iintro HA
       (try wp_auto)
       wp_apply h_String _ _ as %f1 -
       (try wp_auto)
@@ -249,17 +269,24 @@ theorem auth.authStore.UserChangePassword.wp_proof
         ipureintro; exact Hl1
       (try wp_auto)
       iapply HΦ
+      iexists b0, ({ st0 with revision := rev } : AuthState)
+
+      isplitl [HA]
+
+      · iunfold tpAdmin; iexists (GoInterface.ok tpi), Atp; iframe HA; iframe #
       isplitl [HPost]
       · ileft; iexact HPost
-      isplitl [Hbe HT Hen]
-      · iunfold authWR; iframe HT Hen; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+      isplitl [Hbe HT Hfl Hca]
+      · iunfold authWRx; iframe HT Hfl Hev Hca Hsnap; iexists (GoInterface.ok bi); iframe Hbe Hbeok
       isplitl [Header]
       · iunfold respOk; isplitr
         · ipureintro; intro h; exact absurd rfl h
         · iright; iexists _; iexact Header
-      iunfold adminOut
+      iunfold adminOutP
       iright
       iexists st0, (.next (bump st0))
+      isplitr
+      · ipureintro; exact tieStep_refresh M hs _ b0 sc0 _ st0 Hl0 Hl1 rfl
       isplitr
       · ipureintro; exact ⟨Hl0, hstep.symm⟩
       simp only [outRes]
@@ -303,13 +330,15 @@ theorem auth.authStore.UserChangePassword.wp_proof
       refine ⟨Hl0, rfl, Hrevfit, fun h1 h2 => Hpk st0 Hl0 h1 h2, ?_⟩
       intro hM; subst hM; exact Hl0
     have Hl1 := histLast_after M hs st0 rev (fun h => by subst h; exact Hl0) Hrev
-    imod (authSnap_of_last M _ _ Hl1) $$ Hown with ⟨Hown, #Hsnap⟩
+    imod (authSnapF_of_last M _ _ Hl1) $$ Hown with ⟨Hown, #Hsnap⟩
     (try wp_auto)
     wp_bind (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"refreshRangePermCache"))
       (Val #(GoInterface.ok ti)))
     iapply (h_refresh st R M ti (fun x => Lk x Post) ({ st0 with revision := rev } : AuthState))
-      $$ [HL]
+      $$ [HL Hca]
     · iframe Hpkg Hinv
+      isplitl [Hca]
+      · iapply (cacheHalf_of_at _ _ _) $$ Hca Hcsn
       isplitr
       · iapply HRd
       isplitl [HL]
@@ -318,13 +347,13 @@ theorem auth.authStore.UserChangePassword.wp_proof
       iframe Hsnap
       ipureintro; exact permsFit_rev _ rev Hfit'
     inext
-    iintro HL
+    iintro ⟨HL, Hca⟩
     (try wp_auto)
     wp_bind (App (Val #(methods tpi.ty go!"invalidateUser" tpi.v)) (Val #name))
-    iapply HInval $$ %name [] [-]
-    · itrivial
+    iapply HInval $$ %name [HA] [-]
+    · iexact HA
     inext
-    iintro -
+    iintro HA
     (try wp_auto)
     wp_apply h_String _ _ as %f1 -
     (try wp_auto)
@@ -351,21 +380,39 @@ theorem auth.authStore.UserChangePassword.wp_proof
       ipureintro; exact Hl1
     (try wp_auto)
     iapply HΦ
+    iexists b0, ({ st0 with revision := rev } : AuthState)
+
+    isplitl [HA]
+
+    · iunfold tpAdmin; iexists (GoInterface.ok tpi), Atp; iframe HA; iframe #
     isplitl [HPost]
     · ileft; iexact HPost
-    isplitl [Hbe HT Hen]
-    · iunfold authWR; iframe HT Hen; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+    isplitl [Hbe HT Hfl Hca]
+    · iunfold authWRx; iframe HT Hfl Hev Hca Hsnap; iexists (GoInterface.ok bi); iframe Hbe Hbeok
     isplitl [Header]
     · iunfold respOk; isplitr
       · ipureintro; intro h; exact absurd rfl h
       · iright; iexists _; iexact Header
-    iunfold adminOut
+    iunfold adminOutP
     iright
     iexists st0, (.next (bump st0))
+    isplitr
+    · ipureintro; exact tieStep_refresh M hs _ b0 sc0 _ st0 Hl0 Hl1 rfl
     isplitr
     · ipureintro; exact ⟨Hl0, hstep.symm⟩
     simp only [outRes]
     iframe Hown
+
+
+theorem auth.authStore.UserChangePassword.wp_proof
+    (h_commitRevision : auth.authStore.commitRevision.spec (GF := GF) (hG := hG))
+    (h_refresh : auth.authStore.refreshRangePermCache.spec (GF := GF) (hG := hG))
+    (h_selectPassword : auth.authStore.selectPassword.spec (GF := GF) (hG := hG))
+    (h_String : zap.String.spec (GF := GF) (hG := hG))
+    (h_Strings : zap.Strings.spec (GF := GF) (hG := hG))
+    (h_Info : zap.Logger.Info.spec (GF := GF) (hG := hG)) :
+    auth.authStore.UserChangePassword.spec (GF := GF) (hG := hG) :=
+  auth.authStore.UserChangePassword.spec_of_T (auth.authStore.UserChangePassword.wp_tie h_commitRevision h_refresh h_selectPassword h_String h_Strings h_Info)
 
 end proof
 

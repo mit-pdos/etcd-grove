@@ -4,6 +4,7 @@ Proof of the spec of the same name (the auth plan's S4, 2026-10-24). Lean-first 
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__UserDelete
+public import Proof.go_etcd_io.etcd.server.v3.auth.LatestTie
 public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__refreshRangePermCache
 public import Spec.go_uber_org.zap.Strings
 public import Spec.go_uber_org.zap.Logger__Error
@@ -31,31 +32,33 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
-theorem auth.authStore.UserDelete.wp_proof
+theorem auth.authStore.UserDelete.wp_tie
     (h_commitRevision : auth.authStore.commitRevision.spec (GF := GF) (hG := hG))
     (h_refresh : auth.authStore.refreshRangePermCache.spec (GF := GF) (hG := hG))
     (h_String : zap.String.spec (GF := GF) (hG := hG))
     (h_Strings : zap.Strings.spec (GF := GF) (hG := hG))
     (h_Error : zap.Logger.Error.spec (GF := GF) (hG := hG))
     (h_Info : zap.Logger.Info.spec (GF := GF) (hG := hG)) :
-    auth.authStore.UserDelete.spec (GF := GF) (hG := hG) := by
-  intro st R M P f T hs Pre Q Post r name
-  wp_start as ⟨#Hinv, #Hr, Hown, HWR, Hcs, %Hok⟩
+    auth.authStore.UserDelete.specT (GF := GF) (hG := hG) := by
+  intro st R M P f T hs Pre Q Post r name en sc0
+  wp_start as ⟨#Hinv, #Hr, Hown, HWR, Htpa, Hcs, %Hok⟩
   icases authErrVar_of_init .userNotFound $$ Hpkg with ⟨%eUNF, #HeUNF⟩
   icases authErrVar_of_init .invalidAuthMgmt $$ Hpkg with ⟨%eIAM, #HeIAM⟩
   simp only [AuthErr.var]
   ihave #Hinv' := Hinv
   iunfold authInv at Hinv'
-  icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, %Hlgnn⟩, -, ⟨%tp, #Htp, #Htpok⟩, -, -⟩
-  iunfold tokenProviderOk at Htpok
+  icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, %Hlgnn⟩, -, ⟨%tp0, -, -⟩, -, -⟩
+  iunfold tpAdmin at Htpa
+  icases Htpa with ⟨%tp, %Atp, #Htp, #HtpokA, HA⟩
+  ihave #Htpok := HtpokA
+  iunfold tokenProviderOkA at Htpok
   icases Htpok with ⟨%tpi, %Htpi, -, -, -, #HInval, -⟩
   subst Htpi
   iunfold userDeleteReqIs at Hr
   icases Hr with ⟨%Hrnn, #HN⟩
-  iunfold authWR at HWR
-  icases HWR with ⟨⟨%be, Hbe, #Hbeok⟩, HT, Hen⟩
-  iunfold enabledHalf at Hen
-  icases Hen with ⟨%en, Hen, #Hev⟩
+  iunfold authWRx at HWR
+  icases HWR with ⟨⟨%be, Hbe, #Hbeok⟩, HT, Hen, #Hev, Hca, #Hcsn⟩
+  iunfold flagAt at Hen
   ihave #Hbeok' := Hbeok
   iunfold authWBackendOk at Hbeok'
   icases Hbeok' with ⟨%bi, %Hbi, #HBatch, #HFC, -⟩
@@ -89,23 +92,28 @@ theorem auth.authStore.UserDelete.wp_proof
     · ipureintro; exact Hlgnn
     (try wp_auto)
     iapply HΦ
+    iexists true, sc0
+
+    isplitl [HA]
+
+    · iunfold tpAdmin; iexists (GoInterface.ok tpi), Atp; iframe HA; iframe #
     isplitl [Hcs]
     · iapply csContract_noWrite $$ Hcs
-    isplitl [Hbe HT Hen]
-    · iunfold authWR; iframe HT; isplitl [Hbe]
-      · iexists (GoInterface.ok bi); iframe Hbe Hbeok
-      · iunfold enabledHalf; iexists true; iframe Hen Hev
+    isplitl [Hbe HT Hen Hca]
+    · iunfold authWRx; iunfold flagAt; iframe HT Hen Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
     isplitr
     · iunfold respOk; isplitr
       · ipureintro; intro _; rfl
       · ileft; ipureintro; rfl
     iexists true
     iframe Hev
-    iunfold adminOut
+    iunfold adminOutP
     iright
     ihave %Hl := authOwn_exists_last M hs $$ Hown
     obtain ⟨st0, Hl⟩ := Hl
     iexists st0, (.err .invalidAuthMgmt)
+    isplitr
+    · ipureintro; exact tieStep_same _ _ _ _
     isplitr
     · ipureintro
       refine ⟨Hl, ?_⟩
@@ -143,21 +151,26 @@ theorem auth.authStore.UserDelete.wp_proof
     · ipureintro; exact Hl0
     (try wp_auto)
     iapply HΦ
+    iexists en, sc0
+
+    isplitl [HA]
+
+    · iunfold tpAdmin; iexists (GoInterface.ok tpi), Atp; iframe HA; iframe #
     isplitl [HPost]
     · ileft; iexact HPost
-    isplitl [Hbe HT Hen]
-    · iunfold authWR; iframe HT; isplitl [Hbe]
-      · iexists (GoInterface.ok bi); iframe Hbe Hbeok
-      · iunfold enabledHalf; iexists en; iframe Hen Hev
+    isplitl [Hbe HT Hen Hca]
+    · iunfold authWRx; iunfold flagAt; iframe HT Hen Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
     isplitr
     · iunfold respOk; isplitr
       · ipureintro; intro _; rfl
       · ileft; ipureintro; rfl
     iexists en
     iframe Hev
-    iunfold adminOut
+    iunfold adminOutP
     iright
     iexists st0, (.err .userNotFound)
+    isplitr
+    · ipureintro; exact tieStep_same _ _ _ _
     isplitr
     · ipureintro
       refine ⟨Hl0, ?_⟩
@@ -167,7 +180,7 @@ theorem auth.authStore.UserDelete.wp_proof
     iexists eUNF; iframe HeUNF; ipureintro; rfl
   ihave Hu' := userOut_some _ st0 name Hif $$ Hu
   icases Hu' with ⟨%roles, %ur, %Hur, Hu⟩
-  ihave %Hpk := authOwn_last_permKeysOk M hs $$ Hown
+  ihave %Hpk := authOwnF_last_permKeysOk M hs $$ Hown
   have Hstep := (Hok en st0 Hl0)
   wp_bind (App (Val #(methods ti.ty go!"UnsafeDeleteUser" ti.v)) (Val #name))
   iapply HDelU $$ %st0 %Post %name HL
@@ -184,13 +197,15 @@ theorem auth.authStore.UserDelete.wp_proof
     refine ⟨Hl0, rfl, Hrevfit, fun h1 h2 => permKeysOk_delUser _ _ (Hpk st0 Hl0 h1 h2), ?_⟩
     intro hM; subst hM; exact Hl0
   have Hl1 := histLast_after M hs (delUser st0 name) rev (fun h => by subst h; exact Hl0) Hrev
-  imod (authSnap_of_last M _ _ Hl1) $$ Hown with ⟨Hown, #Hsnap⟩
+  imod (authSnapF_of_last M _ _ Hl1) $$ Hown with ⟨Hown, #Hsnap⟩
   (try wp_auto)
   wp_bind (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"refreshRangePermCache"))
     (Val #(GoInterface.ok ti)))
   iapply (h_refresh st R M ti (fun x => Lk x Post) ({ delUser st0 name with revision := rev } : AuthState))
-    $$ [HL]
+    $$ [HL Hca]
   · iframe Hpkg Hinv
+    isplitl [Hca]
+    · iapply (cacheHalf_of_at _ _ _) $$ Hca Hcsn
     isplitr
     · iapply HRd
     isplitl [HL]
@@ -199,13 +214,13 @@ theorem auth.authStore.UserDelete.wp_proof
     iframe Hsnap
     ipureintro; exact permsFit_rev _ rev Hfit'
   inext
-  iintro HL
+  iintro ⟨HL, Hca⟩
   (try wp_auto)
   wp_bind (App (Val #(methods tpi.ty go!"invalidateUser" tpi.v)) (Val #name))
-  iapply HInval $$ %name [] [-]
-  · itrivial
+  iapply HInval $$ %name [HA] [-]
+  · iexact HA
   inext
-  iintro -
+  iintro HA
   iunfold ownUser at Hu
   icases Hu with ⟨%ums, %unm, %upw, %url, %uo, %uuf, %usc, Hup, -, -, -, -⟩
   icases typedPointsto_split _ _ _ $$ Hup with Hup
@@ -237,21 +252,26 @@ theorem auth.authStore.UserDelete.wp_proof
     ipureintro; exact Hl1
   (try wp_auto)
   iapply HΦ
+  iexists en, ({ delUser st0 name with revision := rev } : AuthState)
+
+  isplitl [HA]
+
+  · iunfold tpAdmin; iexists (GoInterface.ok tpi), Atp; iframe HA; iframe #
   isplitl [HPost]
   · ileft; iexact HPost
-  isplitl [Hbe HT Hen]
-  · iunfold authWR; iframe HT; isplitl [Hbe]
-    · iexists (GoInterface.ok bi); iframe Hbe Hbeok
-    · iunfold enabledHalf; iexists en; iframe Hen Hev
+  isplitl [Hbe HT Hen Hca]
+  · iunfold authWRx; iunfold flagAt; iframe HT Hen Hev Hca Hsnap; iexists (GoInterface.ok bi); iframe Hbe Hbeok
   isplitl [Header]
   · iunfold respOk; isplitr
     · ipureintro; intro h; exact absurd rfl h
     · iright; iexists _; iexact Header
   iexists en
   iframe Hev
-  iunfold adminOut
+  iunfold adminOutP
   iright
   iexists st0, (.next (bump (delUser st0 name)))
+  isplitr
+  · ipureintro; exact tieStep_refresh M hs _ _ sc0 _ st0 Hl0 Hl1 rfl
   isplitr
   · ipureintro; exact ⟨Hl0, hstep.symm⟩
   simp only [outRes]
@@ -259,6 +279,17 @@ theorem auth.authStore.UserDelete.wp_proof
   · iExactEq Hown
     all_goals rfl
   · ipureintro; trivial
+
+
+theorem auth.authStore.UserDelete.wp_proof
+    (h_commitRevision : auth.authStore.commitRevision.spec (GF := GF) (hG := hG))
+    (h_refresh : auth.authStore.refreshRangePermCache.spec (GF := GF) (hG := hG))
+    (h_String : zap.String.spec (GF := GF) (hG := hG))
+    (h_Strings : zap.Strings.spec (GF := GF) (hG := hG))
+    (h_Error : zap.Logger.Error.spec (GF := GF) (hG := hG))
+    (h_Info : zap.Logger.Info.spec (GF := GF) (hG := hG)) :
+    auth.authStore.UserDelete.spec (GF := GF) (hG := hG) :=
+  auth.authStore.UserDelete.spec_of_T (auth.authStore.UserDelete.wp_tie h_commitRevision h_refresh h_String h_Strings h_Error h_Info)
 
 end proof
 

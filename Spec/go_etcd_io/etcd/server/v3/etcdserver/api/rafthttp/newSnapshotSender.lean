@@ -1,6 +1,6 @@
 /-
-`newSnapshotSender(tr, picker, to, status)` (`snapshot_sender.go`, untranslated; rafthttp stage 6b):
-the trust boundary (D39, the snapshot stream an axiom at its own functions). Lean-first.
+`newSnapshotSender(tr, picker, to, status)` (`snapshot_sender.go`; rafthttp stage 6b, an axiom
+until stage 7d). Lean-first.
 -/
 module
 
@@ -22,10 +22,12 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- **`newSnapshotSender(tr, picker, to, status)`** of a started transport's fields, a picker of
-`to`'s URLs and a peer status: a snapshot sender to `to` and the right to stop it. -/
+`to`'s URLs and a peer status, (stage 7d) `to` another member: a snapshot sender to `to` and the
+right to stop it. -/
 abbrev rafthttp.newSnapshotSender.spec : Prop :=
   ∀ (Rh : RaftHttp GF) (t : Loc) (lid : w64) (γd : GName) (R : IProp GF) (pk : Loc) (pid : w64)
     (ps : Loc),
+  Rh.member pid → pid ≠ lid →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ trFixed Rh t lid γd R ∗ pickerOk pk (peerURL Rh pid) ∗ peerStatusOk ps }}
     (App (App (App (App (Val (@! rafthttp.newSnapshotSender)) (Val #t)) (Val #pk)) (Val #pid))
       (Val #ps))

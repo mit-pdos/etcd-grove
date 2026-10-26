@@ -373,6 +373,14 @@ def opOf (lk le : GoString) : MIn GoString GoString → KVOp
 theorem opOf_isKV (lk le : GoString) (i : MIn GoString GoString) : (opOf lk le i).isKV := by
   cases i <;> simp [opOf, KVOp.isKV]
 
+/-- A commit's model state: the state's, or (some change) the changes' at the next revision. -/
+theorem absSt_commit (σ : KVState) (cs : List Change) :
+    absSt (σ.commit cs) = if cs = [] then absSt σ
+      else ⟨absM (applyChanges (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs cs), σ.rev + 1⟩ := by
+  by_cases hc : cs = []
+  · subst hc; rw [KVState.commit_nil]; rfl
+  · rw [if_neg hc]; unfold absSt; rw [KVState.commit_kvs σ cs hc, KVState.commit_rev σ cs hc]
+
 /-- **The server's step follows the model's**: on a sorted state, the model state after
 `kvOpStep` of an operation is the model's step's (the outputs: `TxnModelKV`'s next section). -/
 theorem absSt_kvOpStep (ks : List GoString) (lk le : GoString) (σ : KVState)
@@ -382,13 +390,15 @@ theorem absSt_kvOpStep (ks : List GoString) (lk le : GoString) (σ : KVState)
   | get k => rfl
   | list => rfl
   | put k v =>
-    rw [opOf, kvOpStep_put_eq]
+    rw [opOf]
     unfold absSt
+    rw [kvOpStep_put_kvs, kvOpStep_put_rev]
     simp only [mStep]
     rw [absM_putKv σ.kvs hs (σ.rev + 1) k v]
   | del k =>
     have hlen := rangeIn_delOp_length σ.kvs hs k
-    simp only [opOf, kvOpStep, KVState.commit]
+    simp only [opOf, kvOpStep]
+    rw [absSt_commit]
     have hd := txn.applyChanges_delChanges (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs (delOp k)
     unfold absSt
     simp only [mStep]
@@ -418,7 +428,9 @@ theorem absSt_kvOpStep (ks : List GoString) (lk le : GoString) (σ : KVState)
     simp only [opOf, kvOpStep]
     rw [if_pos ⟨by rw [txnOf_branch]; exact pathsIgnOk_tOpOf σ.kvs _,
       by rw [txnOf_branch]; exact txn.pathsLeaseOk_plain _ _ _ (opsPlain_tOpOf _)⟩]
-    unfold txn.srvRunTxn KVState.commit absSt
+    unfold txn.srvRunTxn
+    rw [absSt_commit]
+    unfold absSt
     simp only [mStep]
     rw [txnOf_branch, hok]
     by_cases hc : (txn.srvOps σ.kvs (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs
@@ -478,41 +490,8 @@ theorem mStep_txn_out (ks : List GoString) (lk le : GoString) (σ : KVState)
 /-! ## The state's shape is kept -/
 
 /-- Every step keeps the state sorted. -/
-theorem kvOpStep_sorted (op : KVOp) (σ : KVState) (hs : σ.kvs.Pairwise etcdKvLess) :
-    (kvOpStep op σ).kvs.Pairwise etcdKvLess := by
-  have hc : ∀ cs, (σ.commit cs).kvs.Pairwise etcdKvLess := by
-    intro cs
-    unfold KVState.commit
-    split
-    · exact hs
-    · exact applyChanges_sorted _ cs hs
-  cases op with
-  | put o =>
-    simp only [kvOpStep]
-    by_cases hl : σ.leaseMissing o.leaseID
-    · rw [if_pos hl]; exact hs
-    rw [if_neg hl]
-    by_cases h : (txn.needsPrev o && (findKey o.key σ.kvs).isNone) = true
-    · rw [if_pos h]; exact hs
-    · rw [if_neg h]; exact hc _
-  | range o => exact hs
-  | deleteRange o => exact hc _
-  | txn t =>
-    simp only [kvOpStep]
-    by_cases h : txn.PathsIgnOk σ.kvs (t.branch (txn.txnOk σ.kvs t)) ∧
-        txn.PathsLeaseOk σ.kvs σ.leases.ids (t.branch (txn.txnOk σ.kvs t))
-    · rw [if_pos h]; exact hc _
-    · rw [if_neg h]; exact hs
-  | leaseGrant id ttl =>
-    simp only [kvOpStep]
-    split
-    · exact hs
-    · exact hs
-  | leaseRevoke id =>
-    simp only [kvOpStep]
-    split
-    · exact hc _
-    · exact hs
+theorem kvOpStep_sorted (op : KVOp) (σ : KVState) :
+    (kvOpStep op σ).kvs.Pairwise etcdKvLess := KVState.kvs_sorted _
 
 /-- The state's keys are among `ks`. -/
 def KeysIn (ks : List GoString) (σ : KVState) : Prop := ∀ e ∈ σ.kvs, e.key ∈ ks
@@ -586,15 +565,15 @@ theorem kvOpStep_keysIn (ks : List GoString) (lk le : GoString) (σ : KVState)
     KeysIn ks (kvOpStep (opOf lk le i) σ) := by
   have hcm : ∀ cs, (∀ c ∈ cs, c.isDel = false → c.key ∈ ks) → KeysIn ks (σ.commit cs) := by
     intro cs hcs
-    unfold KVState.commit
-    split
-    · exact h
-    · exact keysIn_applyChanges ks _ cs σ.kvs hcs h
+    by_cases hc : cs = []
+    · subst hc; rw [KVState.commit_nil]; exact h
+    · unfold KeysIn; rw [KVState.commit_kvs σ cs hc]
+      exact keysIn_applyChanges ks _ cs σ.kvs hcs h
   cases i with
   | get k => exact h
   | list => exact h
   | put k v =>
-    rw [opOf, kvOpStep_put_eq]
+    rw [opOf]; unfold KeysIn; rw [kvOpStep_put_kvs]
     exact keysIn_putKv ks σ.kvs _ k v _ hi h
   | del k =>
     simp only [opOf, kvOpStep]
@@ -720,8 +699,11 @@ theorem mStep_list_out (ks : List GoString) (hks : ks.Pairwise go.GoStringLt) (l
 
 /-! ## The start, and the transactions' shape -/
 
-/-- **The empty state at revision `1` is the model's initial state.** -/
-theorem absSt_init : absSt ⟨[], 1, []⟩ = (mInit : MSt GoString GoString) := rfl
+/-- **An empty state at revision `1` is the model's initial state.** -/
+theorem absSt_init (σ : KVState) (hk : σ.kvs = []) (hr : σ.rev = 1) :
+    absSt σ = (mInit : MSt GoString GoString) := by
+  unfold absSt; rw [hk, hr]; rfl
+
 
 /-- **The instance's transactions are plain** (`txnPlain`, the server's specs' premise). -/
 theorem txnPlain_txnOf (cs : List (MCmp GoString GoString)) (t e : List (MOp GoString GoString)) :

@@ -230,6 +230,10 @@ def isInitialized : IProp GF :=
     -- are (`node.go`, `raft.go`), which the server's and the read loop's facts take from here
     "#ErrStoppedNew" ∷ EtcdGrove.errorsNewVar ErrStopped go!"raft: stopped" ∗
     "#ErrPropDroppedNew" ∷ EtcdGrove.errorsNewVar ErrProposalDropped go!"raft proposal dropped" ∗
+    -- (2026-10-26) `ErrCompacted` (`storage.go`), as the `errors.New` error it is, for the
+    -- server's `compactRaftLog`'s `errors.Is(err, raft.ErrCompacted)` (a leaf error)
+    "#ErrCompactedNew" ∷ EtcdGrove.errorsNewVar ErrCompacted
+      go!"requested index is unavailable due to compaction" ∗
     -- (D22 S-r, 2026-10-21) `ErrSnapOutOfDate`, the error `MemoryStorage.ApplySnapshot` and
     -- `CreateSnapshot` return for a snapshot not newer than the storage's (their specs take its
     -- value), which an application that takes snapshots reads from here

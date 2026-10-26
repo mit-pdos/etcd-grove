@@ -194,6 +194,7 @@ theorem rafthttp.Transport.Handler_full
     (hGet : rafthttp.Transport.Get.spec (GF := GF) (hG := hG))
     (hPServe : rafthttp.pipelineHandler.ServeHTTP.spec (GF := GF) (hG := hG))
     (hSServe : rafthttp.streamHandler.ServeHTTP.spec (GF := GF) (hG := hG))
+    (hSnServe : rafthttp.snapshotHandler.ServeHTTP.spec (GF := GF) (hG := hG))
     (hARR : rafthttp.addRemoteFromRequest.spec (GF := GF) (hG := hG))
     (γn : NetNames GF) (t : Loc) (c : TrN GF) (rs : trIds) (a : GoString)
     (Hown : (netRh γn).owner a = c.lid)
@@ -209,7 +210,7 @@ theorem rafthttp.Transport.Handler_full
   tr_state Hst
   ihave #HAR := trAddRemote_of_frozen (netRh γn) t c.lid c.γd c.R c.γs c.γr rs Hcov $$ Hpkg Hgd Hfr
   ihave #HARR := trAddRemoteReq_of hARR (netRh γn) t c.lid $$ Hpkg HAR
-  wp_apply (rafthttp.Transport.Handler_core hNPH hNSH hNSnH hNewHandler hGet hPServe hSServe
+  wp_apply (rafthttp.Transport.Handler_core hNPH hNSH hNSnH hNewHandler hGet hPServe hSServe hSnServe
       (netRh γn) t c.lid c.γd c.R c.γs c.γr a sst Rm Hown) $$ [] as %h Hh
   · iframe #
     rw [show (netRh γn).γn = γn from rfl]

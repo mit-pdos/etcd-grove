@@ -2,7 +2,7 @@
 **The instance's invariant at every member's KV names** (the partition plan's S3a, 2026-10-20).
 Lean-first (no Rocq counterpart). The cluster's ghost state is the examples' shared `common.alloc3`
 (since 2026-10-22, D33; until then this file's `cluster3_alloc`), whose members' KV names agree in
-state variable and workload; `linkvInv_congr` makes the instance's invariant, allocated at the
+state variable; `linkvInv_congr` makes the instance's invariant, allocated at the
 first member's names (`linkvInv_alloc_boot`), the other members' too (D21 M4).
 -/
 module
@@ -64,14 +64,12 @@ theorem dir3_ok (id₁ id₂ id₃ : w64) (h1 : id₁ ≠ W64 0) (h2 : id₂ ≠
     · simp at hs
 
 /-- **The instance's invariant at another member's KV names**: `linkvInv γ γk` reads `γk`'s state
-variable (through `etcdKV`) and workload only, which a cluster's members share (D21 M4;
+variable (through `etcdKV`) only, which a cluster's members share (D21 M4;
 `common.alloc3`'s equalities), so the invariant allocated at one member's names
 (`linkvInv_alloc_boot`) is every member's. -/
-theorem linkvInv_congr (γ : linkvtxn.LinkvNames) (γk γk' : KVNames) (hst : γk.st = γk'.st)
-    (hwl : γk.wl = γk'.wl) :
+theorem linkvInv_congr (γ : linkvtxn.LinkvNames) (γk γk' : KVNames) (hst : γk.st = γk'.st) :
     linkvtxn.linkvInv (GF := GF) γ γk = linkvtxn.linkvInv γ γk' := by
   unfold linkvtxn.linkvInv linkvtxn.linkvInvBody
-  rw [hwl]
   simp only [etcdKV_congr γk γk' hst]
 
 end alloc

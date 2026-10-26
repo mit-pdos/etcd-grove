@@ -10,7 +10,7 @@ Lean notes:
 module
 
 public import Proof.go_etcd_io.raft.v3.InvRaftPhys
--- `CommitOk`
+-- `CommitOkC`
 public import Spec.go_etcd_io.raft.v3.raft__maybeCommit
 
 @[expose] public section
@@ -25,28 +25,13 @@ open Iris Iris.BI go_etcd_io.raft.v3
 section switch
 variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
 
-/-- What a leader does after installing the new configuration `s1` (`switchToConfig`'s
-leader branch, when it stays a voter): `maybeCommit` moves the commit index to `c` (or not:
-`c` is the old one), `bcastAppend` (after a commit) or a `Visit` of `maybeSendAppend(id,
-false)` sends `ms`, which `ReplOk` allows, moving no `Match`; the leader-transfer target may
-be cleared (`abortLeaderTransfer`, when it left the voters). -/
-def LeaderSwitch (cfg : GSet w64) (id : w64) (s1 s' : NState) : Prop :=
-  ∃ (c : w64) (ms : List Msg) (pvs2 : GMap w64 Progress) (lt' : w64),
-    (c = s1.logst.committed ∨ CommitOk cfg (toPState s1) c) ∧
-    ReplSends id { s1 with logst := { s1.logst with committed := c } } ms ∧
-    prvalsMatch pvs2 = prvalsMatch s1.prvals ∧
-    s' = { sendMsgs { s1 with logst := { s1.logst with committed := c } } ms with
-             prvals := pvs2, lt := lt' }
-
-/-- `switchToConfig`'s result from the state `s1` with the new configuration installed: a
-non-leader stops there; a leader goes on (`LeaderSwitch`). -/
-def SwitchOk (cfg : GSet w64) (id : w64) (s1 s' : NState) : Prop :=
-  if s1.role = .leader then LeaderSwitch cfg id s1 s' else s' = s1
-
-/-- `LeaderSwitch` at the configuration `c` (2026-10-13, reconfiguration stage A2): the commit
-by a joint quorum (`CommitOkC`). Includes doing nothing (`c` the old commit index, no sends,
-the same values and target): what happens when the new configuration has no incoming voter
-(`len(cs.Voters) == 0`). -/
+/-- What a leader does after installing the new configuration `s1` at the configuration `c`
+(`switchToConfig`'s leader branch, when it stays a voter; 2026-10-13, reconfiguration stage A2):
+`maybeCommit` moves the commit index to `n` by a joint quorum (`CommitOkC`), or not;
+`bcastAppend` or a `Visit` of `maybeSendAppend(id, false)` sends `ms` (`ReplSends`), moving no
+`Match`; the leader-transfer target may be cleared (`abortLeaderTransfer`). Includes doing
+nothing (`n` the old commit index, no sends, the same values and target): what happens when the
+new configuration has no incoming voter (`len(cs.Voters) == 0`). -/
 def LeaderSwitchC (c : CfgM) (id : w64) (s1 s' : NState) : Prop :=
   ∃ (n : w64) (ms : List Msg) (pvs2 : GMap w64 Progress) (lt' : w64),
     (n = s1.logst.committed ∨ CommitOkC c (toPState s1) n) ∧
@@ -58,21 +43,18 @@ def LeaderSwitchC (c : CfgM) (id : w64) (s1 s' : NState) : Prop :=
 /-- `switchToConfig`'s result at the configuration `c` (2026-10-13, reconfiguration stage A2):
 a non-leader stops at `s1`; a leader that stays a voter of either half goes on
 (`LeaderSwitchC`); a leader that is removed or demoted (no voter of either half) steps down,
-`becomeFollower(r.Term, None)` (`stepDownOnRemoval`, which the spec's premise requires). -/
+`becomeFollower(r.Term, None)`, with `stepDownOnRemoval`, and (2026-10-25, T-M M2c; until then the
+spec's premise required the flag) without it stops at `s1`, still leader. -/
 def SwitchOkC (c : CfgM) (id : w64) (s1 s' : NState) : Prop :=
   if s1.role = .leader then
     (if id ∈ c.voters then LeaderSwitchC c id s1 s'
-     else ∃ pvs, s' = { becomeFollower s1 s1.term (W64 0) with prvals := pvs })
+     else if s1.sdr = true then ∃ pvs, s' = { becomeFollower s1 s1.term (W64 0) with prvals := pvs }
+     else s' = s1)
   else s' = s1
 
 /-- What `switchToConfig` stores in `r.isLearner` at the configuration `c`: whether the node is
 a learner of `c` (`ok && pr.IsLearner`; every learner is tracked, `LearnerFlagsC`). -/
 def learnerOfC (c : CfgM) (id : w64) : Bool := decide (id ∈ c.learners)
-
-theorem LeaderSwitchC.simple {cfg lrn : GSet w64} {id : w64} {s1 s' : NState} (hne : cfg ≠ ∅)
-    (h : LeaderSwitchC (CfgM.simple cfg lrn) id s1 s') : LeaderSwitch cfg id s1 s' := by
-  obtain ⟨n, ms, pvs2, lt', hn, h2, h3, h4⟩ := h
-  exact ⟨n, ms, pvs2, lt', hn.imp_right (fun h => h.simple hne), h2, h3, h4⟩
 
 theorem learnerOfC_simple (cfg : GSet w64) (prs : GMap w64 Loc) (id : w64) :
     learnerOfC (CfgM.simple cfg (domSet prs \ cfg)) id = learnerOf cfg prs id := by
@@ -118,9 +100,10 @@ learners, `AutoLeave`), the struct is taken open at its tracker with the wand re
 `c` with `Hvoter` at `c.voters ∪ {[id]}` (`ownRaftPhysCV_reconfig`; the node itself counted,
 for the leader that is being removed), and the `ConfState` returned has all four lists and
 `AutoLeave`. A leader either stays a voter of either half (`MatchKept`, then as above, with a
-joint-quorum commit, `LeaderSwitchC`) or is removed or demoted and steps down: the premise
-`s.sdr = true` (`Config.StepDownOnRemoval`), since otherwise it would stay leader outside the
-configuration, which `ownRaftPhysC`'s `Hvoter` excludes. A candidate or pre-candidate must
+joint-quorum commit, `LeaderSwitchC`) or is removed or demoted: it steps down with `s.sdr = true`
+(`Config.StepDownOnRemoval`), and without it stays leader outside the configuration (2026-10-25,
+T-M M2c: `ownRaftPhysC`'s `Hvoter` no longer covers a leader; until then `s.sdr = true` was a
+premise). A candidate or pre-candidate must
 stay a voter, for the same reason (the Go code leaves it campaigning; if it then won,
 `becomeLeader` would dereference its missing `Progress`: see
 `issues/raft-advance-before-applyconfchange.md`, which is how an application gets there).
@@ -133,8 +116,9 @@ ls, os, lns, c.autoLeave⟩ true`), with the same permutation facts on its lists
 abbrev raft.switchToConfig.spec : Prop :=
   ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (tv0 : tracker.ProgressTracker)
     (cfgv : tracker.Config) (prsm : Loc) (prs : GMap w64 Loc) (pvs : GMap w64 Progress),
-  (s.role = .leader →
-    (id ∈ c.voters ∧ MatchKept s.prvals pvs) ∨ (id ∉ c.voters ∧ s.sdr = true)) →
+  -- (2026-10-25, T-M M2c; until then `id ∉ c.voters` only with `s.sdr = true`) a leader that stays a
+  -- voter keeps its peers' `Match` values
+  (s.role = .leader → id ∈ c.voters → MatchKept s.prvals pvs) →
   (s.role = .candidate ∨ s.role = .preCandidate → id ∈ c.voters) →
   -- (2026-10-16, stage R8a, D11) at a leader the new `Progress` values are within its log (the
   -- leader's progress bound `PrvalsOk`, which the struct keeps): a kept peer's is the old one, a

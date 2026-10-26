@@ -60,6 +60,8 @@ theorem rafthttp.messageDecoder.decodeLimit.wp_proof
       iapply HΦ
       isplitr
       · iapply errorString_errStrOk $$ HeM
+      isplitr
+      · ipureintro; right; rfl
       iexists _
       iframe HRd
       iintro %h
@@ -74,6 +76,8 @@ theorem rafthttp.messageDecoder.decodeLimit.wp_proof
         wp_auto
         iapply HΦ
         iframe Herr2
+        isplitr
+        · ipureintro; right; rfl
         iexists _
         iframe HRd
         iintro %h
@@ -105,6 +109,8 @@ theorem rafthttp.messageDecoder.decodeLimit.wp_proof
         iapply HΦ
         isplitr
         · iapply http.errStrOk_nil
+        isplitr
+        · ipureintro; left; rfl
         iexists _
         iframe HRd
         iintro -
@@ -121,6 +127,8 @@ theorem rafthttp.messageDecoder.decodeLimit.wp_proof
       wp_auto
       iapply HΦ
       iframe Herr
+      isplitr
+      · ipureintro; right; rfl
       iexists _
       iframe HRd
       iintro %h

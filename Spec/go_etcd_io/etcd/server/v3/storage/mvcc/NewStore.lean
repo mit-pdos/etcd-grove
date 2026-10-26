@@ -78,7 +78,10 @@ handed back; 2026-10-16, D13a: the etcd server chooses them before `newRaftNode`
   the closer's queue and the stop token given up it is the compaction right `compactRight γ (-1)`
   that `store.Compact` takes, `compactRight_of_closer`), and the reader slots are those of a
   store that may be compacted (`storeReaderC`): a caller that never compacts gives the half up
-  (`crevFrozen_alloc`) and has the readers its transactions take (`storeReader_of`). -/
+  (`crevFrozen_alloc`) and has the readers its transactions take (`storeReader_of`).
+* (D22 receiver epochs, S8d, W7, 2026-10-25) The readers' pool's retired count, `0`
+  (`retiredAt`): its creator counts the readers it retires, so that a restore returns exactly the
+  old backend's tokens. -/
 abbrev mvcc.NewStore.spec : Prop :=
   ∀ (lg : Loc) (b le : GoInterface) (cfg : StoreConfig) (kb : Option mvcc.KBReal) (γb γl : GName)
     (P : IProp GF) (f : val) (rd0 : GoFunc) (wq : Bool) (γi : mvcc.IdxNames) (γok : GName),
@@ -106,7 +109,7 @@ abbrev mvcc.NewStore.spec : Prop :=
       ownToks γ.revs (2 ^ 63 - 5) ∗ mvcc.idxCert γ.idx [[], []] ∗
       (if wq then mvcc.logQ γ [[], []] else iprop(True)) ∗ mvcc.storeCloser s γ ∗
       mvcc.fieldShare s γ (1 : Qp).half.half ∗ mvcc.wsDep γ ∗ mvcc.writerFrag γ ∗
-      mvcc.crevUB γ.idx (1 : Qp).half (-1) }}
+      mvcc.crevUB γ.idx (1 : Qp).half (-1) ∗ mvcc.retiredAt γ 0 }}
 
 end spec
 

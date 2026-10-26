@@ -70,7 +70,7 @@ theorem store.Create.wp_proof
   wp_start as ⟨#Hst, #Hctx, #Hce, Hobj, Hout, Hau⟩
   iunfold isStore at Hst
   icases Hst with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt, #Hkc,
-    #Hcl, #Hone, #Hregs, %Hwl, #Hcon⟩
+    #Hcl, #Hone, #Hregs, #Hcon⟩
   ihave #Ptr : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.component_base.tracing $$ []
   · iPkgInit
   ihave #Pat : isPkgInit (PROP := IProp GF) pkg_id.go_opentelemetry_io.otel.«attribute» $$ []
@@ -171,8 +171,6 @@ theorem store.Create.wp_proof
         fun i x hx => by
           iintro HAU
           unfold kvOpAu1
-          isplitr
-          · ipureintro; exact Hwl x (List.mem_of_getElem? hx) _
           iapply (k8sAu1_kvAu1 x.γr.kv c _ _ Ψ (stepOk_create c _ v o hpfx hdv) trivial) $$ HAU
       ihave Hau' := (BigAndL.bigAndL_mono hm) $$ Hau
       rw [method_unfold (t := go.GoType.PointerType go_etcd_io.etcd.client.v3.kubernetes.Client.ty)

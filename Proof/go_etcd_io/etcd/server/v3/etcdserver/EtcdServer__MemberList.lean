@@ -68,7 +68,7 @@ theorem EtcdServer.MemberList.wp_proof
       · iunfold srvReadReader; iexists vr.read; iframe #; iframe Hrr
       iintro %h; cases h
     · (try wp_auto)
-      wp_apply (hMem vq.cluster) $$ [] as %sl ⟨%ms, Hms⟩
+      wp_apply (membership.RaftCluster.Members.spec_static hMem vq.cluster) $$ [] as %sl ⟨%ms, Hms⟩
       · iframe #
       (try wp_auto)
       iapply HΦ
@@ -111,7 +111,7 @@ theorem EtcdServer.MemberList.wp_proof
         · iunfold srvReadReader; iexists vr.read; iframe #; iframe Hrr
         iintro %h; cases h
       · (try wp_auto)
-        wp_apply (hMem vq.cluster) $$ [] as %sl ⟨%ms, Hms⟩
+        wp_apply (membership.RaftCluster.Members.spec_static hMem vq.cluster) $$ [] as %sl ⟨%ms, Hms⟩
         · iframe #
         (try wp_auto)
         iapply HΦ

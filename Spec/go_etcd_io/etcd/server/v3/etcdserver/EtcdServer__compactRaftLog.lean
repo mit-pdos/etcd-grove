@@ -1,6 +1,6 @@
 /-
-`s.compactRaftLog(snapi)` (`server.go`): the trust boundary (names-only). Lean-first (no Rocq
-counterpart); the request path's unit 4b (2026-10-13).
+`s.compactRaftLog(snapi)` (`server.go`). Lean-first (no Rocq counterpart); the request path's
+unit 4b (2026-10-13); the trust boundary (names-only) until 2026-10-26, now translated and proved.
 -/
 module
 
@@ -22,7 +22,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- `s.compactRaftLog(snapi)` (the contract of a names-only callee: it compacts the
+/-- `s.compactRaftLog(snapi)` (it compacts the
 `MemoryStorage`'s log below `snapi`, keeping `SnapshotCatchUpEntries`, unless a snapshot is in
 flight) returns, with the logger's reader slot given back.
 
@@ -44,12 +44,14 @@ covers both outcomes (the storage's boundary unchanged, or raised to at most `sn
 
 (2026-10-19, D21 M3) `SnapshotCatchUpEntries` is `scu` (read-only), and the compaction index is at
 most the storage's cap (`MemStorNames.cap`, `Compact.spec`'s premise since D21 M3): `compacti` as
-the body computes it, `snapi - scu` past `scu`, else `1`. -/
+the body computes it, `snapi - scu` past `scu`, else `1`.
+(2026-10-26, its body translated) The logger's cell `s.lg` (`l`, not `nil`), which `Logger` reads. -/
 abbrev EtcdServer.compactRaftLog.spec : Prop :=
-  ∀ (s : Loc) (snapi : w64) (ms : Loc) (γs : MemStorNames) (σ : StorState) (scu : w64),
+  ∀ (s : Loc) (snapi : w64) (ms : Loc) (γs : MemStorNames) (σ : StorState) (scu : w64) (l : Loc),
   uint.Z σ.prev.index' ≤ uint.Z snapi → uint.Z snapi ≤ uint.Z σ.ss.index' → 1 ≤ uint.Z snapi →
   (if uint.Z scu < uint.Z snapi then uint.Z snapi - uint.Z scu else 1) ≤ γs.cap →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ srvLgReader s ∗
+      srvLgAddr s ↦□ l ∗ ⌜l ≠ null⌝ ∗
       srvInflight s ∗
       rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗ memSnapTok ms γs σ ∗
       memFloorAtLeast ms γs (uint.Z snapi) ∗

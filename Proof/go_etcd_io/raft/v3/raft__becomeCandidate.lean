@@ -49,7 +49,7 @@ theorem raft.becomeCandidate.wp_proof
   wp_apply raft.wp_load_idC $$ Hphys as Hphys
   wp_apply raft.wp_store_VoteC $$ Hphys as Hphys
   rw [show (go_etcd_io.raft.v3.StateCandidate : val) = #(stateW64 .candidate) from rfl]
-  wp_apply raft.wp_store_stateC (ro := .candidate) (Hro := fun _ => Hcfg) $$ Hphys as Hphys
+  wp_apply raft.wp_store_stateC (ro := .candidate) (Hro := fun _ _ => Hcfg) $$ Hphys as Hphys
   wp_apply raft.wp_load_idC $$ Hphys as Hphys
   wp_apply raft.wp_load_TermC $$ Hphys as Hphys
   wp_raft_logC

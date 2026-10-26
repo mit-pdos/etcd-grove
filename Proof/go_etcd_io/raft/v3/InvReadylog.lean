@@ -105,6 +105,15 @@ def logStableTo (ls : LogState) (id : entryID) : LogState :=
               inprogress := w64Max ls.inprogress (id.index' + W64 1) }
   else ls
 
+/-- (2026-10-25, T-M M2b) `stableTo` moves entries from the unstable part to the stable one: their
+concatenation, the log, is unchanged. -/
+theorem logStableTo_concat (ls : LogState) (id : entryID) :
+    (logStableTo ls id).sents ++ (logStableTo ls id).uents = ls.sents ++ ls.uents := by
+  unfold logStableTo
+  split
+  · simp only [List.append_assoc, List.take_append_drop]
+  · rfl
+
 /-- What makes a `stableTo(id)` that hits correct: the entries it moves stable are
 persisted -- the application has appended what it was handed (`unpersisted = []`) and
 the storage then holds exactly the log up to `id` (`stored`, 2026-10-10) -- and no

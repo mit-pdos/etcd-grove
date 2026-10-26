@@ -1,6 +1,6 @@
 ---
 upstream: none
-checked: 2026-10-20
+checked: 2026-10-26
 links:
   - etcd-io/etcd#19091 issue closed: related, not this bug (the user's report: stale cached Get after the session lease expires, from the non-blocking session.Done check); closed by the stale bot
   - etcd-io/etcd#19092 pr closed: related, not this bug (the user's fix for #19091); closed unmerged

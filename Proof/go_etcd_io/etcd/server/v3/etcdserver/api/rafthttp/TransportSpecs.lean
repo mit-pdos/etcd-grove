@@ -112,10 +112,11 @@ theorem rafthttp.Transport.Handler_ok
     (hGet : rafthttp.Transport.Get.spec (GF := GF) (hG := hG))
     (hPServe : rafthttp.pipelineHandler.ServeHTTP.spec (GF := GF) (hG := hG))
     (hSServe : rafthttp.streamHandler.ServeHTTP.spec (GF := GF) (hG := hG))
+    (hSnServe : rafthttp.snapshotHandler.ServeHTTP.spec (GF := GF) (hG := hG))
     (hARR : rafthttp.addRemoteFromRequest.spec (GF := GF) (hG := hG)) :
     rafthttp.Transport.Handler.spec (GF := GF) (hG := hG) :=
   fun γn t c rs a Hown Hcov =>
-    rafthttp.Transport.Handler_full hNPH hNSH hNSnH hNewHandler hGet hPServe hSServe hARR γn t c rs
+    rafthttp.Transport.Handler_full hNPH hNSH hNSnH hNewHandler hGet hPServe hSServe hSnServe hARR γn t c rs
       a Hown Hcov
 
 end proof

@@ -58,7 +58,7 @@ theorem watchLaws_hist (V : WEnv GF) (γ : ServerRaftNames) (γk : KVNames) (γr
     (pw : Loc) (hWM : V.WM = v3rpc.etcdModelOfHistory γ γk) (hWL : V.WL = v3rpc.histWL γ γk)
     (hm : v3rpc.memberOf γ γk γr) (hlog0 : γk.log0 = [[], []]) :
     srvKVInvs V.R.E γr ∗ v3rpc.isWatchServer pw V.R ⊢ watchLaws V := by
-  obtain ⟨R, addr, ics, conn, wc, pfx, lg, WM, WL, mem, nm⟩ := V
+  obtain ⟨R, addr, ics, conn, wc, pfx, lg, WM, WL, mem, nm, kst⟩ := V
   simp only at hWM hWL ⊢
   subst hWM hWL
   iintro ⟨#Hinvs, #Hws⟩

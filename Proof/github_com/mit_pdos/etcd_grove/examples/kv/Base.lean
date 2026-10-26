@@ -151,10 +151,6 @@ theorem ansOk_last (H : List (List w8)) (d : List w8) (h : d ∉ H) :
     AnsOk (H ++ [d]) d (kvFold (H ++ [d]) (dkey d)) :=
   ⟨H, List.prefix_refl _, h, rfl⟩
 
-theorem ansOk_mem (H : List (List w8)) (d v : List w8) (ha : AnsOk H d v) : d ∈ H := by
-  obtain ⟨H0, h1, -, -⟩ := ha
-  exact h1.subset (by simp)
-
 theorem encodeOp_length (replica seq : w64) (kind : w8) (key val : List w8) :
     (encodeOp replica seq kind key val).length = 25 + key.length + val.length := by
   simp [encodeOp, u64Le_length]; omega
@@ -310,9 +306,6 @@ theorem lookup_take_succ (kvs : List (List w8 × List w8)) (n : Nat) (p : List w
     · have : (k == q1) = false := by simpa using hq
       rw [this]
       exact ih hn.2
-
-theorem lookup_take_all (kvs : List (List w8 × List w8)) (k : List w8) :
-    (kvs.take kvs.length).lookup k = kvs.lookup k := by rw [List.take_length]
 
 /-- What `putMap` writes of the bindings `kvs`: their count, then each binding. -/
 def encMap (kvs : List (List w8 × List w8)) : List w8 :=

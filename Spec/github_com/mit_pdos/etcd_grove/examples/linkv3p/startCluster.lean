@@ -6,8 +6,7 @@ bridge to each member's client address (`startBridge`), three clients each of ev
 
 **The triple:** from the package's `isPkgInit`, the right to listen on the nine addresses, the
 thread token and `Main`'s named premises (`linkv3p.premises`), `startCluster(lg)`, at a logger
-`lg` (not null) and any workload `W` of the members granting no lease (`W.noGrant`: `Main`'s
-`putgetWorkload`, `MainWatch`'s watch workload), returns the members, the bridges, the clients and
+`lg` (not null), returns the members, the bridges, the clients and
 `ok`: `false` (a step failed, nothing else promised), or `true` with the thread token and the
 cluster up (`clusterUp`: every member at its bridge with its KV and watch registrations, every
 bridge owned and not blackholed, every client `clientv3.New`'s over the three bridges at the
@@ -39,9 +38,9 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkv3p.Assumpti
 /-- See the file header. -/
 abbrev startCluster.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [ErrorStringLeaf] [context.ErrorStringIsError]
-    (N : Nat) (id₁ id₂ id₃ : w64) (bootLog : List EntryM) (lg : Loc) (W : SrvWorkload)
+    (N : Nat) (id₁ id₂ id₃ : w64) (bootLog : List EntryM) (lg : Loc)
     (pfx : GoString),
-  BootFacts id₁ id₂ id₃ bootLog → W.noGrant → lg ≠ null →
+  BootFacts id₁ id₂ id₃ bootLog →  lg ≠ null →
   threadBound GF ≤ 2 ^ 29 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
   ckptEffectsOk → authRecordsFit → apply.backendUnderQuota →
   storage.dbOpensOk → v3rpc.ServerMethodSets →
@@ -56,7 +55,7 @@ abbrev startCluster.spec : Prop :=
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.linkv3p.startCluster)) (Val #lg))
   {{ (srvs brs clis : GoSlice) (ok : Bool), RET (PairV (PairV (PairV #srvs #brs) #clis) #ok);
       ⌜ok = false⌝ ∨
-      (⌜ok = true⌝ ∗ threadTok ∗ clusterUp id₁ id₂ id₃ bootLog W pfx srvs brs clis) }}
+      (⌜ok = true⌝ ∗ threadTok ∗ clusterUp id₁ id₂ id₃ bootLog pfx srvs brs clis) }}
 
 end spec
 

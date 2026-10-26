@@ -52,7 +52,7 @@ theorem stepOk_create (c : StoreCfg GF Obj) (pk v : GoString) (o : Obj) (hpk : c
   have hs := hwf.1
   have habs := linkv.absSt_kvOpStep [] [] [] σ hs (putTxn pk v (W64 0) false)
   refine ⟨⟨?_, ?_⟩, ?_⟩
-  · exact linkv.kvOpStep_sorted _ σ hs
+  · exact linkv.kvOpStep_sorted _ σ
   · rw [kvOpStep_optPut, habs]
     exact KWf_putTxn c.S.dec c.pfx [] (linkv.absSt σ) hwf.2 hb pk v (W64 0) false
       (fun _ => by rw [hv]; rfl)
@@ -167,7 +167,7 @@ theorem del_cases (c : StoreCfg GF Obj) (σ : KVState) (hwf : kvWf c σ)
       simp only [linkv.MOut.txn.injEq] at hout'
       have hst : linkv.absSt (kvOpStep (linkv.opOf [] [] (delTxn pk r true)) σ) =
           ⟨(linkv.absSt σ).kv.del pk, (linkv.absSt σ).rev + 1⟩ := by rw [habs, hm]
-      refine ⟨fun h => ?_, fun _ => ⟨v, rfl, hmr, ⟨linkv.kvOpStep_sorted _ σ hs, ?_⟩, ?_, ?_⟩⟩
+      refine ⟨fun h => ?_, fun _ => ⟨v, rfl, hmr, ⟨linkv.kvOpStep_sorted _ σ, ?_⟩, ?_, ?_⟩⟩
       · rw [h] at hout'
         exact absurd hout'.2.1 (by decide)
       · rw [hst]
@@ -333,7 +333,7 @@ theorem put_cases (c : StoreCfg GF Obj) (σ : KVState) (hwf : kvWf c σ)
           have : modOf (linkv.absSt σ).kv pk = w.modRev := by
             simp [modOf, linkv.absSt, linkv.absM, hf, linkv.absVR]
           rw [← this, hmr]
-        refine ⟨w, rfl, hwm, ⟨linkv.kvOpStep_sorted _ σ hs, ?_⟩, hst, ?_⟩
+        refine ⟨w, rfl, hwm, ⟨linkv.kvOpStep_sorted _ σ, ?_⟩, hst, ?_⟩
         · rw [hst]
           exact KWf_put c.S.dec c.pfx (linkv.absSt σ) hwf.2 hb pk v hv
         · have := congrArg linkv.MSt.rev hst

@@ -955,7 +955,7 @@ its latest revision: every key-value and the current revision), half of a ghost 
 other half is in the KV invariant (`kvInv`) with the server's half of raft's committed log `L`,
 `σ` being the state of the KV model of `L` (`kvStateOf (kvModel γk L)`). A client keeps `etcdKV`
 in its own invariant (a per-key view, if it wants one, is its ghost map beside it). The invariant
-also keeps `L` plain at the workload (`plainLog γk.wl`, D19q): the only updates raft can fire
+also keeps `L` plain at the workload (`plainLog`, D19q): the only updates raft can fire
 over `L` are the ones built from it (`kv_prop_au`, `kv_noop_au`), which check. -/
 
 section kvGhost
@@ -971,10 +971,9 @@ variable (`st`, halves: `etcdKV`'s and the KV invariant's), the consistent index
 variable whose halves the certificates' invariant and the apply thread hold). 2026-10-15 (unit
 T2): `st` replaces T1's points-to map and the non-plain credit's token. 2026-10-18 (D19c): the
 request ids' names `ids` (the generator's: `ReqNames.ids` is this), under which the KV invariant
-keeps every committed request's id claimed. 2026-10-18 (D19q): the server's workload `wl`
-(`SrvWorkload`: the requests admitted, the lessor's grant guard), a parameter fixed with the names
-by whoever allocates them, as the start values are; the invariant keeps the log plain at it
-(`plainLog wl`) and a proposal must be admitted by it (`reqPropOk`). -/
+keeps every committed request's id claimed. (D19q's workload `wl`, a parameter fixed with the
+names, is gone since D45: the invariant keeps the log plain, `plainLog`, the kinds the verified
+proposers send.) -/
 structure KVNames where
   st : GName
   c0 : w64
@@ -983,7 +982,6 @@ structure KVNames where
   cok : GName
   hi : GName
   ids : IdNames
-  wl : SrvWorkload
 
 /-- The KV invariant's namespace (disjoint from raft's commit). -/
 def kvN : Namespace := nroot .@ "server_kv"
@@ -994,8 +992,8 @@ theorem kvN_raftN : (↑kvN : CoPset) ⊆ ⊤ \ ↑srvRaftN :=
 /-- States are countable (for the state's ghost variable; the key-values' instance is
 `etcdKvCountableW`, `InvWatchStore`). -/
 instance KVState.countable : Pos.Countable KVState :=
-  .ofInjective (fun σ => Pos.Countable.encode (σ.kvs, σ.rev, σ.leases))
-    (by rintro ⟨a, b, c⟩ ⟨a', b', c'⟩ h; have h := Pos.encode_inj h; simp_all)
+  .ofInjective (fun σ => Pos.Countable.encode (σ.compacted, σ.base, σ.changes, σ.leases))
+    (by rintro ⟨a, b, c, d⟩ ⟨a', b', c', d'⟩ h; have h := Pos.encode_inj h; simp_all)
 
 /-- **etcd's KV is at the state `σ`** (2026-10-15, unit T2), exclusively: half of the state's
 ghost variable (the KV invariant holds the other). -/
@@ -1065,7 +1063,7 @@ facts of `L` (`kvWork`), which every update the server hands raft checks of its 
 def kvInv (γ : ServerRaftNames) (γk : KVNames) : IProp GF :=
   inv kvN iprop(∃ L : List EntryModel,
     srvRLog γ L ∗ ghostVar γk.st (1 : Qp).half (kvStateOf (kvModel γk L)) ∗
-    ⌜plainLog γk.wl L ∧ srvIdxOkW γ.ai0 L ∧ uint.Z γk.c0 ≤ uint.Z γ.ai0 + L.length ∧
+    ⌜plainLog L ∧ srvIdxOkW γ.ai0 L ∧ uint.Z γk.c0 ≤ uint.Z γ.ai0 + L.length ∧
       γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ []⌝ ∗ kvWork γ.raft.reCfg γk L)
 
 instance kvInv_persistent (γ : ServerRaftNames) (γk : KVNames) :
@@ -1084,10 +1082,9 @@ instance kvAu_persistent (γk : KVNames) (f : KVState → KVState) (Q : KVState 
   unfold kvAu; infer_instance
 
 /-- **A client's update for the operation `op`**: its step (`kvOpStep`; a rejected request's the
-identity); (D23, 2026-10-20) of an operation the server's workload lets its clients deposit
-(`γk.wl.writes`: every one for `putgetWorkload`). -/
+identity). (D23's premise of the workload, `γk.wl.writes`, is gone since D44.) -/
 def kvOpAu (γk : KVNames) (op : KVOp) (Q : KVState → IProp GF) : IProp GF :=
-  iprop(⌜γk.wl.writes op⌝ ∗ kvAu γk (kvOpStep op) Q)
+  kvAu γk (kvOpStep op) Q
 
 instance kvOpAu_persistent (γk : KVNames) (op : KVOp) (Q : KVState → IProp GF) :
     Persistent (kvOpAu (GF := GF) γk op Q) := by
@@ -1101,25 +1098,16 @@ def kvAu1 (γk : KVNames) (f : KVState → KVState) (Q : KVState → IProp GF) :
   iprop(AU <{ ∃∃ (σ : KVState), etcdKV γk σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
           <{ etcdKV γk (f σ), COMM Q σ }>)
 
-/-- **A client's update for the operation `op`, fired at most once** (D21 M6); (D23) of an
-operation the workload lets its clients deposit, as `kvOpAu`. -/
+/-- **A client's update for the operation `op`, fired at most once** (D21 M6). -/
 def kvOpAu1 (γk : KVNames) (op : KVOp) (Q : KVState → IProp GF) : IProp GF :=
-  iprop(⌜γk.wl.writes op⌝ ∗ kvAu1 γk (kvOpStep op) Q)
+  kvAu1 γk (kvOpStep op) Q
 
 open Iris.ProofMode in
-open Iris.ProofMode in
-theorem kvOpAu1_writes (γk : KVNames) (op : KVOp) (Q : KVState → IProp GF) :
-    kvOpAu1 (GF := GF) γk op Q ⊢ ⌜γk.wl.writes op⌝ ∗ kvOpAu1 γk op Q := by
-  unfold kvOpAu1
-  iintro ⟨%h, H⟩
-  iframe H
-  isplitr <;> ipureintro <;> exact h
-
 /-- A persistent update fires once, its result persistent. -/
 theorem kvOpAu_one (γk : KVNames) (op : KVOp) (Q : KVState → IProp GF) :
     kvOpAu (GF := GF) γk op Q ⊢ kvOpAu1 γk op (fun σ => iprop(□ Q σ)) := by
   unfold kvOpAu kvAu kvOpAu1 kvAu1
-  exact sep_mono_right intuitionistically_elim
+  exact intuitionistically_elim
 
 /-- The results' namespace (D21 M6): where an update fired at most once leaves its result. -/
 def kvResN : Namespace := nroot .@ "server_kv_res"
@@ -1253,17 +1241,17 @@ delete, no transaction: `Qr` trivial); or a plain request of the KV operation `o
 no range end of it `[0]` (so the wire keeps it, `irrWireOf`), with its client's update (`Qr L`
 the client's `□ Q` at the state of `L`'s model). Since D19c (2026-10-18) either of a good shape
 (`rqShape`: the apply's premise at every log but for its size clauses) and, the first, with no
-range end `[0]` either. Since D19q (2026-10-18) plain at the server's workload (`γk.wl`). -/
+range end `[0]` either. Since D19q (2026-10-18) plain (`plainReq`). -/
 def reqPropOk (γk : KVNames) (rq : apply.IRRModel) (Qr : List EntryModel → IProp GF) :
     IProp GF :=
-  iprop((⌜plainReq γk.wl rq ∧ ¬ writeKind (apply.dispatchKind rq) ∧ irrNoZeroEnd rq ∧ rqShape rq ∧
+  iprop((⌜plainReq rq ∧ ¬ writeKind (apply.dispatchKind rq) ∧ irrNoZeroEnd rq ∧ rqShape rq ∧
       Qr = fun _ => iprop(True)⌝) ∨
-    (∃ (op : KVOp) (Q : KVState → IProp GF), ⌜plainReq γk.wl rq ∧ reqKVOp rq = some op ∧
+    (∃ (op : KVOp) (Q : KVState → IProp GF), ⌜plainReq rq ∧ reqKVOp rq = some op ∧
         irrNoZeroEnd rq ∧ rqShape rq ∧ Qr = fun L => iprop(□ Q (kvStateOf (kvModel γk L)))⌝ ∗
       kvOpAu γk op Q) ∨
     -- (2026-10-19, D21 M6) its client's update fired at most once, the result left at the
     -- token `γc` (`kvRes`)
-    (∃ (op : KVOp) (Q : KVState → IProp GF) (γc : GName), ⌜plainReq γk.wl rq ∧
+    (∃ (op : KVOp) (Q : KVState → IProp GF) (γc : GName), ⌜plainReq rq ∧
         reqKVOp rq = some op ∧ irrNoZeroEnd rq ∧ rqShape rq ∧
         Qr = fun L => kvRes γc Q (kvStateOf (kvModel γk L))⌝ ∗
       kvOpAu1 γk op Q))
@@ -1853,7 +1841,8 @@ its error is `nil` or one the gRPC layer can take (`applyErrIs`: raft's `ErrStop
 2026-10-12, unit 3a). A theorem since stage R7b (`NodeBridge.lean`, `raftPropose_of_isNode`).
 **`ApplyConfChange(c)`** (audit phase B3, 2026-10-18; `applyConfChange`'s call): of a v1 change,
 read-only, that leaves raft's configuration as it is (`ccRaftOk`, raft's static mode's
-`CCShrink`), it returns the new `*ConfState`, owned (`node.ApplyConfChange.spec`). -/
+`CCShrink`), it returns the new `*ConfState`, owned (`node.ApplyConfChange.spec`); (D43 M3,
+2026-10-25) in raft's static mode (`reDyn = none`): the dynamic mode's is `raftApplyCCDyn`. -/
 def raftPropose (γ : ServerRaftNames) (n : GoInterface) : IProp GF :=
   iprop(∃ ni : GoInterfaceOk, ⌜n = GoInterface.ok ni⌝ ∗ srvRaftLogInv γ ∗ srvPropWits γ ∗
     □ (∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (data_sl : GoSlice)
@@ -1865,7 +1854,7 @@ def raftPropose (γ : ServerRaftNames) (n : GoInterface) : IProp GF :=
         (App (App (Val #(methods ni.ty go!"Propose" ni.v)) (Val #(GoInterface.ok ctx)))
           (Val #data_sl))
       {{ (err : GoInterface), RET #err; srvPropRes γ data Q ∗ applyErrIs err }}) ∗
-    □ (∀ (c : GoInterface) (cm : CCV1M), ⌜ccRaftOk γ.raft.reCfg cm⌝ -∗
+    □ (∀ (c : GoInterface) (cm : CCV1M), ⌜γ.raft.reDyn = none⌝ -∗ ⌜ccRaftOk γ.raft.reCfg cm⌝ -∗
       {{ ownCCI c DFrac.discard (some (.v1 cm)) }}
         (App (Val #(methods ni.ty go!"ApplyConfChange" ni.v)) (Val #c))
       {{ (csp : Loc), RET #csp; ∃ cs : ConfStateM, csPts csp (DFrac.own 1) cs true }}))

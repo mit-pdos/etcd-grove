@@ -7,6 +7,7 @@ counterpart). The loop over the role's permission messages keeps those not on `[
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__RoleRevokePermission
+public import Proof.go_etcd_io.etcd.server.v3.auth.LatestTie
 public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__refreshRangePermCache
 public import Proof.go_etcd_io.etcd.server.v3.auth.VerdictLemmas
 public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__commitRevision
@@ -119,13 +120,13 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
-theorem auth.authStore.RoleRevokePermission.wp_proof
+theorem auth.authStore.RoleRevokePermission.wp_tie
     (h_commitRevision : auth.authStore.commitRevision.spec (GF := GF) (hG := hG))
     (h_refresh : auth.authStore.refreshRangePermCache.spec (GF := GF) (hG := hG))
     (h_String : zap.String.spec (GF := GF) (hG := hG))
     (h_Info : zap.Logger.Info.spec (GF := GF) (hG := hG)) :
-    auth.authStore.RoleRevokePermission.spec (GF := GF) (hG := hG) := by
-  intro st R M P f T hs Pre Q Post r role key rangeEnd
+    auth.authStore.RoleRevokePermission.specT (GF := GF) (hG := hG) := by
+  intro st R M P f T hs Pre Q Post r role key rangeEnd b0 sc0
   wp_start as ⟨#Hinv, #Hr, %Hrolelen, Hown, HWR, Hcs, %Hok⟩
   icases authErrVar_of_init .roleNotFound $$ Hpkg with ⟨%eRNF, #HeRNF⟩
   icases authErrVar_of_init .permissionNotGranted $$ Hpkg with ⟨%ePNG, #HePNG⟩
@@ -137,8 +138,8 @@ theorem auth.authStore.RoleRevokePermission.wp_proof
   icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, %Hlgnn⟩, -, -, -, -⟩
   iunfold roleRevokePermissionReqIs at Hr
   icases Hr with ⟨%Hrnn, #HRole, ⟨%ks, #HKey, #Hks⟩, ⟨%res, #HRE, #Hres⟩⟩
-  iunfold authWR at HWR
-  icases HWR with ⟨⟨%be, Hbe, #Hbeok⟩, HT, Hen⟩
+  iunfold authWRx at HWR
+  icases HWR with ⟨⟨%be, Hbe, #Hbeok⟩, HT, Hfl, #Hev, Hca, #Hcsn⟩
   ihave #Hbeok' := Hbeok
   iunfold authWBackendOk at Hbeok'
   icases Hbeok' with ⟨%bi, %Hbi, #HBatch, #HFC⟩
@@ -173,17 +174,20 @@ theorem auth.authStore.RoleRevokePermission.wp_proof
     · ipureintro; exact Hl0
     (try wp_auto)
     iapply HΦ
+    iexists b0, sc0
     isplitl [HPost]
     · ileft; iexact HPost
-    isplitl [Hbe HT Hen]
-    · iunfold authWR; iframe HT Hen; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+    isplitl [Hbe HT Hfl Hca]
+    · iunfold authWRx; iframe HT Hfl Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
     isplitr
     · iunfold respOk; isplitr
       · ipureintro; intro _; rfl
       · ileft; ipureintro; rfl
-    iunfold adminOut
+    iunfold adminOutP
     iright
     iexists st0, (.err .roleNotFound)
+    isplitr
+    · ipureintro; exact tieStep_same _ _ _ _
     isplitr
     · ipureintro
       refine ⟨Hl0, ?_⟩
@@ -366,17 +370,20 @@ theorem auth.authStore.RoleRevokePermission.wp_proof
     · ipureintro; exact Hl0
     (try wp_auto)
     iapply HΦ
+    iexists b0, sc0
     isplitl [HPost]
     · ileft; iexact HPost
-    isplitl [Hbe HT Hen]
-    · iunfold authWR; iframe HT Hen; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+    isplitl [Hbe HT Hfl Hca]
+    · iunfold authWRx; iframe HT Hfl Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
     isplitr
     · iunfold respOk; isplitr
       · ipureintro; intro _; rfl
       · ileft; ipureintro; rfl
-    iunfold adminOut
+    iunfold adminOutP
     iright
     iexists st0, (.err .permissionNotGranted)
+    isplitr
+    · ipureintro; exact tieStep_same _ _ _ _
     isplitr
     · ipureintro
       refine ⟨Hl0, ?_⟩
@@ -411,7 +418,7 @@ theorem auth.authStore.RoleRevokePermission.wp_proof
   obtain ⟨ps', hps'eq⟩ : ∃ l, l = ps.filter (fun p => ¬ permAt key rangeEnd p) := ⟨_, rfl⟩
   ihave HL : Lk (putRole st0 role ps') Post $$ [HL]
   · iExactEq HL; show Lk (putRole st0 rr.name rr'.toRole) Post = _; rw [Hrrn, hps', hps'eq]
-  ihave %Hpk := authOwn_last_permKeysOk M hs $$ Hown
+  ihave %Hpk := authOwnF_last_permKeysOk M hs $$ Hown
   have hstep : roleRevokePermissionR role key rangeEnd st0 (.next (bump (putRole st0 role ps'))) := by
     simp only [roleRevokePermissionR, Hlook]
     right; rw [hps'eq]
@@ -424,14 +431,16 @@ theorem auth.authStore.RoleRevokePermission.wp_proof
       (fun p hp => Hpk st0 Hl0 h1 h2 role ps Hlook p (by rw [hps'eq] at hp; exact (List.mem_filter.mp hp).1)), ?_⟩
     intro hM; subst hM; exact Hl0
   have Hl1 := histLast_after M hs (putRole st0 role ps') rev (fun h => by subst h; exact Hl0) Hrev
-  imod (authSnap_of_last M _ _ Hl1) $$ Hown with ⟨Hown, #Hsnap⟩
+  imod (authSnapF_of_last M _ _ Hl1) $$ Hown with ⟨Hown, #Hsnap⟩
   (try wp_auto)
   wp_bind (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"refreshRangePermCache"))
     (Val #(GoInterface.ok ti)))
   iapply (h_refresh st R M ti (fun x => Lk x Post)
       ({ putRole st0 role ps' with revision := rev } : AuthState))
-    $$ [HL]
+    $$ [HL Hca]
   · iframe Hpkg Hinv
+    isplitl [Hca]
+    · iapply (cacheHalf_of_at _ _ _) $$ Hca Hcsn
     isplitr
     · iapply HRd
     isplitl [HL]
@@ -440,7 +449,7 @@ theorem auth.authStore.RoleRevokePermission.wp_proof
     iframe Hsnap
     ipureintro; exact permsFit_rev _ rev Hfit'
   inext
-  iintro HL
+  iintro ⟨HL, Hca⟩
   (try wp_auto)
   wp_apply h_String _ _ as %f1 -
   (try wp_auto)
@@ -473,17 +482,20 @@ theorem auth.authStore.RoleRevokePermission.wp_proof
     ipureintro; exact Hl1
   (try wp_auto)
   iapply HΦ
+  iexists b0, ({ putRole st0 role ps' with revision := rev } : AuthState)
   isplitl [HPost]
   · ileft; iexact HPost
-  isplitl [Hbe HT Hen]
-  · iunfold authWR; iframe HT Hen; iexists (GoInterface.ok bi); iframe Hbe Hbeok
+  isplitl [Hbe HT Hfl Hca]
+  · iunfold authWRx; iframe HT Hfl Hev Hca Hsnap; iexists (GoInterface.ok bi); iframe Hbe Hbeok
   isplitl [Header]
   · iunfold respOk; isplitr
     · ipureintro; intro h; exact absurd rfl h
     · iright; iexists _; iexact Header
-  iunfold adminOut
+  iunfold adminOutP
   iright
   iexists st0, (.next (bump (putRole st0 role ps')))
+  isplitr
+  · ipureintro; exact tieStep_refresh M hs _ b0 sc0 _ st0 Hl0 Hl1 rfl
   isplitr
   · ipureintro; exact ⟨Hl0, hstep⟩
   simp only [outRes]
@@ -491,6 +503,15 @@ theorem auth.authStore.RoleRevokePermission.wp_proof
   · iExactEq Hown
     all_goals rfl
   · ipureintro; trivial
+
+
+theorem auth.authStore.RoleRevokePermission.wp_proof
+    (h_commitRevision : auth.authStore.commitRevision.spec (GF := GF) (hG := hG))
+    (h_refresh : auth.authStore.refreshRangePermCache.spec (GF := GF) (hG := hG))
+    (h_String : zap.String.spec (GF := GF) (hG := hG))
+    (h_Info : zap.Logger.Info.spec (GF := GF) (hG := hG)) :
+    auth.authStore.RoleRevokePermission.spec (GF := GF) (hG := hG) :=
+  auth.authStore.RoleRevokePermission.spec_of_T (auth.authStore.RoleRevokePermission.wp_tie h_commitRevision h_refresh h_String h_Info)
 
 end proof
 

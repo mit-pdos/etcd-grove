@@ -32,6 +32,8 @@ abbrev apply.newApplierV3Capped.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply }}
     (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.newApplierV3Capped)) (Val #base))
   {{ (a : GoInterface), RET #a;
+      (∃ pc : Loc, ⌜a = interface.mkOk (go.GoType.PointerType applierV3Capped.ty) #pc⌝ ∗
+        apply.cappedIs pc base) ∗
       □ (∀ (E : AEnv GF) (c : apply.Chain), apply.applierSpec E c base -∗
         apply.applierSpec E (.capped c) a) }}
 

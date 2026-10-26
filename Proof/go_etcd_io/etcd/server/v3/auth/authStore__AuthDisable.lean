@@ -4,6 +4,7 @@ Proof of the spec of the same name (the auth plan's S4, 2026-10-24). Lean-first 
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__AuthDisable
+public import Proof.go_etcd_io.etcd.server.v3.auth.LatestTie
 public import Proof.go_etcd_io.etcd.server.v3.auth.VerdictLemmas
 public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__commitRevision
 public import Spec.go_uber_org.zap.String
@@ -28,24 +29,26 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
-theorem auth.authStore.AuthDisable.wp_proof
+theorem auth.authStore.AuthDisable.wp_tie
     (h_commitRevision : auth.authStore.commitRevision.spec (GF := GF) (hG := hG))
     (h_Info : zap.Logger.Info.spec (GF := GF) (hG := hG)) :
-    auth.authStore.AuthDisable.spec (GF := GF) (hG := hG) := by
-  intro st R M P f T hs Pre Q Post
-  wp_start as ⟨#Hinv, Hown, HWR, Hcs, %Hok⟩
+    auth.authStore.AuthDisable.specT (GF := GF) (hG := hG) := by
+  intro st R M P f T hs Pre Q Post en sc0
+  wp_start as ⟨#Hinv, Hown, HWR, Htpa, Hcs, %Hok⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   ihave #Hinv' := Hinv
   iunfold authInv at Hinv'
-  icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, %Hlgnn⟩, -, ⟨%tp, #Htp, #Htpok⟩, #Hguard, -⟩
-  iunfold tokenProviderOk at Htpok
+  icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, %Hlgnn⟩, -, ⟨%tp0, -, -⟩, #Hguard, -⟩
+  iunfold tpAdmin at Htpa
+  icases Htpa with ⟨%tp, %Atp, #Htp, #HtpokA, HA⟩
+  ihave #Htpok := HtpokA
+  iunfold tokenProviderOkA at Htpok
   icases Htpok with ⟨%tpi, %Htpi, -, -, #HDisable, -, -⟩
   subst Htpi
-  iunfold authWR at HWR
-  icases HWR with ⟨⟨%be, Hbe, #Hbeok⟩, HT, Hen⟩
-  iunfold enabledHalf at Hen
-  icases Hen with ⟨%en, Hen, #Hev⟩
+  iunfold authWRx at HWR
+  icases HWR with ⟨⟨%be, Hbe, #Hbeok⟩, HT, Hen, #Hev, Hca, #Hcsn⟩
+  iunfold flagAt at Hen
   ihave #Hbeok' := Hbeok
   iunfold authWBackendOk at Hbeok'
   icases Hbeok' with ⟨%bi, %Hbi, #HBatch, #HFC, -⟩
@@ -69,19 +72,24 @@ theorem auth.authStore.AuthDisable.wp_proof
     · inext; iunfold enabledP; iexists false; iframe Hen'; iexact Hev
     (try wp_auto)
     iapply HΦ
+    iexists false, sc0
+
+    isplitl [HA]
+
+    · iunfold tpAdmin; iexists (GoInterface.ok tpi), Atp; iframe HA; iframe #
     isplitl [Hcs]
     · iapply csContract_noWrite $$ Hcs
-    isplitl [Hbe HT Hen]
-    · iunfold authWR; iframe HT; isplitl [Hbe]
-      · iexists (GoInterface.ok bi); iframe Hbe Hbeok
-      · iunfold enabledHalf; iexists false; iframe Hen Hev
+    isplitl [Hbe HT Hen Hca]
+    · iunfold authWRx; iunfold flagAt; iframe HT Hen Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
     iexists false
     iframe Hev
-    iunfold adminOut
+    iunfold adminOutP
     iright
     ihave %Hl := authOwn_exists_last M hs $$ Hown
     obtain ⟨st0, Hl⟩ := Hl
     iexists st0, .same
+    isplitr
+    · ipureintro; exact tieStep_same _ _ _ _
     isplitr
     · ipureintro
       refine ⟨Hl, ?_⟩
@@ -103,7 +111,7 @@ theorem auth.authStore.AuthDisable.wp_proof
   iapply HLock $$ %hs %Pre %Q %Post [$Hcs $HT $Hown]
   inext
   iintro ⟨%st0, HL, Hown, %Hl0⟩
-  ihave %Hpk := authOwn_last_permKeysOk M hs $$ Hown
+  ihave %Hpk := authOwnF_last_permKeysOk M hs $$ Hown
   have Hstep := (Hok true st0 Hl0)
   (try wp_auto)
   wp_bind (App (Val #(methods ti.ty go!"UnsafeSaveAuthEnabled" ti.v)) (Val #false))
@@ -119,7 +127,7 @@ theorem auth.authStore.AuthDisable.wp_proof
   · ipureintro
     exact ⟨Hl0, rfl, Hrevfit, fun h1 h2 => permKeysOk_enabled _ _ (Hpk st0 Hl0 h1 h2), Hoff⟩
   have Hl1 := histLast_after M hs { st0 with enabled := false } rev (fun _ => rfl) Hrev
-  imod (authSnap_of_last M _ _ Hl1) $$ Hown with ⟨Hown, #Hsnap⟩
+  imod (authSnapF_of_last M _ _ Hl1) $$ Hown with ⟨Hown, #Hsnap⟩
   ihave #Hev2 := enabledVerdict_of_snap M _ $$ Hsnap
   (try wp_auto)
   wp_apply HUnlock $$ %_ %Post %(hs ++ [bump { st0 with enabled := false }]) [HL $Hown]
@@ -135,10 +143,10 @@ theorem auth.authStore.AuthDisable.wp_proof
   iintro HT
   (try wp_auto)
   wp_bind (App (Val #(methods tpi.ty go!"disable" tpi.v)) (Val #()))
-  iapply HDisable $$ [] [-]
-  · itrivial
+  iapply HDisable $$ [HA] [-]
+  · iexact HA
   inext
-  iintro -
+  iintro HA
   (try wp_auto)
   wp_apply h_Info
   · ipureintro; exact Hlgnn
@@ -148,17 +156,22 @@ theorem auth.authStore.AuthDisable.wp_proof
   · inext; iunfold enabledP; iexists false; iframe Hen'; iexact Hev2
   (try wp_auto)
   iapply HΦ
+  iexists false, sc0
+
+  isplitl [HA]
+
+  · iunfold tpAdmin; iexists (GoInterface.ok tpi), Atp; iframe HA; iframe #
   isplitl [HPost]
   · ileft; iexact HPost
-  isplitl [Hbe HT Hen]
-  · iunfold authWR; iframe HT; isplitl [Hbe]
-    · iexists (GoInterface.ok bi); iframe Hbe Hbeok
-    · iunfold enabledHalf; iexists false; iframe Hen Hev2
+  isplitl [Hbe HT Hen Hca]
+  · iunfold authWRx; iunfold flagAt; iframe HT Hen Hev2 Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
   iexists true
   iframe Hev
-  iunfold adminOut
+  iunfold adminOutP
   iright
   iexists st0, (.next (bump { st0 with enabled := false }))
+  isplitr
+  · ipureintro; exact tieStep_set M hs _ _ _ false sc0 _ Hl1 rfl (fun h => by cases h)
   isplitr
   · ipureintro; exact ⟨Hl0, hstep.symm⟩
   simp only [outRes]
@@ -166,6 +179,13 @@ theorem auth.authStore.AuthDisable.wp_proof
   · iExactEq Hown
     all_goals rfl
   · ipureintro; trivial
+
+
+theorem auth.authStore.AuthDisable.wp_proof
+    (h_commitRevision : auth.authStore.commitRevision.spec (GF := GF) (hG := hG))
+    (h_Info : zap.Logger.Info.spec (GF := GF) (hG := hG)) :
+    auth.authStore.AuthDisable.spec (GF := GF) (hG := hG) :=
+  auth.authStore.AuthDisable.spec_of_T (auth.authStore.AuthDisable.wp_tie h_commitRevision h_Info)
 
 end proof
 

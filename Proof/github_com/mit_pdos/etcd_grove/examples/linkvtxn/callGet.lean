@@ -34,9 +34,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Assumptions]
 
-theorem zero_val_Output :
-    (zero_val github_com.mit_pdos.etcd_grove.examples.linkvtxn.Output) = zOut := rfl
-
 theorem callGet.wp_proof (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG))
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG))
     (wp_vrOf : vrOf.spec (GF := GF) (hG := hG)) :

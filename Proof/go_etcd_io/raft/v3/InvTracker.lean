@@ -427,137 +427,12 @@ tracked ids. -/
 def LearnerFlags (cfg : GSet w64) (pvs : GMap w64 Progress) : Prop :=
   ∀ k p, pvs !! k = some p → p.learner = decide (k ∉ cfg)
 
-/-- The learner part of `ownTracker` (2026-10-13): the `Learners` set is the tracked ids
+/-- The learner part of a non-joint configuration (`ownConfigV`, 2026-10-13): the `Learners` set is the tracked ids
 outside the voters, `LearnersNext` is empty (no joint configuration), and each
 `Progress`'s `IsLearner` says which. -/
 def LearnersOk (cfg : GSet w64) (prs : GMap w64 Loc) (pvs : GMap w64 Progress)
     (learners learnersNext : GMap w64 Unit) : Prop :=
   domSet learners = domSet prs \ cfg ∧ learnersNext = ∅ ∧ LearnerFlags cfg pvs
-
-/-! ### The progress tracker
-
-`trk` is embedded in the raft struct **by value**, so the tracker's own bytes are part
-of the `r ↦ rv` clause of `ownRaftPhys` and must not be claimed a second time.
-`ownTracker cfg tv t` therefore owns exactly what the tracker *value* `tv` points at:
-the vote map, the progress map together with the `Progress` objects in it, and the id
-sets of the configuration.
-
-The configuration is *simple*, not joint -- no reconfiguration and no learners are in
-scope -- which is recorded the same way `readonly.lean` records it: the `JointConfig`
-array is `[voters_ref, map.nil]`. The voter set and the domain of the progress map are
-both `cfg`.
-
-It is indexed by one record `t : Trk` (`Defs.lean`): the tally `t.votes`, the progress
-map `t.prs`, and `t.peers`, what each `Progress` holds, by peer (`NState.prvals`):
-`prs` and `peers` are paired key by key, so they have the same domain. (Until
-2026-10-02 the three were separate arguments and `peers` held Goose values; until
-2026-09-29 the values were existential inside, and a caller that needed one across a
-call it made with the struct sealed had to take the tracker out of `ownRaftPhys` on
-loan.) -/
-def ownTracker (tv : tracker.ProgressTracker) (t : Trk) : IProp GF :=
-  iprop(∃ (voters_ref : Loc) (voters : GMap w64 Unit)
-    (learners learnersNext : GMap w64 Unit),
-  "Hvotes" ∷ tv.Votes' ↦$ t.votes ∗
-  -- **Read-only.** The progress *map* is allocated once, by `newTracker`/`confchange`,
-  -- and on the election path nothing ever inserts into it or deletes from it -- only
-  -- the `Progress` *values* it points at are written (`reset`'s `Visit` closure,
-  -- `BecomeReplicate`, `SentEntries`). Holding it at `DFrac.discard` records that, and
-  -- buys the one thing an exclusive points-to cannot: the map is **duplicable**, so a
-  -- proof can keep a copy of `⌜prs !! to = some pr⌝` across a call that consumes and
-  -- rebuilds the whole tracker. `maybeSendAppend` needs exactly that -- it holds the
-  -- raw `pr` pointer across `r.send(...)`, which is specified on `ownRaftPhys` and so
-  -- takes the tracker with it, and must then call `pr.SentEntries`/`pr.SentCommit` on
-  -- the *same* pointer. With an existentially quantified exclusive map there is no way
-  -- back to that pointer; see `ownTracker_lookup` below. Changed 2026-09-20.
-  --
-  -- It is a genuine restriction: a proof of a reconfiguration path would have to take
-  -- the map back to `DFrac.own 1`. Reconfiguration is out of scope (the configuration in
-  -- use is fixed: `ownRaftPhys cfg`; since 2026-10-13 conf-change entries are in the log
-  -- as data).
-  "#Hprs" ∷ tv.Progress' ↦$□ t.prs ∗
-  "Hprogs" ∷ ([∗map] _k ↦ pr;p ∈ t.prs;t.peers, ownProgress pr p) ∗
-  -- the voters and the learners (2026-10-13, reconfiguration stage L; until then the
-  -- domain was `cfg`): the learners are the rest, `Hno_learners` below
-  "%Hprs_dom" ∷ ⌜cfg ⊆ domSet t.prs⌝ ∗
-  -- a simple configuration: second component of the joint config is nil
-  "%Hvoters_arr" ∷ ⌜tv.Config'.Voters'.arr = [voters_ref, map.nil]⌝ ∗
-  -- and not a joint one on its way out: `AutoLeave` is only set on entering a joint
-  -- configuration. `ConfState` reads it (added 2026-09-29, when `switchToConfig`
-  -- stopped keeping the tracker value in hand across the call)
-  "%Hautoleave" ∷ ⌜tv.Config'.AutoLeave' = false⌝ ∗
-  "Hvoters" ∷ voters_ref ↦$ voters ∗
-  "%Hvoters_dom" ∷ ⌜domSet voters = cfg⌝ ∗
-  -- the learners: the tracked ids outside `cfg`, each `Progress` flagged accordingly
-  -- (`LearnersOk`; until 2026-10-13 there were none), and no `LearnersNext`. Both maps
-  -- are canonical (`ownIdsetC`: `nil` exactly when empty -- as after `newRaft`: see
-  -- `ownIdsetOpt`), as `confchange`'s specs need them (`ownTrackerCC`; since 2026-10-13,
-  -- for `ApplyConfChange`; until then `ownIdsetOpt`, which also allowed an empty map).
-  "Hlearners" ∷ ownIdsetC tv.Config'.Learners' (DFrac.own 1) learners ∗
-  "HlearnersNext" ∷ ownIdsetC tv.Config'.LearnersNext' (DFrac.own 1) learnersNext ∗
-  "%Hno_learners" ∷ ⌜LearnersOk cfg t.prs t.peers learners learnersNext⌝ ∗
-  -- `campaign` does `make([]uint64, 0, len(idMap))`, and `wp_slice_make3` needs
-  -- `0 ≤ sint.Z cap`; `campaign`, `Visit`, `VoterNodes` and `CommittedIndex` then
-  -- `slices.Sort` the voter ids, which needs at most `2^62` of them (past that its
-  -- heapsort fallback overflows `int`). Nothing else bounds the voter set: no Iris
-  -- ownership constrains the cardinality of a `GSet w64`, so `size cfg = 2^64` is
-  -- consistent with every other conjunct here. This is a property of the
-  -- configuration, so it belongs with the configuration (`newRaft` takes it as a
-  -- premise about the storage's initial `ConfState`).
-  -- (Since 2026-10-13 of the tracked ids, voters and learners: `Visit` sorts them all.)
-  "%Hcfg_size" ∷ ⌜(GMap.size t.prs : Int) ≤ 2 ^ 62⌝ ∗
-  -- **No non-emptiness conjunct.** From 2026-09-16 to 2026-09-29 this predicate
-  -- required `cfg ≠ ∅`, because `MajorityConfig.VoteResult` returns `VoteWon` outright
-  -- for an empty configuration while `IsQuorum ∅ q` is false. That made the *empty*
-  -- tracker `MakeProgressTracker` builds -- the one `newRaft` starts from -- not an
-  -- `ownTracker`, so `newRaft` had to hold it on loan until `switchToConfig`. The
-  -- premise now sits where it is used: `JointConfig.VoteResult`, `TallyVotes` and
-  -- `poll` take `cfg ≠ ∅`.
-  --
-  -- **The inflight window is a sane size.** `Config.validate` requires only
-  -- `MaxInflightMsgs > 0` -- **it has no upper bound** (this comment said `(0, 1<<30]`
-  -- until 2026-09-24; notes/false-statements.md) -- and `newRaft` copies it into the
-  -- tracker, so the `< 2^62` half is an extra premise of `newRaft`'s spec, not
-  -- something raft checks. So this predicate excludes valid configs with
-  -- `MaxInflightMsgs ≥ 2^62`. Needed because `reset`'s `Visit` closure calls
-  -- `tracker.NewInflights(r.trk.MaxInflight, …)`, and the ring-buffer invariant of
-  -- `ownInflightsRaw` pins `0 ≤ size < 2^62` (see `InflightsOk`). Like `Hcfg_size` it
-  -- is a property of the configuration and is never written on the election path.
-  -- Added 2026-09-20 for `bcastAppend`.
-  "%HmaxInfl" ∷ ⌜0 ≤ sint.Z tv.MaxInflight' ∧ sint.Z tv.MaxInflight' < 2 ^ 62⌝)
-
-/-- Re-sealing a tracker a proof has taken apart, as one `iapply`:
-
-    iapply ownTracker_intro … $$ Hvotes Hprs Hprogs Hvoters Hlearners HlearnersNext
-
-(In Rocq, `iExists …; iFrame "∗#%"` against the unfolded predicate cost ~30s per use
-in a proof body; notes/gotchas.md.) The pure premises are in the order the conjuncts
-appear in `ownTracker`. The conclusion is at `⟨votes, prs, peers⟩`, so that the
-hypotheses fix the three maps (in Lean `Trk` has definitional eta, so a goal at a
-variable `t` unifies with it). -/
-theorem ownTracker_intro (tv : tracker.ProgressTracker) (votes : GMap w64 Bool)
-    (prs : GMap w64 Loc) (peers : GMap w64 Progress)
-    (voters_ref : Loc) (voters learners learnersNext : GMap w64 Unit)
-    (Hprs_dom : cfg ⊆ domSet prs)
-    (Hvoters_arr : tv.Config'.Voters'.arr = [voters_ref, map.nil])
-    (Hautoleave : tv.Config'.AutoLeave' = false)
-    (Hvoters_dom : domSet voters = cfg)
-    (Hno_learners : LearnersOk cfg prs peers learners learnersNext)
-    (Hcfg_size : (GMap.size prs : Int) ≤ 2 ^ 62)
-    (HmaxInfl : 0 ≤ sint.Z tv.MaxInflight' ∧ sint.Z tv.MaxInflight' < 2 ^ 62) :
-    ⊢ (tv.Votes' ↦$ votes : IProp GF) -∗
-      tv.Progress' ↦$□ prs -∗
-      ([∗map] _k ↦ pr;p ∈ prs;peers, ownProgress pr p) -∗
-      voters_ref ↦$ voters -∗
-      ownIdsetC tv.Config'.Learners' (DFrac.own 1) learners -∗
-      ownIdsetC tv.Config'.LearnersNext' (DFrac.own 1) learnersNext -∗
-      ownTracker cfg tv ⟨votes, prs, peers⟩ := by
-  unfold ownTracker
-  iintro Hvotes #Hprs Hprogs Hvoters Hlearners HlearnersNext
-  iexists voters_ref, voters, learners, learnersNext
-  simp only [named]
-  iframe Hvotes Hprs Hprogs Hvoters Hlearners HlearnersNext
-  ipureintro
-  exact ⟨Hprs_dom, Hvoters_arr, Hautoleave, Hvoters_dom, Hno_learners, Hcfg_size, HmaxInfl⟩
 
 end proof
 
@@ -696,40 +571,6 @@ theorem wp_ProgressMap_len (mref : Loc) (dq : DFrac) (m : GMap w64 Loc) :
     {{ RET #(W64 (GMap.size m)); mref ↦${dq} m }} :=
   wp_map_len mref m dq
 
-/-- The tracker tracks at most `2^62` ids, voters and learners (`Hcfg_size`); the tracker
-survives. -/
-theorem ownTracker_size_prs (tv : tracker.ProgressTracker) (t : Trk) :
-    ⊢ ownTracker (GF := GF) cfg tv t -∗
-      ⌜(GMap.size t.prs : Int) ≤ 2 ^ 62⌝ ∗ ownTracker cfg tv t := by
-  iintro Hown
-  iunfold ownTracker at Hown
-  icases Hown with ⟨%voters_ref, %voters, %learners, %learnersNext, Hown⟩
-  iNamed Hown
-  isplitr
-  · ipureintro; exact Hcfg_size
-  iapply ownTracker_intro cfg tv t.votes t.prs t.peers voters_ref voters learners learnersNext
-    Hprs_dom Hvoters_arr Hautoleave Hvoters_dom Hno_learners Hcfg_size HmaxInfl
-    $$ Hvotes Hprs Hprogs Hvoters Hlearners HlearnersNext
-
-/-- Read the progress map's points-to and domain out of the tracker without consuming
-it (the map is read-only, hence persistent). -/
-theorem ownTracker_progress_map (tv : tracker.ProgressTracker) (t : Trk) :
-    ⊢ ownTracker (GF := GF) cfg tv t -∗
-      tv.Progress' ↦$□ t.prs ∗ ⌜cfg ⊆ domSet t.prs⌝ ∗ ownTracker cfg tv t := by
-  iintro Hown
-  iunfold ownTracker at Hown
-  icases Hown with ⟨%voters_ref, %voters, %learners, %learnersNext, Hown⟩
-  iNamed Hown
-  -- not `iframe Hprs`: it would also frame the copy inside the unsealed `ownTracker`,
-  -- and `ownTracker_intro` would then no longer apply
-  isplitr
-  · iexact Hprs
-  isplitr
-  · ipureintro; exact Hprs_dom
-  iapply ownTracker_intro cfg tv t.votes t.prs t.peers voters_ref voters learners learnersNext
-    Hprs_dom Hvoters_arr Hautoleave Hvoters_dom Hno_learners Hcfg_size HmaxInfl
-    $$ Hvotes Hprs Hprogs Hvoters Hlearners HlearnersNext
-
 end proof2
 
 /-! The Rocq tactics `progress_open`, `progress_abs_solve`, `trk_simpl`,
@@ -748,9 +589,9 @@ macro "progress_abs_solve" : tactic =>
 
 `ownConfig cfg cfgv prsm prs` is what `confchange.Restore` builds for a voters-only
 configuration `cfg`: the `Config` value `cfgv` with its voter map, and the progress map
-at `prsm` with its `Progress` objects. It is the part of `ownTracker` that
-`switchToConfig` replaces; the vote tally and the tracker's other fields stay.
-`ownTracker_reconfig` is the one place an `ownTracker` changes its `cfg` index. -/
+at `prsm` with its `Progress` objects. It is the part of the tracker that
+`switchToConfig` replaces (`ownConfigV_toC`, `ownTrackerC_reconfig`); the vote tally and the
+tracker's other fields stay. -/
 section config
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -778,9 +619,7 @@ def ownConfigV (cfg : GSet w64) (cfgv : tracker.Config) (prsm : Loc) (prs : GMap
     "%Hlrn" ∷ ⌜LearnersOk cfg prs pvs learners ∅⌝ ∗
     "%Hcsz" ∷ ⌜(GMap.size prs : Int) ≤ 2 ^ 62⌝)
 
-/-- `ownConfigV` at some records: what `confchange.Restore` builds. It is the part of
-`ownTracker` that `switchToConfig` replaces; the vote tally and the tracker's other fields
-stay. -/
+/-- `ownConfigV` at some records: what `confchange.Restore` builds. -/
 def ownConfig (cfg : GSet w64) (cfgv : tracker.Config) (prsm : Loc) (prs : GMap w64 Loc) :
     IProp GF :=
   iprop(∃ pvs, ownConfigV cfg cfgv prsm prs pvs)
@@ -812,36 +651,6 @@ theorem bigSepM_exist_sepM2 {A B : Type} (m : GMap w64 A) (Φ : w64 → A → B 
     iexists <[k := y]> m'
     iapply (BigSepM2.bigSepM2_insert (Φ := Φ) (m1 := m) (m2 := m') Hk Hk').2
     iframe Hy Hm
-
-/-- The tracker `MakeProgressTracker` builds is an `ownTracker` over the empty
-configuration. -/
-theorem ownTracker_empty (tv : tracker.ProgressTracker) (v0 : Loc)
-    (Harr : tv.Config'.Voters'.arr = [v0, map.nil])
-    (Hl : tv.Config'.Learners' = map.nil)
-    (Hln : tv.Config'.LearnersNext' = map.nil)
-    (Hal : tv.Config'.AutoLeave' = false)
-    (Hmi : 0 ≤ sint.Z tv.MaxInflight' ∧ sint.Z tv.MaxInflight' < 2 ^ 62) :
-    ⊢ (v0 ↦$ (∅ : GMap w64 Unit) : IProp GF) -∗
-      tv.Votes' ↦$ (∅ : GMap w64 Bool) -∗
-      tv.Progress' ↦$□ (∅ : GMap w64 Loc) -∗
-      ownTracker ∅ tv ⟨∅, ∅, ∅⟩ := by
-  iintro Hv0 Hvotes #Hprs
-  ihave Hl0 : ownIdsetC (GF := GF) tv.Config'.Learners' (DFrac.own 1) (∅ : GMap w64 Unit) $$ []
-  · unfold ownIdsetC; ileft; ipureintro; exact ⟨Hl, rfl⟩
-  ihave Hln0 : ownIdsetC (GF := GF) tv.Config'.LearnersNext' (DFrac.own 1) (∅ : GMap w64 Unit) $$ []
-  · unfold ownIdsetC; ileft; ipureintro; exact ⟨Hln, rfl⟩
-  ihave Hprogs : ([∗map] _k ↦ pr;p ∈ (∅ : GMap w64 Loc); (∅ : GMap w64 Progress),
-      ownProgress (GF := GF) pr p) $$ []
-  · iapply (BigSepM2.bigSepM2_empty _).2; iempintro
-  iapply ownTracker_intro ∅ tv ∅ ∅ ∅ v0 ∅ ∅ ∅ (by rw [GMap.dom_empty]; exact GMap.subseteq_refl _)
-    Harr Hal GMap.dom_empty
-    ⟨by
-      rw [GMap.dom_empty, GMap.dom_empty]; apply GMap.set_eq; intro k
-      exact ⟨fun h => absurd h (GMap.not_elem_of_empty _),
-        fun h => absurd ((GMap.elem_of_difference _ _ _).1 h).1 (GMap.not_elem_of_empty _)⟩,
-      rfl, fun k p h => by simp at h⟩
-    (by rw [GMap.map_size_empty]; decide) Hmi
-    $$ Hvotes Hprs Hprogs Hv0 Hl0 Hln0
 
 /-- What `confchange.Restore` builds for a non-joint `ConfState` with learners `lrn`
 (2026-10-13), as an `ownConfig`. -/

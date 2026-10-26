@@ -1,6 +1,8 @@
 # Types and names only: function and method bodies are axiomatized (project k8s-apiserver;
-# notes/k8s-etcd3-goose.md).
-translate = ["!*"]
+# notes/k8s-etcd3-goose.md). But the event types' constants (`Added`, ...), which the watch
+# cache's store switches on (`WatchCacheStorage.UpdateStore`; notes/kep-6404-plan.md): a
+# names-only constant is a value of unknown shape.
+translate = ["!*", "Added", "Modified", "Deleted", "Bookmark", "Error"]
 imports = ["!*"]
 
 # translate the definitions of all type declarations goose supports

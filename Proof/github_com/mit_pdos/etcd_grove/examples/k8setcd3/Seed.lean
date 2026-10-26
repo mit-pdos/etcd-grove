@@ -5,7 +5,7 @@ Lean-first (no Rocq counterpart).
 
 `Main` seeds the keys `a` and `b` with value `x` in the older encoding (`seedOne`: a client `Put`
 of `encodeWith tagV0 k "x"` at the store key, D30g) on a new member's start state (no key, at
-revision `1`). The pure part: the two puts' states (`σs2`, explicit: `a` at revision 2, `b` at 3)
+revision `1`). The pure part: the two puts' states (`σs2`: `a` at revision 2, `b` at 3, `σs2_kvs`)
 and the driver's seeded store (`g0`), related as the instance's invariant takes them (`kvWf`,
 `KRel`).
 -/
@@ -36,22 +36,35 @@ def v0 (k : GoString) : GoString := encodeWith tagV0 k go!"x"
 /-- `seedOne`'s put of the key `k`. -/
 def seedOp (k : GoString) : KVOp := .put (linkv.putOp (mkeyL k) (v0 k))
 
-/-- A new member's start state: no key, at revision `1`. -/
-def σb : KVState := { kvs := [], rev := 1 }
+/-- A new member's start state (the start log's): no key, at revision `1`. -/
+def σb : KVState := kvStateOf [[], []]
 
 /-- The seeded key-values. -/
 def kvA : EtcdKv := ⟨mkeyL go!"a", W64 2, W64 2, W64 1, v0 go!"a", W64 0⟩
 def kvB : EtcdKv := ⟨mkeyL go!"b", W64 3, W64 3, W64 1, v0 go!"b", W64 0⟩
 
 /-- After the seeds. -/
-def σs1 : KVState := { kvs := [kvA], rev := 2 }
-def σs2 : KVState := { kvs := [kvA, kvB], rev := 3 }
+def σs1 : KVState := kvOpStep (seedOp go!"a") σb
+def σs2 : KVState := kvOpStep (seedOp go!"b") σs1
 
-theorem seed_step1 : kvOpStep (seedOp go!"a") σb = σs1 := by
-  rfl
+theorem seed_step1 : kvOpStep (seedOp go!"a") σb = σs1 := rfl
 
-theorem seed_step2 : kvOpStep (seedOp go!"b") σs1 = σs2 := by
-  rfl
+theorem seed_step2 : kvOpStep (seedOp go!"b") σs1 = σs2 := rfl
+
+theorem σs1_rev : σs1.rev = 2 := by
+  unfold σs1 seedOp; rw [linkv.kvOpStep_put_rev]; rfl
+
+theorem σs1_kvs : σs1.kvs = [kvA] := by
+  unfold σs1 seedOp; rw [linkv.kvOpStep_put_kvs, σb, kvStateOf_kvs, kvStateOf_rev]; rfl
+
+theorem σs2_rev : σs2.rev = 3 := by
+  unfold σs2 seedOp; rw [linkv.kvOpStep_put_rev, σs1_rev]
+
+theorem σs2_kvs : σs2.kvs = [kvA, kvB] := by
+  unfold σs2 seedOp; rw [linkv.kvOpStep_put_kvs, σs1_kvs, σs1_rev]; rfl
+
+theorem absSt_σs2 : linkv.absSt σs2 = ⟨linkv.absM [kvA, kvB], 3⟩ := by
+  unfold linkv.absSt; rw [σs2_kvs, σs2_rev]
 
 /-- The driver's seeded items (`seedOne`'s). -/
 def itA : item := ⟨go!"a", ⟨go!"a", go!"x", W64 2⟩, false⟩
@@ -76,10 +89,10 @@ variable [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 /-- **The seeded state is the driver's seeded store**, through the store's model. -/
 theorem seed_krel (c : StoreCfg GF DObj) (hc : c.S = driverSpec)
     (hp : c.pfx = go!"/registry/objs") : KRel (c.abs σs2) g0s := by
-  refine ⟨?_, rfl, by rw [abs_rv]; simp [σs2], ?_⟩
+  refine ⟨?_, rfl, by rw [abs_rv]; simp [σs2_rev], ?_⟩
   · rw [g0s_items]; simp only [SortedI, itA, itB, List.map]; decide
   · intro n
-    simp only [StoreCfg.abs, hc, hp]
+    simp only [StoreCfg.abs, hc, hp, absSt_σs2]
     by_cases ha : n = go!"a"
     · subst ha
       exact ⟨rfl, rfl, rfl⟩
@@ -88,12 +101,12 @@ theorem seed_krel (c : StoreCfg GF DObj) (hc : c.S = driverSpec)
       exact ⟨rfl, rfl, rfl⟩
     have ea : ¬ mkeyL go!"a" = mkeyL n := fun h => ha (mkeyL_inj h).symm
     have eb : ¬ mkeyL go!"b" = mkeyL n := fun h => hb (mkeyL_inj h).symm
-    have h1 : linkv.absM σs2.kvs (mkeyL n) = none := by
-      simp [linkv.absM, mvcc.findKey, σs2, kvA, kvB, ea, eb]
+    have h1 : linkv.absM [kvA, kvB] (mkeyL n) = none := by
+      simp [linkv.absM, mvcc.findKey, kvA, kvB, ea, eb]
     have h2 : lookupL g0s.items n = (zItem, false) := by
       rw [g0s_items]
       simp [lookupL, itA, itB, Ne.symm ha, Ne.symm hb]
-    simp only [linkv.absSt, absK, h1, Option.bind_none, h2, ite_self]
+    simp only [absK, h1, Option.bind_none, h2, ite_self]
     trivial
 
 /-- **The seeded state is the store's.** -/
@@ -101,18 +114,18 @@ theorem seed_wf (c : StoreCfg GF DObj) (hc : c.S = driverSpec)
     (hp : c.pfx = go!"/registry/objs") : kvWf c σs2 := by
   have hfind : ∀ k x, linkv.absM σs2.kvs k = some x → x = linkv.absVR kvA ∨ x = linkv.absVR kvB := by
     intro k x hx
-    simp only [linkv.absM, mvcc.findKey, σs2] at hx
+    simp only [linkv.absM, mvcc.findKey, σs2_kvs] at hx
     by_cases e1 : kvA.key = k
     · simp [e1] at hx; exact Or.inl hx.symm
     by_cases e2 : kvB.key = k
     · simp [e1, e2] at hx; exact Or.inr hx.symm
     · simp [e1, e2] at hx
-  refine ⟨by simp only [σs2]; decide, ?_, ?_, by simp [linkv.absSt, σs2]⟩
+  refine ⟨by simp only [σs2_kvs]; decide, ?_, ?_, by simp [linkv.absSt, σs2_kvs, σs2_rev]⟩
   · intro k x _ hx
     rw [hc]
     rcases hfind k x hx with rfl | rfl <;> rfl
   · intro k x hx
-    rcases hfind k x hx with rfl | rfl <;> simp [linkv.absVR, kvA, kvB, linkv.absSt, σs2]
+    rcases hfind k x hx with rfl | rfl <;> simp [linkv.absVR, kvA, kvB, linkv.absSt, σs2_kvs, σs2_rev]
 
 end rel
 
@@ -173,15 +186,13 @@ theorem seedInv_alloc (γk : KVNames) (σ : KVState) (E : CoPset) :
 
 /-- **A seed put's update** (fired at most once): at its firing etcd's state is `Main`'s view
 `σ`; it moves both halves to the put's next state. -/
-theorem seed_au (γs : GName) (γk : KVNames) (op : KVOp) (σ : KVState) (hw : γk.wl.writes op) :
+theorem seed_au (γs : GName) (γk : KVNames) (op : KVOp) (σ : KVState) :
     seedInv γs γk ∗ ghostVar γs (1 : Qp).half σ ⊢
       kvOpAu1 (GF := GF) γk op
         (fun σ' => iprop(ghostVar γs (1 : Qp).half (kvOpStep op σ) ∗ ⌜σ' = σ⌝)) := by
   have Hm := seedN_mask
   iintro ⟨#Hinv, Hs⟩
   unfold kvOpAu1 kvAu1
-  isplitr
-  · ipureintro; exact hw
   iauintro
   unfold atomic_acc
   iunfold seedInv at Hinv
@@ -264,14 +275,15 @@ theorem histAuth_seed :
   iunfold kvSeen
   imodintro
   iintro %v %hv
-  simp only [σs2, List.mem_cons, List.not_mem_nil, _root_.or_false] at hv
+  rw [σs2_kvs] at hv
+  simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at hv
   rcases hv with rfl | rfl
   · iexact Ha
   · iexact Hb
 
 /-- **The instance's invariant at the seeded state**, and the library's initial state. -/
 theorem kInv_seed (γk : KVNames) (c : StoreCfg GF DObj) (hc : c.S = driverSpec)
-    (hp : c.pfx = go!"/registry/objs") (hW : ∀ op, γk.wl.writes op) (E : CoPset) :
+    (hp : c.pfx = go!"/registry/objs") (E : CoPset) :
     etcdKV (GF := GF) γk σs2 ∗ histAuth c.γh σs2 ⊢
       |={E}=> ∃ γ : KNames, kInv γ c g0s γk ∗ kState γ g0s (linkv.pInit (kSpec g0s)) := by
   iintro ⟨Hσ, Hhist⟩
@@ -299,8 +311,6 @@ theorem kInv_seed (γk : KVNames) (c : StoreCfg GF DObj) (hc : c.S = driverSpec)
   iexists ⟨γh, γp, γr⟩
   iunfold kInv
   iframe Hinv
-  isplitr
-  · ipureintro; exact hW
   iunfold kState
   iexists []
   iframe

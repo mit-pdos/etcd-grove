@@ -39,6 +39,19 @@ abbrev auth.authStore.UserAdd.spec : Prop :=
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ authWR st M P f T ∗
       respOk etcdserverpb.AuthUserAddResponse resp err ∗ adminOut M hs (stepOf (userAddF name)) (fun e => e = .noPasswordUser) err }}
 
+/-- **`as.UserAdd(r)` of a request whose password choice cannot fail** (`userAddSure r`: no
+password, or an empty `Password` with a base64-encoded `HashedPassword`, the server's own form):
+as `UserAdd.spec`, without `ErrNoPasswordUser`, so the outcome is the step's alone (`noExtra`; the
+auth plan's E2u, 2026-10-26: the apply thread's mode-`on` step is then determinate). -/
+abbrev auth.authStore.UserAdd.specSure : Prop :=
+  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF)
+    (hs : List AuthState) (Pre Q Post : IProp GF) (r : Loc) (name : GoString),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗ userAddReqIs r name ∗ userAddSure r ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗ authOwn M hs ∗ authWR st M P f T ∗ mvcc.csContract P f Pre Q Post ∗
+      ⌜stepOk M hs (stepOf (userAddF name))⌝ }}
+    (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"UserAdd")) (Val #r))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ authWR st M P f T ∗
+      respOk etcdserverpb.AuthUserAddResponse resp err ∗ adminOut M hs (stepOf (userAddF name)) noExtra err }}
+
 end spec
 
 end EtcdGrove

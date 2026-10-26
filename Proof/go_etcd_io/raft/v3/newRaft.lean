@@ -165,7 +165,7 @@ theorem wp_switchToConfig_follower (H : raft.switchToConfig.spec (GF := GF) (hG 
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
         r.[raft, go!"trk"] ↦ tv ∗
         (∀ tv' prs' pvs', r.[raft, go!"trk"] ↦ tv' -∗
-           ownTracker cfg tv' ⟨s.votes, prs', pvs'⟩ -∗
+           ownTrackerC (CfgM.simple cfg (domSet prs' \ cfg)) tv' ⟨s.votes, prs', pvs'⟩ -∗
            ⌜PrvalsOk { s with progress := prs', prvals := pvs' }⌝ -∗
            ownRaftPhys cfg r id { s with progress := prs', prvals := pvs' }) ∗
         tv.Votes' ↦$ s.votes ∗
@@ -187,14 +187,13 @@ theorem wp_switchToConfig_follower (H : raft.switchToConfig.spec (GF := GF) (hG 
     $$ [$Hpkg $Htrkf Hback $Hvotes $Hcfg]
   · isplitl [Hback]
     · iintro %tv' %prs' %pvs' Hf Ht %Hok
-      icases ownTrackerC_toTracker _ _ _ _ $$ Ht with ⟨Ht, %HL⟩
+      icases ownTrackerC_simple_resimple _ _ _ _ _ _ $$ Ht with ⟨Ht, %HL⟩
       ihave Hp := Hback $$ %tv' %prs' %pvs' Hf Ht %Hok
       ihave Hp := ownRaftPhys_toC' $$ Hp
-      simp only at HL
       rw [HL]
       iapply ownRaftPhysCV_widen _ _ _ _ _ ?_ $$ Hp
-      intro h hr
-      exact GMap.elem_of_union_l _ (h hr)
+      intro h hr hl
+      exact GMap.elem_of_union_l _ (h hr hl)
     · ipureintro; exact Hmi
   inext
   iintro %cs %xs %os %ls %lns %s' ⟨Hphys, Hcs, %Hp, %Hsw⟩
@@ -453,9 +452,7 @@ theorem newRaft.wp_proof
   let s3 : NState := { becomeFollower s2 s2.term (W64 0) with prvals := pvs3 }
   -- `r.trk.VoterNodes()`
   icases ownRaftPhys_tracker_same _ _ _ s3 $$ Hphys with ⟨%tv3, Htrkf, Htrk3, Htrkback⟩
-  ihave Htrk3 := ownTracker_toC _ _ _ $$ Htrk3
   wp_apply wp_ProgressTracker_VoterNodes $$ [$Htrkf $Htrk3] as %nsl %nxs ⟨Htrkf, Htrk3, Hnsl, %Hnxs⟩
-  icases ownTrackerC_toTracker _ _ _ _ $$ Htrk3 with ⟨Htrk3, -⟩
   rw [CfgM.voters_simple] at Hnxs
   ihave Hphys := Htrkback $$ %tv3 Htrkf Htrk3
   -- the log line's `nodesStrs` loop; what it builds is never read

@@ -122,7 +122,11 @@ theorem rnEnvOk_of_cluster (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64
     (x₀ : apply.ApplyKV) (bud : BudgetNames) (γw : RNNames)
     (hraft : γw.node.raft = ρ.raft.raft) (hpre : γw.pre = ρ.raft.pre)
     (hai : uint.Z ρ.raft.ai0 = γw.pre.length) (hai0 : ρ.raft.ai0 = ai₀)
-    (hmode : γw.node.mode = RNMode.static) (hstor : γw.node.stor = memStorIface γw.ms)
+    -- (D43 M3, 2026-10-25) the node's mode, static exactly when raft's names are; in the dynamic
+    -- mode at the server's decoder
+    (hmode : γw.node.mode = RNMode.static ↔ γw.node.raft.reDyn = none)
+    (hdec : ∀ dec c0 h0 h1, γw.node.mode = .dyn dec c0 h0 h1 → dec = srvDec)
+    (hstor : γw.node.stor = memStorIface γw.ms)
     (hbud : γw.node.bud = bud)
     -- (D21 M3, 2026-10-19; until then, D19p, a one-member cluster) raft's no-snapshot mode
     (hns : ρ.raft.raft.reNoSnap = true)
@@ -141,7 +145,7 @@ theorem rnEnvOk_of_cluster (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64
   isplitr
   · ipureintro; exact ⟨hraft.symm, hpre.symm, hai⟩
   isplitr
-  · ipureintro; exact ⟨hmode, hstor, by rw [hraft]; exact hns⟩
+  · ipureintro; exact ⟨hmode, hdec, hstor, by rw [hraft]; exact hns⟩
   isplitr
   · ipureintro; exact hcap
   isplitr
@@ -220,9 +224,9 @@ theorem isServerBuilt_of_gap (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI
   isplitr
   · ipureintro; exact Hbound
   unfold applyBuiltNA applyBuilt
-  icases Happ with ⟨%st₀, %a, %t, %f, Hth, %Hok, Hbe, Hca, Hlg, Hbm, Hbo, Hra, Hao, Hal, Hkr, Hfs⟩
+  icases Happ with ⟨%st₀, %a, %t, %f, Hth, %Hok, Hbe, Hca, Hlg, Hbm, Hbo, Hra, Har, Hao, Hal, Hkr, Hfs⟩
   iexists st₀, a, t, f
-  iframe Hth Hbe Hca Hlg Hbm Hbo Hra Hao Hal Hkr Hfs
+  iframe Hth Hbe Hca Hlg Hbm Hbo Hra Har Hao Hal Hkr Hfs
   isplitr
   · ipureintro; exact Hok
   iexists ua

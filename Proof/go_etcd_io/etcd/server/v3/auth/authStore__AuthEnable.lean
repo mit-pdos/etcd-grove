@@ -4,6 +4,7 @@ Proof of the spec of the same name (the auth plan's S4, 2026-10-24). Lean-first 
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__AuthEnable
+public import Proof.go_etcd_io.etcd.server.v3.auth.LatestTie
 public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__refreshRangePermCache
 public import Spec.go_etcd_io.etcd.server.v3.auth.authStore__setRevision
 public import Spec.go_etcd_io.etcd.server.v3.auth.hasRootRole
@@ -31,14 +32,14 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
-theorem auth.authStore.AuthEnable.wp_proof
+theorem auth.authStore.AuthEnable.wp_tie
     (h_refresh : auth.authStore.refreshRangePermCache.spec (GF := GF) (hG := hG))
     (h_setRevision : auth.authStore.setRevision.spec (GF := GF) (hG := hG))
     (h_hasRootRole : auth.hasRootRole.spec (GF := GF) (hG := hG))
     (h_Info : zap.Logger.Info.spec (GF := GF) (hG := hG)) :
-    auth.authStore.AuthEnable.spec (GF := GF) (hG := hG) := by
-  intro st R M P f T hs Pre Q Post
-  wp_start as ⟨#Hinv, %HisOn, Hown, HWR, Hcs, %Hok⟩
+    auth.authStore.AuthEnable.specT (GF := GF) (hG := hG) := by
+  intro st R M P f T hs Pre Q Post en sc0
+  wp_start as ⟨#Hinv, %HisOn, Hown, HWR, Htpa, Hcs, %Hok⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   icases authErrVar_of_init .rootUserNotExist $$ Hpkg with ⟨%eRUN, #HeRUN⟩
@@ -46,14 +47,16 @@ theorem auth.authStore.AuthEnable.wp_proof
   simp only [AuthErr.var]
   ihave #Hinv' := Hinv
   iunfold authInv at Hinv'
-  icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, %Hlgnn⟩, -, ⟨%tp, #Htp, #Htpok⟩, #Hguard, -⟩
-  iunfold tokenProviderOk at Htpok
+  icases Hinv' with ⟨%Hst, -, ⟨%lg, #Hlg, %Hlgnn⟩, -, ⟨%tp0, -, -⟩, #Hguard, -⟩
+  iunfold tpAdmin at Htpa
+  icases Htpa with ⟨%tp, %Atp, #Htp, #HtpokA, HA⟩
+  ihave #Htpok := HtpokA
+  iunfold tokenProviderOkA at Htpok
   icases Htpok with ⟨%tpi, %Htpi, -, #HEnable, -, -, -⟩
   subst Htpi
-  iunfold authWR at HWR
-  icases HWR with ⟨⟨%be, Hbe, #Hbeok⟩, HT, Hen⟩
-  iunfold enabledHalf at Hen
-  icases Hen with ⟨%en, Hen, #Hev⟩
+  iunfold authWRx at HWR
+  icases HWR with ⟨⟨%be, Hbe, #Hbeok⟩, HT, Hen, #Hev, Hca, #Hcsn⟩
+  iunfold flagAt at Hen
   ihave #Hbeok' := Hbeok
   iunfold authWBackendOk at Hbeok'
   icases Hbeok' with ⟨%bi, %Hbi, #HBatch, #HFC, -⟩
@@ -80,19 +83,24 @@ theorem auth.authStore.AuthEnable.wp_proof
     · inext; iunfold enabledP; iexists true; iframe Hen'; iexact Hev
     (try wp_auto)
     iapply HΦ
+    iexists true, sc0
+
+    isplitl [HA]
+
+    · iunfold tpAdmin; iexists (GoInterface.ok tpi), Atp; iframe HA; iframe #
     isplitl [Hcs]
     · iapply csContract_noWrite $$ Hcs
-    isplitl [Hbe HT Hen]
-    · iunfold authWR; iframe HT; isplitl [Hbe]
-      · iexists (GoInterface.ok bi); iframe Hbe Hbeok
-      · iunfold enabledHalf; iexists true; iframe Hen Hev
+    isplitl [Hbe HT Hen Hca]
+    · iunfold authWRx; iunfold flagAt; iframe HT Hen Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
     iexists true
     iframe Hev
-    iunfold adminOut
+    iunfold adminOutP
     iright
     ihave %Hl := authOwn_exists_last M hs $$ Hown
     obtain ⟨st0, Hl⟩ := Hl
     iexists st0, .same
+    isplitr
+    · ipureintro; exact tieStep_same _ _ _ _
     isplitr
     · ipureintro
       refine ⟨Hl, ?_⟩
@@ -112,7 +120,7 @@ theorem auth.authStore.AuthEnable.wp_proof
   iapply HLock $$ %hs %Pre %Q %Post [$Hcs $HT $Hown]
   inext
   iintro ⟨%st0, HL, Hown, %Hl0⟩
-  ihave %Hpk := authOwn_last_permKeysOk M hs $$ Hown
+  ihave %Hpk := authOwnF_last_permKeysOk M hs $$ Hown
   have Hstep := (Hok false st0 Hl0)
   ihave #HRd' := HRd $$ %Post
   iunfold authReaderOk at HRd'
@@ -140,17 +148,22 @@ theorem auth.authStore.AuthEnable.wp_proof
     · inext; iunfold enabledP; iexists false; iframe Hen'; iexact Hev
     (try wp_auto)
     iapply HΦ
+    iexists false, sc0
+
+    isplitl [HA]
+
+    · iunfold tpAdmin; iexists (GoInterface.ok tpi), Atp; iframe HA; iframe #
     isplitl [HPost]
     · ileft; iexact HPost
-    isplitl [Hbe HT Hen]
-    · iunfold authWR; iframe HT; isplitl [Hbe]
-      · iexists (GoInterface.ok bi); iframe Hbe Hbeok
-      · iunfold enabledHalf; iexists false; iframe Hen Hev
+    isplitl [Hbe HT Hen Hca]
+    · iunfold authWRx; iunfold flagAt; iframe HT Hen Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
     iexists false
     iframe Hev
-    iunfold adminOut
+    iunfold adminOutP
     iright
     iexists st0, (.err .rootUserNotExist)
+    isplitr
+    · ipureintro; exact tieStep_same _ _ _ _
     isplitr
     · ipureintro
       refine ⟨Hl0, ?_⟩
@@ -182,17 +195,22 @@ theorem auth.authStore.AuthEnable.wp_proof
     · inext; iunfold enabledP; iexists false; iframe Hen'; iexact Hev
     (try wp_auto)
     iapply HΦ
+    iexists false, sc0
+
+    isplitl [HA]
+
+    · iunfold tpAdmin; iexists (GoInterface.ok tpi), Atp; iframe HA; iframe #
     isplitl [HPost]
     · ileft; iexact HPost
-    isplitl [Hbe HT Hen]
-    · iunfold authWR; iframe HT; isplitl [Hbe]
-      · iexists (GoInterface.ok bi); iframe Hbe Hbeok
-      · iunfold enabledHalf; iexists false; iframe Hen Hev
+    isplitl [Hbe HT Hen Hca]
+    · iunfold authWRx; iunfold flagAt; iframe HT Hen Hev Hca Hcsn; iexists (GoInterface.ok bi); iframe Hbe Hbeok
     iexists false
     iframe Hev
-    iunfold adminOut
+    iunfold adminOutP
     iright
     iexists st0, (.err .rootRoleNotExist)
+    isplitr
+    · ipureintro; exact tieStep_same _ _ _ _
     isplitr
     · ipureintro
       refine ⟨Hl0, ?_⟩
@@ -212,28 +230,30 @@ theorem auth.authStore.AuthEnable.wp_proof
   iintro HL
   (try wp_auto)
   wp_bind (App (Val #(methods tpi.ty go!"enable" tpi.v)) (Val #()))
-  iapply HEnable $$ [] [-]
-  · itrivial
+  iapply HEnable $$ [HA] [-]
+  · iexact HA
   inext
-  iintro -
+  iintro HA
   (try wp_auto)
   -- the new state appended (the revision unchanged), and recorded
   have hoff : M = .off → ({ st0 with enabled := true } : AuthState).enabled = false := by
     intro h; subst h; cases HisOn
-  imod (authOwn_append_same st R M hs st0 { st0 with enabled := true } Hl0 rfl
+  imod (authOwnF_append_same st R M hs st0 { st0 with enabled := true } Hl0 rfl
     (fun h1 h2 => permKeysOk_enabled _ _ (Hpk st0 Hl0 h1 h2)) hoff) $$ Hinv Hown with Hown
   have Hl1 : histLast M (hs ++ [{ st0 with enabled := true }]) { st0 with enabled := true } := by
     cases M with
     | on γa => simp [histLast]
     | off => cases HisOn
     | any => trivial
-  imod (authSnap_of_last M _ _ Hl1) $$ Hown with ⟨Hown, #Hsnap⟩
+  imod (authSnapF_of_last M _ _ Hl1) $$ Hown with ⟨Hown, #Hsnap⟩
   ihave #Hev2 := enabledVerdict_of_snap M _ $$ Hsnap
   wp_bind (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"refreshRangePermCache"))
     (Val #(GoInterface.ok ti)))
   iapply (h_refresh st R M ti (fun x => Lk x Post) ({ st0 with enabled := true } : AuthState))
-    $$ [HL]
+    $$ [HL Hca]
   · iframe Hpkg Hinv
+    isplitl [Hca]
+    · iapply (cacheHalf_of_at _ _ _) $$ Hca Hcsn
     isplitr
     · iapply HRd
     isplitl [HL]
@@ -242,7 +262,7 @@ theorem auth.authStore.AuthEnable.wp_proof
     iframe Hsnap
     ipureintro; exact Hfit
   inext
-  iintro HL
+  iintro ⟨HL, Hca⟩
   (try wp_auto)
   wp_bind (App (Val #(methods ti.ty go!"UnsafeReadAuthRevision" ti.v)) (Val #()))
   iapply HRR $$ %({ st0 with enabled := true } : AuthState) HL
@@ -278,17 +298,22 @@ theorem auth.authStore.AuthEnable.wp_proof
   · inext; iunfold enabledP; iexists true; iframe Hen'; iexact Hev2
   (try wp_auto)
   iapply HΦ
+  iexists true, ({ st0 with enabled := true } : AuthState)
+
+  isplitl [HA]
+
+  · iunfold tpAdmin; iexists (GoInterface.ok tpi), Atp; iframe HA; iframe #
   isplitl [HPost]
   · ileft; iexact HPost
-  isplitl [Hbe HT Hen]
-  · iunfold authWR; iframe HT; isplitl [Hbe]
-    · iexists (GoInterface.ok bi); iframe Hbe Hbeok
-    · iunfold enabledHalf; iexists true; iframe Hen Hev2
+  isplitl [Hbe HT Hen Hca]
+  · iunfold authWRx; iunfold flagAt; iframe HT Hen Hev2 Hca Hsnap; iexists (GoInterface.ok bi); iframe Hbe Hbeok
   iexists false
   iframe Hev
-  iunfold adminOut
+  iunfold adminOutP
   iright
   iexists st0, (.next { st0 with enabled := true })
+  isplitr
+  · ipureintro; exact tieStep_set M hs _ _ _ true _ _ Hl1 rfl (fun _ => rfl)
   isplitr
   · ipureintro; exact ⟨Hl0, hstep.symm⟩
   simp only [outRes]
@@ -296,6 +321,15 @@ theorem auth.authStore.AuthEnable.wp_proof
   · iExactEq Hown
     all_goals rfl
   · ipureintro; trivial
+
+
+theorem auth.authStore.AuthEnable.wp_proof
+    (h_refresh : auth.authStore.refreshRangePermCache.spec (GF := GF) (hG := hG))
+    (h_setRevision : auth.authStore.setRevision.spec (GF := GF) (hG := hG))
+    (h_hasRootRole : auth.hasRootRole.spec (GF := GF) (hG := hG))
+    (h_Info : zap.Logger.Info.spec (GF := GF) (hG := hG)) :
+    auth.authStore.AuthEnable.spec (GF := GF) (hG := hG) :=
+  auth.authStore.AuthEnable.spec_of_T (auth.authStore.AuthEnable.wp_tie h_refresh h_setRevision h_hasRootRole h_Info)
 
 end proof
 

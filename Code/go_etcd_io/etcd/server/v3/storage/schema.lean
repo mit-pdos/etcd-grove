@@ -1580,6 +1580,22 @@ noncomputable def unsafeUpdateConsistentIndex.impl [FfiSyntax] [GoGlobalContext]
   (App (Val doExecute)
   (Val #()))))))))))))))
 
+/-- NewMembershipBackend returns a new membership backend
+    Refer to https://github.com/etcd-io/etcd/pull/19343#discussion_r1958056718
+    revive:disable-next-line:unexported-return
+
+    go: membership.go:43:6 -/
+noncomputable def NewMembershipBackend.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "lg"
+  (Lam "be"
+  (App (Val exceptionDo)
+  (Let "be" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty))) (Var "be"))
+  (Let "lg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoAlloc membershipBackend.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty))) (Var "be"))
+  (App (Val (GoInstruction (CompositeLiteral membershipBackend.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"lg")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"be")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend.ty (Var "$v1")))])))))))))))
+
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.storage.schema where
   pkgImportedPkgs := [pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.server.v3.storage.backend, pkg_id.google_golang_org.protobuf.proto, pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.bytes, pkg_id.encoding.binary, pkg_id.go_etcd_io.etcd.server.v3.auth, pkg_id.go_etcd_io.etcd.api.v3.authpb, pkg_id.go_etcd_io.etcd.client.pkg.v3.verify]
 
@@ -2350,6 +2366,7 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   UnsafeUpdateConsistentIndexForce_unfold : FuncUnfold UnsafeUpdateConsistentIndexForce [] UnsafeUpdateConsistentIndexForce.impl
   UnsafeUpdateConsistentIndex_unfold : FuncUnfold UnsafeUpdateConsistentIndex [] UnsafeUpdateConsistentIndex.impl
   unsafeUpdateConsistentIndex_unfold : FuncUnfold unsafeUpdateConsistentIndex [] unsafeUpdateConsistentIndex.impl
+  NewMembershipBackend_unfold : FuncUnfold NewMembershipBackend [] NewMembershipBackend.impl
   import_zap_Assumption : _root_.Perennial.go_uber_org.zap.Assumptions
   import_backend_Assumption : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Assumptions
   import_proto_Assumption : _root_.Perennial.google_golang_org.protobuf.proto.Assumptions
@@ -2390,6 +2407,7 @@ attribute [instance] Assumptions.action_instance
   Assumptions.UnsafeUpdateConsistentIndexForce_unfold
   Assumptions.UnsafeUpdateConsistentIndex_unfold
   Assumptions.unsafeUpdateConsistentIndex_unfold
+  Assumptions.NewMembershipBackend_unfold
   Assumptions.import_zap_Assumption
   Assumptions.import_backend_Assumption
   Assumptions.import_proto_Assumption

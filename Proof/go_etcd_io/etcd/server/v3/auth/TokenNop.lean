@@ -38,7 +38,7 @@ theorem auth.tokenNop_ok (p : Loc) (M : AuthMode) :
   icases authErrVar_of_init .authFailed $$ Hpkg with ⟨%eAF, #HeAF⟩
   simp only [AuthErr.var]
   iunfold tokenProviderOk
-  iexists _
+  iexists (iprop(True) : IProp GF), _
   isplitr
   · ipureintro; rfl
   isplitr

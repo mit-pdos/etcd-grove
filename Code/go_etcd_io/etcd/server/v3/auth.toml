@@ -59,9 +59,22 @@ translate = ["!*", "AuthInfo",
   # (the auth plan's S5c, 2026-10-25, Perennial 24bef275e: `strconv.ParseUint`, `time.Ticker`,
   # `Time.After`) the token check and the TTL keeper's goroutine and its stop
   "tokenSimple.isValidSimpleToken", "simpleTokenTTLKeeper.run", "simpleTokenTTLKeeper.stop",
-  "simpleTokenTTLResolution"]
+  "simpleTokenTTLResolution",
+  # (the auth plan's E2a, 2026-10-25) the constructor, over its backend's and token provider's
+  # contracts, and the metrics reporter it installs (the package's `reportCurrentAuthRevMu` and
+  # `reportCurrentAuthRev`)
+  "NewAuthStore", "authStore.setupMetricsReporter", "reportCurrentAuthRevMu",
+  "reportCurrentAuthRev",
+  # (the auth plan's E2g, 2026-10-25) the token provider's constructor: the option string's
+  # decomposition, the no-op provider's constructor, the token types and the error; names only:
+  # the JWT provider's constructor (its options and keys: `crypto`, `jwt`, the trust boundary)
+  "NewTokenProvider", "decomposeOpts", "newTokenProviderNop", "tokenTypeSimple", "tokenTypeJWT",
+  "ErrInvalidAuthOpts",
+  # (the auth plan's E2j, 2026-10-26) the password check over the locked read transaction; bcrypt's
+  # `CompareHashAndPassword` stays names only (the trust boundary, D-AU6)
+  "authStore.CheckPassword"]
 imports = ["!*", "bytes", "context", "errors", "fmt", "sort", "strconv", "strings", "time", "sync", "sync/atomic",
-  "go.uber.org/zap", "google.golang.org/grpc/metadata",
+  "go.uber.org/zap", "google.golang.org/grpc/metadata", "golang.org/x/crypto/bcrypt",
   "go.etcd.io/etcd/api/v3/etcdserverpb", "go.etcd.io/etcd/api/v3/authpb",
   "go.etcd.io/etcd/api/v3/v3rpc/rpctypes", "go.etcd.io/etcd/pkg/v3/adt"]
 

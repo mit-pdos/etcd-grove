@@ -46,11 +46,11 @@ theorem auth.authStore.setRevision.wp_proof :
   iframe Hr
   iintro Hr
   -- the authority after the optional append, the atomic at the latest revision
-  ihave Hg : iprop(|==> (authOwn M (hs ++ opt) ∗ revCur M rev ∗ revisionVerdict M rev)) $$ [Hown Hc]
+  ihave Hg : iprop(|==> (authOwnF M (hs ++ opt) ∗ revCur M rev ∗ revisionVerdict M rev)) $$ [Hown Hc]
   · cases opt with
     | nil =>
       rw [List.append_nil] at Hlast ⊢
-      iapply (authOwn_revCur_keep M hs stl r rev Hlast (fun _ _ => Hrev)) $$ Hown Hc
+      iapply (authOwnF_revCur_keep M hs stl r rev Hlast (fun _ _ => Hrev)) $$ Hown Hc
     | cons x xs =>
       have hx : xs = [] := by
         cases xs with
@@ -66,7 +66,7 @@ theorem auth.authStore.setRevision.wp_proof :
         | off => cases h1
         | any => exact absurd rfl h2
       obtain ⟨hk, hoff⟩ := Hopt x (List.mem_singleton.2 rfl)
-      iapply (authOwn_revCur_append M hs x r rev hk hoff hxr) $$ Hown Hc
+      iapply (authOwnF_revCur_append M hs x r rev hk hoff hxr) $$ Hown Hc
   imod Hg with ⟨Hown, Hc, #Hv⟩
   imod Hmask with -
   imod Hclose $$ [Hr Hc] with -

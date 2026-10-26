@@ -106,7 +106,9 @@ def isServerApplyAll (s : Loc) (γr : ReadNames) : IProp GF :=
       ⌜receiptBound GF ≤ uint.Z scu + 1⌝) ∗
     -- (D22 S-h, 2026-10-20) `s.inflightSnapshots`, which `compactRaftLog` reads and
     -- `sendMergedSnap` writes
-    srvInflight s)
+    srvInflight s ∗
+    -- (2026-10-26) the logger, which `compactRaftLog` logs with
+    (∃ l : Loc, srvLgAddr s ↦□ l ∗ ⌜l ≠ null⌝))
 
 set_option synthInstance.maxSize 1024 in
 set_option synthInstance.maxHeartbeats 400000 in
@@ -160,10 +162,6 @@ theorem beSucc_trans {γ γ' γ'' : ApplyNames} {E E' E'' : apply.AEnv GF}
 theorem beSucc_γbe {γ γ' : ApplyNames} {E E' : apply.AEnv GF} (h : beSucc γ E γ' E') :
     E'.γbe = E.γbe := by
   obtain ⟨-, p, P, f, c, RO, RW, rfl⟩ := h; rfl
-
-theorem beSucc_ci {γ γ' : ApplyNames} {E E' : apply.AEnv GF} (h : beSucc γ E γ' E') :
-    γ'.ci = γ.ci := by
-  rw [h.1]
 
 /-- The batch's claims do not depend on the environment's backend. -/
 theorem batchWaitOk_beSucc {γ γ' : ApplyNames} {E E' : apply.AEnv GF} (h : beSucc γ E γ' E')

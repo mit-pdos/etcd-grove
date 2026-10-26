@@ -1,6 +1,6 @@
 ---
 upstream: known
-checked: 2026-10-16
+checked: 2026-10-26
 links:
   - etcd-io/etcd#18055 issue open: this bug (robustness test; root cause by ahrtr, "lock the snapshot file until it has been applied")
   - etcd-io/etcd#20133 issue closed: duplicate (Antithesis, main 3be967f, default configuration)

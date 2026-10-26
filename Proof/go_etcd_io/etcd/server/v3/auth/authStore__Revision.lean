@@ -52,7 +52,7 @@ theorem auth.authStore.Revision.wp_proof :
     | none => iframe Hown Hc; ipureintro; intro _ _ h; cases h
     | some hs =>
       iunfold authOwnOpt at Hown
-      ihave H := revCur_agree M hs r $$ Hown Hc
+      ihave H := revCur_agree_own M hs r $$ Hown Hc
       icases H with ⟨Hown, Hc, %Hp⟩
       iunfold authOwnOpt
       iframe Hown Hc

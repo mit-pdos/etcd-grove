@@ -57,7 +57,7 @@ theorem kvOpStep_putKey (key val : GoString) (σ : KVState) (hs : σ.kvs.Pairwis
       (findKey key (kvOpStep (.put (putKeyOp key val)) σ).kvs).map EtcdKv.value = some val := by
   have hk : (kvOpStep (.put (putKeyOp key val)) σ).kvs =
       putKv (W64 ((σ.rev + 1 : Nat) : Int)) key val (W64 0) σ.kvs := by
-    simp [kvOpStep, KVState.commit, KVState.leaseMissing, txn.needsPrev, applyChanges, applyChange, txn.putChangeOf,
+    simp [kvOpStep, KVState.commit_kvs, KVState.leaseMissing, txn.needsPrev, applyChanges, applyChange, txn.putChangeOf,
       txn.putValOf, txn.putLeaseOf, putKeyOp, txn.putOpOf]
   rw [hk]
   refine ⟨putKv_sorted hs _ key val _, ?_⟩
@@ -84,10 +84,8 @@ def putGetOk (key val : GoString) (σ : KVState) (n : Nat) : Prop :=
 /-- **The client's invariant for a put of `key ↦ val` and gets of `key`** (see the file header):
 `etcdKV` and the put's flag at `γf`. -/
 def putGetInv (γ : ReadNames) (γf : GName) (key val : GoString) : IProp GF :=
-  -- (D23, 2026-10-20) the server's workload lets the client deposit the put
-  iprop(⌜γ.kv.wl.writes (.put (putKeyOp key val))⌝ ∗
-    inv kvClientN iprop(∃ (σ : KVState) (n : Nat), etcdKV γ.kv σ ∗ monoNatAuthOwn γf 1 n ∗
-      ⌜putGetOk key val σ n⌝))
+  inv kvClientN iprop(∃ (σ : KVState) (n : Nat), etcdKV γ.kv σ ∗ monoNatAuthOwn γf 1 n ∗
+    ⌜putGetOk key val σ n⌝)
 
 instance putGetInv_persistent (γ : ReadNames) (γf : GName) (key val : GoString) :
     Persistent (putGetInv (GF := GF) γ γf key val) := by
@@ -102,9 +100,6 @@ theorem putAu_of_putGetInv (γ : ReadNames) (γf : GName) (key val : GoString) :
   iintro #Hinv
   iunfold kvOpAu
   iunfold putGetInv at Hinv
-  icases Hinv with ⟨%HW, #Hinv⟩
-  isplitr
-  · ipureintro; exact HW
   iunfold kvAu
   iintro !>
   iauintro
@@ -149,7 +144,6 @@ theorem getAu_of_putGetInv (γ : ReadNames) (γf : GName) (key val : GoString) :
   iauintro
   unfold atomic_acc
   iunfold putGetInv at Hinv
-  icases Hinv with ⟨-, #Hinv⟩
   iinv Hinv with >Hi Hclose
   icases Hi with ⟨%σ, %n, Hσ, Hmn, %Hok⟩
   ihave %Hv := monoNatLbOwn_valid γf 1 n 1 $$ Hmn Hlb

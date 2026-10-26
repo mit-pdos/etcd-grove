@@ -35,7 +35,7 @@ theorem rafthttp.createPostRequest.wp_proof
     (hIDStringPtr : types.ID.String_ptr.spec (GF := GF) (hG := hG))
     (hSetPeer : rafthttp.setPeerURLsHeader.spec (GF := GF) (hG := hG)) :
     rafthttp.createPostRequest.spec (GF := GF) (hG := hG) := by
-  intro lg u path body bs ct urls uvs fr cid Hlg Hu
+  intro lg u path body K ct urls uvs fr cid Hlg Hu
   wp_start as ⟨Hbody, #Hurls⟩
   obtain ⟨hs1, hs2, hs3, hs4, hs5, hs6, hs7, hs8, hs9, hhost⟩ := Hu
   wp_auto
@@ -43,7 +43,8 @@ theorem rafthttp.createPostRequest.wp_proof
       hs9) $$ [uu] as uu
   · iexact uu
   (try wp_auto)
-  wp_apply (hNewRequest go!"POST" _ body bs u.Host' path rfl hhost (Or.inl rfl)) $$ [Hbody] as %req Hreq
+  wp_apply (hNewRequest go!"POST" _ body K u.Host' path rfl hhost (Or.inl rfl)) $$ [Hbody]
+    as %req ⟨Hreq, Hstr⟩
   · iexact Hbody
   (try wp_auto)
   -- the headers
@@ -81,7 +82,7 @@ theorem rafthttp.createPostRequest.wp_proof
   · iframe; iframe #
   (try wp_auto)
   -- the peer URLs' header, the others kept
-  ihave Hreq : http.reqOwn req ⟨go!"POST", u.Host', path, _, bs⟩ $$ [Hhm Hrest]
+  ihave Hreq : http.reqOwn req ⟨go!"POST", u.Host', path, _, K.bytes⟩ $$ [Hhm Hrest]
   · iunfold http.reqOwn
     iexists hm
     iframe; iframe #
@@ -93,7 +94,7 @@ theorem rafthttp.createPostRequest.wp_proof
   (try wp_auto)
   iapply HΦ
   iexists hs
-  iframe Hreq
+  iframe Hreq Hstr
   ipureintro
   rw [Hhs _ (by decide)]
   simp only

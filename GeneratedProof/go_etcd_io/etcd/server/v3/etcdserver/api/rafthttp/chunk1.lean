@@ -757,6 +757,80 @@ noncomputable instance remote_access_store_pipeline (l : Loc) (v : go_etcd_io.et
 end def_
 end remote
 
+namespace responseAndError
+section def_
+
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
+variable [sem : go.Semantics]
+variable [package_sem' : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Assumptions]
+
+noncomputable instance responseAndError_typed_pointsto :
+    TypedPointsto (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.responseAndError where
+  typedPointstoDef l v dq := iprop(
+    "resp" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.responseAndError go!"resp" l) v.resp' dq ∗
+    "body" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.responseAndError go!"body" l) v.body' dq ∗
+    "err" ∷ typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.responseAndError go!"err" l) v.err' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
+
+noncomputable instance responseAndError_into_val_typed :
+    IntoValTypedUnderlying (GF := GF) go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.responseAndError go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.responseAndError.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance responseAndError_access_load_resp (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.responseAndError) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.responseAndError go!"resp" l) v.resp' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.responseAndError go!"resp" l) v.resp' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance responseAndError_access_store_resp (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.responseAndError) (resp' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.responseAndError go!"resp" l) v.resp' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.responseAndError go!"resp" l) resp' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with resp' := resp' } : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.responseAndError) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance responseAndError_access_load_body (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.responseAndError) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.responseAndError go!"body" l) v.body' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.responseAndError go!"body" l) v.body' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance responseAndError_access_store_body (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.responseAndError) (body' : GoSlice) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.responseAndError go!"body" l) v.body' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.responseAndError go!"body" l) body' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with body' := body' } : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.responseAndError) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance responseAndError_access_load_err (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.responseAndError) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.responseAndError go!"err" l) v.err' dq)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.responseAndError go!"err" l) v.err' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance responseAndError_access_store_err (l : Loc) (v : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.responseAndError) (err' : GoError) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.responseAndError go!"err" l) v.err' (DFrac.own 1))
+      (typedPointsto (structFieldRef go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.responseAndError go!"err" l) err' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with err' := err' } : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.responseAndError) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+end def_
+end responseAndError
+
 namespace urlPicker
 section def_
 

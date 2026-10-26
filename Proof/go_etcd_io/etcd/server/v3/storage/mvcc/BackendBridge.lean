@@ -116,18 +116,18 @@ the backend open (given back at its `RUnlock`). -/
 def bkRT (γ : BNames) (P : BParams) (b : Loc) (qo : Qp) : IProp GF :=
   iprop(rdTok γ P b ∗ bOpen γ qo)
 
-/-- A reader's token (the contract's: some share of the backend open; `kbRT` of a real
-instance). -/
+/-- A reader's token (the contract's: the reader's share `rdOpen` of the backend open; `kbRT` of a
+real instance). (D22 receiver epochs, S8d, W7, 2026-10-25: a fixed share, until then some share, so
+that every reader's token and the constructors' half reassemble the whole open token for the old
+backend's `Close`, `bOpen_one_shares`.) -/
 def bkRTx (γ : BNames) (P : BParams) (b : Loc) : IProp GF :=
-  iprop(rdTok γ P b ∗ ∃ q : Qp, bOpen γ q)
+  iprop(rdTok γ P b ∗ bOpen γ rdOpen)
 
-theorem bkRT_x (γ : BNames) (P : BParams) (b : Loc) (qo : Qp) :
-    bkRT (GF := GF) γ P b qo ⊢ bkRTx γ P b := by
+theorem bkRT_x (γ : BNames) (P : BParams) (b : Loc) :
+    bkRT (GF := GF) γ P b rdOpen ⊢ bkRTx γ P b := by
   unfold bkRT bkRTx
   iintro ⟨H1, H2⟩
-  iframe H1
-  iexists qo
-  iexact H2
+  iframe H1 H2
 
 /-- A session holding the puts `l` in the `Key` bucket: no delete pending, the write buffer's
 `Key` bucket the puts, one more pending operation a put at most (from the free lock's), at most
@@ -1202,12 +1202,12 @@ theorem crt_locked (hRU : backend.concurrentReadTx.RUnlock.spec (GF := GF) (hG :
     (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
     (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
     {P : BParams} (hP : bridgeParams P) (γ : BNames) (W Pk : IProp GF) (b crt rtx : Loc)
-    (rv : RView) (qo : Qp) (m : Bucket) (hv : keyView (vData P rv) m) :
+    (rv : RView) (m : Bucket) (hv : keyView (vData P rv) m) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ⊢
       keyReadLocked (bkRTx γ P b) false
         ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.concurrentReadTx.ty, #crt⟩
-        m (rdB rtx) (crtTok γ P b crt rtx rv qo) := by
+        m (rdB rtx) (crtTok γ P b crt rtx rv rdOpen) := by
   iintro ⟨#Hpkg, #Hsch⟩
   iunfold keyReadLocked
   simp only [Bool.false_eq_true, ↓reduceIte]
@@ -1217,13 +1217,13 @@ theorem crt_locked (hRU : backend.concurrentReadTx.RUnlock.spec (GF := GF) (hG :
     icases Ht with ⟨Hsnap, Hback, Ho⟩
     wp_apply (hRU γ P W Pk b crt rtx rv) $$ [$Hsnap] as Hcr
     iapply HΦ
-    iapply bkRT_x γ P b qo
+    iapply bkRT_x γ P b
     iunfold bkRT
     ihave Hrd := Hback $$ Hcr
     iframe Hrd Ho
   isplitr
   · iintro !>
-    iapply crt_keyRange hUR hID hName hSafe hP γ W Pk b crt rtx rv qo m hv $$ [$Hpkg $Hsch]
+    iapply crt_keyRange hUR hID hName hSafe hP γ W Pk b crt rtx rv rdOpen m hv $$ [$Hpkg $Hsch]
   isplitr
   · itrivial
   iunfold rdCap
@@ -1245,14 +1245,14 @@ theorem rt_locked (hRU : backend.readTx.RUnlock.spec (GF := GF) (hG := hG))
     (hName : schema.bucket.Name.spec (GF := GF) (hG := hG))
     (hSafe : schema.bucket.IsSafeRangeBucket.spec (GF := GF) (hG := hG))
     {P : BParams} (hP : bridgeParams P) (γ : BNames) (W Pk : IProp GF) (b rt rtx : Loc)
-    (rv : RView) (qo : Qp) (m : Bucket) (hv : keyView (vData P rv) m) (cl : Bool := false)
+    (rv : RView) (m : Bucket) (hv : keyView (vData P rv) m) (cl : Bool := false)
     (hcl : cl = true → rbClean P rv.2 := by simp) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.backend ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.schema ∗
       isBackend γ P W Pk b ∗ bF go!"readTx" b ↦□ rt ∗ keySized γ P b ⊢
       keyReadLocked (bkRTx γ P b) true
         ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.readTx.ty, #rt⟩
-        m (rdB rtx) (rtTok γ P b rtx rv qo) cl := by
+        m (rdB rtx) (rtTok γ P b rtx rv rdOpen) cl := by
   iintro ⟨#Hpkg, #Hsch, #Hb, #Hrt, #Hsafe⟩
   iunfold keyReadLocked
   simp only [↓reduceIte]
@@ -1262,20 +1262,20 @@ theorem rt_locked (hRU : backend.readTx.RUnlock.spec (GF := GF) (hG := hG))
     icases Ht with ⟨Hh, Ho⟩
     wp_apply (hRU γ P W Pk b rt rtx rv) $$ [$Hb $Hrt $Hh] as Hrd
     iapply HΦ
-    iapply bkRT_x γ P b qo
+    iapply bkRT_x γ P b
     iunfold bkRT
     iframe Hrd Ho
   isplitr
   · iintro !>
-    iapply rt_keyRange hUR hID hName hSafe hP γ W Pk b rt rtx rv qo m hv $$ [$Hpkg $Hsch $Hb $Hrt]
+    iapply rt_keyRange hUR hID hName hSafe hP γ W Pk b rt rtx rv rdOpen m hv $$ [$Hpkg $Hsch $Hb $Hrt]
   isplitr
   · isplitr
     · iintro !>
-      iapply rt_rangeRead hUR hID hName hSafe hP γ W Pk b rt rtx rv qo m hv
+      iapply rt_rangeRead hUR hID hName hSafe hP γ W Pk b rt rtx rv rdOpen m hv
         $$ [$Hpkg $Hsch $Hb $Hrt $Hsafe]
     isplitr
     · iintro !>
-      iapply rt_rangeLim hUR hID hName hSafe hP γ W Pk b rt rtx rv qo m hv cl hcl
+      iapply rt_rangeLim hUR hID hName hSafe hP γ W Pk b rt rtx rv rdOpen m hv cl hcl
         $$ [$Hpkg $Hsch $Hb $Hrt $Hsafe]
     iintro !>
     iunfold rdSplit
@@ -1287,14 +1287,14 @@ theorem rt_locked (hRU : backend.readTx.RUnlock.spec (GF := GF) (hG := hG))
     iunfold keySized at Hsafe
     icases Hsafe $$ %rtx %rv Hh with ⟨Hh, %Hsz⟩
     have Hks := keySafe_of hP Hsf Hsz
-    icases rtHeld_lendQ γ P b rtx rv qo $$ [$Hh $Ho] with ⟨Hh, Ho, Hl⟩
-    iexists iprop(rtHeldF γ P b rtx rv sync.rfrac.half.half ∗ bOpen γ qo),
+    icases rtHeld_lendQ γ P b rtx rv rdOpen $$ [$Hh $Ho] with ⟨Hh, Ho, Hl⟩
+    iexists iprop(rtHeldF γ P b rtx rv sync.rfrac.half.half ∗ bOpen γ rdOpen),
       iprop(txLive rtx sync.rfrac.half.half)
     iframe Hh Ho Hl
     isplitr
     · iunfold rdCap
       iintro !> %s %v #HRd ⟨Hh, Ho⟩
-      icases rtHeldF_read γ P b rtx rv _ qo s v $$ [$Hh $Ho $HRd] with ⟨%dq, Hs, Hcl⟩
+      icases rtHeldF_read γ P b rtx rv _ rdOpen s v $$ [$Hh $Ho $HRd] with ⟨%dq, Hs, Hcl⟩
       iexists dq
       iframe Hs
       iintro Hs
@@ -1314,7 +1314,7 @@ theorem rt_locked (hRU : backend.readTx.RUnlock.spec (GF := GF) (hG := hG))
       iexact Hback
     isplitr
     · iintro !>
-      iapply rt_rangeLimF hUR hID hName hSafe hP γ W Pk b rt rtx rv _ qo m hv cl hcl Hwf Hks
+      iapply rt_rangeLimF hUR hID hName hSafe hP γ W Pk b rt rtx rv _ rdOpen m hv cl hcl Hwf Hks
         $$ [$Hpkg $Hsch $Hb $Hrt]
     iintro ⟨Hh, Ho⟩ Hl
     iunfold rtTok
@@ -1324,7 +1324,7 @@ theorem rt_locked (hRU : backend.readTx.RUnlock.spec (GF := GF) (hG := hG))
   iintro !> %s %v #HRd Ht
   iunfold rtTok at Ht
   icases Ht with ⟨Hh, Ho⟩
-  icases rtHeld_read γ P b rtx rv qo s v $$ [$Hh $Ho $HRd] with ⟨%dq, Hs, Hcl⟩
+  icases rtHeld_read γ P b rtx rv rdOpen s v $$ [$Hh $Ho $HRd] with ⟨%dq, Hs, Hcl⟩
   iexists dq
   iframe Hs
   iintro Hs
@@ -1355,8 +1355,8 @@ theorem bridge_crt (hCRT : backend.backend.ConcurrentReadTx.spec (GF := GF) (hG 
   iunfold bkView at Hv
   icases Hv with ⟨%vd, Hv, %Hvd⟩
   iunfold bkRTx at Hrt
-  icases Hrt with ⟨Hrd, %qo, Ho⟩
-  wp_apply (hCRT γ P W Pk b q qo vd) $$ [$Hb $Hrd $Hv $Ho]
+  icases Hrt with ⟨Hrd, Ho⟩
+  wp_apply (hCRT γ P W Pk b q rdOpen vd) $$ [$Hb $Hrd $Hv $Ho]
     as %crt %rtx %rv ⟨Hsnap, %Hrv, Hback, Hv, Ho⟩
   subst Hrv
   iapply HΦ
@@ -1365,7 +1365,7 @@ theorem bridge_crt (hCRT : backend.backend.ConcurrentReadTx.spec (GF := GF) (hG 
     iexists (vData P rv)
     iframe Hv
     ipureintro; exact Hvd
-  iexists (crtTok γ P b crt rtx rv qo)
+  iexists (crtTok γ P b crt rtx rv rdOpen)
   isplitl [Hsnap Hback Ho]
   · iunfold crtTok; iframe
   iunfold keyReadSnap
@@ -1373,10 +1373,10 @@ theorem bridge_crt (hCRT : backend.backend.ConcurrentReadTx.spec (GF := GF) (hG 
   wp_apply (hRL crt)
   iapply HΦ'
   iframe Hv'
-  iexists m, (rdB rtx), (crtTok γ P b crt rtx rv qo)
+  iexists m, (rdB rtx), (crtTok γ P b crt rtx rv rdOpen)
   iframe HL
   isplitr
-  · iapply crt_locked hRU hUR hID hName hSafe hP γ W Pk b crt rtx rv qo m Hvd $$ [$Hpkg $Hsch]
+  · iapply crt_locked hRU hUR hID hName hSafe hP γ W Pk b crt rtx rv m Hvd $$ [$Hpkg $Hsch]
   iapply snapThin_refl
 
 /-- **`ReadTx()`** as mvcc's contract states it: the shared read transaction, whose `RLock`
@@ -1408,8 +1408,8 @@ theorem bridge_rt (hRT : backend.backend.ReadTx.spec (GF := GF) (hG := hG))
   iunfold keyReadSnap
   iintro !> %q' %Φ' !> ⟨HL, Hv'⟩ HΦ'
   iunfold bkRTx at HL
-  icases HL with ⟨Hrd, %qo, Ho⟩
-  wp_apply (hRL γ P W Pk b rt qo) $$ [$Hb $Hrtf $Hrd $Ho] as ⟨%rtx, %rv, Hh, Ho⟩
+  icases HL with ⟨Hrd, Ho⟩
+  wp_apply (hRL γ P W Pk b rt rdOpen) $$ [$Hb $Hrtf $Hrd $Ho] as ⟨%rtx, %rv, Hh, Ho⟩
   iunfold bkView at Hv'
   icases Hv' with ⟨%vd, Hv', %Hvd⟩
   ihave %Hrv := rtHeld_view γ P b rtx rv q' vd $$ [$Hh $Hv']
@@ -1420,11 +1420,11 @@ theorem bridge_rt (hRT : backend.backend.ReadTx.spec (GF := GF) (hG := hG))
     iexists (vData P rv)
     iframe Hv'
     ipureintro; exact Hvd
-  iexists m, (rdB rtx), (rtTok γ P b rtx rv qo)
+  iexists m, (rdB rtx), (rtTok γ P b rtx rv rdOpen)
   isplitl [Hh Ho]
   · iunfold rtTok; iframe
   isplitr
-  · iapply rt_locked hRU hUR hID hName hSafe hP γ W Pk b rt rtx rv qo m Hvd
+  · iapply rt_locked hRU hUR hID hName hSafe hP γ W Pk b rt rtx rv m Hvd
       $$ [$Hpkg $Hsch $Hb $Hrtf $Hsafe]
   iapply snapThin_refl
 
@@ -1457,8 +1457,8 @@ theorem bridge_rt_clean (hRT : backend.backend.ReadTx.spec (GF := GF) (hG := hG)
   iunfold keyReadSnapC
   iintro !> %q' %Φ' !> ⟨HL, Hv'⟩ HΦ'
   iunfold bkRTx at HL
-  icases HL with ⟨Hrd, %qo, Ho⟩
-  wp_apply (hRL γ P W Pk b rt qo) $$ [$Hb $Hrtf $Hrd $Ho] as ⟨%rtx, %rv, Hh, Ho⟩
+  icases HL with ⟨Hrd, Ho⟩
+  wp_apply (hRL γ P W Pk b rt rdOpen) $$ [$Hb $Hrtf $Hrd $Ho] as ⟨%rtx, %rv, Hh, Ho⟩
   iunfold bkViewC at Hv'
   icases Hv' with ⟨%vd, Hv', %Hvd⟩
   icases rtHeld_clean γ P b rtx rv q' vd $$ [$Hh $Hv'] with ⟨Hh, Hv', %Hcl⟩
@@ -1470,10 +1470,10 @@ theorem bridge_rt_clean (hRT : backend.backend.ReadTx.spec (GF := GF) (hG := hG)
     iexists (vData P rv)
     iframe Hv'
     ipureintro; exact Hvd
-  iexists (rdB rtx), (rtTok γ P b rtx rv qo)
+  iexists (rdB rtx), (rtTok γ P b rtx rv rdOpen)
   isplitl [Hh Ho]
   · iunfold rtTok; iframe
-  iapply rt_locked hRU hUR hID hName hSafe hP γ W Pk b rt rtx rv qo m Hvd true (fun _ => Hcl)
+  iapply rt_locked hRU hUR hID hName hSafe hP γ W Pk b rt rtx rv m Hvd true (fun _ => Hcl)
     $$ [$Hpkg $Hsch $Hb $Hrtf $Hsafe]
 
 end readTxs
@@ -1554,8 +1554,8 @@ theorem bt_lockIn (hLI : backend.batchTxBuffered.LockInsideApply.spec (GF := GF)
   icases Hhf with ⟨%f, ⟨%Hfv, %hf⟩, #Hhk⟩
   subst Hfv
   iunfold bkRTx at Hrt
-  icases Hrt with ⟨Hrd, %qo, Ho⟩
-  wp_apply (hLI γ P W Pk b t qo DFrac.discard f Pre Q) $$ [$Hb $Ht $Ho $Hhk $Hpre]
+  icases Hrt with ⟨Hrd, Ho⟩
+  wp_apply (hLI γ P W Pk b t rdOpen DFrac.discard f Pre Q) $$ [$Hb $Ht $Ho $Hhk $Hpre]
     as ⟨%st, Hl, %Hfree, HW, HQ, Ho, -⟩
   · iright
     iframe Htr
@@ -1570,7 +1570,6 @@ theorem bt_lockIn (hLI : backend.batchTxBuffered.LockInsideApply.spec (GF := GF)
     ipureintro; exact sessPuts_free hP Hfree
   iunfold bkRTx
   iframe Hrd
-  iexists qo
   iexact Ho
 
 /-- The batch transaction's `UnsafeSeqPut(schema.Key, k, v)`, as mvcc's contract states it. -/
@@ -1914,8 +1913,8 @@ theorem bt_lockOut (hLO : backend.batchTxBuffered.LockOutsideApply.spec (GF := G
         {{ RET #(); bkLockedO γ P b 0 ∗ W ∗ Pk ∗ bkRTx γ P b }}) := by
   iintro ⟨#Hpkg, #Hb, #Ht⟩ !> %Φ !> ⟨Hrt, Hwb⟩ HΦ
   iunfold bkRTx at Hrt
-  icases Hrt with ⟨Hrd, %qo, Ho⟩
-  wp_apply (hLO γ P W Pk b t qo) $$ [$Hb $Ht $Ho] as ⟨%st, Hl, %Hfree, ⟨HW, HPk⟩, Ho⟩
+  icases Hrt with ⟨Hrd, Ho⟩
+  wp_apply (hLO γ P W Pk b t rdOpen) $$ [$Hb $Ht $Ho] as ⟨%st, Hl, %Hfree, ⟨HW, HPk⟩, Ho⟩
   iapply HΦ
   iframe HW HPk
   isplitl [Hl Hwb]
@@ -1927,7 +1926,6 @@ theorem bt_lockOut (hLO : backend.batchTxBuffered.LockOutsideApply.spec (GF := G
       Hfree.2.2.2.2⟩
   iunfold bkRTx
   iframe Hrd
-  iexists qo
   iexact Ho
 
 /-- The batch transaction's `LockOutsideApply()` after `NewStore` (the compaction job's): the
@@ -1944,8 +1942,8 @@ theorem bt_lockOutJ (hLO : backend.batchTxBuffered.LockOutsideApply.spec (GF := 
         {{ RET #(); bkLocked γ P b [] ∗ W ∗ Pk ∗ bkRTx γ P b }}) := by
   iintro ⟨#Hpkg, #Hb, #Ht⟩ !> %Φ !> ⟨-, Hrt, Hwb⟩ HΦ
   iunfold bkRTx at Hrt
-  icases Hrt with ⟨Hrd, %qo, Ho⟩
-  wp_apply (hLO γ P W Pk b t qo) $$ [$Hb $Ht $Ho] as ⟨%st, Hl, %Hfree, ⟨HW, HPk⟩, Ho⟩
+  icases Hrt with ⟨Hrd, Ho⟩
+  wp_apply (hLO γ P W Pk b t rdOpen) $$ [$Hb $Ht $Ho] as ⟨%st, Hl, %Hfree, ⟨HW, HPk⟩, Ho⟩
   iapply HΦ
   iframe HW HPk
   isplitl [Hl Hwb]
@@ -1956,7 +1954,6 @@ theorem bt_lockOutJ (hLO : backend.batchTxBuffered.LockOutsideApply.spec (GF := 
     ipureintro; exact sessPuts_free hP Hfree
   iunfold bkRTx
   iframe Hrd
-  iexists qo
   iexact Ho
 
 /-- The backend's `Size()`: some number. -/
@@ -2078,7 +2075,7 @@ theorem bk_forceCommit (hFC : backend.backend.ForceCommit.spec (GF := GF) (hG :=
         {{ RET #(); bkRTx γ P b ∗ Y }}) := by
   iintro ⟨#Hpkg, #Hb⟩ !> %X %Y %Φ !> ⟨Hrt, Hwb, HX, #Hrq⟩ HΦ
   iunfold bkRTx at Hrt
-  icases Hrt with ⟨Hrd, %qo, Ho⟩
+  icases Hrt with ⟨Hrd, Ho⟩
   iunfold bkReq at Hrq
   icases Hrq with (#Hw | ⟨%W', %Pk', #Hb', #Hcr⟩)
   · -- a plain wand
@@ -2087,20 +2084,18 @@ theorem bk_forceCommit (hFC : backend.backend.ForceCommit.spec (GF := GF) (hG :=
       ileft
       iintro !> HX'
       iapply Hw $$ HX'
-    wp_apply (hFC γ P W Pk b qo X Y) $$ [$Hb $Ho $Hwb $HX] as ⟨Ho, HY⟩
+    wp_apply (hFC γ P W Pk b rdOpen X Y) $$ [$Hb $Ho $Hwb $HX] as ⟨Ho, HY⟩
     · iframe #
     iapply HΦ
     iunfold bkRTx
     iframe Hrd HY
-    iexists qo
     iexact Ho
   · -- a request the backend's hooks serve
-    wp_apply (hFC γ P W' Pk' b qo X Y) $$ [$Hb' $Ho $Hwb $HX] as ⟨Ho, HY⟩
+    wp_apply (hFC γ P W' Pk' b rdOpen X Y) $$ [$Hb' $Ho $Hwb $HX] as ⟨Ho, HY⟩
     · iframe #
     iapply HΦ
     iunfold bkRTx
     iframe Hrd HY
-    iexists qo
     iexact Ho
 
 end batch2

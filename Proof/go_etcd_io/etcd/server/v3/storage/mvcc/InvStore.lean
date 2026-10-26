@@ -93,11 +93,6 @@ def restBuckets : List GoString :=
   [go!"lease", go!"alarm", go!"auth", go!"authUsers", go!"authRoles", go!"members",
    go!"members_removed", go!"cluster"]
 
-theorem key_not_rest : keyName ∉ restBuckets := by decide
-
-theorem meta_not_rest :
-    go_etcd_io.etcd.server.v3.storage.schema.metaName ∉ restBuckets := by decide
-
 /-- The backend's parameters of a real instance: the hook's buckets all but `Key`, `Key` the one
 safe-range bucket, the hook's own keys the consistent index's two in `Meta` (2026-10-13, unit 7:
 only the server's pre-commit hook writes them), the tracked buckets the rest buckets (D22,
@@ -1380,12 +1375,13 @@ theorem kbViewC_kbView (kb : Option KBReal) (γb : GName) (q : Qp) (m : Bucket) 
     iframe %Hk
     iapply backend.bViewC_bView $$ Hv
 
-/-- A reader's token in the instance `kb`: for the real backend, a reader's slot of it and a
-share of it open (given back at the reader's `RUnlock`). -/
+/-- A reader's token in the instance `kb`: for the real backend, a reader's slot of it and the
+reader's share `rdOpen` of it open (given back at the reader's `RUnlock`; D22 receiver epochs, S8d,
+W7, 2026-10-25: a fixed share, until then some share). -/
 def kbRT (kb : Option KBReal) : IProp GF :=
   match kb with
   | none => iprop(True)
-  | some d => iprop(backend.rdTok d.γB d.P d.be ∗ ∃ q : Qp, backend.bOpen d.γB q)
+  | some d => iprop(backend.rdTok d.γB d.P d.be ∗ backend.bOpen d.γB backend.rdOpen)
 
 /-- A write session's token in the instance `kb`: for the real backend, a write-back's budget
 (every `Unlock` may increment the read buffer's version, a `uint64`: `backend.wbTok`). -/
@@ -2836,13 +2832,25 @@ slot out under the watchable store's lock the watchable store's deposit (`wsDep`
 (`readerPool_retire`: the apply thread's, for its writes under the batch lock, and the storage
 version monitor's). The holder of `s.mu` exclusively and of the watchable store's lock
 (`store.Restore`) finds every slot not retired in. (S5b) The slots are of the current objects and
-names (`readerPool`): a lender checks out at a part of them (its pin). -/
+names (`readerPool`): a lender checks out at a part of them (its pin). (D22 receiver epochs, S8d,
+W7, 2026-10-25) The slots in, out and retired are exactly `nReaders`, and the retired count `r` is
+known to the store's creator (half of `γ.tkr`, `retiredAt`; until then an upper bound and retired
+tickets), so that a restore returns exactly the old backend's tokens it held and the creator knows
+how many: with the retired ones, all of them, for the old backend's `Close`. -/
 def poolBody (γ : StoreNames) (o : StoreObjs) : IProp GF :=
   iprop(∃ k j w r : Nat, ownTokAuth γ.tk k ∗ ownTokAuth γ.tko j ∗ ownTokAuth γ.tkw w ∗
-    ownTokAuth γ.tkr r ∗
+    ghostVar γ.tkr (1 : Qp).half r ∗
     ([∗list] _x ∈ List.replicate k (), idxSlot γ o) ∗
     ([∗list] _x ∈ List.replicate j (), wDep γ) ∗
-    ([∗list] _x ∈ List.replicate w (), wsDep γ) ∗ ⌜k + j + w + r ≤ nReaders⌝)
+    ([∗list] _x ∈ List.replicate w (), wsDep γ) ∗ ⌜k + j + w + r = nReaders⌝)
+
+/-- **The readers' pool's retired count is `r`** (D22 receiver epochs, S8d, W7, 2026-10-25; the
+store's creator's half of `γ.tkr`, `NewStore` gives it at `0`): each retirement
+(`readerPool_retire`) counts one. -/
+def retiredAt (γ : StoreNames) (r : Nat) : IProp GF := ghostVar γ.tkr (1 : Qp).half r
+
+instance retiredAt_timeless (γ : StoreNames) (r : Nat) : Timeless (retiredAt (GF := GF) γ r) := by
+  unfold retiredAt; infer_instance
 
 /-- The readers' pool's invariant (S5b): its body at the current objects and names, with an eighth
 of the fraction of them. -/
@@ -2956,16 +2964,6 @@ theorem muHeld_phys (s : Loc) (γ : StoreNames) (c : Int) (ti : Loc) :
   iexists o
   iframe Hph
   ipureintro; exact Ho
-
-/-- A transaction's tree index (persistent; S5b: until then `isStore`'s). -/
-theorem muHeld_tree' (s : Loc) (γ : StoreNames) (c : Int) (ti : Loc) :
-    muHeld (GF := GF) s γ c ti ⊢ isTreeIndex ti γ.idx := by
-  iintro H
-  ihave ⟨%o, %Ho, #Hph⟩ := muHeld_phys s γ c ti $$ H
-  iunfold physOk at Hph
-  iNamed Hph
-  subst Ho
-  iexact Hti
 
 /-- A transaction's tree index, keeping the transaction. -/
 theorem muHeld_tree (s : Loc) (γ : StoreNames) (c : Int) (ti : Loc) :
@@ -3364,10 +3362,12 @@ theorem storeReader_toC (s : Loc) (γ : StoreNames) :
 2026-10-22): a reader token of the backend of its own (retired from the readers' pool,
 `storeReader_retire`; until S5a a reader's handle had one), which its writes under the batch lock
 borrow (the apply package's contracts: `apply.kvOwn`). A restore takes it back and gives the new
-backend's. (The restore plan's R5e) With its retired ticket (`readerPool_retire`), so that the
-readers' pool's slots are fewer than `nReaders`: the restore refills the pool with tokens of the new
-backend while it holds one. -/
-def writerOwn (γ : StoreNames) : IProp GF := iprop(storeRT γ ∗ ownToks γ.tkr 1)
+backend's. (The restore plan's R5e) With the readers' pool's retired count (D22 receiver epochs, S8d,
+W7, 2026-10-25: `retiredAt γ 2`, until then the writer's retired ticket): the etcd server, the
+store's only creator that retires, retires two readers (the storage version monitor's and the
+writer's), so the restore knows the pool holds `nReaders - 2` slots, and returns exactly the old
+backend's tokens it held. -/
+def writerOwn (γ : StoreNames) : IProp GF := iprop(storeRT γ ∗ retiredAt γ 2)
 
 /-- The sole writer lends its backend token. -/
 theorem writerOwn_rt (γ : StoreNames) :
@@ -4641,12 +4641,6 @@ theorem readerPool_checkin (γ : StoreNames) (dq : DFrac) (o : StoreObjs) :
   imodintro
   iframe Ht Hd Hpin
 
-/-- `readerPool_checkin` at a pin of some physical names `p` (S5b). -/
-theorem readerPool_checkin_p (γ : StoreNames) (p : PhysNames) (dq : DFrac) (o : StoreObjs) :
-    ⊢ £ 1 -∗ readerPool (GF := GF) γ -∗ curAt (γ.withPhys p) dq o -∗ idxSlot (γ.withPhys p) o -∗
-      ownToks γ.tko 1 ={⊤}=∗ ownToks γ.tk 1 ∗ wDep γ ∗ curAt (γ.withPhys p) dq o :=
-  readerPool_checkin (γ.withPhys p) dq o
-
 /-- **The watchable store's `syncWatchers` checks a slot out** (D22 receiver epochs, S5a; one later
 credit), with an idle reader's ticket and the watchable store's deposit (it holds the watchable
 store's lock exclusively), at its pin: the slot, and a ticket checked out under that lock. -/
@@ -4746,10 +4740,10 @@ theorem readerPool_checkin_ws_p (γ : StoreNames) (p : PhysNames) (dq : DFrac) (
 later credit), at a pin: a slot out of the pool for good, its index slot dropped (the apply
 thread's token, for its writes under the batch lock, which borrow one: `apply.kvOwn`; the storage
 version monitor's). A restore takes the retired tokens back from their holders. -/
-theorem readerPool_retire (γ : StoreNames) (dq : DFrac) (o : StoreObjs) :
-    ⊢ £ 1 -∗ readerPool (GF := GF) γ -∗ curAt γ dq o -∗ ownToks γ.tk 1 ={⊤}=∗
-      storeRT γ ∗ ownToks γ.tkr 1 ∗ curAt γ dq o := by
-  iintro Hlc #Hp Hpin Ht
+theorem readerPool_retire (γ : StoreNames) (dq : DFrac) (o : StoreObjs) (n : Nat) :
+    ⊢ £ 1 -∗ readerPool (GF := GF) γ -∗ curAt γ dq o -∗ ownToks γ.tk 1 -∗ retiredAt γ n ={⊤}=∗
+      storeRT γ ∗ retiredAt γ (n + 1) ∗ curAt γ dq o := by
+  iintro Hlc #Hp Hpin Ht Hret
   iunfold readerPool at Hp
   imod inv_acc (E := ⊤) (N := poolN) (P := iprop(∃ (p : PhysNames) (o : StoreObjs),
       curAt (GF := GF) (γ.withPhys p) (DFrac.own (1 : Qp).half.half.half) o ∗
@@ -4768,7 +4762,10 @@ theorem readerPool_retire (γ : StoreNames) (dq : DFrac) (o : StoreObjs) :
   icombine Ha Ht gives %Hle
   obtain ⟨k', rfl⟩ : ∃ k', k = k' + 1 := ⟨k - 1, by omega⟩
   imod ownTokAuth_delete_S γ.tk k' $$ Ha Ht with Ha
-  imod ownTokAuth_S γ.tkr r $$ Har with ⟨Har, Htr⟩
+  iunfold retiredAt at Hret
+  ihave %Hrn := ghostVar_agree (GF := GF) γ.tkr r _ n _ $$ Har Hret
+  subst Hrn
+  imod ghostVar_update_halves (GF := GF) (r + 1) γ.tkr r r $$ Har Hret with ⟨Har, Htr⟩
   rw [List.replicate_succ]
   icases BigSepL.bigSepL_cons.1 $$ Hs with ⟨H1, Hs⟩
   imod Hclose $$ [Hc Ha Hao Haw Har Hs Hds Hws] with -
@@ -4783,19 +4780,21 @@ theorem readerPool_retire (γ : StoreNames) (dq : DFrac) (o : StoreObjs) :
   iunfold idxSlot at H1
   icases H1 with ⟨-, Hrt⟩
   imodintro
-  iframe Hrt Htr Hpin
+  iframe Hrt Hpin
+  iunfold retiredAt
+  iexact Htr
 
 /-- **An idle reader retires its ticket** (S5a; one later credit; `readerPool_retire`), at a pin: a
 backend token of its own, its slots of the store's locks dropped. -/
-theorem storeReader_retire (s : Loc) (γ : StoreNames) (dq : DFrac) (o : StoreObjs) :
-    ⊢ £ 1 -∗ isStore (GF := GF) s γ -∗ curAt γ dq o -∗ storeReader s γ ={⊤}=∗
-      storeRT γ ∗ ownToks γ.tkr 1 ∗ curAt γ dq o := by
-  iintro Hlc #Hs Hpin Hr
+theorem storeReader_retire (s : Loc) (γ : StoreNames) (dq : DFrac) (o : StoreObjs) (n : Nat) :
+    ⊢ £ 1 -∗ isStore (GF := GF) s γ -∗ curAt γ dq o -∗ storeReader s γ -∗ retiredAt γ n ={⊤}=∗
+      storeRT γ ∗ retiredAt γ (n + 1) ∗ curAt γ dq o := by
+  iintro Hlc #Hs Hpin Hr Hret
   iunfold isStore at Hs
   iNamed Hs
   iunfold storeReader at Hr
   iNamed Hr
-  iapply readerPool_retire γ dq o $$ Hlc Hpool Hpin Htk
+  iapply readerPool_retire γ dq o n $$ Hlc Hpool Hpin Htk Hret
 
 /-- A stop channel (persistent): a broadcast channel of `True`, maybe closed (the store's
 `stopc`; the watchable store's). Moved from `InvWatchStore.lean` (2026-10-13). -/

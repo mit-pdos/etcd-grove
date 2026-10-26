@@ -262,7 +262,8 @@ theorem batchLocked_hk (γ : BNames) (P : BParams) (b : Loc) (st : BSess)
     ipureintro; exact ⟨Hok, Hwf⟩
   · ipureintro; exact Heq.2
 
-/-- The client's half of the tracked buckets agrees with the batch lock's state. -/
+/-- The client's half of the tracked buckets agrees with the batch lock's state (leases T3: `lessor.Revoke`'s
+delete from the `Lease` bucket, `BackendBridge.lean`). -/
 theorem batchLocked_rb (γ : BNames) (P : BParams) (b : Loc) (st : BSess)
     (r : GMap GoString BktData) :
     batchLocked (GF := GF) γ P b st ∗ rbOwn γ r ⊢

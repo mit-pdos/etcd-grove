@@ -53,17 +53,6 @@ instance storeWTs_timeless (γ : mvcc.StoreNames) (n : Nat) :
     Timeless (storeWTs (GF := GF) γ n) := by
   unfold storeWTs; split <;> infer_instance
 
-/-- One write token off a supply. -/
-theorem storeWTs_split (γ : mvcc.StoreNames) (n : Nat) :
-    storeWTs (GF := GF) γ (n + 1) ⊢ mvcc.storeWT γ ∗ storeWTs γ n := by
-  unfold storeWTs mvcc.storeWT mvcc.kbWT
-  cases γ.kb with
-  | none => iintro -; isplitl <;> itrivial
-  | some d =>
-    simp only [backend.wbTok]
-    rw [Nat.add_comm]
-    exact ownToks_add_1 n 1 d.γB.wb
-
 /-- The `lease.Lessor` `le` as the txn package uses it: mvcc's contract, and `Lookup(id)` by the
 lease owner (`lease.lessorUser γl L`: its half of the live set `L`, a reader slot of the lessor's
 lock) returns `nil` or a live lease (`id ∈ L`; 2026-10-13, unit 8 of the backend: derived from

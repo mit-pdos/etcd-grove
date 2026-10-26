@@ -1,6 +1,6 @@
 ---
 upstream: none
-checked: 2026-10-21
+checked: 2026-10-26
 links:
   - etcd-io/etcd#20418 issue closed: stale reads from a paused process (robustness); different cause
 candidate: issues/upstream/etcd-txn-empty-serializable/

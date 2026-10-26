@@ -8,6 +8,7 @@ hand.
 -/
 module
 
+public import Proof.go_etcd_io.etcd.client.v3.Client__Close
 public import Proof.go_etcd_io.etcd.client.v3.Client__Endpoints
 public import Proof.go_etcd_io.etcd.client.v3.Client__GetLogger
 public import Proof.go_etcd_io.etcd.client.v3.Client__SetEndpoints
@@ -30,6 +31,7 @@ public import Proof.go_etcd_io.etcd.client.v3.IsOptsWithFromKey
 public import Proof.go_etcd_io.etcd.client.v3.IsOptsWithPrefix
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseGrantResponse__GetHeader
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.LeaseKeepAliveResponse__GetHeader
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.NewAuthClient
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.NewKVClient
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.NewLeaseClient
 public import Proof.go_etcd_io.etcd.client.v3.NewLeaseFromLeaseClient
@@ -47,6 +49,7 @@ public import Proof.go_etcd_io.etcd.client.v3.Op__isWrite
 public import Proof.go_etcd_io.etcd.client.v3.Op__toRangeRequest
 public import Proof.go_etcd_io.etcd.client.v3.Op__toRequestOp
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader__GetRevision
+public import Proof.go_etcd_io.etcd.client.v3.RetryAuthClient
 public import Proof.go_etcd_io.etcd.client.v3.RetryKVClient
 public import Proof.go_etcd_io.etcd.client.v3.RetryLeaseClient
 public import Proof.go_etcd_io.etcd.client.v3.WatchResponse__Err
@@ -62,9 +65,16 @@ public import Proof.context.ValueKeepAlive
 public import Proof.context.WithCancelTodo
 public import Proof.context.WithCancelValCtx
 public import Proof.context.WithValue
+public import Proof.go_etcd_io.etcd.client.v3.credentials.NewPerRPCCredentialBundle
+public import Proof.go_etcd_io.etcd.client.v3.credentials.perRPCCredentialBundle__PerRPCCredentials
 public import Proof.go_etcd_io.etcd.client.v3.internal.endpoint.RequiresCredentials
 public import Proof.go_etcd_io.etcd.client.v3.ensureWatchHeader
 public import Proof.errors.IsStatusErr
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.authClient__AuthEnable
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.authClient__RoleAdd
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.authClient__RoleGrantPermission
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.authClient__UserAdd
+public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.authClient__UserGrantRole
 public import Proof.go_etcd_io.etcd.client.v3.filterCallOptions
 public import Proof.fmt.SprintfClientPtr
 public import Proof.google_golang_org.grpc.ClientConn__Invoke
@@ -78,6 +88,7 @@ public import Proof.google_golang_org.grpc.NewClient
 public import Proof.google_golang_org.grpc.Peer
 public import Proof.google_golang_org.grpc.StaticMethod
 public import Proof.google_golang_org.grpc.WithKeepaliveParams
+public import Proof.google_golang_org.grpc.WithPerRPCCredentials
 public import Proof.google_golang_org.grpc.WithResolvers
 public import Proof.google_golang_org.grpc.WithStreamInterceptor
 public import Proof.google_golang_org.grpc.WithTransportCredentials
@@ -111,6 +122,11 @@ public import Proof.google_golang_org.protobuf.proto.Clone
 public import Proof.go_etcd_io.etcd.client.v3.internal.resolver.EtcdManualResolver__Close
 public import Proof.go_etcd_io.etcd.client.v3.internal.resolver.EtcdManualResolver__SetEndpoints
 public import Proof.go_etcd_io.etcd.client.v3.internal.resolver.New
+public import Proof.go_etcd_io.etcd.client.v3.retryAuthClient__AuthEnable
+public import Proof.go_etcd_io.etcd.client.v3.retryAuthClient__RoleAdd
+public import Proof.go_etcd_io.etcd.client.v3.retryAuthClient__RoleGrantPermission
+public import Proof.go_etcd_io.etcd.client.v3.retryAuthClient__UserAdd
+public import Proof.go_etcd_io.etcd.client.v3.retryAuthClient__UserGrantRole
 public import Proof.go_etcd_io.etcd.client.v3.retryKVClient__DeleteRange
 public import Proof.go_etcd_io.etcd.client.v3.retryKVClient__Put
 public import Proof.go_etcd_io.etcd.client.v3.retryKVClient__Range
@@ -139,6 +155,11 @@ public import Proof.go_etcd_io.etcd.client.v3.NewCluster
 public import Proof.go_etcd_io.etcd.client.v3.NewKV
 public import Proof.go_etcd_io.etcd.client.v3.NewLease
 public import Proof.go_etcd_io.etcd.client.v3.NewMaintenance
+public import Proof.go_etcd_io.etcd.client.v3.authClient__AuthEnable
+public import Proof.go_etcd_io.etcd.client.v3.authClient__RoleAdd
+public import Proof.go_etcd_io.etcd.client.v3.authClient__RoleGrantPermission
+public import Proof.go_etcd_io.etcd.client.v3.authClient__UserAdd
+public import Proof.go_etcd_io.etcd.client.v3.authClient__UserGrantRole
 public import Proof.go_etcd_io.etcd.client.v3.lessor__Grant
 public import Proof.go_etcd_io.etcd.client.v3.lessor__KeepAlive
 public import Proof.go_etcd_io.etcd.client.v3.lessor__Revoke
@@ -267,6 +288,10 @@ theorem fmt.wp_SprintfClientPtr :
     EtcdGrove.fmt.SprintfClientPtr.spec (GF := GF) (hG := hG) :=
   EtcdGrove.fmt.SprintfClientPtr.wp_proof
 
+theorem credentials.perRPCCredentialBundle.wp_PerRPCCredentials :
+    EtcdGrove.credentials.perRPCCredentialBundle.PerRPCCredentials.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.credentials.perRPCCredentialBundle.PerRPCCredentials.wp_proof
+
 theorem proto.wp_Clone :
     EtcdGrove.proto.Clone.spec (GF := GF) (hG := hG) :=
   EtcdGrove.proto.Clone.wp_proof
@@ -339,6 +364,10 @@ theorem context.wp_TODO :
     EtcdGrove.context.TODO.spec (GF := GF) (hG := hG) :=
   EtcdGrove.context.TODO.wp_proof
 
+theorem credentials.wp_NewPerRPCCredentialBundle :
+    EtcdGrove.credentials.NewPerRPCCredentialBundle.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.credentials.NewPerRPCCredentialBundle.wp_proof
+
 theorem time.Time.wp_IsZero :
     EtcdGrove.time.Time.IsZero.spec (GF := GF) (hG := hG) :=
   EtcdGrove.time.Time.IsZero.wp_proof
@@ -369,6 +398,10 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
+
+theorem v3.Client.wp_Close :
+    EtcdGrove.Client.Close.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.Client.Close.wp_proof
 
 theorem v3.Client.wp_Endpoints :
     EtcdGrove.Client.Endpoints.spec (GF := GF) (hG := hG) :=
@@ -510,9 +543,13 @@ theorem grpc.wp_NewClient :
     EtcdGrove.grpc.NewClient.spec (GF := GF) (hG := hG) :=
   EtcdGrove.grpc.NewClient.wp_proof
 
+theorem grpc.wp_WithPerRPCCredentials :
+    EtcdGrove.grpc.WithPerRPCCredentials.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.grpc.WithPerRPCCredentials.wp_proof
+
 theorem v3.Client.wp_dial :
     EtcdGrove.Client.dial.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.Client.dial.wp_proof v3.Client.wp_dialSetupOpts v3.wp_authority grpc.wp_NewClient fmt.wp_SprintfClientPtr
+  EtcdGrove.Client.dial.wp_proof v3.Client.wp_dialSetupOpts v3.wp_authority grpc.wp_NewClient fmt.wp_SprintfClientPtr credentials.perRPCCredentialBundle.wp_PerRPCCredentials grpc.wp_WithPerRPCCredentials
 
 theorem grpc.wp_WithResolvers :
     EtcdGrove.grpc.WithResolvers.spec (GF := GF) (hG := hG) :=
@@ -533,6 +570,10 @@ theorem LeaseGrantResponse.wp_GetHeader :
 theorem LeaseKeepAliveResponse.wp_GetHeader :
     EtcdGrove.LeaseKeepAliveResponse.GetHeader.spec (GF := GF) (hG := hG) :=
   EtcdGrove.LeaseKeepAliveResponse.GetHeader.wp_proof
+
+theorem wp_NewAuthClient :
+    EtcdGrove.NewAuthClient.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.NewAuthClient.wp_proof
 
 theorem wp_NewKVClient :
     EtcdGrove.NewKVClient.spec (GF := GF) (hG := hG) :=
@@ -578,6 +619,10 @@ theorem v3.Op.wp_toRequestOp :
     EtcdGrove.Op.toRequestOp.spec (GF := GF) (hG := hG) :=
   EtcdGrove.Op.toRequestOp.wp_proof v3.Op.wp_toRangeRequest
 
+theorem v3.wp_RetryAuthClient :
+    EtcdGrove.RetryAuthClient.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.RetryAuthClient.wp_proof wp_NewAuthClient
+
 theorem v3.wp_RetryKVClient :
     EtcdGrove.RetryKVClient.spec (GF := GF) (hG := hG) :=
   EtcdGrove.RetryKVClient.wp_proof wp_NewKVClient
@@ -620,7 +665,7 @@ theorem v3.wp_NewLease :
 
 theorem v3.wp_NewAuth :
     EtcdGrove.NewAuth.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.NewAuth.wp_proof
+  EtcdGrove.NewAuth.wp_proof v3.wp_RetryAuthClient
 
 theorem v3.wp_NewMaintenance :
     EtcdGrove.NewMaintenance.spec (GF := GF) (hG := hG) :=
@@ -628,7 +673,7 @@ theorem v3.wp_NewMaintenance :
 
 theorem v3.wp_newClient [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.newClient.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.newClient.wp_proof context.wp_TODO context.wp_WithCancelTodo resolver.wp_New v3.Client.wp_SetEndpoints resolver.EtcdManualResolver.wp_Close v3.Client.wp_dialWithBalancer v3.wp_NewCluster v3.wp_NewKV v3.wp_NewLease v3.wp_NewWatcher v3.wp_NewAuth v3.wp_NewMaintenance v3.Client.wp_getToken v3.Client.wp_autoSync
+  EtcdGrove.newClient.wp_proof context.wp_TODO context.wp_WithCancelTodo resolver.wp_New v3.Client.wp_SetEndpoints resolver.EtcdManualResolver.wp_Close v3.Client.wp_dialWithBalancer v3.wp_NewCluster v3.wp_NewKV v3.wp_NewLease v3.wp_NewWatcher v3.wp_NewAuth v3.wp_NewMaintenance v3.Client.wp_getToken v3.Client.wp_autoSync v3.Client.wp_Close credentials.wp_NewPerRPCCredentialBundle
 
 theorem v3.clientv3.wp_New [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.clientv3.New.spec (GF := GF) (hG := hG) :=
@@ -650,9 +695,33 @@ theorem v3.wp_ensureWatchHeader [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.
     EtcdGrove.ensureWatchHeader.spec (GF := GF) (hG := hG) :=
   EtcdGrove.ensureWatchHeader.wp_proof
 
+theorem grpc.wp_StaticMethod :
+    EtcdGrove.grpc.StaticMethod.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.grpc.StaticMethod.wp_proof
+
 theorem grpc.ClientConn.wp_Invoke :
     EtcdGrove.grpc.ClientConn.Invoke.spec (GF := GF) (hG := hG) :=
   EtcdGrove.grpc.ClientConn.Invoke.wp_proof
+
+theorem etcdserverpb.authClient.wp_AuthEnable :
+    EtcdGrove.etcdserverpb.authClient.AuthEnable.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.etcdserverpb.authClient.AuthEnable.wp_proof grpc.wp_StaticMethod grpc.ClientConn.wp_Invoke
+
+theorem etcdserverpb.authClient.wp_RoleAdd :
+    EtcdGrove.etcdserverpb.authClient.RoleAdd.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.etcdserverpb.authClient.RoleAdd.wp_proof grpc.wp_StaticMethod grpc.ClientConn.wp_Invoke
+
+theorem etcdserverpb.authClient.wp_RoleGrantPermission :
+    EtcdGrove.etcdserverpb.authClient.RoleGrantPermission.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.etcdserverpb.authClient.RoleGrantPermission.wp_proof grpc.wp_StaticMethod grpc.ClientConn.wp_Invoke
+
+theorem etcdserverpb.authClient.wp_UserAdd :
+    EtcdGrove.etcdserverpb.authClient.UserAdd.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.etcdserverpb.authClient.UserAdd.wp_proof grpc.wp_StaticMethod grpc.ClientConn.wp_Invoke
+
+theorem etcdserverpb.authClient.wp_UserGrantRole :
+    EtcdGrove.etcdserverpb.authClient.UserGrantRole.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.etcdserverpb.authClient.UserGrantRole.wp_proof grpc.wp_StaticMethod grpc.ClientConn.wp_Invoke
 
 theorem grpc.ClientConn.wp_NewStream :
     EtcdGrove.grpc.ClientConn.NewStream.spec (GF := GF) (hG := hG) :=
@@ -673,10 +742,6 @@ theorem grpc.GenericClientStream.wp_Recv :
 theorem grpc.GenericClientStream.wp_Send :
     EtcdGrove.grpc.GenericClientStream.Send.spec (GF := GF) (hG := hG) :=
   EtcdGrove.grpc.GenericClientStream.Send.wp_proof
-
-theorem grpc.wp_StaticMethod :
-    EtcdGrove.grpc.StaticMethod.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.grpc.StaticMethod.wp_proof
 
 theorem v3.wp_isHaltErr [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] :
     EtcdGrove.isHaltErr.spec (GF := GF) (hG := hG) :=
@@ -766,6 +831,26 @@ theorem v3.progressRequest.wp_toPB [go_etcd_io.etcd.server.v3.etcdserver.api.v3r
     EtcdGrove.progressRequest.toPB.spec (GF := GF) (hG := hG) :=
   EtcdGrove.progressRequest.toPB.wp_proof
 
+theorem v3.retryAuthClient.wp_AuthEnable :
+    EtcdGrove.retryAuthClient.AuthEnable.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.retryAuthClient.AuthEnable.wp_proof etcdserverpb.authClient.wp_AuthEnable
+
+theorem v3.retryAuthClient.wp_RoleAdd :
+    EtcdGrove.retryAuthClient.RoleAdd.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.retryAuthClient.RoleAdd.wp_proof etcdserverpb.authClient.wp_RoleAdd
+
+theorem v3.retryAuthClient.wp_RoleGrantPermission :
+    EtcdGrove.retryAuthClient.RoleGrantPermission.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.retryAuthClient.RoleGrantPermission.wp_proof etcdserverpb.authClient.wp_RoleGrantPermission
+
+theorem v3.retryAuthClient.wp_UserAdd :
+    EtcdGrove.retryAuthClient.UserAdd.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.retryAuthClient.UserAdd.wp_proof etcdserverpb.authClient.wp_UserAdd
+
+theorem v3.retryAuthClient.wp_UserGrantRole :
+    EtcdGrove.retryAuthClient.UserGrantRole.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.retryAuthClient.UserGrantRole.wp_proof etcdserverpb.authClient.wp_UserGrantRole
+
 theorem v3.retryKVClient.wp_Txn :
     EtcdGrove.retryKVClient.Txn.spec (GF := GF) (hG := hG) :=
   EtcdGrove.retryKVClient.Txn.wp_proof kVClient.wp_Txn
@@ -801,6 +886,26 @@ theorem v3.txn.wp_If :
 theorem v3.txn.wp_Then :
     EtcdGrove.txn.Then.spec (GF := GF) (hG := hG) :=
   EtcdGrove.txn.Then.wp_proof v3.Op.wp_isWrite v3.Op.wp_toRequestOp
+
+theorem v3.authClient.wp_AuthEnable :
+    EtcdGrove.authClient.AuthEnable.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.authClient.AuthEnable.wp_proof v3.retryAuthClient.wp_AuthEnable v3.wp_ContextError
+
+theorem v3.authClient.wp_RoleAdd :
+    EtcdGrove.authClient.RoleAdd.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.authClient.RoleAdd.wp_proof v3.retryAuthClient.wp_RoleAdd v3.wp_ContextError
+
+theorem v3.authClient.wp_RoleGrantPermission :
+    EtcdGrove.authClient.RoleGrantPermission.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.authClient.RoleGrantPermission.wp_proof v3.retryAuthClient.wp_RoleGrantPermission v3.wp_ContextError
+
+theorem v3.authClient.wp_UserAdd :
+    EtcdGrove.authClient.UserAdd.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.authClient.UserAdd.wp_proof v3.retryAuthClient.wp_UserAdd v3.wp_ContextError
+
+theorem v3.authClient.wp_UserGrantRole :
+    EtcdGrove.authClient.UserGrantRole.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.authClient.UserGrantRole.wp_proof v3.retryAuthClient.wp_UserGrantRole v3.wp_ContextError
 
 theorem v3.lessor.wp_Grant :
     EtcdGrove.lessor.Grant.spec (GF := GF) (hG := hG) :=

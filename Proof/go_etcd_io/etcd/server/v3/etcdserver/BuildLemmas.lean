@@ -92,7 +92,7 @@ theorem server_kv_watchable_of
         mvcc.isWatchableStore ws st γw ∗ mvcc.watchToks γw (2 ^ 63 - 3) ∗
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders - 2) (),
           mvcc.watchReader ws st γw) ∗
-        mvcc.wsCloser ws st γw.st ∗ (∃ rd : GoFunc, lease.rdOwn γl rd ∗ mvcc.rdIs rd ws st γw) ∗ auth.modeTag γw.tag M }} := by
+        mvcc.wsCloser ws st γw.st ∗ mvcc.retiredAt γw.st 0 ∗ (∃ rd : GoFunc, lease.rdOwn γl rd ∗ mvcc.rdIs rd ws st γw) ∗ auth.modeTag γw.tag M }} := by
   iintro %Φ ⟨#Hpkg, #Hbpkg, #Hsch, #Hb, #Hsz, Hv, Hncmp, Hrg, Hw, Hrts, Hlrd, #Hle, Hro, Hif, Hok⟩ HΦ
   -- the auth mode's tag (the auth plan's A4): the store's owner tag names the mode `M`
   imod auth.modeTag_alloc (GF := GF) M with ⟨%γtag, #Htag⟩
@@ -115,7 +115,7 @@ theorem server_kv_watchable_of
     unfold backend.wbTok
     iframe Hv Hncmp Hrg Hw1 Hw2 Hrts Hlrd
   inext
-  iintro %ws ⟨%st, %γw, %Hγ, #Hws, Hro, #Hhk, Hww, Hwt, Hcok, Hrds, Hcl, Hfrag⟩
+  iintro %ws ⟨%st, %γw, %Hγ, #Hws, Hro, #Hhk, Hww, Hwt, Hcok, Hrds, Hcl, Hfrag, Hret⟩
   obtain ⟨hb, hl, hk, hi, hc, ht⟩ := Hγ
   ihave #Hws' := Hws
   iunfold mvcc.isWatchableStore at Hws'
@@ -124,7 +124,7 @@ theorem server_kv_watchable_of
   iapply HΦ
   iexists st, γw
   rw [ht]
-  iframe Hws Hhk Hwt Hcok Hrds Hcl Hro
+  iframe Hws Hhk Hwt Hcok Hrds Hcl Hro Hret
   iframe Htag
   isplitr
   · ipureintro; exact ⟨hb, hl, hk, hi, hc⟩

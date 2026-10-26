@@ -36,6 +36,18 @@ The model (the note's points 1-6):
   protocols are indexed by the ticket's name. Go's client never replays a `POST`
   (`Request.isReplayable`), and its server runs one handler per request it reads. What a one-shot
   payload needs: the receiver withdraws a deposit with the ticket, so only once.
+* (2026-10-24, D42, rafthttp stage 7b) **A request's body is fixed or streamed.** A fixed body's
+  bytes are the request's (`HReq.body`, from `NewRequest`'s reader at its bytes). A streamed body
+  is a reader whose bytes the client does not hold (rafthttp's snapshot: the envelope, then the
+  merged snapshot's pipe), which Go sends chunked as `RoundTrip` reads it (`Body`). Each address's
+  protocol says which requests are streamed (`Proto.streamed`), and states of a streamed request
+  `sreq R γk Pre Φ`: its body's every prefix is in `Pre`, its every complete stream in `Φ`. The
+  client sends a streamed request with a reader keeping that contract (`streamHas`); its handler
+  reads the body with it (`bodyStream`): what it reads is in `Pre`, and in `Φ` once a read
+  returns `EOF`. The physical assumption: a chunked body the server reads is a prefix of what the
+  client's reader yielded, and ends with `EOF` only at the end of the reader's stream (a truncated
+  one, as the client's reader failing or the connection dropping, ends with
+  `io.ErrUnexpectedEOF`).
 * A handler's contract is a WP whose postcondition also covers a panic (`Serve` recovers it), and
   each invocation borrows one of `httpProcSlots` resources (the concurrency bound, a physical fact:
   each handler is a goroutine with its own stack).
@@ -107,6 +119,12 @@ structure Proto (GF : BundledGFunctors) where
   resp_pers : ∀ R γk st w, Persistent (resp R γk st w)
   /-- (2026-10-23, rafthttp stage 5e) The headers a handler of the request may commit. -/
   rhdr : HReq → List (GoString × GoString) → Prop
+  /-- (2026-10-24, D42) **The requests sent with a streamed body** (see the file header). -/
+  streamed : HReq → Prop
+  /-- (D42) **A streamed request's contract** `sreq R γk Pre Φ`: of a request of ticket `γk`
+  whose body's prefixes are in `Pre` and complete streams in `Φ` (see the file header). -/
+  sreq : HReq → GName → (List w8 → Prop) → (List w8 → Prop) → IProp GF
+  sreq_pers : ∀ R γk Pre Φ, Persistent (sreq R γk Pre Φ)
 
 instance Proto.req_persistent (P : Proto GF) (R : HReq) (γk : GName) : Persistent (P.req R γk) :=
   P.req_pers R γk
@@ -114,6 +132,10 @@ instance Proto.req_persistent (P : Proto GF) (R : HReq) (γk : GName) : Persiste
 instance Proto.resp_persistent (P : Proto GF) (R : HReq) (γk : GName) (st : w64) (w : List w8) :
     Persistent (P.resp R γk st w) :=
   P.resp_pers R γk st w
+
+instance Proto.sreq_persistent (P : Proto GF) (R : HReq) (γk : GName) (Pre Φ : List w8 → Prop) :
+    Persistent (P.sreq R γk Pre Φ) :=
+  P.sreq_pers R γk Pre Φ
 
 /-- **The program's HTTP network**: each address's protocol, fixed for the run. -/
 structure HttpNet (GF : BundledGFunctors) where
@@ -333,6 +355,61 @@ theorem errStrOk_nil : ⊢ errStrOk (GF := GF) GoInterface.nil := by
 for an empty body): what `NewRequest` takes as the body. -/
 opaque readerHas (rd : GoInterface) (bs : List w8) : IProp GF
 
+/-- **A stream's prefixes** (D42): `Pre` holds of `[]` and of every prefix of what it holds of. -/
+def prefixClosed (Pre : List w8 → Prop) : Prop := Pre [] ∧ ∀ a b, Pre (a ++ b) → Pre a
+
+/-- **A reader of a stream in `Pre` and `Φ`** (persistent, D42): its `Read` from a state `Src r`
+(`r` read so far; `io.EOF`'s value `e`) reads `ys` with `r ++ ys` in `Pre`, and returns `EOF` only
+at a complete stream, in `Φ`. The contract of a streamed body's reader on either side of the
+connection (`streamHas`, `bodyStream_streamReaderOk`), and of a reader wrapping one. -/
+def streamReaderOk (rd : GoInterface) (Src : List w8 → IProp GF) (Pre Φ : List w8 → Prop)
+    (e : GoInterface) : IProp GF :=
+  iprop(∃ ri : GoInterfaceOk, ⌜rd = GoInterface.ok ri⌝ ∗
+    □ (∀ (r : List w8) (p : GoSlice) (xs : List w8),
+      {{ Src r ∗ p ↦* xs ∗ ioEOF e }}
+        (App (Val #(methods ri.ty go!"Read" ri.v)) (Val #p))
+      {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
+          ∃ ys : List w8, ⌜ys.length = sint.nat n ∧ Pre (r ++ ys) ∧ (err = e → Φ (r ++ ys))⌝ ∗
+          p ↦* (ys ++ xs.drop ys.length) ∗ Src (r ++ ys) }}))
+
+instance streamReaderOk_persistent (rd : GoInterface) (Src : List w8 → IProp GF)
+    (Pre Φ : List w8 → Prop) (e : GoInterface) : Persistent (streamReaderOk rd Src Pre Φ e) := by
+  unfold streamReaderOk; infer_instance
+
+/-- **The right to read the stream of `rd`, in `Pre` and `Φ`** (exclusive, D42): a reader keeping
+the contract, at its start. What `NewRequest` takes as a streamed body. -/
+def streamHas (rd : GoInterface) (Pre Φ : List w8 → Prop) : IProp GF :=
+  iprop(∃ (Src : List w8 → IProp GF) (e : GoInterface), ioEOF e ∗ streamReaderOk rd Src Pre Φ e ∗
+    Src [] ∗ ⌜prefixClosed Pre⌝)
+
+/-- **A request body as its client gives it** (D42): fixed bytes, or a stream in `Pre` and `Φ`. -/
+inductive Body where
+  | fixed (bs : List w8)
+  | stream (Pre Φ : List w8 → Prop)
+
+/-- A body's bytes in its request (`HReq.body`): a streamed body's are not the request's. -/
+@[reducible] def Body.bytes : Body → List w8
+  | .fixed bs => bs
+  | .stream _ _ => []
+
+/-- **A reader of the body `K`** (exclusive, D42): `readerHas` of a fixed body's bytes, `streamHas`
+of a stream. -/
+def bodyHas (rd : GoInterface) : Body → IProp GF
+  | .fixed bs => readerHas rd bs
+  | .stream Pre Φ => streamHas rd Pre Φ
+
+theorem bodyHas_fixed (rd : GoInterface) (bs : List w8) :
+    bodyHas (GF := GF) rd (.fixed bs) = readerHas rd bs := rfl
+
+/-- `reqStream`'s fact, raw (opaque). -/
+opaque reqStreamRaw (r : Loc) (Pre Φ : List w8 → Prop) : IProp GF
+
+/-- **A request's streamed body** (exclusive, D42): the right to its body's stream, which
+`RoundTrip` takes; nothing for a fixed body (its bytes are in `reqOwn`'s `HReq`). -/
+@[reducible] def reqStream (r : Loc) : Body → IProp GF
+  | .fixed _ => iprop(True)
+  | .stream Pre Φ => reqStreamRaw r Pre Φ
+
 /-- **A response's body reader** for the request `R` to `a`, of status `st`, having read `r`
 (exclusive): its reads stay a prefix of what the handler wrote. -/
 opaque respReader (H : HttpNet GF) (rd : GoInterface) (R : HReq) (γk : GName) (st : w64)
@@ -363,21 +440,42 @@ def respCloser (rd : GoInterface) : IProp GF := iprop(□ respCloserRaw rd)
 instance respCloser_persistent (rd : GoInterface) : Persistent (respCloser (GF := GF) rd) := by
   unfold respCloser; infer_instance
 
+/-- **How a request of body `K` may be sent** (D42): a fixed body for a request its host's
+protocol does not stream; a streamed body for one it does, with the protocol's contract of it. -/
+@[reducible] def reqSendOk (H : HttpNet GF) (R : HReq) (γk : GName) : Body → IProp GF
+  | .fixed _ => iprop(⌜¬ (H.proto R.host).streamed R⌝)
+  | .stream Pre Φ => iprop(⌜(H.proto R.host).streamed R ∧ R.body = []⌝ ∗
+      □ (H.proto R.host).sreq R γk Pre Φ)
+
+/-- `netErr`'s fact, raw (opaque). -/
+opaque netErrRaw (e : GoInterface) : IProp GF
+
+/-- **An error net/http made** (persistent; 2026-10-24, rafthttp stage 7d): `RoundTrip`'s, a
+response body read's (`ReadAll_any_spec`). Such an error wraps nothing of the program's but its
+request body's reader's errors; what rafthttp concludes of it is `rafthttp.netErrNotRemoved_spec`
+(it is not rafthttp's `errMemberRemoved`). -/
+def netErr (e : GoInterface) : IProp GF := iprop(□ netErrRaw e)
+
+instance netErr_persistent (e : GoInterface) : Persistent (netErr (GF := GF) e) := by
+  unfold netErr; infer_instance
+
 /-- **A round tripper of the network `H`** (persistent; what rafthttp's names-only
 `NewRoundTripper`/`newStreamRoundTripper` return): `RoundTrip` of a request built for `R`, with
 its ticket `γk`, the protocol registered for its host (`httpProtoAt`) and
-`□ (H.proto R.host).req R γk`, either fails or returns a response whose status
+`□ (H.proto R.host).req R γk`, (D42) its body of a kind the protocol allows (`reqSendOk`, with a
+streamed body's stream, `reqStream`, which `RoundTrip` consumes), either fails (with an error of
+net/http's, `netErr`: stage 7d) or returns a response whose status
 `st` is the handler's (with `□ ∃ w, resp R γk st w`) and whose body reader starts at `[]`, with
 the right to close the body (`respCloser`, 2026-10-23, stage 5e-3); the request is the caller's
 again (`RoundTrip` must not modify it). -/
 def roundTripperOk (H : HttpNet GF) (rt : GoInterface) : IProp GF :=
   iprop(∃ ti : GoInterfaceOk, ⌜rt = GoInterface.ok ti⌝ ∗
-    □ (∀ (r : Loc) (R : HReq) (γk : GName),
-      {{ reqOwn r R ∗ reqTicket γk ∗ httpProtoAt R.host (H.proto R.host) ∗
-          □ (H.proto R.host).req R γk }}
+    □ (∀ (r : Loc) (R : HReq) (γk : GName) (K : Body),
+      {{ reqOwn r R ∗ reqStream r K ∗ reqSendOk H R γk K ∗ reqTicket γk ∗
+          httpProtoAt R.host (H.proto R.host) ∗ □ (H.proto R.host).req R γk }}
         (App (Val #(methods ti.ty go!"RoundTrip" ti.v)) (Val #r))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); reqOwn r R ∗
-          (⌜err ≠ GoInterface.nil⌝ ∗ errStrOk err ∨
+          (⌜err ≠ GoInterface.nil⌝ ∗ errStrOk err ∗ netErr err ∨
            ⌜err = GoInterface.nil⌝ ∗ ∃ (st : w64) (rd : GoInterface),
             respAt resp st rd (fun hc => ∃ hs, (H.proto R.host).rhdr R hs ∧ srvView hs hc) ∗
             (□ ∃ w, (H.proto R.host).resp R γk st w) ∗
@@ -409,6 +507,27 @@ instance reqAt_persistent (r : Loc) (R : HReq) (rd : GoInterface) :
 `R.body`; `EOF` only once all of it is read. -/
 opaque bodyReader (rd : GoInterface) (R : HReq) (r : List w8) : IProp GF
 
+/-- **A streamed request body's reader**, in `Pre` and `Φ`, having read `r` (exclusive, D42): its
+reads stay in `Pre`; `EOF` only at a complete stream, in `Φ` (`bodyStreamRead_spec`). -/
+opaque bodyStream (rd : GoInterface) (Pre Φ : List w8 → Prop) (r : List w8) : IProp GF
+
+/-- **A received request's body** (D42): the request's bytes for a request its protocol does not
+stream (`bodyReader`); for one it does, a stream in `Pre` and `Φ` of the protocol's contract
+(`bodyStream`). -/
+def reqBody (H : HttpNet GF) (a : GoString) (R : HReq) (γk : GName) (rd : GoInterface) :
+    IProp GF :=
+  iprop((⌜¬ (H.proto a).streamed R⌝ ∗ bodyReader rd R []) ∨
+    (⌜(H.proto a).streamed R⌝ ∗ ∃ Pre Φ : List w8 → Prop,
+      □ (H.proto a).sreq R γk Pre Φ ∗ ⌜prefixClosed Pre⌝ ∗ bodyStream rd Pre Φ []))
+
+/-- A request the protocol does not stream has its bytes as its body. -/
+theorem reqBody_fixed (H : HttpNet GF) (a : GoString) (R : HReq) (γk : GName) (rd : GoInterface)
+    (h : ¬ (H.proto a).streamed R) : reqBody H a R γk rd ⊢ bodyReader rd R [] := by
+  unfold reqBody
+  iintro (⟨-, Hb⟩ | ⟨%hs, -⟩)
+  · iexact Hb
+  · exact absurd hs h
+
 /-- **A response writer** for the request `R` to `a`, with the status set (`none` before
 `WriteHeader`) and the bytes written `w` (exclusive; it may be passed to another goroutine, as the
 stream handler does). -/
@@ -424,7 +543,8 @@ def handlerDone (H : HttpNet GF) (wr : GoInterface) (a : GoString) (R : HReq) (�
     ⌜v.isPanic = true⌝ ∗ respWriter H wr a R γk none [])
 
 /-- **A handler of the address `a`** (persistent), lending each invocation the resource `Rs`:
-`ServeHTTP` of any request the network delivers to `a`, with its ticket, its body reader and a
+`ServeHTTP` of any request the network delivers to `a`, with its ticket, its body (`reqBody`,
+D42: fixed or streamed, as the protocol says) and a
 fresh response writer (a non-`nil` interface value, an `http.Flusher`: the server's writers are)
 with its empty header map, returns `Rs` and the writer (`handlerDone`; or panics, giving them back
 too: `Serve` recovers the panic). -/
@@ -432,7 +552,7 @@ def handlerOk (H : HttpNet GF) (a : GoString) (Rs : IProp GF) (h : GoInterface) 
   iprop(∃ hi : GoInterfaceOk, ⌜h = GoInterface.ok hi⌝ ∗
     □ (∀ (wi : GoInterfaceOk) (r : Loc) (R : HReq) (γk : GName) (rd : GoInterface),
       reqAt r R rd -∗ ⌜R.host = a⌝ -∗ □ (H.proto a).req R γk -∗ reqTicket γk -∗
-        bodyReader rd R [] -∗ respWriter H (GoInterface.ok wi) a R γk none [] -∗
+        reqBody H a R γk rd -∗ respWriter H (GoInterface.ok wi) a R γk none [] -∗
         respHdrs (GoInterface.ok wi) [] -∗
         ⌜go.typeSetContains wi.ty _root_.Perennial.net.http.Flusher.ty = true⌝ -∗ Rs -∗
         WP (App (App (Val #(methods hi.ty go!"ServeHTTP" hi.v)) (Val #(GoInterface.ok wi)))
@@ -470,6 +590,32 @@ def bodyRead_spec : Prop :=
           ∃ ys : List w8, ⌜ys.length = sint.nat n ∧ r ++ ys <+: R.body ∧
             (err = e → r ++ ys = R.body)⌝ ∗
           p ↦* (ys ++ xs.drop ys.length) ∗ bodyReader rd R (r ++ ys) }}
+
+/-- (D42) A streamed request body's `Read(p)`: some `n` bytes `ys` (into `p`'s first `n`), with
+what has been read in `Pre`; `EOF` only at a complete stream, in `Φ`. The physical assumption of
+the file header: a chunked body's bytes the server reads are a prefix of what the client's reader
+yielded, and end with `EOF` only where the reader's stream did. -/
+def bodyStreamRead_spec : Prop :=
+  ∀ (rd : GoInterface) (ri : GoInterfaceOk) (Pre Φ : List w8 → Prop) (r : List w8) (p : GoSlice)
+    (xs : List w8) (e : GoInterface),
+    rd = GoInterface.ok ri →
+    ⊢ {{ bodyStream (GF := GF) rd Pre Φ r ∗ p ↦* xs ∗ ioEOF e }}
+        (App (Val #(methods ri.ty go!"Read" ri.v)) (Val #p))
+      {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
+          ∃ ys : List w8, ⌜ys.length = sint.nat n ∧ Pre (r ++ ys) ∧ (err = e → Φ (r ++ ys))⌝ ∗
+          p ↦* (ys ++ xs.drop ys.length) ∗ bodyStream rd Pre Φ (r ++ ys) }}
+
+/-- (D42) `io.ReadFull(rd, p)` of a streamed request body: `len(p)` bytes, with what has been read
+in `Pre`, or fewer and an error whose `Error()` returns (net/http's or `io.ErrUnexpectedEOF`): the
+envelope decoder's read (`messageDecoder.decodeLimit`, over `readFullAt`). -/
+def ReadFull_stream_spec : Prop :=
+  ∀ (rd : GoInterface) (Pre Φ : List w8 → Prop) (r : List w8) (p : GoSlice) (xs : List w8),
+    ⊢ {{ bodyStream (GF := GF) rd Pre Φ r ∗ p ↦* xs }}
+        (App (App (Val (@! _root_.Perennial.io.ReadFull)) (Val #rd)) (Val #p))
+      {{ (n : w64) (err : GoInterface), RET (PairV #n #err);
+          ∃ ys : List w8, ⌜sint.Z n = ys.length ∧ ys.length ≤ xs.length ∧
+            (err = GoInterface.nil → ys.length = xs.length) ∧ Pre (r ++ ys)⌝ ∗
+          p ↦* (ys ++ xs.drop ys.length) ∗ bodyStream rd Pre Φ (r ++ ys) ∗ errStrOk err }}
 
 /-- A response body's `Read(p)`: some bytes, still a prefix of some `w` the handler wrote with
 `□ resp R st w`. -/
@@ -514,14 +660,18 @@ def respWriteHeader_spec (H : HttpNet GF) : Prop :=
 and `path` (`urlOf`, the URL `url.URL{Scheme: "http", Host: host, Path: path}.String()` gives, as
 rafthttp builds them): a request of method, host, path and body, no headers. (2026-10-23, stage 4d)
 No error for `GET` or `POST`: `NewRequest` fails only on an invalid method or a URL that does not
-parse, and the string of a parsed URL's host and a path parses (`urlHostOk`, stage 4e). -/
+parse, and the string of a parsed URL's host and a path parses (`urlHostOk`, stage 4e). (2026-10-24,
+D42) Of a fixed or a streamed body `K` (`bodyHas`): a streamed body's stream moves into the
+request (`reqStream`); Go keeps a reader that is not a `*bytes.Buffer`, `*bytes.Reader` or
+`*strings.Reader` as the body, of unknown length, which its client sends chunked. -/
 def NewRequest_spec : Prop :=
-  ∀ (meth u : GoString) (body : GoInterface) (bs : List w8) (host path : GoString),
+  ∀ (meth u : GoString) (body : GoInterface) (K : Body) (host path : GoString),
     u = urlOf host path → urlHostOk host → (meth = go!"POST" ∨ meth = go!"GET") →
-    ⊢ {{ readerHas (GF := GF) body bs }}
+    ⊢ {{ bodyHas (GF := GF) body K }}
         (App (App (App (Val (@! _root_.Perennial.net.http.NewRequest)) (Val #meth)) (Val #u))
           (Val #body))
-      {{ (r : Loc), RET (PairV #r #GoInterface.nil); reqOwn r ⟨meth, host, path, [], bs⟩ }}
+      {{ (r : Loc), RET (PairV #r #GoInterface.nil);
+          reqOwn r ⟨meth, host, path, [], K.bytes⟩ ∗ reqStream r K }}
 
 /-- `hm.Set(k, v)` (`http.Header`'s, a method of the map type) on a header map being built. -/
 def HeaderSet_spec : Prop :=
@@ -637,13 +787,13 @@ def NewBuffer_spec : Prop :=
           readerHas (interface.mkOk (go.GoType.PointerType _root_.Perennial.bytes.Buffer.ty) #rd) bs }}
 
 /-- `r.WithContext(ctx)` of a request being built: a shallow copy, the same request (for a
-non-`nil` context). -/
+non-`nil` context); (D42) its body too (a streamed body's stream, `reqStream`). -/
 def WithContext_spec : Prop :=
-  ∀ (r : Loc) (R : HReq) (ctx : GoInterfaceOk),
-    ⊢ {{ reqOwn (GF := GF) r R }}
+  ∀ (r : Loc) (R : HReq) (K : Body) (ctx : GoInterfaceOk),
+    ⊢ {{ reqOwn (GF := GF) r R ∗ reqStream r K }}
         (App (Val (r @!! go.GoType.PointerType _root_.Perennial.net.http.Request.ty @!! go!"WithContext"))
           (Val #(GoInterface.ok ctx)))
-      {{ (r' : Loc), RET #r'; reqOwn r' R }}
+      {{ (r' : Loc), RET #r'; reqOwn r' R ∗ reqStream r' K }}
 
 /-- `io.ReadAll(rd)` of a response body: some bytes read (a prefix of what the handler wrote,
 `respRead_spec`'s), or an error. -/
@@ -653,6 +803,35 @@ def ReadAll_resp_spec (H : HttpNet GF) : Prop :=
         (App (Val (@! _root_.Perennial.io.ReadAll)) (Val #rd))
       {{ (sl : GoSlice) (err : GoInterface), RET (PairV #sl #err);
           ∃ bs : List w8, sl ↦* bs ∗ respReader H rd R γk st bs ∗ errStrOk err }}
+
+/-- `respReadAny`'s fact, raw (opaque). -/
+opaque respReadAnyRaw (rd : GoInterface) : IProp GF
+
+/-- **A response body read without a guarantee** (persistent; 2026-10-24, rafthttp stage 7d): its
+reads, from any goroutine, return any bytes. Two goroutines reading one body (the snapshot sender's
+`io.ReadAll` and its timer's `GracefulClose`, which drains the body after a timeout) may each take
+bytes the other would have read, so neither read is a prefix of what the handler wrote; Go's
+response body serializes its reads, so they are safe. What a reader of the body becomes by giving
+up its guarantee (`respReadAny_of_spec`). -/
+def respReadAny (rd : GoInterface) : IProp GF := iprop(□ respReadAnyRaw rd)
+
+instance respReadAny_persistent (rd : GoInterface) : Persistent (respReadAny (GF := GF) rd) := by
+  unfold respReadAny; infer_instance
+
+/-- **A response body's reader gives up its guarantee** (stage 7d): its reads from then on are
+`respReadAny`'s. -/
+def respReadAny_of_spec (H : HttpNet GF) : Prop :=
+  ∀ (rd : GoInterface) (R : HReq) (γk : GName) (st : w64) (r : List w8),
+    respReader H rd R γk st r ⊢ respReadAny rd
+
+/-- `io.ReadAll(rd)` of a response body read without a guarantee (stage 7d): some bytes and an
+error whose `Error()` returns. -/
+def ReadAll_any_spec : Prop :=
+  ∀ (rd : GoInterface),
+    ⊢ {{ respReadAny (GF := GF) rd }}
+        (App (Val (@! _root_.Perennial.io.ReadAll)) (Val #rd))
+      {{ (sl : GoSlice) (err : GoInterface), RET (PairV #sl #err);
+          ∃ bs : List w8, sl ↦* bs ∗ errStrOk err ∗ netErr err }}
 
 /-- A response body's `Close()` with its closer right, from any goroutine, any number of times:
 some error, whose `Error()` returns. -/
@@ -723,7 +902,7 @@ def handlerFor (H : HttpNet GF) (a : GoString) (Rs : IProp GF) (pats : List GoSt
   iprop(∃ hi : GoInterfaceOk, ⌜h = GoInterface.ok hi⌝ ∗
     □ (∀ (wi : GoInterfaceOk) (r : Loc) (R : HReq) (γk : GName) (rd : GoInterface),
       reqAt r R rd -∗ ⌜R.host = a ∧ route pats R.path = some pat⌝ -∗ □ (H.proto a).req R γk -∗
-        reqTicket γk -∗ bodyReader rd R [] -∗ respWriter H (GoInterface.ok wi) a R γk none [] -∗
+        reqTicket γk -∗ reqBody H a R γk rd -∗ respWriter H (GoInterface.ok wi) a R γk none [] -∗
         respHdrs (GoInterface.ok wi) [] -∗
         ⌜go.typeSetContains wi.ty _root_.Perennial.net.http.Flusher.ty = true⌝ -∗ Rs -∗
         WP (App (App (Val #(methods hi.ty go!"ServeHTTP" hi.v)) (Val #(GoInterface.ok wi)))
@@ -812,6 +991,21 @@ theorem bodyReader_prefixOk (hR : bodyRead_spec (GF := GF)) (rd : GoInterface) (
     iintro !> %r %p %xs %Φ !> ⟨Hs, Hp, #He⟩ HΦ
     iapply (hR _ ri R r p xs e rfl) $$ [$Hs $Hp $He]
     iexact HΦ
+
+/-- A streamed request body's reader keeps the stream contract (`bodyStreamRead_spec`; D42). -/
+theorem bodyStream_streamReaderOk (hR : bodyStreamRead_spec (GF := GF)) (rd : GoInterface)
+    (Pre Φ : List w8 → Prop) (e : GoInterface) (hrd : rd ≠ GoInterface.nil) :
+    ⊢ streamReaderOk (GF := GF) rd (bodyStream rd Pre Φ) Pre Φ e := by
+  cases rd with
+  | nil => exact absurd rfl hrd
+  | ok ri =>
+    unfold streamReaderOk
+    iexists ri
+    isplitr
+    · ipureintro; rfl
+    iintro !> %r %p %xs %Ψ !> ⟨Hs, Hp, #He⟩ HΨ
+    iapply (hR _ ri Pre Φ r p xs e rfl) $$ [$Hs $Hp $He]
+    iexact HΨ
 
 end defs
 
