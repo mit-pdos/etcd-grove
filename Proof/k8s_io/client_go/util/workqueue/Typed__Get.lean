@@ -113,14 +113,14 @@ theorem Typed.Get.wp_proof
     wp_apply wp_slice_literal
     isplitr
     · ipureintro; rfl
-    iintro %l1 ⟨Hl1, _⟩
+    iintro %l1 ⟨Hl1, -⟩
     simp only [go.arrayLiteralSize, List.foldl]
     (try wp_auto)
     wp_apply (sets.Set.wp_ptr_Insert_of wp_Insert) $$ [$Hproc $Hproc_i $Hl1] as ⟨-, Hproc_i, -⟩
     wp_apply wp_slice_literal
     isplitr
     · ipureintro; rfl
-    iintro %l2 ⟨Hl2, _⟩
+    iintro %l2 ⟨Hl2, -⟩
     simp only [go.arrayLiteralSize, List.foldl]
     (try wp_auto)
     wp_apply (sets.Set.wp_ptr_Delete_of wp_Delete) $$ [$Hdirty $Hdirty_i $Hl2] as ⟨-, Hdirty_i, -⟩

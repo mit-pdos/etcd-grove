@@ -447,12 +447,15 @@ translated one, and its untranslated `init` functions, which `initFuncsOk` says 
 )
 
 SPECIAL['k8s_io.client_go.util.workqueue'] = dict(
-    doc='''Its fact is `True`. Its initializer allocates its variables (`metrics.go`:
-`globalMetricsProvider`, a `noopMetricsProvider{}`, and the zero `setGlobalMetricsProviderOnce`),
-initializes its imports and runs the translated initializer.''',
+    doc='''Its fact (`workqueueInit`, `Proof/k8s_io/client_go/Base.lean`; 2026-10-26, the queue's
+proofs): `globalMetricsProvider` holds the no-op provider, read-only for good. Its initializer
+allocates its variables (`metrics.go`: `globalMetricsProvider`, a `noopMetricsProvider{}`, and the
+zero `setGlobalMetricsProviderOnce`), initializes its imports and runs the translated initializer.''',
     alloc_types={'setGlobalMetricsProviderOnce': '_root_.Perennial.sync.Once',
                  'globalMetricsProvider': 'GoInterface'},
     before={'$end': ['try wp_auto']},
+    finish=['ipersist HglobalMetricsProvider'] + FIN_PRE[:6] + ['imodintro',
+            'unfold _root_.Perennial.k8s_io.client_go.workqueueInit', 'iexact HglobalMetricsProvider'],
 )
 
 SPECIAL['k8s_io.client_go.util.retry'] = dict(

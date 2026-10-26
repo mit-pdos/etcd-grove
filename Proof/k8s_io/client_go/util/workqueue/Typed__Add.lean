@@ -58,7 +58,7 @@ theorem Typed.Add.wp_proof
       wp_apply wp_slice_literal
       isplitr
       · ipureintro; rfl
-      iintro %l1 ⟨Hl1, _⟩
+      iintro %l1 ⟨Hl1, -⟩
       simp only [go.arrayLiteralSize, List.foldl]
       (try wp_auto)
       wp_apply (sets.Set.wp_ptr_Insert_of wp_Insert) $$ [$Hdirty $Hdirty_i $Hl1] as ⟨-, Hdirty_i, -⟩

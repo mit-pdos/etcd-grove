@@ -54,9 +54,19 @@ instance k8s_io_client_go_util_consistency_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.client_go.util.consistency :=
   build_get_is_pkg_init_wf
 
+/-- The work queue's package fact (2026-10-26, its proofs: `Proof/k8s_io/client_go/util/workqueue/`):
+`globalMetricsProvider` holds the no-op provider, read-only for good. Its initializer stores
+`noopMetricsProvider{}`; `SetProvider` would replace it, and has no spec (a program that sets a
+global provider is outside the queue's specs, which cover queues without metrics). -/
+def workqueueInit : IProp GF :=
+  iprop(globalAddr k8s_io.client_go.util.workqueue.globalMetricsProvider ↦□
+    (interface.mkOk k8s_io.client_go.util.workqueue.noopMetricsProvider.ty
+      #(k8s_io.client_go.util.workqueue.noopMetricsProvider.mk) :
+      k8s_io.client_go.util.workqueue.MetricsProvider))
+
 instance k8s_io_client_go_util_workqueue_is_pkg_init_inst :
     IsPkgInit (IProp GF) pkg_id.k8s_io.client_go.util.workqueue :=
-  define_is_pkg_init iprop(True)
+  define_is_pkg_init workqueueInit
 instance k8s_io_client_go_util_workqueue_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.client_go.util.workqueue :=
   build_get_is_pkg_init_wf

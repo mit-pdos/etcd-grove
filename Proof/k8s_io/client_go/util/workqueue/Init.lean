@@ -2,9 +2,10 @@
 Package initialization of `k8s_io.client_go.util.workqueue`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
-Its fact is `True`. Its initializer allocates its variables (`metrics.go`:
-`globalMetricsProvider`, a `noopMetricsProvider{}`, and the zero `setGlobalMetricsProviderOnce`),
-initializes its imports and runs the translated initializer.
+Its fact (`workqueueInit`, `Proof/k8s_io/client_go/Base.lean`; 2026-10-26, the queue's
+proofs): `globalMetricsProvider` holds the no-op provider, read-only for good. Its initializer
+allocates its variables (`metrics.go`: `globalMetricsProvider`, a `noopMetricsProvider{}`, and the
+zero `setGlobalMetricsProviderOnce`), initializes its imports and runs the translated initializer.
 -/
 module
 
@@ -79,6 +80,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
+  iapply wp_fupd
   wp_apply wp_GlobalAlloc (V := _root_.Perennial.sync.Once) setGlobalMetricsProviderOnce _ as HsetGlobalMetricsProviderOnce
   wp_apply wp_GlobalAlloc (V := GoInterface) globalMetricsProvider _ as HglobalMetricsProvider
   wp_apply (_root_.Perennial.k8s_io.apimachinery.pkg.util.sets.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd10⟩
@@ -100,8 +102,16 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (opaqueInitsOk «_».init (by mem_tac))
   -- translated initializer of globalMetricsProvider))
   try wp_auto
+  ipersist HglobalMetricsProvider
   iframe Hown
+  imodintro
+  isplitr
+  · ipureintro
+    exact isPanic_intoVal _
   is_pkg_init_finish
+  imodintro
+  unfold _root_.Perennial.k8s_io.client_go.workqueueInit
+  iexact HglobalMetricsProvider
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)

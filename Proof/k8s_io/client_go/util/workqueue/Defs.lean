@@ -156,6 +156,26 @@ attribute [instance] QItem.zero QItem.tp QItem.ivt QItem.deq QItem.inj QItem.cnt
 
 variable {K : Type} {T : go.GoType} [QItem (GF := GF) K T]
 
+/-- The no-op metrics provider, as a `MetricsProvider` (the global default). -/
+abbrev noopProvider : MetricsProvider :=
+  interface.mkOk noopMetricsProvider.ty #(noopMetricsProvider.mk)
+
+/-- No metrics, as a `queueMetrics[T]`. -/
+abbrev noMetricsI (T : go.GoType) : queueMetrics K :=
+  interface.mkOk (noMetrics.ty T) #(noMetrics.mk : noMetrics K)
+
+/-- The configurations the queue's specs cover: the default FIFO (`Queue` unset), and no metrics
+(unnamed, or the provider unset, so the global no-op one, or the no-op one). -/
+def queueConfigOk (cfg : TypedQueueConfig K) : Prop :=
+  cfg.Queue' = interface.nil ∧
+    (cfg.Name' = [] ∨ cfg.MetricsProvider' = interface.nil ∨ cfg.MetricsProvider' = noopProvider)
+
+/-- The package's fact: the global metrics provider is the no-op one. -/
+theorem globalProvider_noop :
+    isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.util.workqueue ⊢
+      globalAddr globalMetricsProvider ↦□ noopProvider := by
+  with_unfolding_all exact isPkgInit_access (PROP := IProp GF) pkg_id.k8s_io.client_go.util.workqueue
+
 /-- The slice FIFO at `l` (a `*queue[T]`) holds `xs`, front first: the slice header, its
 elements and its capacity. -/
 def ownFifo (l : Loc) (xs : List K) : IProp GF :=
@@ -187,6 +207,20 @@ def shutdownToks (γ : QNames) (n : Nat) : IProp GF := ownToks γ.pool n
 def sdGhost (γ : QNames) (b : Bool) : IProp GF :=
   if b then shutdownLb γ else dghostVar γ.sd (DFrac.own 1) false
 
+/-- Setting the flag: its ghost state becomes `true`, persistently. -/
+theorem sdGhost_shut (γ : QNames) (b : Bool) : sdGhost (GF := GF) γ b ⊢ |==> shutdownLb γ := by
+  unfold sdGhost
+  cases b
+  · simp only [Bool.false_eq_true, ↓reduceIte]
+    iintro H
+    imod dghostVar_update true γ.sd false $$ H with H
+    iunfold shutdownLb
+    iapply dghostVar_persist $$ H
+  · simp only [↓reduceIte]; iintro H; imodintro; iexact H
+
+theorem sdGhost_true (γ : QNames) : shutdownLb (GF := GF) γ ⊢ sdGhost γ true := by
+  unfold sdGhost; simp only [↓reduceIte]; exact .rfl
+
 /-- **The lock invariant** of the queue's mutex: the FIFO, the sets, the flags at the abstract
 state `σ` (`wf`), the processing set's ghost authority, the flag's ghost state. -/
 def qLockInv (q : Loc) (L : QLocs) (γ : QNames) : IProp GF :=
@@ -203,7 +237,7 @@ def qLockInv (q : Loc) (L : QLocs) (γ : QNames) : IProp GF :=
 /-- The invariant of the wait group `wg` (whose counter stays `0`: no goroutine is started):
 the counter, the waiters' authority, one shutdown token per possible waiter, and the tokens'
 authority. -/
-def wgInv (γ : QNames) : IProp GF :=
+abbrev wgInv (γ : QNames) : IProp GF :=
   iprop(∃ w : Nat,
     sync.ownWaitGroup γ.wg (W32 0) ∗ sync.ownWaitGroupWaiters γ.wg w ∗ ownToks γ.pool w ∗
     ownTokAuth γ.pool shutdownPool)
