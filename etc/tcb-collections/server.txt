@@ -112,6 +112,7 @@ axiom context.ErrAny.wp_proof
 axiom context.ValueStartTime.wp_proof
 axiom context.WithCancelBackground.wp_proof
 axiom context.WithValue.wp_proof
+axiom encoding.json.Unmarshal.wp_proof
 axiom errors.AsLeaf.wp_proof
 axiom errors.IsCtxErr.wp_proof
 axiom etcdserverpb.AlarmType.String.wp_proof
@@ -167,6 +168,7 @@ axiom membership.RaftCluster.Recover.wp_proof
 axiom membership.RaftCluster.SetBackend.wp_proof
 axiom membership.RaftCluster.SetVersionChangedNotifier.wp_proof
 axiom membership.RaftCluster.String.wp_proof
+axiom membership.RaftCluster.updateMembershipMetric.wp_proof
 axiom metadata.FromIncomingContext.wp_proof
 axiom monitorFileDescriptor.wp_proof
 axiom mvcc.kbNoCmp_metaNone

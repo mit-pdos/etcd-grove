@@ -193,6 +193,9 @@ the requests in flight finish (`ErrStopped`). *(B)* Also `Stop`/`HardStop` from 
   backend's member delete (`schema`'s `MustDeleteMemberFromBackend`); `rcLockInv`'s `removed` map
   no longer empty, `IsIDRemoved`'s spec real (`localKept` restated: the local member may be removed).
   New Perennial gaps go to `notes/perennial-changes.md` (v2store's paths).
+  **M4 done (2026-10-26, branch `membership-m4`)**: M4a-M4d as below; see `notes/decisions.md`,
+  D43, "M4 carried out". (`mustAddToRemovedMembersInStore` is not in the fork's `RemoveMember`:
+  the v2 store is gone.)
   *Scoped 2026-10-26* (D43 "M4"): (i) the user's decision: the fork fix of
   `issues/etcd-unary-interceptor-learner-removed.md` (`IsLocalMemberLearner` returns `false`
   for a removed local member, as etcd-io/etcd#22188; fork branch `goose-lean-learnerfix`,

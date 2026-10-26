@@ -123,6 +123,7 @@ public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.PutRequest__GetLease
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__IsIDRemoved
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__Members
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__RemoveMember
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__ValidateConfigurationChange
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster__updateMembershipMetric
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest__GetCountOnly
 public import Proof.go_etcd_io.etcd.api.v3.etcdserverpb.RangeRequest__GetKey
@@ -228,6 +229,7 @@ public import Proof.io.Pipe
 public import Proof.io.PipeWriter__CloseWithError
 public import Proof.go_etcd_io.etcd.pkg.v3.ioutil.NewLimitedBufferReader
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.isPriorityRequest
+public import Proof.encoding.json.Unmarshal
 public import Proof.go_etcd_io.etcd.server.v3.lease.LeaseExpiredNotifier__RegisterOrUpdate
 public import Proof.go_etcd_io.etcd.server.v3.lease.LeaseQueue__Len
 public import Proof.go_etcd_io.etcd.server.v3.lease.LeaseQueue__Less
@@ -926,6 +928,14 @@ theorem zap.wp_Bool :
 theorem membership.RaftCluster.wp_RemoveMember :
     membership.RaftCluster.RemoveMember.spec (GF := GF) (hG := hG) :=
   membership.RaftCluster.RemoveMember.wp_proof membership.RaftCluster.wp_updateMembershipMetric types.ID.wp_String_ptr zap.Logger.wp_Info zap.Logger.wp_Warn zap.wp_String zap.wp_Strings zap.wp_Bool
+
+theorem encoding.json.wp_Unmarshal :
+    encoding.json.Unmarshal.spec (GF := GF) (hG := hG) :=
+  encoding.json.Unmarshal.wp_proof
+
+theorem membership.RaftCluster.wp_ValidateConfigurationChange :
+    membership.RaftCluster.ValidateConfigurationChange.spec (GF := GF) (hG := hG) :=
+  membership.RaftCluster.ValidateConfigurationChange.wp_proof encoding.json.wp_Unmarshal raftpb.ConfChange.wp_GetNodeId raftpb.ConfChange.wp_GetType
 
 theorem auth.authStore.wp_Revision :
     auth.authStore.Revision.spec (GF := GF) (hG := hG) :=

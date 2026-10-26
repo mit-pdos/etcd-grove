@@ -189,6 +189,9 @@ PROJECTS = [
                     "github.com/Masterminds/semver=", "go.etcd.io/raft/v3=",
                     "golang.org/x/time=", "golang.org/x/crypto=", "github.com/xiang90/probing=",
                     "crypto/tls=",
+                    # (D43 M4, 2026-10-26) membership's `json.Unmarshal` (the k8s-apiserver
+                    # project's names-only translation, `Code/encoding/json.lean`)
+                    "encoding/json=",
                     "github.com/grpc-ecosystem="],
         packages=[
             # with bodies (cache/v3.toml)
