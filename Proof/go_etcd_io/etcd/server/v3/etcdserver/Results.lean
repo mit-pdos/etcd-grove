@@ -1157,7 +1157,7 @@ theorem apply_RoleDelete_step :
     EtcdGrove.apply.applierV3backend.RoleDelete.stepSpec (GF := GF) (hG := hG) :=
   EtcdGrove.apply.applierV3backend.RoleDelete.wp_step EtcdGrove.apply.applierV3backend.wp_newHeader
 
-/-- **The admin requests `SetUp` sends, in the mode `on γa`, from the receipts' budget**
+/-- **The admin requests in the mode `on γa`, from the receipts' budget**
 (the auth plan's E2l, `apply/AuthFuel.lean`): the step's premises from the admin side's fuel and
 one receipt of the apply thread's, the fuel given back with the step's result. -/
 theorem apply_UserAdd_fuel :
@@ -1179,6 +1179,30 @@ theorem apply_RoleGrantPermission_fuel :
 theorem apply_AuthEnable_fuel :
     EtcdGrove.apply.applierV3backend.AuthEnable.fuelSpec (GF := GF) (hG := hG) :=
   EtcdGrove.apply.applierV3backend.AuthEnable.wp_fuel apply_AuthEnable_step
+
+theorem apply_UserDelete_fuel :
+    EtcdGrove.apply.applierV3backend.UserDelete.fuelSpec (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.applierV3backend.UserDelete.wp_fuel apply_UserDelete_step
+
+theorem apply_UserChangePassword_fuel :
+    EtcdGrove.apply.applierV3backend.UserChangePassword.fuelSpec (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.applierV3backend.UserChangePassword.wp_fuel apply_UserChangePassword_step
+
+theorem apply_UserRevokeRole_fuel :
+    EtcdGrove.apply.applierV3backend.UserRevokeRole.fuelSpec (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.applierV3backend.UserRevokeRole.wp_fuel apply_UserRevokeRole_step
+
+theorem apply_RoleRevokePermission_fuel :
+    EtcdGrove.apply.applierV3backend.RoleRevokePermission.fuelSpec (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.applierV3backend.RoleRevokePermission.wp_fuel apply_RoleRevokePermission_step
+
+theorem apply_RoleDelete_fuel :
+    EtcdGrove.apply.applierV3backend.RoleDelete.fuelSpec (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.applierV3backend.RoleDelete.wp_fuel apply_RoleDelete_step
+
+theorem apply_AuthDisable_fuel :
+    EtcdGrove.apply.applierV3backend.AuthDisable.fuelSpec (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.applierV3backend.AuthDisable.wp_fuel apply_AuthDisable_step
 
 end backend
 
@@ -1204,6 +1228,12 @@ end backend
 #print axioms Perennial.EtcdGrove.apply_UserGrantRole_fuel
 #print axioms Perennial.EtcdGrove.apply_RoleGrantPermission_fuel
 #print axioms Perennial.EtcdGrove.apply_AuthEnable_fuel
+#print axioms Perennial.EtcdGrove.apply_UserDelete_fuel
+#print axioms Perennial.EtcdGrove.apply_UserChangePassword_fuel
+#print axioms Perennial.EtcdGrove.apply_UserRevokeRole_fuel
+#print axioms Perennial.EtcdGrove.apply_RoleRevokePermission_fuel
+#print axioms Perennial.EtcdGrove.apply_RoleDelete_fuel
+#print axioms Perennial.EtcdGrove.apply_AuthDisable_fuel
 #print axioms Perennial.EtcdGrove.lessor_txn_contract
 #print axioms Perennial.EtcdGrove.server_kv_backend
 #print axioms Perennial.EtcdGrove.server_kv_watchable

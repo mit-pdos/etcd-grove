@@ -19772,15 +19772,16 @@ step relations, `stepSmall_*`; `UserAdd`'s with its name's key bound, the reques
 the fuel follows the authority to the step's result (`auth.adminOut_fu`: `auth.adminOutFu`,
 `adminOut` with `authOwnFu = authOwn ∗ authFuel`). The store's start: `auth.authFuel_init` (a
 latest state small with revision at most one, as `NewAuthStore`'s `[bootState, bump bootState]`,
-from `⧗ 0`). Nothing of S4's proofs changes; nothing is asked of the request's sender, so a
+from `⧗ 0`; `auth.authFuel_boot`, `Boot.lean`, at that history). Nothing of S4's proofs changes; nothing is asked of the request's sender, so a
 request delivered several times costs a receipt per application.
 
 **(2), its first part: the apply layer's step triples from the budget** (`apply/AuthFuel.lean`;
-restated `apply_{UserAdd,RoleAdd,UserGrantRole,RoleGrantPermission,AuthEnable}_fuel`,
-`etcdserver/Results.lean`): for the five requests `examples/authkv`'s `SetUp` sends,
-`applierV3backend.X.fuelSpec` in the mode `on γa` takes `auth.authOwnFu γa hs` and one receipt
+restated `apply_X_fuel`, `etcdserver/Results.lean`): for each of the eleven admin requests (the
+five `examples/authkv`'s `SetUp` sends among them), `applierV3backend.X.fuelSpec` in the mode `on γa`
+takes `auth.authOwnFu γa hs` and one receipt
 `⧗ 1` (with `receiptBound GF ≤ 2 ^ 48`) for `AuthSteps.lean`'s `authOwn` and `stepOk` (and
-`UserGrantRole`'s roles bound), and gives `auth.adminOutFu` for `adminOut`; each derived from its
+`UserGrantRole`'s roles bound, `RoleDelete`'s users' names bound, both of the latest state's size),
+and gives `auth.adminOutFu` for `adminOut`; each derived from its
 step triple (`wp_fuel`).
 
 **(2) itself, designed, not done** (the order of the work):
@@ -19810,8 +19811,7 @@ step triple (`wp_fuel`).
 
 **(3) not attempted**: it needs the admission and the result to the waiter above.
 
-**Exported statements changed.** None. New: `apply_UserAdd_fuel`, `apply_RoleAdd_fuel`,
-`apply_UserGrantRole_fuel`, `apply_RoleGrantPermission_fuel`, `apply_AuthEnable_fuel` (and the
+**Exported statements changed.** None. New: the eleven `apply_X_fuel` (and the
 definitions `auth.authSmall`, `auth.StepSmall`, `auth.fuelOk`, `auth.authFuel`, `auth.authFuelT`,
 `auth.authOwnFu`, `auth.adminOutFu`, `apply.applierV3backend.X.fuelSpec`).
 
