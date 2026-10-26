@@ -25,8 +25,8 @@ ghost state (E2p's other option) would make the committer, raft's commit, choose
 apply thread must later reproduce, which only works if the outcome is a function of the prefix. In
 Go it is (every member applies the same prefix), but three of the model's admin steps are relations
 (`userGrantRoleR`, `roleGrantPermissionR`: the record's order after `sort.Sort`, a permission of an
-unknown type; `UserAdd`'s `ErrNoPasswordUser`, a data-dependent refusal the request model does not
-decide), so the model's step is the *unique* successor where there is one (`adminNext`), and the
+unknown type; `UserAdd`'s `ErrNoPasswordUser`, a refusal decided by the request's password choice,
+which the request model keeps since E2t: `UserAddModel.pwSure` rules it out), so the model's step is the *unique* successor where there is one (`adminNext`), and the
 mode-`on` log premise (`detLogOn`) asks every committed admin entry to have a unique successor at
 the state it is applied at, and every KV entry with auth enabled to be of the shape the permission
 cache decides (`kvDet`: `auth.reqShape`, outside of which the cache's answer is not stated). Both
@@ -81,14 +81,15 @@ open Classical in
 admin-permitted at `st` (`auth.adminOk`; `authApplierV3.Apply` checks it of `needAdminPermission`
 requests), its kind's step (`auth/Steps.lean`; the flag the steps read is `st`'s: the apply thread
 applies at the latest state); otherwise nothing. `UserAdd` may also be refused with
-`ErrNoPasswordUser`, which the request model does not decide (the state kept). An entry of another
+`ErrNoPasswordUser` (the state kept), unless its password choice cannot fail
+(`UserAddModel.pwSure`, the auth plan's E2t: the request model keeps it). An entry of another
 kind keeps the state (the mode-`on` log admits none: `plainEntryOn`). -/
 def adminStateR (rq : apply.IRRModel) (st st' : auth.AuthState) : Prop :=
   if auth.adminOk st (some (auth.authInfoM (apply.principalOf rq))) then
     match apply.dispatchKind rq with
     | .authUserAdd =>
         match rq.authUserAdd with
-        | some n => st' = st ∨ relState (auth.stepOf (auth.userAddF n)) st st'
+        | some m => (¬ m.pwSure ∧ st' = st) ∨ relState (auth.stepOf (auth.userAddF m.name)) st st'
         | none => st' = st
     | .authRoleAdd =>
         match rq.authRoleAdd with

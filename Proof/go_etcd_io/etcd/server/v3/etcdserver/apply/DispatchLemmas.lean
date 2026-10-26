@@ -97,8 +97,8 @@ theorem authenticateIs_nn (l : Loc) (a : AuthenticateModel) : authenticateIs (GF
 theorem authUserGetIs_nn (l : Loc) (a : GoString) : authUserGetIs (GF := GF) l a ⊢ ⌜l ≠ null⌝ := by
   unfold authUserGetIs; iintro ⟨%h, -⟩; ipureintro; exact h
 
-theorem authUserAddIs_nn (l : Loc) (n : GoString) : authUserAddIs (GF := GF) l n ⊢ ⌜l ≠ null⌝ := by
-  unfold authUserAddIs auth.userAddReqIs; iintro ⟨%h, -⟩; ipureintro; exact h
+theorem authUserAddIs_nn (l : Loc) (n : UserAddModel) : authUserAddIs (GF := GF) l n ⊢ ⌜l ≠ null⌝ := by
+  unfold authUserAddIs; iintro ⟨%h, -⟩; ipureintro; exact h
 
 theorem authRoleAddIs_nn (l : Loc) (n : GoString) : authRoleAddIs (GF := GF) l n ⊢ ⌜l ≠ null⌝ := by
   unfold authRoleAddIs; iintro ⟨%h, -⟩; ipureintro; exact h

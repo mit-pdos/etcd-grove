@@ -20371,3 +20371,74 @@ admin operation's and `NewAuthStore`'s statement keeps its text (they carry `aut
 **Trust base.** Unchanged (721 axioms, 6 sorries). The strengthened `authReadTxOk` makes the
 premises that state it (`NewAuthStore`'s axiom, D22's `authSchemaBoot`/`authSchemaSrv`) say more of
 the real backend: the clause above, true of it.
+
+## E2t of the auth plan: `UserAdd` determinate; the apply thread's mode-`on` KV step (2026-10-26 · `notes/auth-plan.md`)
+
+E2q found `examples/authkv`'s `SetUp` unable to commit a determinate `UserAdd` (the request model
+did not carry the password choice, so `ErrNoPasswordUser` and "added" were both successors), and
+left the mode-`on` counterpart of `kv_applied_step`. E2t does both, and states the committer's
+side as an obligation.
+
+1. **The request model keeps `UserAdd`'s password choice.** `apply.IRRModel.authUserAdd` is now
+   `Option apply.UserAddModel` (the name, `Password`, `HashedPassword`, the options' `NoPassword`;
+   `Options` nil reads as `false`, as `UserAdd` does), and `apply.authUserAddIs u m` holds the four
+   exactly, read-only (it gives the store's `auth.userAddReqIs u m.name`: `authUserAddIs_req`). The
+   decode axiom `pbutil.MustUnmarshalMessage.wp_proof` keeps its text and says more (the decoded
+   message's fields, as for E2n's grant requests): true of protobuf's decoding. **`UserAddModel.pwSure`**
+   says the choice cannot fail: no password, or the server's own form since 3.5 (`EtcdServer.UserAdd`
+   clears `Password` and puts its bcrypt hash, base64-encoded, in `HashedPassword`), which
+   `selectPassword` decodes without an error. `stdB64Enc` (base64's standard encoding) is `opaque`:
+   the model only needs its range. E2q's `adminStateR` keeps the state on `UserAdd` only when
+   `¬ pwSure`, so a `pwSure` `UserAdd` has one successor (its step's). `SetUp`'s three `UserAdd`s
+   (clientv3 sends `NoPassword: false`) go through `EtcdServer.UserAdd`, so in Go they are `pwSure`
+   (not yet proved: below).
+   - *For the apply side* (with E2s's triples): `UserAdd`'s triple must exclude `ErrNoPasswordUser`
+     when `pwSure`: `authStore.selectPassword`'s trust-boundary spec (today: an error, any) must say
+     that `selectPassword("", stdB64Enc bs)` returns no error (`base64.StdEncoding.DecodeString` of
+     its own encoding), a strengthening of the axiom, not a new one.
+   - *For the proposer side:* `EtcdServer.UserAdd` (untranslated today) gives `pwSure` of its
+     request: `base64.StdEncoding.EncodeToString`'s result is `stdB64Enc` of the hash (a boundary
+     spec of `encoding/base64`, when it is proved).
+   - Why the request's fields and not a premise "every committed `UserAdd` succeeds": the outcome is
+     decided by the request alone, and the request model is where the decoded fields already are.
+2. **The apply thread's mode-`on` KV step** (`etcdserver/KVApplyOn.lean`): `kv_applied_step`'s
+   counterpart over E2q's model. `kvCertInvOn` (the certificates' invariant, `certMapOkOn` over
+   `kvModelOn`), `kvAppliedLOn`/`kvAppliedOn` (the apply thread at the applied raft log `A`, its auth
+   state and KV log the mode-`on` model of `A`, the log certified), `srvKVInvsOn`;
+   `kv_cert_step_on` (the certificate of the next model log); **`kv_applied_step_on`**: the next
+   committed entry admitted (`plainEntryOn`) and determinate at the apply thread's state
+   (`entryDetOn`), the chain the start's with auth on, and the state after it `kvEntryOn`'s,
+   certified. What the apply thread does is the auth applier's (E2s): **`outcomeOn`** is the relation
+   its triples give (an admin entry: a successor of its step, `adminStateR`, the log kept; a KV entry
+   refused at the latest state: nothing; otherwise the entry's write), and at a determinate entry
+   every such outcome is the model's (`outcomeOn_eq`; `outcomeOn_model` the converse), so
+   **`kv_applied_out_on`** takes the outcome the apply thread reached, as a hypothesis until E2s's
+   triples land, to the next `kvAppliedLOn`. Separate definitions (not `kvCertInv`/`kvAppliedL`
+   generalized over the model) keep every mode-off statement's text and the proofs that open them.
+3. **The committer's side, as an obligation** (same file): `commitOkOn` (the new entry admitted and
+   determinate at the model's state after the committed log `L`), which the workload's entry claims
+   and the proposers establish as `plainEntry` today; `logOn_snoc` (the log stays a mode-`on` log,
+   determinate), and the KV state at the commit, where the client's update fires:
+   `kvModelOn_snoc_granted` (a granted plain write steps it by its request: the auth layer does not
+   change a write, `kvEntry_alarmChain_on`), `kvModelOn_snoc_admin`, `kvModelOn_snoc_refused` (kept).
+   `kvRaftOfOn_extends`, `kvEntryOn_grow` are their pure facts.
+
+**Exported statements changed.** Definitions: `apply.IRRModel` (`authUserAdd`'s type),
+`apply.authUserAddIs` (the model, the four fields exactly), `apply.adminKindOk` (the name of the
+model), `apply.adminReqOf`, `irrUserAdd` (takes the model), `adminStateR` (the state kept only when
+`¬ pwSure`), `isAuthStore`'s `UserAdd` contract (`authReqContractN` at `auth.userAddReqIs`, what
+`authUserAddIs` was by definition before), the chain's `UserAdd` clause (`∃ m : UserAddModel`); the
+spec `apply.applierV3backend.UserAdd.spec` (`∃ m : apply.UserAddModel, apply.authUserAddIs r m ∗
+⌜m.name.length ≤ …⌝`). No closed theorem changed; the examples' workload premises do not name the
+field. New: `stdB64Enc`, `UserAddModel`, `UserAddModel.pwSure`, `authUserAddIs_req`, and the
+definitions and theorems of `KVApplyOn.lean` above.
+
+**Not done.**
+- `outcomeOn` from the auth applier's triples (E2s): the hypothesis of `kv_applied_out_on`.
+- `UserAdd`'s triple excluding `ErrNoPasswordUser` at `pwSure` (the `selectPassword` boundary, item
+  1); `EtcdServer.UserAdd` giving `pwSure`.
+- The KV invariant's readers in the mode `on` (`kv_cert_read`, `kv_cert_floor`, the client's update at
+  the commit) over `kvCertInvOn`/`kvInvOn`, and `NewServer.specM on` over `kvInvM on` (then
+  `kvInv_ch0_on_false` stops applying).
+
+**Trust base.** Unchanged (721 axioms, 6 sorries). The decode axiom says more, as above.

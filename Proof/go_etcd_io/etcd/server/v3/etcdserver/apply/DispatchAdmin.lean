@@ -47,7 +47,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.apply go_e
 (`dispatchKind`): one of `SetUp`'s five, or none. -/
 def apply.adminReqOf (rq : apply.IRRModel) : Option apply.AdminReq :=
   match apply.dispatchKind rq with
-  | .authUserAdd => rq.authUserAdd.map .userAdd
+  | .authUserAdd => rq.authUserAdd.map (fun m => .userAdd m.name)
   | .authRoleAdd => rq.authRoleAdd.map .roleAdd
   | .authUserGrantRole => rq.authUserGrantRole.map (fun ur => .userGrantRole ur.1 ur.2)
   | .authRoleGrantPermission => rq.authRoleGrantPermission.map (fun nw => .roleGrantPermission nw.1 nw.2)
@@ -545,11 +545,11 @@ theorem apply.uberApplier.dispatch.wp_admin
     obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nUA.2 h))
     ihave #HR := apply.optReqIs_some _ _ _ _ hs $$ HUA
     have hk : dispatchKind rq = .authUserAdd := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, hs]
-    have hnm : (apply.AdminReq.userAdd x).nameOk := by
+    have hnm : (apply.AdminReq.userAdd x.name).nameOk := by
       have h := Hadmk; simp only [apply.adminKindOk, hk] at h
-      first | exact h x hs | exact h x.1 x.2 hs
-    iunfold apply.authUserAddIs at HR
-    wp_apply Hat $$ %(apply.AdminReq.userAdd x) %lUA %γa %hh %log %Pre %Q %Post %info [] [HR Hown Hrc HW Hkv Hres Hc] as %resp %err ⟨Hpost, #HeI, HW, Hdone⟩
+      exact h x hs
+    ihave #HR := apply.authUserAddIs_req _ _ $$ HR
+    wp_apply Hat $$ %(apply.AdminReq.userAdd x.name) %lUA %γa %hh %log %Pre %Q %Post %info [] [HR Hown Hrc HW Hkv Hres Hc] as %resp %err ⟨Hpost, #HeI, HW, Hdone⟩
     · ipureintro; exact ⟨Hmode, Hrb, hnm⟩
     · iunfold apply.AdminReq.reqIs
       iunfold apply.mPre
@@ -582,7 +582,7 @@ theorem apply.uberApplier.dispatch.wp_admin
       simp only [apply.dispatchAnswer, hk]
       try itrivial
     simp only [apply.adminDone, ↓reduceIte]
-    iexists _, (apply.AdminReq.userAdd x)
+    iexists _, (apply.AdminReq.userAdd x.name)
     iframe H0
     isplitr
     · ipureintro; simp [apply.adminReqOf, hk, hs]

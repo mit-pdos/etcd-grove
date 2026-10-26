@@ -51,8 +51,8 @@ def irrAuthStatus : apply.IRRModel := { apply.irrEmpty with authStatus := true }
 /-- `&pb.InternalRaftRequest{Authenticate: r}` for `r` holding `am`. -/
 def irrAuthenticate (am : apply.AuthenticateModel) : apply.IRRModel :=
   { apply.irrEmpty with authenticate := some am }
-/-- `&pb.InternalRaftRequest{AuthUserAdd: r}` for `r` naming `name`. -/
-def irrUserAdd (name : GoString) : apply.IRRModel := { apply.irrEmpty with authUserAdd := some name }
+/-- `&pb.InternalRaftRequest{AuthUserAdd: r}` for `r` holding `m` (its name, passwords and options). -/
+def irrUserAdd (m : apply.UserAddModel) : apply.IRRModel := { apply.irrEmpty with authUserAdd := some m }
 /-- `&pb.InternalRaftRequest{AuthUserDelete: r}`. -/
 def irrUserDelete : apply.IRRModel := { apply.irrEmpty with authUserDelete := true }
 /-- `&pb.InternalRaftRequest{AuthUserGet: r}` for `r` naming `name`. -/
