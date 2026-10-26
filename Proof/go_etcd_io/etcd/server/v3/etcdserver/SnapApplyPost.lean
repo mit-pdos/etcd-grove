@@ -112,7 +112,7 @@ theorem srvSnapApplied_of_walk
     %w0, %RD0, %up, %lg, %wsk, %stck, %Hpure, #HB, HSC, -, -, -, -, -, #HCI', #HhkS, -, -, -,
     #Hws, -, -, #HhP, -, #Hwa, #Hlga, Hwok, HplH, Hat, Hab, Hgv, Hbmr, Hbea, Hγt, Halb, Haub, Hclb,
     Hleb, Hlo, Hlrd, Hrt, Hrb, Hcm, Hbo, Hsc, Hwf, Hww, HwOwn, Hsr, Htl, Hlgr, Hai, Hatt, Hds, Hms,
-    Hcsa, Hcso, Hpath, HTal, Hube, Hua, -, Hra, HRD0, -, #Hkvk, #Hstopc, Hstc, Hwsw⟩
+    Hcsa, Hcso, Hpath, HTal, Hube, Hua, -, Hra, Hauar, HRD0, -, #Hkvk, #Hstopc, Hstc, Hwsw⟩
   obtain ⟨hγB, hP', -, hm0, -, hkb', hγw, -, hcov, hgnn, ho1, ho2, ho3, ho4, ho5, ho6, ho7, -, -, -,
     ho11, ho12⟩ := Hpure
   subst hγB
@@ -130,8 +130,8 @@ theorem srvSnapApplied_of_walk
   -- step 4: the applier state
   ihave HKV' := snap_applyKV s γ ci E ρ π0 d'.γB d.P d' p' γw ws g up' opts' w0 RD0 al ast lp cl x R
       zal rfl hkb' hγw hwq hpre hRok hrbw $$
-      [Hube Hua Hsr Hwf Hww HwOwn Hrt Hlo Hlrd HRD2 Hbea Hgv Hra Hwok HRD0]
-  · iframe #; iframe Hube Hua Hsr Hwf Hww HwOwn Hrt Hlo Hlrd HRD2 Hbea Hgv Hra Hwok HRD0
+      [Hube Hua Hsr Hwf Hww HwOwn Hrt Hlo Hlrd HRD2 Hbea Hgv Hra Hauar Hwok HRD0]
+  · iframe #; iframe Hube Hua Hsr Hwf Hww HwOwn Hrt Hlo Hlrd HRD2 Hbea Hgv Hra Hauar Hwok HRD0
   imod HKV' with ⟨%x', %Hx', HKV'⟩
   -- step 5: the rest buckets
   ihave HRest := snap_srvRest E (snapγ γ π0 d'.γB) (metaTM d'.γB d.P) ci p' g d'.γB d' γr al ast lp

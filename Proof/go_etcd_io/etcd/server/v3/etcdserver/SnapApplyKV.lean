@@ -52,6 +52,7 @@ Brief for the prover. Unfold `srvApplyKV` with `ua := mkOk up'`:
 - `srvBeOwn s E'`: `d'` (`snapE_kb hkb'`), the two hypotheses (`snapE_γbe`).
 - `revAuth E' ([[], []] ++ R)` from `revAuth E x.log` (`revAuth_snapE`): the bound
   `uint.nat k < x.log.length ≤ ([[], []] ++ R).length` (`hpre.length_le`).
+- `srvAuthApplyRes s E'`: the hypothesis (`snapE_authMode`; integration with the auth track's E2k).
 - `waitOk`: `srvWAddr s ↦□ w0`, `waitOk w0 RD0 …`, `RD0` the hypotheses. -/
 theorem snap_applyKV (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) (ρ : ReqNames)
     (π0 : ApplyPhys) (γB : backend.BNames) (P : backend.BParams) (d' : mvcc.KBReal)
@@ -75,7 +76,7 @@ theorem snap_applyKV (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) 
       lease.leaseOwn E.γ.leases [] ∗ lease.lessorRdOf E.γ.leases ∗ E.RD ∗
       srvBeAddr s ↦{DFrac.own (1 : Qp).half} srvBeIface d'.be ∗
       dghostVar E.γbe (DFrac.own (1 : Qp).half.half) d' ∗
-      revAuth E x.log ∗
+      revAuth E x.log ∗ srvAuthApplyRes s E ∗
       srvWAddr s ↦□ w0 ∗
       waitOk w0 RD0 (fun ot id => waitRegdOpt ρ.wait id ot) (fun ot id => waitGoneOpt ρ.wait id ot) ∗
       RD0 ⊢
@@ -86,7 +87,7 @@ theorem snap_applyKV (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) 
   have hrb : receiptBound GF ≤ 2 ^ 48 := by
     have : backend.wbInit = 2 ^ 40 - 1 := rfl
     omega
-  iintro ⟨#Hopts, #Hws, Hube, Hua, Hrd, Hfrag, Hww, Hwo, Hrt, Hlo, Hlr, HRD, Hbe, Hγbe, Hra, #Hw,
+  iintro ⟨#Hopts, #Hws, Hube, Hua, Hrd, Hfrag, Hww, Hwo, Hrt, Hlo, Hlr, HRD, Hbe, Hγbe, Hra, Hauar, #Hw,
     #Hwok, HRD0⟩
   ihave ⟨#Hub, %ns, %cr, %hz, Huo⟩ :=
     Hube $$ %(snapE E (snapγ γ π0 γB) (metaTM γB P) ci p' g γB al ast lp cl d'.be) %rfl Hopts
@@ -131,6 +132,11 @@ theorem snap_applyKV (s : Loc) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF) 
     have h2 := hpre.length_le
     simp only at h2 ⊢
     omega
+  isplitl [Hauar]
+  · iunfold srvAuthApplyRes at Hauar
+    unfold srvAuthApplyRes
+    simp only [snapE_authMode]
+    iexact Hauar
   iexists w0, RD0
   iframe Hw Hwok HRD0
 

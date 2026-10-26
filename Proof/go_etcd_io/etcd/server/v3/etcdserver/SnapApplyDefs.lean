@@ -195,7 +195,7 @@ def snapWalkPost (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E :
     srvUberApplyAddr s ↦ (interface.mkOk apply.uberApplier.ty.PointerType #up' : GoInterface) ∗
     -- what is left of the old backend's and the old applier's
     backend.rbOwn d.γB (restModel γr.kv.c0 γr.raft.raft.reBoot (γr.raft.pre ++ A)).bk ∗
-    revAuth E x.log ∗ RD0 ∗ apply.uberOwn E up x.chain ∗
+    revAuth E x.log ∗ srvAuthApplyRes s E ∗ RD0 ∗ apply.uberOwn E up x.chain ∗
     -- the watchable store's own closer's parts (`restorePre_of_apply`'s)
     srvKVAddr s ↦□ (interface.mkOk (go.GoType.PointerType
       go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsk : GoInterface) ∗

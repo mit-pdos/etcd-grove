@@ -319,7 +319,7 @@ theorem applySnapshot_walk
   icases HoObj with ⟨HoAl, HoAu, HoLe, HoCl⟩
   -- the apply thread's KV resources
   iunfold srvApplyKV at HKV
-  icases HKV with ⟨%ua, Hua, #Hufor, HaKV, Hbo, Hrev, %w0, %RD0, #Hwf, #Hwok, HRD0⟩
+  icases HKV with ⟨%ua, Hua, #Hufor, HaKV, Hbo, Hrev, Hauar, %w0, %RD0, #Hwf, #Hwok, HRD0⟩
   iunfold apply.applyKV at HaKV
   icases HaKV with ⟨%up, %Hup, HuOwn, HkvOwn⟩
   ihave Hrp := etcdserver.restorePre_of_apply s E x.log hwq $$ [$HkvOwn $Hkvc]
