@@ -94,7 +94,10 @@ theorem.
   takes `isRaftCluster`, `clusterMem` at `L`, `srvRLogLb γ L'`: not pure, see `notes/decisions.md`,
   "D22 J7". Left for J8a (not derivable from `srvImage`): `hmeta` at the snapshot's term and
   `hRok`; both need `imageAt`/`dbImage` strengthened at the sender (and raft's `Ready` to tie the
-  snapshot's term to its last entry's).
+  snapshot's term to its last entry's). **J7b done (2026-10-26)**: `imageAt` carries
+  `IdxWf (kvModel γk A) []` (`soleWriter_idxWf` at the sender), `SnapImageFacts.hRok`/`hlen`;
+  `hmeta` by generalizing `specSnap` to the image's stored term `tI` (no term tracking, no `Ready`
+  fact needed): `notes/decisions.md`, "D22 J7b".
 - **J6a. The raft node's payload with a snapshot** (`InvRaftNode`'s `rnReadyData`/`rnApP`,
   `InvRaftLoop`'s `rnApplyTok_recv`, `updateCommittedIndex`, `newRaftNode`, `InvRun`). After J2.
 - **J6b. `raftNode.start`'s snapshot branch** (its own module): `SaveSnap`, `Save`, `Sync`, the first

@@ -248,9 +248,13 @@ removed, ..., adequacy coverage" below.
     the restored log `R` and `certOk` with the KV jump (`snapRecv_kv_jump`, `kvApplied_of_jump`),
     from `srvImage`, the apply thread's state and the KV invariants; +1 axiom
     `membership.clusterImageOk_restModel.wp_proof` (not pure: it ties the cluster by `clusterMem`).
-    **Not derivable from the image's certificate**, for J8a: `hmeta` at the snapshot's term
-    (`imageAt` says some term) and `hRok` (`restoreLogOk R`, the sender's store's knowledge; also
-    `kv_cert_jump`'s length bound): `imageAt`/`dbImage` must carry them, set by the sender.
+    **J7b done (2026-10-26)** (`notes/decisions.md`, "D22 J7b"): the two premises J7 left.
+    `imageAt` carries `IdxWf (kvModel γk A) []` (the sender's sole writer's, `soleWriter_idxWf`;
+    `imageAt_of_snap` takes it as `hwf`), and `SnapImageFacts` gains `hRok` (`restoreLogOk R`,
+    with the model's non-empty, lease-free revisions of a plain log, `KVModelRestore.lean`) and
+    `hlen` (`snapRecv_kv_jump`'s bound). `hmeta`: `specSnap` takes the image's stored term `tI`
+    (generalized, not the snapshot's `Metadata.Term`: the consistent index's protocol tracks no
+    term, restore reads none), which `hmetaI` gives. No axiom, no `sorry`.
   - **S-j, the receiver** (`raftNode.start`'s snapshot branch; `applySnapshot` past the empty
     case: the backend swap, the `Recover`s, `kv.Restore`, the transport's peers re-made; +6 to +8
     axioms estimated): waits on the epochs. **S-k** (the quota after the swap, stage L1) **done

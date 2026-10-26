@@ -21365,3 +21365,49 @@ changes.
   `applyAll`'s snapshot case (where `ai` jumps past `w`), makes it conditional on the mode (or
   replaces the compaction's bound by `γs.cap ≥ 2^61`, L3) and drops `applyAll.spec`'s premise
   `uint.Z ai ≤ w` there.
+
+## D22 J7b: the image's KV log facts from the sender; `specSnap` at the image's stored term (2026-10-26 · decided by the orchestrator while the user was away (J7b))
+
+The two premises of `applySnapshot.specSnap` that J7 could not derive from `srvImage` ("D22 J7"),
+`hRok` and `hmeta`. No axiom, no `sorry`.
+
+- **`hRok` (`restoreLogOk R`)**, three conjuncts, split by who knows them:
+  - *the store's well-formedness* (`IdxWf ([[], []] ++ R) []`: `LogWf'`, fewer than `2 ^ 63`
+    revisions, changes per revision): not a function of the raft log the receiver can compute
+    (deletes of present keys through nested transactions; the length bound needs the sender's
+    budget, `|A'| < 2 ^ 64` only). **`imageAt` gains `mvcc.IdxWf (kvModel γk A) []`** (its last
+    conjunct), which the sender has where it calls `imageAt_of_snap` (new premise `hwf`): the apply
+    thread's sole writer at the applied log (`kvOwn`'s `kvWriter`), `soleWriter_idxWf`
+    (`SnapSendBranch.lean`: `idxSealed_pure` of its certificate, `soleWriter_small'`'s
+    `< 2 ^ 48 + 2` revisions, `LogWf'.append_nil`).
+  - *revisions non-empty, puts lease-free*: pure facts of the KV model of a plain log
+    (`KVModelRestore.lean`: `kvEntry_growsOk`, `kvRaftOf_restorable`, `restoreLogOk_kvRaftOf`; a
+    plain put's lease is `0` or the previous key-value's, a plain transaction's `opPlain`), so the
+    receiver derives them (`kv_log_plain` of the committed `A'`) and the certificate does not carry
+    them (the brief listed "non-empty revisions" among the sealed facts; deriving them is the
+    smaller certificate).
+  - `SnapImageFacts` gains `hRok : restoreLogOk R` and `hlen : |kvModel γr.kv A'| < 2 ^ 63`
+    (`kvModel_len_of_rok`, `snapRecv_kv_jump`'s premise).
+- **`hmeta`: deviation from the brief** (which had `imageAt`'s term clause become "the term of
+  `A`'s last entry", set by the sender, plus raft's `Ready` fact that `Metadata.Term` is that
+  entry's term, J6a). Not done: the sender cannot set it. The consistent index's protocol tracks no
+  term (`InvCindex.lean`'s header: `SetConsistentIndex` stores the index, then the term, two
+  atomic steps, so the specs say nothing of the term; `ApplyState` has none), so the window's
+  observation (`snapObs_window`'s `ciObs`) knows only *some* term. In Go the window's stored term is
+  `ep.appliedt` on a fresh cluster (every applied entry above the consistent index sets it), but
+  proving it would thread a term through `consInv`, `ciInv` and every `cindex` spec. And the
+  receiver does not need it: restore reads no term, and the term in `π0.m0` only names the new
+  backend's consistent-index protocol (`snapSt_*` hold at any `(i, t)`). So **`specSnap` is
+  generalized**: a new binder `tI : w64` before `hmeta`, `hmeta : metaIs D (Index, tI)` (was
+  `(Index, Metadata.Term)`) and the meta-backend premise `□ (∀ π b, ⌜π.m0 = (Index, tI)⌝ → …)`
+  (was at `Metadata.Term`). The old statement is the instance `tI := Metadata.Term`, so no closed
+  theorem proves less. J8a passes `tI := t` from `hmetaI : ∃ t, metaIs D (i, t)`; raft's `Ready`
+  fact about `Metadata.Term` is not needed for it (J6a may still add it for other uses).
+- **Statement changes** (all proved, none weaker): `imageAt` (+ the `IdxWf` conjunct; so
+  `dbImage`, `srvImage` say more); `imageAt_of_snap` (+ premise `hwf`; no caller yet: the sender's
+  `□ (∀ D, ⌜Qd D⌝ -∗ srvImage γ ai D)` of `snapBranch_send` is still S-l's to discharge, and now
+  needs `soleWriter_idxWf` at the applied log); `SnapImageFacts` (+ `hRok`, `hlen`);
+  `snapRecv_image` (same premises, more in its post); `EtcdServer.applySnapshot.specSnap`,
+  `applySnapshot_walk`, `srvSnapApplied_of_walk` (+ `tI`, as above); `snapWalkPost` (internal):
+  `π0.m0 = (Index, π0.m0.2)` (was `(Index, Metadata.Term)`). New: `soleWriter_idxWf`,
+  `KVModelRestore.lean`'s lemmas.
