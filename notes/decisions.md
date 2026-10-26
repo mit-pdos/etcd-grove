@@ -19542,3 +19542,48 @@ Auth-service gRPC contracts (`isGrpcRpc`) wait on the same.
 
 **Trust base.** Count unchanged: `auth.NewTokenProvider.wp_proof` replaced by
 `auth.newTokenProviderJWT.wp_proof` (baseline and the eight collections listing it updated).
+
+## E2h of the auth plan: clientv3's Auth API, and `SetUp` over the Auth service as a premise (2026-10-26 · `notes/auth-plan.md`)
+
+What `examples/authkv`'s `SetUp` needs on the client's side (E2f's "Not done": the client's `Auth`
+field, `NewAuth`, `RetryAuthClient`, the `authClient` methods untranslated, and no contract for
+the server's Auth service).
+
+**Translated and proved** (`Code/go_etcd_io/etcd/client/v3.toml`, `api/v3/etcdserverpb.toml`):
+the generated Auth stub's `NewAuthClient` and `authClient.{UserAdd, UserGrantRole, RoleAdd,
+RoleGrantPermission, AuthEnable}` (`Invoke` with `StaticMethod`, the KV stub's shape), the retry
+client's `RetryAuthClient` and its five (no retry option: an admin call has the default
+`nonRepeatable` policy), the client's `NewAuth` and `authClient`'s five (the request built, the
+error through `ContextError`; `RoleGrantPermission` builds the permission from `[]byte(key)`,
+`[]byte(rangeEnd)`); client/v3 now imports `authpb` (the init chains regenerated). `NewAuth`'s
+trust-boundary axiom (item 5) is now a theorem: **-1 axiom**. `isNewClient` gains its last part,
+the `Auth` field holding a `*authClient` over the connection (`authObjAt`); `LeaseClient`'s
+pattern adapted, the other users' patterns end in `-`.
+
+**The vocabulary** (`client/v3/InvAuthConn.lean`): the messages as `ProtoMsg`s whose decoded copy
+is the auth store's own request predicate (`auth.userAddReqIs` with the password,
+`auth.userGrantRoleReqIs`, `auth.roleAddReqIs`, `auth.roleGrantPermissionReqIs` with the
+permission's `auth.ownPermW`), so that the server's handlers can hand the request on as it is; the
+responses carry nothing the client reads (`Unit`); `authCallOut Q resp err`, a call's answer
+(`nil` and `Q ()`, or a client error), `putCallOut`'s shape. Every call is specified for any spec
+`Spec` the server registered for the method and a **persistent** precondition `□ ▷ Spec m Q`:
+the retry interceptor may deliver an admin request several times (a call that failed before it was
+sent, a refreshed token), and D29's write-once mode is for the KV methods only (`kvMethod`).
+
+**`SetUp`, over the Auth service as a premise** (`Spec/.../authkv/SetUp.lean`): `setupAuthOk ep
+Su Sg Sr Sp Se Q`, the five methods' specs at the endpoint (`isGrpcRpc`) and each of the eight
+calls' `□ ▷ Spec m (fun _ => Q i)`; `SetUp` returns `ok`, and if `ok` every `Q i`. Its puts go
+through `client_Put_any` (new in `ClientPutGet.lean`: `New`'s client with a persistent update, the
+first case of `client_put_any`, no write-once premise), since authkv's server refuses and so is
+not refusal-free (E2d). How the server's side discharges `setupAuthOk` (E2i's Auth-service
+contracts): its `Su`, ... are the handlers' over the apply layer's admin steps
+(`apply.isAuthSteps`); with a persistent precondition, a `Q i` is a persistent witness of the
+step's effect (the history's lower bound holding the step), which the set-up's sole admin client
+then knows for each call.
+
+**Not done.** `Main` (still a `sorry`): it needs the server in the mode `on` (E2i), the
+Auth service's contracts discharging `setupAuthOk`, and `Work` (E2b's, E2f's lists).
+
+**Trust base.** 721 → 720 axioms (-1, `NewAuth.wp_proof` gone), sorries unchanged (6); the nine
+collections that listed it updated, and `authkv` gains the client's existing gRPC trust-boundary axioms
+(`StaticMethod`, `grpcConn`, `status.FromError`, ...) that `SetUp` reaches.
