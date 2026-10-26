@@ -75,7 +75,7 @@ channel carries one).
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.SigBase
+public import Proof.go_etcd_io.raft.v3.ApiCtx
 public import Proof.go_etcd_io.raft.v3.ApiVocab
 public import Proof.go_etcd_io.raft.v3.CCApply
 public import Proof.go_etcd_io.raft.v3.InvConfchange
@@ -427,13 +427,13 @@ def fwdP (γ : NodeNames) (ml : Loc) : IProp GF :=
     -- (2026-10-19, D21 M6) its entries' tickets (`entTk`), which the leader consumes
     ([∗list] e ∈ st.ents, entTk γ.raft e))
 
--- (2026-10-26, raft's signature, stage 1) `errProposalDropped` moved to `Spec.go_etcd_io.raft.v3.SigBase`.
+-- (2026-10-26, raft's signature, stage 1) `errProposalDropped` moved to `Proof.go_etcd_io.raft.v3.ApiCtx`.
 
--- (2026-10-26, raft's signature, stage 1) `errProposalDropped_persistent` moved to `Spec.go_etcd_io.raft.v3.SigBase`.
+-- (2026-10-26, raft's signature, stage 1) `errProposalDropped_persistent` moved to `Proof.go_etcd_io.raft.v3.ApiCtx`.
 
--- (2026-10-26, raft's signature, stage 1) `stepErr` moved to `Spec.go_etcd_io.raft.v3.SigBase`.
+-- (2026-10-26, raft's signature, stage 1) `stepErr` moved to `Proof.go_etcd_io.raft.v3.ApiCtx`.
 
--- (2026-10-26, raft's signature, stage 1) `stepErr_persistent` moved to `Spec.go_etcd_io.raft.v3.SigBase`.
+-- (2026-10-26, raft's signature, stage 1) `stepErr_persistent` moved to `Proof.go_etcd_io.raft.v3.ApiCtx`.
 
 /-- A proposal on `propc`: the message `Propose` builds, with its one-entry batch owned,
 the data read-only and its record (`entData`, 2026-10-10), and its result channel, of

@@ -4,8 +4,8 @@ The vocabulary of raft's node API (2026-10-26, raft's signature, stage 1;
 (`Spec/go_etcd_io/raft/v3/Api.lean`) and their laws are stated in, moved here from the modules the
 signature seals (`InvRaftPhys`, `InvRawnode`, `InvRawnodeReady`, `InvBoot`) and from the
 `RawNode`-level specs (`NewRawNode`, `newRaft`, `Config.validate`, `RawNode.ProposeConfChange`),
-so that a client can name them without reaching raft's internals (`etc/sig-check.py
-etc/sigs/raft.txt`). Nothing here mentions the raft struct or `NState`: it is what a client of
+so that a client can name them without reaching raft's internals (`etc/api-check.py
+etc/api/raft.txt`). Nothing here mentions the raft struct or `NState`: it is what a client of
 `node` sends, receives and proves, and the `RawNode`'s client-facing state (`RNState`, which
 `InvNode`'s run-loop protocol is stated over). Transparent for now; a later stage seals what
 clients need not see inside (`RNState.steps : List Pending` and `readyDq`'s fractions are

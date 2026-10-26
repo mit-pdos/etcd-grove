@@ -3,8 +3,8 @@
 `notes/decisions.md`, "Package signatures"): the results of `Link.lean` that proofs outside raft's
 linking files use as lemmas, re-exported under `RaftLink` (`open RaftLink` gives them their
 names). This module imports `Link.lean` non-publicly: a client sees each result's statement (its
-public spec), not the proofs, so it does not reach raft's internals (`etc/sig-check.py
-etc/sigs/raft.txt`). A client's own `Link.lean`, `Results.lean` or `Adequacy.lean` may import
+public spec), not the proofs, so it does not reach raft's internals (`etc/api-check.py
+etc/api/raft.txt`). A client's own `Link.lean`, `Results.lean` or `Adequacy.lean` may import
 raft's `Link.lean` itself.
 -/
 module

@@ -382,13 +382,14 @@ In status-history.md: the raft v3.7 retarget ("Retargeting raft to v3.7, stage R
 - **New laws, replacing the clients' unfolds:** `isNode_id`, `isNode_commitInv`,
   `nodeDriver_isNode`, `readyP_take(_ns)`. The server's `rn_ready_recv` no longer re-derives
   raft's ghost step.
-- **Checked:** `etc/sig-check.py etc/sigs/raft.txt --check` finds no module outside raft that
+- **Checked:** (then `etc/sig-check.py`; now `etc/api-check.py etc/api/raft.txt --check`) no module outside raft
   reaches `InvRawnode`, `InvRawnodeReady`, `InvRawnodeC`, `InvNodeRun`, `InvBoot` or `InvRaftPhys`
   (1099 did before). Its 20 warnings are other packages' non-linking modules that import a linking
   file.
-- **Next, the class (prototype):** `Spec/go_etcd_io/raft/v3/Sig.lean`, `class RaftSig`: the
-  predicates abstract, only their laws stated; `node.Propose`/`node.Ready`/the `Ready` receive over
-  it; `raftSigImpl` in `SigImpl.lean` (`notes/decisions.md`, "Raft's signature as a class").
+- **Then (2026-10-26, the user's choice):** an importable list per package (`etc/api/raft.txt`,
+  `etc/api-check.py`, replacing `sig-check`) and a generated interface of the listed modules
+  (`etc/gen-interface.py`, `interface/`), with layout checks; the class prototype removed
+  (`notes/decisions.md`, "Package APIs").
 - **Unchanged:** no statement and no trust base.
 - **Open:**
   - The protocol and `Storage`/`MemoryStorage` vocabulary is still transparent.

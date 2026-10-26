@@ -1,10 +1,9 @@
 /-
-**The concrete vocabulary of raft's signature** (2026-10-26, prototype; `Spec/go_etcd_io/raft/v3/Sig.lean`):
-the facts about Go values its specs state -- the context a `node` call takes (`nodeCtx`) and the
-errors it returns (`propErr`, `nodeErr`, `ctxErr`, `errStopped`, `errProposalDropped`,
-`stepErr`). They speak of Go values only (package globals, `context`'s descriptors), not of raft's
-ghost state, so the signature states them concretely. Moved here from `InvNode.lean` and
-`InvNodeCtx.lean`; nothing here imports raft's `Proof/` tree.
+**The node API's context and errors** (2026-10-26, part of raft's API: `etc/api/raft.txt`): the facts
+about Go values the node specs state -- the context a `node` call takes (`nodeCtx`) and the errors
+it returns (`propErr`, `nodeErr`, `ctxErr`, `errStopped`, `errProposalDropped`, `stepErr`). They
+speak of Go values only (package globals, `context`'s descriptors), not of raft's ghost state.
+Moved here from `InvNode.lean` and `InvNodeCtx.lean`; nothing here imports raft's `Proof/` tree.
 -/
 module
 

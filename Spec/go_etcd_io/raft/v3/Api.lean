@@ -1,12 +1,9 @@
 /-
 # Raft's API module (2026-10-26, stage 1: the node API)
 
-(Until the class prototype, `Sig.lean`; the abstract signature, `class RaftSig`, is
-now `Sig.lean`, and this module is what a client imports until clients are written against
-it.)
 
 What a proof outside raft may use of raft's proof: import this module, and nothing of raft's
-`Proof/` tree but what it lists (`etc/sig-check.py etc/sigs/raft.txt --check`;
+`Proof/` tree but what it lists (`etc/api-check.py etc/api/raft.txt --check`;
 `notes/decisions.md`, "Package signatures").
 
 **The specs** (`Spec/go_etcd_io/raft/v3/`): `StartNode`, `RestartNode` and the `Node` interface's

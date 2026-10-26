@@ -21017,3 +21017,45 @@ signatures" did, kept as the interim boundary, `Api.lean`).
 abstract `readyData` with one law, or its pieces concrete); whether `Base` and `PbModel` move to
 `Spec/`; `[S : RaftSig GF]` or an explicit `(S : RaftSig GF)`. Then: the other specs over the
 signature, clients generic in `S`, closed theorems at `raftSigImpl`.
+
+## Package APIs: an importable list and a generated interface (2026-10-26 · the user's choice; supersedes "Raft's signature as a class")
+
+**Why not the class** (the user's objection, 2026-10-26): every library that wraps raft and states
+some of raft's predicates in its specs would need a signature that includes `RaftSig`, and an
+instance that carries raft's; a proof importing both raft and the library then sees two instances
+(`raftSigImpl`, and the library's through its own) that typeclass resolution cannot identify --
+Lean has no sharing constraints. The class prototype (`Sig.lean`, `SigImpl.lean`) is removed;
+`SigBase.lean` stays, as `Proof/go_etcd_io/raft/v3/ApiCtx.lean` (the node API's contexts and errors).
+
+**Decision: generate the interface from the proofs, and enforce an importable list.**
+- **What a module exposes** is what Lean's module system exports: an ordinary `import` loads it
+  at `OLeanLevel.exported` -- `private` declarations absent, theorems as statements, definitions
+  with their bodies only when exported (`@[expose]`). `etc/interface.lean` loads the modules that
+  way (`importModules (level := .exported)`; the private view too, only to tell a theorem from an
+  `axiom`, which look alike to a client) and prints each declaration; `etc/gen-interface.py`
+  writes `interface/<module path>.txt` for every importable module and commits it, so the API is
+  reviewed as a diff (checked 2026-10-26 on a scratch module: a sealed body is absent, a private
+  helper too, a theorem shows its statement). `--layout` checks the file layout from the same
+  dump (a spec file exposes its `<F>.spec`, its proof file `<F>.wp_proof`), against a baseline of
+  the known violations.
+- **Package-private visibility does not exist** (Lean v4.34.1): a declaration is private to its
+  module or public to every importer, and `import all` is unrestricted -- Lake has an
+  `allowImportAll` option meant to forbid it across packages, but the check is commented out
+  ("We've decided to disable this check for now", `Lake/Build/Module.lean`), and this repository
+  is one Lake package anyway. So definitions raft's own files share are public to every
+  directory. `etc/api/<pkg>.txt` lists the modules other directories may import, and
+  `etc/api-check.py` enforces it (in place of "Package signatures"' denylist, `etc/sig-check.py`,
+  removed): outside modules import only listed modules, never with `import all`; a listed module
+  publicly imports only listed modules.
+- **Spec stubs** (the user's suggestion): with the dump, a spec needs no definition -- the proof
+  file states the theorem (an `axiom` while unproven), and the interface shows its statement.
+  Not adopted yet: raft's specs stay `<F>.spec` definitions with `<F>.wp_proof` over the callees'
+  specs and `Link.lean`. The interface is for review, not compiled: Lean's printer does not
+  guarantee its output parses back.
+
+**Raft's list** (`etc/api/raft.txt`, 144 modules with `raftpb`'s specs): what clients imported on
+2026-10-26 and what those publicly import, grouped -- the node API, `MemoryStorage` and the
+`Storage` contract, `raftpb`, the protocol's client vocabulary, the models it is stated in -- and,
+as debt to remove, the proof internals clients reach (`FrameH`, `ProjSimps`, `LemmasMiscR`,
+`raft__Step.Dispatch`, and through public imports `StepLemmas*`, `LemmasSendRD`, `SpecResults`,
+`Protocol.LeaderCompleteness`, `RefinementDyn`, `StepRInv`).

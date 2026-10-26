@@ -32,7 +32,7 @@ canonical one), so the register keeps calling with `Background()`.
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.SigBase
+public import Proof.go_etcd_io.raft.v3.ApiCtx
 public import Proof.go_etcd_io.raft.v3.InvNode
 public import Spec.context.ErrDone
 public import Perennial.Proof.context
@@ -55,15 +55,15 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
--- (2026-10-26, raft's signature, stage 1) `doneNilCtx` moved to `Spec.go_etcd_io.raft.v3.SigBase`.
+-- (2026-10-26, raft's signature, stage 1) `doneNilCtx` moved to `Proof.go_etcd_io.raft.v3.ApiCtx`.
 
--- (2026-10-26, raft's signature, stage 1) `doneNilCtx_persistent` moved to `Spec.go_etcd_io.raft.v3.SigBase`.
+-- (2026-10-26, raft's signature, stage 1) `doneNilCtx_persistent` moved to `Proof.go_etcd_io.raft.v3.ApiCtx`.
 
--- (2026-10-26, raft's signature, stage 1) `nodeCtx` moved to `Spec.go_etcd_io.raft.v3.SigBase`.
+-- (2026-10-26, raft's signature, stage 1) `nodeCtx` moved to `Proof.go_etcd_io.raft.v3.ApiCtx`.
 
--- (2026-10-26, raft's signature, stage 1) `nodeCtx_persistent` moved to `Spec.go_etcd_io.raft.v3.SigBase`.
+-- (2026-10-26, raft's signature, stage 1) `nodeCtx_persistent` moved to `Proof.go_etcd_io.raft.v3.ApiCtx`.
 
--- (2026-10-26, raft's signature, stage 1) `bgCd` moved to `Spec.go_etcd_io.raft.v3.SigBase`.
+-- (2026-10-26, raft's signature, stage 1) `bgCd` moved to `Proof.go_etcd_io.raft.v3.ApiCtx`.
 
 /-- `context.Background()`'s `Done()` is `nil` (Perennial's `wp_background_Done`). -/
 theorem doneNilCtx_background : ⊢ doneNilCtx (GF := GF) context.backgroundCtxVal := by
@@ -120,9 +120,9 @@ theorem nodeCtx_Done (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF))
       iexact Hd
     · iexact Hctx
 
--- (2026-10-26, raft's signature, stage 1) `ctxErrVal` moved to `Spec.go_etcd_io.raft.v3.SigBase`.
+-- (2026-10-26, raft's signature, stage 1) `ctxErrVal` moved to `Proof.go_etcd_io.raft.v3.ApiCtx`.
 
--- (2026-10-26, raft's signature, stage 1) `ctxErrVal_persistent` moved to `Spec.go_etcd_io.raft.v3.SigBase`.
+-- (2026-10-26, raft's signature, stage 1) `ctxErrVal_persistent` moved to `Proof.go_etcd_io.raft.v3.ApiCtx`.
 
 /-- A typed error is not `nil`. -/
 theorem ctxErrVal_ne_nil (err : GoInterface) : ctxErrVal (GF := GF) err ⊢ ⌜err ≠ interface.nil⌝ := by
@@ -133,17 +133,17 @@ theorem ctxErrVal_ne_nil (err : GoInterface) : ctxErrVal (GF := GF) err ⊢ ⌜e
   subst h
   simp [context.isTypedErr] at Hty
 
--- (2026-10-26, raft's signature, stage 1) `ctxErr` moved to `Spec.go_etcd_io.raft.v3.SigBase`.
+-- (2026-10-26, raft's signature, stage 1) `ctxErr` moved to `Proof.go_etcd_io.raft.v3.ApiCtx`.
 
--- (2026-10-26, raft's signature, stage 1) `ctxErr_persistent` moved to `Spec.go_etcd_io.raft.v3.SigBase`.
+-- (2026-10-26, raft's signature, stage 1) `ctxErr_persistent` moved to `Proof.go_etcd_io.raft.v3.ApiCtx`.
 
--- (2026-10-26, raft's signature, stage 1) `errStopped` moved to `Spec.go_etcd_io.raft.v3.SigBase`.
+-- (2026-10-26, raft's signature, stage 1) `errStopped` moved to `Proof.go_etcd_io.raft.v3.ApiCtx`.
 
--- (2026-10-26, raft's signature, stage 1) `errStopped_persistent` moved to `Spec.go_etcd_io.raft.v3.SigBase`.
+-- (2026-10-26, raft's signature, stage 1) `errStopped_persistent` moved to `Proof.go_etcd_io.raft.v3.ApiCtx`.
 
--- (2026-10-26, raft's signature, stage 1) `nodeErr` moved to `Spec.go_etcd_io.raft.v3.SigBase`.
+-- (2026-10-26, raft's signature, stage 1) `nodeErr` moved to `Proof.go_etcd_io.raft.v3.ApiCtx`.
 
--- (2026-10-26, raft's signature, stage 1) `nodeErr_persistent` moved to `Spec.go_etcd_io.raft.v3.SigBase`.
+-- (2026-10-26, raft's signature, stage 1) `nodeErr_persistent` moved to `Proof.go_etcd_io.raft.v3.ApiCtx`.
 
 theorem nodeErr_nil (cd : context.ContextDesc (IProp GF)) :
     ⊢ nodeErr (GF := GF) cd interface.nil := by
@@ -151,9 +151,9 @@ theorem nodeErr_nil (cd : context.ContextDesc (IProp GF)) :
   ileft
   ipureintro; rfl
 
--- (2026-10-26, raft's signature, stage 1) `propErr` moved to `Spec.go_etcd_io.raft.v3.SigBase`.
+-- (2026-10-26, raft's signature, stage 1) `propErr` moved to `Proof.go_etcd_io.raft.v3.ApiCtx`.
 
--- (2026-10-26, raft's signature, stage 1) `propErr_persistent` moved to `Spec.go_etcd_io.raft.v3.SigBase`.
+-- (2026-10-26, raft's signature, stage 1) `propErr_persistent` moved to `Proof.go_etcd_io.raft.v3.ApiCtx`.
 
 theorem propErr_of_nodeErr (cd : context.ContextDesc (IProp GF))
     (err : GoInterface) : nodeErr (GF := GF) cd err ⊢ propErr cd err := by
