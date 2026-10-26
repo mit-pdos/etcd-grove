@@ -2,7 +2,8 @@
 Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/cachekv/Main.lean` (2026-10-20). Lean-first
 (no Rocq counterpart).
 
-watchkv's `Main` (`Proof/.../watchkv/Main.lean`) with the watch through etcd's cache: `genAll`
+watchkv's `Main` (`Proof/.../watchkv/Main.lean`, before 2026-10-26, when watchkv stopped using the
+adapter) with the watch through etcd's cache: `genAll`
 picks the writers' Puts `trs` first; the server's start is watchkv's, the examples' shared one
 (`common.alloc1`; D48: the adapter's invariant over the KV state's half, `client.kmInv_alloc` at
 the plan's fact `watchkv.wkW (trs.map pairOf)`; `common.StartServer`, `common.Serve` with one
@@ -13,8 +14,10 @@ the KV, `client.isKv_of_regs`, its `Watcher` a watcher of the KV, `isNewClient_w
 `cache.New` (`New.spec` at the adapter's model, the default configuration); a context
 (`WithCancel(Background())`); the cache's watch of the prefix from revision `2` (`Cache.Watch.spec`,
 with one of `New`'s watch slots, its "open" token, and the main thread's token, back from the
-server's start); the log `w` under its mutex (`wsInvKM`), the writer goroutines (a wait group;
-each put with the adapter's write update, which keeps the plan's fact, `watchkv.wk_put_W`), the
+server's start); the log `w` under its mutex (`wsInvF` at `okFactKM`), the writer goroutines (a
+wait group; a client of the KV sending a write at most once, `client.isKv_of_newClient`; each put
+with the adapter's write update, which keeps the plan's fact, `wk_put_W`, its logged fact
+`okFactKM_of_write`), the
 log's Puts `oks` taken under the lock, `maxRev`, `collect` (the cache watch's log, `log_ck`), the
 cancel, and the check: `CheckOk` from `collectOk` and the Puts' `okFactKM`s
 (`common.checkOk_of_km`). Every start step's error ends `Main` with `Failed`; `collect`'s `false`
@@ -29,6 +32,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.common.MaxRev
 public import Spec.github_com.mit_pdos.etcd_grove.examples.cachekv.collect
 public import Spec.github_com.mit_pdos.etcd_grove.examples.common.Check
 public import Proof.github_com.mit_pdos.etcd_grove.examples.cachekv.Writes
+public import Proof.go_etcd_io.etcd.client.v3.KvOfNew
 public import Spec.go_uber_org.zap.NewNop
 public import Spec.github_com.mit_pdos.etcd_grove.examples.common.StartServer
 public import Spec.github_com.mit_pdos.etcd_grove.examples.common.Serve
@@ -203,7 +207,8 @@ theorem Main.wp_proof
     rw [linkv.kvRaftOf_boot _ _ _ _ _ bootLog Hbf.boot, hlog]
     rfl
   imod (client.kmInv_alloc ρ.rd.kv _ (watchkv.wkW (trs.map pairOf))
-      (by rw [hσ0]; exact watchkv.wkW_start _)) $$ Hetcd with ⟨%γk, %Hγk, #Hkm, -⟩
+      (by rw [hσ0]; exact watchkv.wkW_start _)) $$ Hetcd with ⟨%γk, %Hγk, #Hkm, #Hl0⟩
+  rw [hσ0]
   obtain ⟨hγkv, hγW⟩ := Hγk
   have hblen : bootLog.length ≤ 2 ^ 60 := by rw [Hbf.boot.1]; simp
   -- `Main`'s premises in the shared start's form
@@ -347,6 +352,11 @@ theorem Main.wp_proof
   · iframe Hkvo
     iapply client.kvRegs_one
     iexact HKV
+  -- the writers' client of the KV, sending a write at most once
+  imod (client.isKv_of_newClient cl go!"127.0.0.1:23873"
+      (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23873" [] null null ckPfx null ρ.rd.kv.st) R.E ρ.rd
+      cid mid γk.kv (by rw [hγkv]) (by omega)) $$ [Hnc Hwo HKV] with ⟨%apiw, #Hkvfw, #Hkvw⟩
+  · iframe #
   ihave #Hkw : client.isKvWatcher w γk.kv $$ []
   · unfold client.isKvWatcher
     iexists _
@@ -441,11 +451,11 @@ theorem Main.wp_proof
   icases typedPointsto_split _ _ _ $$ «$r0» with Hr0
   try simp only [TypedPointsto.typedPointstoDef]
   icases Hr0 with ⟨mu, ok, -⟩
-  imod sync.init_Mutex (common.wsInvKM «$r0_ptr» γk) ⊤
+  imod sync.init_Mutex (common.wsInvF «$r0_ptr» (common.okFactKM γk)) ⊤
       (structFieldRef github_com.mit_pdos.etcd_grove.examples.common.Writes go!"Mu" «$r0_ptr»)
     $$ mu [ok] with #Hmu
   · inext
-    iunfold common.wsInvKM
+    iunfold common.wsInvF
     iexists slice.nil, []
     iframe ok
     isplitr
@@ -491,8 +501,10 @@ theorem Main.wp_proof
     ipersist lo
     wp_apply wp_fork $$ [Hdone]
     · (try wp_auto)
-      wp_apply (wp_Writer cl go!"127.0.0.1:23873" (EtcdGrove.client.srvWEnv R go!"127.0.0.1:23873" [] null null ckPfx null ρ.rd.kv.st)
-          R.E ρ.rd cid mid γk «$r0_ptr» tsl trs (k * nops) (k * nops + nops) hAs
+      wp_apply (wp_Writer cl apiw γk.kv
+          (fun k v => client.kmWriteQ γk [[]] (.put (client.putKeyOp k v)))
+          (common.okFactKM γk) «$r0_ptr» tsl trs (k * nops) (k * nops + nops)
+          (fun _ => inferInstance) hAs
           (by rw [hlo]; exact Int.mul_nonneg Hk.1 Hops) (by rw [hlo, hhi]; omega)
           (by
             rw [hhi, Htrs.1]
@@ -503,8 +515,19 @@ theorem Main.wp_proof
               rw [hmul]; exact Int.mul_nonneg H0 Hops
             have e : ((sint.nat (nw * nops) : Nat) : Int) = sint.Z (nw * nops) := by word
             rw [e, hmul]
-            omega) hγkv (watchkv.wk_put_W γk _ hγW)) $$ []
+            omega)) $$ []
       · iframe #
+        isplitr
+        · iintro !> %k' %v' %hkv
+          ihave Hw := client.km_write_au γk [[]] (.put (client.putKeyOp k' v'))
+            (wk_put_W γk _ hγW k' v' hkv) $$ [$Hkm $Hl0]
+          iunfold kvOpAu1 at Hw
+          iunfold kvAu1 at Hw
+          rw [show putWireOf (opPutModel k' v' []) = client.putKeyOp k' v' from rfl]
+          iexact Hw
+        iintro !> %k' %v' %σ HQ %Hb
+        iapply (common.okFactKM_of_write γk k' v' σ) $$ HQ
+        ipureintro; exact Hb
       (try wp_auto)
       wp_apply (sync.join.WaitGroup.wp_Done_of sync.WaitGroup.wp_Done iprop(True) wg_ptr) $$ [Hdone]
       · iframe
@@ -523,17 +546,17 @@ theorem Main.wp_proof
   (try wp_auto)
   -- the successful Puts, taken out of the log under the lock
   wp_apply (sync.Mutex.wp_Lock (structFieldRef github_com.mit_pdos.etcd_grove.examples.common.Writes
-      go!"Mu" «$r0_ptr») (common.wsInvKM «$r0_ptr» γk)) $$ [] as ⟨Hown, Hws0⟩
+      go!"Mu" «$r0_ptr») (common.wsInvF «$r0_ptr» (common.okFactKM γk))) $$ [] as ⟨Hown, Hws0⟩
   · iframe #
-  iunfold common.wsInvKM at Hws0
+  iunfold common.wsInvF at Hws0
   icases Hws0 with ⟨%osl, %oks, Hok, Hos, Hocap, #Hoks⟩
   (try wp_auto)
   wp_apply (sync.Mutex.wp_Unlock (structFieldRef github_com.mit_pdos.etcd_grove.examples.common.Writes
-      go!"Mu" «$r0_ptr») (common.wsInvKM «$r0_ptr» γk)) $$ [Hown Hok]
+      go!"Mu" «$r0_ptr») (common.wsInvF «$r0_ptr» (common.okFactKM γk))) $$ [Hown Hok]
   · iframe #
     iframe Hown
     inext
-    iunfold common.wsInvKM
+    iunfold common.wsInvF
     iexists slice.nil, []
     iframe Hok
     isplitr

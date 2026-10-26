@@ -562,8 +562,11 @@ theorem MainWatch.wp_proof
   · iframe
   ihave Hcons : etcdWatchConsumer γw 0 (W64 0) $$ [Hcons]
   · rw [← h10]; iexact Hcons
-  wp_apply (wp_Collect (EM := client.etcdModelOfKV γ) (revAtK γ) (client.kmInv γ) (trs.map pairOf)
-      wkPfx wch γw m
+  ihave #Hrc := common.isRespChan_of_etcdWatchChan (EM := client.etcdModelOfKV γ) wch γw wkPfx
+    $$ Hwch
+  wp_apply (wp_Collect (watchRespOk (EM := client.etcdModelOfKV γ) wkPfx) (revAtK γ)
+      (client.kmInv γ) (trs.map pairOf) wch γw m (fun _ _ _ _ => inferInstance)
+      (fun c c' v r => common.watchRespOk_closeErr' (EM := client.etcdModelOfKV γ) wkPfx c c' v r)
       (fun n c c' v r hne hcur => by
         iintro #Hi Hok
         iapply (resp_km γ (trs.map pairOf) hγW hpk n c c' v r hne hcur) $$ Hi Hok))
