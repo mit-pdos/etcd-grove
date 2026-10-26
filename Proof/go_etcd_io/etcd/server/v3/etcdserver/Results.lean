@@ -77,6 +77,7 @@ public import Proof.go_etcd_io.etcd.server.v3.auth.LatestAdmin
 public import Proof.go_etcd_io.etcd.server.v3.auth.LatestTie
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.AuthApplyLatestTxn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthSrv
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.AdminChain
 public import Proof.go_uber_org.zap.Int
 
 @[expose] public section
@@ -1218,7 +1219,8 @@ theorem apply_admin_backend (E : EtcdGrove.apply.AEnv GF) (W : IProp GF) (p : Lo
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
       EtcdGrove.apply.backendIs E p ∗ EtcdGrove.apply.backendAuthSteps E p W ⊢
       EtcdGrove.apply.applierAdmin E .backend
-        (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend.ty) #p) W :=
+        (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend.ty) #p) W
+        auth.authOwnFu :=
   EtcdGrove.apply.applierAdmin_backend apply_UserAdd_fuel apply_RoleAdd_fuel apply_UserGrantRole_fuel
     apply_RoleGrantPermission_fuel apply_AuthEnable_fuel E W p
 
@@ -1395,8 +1397,60 @@ theorem auth_role_revoke_permission_tie :
     auth.authStore.RoleRevokePermission.specT (GF := GF) (hG := hG) :=
   auth.authStore.RoleRevokePermission.wp_tie auth.authStore.wp_commitRevision auth.authStore.wp_refreshRangePermCache zap.wp_String zap.Logger.wp_Info
 
+
+/-- **The real store's five `SetUp` admin steps with the tie** (the auth plan's E2v,
+`apply/AuthStepsX.lean`): `isAuthStepsX` with the halves tied to the history (`auth.tieRes`),
+from E2s's tie-keeping specs. -/
+theorem apply_auth_steps_tie (st : Loc) (R : IProp GF) (M : auth.AuthMode) (P : IProp GF) (f : val)
+    (T : IProp GF) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ auth.authInv st R M ⊢
+      EtcdGrove.apply.isAuthStepsX (auth.authIface st) P f M (auth.tieRes st M)
+        iprop(auth.authWB st M P f T ∗ auth.tpAdmin st M) :=
+  EtcdGrove.apply.isAuthStepsX_of_authInvT auth_auth_enable_tie auth_user_add_tie auth_role_add_tie
+    auth_user_grant_role_tie auth_role_grant_permission_tie st R M P f T
+
+theorem apply_UserAdd_fuelX :
+    EtcdGrove.apply.applierV3backend.UserAdd.fuelSpecX (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.applierV3backend.UserAdd.wp_fuelX
+    (EtcdGrove.apply.applierV3backend.UserAdd.wp_stepX EtcdGrove.apply.applierV3backend.wp_newHeader)
+
+theorem apply_RoleAdd_fuelX :
+    EtcdGrove.apply.applierV3backend.RoleAdd.fuelSpecX (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.applierV3backend.RoleAdd.wp_fuelX
+    (EtcdGrove.apply.applierV3backend.RoleAdd.wp_stepX EtcdGrove.apply.applierV3backend.wp_newHeader)
+
+theorem apply_UserGrantRole_fuelX :
+    EtcdGrove.apply.applierV3backend.UserGrantRole.fuelSpecX (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.applierV3backend.UserGrantRole.wp_fuelX
+    (EtcdGrove.apply.applierV3backend.UserGrantRole.wp_stepX EtcdGrove.apply.applierV3backend.wp_newHeader)
+
+theorem apply_RoleGrantPermission_fuelX :
+    EtcdGrove.apply.applierV3backend.RoleGrantPermission.fuelSpecX (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.applierV3backend.RoleGrantPermission.wp_fuelX
+    (EtcdGrove.apply.applierV3backend.RoleGrantPermission.wp_stepX EtcdGrove.apply.applierV3backend.wp_newHeader)
+
+theorem apply_AuthEnable_fuelX :
+    EtcdGrove.apply.applierV3backend.AuthEnable.fuelSpecX (GF := GF) (hG := hG) :=
+  EtcdGrove.apply.applierV3backend.AuthEnable.wp_fuelX
+    (EtcdGrove.apply.applierV3backend.AuthEnable.wp_stepX EtcdGrove.apply.applierV3backend.wp_newHeader)
+
+/-- **The backend applier's admin triples carrying the history's resource `X`** (the auth plan's
+E2v, `apply/AdminChain.lean`): the authority with its fuel and `X` (the tie, `auth.tieRes`, for
+the real store) through the five `SetUp` admin requests. -/
+theorem apply_admin_backendX (E : EtcdGrove.apply.AEnv GF) (X : List auth.AuthState → IProp GF)
+    (W : IProp GF) (p : Loc) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
+      EtcdGrove.apply.backendIs E p ∗ EtcdGrove.apply.backendAuthStepsX E p X W ⊢
+      EtcdGrove.apply.applierAdmin E .backend
+        (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend.ty) #p) W
+        (fun γa h => iprop(auth.authOwnFu γa h ∗ X h)) :=
+  EtcdGrove.apply.applierAdmin_backendX apply_UserAdd_fuelX apply_RoleAdd_fuelX apply_UserGrantRole_fuelX
+    apply_RoleGrantPermission_fuelX apply_AuthEnable_fuelX E X W p
+
 end latestApply
 
+#print axioms Perennial.EtcdGrove.apply_auth_steps_tie
+#print axioms Perennial.EtcdGrove.apply_admin_backendX
 #print axioms Perennial.EtcdGrove.auth_admin_permitted_latest
 #print axioms Perennial.EtcdGrove.apply_auth_store_latest
 #print axioms Perennial.EtcdGrove.apply_range_latest

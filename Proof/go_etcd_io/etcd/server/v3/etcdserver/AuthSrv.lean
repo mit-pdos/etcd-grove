@@ -237,12 +237,17 @@ theorem authStoreKit_on
     · exact h
   ihave ⟨#HisReq, #HisAuth⟩ := authSrvContracts_on hCtx hTLS hPut hRange hDel hAdmin hEn h_Revision
     stp R γa $$ [$Hpkg $Hinv]
-  ihave HAR : authApplyRes (.on γa) stp $$ [Hown' Hfu HT' Hen Hca HtpAd]
+  subst hhs'
+  -- (E2v) the halves tied to the start's history, whose states are disabled
+  ihave ⟨Hown', HX⟩ := auth.tieRes_of_disabled stp γa [auth.bootState, auth.bump auth.bootState]
+    (by intro s hs; simp only [List.mem_cons, List.not_mem_nil, or_false] at hs
+        rcases hs with rfl | rfl <;> rfl) $$ [Hown' Hen Hca]
+  · iframe Hown' Hen Hca
+  ihave HAR : authApplyRes (.on γa) stp $$ [Hown' Hfu HT' HX HtpAd]
   · unfold authApplyRes
-    iexists hs', P, f, T, (authBkIface abl)
-    subst hhs'
+    iexists [auth.bootState, auth.bump auth.bootState], P, f, T, (authBkIface abl)
     iunfold auth.authOwnFu
-    iframe Hown' Hfu HT' Hen Hca HtpAd Hwok
+    iframe Hown' Hfu HT' HX HtpAd Hwok
   iapply HΦ
   iframe Hopen Hhook Hrbo
   iexists (auth.authRd stp R (.on γa)), stp

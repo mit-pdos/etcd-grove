@@ -11,10 +11,10 @@ own that folds the auth state with the KV log:
   that state (`auth.adminOk`, `authApplierV3.Apply`'s `IsAdminPermitted`), else not at all
   (`adminStateR`, `adminNext`). It leaves the KV log alone (`kvEntryOn_admin`).
 - **A KV entry** (a put, a delete, a range, a transaction) writes iff the auth state at that point
-  grants its principal every permission the request needs (`kvGranted`: auth disabled, or a
-  revision that is not `0` and not below the store's -- `ErrAuthOldRevision` -- and a user with the
-  root role or whose permissions cover each of `reqPerms`); otherwise it is refused and leaves the
-  log alone.
+  grants its principal every permission the request needs (`kvGranted`: for each of `reqPerms`,
+  auth disabled, or a revision that is not `0` and not below the store's -- `ErrAuthOldRevision`
+  -- and a user with the root role or whose permissions cover it; a request needing none is let
+  through); otherwise it is refused and leaves the log alone.
 - Every other entry is today's (`kvEntry`).
 
 **Why a function of the committed log, and why determinacy is a premise of the log.** The KV
@@ -169,16 +169,28 @@ def reqPerms (rq : apply.IRRModel) : List apply.Perm3 :=
   | _ => []
 
 /-- **The auth layer lets the KV request `rq` through at `st`** (`isOpPermitted` for each of its
-permissions, at one state: the apply thread is the store's only writer): auth disabled, or the
-principal's revision not `0` (`ErrUserEmpty`) and not below the store's (`ErrAuthOldRevision`), and
-its user existing with the root role or with permissions covering each permission the request
-needs. -/
+permissions, at one state: the apply thread is the store's only writer): every permission the
+request needs passes, each check passing when auth is disabled, or when the principal's revision
+is not `0` (`ErrUserEmpty`) and not below the store's (`ErrAuthOldRevision`) and its user exists
+with the root role or with permissions covering it. A request needing no permission (a transaction
+without comparisons or operations) is let through whatever the principal, as the code applies it
+unchecked (E2v; until then the model asked the revision and the user of it too). -/
 def kvGranted (st : auth.AuthState) (rq : apply.IRRModel) : Prop :=
-  st.enabled = false ∨
+  ∀ x ∈ reqPerms rq, st.enabled = false ∨
     ((auth.authInfoM (apply.principalOf rq)).rev ≠ 0 ∧
       st.revision ≤ (auth.authInfoM (apply.principalOf rq)).rev ∧
       ∃ u, st.users !! (auth.authInfoM (apply.principalOf rq)).user = some u ∧
-        (auth.isRoot u ∨ ∀ x ∈ reqPerms rq, auth.covers st u x.2.2 x.1 x.2.1))
+        (auth.isRoot u ∨ auth.covers st u x.2.2 x.1 x.2.1))
+
+/-- With auth disabled, every request is let through. -/
+theorem kvGranted_of_disabled (st : auth.AuthState) (rq : apply.IRRModel)
+    (hen : st.enabled = false) : kvGranted st rq :=
+  fun _ _ => Or.inl hen
+
+/-- A request needing no permission is let through. -/
+theorem kvGranted_of_nil (st : auth.AuthState) (rq : apply.IRRModel) (h : reqPerms rq = []) :
+    kvGranted st rq := by
+  intro x hx; rw [h] at hx; cases hx
 
 /-- **The check is decided at `st`**: with auth enabled, every permission the request needs is of
 the shape the permission cache decides (`auth.reqShape`). -/
@@ -271,7 +283,7 @@ theorem kvRaftOfOn_disabled (c₀ : w64) (ch : apply.Chain) (st₀ : auth.AuthSt
           unfold kvEntryOn
           rw [if_pos hc, hdec]
           have hna := hm rq hdec
-          have hg : kvGranted st₀ rq := Or.inl hen
+          have hg : kvGranted st₀ rq := kvGranted_of_disabled st₀ rq hen
           simp only [hna, Bool.false_eq_true, and_false, ↓reduceIte, hg, not_true_eq_false]
         | none =>
           unfold kvEntryOn kvEntry
