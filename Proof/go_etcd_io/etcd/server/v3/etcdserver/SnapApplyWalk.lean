@@ -26,7 +26,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
-variable [MemStorReg GF]
 
 
 set_option maxRecDepth 100000 in
@@ -324,7 +323,10 @@ theorem applySnapshot_walk
   iunfold apply.applyKV at HaKV
   icases HaKV with ⟨%up, %Hup, HuOwn, HkvOwn⟩
   ihave Hrp := etcdserver.restorePre_of_apply s E x.log hwq $$ [$HkvOwn $Hkvc]
-  icases Hrp with ⟨%ws, %γw, %Hγw, #Hws, Hscl, Hfrag, HwOwn, #Hfrz, HwW, HsRd, HlLive, HERD⟩
+  icases Hrp with ⟨%ws, %γw, %Hγw, #Hws, Hscl, Hfrag, HwOwn, #Hfrz, HwW, ⟨HsRd, HlLive, HERD⟩, ⟨%wsk, %stck, #Hkvfk, #Hstck, Hstclk, Hwswk⟩⟩
+  icombine Hkvf Hkvfk gives %Hwk
+  have Hwkl : wsk = wsl := by simp at Hwk; exact GoGlobalContext.intoVal_inj_loc Hwk.symm
+  subst wsk
   iunfold apply.leasesLive at HlLive
   icases HlLive with ⟨%Ll, #HlK, HlUser⟩
   iunfold lease.lessorUser at HlUser
@@ -777,7 +779,7 @@ theorem applySnapshot_walk
   imodintro
   iapply HΦ
   iunfold snapWalkPost
-  iexists γB, d', gx', π0, p', γw, ws, g, up', opts', L, spc, Ll, jf, γcf, w0, RD0, up, sfv.lg
+  iexists γB, d', gx', π0, p', γw, ws, g, up', opts', L, spc, Ll, jf, γcf, w0, RD0, up, sfv.lg, ws, stck
   isplitr
   · ipureintro
     exact ⟨hγ', hP', hgx', rfl, Hp'.1, Hp'.2, Hγw, hbr', Hcov, Hopts'⟩

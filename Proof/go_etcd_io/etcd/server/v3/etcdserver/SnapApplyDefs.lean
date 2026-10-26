@@ -61,7 +61,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
-variable [MemStorReg GF]
 
 theorem kbP_mk (d : mvcc.KBReal) (a : backend.BNames) (b : Loc) (g : GName) :
     ({ γB := a, BT := d.BT, hookMax := d.hookMax, limit := d.limit, be := b, gx := g } :
@@ -111,6 +110,17 @@ instance srvMembersDir_persistent (cl : Loc) (ps : List w64) (dir : w64 → List
     Persistent (srvMembersDir (GF := GF) cl ps dir) := by
   unfold srvMembersDir; infer_instance
 
+/-- The lessor `lp`'s `Lookup` (`lease.NewLessor.spec`'s, the trust boundary; S8d's named premise,
+threaded from `NewServer`): what `isApplyLessor_of_lessorInv` takes. -/
+def lessorLookupOk (lp : Loc) : IProp GF :=
+  iprop(□ (∀ id : w64,
+    {{ True }} (App (Val (lp @!! go.GoType.PointerType
+      go_etcd_io.etcd.server.v3.lease.lessor.ty @!! go!"Lookup")) (Val #id))
+    {{ (l : Loc), RET #l; ⌜l = null⌝ ∨ apply.leaseIs l id }}))
+
+instance lessorLookupOk_persistent (lp : Loc) : Persistent (lessorLookupOk (GF := GF) lp) := by
+  unfold lessorLookupOk; infer_instance
+
 /-- **What `applySnapshot`'s code leaves** (S8d's walk, `applySnapshot_walk`): the server's
 resources at the snapshot's backend (`d'`, opened at the snapshot's index `sv.Metadata'.Index'`),
 from which `applySnapshot.spec`'s postcondition is assembled. -/
@@ -122,7 +132,7 @@ def snapWalkPost (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E :
   iprop(∃ (γB : backend.BNames) (d' : mvcc.KBReal) (gx : GName) (π0 : ApplyPhys)
       (p' : mvcc.PhysNames) (γw : mvcc.WsNames) (ws : Loc) (g : GoFunc) (up' : Loc)
       (opts' : apply.ApplierOptions) (L : List w64) (spc : Loc) (Ll : List w64) (jf : Nat)
-      (γcf : GName) (w0 : GoInterface) (RD0 : IProp GF) (up : Loc) (lg : Loc),
+      (γcf : GName) (w0 : GoInterface) (RD0 : IProp GF) (up : Loc) (lg : Loc) (wsk stck : Loc),
     ⌜d'.γB = γB ∧ d'.P = d.P ∧ d'.gx = gx ∧ π0.m0 = (sv.Metadata'.Index', sv.Metadata'.Term') ∧
       p'.bucket = E.γ.bucket ∧ p'.kb = some d' ∧ γw.st = E.γ ∧ mvcc.bridgeParams d'.P ∧
       (∀ f, (netRh γn).member f → f ≠ idm → f ∈ L) ∧
@@ -185,7 +195,42 @@ def snapWalkPost (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E :
     srvUberApplyAddr s ↦ (interface.mkOk apply.uberApplier.ty.PointerType #up' : GoInterface) ∗
     -- what is left of the old backend's and the old applier's
     backend.rbOwn d.γB (restModel γr.kv.c0 γr.raft.raft.reBoot (γr.raft.pre ++ A)).bk ∗
-    revAuth E x.log ∗ RD0 ∗ apply.uberOwn E up x.chain)
+    revAuth E x.log ∗ RD0 ∗ apply.uberOwn E up x.chain ∗
+    -- the watchable store's own closer's parts (`restorePre_of_apply`'s)
+    srvKVAddr s ↦□ (interface.mkOk (go.GoType.PointerType
+      go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore.ty) #wsk : GoInterface) ∗
+    structFieldRef go_etcd_io.etcd.server.v3.storage.mvcc.watchableStore go!"stopc" wsk ↦□ stck ∗
+    mvcc.stopCloser stck ∗ mvcc.wsWaiter wsk)
+
+/-- **What `applySnapshot` gives back after a non-empty snapshot** (`applySnapshot.spec`'s second
+part, S8d): `applyAll`'s post shape at the snapshot's backend `d'` (`beSucc`: the protocol's names
+`γ'` and the environment `E'` at it, the server's view `isServer` there, the apply thread's
+resources with the applied index at the snapshot's `sv.Metadata'.Index'` and the KV at the restored
+log `[[], []] ++ R`, the rest buckets at the snapshot's entries `A'`), and what the next snapshot
+takes again at the new backend: its stop channels and the constructors' half of its open token
+(W7), the KV's closer, the snapshot-taken counter at the snapshot's index, the snapshot file's path
+(now the backend's), the transport's live state (W8: with every other member re-added, `L`) and the
+alarm store's resource `Tal`. The KV's model (`kvApplied`) is S-j1's (`kv_cert_jump`). -/
+def srvSnapApplied (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E : apply.AEnv GF)
+    (ρ : ReqNames) (γr : ReadNames) (d : mvcc.KBReal) (R : mvcc.Log) (A' : List EntryModel)
+    (ss : Loc) (γt : GName) (γn : NetNames GF) (t : Loc) (c : TrN GF) (rs : trIds) (idm : w64)
+    (lp al ast cl : Loc) (Tal : IProp GF) : IProp GF :=
+  iprop(∃ (γ' : ApplyNames) (TM' : MetaCI → IProp GF) (E' : apply.AEnv GF) (b' : GoInterface)
+      (st' : ApplyState) (d' : mvcc.KBReal) (x' : apply.ApplyKV) (cs' : Loc) (L : List w64),
+    ⌜beSucc γ E γ' E' ∧ E'.γ.kb = some d' ∧ d'.P = d.P ∧
+      E'.RO = srvRestOwnH d'.γB cl (srvObjsOn al ast lp cl d'.be) ∧
+      loopOk γ' st' sv.Metadata'.Index' ∧ ciEff γ' st'.k = sv.Metadata'.Index' ∧
+      x'.log = [[], []] ++ R ∧ (∀ f, (netRh γn).member f → f ≠ idm → f ∈ L)⌝ ∗
+    isServer s γ' ci TM' E' ρ γr ∗
+    epAppliedIAddr ep ↦ sv.Metadata'.Index' ∗ epAppliedTAddr ep ↦ sv.Metadata'.Term' ∗
+    epDiskSnapAddr ep ↦ sv.Metadata'.Index' ∗ epMemSnapAddr ep ↦ sv.Metadata'.Index' ∗
+    epConfState ep cs' ∗
+    applyThread γ' st' ∗ applyBackend γ' ci b' ∗ srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗
+    srvApplyKV s E' ρ.wait x' ∗ srvRest E' γr A' ∗ srvKVCloser s E' ∗
+    backend.isStopChans d'.γB d'.be ∗ backend.bOpen d'.γB (1 : Qp).half ∗
+    monoNatAuthOwn γt 1 (uint.nat sv.Metadata'.Index') ∗
+    backend.pathOwn (snap.snapDBPath ss sv.Metadata'.Index') ∗
+    trLive γn t c (rs.1, L) ∗ Tal)
 
 end proof
 end EtcdGrove

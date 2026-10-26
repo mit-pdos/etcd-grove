@@ -108,6 +108,7 @@ theorem dirOne_member (id : w64) (url : GoString) (f : w64) (hf : dirOne id url 
   · exact h
   · simp [h] at hf
 
+omit [MemStorReg GF] in
 /-- **A member's URLs, as the transport's `AddPeer` takes them** (rafthttp stage 6d): of a
 well-formed directory's member `pid` (one of raft's peers, the directory's members), non-empty,
 plain, of hosts the directory gives `pid`. -/
@@ -122,6 +123,7 @@ theorem addPeer_dir (γn : NetNames GF) (dir : w64 → List GoString) (hγ : γn
   rw [netRh_owner]
   exact netOwner_of_mem γn.dir hd.2.1 pid h hm
 
+omit [MemStorReg GF] in
 /-- The members' loop's coverage, a step further: the ids added so far (`L`, within `L'`), and
 the next member's if it is another. -/
 theorem membersCov_step (mps : List (Loc × w64)) (id : w64) (L L' : List w64) (n : Nat)
@@ -138,6 +140,7 @@ theorem membersCov_step (mps : List (Loc × w64)) (id : w64) (L L' : List w64) (
     cases hp
     exact hx hne
 
+omit [MemStorReg GF] in
 /-- The members' loop done: every other member of the network (a directory member, so one of
 raft's peers, `Members()`'s) is among the ids added. -/
 theorem membersCov_done (γn : NetNames GF) (dir : w64 → List GoString) (hγ : γn.dir = dir)
