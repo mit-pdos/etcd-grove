@@ -212,9 +212,10 @@ removed, ..., adequacy coverage" below.
     `RemoveAllPeers` over `trLive` (the membership track's M5 plans its spec and proof); W8 a named
     premise (user-confirmed), S-j1's with the rafthttp track. Since: W7's second part and W8 named
     premises (the user's), `RemoveAllPeers.spec` over `trLive` with its proof a `sorry` for M5;
-    **blocked on one question** (`notes/decisions.md`, "D22 S8d, laid against the callees after the
-    merge"): the auth store's `Recover` on the new backend has no spec the server can use (the proved
-    one needs `authInv`, which `NewAuthStore`'s axiom does not give).
+    the auth store's `Recover` a named premise (the user's (a)); **blocked on two questions**
+    (`notes/decisions.md`, "D22 S8d, second pass against the callees"): `RaftCluster.Recover`'s axiom
+    ignores `clusterMem` (a gap in a trusted statement, no proof uses it yet) and `lessor.Recover`'s
+    wants `leaseOwn γl []`.
   - **S-j, the receiver** (`raftNode.start`'s snapshot branch; `applySnapshot` past the empty
     case: the backend swap, the `Recover`s, `kv.Restore`, the transport's peers re-made; +6 to +8
     axioms estimated) and **S-k** (the quota after the swap, with S-j): wait on the epochs.
