@@ -507,6 +507,61 @@ theorem client_Txn_st (cl : Loc) (ms : List (SrvAt GF)) (V : WEnv GF) (ci : GoIn
 
 end family
 
+/-! ## `New`'s client over the KV's specs (no members) -/
+
+section kv_api
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [client_sem : go_etcd_io.etcd.client.v3.Assumptions]
+
+/-- **`cli.Put(ctx, key, val)` by a client whose `KV` field is a `*kv` of etcd's KV `γ`**
+(`isKv`): `kv.Put.spec` (linked, `v3.kv.wp_Put`) through the field, with no options: the
+caller's update of `γ`'s state by the put (persistent if `dup`), and the reply as the state the
+update fired at says. -/
+theorem client_Put_kv (cl api : Loc) (γ : KVNames) (dup : Bool) (ci : GoInterfaceOk)
+    (cd : context.ContextDesc (IProp GF)) (key val : GoString) (sl : GoSlice)
+    (Q : KVState → IProp GF) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
+        structFieldRef go_etcd_io.etcd.client.v3.Client go!"KV" cl ↦□ GoInterface.ok (kvIfaceOf api) ∗
+        isKv api γ dup ∗
+        ctxOk ci cd ∗ ctxErrClient ci cd ∗ optsAt sl [] ∗
+        □?dup (AU <{ ∃∃ (σ : KVState), etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \ ↑kvN, ∅
+          <{ etcdKV γ (kvOpStep (.put (putWireOf (opPutModel key val []))) σ), COMM Q σ }>) }}
+      (App (App (App (App (Val (cl @!! go.GoType.PointerType go_etcd_io.etcd.client.v3.Client.ty @!!
+          go!"Put")) (Val #(GoInterface.ok ci))) (Val #key)) (Val #val)) (Val #sl))
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+        (⌜err = GoInterface.nil⌝ ∗ ∃ (m : PutRespM) (σ : KVState), putRespMsg resp m ∗ Q σ ∗
+          ⌜m.hdr.revision = W64 ((σ.rev + 1 : Nat) : Int) ∧ σ.rev + 4 < 2 ^ 63 ∧ kvLogOk σ ∧
+            kvLogOk (kvOpStep (.put (putWireOf (opPutModel key val []))) σ)⌝) ∨
+          (⌜err ≠ GoInterface.nil⌝ ∗ kvErr err) }} := by
+  iintro %Φ ⟨#Pc, #Hkvf, #Hkv, #Hctx, #Hce, #Hopts, Hau⟩ HΦ
+  rw [go_etcd_io.etcd.client.v3.Client.TypeAssumptions.ptr_Put_unfold.method_unfold]
+  wp_pures
+  wp_auto
+  wp_apply (v3.kv.wp_Put api γ dup ci cd key val sl [] Q) $$ [Hau] as %resp %err Hout
+  · iframe #
+    iframe Hau
+    ipureintro
+    refine ⟨?_, rfl, rfl⟩
+    unfold opPutModel OpFull.putPanics opFold OpFull.putInit OpFull.newOp OpModel.zero
+    simp
+  iapply HΦ
+  icases Hout with (⟨%Herr, %m, %σ, #Hm, HQ, %Hs⟩ | ⟨%Herr, #Hke⟩)
+  · ileft
+    isplitl []
+    · ipureintro; exact Herr
+    iexists m, σ
+    iframe Hm HQ
+    ipureintro; exact ⟨Hs.1, Hs.2.2.1, Hs.2.2.2⟩
+  · iright
+    isplitl []
+    · ipureintro; exact Herr.1
+    · iexact Hke
+
+end kv_api
+
 end client
 end EtcdGrove
 end Perennial

@@ -10,10 +10,9 @@ Lean-first (no Rocq counterpart).
   prefix order).
 * `okFactKM γ p`: what the program knows of a successful Put it logged, `p` (its reply's header
   revision, key and value): the revision is at least `2` and is the put of the key and value
-  (`kmRevAt`), from the reply with the adapter's write update (`okFactKM_of_reply`: `putReplied`'s
-  state, `kmWriteQ`'s lower bound of the changes after).
-* `wsInvKM w γ`: the lock invariant of the log `w` (a `Writes`): its slice of successful Puts, each
-  with `okFactKM`.
+  (`kmRevAt`), from the adapter's write update and the reply's facts (`okFactKM_of_write`,
+  `Writer.spec`'s conversion: `kmWriteQ`'s lower bound of the changes after, after the start's
+  `[[]]`). The log's lock invariant is `wsInvF w (okFactKM γ)` (`WritesF.lean`).
 * `checkOk_of_km`: `Check`'s premise from what `Collect` returns at `kmRevAt γ` and the successful
   Puts' `okFactKM`s.
 -/
@@ -87,45 +86,31 @@ instance okFactKM_persistent (γ : client.KMNames) (p : wrec) :
     Persistent (okFactKM (GF := GF) γ p) := by
   unfold okFactKM; infer_instance
 
-variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
-
-/-- **A successful Put's reply with the adapter's write update gives `okFactKM`** of its revision,
-key and value: the update fired at the state of the reply's log `x.log`, whose revision the reply's
-header is one past, and the changes after end with the put's. -/
-theorem okFactKM_of_reply (E : apply.AEnv GF) (γr : ReadNames) (F : mvcc.Log) (k v : GoString)
-    (γ : client.KMNames) (l0 : List (List mvcc.Change)) (cid mid : w64) (m : PutRespM) :
-    client.putReplied E γr F (client.putKeyOp k v)
-        (client.kmWriteQ γ l0 (.put (client.putKeyOp k v))) cid mid m ⊢
-      okFactKM γ ⟨m.hdr.revision, k, v⟩ := by
-  iintro H
-  unfold client.putReplied
-  icases H with ⟨%hm, %x, %x', %l, %skip, %Hp, -, -, -, -, HQ⟩
-  obtain ⟨-, hrev, -, -, -, -, h2, h4⟩ := Hp
-  iunfold client.kmWriteQ at HQ
-  icases HQ with ⟨#Hlb, -⟩
-  have hz : sint.Z (W64 (x.log.length : Int)) = x.log.length := by word
+/-- **A logged Put's fact** from the adapter's write update (after the start's changes `[[]]`) and
+the reply's facts (`Writer.spec`'s conversion): the reply's header revision `σ.rev + 1` is the
+put's revision of the changes after it. -/
+theorem okFactKM_of_write (γ : client.KMNames) (k v : GoString) (σ : KVState) :
+    client.kmWriteQ (GF := GF) γ [[]] (.put (client.putKeyOp k v)) σ -∗
+      ⌜σ.rev + 4 < 2 ^ 63 ∧ kvLogOk σ⌝ -∗ okFactKM γ ⟨W64 ((σ.rev + 1 : Nat) : Int), k, v⟩ := by
+  unfold client.kmWriteQ
+  iintro ⟨#Hlb, -, %Hl0, -⟩ %Hok
+  obtain ⟨h63, hok⟩ := Hok
+  have hc : σ.compacted = 0 := by rw [hok.1]; rfl
+  have hrev : σ.rev = σ.changes.length := by simp [KVState.rev, hc]
+  have hne : 0 < σ.changes.length := by
+    obtain ⟨t, ht⟩ := Hl0; rw [← ht]; simp
+  have hz : sint.Z (W64 ((σ.rev + 1 : Nat) : Int)) = σ.rev + 1 := by word
   unfold okFactKM kmRevAt
   simp only
-  rw [hrev, hz]
+  rw [hz]
   isplitr
   · ipureintro; omega
   iexists _
   iframe Hlb
   ipureintro
-  have hc : (kvStateOf x.log).changes = x.log.drop 1 := rfl
-  rw [kvOpStep_putKeyOp_changes, hc]
-  have hlen : ([] :: x.log.drop 1 : mvcc.Log).length = x.log.length := by
-    simp; omega
-  rw [show (x.log.length : Int).toNat = x.log.length by omega, ← List.cons_append,
-    List.getElem?_append_right (by omega), hlen]
+  rw [kvOpStep_putKeyOp_changes, show ((σ.rev : Int) + 1).toNat = σ.changes.length + 1 by omega,
+    ← List.cons_append, List.getElem?_append_right (by simp)]
   simp
-
-/-- **The log's lock invariant** (see the file header). -/
-def wsInvKM (w : Loc) (γ : client.KMNames) : IProp GF :=
-  iprop(∃ (sl : GoSlice) (oks : List wrec),
-    structFieldRef github_com.mit_pdos.etcd_grove.examples.common.Writes go!"Ok" w ↦ sl ∗
-    sl ↦* oks ∗ ownSliceCap wrec sl (DFrac.own 1) ∗
-    □ [∗list] p ∈ oks, okFactKM γ p)
 
 /-- **The check's premise** (`CheckOk`), from what `collect` returns at `upTo` (`collectOk` at
 `kmRevAt γ`) and the successful Puts' facts (`okFactKM`), their revisions at most `upTo`: each
