@@ -19816,3 +19816,55 @@ definitions `auth.authSmall`, `auth.StepSmall`, `auth.fuelOk`, `auth.authFuel`, 
 `auth.authOwnFu`, `auth.adminOutFu`, `apply.applierV3backend.X.fuelSpec`).
 
 **Trust base.** Unchanged (no axiom or `sorry` added).
+
+## E2k of the auth plan: `NewServer` generic in the auth mode; the apply thread's auth resource out of the server's construction (2026-10-26 · `notes/auth-plan.md`)
+
+The brief (E2i's "(2) itself, not reached"): `NewServer.spec` generic in the auth mode, the store
+with auth on from `srv_auth_tp_on` with its named premises, the mode off's statement kept; and, for
+E2l's next step, the apply thread's auth resource brought out of the store's construction.
+
+**The blow-up was one `rfl`, not the abstract mode.** E2i's proof generic in `on` (its WIP, unchanged
+but for two lines) compiled past 17 GB. Bisected with `sorry` cuts (the module elaborated alone under
+a memory cap): every step through the post's framing runs as in the mode off (about 100 s, 5.3 GiB);
+the step `isplitl [Huo]; · iExactEq Huo; rfl` (the apply thread's `uberOwn` at the start's chain)
+never finishes. Its goal asks `uberOwn E up (alarmChain E.authOn false false) = uberOwn E up
+(alarmChain on false false)`: with the mode a literal, `E.authOn` reduces to `false`; with a variable,
+`E.authOn` is `M.isOn` and `on` is another variable, the two sides are not definitionally equal, and
+`rfl` unfolds `uberOwn` without end looking for it. Now by the mode's equation (`HM : M.isOn = on`,
+kept in the Iris context per E2i's note on `word`): `simp only [apply.AEnv.authOn, HM']`. Also
+`tokenTTL_pos` (`time.Duration(ttl) * time.Second` positive for `ttl ∈ (0, 2 ^ 32)`): `word` timed out
+on the product; proved through the product's `uint.Z` and `word` on a generalized value. The module
+now compiles in about 100 s at a peak of 5.3 GiB, as before.
+
+**`NewServer.specM on`** (`Spec/.../etcdserver/NewServer.lean`, beside `NewServer.spec`): the start's
+chain `alarmChain on false false` (`bootKVOf on`, `InvBuild.lean`; `bootKV` is `bootKVOf false`), with
+auth on the configuration's token provider `"simple"` with a TTL in `(0, 2 ^ 32)` seconds, the post's
+`E.authOn = on`, and (below) `srvAuthApplyRes srv E`. `NewServer.wp_proofM on` proves it over
+`authSrvTP on` in place of `NewTokenProvider`'s and `NewAuthStore`'s specs. `NewServer.wp_proof` keeps
+its statement: the mode off of `wp_proofM` with `authSrvTP_off` (`NewTokenProvider`'s proof and
+`NewAuthStore`'s axiom), dropping the post's auth resource (`True` in the mode off); so the link and
+every closed theorem are unchanged. **`server_new_auth_on`** (`etcdserver/Results.lean`):
+`NewServer.specM true` with every callee linked as in `wp_NewServer` and the store from
+`srv_auth_tp_on`, over its named premises `auth.ValidSpec` and D22's `authSchemaSrv`; it does not reach
+`NewAuthStore`'s axiom (`etc/tcb-report.py --roots server_new_auth_on`).
+
+**The apply thread's auth resource** (E2l's "what's left", first item; `AuthSrv.lean`):
+`authApplyRes M stl`, in the mode `on γa` the admin side's authority with its fuel at some history
+(`auth.authOwnFu γa hs`), the admin side's write resource `auth.authWR` but for the store's user's half
+of `be` (the backend's write side `authWBackendOk`, the write token `T`, `enabledHalf`), and the
+provider's admin share `auth.tpAdmin`; `True` in the other modes. `authStoreKit`'s post gives it:
+`authStoreKit_on` from `newAuthStore_on`'s post (the history `[bootState, bump bootState]`, the boot
+state's revision being `0`) and `auth.authFuel_boot`; `authStoreKit_off` gives `True`.
+`NewServer.specM`'s post hands it out as `srvAuthApplyRes srv E` (the store the server's `authStore`
+field holds, `auth.authIface stl`, with `authApplyRes E.authMode stl`). *The half of `be`:* the store's
+user's half is `authBeOn`'s, in the server's rest (D22's backend swap takes it with `beMu`'s half for
+`Recover`); `authWR` asks the same half, so the admin request's application must borrow it from the
+rest while it runs (or the half splits in two quarters, which changes `authBeOn`, `authWR` and
+`Recover`'s spec): left to the admission's design. Not done (E2l's scope): the field of the
+environment (`AEnv`) for the resource, the apply thread holding it (`srvApplyKV`), the admission.
+
+**Exported statements changed.** None (`NewServer.spec` and its link unchanged). New:
+`NewServer.specM`, `NewServer.wp_proofM`, `server_new_auth_on`, `bootKVOf`, `authApplyRes`,
+`srvAuthApplyRes`; `authStoreKit`'s post gains `authApplyRes M stl` (a definition E2i introduced).
+
+**Trust base.** Unchanged (no axiom or `sorry` added).
