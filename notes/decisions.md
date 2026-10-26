@@ -21337,7 +21337,7 @@ the few CRUD methods, `List`, `Watch`), over one shared state, with nondetermini
 failed write has no effect) and watch ends; its spec is the trusted statement of the API server.
 Everything above it is real code: client-go's informers (the reflector, the FIFO, the shared
 informer: they reach the server only through the `ListWatch` closures over the typed clients'
-`List`/`Watch`), its leaf libraries (`util/workqueue`, `tools/cache`'s stores and indexers, the
+`List`/`Watch`), its leaf libraries (`util/workqueue`, `util/consistency` (the consistency store, moved into client-go on master, 2026-10), `tools/cache`'s stores and indexers, the
 listers, `util/flowcontrol`, `util/retry`, `features`: none reaches `k8s.io/client-go/rest`), and
 the controller. The event recorder (`tools/record`) reaches the server only at its sink; events do
 not affect safety, so it is a trusted no-op or verified over a no-op sink (open).

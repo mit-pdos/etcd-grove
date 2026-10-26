@@ -8,8 +8,9 @@ informers). Nothing translated or proved yet; phase 0 is next.
 
 Prove safety properties of the real DaemonSet controller, running over a model of the Kubernetes
 API server, in every execution. The first property is the one the controller robustness test
-checks (kubernetes/kubernetes#139657, open: `test/integration/daemonset/robustness_test.go:121`,
-`TestDaemonSetReconcileRobustnessMatrix`):
+checks (kubernetes/kubernetes#139657, open; at its head `13ecb9cc`, 2026-10-26:
+`test/integration/daemonset/robustness_test.go:123`, in `TestDaemonSetReconcileRobustnessMatrix`
+(line 39), the PR's only DaemonSet test):
 
 - **S1, `MaxOnePodPerNode`.** At no time does the API server hold two pods of the DaemonSet
   bound to the same node. The test checks it by listing pods every 50 ms under a fault matrix
@@ -31,9 +32,23 @@ Candidates after S1 (decide once S1's invariant is written down):
 - S3: the controller deletes only pods it owns.
 - S1 for N nodes and several DaemonSets (S1's first statement: one node, one DaemonSet).
 
+The test's other assertions are not safety properties: its liveness invariant
+(`DaemonSetStatusUpdated`, `Status.CurrentNumberScheduled == 1` once the controller settles, within
+30 s) is bounded-time convergence, and the framework's `AssertAllFaultsMatched`/
+`AssertExpectedFaultsTriggered` check the harness, not the controller. The other test the
+framework sets up, `test/integration/node/robustness_test.go` (the node lifecycle controller's
+`NodeAlwaysReady`), is out of scope here.
+
 The robustness PR's own code (`test/utils/robustness`, its clock injection in
 `controller_utils.go`) is not needed: the consistency store and the controller are on Kubernetes'
-master already. Pin a master commit (phase 0), not the PR.
+master already. Pin a master commit (phase 0), not the PR. Master moved under the PR: between
+its heads `167a0539` and `13ecb9cc` (rebased, 2026-10-26) the consistency store moved from
+`pkg/controller/util/consistency` to client-go, `k8s.io/client-go/util/consistency`, with two
+changes that matter here: `EnsureReady` now reports not ready when a store has no resource
+version yet (`""`: not synced, or `AtomicFIFO` off) or when no store is registered for a recorded
+resource, where it used to let the sync through; and `WroteAt` ignores a resource version it cannot
+parse. The precondition is now on the interface too (`consistency.go:44`). Pin a commit with the
+move.
 
 ## The cut (D49)
 
@@ -50,9 +65,9 @@ event sink). So:
 |---|---|---|
 | The API server | `kubernetes`, `kubernetes/typed/{apps,core}/v1` (and `rest`, HTTP, kube-apiserver behind them) | **Modeled**: a Go model in the example, verified against its own spec (below). Its spec is the trusted statement of the API server's semantics. |
 | Informers | `tools/cache`: `reflector.go`, `the_real_fifo.go`, `controller.go`, `shared_informer.go`; `informers/{apps,core}/v1` (glue) | **Verified**, against the model's List/Watch spec. |
-| Leaf libraries | `util/workqueue`; `tools/cache`'s `store.go`, `thread_safe_store.go`, `index.go`, keys, `WaitForNamedCacheSyncWithContext`; `listers/{apps,core}/v1`; `util/flowcontrol` (`Backoff`); `util/retry`; `features` | **Verified** directly. |
+| Leaf libraries | `util/workqueue`; `util/consistency` (the consistency store); `tools/cache`'s `store.go`, `thread_safe_store.go`, `index.go`, keys, `WaitForNamedCacheSyncWithContext`; `listers/{apps,core}/v1`; `util/flowcontrol` (`Backoff`); `util/retry`; `features` | **Verified** directly. |
 | Events | `tools/record`, `kubernetes/scheme` | **Trusted no-op** or verified over a no-op sink (events do not affect safety; phase 1 decides). |
-| The controller | `pkg/controller/daemon`, `daemon/util`, `daemon/metrics`; `pkg/controller` (`controller_utils.go`, `controller_ref_manager.go`); `pkg/controller/util/consistency`; `pkg/api/v1/pod`, `pkg/apis/core/v1/helper`, `pkg/util/{labels,hash}` | **Verified**. |
+| The controller | `pkg/controller/daemon`, `daemon/util`, `daemon/metrics`; `pkg/controller` (`controller_utils.go`, `controller_ref_manager.go`); `pkg/api/v1/pod`, `pkg/apis/core/v1/helper`, `pkg/util/{labels,hash}` | **Verified**. |
 | Below | `k8s.io/api` (types, generated `DeepCopy`), apimachinery helpers, `component-helpers` (node affinity, taints), `apiserver/pkg/util/feature`, `component-base/{featuregate,metrics}`, `klog`, `k8s.io/utils/clock` | Verified where cheap; trust-boundary specs where not (phase 1 sorts them). |
 
 Not a goal: replacing the model by the real API server. The repository's etcd3 store proofs
@@ -90,13 +105,15 @@ Semantics:
 
 Configuration in `Main`: client-go's `WatchListClient` off (the reflector then lists and watches;
 with it on the initial list is a streaming watch ending in a bookmark, more for the model),
-`AtomicFIFO` on (without it `LastStoreSyncResourceVersion` returns `""` and the consistency store
-lets every sync through), `StaleControllerConsistencyDaemonSet` on.
+`AtomicFIFO` on (without it `LastStoreSyncResourceVersion` returns `""`; the client-go store then
+reports not ready forever after a write, safe but stuck), `StaleControllerConsistencyDaemonSet` on.
+
+Line numbers below are at the PR's head `13ecb9cc`.
 
 ## How S1 is kept (the proof's skeleton)
 
 The controller is the only writer of pods in the example. A sync of a DaemonSet:
-1. `consistencyStore.EnsureReady` (`daemon_controller.go:1299`): if the controller recorded a write
+1. `consistencyStore.EnsureReady` (`daemon_controller.go:1302`): if the controller recorded a write
    (`WroteAt`, after each successful pod create and status write) whose resource version the
    pod or DaemonSet informer's store has not reached, requeue. Otherwise clear the record.
 2. Read the pods from the informer's cache; create one for each node that should run one and has
@@ -106,8 +123,9 @@ The controller is the only writer of pods in the example. A sync of a DaemonSet:
 The invariant to establish: at the start of a sync that passes step 1, the pod cache contains
 every pod of the DaemonSet the server holds. It rests on
 - **the workqueue's exclusivity**: one worker per key, so no `WroteAt` for the DaemonSet runs
-  during its `EnsureReady` (the store's stated precondition, `consistency.go:122`, "Must not be
-  called concurrent with WroteAt for the same owner": its check and its `Clear` are not atomic, and
+  during its `EnsureReady` (the store's stated precondition, client-go's `consistency.go:44,150`,
+  "Must not be called concurrently with WroteAt for the same owner": its check and its `Clear` are
+  not atomic, and
   a `WroteAt` between them would be lost);
 - **the informer contract**: the store's `LastStoreSyncResourceVersion` never decreases, across
   relists too, and once it is at least `r` the store reflects every change up to `r`;
@@ -119,7 +137,7 @@ need them, though `SatisfiedExpectations` must be specified enough to show it do
 
 **A suspected bug outside the model's contract (phase 0 checks it).** If a pod create is committed
 but its call returns an error (a timeout after the commit), `syncNodes` lowers the expectations
-(`CreationObserved`, `daemon_controller.go:1104`) and `OnWrite` never records a resource version.
+(`CreationObserved`, `daemon_controller.go:1107`) and `OnWrite` never records a resource version.
 A later sync on a pod cache that has not seen the pod would then create a second one. The
 robustness test cannot reach this: its injected 500s are synthesized before the request is sent
 (`test/utils/robustness/transport.go:110`). If phase 0 reproduces it, it goes in `issues/`
@@ -138,7 +156,7 @@ records it.
    `etc/goose.py` translating the packages of "The cut" with bodies, the rest names-only, and a
    list of what the pinned Goose rejects (G-numbered, `notes/k8s-daemonset-goose.md`). Known in
    advance (from the call-graph survey, 2026-10-26):
-   - `getPatch` (`update.go:504`, on every sync): `json.Marshal` of the DaemonSet, `Unmarshal` into
+   - `getPatch` (`update.go:505`, on every sync): `json.Marshal` of the DaemonSet, `Unmarshal` into
      `map[string]interface{}`, unchecked assertions on the result.
    - `controller.ComputeHash` (in `snapshot`): fnv over `spew`'s dump (reflection).
    - `reflect.DeepEqual` on the selector (every sync), `apiequality.Semantic.DeepEqual` in handlers.
@@ -156,7 +174,7 @@ records it.
 2. **The leaf libraries.** `util/workqueue` (the typed queue's spec: a per-key token held from
    `Get` to `Done`; the delaying queue; the rate limiters), `tools/cache`'s store, thread-safe map
    (with its resource version) and indexers, the listers, `flowcontrol.Backoff`, the consistency
-   store (`pkg/controller/util/consistency`), `ControllerExpectations`.
+   store (`k8s.io/client-go/util/consistency`), `ControllerExpectations`.
 3. **The model API server's spec and proof.** Logically atomic triples over an abstract state of
    resources and its change log (compare D44-D48's KV state and its watches: a watch is repeated
    reads of the log).
@@ -174,7 +192,8 @@ Phases 2 and 3 are independent and can run in parallel; 4 needs 2 and 3; 5 needs
 
 ## Open
 
-- The pin (a master commit with the consistency store; the controller has changed since 1.36?).
+- The pin: a master commit with the consistency store in client-go (the PR's base at `13ecb9cc`
+  or later).
 - One node and one DaemonSet first, or N nodes from the start (S1 per node then reads the pod's
   target node, `util.GetTargetNodeName`).
 - Other writers in `Main` (a client that deletes pods at random): S1 should survive them, and
