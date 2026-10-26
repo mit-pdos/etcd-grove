@@ -31,7 +31,9 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.common.Assumptio
 
 theorem Collect.wp_proof (wp_Err : WatchResponse.Err.spec (GF := GF) (hG := hG)) :
     Collect.spec (GF := GF) (hG := hG) := by
-  intro CS EM R A P pfx wch γ upTo Hresp
+  intro CS Ok R A P wch γ upTo hP Hce Hresp
+  haveI : ∀ (c c' : w64) (v : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel),
+    Persistent (Ok c c' v r) := hP
   wp_start as ⟨#Hw, Hcons, #HA⟩
   (try wp_auto)
   wp_if_destruct
@@ -67,7 +69,7 @@ theorem Collect.wp_proof (wp_Err : WatchResponse.Err.spec (GF := GF) (hG := hG))
     iintro !> %i %e %h
     simp at h
   wp_for IH
-  wp_apply (wp_etcdWatch_receive wch γ pfx m c) $$ [Hcons]
+  wp_apply (wp_respChan_receive wch γ Ok m c) $$ [Hcons]
     as %v %ok H
   · iframe #; iframe
   cases ok
@@ -81,7 +83,7 @@ theorem Collect.wp_proof (wp_Err : WatchResponse.Err.spec (GF := GF) (hG := hG))
   simp only [↓reduceIte]
   imod H with ⟨%r, %c', #Hr, #Hok, Hcons⟩
   (try wp_auto)
-  ihave #Hcse := watchRespOk_closeErr' pfx c c' v r $$ Hok
+  ihave #Hcse := Hce c c' v r $$ Hok
   wp_apply wp_Err wresp_ptr v (DFrac.own 1) $$ [$wresp $Hcse] as %err ⟨wresp, %Herr, -⟩
   cases err with
   | ok e =>
