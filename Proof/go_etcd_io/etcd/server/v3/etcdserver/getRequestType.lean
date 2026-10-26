@@ -42,6 +42,7 @@ theorem getRequestType.wp_proof : getRequestType.spec (GF := GF) (hG := hG) := b
   ihave %h2 := apply.optReqIs_nil l2 rq.deleteRange _ apply.deleteIs_nn $$ H2
   have e2 : rq.deleteRange.isSome = !decide (l2 = null) := by
     cases hc : rq.deleteRange <;> simp_all
+  ihave #H3 := apply.optReqIs_txnW l3 rq $$ H3
   ihave %h3 := apply.optReqIs_nil l3 rq.txn _ apply.txnIs_nn $$ H3
   have e3 : rq.txn.isSome = !decide (l3 = null) := by
     cases hc : rq.txn <;> simp_all
