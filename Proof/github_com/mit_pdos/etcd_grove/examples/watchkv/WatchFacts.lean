@@ -9,14 +9,17 @@ at a model whose steps are of watchkv logs (`wkSteps`; `step_wk`), one event per
 event's type, revision, its key-value's value field and `R`, what the model's logs say of that
 revision). `prog_step_gen` and `resp_gen` follow (a progress step; one response).
 
-The facts are generic in the model so that one proof serves both places watchkv's workload is
-watched: a server (`v3rpc.etcdModelOfServer`, `wkSteps_srv` from `wk_log`, `R` the store's
-`revAt`; `resp_wk`) and the cluster's history (`linkv3p.wkSteps_hist`, `linkv3p.resp_hist`).
+The facts are generic in the model so that one proof serves every place watchkv's workload is
+watched: the clients' model of etcd over its KV state (`client.etcdModelOfKV γ`, `wkSteps_km` at
+the plan's fact `γ.W = wkW P`, `R` the adapter's `common.kmRevAt γ`; `resp_km`; until 2026-10-26 a
+server's model, `wkSteps_srv`) and the cluster's history (`linkv3p.wkSteps_hist`,
+`linkv3p.resp_hist`).
 -/
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.watchkv.WatchModel
 public import Proof.github_com.mit_pdos.etcd_grove.examples.watchkv.Defs
+public import Proof.github_com.mit_pdos.etcd_grove.examples.common.WritesKM
 
 @[expose] public section
 
@@ -40,10 +43,11 @@ variable [sem : go.Semantics]
 variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-/-- **An event's facts at revision `r`** at the store `E` (`common.evFactR` at `revAt E`). -/
-abbrev evFact (E : apply.AEnv GF) (P : List (GoString × GoString)) (r : Nat) (e : EvModel) :
+/-- **An event's facts at revision `r`** at the adapter's names `γ` (`common.evFactR` at
+`common.kmRevAt γ`). -/
+abbrev evFact (γ : client.KMNames) (P : List (GoString × GoString)) (r : Nat) (e : EvModel) :
     IProp GF :=
-  common.evFactR (revAt E) P r e
+  common.evFactR (common.kmRevAt γ) P r e
 
 theorem putNv_value (r : w64) (k val : GoString) (l : w64) (s : List EtcdKv) :
     (txn.putNv r k val l s).value = val := by
@@ -76,30 +80,51 @@ instance wkSteps_persistent (EM : EtcdModel GF) (P : List (GoString × GoString)
     (R : Nat → GoString → GoString → IProp GF) : Persistent (wkSteps EM P R) := by
   unfold wkSteps; infer_instance
 
-/-- **A watchkv server's steps** (`wk_log`). -/
-theorem wkSteps_srv (E : apply.AEnv GF) (γr : ReadNames) (P : List (GoString × GoString))
-    (hwl : γr.kv.wl = workload P) (hlog : γr.kv.log0 = [[], []]) :
-    ⊢ srvKVInvs (GF := GF) E γr -∗ mvcc.idxCert E.γ.idx [[], []] -∗
-      wkSteps (v3rpc.etcdModelOfServer E) P (revAt E) := by
-  iintro #Hinvs #H0
-  iunfold wkSteps
-  iintro !> %r0 %r1 %evs #Hstep
-  ihave #Hstep' : v3rpc.srvStep E r0 r1 wkPfx evs $$ []
-  · iexact Hstep
-  iunfold v3rpc.srvStep at Hstep'
-  icases Hstep' with ⟨%L, #Hsl, #Hc, %Hs⟩
-  iunfold v3rpc.srvLog at Hsl
-  icases Hsl with ⟨#Hsd, -⟩
-  imod wk_log E γr P hwl hlog L $$ Hinvs H0 Hsd Hc with %Hwk
+/-- **A step of the adapter's model is of a watchkv log** at the plan's fact (`γ.W = wkW P`), under
+any prefix: its log is a prefix of the log of a state the client saw (`client.kmLog`), whose
+changes are a prefix of the invariant's state's, a watchkv log; its puts are
+`common.kmRevAt γ`'s. -/
+theorem km_step_log (γ : client.KMNames) (P : List (GoString × GoString)) (hW : γ.W = wkW P)
+    (r0 r1 : w64) (pfx : GoString) (evs : List EtcdEv) :
+    ⊢ client.kmInv (GF := GF) γ -∗ client.kmStep γ r0 r1 pfx evs ={⊤}=∗
+      ∃ L : mvcc.Log, ⌜WkLog P L ∧ StepFacts L r0 r1 pfx evs⌝ ∗
+        □ ∀ (r : Nat) (k v : GoString), ⌜L[r]? = some [mvcc.Change.put k v (W64 0)]⌝ -∗
+          common.kmRevAt γ r k v := by
+  iintro #Hinv #Hstep
+  iunfold client.kmStep at Hstep
+  icases Hstep with ⟨%L, #HL, %Hs⟩
+  iunfold client.kmLog at HL
+  icases HL with ⟨%l, #Hlb, %Hl⟩
+  iunfold client.kmInv at Hinv
+  iinv Hinv with >Hi Hclose
+  icases Hi with ⟨%σ, %m, Hσ, Hc, Ht, %Hm⟩
+  ihave %Hp := mono_list_auth_lb_valid γ.ch 1 σ.changes l $$ Hc Hlb
+  imod Hclose $$ [Hσ Hc Ht] with -
+  · inext; iexists σ, m; iframe; ipureintro; exact Hm
+  have hwk : WkLog P L := wkW_prefix (by rw [← hW]; exact Hm.2) Hp.2 Hl.1
   imodintro
   iexists L
   isplitr
-  · ipureintro; exact ⟨Hwk, Hs⟩
+  · ipureintro; exact ⟨hwk, Hs⟩
   iintro !> %r %k %v %h
-  iunfold revAt
-  iexists L
-  iframe Hsd
-  ipureintro; exact h
+  unfold common.kmRevAt
+  iexists l
+  iframe Hlb
+  ipureintro
+  obtain ⟨t, ht⟩ := Hl.1
+  rw [← ht, List.getElem?_append_left (List.getElem?_eq_some_iff.mp h).1]
+  exact h
+
+/-- **The adapter's steps are a watchkv server's** at the plan's fact (`km_step_log` under the
+watch's prefix). -/
+theorem wkSteps_km (γ : client.KMNames) (P : List (GoString × GoString)) (hW : γ.W = wkW P) :
+    ⊢ client.kmInv (GF := GF) γ -∗ wkSteps (client.etcdModelOfKV γ) P (common.kmRevAt γ) := by
+  iintro #Hinv
+  iunfold wkSteps
+  iintro !> %r0 %r1 %evs #Hstep
+  ihave #Hstep' : client.kmStep γ r0 r1 wkPfx evs $$ []
+  · iexact Hstep
+  iapply km_step_log γ P hW r0 r1 wkPfx evs $$ Hinv Hstep'
 
 /-- **The chain of a watch's batches** at a model whose steps are a watchkv server's (`wkSteps`; see
 the file header). -/
@@ -251,19 +276,19 @@ theorem resp_gen (EM : EtcdModel GF) (P : List (GoString × GoString))
       rw [← hlast, Hfe.2]; push_cast; omega
     iexact Hch
 
-/-- **One response of a watch at a watchkv server** (`resp_gen` at `wkSteps_srv`). -/
-theorem resp_wk (E : apply.AEnv GF) (γr : ReadNames) (P : List (GoString × GoString))
-    (hwl : γr.kv.wl = workload P) (hlog : γr.kv.log0 = [[], []])
+/-- **One response of a watch at the adapter's model** at the plan's fact (`resp_gen` at
+`wkSteps_km`). -/
+theorem resp_km (γ : client.KMNames) (P : List (GoString × GoString)) (hW : γ.W = wkW P)
     (hpk : ∀ kv ∈ P, wkPfx <+: kv.1) (n : Nat) (c c' : w64)
     (v : go_etcd_io.etcd.client.v3.WatchResponse) (r : RespModel) (hne : ¬ watchErr v)
     (hcur : Cur n c) :
-    ⊢ srvKVInvs (GF := GF) E γr -∗ mvcc.idxCert E.γ.idx [[], []] -∗
-      watchRespOk (EM := v3rpc.etcdModelOfServer E) wkPfx c c' v r ={⊤}=∗
+    ⊢ client.kmInv (GF := GF) γ -∗
+      watchRespOk (EM := client.etcdModelOfKV γ) wkPfx c c' v r ={⊤}=∗
       ⌜Cur (n + r.events.length) c'⌝ ∗
-      □ ∀ (j : Nat) (e : EvModel), ⌜r.events[j]? = some e⌝ -∗ evFact E P (2 + n + j) e := by
-  iintro #Hinvs #H0 Hok
-  ihave #HS := wkSteps_srv E γr P hwl hlog $$ Hinvs H0
-  iapply resp_gen _ P (revAt E) hpk n c c' v r hne hcur $$ HS Hok
+      □ ∀ (j : Nat) (e : EvModel), ⌜r.events[j]? = some e⌝ -∗ evFact γ P (2 + n + j) e := by
+  iintro #Hinv Hok
+  ihave #HS := wkSteps_km γ P hW $$ Hinv
+  iapply resp_gen _ P (common.kmRevAt γ) hpk n c c' v r hne hcur $$ HS Hok
 
 end facts
 

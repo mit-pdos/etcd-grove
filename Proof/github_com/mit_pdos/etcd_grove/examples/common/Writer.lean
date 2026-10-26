@@ -1,7 +1,7 @@
 /- Lean-first (no Rocq counterpart). The proof of `writer`: the loop over `tried[lo:hi]`; each Put
 in a timeout context (`client.wp_WithTimeout_bg`, over the trust-boundary spec of
-`context.WithTimeout(Background(), d)` and `context.ErrAny`); each successful Put's reply gives
-`okFact` (`okFact_of_reply`), logged under the lock. -/
+`context.WithTimeout(Background(), d)` and `context.ErrAny`); each with the adapter's write update
+(`client.km_write_au`); each successful Put's reply gives `okFactKM` (`okFactKM_of_reply`), logged under the lock. -/
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.common.Writer
@@ -33,8 +33,9 @@ theorem Writer.wp_proof
     (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG))
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG)) :
     Writer.spec (GF := GF) (hG := hG) := by
-  intro CS CRE CEC cl ep V E γr cid mid w tsl tried lo hi hAs hlo hlh hhi
-  wp_start as ⟨#Hnc, #Hone, #Hput, #Ht, #Hkv, #Hmu⟩
+  intro CS CRE CEC cl ep V E γr cid mid γ w tsl tried lo hi hAs hlo hlh hhi hkv hW
+  wp_start as ⟨#Hnc, #Hone, #Hput, #Ht, #Hkm, #Hmu⟩
+  imod (monoListLbOwn_nil (GF := GF) (A := List mvcc.Change) γ.ch) with #Hl0
   ihave #Psync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
@@ -66,7 +67,11 @@ theorem Writer.wp_proof
     · iframe #; ipureintro; exact Hx_lookup
     have hxP : (x.Key', x.Val') ∈ tried.map pairOf :=
       List.mem_map.2 ⟨x, List.mem_of_getElem? Hx_lookup, rfl⟩
-    ihave Hau := Hkv $$ %x.Key' %x.Val' %hxP
+    ihave Hau := client.km_write_au γ [] (.put (client.putKeyOp x.Key' x.Val'))
+      (hW x.Key' x.Val' hxP) $$ [$Hkm $Hl0]
+    irevert Hau
+    rw [hkv]
+    iintro Hau
     (try wp_auto)
     -- `ctx, cancel := context.WithTimeout(context.Background(), RequestTimeout)`
     wp_apply context.wp_Background
@@ -75,13 +80,14 @@ theorem Writer.wp_proof
       as %cctx %cd %cancel ⟨#Hcancel, #Hctx, #Hce, -⟩
     (try wp_auto)
     ihave #Hput1 : [∗list] y ∈ [(⟨ep, E, γr, cid, mid⟩ : client.SrvAt GF)],
-        isGrpcRpc y.addr go!"/etcdserverpb.KV/Put" (client.etcdPutSpec y.E y.γr y.cid y.mid) $$ []
+        client.kvRegsAt y $$ []
     · iapply BigSepL.bigSepL_singleton.2; iexact Hput
     ihave #HF1 : [∗list] y ∈ [(⟨ep, E, γr, cid, mid⟩ : client.SrvAt GF)],
         mvcc.idxCert y.E.γ.idx [] $$ []
     · iapply BigSepL.bigSepL_singleton.2; iexact HF0
     wp_apply (client.client_Put_rep cl [⟨ep, E, γr, cid, mid⟩] V cctx cd
-        x.Key' x.Val' slice.nil (fun _ => iprop(True))) $$ [Hau] as %resp %err Hout
+        x.Key' x.Val' slice.nil
+        (client.kmWriteQ γ [] (.put (client.putKeyOp x.Key' x.Val')))) $$ [Hau] as %resp %err Hout
     · iframe #
       isplitr; · iExactEq Hnc; rfl
       isplitr; · iExactEq Hone; rfl
@@ -92,11 +98,11 @@ theorem Writer.wp_proof
     icases Hout with (⟨%Herr, %m, #Hm, %y, %hy, Hr⟩ | ⟨%Herr, -⟩)
     · simp only [List.mem_singleton] at hy
       subst hy Herr
-      ihave #Hok := okFact_of_reply E γr [] x.Key' x.Val' _ cid mid m $$ Hr
+      ihave #Hok := okFactKM_of_reply E γr [] x.Key' x.Val' γ [] cid mid m $$ Hr
       (try wp_auto)
       wp_apply sync.Mutex.wp_Lock $$ [] as ⟨Hown, Hinv⟩
       · iframe #
-      iunfold wsInv at Hinv
+      iunfold wsInvKM at Hinv
       icases Hinv with ⟨%osl, %oks, Hof, Hos, Hocap, #Hoks⟩
       iunfold putRespMsg at Hm
       icases Hm with ⟨%Hnn, %h, %pk, #Hhd, #Hhf, -⟩
@@ -111,10 +117,10 @@ theorem Writer.wp_proof
       (try wp_auto)
       wp_apply wp_slice_append $$ [$Hos $Hocap $Hl1] as %osl' ⟨Hos, Hocap, -⟩
       (try wp_auto)
-      wp_apply (sync.Mutex.wp_Unlock (structFieldRef github_com.mit_pdos.etcd_grove.examples.common.Writes go!"Mu" w) (wsInv w E)) $$ [Hown Hof Hos Hocap]
+      wp_apply (sync.Mutex.wp_Unlock (structFieldRef github_com.mit_pdos.etcd_grove.examples.common.Writes go!"Mu" w) (wsInvKM w γ)) $$ [Hown Hof Hos Hocap]
       · iframe #
         iframe Hown
-        iunfold wsInv
+        iunfold wsInvKM
         iexists osl', oks ++ [⟨m.hdr.revision, x.Key', x.Val'⟩]
         iframe
         inext

@@ -2,10 +2,10 @@
 **etcd's server, started for watchkv** (D23, 2026-10-20). Lean-first (no Rocq counterpart).
 
 `wk_served`: the ghost step between `net.Listen` and `go gs.Serve(l)`, the cache's
-`etcd_cache_served` (`Proof/go_etcd_io/etcd/cache/v3/Results.lean`) keeping the `Put` spec it
-drops: from `v3rpc.Server`'s postcondition, the listener and the run slots, the right to serve,
-etcd's `Put` and `Range` at the address, and the watch server's facts there (`watchAddrFacts`),
-given the facts `watchAddrFacts` lists beyond the stream's (the transport premise, `srvNoDupKeys`,
+`etcd_cache_served` (`Proof/go_etcd_io/etcd/cache/v3/Results.lean`) at one member's registrations
+(`kvRegsAt`, what `common.Writer` takes, where the cache's has `kvRegs`): from `v3rpc.Server`'s
+postcondition, the listener and the run slots, the right to serve, etcd's KV methods at the
+address, and the watch server's facts there (`watchAddrFacts`), given the facts `watchAddrFacts` lists beyond the stream's (the members' KV facts `srvKVFacts`,
 `eofOk`). `cert0_of_server`: the watch server's store certifies the start log `[[], []]` (the
 store's `isStore`, through `watchSrvOk`).
 -/
@@ -58,7 +58,7 @@ theorem wk_served [v3rpc.ServerMethodSets] (V : client.WEnv GF) (addr : GoString
     (cid mid n : w64) (il im iu ims is : GoFunc) (svcs : List GoString)
     (regs sregs : List (GoString × val × GoInterface)) (N nw : Nat)
     (hregs : ∀ x ∈ v3rpc.kvRegs q, x ∈ regs) (hV : V.addr = addr) (hE : V.R.E = E)
-    (hp : V.pfx ≠ [])
+    (hp : V.pfx ≠ []) (hrd : ρ.rd = γr)
     (hset : go.typeSetContains
       (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.watchServer.ty)
       go_etcd_io.etcd.api.v3.etcdserverpb.WatchServer.ty = true)
@@ -83,15 +83,13 @@ theorem wk_served [v3rpc.ServerMethodSets] (V : client.WEnv GF) (addr : GoString
         v3rpc.isWatchServer pw V.R ∗ srvStreamInterceptorOk ims iprop(True) ∗
         srvStreamInterceptorOk is iprop(True) ∗
         ([∗list] _x ∈ List.replicate nw (), v3rpc.watchRunSlot V.R) ∗
-        client.srvNoDupKeys V.R ∗ client.eofOk ⊢
+        client.srvKVFacts V ∗ client.eofOk ⊢
       |={⊤}=> grpcServeTok gs lis ∗
-        isGrpcRpc addr go!"/etcdserverpb.KV/Put" (client.etcdPutSpec E ρ.rd cid mid) ∗
-        isGrpcRpc addr go!"/etcdserverpb.KV/Range" (client.etcdRangeSpec E γr cid mid) ∗
-        watchAddrFacts V := by
+        client.kvRegsAt (⟨addr, E, γr, cid, mid⟩ : client.SrvAt GF) ∗ watchAddrFacts V := by
   iintro ⟨#Pv, #Ps, #Ppb, #Hsrv, #Hsrd, #Hat, #HNR, #Hq, #Hil, #Him, #Hiu, Hgs, Hlis, Hslots,
     #Hws, #Hims, #His, Hwslots, #Hnd, #Heof⟩
   imod (client.etcd_kv_started addr gs q p s lis E ρ γr cid mid n il im iu ims is svcs regs sregs N
-    hregs) $$ [Hgs Hlis Hslots] with ⟨Htok', Hss, #Hput, #Hrange, -, -⟩
+    hregs) $$ [Hgs Hlis Hslots] with ⟨Htok', Hss, #Hput, #Hrange, #Hdel, #Htxn⟩
   · iframe; iframe #
   imod (v3rpc.etcd_watch_served_chain addr pw V.R ims is sregs nw hset hwreg) $$ [Hss Hwslots]
     with #Hst
@@ -103,7 +101,11 @@ theorem wk_served [v3rpc.ServerMethodSets] (V : client.WEnv GF) (addr : GoString
     rw [hE]; iexact Hsrd
   ihave #Hlaws := client.watchLaws_srv V hWM hWL Hlink
   imodintro
-  iframe Htok' Hput Hrange
+  iframe Htok'
+  isplitl []
+  · unfold client.kvRegsAt
+    subst hrd
+    iframe #
   unfold watchAddrFacts
   rw [hV]
   iframe #

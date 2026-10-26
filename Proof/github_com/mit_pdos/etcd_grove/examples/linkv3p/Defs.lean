@@ -255,12 +255,13 @@ def memAt3 (R₁ R₂ R₃ : v3rpc.WSrv GF) : Nat → GoString × v3rpc.WSrv GF
 
 /-- **The clients' watch environment** (W4): the three members at their bridges, the watch
 contract at the cluster's committed history (`etcdModelOfHistory`, at the first member's names,
-which the others' agree with), under the prefix `pfx`. `clientv3.New` takes it as its caller's
+which the others' agree with), under the prefix `pfx`, at the KV state variable of those names
+(D47: the watches' read updates are of it). `clientv3.New` takes it as its caller's
 choice (`isNewClient`); a client that never watches needs none of its facts. -/
 def watchEnv (R₁ R₂ R₃ : v3rpc.WSrv GF) (γr : ReadNames) (pfx : GoString) :
     EtcdGrove.client.WEnv GF :=
   ⟨R₁, bridgeAddr₁, [], null, null, pfx, null, v3rpc.etcdModelOfHistory γr.raft γr.kv,
-    v3rpc.histWL γr.raft γr.kv, memAt3 R₁ R₂ R₃, 3⟩
+    v3rpc.histWL γr.raft γr.kv, memAt3 R₁ R₂ R₃, 3, γr.kv.st⟩
 
 /-- **A member of the started cluster** (persistent; W4: what `startCluster` gives of each, from
 `memberServed` and its bridge's start): its bridge's address serving
@@ -290,9 +291,8 @@ instance memberAt_persistent (γn : NetNames GF) (s : Loc) (id : w64) (ρ : ReqN
 /-- **The cluster started** (W4: `startCluster`'s success): the members' slice, the bridges' and
 the clients'; each member (`memberAt`), each bridge owned and not blackholed, each client
 `clientv3.New`'s over the three bridges at the watch environment (`watchEnv`, the prefix `pfx`);
-the client's view of etcd's KV at the start store; the members' KV names agreeing, at the workload
-`W`. -/
-def clusterUp (id₁ id₂ id₃ : w64) (bootLog : List EntryM) (W : SrvWorkload) (pfx : GoString)
+the client's view of etcd's KV at the start store; the members' KV state variables agreeing. -/
+def clusterUp (id₁ id₂ id₃ : w64) (bootLog : List EntryM) (pfx : GoString)
     (srvs brs clis : GoSlice) : IProp GF :=
   iprop(∃ (γ : RaftNames) (γn : NetNames GF) (ρ₁ ρ₂ ρ₃ : ReqNames) (E₁ E₂ E₃ : apply.AEnv GF)
       (cid₁ cid₂ cid₃ mid₁ mid₂ mid₃ : w64) (R₁ R₂ R₃ : v3rpc.WSrv GF) (s₁ s₂ s₃ cl₁ cl₂ cl₃ : Loc)
@@ -310,8 +310,7 @@ def clusterUp (id₁ id₂ id₃ : w64) (bootLog : List EntryM) (W : SrvWorkload
     isNewClient cl₂ [bridgeAddr₁, bridgeAddr₂, bridgeAddr₃] (watchEnv R₁ R₂ R₃ ρ₁.rd pfx) ∗
     isNewClient cl₃ [bridgeAddr₁, bridgeAddr₂, bridgeAddr₃] (watchEnv R₁ R₂ R₃ ρ₁.rd pfx) ∗
     etcdKV ρ₁.rd.kv (kvStateOf (kvModel ρ₁.rd.kv (bootEntries bootLog))) ∗
-    ⌜ρ₁.rd.kv.wl = W ∧ ρ₂.rd.kv.st = ρ₁.rd.kv.st ∧ ρ₂.rd.kv.wl = ρ₁.rd.kv.wl ∧
-      ρ₃.rd.kv.st = ρ₁.rd.kv.st ∧ ρ₃.rd.kv.wl = ρ₁.rd.kv.wl⌝)
+    ⌜ρ₂.rd.kv.st = ρ₁.rd.kv.st ∧ ρ₃.rd.kv.st = ρ₁.rd.kv.st⌝)
 
 end cluster
 

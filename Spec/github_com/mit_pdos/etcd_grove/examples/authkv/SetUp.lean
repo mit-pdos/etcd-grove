@@ -73,8 +73,8 @@ instance setupAuthOk_persistent (ep : GoString) Su Sg Sr Sp Se (Q : Fin 8 → IP
     Persistent (setupAuthOk ep Su Sg Sr Sp Se Q) := by
   unfold setupAuthOk; infer_instance
 
-/-- See the file header. `New`'s client `cl` of the server at `ep` (`isNewClient`), whose `Put`
-the server's KV service meets (`etcdPutSpec`), with the caller's update for each set-up put
+/-- See the file header. `New`'s client `cl` of the server at `ep` (`isNewClient`), whose KV
+methods the server's KV service meets (`kvRegsAt`, D44: what the client's KV calls take), with the caller's update for each set-up put
 (`kvOpAu1`, persistent: the put may be delivered several times) and the Auth service's premise
 `setupAuthOk`: `SetUp` returns some revision and `ok`, and if `ok` every admin call's `Q`. -/
 abbrev SetUp.spec : Prop :=
@@ -91,7 +91,7 @@ abbrev SetUp.spec : Prop :=
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.authkv ∗
       isNewClient cl [ep] V ∗
-      isGrpcRpc ep go!"/etcdserverpb.KV/Put" (client.etcdPutSpec E γr cid mid) ∗
+      client.kvRegsAt (⟨ep, E, γr, cid, mid⟩ : client.SrvAt GF) ∗
       iprop(□ ∀ k : GoString, ⌜k ∈ setupKeys⌝ -∗
         kvOpAu1 γr.kv (.put (client.putKeyOp k go!"setup")) (fun _ => iprop(True))) ∗
       setupAuthOk ep Su Sg Sr Sp Se Q }}

@@ -35,7 +35,7 @@ abbrev seedOne.spec : Prop :=
     (cl : Loc) (x : client.SrvAt GF) (V : client.WEnv GF) (γs : GName) (s0 : mstore) (g : GSt)
     (k : GoString) (σ : KVState),
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
-  (∀ op, x.γr.kv.wl.writes op) → k.length < 256 → g.items.length + 1 < 2 ^ 63 →
+  k.length < 256 → g.items.length + 1 < 2 ^ 63 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8setcd3 ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
       isNewClient cl [x.addr] V ∗ client.clientWriteOnce cl [x.addr] ∗ client.kvRegsAt x ∗

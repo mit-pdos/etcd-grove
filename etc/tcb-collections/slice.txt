@@ -4,7 +4,8 @@
 # the merge of unit C1 (2026-10-14) by the client's proof down to grpc's `ClientConn.Invoke`
 # (`client/v3/Results.lean`). V2 adds the queue's theorem through a real client and server.
 # V2b (2026-10-14): the client's end-to-end results, the recipes' contracts derived at the
-# server's model and the queue end to end (`recipes/Results.lean`'s slice section).
+# server's model and the queue end to end (`recipes/Results.lean`'s slice section); since D48
+# (2026-10-26) the recipes' are at the clients' model over the KV state (the adapter).
 #
 #   etc/tcb-report.py --collection etc/tcb-collections/slice.txt [--check [--update]]
 #
@@ -12,7 +13,7 @@
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
 roots \bv3rpc\.(etcd_model_of_server|etcdReached_of_hdr|etcdState_of_range|etcdState_of_txnRead|revToken_of_put)$
 roots \bclient\.(client_(put|get|delete|txn)_end_to_end|client_get_after_put|etcd_kv_served)$
-roots \brecipes\.(recipes_kv_of_server|recipes_client_of_server|queue_end_to_end|queue_end_to_end_once)$
+roots \brecipes\.(recipes_kv_of_km|recipes_client_of_km|queue_vertical)$
 axiom NewLoggableTxnRequest.wp_proof
 axiom RangeRequest.String.wp_proof
 axiom attribute.Bool.wp_proof

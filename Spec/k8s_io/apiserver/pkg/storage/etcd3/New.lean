@@ -51,7 +51,7 @@ abbrev New.spec : Prop :=
           #kc)) ∗
       isNewClient cl (ms.map client.SrvAt.addr) V ∗
       client.clientWriteOnce cl (ms.map client.SrvAt.addr) ∗
-      ([∗list] x ∈ ms, client.kvRegsAt x) ∗ ⌜∀ x ∈ ms, ∀ op, x.γr.kv.wl.writes op⌝ ∗
+      ([∗list] x ∈ ms, client.kvRegsAt x) ∗
       (∃ cx : GoInterface, structFieldRef go_etcd_io.etcd.client.v3.Client go!"ctx" cl ↦□ cx) ∗
       contractOk S codec vi ti di ∗
       □ (∀ Φ : val → IProp GF, ▷ (∀ x : GoInterface, ⌜x ≠ GoInterface.nil⌝ -∗ Φ #x) -∗

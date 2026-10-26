@@ -24,9 +24,6 @@
   (`idShare`) and `2 ^ 48` of raft's read credits. Until then `NewServer` took the fresh-token
   authorities, raft's whole read budget and fresh generator names, and required the member id's 16
   low bits not `0` (now the allocation's pure premise, with the prefixes distinct).
-* **The workload** (D19q, 2026-10-18): the KV names' `ρ.rd.kv.wl`, the caller's choice (the
-  leases-off `putgetWorkload`), granting no lease (`SrvWorkload.noGrant`: `run`'s receive from the
-  lessor's `expiredC` is dead), until the lease path (`revokeExpiredLeases`) is proved.
 * **The names chosen before the call** (D13a): the request path's names `ρ` (the read names at the cluster's raft names, the start log empty and the start index `0`,
   fresh, but the KV state's variable, `srvReadNamesFreshNK`), the store's index names and certificate map and the revisions' map (fresh), which the
   stand-in environment `E₀` carries (the construction's apply environment agrees with it,
@@ -135,9 +132,6 @@ abbrev NewServer.spec : Prop :=
   ρ.rd.raft = ⟨γ, [], W64 0⟩ → srvCCPolicy ρ.rd.raft →
   ρ.rd.kv.c0 = W64 0 → ρ.rd.kv.ch0 = apply.alarmChain false false false →
   ρ.rd.kv.log0 = [[], []] → ρ.rd.kv.cok = E₀.γ.cok →
-  -- the workload (D19q, the KV names' `wl`, the caller's choice): it grants no lease, so the
-  -- lessor's `expiredC` never delivers (`lessorOk`), until the lease path is proved
-  ρ.rd.kv.wl.noGrant →
   -- the configuration (`mvcc.New`'s premise on the batch limit: unit N1, 2026-10-17;
   -- `issues/etcd-compaction-negative-batch-limit.md`)
   cfg.Logger' ≠ null → 0 ≤ sint.Z cfg.CompactionBatchLimit' →

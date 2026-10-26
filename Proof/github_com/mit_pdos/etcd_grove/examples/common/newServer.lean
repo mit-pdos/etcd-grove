@@ -41,7 +41,7 @@ theorem newServer.wp_proof
       NewServer.spec (GF := GF) (hG := hG)) :
     newServer.spec (GF := GF) (hG := hG) := by
   intro CS N name peerAddr client token peer cluster lg M iu Uok ps bootLog dir id γ bud ρ E₀ Φs
-    γn W HW Htb Hrb48 HrbN hcfg hdyn hcc hboot htr htx hblen Hγn1 Hγn2 Hdirok HU Hlg Hck Haf Hbuq Hdbo
+    γn Htb Hrb48 HrbN hcfg hdyn hcc hboot htr htx hblen Hγn1 Hγn2 Hdirok HU Hlg Hck Haf Hbuq Hdbo
   wp_start as ⟨#Hpeer, #Hcl, #Hsls, #Hboot, #Hcom, #Hcci, Hmb, #Hnet⟩
   iunfold bootPremise at Hboot
   iunfold commonPremises at Hcom
@@ -49,7 +49,7 @@ theorem newServer.wp_proof
   iunfold memberBoot at Hmb
   icases Hmb with ⟨%Hρ, Hghost, #Hcomm, #Hcinv, #Hbinv, #Hlb, #Hidc, #HNZ0, #Hpmint, #Hrdctx,
     Hids, HrdCred, Hwtok, Hidx, Hcok, Hrev, Hnk, #Hkvinv⟩
-  obtain ⟨hraft, hpol, hc0, hch, hlog, hcok, hwl, hpfx, hΦs⟩ := Hρ
+  obtain ⟨hraft, hpol, hc0, hch, hlog, hcok, hpfx, hΦs⟩ := Hρ
   -- the imports' package facts
   ihave #Pfeat : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.features $$ []
   · iPkgInit
@@ -71,7 +71,7 @@ theorem newServer.wp_proof
   have hblen' : γ.reBoot.length ≤ 2 ^ 60 := by rw [hboot]; exact hblen
   wp_apply (wp_NewServer _ ⟨[httpURL peerAddr], [httpURL client], M, iu⟩
       γ bud id bootLog ρ E₀ N Φs γn dir hraft hpol hc0 hch hlog hcok
-      (by rw [hwl]; exact HW) Hlg (by simp) rfl Htb Hrb48 HrbN
+      Hlg (by simp) rfl Htb Hrb48 HrbN
       -- (D21 M3) the run bound: `SnapshotCatchUpEntries` is `2 ^ 48`
       (by
         have h48 : uint.Z (W64 281474976710656 : w64) = 2 ^ 48 := by rfl

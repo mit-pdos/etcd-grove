@@ -60,7 +60,7 @@ theorem PriorityQueue.Dequeue.wp_proof (hWFK : EtcdGrove.WithFirstKey.spec (GF :
   · iframe HRo Hosl Hlo
     ipureintro
     exact ⟨firstKeyOp_not_panics, Ht, by
-      simp [OpFull.getExact, op_simps] <;> (try split) <;> (try simp) <;> (try decide) <;> (try word)⟩
+      simp [OpFull.getExact, op_simps] <;> (try split) <;> (try simp) <;> (try decide) <;> (try word), (by simp [op_simps] <;> (try split) <;> (try simp) <;> (try decide))⟩
   iunfold kvGetResultR at Hgres
   icases Hgres with (%Hgne | ⟨%Hgnil, %R, #HgRev, #HRR, %HRle, Hgr⟩)
   · obtain ⟨e, rfl⟩ : ∃ e, gerr = GoInterface.ok e := by

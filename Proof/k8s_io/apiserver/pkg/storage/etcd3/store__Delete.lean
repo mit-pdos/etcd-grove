@@ -47,7 +47,7 @@ theorem store.Delete.wp_proof
   ihave Hst' := Hst
   iunfold isStore at Hst'
   icases Hst' with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt,
-    #Hkc, #Hcl, #Hone, #Hregs, %Hwl, #Hcon⟩
+    #Hkc, #Hcl, #Hone, #Hregs, #Hcon⟩
   iunfold contractOk at Hcon
   icases Hcon with ⟨%Hty, -⟩
   ihave #Pcv : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apimachinery.pkg.conversion $$ []

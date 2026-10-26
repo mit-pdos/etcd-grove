@@ -4,6 +4,16 @@ Why the Lean port is the way it is. Newest last. The design of the proof itself 
 recorded on `main` (`notes/decisions.md`); this file only covers choices the port
 had to make.
 
+**These decisions are not binding** (the user, 2026-10-25). Many of them were made to get a proof
+through and later turned out wrong or worse than an alternative: too-generic specs (the client's
+KV specs generic in a `GrpcSpec`, D43), indirections that hide what a spec supports (the
+workload's `writes` predicate, D23, removed by D43), choices recorded as "rejected" that were
+later adopted. Read an entry as the reasoning at the time, not as a rule. When a change would
+improve a spec or a proof (simpler, more direct, more faithful to the Go code, easier to audit),
+do not keep a design because a decision here chose it: say what the entry got wrong, mark it
+*superseded* (in part, if so) with a pointer to the new entry, and record the new choice. What
+does bind is in `CLAUDE.md` and what the user has asked for.
+
 ---
 
 ## The Rocq module discipline, in Lean
@@ -19587,6 +19597,232 @@ Auth service's contracts discharging `setupAuthOk`, and `Work` (E2b's, E2f's lis
 **Trust base.** 721 → 720 axioms (-1, `NewAuth.wp_proof` gone), sorries unchanged (6); the nine
 collections that listed it updated, and `authkv` gains the client's existing gRPC trust-boundary axioms
 (`StaticMethod`, `grpcConn`, `status.FromError`, ...) that `SetUp` reaches.
+
+## D44: one stated spec per KV method; the client's KV calls specified over one KV, its members hidden (2026-10-25 · the user; branch `kv-stated-specs`)
+
+*Supersedes in part* "A generic gRPC specification" (the client's KV specs generic in a `GrpcSpec`)
+and "The client meets the server (unit C1)"'s branch note "Where the two sides meet" (the client
+keeping its specs generic, `client_put_etcd` instantiating them).
+
+**The user's request.** `kv.Put.spec` (and `kv.Get`, ...) said only "whatever spec is registered at
+the gRPC endpoint, the call provides": too generic. There should be one stated gRPC spec for `Put`
+(each KV method) that the client and the server both refer to, and a precondition of the client's
+calls (`isKv`) that holds the registrations of every server the client talks to. Asked which
+statement should be the functions' specs (the members' or one KV's), the user chose one KV's, the
+members' statements internal lemmas ("Abstract only").
+
+**Three layers.**
+- *The stated gRPC specs* (`client/v3/KVService.lean`, moved from `client/v3/Results.lean`):
+  `etcdPutSpec`, `etcdRangeSpec`, `etcdDeleteSpec`, `etcdTxnSpec` and their replies (`putReplied`,
+  `rangeReplyOk`, `deleteReplied`, `txnReplied`), at a member's apply environment, read names and
+  ids; `SrvAt` and `kvRegsAt` (a member's four registrations), `anySpec` (a call through a client
+  of several members passes the conjunction). The server's handlers are proved against these
+  definitions (`Results.lean`'s `etcd_putMethodOk`, ..., `etcd_kv_served`, `etcd_kv_started`); the
+  client's proofs use the same ones. Only the transport stays generic in a `GrpcSpec`:
+  `ClientConn.Invoke`, the generated stub (`kVClient.*`), the retry client (`retryKVClient.*`).
+- *The members' lemmas* (`KVMembers.lean`'s `kv.Put.specM`, ...; proved as `kv.Put.wp_members`,
+  ..., linked in `LinkMembers.lean` as `v3.kv.wp_PutM`, ...): over `isKV api ms` (the `*kv`'s
+  connection to the members' endpoints and every member's `kvRegsAt`), the caller's side at each
+  member (`floorsAt`, `knownAt`, `putUpd`, ...), the reply some member's (`putAns`, ...). What the
+  results about the server's own model use (`ServerKV*.lean`, the recipes', the cache's,
+  `Results.lean`'s `client_*_any` and `client_*_end_to_end`): a member's reply carries the server's
+  certificates, the revision's token and the applied index's witness, which no KV-level statement
+  can (they are per member).
+- *The functions' specs* (`Spec/go_etcd_io/etcd/client/v3/{kv__Put,kv__Get,kv__Delete,kv__Do,
+  txn__Commit}.lean`): over `isKv kv γ dup`, the `*kv` a client of etcd's KV `γ`: `∃ ms` (hidden),
+  `isKV`'s facts, every member's start (`srvStart`: the floor `[]`, the committed index `0`, free),
+  every member at `γ`'s state name (`x.γr.kv.st = γ.st`: a cluster booted together), and, unless
+  `dup` (a write may be delivered more than once), every member refusal-free. The caller gives the
+  atomic update itself, written out in the spec: `□?dup (AU <{ ∃∃ σ, etcdKV γ σ }> @ (⊤ \ ↑srvRaftN) \
+  ↑kvN, ∅ <{ etcdKV γ (kvOpStep op σ), COMM Q σ }>)` for a write (persistent only if `dup`), a
+  persistent read AU (or none) for a range. The postcondition is written out too: `nil` and the
+  reply's message with `Q σ` and the reply's fields as functions of `σ`, or a client error
+  (`kvErr`). The parameters are named after the Go arguments (`kv`, `ctx`, `key`, `val`,
+  `opts_sl`/`opts`, `op`). The proofs: the
+  member-level `kv.Do`/`txn.Commit` at the hidden members (`putUpd_of`, ...: one update at `γ` is
+  each member's, `kvOpAu1_names`), the replies read back as the state's (`putAns_st`, ...).
+
+**Choices made in the abstract specs** (the open points of the design, decided here):
+- *A write's update* under `□?dup` (the user: the AU in the spec; the optional `□` is Iris's
+  `intuitionisticallyIf`): persistent if the client's retry interceptor may resend the write
+  (`issues/etcd-client-retry-put-ctx-error.md`), fired at most once on a refusal-free client (D29).
+- *Ranges at the latest revision only* (`kv.Get.spec`, `kv.Do.spec`'s range case: `rev = 0`): a
+  reply at an earlier revision is not a function of the current state. Every client-level caller
+  reads at `0`; the server-model results (the recipes' gets at a revision) use the members' lemma.
+- *Leases, `WithFromKey` deletes*: excluded as before (`leaseID = 0`, `rangeEnd ≠ [0]`: what
+  etcd's specs cover).
+- *The update's mask* is `kvAu1`'s (`(⊤ \ ↑srvRaftN) \ ↑kvN`).
+- *The workload's `writes`* (D23's premise `γ.wl.writes op` of every update) removed (D45): the
+  server admits every KV write (`admits_kv`). watchkv's `srvNoDupKeys_wk`, which used it, is
+  broken until redone in watchkv's own proof.
+- *`kv.Txn`, `txn.If`/`Then`/`Else`* unchanged (no request: generic in the builder's addresses);
+  `txn.Commit.spec` takes the builder, its `txnKvIs tp api` and `isKv api γ rf`, the builder's
+  connection swapped for the `*kv`'s (`txnObjAt_conn`, by the `kv` field's agreement).
+
+**One set of read names per member.** The server registers `Put`/`DeleteRange` at the request
+path's read names `ρ.rd`, `Range` at the read loop's `γr`, `Txn` at both; a started server has
+`ρ.rd = γr` (`InvStart`, `InvBuild`, `ReadServer`). `SrvAt`/`kvRegsAt` take one (`γr`), so the
+results that carried both (`ServerKV*`'s `γw γr`, the recipes', `client_txn_any`'s `γw`,
+`kvWritesOk`) take one now; `etcd_kv_started` still gives the four registrations at `ρ.rd`/`γr`,
+from which a caller with `ρ.rd = γr` assembles `kvRegsAt`.
+
+**Rejected.** Keeping the client's specs generic and instantiating them in `Results.lean` (branch
+`kv-put-link`, 2026-10-15, never merged): the generic triple says nothing about etcd. The members'
+statements as the functions' specs (`isKV api ms`, an update per member, a member's reply): the
+user's choice was one KV; the members' are kept for the results that need a member's reply's
+server facts. A cluster-level gname (`KVCluster`) distinct from `KVNames`: `isKv` takes a
+`KVNames` and uses only its `st`, the field the boot makes common.
+
+## D45: the client spec supports what the proof supports; a client's own facts in its invariant; no built-in restriction on the raft log (2026-10-25 · the user)
+
+*Supersedes* D19q's workload parameter (`SrvWorkload`: the requests the server admits, the
+lessor's grant guard) and D23's `writes` (the operations a client may deposit, which watchkv
+restricted to its plan's puts to get `srvNoDupKeys`).
+
+**The decision.**
+- *The etcd client's specs allow any operation the proof supports so far.* What is not supported
+  yet is a precondition stated directly in the spec (e.g. `kv.Put`'s `leaseID = 0`, `kv.Delete`'s
+  range end not `[0]`, `txn.Commit`'s plain transactions); widening it is future work on the
+  proof, not a parameter.
+- *Facts a particular client needs belong to that client's proof*, maintained with an invariant of
+  its own (over `etcdKV γ σ` and its own ghost state), not a restriction built into the server or
+  the client specs. watchkv's "no key written twice in one revision" is the case in point: it
+  moves from a workload restriction to watchkv's own argument (to be redone).
+- *No built-in restriction on the requests that enter the raft log.* The server's proofs are not
+  parameterized by an admission predicate: what enters the log is what the server's verified
+  proposers send (`EtcdServer.Put`/`DeleteRange`/`Txn`, the monitors), and any shape fact the apply
+  proof needs of committed entries follows from that, not from a configurable workload. So
+  `SrvWorkload` goes: D44 removed `writes`; `admits` and `grant` follow (the grant guard is the
+  lessor's fact that no lease is granted, which no supported request does).
+
+**Why.** An arbitrary predicate in a ghost-name record (`γ.wl`), with separate obligations that it
+let the expected operations through, made the specs say less than they seemed to and was hard to
+audit; the client spec should say directly what it supports. (D23 considered a fact in the
+client's proof and rejected it; see this file's header: decisions are not binding.)
+
+## D46: the client specs over etcd's whole KV state: a multi-revision store of maps (2026-10-25 · the user)
+
+*Supersedes* "Every KV operation as a persistent atomic update on the whole state" (unit T2)'s
+state, the store at its latest revision (`KVState := ⟨kvs : List EtcdKv, rev⟩`).
+
+**The user's request.** The etcd spec should be stated on the entire client-visible state, which
+is mvcc's KV state at every revision a client can read (reads at a revision, watches from one), not
+only the latest; and not as a log of operations: a multi-revision KV state, which compaction trims
+(not append-only). Each revision's store a map, not a list.
+
+**The state** (`KVModelDefs.lean`, `KVStore.lean`).
+- `KVRec`: a key's record at a revision (`mvccpb.KeyValue` without the key: value, create and mod
+  revisions, version, lease); `KVStore := GMap GoString KVRec`, the store at one revision.
+- `KVState := ⟨compacted, base, later⟩`: the compaction revision, the store at it, the stores at
+  each later revision up to the current one. Accessors: `rev` (the current revision), `store` (the
+  current store), `at r` (the store at revision `r`), `readRev rev` (the revision a range reads).
+  A write adds the next revision (`commit`); a compaction would raise `compacted` and drop stores
+  (not in the server's model yet: the server's state has `compacted = 0`). Non-emptiness is by
+  construction (`base`), so `commit`'s laws need no side condition.
+- `σ.kvs`, the current store listed in key order, stays as a derived view: the range semantics
+  (`txn.srvRangeOk`, `srvCount`, `rangeIn`, the transaction runs) and the server's model are
+  stated over sorted lists; `storeOf`/`KVStore.kvs` are inverse on sorted lists (`kvs_storeOf`,
+  `storeOf_kvs`), so nothing is lost.
+- The server's side: `kvStateOf log` is the store of each revision of the log (`mvcc.stateAt`);
+  `kvStateOf_rev`, `kvStateOf_kvs`, `kvStateOf_at`, `kvStateOf_commitLog`, `kvStateOf_backendLog`.
+
+**What the specs gain.** `kv.Get` at any revision the state keeps: the reply is the selection of
+`σ.at (σ.readRev rev)` (the premise "latest revision only" of D44 is gone). A put's previous
+key-value is the key's binding in `σ.store`. The watch facts (each revision's changes) become
+statable over `σ` (two consecutive stores), so an application can keep a fact like "no key
+written twice in a revision" in its own invariant, or the server can prove it; and the cache's and
+recipes' separate history model (`EtcdModel`, certified logs) could be restated over it.
+
+**Rejected.** The server's `mvcc.Log` as the client's state: it is a log of changes, append-only,
+and a revision's changes are not a state. A function `GoString → Option KVRec` per revision: not
+countable (the ghost variable needs `Pos.Countable`) and not finite; `GMap` is both, with
+extensional equality.
+
+## D47: the state's later revisions are their changes, in order; a watch is repeated reads of it (2026-10-25 · the user)
+
+*Supersedes* D46's `later : List KVStore` (a store per revision) and its "Rejected" paragraph
+(a revision's changes are not a state).
+
+**The user's decision.** `KVState` holds the list of every change, so the updates of a
+transaction are ordered in the abstract state; the watch spec guarantees that the events it
+returns are computed as etcd computes them from its key bucket (`rangeEvents`/`kvsToEvents`).
+
+**Why** (what etcd does, `server/storage/mvcc`). etcd never stores a store per revision: each change
+of a write transaction is a record of the backend's `key` bucket at its own revision
+`(main, sub)` (`kvstore_txn.go`: a put's `KeyValue`, a delete's tombstone), and both ways a
+watch's events are built read those changes: a synced watcher's from the transaction's change list
+(`watchableStoreTxnWrite.End`), an unsynced one's from the bucket over `[minRev, curRev + 1)`
+(`kvsToEvents`). A store per revision is a derived view, lossy when a revision writes a key twice
+(`[put k v₁, put k v₂]`, `[put j, del j]` with `j` absent: the stores of `[put k v₂]` and of
+nothing), which etcd's check allows (`issues/etcd-txn-check-intervals-sibling.md`); so the watch
+facts (`srvNoDupKeys`, watchkv's `WkLog`) could not be stated over it. Compaction fits:
+compacting at `c` keeps each key's latest record at or below `c` and every later one, the store
+at `c` and the later revisions' changes.
+
+**The state** (`KVModelDefs.lean`; the field named after mvcc's `tw.changes`, a write transaction's changes). `KVState ⟨compacted, base, changes⟩` with `changes : List (List
+mvcc.Change)`: the changes of revisions `compacted + 1, ..., rev`, each in order. The views D46 had
+are computed (`runFrom`, `mvcc.stateAt`'s step): `KVState.at r`, `store`, `kvs`, `rev`, and
+`changesAt r`; `commit cs` appends `cs`; `kvStateOf l = ⟨0, storeOf (stateAt l 0), l.drop 1⟩`.
+The lemmas D46's users rely on keep their statements (`kvStateOf_at`, `commit_kvs`, ...), so the
+KV specs are unchanged. The name `KVState` stays for now: `EtcdState` would sit beside the
+cache's `etcdState` and `EtcdStateWf`, which the watch's restatement will touch.
+
+**The watch (candidate, `client/v3/WatchState.lean`, `watcher.Watch.specσ`).** As a linearizable
+`Get`, the caller gives a persistent read update of `σ`; each response is one firing of it (`□ Q
+σ`), and its events are exactly `σ.rangeEvents o (c + 1) (c' + 1)`: revision `r`'s events
+`mvcc.evsOfRevM r (σ.at (r - 1)).kvs (σ.changesAt r)` (one per change, in order: a put's the
+key-value it wrote, a delete's the key with `ModRevision = r`), filtered by the range. A progress
+notification at `p ≤ σ.rev` says no event in `(c, p]`. `rangeEvents_kvStateOf`: at a log's state
+these are mvcc's `logEvents`, what the server sends. Neither `srvNoDupKeys` nor `startOk` is a
+premise. The candidate keeps the current completeness promise's scope (a non-empty prefix not all
+`0xff`, `rev ≥ 1`) and one member (`isKvWatcher`); the existing `watcher.Watch.spec` and its
+proofs are unchanged until the candidate is audited.
+
+## D48: the clients' model of etcd an adapter over the KV state; the specs say the state is a well-formed log's (2026-10-26 · the user: "keep EtcdModel as an adapter on top of the new spec", "do (a)")
+
+**The question.** The libraries (the cache, the recipes; concurrency and leasing over an abstract
+model) state their results over `EtcdModel GF`, which the server instantiated with its own facts
+(`v3rpc.etcdModelOfServer`: sealed logs, certificates, the apply thread's revision tokens); their
+contracts were proved at the server's members. With the client's specs stated over etcd's KV state
+(D44, D47), the libraries should rest on those specs only.
+
+**The adapter** (`client/v3/EtcdModelKV.lean`, `etcdModelOfKV γ`). A client keeps the KV state's
+half in an invariant (`kmInv`, D45's "a client's own facts in its invariant") with the append-only
+list of the state's changes (`monoListAuthOwn γ.ch`: every change of the KV is some client's
+update, which fires in the invariant) and the revisions' tokens. `etcdState`/`EtcdStep` are the
+server's definitions over logs the client saw (`kmLog`: a prefix of `[] :: l` for a lower bound
+`l` of the changes, well formed and small), `etcdReachedAt`/`etcdReadAt` a lower bound,
+`etcdRevToken` minted by the adapter's write update (`km_write_au`). Every law is the server's
+proof over `kmLog`: two logs a client saw are in prefix order, as two sealed logs were.
+
+**An application's facts in the adapter's invariant** (2026-10-26, for the examples). The
+invariant holds the client's half of `etcdKV`, so it is where a client's own fact about the KV's
+changes must live (D45: watchkv's "each revision from 2 is one of the plan's puts"): `KMNames.W`, a
+property of the changes the invariant keeps. A read keeps it trivially (the read-side contracts
+hold for any `W`); a write's update needs the write to keep it (`km_write_au`'s premise), and the
+libraries' write contracts take `KMWritable γ` (every operation keeps it; `fun _ => True`).
+
+**What the specs had to add (option (a)).** The laws (positive versions, `createRev ≤ modRev ≤ r`)
+are facts about well-formed small logs (`txn.stateAt_client_revs`), which an arbitrary `σ` need
+not be. So every successful KV reply gives `kvLogOk σ` (`KVLogOk.lean`: `σ = kvStateOf σ.log`, its
+log `LogWf'`, fewer than `2 ^ 63` revisions, at most `2 ^ 62` changes); a write's reply also of the
+state after (the log after the write is the certificate's); a watch response that moves the
+position gives `kvLogOkTo σ c'` (through the new position only: the update fires at the committed
+state, whose log the store has not applied, so has no bound; the events are of a sealed prefix).
+The server proves them from the reply's certificate and the receipts' bound, which `isKv` and the
+watch's member facts now carry (`receiptBound GF ≤ 2 ^ 62`, pure: the end-to-end results bound it).
+
+**What the adapter cannot give.** A serializable read fires no update, so the client's model learns
+nothing from it: the get contracts (`isEtcdKVE`, `isEtcdKVTodo`) take linearizable gets
+(`serializable = false`), as every get of the cache and the recipes is; STM's serializable reads
+(`concurrency/stm.go`) could not be connected this way. A write's token needs its update fired at
+most once: the write contracts are proved for a client that sends a write at most once
+(`isKv api γ false`).
+
+**Rejected.** A per-reply persistent "this state is the KV's" fact in the specs (it would answer
+serializable reads too): a second, server-maintained history at the KV's names, against D44's
+abstract `isKv`. Keeping `etcdModelOfServer` for the libraries: the watch spec's responses are
+read updates the caller chooses, so they cannot carry the server's sealed logs.
 
 ## The server's compaction and membership checks proved (2026-10-26 · three trust-boundary axioms discharged)
 

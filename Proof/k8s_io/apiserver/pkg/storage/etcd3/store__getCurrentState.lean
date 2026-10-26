@@ -62,7 +62,7 @@ theorem store.getCurrentState.wp_proof
   ihave Hst' := Hst
   iunfold isStore at Hst'
   icases Hst' with ⟨%Hsp, #Fcl, #Fcodec, #Fvi, #Fti, #Fdi, #Fpp, #Frp, #Fgr, #Fmt, #Flt, %Hlt,
-    #Hkc, #Hcl, #Hone, #Hregs, %Hwl, #Hcon⟩
+    #Hkc, #Hcl, #Hone, #Hregs, #Hcon⟩
   ihave #Pme : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apiserver.pkg.storage.etcd3.metrics $$ []
   · iPkgInit
   ihave #Pti : isPkgInit (PROP := IProp GF) pkg_id.time $$ []

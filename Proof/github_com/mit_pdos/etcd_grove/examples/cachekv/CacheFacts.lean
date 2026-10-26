@@ -1,5 +1,5 @@
 /-
-**What a cache watch of a watchkv-workload server's prefix delivers** (2026-10-20). Lean-first
+**What a cache watch of a prefix delivers, the KV's changes the plan's puts** (2026-10-20). Lean-first
 (no Rocq counterpart).
 
 The cache's `Watch` contract (`Cache.Watch.spec`, `cache/v3/Results.lean`'s
@@ -8,8 +8,9 @@ The cache's `Watch` contract (`Cache.Watch.spec`, `cache/v3/Results.lean`'s
 etcd's batches `bs`, each batch certified by etcd's step from at most the previous one,
 `certChain (etcdStepCert pfx) p₀ bs`, and for a start `sr ≠ 0`, `p₀ < sr`), or such a delivery
 followed by a compaction's cancel, or a rejection's single cancel. For a log with no cancel and a
-start at revision `2`, at a server of watchkv's workload (`watchkv.wk_log`: each step's log is a
-watchkv log, every revision from `2` on one put of the plan):
+start at revision `2`, at the clients' model of etcd over its KV state (`client.etcdModelOfKV γ`)
+with the plan's fact (`γ.W = watchkv.wkW P`; `watchkv.km_step_log`: each step's log is a watchkv
+log, every revision from `2` on one put of the plan):
 
 * `step_ck`: a step from `p` at most the watch's position `last` after `n` events (`CurI n last`:
   `last ≤ 1` before the first event, then the last event's revision `1 + n`), to a revision with
@@ -94,39 +95,34 @@ variable [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
 
 /-- **The certificate chain of a cache watch's batches at a watchkv server** (see the file
 header). -/
-theorem certChain_ck (E : apply.AEnv GF) (γr : ReadNames) (P : List (GoString × GoString))
-    (hwl : γr.kv.wl = watchkv.workload P) (hlog : γr.kv.log0 = [[], []])
-    (hpk : ∀ kv ∈ P, ckPfx <+: kv.1) :
+theorem certChain_ck (γ : client.KMNames) (P : List (GoString × GoString))
+    (hW : γ.W = watchkv.wkW P) (hpk : ∀ kv ∈ P, ckPfx <+: kv.1) :
     ∀ (bs : List Batch) (last : Int) (n : Nat), CurI n last → (∀ b ∈ bs, BatchOk b) →
-      ⊢ srvKVInvs (GF := GF) E γr -∗ mvcc.idxCert E.γ.idx [[], []] -∗
-        certChain (etcdStepCert (EM := v3rpc.etcdModelOfServer E) ckPfx) last bs ={⊤}=∗
+      ⊢ client.kmInv (GF := GF) γ -∗
+        certChain (etcdStepCert (EM := client.etcdModelOfKV γ) ckPfx) last bs ={⊤}=∗
         □ ∀ (j : Nat) (e : EvModel), ⌜bs.flatten[j]? = some e⌝ -∗
-          watchkv.evFact E P (2 + n + j) e
+          watchkv.evFact γ P (2 + n + j) e
   | [], _, _, _, _ => by
-    iintro #Hinvs #H0 -
+    iintro #Hinv -
     imodintro
     iintro !> %j %e %h
     simp at h
   | b :: bs, last, n, hcur, hok => by
-    iintro #Hinvs #H0 Hch
+    iintro #Hinv Hch
     rw [certChain_cons]
     icases Hch with ⟨⟨%p, %Hp, #Hcert⟩, Hrest⟩
-    have hcb : (etcdStepCert (EM := v3rpc.etcdModelOfServer E) ckPfx).cert p b =
-        etcdStepCertBody (EM := v3rpc.etcdModelOfServer E) ckPfx p b := rfl
+    have hcb : (etcdStepCert (EM := client.etcdModelOfKV (GF := GF) γ) ckPfx).cert p b =
+        etcdStepCertBody (EM := client.etcdModelOfKV (GF := GF) γ) ckPfx p b := rfl
     irevert Hcert
     rw [hcb]
     iintro #Hcert'
     iunfold etcdStepCertBody at Hcert'
     icases Hcert' with ⟨%cs, #Hm, #Hstep, -, -⟩
-    ihave #Hstep' : v3rpc.srvStep E p (batchRev b) ckPfx cs $$ []
+    ihave #Hstep' : client.kmStep γ p (batchRev b) ckPfx cs $$ []
     · iexact Hstep
-    iunfold v3rpc.srvStep at Hstep'
     iclear Hstep
-    icases Hstep' with ⟨%L, #Hsl, #Hc, %Hs⟩
-    obtain ⟨-, -, hr1, hnone, hcs⟩ := Hs
-    iunfold v3rpc.srvLog at Hsl
-    icases Hsl with ⟨#Hsd, -⟩
-    imod watchkv.wk_log E γr P hwl hlog L $$ Hinvs H0 Hsd Hc with %Hwk
+    imod watchkv.km_step_log γ P hW p (batchRev b) ckPfx cs $$ Hinv Hstep' with ⟨%L, %HL, #HR⟩
+    obtain ⟨Hwk, -, -, hr1, hnone, hcs⟩ := HL
     iunfold evsMatch at Hm
     icases Hm with ⟨%Hml, #Hmv⟩
     obtain ⟨hbne, hbrev⟩ := hok b (List.mem_cons_self ..)
@@ -146,8 +142,8 @@ theorem certChain_ck (E : apply.AEnv GF) (γr : ReadNames) (P : List (GoString �
     simp only [txn.changeEv, txn.putNv_key, watchkv.putNv_modRev] at hty hkey hrev
     -- the rest of the chain, from `2 + n` after `n + 1` events
     have hcur' : CurI (n + 1) (sint.Z (batchRev [e0])) := Or.inr ⟨by omega, by omega⟩
-    imod certChain_ck E γr P hwl hlog hpk bs (sint.Z (batchRev [e0])) (n + 1) hcur'
-      (fun b' hb' => hok b' (List.mem_cons_of_mem _ hb')) $$ Hinvs H0 Hrest with #Hrest
+    imod certChain_ck γ P hW hpk bs (sint.Z (batchRev [e0])) (n + 1) hcur'
+      (fun b' hb' => hok b' (List.mem_cons_of_mem _ hb')) $$ Hinv Hrest with #Hrest
     imodintro
     iintro !> %j %e %hj
     cases j with
@@ -167,9 +163,7 @@ theorem certChain_ck (E : apply.AEnv GF) (γr : ReadNames) (P : List (GoString �
       · ipureintro
         refine ⟨by simp [txn.changeEv, watchkv.putNv_value], ?_⟩
         rw [hkey]; exact hkv
-      iunfold watchkv.revAt
-      iexists L
-      iframe Hsd
+      iapply HR
       ipureintro
       rw [hkey]; simpa using hL
     | succ j =>
@@ -180,27 +174,26 @@ theorem certChain_ck (E : apply.AEnv GF) (γr : ReadNames) (P : List (GoString �
 
 /-- **A log of a cache watch from revision `2`, with no cancel, at a watchkv server** (see the
 file header): its `j`-th event is the put at revision `2 + j`. -/
-theorem log_ck (E : apply.AEnv GF) (γr : ReadNames) (P : List (GoString × GoString))
-    (hwl : γr.kv.wl = watchkv.workload P) (hlog : γr.kv.log0 = [[], []])
-    (hpk : ∀ kv ∈ P, ckPfx <+: kv.1) (rangeEnd : GoString)
+theorem log_ck (γ : client.KMNames) (P : List (GoString × GoString))
+    (hW : γ.W = watchkv.wkW P) (hpk : ∀ kv ∈ P, ckPfx <+: kv.1) (rangeEnd : GoString)
     (hkeys : ∀ kv ∈ P, keyPredForRange ckPfx rangeEnd kv.1 = true) (L : List RespModel)
     (hc : ∀ r ∈ L, r.canceled = false) :
-    ⊢ srvKVInvs (GF := GF) E γr -∗ mvcc.idxCert E.γ.idx [[], []] -∗
-      cacheWatchLog (etcdStepCert (EM := v3rpc.etcdModelOfServer E) ckPfx)
+    ⊢ client.kmInv (GF := GF) γ -∗
+      cacheWatchLog (etcdStepCert (EM := client.etcdModelOfKV γ) ckPfx)
         (some (keyPredForRange ckPfx rangeEnd)) (W64 2) L ={⊤}=∗
-      □ ∀ (j : Nat) (e : EvModel), ⌜(eventsOf L)[j]? = some e⌝ -∗ watchkv.evFact E P (2 + j) e := by
-  iintro #Hinvs #H0 #Hlog
+      □ ∀ (j : Nat) (e : EvModel), ⌜(eventsOf L)[j]? = some e⌝ -∗ watchkv.evFact γ P (2 + j) e := by
+  iintro #Hinv #Hlog
   iunfold cacheWatchLog at Hlog
   icases Hlog with (#Hd | ⟨%L0, %n, %HL, -⟩ | %H)
-  · ihave ⟨%bs, %p₀, %Hf, #Hch⟩ := cacheWatch_delivery (EM := v3rpc.etcdModelOfServer E)
+  · ihave ⟨%bs, %p₀, %Hf, #Hch⟩ := cacheWatch_delivery (EM := client.etcdModelOfKV γ)
       ckPfx ckPfx rangeEnd (W64 2) L $$ Hd
     obtain ⟨hev, -, hst, hsr⟩ := Hf
     obtain ⟨hp0, -⟩ := hsr (by decide)
     have hp0' : p₀ ≤ 1 := by
       have : sint.Z (W64 2) = 2 := by decide
       omega
-    imod certChain_ck E γr P hwl hlog hpk bs p₀ 0 (Or.inl ⟨rfl, hp0'⟩) hst.batches
-      $$ Hinvs H0 Hch with #Hb
+    imod certChain_ck γ P hW hpk bs p₀ 0 (Or.inl ⟨rfl, hp0'⟩) hst.batches
+      $$ Hinv Hch with #Hb
     -- the key filter keeps every event of the batches (each a put of the plan)
     ihave %Hk : ⌜∀ (j : Nat) (e : EvModel), bs.flatten[j]? = some e →
         keyPredForRange ckPfx rangeEnd e.key = true⌝ $$ []

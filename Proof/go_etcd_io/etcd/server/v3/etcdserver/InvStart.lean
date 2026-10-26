@@ -68,11 +68,11 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **`isServer`'s fields but `w`** (persistent): `srvFieldsAt` without `s.w` (which `start` sets). -/
 def srvFieldsBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
-    (E : apply.AEnv GF) (W : SrvWorkload) (v : SrvFields) : IProp GF :=
+    (E : apply.AEnv GF) (v : SrvFields) : IProp GF :=
   iprop(srvLgAddr s ↦□ v.lg ∗ ⌜v.lg ≠ null⌝ ∗
       ⌜E.P = batchLockInv γ TM ∧ E.f = v.hook⌝ ∗ ⌜srvEnvOk s γ ci E v.cluster⌝ ∗
       hookSpec γ ci TM v.hook ∗
-      srvLessorAddr s ↦□ v.lessor ∗ lessorOk W v.lessor ∗
+      srvLessorAddr s ↦□ v.lessor ∗ lessorOk v.lessor ∗
       srvFirstCommitAddr s ↦□ v.firstCommit ∗ srvAlarmStoreAddr s ↦□ v.alarmStore ∗
       srvClusterAddr s ↦□ v.cluster ∗ membership.isRaftCluster v.cluster ∗
       srvQuotaAddr s ↦□ v.quota ∗
@@ -82,8 +82,8 @@ def srvFieldsBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp
       isNotifier v.firstCommit ∗ isAlarmStore v.alarmStore)
 
 instance srvFieldsBuilt_persistent (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
-    (E : apply.AEnv GF) (W : SrvWorkload) (v : SrvFields) :
-    Persistent (srvFieldsBuilt s γ ci TM E W v) := by
+    (E : apply.AEnv GF) (v : SrvFields) :
+    Persistent (srvFieldsBuilt s γ ci TM E v) := by
   unfold srvFieldsBuilt; infer_instance
 
 /-- **`isServerReq`'s fields but `w` and `done`** (persistent; `srvReqFieldsAt` without them and
@@ -209,7 +209,7 @@ def isServerBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp 
     IProp GF :=
   iprop(-- the server's views but the fields `start` sets
     "#Hci" ∷ isServerCI s γ ci ∗
-    "#Hfb" ∷ (∃ v : SrvFields, srvFieldsBuilt s γ ci TM E ρ.kv.wl v) ∗
+    "#Hfb" ∷ (∃ v : SrvFields, srvFieldsBuilt s γ ci TM E v) ∗
     "#Hreqb" ∷ (∃ v : ReqFields, srvReqBuilt s E ρ v) ∗
     "#Hrdb" ∷ (∃ v : ReadFields, srvReadBuilt s E v) ∗
     "#Hrunb" ∷ (∃ v : RunFields, srvRunBuilt s v) ∗

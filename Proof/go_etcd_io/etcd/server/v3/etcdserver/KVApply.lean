@@ -130,7 +130,7 @@ variable [sem : go.Semantics]
 auth disabled. -/
 theorem kv_log_plain (γ : ServerRaftNames) (γk : KVNames) (B : List EntryModel) :
     ⊢ kvInv (GF := GF) γ γk -∗ srvRaftLogInv γ -∗ srvRLogLb γ B ={⊤}=∗
-      ⌜plainLog γk.wl B ∧ γk.ch0 = apply.alarmChain false false false⌝ := by
+      ⌜plainLog B ∧ γk.ch0 = apply.alarmChain false false false⌝ := by
   iintro #Hinv #Hr #HB
   iunfold kvInv at Hinv
   iinv Hinv with >Hi Hclose
@@ -178,7 +178,7 @@ theorem kv_applied_step (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryMod
     (m : EntryModel) (x : apply.ApplyKV)
     (hlen : (kvEntry γr.kv.c0 x.chain x.log m).length < 2 ^ 63) :
     ⊢ srvKVInvs (GF := GF) E γr -∗ kvApplied γr.raft γr.kv A x -∗ srvRLogLb γr.raft (A ++ [m]) ={⊤}=∗
-      ⌜plainEntry γr.kv.wl m ∧ x.chain = γr.kv.ch0 ∧ x.chain.kvExact = true⌝ ∗
+      ⌜plainEntry m ∧ x.chain = γr.kv.ch0 ∧ x.chain.kvExact = true⌝ ∗
       kvAppliedL γr.raft γr.kv (A ++ [m]) (kvEntry γr.kv.c0 x.chain x.log m) := by
   iintro #Hinvs Ha #Hlb
   iunfold srvKVInvs at Hinvs
@@ -269,7 +269,7 @@ theorem kv_cert_floor (γ : ServerRaftNames) (γk : KVNames) (γs : mvcc.StoreNa
   iframe Hσ
   ipureintro
   rw [← Hag]
-  simp only [kvStateOf]
+  simp only [kvStateOf_rev, kvStateOf_kvs]
   unfold kvModel at *
   omega
 

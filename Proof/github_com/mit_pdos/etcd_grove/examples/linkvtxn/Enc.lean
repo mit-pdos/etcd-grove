@@ -268,10 +268,11 @@ theorem inKeys_keysIn (i : MI) (h : inKeys i) : i.KeysIn wks := by
 /-- Every step of a workload input keeps the state good. -/
 theorem goodKV_step (σ : KVState) (h : GoodKV σ) (i : MI) (hi : i.KeysIn wks) :
     GoodKV (kvOpStep (opIn i) σ) :=
-  ⟨linkv.kvOpStep_sorted _ σ h.1, linkv.kvOpStep_keysIn wks listFrom listTo σ i hi h.2⟩
+  ⟨linkv.kvOpStep_sorted _ σ, linkv.kvOpStep_keysIn wks listFrom listTo σ i hi h.2⟩
 
-/-- The empty state is good. -/
-theorem goodKV_empty (r : Nat) : GoodKV ⟨[], r⟩ := ⟨List.Pairwise.nil, fun _ h => by cases h⟩
+/-- An empty state is good. -/
+theorem goodKV_empty (σ : KVState) (h : σ.kvs = []) : GoodKV σ :=
+  ⟨KVState.kvs_sorted σ, fun _ he => by rw [h] at he; cases he⟩
 
 /-- The list's range holds every workload key. -/
 theorem wks_inRange : ∀ k ∈ wks, inRange listFrom listTo k = true := by
@@ -287,10 +288,9 @@ theorem kvOpStep_cases (op : KVOp) (σ : KVState) :
     kvOpStep op σ = σ ∨ (kvOpStep op σ).rev = σ.rev + 1 := by
   have hc : ∀ cs, σ.commit cs = σ ∨ (σ.commit cs).rev = σ.rev + 1 := by
     intro cs
-    unfold KVState.commit
-    split
-    · exact Or.inl rfl
-    · exact Or.inr rfl
+    by_cases h : cs = []
+    · subst h; exact Or.inl (KVState.commit_nil σ)
+    · exact Or.inr (KVState.commit_rev σ cs h)
   cases op with
   | put o =>
     simp only [kvOpStep]

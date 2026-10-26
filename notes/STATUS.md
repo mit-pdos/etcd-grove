@@ -359,6 +359,47 @@ Other notes in use: `notes/snapshot-receiver-epochs.md` (S5's plan),
 
 In status-history.md: the raft v3.7 retarget ("Retargeting raft to v3.7, stage R0" to "stage R8b"), reconfiguration (stages 0, A1-A3, B1-B8, D, L, N), the read index and proposals (stage R, stage F), CheckQuorum and PreVote, the multi-member stages "D21 M0" to "D21 M6", and the witness stages W1-W3b-A and W5.
 
+## The client's KV specs over etcd's whole KV state; the libraries over them (2026-10-26, branch `worktree-kv-stated-specs`)
+
+`notes/decisions.md` D44 (one stated gRPC spec per KV method, the client's `kv.Put`/`Get`/`Delete`/
+`Do` and `txn.Commit` over one cluster-level `isKv kv γ dup` with the caller's atomic update written
+in the spec, `□?dup`), D45 (no workload: the client spec supports what the proof supports; a
+client's own facts in its invariant; no built-in restriction on the raft log), D46 (the state
+multi-revision), D47 (`KVState ⟨compacted, base, changes⟩`: each revision's changes, in order; a
+watch as repeated reads of the state) and D48 (the clients' model of etcd an adapter over the KV
+state; the replies say their state is a well-formed small log's).
+
+- The server, the client library (`KVService`, the specs, `Results`), the cache, recipes,
+  concurrency, leasing, kubernetes, k8s's etcd3 store and every example build. `SrvWorkload`,
+  `KVNames.wl`, the `writes` predicate, `srvNoDupKeys` and the examples' workloads are gone.
+- `watcher.Watch.spec` is the watch as repeated reads of the KV state (`watchStateElem`: each
+  response one firing of the caller's read update, its events exactly the state's range events,
+  a progress notification at or past the position, which moves to it), proved over the client
+  watcher's pipeline (the positions' facts `posQ`, `cur2Places`).
+- The KV replies say their state is a well-formed small log's (`kvLogOk`, a write's state after
+  too; a moving watch response `kvLogOkTo` through the new position), from the receipts' bound in
+  `isKv` and `srvKVFacts`.
+- The clients' model of etcd is an adapter over the KV state (`client/v3/EtcdModelKV.lean`,
+  `etcdModelOfKV γ`, invariant `kmInv`, with an application's property of the changes `γ.W`), and
+  the libraries' contracts are proved from the public specs at it: `KMGet` (`isEtcdKVE`,
+  `isEtcdKVTodo`: linearizable gets only), `KMPut` (`isEtcdPutKVTodo`, with `kmPutRestTodo` for the
+  puts the spec cannot serve: leased ones, and `IgnoreValue`/`IgnoreLease` ones of an absent key,
+  which `kv.Put.spec` lets succeed without writing although the server answers `ErrKeyNotFound`:
+  stating in `putStOk` that a successful put wrote would leave only the leased ones;
+  `isEtcdDeleteKVTodo`, with `kmReachedAt γ 1`), `KMTxn` (`isEtcdTxnKVTodo`, with `kmReachedAt γ 1`
+  and `kmTxnUncoveredTodo`: serializable read-only transactions, leased or `IgnoreValue` writes),
+  `KMWatch` (`isEtcdWatcher`, `isEtcdProgressNotifier`), `KMClient` (`isEtcdClient`,
+  `isKv_of_regs`). The cache's end-to-end results (`cache_end_to_end_client`, `_new`) and the
+  recipes' (`queue_vertical`, `isEtcdRecipesClient_of_km`) are over the adapter; watchkv, cachekv
+  and linkv3p's `MainWatch` keep their plan's fact in `γ.W`.
+- Open: the recipes' range watcher (`isEtcdRangeWatcher`, single-key watches) is a premise: the
+  Watch spec covers prefix watches only; generalizing it is about half a day (`cplCond`,
+  `covers_prefix`), then the header's ownership, `rev = 0` and the cursor on progress (one to two
+  days). STM's serializable reads cannot be connected through the adapter (a serializable read
+  fires no update). The server-model bridges that no result uses any more (`ServerKV*`'s server
+  theorems, `v3rpc.etcdModelOfServer`'s client-side uses, `InvServerKV`) are left for a clean-up.
+- Trust base: unchanged (`etc/tcb-report.py --check`, before the merge of `lean`).
+
 ## The server's token facts (E2c) (2026-10-25, branch `auth-e2c`)
 
 The auth plan's E2c (`notes/auth-plan.md`; `notes/decisions.md`, "E2c of the auth plan"): the

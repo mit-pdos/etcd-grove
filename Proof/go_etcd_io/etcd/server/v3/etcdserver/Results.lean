@@ -1043,16 +1043,16 @@ theorem lessor_txn_contract (lp : Loc) (γl : GName) :
     lease.lessor.wp_Detach lease.lessor.wp_SetRangeDeleter lease.lessor.wp_Lookup lp γl
 
 /-- **The server's lessor contract, of the real lessor** (unit 9, 2026-10-13): the lessor at `lp`
-(`lease.lessorInv`, its configuration, its `expiredC` at the workload `W`'s grant guard, D19n,
-D19q) meets `lessorOk W`, for a workload granting no lease: `ExpiredLeasesC` proved,
+(`lease.lessorInv`, its configuration, its `expiredC` at the grant guard `False`, D19n, D45)
+meets `lessorOk`: `ExpiredLeasesC` proved,
 `Promote` and `Demote` the trust boundary (`lease.lessor.Promote.wp_proof`,
 `lease.lessor.Demote.wp_proof`). -/
-theorem lessor_server_contract (W : SrvWorkload) (hW : W.noGrant) (lp : Loc) (γl : GName) :
+theorem lessor_server_contract (lp : Loc) (γl : GName) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗ lease.lessorInv lp γl ∗
-      lease.lessorCfg lp ∗ lease.lessorExpiredC lp (srvGrantGuard W) ⊢
-      lessorOk W (lease.lessorIface lp) :=
+      lease.lessorCfg lp ∗ lease.lessorExpiredC lp srvGrantGuard ⊢
+      lessorOk (lease.lessorIface lp) :=
   lessorOk_of_lessorInv lease.lessor.wp_Promote lease.lessor.wp_Demote
-    lease.lessor.wp_ExpiredLeasesC W hW lp γl
+    lease.lessor.wp_ExpiredLeasesC lp γl
 
 /-- **The apply package's lessor contract, of the real lessor** (unit 9, 2026-10-13): the lessor
 at `lp` (`lease.lessorInv`, its configuration, its backend's contract for the `Lease` bucket,
