@@ -18,7 +18,7 @@ environment's `AEnv.RO` its resource. Of the writers the apply path reaches:
   saved (`members/<id> := json(member)`, `MustSaveMemberToBackend`: the **in-memory** member,
   exception 7, which is why the in-memory list is part of the state); for another id nothing
   (a removed member's: a warning; neither: a panic the contract does not model, as before);
-* the server's `applyConfChange` (`AddNode`, `membership.ccRest`, server-level).
+* the server's `applyConfChange` (`AddNode`, `RemoveNode`: `ccRest`, server-level).
 
 The writers the workload does not reach (the alarm store's `Activate`/`Deactivate`, the auth
 store's writes, the lessor's `Grant`/`Checkpoint`, the cluster's `SetDowngradeInfo`) take the
@@ -62,9 +62,28 @@ opaque semverNorm : GoString → GoString
 /-- The `cluster` bucket's version key (`schema.ClusterClusterVersionKeyName`). -/
 def clusterVersionKey [FfiSyntax] : GoString := go!"clusterVersion"
 
+/-- `n/k := v` in the tracked buckets `bk` (the bucket created if absent; D43 M5b′, 2026-10-26: the
+member backend's contracts' effect). -/
+def bkPut (bk : GMap GoString backend.BktData) (n k v : GoString) : GMap GoString backend.BktData :=
+  bk.insert n (((bk.lookup n).getD ∅).insert k v)
+
+/-- `delete(n, k)` in the tracked buckets `bk` (the bucket created empty if absent; D43 M5b′). -/
+def bkDel (bk : GMap GoString backend.BktData) (n k : GoString) : GMap GoString backend.BktData :=
+  bk.insert n (((bk.lookup n).getD ∅).delete k)
+
 /-- `n/k := v` in the rest buckets (the bucket created if absent). -/
 def RestM.putIn (r : RestM) (n k v : GoString) : RestM :=
   { r with bk := r.bk.insert n (((r.bk.lookup n).getD ∅).insert k v) }
+
+/-- `delete(n, k)` in the rest buckets (D43 M5b′, 2026-10-26: `MustDeleteMemberFromBackend`'s;
+the bucket created empty if absent, as `putIn`). -/
+def RestM.delIn (r : RestM) (n k : GoString) : RestM :=
+  { r with bk := r.bk.insert n (((r.bk.lookup n).getD ∅).delete k) }
+
+theorem RestM.putIn_bk (r : RestM) (n k v : GoString) : (r.putIn n k v).bk = bkPut r.bk n k v :=
+  rfl
+
+theorem RestM.delIn_bk (r : RestM) (n k : GoString) : (r.delIn n k).bk = bkDel r.bk n k := rfl
 
 /-- **`SetVersion` of the version `MustParse(s)`** (see the file header). -/
 def restSetVersion [FfiSyntax] (v3 : Bool) (s : GoString) (r : RestM) : RestM :=

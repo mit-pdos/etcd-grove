@@ -243,7 +243,8 @@ the requests in flight finish (`ErrStopped`). *(B)* Also `Stop`/`HardStop` from 
   - *M5b′* (rescoped, the user's decisions): the member backend's writers and read
     (`MustSaveMemberToBackend`, `MustDeleteMemberFromBackend`, `MustReadMembersFromBackend`)
     contract axioms over the tracked buckets (replacing the opaque `ccValidOn`), `ccRest` with
-    `RemoveNode` (`members_removed`); `BackendHooks.SetConfState` translated and proved.
+    `RemoveNode` (`members_removed`); `BackendHooks.SetConfState` translated and proved. **Done
+    (2026-10-26)**: D43 "M5b′ carried out" (the contracts not linked until M5e).
   - *M5c.* W3: the apply thread holds `trLive` (`NewServer` stops freezing it; the readers over
     `trState` and their tokens). Blocked, then decided ((A), (i): D43 "M5c blocked"). **Done
     (2026-10-26)**: D43 "M5c carried out" (`Stop` gated by `TS`/`E.ST`, peers-only ids, the pool,

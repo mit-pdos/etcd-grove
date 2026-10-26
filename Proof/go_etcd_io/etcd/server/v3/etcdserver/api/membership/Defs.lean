@@ -103,6 +103,15 @@ def membership.memberAt (m : Loc) (q : Qp) (mm : apply.MemberM) : IProp GF :=
     membership.mClientURLsAddr m ↦{DFrac.own q} cu ∗ pu ↦*{DFrac.own q} mm.peerURLs ∗
     cu ↦*{DFrac.own q} mm.clientURLs ∗ ⌜membership.peerURLsOk mm.peerURLs⌝)
 
+/-- A member record `l` the backend's read made, with its peer URLs `pus`. -/
+def membership.memberURLsAt (l : Loc) (pus : List GoString) : IProp GF :=
+  iprop(∃ pu : GoSlice, ⌜l ≠ null⌝ ∗ membership.mPeerURLsAddr l ↦ pu ∗ pu ↦* pus)
+
+/-- The members map `mp` the backend's read returns, of the members' peer URLs `mems`. -/
+def membership.membersRead (mp : Loc) (mems : GMap w64 (List GoString)) : IProp GF :=
+  iprop(∃ ml : GMap w64 Loc, mp ↦$ ml ∗ ⌜∀ k, (ml !! k).isSome = (mems !! k).isSome⌝ ∗
+    [∗map] k ↦ l ∈ ml, ∃ pus : List GoString, ⌜mems !! k = some pus⌝ ∗ membership.memberURLsAt l pus)
+
 /-- The members map and their values have the same keys (and so the same size). -/
 def membership.memDom (ms : GMap w64 Loc) (mem : GMap w64 apply.MemberM) : Prop :=
   (∀ k, (ms !! k).isSome = (mem !! k).isSome) ∧ GMap.size ms = GMap.size mem

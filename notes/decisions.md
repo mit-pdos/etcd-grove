@@ -18927,6 +18927,36 @@ unchanged (721 axioms, 5 `sorry`s).
 - Left for M8: the dynamic `NewServer` (a key for `E.ST`, as `srvTrKey` for `E.S`, with `L` in
   the key, `SrvKey` has none) and the dynamic handler.
 
+**M5b′ carried out (2026-10-26, branch `membership-m5`; the user's decisions).** The member
+backend's writers and read as contract axioms over the tracked buckets; `ccValidOn` defined; `ccRest`
+with `RemoveNode`.
+- *The contracts* (`Spec/.../storage/schema/membershipBackend__*.lean`, three axioms, the trust
+  boundary): on a `*membershipBackend` `mb` over the real backend `d` of the store's names `γ`
+  (`mb.be`, `mb.lg` read-only): `MustSaveMemberToBackend(m)` and `MustDeleteMemberFromBackend(id)`
+  take the caller's critical-section contract at the store's batch lock and hook (`mvcc.hookOk γ P
+  f`, which ties `P`, `f` to the backend, and `mvcc.csContract P f Pre Q Post`, as the cluster's other
+  writers' in `apply.isCluster`), a write session's token (spent: the `Unlock`'s write-back,
+  `storeWT`), the reader's token (lent, `storeRT`) and the writer's half of the tracked buckets
+  (`rbOwn d.γB bk`), and return `Post` with the buckets at `bkPut bk "members" (memberKey id)
+  (memberEnc mm)`, resp. `bkPut (bkDel bk "members" k) "members_removed" k "removed"` (the buckets
+  present: `UnsafePut`/`UnsafeDelete` into a missing bucket is fatal);
+  `MustReadMembersFromBackend()` takes the reader's token and the half (read only) and returns the
+  members' map and the removed map `membership.membersOfBk bk` decodes to (opaque, not an axiom).
+  The shape is what the caller inside the apply thread can supply: `hookOk` is in the uber
+  applier's options (`backendOptsOk`), the tokens in its KV resources; the backend's `isBackend` at
+  the batch lock's resource is not held by the apply thread, so the contracts do not ask it.
+  They are not linked yet (no proof calls them until `applyConfChange`'s).
+- *The verdict.* `membership.ccValidOn bk m` is now defined: `ccValidM` of `membersOfBk bk`
+  (`decide`, classical); `urlTaken`, `ccValidM` moved to `InvRest.lean`, `memberURLsAt`,
+  `membersRead` to the membership package's `Defs.lean` (the read contract names them).
+- *`ccRest`* has the `RemoveNode` case (validated, with `v3`: `members/<id>` deleted,
+  `members_removed/<id> := "removed"`, the member out of memory; `RestM.delIn`, `bkPut`, `bkDel`);
+  `restEntry_keep`/`restModel_keep` now also exclude `members_removed`.
+- Trust base: the check counts the axioms the results reach, so unchanged until `applyConfChange`'s
+  proof links them (721 axioms, 5 `sorry`s; +3 then). Meaning changed: the `applyConfChange` axiom's
+  `ccRest` (its `RemoveNode` case, outside its scope `ccApplyOk`) and `ccValidOn` (no longer
+  opaque).
+
 ## S5e of the auth plan: the simple token provider with no hypothesis (2026-10-25 · `notes/auth-plan.md`, branch `auth-s5e`)
 
 **Problem.** S5d left the simple provider meeting the token contract over two hypotheses: the TTL
