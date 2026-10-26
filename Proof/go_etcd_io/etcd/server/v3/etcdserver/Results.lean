@@ -1222,18 +1222,6 @@ theorem apply_AuthDisable_fuel :
     EtcdGrove.apply.applierV3backend.AuthDisable.fuelSpec (GF := GF) (hG := hG) :=
   EtcdGrove.apply.applierV3backend.AuthDisable.wp_fuel apply_AuthDisable_step
 
-/-- **The backend applier's admin triples in the mode `on γa`** (the auth plan's E2m,
-`apply/AdminChain.lean`): `SetUp`'s five admin requests from the fuel triples, which every layer
-of the chain passes on (`applierAdmin_quota`, `_capped`, `_corrupt`, `_auth`). -/
-theorem apply_admin_backend (E : EtcdGrove.apply.AEnv GF) (W : IProp GF) (p : Loc) :
-    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
-      EtcdGrove.apply.backendIs E p ∗ EtcdGrove.apply.backendAuthSteps E p W ⊢
-      EtcdGrove.apply.applierAdmin E .backend
-        (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.apply.applierV3backend.ty) #p) W
-        auth.authOwnFu :=
-  EtcdGrove.apply.applierAdmin_backend apply_UserAdd_fuel apply_RoleAdd_fuel apply_UserGrantRole_fuel
-    apply_RoleGrantPermission_fuel apply_AuthEnable_fuel E W p
-
 end backend
 
 #print axioms Perennial.EtcdGrove.lessor_server_contract
@@ -1264,7 +1252,6 @@ end backend
 #print axioms Perennial.EtcdGrove.apply_RoleRevokePermission_fuel
 #print axioms Perennial.EtcdGrove.apply_RoleDelete_fuel
 #print axioms Perennial.EtcdGrove.apply_AuthDisable_fuel
-#print axioms Perennial.EtcdGrove.apply_admin_backend
 #print axioms Perennial.EtcdGrove.lessor_txn_contract
 #print axioms Perennial.EtcdGrove.server_kv_backend
 #print axioms Perennial.EtcdGrove.server_kv_watchable
@@ -1646,7 +1633,17 @@ theorem admin_state_of_latest [ext : FfiSyntax] (γa : auth.AuthNames) (hs : Lis
         auth.adminOk st (some (auth.authInfoM (EtcdGrove.apply.principalOf rq)))) :=
   ⟨adminStateR_of_rejL γa hs st rq hl, adminOk_of_passL γa hs st rq hl⟩
 
+/-- **`AuthEnable`'s result is the model's step at the latest state's flag** (the auth plan's E3c,
+`ApplyTieOn.lean`): `AdminReq.result`'s relation `authEnableR` in the mode `on`. -/
+theorem admin_state_auth_enable [ext : FfiSyntax] (γa : auth.AuthNames) (rq : EtcdGrove.apply.IRRModel)
+    (st : auth.AuthState) (en : Bool) (o : auth.Outcome)
+    (ha : auth.adminOk st (some (auth.authInfoM (EtcdGrove.apply.principalOf rq))))
+    (hk : EtcdGrove.apply.dispatchKind rq = .authEnable) (h : EtcdGrove.apply.authEnableR (.on γa) en st o) :
+    adminStateR rq st (outState st o) :=
+  adminStateR_of_authEnable γa rq st en o ha hk h
+
 #print axioms Perennial.EtcdGrove.apply_auth_apply_latest
+#print axioms Perennial.EtcdGrove.admin_state_auth_enable
 #print axioms Perennial.EtcdGrove.apply_apply_nr_base
 #print axioms Perennial.EtcdGrove.apply_applier_admin_latest
 #print axioms Perennial.EtcdGrove.apply_dispatch_admin
