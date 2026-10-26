@@ -78,7 +78,7 @@ variable [sem : go.Semantics]
 
 /-- The request `r` holds the request (read-only: the auth package's request models). -/
 @[reducible] def AdminReq.reqIs (r : Loc) : AdminReq → IProp GF
-  | .userAdd n => auth.userAddReqIs r n
+  | .userAdd n => iprop(auth.userAddReqIs r n ∗ auth.userAddSure r)
   | .roleAdd n => auth.roleAddReqIs r n
   | .userGrantRole u ro => auth.userGrantRoleReqIs r u ro
   | .roleGrantPermission n w => auth.roleGrantPermissionReqIs r n w
@@ -91,8 +91,7 @@ refusal. -/
 @[reducible] def AdminReq.result (Own : auth.AuthNames → List auth.AuthState → IProp GF)
     (γa : auth.AuthNames) (M : auth.AuthMode) (hs : List auth.AuthState)
     (err : GoInterface) : AdminReq → IProp GF
-  | .userAdd n => auth.adminOutX (.on γa) (Own γa) hs (auth.stepOf (auth.userAddF n))
-      (fun e => e = .noPasswordUser) err
+  | .userAdd n => auth.adminOutX (.on γa) (Own γa) hs (auth.stepOf (auth.userAddF n)) auth.noExtra err
   | .roleAdd n => auth.adminOutX (.on γa) (Own γa) hs (auth.stepOf (auth.roleAddF n)) auth.noExtra err
   | .userGrantRole u ro => auth.adminOutX (.on γa) (Own γa) hs (auth.userGrantRoleR u ro) auth.noExtra err
   | .roleGrantPermission n w =>
@@ -161,9 +160,9 @@ theorem applierAdmin_backend
   | userAdd n =>
     simp only [AdminReq.method, AdminReq.arg, AdminReq.reqIs, AdminReq.result,
       ← auth.adminOutFu_eq_X]
-    iintro !> %Φ ⟨Hr, Ho, Hrc, HW, Hm⟩ HΦ
-    iapply (hUA E γa W p r log Pre Q Post info hs n hM hb hn) $$ [Hr Ho Hrc HW Hm] HΦ
-    iframe Hr Ho Hrc HW Hm
+    iintro !> %Φ ⟨⟨Hr, Hsure⟩, Ho, Hrc, HW, Hm⟩ HΦ
+    iapply (hUA E γa W p r log Pre Q Post info hs n hM hb hn) $$ [Hr Hsure Ho Hrc HW Hm] HΦ
+    iframe Hr Hsure Ho Hrc HW Hm
     iframe #
   | roleAdd n =>
     simp only [AdminReq.method, AdminReq.arg, AdminReq.reqIs, AdminReq.result,
@@ -419,9 +418,9 @@ theorem applierAdmin_backendX
   cases ar with
   | userAdd n =>
     simp only [AdminReq.method, AdminReq.arg, AdminReq.reqIs, AdminReq.result]
-    iintro !> %Φ ⟨Hr, ⟨Ho, HX⟩, Hrc, HW, Hm⟩ HΦ
-    iapply (hUA E γa X W p r log Pre Q Post info hs n hM hb hn) $$ [Hr Ho HX Hrc HW Hm] HΦ
-    iframe Hr Ho HX Hrc HW Hm
+    iintro !> %Φ ⟨⟨Hr, Hsure⟩, ⟨Ho, HX⟩, Hrc, HW, Hm⟩ HΦ
+    iapply (hUA E γa X W p r log Pre Q Post info hs n hM hb hn) $$ [Hr Hsure Ho HX Hrc HW Hm] HΦ
+    iframe Hr Hsure Ho HX Hrc HW Hm
     iframe #
   | roleAdd n =>
     simp only [AdminReq.method, AdminReq.arg, AdminReq.reqIs, AdminReq.result]

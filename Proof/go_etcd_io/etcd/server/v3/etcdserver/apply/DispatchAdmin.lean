@@ -546,9 +546,11 @@ theorem apply.uberApplier.dispatch.wp_admin
     obtain ⟨x, hs⟩ := Option.ne_none_iff_exists'.mp (fun h => hl (nUA.2 h))
     ihave #HR := apply.optReqIs_some _ _ _ _ hs $$ HUA
     have hk : dispatchKind rq = .authUserAdd := by simp [dispatchKind, zClusterVersionSet, zClusterMemberAttrSet, zDowngradeInfoSet, zDowngradeVersionTest, zRange, zPut, zDeleteRange, zTxn, zCompaction, zLeaseGrant, zLeaseRevoke, zLeaseCheckpoint, zAlarm, zAuthenticate, zAuthEnable, zAuthDisable, zAuthStatus, hs]
-    have hnm : (apply.AdminReq.userAdd x.name).nameOk := by
+    have hns : (apply.AdminReq.userAdd x.name).nameOk ∧ x.pwSure := by
       have h := Hadmk; simp only [apply.adminKindOk, hk] at h
       exact h x hs
+    have hnm := hns.1
+    ihave #HS := apply.authUserAddIs_sure _ _ hns.2 $$ HR
     ihave #HR := apply.authUserAddIs_req _ _ $$ HR
     wp_apply Hat $$ %(apply.AdminReq.userAdd x.name) %lUA %γa %hh %log %Pre %Q %Post %info [] [HR Hown Hrc HW Hkv Hres Hc] as %resp %err ⟨Hpost, #HeI, HW, Hdone⟩
     · ipureintro; exact ⟨Hmode, Hrb, hnm⟩
@@ -556,6 +558,7 @@ theorem apply.uberApplier.dispatch.wp_admin
       iunfold apply.mPre
       iframe
       (try dsimp only)
+      (try iframe HR HS)
       (try iunfold auth.roleAddReqIs)
       (try iexact HR)
       (try itrivial)

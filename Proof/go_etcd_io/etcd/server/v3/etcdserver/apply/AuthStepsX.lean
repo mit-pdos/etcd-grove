@@ -10,12 +10,14 @@ state (`auth.X.specT`) depends on the history the step produces, so here the fiv
 authority, given back at the history after (`auth.adminOutX`): `isAuthStepsX`, the backend's
 `stepSpecX`, the fueled `fuelSpecX`. The real store meets `isAuthStepsX` with `X = auth.tieRes st M`
 and `W = auth.authWB st M P f T ∗ auth.tpAdmin st M` (`isAuthStepsX_of_authInvT`, from E2s's
-`X.specT`); `isAuthSteps` (any `W`) gives it with `X` empty (`isAuthStepsX_of_steps`).
+`X.specT`; `UserAdd`'s from E2y's `specTSure`: E3a, its request's password choice cannot fail,
+`auth.userAddSure`, and the outcome is the step's alone).
 -/
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.AuthFuel
 public import Proof.go_etcd_io.etcd.server.v3.auth.TieRes
+public import Proof.go_etcd_io.etcd.server.v3.auth.authStore__UserAdd_tieSure
 
 @[expose] public section
 
@@ -57,14 +59,13 @@ def isAuthStepsX (st : GoInterface) (P : IProp GF) (f : val) (M : auth.AuthMode)
           ∃ en : Bool, auth.enabledVerdict M en ∗
             auth.adminOutX M (ownX M X) hs (auth.stepOf (auth.authEnableF en)) auth.noExtra err }}) ∗
     □ (∀ (hs : List auth.AuthState) (Pre Q Post : IProp GF) (r : Loc) (name : GoString),
-      {{ auth.userAddReqIs r name ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗ auth.authOwn M hs ∗
-          X hs ∗ W ∗ mvcc.csContract P f Pre Q Post ∗
+      {{ auth.userAddReqIs r name ∗ auth.userAddSure r ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗
+          auth.authOwn M hs ∗ X hs ∗ W ∗ mvcc.csContract P f Pre Q Post ∗
           ⌜auth.stepOk M hs (auth.stepOf (auth.userAddF name))⌝ }}
         (App (Val #(methods ai.ty go!"UserAdd" ai.v)) (Val #r))
       {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); (Post ∨ Pre) ∗ W ∗
           applyErrIs err ∗ auth.respOk etcdserverpb.AuthUserAddResponse resp err ∗
-          auth.adminOutX M (ownX M X) hs (auth.stepOf (auth.userAddF name))
-            (fun e => e = .noPasswordUser) err }}) ∗
+          auth.adminOutX M (ownX M X) hs (auth.stepOf (auth.userAddF name)) auth.noExtra err }}) ∗
     □ (∀ (hs : List auth.AuthState) (Pre Q Post : IProp GF) (r : Loc) (name : GoString),
       {{ auth.roleAddReqIs r name ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗ auth.authOwn M hs ∗
           X hs ∗ W ∗ mvcc.csContract P f Pre Q Post ∗
@@ -173,7 +174,7 @@ theorem adminOutX_applyErrIs (M : auth.AuthMode) (Own : List auth.AuthState → 
 resource but the halves (`auth.authWB`) with the provider's admin share, from E2s's `X.specT`. -/
 theorem isAuthStepsX_of_authInvT
     (hEnable : auth.authStore.AuthEnable.specT (GF := GF) (hG := hG))
-    (hUserAdd : auth.authStore.UserAdd.specT (GF := GF) (hG := hG))
+    (hUserAdd : auth.authStore.UserAdd.specTSure (GF := GF) (hG := hG))
     (hRoleAdd : auth.authStore.RoleAdd.specT (GF := GF) (hG := hG))
     (hUserGrantRole : auth.authStore.UserGrantRole.specT (GF := GF) (hG := hG))
     (hRoleGrantPermission : auth.authStore.RoleGrantPermission.specT (GF := GF) (hG := hG))
@@ -203,7 +204,7 @@ theorem isAuthStepsX_of_authInvT
     iframe HPP HW HA Ha
     iexists en; iframe Hv; iexact Hout
   isplitr
-  · iintro !> %hs %Pre %Q %Post %r %name %Φ !> ⟨#Hr, %Hn, Ho, HX, ⟨HW, HA⟩, Hcs, %Hok⟩ HΦ
+  · iintro !> %hs %Pre %Q %Post %r %name %Φ !> ⟨#Hr, #Hsure, %Hn, Ho, HX, ⟨HW, HA⟩, Hcs, %Hok⟩ HΦ
     iunfold auth.tieRes at HX
     icases HX with ⟨%b0, %sc0, Hfl, #Hev, Hca, #Hs, %Ht⟩
     ihave HWR := auth.authWRx_join st M P f T b0 sc0 $$ [HW Hfl Hca]
@@ -290,13 +291,13 @@ abbrev applierV3backend.UserAdd.stepSpecX : Prop :=
     auth.stepOk E.authMode hs (auth.stepOf (auth.userAddF name)) →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
         apply.backendIs E p ∗ backendAuthStepsX E p X W ∗ auth.userAddReqIs r name ∗
-        auth.authOwn E.authMode hs ∗ X hs ∗ W ∗
+        auth.userAddSure r ∗ auth.authOwn E.authMode hs ∗ X hs ∗ W ∗
         apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post }}
       (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"UserAdd")) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
       apply.mPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗
       applyErrIs err ∗ W ∗
-      auth.adminOutX E.authMode (ownX E.authMode X) hs (auth.stepOf (auth.userAddF name)) (fun e => e = .noPasswordUser) err }}
+      auth.adminOutX E.authMode (ownX E.authMode X) hs (auth.stepOf (auth.userAddF name)) auth.noExtra err }}
 
 /-- **`a.RoleAdd(r)` performs the model's step carrying `X`** (`RoleAdd.stepSpec`'s). -/
 abbrev applierV3backend.RoleAdd.stepSpecX : Prop :=
@@ -376,13 +377,13 @@ abbrev applierV3backend.UserAdd.fuelSpecX : Prop :=
     E.authMode = .on γa → receiptBound GF ≤ 2 ^ 48 → name.length ≤ backend.maxKeySize →
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
         apply.backendIs E p ∗ backendAuthStepsX E p X W ∗ auth.userAddReqIs r name ∗
-        auth.authOwnFu γa hs ∗ X hs ∗ ⧗ 1 ∗ W ∗
+        auth.userAddSure r ∗ auth.authOwnFu γa hs ∗ X hs ∗ ⧗ 1 ∗ W ∗
         apply.mPre E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) info log Pre Q Post }}
       (App (Val (p @!! go.GoType.PointerType applierV3backend.ty @!! go!"UserAdd")) (Val #r))
     {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
       apply.mPost E .backend (interface.mkOk (go.GoType.PointerType applierV3backend.ty) #p) log Pre Post ∗
       applyErrIs err ∗ W ∗
-      auth.adminOutX (.on γa) (fun h => iprop(auth.authOwnFu γa h ∗ X h)) hs (auth.stepOf (auth.userAddF name)) (fun e => e = .noPasswordUser) err }}
+      auth.adminOutX (.on γa) (fun h => iprop(auth.authOwnFu γa h ∗ X h)) hs (auth.stepOf (auth.userAddF name)) auth.noExtra err }}
 
 /-- **`a.RoleAdd(r)` in the mode `on γa`, from the fuel, carrying `X`** (`RoleAdd.fuelSpec`'s). -/
 abbrev applierV3backend.RoleAdd.fuelSpecX : Prop :=
@@ -462,7 +463,7 @@ theorem applierV3backend.UserAdd.wp_stepX
     (hHdr : apply.applierV3backend.newHeader.spec (GF := GF) (hG := hG)) :
     applierV3backend.UserAdd.stepSpecX (GF := GF) (hG := hG) := by
   intro E X W p r log Pre Q Post info hs name hn hok
-  wp_start as ⟨#Hb, #Hs, #Hr, Ho, HX, HW, Hpre⟩
+  wp_start as ⟨#Hb, #Hs, #Hr, #Hsure, Ho, HX, HW, Hpre⟩
   iunfold apply.mPre at Hpre
   icases Hpre with ⟨Hkv, Hres, Hcs⟩
   iunfold apply.kvOwn at Hkv
@@ -476,7 +477,7 @@ theorem applierV3backend.UserAdd.wp_stepX
   wp_auto
   rw [Hai]
   wp_apply HM $$ %hs %Pre %Q %Post %r %name [$Ho $HX $HW $Hcs] as %resp %err ⟨HPP, HW, #HeI, Hresp, Hout⟩
-  · iframe Hr; isplitr
+  · iframe Hr Hsure; isplitr
     · ipureintro; exact hn
     ipureintro; exact hok
   iunfold auth.respOk at Hresp
@@ -674,7 +675,7 @@ theorem applierV3backend.UserAdd.wp_fuelX
     (h : applierV3backend.UserAdd.stepSpecX (GF := GF) (hG := hG)) :
     applierV3backend.UserAdd.fuelSpecX (GF := GF) (hG := hG) := by
   intro E γa X W p r log Pre Q Post info hs name hM hb hn
-  iintro %Φ ⟨#Hpkg, #Hb, #Hs, Hr, HOF, HX, Hrc, HW, Hpre⟩ HΦ
+  iintro %Φ ⟨#Hpkg, #Hb, #Hs, Hr, Hsure, HOF, HX, Hrc, HW, Hpre⟩ HΦ
   iunfold auth.authOwnFu at HOF
   icases HOF with ⟨Ho, Hf⟩
   ihave Hf := auth.authFuel_charge hs $$ [Hf Hrc]
@@ -683,7 +684,7 @@ theorem applierV3backend.UserAdd.wp_fuelX
   obtain ⟨k, Hfk, Hlt⟩ := Hk
   have hok : auth.stepOk E.authMode hs (auth.stepOf (auth.userAddF name)) :=
     hM ▸ auth.stepOk_of_fuel γa hs _ k (auth.stepSmall_userAdd name hn) Hfk Hlt
-  iapply (h E X W p r log Pre Q Post info hs name hn hok) $$ [Hr Ho HX HW Hpre]
+  iapply (h E X W p r log Pre Q Post info hs name hn hok) $$ [Hr Hsure Ho HX HW Hpre]
   · rw [hM]; iframe; iframe #
   iintro !> %resp %err ⟨Hpost, #He, HW, Hout⟩
   rw [hM]

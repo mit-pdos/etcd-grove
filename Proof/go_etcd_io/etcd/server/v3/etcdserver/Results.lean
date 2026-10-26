@@ -1100,7 +1100,10 @@ theorem auth_apply_steps (st : Loc) (R : IProp GF) (M : auth.AuthMode) (P : IPro
       EtcdGrove.apply.isAuthSteps (auth.authIface st) P f M
         iprop(auth.authWR st M P f T ∗ auth.tpAdmin st M) :=
   EtcdGrove.apply.isAuthSteps_of_authInv auth.authStore.wp_AuthEnable auth.authStore.wp_AuthDisable
-    auth.authStore.wp_UserAdd auth.authStore.wp_UserDelete auth.authStore.wp_UserChangePassword
+    (auth.authStore.UserAdd.wp_sure auth.authStore.wp_commitRevision
+      auth.authStore.wp_refreshRangePermCache auth.authStore.wp_selectPassword zap.wp_String
+      zap.Logger.wp_Info)
+    auth.authStore.wp_UserDelete auth.authStore.wp_UserChangePassword
     auth.authStore.wp_RoleAdd auth.authStore.wp_UserRevokeRole auth.authStore.wp_RoleRevokePermission
     auth.authStore.wp_RoleDelete auth.authStore.wp_UserGrantRole auth.authStore.wp_RoleGrantPermission
     st R M P f T
@@ -1411,7 +1414,10 @@ theorem apply_auth_steps_tie (st : Loc) (R : IProp GF) (M : auth.AuthMode) (P : 
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ auth.authInv st R M ⊢
       EtcdGrove.apply.isAuthStepsX (auth.authIface st) P f M (auth.tieRes st M)
         iprop(auth.authWB st M P f T ∗ auth.tpAdmin st M) :=
-  EtcdGrove.apply.isAuthStepsX_of_authInvT auth_auth_enable_tie auth_user_add_tie auth_role_add_tie
+  EtcdGrove.apply.isAuthStepsX_of_authInvT auth_auth_enable_tie
+    (auth.authStore.UserAdd.wp_tieSure auth.authStore.wp_commitRevision
+      auth.authStore.wp_refreshRangePermCache auth.authStore.wp_selectPassword zap.wp_String
+      zap.Logger.wp_Info) auth_role_add_tie
     auth_user_grant_role_tie auth_role_grant_permission_tie st R M P f T
 
 theorem apply_UserAdd_fuelX :
