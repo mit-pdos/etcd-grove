@@ -172,11 +172,12 @@ hands out but a snapshot (`srvMsgNoSnap`, D19p; until then every message, the tr
 contract, `rafthttp.Transport`, asking nothing of them) with its bundle (`srvMsgNet`, D21 stage
 M1), a tick's resource raft's tick credit of the budget `bud`, the read names `ρ.rd`, raft's read
 registrations. (2026-10-24, rafthttp stage 6d) Of the member `id` (its messages' sender), the
-transport's `Send` borrowing `S` (the server's: the raft loop's key, `srvTrKey`). -/
+transport's `Send` borrowing `S` (the server's: the raft loop's key, `srvTrKey`); (D43 M5c) its
+`Stop` taking nothing (`ST := True`: the static server's transport is frozen). -/
 def srvEr (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV)
     (bud : BudgetNames) (id : w64) (S : IProp GF) : RNEnv GF :=
   ⟨srvC ρ E ai₀ c₀ x₀, fun m => iprop(srvMsgNet ρ.raft.raft bud id m ∗ srvMsgNoSnap m),
-    iprop(True), ρ.rd, srvRQ ρ.rd.raft, S⟩
+    iprop(True), ρ.rd, srvRQ ρ.rd.raft, S, iprop(True)⟩
 
 /-- The ticker's contract does not read the transport's borrow (`isRNTicker` reads `E.T`). -/
 theorem rnTickerOk_srvEr_S (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64)

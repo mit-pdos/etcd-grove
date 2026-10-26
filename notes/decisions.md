@@ -18892,6 +18892,41 @@ thread; nothing was changed in Lean.
   proved over `trState` for any id; (iii) `CutPeer`/`MendPeer` over `trState` with a premise "no
   remote for `id`" that only a frozen transport can give (as (i), stated per call).
 
+**M5c carried out (2026-10-26, branch `membership-m5`; the user's decisions on "M5c blocked":
+(A) for `Stop`, (i) for `CutPeer`).** The transport's live right and its readers, the trust base
+unchanged (721 axioms, 5 `sorry`s).
+- *`Stop` gated (A).* `netTransport γn lid tr T TS` (`Net.lean`, D22's, the user approved): `Stop`
+  takes `TS`. The raft wrapper's environment has `E.ST` (`RNEnv.ST`), `isRNTransport`'s `Stop`
+  takes it, and `stopped` carries it (`rnStopBag E`, was `isUnitBag`): `raftNode.stop` sends it,
+  the loop's `<-r.stopped` hands it to `onStop` (both specs take `E.ST`). The static server's
+  `srvEr` has `ST := True` (its transport frozen: `trFrozen_net`, `TS := True`); a started
+  transport's view with the live right is `trState_net` (`TS := ∃ rs, trLive …`, `Stop_live`),
+  and `isRNTransport_of_live` is the dynamic mode's hand-off (`E.ST` the live right; the apply
+  thread hands it to `raftNode.stop`, M6). `Stop_core` takes the right to set the stopped flag
+  as a wand (the frozen record's invariant, or the owner's half).
+- *Peers only.* `trIds := List w64`, the peers' ids; `trLive`/`trFrozen` over them; `AddPeer`
+  appends, `RemovePeer` filters, `RemoveAllPeers` empties.
+- *The pool* (the user's decision 3). `TrN` gains `L`: `Start` takes four `R`s for each id of `L`
+  (`[∗list] _ ∈ L, R ∗ R ∗ R ∗ R`), kept in the stop invariant (`trPool R L T`, an entry per id, its
+  `R`s or taken); the record `γs` (`trRec`) gains `T`, the ids whose remotes took theirs, the
+  remotes' keys exactly while not stopped (`trLockP`). `AddRemote_core` is any lock holder's: of
+  an id of `L` that is neither peer nor remote, it takes the four `R`s (`trStop_pool_take`) before
+  `startRemote`. A remote is only ever started for an id of `L` (`trStop_taken_sub`), which is what
+  `CutPeer`/`MendPeer` need now (`id ∉ c.L`, was `id ∉ rs.1` of the frozen record).
+- *Blocker 2 (i).* The static server passes `L = []` and freezes as before: `srvNetMember`'s
+  `rs.1 = []` became `τ.c.L = []` (no remote ever), so `EtcdServer.CutPeer`/`MendPeer` and linkv3p
+  are unchanged. `NewServer` is the static instance; the dynamic one is M8's.
+- *Readers over `trState`:* `Send_full`, `CutPeer`/`MendPeer` (with `id ∉ c.L`),
+  `SendSnapshot` (its spec), `ActiveSince` (its axiom restated: `trState` for `trFrozen`, a weaker
+  precondition; the Go reads the peers under the read lock, which `AddPeer`/`RemovePeer` write
+  under). `Handler` stays over the frozen transport: on a live one the handlers' `AddRemote` runs
+  `NewURLs` on the request's `X-PeerURLs` header, which the raft protocol (`fromOkAt`) does not
+  constrain, and Go panics on a malformed one (`issues/etcd-rafthttp-addremote-bad-peerurls-panic.md`,
+  found here); the dynamic handler (M8) needs that header fact in the protocol, then
+  `AddRemote_full` with the cover `∀ f, member f → f ≠ lid → f ∈ c.L`.
+- Left for M8: the dynamic `NewServer` (a key for `E.ST`, as `srvTrKey` for `E.S`, with `L` in
+  the key, `SrvKey` has none) and the dynamic handler.
+
 ## S5e of the auth plan: the simple token provider with no hypothesis (2026-10-25 · `notes/auth-plan.md`, branch `auth-s5e`)
 
 **Problem.** S5d left the simple provider meeting the token contract over two hypotheses: the TTL

@@ -45,26 +45,26 @@ theorem peersOk_delete (Rh : RaftHttp GF) (lid : w64) (γd : GName) (R : IProp G
 
 /-- **A peer removed** (`removePeer`, under the write lock, its half of the record): the record
 loses it, and its stop right leaves the stop invariant. -/
-theorem trStop_remove_peer (Rh : RaftHttp GF) (R : IProp GF) (γs : GName) (pm rm : Loc)
-    (PM : GMap w64 GoInterface) (RM : GMap w64 Loc) (id : w64) (pi : GoInterface)
-    (hs : PM !! id = some pi) :
-    ⊢ trStopInv Rh R γs -∗ ghostVar γs (1 : Qp).half ((pm, rm, PM, RM) : trRec) -∗ £ 1 ={⊤}=∗
-      ghostVar γs (1 : Qp).half ((pm, rm, GMap.delete id PM, RM) : trRec) ∗
+theorem trStop_remove_peer (Rh : RaftHttp GF) (R : IProp GF) (γs : GName) (L : List w64)
+    (pm rm : Loc) (PM : GMap w64 GoInterface) (RM : GMap w64 Loc) (T : List w64) (id : w64)
+    (pi : GoInterface) (hs : PM !! id = some pi) :
+    ⊢ trStopInv Rh R γs L -∗ ghostVar γs (1 : Qp).half ((pm, rm, PM, RM, T) : trRec) -∗ £ 1 ={⊤}=∗
+      ghostVar γs (1 : Qp).half ((pm, rm, GMap.delete id PM, RM, T) : trRec) ∗
       ∃ p : Loc, ⌜pi = interface.mkOk (go.GoType.PointerType rafthttp.peer.ty) #p⌝ ∗
         peerStop Rh id R p := by
   iintro #Hinv Hg Hlc
   unfold trStopInv
   iinv Hinv with Hi Hclose
   imod lc_fupd_elim_later $$ Hlc Hi with Hi
-  icases Hi with ⟨%pm', %rm', %PM', %RM', Hg', Hps, Hrs⟩
+  icases Hi with ⟨%pm', %rm', %PM', %RM', %T', Hg', Hps, Hrs, Hpool⟩
   ihave %Hag := ghostVar_agree γs _ _ _ _ $$ Hg Hg'
   cases Hag
-  imod ghostVar_update_halves ((pm, rm, GMap.delete id PM, RM) : trRec) γs _ _ $$ Hg Hg'
+  imod ghostVar_update_halves ((pm, rm, GMap.delete id PM, RM, T) : trRec) γs _ _ $$ Hg Hg'
     with ⟨Hg, Hg'⟩
   icases (BigSepM.bigSepM_delete (m := PM) hs).1 $$ Hps with ⟨Hp, Hps⟩
-  imod Hclose $$ [Hg' Hps Hrs] with -
+  imod Hclose $$ [Hg' Hps Hrs Hpool] with -
   · inext
-    iexists pm, rm, _, RM
+    iexists pm, rm, _, RM, T
     iframe
   imodintro
   iframe
@@ -90,15 +90,16 @@ theorem rafthttp.Transport.removePeer_core
     (hWarn : zap.Logger.Warn.spec (GF := GF) (hG := hG))
     (hZString : zap.String.spec (GF := GF) (hG := hG))
     (Rh : RaftHttp GF) (t : Loc) (lid : w64) (γd : GName) (R : IProp GF) (γs : GName)
-    (pm rm : Loc) (PM : GMap w64 GoInterface) (RM : GMap w64 Loc) (id : w64) :
+    (L : List w64) (pm rm : Loc) (PM : GMap w64 GoInterface) (RM : GMap w64 Loc) (T : List w64)
+    (id : w64) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
-        trFixed Rh t lid γd R ∗ trProbers t ∗ trStopInv Rh R γs ∗
+        trFixed Rh t lid γd R ∗ trProbers t ∗ trStopInv Rh R γs L ∗
         t.[rafthttp.Transport, go!"peers"] ↦ pm ∗ pm ↦$ PM ∗
-        ghostVar γs (1 : Qp).half ((pm, rm, PM, RM) : trRec) ∗ □ peersOk Rh lid γd R PM ∗
+        ghostVar γs (1 : Qp).half ((pm, rm, PM, RM, T) : trRec) ∗ □ peersOk Rh lid γd R PM ∗
         trStats t 1 }}
       (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"removePeer")) (Val #id))
     {{ RET #(); t.[rafthttp.Transport, go!"peers"] ↦ pm ∗ pm ↦$ (GMap.delete id PM) ∗
-        ghostVar γs (1 : Qp).half ((pm, rm, GMap.delete id PM, RM) : trRec) ∗ trStats t 1 }} := by
+        ghostVar γs (1 : Qp).half ((pm, rm, GMap.delete id PM, RM, T) : trRec) ∗ trStats t 1 }} := by
   wp_start as ⟨#Htr, #Hprb, #Hst, Hp, Hpm, Hg, #Hpo, Hts⟩
   ihave #Htr' := Htr
   iunfold trFixed at Htr'
@@ -147,7 +148,8 @@ theorem rafthttp.Transport.removePeer_core
       ⌜pi = interface.mkOk (go.GoType.PointerType rafthttp.peer.ty) #p⌝ ∗
       peerOk Rh lid id γd R p)) hp $$ Hpo
     icases Hpi with ⟨%p, %Hpp, #Hpok⟩
-    imod trStop_remove_peer Rh R γs pm rm PM RM id pi hp $$ Hst Hg Hlc1 with ⟨Hg, %p', %Hp', Hps⟩
+    imod trStop_remove_peer Rh R γs L pm rm PM RM T id pi hp $$ Hst Hg Hlc1 with
+      ⟨Hg, %p', %Hp', Hps⟩
     subst Hpp
     have hpp : p' = p := by
       simp only [interface.mkOk, GoInterface.ok.injEq, GoInterfaceOk.mk.injEq, true_and] at Hp'
@@ -200,13 +202,13 @@ theorem rafthttp.Transport.RemovePeer_core
     (hWarn : zap.Logger.Warn.spec (GF := GF) (hG := hG))
     (hZString : zap.String.spec (GF := GF) (hG := hG))
     (Rh : RaftHttp GF) (t : Loc) (lid : w64) (γd : GName) (R : IProp GF) (γs γr : GName)
-    (rs : trIds) (id : w64) :
+    (L : List w64) (rs : trIds) (id : w64) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
-        trFixed Rh t lid γd R ∗ trProbers t ∗ trStopInv Rh R γs ∗
+        trFixed Rh t lid γd R ∗ trProbers t ∗ trStopInv Rh R γs L ∗
         sync.isRWMutexGuard (t.[rafthttp.Transport, go!"mu"]) (trLockP Rh t lid γd R γs γr) ∗
         ghostVar γr (1 : Qp).half (rs, false) }}
       (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"RemovePeer")) (Val #id))
-    {{ RET #(); ghostVar γr (1 : Qp).half ((rs.1, rs.2.filter (· != id)), false) }} := by
+    {{ RET #(); ghostVar γr (1 : Qp).half (rs.filter (· != id), false) }} := by
   wp_start as ⟨#Htr, #Hprb, #Hst, #Hgd, Hlive⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
@@ -217,32 +219,33 @@ theorem rafthttp.Transport.RemovePeer_core
   wp_auto_lc 1
   imod lc_fupd_elim_later $$ Hlc1 HP with HP
   iunfold trLockP at HP
-  icases HP with ⟨%pm, %rm, %PM, %RM, %rs', %sb, Hp, Hr, Hpm, Hrm, Hg, Hgr, %Hrs, #Hpo, #Hro, Hts⟩
+  icases HP with ⟨%pm, %rm, %PM, %RM, %T, %rs', %sb, Hp, Hr, Hpm, Hrm, Hg, Hgr, %Hrs, #Hpo, #Hro,
+    Hts⟩
   ihave %Hag := ghostVar_agree γr _ _ _ _ $$ Hlive Hgr
   cases Hag
-  obtain ⟨Hrs1, Hnn, Hcov⟩ := Hrs
+  obtain ⟨Hnn, Hcov, HT⟩ := Hrs
   obtain ⟨Hpmnn, Hrmnn⟩ := Hnn rfl
-  imod ghostVar_update_halves ((rs.1, rs.2.filter (· != id)), false) γr _ _ $$ Hlive Hgr
+  imod ghostVar_update_halves (rs.filter (· != id), false) γr _ _ $$ Hlive Hgr
     with ⟨Hlive, Hgr⟩
   iunfold mapOrNil at Hpm
   icases Hpm with (⟨%Hpn, -⟩ | Hpm)
   · exact absurd Hpn Hpmnn
   (try wp_auto)
   wp_apply (rafthttp.Transport.removePeer_core hPeerStop hIDStringPtr hInfo hWarn hZString Rh t lid
-      γd R γs pm rm PM RM id) $$ [Hp Hpm Hg Hts] as ⟨Hp, Hpm, Hg, Hts⟩
+      γd R γs L pm rm PM RM T id) $$ [Hp Hpm Hg Hts] as ⟨Hp, Hpm, Hg, Hts⟩
   · iframe; iframe #
   (try wp_auto)
   wp_apply sync.RWMutex.wp_Unlock_guard $$ [Hwl Hp Hr Hpm Hrm Hg Hgr Hts]
   · iframe #; iframe Hwl
     inext
     iunfold trLockP
-    iexists pm, rm, _, RM, (rs.1, rs.2.filter (· != id)), false
+    iexists pm, rm, _, RM, T, rs.filter (· != id), false
     iframe Hp Hr Hrm Hg Hgr Hts
     isplitl [Hpm]
     · iunfold mapOrNil; iright; iexact Hpm
     isplitr
     · ipureintro
-      refine ⟨Hrs1, fun _ => ⟨Hpmnn, Hrmnn⟩, fun hr k hk => ?_⟩
+      refine ⟨fun _ => ⟨Hpmnn, Hrmnn⟩, fun hr k hk => ?_, HT⟩
       obtain ⟨hk, hne⟩ := List.mem_filter.1 hk
       have hne' : id ≠ k := fun h => by subst h; simp at hne
       rw [GMap.lookup_delete_ne _ hne']
@@ -265,14 +268,14 @@ theorem rafthttp.Transport.RemoveAllPeers_core
     (hWarn : zap.Logger.Warn.spec (GF := GF) (hG := hG))
     (hZString : zap.String.spec (GF := GF) (hG := hG))
     (Rh : RaftHttp GF) (t : Loc) (lid : w64) (γd : GName) (R : IProp GF) (γs γr : GName)
-    (rs : trIds) :
+    (L : List w64) (rs : trIds) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
-        trFixed Rh t lid γd R ∗ trProbers t ∗ trStopInv Rh R γs ∗
+        trFixed Rh t lid γd R ∗ trProbers t ∗ trStopInv Rh R γs L ∗
         sync.isRWMutexGuard (t.[rafthttp.Transport, go!"mu"]) (trLockP Rh t lid γd R γs γr) ∗
         ghostVar γr (1 : Qp).half (rs, false) }}
       (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"RemoveAllPeers"))
         (Val #()))
-    {{ RET #(); ghostVar γr (1 : Qp).half (((rs.1, ([] : List w64)) : trIds), false) }} := by
+    {{ RET #(); ghostVar γr (1 : Qp).half ((([] : List w64) : trIds), false) }} := by
   wp_start as ⟨#Htr, #Hprb, #Hst, #Hgd, Hlive⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
@@ -281,12 +284,13 @@ theorem rafthttp.Transport.RemoveAllPeers_core
   · iframe #
   imod lc_fupd_elim_later $$ Hlc1 HP with HP
   iunfold trLockP at HP
-  icases HP with ⟨%pm, %rm, %PM, %RM, %rs', %sb, Hp, Hr, Hpm, Hrm, Hg, Hgr, %Hrs, #Hpo, #Hro, Hts⟩
+  icases HP with ⟨%pm, %rm, %PM, %RM, %T, %rs', %sb, Hp, Hr, Hpm, Hrm, Hg, Hgr, %Hrs, #Hpo, #Hro,
+    Hts⟩
   ihave %Hag := ghostVar_agree γr _ _ _ _ $$ Hlive Hgr
   cases Hag
-  obtain ⟨Hrs1, Hnn, -⟩ := Hrs
+  obtain ⟨Hnn, -, HT⟩ := Hrs
   obtain ⟨Hpmnn, Hrmnn⟩ := Hnn rfl
-  imod ghostVar_update_halves (((rs.1, ([] : List w64)) : trIds), false) γr _ _ $$ Hlive Hgr
+  imod ghostVar_update_halves ((([] : List w64) : trIds), false) γr _ _ $$ Hlive Hgr
     with ⟨Hlive, Hgr⟩
   iunfold mapOrNil at Hpm
   icases Hpm with (⟨%Hpn, -⟩ | Hpm)
@@ -295,7 +299,7 @@ theorem rafthttp.Transport.RemoveAllPeers_core
   wp_func_lits
   wp_bind (App (App (Val (map.forRange _ _)) _) _)
   iapply wp_map_for_range_gen (fun _ _ m' => iprop(t.[rafthttp.Transport, go!"peers"] ↦ pm ∗
-      ghostVar γs (1 : Qp).half ((pm, rm, m', RM) : trRec) ∗ □ peersOk Rh lid γd R m' ∗
+      ghostVar γs (1 : Qp).half ((pm, rm, m', RM, T) : trRec) ∗ □ peersOk Rh lid γd R m' ∗
       trStats t 1 ∗ t_ptr ↦ t ∗ ∃ x : w64, id_ptr ↦ x)) _ _ _ pm PM (DFrac.own 1) $$ Hpm
   iintro %keys -
   isplitl [Hp Hg Hts t id]
@@ -306,7 +310,7 @@ theorem rafthttp.Transport.RemoveAllPeers_core
     iintro %i %key %v %m' -  ⟨Hp, Hg, #Hpo', Hts, Ht, %x, Hid⟩ Hpm
     (try wp_auto)
     wp_apply (rafthttp.Transport.removePeer_core hPeerStop hIDStringPtr hInfo hWarn hZString Rh t
-        lid γd R γs pm rm m' RM key) $$ [Hp Hpm Hg Hts] as ⟨Hp, Hpm, Hg, Hts⟩
+        lid γd R γs L pm rm m' RM T key) $$ [Hp Hpm Hg Hts] as ⟨Hp, Hpm, Hg, Hts⟩
     · iframe; iframe #
     (try wp_auto)
     unfold forMapPostcondition
@@ -326,13 +330,13 @@ theorem rafthttp.Transport.RemoveAllPeers_core
   · iframe #; iframe Hwl
     inext
     iunfold trLockP
-    iexists pm, rm, m', RM, (rs.1, []), false
+    iexists pm, rm, m', RM, T, ([] : List w64), false
     iframe Hp Hr Hrm Hg Hgr Hts
     isplitl [Hpm]
     · iunfold mapOrNil; iright; iexact Hpm
     isplitr
     · ipureintro
-      exact ⟨Hrs1, fun _ => ⟨Hpmnn, Hrmnn⟩, fun _ k hk => by simp at hk⟩
+      exact ⟨fun _ => ⟨Hpmnn, Hrmnn⟩, fun _ k hk => by simp at hk, HT⟩
     iframe #
   (try wp_auto)
   iapply HΦ; iframe

@@ -28,13 +28,15 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.api
 
 /-- **The transport's names** (stage 6d): its member `lid`, the receiver's snapshot directory
 `γd`, the resource `R` its `Raft`'s calls borrow, its lock's ghost records `γs` (the maps) and
-`γr` (the ids added, the stopped flag). -/
+`γr` (the peers' ids, the stopped flag), and (D43 M5c) the ids `L` its pool has four `R`s for,
+the only ids a remote may be started for. -/
 structure TrN (GF : BundledGFunctors) where
   lid : w64
   γd : GName
   R : IProp GF
   γs : GName
   γr : GName
+  L : List w64
 
 section defs
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -121,7 +123,7 @@ theorem netHttpOk_single (γn : NetNames GF) (lid : w64)
 
 /-- **A started transport `t` of the network `γn`, with the names `c`** (persistent). -/
 def trState (γn : NetNames GF) (t : Loc) (c : TrN GF) : IProp GF :=
-  iprop(trFixed (netRh γn) t c.lid c.γd c.R ∗ trProbers t ∗ trStopInv (netRh γn) c.R c.γs ∗
+  iprop(trFixed (netRh γn) t c.lid c.γd c.R ∗ trProbers t ∗ trStopInv (netRh γn) c.R c.γs c.L ∗
     sync.isRWMutexGuard (t.[rafthttp.Transport, go!"mu"])
       (trLockP (netRh γn) t c.lid c.γd c.R c.γs c.γr) ∗
     ∃ (ss : Loc) (Rm : w64 → IProp GF), t.[rafthttp.Transport, go!"Snapshotter"] ↦□ ss ∗
@@ -131,13 +133,13 @@ instance trState_persistent (γn : NetNames GF) (t : Loc) (c : TrN GF) :
     Persistent (trState γn t c) := by
   unfold trState; infer_instance
 
-/-- **A live transport** (exclusive): started, not stopped, the ids `AddRemote` and `AddPeer`
-were called for `rs` (`trIds`); `AddPeer`/`AddRemote` update it. -/
+/-- **A live transport** (exclusive): started, not stopped, its peers' ids `rs` (`trIds`);
+`AddPeer`, `RemovePeer` and `RemoveAllPeers` update it, `Stop` (`Stop_live`) consumes it. -/
 def trLive (γn : NetNames GF) (t : Loc) (c : TrN GF) (rs : trIds) : IProp GF :=
   iprop(trState γn t c ∗ ghostVar c.γr (1 : Qp).half (rs, false))
 
-/-- **A frozen transport** (persistent): started, no more `AddPeer`/`AddRemote` from its owner,
-the ids `rs` for good. -/
+/-- **A frozen transport** (persistent): started, no more `AddPeer`/`RemovePeer` from its owner,
+the peers' ids `rs` for good. -/
 def trFrozen (γn : NetNames GF) (t : Loc) (c : TrN GF) (rs : trIds) : IProp GF :=
   iprop(trState γn t c ∗ trRemotesFrozen c.γr rs)
 
@@ -168,10 +170,10 @@ theorem trLive_freeze (γn : NetNames GF) (t : Loc) (c : TrN GF) (rs : trIds) (E
 /-- The lock's reader tokens are the transport's (`n` kept abstract: the kernel would unfold a
 literal count). -/
 theorem trToks_mk (γn : NetNames GF) (t : Loc) (lid : w64) (γd : GName) (R : IProp GF)
-    (γs γr : GName) (n : Nat) :
+    (γs γr : GName) (L : List w64) (n : Nat) :
     ([∗list] _x ∈ List.replicate n (), sync.ownRWMutex (t.[rafthttp.Transport, go!"mu"])
       (trLockP (netRh γn) t lid γd R γs γr)) ⊢
-      [∗list] _x ∈ List.replicate n (), trTok γn t ⟨lid, γd, R, γs, γr⟩ := by
+      [∗list] _x ∈ List.replicate n (), trTok γn t ⟨lid, γd, R, γs, γr, L⟩ := by
   unfold trTok trReadTok
   exact .rfl
 
@@ -189,7 +191,8 @@ set_option maxHeartbeats 8000000 in
 /-- **`t.Start()`** on a transport the caller owns whole (`NewServer`'s literal, its mutex fresh),
 its logger and stats set, of a member `tv.ID` of the network `γn` (with peer URLs), its URLs'
 slice read-only, its `Raft` the member's (`netRaftOk`, borrowing `R`), its snapshotter and
-directory, the network's HTTP side ready: an error, or the transport live with no peer or remote
+directory, the network's HTTP side ready, and (D43 M5c) four `R`s for each id of `L` (the pool
+the remotes started later take theirs from): an error, or the transport live with no peer or remote
 yet, and all its lock's reader tokens. -/
 theorem rafthttp.Transport.Start_full
     (hNSRT : rafthttp.newStreamRoundTripper.spec (GF := GF) (hG := hG))
@@ -197,7 +200,7 @@ theorem rafthttp.Transport.Start_full
     (hNewProber : probing.NewProber.spec (GF := GF) (hG := hG))
     (hEvery : rate.Every.spec (GF := GF) (hG := hG))
     (γn : NetNames GF) (t : Loc) (tv : rafthttp.Transport) (R : IProp GF) (γd : GName)
-    (Rm : w64 → IProp GF) (uvs : List net.url.URL) :
+    (Rm : w64 → IProp GF) (uvs : List net.url.URL) (L : List w64) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
         t ↦ tv ∗
         ⌜tv.Logger' ≠ null ∧ tv.ServerStats' ≠ null ∧ tv.LeaderStats' ≠ null ∧
@@ -205,14 +208,15 @@ theorem rafthttp.Transport.Start_full
         tv.URLs' ↦*□ uvs ∗ □ netRaftOk γn tv.ID' γd R tv.Raft' ∗
         snap.isSnapshotter tv.Snapshotter' ∗
         inv snapDirN (snapDirInv tv.Snapshotter' γd γn.N.img Rm) ∗ netHttpOk γn tv.ID' ∗
-        v2stats.isLeaderStats tv.LeaderStats' ∗ v2stats.lsFollowers tv.LeaderStats' 1 }}
+        v2stats.isLeaderStats tv.LeaderStats' ∗ v2stats.lsFollowers tv.LeaderStats' 1 ∗
+        [∗list] _id ∈ L, R ∗ R ∗ R ∗ R }}
       (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"Start")) (Val #()))
     {{ (err : GoInterface), RET #err;
         ⌜err ≠ GoInterface.nil⌝ ∨
-        ⌜err = GoInterface.nil⌝ ∗ ∃ c : TrN GF, ⌜c.lid = tv.ID' ∧ c.γd = γd ∧ c.R = R⌝ ∗
-          trLive γn t c ([], []) ∗
+        ⌜err = GoInterface.nil⌝ ∗ ∃ c : TrN GF, ⌜c.lid = tv.ID' ∧ c.γd = γd ∧ c.R = R ∧ c.L = L⌝ ∗
+          trLive γn t c [] ∗
           [∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), trTok γn t c }} := by
-  wp_start_folded as ⟨Ht, %Hpre, #Huvs, #Hraft, #Hss, #Hdir, #Hnet, #Hlsi, Hlsf⟩
+  wp_start_folded as ⟨Ht, %Hpre, #Huvs, #Hraft, #Hss, #Hdir, #Hnet, #Hlsi, Hlsf, HRL⟩
   iStructNamed Ht
   obtain ⟨Hlgnn, Hssnn, Hlsnn, Hmu0, Hmem⟩ := Hpre
   iapply wp_fupd
@@ -232,23 +236,30 @@ theorem rafthttp.Transport.Start_full
   ihave %Hpmnn := ownMap_not_nil pm _ _ $$ Hpmm
   ihave %Hrmnn := ownMap_not_nil rm _ _ $$ Hrmm
   -- the ghost records and the stop rights' invariant
-  imod ghostVar_alloc ((pm, rm, (∅ : GMap w64 GoInterface), (∅ : GMap w64 Loc)) : trRec)
-    with ⟨%γs, Hgs⟩
+  imod ghostVar_alloc ((pm, rm, (∅ : GMap w64 GoInterface), (∅ : GMap w64 Loc), ([] : List w64))
+    : trRec) with ⟨%γs, Hgs⟩
   icases (ghostVar_split_half γs 1 _).1 $$ Hgs with ⟨Hgs1, Hgs2⟩
-  imod ghostVar_alloc ((([], []) : trIds), false) with ⟨%γr, Hgr⟩
+  imod ghostVar_alloc ((([] : List w64) : trIds), false) with ⟨%γr, Hgr⟩
   icases (ghostVar_split_half γr 1 _).1 $$ Hgr with ⟨Hgr1, Hgr2⟩
   imod (inv_alloc trStopN ⊤ iprop(∃ (pm' rm' : Loc) (PM : GMap w64 GoInterface)
-      (RM : GMap w64 Loc), ghostVar γs (1 : Qp).half ((pm', rm', PM, RM) : trRec) ∗
+      (RM : GMap w64 Loc) (T : List w64), ghostVar γs (1 : Qp).half ((pm', rm', PM, RM, T) : trRec) ∗
       ([∗map] id ↦ pi ∈ PM, ∃ p : Loc,
         ⌜pi = interface.mkOk (go.GoType.PointerType rafthttp.peer.ty) #p⌝ ∗
           peerStop (netRh γn) id R p) ∗
-      ([∗map] id ↦ g ∈ RM, remoteStop (netRh γn) id R g))) $$ [Hgs2] with #Hstop
+      ([∗map] id ↦ g ∈ RM, remoteStop (netRh γn) id R g) ∗ trPool R L T)) $$ [Hgs2 HRL]
+    with #Hstop
   · inext
-    iexists pm, rm, ∅, ∅
+    iexists pm, rm, ∅, ∅, []
     iframe Hgs2
-    isplitl
+    isplitr
     · iapply BigSepM.bigSepM_empty.2; itrivial
+    isplitr
     · iapply BigSepM.bigSepM_empty.2; itrivial
+    iunfold trPool
+    isplitr
+    · ipureintro; intro _ h; simp at h
+    iapply BigSepL.bigSepL_mono_of_forall (Φ := fun _ _ => iprop(R ∗ R ∗ R ∗ R))
+      (fun {_ x} => by iintro H; iunfold trPoolE; iright; iexact H) $$ HRL
   -- the lock
   rw [Hmu0]
   ipersist LeaderStats
@@ -256,7 +267,7 @@ theorem rafthttp.Transport.Start_full
     (t.[rafthttp.Transport, go!"mu"]) $$ [Hpm Hrm Hpmm Hrmm Hgs1 Hgr1 Hlsf] mu with Htoks
   · inext
     iunfold trLockP
-    iexists pm, rm, ∅, ∅, ([], []), false
+    iexists pm, rm, ∅, ∅, [], ([] : List w64), false
     iframe Hpm Hrm Hgs1 Hgr1
     isplitl [Hpmm]
     · iunfold mapOrNil; iright; iexact Hpmm
@@ -264,7 +275,7 @@ theorem rafthttp.Transport.Start_full
     · iunfold mapOrNil; iright; iexact Hrmm
     isplitr
     · ipureintro
-      refine ⟨fun id h => by simp at h, fun _ => ⟨Hpmnn, Hrmnn⟩, fun _ id h => by simp at h⟩
+      refine ⟨fun _ => ⟨Hpmnn, Hrmnn⟩, fun _ id h => by simp at h, fun _ id => by simp⟩
     isplitr
     · imodintro; iunfold peersOk; iapply BigSepM.bigSepM_empty.2; itrivial
     isplitr
@@ -287,9 +298,9 @@ theorem rafthttp.Transport.Start_full
   iright
   isplitr
   · ipureintro; rfl
-  iexists ⟨tv.ID', γd, R, γs, γr⟩
+  iexists ⟨tv.ID', γd, R, γs, γr, L⟩
   isplitr
-  · ipureintro; exact ⟨rfl, rfl, rfl⟩
+  · ipureintro; exact ⟨rfl, rfl, rfl, rfl⟩
   isplitl [Hgr2]
   · iunfold trLive
     iframe Hgr2

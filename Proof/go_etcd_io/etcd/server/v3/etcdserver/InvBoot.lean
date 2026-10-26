@@ -543,7 +543,8 @@ member, snapshot directory and lock's records. -/
 abbrev SrvKey := Loc × Loc × w64 × GName × GName × GName
 
 /-- The transport's names of a key. -/
-abbrev SrvKey.trN (x : SrvKey) : TrN GF := ⟨x.2.2.1, x.2.2.2.1, srvLgReader x.1, x.2.2.2.2.1, x.2.2.2.2.2⟩
+abbrev SrvKey.trN (x : SrvKey) : TrN GF :=
+  ⟨x.2.2.1, x.2.2.2.1, srvLgReader x.1, x.2.2.2.2.1, x.2.2.2.2.2, []⟩
 
 /-- **The raft loop's key to the transport's `Send`** (rafthttp stage 6d, 2026-10-24, the user's
 choice: the raft loop holds one of the transport's lock's reader tokens): the server's transport's
@@ -580,17 +581,19 @@ theorem srvTrKey_of_trTok (γn : NetNames GF) (γk : GName) (s t : Loc) (c : TrN
   iunfold srvTrKey
   iexists (s, t, c.lid, c.γd, c.γs, c.γr)
   iframe Hk
-  obtain ⟨lid, γd, R, γs, γr⟩ := c
+  obtain ⟨lid, γd, R, γs, γr, L⟩ := c
   simp only at hR
   subst hR
+  iunfold trTok at Htok
+  iunfold trTok
   iexact Htok
 
 /-- **The network's transport, with the key** (stage 6d): a transport whose `Send` borrows a
 reader's token of the transport fixed under `γk` borrows the key. -/
 theorem netTransport_of_key (γn : NetNames GF) (lid : w64) (tr : GoInterface) (γk : GName)
-    (s t : Loc) (c : TrN GF) (hR : c.R = srvLgReader s) :
+    (s t : Loc) (c : TrN GF) (hR : c.R = srvLgReader s) (TS : IProp GF) :
     ⊢ ghostMapElem γk () DFrac.discard (s, t, c.lid, c.γd, c.γs, c.γr) -∗
-      netTransport γn lid tr (trTok γn t c) -∗ netTransport γn lid tr (srvTrKey γn γk) := by
+      netTransport γn lid tr (trTok γn t c) TS -∗ netTransport γn lid tr (srvTrKey γn γk) TS := by
   iintro #Hk #Htr
   iunfold netTransport at Htr
   icases Htr with ⟨%ti, %Hti, #Hsend, #Hstop, #Hsnap⟩
@@ -606,9 +609,11 @@ theorem netTransport_of_key (γn : NetNames GF) (lid : w64) (tr : GoInterface) (
     ihave %Heq := ghostMapElem_agree () γk DFrac.discard DFrac.discard _ _ $$ Hk Hx
     subst Heq
     ihave Htok' : trTok γn t c $$ [Htok]
-    · obtain ⟨lid', γd, R, γs, γr⟩ := c
+    · obtain ⟨lid', γd, R, γs, γr, L⟩ := c
       simp only at hR
       subst hR
+      iunfold trTok at Htok
+      iunfold trTok
       iexact Htok
     wp_apply Hsend $$ [Hsl Hms Htok'] as Htok
     · iframe
@@ -623,7 +628,7 @@ theorem netTransport_of_key (γn : NetNames GF) (lid : w64) (tr : GoInterface) (
 /-- **The raft wrapper's transport from the network's** (D21 M2): an environment whose messages
 carry their bundle from the member `lid` (`E.M m` gives `netBundle`) can send them through it. -/
 theorem isRNTransport_of_net (γn : NetNames GF) (lid : w64) (E : RNEnv GF) (tr : GoInterface) :
-    ⊢ □ (∀ m : Loc, E.M m -∗ netBundle γn.N lid m) -∗ netTransport γn lid tr E.S -∗
+    ⊢ □ (∀ m : Loc, E.M m -∗ netBundle γn.N lid m) -∗ netTransport γn lid tr E.S E.ST -∗
       isRNTransport E tr := by
   iintro #HM #Htr
   iunfold netTransport at Htr
@@ -647,6 +652,19 @@ theorem isRNTransport_of_net (γn : NetNames GF) (lid : w64) (E : RNEnv GF) (tr 
     iexact HS
   · iexact Hstop
 
+
+/-- **The dynamic mode's hand-off** (D43 M5c, the user's (A)): with the transport's live right as
+the raft wrapper's stop right (`E.ST`, carried by `stopped`), a started transport's network view
+(`trState_net`: `Stop` takes the live right, `Stop_live`) is the raft wrapper's transport; the live
+right itself goes to the apply thread, which hands it to `raftNode.stop` when `run` returns (M6).
+The static server freezes instead (`E.ST = True`, `trFrozen_net`). -/
+theorem isRNTransport_of_live (γn : NetNames GF) (lid : w64) (E : RNEnv GF) (tr : GoInterface)
+    (t : Loc) (c : TrN GF) (hST : E.ST = iprop(∃ rs : trIds, trLive γn t c rs)) :
+    ⊢ □ (∀ m : Loc, E.M m -∗ netBundle γn.N lid m) -∗
+      netTransport γn lid tr E.S iprop(∃ rs : trIds, trLive γn t c rs) -∗ isRNTransport E tr := by
+  iintro #HM #Htr
+  rw [← hST] at *
+  iapply isRNTransport_of_net γn lid E tr $$ HM Htr
 /-- **The lessor's `SetCheckpointer`** (names-only, a contract of `lease.NewLessor`): it returns, the
 checkpointer an opaque value (the lessor calls it later, outside the model: `NewServer`'s
 closure over `raftRequest`). -/

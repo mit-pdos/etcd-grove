@@ -116,14 +116,15 @@ theorem rafthttp.Transport.Send.wp_proof
     iunfold trReadTok at Htok
     wp_apply sync.RWMutex.wp_RLock $$ [$Htok] as ⟨Hrl, HP⟩
     iunfold trLockP at HP
-    icases HP with ⟨%pm, %rm, %PM, %RM, %rs, %sb, Hp, Hr, Hpm, Hrm, Hg, Hgr, %Hrs, #Hpo, #Hro, Hts⟩
+    icases HP with ⟨%pm, %rm, %PM, %RM, %T, %rs, %sb, Hp, Hr, Hpm, Hrm, Hg, Hgr, %Hrs, #Hpo, #Hro,
+    Hts⟩
     (try wp_auto)
     wp_apply wp_lookup2_mapOrNil _ pm _ PM st.msg.To' $$ [$Hpm] as Hpm
     (try wp_auto)
     wp_apply wp_lookup2_mapOrNil _ rm _ RM st.msg.To' $$ [$Hrm] as Hrm
     (try wp_auto)
     wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl Hp Hr Hpm Hrm Hg Hgr Hts] as Htok
-    · iunfold trLockP; iexists pm, rm, PM, RM, rs, sb; iframe; iframe #
+    · iunfold trLockP; iexists pm, rm, PM, RM, T, rs, sb; iframe; iframe #
       (try inext)
       ipureintro; exact Hrs
     (try wp_auto)

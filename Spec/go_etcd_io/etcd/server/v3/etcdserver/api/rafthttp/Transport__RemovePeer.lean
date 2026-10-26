@@ -31,7 +31,7 @@ abbrev rafthttp.Transport.RemovePeer.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
       trLive γn t c rs }}
     (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"RemovePeer")) (Val #id))
-  {{ RET #(); trLive γn t c (rs.1, rs.2.filter (· != id)) }}
+  {{ RET #(); trLive γn t c (rs.filter (· != id)) }}
 
 end spec
 

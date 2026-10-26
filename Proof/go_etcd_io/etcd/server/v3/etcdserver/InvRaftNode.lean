@@ -148,6 +148,10 @@ structure RNEnv (GF : BundledGFunctors) where
   /-- (2026-10-24, rafthttp stage 6d) what the transport's `Send` borrows, which the loop holds
   (for the server, a reader's token of the transport's lock). -/
   S : IProp GF
+  /-- (2026-10-26, D43 M5c) what the transport's `Stop` takes: the right to stop it, which
+  `stopped` carries to the loop (for the static server `True`, its transport frozen; in the
+  dynamic mode the transport's live right, which the apply thread hands over, M6). -/
+  ST : IProp GF
 
 /-- A message the node handed out, as the wrapper reads and forwards it: its destination and
 type read-only, and `E.M m`. (2026-10-19, D21 stage M1: owned, no longer persistent, so that
@@ -728,14 +732,14 @@ instance isRNWal_persistent (st : GoInterface) : Persistent (isRNWal (GF := GF) 
   unfold isRNWal; infer_instance
 
 /-- **The transport `tr`** (`rafthttp.Transporter`): `Send` takes the slice of messages, each one
-raft may send, borrowing `E.S` (2026-10-24); `Stop` returns. -/
+raft may send, borrowing `E.S` (2026-10-24); `Stop` returns, taking `E.ST` (D43 M5c). -/
 def isRNTransport (E : RNEnv GF) (tr : GoInterface) : IProp GF :=
   iprop(∃ ti : GoInterfaceOk, ⌜tr = GoInterface.ok ti⌝ ∗
     □ (∀ (sl : GoSlice) (msL : List Loc),
       {{ sl ↦* msL ∗ ([∗list] m ∈ msL, rnMsgOk E m) ∗ E.S }}
         (App (Val #(methods ti.ty go!"Send" ti.v)) (Val #sl))
       {{ RET #(); E.S }}) ∗
-    □ ({{ True }} (App (Val #(methods ti.ty go!"Stop" ti.v)) (Val #())) {{ RET #(); True }}))
+    □ ({{ E.ST }} (App (Val #(methods ti.ty go!"Stop" ti.v)) (Val #())) {{ RET #(); True }}))
 
 instance isRNTransport_persistent (E : RNEnv GF) (tr : GoInterface) :
     Persistent (isRNTransport E tr) := by
@@ -819,6 +823,14 @@ def isUnitBag (c : Loc) : IProp GF :=
 
 instance isUnitBag_persistent (c : Loc) : Persistent (isUnitBag (GF := GF) c) := by
   unfold isUnitBag; infer_instance
+
+/-- `stopped` (D43 M5c): a unit channel each of whose values carries `E.ST`, the right to stop
+the transport, which the loop's `onStop` uses. -/
+def rnStopBag (E : RNEnv GF) (c : Loc) : IProp GF :=
+  iprop(∃ γc : ChanNames, isChanBag γc c (V := Unit) (fun _ => E.ST))
+
+instance rnStopBag_persistent (E : RNEnv GF) (c : Loc) : Persistent (rnStopBag E c) := by
+  unfold rnStopBag; infer_instance
 
 /-- `raftAdvancedC` (D19i part 1, 2026-10-18: the fork closes it after every `Advance`, and
 `applyAll` waits for it before snapshotting or compacting): a broadcast channel, never sent on,
@@ -1004,7 +1016,7 @@ def isRaftNode (E : RNEnv GF) (γ : RNNames) (r : Loc) : IProp GF :=
     "#Hrsci" ∷ isRNReadStateC E rsc ∗
     "#Htk" ∷ rnTickerAddr r ↦□ tk ∗ "#Htki" ∷ isRNTicker E tk ∗
     "#Htd" ∷ rnTdAddr r ↦□ td ∗ "#Htdi" ∷ isRNTimeoutDetector td ∗
-    "#Hstc" ∷ rnStoppedAddr r ↦□ stc ∗ "#Hstci" ∷ isUnitBag stc ∗
+    "#Hstc" ∷ rnStoppedAddr r ↦□ stc ∗ "#Hstci" ∷ rnStopBag E stc ∗
     "#Hdnc" ∷ rnDoneAddr r ↦□ dnc ∗ "#Hdnci" ∷ ownBroadcastChan dnc γ.done iprop(True) .Unknown)
 
 instance isRaftNode_persistent (E : RNEnv GF) (γ : RNNames) (r : Loc) :

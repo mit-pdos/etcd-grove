@@ -58,18 +58,18 @@ theorem rafthttp.Transport.AddPeer_core
     (hZString : zap.String.spec (GF := GF) (hG := hG))
     (hZStrings : zap.Strings.spec (GF := GF) (hG := hG))
     (Rh : RaftHttp GF) (t : Loc) (lid : w64) (γd : GName) (R : IProp GF) (γs γr : GName)
-    (rs : trIds) (id : w64) (us : GoSlice) (dq : DFrac) (ss : List GoString)
+    (L : List w64) (rs : trIds) (id : w64) (us : GoSlice) (dq : DFrac) (ss : List GoString)
     (Hne : ss ≠ []) (Hpl : ∀ s ∈ ss, types.plainPeerURL s)
     (Hown : ∀ h, go!"http://" ++ h ∈ ss → Rh.owner h = id) (Hself : lid ≠ id)
     (Hpm : Rh.member id) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
-        trFixed Rh t lid γd R ∗ trStopInv Rh R γs ∗
+        trFixed Rh t lid γd R ∗ trStopInv Rh R γs L ∗
         sync.isRWMutexGuard (t.[rafthttp.Transport, go!"mu"]) (trLockP Rh t lid γd R γs γr) ∗
         ghostVar γr (1 : Qp).half (rs, false) ∗ us ↦*{dq} ss ∗
         [∗list] _x ∈ List.replicate 8 (), R }}
       (App (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"AddPeer")) (Val #id))
         (Val #us))
-    {{ RET #(); ghostVar γr (1 : Qp).half ((rs.1, rs.2 ++ [id]), false) ∗ us ↦*{dq} ss }} := by
+    {{ RET #(); ghostVar γr (1 : Qp).half (rs ++ [id], false) ∗ us ↦*{dq} ss }} := by
   wp_start as ⟨#Htr, #Hst, #Hgd, Hlive, Hus, HRs⟩
   ihave #Htr' := Htr
   iunfold trFixed at Htr'
@@ -83,12 +83,13 @@ theorem rafthttp.Transport.AddPeer_core
   wp_apply sync.RWMutex.wp_Lock_guard $$ [] as ⟨Hwl, HP⟩
   · iframe #
   iunfold trLockP at HP
-  icases HP with ⟨%pm, %rm, %PM, %RM, %rs', %sb, Hp, Hr, Hpm, Hrm, Hg, Hgr, %Hrs, #Hpo, #Hro, Hts⟩
+  icases HP with ⟨%pm, %rm, %PM, %RM, %T, %rs', %sb, Hp, Hr, Hpm, Hrm, Hg, Hgr, %Hrs, #Hpo, #Hro,
+    Hts⟩
   ihave %Hag := ghostVar_agree γr _ _ _ _ $$ Hlive Hgr
   cases Hag
-  obtain ⟨Hrs1, Hnn, Hcov⟩ := Hrs
+  obtain ⟨Hnn, Hcov, HT⟩ := Hrs
   obtain ⟨Hpmnn, Hrmnn⟩ := Hnn rfl
-  imod ghostVar_update_halves ((rs.1, rs.2 ++ [id]), false) γr _ _ $$ Hlive Hgr with ⟨Hlive, Hgr⟩
+  imod ghostVar_update_halves (rs ++ [id], false) γr _ _ $$ Hlive Hgr with ⟨Hlive, Hgr⟩
   (try wp_auto)
   rw [_root_.decide_eq_false (show ¬ pm = map.nil from Hpmnn)]
   (try wp_auto)
@@ -103,9 +104,9 @@ theorem rafthttp.Transport.AddPeer_core
     wp_apply sync.RWMutex.wp_Unlock_guard $$ [Hwl Hp Hr Hpm Hrm Hg Hgr Hts]
     · iframe #; iframe Hwl
       inext
-      iunfold trLockP; iexists pm, rm, PM, RM, (rs.1, rs.2 ++ [id]), false; iframe; iframe #
+      iunfold trLockP; iexists pm, rm, PM, RM, T, rs ++ [id], false; iframe; iframe #
       ipureintro
-      refine ⟨Hrs1, fun _ => ⟨Hpmnn, Hrmnn⟩, fun hr k hk => ?_⟩
+      refine ⟨fun _ => ⟨Hpmnn, Hrmnn⟩, fun hr k hk => ?_, HT⟩
       rcases List.mem_append.1 hk with hk | hk
       · exact Hcov hr k hk
       · rw [List.mem_singleton.1 hk, hp]; rfl
@@ -147,7 +148,7 @@ theorem rafthttp.Transport.AddPeer_core
   · exact absurd Hpn Hpmnn
   wp_apply wp_mapInsert $$ [Hpm] as Hpm
   · iframe Hpm
-  imod trStop_add_peer Rh R γs pm rm PM RM id pp hp $$ Hst Hg Hpstop with Hg
+  imod trStop_add_peer Rh R γs L pm rm PM RM T id pp hp $$ Hst Hg Hpstop with Hg
   (try wp_auto)
   -- the probers, the log
   ihave Hri : (go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.rafthttpInit : IProp GF) $$ []
@@ -170,13 +171,13 @@ theorem rafthttp.Transport.AddPeer_core
   · iframe #; iframe Hwl
     inext
     iunfold trLockP
-    iexists pm, rm, _, RM, (rs.1, rs.2 ++ [id]), false
+    iexists pm, rm, _, RM, T, rs ++ [id], false
     iframe Hp Hr Hrm Hg Hgr Hts
     isplitl [Hpm]
     · iunfold mapOrNil; iright; iexact Hpm
     isplitr
     · ipureintro
-      refine ⟨Hrs1, fun _ => ⟨Hpmnn, Hrmnn⟩, fun hr k hk => ?_⟩
+      refine ⟨fun _ => ⟨Hpmnn, Hrmnn⟩, fun hr k hk => ?_, HT⟩
       by_cases hk' : k = id
       · subst hk'; simp
       · rw [GMap.lookup_insert_ne _ _ (Ne.symm hk')]
@@ -194,24 +195,24 @@ theorem rafthttp.Transport.AddPeer_core
   iapply HΦ; iframe
 
 set_option hygiene false in
-/-- `AddRemote`'s early returns: the write lock given back (`id` now among the remotes' ids). -/
+/-- `AddRemote`'s early returns: the write lock given back unchanged. -/
 local macro "ar_return" : tactic => `(tactic| (
   (try wp_auto)
   wp_apply sync.RWMutex.wp_Unlock_guard $$ [Hwl Hp Hr Hpm Hrm Hg Hgr Hts]
   · iframe #; iframe Hwl
     inext
-    iunfold trLockP; iexists pm, rm, PM, RM, (rs.1 ++ [id], rs.2), false; iframe; iframe #
-    ipureintro
-    exact ⟨fun k hk => List.mem_append_left _ (Hrs1 k hk), fun _ => ⟨Hpmnn, Hrmnn⟩, Hcov⟩
+    iunfold trLockP; iexists pm, rm, PM, RM, T, rs', sb; iframe; iframe #
+    ipureintro; exact Hrs
   (try wp_auto)
   iapply HΦ; iframe))
 
 set_option maxRecDepth 8000 in
 set_option maxHeartbeats 8000000 in
-/-- **`t.AddRemote(id, us)`** on a live transport (its half of `γr`) with the write lock's guard, of
-`id`'s URL strings (non-empty, plain, owned by `id`), and four `R`s: it returns, `id` among the
-remotes' ids, the remote of `id` started and added (with its stop right) unless `id` was a peer
-or remote already. -/
+/-- **`t.AddRemote(id, us)`** by any holder of the write lock's guard (D43 M5c: no owner's right;
+the handlers' `addRemoteFromRequest` calls it on every request), of `id`'s URL strings
+(non-empty, plain, owned by `id`), `id` another member, one of the ids `L` the pool has four `R`s
+for: it returns, the remote of `id` started with the pool's four `R`s and added (with its stop
+right) unless the transport is stopped or `id` is a peer or a remote already. -/
 theorem rafthttp.Transport.AddRemote_core
     (hNewURLs : types.NewURLs.spec (GF := GF) (hG := hG))
     (hStartRemote : rafthttp.startRemote.spec (GF := GF) (hG := hG))
@@ -220,18 +221,18 @@ theorem rafthttp.Transport.AddRemote_core
     (hZString : zap.String.spec (GF := GF) (hG := hG))
     (hZStrings : zap.Strings.spec (GF := GF) (hG := hG))
     (Rh : RaftHttp GF) (t : Loc) (lid : w64) (γd : GName) (R : IProp GF) (γs γr : GName)
-    (rs : trIds) (id : w64) (us : GoSlice) (dq : DFrac) (ss : List GoString)
+    (L : List w64) (id : w64) (us : GoSlice) (dq : DFrac) (ss : List GoString)
     (Hne : ss ≠ []) (Hpl : ∀ s ∈ ss, types.plainPeerURL s)
     (Hown : ∀ h, go!"http://" ++ h ∈ ss → Rh.owner h = id) (Hself : lid ≠ id)
-    (Hpm : Rh.member id) :
+    (Hpm : Rh.member id) (HL : id ∈ L) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
-        trFixed Rh t lid γd R ∗ trStopInv Rh R γs ∗
+        trFixed Rh t lid γd R ∗ trStopInv Rh R γs L ∗
         sync.isRWMutexGuard (t.[rafthttp.Transport, go!"mu"]) (trLockP Rh t lid γd R γs γr) ∗
-        ghostVar γr (1 : Qp).half (rs, false) ∗ us ↦*{dq} ss ∗ R ∗ R ∗ R ∗ R }}
+        us ↦*{dq} ss }}
       (App (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"AddRemote"))
         (Val #id)) (Val #us))
-    {{ RET #(); ghostVar γr (1 : Qp).half ((rs.1 ++ [id], rs.2), false) ∗ us ↦*{dq} ss }} := by
-  wp_start as ⟨#Htr, #Hst, #Hgd, Hlive, Hus, HR1, HR2, HR3, HR4⟩
+    {{ RET #(); us ↦*{dq} ss }} := by
+  wp_start as ⟨#Htr, #Hst, #Hgd, Hus⟩
   ihave #Htr' := Htr
   iunfold trFixed at Htr'
   icases Htr' with ⟨%lg, %ls, %ss0, %turls, %tuvs, %cid, %r, %ec, %srt, %prt, %drf, %ppr, %spr,
@@ -244,15 +245,13 @@ theorem rafthttp.Transport.AddRemote_core
   wp_apply sync.RWMutex.wp_Lock_guard $$ [] as ⟨Hwl, HP⟩
   · iframe #
   iunfold trLockP at HP
-  icases HP with ⟨%pm, %rm, %PM, %RM, %rs', %sb, Hp, Hr, Hpm, Hrm, Hg, Hgr, %Hrs, #Hpo, #Hro, Hts⟩
-  ihave %Hag := ghostVar_agree γr _ _ _ _ $$ Hlive Hgr
-  cases Hag
-  obtain ⟨Hrs1, Hnn, Hcov⟩ := Hrs
-  obtain ⟨Hpmnn, Hrmnn⟩ := Hnn rfl
-  -- `id` joins the remotes' ids
-  imod ghostVar_update_halves ((rs.1 ++ [id], rs.2), false) γr _ _ $$ Hlive Hgr with ⟨Hlive, Hgr⟩
+  icases HP with ⟨%pm, %rm, %PM, %RM, %T, %rs', %sb, Hp, Hr, Hpm, Hrm, Hg, Hgr, %Hrs, #Hpo, #Hro,
+    Hts⟩
   (try wp_auto)
-  rw [_root_.decide_eq_false (show ¬ rm = map.nil from Hrmnn)]
+  by_cases hrm : rm = map.nil
+  · rw [_root_.decide_eq_true hrm]
+    ar_return
+  rw [_root_.decide_eq_false hrm]
   (try wp_auto)
   wp_apply wp_lookup2_mapOrNil _ pm _ PM id $$ [Hpm] as Hpm
   · iframe Hpm
@@ -273,7 +272,12 @@ theorem rafthttp.Transport.AddRemote_core
     ar_return
   | none =>
   simp only [Option.isSome_none, Bool.false_eq_true, _root_.decide_false]
-  (try wp_auto)
+  obtain ⟨Hnn, Hcov, HT⟩ := Hrs
+  have HnT : id ∉ T := fun h => by have := (HT hrm id).2 h; rw [hr] at this; simp at this
+  wp_auto_lc 1
+  -- the remote's four `R`s, from the pool
+  imod trStop_pool_take Rh R γs L pm rm PM RM T id HnT HL $$ Hst Hg Hlc1 with
+    ⟨Hg, HR1, HR2, HR3, HR4⟩
   ihave #Htyp : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.pkg.v3.types $$ []
   · iPkgInit
   wp_apply hNewURLs us dq ss Hne Hpl $$ [Hus] as %urls %uvs ⟨Hus, Hurls, %Huvs⟩
@@ -289,10 +293,10 @@ theorem rafthttp.Transport.AddRemote_core
   (try wp_auto)
   iunfold mapOrNil at Hrm
   icases Hrm with (⟨%Hrn, -⟩ | Hrm)
-  · exact absurd Hrn Hrmnn
+  · exact absurd Hrn hrm
   wp_apply wp_mapInsert $$ [Hrm] as Hrm
   · iframe Hrm
-  imod trStop_add_remote Rh R γs pm rm PM RM id g hr $$ Hst Hg Hgstop with Hg
+  imod trStop_add_remote Rh R γs L pm rm PM RM (id :: T) id g hr $$ Hst Hg Hgstop with Hg
   (try wp_auto)
   repeat' (first
     | (wp_apply hIDStringPtr _ _ _ $$ [id] as %_ ⟨id, -⟩; iexact id)
@@ -309,17 +313,17 @@ theorem rafthttp.Transport.AddRemote_core
   · iframe #; iframe Hwl
     inext
     iunfold trLockP
-    iexists pm, rm, PM, _, (rs.1 ++ [id], rs.2), false
+    iexists pm, rm, PM, _, id :: T, rs', sb
     iframe Hp Hr Hpm Hg Hgr Hts
     isplitl [Hrm]
     · iunfold mapOrNil; iright; iexact Hrm
     isplitr
     · ipureintro
-      refine ⟨fun k hk => ?_, fun _ => ⟨Hpmnn, Hrmnn⟩, Hcov⟩
+      refine ⟨Hnn, Hcov, fun _ k => ?_⟩
       by_cases hk' : k = id
-      · subst hk'; exact List.mem_append_right _ (List.mem_singleton_self _)
-      · rw [GMap.lookup_insert_ne _ _ (Ne.symm hk')] at hk
-        exact List.mem_append_left _ (Hrs1 k hk)
+      · subst hk'; simp
+      · rw [GMap.lookup_insert_ne _ _ (Ne.symm hk'), HT hrm k]
+        simp [hk']
     isplitr
     · iframe #
     imodintro
@@ -337,7 +341,7 @@ local macro "arf_return" : tactic => `(tactic| (
   wp_apply sync.RWMutex.wp_Unlock_guard $$ [Hwl Hp Hr Hpm Hrm Hg Hgr Hts]
   · iframe #; iframe Hwl
     inext
-    iunfold trLockP; iexists pm, rm, PM, RM, rs', sb; iframe; iframe #
+    iunfold trLockP; iexists pm, rm, PM, RM, T, rs', sb; iframe; iframe #
     ipureintro; exact Hrs
   (try wp_auto)
   iapply HΦ; iframe))
@@ -345,12 +349,12 @@ local macro "arf_return" : tactic => `(tactic| (
 set_option maxRecDepth 8000 in
 set_option maxHeartbeats 8000000 in
 /-- **`t.AddRemote(id, us)` after the freeze** (stage 6d; the handlers' `AddRemote`, from
-`addRemoteFromRequest` and the stream handler) of an id `AddPeer` was called for (`id ∈ rs.2`): it
+`addRemoteFromRequest` and the stream handler) of a frozen peer id (`id ∈ rs`): it
 returns at once, the transport stopped (`remotes` `nil`) or `id` a peer (the lock's coverage of
 `rs.2`). -/
 theorem rafthttp.Transport.AddRemote_frozen
     (Rh : RaftHttp GF) (t : Loc) (lid : w64) (γd : GName) (R : IProp GF) (γs γr : GName)
-    (rs : trIds) (id : w64) (us : GoSlice) (dq : DFrac) (ss : List GoString) (Hid : id ∈ rs.2) :
+    (rs : trIds) (id : w64) (us : GoSlice) (dq : DFrac) (ss : List GoString) (Hid : id ∈ rs) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
         sync.isRWMutexGuard (t.[rafthttp.Transport, go!"mu"]) (trLockP Rh t lid γd R γs γr) ∗
         trRemotesFrozen γr rs ∗ us ↦*{dq} ss }}
@@ -365,7 +369,8 @@ theorem rafthttp.Transport.AddRemote_frozen
   wp_apply sync.RWMutex.wp_Lock_guard $$ [] as ⟨Hwl, HP⟩
   · iframe #
   iunfold trLockP at HP
-  icases HP with ⟨%pm, %rm, %PM, %RM, %rs', %sb, Hp, Hr, Hpm, Hrm, Hg, Hgr, %Hrs, #Hpo, #Hro, Hts⟩
+  icases HP with ⟨%pm, %rm, %PM, %RM, %T, %rs', %sb, Hp, Hr, Hpm, Hrm, Hg, Hgr, %Hrs, #Hpo, #Hro,
+    Hts⟩
   imod trRemotes_agree γr rs rs' sb _ $$ Hfr Hgr with ⟨Hgr, %Heq⟩
   rw [← Heq] at Hid
   (try wp_auto)
@@ -377,7 +382,7 @@ theorem rafthttp.Transport.AddRemote_frozen
   wp_apply wp_lookup2_mapOrNil _ pm _ PM id $$ [Hpm] as Hpm
   · iframe Hpm
   (try wp_auto)
-  have hsome := Hrs.2.2 hrm id Hid
+  have hsome := Hrs.2.1 hrm id Hid
   cases hp : PM !! id with
   | none => rw [hp] at hsome; exact absurd hsome (by simp)
   | some pi =>

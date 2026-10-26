@@ -51,7 +51,8 @@ local macro "close_rt" : tactic => `(tactic| (
 
 set_option maxRecDepth 8000 in
 set_option maxHeartbeats 8000000 in
-/-- **`t.Stop()`** with the write lock's guard, after the remotes' ids froze (`trRemotesFrozen`):
+/-- **`t.Stop()`** with the write lock's guard and the right to set the stopped flag (`HSF`: the
+owner's half of `γr`, `Stop_live`, or the frozen record's invariant, `Stop_full`; D43 M5c):
 it returns, every peer and remote stopped (their stop rights taken from the stop invariant), the
 probers emptied, the round trippers' idle connections closed, the maps `nil` and the transport
 marked stopped (`γr`'s flag). A second `Stop` finds nothing to stop. -/
@@ -59,14 +60,15 @@ theorem rafthttp.Transport.Stop_core
     (hPeerStop : rafthttp.peer.stop.spec (GF := GF) (hG := hG))
     (hRemoteStop : rafthttp.remote.stop.spec (GF := GF) (hG := hG))
     (Rh : RaftHttp GF) (t : Loc) (lid : w64) (γd : GName) (R : IProp GF) (γs γr : GName)
-    (rs : trIds) :
+    (L : List w64) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
-        trFixed Rh t lid γd R ∗ trProbers t ∗ trStopInv Rh R γs ∗
+        trFixed Rh t lid γd R ∗ trProbers t ∗ trStopInv Rh R γs L ∗
         sync.isRWMutexGuard (t.[rafthttp.Transport, go!"mu"]) (trLockP Rh t lid γd R γs γr) ∗
-        trRemotesFrozen γr rs }}
+        (∀ (rs' : trIds) (sb : Bool), ghostVar γr (1 : Qp).half (rs', sb) ={⊤}=∗
+          ghostVar γr (1 : Qp).half (rs', true)) }}
       (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"Stop")) (Val #()))
     {{ RET #(); True }} := by
-  wp_start as ⟨#Htr, #Hprb, #Hst, #Hgd, #Hfr⟩
+  wp_start as ⟨#Htr, #Hprb, #Hst, #Hgd, HSF⟩
   ihave #Htr' := Htr
   iunfold trFixed at Htr'
   icases Htr' with ⟨%lg, %ls, %ss0, %turls, %tuvs, %cid, %r, %ec, %srt, %prt, %drf, %ppr, %spr,
@@ -85,12 +87,11 @@ theorem rafthttp.Transport.Stop_core
   wp_apply sync.RWMutex.wp_Lock_guard $$ [] as ⟨Hwl, HP⟩
   · iframe #
   iunfold trLockP at HP
-  icases HP with ⟨%pm, %rm, %PM, %RM, %rs', %sb, Hp, Hr, Hpm, Hrm, Hg, Hgr, %Hrs, #Hpo, #Hro, Hts⟩
-  imod trRemotes_agree γr rs rs' sb _ $$ Hfr Hgr with ⟨Hgr, %Heq⟩
-  subst Heq
+  icases HP with ⟨%pm, %rm, %PM, %RM, %T, %rs', %sb, Hp, Hr, Hpm, Hrm, Hg, Hgr, %Hrs, #Hpo, #Hro,
+    Hts⟩
   wp_auto_lc 2
-  imod trStop_take Rh R γs pm rm PM RM $$ Hst Hg Hlc1 Hlc2 with ⟨Hg, HPs, HRs⟩
-  imod trRemotes_stop γr rs' sb $$ Hfr Hgr with Hgr
+  imod trStop_take Rh R γs L pm rm PM RM T $$ Hst Hg Hlc1 Hlc2 with ⟨Hg, HPs, HRs⟩
+  imod HSF $$ %rs' %sb Hgr with Hgr
   -- the remotes' `stop`s
   wp_func_lits
   wp_bind (App (App (Val (map.forRange _ _)) _) _)
@@ -154,7 +155,7 @@ theorem rafthttp.Transport.Stop_core
     · iframe #; iframe Hwl
       inext
       iunfold trLockP
-      iexists null, null, ∅, ∅, rs', true
+      iexists null, null, ∅, ∅, T, rs', true
       iframe
       isplitr
       · iunfold mapOrNil; ileft; ipureintro; exact ⟨rfl, rfl⟩
@@ -162,7 +163,7 @@ theorem rafthttp.Transport.Stop_core
       · iunfold mapOrNil; ileft; ipureintro; exact ⟨rfl, rfl⟩
       isplitr
       · ipureintro
-        exact ⟨fun k hk => by simp at hk, fun h => (by cases h), fun h => absurd rfl h⟩
+        exact ⟨fun h => (by cases h), fun h => absurd rfl h, fun h => absurd rfl h⟩
       isplitr
       · imodintro; iunfold peersOk; iapply BigSepM.bigSepM_empty.2; itrivial
       imodintro; iunfold remotesOk; iapply BigSepM.bigSepM_empty.2; itrivial

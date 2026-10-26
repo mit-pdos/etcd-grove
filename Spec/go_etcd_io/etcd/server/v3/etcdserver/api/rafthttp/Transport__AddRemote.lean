@@ -24,18 +24,22 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- **`t.AddRemote(id, us)`** on a live transport, as `AddPeer`, with four `R`s (the remote's
-pipeline's goroutines'): `id` among the remotes' ids. -/
+/-- **`t.AddRemote(id, us)`** on a started transport, by any caller (D43 M5c: no owner's right;
+the handlers call it on every request, for a sender that is no peer), as `AddPeer`, of an id the
+transport's pool has four `R`s for (`id ∈ c.L`, which `Start` was given them for; the remote's
+pipeline's goroutines borrow them for good): it returns. It starts a remote for `id` unless the
+transport is stopped or `id` is a peer or has a remote already. -/
 abbrev rafthttp.Transport.AddRemote.spec : Prop :=
-  ∀ (γn : NetNames GF) (t : Loc) (c : TrN GF) (rs : trIds) (id : w64) (us : GoSlice) (dq : DFrac)
+  ∀ (γn : NetNames GF) (t : Loc) (c : TrN GF) (id : w64) (us : GoSlice) (dq : DFrac)
     (ss : List GoString),
   ss ≠ [] → (∀ s ∈ ss, types.plainPeerURL s) →
   (∀ h, go!"http://" ++ h ∈ ss → (netRh γn).owner h = id) → c.lid ≠ id → (netRh γn).member id →
+  id ∈ c.L →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
-      trLive γn t c rs ∗ us ↦*{dq} ss ∗ c.R ∗ c.R ∗ c.R ∗ c.R }}
+      trState γn t c ∗ us ↦*{dq} ss }}
     (App (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"AddRemote"))
       (Val #id)) (Val #us))
-  {{ RET #(); trLive γn t c (rs.1 ++ [id], rs.2) ∗ us ↦*{dq} ss }}
+  {{ RET #(); us ↦*{dq} ss }}
 
 end spec
 

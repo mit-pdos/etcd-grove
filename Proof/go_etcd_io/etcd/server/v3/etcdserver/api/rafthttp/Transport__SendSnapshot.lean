@@ -59,7 +59,7 @@ local macro "unlock_ret" : tactic => `(tactic| (
   wp_apply sync.RWMutex.wp_Unlock_guard $$ [Hwl Hp Hr Hpm Hrm Hg Hgr Hts]
   · iframe #; iframe Hwl
     inext
-    iunfold trLockP; iexists pm, rm, PM, RM, rs', sb; iframe; iframe #
+    iunfold trLockP; iexists pm, rm, PM, RM, T, rs', sb; iframe; iframe #
     ipureintro; exact Hrs
   (try wp_auto)
   iapply HΦ; itrivial))
@@ -72,10 +72,8 @@ theorem rafthttp.Transport.SendSnapshot.wp_proof
     (hFields : snap.Message.fields.spec (GF := GF) (hG := hG))
     (hGetTo : raftpb.Message.GetTo.spec (GF := GF) (hG := hG)) :
     rafthttp.Transport.SendSnapshot.spec (GF := GF) (hG := hG) := by
-  intro γn t c rs m ml rc
-  wp_start as ⟨#Hf, #Hmsg, Hb⟩
-  iunfold trFrozen at Hf
-  icases Hf with ⟨#Hst, #Hfr⟩
+  intro γn t c m ml rc
+  wp_start as ⟨#Hst, #Hmsg, Hb⟩
   iunfold trState at Hst
   icases Hst with ⟨#Hfix, #Hprb, #Hstp, #Hgd, %sst, %Rm, #Hssf, #Hss, #Hdir⟩
   ihave ⟨#HfM, -, %rd, %ri, -, -, -, -⟩ := hFields m ml rc $$ Hmsg
@@ -92,7 +90,8 @@ theorem rafthttp.Transport.SendSnapshot.wp_proof
   wp_apply sync.RWMutex.wp_Lock_guard $$ [] as ⟨Hwl, HPl⟩
   · iframe #
   iunfold trLockP at HPl
-  icases HPl with ⟨%pm, %rm, %PM, %RM, %rs', %sb, Hp, Hr, Hpm, Hrm, Hg, Hgr, %Hrs, #Hpo, #Hro, Hts⟩
+  icases HPl with ⟨%pm, %rm, %PM, %RM, %T, %rs', %sb, Hp, Hr, Hpm, Hrm, Hg, Hgr, %Hrs, #Hpo, #Hro,
+    Hts⟩
   (try wp_auto)
   -- `m.GetTo()`: the raft message's (promoted from the embedded `*raftpb.Message`)
   rw [go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message.TypeAssumptions.ptr_GetTo_unfold.method_unfold]

@@ -1,8 +1,10 @@
 /-
-**The transport's methods over its state** (rafthttp stage 6d): `AddPeer`, `AddRemote` on a live
-transport (`trLive`); `Send`, `CutPeer`, `MendPeer`, `Stop`, `Handler` on a frozen one
-(`trFrozen`), the read-locked ones with a reader's token (`trTok`); a frozen transport as the
-network's (`trFrozen_net`: `netTransport`, `isTransporter`). Lean-first.
+**The transport's methods over its state** (rafthttp stage 6d; D43 M5c): `AddPeer` and `Stop`
+(`Stop_live`) on a live transport (`trLive`); `AddRemote` (of an id of the pool's `L`), `Send`,
+`CutPeer` and `MendPeer` (of an id not in `L`) on a started one (`trState`), the read-locked ones
+with a reader's token (`trTok`); `Stop` and `Handler` on a frozen one (`trFrozen`); a frozen
+transport as the network's (`trFrozen_net`: `netTransport` with a free `Stop`, `isTransporter`),
+and a started one (`trState_net`: `netTransport` whose `Stop` takes the live right). Lean-first.
 -/
 module
 
@@ -60,14 +62,14 @@ theorem rafthttp.Transport.AddPeer_full
         trLive γn t c rs ∗ us ↦*{dq} ss ∗ [∗list] _x ∈ List.replicate 8 (), c.R }}
       (App (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"AddPeer")) (Val #id))
         (Val #us))
-    {{ RET #(); trLive γn t c (rs.1, rs.2 ++ [id]) ∗ us ↦*{dq} ss }} := by
+    {{ RET #(); trLive γn t c (rs ++ [id]) ∗ us ↦*{dq} ss }} := by
   wp_start_folded as ⟨Hl, Hus, HRs⟩
   iunfold trLive at Hl
   icases Hl with ⟨#Hst, Hg⟩
   ihave #Hst' := Hst
   tr_state Hst'
   wp_apply (rafthttp.Transport.AddPeer_core hNewURLs hFollower hStartPeer hProber hIDString
-      hIDStringPtr hInfo hZString hZStrings (netRh γn) t c.lid c.γd c.R c.γs c.γr rs id us dq ss
+      hIDStringPtr hInfo hZString hZStrings (netRh γn) t c.lid c.γd c.R c.γs c.γr c.L rs id us dq ss
       Hne Hpl Hown Hself Hpm) $$ [Hg Hus HRs] as ⟨Hg, Hus⟩
   · iframe; iframe #
   iapply HΦ
@@ -76,8 +78,8 @@ theorem rafthttp.Transport.AddPeer_full
   iframe #
   iexact Hg
 
-/-- **`t.AddRemote(id, us)`** on a live transport, as `AddPeer`, with four `R`s: `id` among the
-remotes' ids. -/
+/-- **`t.AddRemote(id, us)`** on a started transport (D43 M5c: any caller, no owner's right), as
+`AddPeer`, of an id the pool has four `R`s for (`id ∈ c.L`): it returns. -/
 theorem rafthttp.Transport.AddRemote_full
     (hNewURLs : types.NewURLs.spec (GF := GF) (hG := hG))
     (hStartRemote : rafthttp.startRemote.spec (GF := GF) (hG := hG))
@@ -85,42 +87,36 @@ theorem rafthttp.Transport.AddRemote_full
     (hInfo : zap.Logger.Info.spec (GF := GF) (hG := hG))
     (hZString : zap.String.spec (GF := GF) (hG := hG))
     (hZStrings : zap.Strings.spec (GF := GF) (hG := hG))
-    (γn : NetNames GF) (t : Loc) (c : TrN GF) (rs : trIds) (id : w64) (us : GoSlice) (dq : DFrac)
+    (γn : NetNames GF) (t : Loc) (c : TrN GF) (id : w64) (us : GoSlice) (dq : DFrac)
     (ss : List GoString) (Hne : ss ≠ []) (Hpl : ∀ s ∈ ss, types.plainPeerURL s)
     (Hown : ∀ h, go!"http://" ++ h ∈ ss → (netRh γn).owner h = id) (Hself : c.lid ≠ id)
-    (Hpm : (netRh γn).member id) :
+    (Hpm : (netRh γn).member id) (HL : id ∈ c.L) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
-        trLive γn t c rs ∗ us ↦*{dq} ss ∗ c.R ∗ c.R ∗ c.R ∗ c.R }}
+        trState γn t c ∗ us ↦*{dq} ss }}
       (App (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"AddRemote"))
         (Val #id)) (Val #us))
-    {{ RET #(); trLive γn t c (rs.1 ++ [id], rs.2) ∗ us ↦*{dq} ss }} := by
-  wp_start_folded as ⟨Hl, Hus, HR1, HR2, HR3, HR4⟩
-  iunfold trLive at Hl
-  icases Hl with ⟨#Hst, Hg⟩
-  ihave #Hst' := Hst
-  tr_state Hst'
+    {{ RET #(); us ↦*{dq} ss }} := by
+  wp_start_folded as ⟨#Hst, Hus⟩
+  tr_state Hst
   wp_apply (rafthttp.Transport.AddRemote_core hNewURLs hStartRemote hIDStringPtr hInfo hZString
-      hZStrings (netRh γn) t c.lid c.γd c.R c.γs c.γr rs id us dq ss Hne Hpl Hown Hself Hpm)
-    $$ [Hg Hus HR1 HR2 HR3 HR4] as ⟨Hg, Hus⟩
+      hZStrings (netRh γn) t c.lid c.γd c.R c.γs c.γr c.L id us dq ss Hne Hpl Hown Hself Hpm HL)
+    $$ [Hus] as Hus
   · iframe; iframe #
   iapply HΦ
   iframe
-  iunfold trLive
-  iframe #
-  iexact Hg
 
-/-- **`t.CutPeer(id)`** on a frozen transport with a reader's token, `id` no remote. -/
+/-- **`t.CutPeer(id)`** on a started transport with a reader's token, `id` never a remote (not
+among the pool's ids `c.L`). -/
 theorem rafthttp.Transport.CutPeer_full [PeerPausable] (hM : rafthttp.peer.Pause.spec (GF := GF) (hG := hG))
-    (γn : NetNames GF) (t : Loc) (c : TrN GF) (rs : trIds) (id : w64) (Hid : id ∉ rs.1) :
+    (γn : NetNames GF) (t : Loc) (c : TrN GF) (id : w64) (Hid : id ∉ c.L) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
-        trFrozen γn t c rs ∗ trTok γn t c }}
+        trState γn t c ∗ trTok γn t c }}
       (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"CutPeer")) (Val #id))
     {{ RET #(); trTok γn t c }} := by
-  wp_start_folded as ⟨#Hf, Htok⟩
-  iunfold trFrozen at Hf
-  icases Hf with ⟨-, #Hfr⟩
+  wp_start_folded as ⟨#Hst, Htok⟩
+  tr_state Hst
   iunfold trTok at Htok
-  wp_apply (rafthttp.Transport.CutPeer_core hM (netRh γn) t c.lid c.γd c.R c.γs c.γr rs id Hid)
+  wp_apply (rafthttp.Transport.CutPeer_core hM (netRh γn) t c.lid c.γd c.R c.γs c.γr c.L id Hid)
     $$ [Htok] as Htok
   · iframe; iframe #
   iapply HΦ
@@ -129,16 +125,15 @@ theorem rafthttp.Transport.CutPeer_full [PeerPausable] (hM : rafthttp.peer.Pause
 
 /-- **`t.MendPeer(id)`**, as `CutPeer`. -/
 theorem rafthttp.Transport.MendPeer_full [PeerPausable] (hM : rafthttp.peer.Resume.spec (GF := GF) (hG := hG))
-    (γn : NetNames GF) (t : Loc) (c : TrN GF) (rs : trIds) (id : w64) (Hid : id ∉ rs.1) :
+    (γn : NetNames GF) (t : Loc) (c : TrN GF) (id : w64) (Hid : id ∉ c.L) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
-        trFrozen γn t c rs ∗ trTok γn t c }}
+        trState γn t c ∗ trTok γn t c }}
       (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"MendPeer")) (Val #id))
     {{ RET #(); trTok γn t c }} := by
-  wp_start_folded as ⟨#Hf, Htok⟩
-  iunfold trFrozen at Hf
-  icases Hf with ⟨-, #Hfr⟩
+  wp_start_folded as ⟨#Hst, Htok⟩
+  tr_state Hst
   iunfold trTok at Htok
-  wp_apply (rafthttp.Transport.MendPeer_core hM (netRh γn) t c.lid c.γd c.R c.γs c.γr rs id Hid)
+  wp_apply (rafthttp.Transport.MendPeer_core hM (netRh γn) t c.lid c.γd c.R c.γs c.γr c.L id Hid)
     $$ [Htok] as Htok
   · iframe; iframe #
   iapply HΦ
@@ -159,22 +154,50 @@ theorem rafthttp.Transport.Stop_full
   icases Hf with ⟨#Hst, #Hfr⟩
   tr_state Hst
   wp_apply (rafthttp.Transport.Stop_core hPeerStop hRemoteStop (netRh γn) t c.lid c.γd c.R c.γs
-    c.γr rs) $$ []
+    c.γr c.L) $$ []
   · iframe #
+    iintro %rs' %sb Hg
+    imod trRemotes_agree c.γr rs rs' sb _ $$ Hfr Hg with ⟨Hg, %Heq⟩
+    subst Heq
+    iapply trRemotes_stop c.γr _ sb $$ Hfr Hg
   iapply HΦ; itrivial
 
-/-- **`t.Send(msgs)`** on a frozen transport with a reader's token, of messages the member sends
-(`sendMsg`). -/
-theorem rafthttp.Transport.Send_full (hSend : rafthttp.Transport.Send.spec (GF := GF) (hG := hG))
-    (γn : NetNames GF) (t : Loc) (c : TrN GF) (rs : trIds) (sl : GoSlice) (msL : List Loc) :
+/-- **`t.Stop()`** on a live transport (D43 M5c, `Stop_live`): it returns, the owner's right
+consumed (the transport marked stopped: no `AddPeer` after it). -/
+theorem rafthttp.Transport.Stop_live
+    (hPeerStop : rafthttp.peer.stop.spec (GF := GF) (hG := hG))
+    (hRemoteStop : rafthttp.remote.stop.spec (GF := GF) (hG := hG))
+    (γn : NetNames GF) (t : Loc) (c : TrN GF) (rs : trIds) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
-        trFrozen γn t c rs ∗ trTok γn t c ∗ sl ↦* msL ∗
+        trLive γn t c rs }}
+      (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"Stop")) (Val #()))
+    {{ RET #(); True }} := by
+  wp_start_folded as Hl
+  iunfold trLive at Hl
+  icases Hl with ⟨#Hst, Hg⟩
+  tr_state Hst
+  wp_apply (rafthttp.Transport.Stop_core hPeerStop hRemoteStop (netRh γn) t c.lid c.γd c.R c.γs
+    c.γr c.L) $$ [Hg]
+  · iframe #
+    iintro %rs' %sb Hg'
+    ihave %Hag := ghostVar_agree c.γr _ _ _ _ $$ Hg Hg'
+    cases Hag
+    imod ghostVar_update_halves (rs, true) c.γr _ _ $$ Hg Hg' with ⟨-, Hg'⟩
+    imodintro
+    iexact Hg'
+  iapply HΦ; itrivial
+
+/-- **`t.Send(msgs)`** on a started transport with a reader's token, of messages the member sends
+(`sendMsg`): the peers and remotes read under the lock (D43 M5c: a message to an id that is
+neither is dropped). -/
+theorem rafthttp.Transport.Send_full (hSend : rafthttp.Transport.Send.spec (GF := GF) (hG := hG))
+    (γn : NetNames GF) (t : Loc) (c : TrN GF) (sl : GoSlice) (msL : List Loc) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
+        trState γn t c ∗ trTok γn t c ∗ sl ↦* msL ∗
         [∗list] m ∈ msL, sendMsg (netRh γn) c.lid m }}
       (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"Send")) (Val #sl))
     {{ RET #(); trTok γn t c }} := by
-  wp_start_folded as ⟨#Hf, Htok, Hsl, Hms⟩
-  iunfold trFrozen at Hf
-  icases Hf with ⟨#Hst, -⟩
+  wp_start_folded as ⟨#Hst, Htok, Hsl, Hms⟩
   tr_state Hst
   iunfold trTok at Htok
   wp_apply (hSend (netRh γn) t c.lid c.γd c.R c.γs c.γr sl msL) $$ [Htok Hsl Hms] as Htok
@@ -198,7 +221,7 @@ theorem rafthttp.Transport.Handler_full
     (hARR : rafthttp.addRemoteFromRequest.spec (GF := GF) (hG := hG))
     (γn : NetNames GF) (t : Loc) (c : TrN GF) (rs : trIds) (a : GoString)
     (Hown : (netRh γn).owner a = c.lid)
-    (Hcov : ∀ f, (netRh γn).member f → f ≠ c.lid → f ∈ rs.2) :
+    (Hcov : ∀ f, (netRh γn).member f → f ≠ c.lid → f ∈ rs) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
         trFrozen γn t c rs }}
       (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"Handler")) (Val #()))
@@ -219,22 +242,22 @@ theorem rafthttp.Transport.Handler_full
   iunfold trTok
   iexact Hh
 
-/-- **A frozen transport is the network's** (stage 6d): `netTransport` of its member, its `Send`
-borrowing a reader's token (`Send_full`, each message's bundle with its encoding's bound,
-`sendMsg_of_netBundle`), its `Stop` (`Stop_full`) and `SendSnapshot` (the snapshot stream's
-axiom); and its `ActiveSince` (`isTransporter`). -/
-theorem trFrozen_net (hSend : rafthttp.Transport.Send.spec (GF := GF) (hG := hG))
-    (hPeerStop : rafthttp.peer.stop.spec (GF := GF) (hG := hG))
-    (hRemoteStop : rafthttp.remote.stop.spec (GF := GF) (hG := hG))
+/-- **A started transport is the network's** (stage 6d; D43 M5c): `netTransport` of its member,
+its `Send` borrowing a reader's token (`Send_full`, each message's bundle with its encoding's
+bound, `sendMsg_of_netBundle`), its `Stop` taking `TS`, which gives the transport's `Stop`
+(`hStop`), and `SendSnapshot` (`hSS`); and its `ActiveSince` (`isTransporter`). -/
+theorem trState_net_gen (hSend : rafthttp.Transport.Send.spec (GF := GF) (hG := hG))
     (hSS : rafthttp.Transport.SendSnapshot.spec (GF := GF) (hG := hG))
     (hAS : rafthttp.Transport.ActiveSince.spec (GF := GF) (hG := hG))
-    (γn : NetNames GF) (t : Loc) (c : TrN GF) (rs : trIds) :
+    (γn : NetNames GF) (t : Loc) (c : TrN GF) (TS : IProp GF) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
-        trFrozen γn t c rs ⊢
+        trState γn t c ∗
+        □ {{ TS }} (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"Stop"))
+          (Val #())) {{ RET #(); True }} ⊢
       netTransport γn c.lid (interface.mkOk (go.GoType.PointerType rafthttp.Transport.ty) #t)
-          (trTok γn t c) ∗
+          (trTok γn t c) TS ∗
         rafthttp.isTransporter (interface.mkOk (go.GoType.PointerType rafthttp.Transport.ty) #t) := by
-  iintro ⟨#Hpkg, #Hf⟩
+  iintro ⟨#Hpkg, #Hst, #hStop⟩
   isplitr
   · iunfold netTransport
     iexists _
@@ -243,7 +266,7 @@ theorem trFrozen_net (hSend : rafthttp.Transport.Send.spec (GF := GF) (hG := hG)
     isplitr
     · imodintro
       iintro %sl %msL %Φ !> ⟨Hsl, Hms, Htok⟩ HΦ
-      wp_apply (rafthttp.Transport.Send_full hSend γn t c rs sl msL) $$ [Hsl Hms Htok] as Htok
+      wp_apply (rafthttp.Transport.Send_full hSend γn t c sl msL) $$ [Hsl Hms Htok] as Htok
       · iframe; iframe #
         iapply BigSepL.bigSepL_impl $$ Hms
         imodintro
@@ -254,14 +277,10 @@ theorem trFrozen_net (hSend : rafthttp.Transport.Send.spec (GF := GF) (hG := hG)
       iapply HΦ
       iexact Htok
     isplitr
-    · imodintro
-      iintro %Φ !> - HΦ
-      wp_apply (rafthttp.Transport.Stop_full hPeerStop hRemoteStop γn t c rs) $$ []
-      · iframe #
-      iapply HΦ; itrivial
+    · iexact hStop
     · imodintro
       iintro %m %ml %rc %Φ !> ⟨Hm, Hb⟩ HΦ
-      wp_apply (hSS γn t c rs m ml rc) $$ [Hm Hb]
+      wp_apply (hSS γn t c m ml rc) $$ [Hm Hb]
       · iframe; iframe #
       iapply HΦ; itrivial
   · iunfold rafthttp.isTransporter
@@ -270,9 +289,55 @@ theorem trFrozen_net (hSend : rafthttp.Transport.Send.spec (GF := GF) (hG := hG)
     · ipureintro; rfl
     imodintro
     iintro %id %Φ !> - HΦ
-    wp_apply (hAS γn t c rs id) $$ [] as %tm -
+    wp_apply (hAS γn t c id) $$ [] as %tm -
     · iframe #
     iapply HΦ; itrivial
+
+/-- **A frozen transport is the network's** (stage 6d): `trState_net_gen` with a free `Stop`
+(`Stop_full`). -/
+theorem trFrozen_net (hSend : rafthttp.Transport.Send.spec (GF := GF) (hG := hG))
+    (hPeerStop : rafthttp.peer.stop.spec (GF := GF) (hG := hG))
+    (hRemoteStop : rafthttp.remote.stop.spec (GF := GF) (hG := hG))
+    (hSS : rafthttp.Transport.SendSnapshot.spec (GF := GF) (hG := hG))
+    (hAS : rafthttp.Transport.ActiveSince.spec (GF := GF) (hG := hG))
+    (γn : NetNames GF) (t : Loc) (c : TrN GF) (rs : trIds) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
+        trFrozen γn t c rs ⊢
+      netTransport γn c.lid (interface.mkOk (go.GoType.PointerType rafthttp.Transport.ty) #t)
+          (trTok γn t c) iprop(True) ∗
+        rafthttp.isTransporter (interface.mkOk (go.GoType.PointerType rafthttp.Transport.ty) #t) := by
+  iintro ⟨#Hpkg, #Hf⟩
+  ihave #Hf' := Hf
+  iunfold trFrozen at Hf'
+  icases Hf' with ⟨#Hst, -⟩
+  iapply trState_net_gen hSend hSS hAS γn t c iprop(True)
+  iframe #
+  iintro !> %Φ !> - HΦ
+  wp_apply (rafthttp.Transport.Stop_full hPeerStop hRemoteStop γn t c rs) $$ []
+  · iframe #
+  iapply HΦ; itrivial
+
+/-- **A started transport is the network's, its `Stop` the live right's** (D43 M5c, the user's
+(A)): `Stop` takes `trLive` (`Stop_live`), which the owner (the apply thread, in the dynamic mode)
+hands over when it stops adding peers. -/
+theorem trState_net (hSend : rafthttp.Transport.Send.spec (GF := GF) (hG := hG))
+    (hPeerStop : rafthttp.peer.stop.spec (GF := GF) (hG := hG))
+    (hRemoteStop : rafthttp.remote.stop.spec (GF := GF) (hG := hG))
+    (hSS : rafthttp.Transport.SendSnapshot.spec (GF := GF) (hG := hG))
+    (hAS : rafthttp.Transport.ActiveSince.spec (GF := GF) (hG := hG))
+    (γn : NetNames GF) (t : Loc) (c : TrN GF) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
+        trState γn t c ⊢
+      netTransport γn c.lid (interface.mkOk (go.GoType.PointerType rafthttp.Transport.ty) #t)
+          (trTok γn t c) iprop(∃ rs : trIds, trLive γn t c rs) ∗
+        rafthttp.isTransporter (interface.mkOk (go.GoType.PointerType rafthttp.Transport.ty) #t) := by
+  iintro ⟨#Hpkg, #Hst⟩
+  iapply trState_net_gen hSend hSS hAS γn t c iprop(∃ rs : trIds, trLive γn t c rs)
+  iframe #
+  iintro !> %Φ !> ⟨%rs, Hl⟩ HΦ
+  wp_apply (rafthttp.Transport.Stop_live hPeerStop hRemoteStop γn t c rs) $$ [Hl]
+  · iframe
+  iapply HΦ; itrivial
 
 end proof
 

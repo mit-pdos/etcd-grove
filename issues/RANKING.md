@@ -300,6 +300,10 @@ Also [raft-reportsnapshot-finish-not-noop](raft-reportsnapshot-finish-not-noop.m
   always valid on `main`, but on 3.5/3.6 a `v`-prefixed custom build's is not (etcd-io/etcd#22261).
   A small fix (`semver.NewVersion` and a failed dial); low priority; someone else's
   etcd-io/etcd#21829 (open, unreviewed, needs a rebase) has it.
+  [etcd-rafthttp-addremote-bad-peerurls-panic](etcd-rafthttp-addremote-bad-peerurls-panic.md)
+  (2026-10-26): a raft request from an id that is no peer with a malformed `X-PeerURLs` makes
+  `AddRemote` `Logger.Panic`, which `net/http` recovers (a logged stack, no exit), with a test; a
+  log-and-return fix; low priority.
 - **Internal-API preconditions etcd never violates**:
   [etcd-alarm-activate-none-zero-fatal](etcd-alarm-activate-none-zero-fatal.md),
   [etcd-auth-token-md-empty](etcd-auth-token-md-empty.md),

@@ -34,7 +34,8 @@ theorem rafthttp.Transport.Get.wp_proof :
   iunfold trReadTok at Htok
   wp_apply sync.RWMutex.wp_RLock $$ [$Htok] as ⟨Hrl, HP⟩
   iunfold trLockP at HP
-  icases HP with ⟨%pm, %rm, %PM, %RM, %rs, %sb, Hp, Hr, Hpm, Hrm, Hg, Hgr, %Hrs, #Hpo, #Hro, Hts⟩
+  icases HP with ⟨%pm, %rm, %PM, %RM, %T, %rs, %sb, Hp, Hr, Hpm, Hrm, Hg, Hgr, %Hrs, #Hpo, #Hro,
+    Hts⟩
   (try wp_auto)
   -- the entry's facts: `nil`, or a started peer
   ihave #Hent : iprop(⌜(PM !! pid).getD (zero_val GoInterface) = GoInterface.nil⌝ ∨
@@ -58,7 +59,7 @@ theorem rafthttp.Transport.Get.wp_proof :
     rw [show (null : Loc) = map.nil from rfl]
     (try wp_auto)
     wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl Hp Hr Hrm Hg Hgr Hts] as Htok
-    · iunfold trLockP; iexists map.nil, rm, ∅, RM, rs, sb; iframe; iframe #
+    · iunfold trLockP; iexists map.nil, rm, ∅, RM, T, rs, sb; iframe; iframe #
       inext
       isplitl
       · iunfold mapOrNil; ileft; ipureintro; exact ⟨rfl, rfl⟩
@@ -71,7 +72,7 @@ theorem rafthttp.Transport.Get.wp_proof :
   · wp_apply wp_map_lookup1 $$ [$Hpm] as Hpm
     (try wp_auto)
     wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl Hp Hr Hpm Hrm Hg Hgr Hts] as Htok
-    · iunfold trLockP; iexists pm, rm, PM, RM, rs, sb; iframe; iframe #
+    · iunfold trLockP; iexists pm, rm, PM, RM, T, rs, sb; iframe; iframe #
       inext
       isplitl
       · iunfold mapOrNil; iright; iframe

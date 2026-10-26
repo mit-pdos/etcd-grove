@@ -775,14 +775,18 @@ theorem NewServer.wp_proofM (on : Bool)
     iexact H
   have Hdid : γn.dir id ≠ [] := by
     rw [Hγn.2]; exact (Hdirps.1 id).2 (Hrid ▸ Hrmem)
-  wp_apply (h38 γn t _ (srvLgReader s) γd (fun _ => iprop(True)) U.peer) $$ [«$r0» Hlsf]
+  -- (D43 M5c) the static server's transport gets no pool of `R`s (`L = []`): every other member
+  -- is a peer for good (the freeze below), so no remote is ever started
+  wp_apply (h38 γn t _ (srvLgReader s) γd (fun _ => iprop(True)) U.peer []) $$ [«$r0» Hlsf]
     as %terr Htres
   · iframe «$r0»
     simp only
     rw [Hid]
     iframe Hnro Hss Hsdir HpU Hnet Hlsi Hlsf
-    ipureintro; refine ⟨Hlgnn, Hssnn, Hlsnn, ?_, Hdid⟩ <;> first | rfl | trivial
-  icases Htres with (%Hterr | ⟨%Hterr, %c, %Hc, Htlive, Htoks, #Htstart⟩)
+    isplitr
+    · ipureintro; refine ⟨Hlgnn, Hssnn, Hlsnn, ?_, Hdid⟩ <;> first | rfl | trivial
+    iapply BigSepL.bigSepL_nil.2; itrivial
+  icases Htres with (%Hterr | ⟨%Hterr, %c, %Hc, Htlive, Htoks, -, #Htrr, #Htstart⟩)
   · -- the transport could not start: the error returned, the store and `b` closed
     cases terr with
     | nil => exact absurd rfl Hterr
@@ -828,14 +832,14 @@ theorem NewServer.wp_proofM (on : Bool)
     have h := congrArg List.length Hmps
     simp only [List.length_map] at h
     omega
-  obtain ⟨Hcl, Hcd, HcR⟩ := Hc
+  obtain ⟨Hcl, Hcd, HcR, HcL⟩ := Hc
   simp only at Hcl
   rw [Hid] at Hcl
   -- (rafthttp stage 6d) the loop's invariant: the ids `AddPeer` was called for (`L`, with the
   -- transport's live state), each other member's so far, and `lgMu`'s reader slots left for the
   -- next peers (eight each)
   ihave IH2 : iprop(∃ (n : w64) (mm : Loc) (L : List w64), "i" ∷ i_ptr ↦ n ∗ "m" ∷ m_ptr ↦ mm ∗
-      "Htlive" ∷ trLive γn t c ([], L) ∗
+      "Htlive" ∷ trLive γn t c L ∗
       "HlgPeers" ∷ ([∗list] _x ∈ List.replicate (2 ^ 23 - 8 * L.length) (), srvLgReader s) ∗
       "%Hn" ∷ ⌜0 ≤ sint.Z n ∧ sint.Z n ≤ sint.Z msl.len ∧ L.length ≤ (sint.Z n).toNat⌝ ∗
       "%Hcov" ∷ ⌜∀ (k : Nat) (p : Loc × w64), k < (sint.Z n).toNat → mps[k]? = some p →
@@ -857,7 +861,7 @@ theorem NewServer.wp_proofM (on : Bool)
       "nodeID" ∷ bs.cluster'.[bootstrappedCluster, go!"nodeID"] ↦ bc.nodeID' ∗ "tr" ∷ tr_ptr ↦ t ∗
       "Hmsl" ∷ msl ↦* List.map Prod.fst mps ∗
       "Hmso" ∷ ([∗list] p ∈ mps, memberDirIs dir p.fst p.snd) ∗
-      "Htlive" ∷ trLive γn t c ([], L) ∗
+      "Htlive" ∷ trLive γn t c L ∗
       "%Hcov" ∷ ⌜∀ f, (netRh γn).member f → f ≠ id → f ∈ L⌝))
     at (App (App (App (Val doFor) _) _) _) with [b Hb nodeID tr Hmsl Hmso IH2]
     as ⟨%L, b, Hb, nodeID, tr, Hmsl, Hmso, Htlive, %Hcov⟩
@@ -909,7 +913,7 @@ theorem NewServer.wp_proofM (on : Bool)
           have h2 := Hn.2.2
           omega
         icases replicate_takeN _ 8 _ H8 $$ HlgPeers with ⟨HR8, HlgPeers⟩
-        wp_apply (h41 γn t c ([], L) px.2 mpu (DFrac.own 1) mpus Hne Hpl Hown
+        wp_apply (h41 γn t c L px.2 mpu (DFrac.own 1) mpus Hne Hpl Hown
             (by rw [Hcl]; exact fun h => Hpid h.symm) Hpm) $$ [Htlive Hmpus HR8]
           as ⟨Htlive, Hmpus⟩
         · iframe Htlive Hmpus
@@ -961,10 +965,10 @@ theorem NewServer.wp_proofM (on : Bool)
     ⟨Hγw.2.2.2.1, Hγw.2.2.2.2, rfl⟩
   -- the transport, started: (rafthttp stage 6d) frozen, every other member a peer; the network's
   -- transport, its `Send` with the raft loop's key (fixed to it now)
-  imod (trLive_freeze γn t c ([], L) ⊤) $$ Htlive with #Hfz
-  ihave ⟨#Htrall0, #Htrr⟩ := Htstart $$ %([], L) Hfz
+  imod (trLive_freeze γn t c L ⊤) $$ Htlive with #Hfz
+  ihave #Htrall0 := Htstart $$ %L Hfz
   imod (srvSendKey_fix γk s t c) $$ Hk with #Hkx
-  ihave #Htrall : netTransport γn id (transportIface t) (srvTrKey γn γk) $$ []
+  ihave #Htrall : netTransport γn id (transportIface t) (srvTrKey γn γk) iprop(True) $$ []
   · rw [← Hcl]
     iapply (netTransport_of_key γn c.lid (transportIface t) γk s t c HcR) $$ Hkx Htrall0
   -- the transport's reader tokens: the raft loop's key, `CutPeer`'s and `MendPeer`'s, and the
@@ -1062,8 +1066,11 @@ theorem NewServer.wp_proofM (on : Bool)
   · iexact HlatestTs
   · -- (D21 M2) the raft wrapper's messages carry their bundle into the network
     ihave #Htrall' : netTransport γn id (transportIface t)
-        (srvEr ρ E₀ (W64 0) (W64 0) (bootKVOf on) bud id (srvTrKey γn γk)).S $$ []
+        (srvEr ρ E₀ (W64 0) (W64 0) (bootKVOf on) bud id (srvTrKey γn γk)).S
+        (srvEr ρ E₀ (W64 0) (W64 0) (bootKVOf on) bud id (srvTrKey γn γk)).ST $$ []
     · rw [show (srvEr ρ E₀ (W64 0) (W64 0) (bootKVOf on) bud id (srvTrKey γn γk)).S = srvTrKey γn γk
+        from rfl,
+        show (srvEr ρ E₀ (W64 0) (W64 0) (bootKVOf on) bud id (srvTrKey γn γk)).ST = iprop(True)
         from rfl]
       iexact Htrall
     iapply isRNTransport_of_net γn id $$ [] Htrall'
@@ -1201,9 +1208,9 @@ theorem NewServer.wp_proofM (on : Bool)
     iframe Htrf
     isplitr
     · ipureintro; exact Hcl
-    iexists ([], L)
+    iexists L
     iframe Hfz
-    ipureintro; exact ⟨rfl, Hcov⟩
+    ipureintro; exact ⟨HcL, Hcov⟩
   ihave HtokP : srvTrTok γn ⟨t, c⟩ $$ [HtokP]
   · iunfold srvTrTok; iexact HtokP
   -- (2026-10-23) `readych`, as a broadcast channel not yet closed: `publishV3`'s to close

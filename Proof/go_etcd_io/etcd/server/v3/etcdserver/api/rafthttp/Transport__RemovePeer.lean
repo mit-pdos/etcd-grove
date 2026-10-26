@@ -41,7 +41,7 @@ theorem rafthttp.Transport.RemovePeer.wp_proof
   iunfold trState at Hst'
   icases Hst' with ⟨#Hfix, #Hprb, #Hstp, #Hgd, -⟩
   wp_apply (rafthttp.Transport.RemovePeer_core hPeerStop hIDStringPtr hInfo hWarn hZString (netRh γn) t c.lid
-      c.γd c.R c.γs c.γr rs id) $$ [Hg] as Hg
+      c.γd c.R c.γs c.γr c.L rs id) $$ [Hg] as Hg
   · iframe; iframe #
   iapply HΦ
   iunfold trLive
