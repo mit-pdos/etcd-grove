@@ -21548,3 +21548,59 @@ theorem changed.
 **Trust base.** Unchanged: no axiom or `sorry` added. The read contract says more, so
 `NewAuthStore`'s axiom and D22's named premises (`authSchemaBoot`, `authSchemaSrv`) assume more,
 as E2r's clause did; the clause holds of a real backend once publication follows the write-back.
+
+## E3e of the auth plan: the wire transaction in the request model; a transaction's verdict on its own permissions a theorem (2026-10-27 · `notes/auth-plan.md`, E3d's "Not done" (1))
+
+**The problem** (E2y's finding): inside a transaction a put with `PrevKv` is also read-checked
+(`checkPutAuth`), but the model's put (`TxnOp.put`, the client's model, through `putTxnOp`) has no
+`PrevKv`, so `reqPerms` asked only for its write and E2y's `txnVerdictOwn` stood in as a premise.
+
+**Done, as E3d designed it.**
+- *The wire transaction* (`txn/Requests.lean`): `txn.TxnOpW` (a get's, a put's, a delete's
+  `OpFull`, a nested transaction's comparisons and branches: a put keeps its whole request) and
+  `txn.TxnModelW`, with `toOp`/`toOps`/`toModel` to today's `TxnOp`/`TxnModel`; `requestOpIsW`,
+  `requestOpsIsW`, `txnRequestIsW`, pinned by the heap like every other field (a put's
+  `putRequestIs` pins its `OpFull`, `PrevKv` included); `requestOpIsW_plain`/`txnRequestIsW_plain`
+  (the wire tree denotes its model) and `requestOpIs_W`/`txnRequestIs_W` (a request's heap holds a
+  wire tree whose model it is: what a proposer needs).
+- *The request model* (`apply/InvRequest.lean`): the field `txn : Option TxnModel` is now
+  `txnW : Option txn.TxnModelW`; `IRRModel.txn` is a definition (`txnW.map toModel`), so every
+  reader of `rq.txn` keeps its text (simp lemmas `IRRModel.txnW_map`, `IRRModel.txn_mk`,
+  `apply.withHeader_txn`). `internalRaftRequestIs` and `irrNoHdrIs` hold the `Txn` field as
+  `txnRequestIsW` of `txnW`, so `proto.MarshalIRR`'s and `MustUnmarshalMessage`'s axioms stay about a
+  model the heap determines; `apply.optReqIs_txnW` gives the apply side today's `txnRequestIs`
+  (one line at each of the eight sites that read the field). `irrTxn` takes the wire transaction.
+- *The proposers and their readers*: `EtcdServer.Txn`'s two proofs take the wire tree from the
+  request (`txnRequestIs_W`); `txnAppliedOk`, `txnErrOk`, `v3rpc.txnAppliedAns`, `client.txnReplied`
+  gain `∃ tw, ⌜tw.toModel = t⌝` (their meaning unchanged: the transaction is `t`); the lemmas over
+  `irrTxn t` take `tw` with `tw.toModel = t`.
+- *The model's permissions* (`KVAuthModel.lean`): `opPerms`/`opsPerms` over `TxnOpW`, a put's
+  `apply.putPerms` (its write, with `PrevKv` its read); `reqPerms` reads `rq.txnW`.
+- *The checks at the latest state* (`apply/AuthApplyLatestTxn.lean`): `checkTxnPermission.specL`,
+  `CheckTxnAuth.specL` over `txnRequestIsW`; `opChecked`/`opMay`/`txnChecked`/`txnMay` over `TxnOpW`,
+  exact for a put (`putPerms o`, no more "either") and a delete (its read only with `PrevKv`);
+  `authApplierV3.Txn.specL` takes the request's wire transaction (`txnRequestIsW r tw`,
+  `rq.txnW = some tw`); `kvOutL`/`kvShapedL`/`applierKVL`'s transaction over `rq.txnW`; the
+  dispatch's transaction case passes it from the request's `Txn` field.
+- *`txnVerdictOwn_of`* (`KVOutcomeOn.lean`): for a request without `"\x00"` range ends
+  (`noZeroEnds`), a refusal at a checkable permission is one of `reqPerms`, and a pass covers all of
+  them (`op_may_mem`, `op_checked_sub` and their list and comparison forms). So
+  `authOutL_of_kvOutL`, `outcomeOn_of_kvOutL` and `kv_outcome_on_latest` drop the premise.
+
+**Exported statements changed.** Definitions: `apply.IRRModel` (`txn` → `txnW`, `IRRModel.txn` a
+definition), `apply.internalRaftRequestIs`, `irrNoHdrIs`, `irrTxn`, `txnAppliedOk`, `txnErrOk`,
+`v3rpc.txnAppliedAns`, `client.txnReplied`, `opPerms`/`opsPerms`/`reqPerms`, `txnPermitOn` (its shape
+for every wire tree of `t`), `txnQhOn`, `apply.opChecked`/`opsChecked`/`txnChecked`/`opMay`/`opsMay`/
+`txnMay` (`putChecked`, `putMay`, `putTxnOp_checked`, `putTxnOp_may` removed), `apply.kvOutL`,
+`apply.kvShapedL`, `apply.applierKVL`, `txnVerdictOwn` (gains the transaction kind, a theorem now).
+Specs: `apply.checkTxnPermission.specL`, `apply.CheckTxnAuth.specL`, `apply.authApplierV3.Txn.specL`.
+Theorems: `txnPermit_reqPropOk`, `txnPermitOn_reqPropOk`, `txnQhOn_res`, `irrTxn_kind`,
+`txn_applied_model`, `kvs_txn_applied_log`, `txn_applied_exact`, `irrNoZeroEnd_txn`,
+`noZeroEnd_wire`, `irrNoZeroEnd_txnOf` (over `tw`); `authOutL_of_kvOutL`, `outcomeOn_of_kvOutL`,
+`kv_outcome_on_latest` (one premise fewer). No closed theorem's statement changed.
+
+**Trust base.** Unchanged (725 axioms, 7 sorries at the merge base). The decoding axioms keep their
+text and say what they said of a heap-determined model (now with each put's `PrevKv`).
+
+**Left.** `noZeroEnds` stays the workload's premise (a range end `"\x00"` is where a check can see
+another range than the model's). The read path and the handlers (E3d's (2), (3)).
