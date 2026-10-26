@@ -336,7 +336,7 @@ theorem EtcdServer.applyEntryNormal.wp_proof
         word
       obtain ⟨rq, hdec, ⟨id0, hid⟩, hrq, hdk⟩ := Hok.resolve_left hdata
       iunfold srvApplyKV at HKV
-      icases HKV with ⟨%ua, Hua, #Happl, HKV, Hbo, HRA, %w', %RD, #Hw', #Hwok', HRD⟩
+      icases HKV with ⟨%ua, Hua, #Happl, HKV, Hbo, HRA, HAR, %w', %RD, #Hw', #Hwok', HRD⟩
       icombine Hw Hw' gives %Hweq
       subst Hweq
       ihave ⟨HKV, %HaOn⟩ := applyKV_authOn E ua x $$ HKV
@@ -392,6 +392,7 @@ theorem EtcdServer.applyEntryNormal.wp_proof
         isplitl [HKV]; · iexact HKV
         isplitl [Hbo]; · iexact Hbo
         isplitl [HRA]; · iexact HRA
+        isplitl [HAR]; · iexact HAR
         iexists fv.w, RD; iframe Hw Hwok' HRD
       isplitr
       · ipureintro; unfold entryStep; rw [ite_eq_right hdata]; exact ⟨rq, id0, hdec, hid, Hstep⟩
@@ -459,7 +460,7 @@ theorem EtcdServer.applyEntryNormal.wp_proof
         word
       obtain ⟨rq, hdec, ⟨id0, hid⟩, hrq, hdk⟩ := Hok.resolve_left hdata
       iunfold srvApplyKV at HKV
-      icases HKV with ⟨%ua, Hua, #Happl, HKV, Hbo, HRA, %w', %RD, #Hw', #Hwok', HRD⟩
+      icases HKV with ⟨%ua, Hua, #Happl, HKV, Hbo, HRA, HAR, %w', %RD, #Hw', #Hwok', HRD⟩
       icombine Hw Hw' gives %Hweq
       subst Hweq
       ihave ⟨HKV, %HaOn⟩ := applyKV_authOn E ua x $$ HKV
@@ -592,7 +593,7 @@ theorem EtcdServer.applyEntryNormal.wp_proof
       ihave HKV : iprop(∃ (x'' : apply.ApplyKV) (out' : apply.ApplyOut), srvApplyKV s E ρ.wait x'' ∗
           ⌜entryStep m true x x'' out'⌝ ∗ entryDelivered ρ.wait m ot out' ∗
           srvAppliedPre γr v m.index x''.log ∗ kvApplied γr.raft γr.kv (A ++ [m]) x'' ∗
-          srvRest E γr (A ++ [m])) $$ [HKV Hua Hbo HRD HRA Hpre Hka HRS]
+          srvRest E γr (A ++ [m])) $$ [HKV Hua Hbo HRD HRA HAR Hpre Hka HRS]
       · iexists x', out
         iframe Hpre Hka HRS
         isplitl
@@ -601,6 +602,7 @@ theorem EtcdServer.applyEntryNormal.wp_proof
           isplitl [HKV]; · iexact HKV
           isplitl [Hbo]; · iexact Hbo
           isplitl [HRA]; · iexact HRA
+          isplitl [HAR]; · iexact HAR
           iexists fv.w, RD; iframe Hw Hwok' HRD
         isplitr
         · ipureintro; unfold entryStep; rw [ite_eq_right hdata]; exact ⟨rq, id0, hdec, hid, Hstep⟩

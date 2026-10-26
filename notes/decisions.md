@@ -19868,3 +19868,74 @@ environment (`AEnv`) for the resource, the apply thread holding it (`srvApplyKV`
 `srvAuthApplyRes`; `authStoreKit`'s post gains `authApplyRes M stl` (a definition E2i introduced).
 
 **Trust base.** Unchanged (no axiom or `sorry` added).
+
+## E2m of the auth plan: the apply thread holds its auth resource; the admin requests through the applier chain (2026-10-26 · `notes/auth-plan.md`)
+
+The brief (E2l's and E2k's "what's left"): (1) an `AEnv` field for the apply thread's auth resource,
+held by the apply thread (`srvApplyKV`), and the store's half of `be` for `authWR`; (2) the
+admission: `rqOk` for the auth kinds, `isAuthStore`'s admin clauses in the mode `on` from E2l's fuel
+triples, the chain's layers passing them through, `dispatch`'s auth cases with the receipt at a Go
+step; (3) the applied admin request's persistent record to its waiter; (4) the server's Auth-service
+contracts discharging E2h's `setupAuthOk`. Done: (1), and of (2) the chain's layers; the rest not.
+
+**(1) The apply thread holds its auth resource; no `AEnv` field.** `srvAuthApplyRes s E` (E2k's,
+moved with `authApplyRes` to `etcdserver/AuthApplyRes.lean` so that `InvApplier.lean` can import it)
+is now a conjunct of `srvApplyKV s E γw x`, after `revAuth`, and of `applyBuiltNA`/`applyBuilt`
+(`InvBuild.lean`, `InvStart.lean`): `NewServer.wp_proofM` puts it in `srvBuilt`'s `applyBuiltNA`
+(instead of E2k's separate post item, removed from `NewServer.specM`), `srvBuildGap` and `start` hand
+it on, and `applyEntryNormal` keeps it. *Considered:* a field `AEnv.AR` with the resource. *Rejected:*
+the resource names the server's `authStore` field (`srvAuthApplyRes s E`, the store `stl` the field
+holds), which the apply package's environment does not know; a field would hold a predicate fixed
+when `E` is chosen, before `NewAuthStore` returns the store, and every literal environment
+(`env₀`, `AEnv.onBe`, `NewServer`'s) would carry it. The apply package does not need it either: its
+admin triples take the authority and the write resource as preconditions (below), which the apply
+thread lends from `srvApplyKV` at the admin request's application. In the mode `off` the resource is
+`True` (`authApplyRes .off`), so nothing changes for the closed theorems (`NewServer.spec`'s
+statement unchanged; the destructuring patterns of the sites that take `srvApplyKV` apart keep
+their shape, the resource in the tail they bind as a whole).
+
+**The store's half of `be`: borrowed, not split.** `authWR` (the store's write resource, `W` of the
+step triples) asks the store's user's half of `be`, which the server's rest holds (`authBeOn`, the
+half `Recover`'s backend swap takes with `beMu`'s half). *Chosen:* the admin request's application
+borrows it from the rest for its duration (the apply thread holds both: its rest model and its auth
+resource), so `authBeOn`, `authWR` and D22's `Recover` spec keep their statements. *Rejected:* two
+quarters (one in the rest, one in the auth resource), which change `authBeOn`, `authWR` and the
+`Recover` spec D22 discharges, for no gain: the apply thread is the only writer of both, and raft
+applies serially, so a borrow never overlaps a swap. Not done: the borrow itself (at `dispatch`).
+
+**(2), the chain's layers** (`apply/AdminChain.lean`): `AdminReq` (the five requests `SetUp` sends:
+`UserAdd`, `RoleAdd`, `UserGrantRole`, `RoleGrantPermission`, `AuthEnable`) and
+`applierAdmin E c a W`, a persistent fact beside `applierSpec` (as `isAuthSteps` beside
+`isAuthStore`): in the mode `on γa`, from `auth.authOwnFu γa hs`, one receipt `⧗ 1` and `W`, the
+request's method returns `mPost`, `W` and the request's result (`AdminReq.result`: E2l's
+`adminOutFu`). The backend's is E2l's fuel triples (`applierAdmin_backend`); each wrapper's follows
+from its inner's with the wrapper's `applierV3` field read-only (`applierAdmin_quota`, `_capped`,
+`_corrupt`, `_auth`): none of `quota.go`, `capped.go`, `corrupt.go`, `auth.go` overrides the five
+methods, so the wrapper's is the inner's, promoted. `applierSpec`'s admin clauses stay as they are:
+what the mode `off` needs, `adminAdmitted` in the mode `on` (E2i).
+
+**Not done, in order:**
+- *`applierAdmin` at the uber-applier's chain:* the constructors (`newApplierV3Backend`,
+  `newQuotaApplierV3`, `newAuthApplierV3`, `restoreAlarms`' capped and corrupt) give `applierSpec`
+  only; their posts (or `applierFor`) gain `applierAdmin` of the value, with `backendAuthSteps E p W`
+  at the backend's (from `isAuthSteps_of_authInv` of the real store, `W = auth.authWR …`).
+- *`rqOk` for the auth kinds:* `rqOk` takes no mode, and the mode `off`'s server has `AEnv.RW =
+  False`, so the auth kinds stay `False` there; the mode `on`'s admission needs `rqOk` in the mode
+  (`rqOkM`) or a second clause in the entry's claims (`entryWaitOk`): a change to the request path's
+  premises, which every example's workload states.
+- *`dispatch`'s admin cases* in the mode `on`: the receipt at a Go step before the call
+  (`wp_go_step_receipt'`), the borrow of the rest's half of `be`, the call through `applierAdmin`, the
+  result into `dispatchResult`.
+- *(3) the result to the waiter* and *(4) the Auth-service contracts* for `setupAuthOk`.
+- *For D22:* in the mode `on` the auth buckets' content is under the batch lock (`authLockI`, S4f),
+  not in the apply thread's rest model: once auth requests are admitted, `restAfter` must leave the
+  auth buckets out of `RestM` for an auth request, and the server's tracked buckets' half
+  (`RestM.bk`) must stop naming their content (today the boot content, `authBucketsAfter`), part of
+  what D22's `authSchemaSrv` discharges (E2l's note, restated).
+
+**Exported statements changed.** `NewServer.specM`'s post loses `srvAuthApplyRes srv E` (now inside
+`srvBuilt`); the definitions `srvApplyKV`, `applyBuilt`, `applyBuiltNA` gain it. `NewServer.spec`
+unchanged. New: `apply.AdminReq`, `apply.adminTriples`, `apply.applierAdmin`, `applierAdmin_backend`,
+`applierAdmin_quota`, `applierAdmin_capped`, `applierAdmin_corrupt`, `applierAdmin_auth`.
+
+**Trust base.** Unchanged (no axiom or `sorry` added).

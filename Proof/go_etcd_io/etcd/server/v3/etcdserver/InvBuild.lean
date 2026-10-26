@@ -281,7 +281,7 @@ def applyBuiltNA (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (E : a
   iprop(∃ (st₀ : ApplyState) (a t : w64) (f : Bool),
     applyThread γ st₀ ∗ ⌜loopOk γ st₀ ai₀ ∧ c₀ = ciEff γ st₀.k⌝ ∗ applyBackend γ ci b ∗
     ciApplying ci a t ∗ srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗ srvBeOwn s E ∗
-    revAuth E x₀.log ∗
+    revAuth E x₀.log ∗ srvAuthApplyRes s E ∗
     srvAppliedOwn γr ai₀ ∗ appliedLogAt γr ai₀ x₀.log ∗ kvRun γr ai₀ c₀ [] x₀ ∗ srvRest E γr [] ∗
     srvForceSnapAddr s ↦ f)
 

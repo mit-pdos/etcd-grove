@@ -25,6 +25,7 @@ mode (`authStoreKit M tp`): `NewAuthStore`'s axiom's triple with the apply contr
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthApplyOn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthApplyRes
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvServe
 public import Proof.go_etcd_io.etcd.server.v3.auth.Boot
 public import Proof.go_etcd_io.etcd.server.v3.auth.TokenKeeperRun
@@ -52,27 +53,6 @@ variable [sem : go.Semantics]
 `1` committed: `NewAuthStore`'s axiom's post). -/
 abbrev authBucketsAfter (r : GMap GoString backend.BktData) : GMap GoString backend.BktData :=
   ((r.insert go!"auth" authBoot).insert go!"authUsers" ∅).insert go!"authRoles" ∅
-
-/-- **The apply thread's auth resource** of the store `stl` in the mode `M` (the auth plan's E2k,
-2026-10-26; `notes/decisions.md`, "E2l of the auth plan", the apply thread's auth resource): in the
-mode `on γa`, the admin side's authority with its fuel (`auth.authOwnFu`), its write resource
-`auth.authWR` but for the store's user's half of `be` (the backend's write side, the write token,
-the admin side's half of `enabled`; the half of `be` stays in the server's rest, `authBeOn`, which
-the admin request's application borrows), and the provider's admin share (`auth.tpAdmin`); `True`
-in the other modes. `NewServer.specM`'s post hands it out (`srvAuthApplyRes`), for the apply
-thread's environment. -/
-def authApplyRes (M : auth.AuthMode) (stl : Loc) : IProp GF :=
-  match M with
-  | .on γa => iprop(∃ (hs : List auth.AuthState) (P : IProp GF) (f : val) (T : IProp GF)
-      (be : GoInterface), auth.authOwnFu γa hs ∗ auth.authWBackendOk be (.on γa) P f T ∗ T ∗
-      auth.enabledHalf stl (.on γa) ∗ auth.tpAdmin stl (.on γa))
-  | _ => iprop(True)
-
-/-- **The server's auth resource for its apply thread** (E2k): the store its `authStore` field
-holds, with `authApplyRes` in the environment's mode. -/
-def srvAuthApplyRes (s : Loc) (E : apply.AEnv GF) : IProp GF :=
-  iprop(∃ stl : Loc, structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer go!"authStore" s ↦□
-    (auth.authIface stl) ∗ authApplyRes E.authMode stl)
 
 /-- **The auth store's construction in the mode `M`** with the token provider `tp` (see the file
 header): `NewAuthStore`'s axiom's triple, the apply contract in the mode `M`, at a resource `K`

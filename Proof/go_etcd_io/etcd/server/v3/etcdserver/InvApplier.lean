@@ -32,6 +32,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvServer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftpb
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.Wait
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRequest
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthApplyRes
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvCfgView
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRest
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.InvUber
@@ -560,10 +561,13 @@ def srvBeOwn (s : Loc) (E : apply.AEnv GF) : IProp GF :=
 in the environment `E` (`apply.applierFor`) and its state (`apply.applyKV`: its current chain
 `x.chain`, the KV's resources at the committed log `x.log`), the apply thread's part of `s.be`
 (`srvBeOwn`, S7b), and the authority of the revisions' tokens at `x.log` (`revAuth`: the apply
-thread mints a revision's token when the log grows to it; the vertical slice's unit V1). -/
+thread mints a revision's token when the log grows to it; the vertical slice's unit V1), and the
+apply thread's auth resource (`srvAuthApplyRes`, the auth plan's E2m, 2026-10-26: with auth on,
+the admin side's authority with its fuel, its write resource and the provider's admin share,
+which an admin request's application takes; `True` with auth off). -/
 def srvApplyKV (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV) : IProp GF :=
   iprop(∃ ua : GoInterface, srvUberApplyAddr s ↦ ua ∗ apply.applierFor ua E ∗
-    apply.applyKV E ua x ∗ srvBeOwn s E ∗ revAuth E x.log ∗
+    apply.applyKV E ua x ∗ srvBeOwn s E ∗ revAuth E x.log ∗ srvAuthApplyRes s E ∗
     ∃ (w : GoInterface) (RD : IProp GF), srvWAddr s ↦□ w ∗
       waitOk w RD (fun ot id => waitRegdOpt γw id ot) (fun ot id => waitGoneOpt γw id ot) ∗ RD)
 

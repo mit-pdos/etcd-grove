@@ -1242,7 +1242,7 @@ theorem NewServer.wp_proofM (on : Bool)
     γrn, (interface.mkOk (go.GoType.PointerType
       go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be : GoInterface), γk,
     (⟨t, c⟩ : SrvTr GF)
-  iframe Hgap Hserve HSV HMon Hrc Hnm HWR HtokP HServe HAR
+  iframe Hgap Hserve HSV HMon Hrc Hnm HWR HtokP HServe
   isplitr
   · icases HM with %HM; ipureintro; exact ⟨hγs, HM⟩
   isplitr
@@ -1361,7 +1361,7 @@ theorem NewServer.wp_proofM (on : Bool)
   · iexists _; iexact Hcmown
   isplitl [Hnot]
   · iexact Hnot
-  isplitl [Hthr Happ Hown Hlr5 Hbmr beA HγbA Hrev Haown Hkhi2 forceDiskSnapshot Hrbo Hmem HalOn HauthOn HleOn HclBe]
+  isplitl [Hthr Happ Hown Hlr5 Hbmr beA HγbA Hrev HAR Haown Hkhi2 forceDiskSnapshot Hrbo Hmem HalOn HauthOn HleOn HclBe]
   · -- `Happ`
     unfold applyBuiltNA srvBemuReaderAt
     iexists ⟨W64 0, W64 0, W64 0, false⟩, W64 0, W64 0, false
@@ -1380,6 +1380,8 @@ theorem NewServer.wp_proofM (on : Bool)
       iexists ∅
       iframe Hrev
       ipureintro; intro k hk; simp at hk
+    isplitl [HAR]
+    · iexact HAR
     isplitr
     · simp only [bootKVOf]; rw [← Hlog0]; iexact Hal0
     isplitr [Hrbo Hmem HalOn HauthOn HleOn HclBe]
@@ -1720,7 +1722,8 @@ theorem NewServer.wp_proof
     h87 h88 h89 h90 h91 h92 h93
   intro cfg U γ bud id bootLog ρ E₀ N Φs γn dir HρRaft Hpol Hc0 Hch0 Hlog0 Hcok HnoG Hlgnn Hcbl Hacr
     Hbnd Hrb HrbN HrbS Hboot Hpfx HΦs Hfgp Hdirok
-  -- the mode off's post, without the apply thread's auth resource (`True` in the mode off)
+  -- the mode off's post (the apply thread's auth resource, `True` in the mode off, is in
+  -- `srvBuilt`'s `applyBuiltNA` since E2m)
   have h' := h cfg U γ bud id bootLog ρ E₀ N Φs γn dir HρRaft Hpol Hc0 Hch0 Hlog0 Hcok HnoG Hlgnn
     Hcbl Hacr Hbnd Hrb HrbN HrbS Hboot Hpfx HΦs Hfgp Hdirok (fun h => absurd h (by decide))
   rw [bootKVOf_false] at h'
@@ -1729,7 +1732,7 @@ theorem NewServer.wp_proof
   iintro !> %srv %err Hpost
   iapply HΦ
   icases Hpost with (Hl | ⟨%He, %γA, %ci, %TM, %E, %γrn, %b, %γk, %τ, %H1, H2, H3, H4, H5, H6, H7,
-    H8, H9, H10, H11, H12, H13, H14, -⟩)
+    H8, H9, H10, H11, H12, H13, H14⟩)
   · ileft; iexact Hl
   iright
   isplitr
