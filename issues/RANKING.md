@@ -312,6 +312,9 @@ Also [raft-reportsnapshot-finish-not-noop](raft-reportsnapshot-finish-not-noop.m
   restart; a self-inflicted loss of the whole cluster, with a one-line refusal in
   `mayRemoveMember` as the etcd fix; etcd-io/etcd#13848 hit the same panic through
   `--force-new-cluster` and was closed not planned),
+  [raft-compact-past-snapshot](raft-compact-past-snapshot.md) (added 2026-10-26: `Compact`'s
+  documentation omits that the storage's snapshot must cover the compacted prefix; a
+  documentation fix, etcd compacts behind a fresh snapshot),
   [raft-config-clone-autoleave](raft-config-clone-autoleave.md) and
   [raft-memorystorage-initialstate-unlocked](raft-memorystorage-initialstate-unlocked.md)
   (candidate rechecked 2026-10-23; the user's choice is to upstream it).
