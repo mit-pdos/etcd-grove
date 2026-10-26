@@ -19149,6 +19149,11 @@ under the batch lock, the user chose (b).
   plan"): `RLock()` begun while the admin side holds its authority (`authOwn`, outside a batch
   transaction) holds the latest state (`histLast`), true of the real backend, whose batch writes
   back to the read buffer at `Unlock`;
+- the read transaction's lower-bound clause (appended by E3g, 2026-10-27: "E3g of the auth
+  plan"): `RLock()` begun by a reader holding a lower bound `i` of the history's published index
+  (`authPubLbM`) holds a state recorded at an index at least `i` (`authSnapFrom`), true of the
+  real backend provided a state is published only after its batch's write-back (the store's
+  publication is to be done by the apply thread after the admin step's `Unlock`);
 - `CreateAuthBuckets` (one transaction, from `rbOwn` with the auth buckets absent or empty);
 - at a backend swap (`applySnapshot`'s restore, `Recover`), the old lock's `authLockI` given out
   and the new one's installed (the share with the restored state appended, `Recover`'s post).
@@ -21468,3 +21473,78 @@ both checks at the latest state (`apply.Apply.kvSpecL`, `apply.Apply.adminSpecL`
 `authApplyRes` (`tieRes` to `latestRes`, `latestRes_of_T`; the inverse wand for `hsplit`), the
 receipt and the borrow of `be`'s half; the server's base applier's `applierAdmL` (`applierAdmL_auth`
 with `applyNR_base`) from its construction.
+
+## E3g of the auth plan: the reads' freshness, a lower bound of the published index (2026-10-27 · the user's decision; `notes/auth-plan.md`, E3d's "Not done" (2))
+
+**The decision (the user's, 2026-10-27, as recommended).** With auth on, a read's check gives its
+verdict at recorded states *no older than* the latest auth state the reader has observed when the
+read starts: a monotone lower bound, like the KV reads' revision floor. S3's verdict at *some*
+recorded state stays for the other uses (the class statements, `permVerdict_of_L`).
+- *Why.* S3's verdict alone cannot rule out a read checked against the boot state (auth disabled)
+  after the reader has seen `AuthEnable` complete: the history includes every state ever recorded.
+  The Go code does not do that (the check reads the store's current fields under their locks), so
+  the gap is the spec's. The apply thread's exact form (E2r, `histLast`) needs the admin side's
+  authority, which a concurrent reader does not hold; a lower bound is what one can be promised.
+  For `examples/authkv` it suffices: `Work` starts after `SetUp`, and the auth state is fixed
+  from then on (`authHistHalf_lookup`, S4f), so every state no older than the observed one is the
+  post-setup state.
+- *The observed state is the published one.* A reader observes an auth state through a reply
+  (e.g. `SetUp`'s admin calls), so the lower bound is of a *published* index: the history's index
+  up to which every state is committed to the backend. A plain lower bound of the history
+  (`authStateAt i`) would not do: a state is recorded (in the proofs) before its batch is
+  committed, and a verdict at the field `enabled` can hand out its index while the batch is still
+  pending, so a backend read begun afterwards may see an older committed state.
+
+**Done.**
+- *The name and the lower bound* (`Model.lean`): `AuthNames.pub`, a monotone natural (the history's
+  published index; `ModeTag.lean`'s encoding has five names), `authPubAuth γa p` (its authority),
+  `authPubLb γa i` (persistent), `authPubLb_le`, `authPubAuth_lb`, `authPubAuth_lb_le`.
+  `authHist_alloc` allocates it at `0` and returns the authority; `authBoot_alloc` (`Boot.lean`)
+  drops it for now, so nothing is published yet (every lower bound is `0`).
+- *The mode's forms* (`Buckets.lean`): `authPubLbM M i` and `authSnapFrom M i st` (a state of the
+  mode, in `on γa` recorded at an index at least `i`), `authSnapFrom_snap`, `authSnapFrom_zero`.
+- *The backend's read contract* (`InvAuth.lean`, `authReadTxOk`): a third `RLock()` clause, for a
+  reader holding `authPubLbM M i`, a state `authSnapFrom M i`; added to D22's list above. Its
+  consumers (`lockedReadTx`, `Recover`, `Latest.lean`) skip it.
+- *The backend side of the checks* (`ReadLb.lean`): `authReadTxLockedFrom` and
+  `lockedReadTx.specLb`/`wp_lb` (proved): a reader with the lower bound `i` gets a locked read
+  transaction at a state no older than `i`, which is the user's record `isOpPermitted` and
+  `IsAdminPermitted` read.
+
+**Not done: the in-memory fields' freshness**, which the checks' lower-bound specs (`isOpPermitted`,
+`IsRangePermitted` and the read wrappers, the auth applier's read checks, a serializable `Range`)
+need beside the backend's. The check reads three fields besides the backend: `enabled` (under
+`enabledMu`), `rangePermCache` (under `rangePermCacheMu`) and `revision` (an atomic). Each guard
+holds today the field with *some* recorded state's value (`enabledVerdict`, `cacheOk`,
+`revisionVerdict`), and nothing ties it to the current history. The design, for the next stage:
+1. *A freshness invariant*, best inside `revInv` (already in `authInv`, so `authInv` keeps its
+   text): the published index's authority (`authPubAuth γa p`, `p` an index of the history), and
+   per field a quarter of a ghost variable of its value (new names in `AuthNames`, as `pub`) with a
+   state recorded at an index `≥ p` of that value; for `revision`, a recorded state at an index
+   `≥ p` of the atomic's value.
+2. *The guards carry the ghost variables' halves* (`enabledP`, `cacheP`: `q.half`, fractional in
+   the readers' share), the admin side the other quarter (with `flagAt`/`cacheAt`, through the
+   tie: `tieRes`, `authWRx`). A reader under the lock holds the guard's share, opens the invariant
+   (a ghost step: its contents are timeless) and gets the field's value at a state `≥ p ≥ i`.
+   (The invariant cannot own a fraction of the fields' points-to instead: Go's field stores are
+   two steps, `PrepareWrite`/`FinishStore`, so a writer cannot open an invariant around one.)
+3. *The writers* (`AuthEnable`, `AuthDisable`, `refreshRangePermCache`, `commitRevision`,
+   `setRevision`, `Recover`, the allocation in `newAuthStore_on`) update the ghost value with all
+   three shares while holding the lock, after the new state is appended; the field's state is the
+   latest, at an index `≥ p`.
+4. *Publication*: a lemma for the apply thread, after an admin step's batch `Unlock`, raising `p` to
+   the latest index; it needs each field's value to be the latest state's. The tie gives the flag
+   (`latestTie`) but the cache only while auth is enabled (`b = true → sc = stl`); publication while
+   disabled needs the tie strengthened to "the cache's permissions are the latest state's" (true of
+   Go, where every step changing a user's permissions refreshes the cache and `AuthDisable` changes
+   none), across E2s's eleven `specT`s.
+5. Then the checks' lower-bound specs over the three fields and `lockedReadTx.specLb`, and the
+   waiter's reply carrying `authPubLb` at the step's index, so a client holds what it observed.
+
+**Exported statements changed.** `AuthNames` (a fifth field), `AuthMode.enc`/`dec`,
+`authHist_alloc` (its post gains `authPubAuth γa 0`), `authReadTxOk` (a third clause). No closed
+theorem changed.
+
+**Trust base.** Unchanged: no axiom or `sorry` added. The read contract says more, so
+`NewAuthStore`'s axiom and D22's named premises (`authSchemaBoot`, `authSchemaSrv`) assume more,
+as E2r's clause did; the clause holds of a real backend once publication follows the write-back.
