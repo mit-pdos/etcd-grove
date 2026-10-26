@@ -19396,3 +19396,8 @@ is). Its one witness is `applyEntryNormal`'s (with `v3`), whose state is `apply`
 So `EtcdServer.applyEntryNormal.spec`'s `v3` premise gains `stLoaded γ st = st` (an internal spec,
 proved; `apply`'s proof supplies it), and `NewServer`'s and `snap_isConsistentIndexer`'s proofs
 (`SnapApplyOptsLemmas.lean`) use it. No closed theorem's statement and no trusted statement changed.
+- **`request_delivered`** (`Results.lean`, an exported result: `applyEntryNormal`'s spec at a known
+  registration, not a closed theorem) restates the spec, so it gains the same `v3` premise; true of
+  its one kind of caller, the apply thread after `apply`'s `ConsistentIndex`. Decided by the
+  orchestrator while the user was away (the option true of the Go code, no addition to the trust
+  base; a closed theorem would have been a stop).
