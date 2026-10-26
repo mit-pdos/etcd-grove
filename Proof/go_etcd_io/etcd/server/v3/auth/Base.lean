@@ -115,7 +115,9 @@ abbrev authInit : IProp GF :=
     (∃ d : w64, globalAddr simpleTokenTTLResolution ↦□ d ∗ ⌜0 < sint.Z d⌝) ∗
     -- the metrics reporter's lock (the auth plan's E2a, 2026-10-25), appended: a guarded
     -- `RWMutex` over the reporter, which `setupMetricsReporter` takes to set it
-    sync.isRWMutexGuard (globalAddr reportCurrentAuthRevMu) reportP)
+    sync.isRWMutexGuard (globalAddr reportCurrentAuthRevMu) reportP ∗
+    -- the token provider's constructor's error (the auth plan's E2g, 2026-10-25), appended
+    authErrVar ErrInvalidAuthOpts)
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth :=
   define_is_pkg_init authInit

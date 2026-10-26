@@ -5,7 +5,7 @@ counterpart).
 Go's `applyEntryNormal` raises the NOSPACE alarm (a goroutine proposing `{Alarm: ACTIVATE,
 NOSPACE}`, the trust-boundary contract `EtcdServer.raftRequestAlarm` until D19k) when
 `errors.Is(ar.Err, ErrNoSpace)` holds. In the model it never does: the entry's request is plain
-(`plainReq W`, within `plainCover`: the KV writes and the monitors' requests, no auth field;
+(`plainReq`, within `plainCover`: the KV writes and the monitors' requests, no auth field;
 since D19q the proofs here are over `plainCover`, so they hold at every workload), the chain is
 the start's
 (`alarmChain false false false`: auth off, no capped or corrupt layer, the quota the identity under

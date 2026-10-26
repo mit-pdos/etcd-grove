@@ -5,9 +5,11 @@ Lean-first (no Rocq counterpart).
 
 **The triple:** from the package facts, the clients `clis` (not empty), each `New`'s client of
 the members `ms` at the bridges, writing at most once (D29), each member's `memberPut` at the
-history's names `γr` (watchkv's workload `P` of the puts tried), `tried` read-only, the client's
-`etcdKV` in an invariant (`wkKV`) and the writers' log's lock (`wsInvH`), `writer` does the puts
-`tried[lo:hi]` and returns; each that returned no error is in the log with its `okFactH`.
+cluster's KV `γ.kv`, `tried` read-only, the clients' adapter's invariant (`kmInv γ`) whose
+application property is the plan's (`γ.W = wkW P`, `P` the puts tried; D45/D48, 2026-10-26: until
+then the client's `etcdKV` in watchkv's `wkKV`, at watchkv's server workload) and the writers'
+log's lock (`wsInvH`), `writer` does the puts `tried[lo:hi]` and returns; each that returned no
+error is in the log with its `okFactK`.
 -/
 module
 
@@ -36,20 +38,20 @@ abbrev writer.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
     [ContextErrsClient (GF := GF) (hG := hG)]
     (clis : GoSlice) (cls : List Loc)
-    (ms : List (client.SrvAt GF)) (V : client.WEnv GF) (γr : ReadNames) (w : Loc)
+    (ms : List (client.SrvAt GF)) (V : client.WEnv GF) (γ : client.KMNames) (w : Loc)
     (tsl : GoSlice) (tried : List wkv) (lo hi : w64) (P : List (GoString × GoString)),
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
-  γr.kv.wl = watchkv.workload P → tried.map pairOf = P → receiptBound GF ≤ 2 ^ 62 →
+  γ.W = wkW P → tried.map pairOf = P →
   cls ≠ [] → 0 ≤ sint.Z lo → sint.Z lo ≤ sint.Z hi → sint.Z hi ≤ tried.length →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.linkv3p ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
       clis ↦*□ cls ∗
       ([∗list] cl ∈ cls, isNewClient cl (ms.map client.SrvAt.addr) V ∗
         client.clientWriteOnce cl (ms.map client.SrvAt.addr)) ∗
-      ([∗list] x ∈ ms, memberPut γr x) ∗
-      tsl ↦*□ tried ∗ watchkv.wkKV γr ∗
+      ([∗list] x ∈ ms, memberPut γ.kv x) ∗
+      tsl ↦*□ tried ∗ client.kmInv γ ∗
       sync.isMutex (structFieldRef github_com.mit_pdos.etcd_grove.examples.common.Writes go!"Mu" w)
-        (wsInvH w γr) }}
+        (wsInvH w γ) }}
     (App (App (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.linkv3p.writer))
       (Val #clis)) (Val #w)) (Val #tsl)) (Val #lo)) (Val #hi))
   {{ RET #(); True }}

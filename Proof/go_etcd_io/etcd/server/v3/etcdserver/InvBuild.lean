@@ -68,6 +68,12 @@ def envAgree (E E' : apply.AEnv GF) : Prop :=
 base chain with auth disabled and no alarm. -/
 def bootKV : apply.ApplyKV := ⟨[[], []], apply.alarmChain false false false⟩
 
+/-- **The start with auth on or off** (the auth plan's E2i, 2026-10-26): the base chain's auth
+layer enabled when `on` (`NewServer.specM`); `bootKV` is its mode off (`bootKVOf_false`). -/
+def bootKVOf (on : Bool) : apply.ApplyKV := ⟨[[], []], apply.alarmChain on false false⟩
+
+theorem bootKVOf_false : bootKVOf false = bootKV := rfl
+
 /-- The bootstrap log as the server's entries. -/
 def bootEntries (bootLog : List EntryM) : List EntryModel := bootLog.map EntryModel.ofM
 
@@ -236,11 +242,11 @@ instance clusterWorkloadOk_persistent (ρ : ReqNames) (E : apply.AEnv GF) :
 /-- `srvFieldsBuilt` (D22 receiver epochs, S7a, 2026-10-23: the same; until then `srvFieldsBuilt`
 had the uber-applier, `srvUberApplyAddr`, `applierFor`, a KV row of `srvBuildGap`). -/
 def srvFieldsBuiltNA (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
-    (E : apply.AEnv GF) (W : SrvWorkload) (v : SrvFields) : IProp GF :=
+    (E : apply.AEnv GF) (v : SrvFields) : IProp GF :=
   iprop(srvLgAddr s ↦□ v.lg ∗ ⌜v.lg ≠ null⌝ ∗
       ⌜E.P = batchLockInv γ TM ∧ E.f = v.hook⌝ ∗ ⌜srvEnvOk s γ ci E v.cluster⌝ ∗
       hookSpec γ ci TM v.hook ∗
-      srvLessorAddr s ↦□ v.lessor ∗ lessorOk W v.lessor ∗
+      srvLessorAddr s ↦□ v.lessor ∗ lessorOk v.lessor ∗
       srvFirstCommitAddr s ↦□ v.firstCommit ∗ srvAlarmStoreAddr s ↦□ v.alarmStore ∗
       srvClusterAddr s ↦□ v.cluster ∗ membership.isRaftCluster v.cluster ∗
       srvQuotaAddr s ↦□ v.quota ∗
@@ -250,8 +256,8 @@ def srvFieldsBuiltNA (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IPr
       isNotifier v.firstCommit ∗ isAlarmStore v.alarmStore)
 
 instance srvFieldsBuiltNA_persistent (s : Loc) (γ : ApplyNames) (ci : Loc)
-    (TM : MetaCI → IProp GF) (E : apply.AEnv GF) (W : SrvWorkload) (v : SrvFields) :
-    Persistent (srvFieldsBuiltNA s γ ci TM E W v) := by
+    (TM : MetaCI → IProp GF) (E : apply.AEnv GF) (v : SrvFields) :
+    Persistent (srvFieldsBuiltNA s γ ci TM E v) := by
   unfold srvFieldsBuiltNA; infer_instance
 
 /-- `srvReadBuilt` without the KV rows (`srvKVAddr`, `txn.isKV`, the store's read view,
@@ -275,7 +281,7 @@ def applyBuiltNA (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (E : a
   iprop(∃ (st₀ : ApplyState) (a t : w64) (f : Bool),
     applyThread γ st₀ ∗ ⌜loopOk γ st₀ ai₀ ∧ c₀ = ciEff γ st₀.k⌝ ∗ applyBackend γ ci b ∗
     ciApplying ci a t ∗ srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗ srvBeOwn s E ∗
-    revAuth E x₀.log ∗
+    revAuth E x₀.log ∗ srvAuthApplyRes s E ∗
     srvAppliedOwn γr ai₀ ∗ appliedLogAt γr ai₀ x₀.log ∗ kvRun γr ai₀ c₀ [] x₀ ∗ srvRest E γr [] ∗
     srvForceSnapAddr s ↦ f)
 
@@ -288,7 +294,7 @@ def srvBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames)
     (b : GoInterface) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat) : IProp GF :=
   iprop("#Hci" ∷ isServerCI s γ ci ∗
-    "#Hfb" ∷ (∃ v : SrvFields, srvFieldsBuiltNA s γ ci TM E ρ.kv.wl v) ∗
+    "#Hfb" ∷ (∃ v : SrvFields, srvFieldsBuiltNA s γ ci TM E v) ∗
     "#Hreqb" ∷ (∃ v : ReqFields, srvReqBuilt s E ρ v) ∗
     "#Hrdb" ∷ (∃ v : ReadFields, srvReadBuiltNK s E v) ∗
     "#Hrunb" ∷ (∃ v : RunFields, srvRunBuilt s v) ∗

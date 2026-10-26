@@ -23,6 +23,18 @@ namespace auth
 
 open Iris Iris.BI go_etcd_io.etcd.api.v3
 
+/-- **base64's standard encoding** (`encoding/base64`'s `StdEncoding.EncodeToString`), of a byte
+string. Opaque: what the proofs need is only that what it encodes decodes without an error
+(`selectPassword`'s trust boundary, the auth plan's E2u), not the encoding itself. (It moved here
+from the apply package's request model, E2t, so that the auth store's boundary can name it.) -/
+opaque stdB64Enc : List w8 → GoString
+
+/-- **A password choice that cannot fail**: no password asked for, or an empty `Password` with a
+`HashedPassword` that is the standard base64 encoding of some bytes (the server's own form since
+3.5, `EtcdServer.UserAdd`), which `selectPassword` decodes without an error. -/
+def pwSureP (pw hpw : GoString) (nob : Bool) : Prop :=
+  nob = true ∨ (pw = [] ∧ ∃ bs : List w8, hpw = stdB64Enc bs)
+
 section defs
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -37,6 +49,19 @@ def userAddReqIs (r : Loc) (name : GoString) : IProp GF :=
     (∃ pw hpw : GoString, structFieldRef etcdserverpb.AuthUserAddRequest go!"Password" r ↦□ pw ∗
       structFieldRef etcdserverpb.AuthUserAddRequest go!"HashedPassword" r ↦□ hpw) ∗
     ∃ (o : Loc) (b : Bool), structFieldRef etcdserverpb.AuthUserAddRequest go!"Options" r ↦□ o ∗ userOptsAt o b)
+
+/-- **The `*pb.AuthUserAddRequest` `r`'s password choice cannot fail** (`pwSureP` of its
+`Password`, `HashedPassword` and its options' `NoPassword`): with it, `UserAdd` does not return
+`ErrNoPasswordUser` (`UserAdd.specSure`, the auth plan's E2u). -/
+def userAddSure (r : Loc) : IProp GF :=
+  iprop(∃ (pw hpw : GoString) (o : Loc) (b : Bool),
+    structFieldRef etcdserverpb.AuthUserAddRequest go!"Password" r ↦□ pw ∗
+    structFieldRef etcdserverpb.AuthUserAddRequest go!"HashedPassword" r ↦□ hpw ∗
+    structFieldRef etcdserverpb.AuthUserAddRequest go!"Options" r ↦□ o ∗ userOptsAt o b ∗
+    ⌜pwSureP pw hpw b⌝)
+
+instance userAddSure_persistent (r : Loc) : Persistent (userAddSure (GF := GF) r) := by
+  unfold userAddSure; infer_instance
 
 /-- The `*pb.AuthUserDeleteRequest` `r` (not nil): its `Name`. -/
 def userDeleteReqIs (r : Loc) (name : GoString) : IProp GF :=

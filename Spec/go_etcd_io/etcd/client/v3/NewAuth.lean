@@ -1,10 +1,10 @@
 /-
-`clientv3.NewAuth(c)` (`client/v3`, names only; item 5: `newClient` calls it). Lean-first (no Rocq
-counterpart).
+`clientv3.NewAuth(c)` (`client/v3/auth.go`; item 5: `newClient` calls it; translated for the auth
+plan's E2h, names only before). Lean-first (no Rocq counterpart).
 -/
 module
 
-public import Proof.go_etcd_io.etcd.client.v3.InvClientNew
+public import Proof.go_etcd_io.etcd.client.v3.InvAuthConn
 
 @[expose] public section
 
@@ -22,13 +22,16 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
-/-- `NewAuth(c)` of a client `New` builds (its connection, call options, configuration and
-logger, read-only: `clientCoreAt`): some value (the client's API, unused by the results). -/
+/-- `NewAuth(c)` on a `*Client` with a connection to `addr` (`clientKVAt`, what `NewKV` reads):
+a new `*authClient` over a `*retryAuthClient` on that connection, with the client's call options
+(`authObjAt`), as an `Auth`. -/
 abbrev NewAuth.spec : Prop :=
-  ∀ (c : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clientCoreAt c }}
+  ∀ (c : Loc) (addr : List GoString),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗ clientKVAt c addr }}
     (App (Val (@! go_etcd_io.etcd.client.v3.NewAuth)) (Val #c))
-  {{ (v : GoInterface), RET #v; True }}
+  {{ (v : GoInterface), RET #v; ∃ api : Loc,
+      ⌜v = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.authClient.ty) #api⌝ ∗
+      authObjAt api addr }}
 
 end spec
 

@@ -1,6 +1,6 @@
 ---
 upstream: none
-checked: 2026-10-23
+checked: 2026-10-26
 links:
   - etcd-io/etcd#15237 pr merged: progress responses go through mvcc's watch channel (ordered after the stream's queued events), but a watch's Created response still goes on ctrlStream and can overtake a queued broadcast progress response; the path of the 2026-10-23 end-to-end reproduction (issues/etcd-watch-progress-before-created.md)
   - etcd-io/etcd#20221 issue closed: same trigger on the server side (a member switched to by a multi-endpoint client sent progress notifications below the watch's start revision); not the cache's missing check

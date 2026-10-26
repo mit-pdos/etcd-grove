@@ -13,6 +13,7 @@ public import Proof.go_etcd_io.etcd.client.v3.InvClientNew
 public import Proof.go_etcd_io.etcd.client.v3.InvWatcherCore
 public import Proof.go_etcd_io.etcd.client.v3.ErrorsNewOk
 public import Proof.go_etcd_io.etcd.client.v3.InvLessor
+public import Proof.go_etcd_io.etcd.client.v3.InvAuthConn
 
 @[expose] public section
 
@@ -44,10 +45,12 @@ def watchAddrFacts [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Ass
   iprop(isGrpcStream (Req := v3rpc.pbWatchRequest) (Rep := v3rpc.pbWatchResponse) V.addr
       go!"/etcdserverpb.Watch/Watch" (v3rpc.watchUp V.R.γ) (v3rpc.watchSpec V.R) ∗
     mvcc.watchTokPool V.R.γ ∗
-    srvLogsSmall V.R ∗ srvNoDupKeys V.R ∗
+    srvLogsSmall V.R ∗
     eofOk ∗ ⌜V.R.γ.st = V.R.E.γ ∧ V.pfx ≠ []⌝ ∗
     -- (W3) the watch contract's model, from the watcher's logs
-    watchLaws V)
+    watchLaws V ∗
+    -- (D47) the members run the KV at `V.kst`
+    srvKVFacts V)
 
 instance watchAddrFacts_persistent [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     (V : WEnv GF) : Persistent (watchAddrFacts V) := by
@@ -103,17 +106,17 @@ theorem watchConnFacts_of_addr [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.a
       isPkgInit (PROP := IProp GF) pkg_id.context ∗
       grpcConn (GF := GF) conn [V.addr] ics [] ∗ watchAddrFacts V ⊢
       watchConnFacts { V with conn := conn, ics := ics } := by
-  obtain ⟨R, addr, ics0, conn0, wc, pfx, lg, WM, WL, mem, nm⟩ := V
+  obtain ⟨R, addr, ics0, conn0, wc, pfx, lg, WM, WL, mem, nm, kst⟩ := V
   simp only at hm hn ⊢
   subst hm hn
   unfold watchAddrFacts watchConnFacts watchMemberFacts
-  have ha : WEnv.addrs (GF := GF) ⟨R, addr, ics, conn, wc, pfx, lg, WM, WL, fun _ => (addr, R), 1⟩ =
+  have ha : WEnv.addrs (GF := GF) ⟨R, addr, ics, conn, wc, pfx, lg, WM, WL, fun _ => (addr, R), 1, kst⟩ =
       [addr] := rfl
   have hat : ∀ i, WEnv.atIdx (GF := GF) ⟨R, addr, ics, conn, wc, pfx, lg, WM, WL,
-      fun _ => (addr, R), 1⟩ i = ⟨R, addr, ics, conn, wc, pfx, lg, WM, WL, fun _ => (addr, R), 1⟩ :=
+      fun _ => (addr, R), 1, kst⟩ i = ⟨R, addr, ics, conn, wc, pfx, lg, WM, WL, fun _ => (addr, R), 1, kst⟩ :=
     fun _ => rfl
   simp only [ha, hat]
-  iintro ⟨#P1, #P2, #P3, #Hc, #H1, #H3, #H5, #H6, #H7, %H11, #H12⟩
+  iintro ⟨#P1, #P2, #P3, #Hc, #H1, #H3, #H5, #H7, %H11, #H12, #H13⟩
   ihave #H8 := client.errorsNewOk_of (GF := GF) hAs
   ihave #H9 := client.ctxErrClientAllW_of wp_ErrAny hAs $$ P3
   ihave #H2 := watchDescOk_of_init $$ P2
@@ -124,9 +127,11 @@ theorem watchConnFacts_of_addr [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.a
     iframe #
     isplitr
     · ipureintro; exact H11.1
-    iapply (show watchLaws (GF := GF) ⟨R, addr, ics0, conn0, wc, pfx, lg, WM, WL, fun _ => (addr, R), 1⟩ ⊢
-        watchLaws ⟨R, addr, ics, conn, wc, pfx, lg, WM, WL, fun _ => (addr, R), 1⟩ from by
-      unfold watchLaws; exact .rfl) $$ H12
+    isplitr
+    · iapply (show watchLaws (GF := GF) ⟨R, addr, ics0, conn0, wc, pfx, lg, WM, WL, fun _ => (addr, R), 1, kst⟩ ⊢
+          watchLaws ⟨R, addr, ics, conn, wc, pfx, lg, WM, WL, fun _ => (addr, R), 1, kst⟩ from by
+        unfold watchLaws; exact .rfl) $$ H12
+    iunfold srvKVFacts at H13; unfold srvKVFacts; iexact H13
   ipureintro
   exact ⟨H11.2, by simp, 0, by decide, by first | rfl | trivial⟩
 
@@ -134,7 +139,8 @@ theorem watchConnFacts_of_addr [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.a
 server at `ep`; its `KV` and `Watcher` over the connection (the watcher's environment `V` at the
 connection, its interceptor and some stub and logger), the watcher without the server's facts
 (`isClientWatcherCore`; `isNewClient_watcher` adds them); and (item 1, the client lease) its `Lease`,
-a `*lessor` over the connection (`lessorAt`). -/
+a `*lessor` over the connection (`lessorAt`); and (the auth plan's E2h) its `Auth`, a
+`*authClient` over the connection (`authObjAt`). -/
 def isNewClient [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     (cl : Loc) (eps : List GoString) (V : WEnv GF) : IProp GF :=
   iprop(clientKVAt cl eps ∗ retryClientOk cl ∗
@@ -147,7 +153,12 @@ def isNewClient [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assump
     -- (item 1, the client lease, 2026-10-18) its `Lease`, a `*lessor` over the connection
     (∃ lp : Loc, clientF cl go!"Lease" ↦□
         (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.lessor.ty) #lp : GoInterface) ∗
-      lessorAt lp eps))
+      lessorAt lp eps) ∗
+    -- (the auth plan's E2h, 2026-10-26) its `Auth`, a `*authClient` over the connection
+    (∃ ap : Loc, clientF cl go!"Auth" ↦□
+        (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.authClient.ty) #ap :
+          GoInterface) ∗
+      authObjAt ap eps))
 
 instance isNewClient_persistent [srv_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     (cl : Loc) (eps : List GoString) (V : WEnv GF) : Persistent (isNewClient cl eps V) := by

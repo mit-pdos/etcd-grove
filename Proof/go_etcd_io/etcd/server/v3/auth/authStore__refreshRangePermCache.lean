@@ -36,7 +36,7 @@ theorem auth.authStore.refreshRangePermCache.wp_proof
     (h_getMergedPerms : auth.getMergedPerms.spec (GF := GF) (hG := hG)) :
     auth.authStore.refreshRangePermCache.spec (GF := GF) (hG := hG) := by
   intro st R M ti Hs sta
-  wp_start as ⟨#Hinv, #Hrd, Htok, #Hsnap, %Hfit⟩
+  wp_start as ⟨#Hinv, Hca, #Hrd, Htok, #Hsnap, %Hfit⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   ihave #Hzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
@@ -52,6 +52,15 @@ theorem auth.authStore.refreshRangePermCache.wp_proof
   wp_apply sync.RWMutex.wp_Lock_guard $$ [$Hguard] as ⟨Hlk, HP⟩
   iunfold cacheP at HP
   icases HP with ⟨%mp, %Mp, Hmp, -, -⟩
+  -- the admin side's half of the field joins the guard's
+  iunfold cacheHalf at Hca
+  icases Hca with ⟨%sta0, Hca, -⟩
+  iunfold cacheAt at Hca
+  icases Hca with ⟨%mp0, %Mp0, Hmp0, -, -⟩
+  icombine Hmp Hmp0 gives %Heq0
+  subst Heq0
+  ihave Hmp := (typedPointsto_half_split _ _ (1 : Qp)).2 $$ [Hmp Hmp0]
+  · iframe
   (try wp_auto)
   wp_apply h_Debug
   · ipureintro; exact Hlgnn
@@ -169,19 +178,29 @@ theorem auth.authStore.refreshRangePermCache.wp_proof
       rw [Hk.2.2 u, hlen, Hlens, List.take_length]
       exact Hmem u
     (try wp_auto)
-    wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk Hmp HM' Hok]
-    · inext
-      iunfold cacheP
-      iexists mp', Mp'
-      iframe Hmp HM'
+    ihave ⟨Hmp, Hmp2⟩ := (typedPointsto_half_split _ _ (1 : Qp)).1 $$ Hmp
+    imod ownMap_persist mp' _ Mp' $$ HM' with #HM'
+    ihave #Hof : (cacheOf (GF := GF) sta Mp') $$ [Hok]
+    · iunfold cacheOf; iframe Hok; ipureintro; exact hdom
+    ihave #Hok : (cacheOk (GF := GF) M Mp') $$ []
+    · iunfold cacheOf at Hof
+      icases Hof with ⟨-, #Hall⟩
       iapply cacheOk_intro M Mp' sta
-      iframe Hok
+      iframe Hall
       isplitl []
       · iexact Hsnap
       ipureintro; exact hdom
+    wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hlk Hmp]
+    · inext
+      iunfold cacheP
+      iexists mp', Mp'
+      iframe Hmp HM' Hok
     (try wp_auto)
     iapply HΦ
-    iexact Htok
+    iframe Htok
+    iunfold cacheAt
+    iexists mp', Mp'
+    iframe Hmp2 HM' Hof
 
 end proof
 

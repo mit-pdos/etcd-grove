@@ -31,7 +31,7 @@ abbrev apply.newApplierV3Corrupt.spec : Prop :=
   ∀ (a : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply }}
     (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.newApplierV3Corrupt)) (Val #a))
-  {{ (p : Loc), RET #p;
+  {{ (p : Loc), RET #p; apply.corruptIs p a ∗
       □ (∀ (E : AEnv GF) (c : apply.Chain), apply.applierSpec E c a -∗
         apply.applierSpec E (.corrupt c) (interface.mkOk (go.GoType.PointerType applierV3Corrupt.ty) #p)) }}
 

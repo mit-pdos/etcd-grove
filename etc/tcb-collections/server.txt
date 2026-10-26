@@ -27,7 +27,6 @@ roots ^Proof/go_etcd_io/etcd/server/v3/etcdserver/(Link|Results)\.lean$
 axiom DescribeConfChange.wp_proof
 axiom EtcdServer.adjustTicks.wp_proof
 axiom EtcdServer.applyConfChange.wp_proof
-axiom EtcdServer.compactRaftLog.wp_proof
 axiom EtcdServer.monitorClusterVersions.wp_proof
 axiom EtcdServer.monitorCompactHash.wp_proof
 axiom EtcdServer.monitorDowngrade.wp_proof
@@ -44,9 +43,9 @@ axiom attribute.Int.wp_proof
 axiom attribute.Int64.wp_proof
 axiom attribute.String.wp_proof
 axiom auth.NewAuthStore.wp_proof
-axiom auth.NewTokenProvider.wp_proof
 axiom auth.authStore.AuthInfoFromTLS.wp_proof
 axiom auth.authStore.selectPassword.wp_proof
+axiom auth.newTokenProviderJWT.wp_proof
 axiom auth.redactToken.wp_proof
 axiom backend.ValidateCalledInsideApply.wp_proof
 axiom backend.ValidateCalledOutSideApply.wp_proof
@@ -101,6 +100,7 @@ axiom bbolt.Tx.DB_kv.wp_proof
 axiom bbolt.Tx.Rollback_kv.wp_proof
 axiom bbolt.Tx.Size_kv.wp_proof
 axiom bbolt.Tx.Stats_kv.wp_proof
+axiom bcrypt.CompareHashAndPassword.wp_proof
 axiom binary.ReadUint64.wp_proof
 axiom binary.WriteUint64.wp_proof
 axiom binary.WriteUint8.wp_proof

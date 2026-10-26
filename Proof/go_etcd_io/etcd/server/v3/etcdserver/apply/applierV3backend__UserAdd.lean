@@ -31,7 +31,8 @@ theorem apply.applierV3backend.UserAdd.wp_proof
     (hHdr : apply.applierV3backend.newHeader.spec (GF := GF) (hG := hG)) :
     apply.applierV3backend.UserAdd.spec (GF := GF) (hG := hG) := by
   intro E p r log Pre Q Post info
-  wp_start as ⟨#Hb, ⟨⟨%n, #Hr, %Hn⟩, HRW⟩, Hpre, Hwt⟩
+  wp_start as ⟨#Hb, ⟨⟨⟨%um, #Hr, %Hn⟩, HRW⟩, %Hadm⟩, Hpre, Hwt⟩
+  ihave #Hr := apply.authUserAddIs_req _ _ $$ Hr
   iunfold apply.mPre at Hpre
   icases Hpre with ⟨Hkv, Hres, Hcs⟩
   iunfold apply.kvOwn at Hkv
@@ -49,8 +50,8 @@ theorem apply.applierV3backend.UserAdd.wp_proof
   iStructNamed Hopts
   wp_auto
   rw [Hai]
-  wp_apply HM $$ %r %n %Pre %Q %Post [$Hcs $HRW $Hwt $Hrt] as %resp %err ⟨HPP, Hrt, Hhdr, #HeI, HRW⟩
-  · iframe Hr; ipureintro; exact Hn
+  wp_apply HM $$ %r %um.name %Pre %Q %Post [$Hcs $HRW $Hwt $Hrt] as %resp %err ⟨HPP, Hrt, Hhdr, #HeI, HRW⟩
+  · iframe Hr; ipureintro; exact ⟨Hadm, Hn⟩
   ihave Hwo := Hrdb $$ Hrt
   wp_if_destruct
   · -- no response

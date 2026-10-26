@@ -16,7 +16,9 @@ is specific to the Lean port.
 ## Read the notes first
 
 - `notes/STATUS.md` — where the port is.
-- `notes/decisions.md` — how the Rocq structure maps to Lean, and why.
+- `notes/decisions.md` — how the Rocq structure maps to Lean, and why. Its entries are the
+  reasoning at the time, not rules: many turned out wrong. Do not keep a worse spec or proof
+  because an entry chose it; supersede the entry instead (its header says how).
 - `notes/status-history.md` — STATUS.md's superseded sections, append-only (move a section there when it stops describing the current state).
 
 Before you finish, update `notes/STATUS.md` if anything moved.

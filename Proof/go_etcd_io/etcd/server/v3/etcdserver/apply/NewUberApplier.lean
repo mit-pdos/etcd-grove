@@ -34,7 +34,7 @@ theorem apply.NewUberApplier.wp_proof
   intro opts RD T z Hbuq
   wp_start as ⟨Hard, #HGet, HT⟩
   wp_auto
-  wp_apply (hN opts RD Hbuq) $$ [Hard] as %base #Hbase
+  wp_apply (hN opts RD Hbuq) $$ [Hard] as %base ⟨#Hshape, #Hbase⟩
   · iframe
   ihave ⟨Hu, %Hun⟩ := typedPointsto_not_null_dup _ _ _ $$ «$r0»
   iStructNamed Hu
@@ -43,7 +43,7 @@ theorem apply.NewUberApplier.wp_proof
   ipersist warningApplyDuration
   ipersist applyV3base
   wp_apply (hR «$r0_ptr» opts.AlarmStore' base _ T z) $$ [applyV3 HT]
-    as ⟨HT, %ns, %cr, %a', %Hz, Ha', #Hchain⟩
+    as ⟨HT, %ns, %cr, %a', %Hz, Ha', #Hchain, #Hsh⟩
   · iframe #
     iframe applyV3 HT
   iapply HΦ
@@ -65,8 +65,13 @@ theorem apply.NewUberApplier.wp_proof
   iframe Ha'
   isplitr
   · iapply Hchain $$ %E Hb
-  ipureintro
-  cases ns <;> cases cr <;> simp [apply.alarmChain, apply.baseChain, apply.Chain.authOn]
+  isplitr
+  · ipureintro
+    cases ns <;> cases cr <;> simp [apply.alarmChain, apply.baseChain, apply.Chain.authOn]
+  iunfold apply.uberShape
+  iexists base, ns, cr
+  iframe applyV3base Hsh
+  ipureintro; rfl
 
 end proof
 

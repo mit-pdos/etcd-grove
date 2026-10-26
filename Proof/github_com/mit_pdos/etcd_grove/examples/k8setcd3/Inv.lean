@@ -64,7 +64,7 @@ instance Input.countable : Pos.Countable Input :=
 
 end enc
 
-instance KVState.inhabited : Inhabited KVState := ⟨⟨[], 0⟩⟩
+instance KVState.inhabited : Inhabited KVState := ⟨⟨0, ∅, []⟩⟩
 
 /-! ## Pure part -/
 
@@ -380,10 +380,9 @@ instance kInvBody_timeless (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk 
     Timeless (kInvBody (GF := GF) γ c g0 γk) := by
   unfold kInvBody; infer_instance
 
-/-- **The instance's invariant**; the server's workload lets the store deposit every
-operation. -/
+/-- **The instance's invariant**. -/
 def kInv (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNames) : IProp GF :=
-  iprop(⌜∀ op, γk.wl.writes op⌝ ∗ inv drvInvN (kInvBody γ c g0 γk))
+  iprop(inv drvInvN (kInvBody γ c g0 γk))
 
 instance kInv_persistent (γ : KNames) (c : StoreCfg GF DObj) (g0 : GSt) (γk : KVNames) :
     Persistent (kInv (GF := GF) γ c g0 γk) := by

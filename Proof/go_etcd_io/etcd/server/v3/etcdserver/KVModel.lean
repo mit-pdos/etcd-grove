@@ -200,8 +200,8 @@ theorem applyStep_plain (rq : apply.IRRModel) (v3 : Bool) (x x' : apply.ApplyKV)
 
 /-- **A raft entry's step on a plain entry, at a `kvExact` chain**: the chain unchanged, and the
 log as `kvEntry` says. -/
-theorem batchStep_plain (W : SrvWorkload) (c₀ : w64) (m : EntryModel) (x x' : apply.ApplyKV)
-    (hp : plainEntry W m) (hoff : x.chain.kvExact = true) (h : batchStep c₀ m x x') :
+theorem batchStep_plain (c₀ : w64) (m : EntryModel) (x x' : apply.ApplyKV)
+    (hp : plainEntry m) (hoff : x.chain.kvExact = true) (h : batchStep c₀ m x x') :
     x'.chain = x.chain ∧ x'.log = kvEntry c₀ x.chain x.log m := by
   unfold batchStep at h
   unfold kvEntry

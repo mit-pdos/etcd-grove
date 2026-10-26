@@ -1,6 +1,6 @@
 ---
 upstream: none
-checked: 2026-10-20
+checked: 2026-10-26
 links:
   - etcd-io/raft#52 pr merged: introduced the probe-to-replicate shortcut (`pr.Match == m.Index && pr.State == StateProbe`) and the `TestLeaderAppResp` case that pins the index-0 ack; does not consider the stale-term response
   - etcd-io/raft#148 issue closed: related, not this bug: a delayed (rejected) `MsgAppResp` misread in `StateProbe` (`MaybeDecrTo` checks `Next-1`, not `Match`)

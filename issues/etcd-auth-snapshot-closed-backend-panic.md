@@ -1,6 +1,6 @@
 ---
 upstream: none
-checked: 2026-10-21
+checked: 2026-10-26
 links:
   - etcd-io/etcd#17223 issue closed: the same nil read tx (`UnsafeRange` on a closed backend), reached at shutdown; closed by #17757 and gRPC's GracefulStop draining handlers, which do not cover a snapshot install
   - etcd-io/etcd#21873 pr closed: the same class (a holder of `s.be` using it across applySnapshot's swap and close), for `monitorKVHash`; not merged
@@ -8,7 +8,7 @@ links:
   - etcd-io/etcd#22189 issue open: the same nil read tx of a closed backend, from `Maintenance/Status` during shutdown; not this path
   - etcd-io/etcd#22190 pr open: the fix of #22189 (`StorageVersion` only); does not fix this
   - etcd-io/etcd#14256 issue closed: the same `Tx.Bucket` stack from watch at shutdown (3.4)
-  - etcd-io/etcd#22608 issue open: the same class in mvcc (`store.hash` racing with `Restore` replacing the backend); fixed by #22609
+  - etcd-io/etcd#22608 issue closed: the same class in mvcc (`store.hash` racing with `Restore` replacing the backend); fixed by #22609
   - etcd-io/etcd#22609 pr merged: holds mvcc's `s.mu` across `Hash`'s use of the backend; does not touch the auth store
 candidate: issues/upstream/etcd-auth-snapshot-closed-backend-panic/
 ---

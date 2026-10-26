@@ -4,8 +4,8 @@ lessor (2026-10-13, unit 9 of the backend). Lean-first (no Rocq counterpart); se
 `Proof/go_etcd_io/etcd/server/v3/lease/InvLessor.lean`.
 
 `lessorOk_of_lessorInv`: the lessor at `lp` (`lease.lessorInv`, its configuration and its
-`expiredC` at the workload `W`'s grant guard, `lease.lessorExpiredC`, D19n, D19q) meets
-`lessorOk W`, for a workload granting no lease (`W.noGrant`), from the specs of `Promote` and
+`expiredC` at the grant guard `False`, `lease.lessorExpiredC`, D19n, D45) meets `lessorOk`,
+from the specs of `Promote` and
 `Demote` (trust-boundary axioms: float arithmetic, a float-to-integer conversion and `sort.Sort`;
 the close of `demotec`) and the proof of `ExpiredLeasesC`.
 -/
@@ -34,16 +34,15 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- **The server's lessor contract, of the real lessor** at `lp`, for a workload `W` that grants
-no lease (D19q). -/
+/-- **The server's lessor contract, of the real lessor** at `lp`, (its grant guard `False`, D45). -/
 theorem lessorOk_of_lessorInv
     (hPromote : lease.lessor.Promote.spec (GF := GF) (hG := hG))
     (hDemote : lease.lessor.Demote.spec (GF := GF) (hG := hG))
     (hExp : lease.lessor.ExpiredLeasesC.spec (GF := GF) (hG := hG))
-    (W : SrvWorkload) (hW : W.noGrant) (lp : Loc) (γl : GName) :
+    (lp : Loc) (γl : GName) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗
-      lease.lessorInv lp γl ∗ lease.lessorCfg lp ∗ lease.lessorExpiredC lp (srvGrantGuard W) ⊢
-      lessorOk W (lease.lessorIface lp) := by
+      lease.lessorInv lp γl ∗ lease.lessorCfg lp ∗ lease.lessorExpiredC lp srvGrantGuard ⊢
+      lessorOk (lease.lessorIface lp) := by
   iintro ⟨#Hpkg, #Hinv, #Hcfg, #Hexp⟩
   iunfold lessorOk
   iexists (interface.mk (go.GoType.PointerType lease.lessor.ty) #lp)
@@ -57,11 +56,9 @@ theorem lessorOk_of_lessorInv
   · iintro !> %Φ !> - HΦ
     iapply (hDemote lp γl) $$ [] HΦ
     iframe #
-  isplitr
   · iintro !> %Φ !> - HΦ
-    iapply (hExp lp (srvGrantGuard W)) $$ [] HΦ
+    iapply (hExp lp srvGrantGuard) $$ [] HΦ
     iframe #
-  · ipureintro; exact hW
 
 end proof
 

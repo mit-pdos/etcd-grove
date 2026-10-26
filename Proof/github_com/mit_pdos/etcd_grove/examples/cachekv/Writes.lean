@@ -1,23 +1,20 @@
 /-
-**The writers' vocabulary** (2026-10-20). Lean-first (no Rocq counterpart).
+**The writers' vocabulary** (2026-10-20; over the KV state, D48, 2026-10-26). Lean-first (no Rocq
+counterpart).
 
-watchkv's (`Proof/.../watchkv/Writes.lean`) with the client's half of the KV ghost state in the
-client's invariant with its revision as a monotone counter (`client.kvClientInv`), not watchkv's
-plain `wkKV`: the cache's gets need the ranges' updates with a floor (`client.kvRangeAu_of_inv`),
-and the writers' updates open the same invariant.
-
-* `ckKV γr γm`: `client.kvClientInv γr γm`; each writer's update (`kvOpAu1` of its put, `put_au`)
-  opens it and moves the counter; the workload lets the client deposit every put of the plan.
-* `okFact E p`: watchkv's, at cachekv's `putRec`: the revision is at least `2` and is the put of
-  the key and value (`watchkv.revAt`), from the reply (`okFact_of_reply`).
-* `wsInv w E`: the lock invariant of the log `w`: its slice of successful Puts, each with `okFact`.
-* The Put itself is the client package's `client.client_Put_rep` (`client/v3/ClientPutGet.lean`).
+The KV state's half is in the adapter's invariant
+(`client.kmInv γ`) at the plan's fact `γ.W = watchkv.wkW P`, which the cache's reads (its client
+contract, `client.isEtcdClient_of_km`) and the writers' puts (the adapter's write update, in the
+shared `common.Writer`; `wk_put_W`) share; what the program knows of a successful Put
+(`okFactKM`, `okFactKM_of_write`) and the log's lock invariant (`wsInvF` at `okFactKM`) are the
+shared start's (`common/WritesKM.lean`, `common/WritesF.lean`). (Until D48 the client's half was in `client.kvClientInv`, with the
+cache's gets' updates from it, and the facts were of the server's sealed logs. Until 2026-10-26
+watchkv's were the same, here from its `Writes.lean`; watchkv now has its own invariant.)
 -/
 module
 
 public import Proof.github_com.mit_pdos.etcd_grove.examples.cachekv.Defs
-public import Proof.github_com.mit_pdos.etcd_grove.examples.watchkv.Writes
-public import Proof.github_com.mit_pdos.etcd_grove.examples.common.Writes
+public import Proof.github_com.mit_pdos.etcd_grove.examples.common.WritesKM
 
 @[expose] public section
 
@@ -30,59 +27,15 @@ namespace EtcdGrove
 namespace cachekv
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver
-open github_com.mit_pdos.etcd_grove.examples.cachekv
 
-section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-variable [sem : go.Semantics]
-variable [mvcc_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
-
-/-- The client's `etcdKV`, in the client's invariant (with its revision's counter at `γm`). -/
-abbrev ckKV (γr : ReadNames) (γm : GName) : IProp GF := client.kvClientInv γr γm
-
-/-- **A writer's update** for the put of `k ↦ v` (fired at most once): it steps the state and
-moves the counter. -/
-theorem put_au (γr : ReadNames) (γm : GName) (P : List (GoString × GoString))
-    (hwl : γr.kv.wl = watchkv.workload P) (k v : GoString) (h : (k, v) ∈ P) :
-    client.kvClientInv (GF := GF) γr γm ⊢
-      kvOpAu1 γr.kv (.put (client.putKeyOp k v)) (fun _ => iprop(True)) := by
-  have Hm := client.kvClientN_mask
-  iintro #Hinv
-  unfold kvOpAu1 kvAu1
-  isplitr
-  · ipureintro; rw [hwl]; exact Or.inl ⟨_, rfl, watchkv.putOk_putKeyOp P k v h⟩
-  iauintro
-  unfold atomic_acc
-  iunfold client.kvClientInv at Hinv
-  iinv Hinv with >Hi Hclose
-  icases Hi with ⟨%σ, Hσ, Hmn⟩
-  iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
-  iintro Hclose2
-  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
-  iexists σ
-  iframe Hσ
-  isplit
-  · iintro Hσ
-    imod Hclose2 with -
-    imod Hclose $$ [Hσ Hmn] with -
-    · inext; iexists σ; iframe Hσ Hmn
-    imodintro; itrivial
-  · iintro Hσ
-    imod Hclose2 with -
-    imod (mono_nat_own_update (GF := GF) (γ := γm)
-      (kvOpStep (.put (client.putKeyOp k v)) σ).rev
-      (client.kvOpStep_rev (.put (client.putKeyOp k v)) σ)) $$ Hmn with ⟨Hmn, -⟩
-    imod Hclose $$ [Hσ Hmn] with -
-    · inext; iexists _; iframe Hσ Hmn
-    imodintro; itrivial
-
-/- **What the program knows of a successful Put it logged**, from its reply, and **the log's lock
-invariant**: the shared start's (`common/Writes.lean`). -/
-export common (okFact okFact_persistent okFact_of_reply wsInv)
-
-end defs
+/-- **A writer's put keeps the plan's fact** (the adapter's write update's premise at
+`γ.W = wkW P`). -/
+theorem wk_put_W (γ : client.KMNames) (P : List (GoString × GoString)) (hW : γ.W = watchkv.wkW P) :
+    ∀ k v, (k, v) ∈ P → ∀ σ : KVState, γ.W σ.changes →
+      γ.W (kvOpStep (.put (client.putKeyOp k v)) σ).changes := by
+  intro k v h σ hσ
+  rw [hW] at hσ ⊢
+  exact watchkv.wkW_put P k v h σ hσ
 
 end cachekv
 end EtcdGrove

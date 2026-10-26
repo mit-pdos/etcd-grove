@@ -1,6 +1,6 @@
 ---
 upstream: none
-checked: 2026-10-23
+checked: 2026-10-26
 links:
   - etcd-io/bbolt#931 issue closed: the same panic for values above 256 MB (a refactor had shrunk MaxAllocSize); fixed in v1.4.1
   - etcd-io/bbolt#968 pr merged: the fix of #931 (MaxAllocSize platform-dependent again); this is the edge that remains at that bound

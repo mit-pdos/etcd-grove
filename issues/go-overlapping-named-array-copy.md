@@ -1,6 +1,6 @@
 ---
 upstream: fixed
-checked: 2026-10-25
+checked: 2026-10-26
 links:
   - golang/go#78371 issue closed: this bug ("no-op interface conversion bypasses overlap checking", CVE-2026-27144), reported by Jakub Ciolek, fixed by golang/go@3985ca0b6264 (2026-04-08, Go 1.27) with the fix proposed below; backported as golang/go#78424 (Go 1.26.2) and golang/go#78423 (Go 1.25.9)
   - golang/go#54467 issue closed: the same miscompile for `*p = *q` with identical array types, fixed by CL 425076 (memmove when the two sides may partially overlap); this case, with a conversion on the right, is not covered

@@ -50,8 +50,8 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver
 /-- **The requests the monitors propose** (pure): a member's attributes, or a valid cluster
 version, with no range end `[0]` and no auth request field set (`needAdminPermission`: D19k,
 2026-10-18, the KV model's `plainReq` asks it), and (D22, 2026-10-23) no side-effect-free field
-set (`noSideEffect`: the monitors' requests set only their own field). Every workload admits them (D19q:
-`SrvWorkload.admits_cluster`). -/
+set (`noSideEffect`: the monitors' requests set only their own field). Their kinds are plain
+(`putgetKind_cluster`). -/
 def monitorReq (rq : apply.IRRModel) : Prop :=
   irrNoZeroEnd rq ∧ apply.needAdminPermission rq = false ∧ apply.noSideEffect rq = false ∧
     (apply.dispatchKind rq = .clusterMemberAttrSet ∨
@@ -100,7 +100,7 @@ theorem srvMonitorPermit_of (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) :
     · exact Or.inl hk
     · exact Or.inr hk
   refine ⟨?_, ?_, hz, hs, rfl⟩
-  · refine ⟨?_, ρ.kv.wl.admits_cluster rq hk'⟩
+  · refine ⟨?_, putgetKind_cluster rq hk'⟩
     unfold plainCover; rcases hk' with hk' | hk' <;> rw [hk'] <;> exact ⟨hns, hna⟩
   · unfold writeKind; rcases hk' with hk' | hk' <;> rw [hk'] <;> decide
 

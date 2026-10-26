@@ -727,6 +727,36 @@ noncomputable def RaftCluster.IsLocalMemberLearner.impl [FfiSyntax] [GoGlobalCon
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType RaftCluster.ty) go!"Lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RaftCluster.ty)))) (Var "c"))) (Val #())))))))))
 
+/-- IsMemberExist returns if the member with the given id exists in cluster.
+
+    go: cluster.go:821:23 -/
+noncomputable def RaftCluster.IsMemberExist.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "c"
+  (Lam "id"
+  (App (Val exceptionDo)
+  (Let "c" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType RaftCluster.ty)))) (Var "c"))
+  (Let "id" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (Var "id"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (App (App (Val (map.lookup2 _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty (go.GoType.PointerType Member.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty (go.GoType.PointerType Member.ty))))) (App (Val (GoInstruction (StructFieldRef RaftCluster.ty go!"members"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RaftCluster.ty)))) (Var "c"))))) (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty))) (Var "id")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType RaftCluster.ty) go!"Unlock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RaftCluster.ty)))) (Var "c"))) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (Var "$r0")))))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType RaftCluster.ty) go!"Lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType RaftCluster.ty)))) (Var "c"))) (Val #())))))))))
+
 /-- go: member.go:90:18 -/
 noncomputable def Member.Clone.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "m"
@@ -972,6 +1002,7 @@ class RaftCluster.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
   ptr_ID_unfold : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"ID" RaftCluster.ID.impl
   ptr_IsIDRemoved_unfold : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"IsIDRemoved" RaftCluster.IsIDRemoved.impl
   ptr_IsLocalMemberLearner_unfold : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"IsLocalMemberLearner" RaftCluster.IsLocalMemberLearner.impl
+  ptr_IsMemberExist_unfold : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"IsMemberExist" RaftCluster.IsMemberExist.impl
   ptr_Lock_unfold : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"Lock" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef RaftCluster.ty go!"Mutex"))) (Var "$r"))))
   ptr_Members_unfold : MethodUnfold (go.GoType.PointerType RaftCluster.ty) go!"Members" RaftCluster.Members.impl
@@ -1007,6 +1038,7 @@ attribute [instance] RaftCluster.TypeAssumptions.type_repr
   RaftCluster.TypeAssumptions.ptr_ID_unfold
   RaftCluster.TypeAssumptions.ptr_IsIDRemoved_unfold
   RaftCluster.TypeAssumptions.ptr_IsLocalMemberLearner_unfold
+  RaftCluster.TypeAssumptions.ptr_IsMemberExist_unfold
   RaftCluster.TypeAssumptions.ptr_Lock_unfold
   RaftCluster.TypeAssumptions.ptr_Members_unfold
   RaftCluster.TypeAssumptions.ptr_RemoveMember_unfold

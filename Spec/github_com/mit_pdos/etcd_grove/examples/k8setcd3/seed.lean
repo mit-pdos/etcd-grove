@@ -32,7 +32,6 @@ abbrev seed.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
     (cl : Loc) (x : client.SrvAt GF) (V : client.WEnv GF) (γs : GName),
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
-  (∀ op, x.γr.kv.wl.writes op) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8setcd3 ∗
       isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.client.v3 ∗
       isNewClient cl [x.addr] V ∗ client.clientWriteOnce cl [x.addr] ∗ client.kvRegsAt x ∗

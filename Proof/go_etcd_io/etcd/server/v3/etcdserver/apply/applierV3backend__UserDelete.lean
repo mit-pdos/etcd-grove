@@ -31,7 +31,7 @@ theorem apply.applierV3backend.UserDelete.wp_proof
     (hHdr : apply.applierV3backend.newHeader.spec (GF := GF) (hG := hG)) :
     apply.applierV3backend.UserDelete.spec (GF := GF) (hG := hG) := by
   intro E p r log Pre Q Post info
-  wp_start as ⟨#Hb, HRW, Hpre, Hwt⟩
+  wp_start as ⟨#Hb, ⟨HRW, %Hadm⟩, Hpre, Hwt⟩
   iunfold apply.mPre at Hpre
   icases Hpre with ⟨Hkv, Hres, Hcs⟩
   iunfold apply.kvOwn at Hkv
@@ -50,6 +50,7 @@ theorem apply.applierV3backend.UserDelete.wp_proof
   wp_auto
   rw [Hai]
   wp_apply HM $$ %r %Pre %Q %Post [$Hcs $HRW $Hwt $Hrt] as %resp %err ⟨HPP, Hrt, Hhdr, #HeI, HRW⟩
+  · ipureintro; exact Hadm
   ihave Hwo := Hrdb $$ Hrt
   wp_if_destruct
   · -- no response

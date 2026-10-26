@@ -208,7 +208,7 @@ variable [sem : go.Semantics]
 
 /-- **A step never lowers the state's revision** (a step commits one revision or none). -/
 theorem commit_rev (σ : KVState) (cs : List mvcc.Change) : σ.rev ≤ (σ.commit cs).rev := by
-  unfold KVState.commit; split <;> simp
+  unfold KVState.commit; split <;> simp [KVState.rev]
 
 theorem kvOpStep_rev (op : KVOp) (σ : KVState) : σ.rev ≤ (kvOpStep op σ).rev := by
   cases op <;> simp only [kvOpStep] <;> (try split) <;> (first | exact Nat.le_refl _ | exact commit_rev _ _)
@@ -230,7 +230,6 @@ theorem kvOpAu_range (γk : KVNames) (o : OpFull) (Q : KVState → IProp GF) :
   have h : kvOpStep (KVOp.range o) = fun σ => σ := by funext σ; rfl
   unfold kvOpAu kvReadAu
   rw [h]
-  exact sep_elim_right
 
 instance kvAnyAu_persistent (E : apply.AEnv GF) (γ : ReadNames) :
     Persistent (kvAnyAu (GF := GF) E γ) := by
@@ -288,10 +287,8 @@ theorem kv_client_floor (E : apply.AEnv GF) (γ : ReadNames) (γm : GName) (l : 
   ipureintro; exact Hle
 
 /-- **A range's update, with the floor of a certified log** (persistent; 2026-10-20, cachekv):
-`kvAnyAu` at the ranges only, what a get needs (`kv_get_server_r`). A workload always lets its
-clients deposit a range (`SrvWorkload.writes_range`), so a client whose workload lets it write
-only some operations (watchkv's, cachekv's: the plan's puts) has it from `etcdKV` in its
-invariant (`kvRangeAu_of_inv`), where it may not have `kvAnyAu`. -/
+`kvAnyAu` at the ranges only, what a get needs (`kv_get_server_r`), which a client has from
+`etcdKV` in its invariant (`kvRangeAu_of_inv`). -/
 def kvRangeAu (E : apply.AEnv GF) (γ : ReadNames) : IProp GF :=
   iprop(□ ∀ (o : OpFull) (l : mvcc.Log), mvcc.certOk E.γ l ={⊤}=∗
     kvOpAu γ.kv (.range o) (fun σ => iprop(⌜l.length ≤ σ.rev + 1⌝)))
@@ -309,8 +306,7 @@ theorem kvAnyAu_range (E : apply.AEnv GF) (γ : ReadNames) :
   iintro !> %o %l #Hc
   iapply H $$ %(KVOp.range o) %l Hc
 
-/-- **`kvRangeAu` from `etcdKV` in the client's invariant** (`kvAnyAu_of_inv` at the ranges, which
-every workload lets a client deposit). -/
+/-- **`kvRangeAu` from `etcdKV` in the client's invariant** (`kvAnyAu_of_inv` at the ranges). -/
 theorem kvRangeAu_of_inv (E : apply.AEnv GF) (γ : ReadNames) (γm : GName) :
     srvKVInvs E γ ∗ kvClientInv γ γm ⊢ kvRangeAu (GF := GF) E γ := by
   have Hm := kvClientN_mask
@@ -320,8 +316,6 @@ theorem kvRangeAu_of_inv (E : apply.AEnv GF) (γ : ReadNames) (γm : GName) :
   imod kv_client_floor E γ γm l $$ Hinvs Hinv Hc with ⟨%n, #Hlb, %Hn⟩
   imodintro
   iunfold kvOpAu
-  isplitr
-  · ipureintro; exact γ.kv.wl.writes_range o
   iunfold kvAu
   iintro !>
   iauintro
