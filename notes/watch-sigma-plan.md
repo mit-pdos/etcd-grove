@@ -35,8 +35,9 @@ Steps:
    fires (`watch_fire`: `kvInv` open, `kv_cert_read`, `srvRLog_lb`; `σ = kvStateOf C` with the
    watched log a prefix of `C`) and `rawRespOk` becomes `watchStateRespOk` (`rangeEvents_kvStateOf`,
    the range `covers` ↔ `inRange`).
-4. `outc`'s element is `watchStateElem` at the second cursor; `watcher.Watch.spec` is `specσ`
-   (moved into `Spec/go_etcd_io/etcd/client/v3/watcher__Watch.lean`); `isKvWatcher`'s facts have
+4. `outc`'s element is `watchStateElem` at the second cursor; the new triple replaces the old one
+   as `watcher.Watch.spec` in `Spec/go_etcd_io/etcd/client/v3/watcher__Watch.lean` (the user,
+   2026-10-26: it is the canonical spec, no `specσ` name); `isKvWatcher`'s facts have
    no `srvNoDupKeys`. Candidate change to `specσ`: a progress notification at `p ≤ c` (cursor kept)
    promises nothing about `σ` (no `p ≤ σ.rev`).
 
