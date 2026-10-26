@@ -234,6 +234,8 @@ public import Proof.fmt.SprintfID
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.getRequestType
 public import Proof.container.heap.Fix
 public import Proof.container.heap.Push
+public import Proof.container.heap.down
+public import Proof.container.heap.up
 public import Proof.go_etcd_io.etcd.pkg.v3.httputil.GracefulClose
 public import Proof.go_etcd_io.etcd.pkg.v3.idutil.Generator__Next
 public import Proof.go_etcd_io.etcd.pkg.v3.idutil.NewGenerator
@@ -1319,13 +1321,21 @@ theorem lease.LeaseQueue.wp_Push :
     lease.LeaseQueue.Push.spec (GF := GF) (hG := hG) :=
   lease.LeaseQueue.Push.wp_proof
 
+theorem heap.wp_down :
+    heap.down.spec (GF := GF) (hG := hG) :=
+  heap.down.wp_proof
+
+theorem heap.wp_up :
+    heap.up.spec (GF := GF) (hG := hG) :=
+  heap.up.wp_proof
+
 theorem heap.wp_Fix :
     heap.Fix.spec (GF := GF) (hG := hG) :=
-  heap.Fix.wp_proof
+  heap.Fix.wp_proof heap.wp_down heap.wp_up
 
 theorem heap.wp_Push :
     heap.Push.spec (GF := GF) (hG := hG) :=
-  heap.Push.wp_proof
+  heap.Push.wp_proof heap.wp_up
 
 theorem lease.LeaseExpiredNotifier.wp_RegisterOrUpdate :
     lease.LeaseExpiredNotifier.RegisterOrUpdate.spec (GF := GF) (hG := hG) :=
