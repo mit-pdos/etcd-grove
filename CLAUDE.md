@@ -303,7 +303,15 @@ for the edit-check loop of a proof; `lake build` stays the check of record (and 
 
 - `--goal LINE[:COL]` prints the proof state there (the Iris context included), instead of
   inserting a `trace_state` or a deliberate error.
-- `-e` returns at the first error, without waiting for the rest of the file.
+- A check returns at the first error in what the edit changed (from the first changed line to
+  the end of its declaration), or once that declaration is elaborated without one, without
+  waiting for the declarations after it, and says from which line the file is not yet checked;
+  errors already elsewhere in the file are listed but do not stop it. The loop for a broken
+  proof: fix the first error, check, fix the next. The edited proof re-runs from the fixed
+  tactic: a tactic that fails stops the proof there, so a check costs the tactics up to the
+  next failure (an error inside a term, `exact foo`, is admitted and elaboration goes on).
+  Checking again without an edit, or `-a`, waits for the whole file: do it before relying on
+  the file (an edited statement can break a later proof in it).
 - `--fast` skips the kernel's check and the linters that walk the whole proof: for the loop
   only (a proof the elaborator accepts can still fail the kernel; `lake build` checks).
 - `--split`, for the longest proofs: each `·` block of at least 20 lines (`--split-min N`) is
