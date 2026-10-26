@@ -971,6 +971,8 @@ theorem RawNode.acceptReady.wp_proof
     exact Hip_last
   iapply HΦ $$ %(readySteps s L ((selfmsgs id ms2).map (fun q => selfPending q.st.msg)) ce)
   simp only [named]
+  ihave #Hsloc' := snapLocOk_keep γ id (o' := (readyNstate s L ce sz).logst.snap)
+    (.inl (by rw [Hlogst, Haf2, Hf_snap])) $$ Hsloc
   iapply ownRawNode_intro γ rn id rsN
     (readyNstate s L ce sz) cf fp
     { rnv with prevSoftSt' := psp, prevHardSt' := ph, stepsOnAdvance' := stl4 }
@@ -986,7 +988,7 @@ theorem RawNode.acceptReady.wp_proof
     (by rw [Hlogst, Haf3, Hf_st]; exact Hstor)
     ⟨fun h => readyNstate_guard (Hpvoff.1 h), Hpvoff.2⟩ rfl rfl
     (by rw [Hlogst, Haf4, Hf_cm]; exact Hrs_clb) HrnflN HloanN
-    $$ Hrn Hphys Hghost Hsdrf Hpsp Hph Hsteps Hsteps_cap Hpend Hcommitted Hstrecs' Hloanc
+    $$ Hrn Hphys Hghost Hsdrf Hpsp Hph Hsteps Hsteps_cap Hpend Hcommitted Hstrecs' Hloanc Hsloc'
 
 end proof
 

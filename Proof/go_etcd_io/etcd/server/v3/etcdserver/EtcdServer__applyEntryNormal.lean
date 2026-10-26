@@ -403,7 +403,7 @@ theorem EtcdServer.applyEntryNormal.wp_proof
   · -- the entry `i = p + 1`, above `ci`
     simp only [↓reduceIte]
     icases Hv3 with ⟨Happ, %Hv3⟩
-    obtain ⟨hi, hlt, hce⟩ := Hv3
+    obtain ⟨hi, hlt, hce, hld⟩ := Hv3
     have hi0 : m.index ≠ W64 0 := by intro h; rw [h] at hlt; simp at hlt
     wp_auto
     wp_if_destruct
@@ -518,7 +518,7 @@ theorem EtcdServer.applyEntryNormal.wp_proof
         iexists iprop(applyThread γ st ∗ applyBackend γ ci b)
         iframe Hst' Hbe'
         isplitr
-        · ipureintro; rw [HEo.2.1]; exact ⟨st, b, rfl, Hp⟩
+        · ipureintro; rw [HEo.2.1]; exact ⟨st, b, rfl, Hp, hld⟩
         iintro ⟨Hst', Hbe'⟩
         iframe Hst' Happ' Hbe'
         ipureintro; exact Hf'

@@ -47,6 +47,7 @@ public import Spec.go_etcd_io.raft.v3.MemoryStorage__Append
 public import Spec.go_etcd_io.raft.v3.MemoryStorage__ApplySnapshot
 public import Spec.go_etcd_io.raft.v3.MemoryStorage__CreateSnapshot
 public import Spec.go_etcd_io.raft.v3.MemoryStorage__Compact
+public import Proof.go_etcd_io.raft.v3.MemstorageAU
 -- (2026-10-15, stage N) conf changes
 public import Spec.go_etcd_io.raft.v3.node__ApplyConfChange
 public import Spec.google_golang_org.protobuf.proto.UnmarshalConfChange
@@ -116,6 +117,12 @@ theorem KV.run.wp_proof
     (wp_Entry_GetType : raftpb.Entry.GetType.spec (GF := GF) (hG := hG))
     (wp_Entry_GetData : raftpb.Entry.GetData.spec (GF := GF) (hG := hG)) :
     KV.run.spec (GF := GF) (hG := hG) := by
+  -- (D22 J3) the storage's snapshot methods with the whole token in hand: the AU specs' corollaries
+  replace wp_MemoryStorage_ApplySnapshot :=
+    MemoryStorage.ApplySnapshot.spec_tok_of wp_MemoryStorage_ApplySnapshot
+  replace wp_MemoryStorage_CreateSnapshot :=
+    MemoryStorage.CreateSnapshot.spec_tok_of wp_MemoryStorage_CreateSnapshot
+  replace wp_MemoryStorage_Compact := MemoryStorage.Compact.spec_tok_of wp_MemoryStorage_Compact
   intro γr γp r id n st send c0
   wp_start as ⟨#Hrep, %Hst, Hncfg, Hdrv, Hrun, Hstor, #Hsend⟩
   ihave #Hrep' := Hrep

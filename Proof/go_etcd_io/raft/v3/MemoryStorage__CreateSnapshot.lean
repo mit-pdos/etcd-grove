@@ -39,10 +39,11 @@ theorem MemoryStorage.CreateSnapshot.wp_proof
     (wp_CloneSnapshot : proto.CloneSnapshot.spec (GF := GF) (hG := hG)) :
     MemoryStorage.CreateSnapshot.spec (GF := GF) (hG := hG) := by
   have HN : ↑memSnapN ⊆ (⊤ : CoPset) := CoPset.subseteq_top
-  intro ms γs σt x i cs dq oc data bs eood Hpre
-  wp_start as ⟨Htok, #Hfw, Hcs, Hdata, #Hcertn, #Herr⟩
-  iunfold memSnapTok at Htok
-  icases Htok with ⟨#Hinit, #Hmu, #Hsinv, Hak, Hsvt, Hcbt⟩
+  have HN' : (⊤ \ ↑memSnapN : CoPset) ⊆ ⊤ := CoPset.subseteq_top
+  intro ms γs x i cs dq oc data bs eood
+  wp_start as ⟨#Hro, Hak, #Hfw, Hcs, Hdata, #Herr⟩
+  iunfold memSnapRO at Hro
+  icases Hro with ⟨#Hinit, #Hmu, #Hsinv⟩
   wp_apply wp_with_defer as %defer defer
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
@@ -57,22 +58,20 @@ theorem MemoryStorage.CreateSnapshot.wp_proof
   ihave #Hflx := memFloorTok_flLb ms γs x $$ Hfw
   iunfold memCutInv at Hcut_inv
   iNamed Hcut_inv
-  icases ghostVar_agree γs.cb _ _ _ _ $$ Hcb Hcbt with %Hcbe
-  subst Hcbe
   have Hlast := memCut_stLast Hcok.1
-  have Hpbf : uint.Z (memCut σL σt.prev).prev.index' + ((memCut σL σt.prev).ents.length : Int) <
+  have Hpbf : uint.Z (memCut σL c).prev.index' + ((memCut σL c).ents.length : Int) <
       2^61 := by
     unfold EtcdGrove.stLast at Hlast; omega
-  have HlastF : uint.Z (memCut σL σt.prev).prev.index' + ((memCut σL σt.prev).ents.length : Int) =
+  have HlastF : uint.Z (memCut σL c).prev.index' + ((memCut σL c).ents.length : Int) =
       stLast σL := by
     unfold EtcdGrove.stLast at Hlast; exact Hlast
-  have HprevF : (memCut σL σt.prev).prev = σt.prev := rfl
+  have HprevF : (memCut σL c).prev = c := rfl
   have Hpb_inv0 := Hpb_inv
   ihave %HSrel0 : ⌜(S.ss = σL.ss) ∨ uint.Z σL.ss.index' < uint.Z S.ss.index'⌝ $$ []
   · icases Hsrel with (%Hr | ⟨%Hr, -⟩)
     · ipureintro; left; exact Hr.1
     · ipureintro; right; exact Hr.1
-  generalize Hσf : memCut σL σt.prev = σp at Hpbf HlastF HprevF ⊢
+  generalize Hσf : memCut σL c = σp at Hpbf HlastF HprevF ⊢
   have Hpb_inv := Hpbf
   iunfold memstorageFields at Hfields_inv
   icases Hfields_inv with ⟨%hp, %es, %dummy, %nfi, %nli, %nen, %nte, %nsn, Hfields_inv⟩
@@ -84,19 +83,13 @@ theorem MemoryStorage.CreateSnapshot.wp_proof
   wp_auto
   iunfold memSnapHome at Hhome
   icases Hhome with ⟨%σ1, Hsn, Hsnh, #Hcert1⟩
-  icases ghostVar_agree γs.sn _ _ _ _ $$ Hsvt Hsnh with %Hag
-  obtain ⟨Hs1, Hs2, Hs3, Hs4⟩ := snapPart_inj Hag
   icases ghostVar_agree γs.sn _ _ _ _ $$ Hsq Hsnh with %HagS
   obtain ⟨HS1, -, -, -⟩ := snapPart_inj HagS
-  ihave Hsn := memSnapOwn_congr ms σ1 σt Hs1 Hs2 Hs3 Hs4 $$ Hsn
-  ihave #Hcertt := memSnapCertOk_congr γs σ1 σt Hs1 Hs2 Hs3 Hs4 $$ Hcert1
   iunfold memSnapOwn at Hsn
   icases Hsn with ⟨%sp0, %sv0, Hsnapshot, Hsnap0, %Hsnap_id⟩
   icases ownSnapM_not_null $$ Hsnap0 with ⟨Hsnap0, %Hsp0nn⟩
-  have Hss : σt.ss.index' = sv0.Metadata'.Index' := by rw [← Hsnap_id.1]; rfl
+  have Hss : σ1.ss.index' = sv0.Metadata'.Index' := by rw [← Hsnap_id.1]; rfl
   (try wp_auto)
-  have Hcs0 : sv0.Metadata'.ConfState' = storCS σt :=
-    confState_eq_storCS _ σt Hsnap_id.2.1 Hsnap_id.2.2.1
   wp_apply wp_GetMetadata.1 sp0 (DFrac.own 1) sv0 $$ [Hsnap0] as %pm0 ⟨Hm0, Hmback0⟩
   · iframe Hsnap0
   wp_apply wp_SMGetIndex pm0 (DFrac.own 1) sv0.Metadata' $$ [Hm0] as Hm0
@@ -105,12 +98,29 @@ theorem MemoryStorage.CreateSnapshot.wp_proof
   rw [← Hss]
   wp_if_destruct
   · -- `ErrSnapOutOfDate`: nothing changes
-    imod memSnap_put ms γs 2 σt ⊤ HN $$ Hsinv Hrcpt [Hsnapshot Hsnap0] [Hsnh] Hcertt with Hk
+    -- (D22 J3) the linearization point: the token's snapshot is the home's, `σ1`
+    ihave Hres : |={⊤}=> (memKey γs.ak -∗ memCsArg cs dq oc -∗
+          data ↦* bs -∗ Φ (PairV #null #eood)) ∗
+        ghostVar γs.sn (1 : Qp).half (snapPart σ1) $$ [HΦ Hsnh]
+    · imod fupd_mask_subseteq HN' with Hmask
+      imod HΦ with ⟨%σt, Htg, %Hpre, #Hcertn, HΦ⟩
+      iunfold memSnapTokG at Htg
+      icases Htg with ⟨Hsvt, Hcbt⟩
+      icases ghostVar_agree γs.sn _ _ _ _ $$ Hsvt Hsnh with %Hag
+      obtain ⟨Hs1, -, -, -⟩ := snapPart_inj Hag
+      icases HΦ with ⟨HΦ, -⟩
+      imod HΦ $$ %(by rw [Hs1]; exact Hif) [Hsvt Hcbt] with HΦ
+      · iunfold memSnapTokG; iframe
+      imod Hmask with -
+      imodintro
+      iframe
+    imod Hres with ⟨HΦ, Hsnh⟩
+    imod memSnap_put ms γs 2 σ1 ⊤ HN $$ Hsinv Hrcpt [Hsnapshot Hsnap0] [Hsnh] Hcert1 with Hk
     · iunfold memSnapOwn
       iexists sp0, sv0
       iframe
       ipureintro; exact Hsnap_id
-    · rw [Hag]; iexact Hsnh
+    · iexact Hsnh
     iunfold memSnapKeys at Hk
     icases Hk with (⟨%Hk, -⟩ | ⟨-, Hlk, Hak⟩ | ⟨%Hk, -⟩)
     · exact absurd Hk (by decide)
@@ -123,7 +133,7 @@ theorem MemoryStorage.CreateSnapshot.wp_proof
       Hents Hents_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot Hcb Hbd Hsq]
     · inext
       unfold memstorageInv memstorageFields
-      iexists σL, σt.prev
+      iexists σL, c
       iframe Hgs_inv
       rw [Hσf]
       isplitl [HhardState Hents_f Hents Hents_cap Hcs_firstIndex Hcs_lastIndex Hcs_entries Hcs_term Hcs_snapshot]
@@ -136,22 +146,60 @@ theorem MemoryStorage.CreateSnapshot.wp_proof
       iexists S
       iframe Hcb Hbd Hcfl Hsq Hsrel
       ipureintro; exact ⟨Hcok, Hccap⟩
-    iapply HΦ
-    iframe Hcs
-    ileft
+    iapply HΦ $$ Hak [Hcs] [Hdata]
+    · iexact Hcs
+    · iexact Hdata
+  have Hnew1 : uint.Z σ1.ss.index' < uint.Z i := by omega
+  obtain ⟨tci, Htci⟩ : ∃ t : w64, t = (termAt σL.prev σL.ents i).getD (W64 0) := ⟨_, rfl⟩
+  -- (D22 J3) the linearization point, as soon as the call has read the storage's snapshot index:
+  -- the token's snapshot is the home's (`σ1`), its boundary the lock's (`c`); the new snapshot at
+  -- the term the contents have at `i`
+  ihave Hres : |={⊤}=> ∃ σt σn : StorState,
+      ⌜snapPart σt = snapPart σ1 ∧ c = σt.prev ∧ uint.Z σt.prev.index' ≤ uint.Z i ∧
+        uint.Z i ≤ uint.Z x ∧ σn = memStorCreated σt i tci oc bs⌝ ∗
+      □ (∀ t : w64, memStorCert γs
+        (snapTrip (memSnapCreated σt i t oc bs) (memSnapCreated σt i t oc bs).Metadata'.ConfState'.lists)) ∗
+      (∀ snap' : Loc, ownSnapM snap' (DFrac.own 1)
+          (memSnapCreated σt i tci oc bs) -∗
+        memKey γs.ak -∗ memCsArg cs dq oc -∗ Φ (PairV #snap' #interface.nil)) ∗
+      ghostVar γs.sn memQ (snapPart σn) ∗
+      ghostVar γs.sn (1 : Qp).half (snapPart σn) ∗
+      ghostVar γs.cb (1 : Qp).half c $$ [HΦ Hsq Hsnh Hcb]
+  · imod fupd_mask_subseteq HN' with Hmask
+    imod HΦ with ⟨%σt, Htg, %Hpre, #Hcertn, HΦ⟩
+    iunfold memSnapTokG at Htg
+    icases Htg with ⟨Hsvt, Hcbt⟩
+    icases ghostVar_agree γs.sn _ _ _ _ $$ Hsvt Hsnh with %Hag
+    obtain ⟨Hs1, -, -, -⟩ := snapPart_inj Hag
+    icases ghostVar_agree γs.cb _ _ _ _ $$ Hcb Hcbt with %Hcbe
+    have Hnewt : uint.Z σt.ss.index' < uint.Z i := by rw [Hs1]; exact Hnew1
+    obtain ⟨Hlo, Hhi⟩ := Hpre Hnewt
+    imod memSnap_update γs _ _ _ (memStorCreated σt i tci oc bs) $$ Hsq Hsvt Hsnh
+      with ⟨Hsq, Hsvt, Hsnh⟩
+    icases HΦ with ⟨-, HΦ⟩
+    imod HΦ $$ %tci %Hnewt [Hsvt Hcbt] with HΦ
+    · iunfold memSnapTokG
+      rw [show (memStorCreated σt i tci oc bs).prev = σt.prev from rfl]
+      iframe
+    imod Hmask with -
+    imodintro
+    iexists σt, _
+    iframe Hsq Hsnh Hcb Hcertn
     isplitr
-    · ipureintro; exact ⟨Hif, rfl, rfl⟩
-    iframe Hdata
-    unfold memSnapTok
-    simp only [named]
-    iframe # ∗
-  have Hnew : uint.Z σt.ss.index' < uint.Z i := by omega
-  obtain ⟨Hlo, Hhi⟩ := Hpre Hnew
-  -- (D19i part 1) the cut is `σt.prev`, at or below `i`; `i` within the contents (the witness)
+    · ipureintro
+      exact ⟨Hag, Hcbe, Hlo, Hhi, rfl⟩
+    iexact HΦ
+  imod Hres with ⟨%σt, %σn, %Hσt, #Hcertn, HΦ, Hsq, Hsnh, Hcb⟩
+  obtain ⟨Hag, Hcbe, Hlo0t, Hhi0, Hσn⟩ := Hσt
+  rw [Hσn]
+  unfold memStorCreated
+  have Hlo0 : uint.Z c.index' ≤ uint.Z i := by rw [Hcbe]; exact Hlo0t
+  obtain ⟨Hs1, Hs2, Hs3, Hs4⟩ := snapPart_inj Hag
+  have Hnew : uint.Z σt.ss.index' < uint.Z i := by rw [Hs1]; exact Hnew1
+  have Hcs0 : sv0.Metadata'.ConfState' = storCS σt :=
+    confState_eq_storCS _ σt (by rw [Hs2]; exact Hsnap_id.2.1) (by rw [Hs3]; exact Hsnap_id.2.2.1)
+  -- (D19i part 1) the cut is `c = σt.prev`, at or below `i`; `i` within the contents (the witness)
   have Hcok1 := Hcok.1
-  have Hlo0 : uint.Z σt.prev.index' ≤ uint.Z i := Hlo
-  have Hhi0 : uint.Z i ≤ uint.Z x := Hhi
-  clear Hlo Hhi
   have Hlo : uint.Z σp.prev.index' ≤ uint.Z i := by rw [HprevF]; exact Hlo0
   have Hhi : uint.Z i ≤ uint.Z σp.prev.index' + (σp.ents.length : Int) := by omega
   obtain ⟨Hd0i, Hd0t⟩ := Hdummy
@@ -217,6 +265,8 @@ theorem MemoryStorage.CreateSnapshot.wp_proof
     rw [← termAt_memCut Hcok1 i (by rw [← Hσf] at Hlo; exact Hlo)]
     rw [← Hσf] at Hterm
     simpa only [memCut] using Hterm
+  -- (D22 J3) the term the linearization point took is `e`'s
+  rw [show tci = e.Term' by rw [Htci, HtermL, Option.getD_some]]
   icases entsRO_lookup es1 (dummy1 :: σp.ents) _ e (by rw [← Hk] at He; exact He) $$ Hents_1
     with ⟨%ls1, %lk, #Hls1, #Hek, %Hlk⟩
   rw [ite_eq_left ⟨by word, by word⟩]
@@ -225,8 +275,9 @@ theorem MemoryStorage.CreateSnapshot.wp_proof
   wp_apply wp_GetTerm.1 lk DFrac.discard e $$ [Hek] with -
   · iframe Hek
   imod cellRO_alloc $$ «$r0» with #cTn
-  rcases oc with _ | c
+  rcases oc with _ | cc
   · -- `cs == nil`: the `ConfState` stays
+    simp only [memCsArg]
     icases Hcs with %Hn
     subst Hn
     wp_auto
@@ -248,7 +299,6 @@ theorem MemoryStorage.CreateSnapshot.wp_proof
     wp_apply wp_CloneSnapshot.1 sp0 (DFrac.own 1) _ $$ [Hsnap] as %p' ⟨Hsnap, Hp'⟩
     · iframe Hsnap
     -- (D17d) the new snapshot's ghost value, and the snapshot back
-    imod memSnap_update γs _ _ _ ({ σt with ss := entryID.mk e.Term' i, scs := (memSnapCreated σt i e.Term' none bs).Metadata'.ConfState'.lists, sal := (memSnapCreated σt i e.Term' none bs).Metadata'.ConfState'.AutoLeave', sdat := bs }) $$ Hsq Hsvt Hsnh with ⟨Hsq, Hsvt, Hsnh⟩
     ihave #Hcertc := memSnapCertOk_of_sv γs ({ σt with ss := entryID.mk e.Term' i, scs := (memSnapCreated σt i e.Term' none bs).Metadata'.ConfState'.lists, sal := (memSnapCreated σt i e.Term' none bs).Metadata'.ConfState'.AutoLeave', sdat := bs }) (memSnapCreated σt i e.Term' none bs) ⟨rfl, rfl, rfl, rfl⟩ $$ []
     · iapply Hcertn
     imod memSnap_put ms γs 2 ({ σt with ss := entryID.mk e.Term' i, scs := (memSnapCreated σt i e.Term' none bs).Metadata'.ConfState'.lists, sal := (memSnapCreated σt i e.Term' none bs).Metadata'.ConfState'.AutoLeave', sdat := bs }) ⊤ HN $$ Hsinv Hrcpt [Hsnapshot Hsnap] Hsnh Hcertc with Hk
@@ -269,7 +319,7 @@ theorem MemoryStorage.CreateSnapshot.wp_proof
       Hcs_snapshot_1 Hcb Hbd Hsq]
     · inext
       unfold memstorageInv memstorageFields
-      iexists σL, σt.prev
+      iexists σL, c
       iframe Hgs_inv
       rw [Hσf]
       isplitl [HhardState_1 Hents_f_1 Hents_1 Hents_cap_1 Hcs_firstIndex_1 Hcs_lastIndex_1 Hcs_entries_1 Hcs_term_1 Hcs_snapshot_1]
@@ -291,37 +341,29 @@ theorem MemoryStorage.CreateSnapshot.wp_proof
         refine ⟨?_, Int.le_trans Hcok1.1 Hlo0, HtermL⟩
         show uint.Z σL.ss.index' < uint.Z i
         rcases HSrel0 with Hr | Hr
-        · rw [← Hr, HS1, ← Hs1]; exact Hnew
-        · rw [HS1, ← Hs1] at Hr; omega
+        · rw [← Hr, HS1]; exact Hnew1
+        · rw [HS1] at Hr; omega
       iapply memFlLb_le γs x i Hhi0 $$ Hflx
-    iapply HΦ
-    isplitr
-    · ipureintro; rfl
-    iright
-    iexists e.Term'
-    isplitr
-    · ipureintro; exact ⟨Hnew, rfl⟩
-    iframe Hp'
-    unfold memSnapTok
-    simp only [named]
-    iframe # ∗
+    iapply HΦ $$ Hp' Hak
+    ipureintro; rfl
   · -- `cs != nil`: the stored `ConfState` is a clone of `*cs`
+    simp only [memCsArg]
     icases csPts_not_null $$ Hcs with ⟨Hcs, %Hcsnn⟩
     wp_if_destruct
     all_goals try (exfalso; exact Hcsnn rfl)
-    wp_apply wp_CloneConfState.1 cs dq c $$ [Hcs] as %pc' ⟨Hcs, Hpc'⟩
+    wp_apply wp_CloneConfState.1 cs dq cc $$ [Hcs] as %pc' ⟨Hcs, Hpc'⟩
     · iframe Hcs
     iclear Hc_m
-    ihave Hc_m : csOptA pc' (DFrac.own 1) c $$ [Hpc']
+    ihave Hc_m : csOptA pc' (DFrac.own 1) cc $$ [Hpc']
     · iunfold csOptA; iright; ileft; iexact Hpc'
-    ihave Hsm : smPts pm (DFrac.own 1) (SnapshotMetadataM.mk c i e.Term') $$ [HC_m Hc_m HI_m HT_m]
+    ihave Hsm : smPts pm (DFrac.own 1) (SnapshotMetadataM.mk cc i e.Term') $$ [HC_m Hc_m HI_m HT_m]
     · iunfold smPts
       iexists _, _, _, uf
       isplitr
       · ipureintro; exact Hnn_m
       iframe HC_m Hc_m HI_m HT_m cIn cTn Hpb_m
-    ihave Hsnap : ownSnapM sp0 (DFrac.own 1) (memSnapCreated σt i e.Term' (some c) bs) $$ [HD_s Hdata HM_s Hsm]
-    · rw [show memSnapCreated σt i e.Term' (some c) bs = SnapshotM.mk bs (SnapshotMetadataM.mk c i e.Term') from rfl]
+    ihave Hsnap : ownSnapM sp0 (DFrac.own 1) (memSnapCreated σt i e.Term' (some cc) bs) $$ [HD_s Hdata HM_s Hsm]
+    · rw [show memSnapCreated σt i e.Term' (some cc) bs = SnapshotM.mk bs (SnapshotMetadataM.mk cc i e.Term') from rfl]
       iunfold ownSnapM
       iexists data, pm, _
       isplitr
@@ -332,10 +374,9 @@ theorem MemoryStorage.CreateSnapshot.wp_proof
     wp_apply wp_CloneSnapshot.1 sp0 (DFrac.own 1) _ $$ [Hsnap] as %p' ⟨Hsnap, Hp'⟩
     · iframe Hsnap
     -- (D17d) the new snapshot's ghost value, and the snapshot back
-    imod memSnap_update γs _ _ _ ({ σt with ss := entryID.mk e.Term' i, scs := (memSnapCreated σt i e.Term' (some c) bs).Metadata'.ConfState'.lists, sal := (memSnapCreated σt i e.Term' (some c) bs).Metadata'.ConfState'.AutoLeave', sdat := bs }) $$ Hsq Hsvt Hsnh with ⟨Hsq, Hsvt, Hsnh⟩
-    ihave #Hcertc := memSnapCertOk_of_sv γs ({ σt with ss := entryID.mk e.Term' i, scs := (memSnapCreated σt i e.Term' (some c) bs).Metadata'.ConfState'.lists, sal := (memSnapCreated σt i e.Term' (some c) bs).Metadata'.ConfState'.AutoLeave', sdat := bs }) (memSnapCreated σt i e.Term' (some c) bs) ⟨rfl, rfl, rfl, rfl⟩ $$ []
+    ihave #Hcertc := memSnapCertOk_of_sv γs ({ σt with ss := entryID.mk e.Term' i, scs := (memSnapCreated σt i e.Term' (some cc) bs).Metadata'.ConfState'.lists, sal := (memSnapCreated σt i e.Term' (some cc) bs).Metadata'.ConfState'.AutoLeave', sdat := bs }) (memSnapCreated σt i e.Term' (some cc) bs) ⟨rfl, rfl, rfl, rfl⟩ $$ []
     · iapply Hcertn
-    imod memSnap_put ms γs 2 ({ σt with ss := entryID.mk e.Term' i, scs := (memSnapCreated σt i e.Term' (some c) bs).Metadata'.ConfState'.lists, sal := (memSnapCreated σt i e.Term' (some c) bs).Metadata'.ConfState'.AutoLeave', sdat := bs }) ⊤ HN $$ Hsinv Hrcpt [Hsnapshot Hsnap] Hsnh Hcertc with Hk
+    imod memSnap_put ms γs 2 ({ σt with ss := entryID.mk e.Term' i, scs := (memSnapCreated σt i e.Term' (some cc) bs).Metadata'.ConfState'.lists, sal := (memSnapCreated σt i e.Term' (some cc) bs).Metadata'.ConfState'.AutoLeave', sdat := bs }) ⊤ HN $$ Hsinv Hrcpt [Hsnapshot Hsnap] Hsnh Hcertc with Hk
     · iunfold memSnapOwn
       iexists sp0, _
       iframe Hsnapshot Hsnap
@@ -353,7 +394,7 @@ theorem MemoryStorage.CreateSnapshot.wp_proof
       Hcs_snapshot_1 Hcb Hbd Hsq]
     · inext
       unfold memstorageInv memstorageFields
-      iexists σL, σt.prev
+      iexists σL, c
       iframe Hgs_inv
       rw [Hσf]
       isplitl [HhardState_1 Hents_f_1 Hents_1 Hents_cap_1 Hcs_firstIndex_1 Hcs_lastIndex_1 Hcs_entries_1 Hcs_term_1 Hcs_snapshot_1]
@@ -363,7 +404,7 @@ theorem MemoryStorage.CreateSnapshot.wp_proof
       isplitr
       · ipureintro; exact Hpb_inv0
       iunfold memCutInv
-      iexists ({ σt with ss := entryID.mk e.Term' i, scs := (memSnapCreated σt i e.Term' (some c) bs).Metadata'.ConfState'.lists, sal := (memSnapCreated σt i e.Term' (some c) bs).Metadata'.ConfState'.AutoLeave', sdat := bs } : StorState)
+      iexists ({ σt with ss := entryID.mk e.Term' i, scs := (memSnapCreated σt i e.Term' (some cc) bs).Metadata'.ConfState'.lists, sal := (memSnapCreated σt i e.Term' (some cc) bs).Metadata'.ConfState'.AutoLeave', sdat := bs } : StorState)
       iframe Hcb Hbd Hcfl Hsq
       isplitr
       · ipureintro; exact ⟨Hcok.1, Hlo0⟩
@@ -375,20 +416,11 @@ theorem MemoryStorage.CreateSnapshot.wp_proof
         refine ⟨?_, Int.le_trans Hcok1.1 Hlo0, HtermL⟩
         show uint.Z σL.ss.index' < uint.Z i
         rcases HSrel0 with Hr | Hr
-        · rw [← Hr, HS1, ← Hs1]; exact Hnew
-        · rw [HS1, ← Hs1] at Hr; omega
+        · rw [← Hr, HS1]; exact Hnew1
+        · rw [HS1] at Hr; omega
       iapply memFlLb_le γs x i Hhi0 $$ Hflx
-    iapply HΦ
-    isplitl [Hcs]
-    · iexact Hcs
-    iright
-    iexists e.Term'
-    isplitr
-    · ipureintro; exact ⟨Hnew, rfl⟩
-    iframe Hp'
-    unfold memSnapTok
-    simp only [named]
-    iframe # ∗
+    iapply HΦ $$ Hp' Hak [Hcs]
+    iexact Hcs
 
 end proof
 

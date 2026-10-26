@@ -427,7 +427,7 @@ theorem EtcdServer.apply.wp_proof
           ipureintro
           refine ⟨⟨hlp ▸ hpend', hOk1 h0, h0⟩, ?_⟩
           rw [hlpp, hlc]
-          refine ⟨hip, by omega, hgt⟩
+          refine ⟨hip, by omega, hgt, stLoaded_idem γ st'⟩
         have hb1 : batchStep (ciEff γ st.k) m xj x1 := by
           unfold batchStep; rw [ite_eq_left h0]
           refine ⟨out1, ?_⟩

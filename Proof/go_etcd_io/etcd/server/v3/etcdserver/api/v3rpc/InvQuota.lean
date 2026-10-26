@@ -16,6 +16,15 @@ Lean-first (no Rocq counterpart).
   constructors take).
 * `quotaRd s` (not persistent): what a check spends and gets back: the reader slots of `s.lgMu`
   and `s.bemu` (`newBackendQuota`'s `s.Logger()` and `s.Backend()`).
+
+**Across a backend swap** (D22 S-k, `notes/decisions.md`, "D22 L1"): nothing here names a
+backend or an epoch. `s.Backend()` returns some epoch's backend (`srvBeRO d`, which
+`newBackendQuota` drops), `storage.NewBackendQuota`'s axiom takes any backend and its `isQuota`
+needs nothing of it, so a check whose `Size()` runs after `applySnapshot` swapped `s.be` and closed
+the old backend is covered (Go answers with the closed backend's last size). No quota predicate
+holds a `bOpen` share or any part of a backend: the old backend's `Close` (S8d's W7, `bOpen 1`)
+is never blocked by a check, and `bemu`'s write side (the swap) takes the guard, not the reader
+slots `quotaRd` carries.
 * `quotaKVServerAt q kv s` (persistent): the `*quotaKVServer` `q`, read-only: its embedded
   `KVServer` the value `kv`, its alarmer `quotaAlarmerAt`.
 * `QuotaKVServerIsKVServer`: `*quotaKVServer` implements `pb.KVServer` (a method-set fact, which

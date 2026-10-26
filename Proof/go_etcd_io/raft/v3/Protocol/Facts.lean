@@ -1030,14 +1030,17 @@ theorem ownRaftGhost_alloc_core (E : CoPset) (cfg ids : GSet w64)
     -- (2026-10-19, D22 S-a) the no-transfer mode; (2026-10-20, D22 S-c) only with a bootstrap log
     (nx : Bool) (Hnx : nx = true → L ≠ [])
     -- (2026-10-21, D22 S-r) the snapshots' data the cluster admits (`RaftNames.reSnapOkRaw`)
-    (sok : List BootEntry → List w8 → Prop) :
+    (sok : List BootEntry → List w8 → Prop)
+    -- (2026-10-26, D22 J2) the nodes' snapshot directories (`RaftNames.reSnapLoc`)
+    (sl : w64 → Option GName) :
     -- (2026-10-14, reconfiguration stage B2) the voters are not empty: `RaftNames.reCfg_ne`
     cfg ≠ ∅ →
     W64 0 ∉ ids →
     BootWf ccOk L → (L ≠ [] → 1 ≤ uint.Z t) →
     ⊢ allocClientGen E cfg dyn ccOk L C -∗
       |={E}=> ∃ γ : RaftNames, ⌜γ.reCfg = cfg ∧ γ.reDyn = dyn ∧ γ.reCCOk = ccOk ∧ γ.reBoot = L ∧
-          γ.reTracked = trk ∧ γ.reNoSnap = ns ∧ γ.reNoXfer = nx ∧ γ.reSnapOkRaw = sok⌝ ∗
+          γ.reTracked = trk ∧ γ.reNoSnap = ns ∧ γ.reNoXfer = nx ∧ γ.reSnapOkRaw = sok ∧
+          γ.reSnapLoc = sl⌝ ∗
         raftCommitInv (GF := GF) γ ∗
         isCommitted γ L ∗
         ([∗map] id ↦ _u ∈ toMap ids, ownRaftGhost γ id (initPStateAt t L) dyn.isSome) ∗
@@ -1078,7 +1081,7 @@ theorem ownRaftGhost_alloc_core (E : CoPset) (cfg ids : GSet w64)
       γ0 = ⟨cfg, nv, nt, na, nc, nl, nw, ne, γc, γpr, γcl, γfr, nlc, nrq, γrd, γrf, γrc, γtb,
         dyn, ccOk, L.map BootEntry.ofEntry, Hcne, trk, Htrk, ns,
         fun h he => Hns h (List.map_eq_nil_iff.1 he), nx,
-        fun h he => Hnx h (List.map_eq_nil_iff.1 he), sok⟩ :=
+        fun h he => Hnx h (List.map_eq_nil_iff.1 he), sok, sl⟩ :=
     ⟨_, rfl⟩
   have e1 : γ0.reVotes = nv := by rw [Hγ0]
   have e2 : γ0.reTerms = nt := by rw [Hγ0]
@@ -1191,7 +1194,8 @@ theorem ownRaftGhost_alloc_core (E : CoPset) (cfg ids : GSet w64)
   · unfold raftCommitInv raftLogInv raftRegInv; iframe Hinv Hreg
   imodintro
   iexists γ0
-  isplitr; · ipureintro; exact ⟨e0, eD, eCC, eB, by rw [Hγ0], by rw [Hγ0], by rw [Hγ0], by rw [Hγ0]⟩
+  isplitr; · ipureintro; exact ⟨e0, eD, eCC, eB, by rw [Hγ0], by rw [Hγ0], by rw [Hγ0], by rw [Hγ0],
+    by rw [Hγ0]⟩
   isplitr; · iexact Hinv'
   isplitr; · iexact Hc0
   isplitl [Hv Ht Ha Hc Hl Hw He Hlc Hrq Hcr0]
@@ -1225,7 +1229,8 @@ theorem ownRaftGhost_alloc_gen (E : CoPset) (cfg ids : GSet w64)
   iintro Hcl
   ihave Hcl' := allocClient_gen E cfg dyn ccOk C $$ Hcl
   imod ownRaftGhost_alloc_core E cfg ids dyn ccOk [] (W64 0) C none (fun _ h => by cases h)
-    false (fun h => by cases h) false (fun h => by cases h) (fun _ _ => True) Hcne Hnz (BootWf_nil _)
+    false (fun h => by cases h) false (fun h => by cases h) (fun _ _ => True) (fun _ => none) Hcne Hnz
+    (BootWf_nil _)
     (fun h => absurd rfl h) $$ Hcl' with ⟨%γ, %Hγ, H⟩
   imodintro
   iexists γ
@@ -1244,7 +1249,9 @@ theorem ownRaftGhost_alloc_snap (E : CoPset) (cfg ids : GSet w64)
     W64 0 ∉ ids →
     ⊢ allocClient E cfg none C -∗
       |={E}=> ∃ γ : RaftNames, ⌜γ.reCfg = cfg ∧ γ.reDyn = none ∧ γ.reCCOk = ccOk ∧
-          γ.reNoXfer = false ∧ γ.reNoSnap = false ∧ γ.reTracked = none ∧ γ.reSnapOkRaw = sok⌝ ∗
+          γ.reNoXfer = false ∧ γ.reNoSnap = false ∧ γ.reTracked = none ∧ γ.reSnapOkRaw = sok ∧
+          -- (2026-10-26, D22 J2) no snapshot directory (`snapLocal` is `True`)
+          γ.reSnapLoc = fun _ => none⌝ ∗
         raftCommitInv (GF := GF) γ ∗
         isCommitted γ [] ∗
         ([∗map] id ↦ _u ∈ toMap ids, ownRaftGhost γ id initPState) ∗
@@ -1254,12 +1261,12 @@ theorem ownRaftGhost_alloc_snap (E : CoPset) (cfg ids : GSet w64)
   iintro Hcl
   ihave Hcl' := allocClient_gen E cfg none ccOk C $$ Hcl
   imod ownRaftGhost_alloc_core E cfg ids none ccOk [] (W64 0) C none (fun _ h => by cases h)
-    false (fun h => by cases h) false (fun h => by cases h) sok Hcne Hnz (BootWf_nil _)
+    false (fun h => by cases h) false (fun h => by cases h) sok (fun _ => none) Hcne Hnz (BootWf_nil _)
     (fun h => absurd rfl h) $$ Hcl' with ⟨%γ, %Hγ, H⟩
   imodintro
   iexists γ
   isplitr; · ipureintro; exact ⟨Hγ.1, Hγ.2.1, Hγ.2.2.1, Hγ.2.2.2.2.2.2.1, Hγ.2.2.2.2.2.1,
-    Hγ.2.2.2.2.1, Hγ.2.2.2.2.2.2.2⟩
+    Hγ.2.2.2.2.1, Hγ.2.2.2.2.2.2.2.1, Hγ.2.2.2.2.2.2.2.2⟩
   rw [initPState_eq]
   simp only [Option.isSome_none]
   iexact H
@@ -1320,7 +1327,9 @@ theorem ownRaftGhost_alloc_boot (E : CoPset) (cfg ids : GSet w64) (ccOk : w32 �
     (ps : List w64) (bootLog : List EntryM) (C : RaftNames → IProp GF)
     -- (2026-10-19, D21 M3) the no-snapshot mode (`RaftNames.reNoSnap`), or not; (D22 S-a) the
     -- no-transfer mode (`RaftNames.reNoXfer`), or not
-    (ns nx : Bool) :
+    (ns nx : Bool)
+    -- (2026-10-26, D22 J2) the members' snapshot directories (`RaftNames.reSnapLoc`)
+    (sl : w64 → Option GName) :
     cfg ≠ ∅ →
     W64 0 ∉ ids →
     cfg = GMap.listToSet ps →
@@ -1328,7 +1337,7 @@ theorem ownRaftGhost_alloc_boot (E : CoPset) (cfg ids : GSet w64) (ccOk : w32 �
     ⊢ allocClientBoot E cfg ccOk bootLog C -∗
       |={E}=> ∃ γ : RaftNames,
         ⌜γ.reCfg = cfg ∧ γ.reDyn = none ∧ γ.reCCOk = ccOk ∧ γ.reBoot = bootLog ∧
-          γ.reTracked = some cfg ∧ γ.reNoSnap = ns ∧ γ.reNoXfer = nx⌝ ∗
+          γ.reTracked = some cfg ∧ γ.reNoSnap = ns ∧ γ.reNoXfer = nx ∧ γ.reSnapLoc = sl⌝ ∗
         raftCommitInv (GF := GF) γ ∗
         isCommitted γ bootLog ∗
         ([∗map] id ↦ _u ∈ toMap ids, ownRaftGhost γ id (bootPState bootLog)) ∗
@@ -1346,13 +1355,13 @@ theorem ownRaftGhost_alloc_boot (E : CoPset) (cfg ids : GSet w64) (ccOk : w32 �
   · unfold allocClientGen allocClientBoot; iexact Hcl
   imod ownRaftGhost_alloc_core E cfg ids none ccOk bootLog (W64 1) C (some cfg)
     (fun T hT => by cases hT; exact ⟨GMap.subseteq_refl _, rfl⟩) ns (fun _ => Hbne) nx (fun _ => Hbne)
-    (fun _ _ => True) Hcne Hnz Hok.wf
+    (fun _ _ => True) sl Hcne Hnz Hok.wf
     (fun _ => by rw [show uint.Z (W64 1) = 1 from rfl]; exact Int.le_refl _)
     $$ Hcl' with ⟨%γ, %Hγ, H⟩
   imodintro
   iexists γ
   isplitr; · ipureintro; exact ⟨Hγ.1, Hγ.2.1, Hγ.2.2.1, Hγ.2.2.2.1, Hγ.2.2.2.2.1, Hγ.2.2.2.2.2.1,
-    Hγ.2.2.2.2.2.2.1⟩
+    Hγ.2.2.2.2.2.2.1, Hγ.2.2.2.2.2.2.2.2⟩
   rw [bootPState_eq]
   simp only [Option.isSome_none]
   iexact H

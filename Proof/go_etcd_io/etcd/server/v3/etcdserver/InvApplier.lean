@@ -457,11 +457,13 @@ def srvFS (s : Loc) : IProp GF :=
   iprop(∃ f : Bool, structFieldRef EtcdServer go!"forceDiskSnapshot" s ↦ f)
 
 /-- **The resources the consistent index reads under** (D14i): the apply protocol's state, not
-pending, with the backend's owner share (`applyBackend`), as `wp_ci_get` takes them; the
-environment's `E.ciC`. -/
+pending and loaded (`stLoaded γ st = st`: `ConsistentIndex` gives it back unchanged; D22 receiver
+epochs, S8d, 2026-10-26: until then any state, false after a snapshot, whose `γ.m0.1` is not 0),
+with the backend's owner share (`applyBackend`), as `wp_ci_get` takes them; the environment's
+`E.ciC`. -/
 def srvCiC (γ : ApplyNames) (ci : Loc) (C : IProp GF) : Prop :=
   ∃ (st : ApplyState) (b : GoInterface),
-    C = iprop(applyThread γ st ∗ applyBackend γ ci b) ∧ st.pending = false
+    C = iprop(applyThread γ st ∗ applyBackend γ ci b) ∧ st.pending = false ∧ stLoaded γ st = st
 
 /-- The apply environment's threaded resources are the server's (D14i); (D22, 2026-10-23) its rest
 buckets' resource the backend's tracked buckets with the cluster `cl`'s in-memory members, its
