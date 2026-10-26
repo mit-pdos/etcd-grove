@@ -910,7 +910,9 @@ def reqP (V : WEnv GF) (v : GoInterface) : IProp GF :=
       wr ≠ null⌝ ∗
     wrRO wr P ∗ wrF wr go!"rev" ↦□ P.rev ∗ wrF wr go!"retc" ↦□ P.retc ∗
     context.isContext P.ctx P.cs ∗ isChanBag P.γret P.retc (retcP V P.o P.rev P.sr P.Q) ∗
-    ⌜wsReqOk V.pfx P⌝ ∗ startOk V P.sr P.rev) ∨
+    ⌜wsReqOk V.pfx P⌝ ∗ startOk V P.sr P.rev ∗
+    -- (D46) the caller's read update, a first firing, the KV state the members', completeness
+    wsAu P ∗ (∃ σ0 : KVState, □ P.Q σ0) ∗ ⌜P.kv.st = V.kst ∧ cplOf P = true⌝) ∨
     ∃ pr : Loc,
       ⌜v = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.client.v3.progressRequest.ty) #pr⌝)
 
