@@ -743,10 +743,10 @@ end read
 through the uber-applier's chain `alarmChain on ns cr`, the transaction `t'` of the decoded request
 has the outcome `alarmTxn` (the txn package's `txnModel`, or a layer's rejection), the log after
 the outcome's. -/
-theorem txn_applied_model (t t' : TxnModel) (hm : apply.HeaderModel) (rq' : apply.IRRModel)
+theorem txn_applied_model (tw : txn.TxnModelW) (t' : TxnModel) (hm : apply.HeaderModel) (rq' : apply.IRRModel)
     (x x' : apply.ApplyKV) (o : apply.Outcome) (skip on ns cr : Bool)
     (hc : x.chain = apply.alarmChain on ns cr)
-    (hw : irrWireOf (apply.withHeader (irrTxn t) hm) rq')
+    (hw : irrWireOf (apply.withHeader (irrTxn tw) hm) rq')
     (ht : rq'.txn = some t')
     (h : apply.applyStep rq' true x x' (.dispatched o skip)) :
     x'.log = o.logAfter x.log ∧ apply.alarmTxn ns cr t' x.log o := by

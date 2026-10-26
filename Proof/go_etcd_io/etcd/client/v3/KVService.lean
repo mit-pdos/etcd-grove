@@ -166,10 +166,10 @@ def txnReplied (E : apply.AEnv GF) (γw γr : ReadNames) (c : w64) (F : mvcc.Log
       (if txn.txnSerializable t then iprop(True) else readLogOk γr c log) ∗
       (if txn.txnSerializable t then iprop(True) else □ Q (kvStateOf log)))
   else
-    iprop(∃ (hm : apply.HeaderModel) (rq' : apply.IRRModel) (t' : TxnModel)
+    iprop(∃ (tw : txn.TxnModelW) (hm : apply.HeaderModel) (rq' : apply.IRRModel) (t' : TxnModel)
         (x x' : apply.ApplyKV) (l : mvcc.Log) (skip : Bool),
-      ⌜irrWireOf (apply.withHeader (irrTxn t) hm) rq' ∧ rq'.txn = some t' ∧
-        (irrNoZeroEnd (irrTxn t) → t' = t) ∧
+      ⌜tw.toModel = t ∧ irrWireOf (apply.withHeader (irrTxn tw) hm) rq' ∧ rq'.txn = some t' ∧
+        (irrNoZeroEnd (irrTxn tw) → t' = t) ∧
         apply.applyStep rq' true x x' (.dispatched (.applied l false) skip) ∧
         m.hdr.revision = W64 (mvcc.writeRev x.log
           (txn.srvRunTxn (W64 (x.log.length : Int)) (mvcc.stateAfter x.log) t').2.1 : Int) ∧
@@ -1026,9 +1026,9 @@ theorem kvs_delete_applied_log (op op' : OpFull) (hm : apply.HeaderModel) (rq' :
   rfl
 
 /-- **A transaction's log**: its run's changes committed. -/
-theorem kvs_txn_applied_log (t t' : TxnModel) (hm : apply.HeaderModel) (rq' : apply.IRRModel)
+theorem kvs_txn_applied_log (tw : txn.TxnModelW) (t' : TxnModel) (hm : apply.HeaderModel) (rq' : apply.IRRModel)
     (x x' : apply.ApplyKV) (l : mvcc.Log) (skip : Bool)
-    (hw : irrWireOf (apply.withHeader (irrTxn t) hm) rq') (ht : rq'.txn = some t')
+    (hw : irrWireOf (apply.withHeader (irrTxn tw) hm) rq') (ht : rq'.txn = some t')
     (h : apply.applyStep rq' true x x' (.dispatched (.applied l false) skip)) :
     x'.log = mvcc.commitLog x.log
       (txn.srvRunTxn (W64 (x.log.length : Int)) (mvcc.stateAfter x.log) t').2.1 := by
@@ -1424,11 +1424,12 @@ theorem irrNoZeroEnd_delete (o : OpFull) (hz : o.base.rangeEnd ≠ [W8 0]) :
   exact hz
 
 /-- A transaction with no range end `[0]` is read as itself. -/
-theorem irrNoZeroEnd_txn (t : TxnModel) (hz : txnNoZeroEnd t) : irrNoZeroEnd (irrTxn t) := by
+theorem irrNoZeroEnd_txn (tw : txn.TxnModelW) (t : TxnModel) (htw : tw.toModel = t)
+    (hz : txnNoZeroEnd t) : irrNoZeroEnd (irrTxn tw) := by
   refine ⟨fun o h => by simp [irrTxn, apply.irrEmpty] at h,
     fun o h => by simp [irrTxn, apply.irrEmpty] at h, fun t' h => ?_⟩
   simp only [irrTxn_txn, Option.some.injEq] at h
-  subst h
+  subst h htw
   exact hz
 
 open Iris.ProofMode in
@@ -1562,11 +1563,11 @@ theorem txnAns_st (hrb : receiptBound GF ≤ 2 ^ 62) (ms : List (SrvAt GF)) (c :
   cases hro : txn.txnReadonly t
   · -- writing
     simp only [Bool.false_eq_true, ↓reduceIte]
-    icases H with ⟨%hm, %rq', %t', %y, %y', %l, %skip, %Hp, #Hc, -, -, -, HQ⟩
+    icases H with ⟨%tw, %hm, %rq', %t', %y, %y', %l, %skip, %Hp, #Hc, -, -, -, HQ⟩
     ihave %Hl := idxCert_logOk _ _ hrb $$ Hc
-    obtain ⟨hw, ht', Hz, hst, hrev, -, -, -, hlen, hb4, hok, hrel, hsk⟩ := Hp
+    obtain ⟨htw, hw, ht', Hz, hst, hrev, -, -, -, hlen, hb4, hok, hrel, hsk⟩ := Hp
     have hlog := kvs_txn_applied_log _ _ hm rq' y y' l skip hw ht' hst
-    have ht : t' = t := Hz (irrNoZeroEnd_txn t (hz hro))
+    have ht : t' = t := Hz (irrNoZeroEnd_txn tw t htw (hz hro))
     subst ht hsk
     have hne : y.log ≠ [] := by intro he; rw [he] at hlen; simp at hlen
     have hr : ((kvStateOf y.log).rev + 1 : Nat) = y.log.length := kvStateOf_rev_succ _ hlen

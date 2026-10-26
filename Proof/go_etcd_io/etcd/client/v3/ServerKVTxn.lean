@@ -271,11 +271,11 @@ theorem linearizable_of_write (t : TxnModel) (h : txn.txnReadonly (txnWireOf t) 
   obtain ⟨op, hop, hng⟩ := h
   exact List.any_eq_true.2 ⟨op, hop, by cases op <;> simp_all [TxnOp.isGet, TxnOp.linearizable]⟩
 
-theorem noZeroEnd_wire (t : TxnModel) (hp : TxnModel.plain t)
+theorem txnNoZeroEnd_wire0 (t : TxnModel) (hp : TxnModel.plain t)
     (hng : ∀ o : OpFull, TxnOp.get o ∉ t.thenOps ++ t.elseOps)
     (hc : ∀ c ∈ t.cmps, c.rangeEnd ≠ [W8 0])
     (hd : ∀ o : OpFull, TxnOp.delete o ∈ t.thenOps ++ t.elseOps → o.base.rangeEnd ≠ [W8 0]) :
-    irrNoZeroEnd (irrTxn (txnWireOf t)) := by
+    txnNoZeroEnd (txnWireOf t) := by
   have hops : ∀ ops : List TxnOp, (∀ op ∈ ops, TxnOp.plain op) →
       (∀ o, TxnOp.get o ∉ ops) → (∀ o, TxnOp.delete o ∈ ops → o.base.rangeEnd ≠ [W8 0]) →
       txnOpsNoZeroEnd (ops.map opWire) := by
@@ -298,14 +298,23 @@ theorem noZeroEnd_wire (t : TxnModel) (hp : TxnModel.plain t)
       | put _ _ _ => simp [opWire, txnOpNoZeroEnd]
       | putKeep _ _ => simp [opWire, txnOpNoZeroEnd]
       | putIgnVal _ _ => simp [opWire, txnOpNoZeroEnd]
-  refine ⟨fun o h => by simp [irrTxn, apply.irrEmpty] at h,
-    fun o h => by simp [irrTxn, apply.irrEmpty] at h, fun t' h => ?_⟩
-  simp only [irrTxn_txn, Option.some.injEq] at h
-  subst h
   refine ⟨hc, hops _ hp.1 (fun o ho => hng o (List.mem_append_left _ ho))
     (fun o ho => hd o (List.mem_append_left _ ho)),
     hops _ hp.2 (fun o ho => hng o (List.mem_append_right _ ho))
     (fun o ho => hd o (List.mem_append_right _ ho))⟩
+
+theorem noZeroEnd_wire (t : TxnModel) (hp : TxnModel.plain t)
+    (hng : ∀ o : OpFull, TxnOp.get o ∉ t.thenOps ++ t.elseOps)
+    (hc : ∀ c ∈ t.cmps, c.rangeEnd ≠ [W8 0])
+    (hd : ∀ o : OpFull, TxnOp.delete o ∈ t.thenOps ++ t.elseOps → o.base.rangeEnd ≠ [W8 0]) :
+    ∀ tw : txn.TxnModelW, tw.toModel = txnWireOf t → irrNoZeroEnd (irrTxn tw) := by
+  intro tw htw
+  refine ⟨fun o h => by simp [irrTxn, apply.irrEmpty] at h,
+    fun o h => by simp [irrTxn, apply.irrEmpty] at h, fun t' h => ?_⟩
+  simp only [irrTxn_txn, Option.some.injEq] at h
+  subst h
+  rw [htw]
+  exact txnNoZeroEnd_wire0 t hp hng hc hd
 
 section applied
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -313,9 +322,9 @@ variable [go_gctx : GoGlobalContext]
 
 /-- **A transaction's log**: its run's changes committed at the log the entry met (nothing
 committed if there are none). -/
-theorem txn_applied_exact (t t' : TxnModel) (hm : apply.HeaderModel) (rq' : apply.IRRModel)
+theorem txn_applied_exact (tw : txn.TxnModelW) (t' : TxnModel) (hm : apply.HeaderModel) (rq' : apply.IRRModel)
     (x x' : apply.ApplyKV) (l : mvcc.Log) (skip : Bool)
-    (hw : irrWireOf (apply.withHeader (irrTxn t) hm) rq') (ht : rq'.txn = some t')
+    (hw : irrWireOf (apply.withHeader (irrTxn tw) hm) rq') (ht : rq'.txn = some t')
     (h : apply.applyStep rq' true x x' (.dispatched (.applied l false) skip)) :
     x'.log = mvcc.commitLog x.log
       (txn.srvRunTxn (W64 (x.log.length : Int)) (mvcc.stateAfter x.log) t').2.1 := by
@@ -701,14 +710,14 @@ theorem txnCommitResultTok_of_reply (E : apply.AEnv GF) (γw γr : ReadNames) (c
     simp only [Bool.false_eq_true, ↓reduceIte]
     obtain ⟨hgx, hwx⟩ := hx
     obtain ⟨hng, hcz, hdz⟩ := hwx hro
-    icases Hrep with ⟨%hm, %rq', %t', %x, %x', %l, %skip, %Hp, #Hcert, HMint, -, #Hcok, HQ⟩
-    obtain ⟨Hw, Ht', Hz, Hst, hrev, -, -, HF, H2, H4, hok, hrel, -⟩ := Hp
+    icases Hrep with ⟨%tw, %hm, %rq', %t', %x, %x', %l, %skip, %Hp, #Hcert, HMint, -, #Hcok, HQ⟩
+    obtain ⟨Htw, Hw, Ht', Hz, Hst, hrev, -, -, HF, H2, H4, hok, hrel, -⟩ := Hp
     have hlin : t.linearizable = true :=
       linearizable_of_write t (by rw [txnReadonly_wire]; exact hro)
     ihave %Hfl := Himp $$ %hlin %(kvStateOf x.log) HQ
-    have ht' : t' = txnWireOf t := Hz (noZeroEnd_wire t hp hng hcz hdz)
+    have ht' : t' = txnWireOf t := Hz (noZeroEnd_wire t hp hng hcz hdz tw Htw)
     subst ht'
-    have hlog := txn_applied_exact (txnWireOf t) (txnWireOf t) hm rq' x x' l skip Hw Ht' Hst
+    have hlog := txn_applied_exact tw (txnWireOf t) hm rq' x x' l skip Hw Ht' Hst
     have hw := srvRunTxn_wire (W64 (x.log.length : Int)) (mvcc.stateAfter x.log) t hp
     rw [hw] at hlog hok hrel hrev
     have hfl := srvRunTxn_runTxn_flat (W64 (x.log.length : Int)) (mvcc.stateAfter x.log) t (flat_branch t hp _)
@@ -864,7 +873,7 @@ theorem txnNoZeroEnd_wire (t : TxnModel) (hp : TxnModel.plain t) (hx : t.exactGe
     (hw : txn.txnReadonly (txnWireOf t) = false) : txnNoZeroEnd (txnWireOf t) := by
   rw [txnReadonly_wire] at hw
   obtain ⟨hng, hc, hd⟩ := hx.2 hw
-  exact (noZeroEnd_wire t hp hng hc hd).2.2 _ rfl
+  exact txnNoZeroEnd_wire0 t hp hng hc hd
 
 /-! ## The builder -/
 
