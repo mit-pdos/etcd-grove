@@ -8,6 +8,10 @@ translate = ["!*",
   "watchCache.waitAndGetLatestSnapshot", "watchCache.getLatestSnapshotLocked",
   "watchCache.checkSnapshotResourceVersion", "watchCache.notFresh",
   "watchCache.WaitUntilFreshAndGet",
+  # its embedded `RWMutex`'s promoted methods (the method-set rules `watchCache.TypeAssumptions.
+  # ptr_RLock_unfold`, ...: a method resolution on the field)
+  "watchCache.RLock", "watchCache.RUnlock", "watchCache.Lock", "watchCache.Unlock",
+  "watchCache.RLocker",
   # the freshness wait's constants (a names-only constant is a value of unknown shape)
   "blockTimeout", "resourceVersionTooHighRetrySeconds"]
 # (`runtime/debug`, which the cacher's own files import, is not translated.) Not the cacher's

@@ -2547,6 +2547,16 @@ class watchCache.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
   set_config : ∀ (x : watchCache) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet watchCache.underlying go!"config") (PairV #x #y) (Val #(({ x with config' := y } : watchCache)))
   ptr_Add_unfold : MethodUnfold (go.GoType.PointerType watchCache.ty) go!"Add" watchCache.Add.impl
   ptr_Delete_unfold : MethodUnfold (go.GoType.PointerType watchCache.ty) go!"Delete" watchCache.Delete.impl
+  ptr_Lock_unfold : MethodUnfold (go.GoType.PointerType watchCache.ty) go!"Lock" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef watchCache.ty go!"RWMutex"))) (Var "$r"))))
+  ptr_RLock_unfold : MethodUnfold (go.GoType.PointerType watchCache.ty) go!"RLock" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef watchCache.ty go!"RWMutex"))) (Var "$r"))))
+  ptr_RLocker_unfold : MethodUnfold (go.GoType.PointerType watchCache.ty) go!"RLocker" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLocker"))) (App (Val (GoInstruction (StructFieldRef watchCache.ty go!"RWMutex"))) (Var "$r"))))
+  ptr_RUnlock_unfold : MethodUnfold (go.GoType.PointerType watchCache.ty) go!"RUnlock" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RUnlock"))) (App (Val (GoInstruction (StructFieldRef watchCache.ty go!"RWMutex"))) (Var "$r"))))
+  ptr_Unlock_unfold : MethodUnfold (go.GoType.PointerType watchCache.ty) go!"Unlock" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef watchCache.ty go!"RWMutex"))) (Var "$r"))))
   ptr_Update_unfold : MethodUnfold (go.GoType.PointerType watchCache.ty) go!"Update" watchCache.Update.impl
   ptr_UpdateResourceVersion_unfold : MethodUnfold (go.GoType.PointerType watchCache.ty) go!"UpdateResourceVersion" watchCache.UpdateResourceVersion.impl
   ptr_WaitUntilFreshAndGet_unfold : MethodUnfold (go.GoType.PointerType watchCache.ty) go!"WaitUntilFreshAndGet" watchCache.WaitUntilFreshAndGet.impl
@@ -2576,6 +2586,11 @@ attribute [instance] watchCache.TypeAssumptions.type_repr
   watchCache.TypeAssumptions.set_config
   watchCache.TypeAssumptions.ptr_Add_unfold
   watchCache.TypeAssumptions.ptr_Delete_unfold
+  watchCache.TypeAssumptions.ptr_Lock_unfold
+  watchCache.TypeAssumptions.ptr_RLock_unfold
+  watchCache.TypeAssumptions.ptr_RLocker_unfold
+  watchCache.TypeAssumptions.ptr_RUnlock_unfold
+  watchCache.TypeAssumptions.ptr_Unlock_unfold
   watchCache.TypeAssumptions.ptr_Update_unfold
   watchCache.TypeAssumptions.ptr_UpdateResourceVersion_unfold
   watchCache.TypeAssumptions.ptr_WaitUntilFreshAndGet_unfold
