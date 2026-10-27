@@ -100,9 +100,11 @@ instance isCommittedLogLb_persistent (γ : Cluster) (l : List LogEntry) :
 instance isCommittedLogLb_timeless (γ : Cluster) (l : List LogEntry) :
     Timeless (isCommittedLogLb (GF := GF) γ l) := sorry
 
-/-- The committed requested entries are those of a committed log. -/
+/-- The committed requested entries are those of a committed log. (2026-10-27, for kv: the
+client's resource kept, which a persistent conclusion alone does not give back.) -/
 theorem ownCommittedOps_get_lb (γ : Cluster) (ops : List LogEntry) :
-    ownCommittedOps (GF := GF) γ ops ⊢ ∃ l, isCommittedLogLb γ l ∗ ⌜opsOf l = ops⌝ := sorry
+    ownCommittedOps (GF := GF) γ ops ⊢
+      ownCommittedOps γ ops ∗ ∃ l, isCommittedLogLb γ l ∗ ⌜opsOf l = ops⌝ := sorry
 
 /-- The requested entries of a committed log are a prefix of those committed now. -/
 theorem ownCommittedOps_lb_prefix (γ : Cluster) (ops l : List LogEntry) :
@@ -124,6 +126,9 @@ at `∅`. (The authority-over-used-keys pattern of a ghost map; a client whose r
 concurrently shares it through its own invariant.) -/
 @[no_expose] def ownReadCtxs (γ : Cluster) (U : GSet (List w8)) : IProp GF := sorry
 
+instance ownReadCtxs_timeless (γ : Cluster) (U : GSet (List w8)) :
+    Timeless (ownReadCtxs (GF := GF) γ U) := sorry
+
 /-- **The read context `c` is committed to `Q`** (persistent): every read with context `c` takes
 effect at a moment when the committed requested entries are some `ops`, and gives `□ Q ops`
 (`readStateOk_ctx`). A client may retry a read with the same context. -/
@@ -143,7 +148,7 @@ theorem readCtx_commit (γ : Cluster) (N : Namespace) (U : GSet (List w8)) (c : 
     ownReadCtxs (GF := GF) γ U ∗
       □ AU <{ ∃∃ (ops : List LogEntry), ownCommittedOps γ ops }> @ ⊤ \ ↑N, ∅
            <{ ownCommittedOps γ ops, COMM □ Q ops }> ⊢
-    |==> ownReadCtxs γ (insert c U) ∗ isReadCtx γ N c Q := sorry
+    |==> (ownReadCtxs γ (insert c U) ∗ isReadCtx γ N c Q) := sorry
 
 /-- (open) **A read request's credit**: raft counts read requests in a 64-bit counter (today's
 `rdCred`); carried over until the read path's bounds are redesigned. -/
@@ -467,7 +472,7 @@ abbrev node.ProposeConfChange.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗ nodeCtx ctx cd ∗
       ownConfChangeI c dq (some o) ∗
       AU <{ ∃∃ (ops : List LogEntry), ownCommittedOps γ ops }> @ ⊤ \ ↑N, ∅
-         <{ ∀∀ (t : w64) (bs : List w8), ⌜MarshalsConfChange (some o) bs⌝ →
+         <{ ∀∀ (t : w64) (bs : List w8), ⌜MarshalsConfChange (some o) bs⌝ ∗
               ownCommittedOps γ (ops ++ [⟨t, confChangeEntryType (some o), bs⟩]),
             COMM True }> }}
     (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"ProposeConfChange"))
