@@ -1,8 +1,0 @@
-schema_version: "1.1"
-name: cache-get
-expected_outcome: |
-  A findings report on Cache.Get's spec at the cache package's boundary: what it promises
-  about the returned key-values and revision relative to etcd's history (linearizable or stale reads,
-  the revision bound), its premises (the cache being ready, options), whether it states the B-tree's
-  or the client's internals rather than the cache's own abstraction, and whether its clients (the
-  cachekv example) need to unfold its predicates. No answer key yet: judged by the user.

@@ -50,3 +50,6 @@ pushed; a note in `notes/decisions.md` for each spec whose design changed (what 
 in `notes/STATUS.md`; a report listing each finding, what you did about it (fixed, rejected and why,
 or left for the user), and the `interface/` diff of the target. With `--review-only`, the report of
 findings is the deliverable and nothing is changed.
+
+**Evals** (`evals/`, when added): one small target each, whose review the user can read and
+critique in one sitting.
