@@ -314,6 +314,32 @@ theorem srv_entry_transfer (ai₀ : w64) (A L : List EntryModel) (P : EntryModel
     obtain ⟨m', hm', he⟩ := List.mem_map.1 (h.subset hin)
     exact hP m m' he.symm (hL m' hm')
 
+/-- **Where a committed log's entry comes from** (2026-10-27): an entry of a committed log `A`
+whose requested entries are a prefix of the server's log `L`'s is an empty normal entry (a filler)
+or has the term, type and data of one of `L`'s. -/
+theorem srv_entry_src (ai₀ : w64) (A L : List EntryModel) (hA : srvIdxOkW ai₀ A)
+    (h : Draft.opsOf (A.map EntryModel.toLE) <+: L.map EntryModel.toLE) :
+    ∀ m ∈ A, (m.typ = W32 0 ∧ m.data = []) ∨ ∃ m' ∈ L, m'.toLE = m.toLE := by
+  intro m hm
+  by_cases hf : m.toLE.isFiller
+  · obtain ⟨n, hn⟩ := List.getElem?_of_mem hm
+    have ht := (hA n m hn).2
+    obtain ⟨hd, hty⟩ := hf
+    simp only [EntryModel.toLE] at hd hty
+    refine .inl ⟨?_, hd⟩
+    rcases ht with ht | ⟨ht, -⟩
+    · exact ht
+    · rcases hty with h0 | h2
+      · exact h0
+      · have h12 : (W32 1 : w32) = W32 2 := ht.symm.trans h2
+        exact absurd h12 (by decide)
+  · have hin : m.toLE ∈ Draft.opsOf (A.map EntryModel.toLE) := by
+      unfold Draft.opsOf
+      rw [List.mem_filter]
+      exact ⟨List.mem_map_of_mem hm, by simp [hf]⟩
+    obtain ⟨m', hm', he⟩ := List.mem_map.1 (h.subset hin)
+    exact .inr ⟨m', hm', he⟩
+
 /-- **A committed log's equivalent prefix of the server's log** (2026-10-27): the prefix of `L`
 holding a committed log `A`'s requested entries, with the same requested entries. -/
 theorem srv_eqv_prefix (γ : ServerRaftNames) (A L : List EntryModel) (hA : srvIdxOkW γ.ai0 A)
