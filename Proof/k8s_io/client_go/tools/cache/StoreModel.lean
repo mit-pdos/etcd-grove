@@ -91,6 +91,10 @@ def St.update (σ : St) (k : GoString) (o : GoInterface) (rvo : Option GoString)
 def St.delete (σ : St) (k : GoString) (rvo : Option GoString) : St :=
   { σ with items := GMap.delete k σ.items, rv := rvo.getD σ.rv }
 
+/-- The resource version `DeleteWithObject(key, obj)` takes: none for a `nil` object. -/
+def rvOfObj (rvOf : GoInterface → Option GoString) (o : GoInterface) : Option GoString :=
+  if o = interface.nil then none else rvOf o
+
 /-- `Replace(items, rv)`: the items and resource version replaced. -/
 def St.replace (σ : St) (it : Items) (rv : GoString) : St := { σ with items := it, rv := rv }
 
