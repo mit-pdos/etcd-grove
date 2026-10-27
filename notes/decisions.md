@@ -22256,3 +22256,47 @@ removed; one axiom restated (weaker premise), one restated through its predicate
   configuration (`raftSnapCert`: static, the boot configuration; dynamic, the fold of the prefix)
   and the data's (`snapDataOk`, trivial for the servers): a new obligation on `applyConfChange`'s
   and `run`'s `ep.confState`, not in the plan until now.
+
+## D22 J4b: `EtcdServer.snapshot` translated and proved, not linked (2026-10-27 · decided by the orchestrator while the user was away (J5/J4))
+
+The coordinator's process change (2026-10-27): J4b on top of J4a without merging `lean` again.
+
+- **Translated** (`Code/go_etcd_io/etcd/server/v3/etcdserver.toml`): `EtcdServer.snapshot` and
+  `verifyConsistentIndexIsLatest`.
+- **`verifyConsistentIndexIsLatest.spec`** (new, proved): a read-only snapshot whose index is at
+  most `cindex` passes `verify.Verify`'s check (no panic with assertions on).
+- **`EtcdServer.snapshot.specFull`** (new, `Spec/.../EtcdServer__snapshot.lean`), proved
+  (`EtcdServer.snapshot.wp_proof_full`, `SnapTakeProof.lean`, both `toDisk` cases, every `Panic`
+  refuted): `spec` (the axiom) plus what the body needs: the server's view (`isServer`,
+  `isServerApplyAll`); with `toDisk`, `KV().Commit()`'s contract `srvKVCommitOk kv RC RC'` with
+  `RC` (as the merged snapshot's sender, `SnapSendBranch.lean`: abstract, for whoever discharges
+  it from the store's writer resources); the storage's certificate registry (`memCertReg γs`,
+  `SnapTake.lean`: the registry's authority in an invariant tying its entries to nothing, free in
+  raft's no-snapshot mode where raft reads no storage certificate); `uint.Z ai ≤ uint.Z (ciEff γ
+  st.k)` (`verifyConsistentIndexIsLatest`'s check); the disk's storage (`srvSnapDisk s γr`: the
+  `*storage.storage` interface, `saveSnapOk` (the WAL's `SaveSnap` returns `nil`, names-only),
+  `inv snapDirN (snapDirInv ss γd img Rm)` with `□ ∀ j, monoNatLbOwn γr.applied (j + 1) -∗ Rm j`,
+  which both `NewServer`'s `Rm = True` and J1a's `srvSnapRm` meet) with `appliedAtLeast γr ai`, and
+  `storage.releaseOk`. `CreateSnapshot.wp_reg` (`SnapTake.lean`): `CreateSnapshot` over the shared
+  token and the registry, any `memCsArg` (`ep.confState` may be `nil`), the any-term entry
+  registered at the linearization point.
+- **raft's `isInitialized`** gains `ErrSnapOODNew` (`ErrSnapOutOfDate` as the `errors.New` error it
+  is, `storage.go:32`), for `errors.Is(err, raft.ErrSnapOutOfDate)` (a leaf error, as
+  `ErrCompactedNew`); raft's `Init.lean` proves it unchanged. A stronger package fact: no
+  statement weakens.
+- **Not linked**: `snapshot.spec` stays the axiom `snapshotIfNeededAndCompactRaftLog` uses (axioms
+  unchanged by J4b), because `specFull`'s premises do not reach `applyAll`. **To link** (after
+  J1a; the integration's or J4c's): (1) `bootOk` hands over `memCertAuth γs` (true:
+  `NewMemoryStorage.spec`'s; `memCertReg_alloc`), `NewServer` allocates `memCertReg`; (2)
+  `srvSnapDisk` from J1a's `srvSnapRO` (its `rnStorageAddr`, `storageSnap`, directory invariant at
+  `srvSnapRm`, plus a `SaveSnap` clause in `bootOk`, J1a's); (3) `uint.Z ai ≤ uint.Z (ciEff γ
+  st.k)` kept by `applyRes` (`applyEntries`'s `ciEff` is `max(ci, ai')` after entries, `ciJ`; at
+  the start `ai₀ ≤ c₀`, true of a new cluster, `ai₀ = 0`); (4) `KV().Commit()`'s `RC` from the
+  store's writer resources in `srvApplyKV` (the write token from `srvWTPool_take_extra`), the open
+  item the merged snapshot's sender has too; (5) `storage.releaseOk` from `snapOpensOk`. Then
+  `snapshotIfNeededAndCompactRaftLog`, `applyAll` and `applyRes` carry the four, `snapshot.spec`
+  is replaced by `specFull` and the axiom goes. L3 replaces `memCertReg` by raft's `memCertInv`
+  (`ep.confState`'s certificate, "D22 J4").
+- `notInterface_uint64_snapTake`: a third local copy of `go.NotInterface go.uint64` (as
+  `sendMergedSnap`'s, `InvStart`'s, `BackendLemmas2`'s): Perennial has no instance for
+  `uint64` (`notes/perennial-changes.md` should list it if it does not).

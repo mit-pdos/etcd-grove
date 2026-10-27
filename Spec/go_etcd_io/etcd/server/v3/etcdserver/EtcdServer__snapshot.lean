@@ -5,6 +5,8 @@ counterpart); the request path's unit 4b (2026-10-13).
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApplyAll
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapTake
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvSnapSend
 
 @[expose] public section
 
@@ -58,6 +60,41 @@ abbrev EtcdServer.snapshot.spec : Prop :=
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"snapshot")) (Val #ep))
       (Val #toDisk))
   {{ RET #(); ∃ st' : ApplyState, srvSnapState s ep ms γs ai ai ∗
+      epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs ∗
+      applyThread γ st' ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗ srvApplyKV s E γw x ∗
+      ⌜loopOk γ st' ai ∧ ciEff γ st'.k = ciEff γ st.k⌝ }}
+
+/-- **`s.snapshot(ep, toDisk)`, of the translated body** (D22 J4b, 2026-10-27; proved,
+`EtcdServer.snapshot.wp_proof_full`, `SnapTakeProof.lean`; not linked yet: its premises beyond
+`spec`'s do not reach `applyAll` before J1a's bundle, `notes/decisions.md`, "D22 J4b"). As `spec`,
+with what the body needs beyond it:
+* the server's view (`isServer`: the logger, the member id, the consistent index's field) and
+  `applyAll`'s (`isServerApplyAll`: `SnapshotCount`);
+* with `toDisk`, `s.KV().Commit()`'s contract (`srvKVCommitOk kv RC RC'`, as the merged snapshot's
+  sender has it, `SnapSendBranch.lean`) and its `RC`, `RC'` after;
+* `CreateSnapshot`'s certificate: the storage's registry (`memCertReg`, `SnapTake.lean`);
+* `verifyConsistentIndexIsLatest`'s check: the consistent index at least `ai`;
+* with `toDisk`, the disk's storage (`srvSnapDisk`: `SaveSnap`, and `Release`'s directory at a
+  removal fact the applied index past `j` gives) with the applied index at least `ai`, and
+  `Release` not failing (`storage.releaseOk`, as `applySnapshot`'s `snapOpensOk`). -/
+abbrev EtcdServer.snapshot.specFull : Prop :=
+  ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
+    (ρ : ReqNames) (γr : ReadNames) (γw : GName) (b : GoInterface) (ep : Loc)
+    (st : ApplyState) (ai at' : w64) (cs : Loc) (a t : w64) (x : apply.ApplyKV) (toDisk : Bool)
+    (ms : Loc) (γs : MemStorNames) (sl : w64) (kv : GoInterface) (RC RC' : IProp GF),
+  loopOk γ st ai → uint.Z ai ≤ uint.Z (ciEff γ st.k) → storage.releaseOk →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      isServer s γ ci TM E ρ γr ∗ isServerApplyAll s γr ∗
+      srvSnapState s ep ms γs ai sl ∗ memFloorAtLeast ms γs (uint.Z ai) ∗
+      memCertReg γs ∗ srvSnapDisk s γr ∗ appliedAtLeast γr ai ∗
+      srvKVAddr s ↦□ kv ∗ srvKVCommitOk kv RC RC' ∗ (if toDisk then RC else iprop(True)) ∗
+      epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs ∗
+      applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗
+      srvApplyKV s E γw x }}
+    (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"snapshot")) (Val #ep))
+      (Val #toDisk))
+  {{ RET #(); ∃ st' : ApplyState, srvSnapState s ep ms γs ai ai ∗
+      (if toDisk then RC' else iprop(True)) ∗
       epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs ∗
       applyThread γ st' ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗ srvApplyKV s E γw x ∗
       ⌜loopOk γ st' ai ∧ ciEff γ st'.k = ciEff γ st.k⌝ }}

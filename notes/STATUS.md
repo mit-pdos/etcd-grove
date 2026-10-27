@@ -249,6 +249,10 @@ removed, ..., adequacy coverage" below.
     no registry authority (`bootOk`), nor yet J1a's bundle at the apply thread; J4b's brief, and an
     L3 obligation (`ep.confState`'s certificate), in `notes/decisions.md`, "D22 J4". The ceiling
     `γsc` moved to J6b.
+    **J4b done (2026-10-27)**: `snapshot` (and `verifyConsistentIndexIsLatest`) translated and
+    proved over `snapshot.specFull` (`SnapTakeProof.lean`), not linked: the axiom `snapshot.spec`
+    stays until `specFull`'s premises (the registry `memCertReg` from `bootOk`, J1a's disk bundle,
+    `ai ≤ ci`, `KV().Commit()`'s resources) reach `applyAll` (`notes/decisions.md`, "D22 J4b").
   - **J7 of the S-j plan done (2026-10-26)** (`notes/snapshot-sj-plan.md`; `notes/decisions.md`,
     "D22 J7"): `SnapRecvFacts.lean` (no `sorry`) derives `specSnap`'s `hpre`, `hkI`, `hlease`,
     `halarm`, `hauthb`, `hmemb`, `himg`, `hA'` (`snapRecv_image`, the `SnapImageFacts` record),
