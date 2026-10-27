@@ -191,6 +191,59 @@ theorem au_read_any (γ : ApiNames) (K : St → IProp GF) :
   iexists σ0
   iframe
 
+/-- **A caller's linearization point passed on** (a client method over the server's): the
+caller's update, with its continuation weakened (knowing both states well formed). -/
+theorem au_mono {O : Type} (γ : ApiNames) (R : St → O → St → Prop) (K1 K2 : St → St → O → IProp GF) :
+    (|={⊤ \ ∅, ∅}=> ∃ σ0, apiState γ σ0 ∗
+        (∀ σ1 o, apiState γ σ1 ∗ ⌜R σ0 o σ1⌝ -∗ |={∅, ⊤ \ ∅}=> K1 σ0 σ1 o)) ∗
+      (∀ σ0 σ1 o, ⌜R σ0 o σ1 ∧ σ0.wf ∧ σ1.wf⌝ -∗ K1 σ0 σ1 o -∗ K2 σ0 σ1 o) ⊢
+    |={⊤ \ ∅, ∅}=> ∃ σ0, apiState γ σ0 ∗
+        (∀ σ1 o, apiState γ σ1 ∗ ⌜R σ0 o σ1⌝ -∗ |={∅, ⊤ \ ∅}=> K2 σ0 σ1 o) := by
+  iintro ⟨HAU, Hw⟩
+  imod HAU with ⟨%σ0, Hst, Hcl⟩
+  iunfold apiState at Hst
+  icases Hst with ⟨%H0, Ha0, %Hok0⟩
+  imodintro
+  iexists σ0
+  isplitl [Ha0]
+  · iunfold apiState
+    iexists H0
+    iframe
+    ipureintro; exact Hok0
+  iintro %σ1 %o ⟨Hst, %HR⟩
+  iunfold apiState at Hst
+  icases Hst with ⟨%H1, Ha1, %Hok1⟩
+  imod Hcl $$ %σ1 %o [Ha1] with HK
+  · isplitl
+    · iunfold apiState
+      iexists H1
+      iframe
+      ipureintro; exact Hok1
+    · ipureintro; exact HR
+  imodintro
+  iapply Hw $$ %σ0 %σ1 %o %(And.intro HR (And.intro (histOk_last_wf Hok0) (histOk_last_wf Hok1))) HK
+
+/-- The same for a read (the state unchanged). -/
+theorem au_mono_read (γ : ApiNames) (K1 K2 : St → IProp GF) :
+    (|={⊤ \ ∅, ∅}=> ∃ σ, apiState γ σ ∗ (apiState γ σ -∗ |={∅, ⊤ \ ∅}=> K1 σ)) ∗
+      (∀ σ, ⌜σ.wf⌝ -∗ K1 σ -∗ K2 σ) ⊢
+    |={⊤ \ ∅, ∅}=> ∃ σ, apiState γ σ ∗ (apiState γ σ -∗ |={∅, ⊤ \ ∅}=> K2 σ) := by
+  iintro ⟨HAU, Hw⟩
+  imod HAU with ⟨%σ0, Hst, Hcl⟩
+  iunfold apiState at Hst
+  icases Hst with ⟨%H0, Ha0, %Hok0⟩
+  imodintro
+  iexists σ0
+  isplitl [Ha0]
+  · iunfold apiState
+    iexists H0
+    iframe
+    ipureintro; exact Hok0
+  iintro Hst
+  imod Hcl $$ Hst with HK
+  imodintro
+  iapply Hw $$ %σ0 %(histOk_last_wf Hok0) HK
+
 end lemmas
 
 end apimodel
