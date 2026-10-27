@@ -234,6 +234,24 @@ removed, ..., adequacy coverage" below.
     raft's names (`snapDirs_alloc`), `NewServer.spec` taking `γd` with `snapDir_init`. `Process`
     unchanged (MsgSnap refuted in the no-snapshot mode; L3 adds `γd` to `srvProcOk`). No axiom.
     `notes/decisions.md`, "D22 J2".
+  - **Integration 2 (2026-10-27)**: J1a, J6a, J4a and J7b merged with `lean` and landed (the
+    resolutions joined both sides; `KVModelRestore` over lean's lease table, J6a's `rn_ready_recvL`
+    through raft's sealed `readyP_take`). Trust base unchanged (724 axioms, 4 `sorry`s after lean's, which removed one).
+    `notes/decisions.md`, "D22 integration 2".
+  - **J6a done (2026-10-26)**: the raft node's payload with a snapshot (`rnApP = rnApN ∨
+    rnApSnap`, `rnReadySnap`, `rn_ready_recvL`, `rnApplyTok_recvS`, `updateCommittedIndex` with a
+    snapshot), parametric in raft's mode; and J7b's raft part: `readySnapData` states the snapshot's
+    id is the last of its committed log (`ownRawNodeReady_loanLast`). Left to J6b/J8a: a two-receive
+    `notifyc`. `notes/decisions.md`, "D22 J6a".
+  - **J1a done (2026-10-26)**: the snapshot path's construction bundle `srvSnapBoot`
+    (`SnapRO.lean`: `srvSnapRO`, the snapshot-taken counter `γt`'s authority, the `E.RD`/`lgMu`
+    reader-slot stocks) from `NewServer` through `srvBuilt`, `isServerBuilt` and `isServerRun`;
+    `snapDirInv`'s removal fact `srvSnapRm` (J0 item 3); `bootOk`'s `keySized` for every backend and
+    the backend hooks; `isRNWal`'s `SaveSnap`/`Sync`; `NewStorage`'s `storageSnap`;
+    `NewAuthStore`'s axiom restated with `authRecoverOk`. Not done (false or racy as planned):
+    `specSnap`'s `isMetaBackend` family and the whole `s.Cfg` read-only
+    (`issues/etcd-cfg-watch-progress-interval-race.md`), J8a's to restate. No axiom, no `sorry`.
+    `notes/decisions.md`, "D22 J1a".
   - **The rest of D22 after S8d** (`notes/snapshot-sj-plan.md`, stages J*/L*): J0 (design) done;
     **J3 done (2026-10-26)**: the storage's three snapshot methods logically atomic over
     `memSnapTokG` (the application's key `ak` stays with `CreateSnapshot`'s caller, not in the
@@ -243,15 +261,26 @@ removed, ..., adequacy coverage" below.
     `applied_jump` (the ghost jumps, the atomic stays: Go's lag), the write counter decoupled
     (`srvWTTaken`, a count the apply functions raise by the entries applied; `applyRes` keeps
     `ai ≤ w`, J8a's to make conditional). No axiom (`notes/decisions.md`, "D22 J5").
+    **J4 (part a) done (2026-10-26)**: the storage's token shared (`srvSnapState`: its ghost part in
+    `srvStorTokN`'s invariant, allocated by `run` after `Snapshot()`), `compactRaftLog` over it
+    (`Compact.wp_shared`), `storage.Release` over any `Rm`. **`EtcdServer.snapshot` still an
+    axiom**: `CreateSnapshot` needs the created snapshot's registry certificate, and the server has
+    no registry authority (`bootOk`), nor yet J1a's bundle at the apply thread; J4b's brief, and an
+    L3 obligation (`ep.confState`'s certificate), in `notes/decisions.md`, "D22 J4". The ceiling
+    `γsc` moved to J6b.
   - **J7 of the S-j plan done (2026-10-26)** (`notes/snapshot-sj-plan.md`; `notes/decisions.md`,
     "D22 J7"): `SnapRecvFacts.lean` (no `sorry`) derives `specSnap`'s `hpre`, `hkI`, `hlease`,
     `halarm`, `hauthb`, `hmemb`, `himg`, `hA'` (`snapRecv_image`, the `SnapImageFacts` record),
     the restored log `R` and `certOk` with the KV jump (`snapRecv_kv_jump`, `kvApplied_of_jump`),
     from `srvImage`, the apply thread's state and the KV invariants; +1 axiom
     `membership.clusterImageOk_restModel.wp_proof` (not pure: it ties the cluster by `clusterMem`).
-    **Not derivable from the image's certificate**, for J8a: `hmeta` at the snapshot's term
-    (`imageAt` says some term) and `hRok` (`restoreLogOk R`, the sender's store's knowledge; also
-    `kv_cert_jump`'s length bound): `imageAt`/`dbImage` must carry them, set by the sender.
+    **J7b done (2026-10-26)** (`notes/decisions.md`, "D22 J7b"): the two premises J7 left.
+    `imageAt` carries `IdxWf (kvModel γk A) []` (the sender's sole writer's, `soleWriter_idxWf`;
+    `imageAt_of_snap` takes it as `hwf`), and `SnapImageFacts` gains `hRok` (`restoreLogOk R`,
+    with the model's non-empty, lease-free revisions of a plain log, `KVModelRestore.lean`) and
+    `hlen` (`snapRecv_kv_jump`'s bound). `hmeta`: `specSnap` takes the image's stored term `tI`
+    (generalized, not the snapshot's `Metadata.Term`: the consistent index's protocol tracks no
+    term, restore reads none), which `hmetaI` gives. No axiom, no `sorry`.
   - **S-j, the receiver** (`raftNode.start`'s snapshot branch; `applySnapshot` past the empty
     case: the backend swap, the `Recover`s, `kv.Restore`, the transport's peers re-made; +6 to +8
     axioms estimated): waits on the epochs. **S-k** (the quota after the swap, stage L1) **done

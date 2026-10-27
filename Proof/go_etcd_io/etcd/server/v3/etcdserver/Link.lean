@@ -2099,7 +2099,7 @@ theorem raftNode.wp_processMessages :
 
 theorem wp_updateCommittedIndex :
     updateCommittedIndex.spec (GF := GF) (hG := hG) :=
-  updateCommittedIndex.wp_proof raftpb.Entry.wp_GetIndex
+  updateCommittedIndex.wp_proof raftpb.Entry.wp_GetIndex raftpb.SnapshotMetadata.wp_GetIndex
 
 theorem raftNode.wp_onStop :
     raftNode.onStop.spec (GF := GF) (hG := hG) :=

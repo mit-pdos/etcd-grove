@@ -38,7 +38,7 @@ theorem raftNode.onStop.wp_proof :
   icases Htri with ⟨%ti, %Htieq, #HSend, #HTrStop⟩
   subst Htieq
   iunfold isRNWal at Hsti
-  icases Hsti with ⟨%si, %Hsieq, #HSave, #HClose⟩
+  icases Hsti with ⟨%si, %Hsieq, #HSave, #HClose, -, -⟩
   subst Hsieq
   iunfold rnDoneTok at Hdone
   icases Hdone with ⟨%dnc', #Hdnc', Hbc⟩

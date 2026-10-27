@@ -36,8 +36,10 @@ abbrev EtcdServer.applySnapshot.spec : Prop :=
 
 /-- **`s.applySnapshot(ep, ap)` with a non-empty snapshot** (D22 receiver epochs, S8d, 2026-10-26;
 `notes/snapshot-s8-plan.md`): the snapshot `sv` newer than the applied index `ai` (Go panics
-otherwise), its backend file `snapDBPath ss i` holding the image `D` (its metadata, `metaIs`; the
-restored log `[[], []] ++ R` extending the KV's, `keyImage`), the apply thread's resources before.
+otherwise), its backend file `snapDBPath ss i` holding the image `D` (its metadata, `metaIs`, at the
+snapshot's index and the image's stored term `tI`, D22 J7b: until then the snapshot's
+`Metadata.Term`, which the image's certificate does not give and the proof does not need, the term
+only naming the consistent index's protocol at the new backend; the restored log `[[], []] ++ R` extending the KV's, `keyImage`), the apply thread's resources before.
 `OpenSnapshotBackend` opens the new backend, `ci.SetBackend` swaps the consistent index's (the
 protocol's names move to `futPhys π0 γB`), the KV, the lessor, the alarm and auth stores and the
 cluster recover from it, `s.be` is swapped under `bemu`, the old backend is closed in a goroutine
@@ -45,7 +47,7 @@ cluster recover from it, `s.be` is swapped under `bemu`, the old backend is clos
 monitor's shares the swap gathers), the transport's peers are removed and the members re-added
 (W8), and `NewUberApplier` rebuilds the applier: `srvSnapApplied`. Named premises (S-j1's to
 discharge): the image's facts (`hmeta`, `hkI`, `hRok`, `hpre`, `hlease`, `halarm`, `hauthb`,
-`hmemb`, `himg`, `hA'`), the auth store's mode `.off` (`hoff`), the auth store's `Recover` (`srvAuthRecoverOk`, the auth track's E
+`hmemb`, `himg`, `hA'`), the auth store's mode `.off` (`hoff`), the auth store's `Recover` (`authRecoverOk`, the auth track's E
 stage), the members' directory (`srvMembersDir`) and `8·|ps|` reader slots of the transport's
 `lgMu`, the KV's closer, `NewUberApplier`'s fields and feature gate, the stores' contracts on
 whichever backend (`alarmApplyOk`, `authApplyOk`, `lessorApplyOk`, `clusterApplyOk`). -/
@@ -59,7 +61,7 @@ abbrev EtcdServer.applySnapshot.specSnap : Prop :=
     (hdbo : storage.dbOpensOk) (hsop : storage.snapOpensOk)
     (hP : d.P.Wf ∧ d.P.limit = storage.openLimit cfg ∧ ciKeys d.P ∧ storage.hooksParams d.P)
     (hcfgl : cfg.Logger' ≠ null)
-    (hmeta : metaIs D (sv.Metadata'.Index', sv.Metadata'.Term'))
+    (tI : w64) (hmeta : metaIs D (sv.Metadata'.Index', tI))
     (st : ApplyState) (b : GoInterface)
     (hle : uint.Z (ciEff γ st.k) ≤ uint.Z sv.Metadata'.Index')
     (al ast lp cl : Loc) (x : apply.ApplyKV) (A : List EntryModel)
@@ -135,13 +137,13 @@ abbrev EtcdServer.applySnapshot.specSnap : Prop :=
        srvCfgFieldAddr s go!"WarningApplyDuration" ↦□ wad ∗
        apply.alarmGetIs al Tal zal ∗ Tal ∗
        backend.isStopChans d.γB d.be ∗ backend.bOpen d.γB (1 : Qp).half ∗
-       srvAuthRecoverOk ast ∗
+       authRecoverOk ast ∗
        -- (S8d's named premises, S-j1's: `NewServer`'s contracts of the stores on whichever backend)
        alarmApplyOk al ∗ authApplyOk ast E.RD ∗ lessorApplyOk lp ∗ clusterApplyOk cl ∗
        lease.lessorCfg lp ∗ lessorLookupOk lp ∗ (∃ n : Loc, membership.rcVersionChangedAddr cl ↦□ n) ∗
        -- (S-j1's) a second reader resource of the auth store: `NewUberApplier` takes one, the KV's
        E.RD ∗
-       □ (∀ (π : ApplyPhys) (b : Loc), ⌜π.m0 = (sv.Metadata'.Index', sv.Metadata'.Term')⌝ →
+       □ (∀ (π : ApplyPhys) (b : Loc), ⌜π.m0 = (sv.Metadata'.Index', tI)⌝ →
           isMetaBackend (interface.mkOk (go.GoType.PointerType
             go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b) (⊤ \ ↑applyN) (readView (γ.withPh π))) }}
       (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applySnapshot")) (Val #ep))

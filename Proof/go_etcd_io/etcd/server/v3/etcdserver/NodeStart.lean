@@ -314,7 +314,9 @@ abbrev NodeStartSpec (reg : GName) : Prop :=
             rv.lg' = bv.lg' ∧ rv.raftNodeConfig'.raftStorage' = bv.storage' ∧
             rv.raftNodeConfig'.heartbeat' = bv.heartbeat' ∧
             rv.raftNodeConfig'.transport' = GoInterface.nil ∧
-            rv.raftNodeConfig'.Node' = rnNodeIface γw⌝ ∗
+            rv.raftNodeConfig'.Node' = rnNodeIface γw ∧
+            -- (D22 J1a, 2026-10-26) the storage a `*storage` over the snapshotter `ss`
+            rnStorageOf rv.raftNodeConfig'.storage' ss⌝ ∗
           -- the struct value, to be copied; its fresh mutex
           r ↦ rv ∗ rv.tickMu' ↦ (zero_val sync.RWMutex) ∗
           -- (D21 M2, 2026-10-19) the node's inbound methods (`Process`'s), from the start
@@ -372,8 +374,8 @@ theorem raftNode_of_StartNode (reg : GName)
   wp_apply (wp_bnr E γ md bud b ss wal cl dq bv cv lok γs reg [] pv ps ctxs bootLog Hlg Hhb Hvalid Hlok
     Hstor Hinfl Hdpf Hro Hdccv Hsizes Hasync Happlied Hps Hpsne Hnodup H0 Hpslen Hid Hcfg
     Hboot HbootOk Hmd0) $$ [Hb Hc Hsto Hpeers Hghost Htok]
-    as %r ⟨%γn, %n, %γw, %f, %st, %Hnames, #Hnode, Hdrv, Hncfg, #Hidri, #Hsti, Hbuilt, Hb, Hpeers,
-      Htok⟩
+    as %r ⟨%γn, %n, %γw, %f, %st, %Hnames, #Hnode, Hdrv, Hncfg, #Hidri, #Hsti, %Hstss, Hbuilt, Hb,
+      Hpeers, Htok⟩
   · iframe #; iframe Hb Hc Hsto Hpeers Hghost Htok
   obtain ⟨Hγraft, Hγbud, Hγstor, Hγmode, Hγrd, Hwnode, Hwid, Hwnl, Hwpre, Hwms, Hwγs, Hwreg⟩ :=
     Hnames
@@ -428,8 +430,8 @@ theorem raftNode_of_StartNode (reg : GName)
       by rw [Hwnode]; exact Hγstor, by rw [Hwnode]; exact Hγmode, Hγrd,
       Hwid, Hnid.trans Hwid, Hwpre,
       Hwms, Hwγs, rfl,
-      Hrvlg, ?_, ?_, ?_, ?_⟩ <;> rw [Hrvcfg]
-    simp only [rnNodeIface, Hwnl]
+      Hrvlg, ?_, ?_, ?_, ?_, ?_⟩ <;> rw [Hrvcfg]
+    all_goals first | exact Hstss | simp only [rnNodeIface, Hwnl]
   iframe Hr Hmu Hloop Happly Hlinv Hb Hpeers Htok
   isplitr
   · iapply rnStepIfc_of_isNode γw wp_Step wp_ReportUnreachable wp_ReportSnapshot
