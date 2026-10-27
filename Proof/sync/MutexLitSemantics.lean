@@ -13,10 +13,10 @@ model's image of `sync.Mutex{}`) is its zero value `false`.
 A **hypothesis class** on the semantics in use, like `EtcdGrove.Float64ToInt64Semantics`, not an
 axiom: the results that need it take it as an instance argument (`etc/gen-link.py`'s
 `SEM_PREMISES`). (The backend's `backend.wp_mutexLit`, `storage/backend/MutexLit.lean`, states the
-same gap as an axiom of a WP, for every semantics; a model in which the literal does not step
-makes that axiom false: `notes/STATUS.md`.) The general fix, an empty composite literal of a type
-whose underlying type is not a struct being its zero value, is for Perennial
-(`notes/perennial-changes.md`, "`sync.Mutex{}`").
+same gap as a trust-boundary axiom of a WP; a premise on the step is the narrower statement, and
+lets the WP be proved.) The general fix, an empty composite literal of a type whose underlying type
+is not a struct being its zero value, is for Perennial (`notes/perennial-changes.md`,
+"`sync.Mutex{}`").
 -/
 module
 
