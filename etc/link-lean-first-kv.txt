@@ -12,16 +12,18 @@ MemoryStorage__Append: @
 MemoryStorage__ApplySnapshot: @
 MemoryStorage__CreateSnapshot: @
 MemoryStorage__Compact: @
+# (branch kv-port, 2026-10-27) the node's, on raft's draft API (`NodeApiDraft.lean`, placeholders
+# linked by hand in `Link.lean`: `Draft.node.wp_Propose`, ...; `node__readyRecv` is the receive of
+# a `Ready`)
 node__Propose: @
 node__ReadIndex: @
 node__TransferLeadership: @
 node__Ready: @
+node__readyRecv: @
 node__Advance: @
 RestartNode: @
 node__Step: @
-node__ApplyConfChange: @
 node__ProposeConfChange: @
-proto_UnmarshalConfChange: @
 proto_CloneSnapshot: @
 node__Tick: @
 raftpb_Entry__GetType: @
@@ -62,7 +64,7 @@ KV__TransferLeadership: node__TransferLeadership
 KV__RemoveMember: node__ProposeConfChange raftpb_ConfChangeType__Enum
 KV__answer: decode
 KV__install: decode
-KV__run: fits KV__apply KV__answer KV__install encodeState decodeState node__Ready node__Advance MemoryStorage__Append MemoryStorage__ApplySnapshot MemoryStorage__CreateSnapshot MemoryStorage__Compact proto_UnmarshalConfChange node__ApplyConfChange raftpb_Entry__GetType raftpb_Entry__GetData
+KV__run: fits KV__apply KV__answer KV__install encodeState decodeState node__Ready node__readyRecv node__Advance MemoryStorage__Append MemoryStorage__ApplySnapshot MemoryStorage__CreateSnapshot MemoryStorage__Compact raftpb_Entry__GetType raftpb_Entry__GetData
 kv_New: KV__run
 # the cluster driver (examples/kv/cluster.go)
 kv_quietLogger__Debugf:
