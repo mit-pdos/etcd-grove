@@ -5,6 +5,7 @@ module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.updateCommittedIndex
 public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetIndex
+public import Spec.go_etcd_io.raft.v3.raftpb.SnapshotMetadata__GetIndex
 
 @[expose] public section
 
