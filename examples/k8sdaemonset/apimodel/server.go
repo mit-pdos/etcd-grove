@@ -58,7 +58,7 @@ type Server struct {
 	changed *sync.Cond
 
 	cfg Config
-	// rev is the last resource version issued (0: none yet).
+	// rev is the last resource version issued (1 for the empty store).
 	rev uint64
 	// rvs maps every resource version issued to its number.
 	rvs map[string]uint64
@@ -73,7 +73,11 @@ type Server struct {
 
 // NewServer returns an empty server with the given failure configuration.
 func NewServer(cfg Config) *Server {
-	s := &Server{cfg: cfg, rvs: make(map[string]uint64)}
+	// An empty store is at resource version 1, as etcd's first revision is: "0" is not a
+	// resource version a server issues (in a request it means "any"; client-go's
+	// resourceversion.CompareResourceVersion rejects it, so a list at "0" would turn the
+	// consistency store's check off).
+	s := &Server{cfg: cfg, rvs: map[string]uint64{"1": 1}, rev: 1}
 	s.changed = sync.NewCond(&s.mu)
 	s.pods = newTable(schema.GroupResource{Resource: "pods"}, true, emptyPod)
 	s.nodes = newTable(schema.GroupResource{Resource: "nodes"}, false, emptyNode)

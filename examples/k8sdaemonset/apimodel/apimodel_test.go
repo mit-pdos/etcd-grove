@@ -42,7 +42,7 @@ func TestCreateGeneratesNamesAndVersions(t *testing.T) {
 	if p1.Name == p2.Name || p1.Name == "" || p1.UID == p2.UID || p1.UID == "" {
 		t.Fatalf("names/UIDs not fresh: %q %q %q %q", p1.Name, p2.Name, p1.UID, p2.UID)
 	}
-	if p1.ResourceVersion != "1" || p2.ResourceVersion != "2" {
+	if p1.ResourceVersion != "2" || p2.ResourceVersion != "3" {
 		t.Fatalf("resource versions: %q %q", p1.ResourceVersion, p2.ResourceVersion)
 	}
 	if p1.Namespace != "default" || p1.Status.Phase != corev1.PodPending || p1.Generation != 1 ||
@@ -53,12 +53,31 @@ func TestCreateGeneratesNamesAndVersions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(l.Items) != 2 || l.ResourceVersion != "2" {
+	if len(l.Items) != 2 || l.ResourceVersion != "3" {
 		t.Fatalf("list: %d items at %q", len(l.Items), l.ResourceVersion)
 	}
 	other, err := c.CoreV1().Pods("other").List(ctx, metav1.ListOptions{})
 	if err != nil || len(other.Items) != 0 {
 		t.Fatalf("namespaced list: %v %v", other, err)
+	}
+}
+
+// An empty resource lists at a version the consistency store can compare, and a watch from it
+// sees the first change.
+func TestEmptyStoreVersion(t *testing.T) {
+	c := NewServer(Config{}).AdminClientset()
+	l, err := c.CoreV1().Pods("default").List(ctx, metav1.ListOptions{})
+	if err != nil || len(l.Items) != 0 || l.ResourceVersion != "1" {
+		t.Fatalf("empty list: %v %v", l, err)
+	}
+	w, err := c.CoreV1().Pods("default").Watch(ctx, metav1.ListOptions{ResourceVersion: l.ResourceVersion})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer w.Stop()
+	p, _ := c.CoreV1().Pods("default").Create(ctx, newPod("a-"), metav1.CreateOptions{})
+	if ev := next(t, w); ev.Type != watch.Added || ev.Object.(*corev1.Pod).Name != p.Name {
+		t.Fatalf("first event: %v", ev)
 	}
 }
 
@@ -204,7 +223,7 @@ func TestWatch(t *testing.T) {
 		t.Fatalf("first event: %v", ev)
 	}
 	ev = next(t, w)
-	if ev.Type != watch.Deleted || ev.Object.(*corev1.Pod).Name != first.Name || ev.Object.(*corev1.Pod).ResourceVersion != "3" {
+	if ev.Type != watch.Deleted || ev.Object.(*corev1.Pod).Name != first.Name || ev.Object.(*corev1.Pod).ResourceVersion != "4" {
 		t.Fatalf("second event: %v", ev)
 	}
 

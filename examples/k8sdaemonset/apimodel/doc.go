@@ -13,7 +13,8 @@
 //
 // One Server holds, per resource (pods, nodes, daemonsets, controllerrevisions), the stored
 // objects keyed by namespace and name, and the log of every change to the resource. Resource
-// versions are global, as etcd's revisions are: every change takes the next number, its string
+// versions are global, as etcd's revisions are: the empty server is at 1 (never "0", which is
+// not a version a server issues), every change takes the next number, its string
 // form (strconv.FormatUint in base 10, injective) is written into the stored object, and the model
 // keeps the numbers it issued by string, so it never parses a resource version.
 //
