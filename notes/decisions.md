@@ -23336,3 +23336,34 @@ over `srvApplyKVOn`/`kvAppliedOn`, the boot's `applyBuiltOn`), `run`'s loop over
 thread's admin steps is not in these posts yet. Then the admin proposers over `raftRequest.specM
 true`, the Auth handlers, `setupAuthOk`; then `examples/authkv` and the closed theorem.
 
+## E3q of the auth plan: `run` with auth on; `start` left for the mode-`on` read path (2026-10-27 · `notes/auth-plan.md`, E3p's first left item)
+
+`EtcdServer.run.specOn` (`Spec/.../EtcdServer__run.lean`) and its proof `wp_proofOn` with the job's
+body `run_job_bodyOn` (next to `wp_proof`/`run_job_body`, by the same edits); restated
+`server_run_on` (`Results.lean`, every callee linked, its jobs `server_apply_all_on`; no `sorry`,
+trust base unchanged). Premise `isServerRunOn` (`RunOn.lean`, additive): `isServerRun` with the
+server with auth on (`isServerM true`), the server's lessor finding no lease (`srvLessorNil`, the
+apply thread's latest-state triples' named premise, carried up: nothing discharges it yet), the raft
+environment's `E.C` in the mode (`srvCM true`: the batches of the mode-`on` log's shapes,
+`logShapeOn`), and the apply thread's start `applyStartOn` (the row `srvApplyKVOn` and the model
+`kvRunAtOn` at the start's auth state `srvAuthSt0`); the spec adds the environment's mode `on γa`
+(kept by the jobs' backend moves, `beSucc_authMode`) and the receipts' bound. The jobs' chain
+resource `applyResOn`: `applyRes` with the row and the model at one auth state `sa` (`StartOn`'s
+`kvRunOn` hides it, which the loop must share with the row: `kvRunAtOn`).
+
+**`start` not done, and why.** `start`'s post hands the request path's and the read path's views
+(`isServerReq`, `isServerRead`, `srvStarted`'s read loop precondition), all stated over the mode-off
+invariants: the read view's fields (`srvReadFieldsAt`: `srvAppliedInv`, `srvKVInvs`), the read
+loop's composition (`readCompose`, from `kv_read_compose` over `kvInv`), and the read server's
+discharge (`isReadServer_of_server`, over `isServerReq` and `isServerRead`). With auth on, the
+request view is at hand (`srvReqBuiltM true` gives `isServerReqM true`), but the read path needs its
+mode-`on` counterparts (the read view over `srvAppliedInvM true`/`srvKVInvsM true`, `kv_read_compose`
+over `kvInvOn`, the discharge over both), a stage of its own; `start.specOn`'s apply side is then
+`isServerBuiltOn`'s `applyBuiltOn` assembled into `applyStartOn` (the row from its parts, as
+`start`'s proof assembles `srvApplyKV`; `kvRunOn []`'s auth state is `srvAuthSt0`).
+
+**Not done (in order).** The mode-`on` read path and `start.specOn`; the readers' published lower
+bound `authPublishT` at the apply thread's admin steps; the admin proposers over `raftRequest.specM
+true`, the Auth handlers, `setupAuthOk`; `examples/authkv` and the closed theorem. `srvLessorNil` is
+a premise from `applyEntryNormal.specOn` up to `run.specOn`.
+

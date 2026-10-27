@@ -1789,6 +1789,18 @@ theorem server_apply_all_on [EtcdGrove.ErrorStringLeaf] :
     (EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proofOn EtcdServer.wp_shouldSnapshotToDisk
       EtcdServer.wp_shouldSnapshotToMemory EtcdServer.wp_snapshot EtcdServer.wp_compactRaftLog)
 
+/-- **`run` with auth on** (the auth plan's E3q, `EtcdServer__run.lean`'s `wp_proofOn`): from
+`isServerRunOn`, every scheduled job `server_apply_all_on` over the apply thread's mode-`on`
+resources (`applyResOn`). -/
+theorem server_run_on [EtcdGrove.ErrorStringLeaf] :
+    EtcdServer.run.specOn (GF := GF) (hG := hG) :=
+  EtcdServer.run.wp_proofOn server_apply_all_on EtcdServer.wp_Logger
+    raftpb.SnapshotMetadata.wp_GetIndex raftpb.SnapshotMetadata.wp_GetTerm
+    schedule.wp_NewFIFOScheduler EtcdServer.wp_getLead EtcdServer.wp_setLead EtcdServer.wp_isLeader
+    notify.Notifier.wp_Notify v2stats.ServerStats.wp_BecomeLeader EtcdServer.wp_getCommittedIndex
+    EtcdServer.wp_setCommittedIndex raftNode.wp_start raftNode.wp_apply schedule.wp_NewJob
+    schedule.Scheduler.wp_Schedule
+
 end adminLatest
 
 /-- **A refused admin check keeps the model's auth state; a passed one admits the principal** (the
@@ -1821,6 +1833,7 @@ theorem admin_state_auth_enable [ext : FfiSyntax] (γa : auth.AuthNames) (rq : E
 #print axioms Perennial.EtcdGrove.server_apply_on
 #print axioms Perennial.EtcdGrove.server_apply_entries_on
 #print axioms Perennial.EtcdGrove.server_apply_all_on
+#print axioms Perennial.EtcdGrove.server_run_on
 #print axioms Perennial.EtcdGrove.admin_state_of_latest
 
 section userAddHandler

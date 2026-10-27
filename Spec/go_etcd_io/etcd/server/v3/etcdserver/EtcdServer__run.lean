@@ -6,6 +6,7 @@ request path's unit 4c, 2026-10-13); see `InvRun.lean`.
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRun
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.RunOn
 
 @[expose] public section
 
@@ -45,6 +46,21 @@ abbrev EtcdServer.run.spec : Prop :=
     (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerRun s γ ci TM E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀ }}
+    (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"run")) (Val #()))
+  {{ RET #(); True }}
+
+
+/-- **`spec` in the auth mode `on`** (the auth plan's E3q, 2026-10-27): `run` from `isServerRunOn`
+(the apply thread's mode-`on` rows; the environment's mode `on γa`), its jobs `applyAll.specOn`'s
+(the receipts' bound theirs). -/
+abbrev EtcdServer.run.specOn : Prop :=
+  ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
+    (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames) (γg : GoNames)
+    (γcx : context.ContextNames) (γd : ChanNames) (v : RunFields) (b : GoInterface)
+    (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (γa : auth.AuthNames),
+  E.authMode = .on γa → receiptBound GF ≤ 2 ^ 48 →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      isServerRunOn s γ ci TM E ρ γr Er γn γg γcx γd v b ai₀ at₀ c₀ x₀ }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"run")) (Val #()))
   {{ RET #(); True }}
 
