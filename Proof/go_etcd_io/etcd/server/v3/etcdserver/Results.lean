@@ -1610,6 +1610,23 @@ theorem server_uber_kvl_on (s : Loc) (ua : GoInterface) (E : EtcdGrove.apply.AEn
   srv_uberKVL_on apply_range_latest apply_delete_range_latest apply_put_latest apply_txn_latest
     s ua E γa hM
 
+/-- **The server's uber-applier's admin triples at the latest state, with auth on** (the auth
+plan's E3n, `UberOn.lean`), every callee linked: of the built part's store fact and the apply
+thread's auth row, at the admin steps' resource `adminW` (blocker 1's row). -/
+theorem server_uber_auth_steps_on (s : Loc) (ua : GoInterface) (E : EtcdGrove.apply.AEnv GF)
+    (γa : auth.AuthNames) (st : auth.AuthState) (hM : E.authMode = .on γa) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
+      srvUberBase s ua E ∗ srvAuthApplyResB s E st ⊢
+      srvAuthApplyResB s E st ∗ ∃ (stl bel : Loc) (T : IProp GF),
+        srvAuthStoreAddr s ↦□ auth.authIface stl ∗
+        EtcdGrove.apply.uberAuthStepsL ua E (adminW stl bel (.on γa) E.P E.f T)
+          (fun γa' h => iprop(auth.authOwnFu γa' h ∗ auth.tieRes stl (.on γa) h))
+          (auth.latestRes stl (.on γa)) :=
+  srv_uberAuthStepsL_on apply_UserAdd_fuelX apply_RoleAdd_fuelX apply_UserGrantRole_fuelX
+    apply_RoleGrantPermission_fuelX apply_AuthEnable_fuelX
+    (EtcdGrove.apply.authApplierV3.Apply.wp_latest Perennial.EtcdGrove.apply.wp_needAdminPermission)
+    Perennial.EtcdGrove.apply.applierV3backend.wp_Apply s ua E γa st hM
+
 /-- **`dispatch` on a KV request, the verdict at the latest state** (the auth plan's E2y,
 `apply/DispatchKVL.lean`), every callee linked. -/
 theorem apply_dispatch_kv_latest :
@@ -2319,3 +2336,4 @@ end Perennial
 #print axioms Perennial.EtcdGrove.server_apply_not_nospace_on
 #print axioms Perennial.EtcdGrove.server_uber_kvl
 #print axioms Perennial.EtcdGrove.server_uber_kvl_on
+#print axioms Perennial.EtcdGrove.server_uber_auth_steps_on

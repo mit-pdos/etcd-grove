@@ -97,25 +97,56 @@ def adminW (stl bel : Loc) (M : auth.AuthMode) (P : IProp GF) (f : val) (T : IPr
       ((auth.aF go!"be" stl ↦{DFrac.own (1 : Qp).half} be ∗ auth.authWBackendOk be M P f T) ∗ T) ∗
       beOn bel be) ∗ auth.tpAdmin stl M)
 
-/-- **The apply thread's auth resource with the admin steps' facts** (E3l): `authApplyResAt`'s,
-with, in the mode `on γa`, the write contract at every schema auth backend on `bel`
-(`authWBackendAt`) and the store's admin steps at `adminW` (`apply.isAuthStepsX`). -/
-def authApplyResB (M : auth.AuthMode) (stl : Loc) (st : auth.AuthState) (bel : Loc) : IProp GF :=
+/-- **The apply thread's auth resource with the admin steps' facts at the hook `Pk f`** (E3l;
+the hook a parameter since E3n): `authApplyResAt`'s, with, in the mode `on γa`, the write contract
+at every schema auth backend on `bel` (`authWBackendAt`) and the store's admin steps at `adminW`
+(`apply.isAuthStepsX`), both at the backend's post-lock hook `Pk f` (the server's: the apply
+environment's `E.P`, `E.f`, `srvAuthApplyResB`). -/
+def authApplyResB (M : auth.AuthMode) (stl : Loc) (st : auth.AuthState) (bel : Loc)
+    (Pk : IProp GF) (f : val) : IProp GF :=
   match M with
-  | .on γa => iprop(∃ (hs : List auth.AuthState) (P : IProp GF) (f : val) (T : IProp GF)
+  | .on γa => iprop(∃ (hs : List auth.AuthState) (P : IProp GF) (f0 : val) (T : IProp GF)
       (be : GoInterface), auth.authOwnFu γa hs ∗ auth.tieRes stl (.on γa) hs ∗
-      auth.authWBackendOk be (.on γa) P f T ∗ T ∗ auth.tpAdmin stl (.on γa) ∗
-      ⌜hs.getLast? = some st⌝ ∗ authWBackendAt bel (.on γa) P f T ∗
-      apply.isAuthStepsX (auth.authIface stl) P f (.on γa) (auth.tieRes stl (.on γa))
-        (adminW stl bel (.on γa) P f T))
+      auth.authWBackendOk be (.on γa) P f0 T ∗ T ∗ auth.tpAdmin stl (.on γa) ∗
+      ⌜hs.getLast? = some st⌝ ∗ authWBackendAt bel (.on γa) Pk f T ∗
+      apply.isAuthStepsX (auth.authIface stl) Pk f (.on γa) (auth.tieRes stl (.on γa))
+        (adminW stl bel (.on γa) Pk f T))
+  | _ => iprop(True)
+
+/-- **The admin steps' facts at whichever post-lock hook the server will freeze** (E3n; persistent):
+for the real backend `d` with its frozen hook `f'` (not `nil`) at the batch lock `Pk'`, the write
+contract at every schema auth backend on `d`'s backend and the store's admin steps there, at the
+write token `T`. -/
+def authStepsAtHook (stl : Loc) (d : mvcc.KBReal) (γa : auth.AuthNames) (T : IProp GF) : IProp GF :=
+  iprop(□ ∀ (W' Pk' : IProp GF) (f' : GoFunc),
+    backend.isBackend d.γB d.P W' Pk' d.be -∗ backend.plHookRO d.γB f' -∗ ⌜f' ≠ func.nil⌝ -∗
+    authWBackendAt d.be (.on γa) Pk' #f' T ∗
+      apply.isAuthStepsX (auth.authIface stl) Pk' #f' (.on γa) (auth.tieRes stl (.on γa))
+        (adminW stl d.be (.on γa) Pk' #f' T))
+
+instance authStepsAtHook_persistent (stl : Loc) (d : mvcc.KBReal) (γa : auth.AuthNames) (T : IProp GF) :
+    Persistent (authStepsAtHook (GF := GF) stl d γa T) := by
+  unfold authStepsAtHook; infer_instance
+
+/-- **The apply thread's auth resource before the hook is frozen** (E3n): `authApplyResB`'s with
+its hook-dependent facts for every frozen hook (`authStepsAtHook`), what the store's construction
+gives (`authStoreKit`'s post); `authApplyResB_of_pre` instantiates it at the server's hook. -/
+def authApplyResPre (M : auth.AuthMode) (stl : Loc) (st : auth.AuthState) (d : mvcc.KBReal) :
+    IProp GF :=
+  match M with
+  | .on γa => iprop(∃ (hs : List auth.AuthState) (P : IProp GF) (f0 : val) (T : IProp GF)
+      (be : GoInterface), auth.authOwnFu γa hs ∗ auth.tieRes stl (.on γa) hs ∗
+      auth.authWBackendOk be (.on γa) P f0 T ∗ T ∗ auth.tpAdmin stl (.on γa) ∗
+      ⌜hs.getLast? = some st⌝ ∗ authStepsAtHook stl d γa T)
   | _ => iprop(True)
 
 /-- **The server's row for its apply thread's auth resource** (E3l): the store its `authStore`
-field holds, `authApplyResB` in the environment's mode on the backend `bel`, and the equation of
-the backend names: the environment's write right lends the store's half of `be` on `bel`. -/
+field holds, `authApplyResB` in the environment's mode on the backend `bel` at the environment's
+hook (`E.P`, `E.f`), and the equation of the backend names: the environment's write right lends
+the store's half of `be` on `bel`. -/
 def srvAuthApplyResB (s : Loc) (E : apply.AEnv GF) (st : auth.AuthState) : IProp GF :=
   iprop(∃ (stl bel : Loc), structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer
-      go!"authStore" s ↦□ (auth.authIface stl) ∗ authApplyResB E.authMode stl st bel ∗
+      go!"authStore" s ↦□ (auth.authIface stl) ∗ authApplyResB E.authMode stl st bel E.P E.f ∗
     rwLens E.RW (authBeOn stl bel))
 
 end defs
@@ -129,17 +160,37 @@ variable [sem : go.Semantics]
 open Iris.ProofMode
 
 /-- `authApplyResB` forgets its admin steps' facts into `authApplyResAt`. -/
-theorem authApplyResAt_of_B (M : auth.AuthMode) (stl : Loc) (st : auth.AuthState) (bel : Loc) :
-    authApplyResB (GF := GF) M stl st bel ⊢ authApplyResAt M stl st := by
+theorem authApplyResAt_of_B (M : auth.AuthMode) (stl : Loc) (st : auth.AuthState) (bel : Loc)
+    (Pk : IProp GF) (f : val) :
+    authApplyResB (GF := GF) M stl st bel Pk f ⊢ authApplyResAt M stl st := by
   cases M with
   | on γa =>
     unfold authApplyResB authApplyResAt
-    iintro ⟨%hs, %P, %f, %T, %be, Ho, HX, #Hw, HT, Htp, %Hl, -, -⟩
-    iexists hs, P, f, T, be
+    iintro ⟨%hs, %P, %f0, %T, %be, Ho, HX, #Hw, HT, Htp, %Hl, -, -⟩
+    iexists hs, P, f0, T, be
     iframe Ho HX Hw HT Htp
     ipureintro; exact Hl
   | off => unfold authApplyResB authApplyResAt; iintro -; itrivial
   | any => unfold authApplyResB authApplyResAt; iintro -; itrivial
+
+/-- **The construction's auth resource at the server's frozen hook** (E3n): `authApplyResPre`
+instantiated at a real backend `d` on `bel` with its frozen hook `f` at the batch lock `Pk`. -/
+theorem authApplyResB_of_pre (M : auth.AuthMode) (stl : Loc) (st : auth.AuthState)
+    (d : mvcc.KBReal) (W Pk : IProp GF) (f : GoFunc) :
+    authApplyResPre (GF := GF) M stl st d ∗ backend.isBackend d.γB d.P W Pk d.be ∗
+      backend.plHookRO d.γB f ∗ ⌜f ≠ func.nil⌝ ⊢ authApplyResB M stl st d.be Pk #f := by
+  cases M with
+  | on γa =>
+    unfold authApplyResPre authApplyResB
+    iintro ⟨⟨%hs, %P, %f0, %T, %be, Ho, HX, #Hw, HT, Htp, %Hl, #Hat⟩, #HB, #Hhk, %Hnn⟩
+    iunfold authStepsAtHook at Hat
+    ihave ⟨#Hwa, #Hst⟩ := Hat $$ %W %Pk %f HB Hhk []
+    · ipureintro; exact Hnn
+    iexists hs, P, f0, T, be
+    iframe Ho HX Hw HT Htp Hwa Hst
+    ipureintro; exact Hl
+  | off => unfold authApplyResPre authApplyResB; iintro -; itrivial
+  | any => unfold authApplyResPre authApplyResB; iintro -; itrivial
 
 /-- `srvAuthApplyResB` forgets into `srvAuthApplyResAt`. -/
 theorem srvAuthApplyResAt_of_B (s : Loc) (E : apply.AEnv GF) (st : auth.AuthState) :
