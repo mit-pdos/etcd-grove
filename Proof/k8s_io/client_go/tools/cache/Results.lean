@@ -62,6 +62,7 @@ namespace k8scache
 #print axioms cache.wp_reconcileReplacement
 #print axioms cache.wp_processReplacedAllInfo
 #print axioms cache.wp_processDeltas
+#print axioms cache.sharedIndexInformer.wp_handleDeltas
 -- the informers' FIFO (`RealFIFO`, atomic events; phase 4)
 #print axioms cache.RealFIFO.wp_Add
 #print axioms cache.RealFIFO.wp_Update

@@ -64,6 +64,7 @@ public import Proof.k8s_io.client_go.tools.cache.rvFromObject
 public import Proof.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource__Empty_ptr
 public import Proof.k8s_io.apimachinery.pkg.util.sets.List
 public import Proof.k8s_io.apimachinery.pkg.util.sets.New
+public import Proof.k8s_io.client_go.tools.cache.sharedIndexInformer__handleDeltas
 public import Proof.k8s_io.client_go.tools.cache.storeIndex__addIndexers
 public import Proof.k8s_io.client_go.tools.cache.storeIndex__addKeyToIndex
 public import Proof.k8s_io.client_go.tools.cache.storeIndex__deleteKeyFromIndex
@@ -455,6 +456,10 @@ theorem cache.wp_processReplacedAllInfo :
 theorem cache.wp_processDeltas :
     EtcdGrove.cache.processDeltas.spec (GF := GF) (hG := hG) :=
   EtcdGrove.cache.processDeltas.wp_proof cache.wp_processReplacedAllInfo cache.cache.wp_Get cache.cache.wp_Add cache.cache.wp_Update cache.cache.wp_Delete cache.cache.wp_Bookmark
+
+theorem cache.sharedIndexInformer.wp_handleDeltas :
+    EtcdGrove.cache.sharedIndexInformer.handleDeltas.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cache.sharedIndexInformer.handleDeltas.wp_proof cache.wp_processDeltas
 
 theorem cache.threadSafeMap.wp_Delete :
     EtcdGrove.cache.threadSafeMap.Delete.spec (GF := GF) (hG := hG) :=

@@ -111,3 +111,4 @@ ListAllByNamespace: ListAll cache__Index
 reconcileReplacement: cache__ListKeys cache__GetByKey Set__Insert Set__Has
 processReplacedAllInfo: reconcileReplacement cache__Get cache__Replace
 processDeltas: processReplacedAllInfo cache__Get cache__Add cache__Update cache__Delete cache__Bookmark
+sharedIndexInformer__handleDeltas: processDeltas
