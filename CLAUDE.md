@@ -161,6 +161,13 @@ where the proof records it, `issues/` is where people find it. Bugs in this repo
 own specs and proofs go in `notes/` instead. A subagent that finds one says so in its
 report.
 
+## Feedback on specs
+
+When the user critiques a spec (yours, a reviewer's, or a candidate), make the repository
+learn from it, minimally: an entry in `.claude/skills/spec-repair/LESSONS.md` (date, target,
+what the user said, the rule it became) and the smallest change to that skill's `SKILL.md`
+(or its `evals/`) that would have avoided the mistake; a fix to the spec itself is not enough.
+
 ## Trust base
 
 `etc/tcb-report.py` reports what the proof rests on (needs an up-to-date `lake
