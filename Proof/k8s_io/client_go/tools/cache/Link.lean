@@ -54,6 +54,7 @@ public import Proof.k8s_io.client_go.tools.cache.cache__ListKeys
 public import Proof.k8s_io.client_go.tools.cache.cache__Replace
 public import Proof.k8s_io.client_go.tools.cache.cache__Resync
 public import Proof.k8s_io.client_go.tools.cache.cache__Update
+public import Proof.k8s_io.client_go.tools.cache.controller__processLoop
 public import Proof.k8s_io.client_go.tools.cache.newStoreMetrics
 public import Proof.k8s_io.client_go.tools.cache.noopMetric__Set
 public import Proof.k8s_io.client_go.tools.cache.parseRVForMetricsWithTruncation
@@ -444,6 +445,10 @@ theorem cache.cache.wp_Resync :
 theorem cache.cache.wp_Update :
     EtcdGrove.cache.cache.Update.spec (GF := GF) (hG := hG) :=
   EtcdGrove.cache.cache.Update.wp_proof cache.threadSafeMap.wp_Update
+
+theorem cache.controller.wp_processLoop :
+    EtcdGrove.cache.controller.processLoop.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cache.controller.processLoop.wp_proof cache.RealFIFO.wp_Pop
 
 theorem cache.wp_reconcileReplacement :
     EtcdGrove.cache.reconcileReplacement.spec (GF := GF) (hG := hG) :=
