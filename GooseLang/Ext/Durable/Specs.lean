@@ -121,9 +121,9 @@ so it can come from an invariant. -/
 theorem wp_DurableRead_atomic (f : GoString) (Φ : val → IProp GF) :
     (|={E,∅}=> ∃ fs : DurableState, durableOwn fs ∗
       (durableOwn fs ={∅,E}=∗ Φ (durableReadResult fs f)))
-    ⊢ WP (ExternalOp (extOp durableExt DurableOp.ReadOp) (Val (#f))) @ s; E {{ Φ }} := by
+    ⊢ WP (ExternalOp durableExt.name "Read" (Val (#f))) @ s; E {{ Φ }} := by
   iintro HAU
-  iapply wp_extStep DurableOp.ReadOp (#f) Φ (by simp)
+  iapply wp_extStep "Read" (#f) Φ (by simp)
   iintro %h %σ %g Hheap Hl Hg
   imod HAU with ⟨%fs, Hown, Hclose⟩
   icases (durable_local_ctx_eq σ).mp $$ Hl with Hl
@@ -148,10 +148,10 @@ theorem wp_DurableRead_atomic (f : GoString) (Φ : val → IProp GF) :
 theorem wp_DurableWrite_atomic (f data : GoString) (Φ : val → IProp GF) :
     (|={E,∅}=> ∃ fs : DurableState, durableOwn fs ∗
       (durableOwn (<[f := data]> fs) ={∅,E}=∗ Φ #()))
-    ⊢ WP (ExternalOp (extOp durableExt DurableOp.WriteOp) (Val (PairV (#f) (#data)))) @ s; E
+    ⊢ WP (ExternalOp durableExt.name "Write" (Val (PairV (#f) (#data)))) @ s; E
       {{ Φ }} := by
   iintro HAU
-  iapply wp_extStep DurableOp.WriteOp (PairV (#f) (#data)) Φ (by simp [val.isPanic])
+  iapply wp_extStep "Write" (PairV (#f) (#data)) Φ (by simp [val.isPanic])
   iintro %h %σ %g Hheap Hl Hg
   imod HAU with ⟨%fs, Hown, Hclose⟩
   icases (durable_local_ctx_eq σ).mp $$ Hl with Hl
@@ -176,11 +176,11 @@ theorem wp_DurableWrite_atomic (f data : GoString) (Φ : val → IProp GF) :
   iexact HΦ
 
 theorem wp_DurableRead (f : GoString) (fs : DurableState) :
-    {{ (durableOwn fs : IProp GF) }} (ExternalOp (extOp durableExt DurableOp.ReadOp) (Val (#f)))
+    {{ (durableOwn fs : IProp GF) }} (ExternalOp durableExt.name "Read" (Val (#f)))
       @ s; E
     {{ RET (durableReadResult fs f); durableOwn fs }} := by
   iintro %Φ Hown HΦ
-  iapply wp_extStep DurableOp.ReadOp (#f) Φ (by simp)
+  iapply wp_extStep "Read" (#f) Φ (by simp)
   iintro %h %σ %g Hheap Hl Hg
   icases (durable_local_ctx_eq σ).mp $$ Hl with Hl
   icases durableVar_agree σ fs $$ Hl Hown with %Heq
@@ -204,10 +204,10 @@ theorem wp_DurableRead (f : GoString) (fs : DurableState) :
 
 theorem wp_DurableWrite (f data : GoString) (fs : DurableState) :
     {{ (durableOwn fs : IProp GF) }}
-      (ExternalOp (extOp durableExt DurableOp.WriteOp) (Val (PairV (#f) (#data)))) @ s; E
+      (ExternalOp durableExt.name "Write" (Val (PairV (#f) (#data)))) @ s; E
     {{ RET #(); durableOwn (<[f := data]> fs) }} := by
   iintro %Φ Hown HΦ
-  iapply wp_extStep DurableOp.WriteOp (PairV (#f) (#data)) Φ (by simp [val.isPanic])
+  iapply wp_extStep "Write" (PairV (#f) (#data)) Φ (by simp [val.isPanic])
   iintro %h %σ %g Hheap Hl Hg
   icases (durable_local_ctx_eq σ).mp $$ Hl with Hl
   icases durableVar_agree σ fs $$ Hl Hown with %Heq

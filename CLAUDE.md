@@ -47,9 +47,9 @@ names follow the paths, e.g. `Spec.go_etcd_io.raft.v3.tracker.NewInflights`):
 - `GooseLang/Ext/<Name>/{Impl,Specs}.lean`, `Proof/<Name>Prelude.lean`: this repository's own
   GooseLang extensions, as Perennial's (`Perennial/GooseLang/Ext/`): `Impl` the trusted semantics
   (the extension's `name` is the path of the Go package it implements), `Specs` the ghost state
-  and WP specs, the proof prelude both. The package's `TrustedCode` models name the extension's
-  operations (`extOp`); goose needs to know nothing of it. `durableExt` (`examples/durable`,
-  whole-file durable state) is the first;
+  and WP specs, the proof prelude both. The package's `TrustedCode` models call the extension's
+  operations by name (`ExternalOp E.name "Read"`); goose needs to know nothing of it.
+  `durableExt` (`examples/durable`, whole-file durable state) is the first;
 - `Spec/<pkg>/<fn>.lean`: the one Hoare triple of a Go function of package `<pkg>`,
   as `def <fn>.spec : Prop` (`Spec/go_etcd_io/raft/v3/raft__Step.lean`,
   `Spec/strings/Join.lean`);

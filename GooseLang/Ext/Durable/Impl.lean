@@ -6,9 +6,9 @@ extension of the Go package `github.com/mit-pdos/etcd-grove/examples/durable` (i
 whose functions are modeled by its operations
 (`TrustedCode/github_com/mit_pdos/etcd_grove/examples/durable.lean`).
 
-* `ReadOp f` returns the contents of the file `f` and `true`, or `""` and `false` if
+* `"Read"` of `f` returns the contents of the file `f` and `true`, or `""` and `false` if
   there is no file `f`.
-* `WriteOp (f, data)` replaces the contents of the file `f` by `data`, creating it if it
+* `"Write"` of `(f, data)` replaces the contents of the file `f` by `data`, creating it if it
   does not exist. The write is atomic and durable: once a read can see it, a crash keeps it,
   and a crash never exposes a partial write.
 * Neither operation fails: the Go side retries a failed operation instead of reporting it,
@@ -34,16 +34,6 @@ public import Perennial.GooseLang.Lang
 
 namespace Perennial
 
-inductive DurableOp where
-  | ReadOp | WriteOp
-deriving DecidableEq, Inhabited
-
-instance : Pos.Countable DurableOp where
-  encode o := Pos.Countable.encode (match o with | .ReadOp => (0 : Nat) | .WriteOp => 1)
-  decode p := match (Pos.Countable.decode p : Option Nat) with
-    | some 0 => some .ReadOp | some 1 => some .WriteOp | _ => none
-  decode_encode o := by cases o <;> simp [Pos.Countable.decode_encode]
-
 /-- The files of a node: name to contents. -/
 abbrev DurableState := GMap GoString GoString
 
@@ -52,7 +42,6 @@ instance : Inhabited DurableState := ⟨∅⟩
 /-- The durable-state extension. It has no values of its own and no global state. -/
 @[reducible] def durableExt : GooseExt where
   name := "github.com/mit-pdos/etcd-grove/examples/durable"
-  Op := DurableOp
   Val := Empty
   LocalState := DurableState
   GlobalState := Unit
@@ -65,14 +54,15 @@ def durableReadResult (fs : DurableState) (f : GoString) : val :=
   PairV (#((fs !! f).getD ([] : GoString))) (#((fs !! f).isSome))
 
 /-- The step relation of the durable state. -/
-def DurableStep (op : DurableOp) (v : val) (h : GMap Loc (NonAtomic val)) (fs : DurableState)
+def DurableStep (op : String) (v : val) (h : GMap Loc (NonAtomic val)) (fs : DurableState)
     (_g : Unit) (e' : Expr) (h' : GMap Loc (NonAtomic val)) (fs' : DurableState) (_g' : Unit) :
     Prop :=
   h' = h ∧
   match op with
-  | .ReadOp => ∃ f : GoString, v = #f ∧ e' = Val (durableReadResult fs f) ∧ fs' = fs
-  | .WriteOp => ∃ (f data : GoString),
+  | "Read" => ∃ f : GoString, v = #f ∧ e' = Val (durableReadResult fs f) ∧ fs' = fs
+  | "Write" => ∃ (f data : GoString),
       v = PairV (#f) (#data) ∧ e' = Val (#()) ∧ fs' = <[f := data]> fs
+  | _ => False
 
 end durable
 

@@ -35,10 +35,10 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   pin `f73703285`, branch `ext-names-at-pin`). Until the pin has it, a full build (CI) fails on
   them, so the branch waits for the pin bump before it merges.
 - **The change.** Perennial branch `ext-names` (`6fa3a85cc`, off `lean` `edcadb1e5`; every
-  module builds, goose's tests pass): `GooseExt` has a `name` (the Go package's path); the
-  syntax names an extension's operations and values by name and encoding (`ExtCode`,
-  `extOp E o`, `extVal E v`), an `ExternalOp` stepping with the program's first extension of
-  that name; `ElemExt E` and `HasExt E` are propositions (closing off a program proves them by
+  module builds, goose's tests pass): `GooseExt` has a `name` (the Go package's path) and no
+  type of operations; an operation is named by two strings, `ExternalOp ext op e` (stepping
+  with the program's first extension named `ext`, by its step of `op`), an opaque value by the
+  extension's name and its encoding (`ExtCode`, `extVal E v`); `ElemExt E` and `HasExt E` are propositions (closing off a program proves them by
   `rfl`); goose knows nothing of extensions (its table, the binders and the extension preludes
   are gone). It supersedes branch `goose-ext-flag` (goose's `-ext`, the first attempt).
 - **Status.** Open: not landed (Perennial's trusted base: the `review-trusted` review and

@@ -1,7 +1,7 @@
 /-
 Trusted Go model of `github.com/mit-pdos/etcd-grove/examples/durable` (namespace of the
 generated package), in terms of the durable-state extension of `GooseLang.Ext.Durable.Impl`
-(`durableExt` and its operations `DurableOp.*`), for any program whose extensions include it.
+(`durableExt` and its operations, `ExternalOp durableExt.name "Read"`, ...), for any program whose extensions include it.
 
 The Go functions are primitives: `Read(name string) (string, bool)` and
 `Write(name, data string)`, whole-file operations on a durable filesystem. What is trusted is
@@ -38,11 +38,11 @@ variable [GooseExts] [GoGlobalContext]
 
 /-- Type: func(string) (string, bool) -/
 def Read.impl : val :=
-  λ: "name", ExternalOp (extOp durableExt DurableOp.ReadOp) "name"
+  λ: "name", ExternalOp durableExt.name "Read" "name"
 
 /-- Type: func(string, string) -/
 def Write.impl : val :=
-  λ: "name" "data", ExternalOp (extOp durableExt DurableOp.WriteOp) ("name", "data")
+  λ: "name" "data", ExternalOp durableExt.name "Write" ("name", "data")
 
 end durable
 end github_com.mit_pdos.etcd_grove.examples.durable

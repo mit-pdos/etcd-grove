@@ -425,7 +425,7 @@ translation are in place for proofs later.
   (`Code/github_com/mit_pdos/etcd_grove/examples/durable.toml`), modeled by
   `TrustedCode/github_com/mit_pdos/etcd_grove/examples/durable.lean`.
 - **The extension `durableExt`** (`GooseLang/Ext/Durable/Impl.lean`, trusted: the operations
-  `ReadOp`/`WriteOp` on a map from names to contents, absent files included; files survive a
+  `"Read"`/`"Write"` on a map from names to contents, absent files included; files survive a
   crash) and `Specs.lean` (proved, no `sorry`): the ghost state is one ghost variable of all
   the files (`durableOwn fs`, so a spec can say a file is absent), `wp_DurableRead`,
   `wp_DurableWrite` and their logically atomic forms, and a closed program proving
