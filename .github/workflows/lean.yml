@@ -72,6 +72,7 @@ jobs:
           restore-keys: |
             lake-packages-${{ runner.os }}-${{ runner.name }}-${{ hashFiles('lean-toolchain', 'lake-manifest.json', 'lakefile.toml') }}-
       # etcd's go.mod (the fork pinned in etc/goose.py) asks for Go 1.27.
+      # (Any 1.27; `etc/goose.py` itself runs `go` with its pinned GOTOOLCHAIN.)
       - name: Install Go
         uses: actions/setup-go@v5
         with:
