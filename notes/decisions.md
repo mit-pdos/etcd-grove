@@ -23550,7 +23550,7 @@ conf changes clients propose; it only applies the voter-preserving ones). Its re
 committed filler is normal" needs `[]` to decode as the empty `ConfChangeV2` (`ccDecodeV2` is opaque)
 and a static-mode record of `stepLeader`'s acceptance; left to the user (a trust-base question).
 
-## Raft's node API for etcd's server (draft) (2026-10-27 · branch `server-port`; statements only, for the user's review)
+## Raft's node API for etcd's server (draft) (2026-10-27 · branch `server-port`; statements only, for the user's review; implemented, in part changed: "Raft's node API for etcd's server: implemented")
 
 **What:** `NodeApiDraft.lean` extended (section "What etcd's server needs") with what porting etcd's
 server (`Proof/go_etcd_io/etcd/**`) onto the node API needs: raft's dynamic mode, the no-transfer
@@ -23646,6 +23646,63 @@ as the no-transfer mode's pure vocabulary; Q7 `committedAtTerm` and `sentMsg_rep
 the snapshot track (dead while the server is in the no-snapshot mode); Q8 `deliveredLogLb` (per
 node) as `ApplyConfChange`'s premise rather than `isCommittedLogLb`; Q9 `nodeDriver_hardStateCommitted`
 excludes a lent snapshot (then the witness bounds the log before it).
+
+*Implemented, in part changed* (2026-10-27): "Raft's node API for etcd's server: implemented",
+below.
+
+---
+
+## Raft's node API for etcd's server: implemented (2026-10-27 · branch `raft-api`)
+
+**What:** every item of the draft above implemented and proved (`NodeApiImplDyn.lean`, and
+`NodeApiImpl.lean`'s shared definitions): nothing in `NodeApiDraft.lean` is `sorry`. The open
+questions Q1-Q9 kept at the draft's defaults (the user to review them), but Q5's and Q9's below.
+
+**How:**
+- *A membership* is a `tracker.Config` (`cfgOf`); its `confchange` state the canonical one
+  (`stOf m = cfgStateC (cfgOf m)`: what every reachable state is, `cfgStateC_of_good`).
+  `Membership.Valid` is `CfgOk ∧ CCGood` of it, `applyChange` is `ccStepB` of the change as `AsV2`
+  makes it; the laws are `confchange`'s (`simpleM_cfgState_addNode`, `ccStepB_removeVoter`, ...).
+- *The cluster's mode*: `ApiImpl.Cluster` records the nodes' `RNMode` (`mode`, at every
+  `GooseExts`, `RNMode.all`, as `RaftNames.reDyn`): a node's names are in it (`NodeOk`), so
+  `isDynamicCluster γ N c0 decode` fixes the node's decoder (`decOf decode`), which raft's
+  `ApplyConfChange` checks the change against (`DynCCPreOp`). A static cluster's mode is `.static`
+  (`StaticNames`), which the static specs read in place of `NodeOk`'s former `mode = .static`.
+- *A node's predicates agree on its names* through the cluster's table (`Cluster.nodeTab`: per
+  node id a ghost map, allocated with the cluster, whose one persistent entry `StartNode` writes:
+  the names of the node's `dlm`, `cap`, `ccq`, `cam`, `nodeTabOk`): `nodeDriver`, `nodeConfig`,
+  `deliveredLogLb` each name raft's node (`isNode`, one id per location, `isNode_id_agree`) and its
+  entry; `nodeCfg` and `dlvLb` read only those names (`nodeCfg_names`, `dlvLb_names`). So the
+  configuration view (`nodeCfg`) is apart from the `Ready` loop's token, as the drafter's
+  implementation note asks.
+- *`nodeDriver`* keeps the committed log delivered (`isCommittedLogLb`, for
+  `deliveredLogLb_committed` without a fancy update), a static node's certificate link and
+  `nodeCfg` (as before), a dynamic node's table entry and the witness of its hard state
+  (`hsCommitted`, from `readyData`'s `hsWit` at each `Ready`, for
+  `nodeDriver_hardStateCommitted`).
+- *`committedAtTerm`* is raft's `commitWit` with the committed log of its index as the client
+  knows it; `commitWit_len` shows the witness's committed prefix is that long (`commitJ`: the
+  bootstrap log's term at the index, or a commit fact's `cqAt`).
+- *`snapshotCert`* also records raft's snapshot mode (`reNoSnap = false`): a dynamic cluster's
+  `Ready` with a snapshot is refuted by its certificate (`readySnap_dynamic`).
+
+**Changed from the draft** (each the closest true statement):
+1. `nodeDriver_hardStateCommitted` takes `isDynamicCluster` in place of "no snapshot loan out"
+   (Q9): after a snapshot `Ready`'s `Advance` the loop holds the log up to the snapshot, which
+   raft's witness (taken at the `Ready`, of the log before it) does not bound.
+2. `dynamicCluster_alloc_empty`, `nodeDynamicRestartBoot`, `RestartNode.dynamicSpec` dropped (Q5):
+   raft allocates its no-snapshot mode only with a bootstrap log (`ownRaftGhost_alloc_core`'s
+   `Hns`), and a dynamic node takes no `MsgSnap` (`snapIn`), so an empty dynamic cluster outside
+   the no-snapshot mode would break `stepIn_intro` for a `MsgSnap`. The server starts with
+   `StartNode`.
+3. `cluster_alloc_static` takes no `transfer` (proposed change 2 made for `cluster_alloc` only):
+   the no-transfer mode also needs a bootstrap log (`Hnx`).
+4. `sentMsg_replaceSnapshot` takes the committed log `l` up to the new snapshot, its last term the
+   snapshot's: a certificate does not fix the snapshot's term (`storageCert_registerAny` certifies
+   it at every term), and raft's `isMessage_snap_recontent` needs the entry at the index.
+5. Proposed change 3 made as `sentMsg γ N src st` (with `sentMsg_appFrom : sentMsg γ N src st ⊢
+   ⌜AppFrom src st⌝`), `readyRest γ N id ...`, and `node.readyRecv.spec` taking `isNode n γ N id`
+   (the loop's token does not name the node's id). Proposed change 1 as drafted.
 
 ---
 
