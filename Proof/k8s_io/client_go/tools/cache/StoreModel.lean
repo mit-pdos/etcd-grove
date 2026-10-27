@@ -60,6 +60,10 @@ def nameOk (F : Fn) (it : Items) (X : IxN) : Prop := ∀ v k, k ∈ viewN X v �
 /-- An indexer's physical index (empty if none). -/
 def ixAt (ix : Ix) (n : GoString) : IxN := ((ix !! n).map Prod.snd).getD ∅
 
+/-- The location of value `v`'s set in indexer `n`'s index (`nil` if none). -/
+def setLoc (ix : Ix) (n v : GoString) : Loc :=
+  ((ix !! n).bind (fun e => (e.2 !! v).map Prod.fst)).getD null
+
 /-- The physical indices are exact for the items, for each indexer, and only indexers have one. -/
 def ixOk (fns : GMap GoString Fn) (it : Items) (ix : Ix) : Prop :=
   (∀ n, n ∈ ix → n ∈ fns) ∧ ∀ n F, fns !! n = some F → nameOk F it (ixAt ix n)

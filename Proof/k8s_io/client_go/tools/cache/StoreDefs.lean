@@ -33,6 +33,59 @@ def ownIxN (l : Loc) (dq : DFrac) (X : IxN) : IProp GF :=
 def ownIx (ip : Loc) (dq : DFrac) (ix : Ix) : IProp GF :=
   iprop(ip ↦${dq} (GMap.fmap Prod.fst ix) ∗ [∗map] _n ↦ e ∈ ix, ownIxN e.1 dq e.2)
 
+open Iris.ProofMode in
+/-- **Reading a set of the indices**: value `v`'s set of indexer `n`'s index: none (its location
+`nil`, no keys), or its points-to, to give back. -/
+theorem ownIx_set_acc (ip : Loc) (dq : DFrac) (ix : Ix) (n v : GoString) :
+    ownIx (GF := GF) ip dq ix ⊢
+      (⌜setLoc ix n v = null ∧ viewN (ixAt ix n) v = ∅⌝ ∗ ownIx ip dq ix) ∨
+      (setLoc ix n v ↦${dq} viewN (ixAt ix n) v ∗
+        (setLoc ix n v ↦${dq} viewN (ixAt ix n) v -∗ ownIx ip dq ix)) := by
+  iintro Hix
+  cases hn : ix !! n with
+  | none =>
+    have hs : setLoc ix n v = null := by unfold setLoc; rw [hn]; rfl
+    have hv : viewN (ixAt ix n) v = ∅ := by unfold viewN ixAt; rw [hn]; rfl
+    rw [hs, hv]
+    ileft
+    iframe
+    ipureintro; exact ⟨rfl, rfl⟩
+  | some e =>
+    obtain ⟨l, X⟩ := e
+    iunfold ownIx at Hix
+    icases Hix with ⟨Hip, HIX⟩
+    icases (BigSepM.bigSepM_lookup_acc hn) $$ HIX with ⟨HX, HIXc⟩
+    iunfold ownIxN at HX
+    icases HX with ⟨Hl, HXs⟩
+    cases hv : X !! v with
+    | none =>
+      have hs : setLoc ix n v = null := by unfold setLoc; rw [hn]; simp [hv]
+      have hv' : viewN (ixAt ix n) v = ∅ := by unfold viewN ixAt; rw [hn]; simp [hv]
+      rw [hs, hv']
+      ileft
+      isplitr
+      · ipureintro; exact ⟨rfl, rfl⟩
+      iunfold ownIx
+      iframe
+      iapply HIXc
+      iunfold ownIxN
+      iframe
+    | some e =>
+      obtain ⟨s, S⟩ := e
+      have hs : setLoc ix n v = s := by unfold setLoc; rw [hn]; simp [hv]
+      have hv' : viewN (ixAt ix n) v = S := by unfold viewN ixAt; rw [hn]; simp [hv]
+      rw [hs, hv']
+      icases (BigSepM.bigSepM_lookup_acc hv) $$ HXs with ⟨Hs, HXsc⟩
+      iright
+      iframe Hs
+      iintro Hs
+      iunfold ownIx
+      iframe
+      iapply HIXc
+      iunfold ownIxN
+      iframe
+      iapply HXsc $$ Hs
+
 /-- An object the store may hold: `nil`, or one meeting the client's contract `OK`. -/
 def okNil (OK : GoInterface → IProp GF) (o : GoInterface) : IProp GF :=
   iprop(⌜o = interface.nil⌝ ∨ □ OK o)
