@@ -27,12 +27,13 @@ skeleton").
 
 **The objects.** `isPeriodic pc E period` (persistent): the fields `New` set, read-only from then
 on, the clock's contract, and the `RWMutex` guard over `paused` (`Pause`/`Resume` write-lock it);
-`periodicRunTok pc` (exclusive, consumed by `Run`): the `revs` field, which only `Run`'s goroutine
-touches, and a reader slot of the mutex. `isRevision rc E ret` likewise, over a `sync.Mutex` (its
-`Run` keeps nothing of the object). `Run` also takes `runPre E P`: the revision getter's and the
-server's contracts (only `Run` needs them: `New` calls neither), the resource they thread, and the
-first sample's ghost variable. `compactorOk cp RunTok RunPre` (persistent): the interface value `New`
-returns, with its four methods' contracts.
+`periodicRunTok pc γf` (exclusive, consumed by `Run`): the `revs` field, which only `Run`'s goroutine
+touches, a reader slot of the mutex, and the run's first sample, unset (`firstUnset γf`: `newPeriodic`
+allocates it; `New` returns its name). `isRevision rc E ret` likewise, over a `sync.Mutex` (its `Run`
+keeps nothing of the object). `Run` also takes `runPre E P`: the revision getter's and the server's
+contracts (only `Run` needs them: `New` calls neither) and the resource they thread.
+`compactorOk cp RunTok RunPre` (persistent): the interface value `New` returns, with its four
+methods' contracts.
 -/
 module
 
@@ -181,26 +182,19 @@ instance modePermit_persistent (mode : GoString) (RevLb : Int → IProp GF) (ret
 
 /-- What `New`'s caller supplies: the store's revision lower bounds (`RevLb r`: the store has
 reached `r`; the server's is `revLb`), the revision getter, the server, and the resource the
-getter's `Rev` and the server's `Compact` take and give back, and the ghost name of the periodic
-mode's first sample (`firstSample`, `perPermit`). -/
+getter's `Rev` and the server's `Compact` take and give back. -/
 structure CompactEnv (GF : BundledGFunctors) where
   RevLb : Int → IProp GF
   rg : GoInterface
   c : GoInterface
   R : IProp GF
-  γf : GName
 
 /-- **What `Run` takes from its caller** (besides the object's run token), for a compactor whose
 `Compact` calls take the permit `P`: the revision getter's and the server's contracts (needed only
 from `Run` on: `New` calls neither), the resource they thread, and a revision the store has reached
-(`0`, the getter's first lower bound). The periodic `Run` also takes `firstUnset E.γf`. -/
+(`0`, the getter's first lower bound). -/
 def runPre (E : CompactEnv GF) (P : Int → IProp GF) : IProp GF :=
   iprop(revGetterOk E.RevLb E.rg E.R ∗ compactableOk E.c P E.R ∗ E.R ∗ □ E.RevLb 0)
-
-/-- `runPre` for a mode: the periodic one also takes the unset first sample. -/
-def modeRunPre (mode : GoString) (E : CompactEnv GF) (ret : Int) : IProp GF :=
-  iprop(runPre E (modePermit mode E.RevLb ret E.γf) ∗
-    (if mode = go!"revision" then iprop(True) else firstUnset E.γf))
 
 /-- `paused` under the periodic compactor's `RWMutex`: a fraction of its cell. -/
 def perPausedInv (pc : Loc) (q : Qp) : IProp GF :=
@@ -230,11 +224,13 @@ instance isPeriodic_persistent (pc : Loc) (E : CompactEnv GF) (period : Int) :
 
 /-- **What `Run` takes** of a periodic compactor (besides `runPre`): the sample window `revs`, empty,
 with its slice's capacity (what `newPeriodic`'s `make` gives; only `Run`'s goroutine touches it: it
-appends to it and reads `revs[0]`), and a reader slot of the mutex. -/
-def periodicRunTok (pc : Loc) : IProp GF :=
+appends to it and reads `revs[0]`), a reader slot of the mutex, and the run's first sample, unset
+(`γf`, the ghost name `perPermit`'s `firstSample` is at). -/
+def periodicRunTok (pc : Loc) (γf : GName) : IProp GF :=
   iprop((∃ s : GoSlice, structFieldRef v3compactor.Periodic go!"revs" pc ↦ s ∗
       s ↦* ([] : List w64) ∗ ownSliceCap w64 s (DFrac.own 1)) ∗
-    sync.ownRWMutex (structFieldRef v3compactor.Periodic go!"mu" pc) (perPausedInv pc))
+    sync.ownRWMutex (structFieldRef v3compactor.Periodic go!"mu" pc) (perPausedInv pc) ∗
+    firstUnset γf)
 
 /-- `paused` under the revision compactor's `Mutex`. -/
 def revPausedInv (rc : Loc) : IProp GF :=

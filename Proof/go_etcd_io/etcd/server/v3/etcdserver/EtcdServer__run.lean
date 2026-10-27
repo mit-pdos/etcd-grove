@@ -543,15 +543,10 @@ theorem EtcdServer.run.wp_proof
           (try wp_auto)
           wp_apply HDemote
           (try wp_auto)
-          icases Hcpok' with (%Hcpn | ⟨%cpi, %Hcpi, #HPause, #HResume, -⟩)
-          · rw [Hcpn]
-            (try wp_auto)
-            wp_join_done
-          · rw [Hcpi]
-            (try wp_auto)
-            wp_apply HPause
-            (try wp_auto)
-            wp_join_done
+          icases Hcpok' with %Hcpn
+          rw [Hcpn]
+          (try wp_auto)
+          wp_join_done
         · -- the leader: the election time (if new), `Resume`
           simp only [Bool.not_true]
           (try wp_auto)
@@ -571,15 +566,10 @@ theorem EtcdServer.run.wp_proof
               · iframe Hwl; iunfold leadTimeP; iexists _; iexact Hlt
               (try wp_auto)
               wp_join_done
-          icases Hcpok' with (%Hcpn | ⟨%cpi, %Hcpi, #HPause, #HResume, -⟩)
-          · rw [Hcpn]
-            (try wp_auto)
-            wp_join_done
-          · rw [Hcpi]
-            (try wp_auto)
-            wp_apply HResume
-            (try wp_auto)
-            wp_join_done
+          icases Hcpok' with %Hcpn
+          rw [Hcpn]
+          (try wp_auto)
+          wp_join_done
       ul_tail
     · -- `updateCommittedIndex`: the writer's half of the committed index
       iintro %ci' %Lc !> %Φ' !> ⟨⟨%c, Hown⟩, #HLc, %HciL⟩ HΦ'
@@ -1075,15 +1065,10 @@ theorem EtcdServer.run.wp_proofOn
           (try wp_auto)
           wp_apply HDemote
           (try wp_auto)
-          icases Hcpok' with (%Hcpn | ⟨%cpi, %Hcpi, #HPause, #HResume, -⟩)
-          · rw [Hcpn]
-            (try wp_auto)
-            wp_join_done
-          · rw [Hcpi]
-            (try wp_auto)
-            wp_apply HPause
-            (try wp_auto)
-            wp_join_done
+          icases Hcpok' with %Hcpn
+          rw [Hcpn]
+          (try wp_auto)
+          wp_join_done
         · -- the leader: the election time (if new), `Resume`
           simp only [Bool.not_true]
           (try wp_auto)
@@ -1103,15 +1088,10 @@ theorem EtcdServer.run.wp_proofOn
               · iframe Hwl; iunfold leadTimeP; iexists _; iexact Hlt
               (try wp_auto)
               wp_join_done
-          icases Hcpok' with (%Hcpn | ⟨%cpi, %Hcpi, #HPause, #HResume, -⟩)
-          · rw [Hcpn]
-            (try wp_auto)
-            wp_join_done
-          · rw [Hcpi]
-            (try wp_auto)
-            wp_apply HResume
-            (try wp_auto)
-            wp_join_done
+          icases Hcpok' with %Hcpn
+          rw [Hcpn]
+          (try wp_auto)
+          wp_join_done
       ul_tail
     · -- `updateCommittedIndex`: the writer's half of the committed index
       iintro %ci' %Lc !> %Φ' !> ⟨⟨%c, Hown⟩, #HLc, %HciL⟩ HΦ'

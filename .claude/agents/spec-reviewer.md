@@ -17,6 +17,12 @@ check (Go call sites and their Lean proofs or contracts). If the brief lacks the
 
 ## Before you start
 
+0. If the brief gives a **context bundle** (one file with the targets' unfolded statements, the Go
+   functions, the callers' call sites and contracts, and the previous repair's diff), read it first,
+   and go to the repository only to check claims. The brief names the **commit under review**: work
+   continues meanwhile, so before reporting, compare with `HEAD` and mark a finding already
+   addressed there as stale.
+
 1. Read `CLAUDE.md` (conventions: records, layout, package APIs, the trust base, issues).
 2. Read `.claude/skills/spec-repair/LESSONS.md`: each entry is a past miss of a review; apply its rule.
 3. Read the rubric's source, `notes/spec-first-plan.md`, "Phase 1b" (it may have been refined since

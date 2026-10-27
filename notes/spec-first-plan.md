@@ -67,6 +67,22 @@ repairs), so every repair is followed by another round with a fresh reviewer, un
 nothing in the first tier; each later round is told what the previous repair changed (the diff) and
 looks hardest there.
 
+*Cost.* A round took about 9 minutes in the pilot (28-47 tool calls, about 170k tokens), most of it
+the fresh reviewer finding and reading its context (the agent file, `CLAUDE.md`, the targets and what
+they unfold to, the Go code, and above all the callers' proofs: `NewServer.lean` alone is 1800 lines);
+the full `lake build` between rounds took longer (20-30 minutes). Two measures (added 2026-10-27):
+- **A context bundle per round**: one generated file with the targets' unfolded statements
+  (`etc/gen-interface.py`'s rendering), the Go functions they specify, the callers' call sites and the
+  contracts or proof excerpts at them, and, from round 2 on, the previous repair's diff. The reviewer
+  reads it first and goes to the repository only to check a claim.
+- **Targeted builds during the rounds**: build only the touched modules and their importers among the
+  specs and the glue (`lake build <modules>`, `etc/lean-check.py`); the full build once, before a
+  commit goes to the main branch.
+
+A round reviews a named commit; work goes on meanwhile, so the reviewer checks `HEAD` against it and
+marks findings already addressed there as stale (the pilot's fourth round ranked first a finding fixed
+after its snapshot).
+
 The pilot measures whether the review pays: spec revisions found by the review, by the glue proofs,
 and after the freeze.
 

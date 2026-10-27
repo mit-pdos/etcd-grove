@@ -22,3 +22,12 @@ positive (a Go issue reported as unrecorded that `issues/` already had). Rules (
 a spec takes; in later rounds, look hardest at what changed. For the orchestrator: always run another
 round after repairs.
 
+## 2026-10-27, the compactor pilot's specs (rounds 3 and 4, `notes/spec-first-study/pilot-review-{3,4}.md`)
+
+Round 3: a permit parameter quantified per call is vacuous (each caller picks it); a resource missing
+since round 1 (the slice the run token should own) that two rounds had missed; a Go defect no spec can
+fix (the compactor run before `Start`), resolved by a fork fix. Round 4: nothing in the first tier,
+but its first-ranked finding had been fixed after its snapshot. Rules: a parameter only in a
+precondition, chosen by the caller, is vacuous; name the commit under review and compare with `HEAD`
+before reporting; give the reviewer a context bundle (rounds take about 9 minutes, mostly reading).
+

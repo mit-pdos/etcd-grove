@@ -259,6 +259,21 @@ whose invariant contradicts the function; repairs introduce defects.
 | missing laws: `firstSample`'s agreement, `revPermit`'s and `modePermit`'s persistence | added (`firstSample_agree` proved) |
 | coupling (the clock's `Defs` imports `BaseApply`; `Compact`'s spec imports the compactor's `Defs`) | left: a cleanup for the freeze |
 
+**Step 2b, round 4: nothing in the first tier** (`notes/spec-first-study/pilot-review-4.md`): step 2b's
+rounds end. Its first-ranked finding (the pin against the examples' `go.mod`) was fixed after its
+snapshot (stale). Repaired from its second tier: the server's `compactorOk` is nil only until the glue
+(its non-nil `{True} Run {True}` assumed what no real compactor does); the first sample's ghost name
+is the compactor's, returned by `New` inside its run token (`CompactEnv.γf` and `modeRunPre` gone);
+stale text. And the fork fix's Go regression test, which reproduces the panic at `c00a2dc06`
+(`issues/etcd-compactor-started-before-start/repro_test.go`).
+
+| round | first-tier findings | new | caused by the previous repair | false or stale |
+|---|---|---|---|---|
+| 1 | 13 | 13 | — | 0 |
+| 2 | 3 | 3 | 2 | 1 |
+| 3 | 4 | 2 | 1 | 0 |
+| 4 | 0 | 0 | 1 (second tier) | 1 |
+
 **The fork fix, landed on the branch:** the user pushed `goose-lean-compactorstart` (`964dccdb4`); the
 examples' `go.mod` replaces moved to it (`v3.0.0-20261027170615-964dccdb4205`, `go mod tidy`);
 `etc/goose.py --check` passes for every project against the pushed pin; the examples build and
