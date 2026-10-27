@@ -27,6 +27,7 @@ public import Perennial.Ghost.MonoList
 public import Spec.go_etcd_io.raft.v3.Api
 import all Proof.go_etcd_io.raft.v3.InvNode
 import Proof.go_etcd_io.raft.v3.node__Ready
+public import Proof.go_etcd_io.raft.v3.node__ReadIndexReq
 
 @[expose] public section
 
@@ -1605,6 +1606,286 @@ theorem node.wp_Propose_impl (hP : EtcdGrove.node.Propose.spec (GF := GF) (hG :=
   iapply propErr_api $$ Herr
 
 end propose
+
+/-! ## Reads -/
+
+section read
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+/-- **Depositing a read** (raft's `read_deposit`, at a mask `E` around raft's namespace), its update
+fired the first time by the caller's own means `Hfire` (which may borrow `R`) rather than by the
+update itself: a caller that holds the client's half of the log (the adapter, its invariant open)
+cannot let the update open its invariant again. -/
+theorem read_deposit_with (γ : RaftNames) (E : CoPset) (c : List w8) (Qr : List EntryM → IProp GF)
+    (R : IProp GF) (HE : ↑(raftN γ) ⊆ E) :
+    ⊢ raftCommitInv (GF := GF) γ -∗ rdFresh γ c -∗ readAu γ Qr -∗ R -∗
+      (∀ P, R -∗ ghostVar γ.reRLog (1 : Qp).half P ={(E \ ↑(raftRegN γ)) \ ↑(raftLogN γ)}=∗
+        R ∗ ghostVar γ.reRLog (1 : Qp).half P ∗ □ Qr P) ={E}=∗
+      R ∗ ∃ Lc, readReq γ c Lc ∗ isRead γ c Qr := by
+  iintro #Hinv Hfr #Hau HR Hfire
+  ihave #Hri := raftCommitInv_reg γ $$ Hinv
+  ihave #Hli := raftCommitInv_log γ $$ Hinv
+  have HE1 := raftRegN_of HE
+  unfold raftRegInv regsOwn
+  iinv Hri with ⟨%l, >Hq2, Hregs⟩ Hclose2
+  have HE2 := raftLogN_of_diff HE
+  unfold raftLogInv raftLogInvBody logRest
+  iinv Hli with ⟨%P, >HP, >#Hj, >Htbl, >Hwt, >#Hds, >Hq1⟩ Hclose1
+  icases rlq_join γ P l $$ Hq1 Hq2 with ⟨%Heq, Hv⟩
+  subst Heq
+  iunfold regsAt at Hregs
+  icases Hregs with ⟨%R0, %RR, Hprops, Hreads, #Hnoop⟩
+  iunfold readsReg at Hreads
+  icases Hreads with ⟨>Hra, Hs⟩
+  ihave Hs := (BigSepM.bigSepM_later).1 $$ Hs
+  cases HRc : RR !! c with
+  | some r =>
+    icases (BigSepM.bigSepM_delete (Φ := fun c r =>
+      iprop(▷ (readSlot (GF := GF) γ r P ∗ rdFresh γ c))) HRc).1 $$ Hs
+      with ⟨⟨-, >Hfr'⟩, -⟩
+    unfold rdFresh
+    ihave %Hne := ghostMapElem_ne γ.reRdFresh c c (DFrac.own 1) () () $$ Hfr Hfr'
+    exact absurd rfl Hne
+  | none =>
+  imod Hfire $$ %P HR Hv with ⟨HR, Hv, #HQ⟩
+  imod saved_pred_alloc Qr DFrac.discard trivial with ⟨%γq, #Hsp⟩
+  imod ghost_map_insert_persist c ((γq, P) : GName × List EntryM) HRc $$ Hra
+    with ⟨Hra, #Hel⟩
+  ihave #Hslot : readSlot γ (γq, P) P $$ []
+  · unfold readSlot
+    iexists Qr
+    iframe Hsp Hau
+    isplitr
+    · ipureintro; exact List.prefix_refl _
+    imodintro
+    iintro %n %Hn
+    have : n = P.length := by simp at Hn; omega
+    rw [this, List.take_length]
+    iexact HQ
+  ihave #HcP := ownCommitted_lb γ P $$ HP
+  icases rlq_split γ P $$ Hv with ⟨Hq1, Hq2⟩
+  imod Hclose1 $$ [HP Htbl Hwt Hq1] with -
+  · inext
+    iexists P
+    iframe HP Hj Htbl Hwt Hds Hq1
+  imod Hclose2 $$ [Hq2 Hprops Hra Hs Hfr] with -
+  · iexists P
+    iframe Hq2
+    unfold regsAt readsReg
+    inext
+    iexists R0, Std.insert RR c (γq, P)
+    iframe Hprops Hnoop Hra
+    iapply (BigSepM.bigSepM_insert (Φ := fun c r =>
+      iprop(readSlot (GF := GF) γ r P ∗ rdFresh γ c)) HRc).2
+    iframe Hslot Hfr
+    iexact Hs
+  imodintro
+  iframe HR
+  iexists P
+  isplitr
+  · unfold readReq
+    iexists γq
+    iframe Hel HcP
+  unfold isRead
+  iexists γq, P
+  iframe Hel Hsp
+
+/-- **Firing a read context's update** at the requested entries `opsOf l`, with the adapter's half
+of them: they are the client's, and the update gives `□ Q` of them. -/
+theorem api_fire_read (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ⊤ \ ↑N ⊆ E)
+    (Q : List LogEntry → IProp GF) (l : List LogEntry) :
+    ⊢ monoListAuthOwn (GF := GF) γ.ops (1 : Qp).half (opsOf l) -∗ ctxAu γ N Q ={E}=∗
+      monoListAuthOwn γ.ops (1 : Qp).half (opsOf l) ∗ □ Q (opsOf l) := by
+  iintro Hops #Hau
+  imod (fupd_mask_subseteq (PROP := IProp GF) HE) with Hback
+  iunfold ctxAu at Hau
+  ihave Hacc := aupd_aacc $$ Hau
+  unfold atomic_acc
+  imod Hacc with Hacc
+  isimp only [texist_cons, texist_nil, Std.Tele.app, ULift.down] at Hacc
+  icases Hacc with ⟨%ops, Hown, Hucl⟩
+  iunfold ownCommittedOps at Hown
+  icases Hown with ⟨Hhalf, Hrest⟩
+  ihave %Hag := monoListAuthOwn_agree $$ Hops Hhalf
+  obtain ⟨-, Hops_eq⟩ := Hag
+  subst Hops_eq
+  icases Hucl with ⟨-, Hcommit⟩
+  isimp only [tforall_nil, Std.Tele.app, ULift.down] at Hcommit
+  imod Hcommit $$ [Hhalf Hrest] with #HQ
+  · unfold ownCommittedOps; iframe Hhalf Hrest
+  imod Hback with -
+  imodintro
+  iframe Hops HQ
+
+/-- **A read context's update for raft**, from the client's: the log lent and returned, the
+client's update fired at its requested entries. -/
+theorem api_readAu (γ : Cluster) (N : Namespace) (Q : List LogEntry → IProp GF)
+    (HNs : γ.raft.reNs = N .@ "raft") :
+    ⊢ apiInv (GF := GF) γ N -∗ ctxAu γ N Q -∗ readAu γ.raft (qrOf Q) := by
+  iintro #Hinv #Hau
+  unfold readAu
+  imodintro
+  iauintro
+  unfold atomic_acc apiInv apiInvBody
+  have Hsub : (↑(apiN N) : CoPset) ⊆ ⊤ \ ↑(raftN γ.raft) := by
+    unfold raftN; rw [HNs]; exact apiN_sub_raft N
+  iinv Hinv with ⟨%L, %F, %RF, >HrL, >%Hidx, >Hfull, >Hops, >HF, >#HFok, >HRF, >#HRk, #HRFok⟩ Hclose
+  iapply fupd_mask_intro (show (∅ : CoPset) ⊆ (⊤ \ ↑(raftN γ.raft)) \ ↑(apiN N) from
+    Std.LawfulSet.empty_subset)
+  iintro Hclose2
+  isimp only [texist_cons, texist_nil, tforall_nil, Std.Tele.app, ULift.down]
+  iexists L
+  iframe HrL
+  isplit
+  · iintro HrL
+    imod Hclose2 with -
+    imod Hclose $$ [HrL Hfull Hops HF HRF] with -
+    · inext
+      iexists L, F, RF
+      iframe HrL Hfull Hops HF HFok HRF HRk HRFok
+      ipureintro; exact Hidx
+    imodintro
+    iempintro
+  · iintro HrL
+    imod Hclose2 with -
+    have Hm : (⊤ \ ↑N : CoPset) ⊆ (⊤ \ ↑(raftN γ.raft)) \ ↑(apiN N) := by
+      unfold raftN; rw [HNs]; exact mask_api_raft N
+    imod api_fire_read γ N _ Hm Q (strip L) $$ Hops Hau with ⟨Hops, #HQ⟩
+    imod Hclose $$ [HrL Hfull Hops HF HRF] with -
+    · inext
+      iexists L, F, RF
+      iframe HrL Hfull Hops HF HFok HRF HRk HRFok
+      ipureintro; exact Hidx
+    imodintro
+    unfold qrOf
+    iexact HQ
+
+/-- **A committed context's read deposited in raft**, the first time (raft's `read_deposit`, its
+first firing by the adapter), or the deposit found. -/
+theorem api_read_ensure (γ : Cluster) (N : Namespace) (c : List w8)
+    (Q : List LogEntry → IProp GF) :
+    ⊢ clusterInv (GF := GF) γ N -∗ isReadCtx γ N c Q ={⊤}=∗ ∃ Lc, readReq γ.raft c Lc := by
+  iintro #Hci #Hctx
+  ihave #Hci' := Hci
+  iunfold clusterInv at Hci'
+  icases Hci' with ⟨%HNs, #Hcinv, #Hinv, -⟩
+  ihave #Hctx' := Hctx
+  iunfold isReadCtx at Hctx'
+  icases Hctx' with ⟨%γq, #Hel, #Hsp, #Hau⟩
+  ihave #HrAu := api_readAu γ N Q HNs $$ Hinv Hau
+  iunfold apiInv at Hinv
+  unfold apiInvBody
+  iinv Hinv with ⟨%L, %F, %RF, >HrL, >%Hidx, >Hfull, >Hops, >HF, >#HFok, >HRF, >#HRk, #HRFok⟩
+    Hclose
+  cases HRc : RF !! c with
+  | some u =>
+    ihave #HRk' := HRk
+    iunfold rdKeys at HRk'
+    ihave #Hk := HRk' $$ %c %(by cases u; exact HRc)
+    iunfold readKey at Hk
+    icases Hk with ⟨%γq', %Lc, -, #Hrq⟩
+    imod Hclose $$ [HrL Hfull Hops HF HRF] with -
+    · inext
+      iexists L, F, RF
+      iframe HrL Hfull Hops HF HFok HRF HRk HRFok
+      ipureintro; exact Hidx
+    imodintro
+    iexists Lc
+    iexact Hrq
+  | none =>
+    imod ghost_map_insert c () HRc $$ HRF with ⟨HRF, Hfr⟩
+    have HrN : (↑(raftN γ.raft) : CoPset) ⊆ ⊤ \ ↑(apiN N) := by
+      unfold raftN; rw [HNs]
+      intro p hp
+      rw [Iris.Std.LawfulSet.mem_diff]
+      exact ⟨CoPset.subseteq_top p hp,
+        fun h => ndot_ne_disjoint N (show "raft" ≠ "api" by decide) p ⟨hp, h⟩⟩
+    have Hm : (⊤ \ ↑N : CoPset) ⊆
+        ((⊤ \ ↑(apiN N)) \ ↑(raftRegN γ.raft)) \ ↑(raftLogN γ.raft) := by
+      intro p hp
+      rw [Iris.Std.LawfulSet.mem_diff] at hp
+      have hN := hp.2
+      simp only [Iris.Std.LawfulSet.mem_diff]
+      refine ⟨⟨⟨hp.1, fun h => hN (apiN_sub N (fun _ h => h) p h)⟩, fun h => hN ?_⟩, fun h => hN ?_⟩
+      · unfold raftRegN raftN at h; rw [HNs] at h
+        exact nclose_subseteq N "raft" p (nclose_subseteq (N .@ "raft") "reg" p h)
+      · unfold raftLogN raftN at h; rw [HNs] at h
+        exact nclose_subseteq N "raft" p (nclose_subseteq (N .@ "raft") "log" p h)
+    imod read_deposit_with γ.raft (⊤ \ ↑(apiN N)) c (qrOf Q)
+        iprop(rLog γ.raft L ∗ monoListAuthOwn γ.ops (1 : Qp).half (opsOf (strip L))) HrN
+      $$ Hcinv [Hfr] HrAu [HrL Hops] [] with ⟨⟨HrL, Hops⟩, %Lc, #Hrq, #Hrd⟩
+    · unfold rdFresh; iexact Hfr
+    · iframe HrL Hops
+    · iintro %P ⟨HrL, Hops⟩ Hv
+      iunfold rLog at HrL
+      ihave %Heq := ghostVar_agree γ.raft.reRLog P (1 : Qp).half L (1 : Qp).half $$ Hv HrL
+      subst Heq
+      imod api_fire_read γ N _ Hm Q (strip P) $$ Hops Hau with ⟨Hops, #HQ⟩
+      imodintro
+      iframe Hv Hops
+      isplitl [HrL]
+      · unfold rLog; iexact HrL
+      unfold qrOf; iexact HQ
+    imod Hclose $$ [HrL Hfull Hops HF HRF] with -
+    · inext
+      iexists L, F, GMap.insert c () RF
+      iframe HrL Hfull Hops HF HFok HRF
+      isplitr
+      · ipureintro; exact Hidx
+      isplitr
+      · unfold rdKeys
+        imodintro
+        iintro %c' %Hc'
+        rcases (GMap.lookup_insert_Some RF c c' () ()).1 Hc' with ⟨rfl, -⟩ | ⟨-, h⟩
+        · unfold readKey
+          iexists γq, Lc
+          iframe Hel Hrq
+        · iapply HRk $$ %c' %h
+      · unfold rdFreshOk
+        imodintro
+        iintro %c' %Hc'
+        rcases (GMap.lookup_insert_Some RF c c' () ()).1 Hc' with ⟨rfl, -⟩ | ⟨-, h⟩
+        · unfold readDep
+          iexists γq, Q
+          iframe Hel Hsp Hrd
+        · iapply HRFok $$ %c' %h
+    imodintro
+    iexists Lc
+    iexact Hrq
+
+/-- **`node.ReadIndex(ctx, rctx)`** (the draft's). -/
+abbrev node.ReadIndex.spec : Prop :=
+  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (rctx : GoSlice) (c : List w8)
+    (Q : List LogEntry → IProp GF) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗ nodeCtx ctx cd ∗
+      rctx ↦*□ c ∗ isReadCtx γ N c Q ∗ readCredit γ }}
+    (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"ReadIndex"))
+      (Val #(interface.ok ctx))) (Val #rctx))
+  {{ (err : GoInterface), RET #err; nodeErr cd err }}
+
+theorem node.wp_ReadIndex_impl (hR : EtcdGrove.node.ReadIndex.specReq (GF := GF) (hG := hG)) :
+    node.ReadIndex.spec (GF := GF) (hG := hG) := by
+  intro n γ N id rctx c Q ctx cd
+  iintro %Φ ⟨#Hinit, #Hnode, #Hctx, #Hrctx, #Hrc, Hcred⟩ HΦ
+  iunfold isNode at Hnode
+  icases Hnode with ⟨%γn, %Hf, #Hrn, #Hci⟩
+  obtain ⟨Hγr, -⟩ := Hf
+  imod api_read_ensure γ N c Q $$ Hci Hrc with ⟨%Lc, #Hrq⟩
+  iapply (hR γn id n rctx c Lc ctx cd) $$ [Hcred]
+  · iframe Hinit Hrn Hctx Hrctx
+    rw [Hγr]
+    iframe Hrq
+    unfold readCredit readCredits
+    iexact Hcred
+  iintro !> %err #Herr
+  iapply HΦ
+  iexact Herr
+
+end read
 
 end ApiImpl
 end EtcdGrove
