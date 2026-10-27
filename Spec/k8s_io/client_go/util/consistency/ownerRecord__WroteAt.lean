@@ -31,7 +31,7 @@ abbrev ownerRecord.WroteAt.spec : Prop :=
   ∀ (γ : ConsNames) (T : Owner → Qp → IProp GF) (r : Loc) (s : RecS) (id : Nat) (gr : GR)
     (rv : GoString) (q : Qp),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.util.consistency ∗
-      inv consN (consInv γ T) ∗ isRec γ r s ∗ pendTok γ id ⟨r, gr, rv, q⟩ }}
+      inv consN (consInv γ T) ∗ tokExcl T ∗ isRec γ r s ∗ pendTok γ id ⟨r, gr, rv, q⟩ }}
     (App (App (Val (r @!! go.GoType.PointerType ownerRecord.ty @!! go!"WroteAt")) (Val #gr))
       (Val #rv))
   {{ RET #(); T s.owner q }}
