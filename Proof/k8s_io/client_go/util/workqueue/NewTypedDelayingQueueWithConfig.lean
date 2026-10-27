@@ -44,7 +44,7 @@ theorem NewTypedDelayingQueueWithConfig.wp_proof
   obtain ⟨hl, hc, hq, hn⟩ := Hcfg
   rcases cfg with ⟨lg, nm, mp, ck, qu⟩
   simp only at hl hc hq hn
-  subst hl hc hq
+  subst hl hq
   wp_start
   ihave #Hrc := realClock_isClock wp_Now wp_NewTimer wp_NewTicker wp_timerC wp_timerStop
     wp_tickerC wp_tickerStop $$ Hpkg
@@ -53,21 +53,23 @@ theorem NewTypedDelayingQueueWithConfig.wp_proof
   wp_auto
   iStructNamed config
   wp_apply wp_Background as %logger -
-  (try wp_auto)
-  wp_apply (wp_NewTypedWithConfig (K := K) (T := T)
-    (TypedQueueConfig.mk nm mp (interface.mkOk k8s_io.utils.clock.RealClock.ty
-      #(zero_val k8s_io.utils.clock.RealClock)) GoInterface.nil) ⟨rfl, hn⟩) as %tq %γq ⟨#Htq, Htoks⟩
-  unfold shutdownToks
-  rw [show shutdownPool = (shutdownPool - 1) + 1 from rfl]
-  icases ownToks_add_1 1 (shutdownPool - 1) γq.pool $$ Htoks with ⟨Htoks, Htok⟩
-  wp_apply (wp_newDelayingQueue (K := K) (T := T) logger _ tq γq nm mp hn) $$ [$Htq Htok]
-    as %q %γ ⟨%Hγ, #Hdq⟩
-  · iframe #
-    unfold shutdownToks; iexact Htok
-  iapply HΦ
-  iframe #
-  rw [Hγ, show shutdownPool - 1 + 1 - 1 = shutdownPool - 1 from rfl]
-  iexact Htoks
+  rcases hc with rfl | rfl
+  all_goals
+    (try wp_auto)
+    wp_apply (wp_NewTypedWithConfig (K := K) (T := T)
+      (TypedQueueConfig.mk nm mp (interface.mkOk k8s_io.utils.clock.RealClock.ty
+        #(zero_val k8s_io.utils.clock.RealClock)) GoInterface.nil) ⟨rfl, hn⟩) as %tq %γq ⟨#Htq, Htoks⟩
+    unfold shutdownToks
+    rw [show shutdownPool = (shutdownPool - 1) + 1 from rfl]
+    icases ownToks_add_1 1 (shutdownPool - 1) γq.pool $$ Htoks with ⟨Htoks, Htok⟩
+    wp_apply (wp_newDelayingQueue (K := K) (T := T) logger _ tq γq nm mp hn) $$ [$Htq Htok]
+      as %q %γ ⟨%Hγ, #Hdq⟩
+    · iframe #
+      unfold shutdownToks; iexact Htok
+    iapply HΦ
+    iframe #
+    rw [Hγ, show shutdownPool - 1 + 1 - 1 = shutdownPool - 1 from rfl]
+    iexact Htoks
 
 end proof
 

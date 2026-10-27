@@ -256,10 +256,24 @@ instance isDelaying_persistent (q : Loc) (γ : DNames) :
     Persistent (isDelaying (GF := GF) (K := K) q γ) := by
   unfold isDelaying; simp only [named]; infer_instance
 
+/-- `clock.RealClock{}` as a `clock.WithTicker`. -/
+abbrev realClockI : GoInterface :=
+  interface.mkOk k8s_io.utils.clock.RealClock.ty
+    #(k8s_io.utils.clock.RealClock.mk : k8s_io.utils.clock.RealClock)
+
 /-- The delaying queue configurations the specs cover: no logger (so `klog.Background()`), no
-clock (so `clock.RealClock{}`), the default typed queue, and no metrics (as `queueConfigOk`). -/
+clock or `clock.RealClock{}` (what it defaults to), the default typed queue, and no metrics (as
+`queueConfigOk`). -/
 def delayConfigOk (cfg : TypedDelayingQueueConfig K) : Prop :=
-  cfg.Logger' = Loc.null ∧ cfg.Clock' = interface.nil ∧ cfg.Queue' = interface.nil ∧
+  cfg.Logger' = Loc.null ∧ (cfg.Clock' = interface.nil ∨ cfg.Clock' = realClockI) ∧
+    cfg.Queue' = interface.nil ∧
+    (cfg.Name' = [] ∨ cfg.MetricsProvider' = interface.nil ∨ cfg.MetricsProvider' = noopProvider)
+
+/-- The rate-limiting queue configurations the specs cover: as `delayConfigOk`, the default
+delaying queue. -/
+def rlConfigOk (cfg : TypedRateLimitingQueueConfig K) : Prop :=
+  cfg.Logger' = Loc.null ∧ (cfg.Clock' = interface.nil ∨ cfg.Clock' = realClockI) ∧
+    cfg.DelayingQueue' = interface.nil ∧
     (cfg.Name' = [] ∨ cfg.MetricsProvider' = interface.nil ∨ cfg.MetricsProvider' = noopProvider)
 
 /-- **The rate-limiting queue** (persistent): a `*rateLimitingType[T]` over the delaying queue
