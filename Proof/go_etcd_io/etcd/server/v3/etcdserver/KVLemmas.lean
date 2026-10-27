@@ -540,7 +540,7 @@ theorem readQs_eqv (γk : KVNames) (A B : List EntryModel) (h : kvModel γk A = 
     ihave %HQ'AB : ⌜Q' A = Q' B⌝ $$ [Hd]
     · iunfold kvDep at Hd
       icases Hd with (⟨%Q0, %HQeq, -⟩ | %HQeq)
-      · ipureintro; rw [HQeq]; simp only [h]
+      · ipureintro; rw [HQeq]; simp only [kvStOff, h]
       · ipureintro; rw [HQeq]
     inext
     unfold readQs
