@@ -397,6 +397,15 @@ in such runs. The controller is left unfixed until the S1 proof genuinely gets s
    hypothesis), and the informer contract's assembly (the history `γe` tied to the store's steps
    through `procSend` and the FIFO; `gateOff`; the batch path still C4/D3) (`notes/STATUS.md`,
    "The informers, third round: listeners, processor, selectors").
+   *Status, proofs, fourth round (2026-10-27, branch `k8s-daemonset-proof`, phase C4):* **the batch
+   path** (`Main`'s default, D51) over two named hypotheses, `RealFIFO.PopBatch` (D3) and
+   `threadSafeMap.Transaction` (C4), both stated as what the code does (`links_pending`):
+   `cache.Transaction`, `processDeltasInBatch`, `handleBatchDeltas`, `controller.processLoop` on both
+   paths (`gateOk`: the gate returns any boolean). **The store writer's allowed steps**
+   (`storeWriter γ SW Rw`, every processing spec re-proved), so that the contract can keep the store
+   in an invariant its readers open. **The reflector**: its version fields and `syncWith` proved
+   (`RefDefs.lean`); `list`, `watch`, `ListAndWatchWithContext` next (`notes/STATUS.md`, "The
+   informers, fourth round"). New boundary axiom `errors.Join`.
 5. **The controller.** `Run`, the workers, `syncDaemonSet` and what it calls on this scenario's
    paths, the event handlers, `syncNodeUpdate`; S1's invariant.
 6. **The closed theorem.** `examples/dsonepod`'s `wp_Main`, its package table and init, and

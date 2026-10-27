@@ -37,8 +37,8 @@ theorem processDeltas.wp_proof
     (wp_Delete : cache.Delete.spec (GF := GF) (hG := hG))
     (wp_Bookmark : cache.Bookmark.spec (GF := GF) (hG := hG)) :
     processDeltas.spec (GF := GF) (hG := hG) := by
-  intro lg h ca ts γ OK Fam kf kf' KF rvOf SW σ H evs d v sl b
-  wp_start as ⟨#Hca, Hr, #Hsw, HSW, #Hh, HH, Hfd, Hsl, %Hkind, #Hkey, #Hkey', #Hacc⟩
+  intro lg h ca ts γ OK Fam kf kf' KF rvOf SW Rw σ H evs d v sl b
+  wp_start as ⟨#Hca, Hr, #Hsw, HSW, %HRw, #Hh, HH, Hfd, Hsl, %Hkind, #Hkey, #Hkey', #Hacc⟩
   (try wp_auto)
   iunfold handlerOk at Hh
   icases Hh with ⟨%hi, %hh, #HonAdd, #HonUpd, #HonDel⟩
@@ -83,7 +83,7 @@ theorem processDeltas.wp_proof
         iapply (wp_Get ca ts γ OK Fam kf _ KF o) $$ [$Hpkg $Hca $Hkey $Hr]
         · imodintro; ipureintro; exact hoin
         inext
-        iapply (writer_read γ SW σ) $$ Hsw HSW
+        iapply (writer_read γ SW Rw σ HRw.1) $$ Hsw HSW
         iintro HSW %item %ok ⟨%Hitem, #Hold, Hr⟩
         obtain ⟨rfl, rfl⟩ := Hitem
         (try wp_auto)
@@ -94,7 +94,7 @@ theorem processDeltas.wp_proof
           iapply (wp_Update ca ts γ OK Fam kf _ KF rvOf o) $$ [$Hpkg $Hca $Hkey $Hacc $HOKo]
           · imodintro; ipureintro; exact hoin
           inext
-          iapply (writer_step γ SW σ (fun σ => σ.update (KF o) o (rvOf o))) $$ Hsw HSW
+          iapply (writer_step γ SW Rw σ (fun σ => σ.update (KF o) o (rvOf o)) (by simpa [storeStepFD] using HRw.2)) $$ Hsw HSW
           iintro HSW -
           (try wp_auto)
           ihave #HonUpd1 := HonUpd $$ %evs %(objAt σ.items (KF o)) %o
@@ -118,7 +118,7 @@ theorem processDeltas.wp_proof
           iapply (wp_Add ca ts γ OK Fam kf _ KF rvOf o) $$ [$Hpkg $Hca $Hkey $Hacc $HOKo]
           · imodintro; ipureintro; exact hoin
           inext
-          iapply (writer_step γ SW σ (fun σ => σ.update (KF o) o (rvOf o))) $$ Hsw HSW
+          iapply (writer_step γ SW Rw σ (fun σ => σ.update (KF o) o (rvOf o)) (by simpa [storeStepFD] using HRw.2)) $$ Hsw HSW
           iintro HSW -
           (try wp_auto)
           ihave #HonAdd1 := HonAdd $$ %evs %o %b
@@ -143,7 +143,7 @@ theorem processDeltas.wp_proof
         iapply (wp_Get ca ts γ OK Fam kf _ KF o) $$ [$Hpkg $Hca $Hkey $Hr]
         · imodintro; ipureintro; exact hoin
         inext
-        iapply (writer_read γ SW σ) $$ Hsw HSW
+        iapply (writer_read γ SW Rw σ HRw.1) $$ Hsw HSW
         iintro HSW %item %ok ⟨%Hitem, #Hold, Hr⟩
         obtain ⟨rfl, rfl⟩ := Hitem
         (try wp_auto)
@@ -154,7 +154,7 @@ theorem processDeltas.wp_proof
           iapply (wp_Update ca ts γ OK Fam kf _ KF rvOf o) $$ [$Hpkg $Hca $Hkey $Hacc $HOKo]
           · imodintro; ipureintro; exact hoin
           inext
-          iapply (writer_step γ SW σ (fun σ => σ.update (KF o) o (rvOf o))) $$ Hsw HSW
+          iapply (writer_step γ SW Rw σ (fun σ => σ.update (KF o) o (rvOf o)) (by simpa [storeStepFD] using HRw.2)) $$ Hsw HSW
           iintro HSW -
           (try wp_auto)
           ihave #HonUpd1 := HonUpd $$ %evs %(objAt σ.items (KF o)) %o
@@ -178,7 +178,7 @@ theorem processDeltas.wp_proof
           iapply (wp_Add ca ts γ OK Fam kf _ KF rvOf o) $$ [$Hpkg $Hca $Hkey $Hacc $HOKo]
           · imodintro; ipureintro; exact hoin
           inext
-          iapply (writer_step γ SW σ (fun σ => σ.update (KF o) o (rvOf o))) $$ Hsw HSW
+          iapply (writer_step γ SW Rw σ (fun σ => σ.update (KF o) o (rvOf o)) (by simpa [storeStepFD] using HRw.2)) $$ Hsw HSW
           iintro HSW -
           (try wp_auto)
           ihave #HonAdd1 := HonAdd $$ %evs %o %b
@@ -203,7 +203,7 @@ theorem processDeltas.wp_proof
         iapply (wp_Delete ca ts γ OK Fam kf _ KF rvOf o) $$ [$Hpkg $Hca $Hkey $Hacc $HOKo]
         · imodintro; ipureintro; exact hoin
         inext
-        iapply (writer_step γ SW σ (fun σ => σ.delete (KF o) (rvOfObj rvOf o))) $$ Hsw HSW
+        iapply (writer_step γ SW Rw σ (fun σ => σ.delete (KF o) (rvOfObj rvOf o)) (by simpa [storeStepFD] using HRw.2)) $$ Hsw HSW
         iintro HSW -
         (try wp_auto)
         ihave #HonDel1 := HonDel $$ %evs %o
@@ -228,10 +228,12 @@ theorem processDeltas.wp_proof
       rw [decide_eq_true (by simp)]
       (try wp_auto)
       simp only [FD.objs]
-      wp_apply (wp_pRAI lg (GoInterface.ok hi) ca ts γ OK Fam kf kf' KF SW σ H evs rv isl objs b)
+      wp_apply (wp_pRAI lg (GoInterface.ok hi) ca ts γ OK Fam kf kf' KF SW Rw σ H evs rv isl objs b)
         $$ [$Hpkg $Hca $Hr $Hsw $HSW $HH $Hisl $Hoks $Hkey $Hkey']
         as ⟨%dks, %Hdks, HSW, HH, Hisl, Hr⟩
-      · iunfold handlerOk; iexists hi; iframe #; ipureintro; rfl
+      · isplitr
+        · ipureintro; exact ⟨HRw.1, by simpa [storeStepFD] using HRw.2⟩
+        iunfold handlerOk; iexists hi; iframe #; ipureintro; rfl
       (try wp_auto)
       wp_for_post
       iframe
@@ -250,7 +252,7 @@ theorem processDeltas.wp_proof
       wp_bind
       iapply (wp_Bookmark ca ts γ OK Fam kf rv) $$ [$Hpkg $Hca]
       inext
-      iapply (writer_step γ SW σ (fun σ => σ.bookmark rv)) $$ Hsw HSW
+      iapply (writer_step γ SW Rw σ (fun σ => σ.bookmark rv) (by simpa [storeStepFD] using HRw.2)) $$ Hsw HSW
       iintro HSW -
       (try wp_auto)
       wp_for_post

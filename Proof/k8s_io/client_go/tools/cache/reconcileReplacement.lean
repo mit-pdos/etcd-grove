@@ -34,8 +34,8 @@ theorem reconcileReplacement.wp_proof
     (wp_Insert : sets.Set.Insert.spec (GF := GF) (hG := hG))
     (wp_Has : sets.Set.Has.spec (GF := GF) (hG := hG)) :
     reconcileReplacement.spec (GF := GF) (hG := hG) := by
-  intro lg ca ts γ OK Fam kf kf' KF SW σ nsl dq objs od orp Dl Rl
-  wp_start as ⟨#Hca, Hr, #Hsw, HSW, Hnsl, #Hkey, HD, HR, #Hod, #Horp⟩
+  intro lg ca ts γ OK Fam kf kf' KF SW Rw σ nsl dq objs od orp Dl Rl
+  wp_start as ⟨#Hca, Hr, #Hsw, HSW, %HRw, Hnsl, #Hkey, HD, HR, #Hod, #Horp⟩
   ihave #Hsets : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.apimachinery.pkg.util.sets $$ []
   · iPkgInit
   ihave %Hlen := ownSlice_len _ _ _ $$ Hnsl
@@ -112,7 +112,7 @@ theorem reconcileReplacement.wp_proof
     wp_bind
     iapply (wp_ListKeys ca ts γ OK Fam kf) $$ [$Hpkg $Hca $Hr]
     inext
-    iapply (writer_read γ SW σ) $$ Hsw HSW
+    iapply (writer_read γ SW Rw σ HRw) $$ Hsw HSW
     iintro HSW %ksl ⟨%ks, %Hks, Hksl, Hr⟩
     ihave %Hklen := ownSlice_len _ _ _ $$ Hksl
     have hnk : ∀ k, (sets.insertAll ∅ (objs.map KF) !! k).isSome = decide (k ∈ objs.map KF) := by
@@ -166,7 +166,7 @@ theorem reconcileReplacement.wp_proof
         wp_bind
         iapply (wp_GetByKey ca ts γ OK Fam kf k) $$ [$Hpkg $Hca $Hr]
         inext
-        iapply (writer_read γ SW σ) $$ Hsw HSW
+        iapply (writer_read γ SW Rw σ HRw) $$ Hsw HSW
         iintro HSW %item %ok ⟨%Hitem, #Hokx, Hr⟩
         obtain ⟨rfl, rfl⟩ := Hitem
         rw [decide_eq_true hkin]

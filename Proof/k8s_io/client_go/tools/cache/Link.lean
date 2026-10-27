@@ -31,6 +31,12 @@ public import Proof.k8s_io.client_go.tools.cache.RealFIFO__checkSynced_locked
 public import Proof.k8s_io.client_go.tools.cache.RealFIFO__hasSynced_locked
 public import Proof.k8s_io.client_go.tools.cache.RealFIFO__keyOf
 public import Proof.k8s_io.client_go.tools.cache.RealFIFO__whileProcessing_locked
+public import Proof.k8s_io.client_go.tools.cache.Reflector__LastSyncResourceVersion
+public import Proof.k8s_io.client_go.tools.cache.Reflector__relistResourceVersion
+public import Proof.k8s_io.client_go.tools.cache.Reflector__rewatchResourceVersion
+public import Proof.k8s_io.client_go.tools.cache.Reflector__setIsLastSyncResourceVersionUnavailable
+public import Proof.k8s_io.client_go.tools.cache.Reflector__setLastSyncResourceVersion
+public import Proof.k8s_io.client_go.tools.cache.Reflector__syncWith
 public import Proof.k8s_io.apimachinery.pkg.util.sets.Set__Delete
 public import Proof.k8s_io.apimachinery.pkg.util.sets.Set__Has
 public import Proof.k8s_io.apimachinery.pkg.util.sets.Set__HasAny
@@ -55,12 +61,15 @@ public import Proof.k8s_io.client_go.tools.cache.cache__List
 public import Proof.k8s_io.client_go.tools.cache.cache__ListKeys
 public import Proof.k8s_io.client_go.tools.cache.cache__Replace
 public import Proof.k8s_io.client_go.tools.cache.cache__Resync
+public import Proof.k8s_io.client_go.tools.cache.cache__Transaction
 public import Proof.k8s_io.client_go.tools.cache.cache__Update
 public import Proof.k8s_io.client_go.tools.cache.controller__processLoop
+public import Proof.errors.Join
 public import Proof.k8s_io.client_go.tools.cache.newStoreMetrics
 public import Proof.k8s_io.client_go.tools.cache.noopMetric__Set
 public import Proof.k8s_io.client_go.tools.cache.parseRVForMetricsWithTruncation
 public import Proof.k8s_io.client_go.tools.cache.processDeltas
+public import Proof.k8s_io.client_go.tools.cache.processDeltasInBatch
 public import Proof.k8s_io.client_go.tools.cache.processReplacedAllInfo
 public import Proof.k8s_io.client_go.tools.cache.processorListener__add
 public import Proof.k8s_io.client_go.tools.cache.processorListener__pop
@@ -73,6 +82,7 @@ public import Proof.k8s_io.apimachinery.pkg.util.sets.New
 public import Proof.k8s_io.client_go.tools.cache.sharedIndexInformer__OnAdd
 public import Proof.k8s_io.client_go.tools.cache.sharedIndexInformer__OnDelete
 public import Proof.k8s_io.client_go.tools.cache.sharedIndexInformer__OnUpdate
+public import Proof.k8s_io.client_go.tools.cache.sharedIndexInformer__handleBatchDeltas
 public import Proof.k8s_io.client_go.tools.cache.sharedIndexInformer__handleDeltas
 public import Proof.k8s_io.client_go.tools.cache.sharedProcessor__distribute
 public import Proof.k8s_io.client_go.tools.cache.storeIndex__addIndexers
@@ -106,8 +116,10 @@ public import Proof.k8s_io.utils.trace.New
 public import Proof.k8s_io.utils.trace.Trace__LogIfLong
 public import Perennial.Proof.slices.Link
 public import Perennial.Proof.cmp.Link
+public import Spec.k8s_io.client_go.tools.cache.RealFIFO__PopBatch
 public import Spec.k8s_io.utils.buffer.TypedRingGrowing__ReadOne
 public import Spec.k8s_io.utils.buffer.TypedRingGrowing__WriteOne
+public import Spec.k8s_io.client_go.tools.cache.threadSafeMap__Transaction
 
 @[expose] public section
 
@@ -276,6 +288,30 @@ theorem cache.RealFIFO.wp_Replace :
 theorem cache.RealFIFO.wp_Update :
     EtcdGrove.cache.RealFIFO.Update.spec (GF := GF) (hG := hG) :=
   EtcdGrove.cache.RealFIFO.Update.wp_proof cache.RealFIFO.wp_checkSynced_locked cache.RealFIFO.wp_addToItems_locked
+
+theorem cache.Reflector.wp_LastSyncResourceVersion :
+    EtcdGrove.cache.Reflector.LastSyncResourceVersion.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cache.Reflector.LastSyncResourceVersion.wp_proof
+
+theorem cache.Reflector.wp_relistResourceVersion :
+    EtcdGrove.cache.Reflector.relistResourceVersion.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cache.Reflector.relistResourceVersion.wp_proof
+
+theorem cache.Reflector.wp_rewatchResourceVersion :
+    EtcdGrove.cache.Reflector.rewatchResourceVersion.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cache.Reflector.rewatchResourceVersion.wp_proof
+
+theorem cache.Reflector.wp_setIsLastSyncResourceVersionUnavailable :
+    EtcdGrove.cache.Reflector.setIsLastSyncResourceVersionUnavailable.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cache.Reflector.setIsLastSyncResourceVersionUnavailable.wp_proof
+
+theorem cache.Reflector.wp_setLastSyncResourceVersion :
+    EtcdGrove.cache.Reflector.setLastSyncResourceVersion.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cache.Reflector.setLastSyncResourceVersion.wp_proof
+
+theorem cache.Reflector.wp_syncWith :
+    EtcdGrove.cache.Reflector.syncWith.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cache.Reflector.syncWith.wp_proof cache.RealFIFO.wp_Replace
 
 theorem sets.Set.wp_Delete :
     EtcdGrove.sets.Set.Delete.spec (GF := GF) (hG := hG) :=
@@ -465,9 +501,9 @@ theorem cache.cache.wp_Update :
     EtcdGrove.cache.cache.Update.spec (GF := GF) (hG := hG) :=
   EtcdGrove.cache.cache.Update.wp_proof cache.threadSafeMap.wp_Update
 
-theorem cache.controller.wp_processLoop :
-    EtcdGrove.cache.controller.processLoop.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.cache.controller.processLoop.wp_proof cache.RealFIFO.wp_Pop
+theorem errors.wp_Join :
+    EtcdGrove.errors.Join.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.errors.Join.wp_proof
 
 theorem cache.wp_reconcileReplacement :
     EtcdGrove.cache.reconcileReplacement.spec (GF := GF) (hG := hG) :=
@@ -527,13 +563,31 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
+variable (h_RealFIFO__PopBatch : EtcdGrove.cache.RealFIFO.PopBatch.spec (GF := GF) (hG := hG))
 variable (h_TypedRingGrowing__ReadOne : EtcdGrove.buffer.TypedRingGrowing.ReadOne.spec (GF := GF) (hG := hG))
 variable (h_TypedRingGrowing__WriteOne : EtcdGrove.buffer.TypedRingGrowing.WriteOne.spec (GF := GF) (hG := hG))
-include h_TypedRingGrowing__ReadOne h_TypedRingGrowing__WriteOne
+variable (h_threadSafeMap__Transaction : EtcdGrove.cache.threadSafeMap.Transaction.spec (GF := GF) (hG := hG))
+include h_RealFIFO__PopBatch h_TypedRingGrowing__ReadOne h_TypedRingGrowing__WriteOne h_threadSafeMap__Transaction
+
+theorem cache.cache.wp_Transaction :
+    EtcdGrove.cache.cache.Transaction.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cache.cache.Transaction.wp_proof h_threadSafeMap__Transaction
+
+theorem cache.controller.wp_processLoop :
+    EtcdGrove.cache.controller.processLoop.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cache.controller.processLoop.wp_proof cache.RealFIFO.wp_Pop h_RealFIFO__PopBatch
+
+theorem cache.wp_processDeltasInBatch :
+    EtcdGrove.cache.processDeltasInBatch.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cache.processDeltasInBatch.wp_proof cache.cache.wp_GetByKey (cache.cache.wp_Transaction h_RealFIFO__PopBatch h_TypedRingGrowing__ReadOne h_TypedRingGrowing__WriteOne h_threadSafeMap__Transaction) errors.wp_Join
 
 theorem cache.processorListener.wp_pop :
     EtcdGrove.cache.processorListener.pop.spec (GF := GF) (hG := hG) :=
   EtcdGrove.cache.processorListener.pop.wp_proof h_TypedRingGrowing__ReadOne h_TypedRingGrowing__WriteOne
+
+theorem cache.sharedIndexInformer.wp_handleBatchDeltas :
+    EtcdGrove.cache.sharedIndexInformer.handleBatchDeltas.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cache.sharedIndexInformer.handleBatchDeltas.wp_proof (cache.wp_processDeltasInBatch h_RealFIFO__PopBatch h_TypedRingGrowing__ReadOne h_TypedRingGrowing__WriteOne h_threadSafeMap__Transaction)
 
 end links_pending
 

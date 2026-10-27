@@ -27,8 +27,8 @@ variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
 theorem sharedIndexInformer.handleDeltas.wp_proof
     (wp_pD : processDeltas.spec (GF := GF) (hG := hG)) :
     sharedIndexInformer.handleDeltas.spec (GF := GF) (hG := hG) := by
-  intro s lg ca ts γ OK Fam kf kf' KF rvOf SW H BL d v sl b P Q
-  wp_start as ⟨#Hidx, #Hkf, #Hca, Hr, #Hsw, #Hmu, #Hh, Hfd, Hsl, %Hkind, #Hkey, #Hkey', #Hacc, HP,
+  intro s lg ca ts γ OK Fam kf kf' KF rvOf SW Rw H BL d v sl b P Q
+  wp_start as ⟨#Hidx, #Hkf, #Hca, Hr, #Hsw, %HRw, #Hmu, #Hh, Hfd, Hsl, %Hkind, #Hkey, #Hkey', #Hacc, HP,
     Hstep⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
@@ -41,10 +41,10 @@ theorem sharedIndexInformer.handleDeltas.wp_proof
   icases HR with ⟨%σ, %evs, HSW, HH, HBL⟩
   (try wp_auto)
   simp only [siiObj]
-  wp_apply (wp_pD lg _ ca ts γ OK Fam kf kf' KF rvOf SW σ H evs d v sl b)
+  wp_apply (wp_pD lg _ ca ts γ OK Fam kf kf' KF rvOf SW Rw σ H evs d v sl b)
     $$ [$Hpkg $Hca $Hr $Hsw $HSW $Hh $HH $Hfd $Hsl $Hkey $Hkey' $Hacc]
     as ⟨%σ', %evs', %Hst, HSW, HH, Hsl, Hr⟩
-  · ipureintro; exact Hkind
+  · ipureintro; exact ⟨HRw σ, Hkind⟩
   ihave HQ := Hstep $$ %σ %evs %σ' %evs' HP HBL %Hst
   imod HQ with ⟨HBL, HQ⟩
   (try wp_auto)

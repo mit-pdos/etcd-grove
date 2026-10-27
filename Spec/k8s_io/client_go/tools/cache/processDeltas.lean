@@ -33,11 +33,12 @@ it). -/
 abbrev processDeltas.spec : Prop :=
   ∀ (lg : github_com.go_logr.logr.Logger) (h : GoInterface) (ca ts : Loc) (γ : TsNames)
     (OK : GoInterface → IProp GF) (Fam : Nat → Fn GF) (kf kf' : GoFunc)
-    (KF : GoInterface → GoString) (rvOf : GoInterface → Option GoString) (SW : St → IProp GF)
+    (KF : GoInterface → GoString) (rvOf : GoInterface → Option GoString) (SW : St → IProp GF) (Rw : St → St → Prop)
     (σ : St) (H : List Ev → IProp GF) (evs : List Ev) (d : FD) (v : Delta) (sl : GoSlice)
     (b : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ isCache ca ts γ OK Fam kf ∗
-      tsReader ts γ OK Fam ∗ storeWriter γ SW ∗ SW σ ∗ handlerOk OK h H ∗ H evs ∗
+      tsReader ts γ OK Fam ∗ storeWriter γ SW Rw ∗ SW σ ∗
+      ⌜Rw σ σ ∧ Rw σ (storeStepFD KF rvOf σ d)⌝ ∗ handlerOk OK h H ∗ H evs ∗
       fdAt OK d v ∗ sl ↦* [v] ∗ ⌜d.kindOk⌝ ∗
       keyOk (fun x => iprop(⌜x ∈ d.objs⌝)) kf KF ∗ keyOk (fun x => iprop(⌜x ∈ d.objs⌝)) kf' KF ∗
       rvAcc (fun x => iprop(⌜x ∈ d.objs⌝)) rvOf }}

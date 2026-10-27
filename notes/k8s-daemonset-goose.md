@@ -292,6 +292,10 @@ unblocks `Backoff.Next`, `Transaction` and `PopBatch` at once; (b) `Main` turnin
 `InOrderInformersBatchProcess` off (the single-delta path; a change to the theorem's program, a
 decision for the user: the default configuration is the one kube-controller-manager runs); (c)
 trusted models of the two. Not on Perennial's `lean` (checked 2026-10-27, `goose.go:692`).
+*Since phase 4's fourth round (2026-10-27)* both are **named hypotheses** (D51: the gate stays on):
+`Spec/k8s_io/client_go/tools/cache/{RealFIFO__PopBatch,threadSafeMap__Transaction}.lean` state what
+the code does, `?` in `etc/link-lean-first-k8scache.txt`; `processDeltasInBatch`, `cache.Transaction`,
+`handleBatchDeltas` and `processLoop`'s batch path are proved over them.
 
 **D4. A labeled `break` out of a `select` inside a `for`** (`reflector.go:999`, `handleAnyWatch`:
 `loop: for { select { ... case event, ok := <-w.ResultChan(): if !ok { break loop } ... } }`).
@@ -302,7 +306,7 @@ event's path into the FIFO: `handleWatch`, `handleListWatch`, so `Reflector.watc
 `break`; the label only names which loop; general and small for this shape), (b) a fork of
 client-go with a flag variable (`closed := true; break` in the `select`, `if closed { break }` after
 it), a source change that keeps the semantics, (c) a trusted model of `handleAnyWatch`. Not on
-Perennial's `lean` (2026-10-27).
+Perennial's `lean` (2026-10-27). Phase 4's fourth round states `handleAnyWatch`'s per-event behavior as a named hypothesis (pending).
 
 **D5. Package variables of anonymous struct types** (`identity.go:37`, `informerNameRegistry =
 struct{ sync.Mutex; names map[string]*InformerName }{...}`; `reflector_metrics.go:83`,

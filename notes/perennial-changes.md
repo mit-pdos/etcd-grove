@@ -457,6 +457,24 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   proved from it.
 - **Status.** Not started in Perennial.
 
+### `reflect.Type` in a struct field: the struct's instances rest on a `sorry` (2026-10-27, client-go reflector)
+
+- **Limitation.** `reflect` is names-only (`Perennial/Code/reflect.toml`: `translate = ["!*"]`), so
+  `reflect.Type` (a Go *interface* type) is an axiomatized Lean type whose generated instances
+  (`GeneratedProof/reflect.lean`: `Type'_typed_pointsto`, `Type'_into_val_typed`) are
+  `sorry -- axiomatized type`. A translated struct with a `reflect.Type` field gets its own
+  instances from them when it is generated, so every proof that touches such a struct's fields
+  reaches the `sorry`s; a later higher-priority instance (as `Proof/reflect/Values.lean` does for
+  `reflect.Value`) does not help, the struct's instance is already elaborated.
+- **Needed by.** client-go's `Reflector` (`expectedType reflect.Type`): the reflector's proofs
+  (`Proof/k8s_io/client_go/tools/cache/Reflector__*.lean`, phase 4 of
+  `notes/k8s-daemonset-plan.md`) rest on the two `sorry`s (in `etc/tcb-baseline.txt` and the
+  client-go collections since 2026-10-27).
+- **Proposed.** Translate `reflect`'s type declarations (`translate_types`, or `Type` alone: an
+  interface type, whose values Perennial represents as any interface's), keeping its functions
+  names only. A Perennial change, designed and reviewed on its own.
+- **Status.** Not started.
+
 ### Goose: a names-only package's constants are values of unknown shape
 
 - **Need.** A names-only package's constants are axiomatized `val`s

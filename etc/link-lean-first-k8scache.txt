@@ -112,7 +112,17 @@ reconcileReplacement: cache__ListKeys cache__GetByKey Set__Insert Set__Has
 processReplacedAllInfo: reconcileReplacement cache__Get cache__Replace
 processDeltas: processReplacedAllInfo cache__Get cache__Add cache__Update cache__Delete cache__Bookmark
 sharedIndexInformer__handleDeltas: processDeltas
-controller__processLoop: RealFIFO__Pop
+#
+# the batch path (InOrderInformersBatchProcess, on by default and in Main; DaemonSet plan phase 4,
+# fourth round): the names-only RealFIFO.PopBatch (gap D3) and threadSafeMap.Transaction (gap C4)
+# are specified as what the code does and pending (named hypotheses); errors.Join a boundary axiom
+threadSafeMap__Transaction: ?
+RealFIFO__PopBatch: ?
+errors_Join:
+cache__Transaction: threadSafeMap__Transaction
+processDeltasInBatch: cache__GetByKey cache__Transaction errors_Join
+sharedIndexInformer__handleBatchDeltas: processDeltasInBatch
+controller__processLoop: RealFIFO__Pop RealFIFO__PopBatch
 #
 # the shared informer's listeners (shared_informer.go's processorListener; DaemonSet plan phase 4,
 # third round), over synctrack's tracker and k8s.io/utils/buffer's ring (specified, pending)
@@ -129,3 +139,12 @@ sharedProcessor__distribute: processorListener__add
 sharedIndexInformer__OnAdd: sharedProcessor__distribute
 sharedIndexInformer__OnUpdate: sharedProcessor__distribute
 sharedIndexInformer__OnDelete: sharedProcessor__distribute
+#
+# the reflector (reflector.go; DaemonSet plan phase 4, fourth round): its last synced version and
+# flag (the reflector goroutine's), the relist/re-watch versions, the list's Replace
+Reflector__LastSyncResourceVersion:
+Reflector__setLastSyncResourceVersion:
+Reflector__setIsLastSyncResourceVersionUnavailable:
+Reflector__relistResourceVersion:
+Reflector__rewatchResourceVersion:
+Reflector__syncWith: RealFIFO__Replace

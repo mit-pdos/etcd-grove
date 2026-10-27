@@ -65,6 +65,18 @@ namespace k8scache
 #print axioms cache.wp_processDeltas
 #print axioms cache.sharedIndexInformer.wp_handleDeltas
 #print axioms cache.controller.wp_processLoop
+-- the batch path (`InOrderInformersBatchProcess`, `Main`'s; phase 4, fourth round): over the named
+-- hypotheses `RealFIFO.PopBatch` (D3) and `threadSafeMap.Transaction` (C4), `links_pending`
+#print axioms cache.cache.wp_Transaction
+#print axioms cache.wp_processDeltasInBatch
+#print axioms cache.sharedIndexInformer.wp_handleBatchDeltas
+-- the reflector (phase 4, fourth round)
+#print axioms cache.Reflector.wp_LastSyncResourceVersion
+#print axioms cache.Reflector.wp_setLastSyncResourceVersion
+#print axioms cache.Reflector.wp_setIsLastSyncResourceVersionUnavailable
+#print axioms cache.Reflector.wp_relistResourceVersion
+#print axioms cache.Reflector.wp_rewatchResourceVersion
+#print axioms cache.Reflector.wp_syncWith
 -- the informers' FIFO (`RealFIFO`, atomic events; phase 4)
 #print axioms cache.RealFIFO.wp_Add
 #print axioms cache.RealFIFO.wp_Update

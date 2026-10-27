@@ -35,8 +35,8 @@ theorem processReplacedAllInfo.wp_proof
     (wp_Get : cache.Get.spec (GF := GF) (hG := hG))
     (wp_Replace : cache.Replace.spec (GF := GF) (hG := hG)) :
     processReplacedAllInfo.spec (GF := GF) (hG := hG) := by
-  intro lg h ca ts γ OK Fam kf kf' KF SW σ H evs rv isl objs b
-  wp_start as ⟨#Hca, Hr, #Hsw, HSW, #Hh, HH, Hisl, #Hoks, #Hkey, #Hkey'⟩
+  intro lg h ca ts γ OK Fam kf kf' KF SW Rw σ H evs rv isl objs b
+  wp_start as ⟨#Hca, Hr, #Hsw, HSW, %HRw, #Hh, HH, Hisl, #Hoks, #Hkey, #Hkey'⟩
   ihave %Hlen := ownSlice_len _ _ _ $$ Hisl
   (try wp_auto)
   wp_apply (wp_slice_make3 (V := replacement) (W64 0) isl.len (by word)) as %rsl0 ⟨Hrsl0, Hrcap0, -⟩
@@ -45,7 +45,7 @@ theorem processReplacedAllInfo.wp_proof
   (try wp_auto)
   ipersist clientState
   wp_bind
-  iapply (wp_reconcile lg ca ts γ OK Fam kf kf' KF SW σ isl (DFrac.own 1) objs _ _
+  iapply (wp_reconcile lg ca ts γ OK Fam kf kf' KF SW Rw σ isl (DFrac.own 1) objs _ _
     (fun ds => iprop(∃ (sl : GoSlice) (dvs : List DeletedFinalStateUnknown),
       deletions_ptr ↦ sl ∗ sl ↦* dvs ∗ ownSliceCap DeletedFinalStateUnknown sl (DFrac.own 1) ∗
       ⌜dvs.map (fun d => tombstone d.Key' d.Obj') = ds⌝ ∗ □ ([∗list] d ∈ dvs, okNil OK d.Obj')))
@@ -54,7 +54,9 @@ theorem processReplacedAllInfo.wp_proof
       ⌜rvs = rs.map (fun x => replacement.mk (objAt σ.items (KF x)) x)⌝ ∗
       □ ([∗list] x ∈ rs, okNil OK (objAt σ.items (KF x)) ∗ OK x))))
     $$ [$Hpkg $Hca $Hr $Hsw $HSW $Hisl $Hkey' deletions Hrsl0 Hrcap0 replacements clientState]
-  · isplitl [deletions]
+  · isplitr
+    · ipureintro; exact HRw.1
+    isplitl [deletions]
     · iexists slice.nil, []
       iframe
       isplitr
@@ -105,7 +107,7 @@ theorem processReplacedAllInfo.wp_proof
       iapply (wp_Get ca ts γ OK Fam kf (fun x => iprop(⌜x ∈ objs⌝)) KF o) $$ [$Hpkg $Hca $Hkey $Hr]
       · imodintro; ipureintro; exact ho
       inext
-      iapply (writer_read γ SW σ) $$ Hsw HSW
+      iapply (writer_read γ SW Rw σ HRw.1) $$ Hsw HSW
       iintro HSW %item %ok ⟨%Hitem, #Hold, Hr⟩
       obtain ⟨rfl, rfl⟩ := Hitem
       ihave #HOKo := BigSepL.bigSepL_mem (Φ := fun x => iprop(OK x)) ho $$ Hoks
@@ -167,7 +169,7 @@ theorem processReplacedAllInfo.wp_proof
       iempintro
     iframe #
   inext
-  iapply (writer_step γ SW σ (fun σ => σ.replace (keyedItems KF objs) rv)) $$ Hsw HSW
+  iapply (writer_step γ SW Rw σ (fun σ => σ.replace (keyedItems KF objs) rv) HRw.2) $$ Hsw HSW
   iintro HSW Hisl
   (try wp_auto)
   iunfold handlerOk at Hh

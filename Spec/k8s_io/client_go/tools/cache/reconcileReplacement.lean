@@ -36,11 +36,11 @@ unchanged), the new items `objs` keyed by `kf'` (`KF`, no error): `od` on the to
 store key the new items lack (`delKeys`, in some order), then `orp` on each new item in order. -/
 abbrev reconcileReplacement.spec : Prop :=
   ∀ (lg : github_com.go_logr.logr.Logger) (ca ts : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn GF)
-    (kf kf' : GoFunc) (KF : GoInterface → GoString) (SW : St → IProp GF) (σ : St)
+    (kf kf' : GoFunc) (KF : GoInterface → GoString) (SW : St → IProp GF) (Rw : St → St → Prop) (σ : St)
     (nsl : GoSlice) (dq : DFrac) (objs : List GoInterface) (od orp : GoFunc)
     (Dl : List GoInterface → IProp GF) (Rl : List GoInterface → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ isCache ca ts γ OK Fam kf ∗
-      tsReader ts γ OK Fam ∗ storeWriter γ SW ∗ SW σ ∗ nsl ↦*{dq} objs ∗
+      tsReader ts γ OK Fam ∗ storeWriter γ SW Rw ∗ SW σ ∗ ⌜Rw σ σ⌝ ∗ nsl ↦*{dq} objs ∗
       keyOk (fun x => iprop(⌜x ∈ objs⌝)) kf' KF ∗ Dl [] ∗ Rl [] ∗
       □ (∀ (ds : List GoInterface) (k : GoString) (x : GoInterface), {{ Dl ds ∗ okNil OK x }}
           (App (Val #od) (Val #(DeletedFinalStateUnknown.mk k x)))

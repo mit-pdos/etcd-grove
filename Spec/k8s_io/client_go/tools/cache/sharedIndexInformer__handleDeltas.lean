@@ -42,14 +42,15 @@ client's view shift `Hstep` turns from `P` into `Q` (its relation `BL` kept). -/
 abbrev sharedIndexInformer.handleDeltas.spec : Prop :=
   ∀ (s : Loc) (lg : github_com.go_logr.logr.Logger) (ca ts : Loc) (γ : TsNames)
     (OK : GoInterface → IProp GF) (Fam : Nat → Fn GF) (kf kf' : GoFunc)
-    (KF : GoInterface → GoString) (rvOf : GoInterface → Option GoString) (SW : St → IProp GF)
+    (KF : GoInterface → GoString) (rvOf : GoInterface → Option GoString) (SW : St → IProp GF) (Rw : St → St → Prop)
     (H : List Ev → IProp GF) (BL : St → List Ev → IProp GF) (d : FD) (v : Delta) (sl : GoSlice)
     (b : Bool) (P Q : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗
       s.[sharedIndexInformer, go!"indexer"] ↦□
         interface.mkOk (go.GoType.PointerType k8s_io.client_go.tools.cache.cache.ty) #ca ∗
       s.[sharedIndexInformer, go!"keyFunc"] ↦□ kf' ∗
-      isCache ca ts γ OK Fam kf ∗ tsReader ts γ OK Fam ∗ storeWriter γ SW ∗
+      isCache ca ts γ OK Fam kf ∗ tsReader ts γ OK Fam ∗ storeWriter γ SW Rw ∗
+      ⌜∀ σ, Rw σ σ ∧ Rw σ (storeStepFD KF rvOf σ d)⌝ ∗
       sync.isMutex (s.[sharedIndexInformer, go!"blockDeltas"]) (blockDeltasRes SW H BL) ∗
       handlerOk OK (siiObj s) H ∗
       fdAt OK d v ∗ sl ↦* [v] ∗ ⌜d.kindOk⌝ ∗

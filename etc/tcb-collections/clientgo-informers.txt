@@ -12,6 +12,7 @@ roots ^Spec/k8s_io/client_go/tools/cache/(cache__|RealFIFO__|Reflector__|sharedI
 roots ^Spec/k8s_io/client_go/(listers|informers)/
 axiom appsv1.Resource.wp_proof
 axiom corev1.Resource.wp_proof
+axiom errors.Join.wp_proof
 axiom labels.Everything.wp_proof
 axiom labels.LabelSelectorAsSelector.wp_proof
 axiom labels.reqsValid
@@ -21,4 +22,6 @@ axiom strconv.ParseInt.wp_proof
 axiom time.Duration.Seconds.wp_proof
 axiom trace.New.wp_proof
 axiom trace.Trace.LogIfLong.wp_proof
+sorry Perennial.reflect.Type'.Type'_into_val_typed
+sorry Perennial.reflect.Type'.Type'_typed_pointsto
 sorry cache.deferred_HandleCrashWithLogger

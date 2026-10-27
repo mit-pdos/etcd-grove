@@ -66,6 +66,44 @@ def stepFD (KF : GoInterface → GoString) (rvOf : GoInterface → Option GoStri
           objs.map (fun x => putEvR σ.items (KF x) x b)
   | .bookmark rv, σ', evs => σ' = σ.bookmark rv ∧ evs = []
 
+/-- **The store's next state for one queued delta** (`stepFD`'s store component, a function). -/
+def storeStepFD (KF : GoInterface → GoString) (rvOf : GoInterface → Option GoString) (σ : St) :
+    FD → St
+  | .obj t o => if t = go!"Deleted" then σ.delete (KF o) (rvOfObj rvOf o)
+                else σ.update (KF o) o (rvOf o)
+  | .replaced objs rv => σ.replace (keyedItems KF objs) rv
+  | .bookmark rv => σ.bookmark rv
+
+theorem stepFD_store (KF : GoInterface → GoString) (rvOf : GoInterface → Option GoString) (b : Bool)
+    (σ σ' : St) (d : FD) (evs : List Ev) (h : stepFD KF rvOf b σ d σ' evs) :
+    σ' = storeStepFD KF rvOf σ d := by
+  cases d with
+  | obj t o =>
+    rcases h with ⟨ht, h, -⟩ | ⟨ht, h, -⟩
+    · simp [storeStepFD, ht, h]
+    · simp [storeStepFD, ht, h]
+  | replaced objs rv => exact h.1
+  | bookmark rv => exact h.1
+
+/-- **Applying a delta's store step twice is applying it once** (the writer's relation tolerates a
+repeated write). -/
+theorem storeStepFD_idem (KF : GoInterface → GoString) (rvOf : GoInterface → Option GoString)
+    (σ : St) (d : FD) : storeStepFD KF rvOf (storeStepFD KF rvOf σ d) d = storeStepFD KF rvOf σ d := by
+  cases d with
+  | obj t o =>
+    unfold storeStepFD
+    by_cases ht : t = go!"Deleted"
+    · simp only [ht, ↓reduceIte, St.delete]
+      congr 1
+      · exact GMap.ext (fun k => by by_cases h : KF o = k <;> simp [GMap.lookup_delete_iff, h])
+      · cases rvOfObj rvOf o <;> rfl
+    · simp only [ht, ↓reduceIte, St.update]
+      congr 1
+      · exact GMap.ext (fun k => by by_cases h : KF o = k <;> simp [GMap.lookup_insert_eq_iff, h])
+      · cases rvOf o <;> rfl
+  | replaced objs rv => rfl
+  | bookmark rv => rfl
+
 /-- The objects of a queued delta. -/
 def FD.objs : FD → List GoInterface
   | .obj _ o => [o]
@@ -87,19 +125,23 @@ variable [sem : go.Semantics]
 variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
 
 /-- **The store's exclusive writer** (persistent): from `SW σ`, the store's state `σ` for one
-atomic operation, and `SW σ'` back for its new state `σ'`. -/
-def storeWriter (γ : TsNames) (SW : St → IProp GF) : IProp GF :=
-  iprop(□ ∀ σ : St, SW σ ={⊤, ∅}=∗ storeSt γ σ ∗ (∀ σ' : St, storeSt γ σ' ={∅, ⊤}=∗ SW σ'))
+atomic operation, and `SW σ'` back for its new state `σ'`, a step the writer is allowed (`Rw σ σ'`:
+the client can then keep the store in an invariant that admits only the steps of the deltas it
+expects, as the informer's does, whose readers are the listers). -/
+def storeWriter (γ : TsNames) (SW : St → IProp GF) (Rw : St → St → Prop) : IProp GF :=
+  iprop(□ ∀ σ : St, SW σ ={⊤, ∅}=∗ storeSt γ σ ∗
+    (∀ σ' : St, ⌜Rw σ σ'⌝ -∗ storeSt γ σ' ={∅, ⊤}=∗ SW σ'))
 
-instance storeWriter_persistent (γ : TsNames) (SW : St → IProp GF) :
-    Persistent (storeWriter γ SW) := by
+instance storeWriter_persistent (γ : TsNames) (SW : St → IProp GF) (Rw : St → St → Prop) :
+    Persistent (storeWriter γ SW Rw) := by
   unfold storeWriter; infer_instance
 
 open Iris.ProofMode in
 /-- **The exclusive writer's step**: it discharges a store operation's atomic update at its
 state `σ`, the store becoming `f σ`. -/
-theorem writer_step (γ : TsNames) (SW : St → IProp GF) (σ : St) (f : St → St) (K : St → IProp GF) :
-    ⊢ storeWriter γ SW -∗ SW σ -∗ (SW (f σ) -∗ K σ) -∗
+theorem writer_step (γ : TsNames) (SW : St → IProp GF) (Rw : St → St → Prop) (σ : St)
+    (f : St → St) (hR : Rw σ (f σ)) (K : St → IProp GF) :
+    ⊢ storeWriter γ SW Rw -∗ SW σ -∗ (SW (f σ) -∗ K σ) -∗
       |={⊤ \ ∅, ∅}=> ∃ σ', storeSt γ σ' ∗ (storeSt γ (f σ') ={∅, ⊤ \ ∅}=∗ K σ') := by
   iintro #Hw HSW HK
   rw [Iris.Std.LawfulSet.diff_empty]
@@ -110,17 +152,18 @@ theorem writer_step (γ : TsNames) (SW : St → IProp GF) (σ : St) (f : St → 
   iexists σ
   iframe Hst
   iintro Hst
-  ihave Hb := Hback $$ %(f σ) Hst
+  ihave Hb := Hback $$ %(f σ) %hR Hst
   imod Hb with HSW
   imodintro
   iapply HK $$ HSW
 
 open Iris.ProofMode in
 /-- **The exclusive writer's read**: a reader's atomic update at its state `σ`, unchanged. -/
-theorem writer_read (γ : TsNames) (SW : St → IProp GF) (σ : St) (K : St → IProp GF) :
-    ⊢ storeWriter γ SW -∗ SW σ -∗ (SW σ -∗ K σ) -∗
+theorem writer_read (γ : TsNames) (SW : St → IProp GF) (Rw : St → St → Prop) (σ : St)
+    (hR : Rw σ σ) (K : St → IProp GF) :
+    ⊢ storeWriter γ SW Rw -∗ SW σ -∗ (SW σ -∗ K σ) -∗
       |={⊤ \ ∅, ∅}=> ∃ σ', storeSt γ σ' ∗ (storeSt γ σ' ={∅, ⊤ \ ∅}=∗ K σ') :=
-  writer_step γ SW σ id K
+  writer_step γ SW Rw σ id hR K
 
 /-- What `OnDelete` is given: an object meeting `OK`, or a tombstone of one (or of `nil`). -/
 def delOk (OK : GoInterface → IProp GF) (o : GoInterface) : IProp GF :=
