@@ -231,6 +231,26 @@ theorem's program runs with it off, the premise "a failed write had no effect" (
    version is a created object's (well formed). `Clear` needs no permission (the delete handler's)
    and forgets the owner's writes: an invariant "every write is seen or recorded" holds for live
    owners only.
+   *Status, `tools/cache`'s thread-safe store (2026-10-27, branch `k8s-leaf-cache`):* linked in
+   `Proof/k8s_io/client_go/tools/cache/Link.lean` (`etc/gen-link.py --k8scache`; results
+   `Results.lean`, TCB `etc/tcb-collections/clientgo-cache.txt`), no `sorry`, one trust-boundary
+   axiom (`strconv.ParseInt`, the resource-version metric only). `threadSafeMap`'s `Get`, `List`,
+   `ListKeys`, `ByIndex` (readers, one reader slot `tsReader` each) and `Add`, `Update`, `Delete`,
+   `DeleteWithObject`, `Replace`, `Bookmark` (writers) are logically atomic over `storeSt γ σ`
+   (`StoreModel.lean`: items, resource version `rv`, indexers named by index into the client's
+   family `Fam`); `NewThreadSafeStore` (no options) hands out the state and all reader slots. The
+   indices are exact (`ixOk`, kept by `updateSingleIndex`/`updateIndices`): `ByIndex(n, v)` returns
+   exactly the items `k` with `v ∈ Fam j (obj k)` (`inIdx`, nil objects never indexed), each once.
+   **`rv` is not monotone**: `Add`/`Update`/`DeleteWithObject` set it to the object's whenever its
+   accessor has one, `Replace`/`Bookmark` to the given string (even `""`), `Delete` keeps it. Premises
+   the client discharges: `OK` (persistent, on stored objects), index functions' contracts
+   (`fnOk`: no error, values `F o`), the accessor's (`rvAcc`, apimachinery's `meta.Accessor` and
+   `GetResourceVersion`, typed-nil objects excluded). Store keys: `ObjectName.String`,
+   `SplitMetaNamespaceKey` (round trip `splitKey_nameKey`). Not done: the `cache` wrapper
+   (`store.go`: key functions, `NewIndexer`), `Index` (the namespace lister's path), `AddIndexers`
+   (the DS controller's node-name index; changes `fnIds`), `Transaction` (C4; the AtomicFIFO
+   informer's write path), `IndexKeys`, `ListIndexFuncValues`, `GetIndexers` (unlocked read),
+   `LastStoreSyncResourceVersion` (feature gates, C7), options/metrics providers.
 3. **The model API server's spec and proof.** Logically atomic triples over an abstract state of
    resources and its change log (compare D44-D48's KV state and its watches: a watch is repeated
    reads of the log).
