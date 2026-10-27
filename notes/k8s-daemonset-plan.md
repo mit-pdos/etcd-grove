@@ -404,8 +404,13 @@ in such runs. The controller is left unfixed until the S1 proof genuinely gets s
    paths (`gateOk`: the gate returns any boolean). **The store writer's allowed steps**
    (`storeWriter γ SW Rw`, every processing spec re-proved), so that the contract can keep the store
    in an invariant its readers open. **The reflector**: its version fields and `syncWith` proved
-   (`RefDefs.lean`); `list`, `watch`, `ListAndWatchWithContext` next (`notes/STATUS.md`, "The
-   informers, fourth round"). New boundary axiom `errors.Join`.
+   (`RefDefs.lean`); `list`, `watch`, `ListAndWatchWithContext` next. **The informer contract**
+   (`InformerContract`/`Rel`/`Inv`/`Glue.lean`, proved, no axiom): the invariant `infInv` (the
+   informer's state a chain over the log of a past API state: store = the log's table at its
+   version, versions never decrease) and its accessors for the lister reads, the processing
+   goroutine, object registration and the reflector's three pushes. Still to do for the contract:
+   `HasSynced`, the handlers' order, and the reflector's proofs that use the push accessors
+   (`notes/STATUS.md`, "The informers, fourth round"). New boundary axiom `errors.Join`.
 5. **The controller.** `Run`, the workers, `syncDaemonSet` and what it calls on this scenario's
    paths, the event handlers, `syncNodeUpdate`; S1's invariant.
 6. **The closed theorem.** `examples/dsonepod`'s `wp_Main`, its package table and init, and

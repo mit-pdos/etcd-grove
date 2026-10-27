@@ -306,7 +306,7 @@ event's path into the FIFO: `handleWatch`, `handleListWatch`, so `Reflector.watc
 `break`; the label only names which loop; general and small for this shape), (b) a fork of
 client-go with a flag variable (`closed := true; break` in the `select`, `if closed { break }` after
 it), a source change that keeps the semantics, (c) a trusted model of `handleAnyWatch`. Not on
-Perennial's `lean` (2026-10-27). Phase 4's fourth round states `handleAnyWatch`'s per-event behavior as a named hypothesis (pending).
+Perennial's `lean` (2026-10-27). The plan (D51) is to state `handleAnyWatch`'s per-event behavior as a named hypothesis; not yet written (phase 4's fourth round stopped before the reflector's watch path; the contract's push accessors, `InformerGlue.lean`, are what that spec's events will use).
 
 **D5. Package variables of anonymous struct types** (`identity.go:37`, `informerNameRegistry =
 struct{ sync.Mutex; names map[string]*InformerName }{...}`; `reflector_metrics.go:83`,
