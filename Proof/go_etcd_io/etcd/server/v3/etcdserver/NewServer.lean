@@ -1424,7 +1424,7 @@ theorem NewServer.wp_proofM (on : Bool)
     iexists ⟨errc, null, null, func.nil, GoInterface.nil, sstats, null⟩
     unfold srvRunBuilt compactorOk
     iframe compactor errorc Hltg stats Herrb
-    ileft; ipureintro; rfl
+    ipureintro; rfl
   isplitr
   · -- `#Hsab`: (D19p) `msgSnapC` never delivers
     unfold srvApplyAllBuilt

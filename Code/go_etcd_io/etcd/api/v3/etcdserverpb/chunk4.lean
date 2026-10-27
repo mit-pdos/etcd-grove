@@ -16,6 +16,15 @@ noncomputable section
 
 namespace go_etcd_io.etcd.api.v3.etcdserverpb
 
+class MaintenanceServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : go.UnderlyingDirectedEq MaintenanceServer.ty MaintenanceServer.underlying
+  method_set : go.MethodSetIs MaintenanceServer.ty [(go!"Alarm", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType AlarmRequest.ty)] false [(go.GoType.PointerType AlarmResponse.ty), go.error]))), (go!"Defragment", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType DefragmentRequest.ty)] false [(go.GoType.PointerType DefragmentResponse.ty), go.error]))), (go!"Downgrade", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType DowngradeRequest.ty)] false [(go.GoType.PointerType DowngradeResponse.ty), go.error]))), (go!"Hash", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType HashRequest.ty)] false [(go.GoType.PointerType HashResponse.ty), go.error]))), (go!"HashKV", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType HashKVRequest.ty)] false [(go.GoType.PointerType HashKVResponse.ty), go.error]))), (go!"MoveLeader", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType MoveLeaderRequest.ty)] false [(go.GoType.PointerType MoveLeaderResponse.ty), go.error]))), (go!"Snapshot", (some (go.signature.Signature [(go.GoType.PointerType SnapshotRequest.ty), (_root_.Perennial.google_golang_org.grpc.ServerStreamingServer.ty SnapshotResponse.ty)] false [go.error]))), (go!"Status", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType StatusRequest.ty)] false [(go.GoType.PointerType StatusResponse.ty), go.error]))), (go!"go.etcd.io/etcd/api/v3/etcdserverpb.mustEmbedUnimplementedMaintenanceServer", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType MaintenanceServer.ty) []
+
+attribute [instance] MaintenanceServer.TypeAssumptions.underlying
+  MaintenanceServer.TypeAssumptions.method_set
+  MaintenanceServer.TypeAssumptions.ptr_method_set
+
 class UnimplementedMaintenanceServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying UnimplementedMaintenanceServer.underlying UnimplementedMaintenanceServer
   underlying : go.UnderlyingDirectedEq UnimplementedMaintenanceServer.ty UnimplementedMaintenanceServer.underlying

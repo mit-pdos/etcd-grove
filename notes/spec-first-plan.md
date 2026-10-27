@@ -40,6 +40,76 @@ the callers whose bodies only thread state between callees, from the callees' sp
 are short and are what find a missing frame, a premise the caller cannot give, or a
 postcondition too weak for the caller -- before the callee's expensive proof exists.
 
+**Phase 1b: review the specs, and iterate with the glue** (added 2026-10-27, from the pilot's
+phase 1). Writing a spec and proving its callers' glue alternate per package boundary: write the
+spec, prove the glue of *every* caller, review, revise; a spec is frozen only when every caller's
+glue proves and the review leaves nothing in the first tier below. The review is a fresh reviewer's
+(the `spec-repair` skill, `--review-only`), given the specs, the Go code and the callers, not the
+author's conclusions; it ranks each spec that crosses a package boundary (internal helpers' specs may
+mirror the code) in two tiers:
+
+- *Requirements* (fail one and the spec is wrong): **true** of the code (phase 2's tester, then the
+  proof); **sufficient for every caller** (each caller can establish the pre and gets what its proof
+  needs from the post: the glue proofs check it); **faithful to concurrency** (callers that invoke it
+  concurrently need persistent contracts, a once-only or exclusive use a token; and an exclusive
+  requirement of the code is stated); **no unneeded premise** (each is one the code needs or one a
+  stronger result needs; one that excludes a legitimate caller fails sufficiency).
+- *Preferences* (among specs that pass): **abstraction** (only names the callers need: no fields,
+  ghost names, helpers or other packages' internals; counted on the unfolded statement,
+  `etc/gen-interface.py`); **implementation independence** (another reasonable implementation would
+  satisfy it); **the weakest pre and the post no stronger than some caller needs**; **size** (the
+  unfolded statement's length, binders, premises); **coupling** (other packages' predicates it
+  depends on: each is a place where a change elsewhere forces this spec to change, step 1's main
+  cause of churn).
+
+*Rounds.* Repairs introduce defects (in the pilot, two of round 2's three blockers came from round 1's
+repairs), so every repair is followed by another round with a fresh reviewer, until a round finds
+nothing in the first tier; each later round is told what the previous repair changed (the diff) and
+looks hardest there.
+
+*Cost.* A round took about 9 minutes in the pilot (28-47 tool calls, about 170k tokens), most of it
+the fresh reviewer finding and reading its context (the agent file, `CLAUDE.md`, the targets and what
+they unfold to, the Go code, and above all the callers' proofs: `NewServer.lean` alone is 1800 lines);
+the full `lake build` between rounds took longer (20-30 minutes). Two measures (added 2026-10-27):
+- **A context bundle per round**: one generated file with the targets' unfolded statements
+  (`etc/gen-interface.py`'s rendering), the Go functions they specify, the callers' call sites and the
+  contracts or proof excerpts at them, and, from round 2 on, the previous repair's diff. The reviewer
+  reads it first and goes to the repository only to check a claim.
+- **Targeted builds during the rounds**: build only the touched modules and their importers among the
+  specs and the glue (`lake build <modules>`, `etc/lean-check.py`); the full build once, before a
+  commit goes to the main branch.
+
+A round reviews a named commit; work goes on meanwhile, so the reviewer checks `HEAD` against it and
+marks findings already addressed there as stale (the pilot's fourth round ranked first a finding fixed
+after its snapshot).
+
+The pilot measures whether the review pays: spec revisions found by the review, by the glue proofs,
+and after the freeze.
+
+*Measured alongside the tiers* (mechanical where possible):
+
+| metric | what it catches | how |
+|---|---|---|
+| scope premises | premises restricting the configuration or workload (`AutoCompactionRetention = 0`): each a future SCOPE revision, step 1's first cause | count per spec; each must cite a phase-0 decision or an `issues/` file |
+| caller burden | a missing law: callers unfold the spec's predicates or open its invariants | `unfold`/`iunfold` of the callee's definitions in callers' proofs; glue lines per call |
+| law coverage | persistence, timelessness, fractions, agreement callers need and the API lacks | the laws exported next to each predicate against those callers use |
+| trust exposure | axioms the spec rests on, and whether each is tested | `etc/tcb-report.py --roots`; phase 2's tester coverage of them |
+| testability | how much of the spec phase 2 can check | the pure, decidable share of the pre/post; opaque predicates needing a test interpretation |
+| strength margin | a post weaker than the code guarantees: a future CALLER revision, step 1's second cause | phase 2's tester with a strengthened post: if no execution refutes it, note it (strengthen only when a caller needs it) |
+
+*The feedback loop.* The review's criteria are themselves under test:
+1. every spec revision after the review (glue, phase 3, phase 4, after the freeze) records its cause
+   (step 1's rubric) and the review criterion that should have caught it, or "none";
+2. a "none" becomes a new or sharper criterion; a miss of an existing criterion adds an example to
+   the reviewer's brief;
+3. false positives count against a criterion: a finding whose change was later reverted, or that
+   made a spec stronger than any caller used;
+4. the criteria are re-weighted by the revisions each would have prevented, weighted by the proof
+   lines those revisions touched (step 1's `proof_lines_changed`); one that never catches anything
+   is dropped.
+Each attributed miss becomes an entry of the `spec-repair` skill's `LESSONS.md` (one per critique, with
+the rule it became in `SKILL.md`), so later reviews in the repository start from it.
+
 **Phase 2: test the specs against the Go code** (no proof).
 - Canonical form: `own σ ∗ ⌜Pre σ args⌝ -∗ WP f args {r, ∃ σ', own σ' ∗ ⌜Post σ args r σ'⌝ ∗ …}`
   with `Pre`, `Post` decidable definitions on the pure records the predicates are indexed by
@@ -63,7 +133,24 @@ postcondition too weak for the caller -- before the callee's expensive proof exi
 **Phase 3: a few proofs per package.** Prove fully the one or two riskiest bodies of each
 package (most branching, ghost state, concurrency): they check what traces cannot -- invariant
 sufficiency, the ghost design, logical atomicity. Then freeze the specs: a change after the
-freeze needs a `notes/decisions.md` entry with its cause.
+freeze needs a `notes/decisions.md` entry with its cause. Do an easy proof too, not only the riskiest one (the user, 2026-10-27): an easy
+proof is cheap and may already find problems the review missed (a resource it cannot build, a premise
+it cannot meet); measured against the hard one, it says whether the hard proof found anything more,
+and so whether a hard proof per package is needed or an easy one is enough. Record for each: the time
+it took, and the spec problems it found that the review and the glue had not.
+
+*Unfolds across a package boundary* (added 2026-10-27, the user's: a client of a good spec does not
+unfold its definitions). Phase 1b's caller-burden metric predicts them; phase 1's glue and phase 3's
+proofs are where they show. List, for each proof, every `unfold`/`iunfold`/destructuring of a
+definition of another package (its predicates, its package initializer's fact, its contracts; not
+Perennial's proof-mode patterns such as `chan.blockingClausePre`). Each is a finding against that
+package's API: a missing law, added to the package that owns the definition (for Perennial's, a
+Perennial change, `notes/perennial-changes.md`), and the proof rewritten to use it. Unfolding a
+definition of the proof's own package is normal. The pilot's two `Run` proofs had three:
+`clockwork.clockOk` (now `clockOk_ok`/`clockOk_Now`/`clockOk_After`), mvcc's package fact, taken
+by its 31st of 42 conjuncts (now `mvcc.ErrCompacted_target`), and Perennial's `context.isContextDef`
+(`isContext_Done`, a Perennial branch). **The freeze requires the list empty**, or each remaining
+unfold justified in `notes/decisions.md` (a law pending in Perennial, say).
 
 **Phase 4: the remaining proofs**, against frozen specs, in parallel (independent per function,
 which suits agents).

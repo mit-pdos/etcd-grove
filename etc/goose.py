@@ -182,12 +182,15 @@ PROJECTS = [
         # than a panic (c00a2dc06, issues/etcd-unary-interceptor-learner-removed.md;
         # etcd-io/etcd#22188's fix). Then (the auth plan's E3z, 2026-10-27) branch
         # `goose-lean-grantfix` (on c00a2dc06): `RoleGrantPermission` replaces every permission
-        # on the range (acafa0317, issues/etcd-auth-grant-permission-same-key.md).
+        # on the range (acafa0317, issues/etcd-auth-grant-permission-same-key.md). Then (the
+        # spec-first pilot, 2026-10-27) branch `goose-lean-grantfix-compactorstart` (on acafa0317):
+        # the auto-compactor run by `start()`, not by `NewServer` (a20f6760f, the cherry-pick of
+        # 964dccdb4; issues/etcd-compactor-started-before-start.md).
         # Branch
         # `goose` (upstream main of 2026-03) stays as it is: the Rocq translations
         # (etcd-grove `main`, Perennial `master`) are regenerated from it by name.
         repo="https://github.com/upamanyus/etcd",
-        rev="acafa0317deff534175e072bc597cb77b847f0b1",
+        rev="a20f6760ff4312d40cd6b1ff04f9b4dd58e827c6",
         # go.etcd.io/raft/v3 (etcd's go.mod: v3.7.0) is the raft above (v3.7.0 plus the
         # read-index fix), translated by the raft project: not translated here.
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",

@@ -378,8 +378,8 @@ Also [raft-reportsnapshot-finish-not-noop](raft-reportsnapshot-finish-not-noop.m
   [etcd-backend-read-buffer-cache-stale-after-commit](etcd-backend-read-buffer-cache-stale-after-commit.md)
   (deterministic, a one-line fix, but no wrong etcd result known),
   [etcd-watch-sync-ticker-reset-zero](etcd-watch-sync-ticker-reset-zero.md) (Windows only; known,
-  PR open), [etcd-compactor-started-before-start](etcd-compactor-started-before-start.md) (not
-  reproduced), [etcd-request-id-zero-bootstrap-confchange](etcd-request-id-zero-bootstrap-confchange.md)
+  PR open), [etcd-compactor-started-before-start](etcd-compactor-started-before-start.md) (reproduced
+  2026-10-27 with a short periodic retention and a delayed `Start`; a small fix, in the fork), [etcd-request-id-zero-bootstrap-confchange](etcd-request-id-zero-bootstrap-confchange.md)
   (a member started in one particular millisecond),
   [raft-switchtoconfig-pending-reads](raft-switchtoconfig-pending-reads.md) (reads postponed to
   the leader's first commit are not released when `switchToConfig`'s commit is that commit; not a

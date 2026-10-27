@@ -139,7 +139,8 @@ abbrev NewServer.spec : Prop :=
   -- the configuration (`mvcc.New`'s premise on the batch limit: unit N1, 2026-10-17;
   -- `issues/etcd-compaction-negative-batch-limit.md`)
   cfg.Logger' ≠ null → 0 ≤ sint.Z cfg.CompactionBatchLimit' →
-  -- the compactor off (D14e: `v3compactor.New` and its goroutine not reached)
+  -- the compactor off (D14e: `v3compactor.New` not reached, and `start()`'s `Run` skipped: the
+  -- spec-first pilot's glue lifts it, `notes/compactor-pilot-plan.md`)
   cfg.AutoCompactionRetention' = 0 →
   -- the logic's thread bound (D17: the adequacy theorem's `T`, its caller's choice)
   threadBound GF ≤ 2 ^ 31 →
@@ -287,7 +288,8 @@ abbrev NewServer.specM (on : Bool) : Prop :=
   -- the configuration (`mvcc.New`'s premise on the batch limit: unit N1, 2026-10-17;
   -- `issues/etcd-compaction-negative-batch-limit.md`)
   cfg.Logger' ≠ null → 0 ≤ sint.Z cfg.CompactionBatchLimit' →
-  -- the compactor off (D14e: `v3compactor.New` and its goroutine not reached)
+  -- the compactor off (D14e: `v3compactor.New` not reached, and `start()`'s `Run` skipped: the
+  -- spec-first pilot's glue lifts it, `notes/compactor-pilot-plan.md`)
   cfg.AutoCompactionRetention' = 0 →
   -- the logic's thread bound (D17: the adequacy theorem's `T`, its caller's choice)
   threadBound GF ≤ 2 ^ 31 →

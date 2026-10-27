@@ -2065,6 +2065,36 @@ noncomputable def TxnRequest.GetFailure.impl [GooseExts] [GoGlobalContext] : val
   (App (Val doExecute)
   (Val #()))))))))
 
+/-- go: rpc.pb.go:1636:29 -/
+noncomputable def CompactionRequest.GetRevision.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "x"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "x" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType CompactionRequest.ty)))) (Var "x"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #(W64 0)))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType CompactionRequest.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType CompactionRequest.ty)))) (Var "x")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType CompactionRequest.ty)))) (Val UntypedNil))))))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef CompactionRequest.ty go!"Revision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType CompactionRequest.ty)))) (Var "x")))))
+  (App (Val doExecute)
+  (Val #()))))))))
+
+/-- go: rpc.pb.go:1643:29 -/
+noncomputable def CompactionRequest.GetPhysical.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "x"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "x" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType CompactionRequest.ty)))) (Var "x"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #false))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType CompactionRequest.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType CompactionRequest.ty)))) (Var "x")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType CompactionRequest.ty)))) (Val UntypedNil))))))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.bool))) (App (Val (GoInstruction (StructFieldRef CompactionRequest.ty go!"Physical"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType CompactionRequest.ty)))) (Var "x")))))
+  (App (Val doExecute)
+  (Val #()))))))))
+
 /-- go: rpc.pb.go:2527:30 -/
 noncomputable def LeaseGrantResponse.GetHeader.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"

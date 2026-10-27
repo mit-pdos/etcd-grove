@@ -24636,3 +24636,53 @@ Left for the next step: `etcd_auth_served`, like `etcd_kv_served`, consumes the 
 and Auth methods together, under one run slot; and the start's registration of the Auth service
 (`RegisterAuthServer` in `v3rpc.Server`, the Auth `ServiceDesc`'s methods in `etcdserverpbDescs`,
 now only `pbDescOk`).
+
+## The compactor pilot's specs after their first review (2026-10-27)
+
+**2026-10-27 · taken (the user for the clock and C1; the rest the review's)**
+
+The spec-first pilot's phase 1 (`notes/compactor-pilot-plan.md`, "Step 2b"): a fresh reviewer
+(`notes/spec-first-study/pilot-review-1.md`) ranked the specs crossing a package boundary before any
+proof. What changed and why:
+- **C1, periodic mode** (`v3compactor.perPermit`): was "reached by a time `T` with the clock past
+  `T + K`, or reached" — the second disjunct always holds, so the permit was vacuous. Now: `period`
+  past, except the run's first compaction, `retry` past and consuming a once-per-run token `First`
+  (`CompactEnv.First`, given to `Run`): the strongest statement true of the code without a timing
+  assumption (the first sample is taken at an unknown time after the run's start, and `Time.Sub` has
+  no meaningful spec). Rejected: `retry` for all (much weaker than the configured retention); `period`
+  for all over a new timing axiom (grows the trust base with an assumption about scheduling).
+- **The clock's `After`** (trust boundary, `clockwork.clockOk`): gives a reading `T ≥ n` for any bound
+  `clockLb n` the caller holds, so waits chain; no `0 ≤ d` premise; `clockLb_init`. The axioms have a
+  trivial model; their docstring says results' time content holds under the intended reading.
+- **The environment's contracts** (`revGetterOk`, `compactableOk`): thread the caller's resource `R`
+  (the store's `Rev` and the server's proposal path need reader slots), return what the compactor
+  inspects (`errTreeOk err`, `0 ≤ v`), and are over an abstract lower bound `CompactEnv.RevLb` instead
+  of mvcc's `IdxNames`.
+- **`EtcdServer.Compact`**: any revision (was: one the store has reached), the store reader in its pre
+  and post (its `s.kv.Rev()`), a result (`compactOutIs`), and `specOn`; `Physical` stays out, as scope.
+
+## The compactor pilot's freeze: the API laws, the request predicate's home, one unfold left (2026-10-27)
+
+**2026-10-27 · taken (the user for the rule; the rest by it)**
+
+The spec-first recipe's rule (`notes/spec-first-plan.md`, phase 3; the user's): a client of a good
+spec does not unfold another package's definitions, and the freeze needs the list of such unfolds
+empty or justified here. For the compactor:
+- **Laws added** where the `Run` proofs unfolded: `clockwork.clockOk_ok`/`clockOk_Now`/
+  `clockOk_After` (the clock's methods as triples), `mvcc.ErrCompacted_target` (`mvcc/ErrLaws.lean`:
+  mvcc's error variable as `errors.Is` takes it, instead of `mvccInit`'s 31st conjunct, which moves
+  when mvcc gains a variable), and `compactReqIs_of`.
+- **`compactReqIs` moved to the request type's package** (`api/v3/etcdserverpb/CompactReq.lean`;
+  was `v3compactor.compactReqIs`): the server's `Compact` spec imported the compactor's `Defs` for
+  it, so the server depended on its client's vocabulary.
+- **The clock's and the compactor's package-init instances moved to their packages' `Base.lean`**
+  (were in the server's `BaseApply.lean`), so the clock's `Defs` no longer imports the server
+  (round 3's coupling finding).
+- **Left, justified: `context.isContextDef`**, unfolded by both `Run` proofs for `Done()`. The law
+  (`context.isContext_Done`) landed in Perennial (`3c384b081`) past the pin's stopping point (its
+  uniform function results, a repository-wide migration); the proofs switch to it at that pin bump
+  (`notes/perennial-changes.md`). The unfold is of Perennial's documented, unsealed `abbrev`, so it
+  does not break when Perennial's internals change, only if `isContextDef`'s fields do.
+- **Left, justified (phase 4): `context.cancelSpec`**, unfolded by `Periodic.Stop`/`Revision.Stop` to
+  call the cancel function; no Perennial law yet (`notes/perennial-changes.md`, "a law for calling a
+  `cancelSpec` cancel function"). Not a statement change: the frozen specs are unchanged.
