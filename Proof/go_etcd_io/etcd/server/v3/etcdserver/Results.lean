@@ -41,8 +41,8 @@ and `read_raft` (`isReadRaft` for its `raftNode`); `wait_time` (`pkg/wait`'s `*t
 
 **The server's raft contracts, from raft's specs** (stage R7b of the raft v3.7 retarget,
 2026-10-16; D10): `node_contract_ifc` (`isRaftNodeIfc`: `Ready`, `Advance`, `Tick`, `ReadIndex`
-from raft's linked `node.wp_*`; `Stop` the premise `rnStopOk`), `node_contract_propose`
-(`raftPropose` from `node.wp_Propose`) and `node_contract_memstor` (`isRNMemStor` from raft's
+from the node API's linked results at the server's storage model, `NodeApiLink.lean`; `Stop` the
+premise `rnStopOk`), `node_contract_propose` (`raftPropose` from the node API's `Propose`) and `node_contract_memstor` (`isRNMemStor` from raft's
 `memStorage_Append`), over the wrapper's names (`rnEnvOk`, raft's `isNode`, the commit invariant
 and the committed index's); the errors are raft's (`NodeBridge.lean`; the two error facts
 `rnCtxErrOk`, a done context's, and `rnPropErrOk`, a proposal's own result, were premises until
@@ -252,15 +252,14 @@ theorem read_raft (E : RNEnv GF) (γ : RNNames) (r : Loc) :
 bound is read from); `Stop` is the premise `rnStopOk` (raft's model never stops). The context's
 error is one the gRPC layer takes since stage R7c (raft's `ctxErr` names it, by the trust-boundary
 spec `context.ErrDone`; until then the premise `rnCtxErrOk`). -/
-theorem node_contract_ifc (E : RNEnv GF) (γ : RNNames) (s : Loc) :
+theorem node_contract_ifc (E : RNEnv GF) (γ : RNNames) (s : Loc) (issued : GName) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      rnEnvOk E γ ∗ rnIsNode γ ∗ srvRaftLogInv E.γr.raft ∗ srvCommittedInv s E.γr ∗
-      rnStopOk γ.nl ∗ rnMemStorReg γ ⊢
+      rnEnvOk E γ ∗ rnIsNode γ ∗ srvCommittedInv s E.γr ∗
+      rnStopOk γ.nl ∗ rnMemStorReg γ ∗ srvRdCtxInv E.γr.raft issued ⊢
       isRaftNodeIfc E γ (rnNodeIface γ) :=
-  letI : MemStorReg GF := ⟨γ.reg⟩
-  isRaftNodeIfc_of_isNode E γ s node.wp_Ready
-    node.wp_Advance node.wp_Tick
-    node.wp_ReadIndex node.wp_ApplyConfChange
+  isRaftNodeIfc_of_isNode E γ s issued (srvApi_wp_Ready γ.node) (srvApi_wp_Advance γ.node)
+    (srvApi_wp_Advance_dyn γ.node) (srvApi_wp_Tick γ.node) (srvApi_wp_ReadIndex γ.node)
+    (srvApi_wp_ApplyConfChange_dyn γ.node)
 
 /-- **The node meets the request path's `raftPropose`** (stage R7b, D10): from raft's linked
 `node.wp_Propose` and, since audit phase B3 (2026-10-18), `node.wp_ApplyConfChange`
@@ -272,8 +271,7 @@ theorem node_contract_propose (E : RNEnv GF) (γ : RNNames) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       rnEnvOk E γ ∗ rnIsNode γ ∗ srvRaftLogInv E.γr.raft ⊢
       raftPropose E.γr.raft (rnNodeIface γ) :=
-  letI : MemStorReg GF := ⟨γ.reg⟩
-  raftPropose_of_isNode E γ node.wp_Propose node.wp_ApplyConfChange
+  raftPropose_of_isNode E γ (srvApi_wp_Propose γ.node) (srvApi_wp_ApplyConfChange γ.node)
 
 /-- **The `MemoryStorage` meets the wrapper's `isRNMemStor`** (stage R7b, D10): raft's
 `memStorage_Append` (over the linked `MemoryStorage.wp_Append`), for a registered storage. -/
@@ -292,11 +290,11 @@ address `NewServer` copies the struct to, from the new cluster's ghost allocatio
 registered `MemoryStorage`, the server's own invariants and the trust-boundary premises
 (`NodeStart.lean`'s header classifies them). `PreVote` and `CheckQuorum` either way (etcd's
 default configuration) since 2026-10-17. -/
-theorem server_raft_node_start (reg : GName) : NodeStartSpec (GF := GF) reg :=
-  letI : MemStorReg GF := ⟨reg⟩
-  raftNode_of_StartNode reg bootstrappedRaft.wp_newRaftNode node.wp_Ready node.wp_Advance
-    node.wp_Tick node.wp_ReadIndex node.wp_Step node.wp_ReportUnreachable node.wp_ReportSnapshot
-    node.wp_Propose node.wp_ApplyConfChange
+theorem server_raft_node_start : NodeStartSpec (GF := GF) :=
+  raftNode_of_StartNode bootstrappedRaft.wp_newRaftNode srvApi_wp_Ready srvApi_wp_Advance
+    srvApi_wp_Advance_dyn srvApi_wp_Tick srvApi_wp_ReadIndex srvApi_wp_Step
+    srvApi_wp_ReportUnreachable srvApi_wp_ReportSnapshot srvApi_wp_Propose
+    srvApi_wp_ApplyConfChange srvApi_wp_ApplyConfChange_dyn
 
 /-- **`pkg/wait`'s `*timeList` is a `WaitTime`** (`isWaitTime`, the request path's unit 4b;
 `Wait`, `Trigger` linked): for a predicate `P` of deadlines monotone downward (`NewTimeList`'s
@@ -1917,14 +1915,15 @@ invariant is the mode's (`kvInvM true`, `kvInvOn`), allocatable at the bootstrap
 (`kvInvOn_alloc_boot`), and its post the mode-indexed built part (`srvBuiltG true`): until then it
 took `kvInv`, whose start chain is mode-`off`, so its precondition was unsatisfiable
 (`kvInv_ch0_on_false`, E2p). -/
-theorem server_new_auth_on [go_etcd_io.etcd.cache.v3.Assumptions] [MemStorReg GF]
+theorem server_new_auth_on [go_etcd_io.etcd.cache.v3.Assumptions]
     [EtcdGrove.Float64ToInt64Semantics]
     (hValid : auth.ValidSpec (GF := GF) (hG := hG))
     (hD22 : ⊢ authSchemaSrv (GF := GF)) : NewServer.specM (GF := GF) (hG := hG) true :=
   NewServer.wp_proofM true zap.Logger.wp_Error zap.wp_Error zap.Logger.wp_Info zap.Logger.wp_Warn
     v2stats.wp_NewServerStats membership.RaftCluster.wp_String v2stats.wp_NewLeaderStats
-    types.ID.wp_String_ptr bootstrappedRaft.wp_newRaftNode node.wp_Ready node.wp_Advance
-    node.wp_Tick node.wp_ReadIndex types.URLs.wp_StringSlice idutil.wp_NewGenerator
+    types.ID.wp_String_ptr bootstrappedRaft.wp_newRaftNode srvApi_wp_Ready srvApi_wp_Advance
+    srvApi_wp_Advance_dyn srvApi_wp_Tick srvApi_wp_ReadIndex types.URLs.wp_StringSlice
+    idutil.wp_NewGenerator
     notify.wp_NewNotifier wp_addFeatureGateMetrics prometheus.GaugeVec.wp_With
     membership.RaftCluster.wp_SetVersionChangedNotifier EtcdServer.wp_Logger
     config.ServerConfig.wp_ReqTimeout EtcdServer.wp_FeatureEnabled time.Duration.wp_Seconds_ptr
@@ -1946,10 +1945,10 @@ theorem server_new_auth_on [go_etcd_io.etcd.cache.v3.Assumptions] [MemStorReg GF
     backend.batchTxBuffered.wp_LockInsideApply backend.batchTxBuffered.wp_LockOutsideApply
     backend.batchTxBuffered.wp_UnsafeSeqPut backend.batchTxBuffered.wp_Unlock
     backend.batchTxBuffered.wp_UnsafeRange backend.batchTxBuffered.wp_UnsafeCreateBucket
-    node.wp_Propose EtcdServer.wp_MemberID EtcdServer.wp_Leader EtcdServer.wp_Term
+    srvApi_wp_Propose EtcdServer.wp_MemberID EtcdServer.wp_Leader EtcdServer.wp_Term
     EtcdServer.wp_ForceSnapshot consistentIndex.wp_ConsistentIndex EtcdServer.wp_ClusterVersion
-    MemoryStorage.wp_Snapshot node.wp_ApplyConfChange node.wp_Step node.wp_ReportUnreachable
-    node.wp_ReportSnapshot EtcdServer.wp_Process EtcdServer.wp_IsIDRemoved
+    srvApi_wp_MemSnapshot srvApi_wp_ApplyConfChange srvApi_wp_ApplyConfChange_dyn srvApi_wp_Step
+    srvApi_wp_ReportUnreachable srvApi_wp_ReportSnapshot EtcdServer.wp_Process EtcdServer.wp_IsIDRemoved
     EtcdServer.wp_ReportUnreachable EtcdServer.wp_ReportSnapshot
     backend.batchTxBuffered.wp_UnsafeDelete
 
@@ -1969,35 +1968,33 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 /-- **A new cluster's resources with auth on** (the auth plan's E2z, `NewServerAllocOn.lean`):
 `srvClusterBoot_alloc`'s, with the mode-`on` KV invariant `kvInvOn _ _ srvAuthSt0` at the start
 chain with auth on; with `server_member_alloc_on`, what `server_new_auth_on`'s caller allocates. -/
-theorem server_cluster_alloc_on (cfg nodes : GSet w64) (ccOk : w32 → List w8 → Prop)
-    (ps : List w64) (bootLog : List EntryM)
-    (Φs : w64 → w64 → List w8 → GName → IProp GF)
-    (Hcne : cfg ≠ ∅) (Hnz : W64 0 ∉ nodes) (Hcfg : cfg = GMap.listToSet ps)
-    (hboot : srvBootLogOk ps bootLog)
-    (hpol : ∀ ty d, ccOk ty d →
-      ty = W32 1 ∧ isConfChangeEncoding d ∧ ccIdOf d = W64 0 ∧ ccBootOk cfg d)
+theorem server_cluster_alloc_on (ps : List w64) (ctxs : List (List w8))
+    (boot : List Draft.LogEntry) (Φs : w64 → w64 → List w8 → GName → IProp GF) (reg : GName)
+    (Hrb : receiptBound GF ≤ 2 ^ 64 - 2) (Hrb2 : receiptBound GF + boot.length ≤ 2 ^ 61)
+    (HB : Draft.BootLog ps ctxs boot) (Hnd : ps.Nodup) (Hne : ps ≠ []) (Hnz : W64 0 ∉ ps)
+    (hcc : ∀ e ∈ Draft.LogEntry.toEntries boot 0,
+      ccIdOf e.Data' = W64 0 ∧ ccBootOk (GMap.listToSet ps) e.Data')
     (Hpd : (ps.map (fun id => uint.Z id % 2 ^ 16)).Nodup)
     (Hp0 : ∀ id ∈ ps, uint.Z id % 2 ^ 16 ≠ 0) :
-    ⊢ |={⊤}=> ∃ (γ : RaftNames) (issued cnt : GName) (γk : KVNames),
-        ⌜γ.reCfg = cfg ∧ γ.reDyn = none ∧ γ.reCCOk = ccOk ∧ γ.reBoot = bootLog ∧
-          γ.reNoSnap = true ∧ γ.reNoXfer = true ∧
+    ⊢ bootMarshal (GF := GF) ps ctxs (Draft.LogEntry.toEntries boot 0) ={⊤}=∗
+      ∃ (γ : SrvRaft) (issued cnt : GName) (γk : KVNames),
+        ⌜γ.vs = ps ∧ γ.dyn = false ∧ γ.boot = Draft.LogEntry.toEntries boot 0 ∧ γ.reg = reg ∧
           γk.c0 = W64 0 ∧ γk.ch0 = apply.alarmChain true false false ∧ γk.log0 = [[], []] ∧
           γk.ids.issued = issued⌝ ∗
-        raftCommitInv (GF := GF) γ ∗ isCommitted γ bootLog ∗ rdCredInv γ ∗
-        ([∗map] id ↦ _u ∈ toMap nodes, ownRaftGhost γ id (bootPState bootLog)) ∗
+        srvRaftLogInv (⟨γ, [], W64 0⟩ : ServerRaftNames) ∗
         kvInvOn ⟨γ, [], W64 0⟩ γk srvAuthSt0 ∗
-        etcdKV γk (kvStateOf (kvModelOn γk srvAuthSt0 (bootEntries bootLog))) ∗
+        etcdKV γk (kvStateOf (kvModelOn γk srvAuthSt0 (bootEntries γ.boot))) ∗
         idClusterInv issued cnt Φs ∗ (W64 0) ↪[issued]□ (none : Option (List w8 × GName)) ∗
         srvPropMint ⟨γ, [], W64 0⟩ γk.ids ∗ srvRdCtxInv ⟨γ, [], W64 0⟩ issued ∗
         ([∗list] id ∈ ps, (idPfxOf (W16 (uint.Z id)) ↪[cnt] ([] : List w64) ∗
-          rdCred γ (2 ^ 48) ∗
-          ∃ γd : GName, ⌜γ.reSnapLoc id = some γd⌝ ∗ ghostMapAuth γd 1 (∅ : GMap w64 Unit))) ∗
+          Draft.readCredits γ.cl (2 ^ 48) ∗ Draft.nodeBoot γ.cl srvClusterN ps ctxs id ∗
+          ∃ γd : GName, ⌜γ.snapLoc id = some γd⌝ ∗ ghostMapAuth γd 1 (∅ : GMap w64 Unit))) ∗
         [∗list] id ∈ ps, idWaitTokAt γk.ids.wn (idPfxOf (W16 (uint.Z id))) :=
-  srvClusterBootOn_alloc cfg nodes ccOk ps bootLog Φs Hcne Hnz Hcfg hboot hpol Hpd Hp0
+  srvClusterBootOn_alloc ps ctxs boot Φs reg Hrb Hrb2 HB Hnd Hne Hnz hcc Hpd Hp0
 
 /-- **A member's names with auth on** (`srvMemberBootOn_alloc`): the mode-`on` KV invariant at
 its names, as `NewServer.specM true`'s `kvInvM true`. -/
-theorem server_member_alloc_on (γ : RaftNames) (cnt : GName) (γk : KVNames) (id : w64)
+theorem server_member_alloc_on (γ : SrvRaft) (cnt : GName) (γk : KVNames) (id : w64)
     (cok : GName) :
     ⊢ kvInvOn (GF := GF) ⟨γ, [], W64 0⟩ γk srvAuthSt0 -∗
       idPfxOf (W16 (uint.Z id)) ↪[cnt] ([] : List w64) -∗
