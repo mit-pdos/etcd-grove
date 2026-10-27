@@ -167,79 +167,67 @@ theorem isRaftNode_of_rnParts (E : RNEnv GF) (γ : RNNames) (a : Loc) (rv : raft
     iframe doneR Hdtok
 
 /-- **The loop's and the apply side's tokens at the start** (`rnLoopTok γ []`, `rnApplyTok γ
-[]`): from raft's driver at the empty delivered log (`nodeDriver … []`: `StartNode`'s, with
-`γ.pre = []` so that `rnLogOf γ [] = []`), its view of the configuration, and `applyc`'s halves
-with `cum` at `[[]]` (`newRaftNode`'s). -/
-theorem rnToks_of_start (γ : RNNames) (ca : Nat) (cfg : CCState) (hpre : γ.pre = [])
-    (p : HardStateM)
-    -- (D43 M3, 2026-10-25) in raft's dynamic mode, the view at the start (`srvCfgOk`)
-    (hcfg : γ.node.dyn = true → srvCfgOk γ.node.cfg [] ca cfg) :
-    (letI : MemStorReg GF := ⟨γ.reg⟩;
-      iprop(nodeDriver γ.node γ.id γ.nl [] p ∗ nodeCfg γ.node ca cfg)) ∗
+[]`): from the node API's driver at its start (`NodeDriverState.init`: nothing delivered, with
+`γ.pre = []`), in a dynamic cluster its view of the configuration at index `0` (`StartNode`'s), and
+`applyc`'s halves with `cum` at `[[]]` (`newRaftNode`'s). (2026-10-27: over the node API.) -/
+theorem rnToks_of_start (γ : RNNames) (hpre : γ.pre = [])
+    (hcfg : γ.node.dyn = true → srvCfgOk γ.node.cfg [] ⟨0, Draft.Membership.simple γ.node.cfg⟩) :
+    (letI := srvStor (GF := GF) γ.node;
+      iprop(Draft.nodeDriver γ.nl γ.node.cl srvClusterN
+          (Draft.NodeDriverState.init (memStorIface γ.ms)) ∗
+        (if γ.node.dyn then Draft.nodeConfig γ.nl γ.node.cl srvClusterN
+          ⟨0, Draft.Membership.simple γ.node.cfg⟩ else iprop(True)))) ∗
       spscProducer γ.ap ([] : List toApply) ∗ spscConsumer γ.ap ([] : List toApply) ∗
       monoListAuthOwn γ.cum 1 [([] : List EntryModel)] ∗
       monoListIdxOwn γ.cum 0 ([] : List EntryModel) ⊢
       rnLoopTok γ [] ∗ rnApplyTok γ [] := by
+  letI := srvStor (GF := GF) γ.node
   iintro ⟨⟨Hdrv, Hcfg⟩, Hprod, Hcons, Hcum, Hcum0⟩
   isplitl [Hdrv Hcfg Hprod Hcum]
   · iunfold rnLoopTok
-    iexists p
+    iexists hsZero
     iunfold rnLoopTokP
     iexists [], [[]]
     isplitl [Hdrv Hcfg]
     · iunfold rnDrv
-      have h : rnLogOf γ [] = [] := by unfold rnLogOf; rw [hpre]; rfl
+      have h : rnDrvSt γ [] hsZero = Draft.NodeDriverState.init (memStorIface γ.ms) := by
+        simp [rnDrvSt, Draft.NodeDriverState.init, srvLE, RNNames.srv, hpre]
       rw [h]
       iframe Hdrv
       unfold rnCfgAt
-      split
-      · unfold srvCfgView
-        iexists ca, cfg
+      cases hd : γ.node.dyn
+      · simp only [Bool.false_eq_true, ↓reduceIte]; itrivial
+      · simp only [↓reduceIte, eq_self_iff_true, if_true]
+        unfold srvCfgView
+        iexists ⟨0, Draft.Membership.simple γ.node.cfg⟩
         iframe Hcfg
         ipureintro
         rw [hpre]
-        exact hcfg (by assumption)
-      · iexists ca, cfg
-        iexact Hcfg
+        exact hcfg hd
     iframe Hprod Hcum
-    ipureintro; exact ⟨rfl, rfl⟩
+    isplitr
+    · ipureintro; exact ⟨rfl, rfl⟩
+    ipureintro
+    exact ⟨W64 0, by rw [hpre]; rfl, fun n m h => by simp at h⟩
   · iunfold rnApplyTok
     iexists []
     iframe Hcons
     iexact Hcum0
 
-/-- **`srvRaftLogInv` at the start** (`pre = []`, `ai0 = 0`): raft's commit invariant, the empty
-log committed (a prefix of the committed boot log), and the policy. -/
-theorem srvRaftLogInv_of_boot (γs : ServerRaftNames) (bootLog : List EntryM)
-    (hpre : γs.pre = []) (hai : γs.ai0 = W64 0) (hpol : srvCCPolicy γs) :
-    raftCommitInv γs.raft ∗ isCommitted γs.raft bootLog ⊢ srvRaftLogInv γs := by
-  iintro ⟨#Hinv, #Hc⟩
-  iunfold srvRaftLogInv
-  iframe Hinv
-  isplitl
-  · iunfold srvRLogLb
-    have h : srvLogOf γs [] = [] := by unfold srvLogOf; rw [hpre]; rfl
-    rw [h]
-    iapply isCommitted_mono γs.raft [] bootLog (List.nil_prefix) $$ Hc
-  ipureintro; refine ⟨?_, hpol⟩; rw [hai, hpre]; simp
-
-/-- **The composition's statement** (see the file header), a proposition over the registry's name
-`reg` (the `MemoryStorage` instance's), so that `Results.lean` instantiates it with the linked
-results: for the cluster's ghost names `γ`, the budget `bud`, the storage's names `γs`, the receiver
-`b` and the config `cv` with `StartNode.spec`'s premises on it (`CheckQuorum` and `PreVote` either
-way since 2026-10-17), the peers and the bootstrap log, and the server's names
-(`E.γr.raft = ⟨γ, [], 0⟩`, the policy `srvCCPolicy`): `bootstrappedRaft.newRaftNode` over raft's
-`StartNode`, with what the allocation, the server and the trust boundary provide, yields the
-wrapper's struct value, the tokens, `srvRaftLogInv`, and the installer of `isRaftNode` at the
-address the server copies the struct to. -/
-abbrev NodeStartSpec (reg : GName) : Prop :=
-  ∀ (E : RNEnv GF) (γ : RaftNames) (md : RNMode) (bud : BudgetNames) (b ss wal cl : Loc) (dq : DFrac)
+/-- **The composition's statement** (see the file header; 2026-10-27: over the node API, for the
+server's raft names `γr` and the cluster's storage model `srvStor γr`): for the receiver `b` and the
+config `cv` with `StartNode.spec`'s premises on it, the peers, the server's names
+(`E.γr.raft = ⟨γr, [], 0⟩`) and its raft invariant (`srvRaftLogInv`, the cluster's allocation's):
+`bootstrappedRaft.newRaftNode` over the node API's `StartNode`, with what the allocation, the server
+and the trust boundary provide, yields the wrapper's struct value, the tokens and the installer of
+`isRaftNode` at the address the server copies the struct to. -/
+abbrev NodeStartSpec : Prop :=
+  ∀ (γr : SrvRaft) (E : RNEnv GF) (b ss wal cl : Loc) (dq : DFrac)
     (bv : bootstrappedRaft) (cv : Config) (lok : GoInterfaceOk) (γs : MemStorNames)
-    (pv : List Peer) (ps : List w64) (ctxs : List (List w8)) (bootLog : List EntryM),
+    (pv : List Peer) (ps : List w64) (ctxs : List (List w8)) (issued : GName),
     -- `newRaftNode`'s premises
     bv.lg' ≠ null → bv.heartbeat' ≠ W64 0 →
-    -- `NewRawNode`'s premises on `b.config` (`CheckQuorum` and `PreVote` either way since
-    -- 2026-10-17)
+    -- `NewRawNode`'s premises on `b.config`
     ConfigValid cv → cv.Logger' = interface.ok lok →
     cv.Storage' = memStorIface bv.storage' →
     sint.Z cv.MaxInflightMsgs' < 2 ^ 62 →
@@ -247,27 +235,26 @@ abbrev NodeStartSpec (reg : GName) : Prop :=
     cv.DisableConfChangeValidation' = false →
     (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) →
     cv.AsyncStorageWrites' = false → cv.Applied' = W64 0 →
-    -- the peers and the bootstrap log
+    -- the peers, the cluster's voters
     ps = pv.map Peer.ID' → ps ≠ [] → ps.Nodup → W64 0 ∉ ps →
-    (ps.length : Int) ≤ 2 ^ 62 → cv.ID' ∈ ps → γ.reCfg = GMap.listToSet ps →
-    γ.reBoot = bootLog → srvBootLogOk γ.reCCOk ps bootLog →
-    -- (D43 M3, 2026-10-25) raft's mode `md`: in the dynamic mode at the server's decoder, from the
-    -- peers' configuration
-    (∀ dec c0 h0 h1, md = .dyn dec c0 h0 h1 →
-      dec = srvDec E.γr.kv.c0 bootLog ∧ c0 = cfgState (GMap.listToSet ps) ∅) →
-    -- the server's names: the raft names, the start log empty, the policy
-    E.γr.raft.raft = γ → E.γr.raft.pre = [] → E.γr.raft.ai0 = W64 0 → srvCCPolicy E.γr.raft →
-    -- (2026-10-19, D21 M3) in raft's no-snapshot mode, the storage at the cap `1`
-    (γ.reNoSnap = true → γs.cap ≤ 1) →
-    letI : MemStorReg GF := ⟨reg⟩
+    (ps.length : Int) < 2 ^ 62 → cv.ID' ∈ ps → γr.vs = ps →
+    -- the time-receipt bound past the bootstrap log (`rnLogFits`)
+    receiptBound GF + γr.boot.length ≤ 2 ^ 61 →
+    -- the server's names: the cluster, the start log empty
+    E.γr.raft.raft = γr → E.γr.raft.pre = [] → E.γr.raft.ai0 = W64 0 →
+    letI : MemStorReg GF := ⟨γr.reg⟩
+    letI := srvStor (GF := GF) γr
     {{ "#Hpkg" ∷ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         -- the receiver, the config and its logger
         "Hb" ∷ b ↦{dq} bv ∗ "Hc" ∷ bv.config' ↦ cv ∗ "#Hlok" ∷ isLogger lok ∗
-        -- the fresh registered `MemoryStorage` (`NewMemoryStorage`, `memStorReg_register`,
-        -- `memOwnStorage_empty`, `memStorage_isStorage`)
+        -- the fresh registered `MemoryStorage`
         "#Hreg" ∷ memStorReg bv.storage' γs ∗
         "#Hsi" ∷ isStorage (memStorIface bv.storage') ∗
         "Hsto" ∷ ownStorage (memStorIface bv.storage') memStorEmpty ∗
+        -- `StartNode`'s: a dynamic cluster's storage never compacted past index `1`, a static
+        -- cluster's certificates the cluster's
+        "#Hcert" ∷ (if γr.dyn then storCap (memStorIface bv.storage') 1
+          else Draft.storageCertLink γr.cl srvClusterN (memStorIface bv.storage')) ∗
         -- trust boundary: `StartNode.spec`'s `InitialState` closure (see the file header)
         "#Hinit" ∷ □ (∀ (Φ : val → IProp GF) (ss' : entryID),
            ownStorage (memStorIface bv.storage') { memStorEmpty with ss := ss' } -∗
@@ -280,121 +267,104 @@ abbrev NodeStartSpec (reg : GName) : Prop :=
             Φ (PairV (PairV #hp #cs) #interface.nil)) -∗
            WP (App (Val #(methods (go.GoType.PointerType MemoryStorage.ty) go!"InitialState" #bv.storage'))
              (Val #())) {{ Φ }}) ∗
-        -- (D17d, 2026-10-18) the application's snapshot token, which `InitialState` borrows
+        -- (D17d) the application's snapshot token, which `InitialState` borrows
         "Htok" ∷ memSnapTok bv.storage' γs memStorEmpty ∗
-        -- the peers, their contexts; trust boundary: `Marshal` at their conf changes
+        -- the peers, their contexts
         "Hpeers" ∷ bv.peers' ↦*{dq} pv ∗ "#Hctx" ∷ peersCtx pv ctxs ∗
-        "#Hmarshal" ∷ bootMarshal ps ctxs bootLog ∗
-        -- the allocation's: this node's ghost state, the committed boot log, the commit
-        -- invariant, the budget
-        "Hghost" ∷ bootInit γ md cv.ID' (GMap.listToSet ps) bootLog ∗ "#Hcomm" ∷ isCommitted γ bootLog ∗
-        "#Hcinv" ∷ raftCommitInv γ ∗
-        "#Hbud" ∷ inv budgetN (budgetInv bud) ∗ "#HtermLB" ∷ termLB bud (W64 1) ∗
+        -- the cluster's allocation's: this node's boot token, the server's raft invariant
+        "Hboot" ∷ (if γr.dyn then Draft.nodeDynamicBoot γr.cl srvClusterN ps ctxs cv.ID'
+          else Draft.nodeBoot γr.cl srvClusterN ps ctxs cv.ID') ∗
+        "#Hlinv" ∷ srvRaftLogInv E.γr.raft ∗
         -- the names-only contracts
         "#Hzap" ∷ rnLoggerZapOk ∗ "#Hsetlg" ∷ rnSetLoggerOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
         "#Htkok" ∷ rnTickerOk E ∗ "#Hrs" ∷ rnRaftStatusOk ∗ "#Hns" ∷ rnNewStorageOk ∗
         "#Hcl" ∷ rnClusterOk cl ∗
-        -- (D22 S-b′3, 2026-10-20) the storage's certificate link (`certLink`: none needed in raft's
-        -- no-snapshot mode, the servers')
-        "#Hclk" ∷ certLink γ (memStorIface bv.storage') ∗
-        -- trust boundary: raft's `Ready`s fit (D10), `Stop` returns
-        "#Hfits" ∷ (∀ γw : RNNames,
-          ⌜γw.node.raft = γ ∧ γw.node.bud = bud ∧ γw.node.stor = memStorIface bv.storage' ∧
-            γw.node.mode = md ∧ γw.reg = reg⌝ -∗ rnLogFits γw) ∗
+        -- trust boundary: `Stop` returns
         "#Hstop" ∷ rnStopOkStarted }}
       (App (App (App (Val (b @!! go.GoType.PointerType bootstrappedRaft.ty @!! go!"newRaftNode"))
         (Val #ss)) (Val #wal)) (Val #cl))
     {{ (r : Loc), RET #r;
         ∃ (γw : RNNames) (rv : raftNode),
-          ⌜γw.node.raft = γ ∧ γw.node.bud = bud ∧ γw.node.stor = memStorIface bv.storage' ∧
-            γw.node.mode = md ∧ (md = .static ↔ γ.reDyn = none) ∧ γw.id = cv.ID' ∧
-            γw.node.id = cv.ID' ∧ γw.pre = [] ∧
-            γw.ms = bv.storage' ∧
-            γw.γs = γs ∧ γw.reg = reg ∧
+          ⌜γw.node = γr ∧ γw.id = cv.ID' ∧ γw.pre = [] ∧ γw.ms = bv.storage' ∧ γw.γs = γs ∧
             rv.lg' = bv.lg' ∧ rv.raftNodeConfig'.raftStorage' = bv.storage' ∧
             rv.raftNodeConfig'.heartbeat' = bv.heartbeat' ∧
             rv.raftNodeConfig'.transport' = GoInterface.nil ∧
             rv.raftNodeConfig'.Node' = rnNodeIface γw ∧
-            -- (D22 J1a, 2026-10-26) the storage a `*storage` over the snapshotter `ss`
+            -- (D22 J1a) the storage a `*storage` over the snapshotter `ss`
             rnStorageOf rv.raftNodeConfig'.storage' ss⌝ ∗
           -- the struct value, to be copied; its fresh mutex
           r ↦ rv ∗ rv.tickMu' ↦ (zero_val sync.RWMutex) ∗
-          -- (D21 M2, 2026-10-19) the node's inbound methods (`Process`'s), from the start
+          -- (D21 M2) the node's inbound methods (`Process`'s), from the start
           rnStepIfc γw (rnNodeIface γw) ∗
           -- `isServerBuilt`'s rows but `isRaftNode`
-          rnLoopTok γw [] ∗ rnApplyTok γw [] ∗ srvRaftLogInv E.γr.raft ∗
+          rnLoopTok γw [] ∗ rnApplyTok γw [] ∗
           -- the installer: `isRaftNode` and `rnDoneTok` at the address `a` the struct is copied
           -- to, once its `transport` is set to `tr`, with the server's own: `rnEnvOk` for the
-          -- wrapper's names and the committed index's invariant of the server `s` (allocated
-          -- after the call: `NewServer` evaluates `newRaftNode` inside the server's literal)
-          -- (D21 M2) the struct at `a` split (`rnFixed_split`), its transport field set to `tr`
+          -- wrapper's names, the committed index's invariant of the server `s` and the read
+          -- contexts' invariant (2026-10-27)
           (∀ (a s : Loc) (tr : GoInterface), rnEnvOk E γw -∗ srvCommittedInv s E.γr -∗
+            srvRdCtxInv E.γr.raft issued -∗
             rnFixed a rv -∗ rnTransportAddr a ↦ tr -∗ rnLatestTickTsAddr a ↦ rv.latestTickTs' -∗
             isRNTransport E tr -∗ rv.tickMu' ↦ (zero_val sync.RWMutex) ={⊤}=∗
             isRaftNode E γw a ∗ rnDoneTok γw a ∗
-            -- the node's field, and its `Propose` (the request path's `raftPropose`); the
-            -- transport's field (unit N4, 2026-10-17: `NewServer`'s `srvReqBuilt`)
             rnNodeAddr a ↦□ rnNodeIface γw ∗ raftPropose E.γr.raft (rnNodeIface γw) ∗
             rnTransportAddr a ↦□ tr) ∗
-          b ↦{dq} bv ∗ bv.peers' ↦*{dq} pv ∗
+          -- (2026-10-27) the peers' slice not back (the node API's `StartNode` keeps it)
+          b ↦{dq} bv ∗
           -- (D17d) the snapshot token back
           memSnapTok bv.storage' γs memStorEmpty }}
 
 set_option maxHeartbeats 0 in
 /-- **The composition** (see `NodeStartSpec` and the file header): from
-`bootstrappedRaft.newRaftNode.spec` (through it `StartNode.spec` and `newRaftNode.spec`) and the
-node's specs (for its contract, `isRaftNodeIfc_of_isNode`), under the `MemoryStorage` instance
-`⟨reg⟩`. -/
-theorem raftNode_of_StartNode (reg : GName)
-    (wp_bnr : letI : MemStorReg GF := ⟨reg⟩;
-      bootstrappedRaft.newRaftNode.spec (GF := GF) (hG := hG))
-    (wp_Ready : letI : MemStorReg GF := ⟨reg⟩; node.Ready.spec (GF := GF) (hG := hG))
-    (wp_Advance : letI : MemStorReg GF := ⟨reg⟩; node.Advance.spec (GF := GF) (hG := hG))
-    (wp_Tick : letI : MemStorReg GF := ⟨reg⟩; node.Tick.spec (GF := GF) (hG := hG))
-    (wp_ReadIndex : letI : MemStorReg GF := ⟨reg⟩; node.ReadIndex.spec (GF := GF) (hG := hG))
-    (wp_Step : letI : MemStorReg GF := ⟨reg⟩; node.Step.spec (GF := GF) (hG := hG))
-    (wp_ReportUnreachable : letI : MemStorReg GF := ⟨reg⟩;
-      node.ReportUnreachable.spec (GF := GF) (hG := hG))
-    (wp_ReportSnapshot : letI : MemStorReg GF := ⟨reg⟩;
-      node.ReportSnapshot.spec (GF := GF) (hG := hG))
-    (wp_Propose : letI : MemStorReg GF := ⟨reg⟩; node.Propose.spec (GF := GF) (hG := hG))
-    (wp_ApplyConfChange : letI : MemStorReg GF := ⟨reg⟩;
-      node.ApplyConfChange.spec (GF := GF) (hG := hG)) :
-    NodeStartSpec (GF := GF) reg := by
-  letI : MemStorReg GF := ⟨reg⟩
-  intro E γ md bud b ss wal cl dq bv cv lok γs pv ps ctxs bootLog Hlg Hhb Hvalid Hlok Hstor Hinfl
-    Hdpf Hro Hdccv Hsizes Hasync Happlied Hps Hpsne Hnodup H0 Hpslen Hid Hcfg Hboot
-    HbootOk Hmd0 HEγ HEpre HEai Hpol Hcap
+`bootstrappedRaft.newRaftNode.spec` (through it the node API's `StartNode`) and the node API's node
+specs (for its contract, `isRaftNodeIfc_of_isNode`), at the cluster's storage model. -/
+theorem raftNode_of_StartNode
+    (wp_bnr : bootstrappedRaft.newRaftNode.spec (GF := GF) (hG := hG))
+    (wp_Ready : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
+      Draft.node.Ready.spec (GF := GF) (hG := hG))
+    (wp_Advance : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
+      Draft.node.Advance.spec (GF := GF) (hG := hG))
+    (wp_Advance_dyn : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
+      Draft.node.Advance.dynamicSpec (GF := GF) (hG := hG))
+    (wp_Tick : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
+      Draft.node.Tick.spec (GF := GF) (hG := hG))
+    (wp_ReadIndex : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
+      Draft.node.ReadIndex.spec (GF := GF) (hG := hG))
+    (wp_Step : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
+      Draft.node.Step.spec (GF := GF) (hG := hG))
+    (wp_ReportUnreachable : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
+      Draft.node.ReportUnreachable.spec (GF := GF) (hG := hG))
+    (wp_ReportSnapshot : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
+      Draft.node.ReportSnapshot.spec (GF := GF) (hG := hG))
+    (wp_Propose : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
+      Draft.node.Propose.spec (GF := GF) (hG := hG))
+    (wp_ApplyConfChange : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
+      Draft.node.ApplyConfChange.spec (GF := GF) (hG := hG))
+    (wp_ApplyConfChange_dyn : ∀ γr : SrvRaft, letI := srvStor (GF := GF) γr;
+      Draft.node.ApplyConfChange.dynamicSpec (GF := GF) (hG := hG)) :
+    NodeStartSpec (GF := GF) := by
+  intro γr E b ss wal cl dq bv cv lok γs pv ps ctxs issued Hlg Hhb Hvalid Hlok Hstor Hinfl
+    Hdpf Hro Hdccv Hsizes Hasync Happlied Hps Hpsne Hnodup H0 Hpslen Hid Hvs Hfit HEγ HEpre HEai
+  letI : MemStorReg GF := ⟨γr.reg⟩
+  letI := srvStor (GF := GF) γr
   iintro %Φ Hpre HΦ
   iNamed Hpre
-  ihave #Hnscap : NsCap (GF := GF) γ.reNoSnap (memStorIface bv.storage') $$ []
-  · iunfold NsCap
-    iintro !> %h
-    iapply memStorCap_intro bv.storage' γs 1 (Hcap h) $$ Hreg
-  wp_apply (wp_bnr E γ md bud b ss wal cl dq bv cv lok γs reg [] pv ps ctxs bootLog Hlg Hhb Hvalid Hlok
-    Hstor Hinfl Hdpf Hro Hdccv Hsizes Hasync Happlied Hps Hpsne Hnodup H0 Hpslen Hid Hcfg
-    Hboot HbootOk Hmd0) $$ [Hb Hc Hsto Hpeers Hghost Htok]
-    as %r ⟨%γn, %n, %γw, %f, %st, %Hnames, #Hnode, Hdrv, Hncfg, #Hidri, #Hsti, %Hstss, Hbuilt, Hb,
-      Hpeers, Htok⟩
-  · iframe #; iframe Hb Hc Hsto Hpeers Hghost Htok
-  obtain ⟨Hγraft, Hγbud, Hγstor, Hγmode, Hγrd, Hwnode, Hwid, Hwnl, Hwpre, Hwms, Hwγs, Hwreg⟩ :=
-    Hnames
-  subst Hwreg
+  wp_apply (wp_bnr E γr b ss wal cl dq bv cv lok γs [] pv ps ctxs Hlg Hhb Hvalid Hlok
+    Hstor Hinfl Hdpf Hro Hdccv Hsizes Hasync Happlied Hps Hpsne Hnodup H0 (by omega) Hid Hvs)
+    $$ [Hb Hc Hsto Hpeers Hboot Htok]
+    as %r Hpost
+  · iframe #; iframe Hb Hc Hsto Hpeers Hboot Htok
+  icases Hpost with ⟨%n, %γw, %f, %st, %Hnames, #Hnode, Hdrv, Hncfg, #Hidri, #Hsti, %Hstss,
+    Hbuilt, Hb, Htok⟩
+  obtain ⟨Hwnode, Hwid, Hwnl, Hwpre, Hwms, Hwγs⟩ := Hnames
   iunfold rnBuilt at Hbuilt
   iNamed Hbuilt
   obtain ⟨Hrvlg, Hrvcfg⟩ := Hrv
   -- the bridges
   ihave #Hfits' : rnLogFits γw $$ []
-  · iapply Hfits
-    ipureintro
-    exact ⟨by rw [Hwnode]; exact Hγraft, by rw [Hwnode]; exact Hγbud,
-      by rw [Hwnode]; exact Hγstor, by rw [Hwnode]; exact Hγmode, rfl⟩
-  ihave #Hlinv : srvRaftLogInv E.γr.raft $$ []
-  · iapply srvRaftLogInv_of_boot E.γr.raft bootLog HEpre HEai Hpol
-    rw [HEγ]
-    iframe Hcinv Hcomm
-  ihave #Hreg' : memStorReg γw.ms γw.γs $$ []
-  · rw [Hwms, Hwγs]; iexact Hreg
+  · iunfold rnLogFits; ipureintro; rw [Hwnode]; exact Hfit
+  ihave #Hreg' : rnMemStorReg γw $$ []
+  · unfold rnMemStorReg RNNames.reg; rw [Hwms, Hwγs, Hwnode]; iexact Hreg
   ihave #Hpraft : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
   · iPkgInit
   ihave #Hmsi : isRNMemStor γw γw.ms $$ []
@@ -404,49 +374,44 @@ theorem raftNode_of_StartNode (reg : GName)
   ihave #Hisnode : rnIsNode γw $$ []
   · unfold rnIsNode; rw [Hwnode, Hwid, Hwnl]; iexact Hnode
   -- the tokens
-  ihave ⟨Hloop, Happly⟩ := rnToks_of_start γw 0 (cfgState (GMap.listToSet ps) ∅) Hwpre hsZero
+  ihave ⟨Hloop, Happly⟩ := rnToks_of_start γw Hwpre
       (fun h => by
-        rw [Hwnode, Hγmode] at h
-        cases hm : md with
-        | static => rw [hm] at h; cases h
-        | dyn dec c0 h0 h1 =>
-          obtain ⟨-, hc0⟩ := Hmd0 dec c0 h0 h1 hm
-          rw [Hwnode, Hγraft, Hcfg]
-          subst hc0
-          exact srvCfgOk_nil _ h0)
+        rw [Hwnode] at h ⊢
+        unfold SrvRaft.cfg
+        rw [Hvs]
+        refine srvCfgOk_nil _ (fun h0 => H0 ((GMap.elem_of_list_to_set _ _).1 h0)) ?_
+        rw [GMap.size_list_to_set ps Hnodup]
+        omega)
     $$ [Hdrv Hncfg Hprod Hcons Hcum Hcum0]
-  · rw [Hwnode, Hwid, Hwnl]
-    iframe Hdrv Hncfg Hprod Hcons Hcum Hcum0
-  -- (2026-10-24, rafthttp stage 6d) the node's names' id is the node's (`isNode`'s)
-  ihave %Hnid : ⌜γw.node.id = γw.id⌝ $$ []
-  · ihave #Hisnode' := Hisnode
-    iunfold rnIsNode at Hisnode'
-    iapply isNode_id $$ Hisnode'
+  · rw [Hwnode, Hwnl, Hwms]
+    iframe Hdrv Hprod Hcons Hcum Hcum0
+    unfold SrvRaft.cfg
+    rw [Hvs]
+    iexact Hncfg
   iapply HΦ
   iexists γw, rv
   isplitr
   · ipureintro
-    refine ⟨by rw [Hwnode]; exact Hγraft, by rw [Hwnode]; exact Hγbud,
-      by rw [Hwnode]; exact Hγstor, by rw [Hwnode]; exact Hγmode, Hγrd,
-      Hwid, Hnid.trans Hwid, Hwpre,
-      Hwms, Hwγs, rfl,
-      Hrvlg, ?_, ?_, ?_, ?_, ?_⟩ <;> rw [Hrvcfg]
+    refine ⟨Hwnode, Hwid, Hwpre, Hwms, Hwγs, Hrvlg, ?_, ?_, ?_, ?_, ?_⟩ <;> rw [Hrvcfg]
     all_goals first | exact Hstss | simp only [rnNodeIface, Hwnl]
-  iframe Hr Hmu Hloop Happly Hlinv Hb Hpeers Htok
+  iframe Hr Hmu Hloop Happly Hb Htok
   isplitr
-  · iapply rnStepIfc_of_isNode γw wp_Step wp_ReportUnreachable wp_ReportSnapshot
+  · iapply rnStepIfc_of_isNode γw (wp_Step γw.node) (wp_ReportUnreachable γw.node)
+      (wp_ReportSnapshot γw.node)
     iframe Hpkg Hisnode
   -- the installer
-  iintro %a %s %tr #Henv' #Hcommi #Hfix Htrf Hlts #Htri Hmu'
+  iintro %a %s %tr #Henv' #Hcommi #Hrdi #Hfix Htrf Hlts #Htri Hmu'
   ihave #Hrsb : rnReadStateBridge E γw $$ []
-  · iapply rnReadStateBridge_of_raft E γw $$ Henv' Hlinv
+  · iapply rnReadStateBridge_of_raft E γw $$ Henv'
   ihave #Hni : isRaftNodeIfc E γw (rnNodeIface γw) $$ []
-  · iapply isRaftNodeIfc_of_isNode E γw s wp_Ready wp_Advance wp_Tick wp_ReadIndex wp_ApplyConfChange
-    iframe Hpkg Henv' Hisnode Hlinv Hcommi Hreg'
+  · iapply isRaftNodeIfc_of_isNode E γw s issued (wp_Ready γw.node) (wp_Advance γw.node)
+      (wp_Advance_dyn γw.node) (wp_Tick γw.node) (wp_ReadIndex γw.node)
+      (wp_ApplyConfChange_dyn γw.node)
+    iframe Hpkg Henv' Hisnode Hcommi Hreg' Hrdi
     iunfold rnStopOkStarted at Hstop
     iapply Hstop $$ Hisnode
   ihave #Hprop : raftPropose E.γr.raft (rnNodeIface γw) $$ []
-  · iapply raftPropose_of_isNode E γw wp_Propose wp_ApplyConfChange
+  · iapply raftPropose_of_isNode E γw (wp_Propose γw.node) (wp_ApplyConfChange γw.node)
     iframe Hpkg Henv' Hisnode Hlinv
   ihave #Hfix' : rnFixed a
       { rv with raftNodeConfig' := { rv.raftNodeConfig' with transport' := tr } } $$ []
