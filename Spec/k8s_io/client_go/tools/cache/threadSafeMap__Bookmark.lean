@@ -26,7 +26,7 @@ variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
 /-- **`c.Bookmark(rv)`**, logically atomic: the resource version is `rv`, whatever it was
 (even `""`). -/
 abbrev threadSafeMap.Bookmark.spec : Prop :=
-  ∀ (c : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn) (rv : GoString),
+  ∀ (c : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn GF) (rv : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ isTS c γ OK Fam }}
   <<{ ∀∀ σ, storeSt γ σ }>>
     (App (Val (c @!! go.GoType.PointerType threadSafeMap.ty @!! go!"Bookmark")) (Val #rv))

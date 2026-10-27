@@ -27,7 +27,7 @@ version the object's (`threadSafeMap.DeleteWithObject`; `obj` meets the stored o
 the informer deletes the watch's objects, never tombstones, from its store).
 The key function's (`keyOk D kf KF`) and the accessor's (`rvAcc D rvOf`) contracts are the call's: `D` covers the call's object (the client takes `D o := ⌜o = obj⌝`, `KF`, `rvOf` its key and version), as an object's key and version are functions of its contents in the heap. -/
 abbrev cache.Delete.spec : Prop :=
-  ∀ (ca ts : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn)
+  ∀ (ca ts : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn GF)
     (kf : GoFunc) (D : GoInterface → IProp GF) (KF : GoInterface → GoString)
     (rvOf : GoInterface → Option GoString) (obj : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ isCache ca ts γ OK Fam kf ∗

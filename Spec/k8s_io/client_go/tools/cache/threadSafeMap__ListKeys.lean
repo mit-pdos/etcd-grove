@@ -26,7 +26,7 @@ variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
 /-- **`c.ListKeys()`**, logically atomic: a new slice of the keys at the linearization point, each
 once (in some order). Needs one of the lock's reader slots. -/
 abbrev threadSafeMap.ListKeys.spec : Prop :=
-  ∀ (c : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn),
+  ∀ (c : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ isTS c γ OK Fam ∗
       tsReader c γ OK Fam }}
   <<{ ∀∀ σ, storeSt γ σ }>>

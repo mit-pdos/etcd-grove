@@ -95,7 +95,7 @@ theorem ResourceIndexer.List.wp_proof
   imod Hcl $$ [Hst] with HK
   · iframe; ipureintro; exact hσ
   imodintro
-  iintro ⟨%q, %ks, %Hks, Hqm, ⟨%sl, %ls, Hret, Hsl, -, %Hls, #Hoks⟩, Hr⟩
+  iintro ⟨%q, %ks, #Hks, Hqm, ⟨%sl, %ls, Hret, Hsl, -, %Hls, #Hoks⟩, Hr⟩
   (try wp_auto)
   iapply HK
   isplitr
@@ -104,7 +104,7 @@ theorem ResourceIndexer.List.wp_proof
   iframe
   iframe #
   ipureintro
-  exact ⟨Hks, Hls⟩
+  exact Hls
 
 end proof
 

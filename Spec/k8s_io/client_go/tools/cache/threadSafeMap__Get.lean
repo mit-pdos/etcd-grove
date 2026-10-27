@@ -26,7 +26,7 @@ variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
 /-- **`c.Get(key)`**, logically atomic: the key's item at the linearization point (`nil` and
 `false` if none), with its contract (`nil` or `OK`). Needs one of the lock's reader slots. -/
 abbrev threadSafeMap.Get.spec : Prop :=
-  ∀ (c : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn) (key : GoString),
+  ∀ (c : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn GF) (key : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ isTS c γ OK Fam ∗
       tsReader c γ OK Fam }}
   <<{ ∀∀ σ, storeSt γ σ }>>

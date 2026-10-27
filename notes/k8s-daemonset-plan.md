@@ -372,11 +372,14 @@ theorem's program runs with it off, the premise "a failed write had no effect" (
    the informer contract's assembly (the invariant tying the FIFO's queue, the store through
    `storeWriter` and `InformerModel`); `PopBatch`/`Transaction` (D3/C4: the path `Main`'s default
    gates select, so either `Main` turns `InOrderInformersBatchProcess` off or C4 is fixed in
-   Perennial first). **Decision needed**: the index functions `Fam` are pure functions of the
-   interface value, which cannot be right for heap-allocated objects in general (they read the
-   object's fields; it works for `Main` only through its scenario's fixed objects): record per-item
-   index values (or the objects' abstract values) in the store's state, as was done for keys and
-   resource versions.
+   Perennial first). ~~Decision needed: the index functions `Fam` are pure functions of the
+   interface value~~ (approved and done in the third round, below).
+   *Status, proofs, third round (2026-10-27, branch `k8s-daemonset-proof`, phase C3):* **index
+   values per item**: `Fam` is a family of relations between an object and its values
+   (`StoreDefs.lean`'s `Fn`, functional), the store's lock invariant records each item's values per
+   indexer (`IV`, `itemsIv`, `ivWf`), and the queries (`ByIndex`, `Index`, `ListAllByNamespace`, the
+   listers' `List`) return the relation's facts for the items they select (`idxSel`); every writer's
+   spec unchanged; no axiom or `sorry` added (`notes/STATUS.md`, "The informers, third round").
 5. **The controller.** `Run`, the workers, `syncDaemonSet` and what it calls on this scenario's
    paths, the event handlers, `syncNodeUpdate`; S1's invariant.
 6. **The closed theorem.** `examples/dsonepod`'s `wp_Main`, its package table and init, and

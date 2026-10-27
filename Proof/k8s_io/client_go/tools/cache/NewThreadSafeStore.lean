@@ -65,7 +65,7 @@ theorem NewThreadSafeStore.wp_proof
     with Hrds
   · inext
     iunfold tsP
-    iexists ⟨∅, [], fnIds⟩, ⟨il, ip, ∅, fv⟩
+    iexists ⟨∅, [], fnIds⟩, ⟨il, ip, ∅, fv⟩, ∅
     simp only [γ]
     iframe
     isplitl
@@ -81,11 +81,11 @@ theorem NewThreadSafeStore.wp_proof
       rw [hf]
       isplitr
       · iexact Hfns
+      isplitr
       · iapply BigSepM.bigSepM_empty.2; itrivial
+      · iunfold itemsIv; iapply BigSepM.bigSepM_empty.2; itrivial
     ipureintro
-    refine ⟨fun n hn => by simp [GMap.mem_iff] at hn, fun n F _ v k => ?_⟩
-    unfold ixAt viewN inIdx objAt valsOf
-    simp [GMap.mem_iff]
+    exact ⟨ixOk_empty _, ivWf_empty _ _⟩
   ihave ⟨Hrds, #Hguard⟩ := sync.ownRWMutex_slots_guard _ _ $$ Hrds
   wp_auto
   iapply HΦ

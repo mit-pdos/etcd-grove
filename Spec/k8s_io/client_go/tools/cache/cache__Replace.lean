@@ -27,7 +27,7 @@ keys (`keyedItems KF xs`: a later object at a key wins), the resource version `r
 The key function's contract is the call's (`keyOk D kf KF`, `D` covering the list's objects: `KF`
 needs to be right on them only). -/
 abbrev cache.Replace.spec : Prop :=
-  ∀ (ca ts : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn)
+  ∀ (ca ts : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn GF)
     (kf : GoFunc) (D : GoInterface → IProp GF) (KF : GoInterface → GoString)
     (sl : GoSlice) (xs : List GoInterface) (rv : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ isCache ca ts γ OK Fam kf ∗

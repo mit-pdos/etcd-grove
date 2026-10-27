@@ -45,7 +45,7 @@ theorem threadSafeMap.LastStoreSyncResourceVersion.wp_proof :
   iunfold tsReader at Hrd
   wp_apply (lc := 2) sync.RWMutex.wp_RLock $$ [$Hrd] as ⟨Hrl, HP⟩
   iunfold tsP at HP
-  icases HP with ⟨%σ, %ph, Hst, Hgp, Hph, #Hpers, %Hok⟩
+  icases HP with ⟨%σ, %ph, %iv, Hst, Hgp, Hph, #Hpers, %Hok⟩
   iunfold tsPhys at Hph
   icases Hph with ⟨Hitems, Hil, Hrv, Hind, Hix, Hfv⟩
   wp_auto
@@ -53,7 +53,7 @@ theorem threadSafeMap.LastStoreSyncResourceVersion.wp_proof :
   wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl Hgp Hitems Hrv Hind Hix Hfv Hil Hst]
   · inext
     iunfold tsP
-    iexists σ, ph
+    iexists σ, ph, iv
     iframe; iframe #
     isplitl
     · iunfold tsPhys; iframe

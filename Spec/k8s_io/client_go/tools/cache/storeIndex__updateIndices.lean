@@ -23,25 +23,27 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
 
-/-- `i.updateIndices(old, new, key)`, where the items change from `it` to `it'` at `key` only, from
-`old` to `new` (`nil` for none; each `nil` or meeting `OK`): the indices, exact for `it` under
-the indexers `fns`, become exact for `it'`. Under the store's write lock. -/
+/-- `i.updateIndices(old, new, key)`, where `key`'s object changes from `old` to `new` (`nil` for
+none; each `nil` or meeting `OK`), the indices exact for the recorded values `iv` (`ixOk`), `old`'s
+values those recorded for `key` (`valsOk`): the indices become exact for `iv` with `key`'s values
+`new`'s (`vs`, each indexer's relation holding of them; under other names the old ones). Under the
+store's write lock. -/
 abbrev storeIndex.updateIndices.spec : Prop :=
-  ∀ (i im ip : Loc) (dqi : DFrac) (qm : Qp) (fv : GMap GoString GoFunc) (fns : GMap GoString Fn)
-    (ix : Ix) (OK : GoInterface → IProp GF) (it it' : Items) (key : GoString)
-    (old new : GoInterface),
+  ∀ (i im ip : Loc) (dqi : DFrac) (qm : Qp) (fv : GMap GoString GoFunc)
+    (fns : GMap GoString (Fn GF)) (ix : Ix) (OK : GoInterface → IProp GF) (iv : IV)
+    (key : GoString) (old new : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗
       structFieldRef storeIndex go!"indexers" i ↦{dqi} im ∗ im ↦${DFrac.own qm} fv ∗ fnsOk OK fv fns ∗
-      okNil OK old ∗ okNil OK new ∗
+      okNil OK old ∗ okNil OK new ∗ valsOk fns old (ivOf iv key) ∗
       structFieldRef storeIndex go!"indices" i ↦ ip ∗ ownIx ip (DFrac.own 1) ix ∗
-      ⌜ixOk fns it ix ∧ old = objAt it key ∧ new = objAt it' key ∧
-        ∀ k, k ≠ key → objAt it' k = objAt it k⌝ }}
+      ⌜ixOk fns iv ix⌝ }}
     (App (App (App (Val (i @!! go.GoType.PointerType storeIndex.ty @!! go!"updateIndices"))
       (Val #old)) (Val #new)) (Val #key))
-  {{ RET #(); ∃ ix' : Ix,
+  {{ RET #(); ∃ (ix' : Ix) (vs : Vals),
       structFieldRef storeIndex go!"indexers" i ↦{dqi} im ∗ im ↦${DFrac.own qm} fv ∗
       structFieldRef storeIndex go!"indices" i ↦ ip ∗ ownIx ip (DFrac.own 1) ix' ∗
-      ⌜ixOk fns it' ix'⌝ }}
+      valsOk fns new vs ∗
+      ⌜ixOk fns (<[key := vs]> iv) ix' ∧ ∀ n, n ∉ fns → vsAt vs n = ivAt iv n key⌝ }}
 
 end spec
 

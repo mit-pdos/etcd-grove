@@ -46,7 +46,7 @@ def keyedItems (KF : GoInterface → GoString) (xs : List GoInterface) : Items :
   xs.foldl (fun m x => <[KF x := x]> m) ∅
 
 /-- **The store** (persistent): `ca` over the thread-safe store `ts`. -/
-def isCache (ca ts : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn)
+def isCache (ca ts : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn GF)
     (kf : GoFunc) : IProp GF :=
   iprop(structFieldRef cache go!"cacheStorage" ca ↦□
       interface.mkOk (go.GoType.PointerType threadSafeMap.ty) #ts ∗
@@ -55,7 +55,7 @@ def isCache (ca ts : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : 
     isTS ts γ OK Fam)
 
 instance isCache_persistent (ca ts : Loc) (γ : TsNames) (OK : GoInterface → IProp GF)
-    (Fam : Nat → Fn) (kf : GoFunc) :
+    (Fam : Nat → Fn GF) (kf : GoFunc) :
     Persistent (isCache (GF := GF) ca ts γ OK Fam kf) := by
   unfold isCache; infer_instance
 

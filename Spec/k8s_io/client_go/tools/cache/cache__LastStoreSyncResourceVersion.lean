@@ -26,7 +26,7 @@ variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
 /-- **`c.LastStoreSyncResourceVersion()`**, logically atomic (a reader), with the `AtomicFIFO` gate
 on: the resource version. -/
 abbrev cache.LastStoreSyncResourceVersion.spec : Prop :=
-  ∀ (ca ts : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn)
+  ∀ (ca ts : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn GF)
     (kf : GoFunc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ isCache ca ts γ OK Fam kf ∗ tsReader ts γ OK Fam ∗
       features.gateIs k8s_io.client_go.features.AtomicFIFO true }}

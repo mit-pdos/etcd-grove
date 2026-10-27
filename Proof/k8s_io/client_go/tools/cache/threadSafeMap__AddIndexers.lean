@@ -2,9 +2,10 @@
 Proof of `Spec/k8s_io/client_go/tools/cache/threadSafeMap__AddIndexers.lean`. Lean-first.
 
 The re-indexing loop (`for key, item := range c.items { for name := range newIndexers {
-updateSingleIndex(name, nil, item, key) } }`): after the items `keys.take p` and, of the next
-item, the new indexers `done`, each new indexer's index is exact for the items visited
-(`newOk`); the old indexers' indices are untouched (no name clashes).
+updateSingleIndex(name, nil, item, key) } }`): the recorded index values `ivc` agree with the old
+ones under the other names; under the new indexers they are recorded (`itemsIv`) for the items
+visited (`keys.take p`) and none for the others; the indices stay exact for them throughout (a new
+indexer starts with no index and no values, there being no name clash).
 -/
 module
 
@@ -26,89 +27,47 @@ open Iris Iris.BI Iris.ProofMode k8s_io.client_go.tools.cache
 section model
 variable [FfiSyntax]
 
-/-- The new indexers' indices: exact for the items `it'` for the indexers `done`, for `it` for the
-others. -/
-def newOk (fnsNew : GMap GoString Fn) (it it' : Items) (done : List GoString) (ix : Ix) : Prop :=
-  ∀ n F, fnsNew !! n = some F → nameOk F (if n ∈ done then it' else it) (ixAt ix n)
+theorem mem_union {V : Type _} (a b : GMap GoString V) (n : GoString) :
+    n ∈ a ∪ b ↔ n ∈ a ∨ n ∈ b := by
+  simp only [GMap.mem_iff, GMap.lookup_union]
+  cases a !! n <;> cases b !! n <;> simp
 
-theorem newOk_step {fnsNew : GMap GoString Fn} {it it' : Items} {done : List GoString}
-    {ix ix' : Ix} {name key : GoString} {F : Fn}
-    (h : newOk fnsNew it it' done ix) (hF : fnsNew !! name = some F) (hnd : name ∉ done)
-    (hsame : ∀ k, k ≠ key → objAt it' k = objAt it k)
-    (hother : ∀ n, n ≠ name → ix' !! n = ix !! n)
-    (hupd : updNPost F (objAt it key) (objAt it' key) key (viewN (ixAt ix name))
-      (viewN (ixAt ix' name))) :
-    newOk fnsNew it it' (done ++ [name]) ix' := by
-  intro n G hG
-  by_cases hnn : n = name
-  · subst hnn
-    rw [hF] at hG; cases hG
-    have h0 := h n F hF
-    simp only [hnd, ↓reduceIte] at h0
-    simp only [List.mem_append, List.mem_singleton, or_true, ↓reduceIte]
-    exact nameOk_upd h0 hsame hupd
-  · have hx : ixAt ix' n = ixAt ix n := by unfold ixAt; rw [hother n hnn]
-    rw [hx]
-    have hm : (n ∈ done ++ [name]) ↔ n ∈ done := by simp [hnn]
-    simp only [hm]
-    exact h n G hG
-
-/-- Every name is `done`: exact for `it'`. -/
-theorem newOk_all {fnsNew : GMap GoString Fn} {it it' : Items} {done : List GoString} {ix : Ix}
-    (h : newOk fnsNew it it' done ix) (hall : ∀ n, (fnsNew !! n).isSome → n ∈ done) :
-    newOk fnsNew it' it' [] ix := by
-  intro n F hF
-  have := h n F hF
-  simp only [hall n (by rw [hF]; rfl), ↓reduceIte] at this
-  simpa using this
-
-/-- No index is exact for no items. -/
-theorem nameOk_empty (F : Fn) : nameOk F ∅ ∅ := by
-  intro v k
-  unfold viewN inIdx objAt valsOf
-  simp [GMap.mem_iff]
-
-theorem fmap_union {V W : Type} (f : V → W) (a b : GMap GoString V) :
+theorem fmap_union {V W : Type _} (f : V → W) (a b : GMap GoString V) :
     GMap.fmap f (a ∪ b) = GMap.fmap f a ∪ GMap.fmap f b := by
   ext k; simp only [GMap.lookup_fmap, GMap.lookup_union]; cases a !! k <;> rfl
 
-/-- **The store's indices after `AddIndexers`**: the old indexers' untouched, the new ones exact. -/
-theorem ixOk_add {old fnsNew : GMap GoString Fn} {it : Items} {ix0 ix : Ix}
-    (h0 : ixOk old it ix0) (hnc : ∀ n, (fnsNew !! n).isSome → old !! n = none)
-    (hdom : ∀ n, n ∈ ix → n ∈ old ∨ n ∈ fnsNew)
-    (hold : ∀ n, n ∉ fnsNew → ix !! n = ix0 !! n) (hnew : newOk fnsNew it it [] ix) :
-    ixOk (fnsNew ∪ old) it ix := by
-  refine ⟨fun n hn => ?_, fun n F hF => ?_⟩
-  · show ((fnsNew ∪ old) !! n).isSome
-    rw [GMap.lookup_union]
-    rcases hdom n hn with h | h <;> rw [GMap.mem_iff] at h <;> cases hf : fnsNew !! n <;> simp_all
-  · rw [GMap.lookup_union] at hF
-    cases hf : fnsNew !! n with
-    | some G =>
-      rw [hf] at hF
-      have hGF : G = F := Option.some.inj hF
-      subst hGF
-      have := hnew n G hf; simpa using this
-    | none =>
-      rw [hf] at hF; change old !! n = some F at hF
-      have hx : ixAt ix n = ixAt ix0 n := by
-        unfold ixAt; rw [hold n (by rw [GMap.mem_iff, hf]; simp)]
-      rw [hx]; exact h0.2 n F hF
+/-- **The indices before re-indexing**: exact for the new indexers too (no index, no values). -/
+theorem ixOk_add_init {R : Type _} {old new : GMap GoString R} {it : Items} {iv : IV} {ix : Ix}
+    (h : ixOk old iv ix) (hwf : ivWf old it iv) :
+    ixOk (new ∪ old) iv ix := by
+  refine ⟨fun n hn => (mem_union _ _ n).2 (Or.inr (h.1 n hn)), fun n hn => ?_⟩
+  by_cases ho : n ∈ old
+  · exact h.2 n ho
+  · have hnix : n ∉ ix := fun hm => ho (h.1 n hm)
+    have hx : ixAt ix n = ∅ := by
+      unfold ixAt; rw [GMap.mem_iff] at hnix; cases e : ix !! n <;> simp_all
+    intro v k
+    rw [hx]
+    unfold inIdx
+    rw [hwf k n (Or.inr ho)]
+    unfold viewN
+    simp [GMap.mem_iff]
 
-/-- The new indexers have no index before `AddIndexers` (no name clash). -/
-theorem newOk_init {old fnsNew : GMap GoString Fn} {it : Items} {ix0 : Ix}
-    (h0 : ixOk old it ix0) (hnc : ∀ n, (fnsNew !! n).isSome → old !! n = none) :
-    newOk fnsNew ∅ ∅ [] ix0 := by
-  intro n F hF
-  simp only [List.not_mem_nil, ↓reduceIte]
-  have hn : n ∉ ix0 := by
-    intro hm
-    have := h0.1 n hm
-    rw [GMap.mem_iff, hnc n (by rw [hF]; rfl)] at this
-    simp at this
-  have : ixAt ix0 n = ∅ := by
-    unfold ixAt; rw [GMap.mem_iff] at hn; cases h : ix0 !! n <;> simp_all
-  rw [this]; exact nameOk_empty F
+/-- **The recorded values after re-indexing**: `ivWf` for the old and new indexers. -/
+theorem ivWf_add {R : Type _} {old new : GMap GoString R} {it : Items} {iv ivc : IV}
+    (hwf : ivWf old it iv) (hold : ∀ n k, n ∉ new → ivAt ivc n k = ivAt iv n k)
+    (hnew : ∀ n k, n ∈ new → objAt it k = interface.nil → ivAt ivc n k = []) :
+    ivWf (new ∪ old) it ivc := by
+  intro k n h
+  by_cases hn : n ∈ new
+  · rcases h with h | h
+    · exact hnew n k hn h
+    · exact absurd ((mem_union _ _ n).2 (Or.inl hn)) h
+  · rw [hold n k hn]
+    refine hwf k n ?_
+    rcases h with h | h
+    · exact Or.inl h
+    · exact Or.inr (fun ho => h ((mem_union _ _ n).2 (Or.inr ho)))
 
 end model
 
@@ -121,7 +80,7 @@ variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
 
 /-- The indexers' contracts of two maps without a common name. -/
 theorem fnsOk_union (OK : GoInterface → IProp GF) (nfv fv : GMap GoString GoFunc)
-    (fnsNew old : GMap GoString Fn) (hd : ∀ n, (nfv !! n).isSome → fv !! n = none) :
+    (fnsNew old : GMap GoString (Fn GF)) (hd : ∀ n, (nfv !! n).isSome → fv !! n = none) :
     fnsOk OK nfv fnsNew ∗ fnsOk OK fv old ⊢ fnsOk OK (nfv ∪ fv) (fnsNew ∪ old) := by
   iintro ⟨#H1, #H2⟩
   unfold fnsOk
@@ -163,6 +122,36 @@ theorem fnsOk_union (OK : GoInterface → IProp GF) (nfv fv : GMap GoString GoFu
       rw [this]; exact hF
   · iframe #
 
+open Iris.ProofMode in
+/-- The recorded values of the old and new indexers. -/
+theorem itemsIv_union (new old : GMap GoString (Fn GF)) (it : Items) (iv ivc : IV)
+    (hold : ∀ n k, n ∉ new → ivAt ivc n k = ivAt iv n k) :
+    itemsIv new it ivc ∗ itemsIv old it iv ⊢ itemsIv (new ∪ old) it ivc := by
+  iintro ⟨#H1, #H2⟩
+  unfold itemsIv
+  iapply (BigSepM.bigSepM_forall (Φ := fun k o => valsOk (new ∪ old) o (ivOf ivc k))).2
+  iintro %k %o %hk
+  ihave #Hv1 := (BigSepM.bigSepM_lookup hk) $$ H1
+  ihave #Hv2 := (BigSepM.bigSepM_lookup hk) $$ H2
+  unfold valsOk
+  iapply (BigSepM.bigSepM_forall (Φ := fun n F => objVals F o (vsAt (ivOf ivc k) n))).2
+  iintro %n %F %hn
+  change (new ∪ old) !! n = some F at hn
+  rw [GMap.lookup_union] at hn
+  cases e : new !! n with
+  | some G =>
+    rw [e] at hn
+    cases hn
+    iapply (BigSepM.bigSepM_lookup e) $$ Hv1
+  | none =>
+    rw [e] at hn
+    change old !! n = some F at hn
+    have hnn : n ∉ new := by rw [GMap.mem_iff, e]; simp
+    have := hold n k hnn
+    unfold ivAt at this
+    rw [this]
+    iapply (BigSepM.bigSepM_lookup hn) $$ Hv2
+
 end proof
 
 section proof2
@@ -189,11 +178,11 @@ theorem threadSafeMap.AddIndexers.wp_proof
   (try wp_auto)
   wp_apply (lc := 2) sync.RWMutex.wp_Lock_guard $$ [$Hguard] as ⟨Hwl, HP⟩
   iunfold tsP at HP
-  icases HP with ⟨%σ, %ph, Hst, Hgp, Hph, #Hpers, %Hok⟩
+  icases HP with ⟨%σ, %ph, %iv, Hst, Hgp, Hph, #Hpers, %Hok⟩
   iunfold tsPhys at Hph
   icases Hph with ⟨Hitems, Hil, Hrvf, Hind, Hix, Hfv⟩
   iunfold tsPers at Hpers
-  icases Hpers with ⟨#Hfns, #Hits⟩
+  icases Hpers with ⟨#Hfns, #Hits, #Hiv⟩
   iunfold fnsOk at Hfns Hnfns
   icases Hfns with ⟨%Hdom, #Hfs⟩
   icases Hnfns with ⟨%Hndom, #Hnfs⟩
@@ -223,7 +212,7 @@ theorem threadSafeMap.AddIndexers.wp_proof
     wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hst Hgp Hitems Hil Hind Hix Hfv Hrvf]
     · inext
       iunfold tsP
-      iexists σ, ph
+      iexists σ, ph, iv
       iframe
       isplitl
       · iunfold tsPhys; iframe
@@ -231,7 +220,7 @@ theorem threadSafeMap.AddIndexers.wp_proof
       · iunfold tsPers
         isplitr
         · iunfold fnsOk; iframe #; ipureintro; exact Hdom
-        · iexact Hits
+        · iframe #
       · ipureintro; exact Hok
     (try wp_auto)
     iapply HK
@@ -240,16 +229,14 @@ theorem threadSafeMap.AddIndexers.wp_proof
     exact Or.inl ⟨hcl, fun h => by cases h⟩
   · obtain ⟨Hnc1, rfl⟩ := Hc1
     have hncl : ¬ nameClash σ.fnIds nids := fun h => Hnc1 (hclash.2 h)
-    have hnc : ∀ n, ((GMap.fmap Fam nids) !! n).isSome → (St.fns Fam σ) !! n = none := by
-      intro n hn
-      unfold St.fns
-      rw [GMap.lookup_fmap]
-      cases h : σ.fnIds !! n with
-      | none => rfl
-      | some _ =>
-        exfalso; apply hncl
-        refine ⟨n, by rw [h]; rfl, ?_⟩
-        rw [GMap.lookup_fmap] at hn; cases h' : nids !! n <;> simp_all
+    have hnc : ∀ n, n ∈ GMap.fmap Fam nids → n ∉ St.fns Fam σ := by
+      intro n hn ho
+      apply hncl
+      refine ⟨n, ?_, ?_⟩
+      · unfold St.fns at ho; rw [GMap.mem_iff, GMap.lookup_fmap] at ho
+        cases h : σ.fnIds !! n <;> simp_all
+      · rw [GMap.mem_iff, GMap.lookup_fmap] at hn
+        cases h : nids !! n <;> simp_all
     have hdisj : ∀ n, (nfv !! n).isSome → ph.fv !! n = none := by
       intro n hn
       cases h : ph.fv !! n with
@@ -259,28 +246,34 @@ theorem threadSafeMap.AddIndexers.wp_proof
     wp_func_lits
     wp_bind (App (App (Val (map.forRange _ _)) _) _)
     iapply wp_map_for_range (fun (keys : List GoString) (p : Int) => iprop(∃ (x : GoInterface)
-        (y : GoString) (ix : Ix),
+        (y : GoString) (ixc : Ix) (ivc : IV),
         "%Hp" ∷ ⌜0 ≤ p⌝ ∗
-        "%Hnew" ∷ ⌜newOk (GMap.fmap Fam nids) (restrictK σ.items (keys.take p.toNat))
-          (restrictK σ.items (keys.take p.toNat)) [] ix⌝ ∗
-        "%Hdomix" ∷ ⌜∀ n, n ∈ ix → n ∈ St.fns Fam σ ∨ n ∈ GMap.fmap Fam nids⌝ ∗
-        "%Hold" ∷ ⌜∀ n, n ∉ GMap.fmap Fam nids → ix !! n = ph.ix !! n⌝ ∗
+        "%Hokc" ∷ ⌜ixOk (GMap.fmap Fam nids ∪ St.fns Fam σ) ivc ixc⌝ ∗
+        "%Holdv" ∷ ⌜∀ n k, n ∉ GMap.fmap Fam nids → ivAt ivc n k = ivAt iv n k⌝ ∗
+        "%Hnewv" ∷ ⌜∀ n k, n ∈ GMap.fmap Fam nids →
+          objAt (restrictK σ.items (keys.take p.toNat)) k = GoInterface.nil → ivAt ivc n k = []⌝ ∗
+        "#Hivc" ∷ itemsIv (GMap.fmap Fam nids) (restrictK σ.items (keys.take p.toNat)) ivc ∗
         "item" ∷ item_ptr ↦ x ∗ "key" ∷ key_ptr ↦ y ∗ "c" ∷ c_ptr ↦ c ∗
         "newIndexers" ∷ newIndexers_ptr ↦ nm ∗ "Hnm" ∷ nm ↦${dn} nfv ∗
         "Hind" ∷ structFieldRef storeIndex go!"indices" γ.idx ↦ ph.ip ∗
-        "Hix" ∷ ownIx ph.ip (DFrac.own 1) ix ∗
+        "Hix" ∷ ownIx ph.ip (DFrac.own 1) ixc ∗
         "Hfv" ∷ γ.im ↦$ (nfv ∪ ph.fv))) $$ Hil
     iintro %keys ⟨%Hkset, %Hklen, %Hknodup⟩
     isplitl [item key c newIndexers Hnm Hind Hix Hfv]
-    · iexists _, _, ph.ix
-      simp only [named]
+    · iexists _, _, ph.ix, iv
+      simp only [named, Int.toNat_zero, List.take_zero, restrictK_nil]
       iframe
-      ipureintro
-      refine ⟨Int.le_refl _, ?_, ?_, ?_⟩
-      · simp only [Int.toNat_zero, List.take_zero, restrictK_nil]
-        exact newOk_init Hok hnc
-      · intro n hn; exact Or.inl (Hok.1 n hn)
-      · intro _ _; trivial
+      isplitr
+      · ipureintro; exact Int.le_refl _
+      isplitr
+      · ipureintro; exact ixOk_add_init Hok.1 Hok.2
+      isplitr
+      · ipureintro; intro _ _ _; trivial
+      isplitr
+      · ipureintro
+        intro n k hn _
+        exact Hok.2 k n (Or.inr (hnc n hn))
+      · iunfold itemsIv; iapply BigSepM.bigSepM_empty.2; itrivial
     isplitr
     · imodintro
       iintro %p %k %o ⟨%Hkey, %Ho⟩ HP
@@ -301,39 +294,36 @@ theorem threadSafeMap.AddIndexers.wp_proof
         rw [List.take_add_one, Hkey]; rfl
       have hold0 : objAt (restrictK σ.items (keys.take p.toNat)) k = GoInterface.nil := by
         rw [objAt_restrictK]; simp [hnd]
-      have hnew0 : objAt (restrictK σ.items (keys.take p.toNat ++ [k])) k = o := by
-        rw [objAt_restrictK, ite_eq_left_of_eq_true _ _ (by simp)]
-        unfold objAt; rw [Ho]; rfl
-      have hsame : ∀ k', k' ≠ k → objAt (restrictK σ.items (keys.take p.toNat ++ [k])) k' =
-          objAt (restrictK σ.items (keys.take p.toNat)) k' := by
-        intro k' hk'; rw [objAt_restrictK, objAt_restrictK]; simp [hk']
       (try wp_auto)
       wp_func_lits
       wp_bind (App (App (Val (map.forRange _ _)) _) _)
       iapply wp_map_for_range (fun (names : List GoString) (j : Int) => iprop(∃ (z : GoString)
-          (ix : Ix),
+          (ixj : Ix) (vsc : Vals),
           "%Hj" ∷ ⌜0 ≤ j⌝ ∗
-          "%Hnew" ∷ ⌜newOk (GMap.fmap Fam nids) (restrictK σ.items (keys.take p.toNat))
-            (restrictK σ.items (keys.take p.toNat ++ [k])) (names.take j.toNat) ix⌝ ∗
-          "%Hdomix" ∷ ⌜∀ n, n ∈ ix → n ∈ St.fns Fam σ ∨ n ∈ GMap.fmap Fam nids⌝ ∗
-          "%Hold" ∷ ⌜∀ n, n ∉ GMap.fmap Fam nids → ix !! n = ph.ix !! n⌝ ∗
+          "%Hokj" ∷ ⌜ixOk (GMap.fmap Fam nids ∪ St.fns Fam σ) (<[k := vsc]> ivc) ixj⌝ ∗
+          "%Hrest" ∷ ⌜∀ n, n ∉ names.take j.toNat → vsAt vsc n = ivAt ivc n k⌝ ∗
+          "#Hdone" ∷ □ (∀ (n : GoString) (F : Fn GF),
+            ⌜(GMap.fmap Fam nids) !! n = some F ∧ n ∈ names.take j.toNat⌝ -∗
+            objVals F o (vsAt vsc n)) ∗
           "name" ∷ name_ptr ↦ z ∗ "item" ∷ item_ptr ↦ o ∗ "key" ∷ key_ptr ↦ k ∗
           "c" ∷ c_ptr ↦ c ∗
           "Hind" ∷ structFieldRef storeIndex go!"indices" γ.idx ↦ ph.ip ∗
-          "Hix" ∷ ownIx ph.ip (DFrac.own 1) ix ∗
+          "Hix" ∷ ownIx ph.ip (DFrac.own 1) ixj ∗
           "Hfv" ∷ γ.im ↦$ (nfv ∪ ph.fv))) $$ Hnm
       iintro %names ⟨%Hnset, %Hnlen, %Hnnodup⟩
       isplitl [name item key c Hind Hix Hfv]
-      · iexists _, ix
+      · iexists _, ixc, ivOf ivc k
         simp only [named]
         iframe
-        ipureintro
-        refine ⟨Int.le_refl _, ?_, Hdomix, Hold⟩
-        simp only [Int.toNat_zero, List.take_zero]
-        intro n F hF
-        simp only [List.not_mem_nil, ↓reduceIte]
-        have := Hnew n F hF
-        simpa using this
+        isplitr
+        · ipureintro; exact Int.le_refl _
+        isplitr
+        · ipureintro; exact ixOk_congr Hokc (fun n _ k' => ivAt_insert_self ivc k n k')
+        isplitr
+        · ipureintro; exact fun n _ => rfl
+        · imodintro
+          iintro %n %F %h
+          simp at h
       isplitr
       · imodintro
         iintro %j %name %f ⟨%Hname, %Hf⟩ HQ
@@ -349,10 +339,16 @@ theorem threadSafeMap.AddIndexers.wp_proof
         have Htakej : names.take (j + 1).toNat = names.take j.toNat ++ [name] := by
           rw [show (j + 1).toNat = j.toNat + 1 by omega]
           rw [List.take_add_one, Hname]; rfl
+        have hnamenew : name ∈ GMap.fmap Fam nids := by rw [GMap.mem_iff, hF]; rfl
+        have hovs : vsAt vsc name = [] := by
+          rw [Hrest name hndn]; exact Hnewv name k hnamenew hold0
+        ihave #Hovs : objVals F GoInterface.nil (vsAt vsc name) $$ []
+        · rw [hovs]; iunfold objVals; ileft; ipureintro; exact ⟨rfl, rfl⟩
         (try wp_auto)
-        wp_apply (wp_upd γ.idx γ.im ph.ip DFrac.discard (DFrac.own 1) (nfv ∪ ph.fv) ix OK F f name k
-            GoInterface.nil o) $$ [$Him $Hfv $HfOk $Hnil $Hoko $Hind $Hix]
-          as ⟨%ix', -, Hfv, Hind, Hix, %Hupd⟩
+        wp_apply (wp_upd γ.idx γ.im ph.ip DFrac.discard (DFrac.own 1) (nfv ∪ ph.fv) ixj OK F f
+            name k GoInterface.nil o (vsAt vsc name))
+          $$ [$Him $Hfv $HfOk $Hnil $Hoko $Hovs $Hind $Hix]
+          as ⟨%ix', %nvs, -, Hfv, Hind, Hix, #Hnvs, %Hupd⟩
         · ipureintro
           show (nfv !! name).or (ph.fv !! name) = some f
           rw [Hf]; rfl
@@ -361,49 +357,107 @@ theorem threadSafeMap.AddIndexers.wp_proof
         iright; ileft
         isplitr
         · ipureintro; rfl
-        iexists name, ix'
+        iexists name, ix', <[name := nvs]> vsc
         simp only [named]
         iframe
-        ipureintro
-        refine ⟨by omega, ?_, ?_, ?_⟩
-        · rw [Htakej]
-          refine newOk_step Hnew hF hndn hsame Hupd.1 ?_
-          rw [hold0, hnew0]; exact Hupd.2
-        · intro n hn
+        isplitr
+        · ipureintro; omega
+        isplitr
+        · ipureintro
+          exact ixOk_step Hokj ((mem_union _ _ name).2 (Or.inl hnamenew)) Hupd.1 Hupd.2
+        isplitr
+        · ipureintro
+          intro n hn
+          rw [Htakej] at hn
+          have hn1 : n ≠ name := by intro h; subst h; simp at hn
+          rw [vsAt_insert]; simp only [hn1, ↓reduceIte]
+          exact Hrest n (fun h => hn (List.mem_append_left _ h))
+        · imodintro
+          iintro %n %G ⟨%hG, %hn⟩
+          rw [Htakej] at hn
+          rw [vsAt_insert]
           by_cases hnn : n = name
-          · subst hnn; right; rw [GMap.mem_iff, hF]; rfl
-          · apply Hdomix n; rw [GMap.mem_iff] at hn ⊢; rwa [Hupd.1 n hnn] at hn
-        · intro n hn
-          have hnn : n ≠ name := by rintro rfl; rw [GMap.mem_iff, hF] at hn; exact hn rfl
-          rw [Hupd.1 n hnn]; exact Hold n hn
+          · subst hnn
+            rw [hF] at hG; cases hG
+            simp only [↓reduceIte]
+            iexact Hnvs
+          · simp only [hnn, ↓reduceIte]
+            have hn' : n ∈ names.take j.toNat := by simpa [hnn] using hn
+            iapply Hdone $$ %n %G
+            ipureintro; exact ⟨hG, hn'⟩
       · iintro HQ Hnm
         iNamed HQ
-        rw [← Hnlen, Int.toNat_natCast, List.take_length] at Hnew
+        have hallj : names.take (GMap.size nfv : Int).toNat = names := by
+          rw [Int.toNat_natCast, ← Hnlen, List.take_length]
+        rw [hallj] at Hrest
+        ihave #Hvsc : valsOk (GMap.fmap Fam nids) o vsc $$ []
+        · iunfold valsOk
+          iapply (BigSepM.bigSepM_intro (P := iprop(□ (∀ (n : GoString) (F : Fn GF),
+              ⌜(GMap.fmap Fam nids) !! n = some F ∧ n ∈ names.take (GMap.size nfv : Int).toNat⌝ -∗
+                objVals F o (vsAt vsc n))))
+              (fun {n F} hn => ?_)) $$ [Hdone]
+          · iintro #H
+            iapply H $$ %n %F
+            ipureintro
+            refine ⟨hn, ?_⟩
+            rw [hallj, Hnset]
+            have := (Hndom n).1 (by rw [GMap.mem_iff, show (GMap.fmap Fam nids) !! n = some F from hn]; rfl)
+            rw [GMap.mem_iff] at this
+            exact this
+          · iexact Hdone
+        ihave %hvnil := valsOk_nil_pure _ o vsc $$ Hvsc
         (try wp_auto)
         unfold forMapPostcondition
         iright; ileft
         isplitr
         · ipureintro; rfl
-        iexists o, k, ix
+        iexists o, k, ixj, <[k := vsc]> ivc
         simp only [named]
+        rw [Htake, restrictK_snoc σ.items _ k o Ho]
         iframe
-        ipureintro
-        refine ⟨by omega, ?_, Hdomix, Hold⟩
-        rw [Htake]
-        refine newOk_all Hnew (fun n hn => ?_)
-        rw [Hnset]
-        have := (Hndom n).1 (by rw [GMap.mem_iff]; exact hn)
-        exact this
+        isplitr
+        · ipureintro; omega
+        isplitr
+        · ipureintro; exact Hokj
+        isplitr
+        · ipureintro
+          intro n k' hn
+          rw [ivAt_insert]
+          by_cases hkk : k' = k
+          · simp only [hkk, ↓reduceIte]
+            rw [Hrest n ?_, Holdv n k hn]
+            intro hm
+            apply hn
+            have := (Hnset n).1 hm
+            exact (Hndom n).2 (by rw [GMap.mem_iff]; exact this)
+          · simp only [hkk, ↓reduceIte]; exact Holdv n k' hn
+        isplitr
+        · ipureintro
+          intro n k' hn hk'
+          rw [ivAt_insert]
+          rw [objAt_insert] at hk'
+          by_cases hkk : k' = k
+          · simp only [hkk, ↓reduceIte] at hk' ⊢
+            exact hvnil hk' n hn
+          · simp only [hkk, ↓reduceIte] at hk' ⊢
+            exact Hnewv n k' hn hk'
+        · iapply itemsIv_insert $$ [$Hivc $Hvsc]
     · iintro HP Hil
       iNamed HP
-      rw [← Hklen, Int.toNat_natCast, List.take_length,
-        restrictK_all σ.items keys (fun k hk => (Hkset k).2 hk)] at Hnew
+      have hall : restrictK σ.items (keys.take (GMap.size σ.items : Int).toNat) = σ.items := by
+        rw [Int.toNat_natCast, ← Hklen, List.take_length]
+        exact restrictK_all σ.items keys (fun k hk => (Hkset k).2 hk)
+      rw [hall] at Hnewv
+      have hH : itemsIv (GF := GF) (GMap.fmap Fam nids)
+          (restrictK σ.items (keys.take (GMap.size σ.items : Int).toNat)) ivc ⊢
+          itemsIv (GMap.fmap Fam nids) σ.items ivc := by rw [hall]
+      ihave #Hivn := hH $$ Hivc
       (try wp_auto)
       imod storeSt_update γ σ (fun σ => σ.addIx nids) _ $$ [$Hst $HAU] with ⟨Hst, HK⟩
       have hσ : σ.addIx nids = { σ with fnIds := nids ∪ σ.fnIds } := by
         simp [St.addIx, hncl]
       rw [hσ]
-      imod ghostVar_update (⟨ph.il, ph.ip, ix, nfv ∪ ph.fv⟩ : Ph) $$ Hgp with Hgp
+      imod ghostVar_update (⟨ph.il, ph.ip, ixc, nfv ∪ ph.fv⟩ : Ph) $$ Hgp with Hgp
       ihave #Hfns' : fnsOk OK ph.fv (St.fns Fam σ) $$ []
       · iunfold fnsOk; iframe #; ipureintro; exact Hdom
       ihave #Hnfns' : fnsOk OK nfv (GMap.fmap Fam nids) $$ []
@@ -414,7 +468,7 @@ theorem threadSafeMap.AddIndexers.wp_proof
       wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hst Hgp Hitems Hil Hind Hix Hfv Hrvf]
       · inext
         iunfold tsP
-        iexists { σ with fnIds := nids ∪ σ.fnIds }, ⟨ph.il, ph.ip, ix, nfv ∪ ph.fv⟩
+        iexists { σ with fnIds := nids ∪ σ.fnIds }, ⟨ph.il, ph.ip, ixc, nfv ∪ ph.fv⟩, ivc
         iframe
         isplitl
         · iunfold tsPhys; iframe
@@ -423,10 +477,12 @@ theorem threadSafeMap.AddIndexers.wp_proof
           rw [hfns]
           isplitr
           · iapply (fnsOk_union OK nfv ph.fv _ _ hdisj) $$ [$Hnfns' $Hfns']
+          isplitr
           · iexact Hits
+          · iapply (itemsIv_union _ _ σ.items iv ivc Holdv) $$ [$Hivn $Hiv]
         · ipureintro
           rw [hfns]
-          exact ixOk_add Hok hnc Hdomix Hold Hnew
+          exact ⟨Hokc, ivWf_add Hok.2 Holdv Hnewv⟩
       (try wp_auto)
       iapply HK
       iframe

@@ -36,7 +36,7 @@ only; at most `2^62`, the bound of `sets.List`'s sort) whose functions meet thei
 indexer's (`nameClash`). The items already stored are indexed by the new indexers (the store's
 invariant, `ixOk`, holds of the new indexers). -/
 abbrev threadSafeMap.AddIndexers.spec : Prop :=
-  ∀ (c : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn) (nm : Loc)
+  ∀ (c : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn GF) (nm : Loc)
     (dn : DFrac) (nfv : GMap GoString GoFunc) (nids : GMap GoString Nat),
   GMap.size nfv ≤ 2 ^ 62 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ isTS c γ OK Fam ∗

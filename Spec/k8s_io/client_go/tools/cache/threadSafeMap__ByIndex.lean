@@ -24,20 +24,21 @@ variable [sem : go.Semantics]
 variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
 
 /-- What `ByIndex(n, v)` returns, at the linearization point's state `σ`: for an indexer `n` (its
-function `F`), no error and a new slice of the items whose objects index under `v` (`inIdx`:
-exactly those, each once, in some order), each with its contract; otherwise an error. -/
-def byIndexPost (OK : GoInterface → IProp GF) (Fam : Nat → Fn) (σ : St) (n v : GoString)
+relation `F`), no error and a new slice of the items whose objects' values under it contain `v`
+(`idxSel`: exactly those, each once, in some order, with the relation holding of each item's
+values), each with its contract; otherwise an error. -/
+def byIndexPost (OK : GoInterface → IProp GF) (Fam : Nat → Fn GF) (σ : St) (n v : GoString)
     (sl : GoSlice) (err : GoInterface) : IProp GF :=
   match (σ.fns Fam) !! n with
   | none => iprop(⌜err ≠ interface.nil⌝)
   | some F => iprop(⌜err = interface.nil⌝ ∗ ∃ ks : List GoString,
-      ⌜ks.Nodup ∧ ∀ k, k ∈ ks ↔ inIdx F σ.items v k⌝ ∗ sl ↦* (ks.map (objAt σ.items)) ∗
+      ⌜ks.Nodup⌝ ∗ idxSel F σ.items (fun vs => v ∈ vs) ks ∗ sl ↦* (ks.map (objAt σ.items)) ∗
       ([∗list] o ∈ ks.map (objAt σ.items), okNil OK o))
 
 /-- **`c.ByIndex(n, v)`**, logically atomic (`byIndexPost`). Needs one of the lock's reader
 slots. -/
 abbrev threadSafeMap.ByIndex.spec : Prop :=
-  ∀ (c : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn) (n v : GoString),
+  ∀ (c : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn GF) (n v : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ isTS c γ OK Fam ∗
       tsReader c γ OK Fam }}
   <<{ ∀∀ σ, storeSt γ σ }>>

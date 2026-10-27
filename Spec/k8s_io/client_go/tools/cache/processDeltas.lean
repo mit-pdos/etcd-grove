@@ -32,7 +32,7 @@ atomic operation, before the events: the store reflects a change before any hand
 it). -/
 abbrev processDeltas.spec : Prop :=
   ∀ (lg : github_com.go_logr.logr.Logger) (h : GoInterface) (ca ts : Loc) (γ : TsNames)
-    (OK : GoInterface → IProp GF) (Fam : Nat → Fn) (kf kf' : GoFunc)
+    (OK : GoInterface → IProp GF) (Fam : Nat → Fn GF) (kf kf' : GoFunc)
     (KF : GoInterface → GoString) (rvOf : GoInterface → Option GoString) (SW : St → IProp GF)
     (σ : St) (H : List Ev → IProp GF) (evs : List Ev) (d : FD) (v : Delta) (sl : GoSlice)
     (b : Bool),

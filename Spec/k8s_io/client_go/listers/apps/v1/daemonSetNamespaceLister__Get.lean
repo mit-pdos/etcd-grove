@@ -33,7 +33,7 @@ def dsnlVal (ca : Loc) (res : k8s_io.apimachinery.pkg.runtime.schema.GroupResour
 /-- **`l.Get(name)`** for the DaemonSet namespace lister `l` over the cache `ca`:
 `ResourceIndexer.Get`'s spec at `X = v1.DaemonSet`. -/
 abbrev daemonSetNamespaceLister.Get.spec : Prop :=
-  ∀ (ca ts : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn)
+  ∀ (ca ts : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn GF)
     (kf : GoFunc) (res : k8s_io.apimachinery.pkg.runtime.schema.GroupResource) (ns name : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.listers.apps.v1 ∗ isCache ca ts γ OK Fam kf ∗
       tsReader ts γ OK Fam ∗ typedOK OK k8s_io.api.apps.v1.DaemonSet.ty }}

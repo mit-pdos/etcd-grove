@@ -27,7 +27,7 @@ variable [package_sem' : k8s_io.client_go.listers.Assumptions]
 
 /-- **`l.Get`** for the Node lister `l` (a `*nodeLister`) over the cache `ca`, not namespaced: `ResourceIndexer.Get`'s spec at `X = v1.Node`. -/
 abbrev nodeLister.Get.spec : Prop :=
-  ∀ (ca ts : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn)
+  ∀ (ca ts : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn GF)
     (kf : GoFunc) (res : k8s_io.apimachinery.pkg.runtime.schema.GroupResource) (l : Loc) (name : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.listers.core.v1 ∗ isCache ca ts γ OK Fam kf ∗
       tsReader ts γ OK Fam ∗ typedOK OK k8s_io.api.core.v1.Node.ty ∗

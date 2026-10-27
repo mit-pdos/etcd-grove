@@ -28,40 +28,28 @@ variable [sem : go.Semantics]
 variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
 
 /-- The write lock's resources back, at the state after a delete. -/
-theorem tsP_after_delete (c : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn)
-    (σ : St) (ph : Ph) (key : GoString) (rvo : Option GoString) (ix' : Ix) :
+theorem tsP_after_delete (c : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn GF)
+    (σ : St) (ph : Ph) (key : GoString) (rvo : Option GoString) (ix' : Ix) (iv' : IV) :
     ghostVar γ.st (1 : Qp).half (σ.delete key rvo) ∗ ghostVar γ.ph 1 { ph with ix := ix' } ∗
       structFieldRef threadSafeMap go!"items" c ↦ ph.il ∗
       ph.il ↦$ GMap.delete key σ.items ∗
       structFieldRef threadSafeMap go!"rv" c ↦ rvo.getD σ.rv ∗
       structFieldRef storeIndex go!"indices" γ.idx ↦ ph.ip ∗
       ownIx ph.ip (DFrac.own 1) ix' ∗ γ.im ↦$ ph.fv ∗
-      tsPers OK Fam σ ph ∗ ⌜ixOk (σ.fns Fam) (GMap.delete key σ.items) ix'⌝ ⊢
+      tsPers OK Fam { σ with items := GMap.delete key σ.items } { ph with ix := ix' } iv' ∗
+      ⌜ixOk (σ.fns Fam) iv' ix' ∧ ivWf (σ.fns Fam) (GMap.delete key σ.items) iv'⌝ ⊢
     tsP c γ OK Fam 1 := by
   iintro ⟨Hst, Hgp, Hitems, Hil, Hrv, Hind, Hix, Hfv, #Hpers, %Hok⟩
   iunfold tsP
-  iexists σ.delete key rvo, { ph with ix := ix' }
+  iexists σ.delete key rvo, { ph with ix := ix' }, iv'
   iframe
   isplitl
   · iunfold tsPhys; iframe
-  iunfold tsPers at Hpers
-  icases Hpers with ⟨#Hfns, #Hits⟩
+  have hp : tsPers OK Fam (σ.delete key rvo) { ph with ix := ix' } iv' =
+      tsPers OK Fam { σ with items := GMap.delete key σ.items } { ph with ix := ix' } iv' := rfl
+  rw [hp]
   isplitr
-  · iunfold tsPers
-    have hf : St.fns Fam (σ.delete key rvo) = St.fns Fam σ := rfl
-    have hi : (σ.delete key rvo).items = GMap.delete key σ.items := rfl
-    rw [hf, hi]
-    isplitr
-    · iexact Hfns
-    · cases hk : σ.items !! key with
-      | none =>
-        have hd : GMap.delete key σ.items = σ.items := by
-          ext k; simp only [GMap.lookup_delete_iff]; split <;> simp_all
-        rw [hd]; iexact Hits
-      | some o =>
-        ihave H := (BigSepM.bigSepM_delete (Φ := fun _ o => okNil (GF := GF) OK o) hk).1 $$ Hits
-        icases H with ⟨-, H⟩
-        iexact H
+  · iexact Hpers
   · ipureintro; exact Hok
 
 theorem threadSafeMap.DeleteWithObject.wp_proof
@@ -117,9 +105,9 @@ theorem threadSafeMap.DeleteWithObject.wp_proof
   (try wp_auto)
   wp_apply (lc := 2) sync.RWMutex.wp_Lock_guard $$ [$Hguard] as ⟨Hwl, HP⟩
   iunfold tsP at HP
-  icases HP with ⟨%σ, %ph, Hst, Hgp, Hph, #Hpers, %Hok⟩
+  icases HP with ⟨%σ, %ph, %iv, Hst, Hgp, Hph, #Hpers, %Hok⟩
   (try wp_auto)
-  wp_apply wp_del $$ [$Hidx $Him $Hph $Hpers] as ⟨%ix', Hph, %Hok'⟩
+  wp_apply wp_del $$ [$Hidx $Him $Hph $Hpers] as ⟨%ix', %iv', Hph, #Hpers', %Hok'⟩
   · ipureintro; exact Hok
   iunfold tsPhys at Hph
   icases Hph with ⟨Hitems, Hil, Hrvf, Hind, Hix, Hfv⟩
@@ -177,7 +165,7 @@ theorem threadSafeMap.DeleteWithObject.wp_proof
   (try wp_auto)
   wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hst Hgp Hitems Hil Hind Hix Hfv Hrvf]
   · inext
-    iapply tsP_after_delete c γ OK Fam σ ph key (rvOfObj rvOf obj) ix'
+    iapply tsP_after_delete c γ OK Fam σ ph key (rvOfObj rvOf obj) ix' iv'
     iframe; iframe #
     ipureintro; exact Hok'
   (try wp_auto)

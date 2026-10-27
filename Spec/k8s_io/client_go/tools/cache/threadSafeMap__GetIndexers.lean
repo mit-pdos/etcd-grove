@@ -31,7 +31,7 @@ variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
 
 /-- `c.GetIndexers()`: the store's indexers' map `γ.im` (shared with the store, not a copy). -/
 abbrev threadSafeMap.GetIndexers.spec : Prop :=
-  ∀ (c : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn),
+  ∀ (c : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ isTS c γ OK Fam }}
     (App (Val (c @!! go.GoType.PointerType threadSafeMap.ty @!! go!"GetIndexers")) (Val #()))
   {{ RET #γ.im; True }}

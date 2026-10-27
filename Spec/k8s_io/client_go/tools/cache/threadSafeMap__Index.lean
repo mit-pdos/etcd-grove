@@ -26,21 +26,22 @@ variable [sem : go.Semantics]
 variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
 
 /-- What `Index(n, obj)` returns, at the linearization point's state `σ`: for an indexer `n` (its
-function `F`), no error and a new slice of the items indexed under one of `F obj`'s values
-(exactly those, each once, in some order), each with its contract; otherwise an error. -/
-def indexPost (OK : GoInterface → IProp GF) (Fam : Nat → Fn) (σ : St) (n : GoString)
+relation `F`), no error, `obj`'s values `vq` under it (`F obj vq`) and a new slice of the items
+whose values under it share one with `vq` (`idxSel`: exactly those, each once, in some order),
+each with its contract; otherwise an error. -/
+def indexPost (OK : GoInterface → IProp GF) (Fam : Nat → Fn GF) (σ : St) (n : GoString)
     (obj : GoInterface) (sl : GoSlice) (err : GoInterface) : IProp GF :=
   match (σ.fns Fam) !! n with
   | none => iprop(⌜err ≠ interface.nil⌝)
-  | some F => iprop(⌜err = interface.nil⌝ ∗ ∃ ks : List GoString,
-      ⌜ks.Nodup ∧ ∀ k, k ∈ ks ↔ ∃ v ∈ F obj, inIdx F σ.items v k⌝ ∗
+  | some F => iprop(⌜err = interface.nil⌝ ∗ ∃ (vq ks : List GoString),
+      ⌜ks.Nodup⌝ ∗ □ F obj vq ∗ idxSel F σ.items (fun vs => ∃ v ∈ vq, v ∈ vs) ks ∗
       sl ↦* (ks.map (objAt σ.items)) ∗ ([∗list] o ∈ ks.map (objAt σ.items), okNil OK o))
 
 /-- **`c.Index(n, obj)`**, logically atomic (`indexPost`), for `obj` meeting the index functions'
 contract (`OK`: the listers' query objects are the client's to cover). Needs one of the lock's
 reader slots. -/
 abbrev threadSafeMap.Index.spec : Prop :=
-  ∀ (c : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn) (n : GoString)
+  ∀ (c : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn GF) (n : GoString)
     (obj : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ isTS c γ OK Fam ∗
       tsReader c γ OK Fam ∗ □ OK obj }}

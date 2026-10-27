@@ -28,7 +28,7 @@ contract `rvAcc D rvOf` for the call's object, `D obj`): the items have `obj` at
 object's if its accessor has one (`rvOf obj`), whatever it was: **the resource version is not
 kept monotone by the store**; it is the last written object's. -/
 abbrev threadSafeMap.Update.spec : Prop :=
-  ∀ (c : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn)
+  ∀ (c : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn GF)
     (D : GoInterface → IProp GF) (rvOf : GoInterface → Option GoString) (key : GoString) (obj : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ isTS c γ OK Fam ∗
       rvAcc D rvOf ∗ □ D obj ∗ □ OK obj }}

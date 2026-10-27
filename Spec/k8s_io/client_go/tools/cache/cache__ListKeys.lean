@@ -24,7 +24,7 @@ variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
 
 /-- **`c.ListKeys()`**, logically atomic (a reader): every key once. -/
 abbrev cache.ListKeys.spec : Prop :=
-  ∀ (ca ts : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn)
+  ∀ (ca ts : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn GF)
     (kf : GoFunc),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ isCache ca ts γ OK Fam kf ∗ tsReader ts γ OK Fam }}
   <<{ ∀∀ σ, storeSt γ σ }>>

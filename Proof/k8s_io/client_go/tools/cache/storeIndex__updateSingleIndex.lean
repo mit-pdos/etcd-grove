@@ -44,8 +44,8 @@ theorem storeIndex.updateSingleIndex.wp_proof
     (wp_add : storeIndex.addKeyToIndex.spec (GF := GF) (hG := hG))
     (wp_del : storeIndex.deleteKeyFromIndex.spec (GF := GF) (hG := hG)) :
     storeIndex.updateSingleIndex.spec (GF := GF) (hG := hG) := by
-  intro i im ip dqi dqm fv ix OK F f name key old new
-  wp_start as ⟨Hixr, Him, %hf, #Hfn, #Hold, #Hnew, Hipr, Hix⟩
+  intro i im ip dqi dqm fv ix OK F f name key old new ovs
+  wp_start as ⟨Hixr, Him, %hf, #Hfn, #Hold, #Hnew, #Hovs, Hipr, Hix⟩
   iunfold ownIx at Hix
   icases Hix with ⟨Hip, HIX⟩
   wp_auto
@@ -53,12 +53,12 @@ theorem storeIndex.updateSingleIndex.wp_proof
   simp only [hf, Option.getD_some, Option.isSome_some, _root_.decide_true]
   wp_auto
   iunfold fnOk at Hfn
-  icases Hfn with ⟨%hfnn, #Hcall⟩
+  icases Hfn with ⟨%hfnn, #Hfun, #Hcall⟩
   -- the old object's values
   wp_bind (If _ _ _)
   iapply (wp_wand (Φ := fun v => iprop(⌜v = executeVal⌝ ∗ oldObj_ptr ↦ old ∗
       indexFunc_ptr ↦ f ∗ key_ptr ↦ key ∗ name_ptr ↦ name ∗
-      ∃ (sl : GoSlice) (dq : DFrac), oldIndexValues_ptr ↦ sl ∗ sl ↦*{dq} valsOf F old)))
+      ∃ (sl : GoSlice) (dq : DFrac), oldIndexValues_ptr ↦ sl ∗ sl ↦*{dq} ovs)))
     $$ [oldIndexValues oldObj indexFunc key name]
   · cases old with
     | nil =>
@@ -69,22 +69,29 @@ theorem storeIndex.updateSingleIndex.wp_proof
       isplitr
       · ipureintro; rfl
       iframe
-      simp only [valsOf, ↓reduceIte]
-      iexists (DFrac.own 1)
-      iapply ownSlice_nil
+      iunfold objVals at Hovs
+      icases Hovs with (%h | ⟨%h, -⟩)
+      · rw [h.2]
+        iexists (DFrac.own 1)
+        iapply ownSlice_nil
+      · exact absurd rfl h
     | ok o =>
       iunfold okNil at Hold
       icases Hold with (%h | #HOK)
       · cases h
       (try wp_auto)
-      wp_apply Hcall $$ [$HOK] as %sl %err ⟨%herr, %dq, Hsl⟩
+      wp_apply Hcall $$ [$HOK] as %sl %err ⟨%herr, %dq, %vs, Hsl, #HF⟩
       subst herr
       (try wp_auto)
       isplitr
       · ipureintro; rfl
       iframe
-      have hv : valsOf F (GoInterface.ok o) = F (GoInterface.ok o) := by simp [valsOf]
-      rw [hv]
+      iunfold objVals at Hovs
+      icases Hovs with (%h | ⟨-, #HF'⟩)
+      · cases h.1
+      iunfold fnFun at Hfun
+      ihave %heq := Hfun $$ %(GoInterface.ok o) %vs %ovs HF HF'
+      subst heq
       iexists dq
       iexact Hsl
   iintro %v ⟨%hv, oldObj, indexFunc, key, name, %osl, %odq, oldIndexValues, Hosl⟩
@@ -94,7 +101,8 @@ theorem storeIndex.updateSingleIndex.wp_proof
   wp_bind (If _ _ _)
   iapply (wp_wand (Φ := fun v => iprop(⌜v = executeVal⌝ ∗ newObj_ptr ↦ new ∗
       indexFunc_ptr ↦ f ∗ key_ptr ↦ key ∗ name_ptr ↦ name ∗
-      ∃ (sl : GoSlice) (dq : DFrac), indexValues_ptr ↦ sl ∗ sl ↦*{dq} valsOf F new)))
+      ∃ (sl : GoSlice) (dq : DFrac) (nvs : List GoString), indexValues_ptr ↦ sl ∗
+        sl ↦*{dq} nvs ∗ objVals F new nvs)))
     $$ [indexValues newObj indexFunc key name]
   · cases new with
     | nil =>
@@ -105,25 +113,23 @@ theorem storeIndex.updateSingleIndex.wp_proof
       isplitr
       · ipureintro; rfl
       iframe
-      simp only [valsOf, ↓reduceIte]
-      iexists (DFrac.own 1)
-      iapply ownSlice_nil
+      iexists (DFrac.own 1), []
+      isplitl
+      · iapply ownSlice_nil
+      · iunfold objVals; ileft; ipureintro; exact ⟨rfl, rfl⟩
     | ok o =>
       iunfold okNil at Hnew
       icases Hnew with (%h | #HOK)
       · cases h
       (try wp_auto)
-      wp_apply Hcall $$ [$HOK] as %sl %err ⟨%herr, %dq, Hsl⟩
+      wp_apply Hcall $$ [$HOK] as %sl %err ⟨%herr, %dq, %vs, Hsl, #HF⟩
       subst herr
       (try wp_auto)
       isplitr
       · ipureintro; rfl
       iframe
-      have hv : valsOf F (GoInterface.ok o) = F (GoInterface.ok o) := by simp [valsOf]
-      rw [hv]
-      iexists dq
-      iexact Hsl
-  iintro %v ⟨%hv, newObj, indexFunc, key, name, %nsl, %ndq, indexValues, Hnsl⟩
+      iunfold objVals; iright; iframe #; ipureintro; intro h; cases h
+  iintro %v ⟨%hv, newObj, indexFunc, key, name, %nsl, %ndq, %nvs, indexValues, Hnsl, #Hnvs⟩
   subst hv
   (try wp_auto)
   -- the indexer's index, made if none
@@ -197,16 +203,16 @@ theorem storeIndex.updateSingleIndex.wp_proof
   ihave %Hol := ownSlice_len $$ Hosl
   ihave %Hnl := ownSlice_len $$ Hnsl
   -- the result when the index is left as is or updated to `X'`
-  have hpost : ∀ X' : IxN, updNPost F old new key (viewN (ixAt ix name)) (viewN X') →
+  have hpost : ∀ X' : IxN, updNPost ovs nvs key (viewN (ixAt ix name)) (viewN X') →
       (∀ n, n ≠ name → (<[name := (lx, X')]> ix) !! n = ix !! n) ∧
-      updNPost F old new key (viewN (ixAt ix name)) (viewN (ixAt (<[name := (lx, X')]> ix) name)) := by
+      updNPost ovs nvs key (viewN (ixAt ix name)) (viewN (ixAt (<[name := (lx, X')]> ix) name)) := by
     intro X' h
     refine ⟨fun n hn => GMap.lookup_insert_ne _ _ (Ne.symm hn), ?_⟩
     unfold ixAt; rw [GMap.lookup_insert]; exact h
   have hfst : ∀ X' : IxN, GMap.fmap Prod.fst (<[name := (lx, X')]> ix) =
       GMap.fmap Prod.fst (<[name := (lx, X)]> ix) := by
     intro X'; rw [GMap.fmap_insert, GMap.fmap_insert]
-  by_cases hsame : ∃ a, valsOf F new = [a] ∧ valsOf F old = [a]
+  by_cases hsame : ∃ a, nvs = [a] ∧ ovs = [a]
   · obtain ⟨a, hna, hoa⟩ := hsame
     rw [hna] at Hnl ⊢
     rw [hoa] at Hol ⊢
@@ -231,19 +237,22 @@ theorem storeIndex.updateSingleIndex.wp_proof
       · ipureintro; rfl
     (try wp_auto)
     iapply HΦ
-    iexists <[name := (lx, X)]> ix
+    iexists <[name := (lx, X)]> ix, [a]
     iframe
+    iframe #
     isplitl [Hip HX HIX]
     · iunfold ownIx
       iframe
       iapply BigSepM.bigSepM_insert_delete.2
       iframe
     · ipureintro
-      exact hpost X (Or.inr ⟨a, hoa, hna, hX⟩)
+      have := hpost X (Or.inr ⟨a, hoa, hna, hX⟩)
+      rw [hoa, hna] at this
+      exact this
   · wp_bind (If _ _ _)
     iapply (wp_wand (Φ := fun v => iprop(⌜v = executeVal⌝ ∗
-        oldIndexValues_ptr ↦ osl ∗ osl ↦*{odq} valsOf F old ∗
-        indexValues_ptr ↦ nsl ∗ nsl ↦*{ndq} valsOf F new)))
+        oldIndexValues_ptr ↦ osl ∗ osl ↦*{odq} ovs ∗
+        indexValues_ptr ↦ nsl ∗ nsl ↦*{ndq} nvs)))
       $$ [oldIndexValues Hosl indexValues Hnsl]
     · by_cases h1 : nsl.len = W64 1
       · simp only [h1, _root_.decide_true]
@@ -251,9 +260,9 @@ theorem storeIndex.updateSingleIndex.wp_proof
         by_cases h2 : osl.len = W64 1
         · simp only [h2, _root_.decide_true]
           (try wp_auto)
-          obtain ⟨b, hb⟩ : ∃ b, valsOf F new = [b] := by
+          obtain ⟨b, hb⟩ : ∃ b, nvs = [b] := by
             apply List.length_eq_one_iff.1; rw [Hnl.1, h1]; rfl
-          obtain ⟨a, ha⟩ : ∃ a, valsOf F old = [a] := by
+          obtain ⟨a, ha⟩ : ∃ a, ovs = [a] := by
             apply List.length_eq_one_iff.1; rw [Hol.1, h2]; rfl
           have hab : b ≠ a := by
             rintro rfl; exact hsame ⟨b, hb, ha⟩
@@ -291,7 +300,7 @@ theorem storeIndex.updateSingleIndex.wp_proof
     ihave HI : (∃ (j : w64) (s0 : GoString) (Xj : IxN),
         "i" ∷ i_ptr ↦ j ∗ "value" ∷ value_ptr ↦ s0 ∗ "HX" ∷ ownIxN lx (DFrac.own 1) Xj ∗
         "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.Z j ≤ sint.Z osl.len⌝ ∗
-        "%HXj" ∷ ⌜viewN Xj = delVals (viewN X) ((valsOf F old).take (sint.nat j)) key⌝ : IProp GF)
+        "%HXj" ∷ ⌜viewN Xj = delVals (viewN X) ((ovs).take (sint.nat j)) key⌝ : IProp GF)
       $$ [i value HX]
     · iexists W64 0, _, X
       iframe
@@ -304,8 +313,8 @@ theorem storeIndex.updateSingleIndex.wp_proof
         Classical.byContradiction fun h => by simp [h] at Hif
       have Hb' : 0 ≤ sint.Z j ∧ sint.Z j < sint.Z osl.len := ⟨Hj.1, Hlt⟩
       simp only [Hb', _root_.and_self, ↓reduceIte]
-      list_elem (valsOf F old) (sint.nat j) as x
-      wp_apply wp_load_slice_index osl (sint.Z j) (valsOf F old) odq x Hj.1 $$ [Hosl] as Hosl
+      list_elem (ovs) (sint.nat j) as x
+      wp_apply wp_load_slice_index osl (sint.Z j) (ovs) odq x Hj.1 $$ [Hosl] as Hosl
       · iframe; ipureintro; exact Hx_lookup
       (try wp_auto)
       wp_apply wp_del $$ [$HX] as ⟨%Xj', HX, %HXj'⟩
@@ -319,14 +328,14 @@ theorem storeIndex.updateSingleIndex.wp_proof
       refine ⟨⟨by word, by word⟩, ?_⟩
       rw [Hs, HXj', delVals_step (viewN X) (viewN Xj) _ _ x key Hx_lookup HXj]
     · (try wp_auto)
-      have Hjl : sint.nat j = (valsOf F old).length := by rw [Hol.1]; word
+      have Hjl : sint.nat j = (ovs).length := by rw [Hol.1]; word
       rw [Hjl, List.take_length] at HXj
       -- add the key to the new values' sets
       ihave HI : (∃ (j : w64) (s0 : GoString) (Xj : IxN),
           "i" ∷ i_ptr ↦ j ∗ "value" ∷ value_ptr ↦ s0 ∗ "HX" ∷ ownIxN lx (DFrac.own 1) Xj ∗
           "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.Z j ≤ sint.Z nsl.len⌝ ∗
-          "%HXj" ∷ ⌜viewN Xj = addVals (delVals (viewN X) (valsOf F old) key)
-            ((valsOf F new).take (sint.nat j)) key⌝ : IProp GF)
+          "%HXj" ∷ ⌜viewN Xj = addVals (delVals (viewN X) (ovs) key)
+            ((nvs).take (sint.nat j)) key⌝ : IProp GF)
         $$ [i value HX]
       · iexists W64 0, _, Xj
         iframe
@@ -339,8 +348,8 @@ theorem storeIndex.updateSingleIndex.wp_proof
           Classical.byContradiction fun h => by simp [h] at Hif
         have Hb' : 0 ≤ sint.Z j ∧ sint.Z j < sint.Z nsl.len := ⟨Hj.1, Hlt⟩
         simp only [Hb', _root_.and_self, ↓reduceIte]
-        list_elem (valsOf F new) (sint.nat j) as x
-        wp_apply wp_load_slice_index nsl (sint.Z j) (valsOf F new) ndq x Hj.1 $$ [Hnsl] as Hnsl
+        list_elem (nvs) (sint.nat j) as x
+        wp_apply wp_load_slice_index nsl (sint.Z j) (nvs) ndq x Hj.1 $$ [Hnsl] as Hnsl
         · iframe; ipureintro; exact Hx_lookup
         (try wp_auto)
         wp_apply wp_add $$ [$HX] as ⟨%Xj', HX, %HXj'⟩
@@ -354,11 +363,12 @@ theorem storeIndex.updateSingleIndex.wp_proof
         refine ⟨⟨by word, by word⟩, ?_⟩
         rw [Hs, HXj', addVals_step _ (viewN Xj) _ _ x key Hx_lookup HXj]
       · (try wp_auto)
-        have Hjl : sint.nat j = (valsOf F new).length := by rw [Hnl.1]; word
+        have Hjl : sint.nat j = (nvs).length := by rw [Hnl.1]; word
         rw [Hjl, List.take_length] at HXj
         iapply HΦ
-        iexists <[name := (lx, Xj)]> ix
+        iexists <[name := (lx, Xj)]> ix, nvs
         iframe
+        iframe #
         isplitl [Hip HX HIX]
         · iunfold ownIx
           rw [hfst Xj]

@@ -28,12 +28,12 @@ variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
 theorem threadSafeMap.deleteLocked.wp_proof
     (wp_upd : storeIndex.updateIndices.spec (GF := GF) (hG := hG)) :
     threadSafeMap.deleteLocked.spec (GF := GF) (hG := hG) := by
-  intro c γ OK Fam σ ph key
+  intro c γ OK Fam σ ph iv key
   wp_start as ⟨#Hidx, #Him, Hph, #Hpers, %Hok⟩
   iunfold tsPhys at Hph
   icases Hph with ⟨Hitems, Hil, Hrv, Hind, Hix, Hfv⟩
   iunfold tsPers at Hpers
-  icases Hpers with ⟨#Hfns, #Hits⟩
+  icases Hpers with ⟨#Hfns, #Hits, #Hiv⟩
   (try wp_auto)
   wp_apply (wp_map_lookup2 go.string (go.GoType.InterfaceType []) ph.il σ.items key)
     $$ [$Hil] as Hil
@@ -44,11 +44,13 @@ theorem threadSafeMap.deleteLocked.wp_proof
     have hd : GMap.delete key σ.items = σ.items := by
       ext k; simp only [GMap.lookup_delete_iff]; split <;> simp_all
     iapply HΦ
-    iexists ph.ix
+    iexists ph.ix, iv
     iunfold tsPhys
     rw [hd]
     iframe
-    ipureintro; exact Hok
+    isplitr
+    · iunfold tsPers; iframe #
+    · ipureintro; exact Hok
   | some o =>
     simp only [Option.getD_some, Option.isSome_some, _root_.decide_true]
     (try wp_auto)
@@ -56,21 +58,40 @@ theorem threadSafeMap.deleteLocked.wp_proof
     · iapply BigSepM.bigSepM_lookup hk $$ Hits
     ihave #Hnil : okNil OK GoInterface.nil $$ []
     · iunfold okNil; ileft; ipureintro; rfl
-    wp_apply (wp_upd γ.idx γ.im ph.ip DFrac.discard 1 ph.fv (σ.fns Fam) ph.ix OK σ.items
-        (GMap.delete key σ.items) key o GoInterface.nil)
-      $$ [$Him $Hfv $Hfns $Hold $Hnil $Hind $Hix] as ⟨%ix', -, Hfv, Hind, Hix, %Hok'⟩
-    · ipureintro
-      refine ⟨Hok, by unfold objAt; rw [hk]; rfl, ?_, ?_⟩
-      · unfold objAt; rw [GMap.lookup_delete]; rfl
-      · intro k hk'; unfold objAt; rw [GMap.lookup_delete_ne _ (Ne.symm hk')]
+    ihave #Hov := itemsIv_lookup _ σ.items iv key Hok.2 $$ Hiv
+    have ho : objAt σ.items key = o := by unfold objAt; rw [hk]; rfl
+    rw [ho]
+    wp_apply (wp_upd γ.idx γ.im ph.ip DFrac.discard 1 ph.fv (σ.fns Fam) ph.ix OK iv key
+        o GoInterface.nil)
+      $$ [$Him $Hfv $Hfns $Hold $Hnil $Hov $Hind $Hix] as ⟨%ix', %vs, -, Hfv, Hind, Hix, #Hvs, %Hok'⟩
+    · ipureintro; exact Hok.1
     (try wp_auto)
     wp_apply (wp_mapDelete ph.il σ.items key go.string (go.GoType.InterfaceType [])) $$ [$Hil] as Hil
     (try wp_auto)
     iapply HΦ
-    iexists ix'
+    iexists ix', <[key := vs]> iv
+    ihave %hnil := valsOk_nil_pure _ GoInterface.nil vs $$ Hvs
     iunfold tsPhys
     iframe
-    ipureintro; exact Hok'
+    have hfns : St.fns Fam { items := GMap.delete key σ.items, rv := σ.rv, fnIds := σ.fnIds } =
+        St.fns Fam σ := rfl
+    isplitr
+    · iunfold tsPers
+      simp only []
+      rw [hfns]
+      iframe #
+      isplitr
+      · iapply (BigSepM.bigSepM_forall (Φ := fun (_ : GoString) o => okNil OK o)).2
+        iintro %k %o' %hk'
+        change (GMap.delete key σ.items) !! k = some o' at hk'
+        by_cases hkk : k = key
+        · subst hkk; rw [GMap.lookup_delete] at hk'; cases hk'
+        · rw [GMap.lookup_delete_ne _ (Ne.symm hkk)] at hk'
+          iapply (BigSepM.bigSepM_lookup hk') $$ Hits
+      · iapply itemsIv_delete $$ Hiv
+    · ipureintro
+      exact ⟨Hok'.1, ivWf_delete Hok.2 (fun n =>
+        vs_wf Hok.2 hnil Hok'.2 n (Or.inl rfl))⟩
 
 end proof
 

@@ -56,7 +56,7 @@ theorem threadSafeMap.Bookmark.wp_proof
   (try wp_auto)
   wp_apply (lc := 2) sync.RWMutex.wp_Lock_guard $$ [$Hguard] as ⟨Hwl, HP⟩
   iunfold tsP at HP
-  icases HP with ⟨%σ, %ph, Hst, Hgp, Hph, #Hpers, %Hok⟩
+  icases HP with ⟨%σ, %ph, %iv, Hst, Hgp, Hph, #Hpers, %Hok⟩
   iunfold tsPhys at Hph
   icases Hph with ⟨Hitems, Hil, Hrvf, Hind, Hix, Hfv⟩
   (try wp_auto)
@@ -84,11 +84,11 @@ theorem threadSafeMap.Bookmark.wp_proof
   wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hst Hgp Hitems Hil Hind Hix Hfv Hrvf]
   · inext
     iunfold tsP
-    iexists σ.bookmark rv, ph
+    iexists σ.bookmark rv, ph, iv
     iframe
     isplitl
     · iunfold tsPhys; iframe
-    have hpe : tsPers OK Fam (σ.bookmark rv) ph = tsPers OK Fam σ ph := rfl
+    have hpe : tsPers OK Fam (σ.bookmark rv) ph iv = tsPers OK Fam σ ph iv := rfl
     rw [hpe]
     iframe #
     ipureintro; exact Hok

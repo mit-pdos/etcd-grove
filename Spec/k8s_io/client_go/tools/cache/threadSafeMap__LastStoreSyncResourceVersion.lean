@@ -29,7 +29,7 @@ variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
 gate on (`features.gateIs`, a premise: `Main` sets it): the resource version at the
 linearization point. Needs one of the lock's reader slots. -/
 abbrev threadSafeMap.LastStoreSyncResourceVersion.spec : Prop :=
-  ∀ (c : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn),
+  ∀ (c : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ isTS c γ OK Fam ∗
       tsReader c γ OK Fam ∗ features.gateIs k8s_io.client_go.features.AtomicFIFO true }}
   <<{ ∀∀ σ, storeSt γ σ }>>

@@ -61,10 +61,11 @@ theorem ListAllByNamespace.wp_proof (wp_ListAll : ListAll.spec (GF := GF) (hG :=
     iexists null, ks
     rw [ite_eq_left_of_eq_true _ _ (by simp)]
     iframe
-    ipureintro
-    refine ⟨Hks.1, ?_⟩
+    iunfold nsKeys
     rw [ite_eq_left_of_eq_true _ _ (by simp)]
-    exact Hks.2
+    isplitr
+    · ipureintro; exact Hks.1
+    · ipureintro; exact Hks.2
   · rw [decide_eq_false hns]
     (try wp_auto)
     wp_apply wp_alloc as %q Hqp
@@ -91,7 +92,9 @@ theorem ListAllByNamespace.wp_proof (wp_ListAll : ListAll.spec (GF := GF) (hG :=
     iintro %sl %err ⟨Hpost, Hr⟩
     unfold indexPost
     rw [hσ.2 hns]
-    icases Hpost with ⟨%herr, %ks, %Hks, Hsl, #Hoks⟩
+    icases Hpost with ⟨%herr, %vq, %ks, %Hnd, #HFq, #Hsel, Hsl, #Hoks⟩
+    ihave %Hin : ⌜∀ k, k ∈ ks → k ∈ σ.items⌝ $$ []
+    · iunfold idxSel at Hsel; icases Hsel with ⟨%h, -⟩; ipureintro; exact h
     subst herr
     ihave %Hlen := ownSlice_len _ _ _ $$ Hsl
     iunfold appendOk at Haf
@@ -117,14 +120,7 @@ theorem ListAllByNamespace.wp_proof (wp_ListAll : ListAll.spec (GF := GF) (hG :=
         ↓reduceIte]
       wp_apply wp_load_slice_index sl (sint.Z n) _ (DFrac.own 1) _ Hn.1 $$ [Hsl] as Hsl
       · iframe; ipureintro; exact He
-      have hkin : k ∈ σ.items := by
-        obtain ⟨v, hv, hin⟩ := (Hks.2 k).1 (List.mem_of_getElem? Hk)
-        unfold inIdx valsOf at hin
-        rw [GMap.mem_iff]
-        unfold objAt at hin
-        cases h : σ.items !! k with
-        | none => rw [h] at hin; simp at hin
-        | some _ => rfl
+      have hkin : k ∈ σ.items := Hin k (List.mem_of_getElem? Hk)
       ihave #Hok1 := BigSepL.bigSepL_lookup (Φ := fun _ o => iprop(okNil OK o)) He $$ Hoks
       ihave #HOKm := okNil_noNil OK σ.items k hσ.1 hkin $$ Hok1
       (try wp_auto)
@@ -156,10 +152,11 @@ theorem ListAllByNamespace.wp_proof (wp_ListAll : ListAll.spec (GF := GF) (hG :=
       iexists q, ks
       rw [ite_eq_right_of_eq_false _ _ (by simp [hns])]
       isplitr
-      · ipureintro
-        refine ⟨Hks.1, ?_⟩
+      · iunfold nsKeys
         rw [ite_eq_right_of_eq_false _ _ (by simp [hns])]
-        exact Hks.2
+        isplitr
+        · ipureintro; exact Hnd
+        · iexists vq; unfold qObj; iframe #
       isplitr
       · unfold qMeta; iexact Hqp
       iframe

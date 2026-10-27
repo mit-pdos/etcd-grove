@@ -35,7 +35,7 @@ def delKeys (KF : GoInterface → GoString) (it : Items) (objs : List GoInterfac
 unchanged), the new items `objs` keyed by `kf'` (`KF`, no error): `od` on the tombstone of each
 store key the new items lack (`delKeys`, in some order), then `orp` on each new item in order. -/
 abbrev reconcileReplacement.spec : Prop :=
-  ∀ (lg : github_com.go_logr.logr.Logger) (ca ts : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn)
+  ∀ (lg : github_com.go_logr.logr.Logger) (ca ts : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn GF)
     (kf kf' : GoFunc) (KF : GoInterface → GoString) (SW : St → IProp GF) (σ : St)
     (nsl : GoSlice) (dq : DFrac) (objs : List GoInterface) (od orp : GoFunc)
     (Dl : List GoInterface → IProp GF) (Rl : List GoInterface → IProp GF),

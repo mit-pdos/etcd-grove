@@ -29,7 +29,7 @@ without metrics), the indexers `im` (their functions meeting their contracts for
 `c` as a `ThreadSafeStore`, with no items, resource version `""`, the indexers, and all its
 lock's reader slots. -/
 abbrev NewThreadSafeStore.spec : Prop :=
-  ∀ (OK : GoInterface → IProp GF) (Fam : Nat → Fn) (im ip : Loc) (fv : GMap GoString GoFunc)
+  ∀ (OK : GoInterface → IProp GF) (Fam : Nat → Fn GF) (im ip : Loc) (fv : GMap GoString GoFunc)
     (fnIds : GMap GoString Nat) (opts : GoSlice),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗
       im ↦$ fv ∗ fnsOk OK fv (GMap.fmap Fam fnIds) ∗ ip ↦$ (∅ : GMap GoString Loc) ∗

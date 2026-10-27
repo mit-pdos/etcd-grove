@@ -109,11 +109,11 @@ theorem storeIndex.getKeysFromIndex.wp_proof
   | some f =>
     ihave ⟨%F, %hF, #Hfn⟩ := BigSepM.bigSepM_lookup hf $$ Hfv
     iunfold fnOk at Hfn
-    icases Hfn with ⟨%hfnn, #Hcall⟩
+    icases Hfn with ⟨%hfnn, -, #Hcall⟩
     simp only [Option.getD_some, decide_eq_false hfnn]
     (try wp_auto)
     wp_apply Hcall $$ [$HOK]
-    iintro %vsl %err ⟨%herr, %dqv, Hvsl⟩
+    iintro %vsl %err ⟨%herr, %dqv, %vq, Hvsl, #HFq⟩
     subst herr
     (try wp_auto)
     ihave %Hvlen := ownSlice_len _ _ _ $$ Hvsl
@@ -129,12 +129,12 @@ theorem storeIndex.getKeysFromIndex.wp_proof
       simp only [Option.map_none, Option.getD_none, show zero_val Loc = map.nil from rfl]
       (try wp_auto)
       wp_if_destruct
-      · obtain ⟨v, hv⟩ : ∃ v, (F obj)[0]? = some v := by
-          cases h : F obj with
+      · obtain ⟨v, hv⟩ : ∃ v, vq[0]? = some v := by
+          cases h : vq with
           | nil => rw [h] at Hvlen; simp at Hvlen; word
           | cons v _ => exact ⟨v, rfl⟩
         simp only [show 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) < sint.Z vsl.len by word, ↓reduceIte]
-        wp_apply (wp_load_slice_index vsl (sint.Z (W64 0)) (F obj) dqv v (by word)) $$ [$Hvsl] as Hvsl
+        wp_apply (wp_load_slice_index vsl (sint.Z (W64 0)) vq dqv v (by word)) $$ [$Hvsl] as Hvsl
         · ipureintro; exact hv
         (try wp_auto)
         iapply HΦ
@@ -142,9 +142,11 @@ theorem storeIndex.getKeysFromIndex.wp_proof
         simp only [hF]
         isplitr
         · ipureintro; first | rfl | trivial
-        iexists ∅
+        iexists ∅, vq
         isplitr
         · ipureintro; intro k; simp only [GMap.mem_iff, GMap.lookup_empty, Option.isSome_none, Bool.false_eq_true, false_iff]; exact hno _ k
+        isplitr
+        · iexact HFq
         iunfold setRes
         ileft
         isplitr
@@ -165,12 +167,12 @@ theorem storeIndex.getKeysFromIndex.wp_proof
         wp_if_destruct
         · have Hif' : sint.Z j < sint.Z vsl.len := by
             first | exact Hif | exact of_decide_eq_true (GoGlobalContext.intoVal_inj_bool Hif)
-          have Hlt : sint.nat j < (F obj).length := by word
-          obtain ⟨e, He⟩ : ∃ e, (F obj)[sint.nat j]? = some e :=
+          have Hlt : sint.nat j < vq.length := by word
+          obtain ⟨e, He⟩ : ∃ e, vq[sint.nat j]? = some e :=
             ⟨_, List.getElem?_eq_getElem Hlt⟩
           simp only [show 0 ≤ sint.Z j ∧ sint.Z j < sint.Z vsl.len from ⟨Hj.1, Hif'⟩, _root_.and_self,
             ↓reduceIte]
-          wp_apply (wp_load_slice_index vsl (sint.Z j) (F obj) dqv e Hj.1) $$ [$Hvsl] as Hvsl
+          wp_apply (wp_load_slice_index vsl (sint.Z j) vq dqv e Hj.1) $$ [$Hvsl] as Hvsl
           · ipureintro; exact He
           (try wp_auto)
           rw [show (zero_val GoMap) = map.nil from rfl]
@@ -190,9 +192,11 @@ theorem storeIndex.getKeysFromIndex.wp_proof
           simp only [hF]
           isplitr
           · ipureintro; first | rfl | trivial
-          iexists ∅
+          iexists ∅, vq
           isplitr
           · ipureintro; intro k; simp only [GMap.mem_iff, GMap.lookup_empty, Option.isSome_none, Bool.false_eq_true, false_iff]; exact hno _ k
+          isplitr
+          · iexact HFq
           iunfold setRes
           iright
           iexists (DFrac.own 1)
@@ -207,12 +211,12 @@ theorem storeIndex.getKeysFromIndex.wp_proof
       · iunfold ownIx; iframe
       (try wp_auto)
       wp_if_destruct
-      · obtain ⟨v, hv⟩ : ∃ v, (F obj)[0]? = some v := by
-          cases h : F obj with
+      · obtain ⟨v, hv⟩ : ∃ v, vq[0]? = some v := by
+          cases h : vq with
           | nil => rw [h] at Hvlen; simp at Hvlen; word
           | cons v _ => exact ⟨v, rfl⟩
-        have hone : F obj = [v] := by
-          cases h : F obj with
+        have hone : vq = [v] := by
+          cases h : vq with
           | nil => rw [h] at hv; cases hv
           | cons w ws =>
             rw [h] at hv Hvlen
@@ -222,7 +226,7 @@ theorem storeIndex.getKeysFromIndex.wp_proof
             | nil => rfl
             | cons _ _ => simp at Hvlen; word
         simp only [show 0 ≤ sint.Z (W64 0) ∧ sint.Z (W64 0) < sint.Z vsl.len by word, ↓reduceIte]
-        wp_apply (wp_load_slice_index vsl (sint.Z (W64 0)) (F obj) dqv v (by word)) $$ [$Hvsl] as Hvsl
+        wp_apply (wp_load_slice_index vsl (sint.Z (W64 0)) vq dqv v (by word)) $$ [$Hvsl] as Hvsl
         · ipureintro; exact hv
         (try wp_auto)
         wp_apply (wp_ix_lookup ip dq ix n v l X hx) $$ [$Hix] as Hix
@@ -232,12 +236,14 @@ theorem storeIndex.getKeysFromIndex.wp_proof
         simp only [hF]
         isplitr
         · ipureintro; first | rfl | trivial
-        iexists viewN (ixAt ix n) v
+        iexists viewN (ixAt ix n) v, vq
         isplitr
         · ipureintro; intro k
           rw [hone]
           unfold keysOfVals
           simp
+        isplitr
+        · iexact HFq
         iunfold setRes
         icases (ownIx_set_acc ip dq ix n v) $$ Hix with (⟨%hsn, Hix⟩ | ⟨Hs, Hsc⟩)
         · ileft; iframe; ipureintro; exact hsn
@@ -251,7 +257,7 @@ theorem storeIndex.getKeysFromIndex.wp_proof
             "storeKeySet" ∷ storeKeySet_ptr ↦ m ∗
             "Hm" ∷ m ↦$ S ∗
             "Hix" ∷ ownIx ip dq ix ∗
-            "%HS" ∷ ⌜∀ k, k ∈ S ↔ keysOfVals (ixAt ix n) ((F obj).take (sint.nat j)) k⌝ ∗
+            "%HS" ∷ ⌜∀ k, k ∈ S ↔ keysOfVals (ixAt ix n) (vq.take (sint.nat j)) k⌝ ∗
             "%Hj" ∷ ⌜0 ≤ sint.Z j ∧ sint.Z j ≤ sint.Z vsl.len⌝) $$ [i indexedValue storeKeySet Hm Hix]
         · iexists W64 0, _, ∅
           iframe
@@ -265,17 +271,17 @@ theorem storeIndex.getKeysFromIndex.wp_proof
         wp_if_destruct
         · have Hif' : sint.Z j < sint.Z vsl.len := by
             first | exact Hif | exact of_decide_eq_true (GoGlobalContext.intoVal_inj_bool Hif)
-          have Hlt : sint.nat j < (F obj).length := by word
-          obtain ⟨e, He⟩ : ∃ e, (F obj)[sint.nat j]? = some e :=
+          have Hlt : sint.nat j < vq.length := by word
+          obtain ⟨e, He⟩ : ∃ e, vq[sint.nat j]? = some e :=
             ⟨_, List.getElem?_eq_getElem Hlt⟩
           simp only [show 0 ≤ sint.Z j ∧ sint.Z j < sint.Z vsl.len from ⟨Hj.1, Hif'⟩, _root_.and_self,
             ↓reduceIte]
-          wp_apply (wp_load_slice_index vsl (sint.Z j) (F obj) dqv e Hj.1) $$ [$Hvsl] as Hvsl
+          wp_apply (wp_load_slice_index vsl (sint.Z j) vq dqv e Hj.1) $$ [$Hvsl] as Hvsl
           · ipureintro; exact He
           (try wp_auto)
           wp_apply (wp_ix_lookup ip dq ix n e l X hx) $$ [$Hix] as Hix
           (try wp_auto)
-          have hnext := keysOfVals_take_succ (ixAt ix n) (F obj) (sint.nat j) e He
+          have hnext := keysOfVals_take_succ (ixAt ix n) vq (sint.nat j) e He
           have hj1 : sint.nat (j + W64 1) = sint.nat j + 1 := by word
           icases (ownIx_set_acc ip dq ix n e) $$ Hix with (⟨%hsn, Hix⟩ | ⟨Hs, Hsc⟩)
           · obtain ⟨hsl, hsv⟩ := hsn
@@ -298,7 +304,7 @@ theorem storeIndex.getKeysFromIndex.wp_proof
                 "key" ∷ key_ptr ↦ x ∗
                 "storeKeySet" ∷ storeKeySet_ptr ↦ m ∗
                 "Hm" ∷ m ↦$ S' ∗
-                "%HS'" ∷ ⌜∀ k, k ∈ S' ↔ keysOfVals (ixAt ix n) ((F obj).take (sint.nat j)) k ∨
+                "%HS'" ∷ ⌜∀ k, k ∈ S' ↔ keysOfVals (ixAt ix n) (vq.take (sint.nat j)) k ∨
                   k ∈ keys.take p.toNat⌝)) $$ Hs
             iintro %keys ⟨%Hkset, %Hklen, %Hknodup⟩
             isplitl [key storeKeySet Hm]
@@ -362,16 +368,18 @@ theorem storeIndex.getKeysFromIndex.wp_proof
             first | exact Hif | (intro h; apply Hif; rw [decide_eq_true h])
           simp [Hif']
           (try wp_auto)
-          have hj : sint.nat j = (F obj).length := by word
+          have hj : sint.nat j = vq.length := by word
           rw [hj, List.take_length] at HS
           iapply HΦ
           iframe
           simp only [hF]
           isplitr
           · ipureintro; first | rfl | trivial
-          iexists S
+          iexists S, vq
           isplitr
           · ipureintro; exact HS
+          isplitr
+          · iexact HFq
           iunfold setRes
           iright
           iexists (DFrac.own 1)

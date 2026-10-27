@@ -41,7 +41,7 @@ a handler for `H` (`handlerOk`, its `OnAdd`/`OnUpdate`/`OnDelete`), one queued d
 client's view shift `Hstep` turns from `P` into `Q` (its relation `BL` kept). -/
 abbrev sharedIndexInformer.handleDeltas.spec : Prop :=
   ∀ (s : Loc) (lg : github_com.go_logr.logr.Logger) (ca ts : Loc) (γ : TsNames)
-    (OK : GoInterface → IProp GF) (Fam : Nat → Fn) (kf kf' : GoFunc)
+    (OK : GoInterface → IProp GF) (Fam : Nat → Fn GF) (kf kf' : GoFunc)
     (KF : GoInterface → GoString) (rvOf : GoInterface → Option GoString) (SW : St → IProp GF)
     (H : List Ev → IProp GF) (BL : St → List Ev → IProp GF) (d : FD) (v : Delta) (sl : GoSlice)
     (b : Bool) (P Q : IProp GF),

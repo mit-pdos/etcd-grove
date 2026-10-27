@@ -38,7 +38,7 @@ theorem threadSafeMap.Get.wp_proof : threadSafeMap.Get.spec (GF := GF) (hG := hG
   iunfold tsReader at Hrd
   wp_apply (lc := 2) sync.RWMutex.wp_RLock $$ [$Hrd] as ⟨Hrl, HP⟩
   iunfold tsP at HP
-  icases HP with ⟨%σ, %ph, Hst, Hgp, Hph, #Hpers, %Hok⟩
+  icases HP with ⟨%σ, %ph, %iv, Hst, Hgp, Hph, #Hpers, %Hok⟩
   iunfold tsPhys at Hph
   icases Hph with ⟨Hitems, Hil, Hrv, Hind, Hix, Hfv⟩
   wp_auto
@@ -48,14 +48,14 @@ theorem threadSafeMap.Get.wp_proof : threadSafeMap.Get.spec (GF := GF) (hG := hG
   (try wp_auto)
   ihave #Hitem : okNil OK ((σ.items !! key).getD GoInterface.nil) $$ []
   · iunfold tsPers at Hpers
-    icases Hpers with ⟨-, #Hits⟩
+    icases Hpers with ⟨-, #Hits, -⟩
     cases hk : σ.items !! key with
     | none => iunfold okNil; ileft; ipureintro; rfl
     | some o => iapply BigSepM.bigSepM_lookup hk $$ Hits
   wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl Hgp Hitems Hrv Hind Hix Hfv Hil Hst]
   · inext
     iunfold tsP
-    iexists σ, ph
+    iexists σ, ph, iv
     iframe; iframe #
     isplitl
     · iunfold tsPhys; iframe

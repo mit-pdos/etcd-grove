@@ -37,7 +37,7 @@ instance appendOk_persistent (OK : GoInterface → IProp GF) (af : GoFunc)
 selector that selects everything and a store without `nil` items: `af` on each item of the store
 at the linearization point (its `List()`), each once, in some order. -/
 abbrev ListAll.spec : Prop :=
-  ∀ (ca ts : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn) (kf : GoFunc)
+  ∀ (ca ts : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn GF) (kf : GoFunc)
     (sel : GoInterface) (af : GoFunc) (A : List GoInterface → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ isCache ca ts γ OK Fam kf ∗
       tsReader ts γ OK Fam ∗ everySel sel ∗ appendOk OK af A ∗ A [] }}

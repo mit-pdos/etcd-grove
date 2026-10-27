@@ -49,11 +49,11 @@ theorem threadSafeMap.Update.wp_proof
   (try wp_auto)
   wp_apply (lc := 2) sync.RWMutex.wp_Lock_guard $$ [$Hguard] as ⟨Hwl, HP⟩
   iunfold tsP at HP
-  icases HP with ⟨%σ, %ph, Hst, Hgp, Hph, #Hpers, %Hok⟩
+  icases HP with ⟨%σ, %ph, %iv, Hst, Hgp, Hph, #Hpers, %Hok⟩
   (try wp_auto)
   ihave #Hobj : okNil OK obj $$ []
   · iunfold okNil; iright; iexact HOK
-  wp_apply wp_upd $$ [$Hidx $Him $Hph $Hpers $Hobj] as ⟨%ix', Hph, %Hok'⟩
+  wp_apply wp_upd $$ [$Hidx $Him $Hph $Hpers $Hobj] as ⟨%ix', %iv', Hph, #Hpers', %Hok'⟩
   · ipureintro; exact Hok
   iunfold tsPhys at Hph
   icases Hph with ⟨Hitems, Hil, Hrvf, Hind, Hix, Hfv⟩
@@ -99,24 +99,18 @@ theorem threadSafeMap.Update.wp_proof
   imod storeSt_update γ σ (fun σ => σ.update key obj (rvOf obj)) _ $$ [$Hst $HAU] with ⟨Hst, HK⟩
   imod ghostVar_update ({ ph with ix := ix' } : Ph) $$ Hgp with Hgp
   (try wp_auto)
-  iunfold tsPers at Hpers
-  icases Hpers with ⟨#Hfns, #Hits⟩
   wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hwl Hst Hgp Hitems Hil Hind Hix Hfv Hrvf]
   · inext
     iunfold tsP
-    iexists (σ.update key obj (rvOf obj)), ({ ph with ix := ix' } : Ph)
+    iexists (σ.update key obj (rvOf obj)), ({ ph with ix := ix' } : Ph), iv'
     iframe
     isplitl
     · iunfold tsPhys; iframe
+    have hp : tsPers OK Fam (σ.update key obj (rvOf obj)) { ph with ix := ix' } iv' =
+        tsPers OK Fam { σ with items := <[key := obj]> σ.items } { ph with ix := ix' } iv' := rfl
+    rw [hp]
     isplitr
-    · iunfold tsPers
-      have hf : St.fns Fam (σ.update key obj (rvOf obj)) = St.fns Fam σ := rfl
-      have hi : (σ.update key obj (rvOf obj)).items = <[key := obj]> σ.items := rfl
-      rw [hf, hi]
-      isplitr
-      · iexact Hfns
-      · iapply (BigSepM.bigSepM_insert_elim (Φ := fun _ o => okNil (GF := GF) OK o)
-          (m := σ.items) (i := key) (x := obj)) $$ Hobj Hits
+    · iexact Hpers'
     · ipureintro; exact Hok'
   (try wp_auto)
   iapply HK; itrivial

@@ -27,7 +27,7 @@ variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
 /-- **`c.Replace(nl, rv)`**, logically atomic, for a map `nl` of objects each `nil` or meeting `OK`
 (the store takes the map): the items are `its` and the resource version `rv` (even `""`). -/
 abbrev threadSafeMap.Replace.spec : Prop :=
-  ∀ (c : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn) (nl : Loc)
+  ∀ (c : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn GF) (nl : Loc)
     (its : Items) (rv : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ isTS c γ OK Fam ∗
       nl ↦$ its ∗ □ ([∗map] _k ↦ o ∈ its, okNil OK o) }}

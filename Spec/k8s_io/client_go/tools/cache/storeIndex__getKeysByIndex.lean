@@ -27,7 +27,7 @@ variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
 no error and the location of `v`'s set in its index (`setLoc`, `nil` if none); otherwise an
 error. -/
 abbrev storeIndex.getKeysByIndex.spec : Prop :=
-  ∀ (i im ip : Loc) (dqi dqm dq : DFrac) (fv : GMap GoString GoFunc) (fns : GMap GoString Fn)
+  ∀ (i im ip : Loc) (dqi dqm dq : DFrac) (fv : GMap GoString GoFunc) (fns : GMap GoString (Fn GF))
     (ix : Ix) (OK : GoInterface → IProp GF) (n v : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗
       structFieldRef storeIndex go!"indexers" i ↦{dqi} im ∗ im ↦${dqm} fv ∗ fnsOk OK fv fns ∗

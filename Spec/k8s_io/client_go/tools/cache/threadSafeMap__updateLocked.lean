@@ -23,21 +23,22 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
 
-/-- `c.updateLocked(key, obj)` with the write lock's resources: the items have `obj` at `key`, the
-indices are exact for them. -/
+/-- `c.updateLocked(key, obj)` with the write lock's resources (the items' recorded index values
+`iv`): the items have `obj` at `key`, with new recorded values `iv'`, the store's invariant kept. -/
 abbrev threadSafeMap.updateLocked.spec : Prop :=
-  ∀ (c : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn) (σ : St) (ph : Ph)
-    (key : GoString) (obj : GoInterface),
+  ∀ (c : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn GF) (σ : St) (ph : Ph)
+    (iv : IV) (key : GoString) (obj : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗
       structFieldRef threadSafeMap go!"index" c ↦□ γ.idx ∗
       structFieldRef storeIndex go!"indexers" γ.idx ↦□ γ.im ∗
-      tsPhys c γ σ ph 1 ∗ tsPers OK Fam σ ph ∗ okNil OK obj ∗
-      ⌜ixOk (σ.fns Fam) σ.items ph.ix⌝ }}
+      tsPhys c γ σ ph 1 ∗ tsPers OK Fam σ ph iv ∗ okNil OK obj ∗
+      ⌜ixOk (σ.fns Fam) iv ph.ix ∧ ivWf (σ.fns Fam) σ.items iv⌝ }}
     (App (App (Val (c @!! go.GoType.PointerType threadSafeMap.ty @!! go!"updateLocked"))
       (Val #key)) (Val #obj))
-  {{ RET #(); ∃ ix' : Ix,
+  {{ RET #(); ∃ (ix' : Ix) (iv' : IV),
       tsPhys c γ { σ with items := <[key := obj]> σ.items } { ph with ix := ix' } 1 ∗
-      ⌜ixOk (σ.fns Fam) (<[key := obj]> σ.items) ix'⌝ }}
+      tsPers OK Fam { σ with items := <[key := obj]> σ.items } { ph with ix := ix' } iv' ∗
+      ⌜ixOk (σ.fns Fam) iv' ix' ∧ ivWf (σ.fns Fam) (<[key := obj]> σ.items) iv'⌝ }}
 
 end spec
 

@@ -27,9 +27,9 @@ variable [package_sem' : k8s_io.client_go.listers.Assumptions]
 
 /-- **`l.List`** for the Node lister `l` (a `*nodeLister`) over the cache `ca`, not namespaced: `ResourceIndexer.List`'s spec at `X = v1.Node`. -/
 abbrev nodeLister.List.spec : Prop :=
-  ∀ (ca ts : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn)
+  ∀ (ca ts : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn GF)
     (kf : GoFunc) (res : k8s_io.apimachinery.pkg.runtime.schema.GroupResource) (l : Loc)
-    (sel : GoInterface) (F : Fn),
+    (sel : GoInterface) (F : Fn GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.listers.core.v1 ∗ isCache ca ts γ OK Fam kf ∗
       tsReader ts γ OK Fam ∗ typedOK OK k8s_io.api.core.v1.Node.ty ∗ everySel sel ∗ qOk OK ([] : GoString) ∗
       l.[nodeLister, go!"ResourceIndexer"] ↦□ riVal ca res [] }}
@@ -40,7 +40,7 @@ abbrev nodeLister.List.spec : Prop :=
   <<{ storeSt γ σ ∗ ⌜noNil σ.items ∧ (([] : GoString) ≠ [] → St.fns Fam σ !! go!"namespace" = some F)⌝ }>>
   {{ (sl : GoSlice) (err : GoInterface), RET (PairV #sl #err); ⌜err = interface.nil⌝ ∗
       ∃ (q : Loc) (ks : List GoString) (ls : List Loc),
-      ⌜nsKeys F σ ([] : GoString) q ks ∧ ls.map (ptrObj k8s_io.api.core.v1.Node.ty) = ks.map (objAt σ.items)⌝ ∗
+      nsKeys F σ ([] : GoString) q ks ∗ ⌜ls.map (ptrObj k8s_io.api.core.v1.Node.ty) = ks.map (objAt σ.items)⌝ ∗
       (if ([] : GoString) = [] then iprop(True) else q ↦□ qMeta ([] : GoString)) ∗ sl ↦* ls ∗
       □ ([∗list] l ∈ ls, OK (ptrObj k8s_io.api.core.v1.Node.ty l)) ∗ tsReader ts γ OK Fam }}
 

@@ -38,7 +38,7 @@ theorem threadSafeMap.ListKeys.wp_proof : threadSafeMap.ListKeys.spec (GF := GF)
   iunfold tsReader at Hrd
   wp_apply (lc := 2) sync.RWMutex.wp_RLock $$ [$Hrd] as ⟨Hrl, HP⟩
   iunfold tsP at HP
-  icases HP with ⟨%σ, %ph, Hst, Hgp, Hph, #Hpers, %Hok⟩
+  icases HP with ⟨%σ, %ph, %iv, Hst, Hgp, Hph, #Hpers, %Hok⟩
   iunfold tsPhys at Hph
   icases Hph with ⟨Hitems, Hil, Hrv, Hind, Hix, Hfv⟩
   (try wp_auto)
@@ -96,7 +96,7 @@ theorem threadSafeMap.ListKeys.wp_proof : threadSafeMap.ListKeys.spec (GF := GF)
   wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl Hgp Hitems Hrv Hind Hix Hfv Hil Hst]
   · inext
     iunfold tsP
-    iexists σ, ph
+    iexists σ, ph, iv
     iframe
     isplitl
     · iunfold tsPhys; iframe

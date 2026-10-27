@@ -14,8 +14,8 @@ abstract state and the predicates its specs are stated with. Lean-first.
   `indexers` field, the metrics' gauge, which meets `gaugeOk`) and the lock's guard.
 * `tsReader c γ OK Fam`: one of the lock's reader slots (`RLock` needs one).
 
-`OK` is the client's contract on objects (persistent), `Fam` its family of index functions
-(`St.fns`).
+`OK` is the client's contract on objects (persistent), `Fam` its family of index functions'
+contracts (`St.fns`; `StoreDefs.lean`'s `Fn`).
 -/
 module
 
@@ -74,19 +74,25 @@ def tsPhys (c : Loc) (γ : TsNames) (σ : St) (ph : Ph) (q : Qp) : IProp GF :=
     ownIx ph.ip (DFrac.own q) ph.ix ∗
     γ.im ↦${DFrac.own q} ph.fv)
 
-/-- What holds for good of the state: the indexers' contracts, the items' (`nil` or `OK`). -/
-def tsPers (OK : GoInterface → IProp GF) (Fam : Nat → Fn) (σ : St) (ph : Ph) : IProp GF :=
-  iprop(fnsOk OK ph.fv (σ.fns Fam) ∗ [∗map] _k ↦ o ∈ σ.items, okNil OK o)
+/-- What holds for good of the state: the indexers' contracts, the items' (`nil` or `OK`), and
+the items' recorded index values `iv` (`itemsIv`). -/
+def tsPers (OK : GoInterface → IProp GF) (Fam : Nat → Fn GF) (σ : St) (ph : Ph) (iv : IV) :
+    IProp GF :=
+  iprop(fnsOk OK ph.fv (σ.fns Fam) ∗ ([∗map] _k ↦ o ∈ σ.items, okNil OK o) ∗
+    itemsIv (σ.fns Fam) σ.items iv)
 
-instance tsPers_persistent (OK : GoInterface → IProp GF) (Fam : Nat → Fn) (σ : St) (ph : Ph) :
-    Persistent (tsPers OK Fam σ ph) := by
+instance tsPers_persistent (OK : GoInterface → IProp GF) (Fam : Nat → Fn GF) (σ : St) (ph : Ph)
+    (iv : IV) : Persistent (tsPers OK Fam σ ph iv) := by
   unfold tsPers; infer_instance
 
-/-- **The store's lock predicate** at fraction `q`. -/
-def tsP (c : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn) (q : Qp) :
+/-- **The store's lock predicate** at fraction `q`: the items' index values `iv` are recorded here
+(each share has its own record; all are exact for the same indices, so they agree where it
+matters), the indices exact for them (`ixOk`), none for absent or `nil` items (`ivWf`). -/
+def tsP (c : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn GF) (q : Qp) :
     IProp GF :=
-  iprop(∃ (σ : St) (ph : Ph), ghostVar γ.st q.half σ ∗ ghostVar γ.ph q ph ∗
-    tsPhys c γ σ ph q ∗ tsPers OK Fam σ ph ∗ ⌜ixOk (σ.fns Fam) σ.items ph.ix⌝)
+  iprop(∃ (σ : St) (ph : Ph) (iv : IV), ghostVar γ.st q.half σ ∗ ghostVar γ.ph q ph ∗
+    tsPhys c γ σ ph q ∗ tsPers OK Fam σ ph iv ∗
+    ⌜ixOk (σ.fns Fam) iv ph.ix ∧ ivWf (σ.fns Fam) σ.items iv⌝)
 
 attribute [local instance] ownMap_fractional
 
@@ -106,7 +112,7 @@ instance tsPhys_fractional (c : Loc) (γ : TsNames) (σ : St) (ph : Ph) :
     fractional_of_dfractional (fun dq => typedPointsto (GF := GF) l v dq)
   unfold tsPhys; infer_instance
 
-instance tsP_fractional (c : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn) :
+instance tsP_fractional (c : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn GF) :
     Fractional (tsP (GF := GF) c γ OK Fam) where
   fractional q1 q2 := by
     have hph := fun (σ : St) (ph : Ph) => (tsPhys_fractional (GF := GF) c γ σ ph).fractional q1 q2
@@ -114,18 +120,19 @@ instance tsP_fractional (c : Loc) (γ : TsNames) (OK : GoInterface → IProp GF)
     have hgp := fun (ph : Ph) => (ghostVar_fractional (GF := GF) γ.ph ph).fractional q1 q2
     unfold tsP
     refine ⟨?_, ?_⟩
-    · iintro ⟨%σ, %ph, Hst, Hgp, Hph, #Hpers, %Hok⟩
+    · iintro ⟨%σ, %ph, %iv, Hst, Hgp, Hph, #Hpers, %Hok⟩
       icases (hst σ).1 $$ Hst with ⟨Hst1, Hst2⟩
       icases (hgp ph).1 $$ Hgp with ⟨Hgp1, Hgp2⟩
       icases (hph σ ph).1 $$ Hph with ⟨Hph1, Hph2⟩
       isplitl [Hst1 Hgp1 Hph1]
-      · iexists σ, ph; iframe; iframe #; ipureintro; exact Hok
-      · iexists σ, ph; iframe; iframe #; ipureintro; exact Hok
-    · iintro ⟨⟨%σ, %ph, Hst1, Hgp1, Hph1, #Hpers, %Hok⟩, ⟨%σ', %ph', Hst2, Hgp2, Hph2, -, -⟩⟩
+      · iexists σ, ph, iv; iframe; iframe #; ipureintro; exact Hok
+      · iexists σ, ph, iv; iframe; iframe #; ipureintro; exact Hok
+    · iintro ⟨⟨%σ, %ph, %iv, Hst1, Hgp1, Hph1, #Hpers, %Hok⟩,
+        ⟨%σ', %ph', %iv', Hst2, Hgp2, Hph2, -, -⟩⟩
       icombine Hst1 Hst2 gives % ⟨_, hσ⟩
       icombine Hgp1 Hgp2 gives % ⟨_, hp⟩
       subst hσ hp
-      iexists σ, ph
+      iexists σ, ph, iv
       isplitl [Hst1 Hst2]
       · iapply (hst σ).2; iframe
       isplitl [Hgp1 Hgp2]
@@ -146,7 +153,7 @@ instance gaugeOk_persistent (g : GaugeMetric) : Persistent (gaugeOk (GF := GF) g
   cases g <;> unfold gaugeOk <;> infer_instance
 
 /-- **The store** (persistent). -/
-def isTS (c : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn) : IProp GF :=
+def isTS (c : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn GF) : IProp GF :=
   iprop(∃ (mp : Loc) (g : GaugeMetric),
     structFieldRef threadSafeMap go!"index" c ↦□ γ.idx ∗
     structFieldRef storeIndex go!"indexers" γ.idx ↦□ γ.im ∗
@@ -154,7 +161,7 @@ def isTS (c : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat →
     structFieldRef storeMetrics go!"storeResourceVersion" mp ↦□ g ∗ gaugeOk g ∗
     sync.isRWMutexGuard (structFieldRef threadSafeMap go!"lock" c) (tsP c γ OK Fam))
 
-instance isTS_persistent (c : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn) :
+instance isTS_persistent (c : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn GF) :
     Persistent (isTS (GF := GF) c γ OK Fam) := by
   unfold isTS; infer_instance
 
@@ -237,7 +244,7 @@ theorem okNil_of_keys (OK : GoInterface → IProp GF) (it : Items) (ks : List Go
   exact intuitionistically_elim.trans (BigSepM.bigSepM_lookup ho)
 
 /-- One of the store lock's reader slots. -/
-def tsReader (c : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn) : IProp GF :=
+def tsReader (c : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn GF) : IProp GF :=
   sync.ownRWMutex (structFieldRef threadSafeMap go!"lock" c) (tsP c γ OK Fam)
 
 end defs

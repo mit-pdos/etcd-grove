@@ -35,7 +35,7 @@ def getPost (OK : GoInterface → IProp GF) (X : go.GoType) (σ : St) (key : GoS
 (a reader), for a store whose objects are `*X` (`typedOK`) and has no `nil` item: the item at
 `nsKey ns name` at the linearization point (`getPost`). -/
 abbrev ResourceIndexer.Get.spec : Prop :=
-  ∀ (X : go.GoType) (ca ts : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn)
+  ∀ (X : go.GoType) (ca ts : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn GF)
     (kf : GoFunc) (res : k8s_io.apimachinery.pkg.runtime.schema.GroupResource) (ns name : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.listers ∗ isCache ca ts γ OK Fam kf ∗
       tsReader ts γ OK Fam ∗ typedOK OK X }}

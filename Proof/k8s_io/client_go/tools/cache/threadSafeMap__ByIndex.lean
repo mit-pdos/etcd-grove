@@ -60,14 +60,6 @@ theorem set_ptr_Len_lt (l m : Loc) (dq : DFrac) (S : KSet) :
   (try wp_auto)
   iapply HΦ; iframe; ipureintro; exact hlt
 
-/-- The keys of an index's set are items' keys. -/
-theorem inIdx_mem {F : Fn} {it : Items} {v k : GoString} (h : inIdx F it v k) : k ∈ it := by
-  unfold inIdx objAt valsOf at h
-  rw [GMap.mem_iff]
-  cases hk : it !! k with
-  | none => rw [hk] at h; simp at h
-  | some o => rfl
-
 theorem threadSafeMap.ByIndex.wp_proof
     (wp_keys : storeIndex.getKeysByIndex.spec (GF := GF) (hG := hG)) :
     threadSafeMap.ByIndex.spec (GF := GF) (hG := hG) := by
@@ -86,11 +78,11 @@ theorem threadSafeMap.ByIndex.wp_proof
   iunfold tsReader at Hrd
   wp_apply (lc := 2) sync.RWMutex.wp_RLock $$ [$Hrd] as ⟨Hrl, HP⟩
   iunfold tsP at HP
-  icases HP with ⟨%σ, %ph, Hst, Hgp, Hph, #Hpers, %Hok⟩
+  icases HP with ⟨%σ, %ph, %iv, Hst, Hgp, Hph, #Hpers, %Hok⟩
   iunfold tsPhys at Hph
   icases Hph with ⟨Hitems, Hil, Hrv, Hind, Hix, Hfv⟩
   iunfold tsPers at Hpers
-  icases Hpers with ⟨#Hfns, #Hits⟩
+  icases Hpers with ⟨#Hfns, #Hits, #Hiv⟩
   (try wp_auto)
   wp_apply (wp_keys γ.idx γ.im ph.ip DFrac.discard _ _ ph.fv (σ.fns Fam) ph.ix OK n v)
     $$ [$Him $Hfv $Hfns $Hind $Hix] as %s %err ⟨-, Hfv, Hind, Hix, %Hs⟩
@@ -107,7 +99,7 @@ theorem threadSafeMap.ByIndex.wp_proof
       wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl Hgp Hitems Hrv Hind Hix Hfv Hil Hst]
       · inext
         iunfold tsP
-        iexists σ, ph
+        iexists σ, ph, iv
         iframe
         isplitl
         · iunfold tsPhys; iframe
@@ -126,7 +118,7 @@ theorem threadSafeMap.ByIndex.wp_proof
     have hn : n ∈ σ.fns Fam := by rw [GMap.mem_iff, hF]; rfl
     obtain ⟨rfl, rfl⟩ := Hs.1 hn
     (try wp_auto)
-    have hset := Hok.2 n F hF
+    have hset := Hok.1.2 n hn
     icases (ownIx_set_acc ph.ip _ ph.ix n v) $$ Hix with (⟨%hsn, Hix⟩ | ⟨Hs, Hsc⟩)
     · -- no set: no keys
       obtain ⟨hsl, hsv⟩ := hsn
@@ -142,7 +134,7 @@ theorem threadSafeMap.ByIndex.wp_proof
       wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl Hgp Hitems Hrv Hind Hix Hfv Hil Hst]
       · inext
         iunfold tsP
-        iexists σ, ph
+        iexists σ, ph, iv
         iframe
         isplitl
         · iunfold tsPhys; iframe
@@ -162,9 +154,11 @@ theorem threadSafeMap.ByIndex.wp_proof
       iexists []
       simp only [List.map_nil, List.replicate_zero]
       isplitr
-      · ipureintro
-        refine ⟨List.nodup_nil, fun k => ?_⟩
-        rw [← hset v k, hsv]
+      · ipureintro; exact List.nodup_nil
+      isplitr
+      · iapply (idxSel_of _ σ.items iv n F (fun vs => v ∈ vs) [] hF Hok.2 (by simp)
+          (fun k => ?_)) $$ Hiv
+        have h := hset v k; unfold inIdx at h; rw [← h, hsv]
         simp [GMap.mem_iff]
       isplitl
       · iexact Hsl0
@@ -227,15 +221,18 @@ theorem threadSafeMap.ByIndex.wp_proof
       rw [Int.toNat_natCast, ← Hklen, List.take_length]
       imod storeSt_peek γ _ σ _ $$ [$Hst $HAU] with ⟨Hst, HK⟩
       (try wp_auto)
-      have hks : ∀ k, k ∈ keys ↔ inIdx F σ.items v k := fun k =>
+      have hks : ∀ k, k ∈ keys ↔ v ∈ ivAt iv n k := fun k =>
         (Hkset k).trans ((GMap.mem_iff _ _).symm.trans (hset v k))
-      ihave #Hoks := okNil_of_keys OK σ.items keys
-        (fun k hk => inIdx_mem ((hks k).1 hk)) $$ Hits
+      ihave #Hsel := idxSel_of _ σ.items iv n F (fun vs => v ∈ vs) keys hF Hok.2 (by simp) hks
+        $$ Hiv
+      ihave %hin : ⌜∀ k, k ∈ keys → k ∈ σ.items⌝ $$ []
+      · iunfold idxSel at Hsel; icases Hsel with ⟨%h, -⟩; ipureintro; exact h
+      ihave #Hoks := okNil_of_keys OK σ.items keys hin $$ Hits
       ihave Hix := Hsc $$ Hs
       wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl Hgp Hitems Hrv Hind Hix Hfv Hil Hst]
       · inext
         iunfold tsP
-        iexists σ, ph
+        iexists σ, ph, iv
         iframe
         isplitl
         · iunfold tsPhys; iframe
@@ -256,7 +253,7 @@ theorem threadSafeMap.ByIndex.wp_proof
       iframe
       iframe #
       ipureintro
-      exact ⟨Hknodup, hks⟩
+      exact Hknodup
 
 
 end proof

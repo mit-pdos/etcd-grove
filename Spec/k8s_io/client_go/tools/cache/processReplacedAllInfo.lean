@@ -39,7 +39,7 @@ each store key the relist lacks (`delKeys`, in some order), then an update or ad
 object, in order (`replacedEvs`). -/
 abbrev processReplacedAllInfo.spec : Prop :=
   ∀ (lg : github_com.go_logr.logr.Logger) (h : GoInterface) (ca ts : Loc) (γ : TsNames)
-    (OK : GoInterface → IProp GF) (Fam : Nat → Fn) (kf kf' : GoFunc)
+    (OK : GoInterface → IProp GF) (Fam : Nat → Fn GF) (kf kf' : GoFunc)
     (KF : GoInterface → GoString) (SW : St → IProp GF) (σ : St) (H : List Ev → IProp GF)
     (evs : List Ev) (rv : GoString) (isl : GoSlice) (objs : List GoInterface) (b : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ isCache ca ts γ OK Fam kf ∗

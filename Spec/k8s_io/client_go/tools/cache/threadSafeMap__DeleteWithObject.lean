@@ -29,7 +29,7 @@ resource version read, and informers pass tombstones here, which index functions
 the accessor's contract if not `nil`): the key is not in the items, and the resource version
 becomes the object's if it is not `nil` and its accessor has one (`rvOfObj`). -/
 abbrev threadSafeMap.DeleteWithObject.spec : Prop :=
-  ∀ (c : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn)
+  ∀ (c : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn GF)
     (D : GoInterface → IProp GF) (rvOf : GoInterface → Option GoString) (key : GoString)
     (obj : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ isTS c γ OK Fam ∗

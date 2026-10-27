@@ -23,20 +23,21 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
 
-/-- `c.deleteLocked(key)` with the write lock's resources: the key not in the items, the indices
-exact for them. -/
+/-- `c.deleteLocked(key)` with the write lock's resources (the items' recorded index values `iv`):
+the key not in the items, with new recorded values `iv'`, the store's invariant kept. -/
 abbrev threadSafeMap.deleteLocked.spec : Prop :=
-  ∀ (c : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn) (σ : St) (ph : Ph)
-    (key : GoString),
+  ∀ (c : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn GF) (σ : St) (ph : Ph)
+    (iv : IV) (key : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗
       structFieldRef threadSafeMap go!"index" c ↦□ γ.idx ∗
       structFieldRef storeIndex go!"indexers" γ.idx ↦□ γ.im ∗
-      tsPhys c γ σ ph 1 ∗ tsPers OK Fam σ ph ∗
-      ⌜ixOk (σ.fns Fam) σ.items ph.ix⌝ }}
+      tsPhys c γ σ ph 1 ∗ tsPers OK Fam σ ph iv ∗
+      ⌜ixOk (σ.fns Fam) iv ph.ix ∧ ivWf (σ.fns Fam) σ.items iv⌝ }}
     (App (Val (c @!! go.GoType.PointerType threadSafeMap.ty @!! go!"deleteLocked")) (Val #key))
-  {{ RET #(); ∃ ix' : Ix,
+  {{ RET #(); ∃ (ix' : Ix) (iv' : IV),
       tsPhys c γ { σ with items := GMap.delete key σ.items } { ph with ix := ix' } 1 ∗
-      ⌜ixOk (σ.fns Fam) (GMap.delete key σ.items) ix'⌝ }}
+      tsPers OK Fam { σ with items := GMap.delete key σ.items } { ph with ix := ix' } iv' ∗
+      ⌜ixOk (σ.fns Fam) iv' ix' ∧ ivWf (σ.fns Fam) (GMap.delete key σ.items) iv'⌝ }}
 
 end spec
 

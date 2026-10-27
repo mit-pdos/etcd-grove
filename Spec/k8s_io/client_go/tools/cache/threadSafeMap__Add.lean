@@ -24,7 +24,7 @@ variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
 
 /-- **`c.Add(key, obj)`**: `Update`'s spec. -/
 abbrev threadSafeMap.Add.spec : Prop :=
-  ∀ (c : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn)
+  ∀ (c : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn GF)
     (D : GoInterface → IProp GF) (rvOf : GoInterface → Option GoString) (key : GoString) (obj : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ isTS c γ OK Fam ∗
       rvAcc D rvOf ∗ □ D obj ∗ □ OK obj }}
