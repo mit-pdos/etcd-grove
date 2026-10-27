@@ -13,7 +13,6 @@ public import Code.go_etcd_io.raft.v3.raftpb
 public import Code.google_golang_org.protobuf.proto
 public import Code.go_etcd_io.raft.v3
 public import Perennial.Golang.Defn
-public import DurablePrelude
 
 @[expose] public section
 
@@ -3471,7 +3470,7 @@ attribute [instance] Storage.TypeAssumptions.type_repr
   Storage.TypeAssumptions.ptr_firstIndex_unfold
   Storage.TypeAssumptions.ptr_lastIndex_unfold
 
-class Assumptions [GooseExts] [ElemExt durableExt] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Input_instance : Input.TypeAssumptions
   quietLogger_instance : quietLogger.TypeAssumptions
   Cluster_instance : Cluster.TypeAssumptions

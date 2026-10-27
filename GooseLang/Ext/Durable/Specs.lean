@@ -234,4 +234,28 @@ theorem wp_DurableWrite (f data : GoString) (fs : DurableState) :
 
 end lifting
 
+/-! ## A closed program -/
+
+section closed
+
+/-- A program whose only extension is the durable state. -/
+@[reducible] def durableExts : GooseExts := ⟨[durableExt]⟩
+
+attribute [local instance] durableExts
+
+@[reducible] def durableExtsSemantics : GooseSemantics := ⟨(durable_semantics, ⟨⟩)⟩
+
+@[reducible] def durableExtsInterp : GooseInterp := ⟨(durable_interp, ⟨⟩)⟩
+
+attribute [local instance] durableExtsSemantics durableExtsInterp
+
+/-- Closing off a program proves `HasExt` by computation: `durableExt` is the program's
+extension named `durableExt.name`, with its semantics and ghost state. -/
+example : HasExt durableExt where
+  registered := rfl
+  sem_eq := rfl
+  interp_eq := rfl
+
+end closed
+
 end Perennial

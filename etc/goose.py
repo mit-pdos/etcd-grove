@@ -104,19 +104,11 @@ class Project:
     # the parallel tree `RaftWitness/`; raft v3.7 was one, the parallel tree `Raft37/` the
     # raft proof was ported into).
     root: str = ""
-    # goose's -ext PKG=NAME arguments: the Go packages implemented with a GooseLang extension
-    # of this repository (GooseLang/Ext/<Name>; preludes <Name>Prelude, Proof/<Name>Prelude),
-    # for a project that translates or imports one (DURABLE_EXT). Needs a translator with
-    # -ext (Perennial branch goose-ext-flag, not yet in the pin: notes/perennial-changes.md).
-    exts: list = field(default_factory=list)
 
     @property
     def env(self):
         return self.name.upper().replace("-", "_") + "_SRC"
 
-
-# The durable-state extension (GooseLang/Ext/Durable): the Go package examples/durable.
-DURABLE_EXT = "github.com/mit-pdos/etcd-grove/examples/durable=durable"
 
 PROJECTS = [
     Project(
@@ -450,15 +442,15 @@ PROJECTS = [
         name="durable",
         # A node's durable state, named files read and written whole (`examples/durable`): the
         # Go side of the GooseLang extension durableExt (GooseLang/Ext/Durable), its functions
-        # trusted (TrustedCode/github_com/mit_pdos/etcd_grove/examples/durable.lean). A package
-        # of the examples' Go module (examples/go.mod).
+        # trusted (TrustedCode/github_com/mit_pdos/etcd_grove/examples/durable.lean, which names
+        # the extension; goose needs to know nothing of it). A package of the examples' Go
+        # module (examples/go.mod).
         repo=None,
         rev=None,
         local=os.path.join("examples", "durable"),
         lean_roots=["github.com/mit-pdos/etcd-grove="],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "durable")],
-        exts=[DURABLE_EXT],
     ),
     Project(
         name="durablekv",
@@ -475,7 +467,6 @@ PROJECTS = [
         # the store; not its command (cmd/durablekv), which only runs it
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "durablekv")],
-        exts=[DURABLE_EXT],
     ),
     Project(
         name="common",
@@ -905,7 +896,6 @@ def translate(proj, src, bindir, perennial_rev, desc, check):
             piece_out = os.path.join(out, str(i))
             config = os.path.join(lib_dir, "Code")
             roots = [a for r in lean_roots for a in ("-lean-root", r)]
-            roots += [a for x in proj.exts for a in ("-ext", x)]
             for tool, sub in (("goose", "Code"), ("proofgen", "GeneratedProof")):
                 run([os.path.join(bindir, tool)] + roots +
                     ["-out", os.path.join(piece_out, sub), "-configdir", config, "-dir", src]

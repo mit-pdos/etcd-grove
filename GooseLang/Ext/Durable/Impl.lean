@@ -2,9 +2,8 @@
 The durable-state extension of GooseLang [Trusted definitions!].
 
 A node's durable state: named files, each a string read and written whole. It is the
-extension of the Go package `github.com/mit-pdos/etcd-grove/examples/durable` (goose's
-`-ext github.com/mit-pdos/etcd-grove/examples/durable=durable`, `etc/goose.py`), whose
-functions are modeled by its operations
+extension of the Go package `github.com/mit-pdos/etcd-grove/examples/durable` (its name),
+whose functions are modeled by its operations
 (`TrustedCode/github_com/mit_pdos/etcd_grove/examples/durable.lean`).
 
 * `ReadOp f` returns the contents of the file `f` and `true`, or `""` and `false` if
@@ -52,13 +51,14 @@ instance : Inhabited DurableState := ⟨∅⟩
 
 /-- The durable-state extension. It has no values of its own and no global state. -/
 @[reducible] def durableExt : GooseExt where
+  name := "github.com/mit-pdos/etcd-grove/examples/durable"
   Op := DurableOp
   Val := Empty
   LocalState := DurableState
   GlobalState := Unit
 
 section durable
-variable [GooseExts] [ElemExt durableExt] [GoGlobalContext]
+variable [GooseExts] [GoGlobalContext]
 
 /-- What a read of the file `f` returns: its contents and `true`, or `""` and `false`. -/
 def durableReadResult (fs : DurableState) (f : GoString) : val :=

@@ -17,26 +17,32 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
-### Goose: extensions defined outside Perennial (2026-10-27, branch `worktree-durable-kv`)
+### GooseLang: extensions outside Perennial, named in the syntax (2026-10-27, branch `worktree-durable-kv`)
 
-- **Missing.** Goose's table of the Go packages implemented with a GooseLang extension
-  (`goose/util/util.go`, `extMapping`) is closed, and an extension's prelude modules are always
-  `Perennial.<Name>Prelude`/`Perennial.Proof.<Name>Prelude`: a project cannot define an
-  extension of its own, whose `[ElemExt …]` binders and prelude imports the translation needs.
+- **Missing.** An extension's operations were positions in the program's list of extensions
+  (`ExtsOp exts`), so the trusted model of a Go function implemented with one needed
+  `[ElemExt E]` (data: the position), which goose had to add to the generated `Assumptions` of
+  the package and of every importer, from a closed table of extension packages in goose
+  (`extMapping`), with prelude imports under `Perennial.`: a project could not define an
+  extension of its own.
 - **Needed by.** The durable-state extension `durableExt` (`GooseLang/Ext/Durable/`, the Go
   package `examples/durable`) and `examples/durablekv`.
-- **Workaround here.** None that keeps the translation generated: the projects `durable` and
-  `durablekv` of `etc/goose.py` pass `-ext` (`Project.exts`) and are translated with
-  `etc/goose.py --perennial /home/ubuntu/perennial-goose-ext-flag-at-pin` (the change cherry-picked onto the pin `f73703285`, branch `goose-ext-flag-at-pin`, `5e8642186`: the translator of `lean` emits definitions the pinned library lacks); with the pinned translator,
-  which has no `-ext`, `etc/goose.py --check` fails on those two projects (and so CI), so the
-  branch waits for the pin bump before it merges.
-- **Proposed change.** Perennial branch `goose-ext-flag` (`0c64462e9`, off `lean` `edcadb1e5`):
-  `-ext PKG=NAME` (goose and proofgen) adds PKG to the table as the package of extension NAME,
-  and an extension's preludes are under its package's Lean root (`-lean-root`):
-  `ROOT.<Name>Prelude`, `ROOT.Proof.<Name>Prelude` (the built-in extensions' root is
-  `Perennial`, so their output is unchanged; goose's tests pass).
-- **Status.** Open: not landed (goose is Perennial's trusted base: it needs the
-  `review-trusted` review and `etc/land.sh`).
+- **Workaround here.** None needed for the translation: goose treats `examples/durable` as any
+  package, so `etc/goose.py --check` passes with the pin. The Lean modules of the extension and
+  of the two translations build only against the change (`GooseExt.name`, `extOp` without an
+  instance): `lake build --packages=.lake/manifest-extnames.json ...`, a manifest copy whose
+  `perennial` is `/home/ubuntu/perennial-ext-names-at-pin` (the change cherry-picked onto the
+  pin `f73703285`, branch `ext-names-at-pin`). Until the pin has it, a full build (CI) fails on
+  them, so the branch waits for the pin bump before it merges.
+- **The change.** Perennial branch `ext-names` (`6fa3a85cc`, off `lean` `edcadb1e5`; every
+  module builds, goose's tests pass): `GooseExt` has a `name` (the Go package's path); the
+  syntax names an extension's operations and values by name and encoding (`ExtCode`,
+  `extOp E o`, `extVal E v`), an `ExternalOp` stepping with the program's first extension of
+  that name; `ElemExt E` and `HasExt E` are propositions (closing off a program proves them by
+  `rfl`); goose knows nothing of extensions (its table, the binders and the extension preludes
+  are gone). It supersedes branch `goose-ext-flag` (goose's `-ext`, the first attempt).
+- **Status.** Open: not landed (Perennial's trusted base: the `review-trusted` review and
+  `etc/land.sh`).
 
 ### Translation: `sort.StringSlice`'s methods (2026-10-25, leases T3, branch `leases-t3`)
 

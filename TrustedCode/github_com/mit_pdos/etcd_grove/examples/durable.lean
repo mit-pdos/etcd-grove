@@ -34,7 +34,7 @@ namespace Perennial
 
 namespace github_com.mit_pdos.etcd_grove.examples.durable
 section durable
-variable [GooseExts] [ElemExt durableExt] [GoGlobalContext]
+variable [GooseExts] [GoGlobalContext]
 
 /-- Type: func(string) (string, bool) -/
 def Read.impl : val :=
