@@ -37,7 +37,8 @@ leaky or unusable. Check its findings against the source before acting on them. 
   its closest sibling's for no reason (the server's `Put` and the client's `kv.Put`).
 
 **Repair.** Fix what the review confirms. The vocabulary is in scope: replace or redefine the
-predicates the spec is written in, not only how the spec combines them. Afterwards, spawn a second
+predicates the spec is written in, not only how the spec combines them. After each change, drop
+what existed only for what it changed (a case, a disjunct, a conjunct). Afterwards, spawn a second
 fresh reviewer on the new `interface/` and iterate until it finds nothing you agree with.
 
 **Constraints:**

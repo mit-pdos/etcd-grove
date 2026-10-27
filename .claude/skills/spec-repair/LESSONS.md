@@ -30,3 +30,7 @@ One entry per critique of a run: date, target, what the user said, the rule it b
 - 2026-10-27, `EtcdServer.Range.spec` (candidate 1 returned `kvWas γ σ ∗ □ Q σ`): "what's the
   point of kvWas? The Q predicate can maintain whatever facts are important". Rule (`SKILL.md`,
   review list): no witness predicate beside an AU's `Q`; a serializable read fires the AU too.
+- 2026-10-27, `EtcdServer.Range.spec` (candidate 2 kept `⌜Q = fun _ => True⌝ ∨ AU …`, the path of
+  serializable reads when they took no AU, after making every read take one): "What's the point of
+  having Q = true in the precondition for the Range spec?" Rule (`SKILL.md`, "Repair"): after a
+  change, drop what existed only for what it changed.
