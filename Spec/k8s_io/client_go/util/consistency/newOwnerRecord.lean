@@ -28,7 +28,7 @@ abbrev newOwnerRecord.spec : Prop :=
   ∀ (uid : GoString),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.util.consistency }}
     (App (Val (@! newOwnerRecord)) (Val #uid))
-  {{ (r : Loc), RET #r; ∃ vm : Loc,
+  {{ (r : Loc), RET #r; ∃ vm : Loc, ⌜r ≠ null⌝ ∗
       structFieldRef ownerRecord go!"ownerUID" r ↦ uid ∗
       structFieldRef ownerRecord go!"versionsLock" r ↦ (zero_val _root_.Perennial.sync.Mutex) ∗
       structFieldRef ownerRecord go!"versions" r ↦ vm ∗ vm ↦$ (∅ : Vs) }}

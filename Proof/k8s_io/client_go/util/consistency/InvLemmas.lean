@@ -135,7 +135,7 @@ map (`W`) had none or one for another UID: `r'` is registered, the map's mirror 
 which becomes pending. -/
 theorem wrote_new_commit (γ : ConsNames) (T : Owner → Qp → IProp GF) {W : GMap Owner Loc}
     {o : Owner} {uid : GoString} (r' vm : Loc) (γv : GName) (gr : GR) (rv : GoString) (q : Qp)
-    (K : IProp GF) :
+    (K : IProp GF) (hnn : r' ≠ null) :
     inv consN (consInv γ T) ∗ tokExcl T ∗ £ 1 ∗ £ 1 ∗ ghostVar γ.W (1 : Qp).half W ∗
       □ (∀ r0, ⌜W !! o = some r0⌝ -∗ ∃ s0, isRec γ r0 s0 ∗ ⌜s0.uid ≠ uid⌝) ∗
       structFieldRef ownerRecord go!"ownerUID" r' ↦ uid ∗
@@ -159,7 +159,7 @@ theorem wrote_new_commit (γ : ConsNames) (T : Owner → Qp → IProp GF) {W : G
     iunfold isRec at Hr
     icases Hr with ⟨-, Hp⟩
     iunfold recPhys at Hp
-    icases Hp with ⟨Hu, -, -⟩
+    icases Hp with ⟨-, Hu, -, -⟩
     iapply str_excl $$ [$Hu $Huid]
   | none =>
   cases hV' : Vg !! r' with
@@ -203,7 +203,7 @@ theorem wrote_new_commit (γ : ConsNames) (T : Owner → Qp → IProp GF) {W : G
   imod ghost_map_insert n (⟨r', gr, rv, q⟩ : Pend) (fresh_n Hwf) $$ Hpend with ⟨Hpend, Htok⟩
   ipersist Huid
   ihave #Hrec : isRec γ r' ⟨o, uid, vm, γv⟩ $$ []
-  · iunfold isRec; iframe #; iunfold recPhys; iframe #
+  · iunfold isRec; iframe #; iunfold recPhys; iframe #; ipureintro; exact hnn
   imod Hclose $$ [HM HW Hrecs Hvg Hpend Hptoks Hens Hetoks HT Hγv]
   · inext; iunfold consInv
     iexists wroteAtM M o uid gr rv, (<[o := r']> W), (<[r' := ⟨o, uid, vm, γv⟩]> R),

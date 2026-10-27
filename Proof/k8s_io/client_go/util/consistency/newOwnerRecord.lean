@@ -32,10 +32,12 @@ theorem newOwnerRecord.wp_proof : newOwnerRecord.spec (GF := GF) (hG := hG) := b
     k8s_io.apimachinery.pkg.runtime.schema.GroupResource.ty go.string as %vm Hvm
   wp_alloc r as Hr
   wp_auto
+  ihave %Hnn := typedPointsto_not_null $$ Hr
   iStructNamed Hr
   iapply HΦ
   iexists vm
   iframe
+  ipureintro; exact Hnn
 
 end proof
 

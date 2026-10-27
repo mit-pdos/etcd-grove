@@ -39,7 +39,7 @@ theorem ownerRecord.WroteAt.wp_proof
   iunfold isRec at Hrec'
   icases Hrec' with ⟨-, Hphys⟩
   iunfold recPhys at Hphys
-  icases Hphys with ⟨#Huid, #Hvm, #Hmu⟩
+  icases Hphys with ⟨%Hnn, #Huid, #Hvm, #Hmu⟩
   wp_apply wp_with_defer as %defer defer
   wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, HI⟩
   iunfold recLockInv at HI

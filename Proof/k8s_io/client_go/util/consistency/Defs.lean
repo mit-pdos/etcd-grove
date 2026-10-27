@@ -258,7 +258,7 @@ def recLockInv (s : RecS) : IProp GF :=
 /-- A record's fixed physical facts (persistent): its UID and `versions` fields for good, its
 lock. -/
 def recPhys (r : Loc) (s : RecS) : IProp GF :=
-  iprop(structFieldRef ownerRecord go!"ownerUID" r ↦□ s.uid ∗
+  iprop(⌜r ≠ null⌝ ∗ structFieldRef ownerRecord go!"ownerUID" r ↦□ s.uid ∗
     structFieldRef ownerRecord go!"versions" r ↦□ s.vm ∗
     sync.isMutex (structFieldRef ownerRecord go!"versionsLock" r) (recLockInv s))
 
