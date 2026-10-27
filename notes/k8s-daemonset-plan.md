@@ -259,7 +259,26 @@ theorem's program runs with it off, the premise "a failed write had no effect" (
    (forwards to the proved ones; now hypotheses in the workqueue's `Link.lean`).
 3. **The model API server's spec and proof.** Logically atomic triples over an abstract state of
    resources and its change log (compare D44-D48's KV state and its watches: a watch is repeated
-   reads of the log).
+   reads of the log). The specs are an internal layer of the controller's proof: the Go model
+   stays the trust base (D50's last paragraph).
+   *Status (2026-10-27, branch `k8s-daemonset-proof`; `notes/k8s-apimodel-goose.md`):* translated
+   (project `k8s-daemonset` in `etc/goose.py`; client-go's typed interfaces names-only in
+   `k8s-apiserver`), specified (63 specs, `Spec/.../k8sdaemonset/apimodel/`) and linked
+   (`etc/gen-link.py --apimodel`; results `Results.lean`, TCB `etc/tcb-collections/k8s-apimodel.txt`).
+   The abstract state `St` (`State.lean`): the last version issued, the UIDs issued, per resource
+   the stored objects and the change log, well formed (`St.wf`: versions increasing along each log,
+   at most `rev`; logged objects of the table's resource, at their version, with an issued UID;
+   the stored objects the log's replay); a history of states (`apiState γ σ` the clients' half).
+   **Proved**: the server's `create`, `get`, `list`, `update`, `remove` (each linearizing under the
+   lock: a write appends a later well-formed state, `St.write_wf`; a check's error or a read at the
+   locked state; a flagged failure or a request-only check at any state), the typed clients' `Get`,
+   `Create`, `List`, `UpdateStatus`, `Update`, `Delete`, `Watch` over them (the caller's update
+   passed on, `au_mono`), the clientsets. **Not proved yet** (specified; `links_pending`
+   hypotheses): `watch` and the watcher's goroutine, `NewServer`, `preparePod`, `prepareDaemonSet`
+   (C5), `podGrace`, `updateDaemonSetStatus`, `daemonSetStatusEqual`, `int32PtrEqual`.
+   `copyObject` is a `sorry` (gap C8, the pinned translation's interface assertion: fixed by the
+   Perennial bump, or by the proposed type switch, a TCB change not applied). No infidelity found in
+   the model.
 4. **The informers.** The reflector (list, watch, relist, bookmarks; watch-list off), the FIFO, the
    shared informer's processor and listeners, `WaitForNamedCacheSyncWithContext`: the informer
    contract above, plus the handlers' delivery (in order, with the objects' concrete types, which

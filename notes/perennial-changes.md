@@ -612,6 +612,27 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   fact), `EncodeToString` and `DecodeString` with a model of the standard encoding (or at least
   `DecodeString (EncodeToString b) = (b, nil)`), translated or as trusted models.
 
+### An interface embedding interfaces is an exact type set (2026-10-27, DaemonSet plan phase 3, gap C8)
+
+- **Missing (at the pin).** Goose writes an interface that embeds interfaces with the embedded
+  ones as type terms (`TypeElem [TypeTerm Object.ty]`), and `typeSetContains` reads a type term
+  as that exact type: an assertion of a concrete type to such an interface panics in the
+  semantics where Go's succeeds. The model API server's `copyObject`
+  (`o.DeepCopyObject().(object)`, `object` embedding `runtime.Object` and `metav1.Object`) is a
+  `sorry` (`notes/k8s-apimodel-goose.md`).
+- **Status.** Fixed on Perennial's `lean` after the pin (`8ef540a62`, `d30f71f36`: an interface
+  written as all its methods, method sets emitted); here with the pin bump.
+
+### `wp_load` of a struct field through a fractional points-to (2026-10-27, DaemonSet plan phase 3)
+
+- **Missing.** Loading a field (`![t] (StructFieldRef T f l)`) needs `l`'s struct points-to at
+  fraction 1 for `wp_auto` to split it; at a fraction `dq` (a persistent configuration, a shared
+  `*Preconditions`) the load is stuck.
+- **Workaround here.** Persistent structs are stated field by field (the model's `cfgAt`); a
+  fractional one is split by `iStructNamed` and recombined with `typedPointsto_combine` around the
+  loads (`Server.remove`'s preconditions, the `ObjectMeta` accessors).
+- **Proposed change.** The field-access instance (`solve_pointsto_access_struct`) at any fraction.
+
 ## Landed
 
 ### Translation: `strconv.ParseUint`, `time.Ticker` and `Time.After`

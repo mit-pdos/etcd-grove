@@ -223,6 +223,9 @@ def zeroObj : Res → Obj
 def emptyOk (r : Res) (f : GoFunc) : IProp GF :=
   iprop({{ True }} (App (Val #f) (Val #())) {{ (x : GoInterface), RET #x; objAt x (DFrac.own 1) (zeroObj r) }})
 
+instance emptyOk_persistent (r : Res) (f : GoFunc) : Persistent (emptyOk (GF := GF) r f) := by
+  unfold emptyOk; infer_instance
+
 /-- **A table's fixed fields** (persistent): its resource, namespacing, map and `empty`. -/
 def tableFixed (r : Res) (T : Tbl) : IProp GF :=
   iprop(T.t.[apimodel.table, go!"resource"] ↦□ grOf r ∗

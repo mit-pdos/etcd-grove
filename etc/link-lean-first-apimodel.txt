@@ -1,0 +1,95 @@
+# The functions linked in `Proof/github_com/mit_pdos/etcd_grove/examples/k8sdaemonset/apimodel/Link.lean`
+# (all Lean-first), read by `etc/gen-link.py --apimodel`: `<fn>: <callees in the order of
+# <fn>.wp_proof's hypotheses>` (`?`: specified, not proved yet). The model API server
+# (`examples/k8sdaemonset/apimodel`, notes/k8s-daemonset-plan.md phase 3; trusted Go, D50: its
+# specs are an internal layer of the controller's proof) and the functions it calls; the results
+# are in the namespace `apimodel`. Generated from the proofs' hypotheses by a script of the
+# phase-3 work.
+Clientset__AppsV1:
+Clientset__CoreV1:
+FormatUint:
+GroupResource__String_ptr:
+Int63n:
+NewAlreadyExists: GroupResource__String_ptr
+NewBadRequest:
+NewConflict:
+NewNotFound: GroupResource__String_ptr
+NewTimeoutError:
+Now: =_root_.Perennial.time.wp_Now
+ObjectMeta__GetCreationTimestamp:
+ObjectMeta__GetDeletionTimestamp:
+ObjectMeta__GetFinalizers:
+ObjectMeta__GetGenerateName:
+ObjectMeta__GetName:
+ObjectMeta__GetNamespace:
+ObjectMeta__GetResourceVersion:
+ObjectMeta__GetUID:
+ObjectMeta__SetCreationTimestamp:
+ObjectMeta__SetDeletionGracePeriodSeconds:
+ObjectMeta__SetDeletionTimestamp:
+ObjectMeta__SetName:
+ObjectMeta__SetNamespace:
+ObjectMeta__SetResourceVersion:
+ObjectMeta__SetUID:
+Server__AdminClientset:
+Server__Clientset:
+Server__chance: Int63n
+Server__create: Server__chance copyObject rvString Server__nextRV Server__record ObjectMeta__GetNamespace ObjectMeta__SetNamespace ObjectMeta__GetName ObjectMeta__SetName ObjectMeta__GetGenerateName ObjectMeta__GetResourceVersion ObjectMeta__SetResourceVersion ObjectMeta__SetUID ObjectMeta__SetCreationTimestamp Now errors_NewInternalError NewBadRequest NewAlreadyExists NewTimeoutError =_root_.Perennial.sync.Mutex.wp_Lock =_root_.Perennial.sync.Mutex.wp_Unlock
+Server__get: Server__chance copyObject errors_NewInternalError NewNotFound =_root_.Perennial.sync.Mutex.wp_Lock =_root_.Perennial.sync.Mutex.wp_Unlock
+Server__list: Server__chance copyObject rvString errors_NewInternalError NewBadRequest =_root_.Perennial.sync.Mutex.wp_Lock =_root_.Perennial.sync.Mutex.wp_Unlock
+Server__nextRV: rvString
+Server__record: ObjectMeta__GetNamespace ObjectMeta__GetName copyObject =_root_.Perennial.sync.Cond.wp_Broadcast
+Server__remove: Server__chance copyObject Server__nextRV Server__record ObjectMeta__GetResourceVersion ObjectMeta__SetResourceVersion ObjectMeta__GetUID ObjectMeta__GetDeletionTimestamp ObjectMeta__SetDeletionTimestamp ObjectMeta__SetDeletionGracePeriodSeconds ObjectMeta__GetFinalizers ObjectMeta__GetNamespace ObjectMeta__GetName Now errors_NewInternalError NewNotFound NewConflict NewTimeoutError =_root_.Perennial.errors.wp_New =_root_.Perennial.sync.Mutex.wp_Lock =_root_.Perennial.sync.Mutex.wp_Unlock
+Server__update: Server__chance copyObject Server__nextRV Server__record ObjectMeta__GetNamespace ObjectMeta__SetNamespace ObjectMeta__GetName ObjectMeta__SetName ObjectMeta__GetResourceVersion ObjectMeta__SetResourceVersion ObjectMeta__GetUID ObjectMeta__SetUID ObjectMeta__GetCreationTimestamp ObjectMeta__SetCreationTimestamp errors_NewInternalError NewBadRequest NewNotFound NewConflict NewTimeoutError =_root_.Perennial.errors.wp_New =_root_.Perennial.sync.Mutex.wp_Lock =_root_.Perennial.sync.Mutex.wp_Unlock
+Server__watch: ?
+apimodel_NewServer: ?
+apimodel_watcher__Stop: ?
+appsV1__ControllerRevisions:
+appsV1__DaemonSets:
+copyObject:
+coreV1__Events:
+coreV1__Nodes:
+coreV1__Pods:
+daemonSetClient__Create: Server__create prepareDaemonSet
+daemonSetClient__Get: Server__get
+daemonSetClient__List: Server__list
+daemonSetClient__UpdateStatus: Server__update updateDaemonSetStatus
+daemonSetClient__Watch: Server__watch
+daemonSetStatusEqual: ?
+emptyDaemonSet:
+emptyNode:
+emptyPod:
+emptyRevision:
+errors_NewInternalError:
+eventClient__CreateWithEventNamespace:
+eventClient__CreateWithEventNamespaceWithContext:
+eventClient__PatchWithEventNamespace:
+eventClient__PatchWithEventNamespaceWithContext:
+eventClient__UpdateWithEventNamespace:
+eventClient__UpdateWithEventNamespaceWithContext:
+int32PtrEqual: ?
+noGrace:
+nodeClient__Create: Server__create prepareNode
+nodeClient__Get: Server__get
+nodeClient__List: Server__list
+nodeClient__Watch: Server__watch
+podClient__Create: Server__create preparePod
+podClient__Delete: Server__remove podGrace
+podClient__Get: Server__get
+podClient__List: Server__list
+podClient__Watch: Server__watch
+podGrace: ?
+prepareDaemonSet: ?
+prepareNode:
+preparePod: ?
+prepareRevision:
+replaceRevision:
+revisionClient__Create: Server__create prepareRevision
+revisionClient__Delete: Server__remove noGrace
+revisionClient__Get: Server__get
+revisionClient__List: Server__list
+revisionClient__Update: Server__update replaceRevision
+revisionClient__Watch: Server__watch
+rvString: FormatUint
+updateDaemonSetStatus: ?
+watcher__ResultChan:

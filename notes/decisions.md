@@ -21374,3 +21374,16 @@ interface field).
 failure) is the realistic behavior; the theorem's program runs with it off, which is the premise
 "a failed write had no effect". It matters: with it on, the real controller puts two pods on a node
 in 4 of 50 runs (`issues/k8s-daemonset-ambiguous-create-duplicate-pod.md`), with it off 0 of 30.
+
+**The model's spec is an internal layer** (2026-10-27 · the user: "The go model is *still* the
+trust base ... The proven spec is an internal proof detail that does not show up in the spec
+boundary."). Phase 3 of `notes/k8s-daemonset-plan.md` gives the model's code specs and proves
+it meets them (`Spec/.../k8sdaemonset/apimodel/`, `Proof/.../k8sdaemonset/apimodel/`): an
+abstract state (`State.lean`'s `St`: the resource version counter, the UIDs issued, per resource
+the stored objects and the change log), each operation logically atomic over it, the typed
+clients over the server's operations. This does not change the trust base: the Go model stays
+what a reader trusts, and the top-level theorem is still about the test program executing the
+model's code. The specs are a proof device, so that the informers' and the controller's proofs
+reason about one abstract state rather than step through the model; a wrong spec would make a
+proof fail, not a theorem say something false, since no statement at the spec boundary mentions
+it.

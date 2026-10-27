@@ -130,20 +130,6 @@ theorem delopts_pre_open [ApiDeps] (opts : k8s_io.apimachinery.pkg.apis.«meta»
   iexists pv
   iframe
 
-/-- A deep pointer to a basic value, read: `nil`, or the value. -/
-theorem ownPtrD_base_some {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] (p : Loc) (dq : DFrac)
-    (e : V) :
-    (ownPtrD (V := V) ownBaseD) p dq (some e) ⊣⊢ (p ↦{dq} e : IProp GF) := by
-  simp only [ownPtrD, ownBaseD]
-  constructor
-  · iintro ⟨%x, Hp, %h⟩
-    subst h
-    iexact Hp
-  · iintro Hp
-    iexists e
-    iframe
-    ipureintro; rfl
-
 /-- The object a delete keeps, as the calls build it. -/
 theorem deleteApply_mod (r : Res) (st : Obj) (gps : Option w64) (σ : St)
     (t : k8s_io.apimachinery.pkg.apis.«meta».v1.Time)

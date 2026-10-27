@@ -77,6 +77,20 @@ instance key_safeMapKey [ApiDeps] (k : Key) :
     wp_pures
     iapply HΦ
 
+/-- A deep pointer to a basic value, read: `nil`, or the value. -/
+theorem ownPtrD_base_some {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] (p : Loc) (dq : DFrac)
+    (e : V) :
+    (ownPtrD (V := V) ownBaseD) p dq (some e) ⊣⊢ (p ↦{dq} e : IProp GF) := by
+  simp only [ownPtrD, ownBaseD]
+  constructor
+  · iintro ⟨%x, Hp, %h⟩
+    subst h
+    iexact Hp
+  · iintro Hp
+    iexists e
+    iframe
+    ipureintro; rfl
+
 /-- An object at a value equal to another. -/
 theorem objAt_cast {x : GoInterface} {q : DFrac} {a b : Obj} (h : a = b) :
     objAt (GF := GF) x q a ⊢ objAt x q b := by

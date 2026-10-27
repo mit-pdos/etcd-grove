@@ -53,6 +53,7 @@ usage: etc/gen-link.py --raft > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --workqueue > Proof/k8s_io/client_go/util/workqueue/Link.lean
        etc/gen-link.py --consistency > Proof/k8s_io/client_go/util/consistency/Link.lean
        etc/gen-link.py --k8scache > Proof/k8s_io/client_go/tools/cache/Link.lean
+       etc/gen-link.py --apimodel > Proof/github_com/mit_pdos/etcd_grove/examples/k8sdaemonset/apimodel/Link.lean
 
 `--cache` links the proofs of etcd's `cache` package (`Proof/go_etcd_io/etcd/cache/v3/` and
 the specs and proofs of its functions), which are all
@@ -407,6 +408,13 @@ LEAN_FIRST = {
                    "k8s_io.client_go.tools.cache k8s_io.apimachinery.pkg.util.sets",
                    "k8s_io.client_go.tools.cache.Assumptions",
                    "client-go's local cache's proofs (`k8s.io/client-go/tools/cache`)", [""]),
+    # the model API server (examples/k8sdaemonset/apimodel, notes/k8s-daemonset-plan.md phase 3):
+    # trusted Go (D50) whose specs are an internal layer of the DaemonSet controller's proof, over
+    # the trust boundary of the API types' `DeepCopyObject` and apimachinery's error constructors
+    "--apimodel": ("link-lean-first-apimodel.txt",
+                   "github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel",
+                   "github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Assumptions",
+                   "The model API server's proofs (`examples/k8sdaemonset/apimodel`)", [""]),
     "--common": ("link-lean-first-common.txt",
                  "github_com.mit_pdos.etcd_grove.examples.common",
                  "github_com.mit_pdos.etcd_grove.examples.common.Assumptions",
@@ -416,13 +424,17 @@ LEAN_FIRST = {
 NAMESPACED = {"--backend": "backend", "--client": "client", "--concurrency": "concurrency", "--leasing": "leasing", "--recipes": "recipes", "--v3lock": "v3lock", "--v3election": "v3election",
               "--txn": "txn", "--porcupine": "porcupine", "--lintest": "lintest",
               "--lintest-counter": "lintest", "--linkv3p": "linkv3p", "--linkvtxn": "linkvtxn", "--watchkv": "watchkv", "--authkv": "authkv", "--cachekv": "cachekv", "--common": "common", "--k8s": "kubernetes", "--k8s-etcd3": "k8s", "--cacher": "cacher", "--k8setcd3": "k8setcd3", "--apply": "apply", "--v3rpc": "v3rpc", "--read": "read",
-              "--workqueue": "workqueue", "--consistency": "consistency", "--k8scache": "k8scache"}
+              "--workqueue": "workqueue", "--consistency": "consistency", "--k8scache": "k8scache",
+              "--apimodel": "apimodel"}
 # The Links a mode imports for the callees' results they already define (see "Reuse" above), by
 # their module below `Proof/`, beside those of its `@` callees.
 REUSES = {"--server": ["Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Link"]}
 # The modules a mode imports beside its proofs (its package's translation, through its `Base`,
 # while no proof of the package is linked yet: the v3rpc package's unit 0).
 EXTRA_IMPORTS = {"--consistency": ["Perennial.Proof.strings.Link"],
+                 # Perennial's linked results the model's proofs take as terms (`=` callees)
+                 "--apimodel": ["Perennial.Proof.sync.Link", "Perennial.Proof.errors.Link",
+                                "Perennial.Proof.time.Link"],
                  "--v3rpc": ["Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Base"],
                  # (rafthttp stage 6f) the HTTP boundary's axioms and Perennial's linked results
                  # rafthttp's proofs take as terms (`=` callees)

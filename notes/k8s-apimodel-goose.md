@@ -1,0 +1,82 @@
+# The model API server's translation and proof (DaemonSet plan phase 3)
+
+The model API server (`examples/k8sdaemonset/apimodel`, trusted Go, D50) translated by Goose and
+given specs it is proved to meet. The specs are an internal layer of the controller's proof (D50's
+last paragraph): the Go model stays the trust base. Status: `notes/k8s-daemonset-plan.md`, phase 3.
+
+## The translation
+
+- **Project `k8s-daemonset`** in `etc/goose.py`: the local module `examples/k8sdaemonset`, package
+  `./apimodel`, with bodies (`Code/github_com/mit_pdos/etcd_grove/examples/k8sdaemonset/apimodel.lean`).
+  `etc/goose.py --check` also checks that `examples/k8sdaemonset/go.mod`'s `k8s.io/{api,
+  apimachinery,client-go}` are those of `examples/k8setcd3/go.mod` (`CLIENT_GO_PINS`), so the two
+  projects translate one client-go.
+- **Project `k8s-apiserver`, names and types only** (what the model's clients name): client-go's
+  `kubernetes`, its 56 `kubernetes/typed/*` packages, `rest`, `discovery`, `applyconfigurations`'
+  core, apps and autoscaling v1, `k8s.io/api`'s policy v1/v1beta1, authentication v1, autoscaling v1.
+  `kubernetes.toml` and the typed core/apps tomls translate their types (`translate_types`, the
+  structs excepted), so `kubernetes.Interface`, `CoreV1Interface`, `PodInterface`, ... are concrete
+  interface types: the model's clientset converts to them.
+- **Bodies added** (tomls): `metav1.ObjectMeta`'s accessors, `Now`, `Time.Equal`, the status
+  reasons; `core/v1`'s and `apps/v1`'s `Get*`/`Set*` of the four types and the constants the
+  create strategies use; `apierrors.NewBadRequest`, `NewResourceExpired`, `NewNotFound`,
+  `NewAlreadyExists`; `watch` imports `runtime` (so `watch.Event` is concrete).
+- **Embedded nil interfaces** (the clients embed client-go's interfaces, nil): translate; a method
+  the model does not implement resolves through the nil interface and panics, as in Go.
+
+## Gaps
+
+- **C8 (new; blocks `copyObject`).** At the pinned Perennial, Goose writes an interface that embeds
+  interfaces (`object`: `runtime.Object` and `metav1.Object`) with the embedded ones as type terms
+  (`TypeElem [TypeTerm Object.ty]`), and the semantics' `typeSetContains` reads a type term as that
+  exact type. So `o.DeepCopyObject().(object)` (`copyObject`) panics in the model's semantics where
+  Go's assertion succeeds: `copyObject.wp_proof` is a `sorry`, and every result that copies an
+  object rests on it (`etc/tcb-collections/k8s-apimodel.txt`). Fixed on Perennial's `lean` after
+  the pin (an interface written as all its methods; method sets emitted: `8ef540a62`, `d30f71f36`);
+  with the pin bump `copyObject` is `DeepCopyObject`'s spec per type
+  (`Spec/k8s_io/api/{core,apps}/v1/*__DeepCopyObject.lean`) and the method-set fact. **Proposed
+  model change** (a TCB change: proposed, not applied), if the bump is far: a type switch on the
+  four concrete types instead of the interface assertion,
+  `switch x := o.(type) { case *corev1.Pod: return x.DeepCopy(); ... }`, which the pinned
+  semantics handles (concrete assertions).
+- **C5 (from phase 1) reaches `prepareDaemonSet`.** `intstr.IntOrString` is axiomatized, so the
+  create strategy's `intstr.FromInt32(1)` (an axiom, `Proof/k8s_io/apimachinery/pkg/util/intstr/
+  FromInt32.lean`) and the allocation of an `IntOrString` have no spec; the deep values keep an
+  `IntOrString` pointer's nil-ness only (`Proof/k8s_io/api/DeepBase.lean`). `prepareDaemonSet` is
+  specified (`prepareDaemonSetD`: `MaxUnavailable`/`MaxSurge` set, their values opaque) and not
+  proved.
+- **Deep values** (`etc/gen-k8s-deep.py` -> `Proof/k8s_io/api/Deep.lean`): the 166 structs reachable
+  from `Pod`, `Node`, `DaemonSet`, `ControllerRevision`, `ListOptions` and `DeleteOptions` as Lean
+  values (`kd.*`) with deep ownership; opaque: `IntOrString` (C5), the `resource.Quantity` maps
+  (must be nil), `RawExtension.Object` (nil), `FieldsV1`.
+- **`time.Time.Equal`** is specified by Perennial as returning some `bool`: `daemonSetStatusEqual`
+  compares the conditions' transition times with it, so `dsStatusMut` (UpdateStatus's mutation)
+  allows a write whenever, and a write of nothing only when the status's other fields are equal.
+- **A struct field through a fractional points-to**: Perennial's `wp_load` of a field needs the
+  struct's points-to at fraction 1; the model's persistent configuration is stated field by field
+  (`cfgAt`), and fractional structs are split by `iStructNamed` and recombined
+  (`typedPointsto_combine`). Recorded in `notes/perennial-changes.md`.
+
+## The proof
+
+- **State** (`Proof/.../apimodel/State.lean`): `St` (the last version issued, the UIDs issued, per
+  resource a `Table` of stored objects by key and the change log), `St.wf` (versions increase along
+  each log and do not exceed `rev`; logged objects are the table's resource and carry their
+  version and an issued UID; the stored objects are the log's replay), `St.le`, and the operations
+  as functions of the state (`createApply`/`createErr`, `updateApply`/`updateErr`,
+  `deleteApply`/`deleteErr`, `getObj`, `listOk`, `logStart`).
+- **Specs** (`Spec/.../apimodel/`): each server operation logically atomic over `apiState γ σ`
+  (`Defs.lean`: the clients' half of a history of states; the lock invariant holds the other half
+  and the heap's state), with the outcome relation (`CreateOut`, `UpdateOut`, `DeleteOut`: a flagged
+  failure, a check's error, or the write; reads at the state) and what the call returns
+  (`writeRet`, `getRet`, `listRet`, `watchRet`). The failure premise is configuration: `mayHappen
+  flag admin` (a flagged nondeterministic choice, never for admin clients); an ambiguous write
+  (`Config.AmbiguousWrites`) may report a timeout after the write took effect.
+- **Proved** (`Link.lean`, `Results.lean`): `create`, `get`, `list`, `update`, `remove` (and
+  `nextRV`, `record`, `chance`, `rvString`), the typed clients' `Get`, `Create`, `List`,
+  `UpdateStatus`, `Update`, `Delete`, `Watch` over them, the clientsets. **Not proved yet**
+  (specified; the results over them take them as hypotheses, `links_pending`): `watch` and the
+  watcher's goroutine (`run`, `send`, `Stop`), `NewServer`, `preparePod`, `prepareDaemonSet` (C5),
+  `podGrace`, `updateDaemonSetStatus`, `daemonSetStatusEqual`, `int32PtrEqual`; `copyObject` is a
+  `sorry` (C8).
+- **No infidelity found** in the model's Go code while proving it (the operations match `doc.go`).
