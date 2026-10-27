@@ -556,6 +556,36 @@ theorem clear_keep_commit (γ : ConsNames) (T : Owner → Qp → IProp GF) {W : 
   imodintro
   iframe
 
+/-- **`EnsureReady` finds no record** for the owner at its read of the map: its linearization
+point; the owner has no abstract record, so `nil` (deleting it changes nothing). -/
+theorem ens_none_commit (γ : ConsNames) (T : Owner → Qp → IProp GF) (S : GMap GR LastSyncRVGetter)
+    (G : GR → GoString → IProp GF) {W : GMap Owner Loc} {o : Owner} (qw : Qp)
+    (K : Bool → IProp GF) (hWo : W !! o = none) :
+    inv consN (consInv γ T) ∗ £ 1 ∗ £ 1 ∗ ghostVar γ.W qw W ∗ auEns γ S G o K ⊢
+      |={⊤}=> ghostVar γ.W qw W ∗ K true := by
+  iintro ⟨#Hinv, Hlc1, Hlc2, HWg, HAU⟩
+  iinv Hinv with Hi Hclose
+  imod lc_fupd_elim_later $$ Hlc1 Hi with Hi
+  iNamed Hi
+  icombine HWg HW gives % ⟨_, HWeq⟩
+  subst HWeq
+  have hMo : M !! o = none := by have h := Hwf.1 o; rw [hWo] at h; exact h
+  imod lc_fupd_elim_later $$ Hlc2 HAU with HAU
+  imod HAU with ⟨%M', HMc, Hcl⟩
+  iunfold consState at HMc
+  icombine HM HMc gives % ⟨_, HMeq⟩
+  subst HMeq
+  imod Hcl $$ %true [HMc] with HK
+  · iunfold consState
+    simp only [↓reduceIte, delete_none M o hMo, hMo]
+    iframe HMc
+    unfold readyRec; itrivial
+  imod Hclose $$ [HM HW Hrecs Hvg Hpend Hptoks Hens Hetoks]
+  · inext; iunfold consInv; iexists M, W, R, Vg, P, n, E; iframe; iframe #
+    ipureintro; exact Hwf
+  imodintro
+  iframe
+
 /-- A record is registered once. -/
 theorem isRec_agree (γ : ConsNames) {r : Loc} {s s' : RecS} :
     (isRec γ r s : IProp GF) ∗ isRec γ r s' ⊢ ⌜s = s'⌝ := by
