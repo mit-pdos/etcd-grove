@@ -22322,3 +22322,64 @@ Also not done (J4's, the other agent's): the storage token into J0 item 2's inva
 `NewServer` (`srvSnapState`'s restatement owns it).
 
 No axiom added or removed (`NewAuthStore`'s restated), no `sorry`.
+
+## D22 J4: the storage's token shared, `compactRaftLog` over it, `Release` over any `Rm`; `snapshot` not provable yet (2026-10-26 · decided by the orchestrator while the user was away (J5/J4))
+
+J0's items 2 and 3 for the apply thread (`notes/snapshot-sj-plan.md`, J4). No axiom added or
+removed; one axiom restated (weaker premise), one restated through its predicate's body.
+
+- **`srvSnapState`** (`InvApplyAll.lean`) holds the storage's persistent part (`memSnapRO`), the
+  application's key (`memKey γs.ak`, `CreateSnapshot`'s for its critical section, J3) and
+  `∃ γss, inv srvStorTokN (memTokShared γs γss) ∗ monoNatLbOwn γss sl`: the token's ghost part in
+  an invariant (J3's `memTokShared`, the snapshot index counted by `γss`, `prev ≤ ss`), a lower
+  bound `sl` of the counter. Until J4 the whole token (`memSnapTok`) with `prev ≤ ai`, false once
+  raft's goroutine installs a snapshot (J0, gap 2). `srvStorTokN` is disjoint from `memSnapN`
+  (`srvStorTokN_disj`).
+- **Allocated in `run`** (`srvStorTok_alloc`), right after its `s.r.raftStorage.Snapshot()`, not at
+  the end of `NewServer` as J0's item 2 had it: `Snapshot()` takes the whole token
+  (`MemoryStorage.Snapshot.spec` is not atomic), and `rnSnapOnce` hands it back to `run` after the
+  call. `rnSnapOnce`'s returned token now comes with `prev ≤ ss` (what the invariant keeps; until
+  J4 `prev ≤ ai₀`, which nothing reads any more); `rnSnapOnce_of_tok` (the empty storage) proves it
+  unchanged. **For J1a/J6b**: the raft goroutine's `raftNode.start` (J6b) gets the invariant from
+  `run`, which allocates it before `s.r.start(rh)`.
+- **The ceiling `γsc` deferred to J6b** (J0's item 2 had it in J4's invariant): it bounds the
+  storage's snapshot index by raft's delivered log, to refute `ApplySnapshot`'s out-of-date branch,
+  which only J6b's call meets; its authority is raft's goroutine's and its lower bound reaches the
+  apply thread through the `toApply` payload (J6a/J6b). J6b adds `monoNatLbOwn γsc σt.ss.index'` to
+  `memTokShared`'s body (a server copy of it) and `∃ c, monoNatLbOwn γsc c ∗ ⌜ai ≤ c⌝` to
+  `srvSnapState`, and `CreateSnapshot.wp_shared` a ceiling variant.
+- **`compactRaftLog.spec`** takes the shared token (`memSnapRO`, the invariant, a lower bound `sl ≥
+  snapi` of the counter) and returns only the logger's slot (until J4 the token in hand, its
+  boundary at most `snapi` after); proved by J3's `Compact.wp_shared` (whose `[StorageModel GF]`,
+  unused, is omitted now, as is `memSnapTok_split`'s raft `Assumptions`). `snapshotIfNeededAndCompactRaftLog`
+  passes it the lower bound at `ai` that `snapshot` returns.
+- **`storage.storage.Release.spec`** (axiom, restated with a weaker premise, J0's item 3): over any
+  `Rm`, given `□ ∀ j < md.Index, Rm j` (until J4 `Rm := snapTakenLb γt` and `snapTakenLb γt
+  md.Index`). `applySnapshot`'s walk passes `snapTakenLb γt` and the facts below from its
+  `snapTakenLb γt i`. The `tcb` baseline's text is unchanged (an axiom's name), the statement weaker.
+- **`EtcdServer.snapshot` stays an axiom**, its statement changed only through `srvSnapState`'s
+  body (it returns the counter's lower bound at `ai`, which `CreateSnapshot.wp_shared` gives on
+  both branches: true of the code). **Why it is not proved in J4** (found here; J0's item 3 missed
+  it): its `CreateSnapshot(ep.appliedi, ep.confState, nil)` needs, at the linearization point, the
+  created snapshot's certificate in the storage's registry (`□ ∀ t, memStorCert γs (…)`,
+  `CreateSnapshot.spec`'s premise since D22 S-b′2). The server has no registry authority:
+  `NewMemoryStorage` runs inside the names-only `bootstrap`, whose contract (`bootOk`) does not
+  hand over `memCertAuth γs`, so no certificate can be made. And `Release`'s premises (the
+  directory's invariant at the server's `Rm`, J1a's `srvSnapRm`) and `SaveSnap`'s contract
+  (J1a's `bootOk` clause) do not reach the apply thread yet (J1a's `srvSnapRO`, then J1b's
+  threading). **J4b, after J1a** (the brief): (1) `bootOk`'s storage clause gains
+  `memCertAuth γs` (true: `NewMemoryStorage.spec` gives it); `NewServer` puts it in a registry
+  invariant at the mode (`γ.reNoSnap = true ∨ [∗list] e ∈ L, certElemOk γ e`, as `certLink`), the
+  apply thread registers the snapshot it creates (`memCert_registerAny`'s argument, free in the
+  no-snapshot mode); (2) `srvSnapRO`'s directory invariant, `storageSnap`, the storage interface
+  and `SaveSnap`'s contract reach `applyAll` (J1b, or `isServerApplyAll`); `Rm j` for `j < ai` from
+  `appliedAtLeast γr ai` (the `srvSnapRm` disjunct); (3) translate `EtcdServer.snapshot` and
+  `verifyConsistentIndexIsLatest` (its `verify.Verify` condition `ci ≥ ai`: from `loopOk`/`ciJ`,
+  to check), prove it: `KV().Commit()` by `srvKVCommitOk_of_kv` (a `storeReq` that saves the
+  consistent index, as `SnapSendBranch.lean`'s, without the freeze) with a write token from
+  `srvWTPool_take_extra` (a Go step's receipt), `CreateSnapshot.wp_shared` generalized to
+  `memCsArg` (`ep.confState` may be `nil`), `errors.Is` as in `compactRaftLog`. **L3** must then
+  give the registry real certificates: `ep.confState`'s content certified as the applied prefix's
+  configuration (`raftSnapCert`: static, the boot configuration; dynamic, the fold of the prefix)
+  and the data's (`snapDataOk`, trivial for the servers): a new obligation on `applyConfChange`'s
+  and `run`'s `ep.confState`, not in the plan until now.

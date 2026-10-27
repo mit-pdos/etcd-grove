@@ -48,10 +48,10 @@ theorem EtcdServer.compactRaftLog.wp_proof
     (hU64 : zap.Uint64.spec (GF := GF) (hG := hG))
     (hDebug : zap.Logger.Debug.spec (GF := GF) (hG := hG)) :
     EtcdServer.compactRaftLog.spec (GF := GF) (hG := hG) := by
-  -- (D22 J3, integration) `Compact`'s spec is logically atomic since J3; the token is in hand here
-  replace hCompact := MemoryStorage.Compact.spec_tok_of hCompact
-  intro s snapi ms γs σ scu l Hprev Hss Hpos Hcap
-  wp_start as ⟨Hlr, #Hlgf, %Hlgn, #Hinf, #Hrs, Htok, #Hfl, #Hscu⟩
+  -- (D22 J4) `Compact` over the shared token (`Compact.wp_shared`)
+  have hCompact := MemoryStorage.Compact.wp_shared hCompact srvStorTokN srvStorTokN_disj
+  intro s snapi ms γs γss sl scu l Hsl Hpos Hcap
+  wp_start as ⟨Hlr, #Hlgf, %Hlgn, #Hinf, #Hrs, #Hro, #Htinv, #Hslb, #Hfl, #Hscu⟩
   ihave #Patm : isPkgInit (PROP := IProp GF) pkg_id.sync.atomic $$ []
   · iPkgInit
   ihave #Pzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
@@ -99,24 +99,25 @@ theorem EtcdServer.compactRaftLog.wp_proof
     -- the compaction index, at most `snapi`
     have Hci : ∀ ci : w64, uint.Z ci =
         (if uint.Z scu < uint.Z snapi then uint.Z snapi - uint.Z scu else 1) →
-        (uint.Z σ.prev.index' < uint.Z ci →
-          uint.Z ci ≤ uint.Z x ∧ uint.Z ci ≤ uint.Z σ.ss.index' ∧ uint.Z ci ≤ γs.cap) ∧
-        uint.Z ci ≤ uint.Z snapi := by
+        uint.Z ci ≤ uint.Z x ∧ uint.Z ci ≤ (uint.nat sl : Int) ∧ uint.Z ci ≤ γs.cap := by
       intro ci h
       have h0 : 0 ≤ uint.Z scu := by word
       have hle : uint.Z ci ≤ uint.Z snapi := by split at h <;> omega
-      exact ⟨fun _ => ⟨by omega, by omega, by rw [h]; exact Hcap⟩, hle⟩
+      have := uint_nat_eq sl
+      exact ⟨by omega, by omega, by rw [h]; exact Hcap⟩
     wp_if_destruct
     all_goals (
       (try wp_auto)
       first
-        | (wp_apply hCompact ms γs σ x (snapi - scu) _
-             (Hci (snapi - scu) (by rw [if_pos (by word)]; word)).1 $$ [$Htok] as %err Hor
+        | (have H := Hci (snapi - scu) (by rw [if_pos (by word)]; word)
+           wp_apply hCompact ms γs γss x (snapi - scu) (uint.nat sl) _ H.1 H.2.1 H.2.2 $$ []
+             as %err %Hor
            · iframe #)
-        | (wp_apply hCompact ms γs σ x (W64 1) _
-             (Hci (W64 1) (by rw [if_neg (by word)]; word)).1 $$ [$Htok] as %err Hor
+        | (have H := Hci (W64 1) (by rw [if_neg (by word)]; word)
+           wp_apply hCompact ms γs γss x (W64 1) (uint.nat sl) _ H.1 H.2.1 H.2.2 $$ []
+             as %err %Hor
            · iframe #)
-      icases Hor with (⟨⟨%Hle, %Herr⟩, Htok⟩ | ⟨%t, ⟨%Hlt, %Herr⟩, Htok⟩)
+      rcases Hor with Herr | Herr
       · -- `ErrCompacted`: `errors.Is` is `true`, return
         subst Herr
         (try wp_auto)
@@ -134,9 +135,6 @@ theorem EtcdServer.compactRaftLog.wp_proof
         (try wp_auto)
         iapply HΦ
         iframe Hlr
-        iexists σ
-        iframe Htok
-        ipureintro; exact ⟨Hprev, rfl⟩
       · -- compacted to `compacti`: log it
         subst Herr
         (try wp_auto)
@@ -151,13 +149,7 @@ theorem EtcdServer.compactRaftLog.wp_proof
         · iframe #; ipureintro; exact Hlgn
         (try wp_auto)
         iapply HΦ
-        iframe Hlr
-        iexists _
-        iframe Htok
-        ipureintro
-        first
-          | exact ⟨(Hci (snapi - scu) (by rw [if_pos (by word)]; word)).2, rfl⟩
-          | exact ⟨(Hci (W64 1) (by rw [if_neg (by word)]; word)).2, rfl⟩)
+        iframe Hlr)
   · -- a snapshot in flight: skip
     rw [decide_eq_false hv]
     (try wp_auto)
@@ -166,9 +158,6 @@ theorem EtcdServer.compactRaftLog.wp_proof
     (try wp_auto)
     iapply HΦ
     iframe Hlr
-    iexists σ
-    iframe Htok
-    ipureintro; exact ⟨Hprev, rfl⟩
 
 end proof
 

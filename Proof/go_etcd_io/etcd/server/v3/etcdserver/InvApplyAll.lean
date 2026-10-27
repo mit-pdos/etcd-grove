@@ -23,6 +23,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRead
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftNode
+public import Proof.go_etcd_io.raft.v3.MemstorageAU
 
 @[expose] public section
 
@@ -116,17 +117,75 @@ instance isServerApplyAll_persistent (s : Loc) (γr : ReadNames) :
     Persistent (isServerApplyAll (GF := GF) s γr) := by
   unfold isServerApplyAll; infer_instance
 
+/-- (D22 J4) The namespace of the storage's shared snapshot token (`srvSnapState`), disjoint from
+the storage's own (`memSnapN`). -/
+def srvStorTokN : Namespace := nroot .@ "etcdserver_stor_tok"
+
+theorem srvStorTokN_disj : (↑srvStorTokN : CoPset) ## ↑memSnapN := by
+  intro p ⟨hp, h⟩
+  exact ndot_ne_disjoint nroot (by decide : "etcdserver_stor_tok" ≠ "raft_memsnap") p ⟨hp, h⟩
+
 /-- **The apply thread's snapshot state** (see the file header) at the applied index `ai`: the
 snapshot indices at most `ai`; and (D19i part 1, 2026-10-18) the raft wrapper's `MemoryStorage`
-`ms` and the application's snapshot token (`memSnapTok`), its compaction boundary at most `ai`,
-its snapshot index at least `sl` (`snapshot` raises it to `ai`, which `compactRaftLog` then
-compacts below). -/
+`ms` and the application's snapshot token, its snapshot index at least `sl` (`snapshot` raises it
+to `ai`, which `compactRaftLog` then compacts below).
+
+(D22 J4, 2026-10-26; decided by the orchestrator while the user was away (J5/J4), J0's item 2) **The
+token shared**: the token's ghost part (`memSnapTokG`, the storage's snapshot and boundary) is in
+an invariant (`srvStorTokN`, `memTokShared`: with the storage's snapshot index counted by `γss`,
+the boundary at or below the snapshot), which raft's goroutine shares for its `ApplySnapshot`
+(J6b) while the apply job runs `CreateSnapshot`/`Compact` (the FIFO scheduler does not wait,
+`notes/j3-overlap-test/`); the apply thread keeps the storage's persistent part (`memSnapRO`),
+the application's key (`memKey γs.ak`, `CreateSnapshot`'s for its critical section) and a lower
+bound `sl` of the snapshot counter. Until J4 the whole token (`memSnapTok`) was the apply
+thread's, with its boundary at most `ai` (false once raft's goroutine installs a snapshot past
+`ai`; `CreateSnapshot`'s `prev ≤ i` now comes from `prev ≤ ss < i`). J0's ceiling `γsc` (the
+storage's snapshot index at most raft's delivered log, which refutes `ApplySnapshot`'s out-of-date
+branch) is J6b's, which calls `ApplySnapshot`: it adds the ceiling's lower bound to the invariant. -/
 def srvSnapState (s ep ms : Loc) (γs : MemStorNames) (ai sl : w64) : IProp GF :=
   iprop(∃ (d m : w64) (f : Bool), epDiskSnapAddr ep ↦ d ∗ epMemSnapAddr ep ↦ m ∗
     srvForceSnapAddr s ↦ f ∗ ⌜uint.Z d ≤ uint.Z ai ∧ uint.Z m ≤ uint.Z ai⌝ ∗
     rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗
-    ∃ σ : StorState, memSnapTok ms γs σ ∗
-      ⌜uint.Z σ.prev.index' ≤ uint.Z ai ∧ uint.Z sl ≤ uint.Z σ.ss.index'⌝)
+    memSnapRO ms γs ∗ memKey γs.ak ∗
+    ∃ γss : GName, inv srvStorTokN (memTokShared γs γss) ∗ monoNatLbOwn γss (uint.nat sl))
+
+/-- (D22 J4) **The shared token, allocated** (`run`, right after its `Snapshot()`, the token's last
+user in hand): from the whole token with its boundary at or below its snapshot, the invariant and
+a lower bound of the counter at the snapshot's index. -/
+theorem srvStorTok_alloc (ms : Loc) (γs : MemStorNames) (σ : StorState) (Ec : CoPset)
+    (h : uint.Z σ.prev.index' ≤ uint.Z σ.ss.index') :
+    ⊢ memSnapTok (GF := GF) ms γs σ ={Ec}=∗ memSnapRO ms γs ∗ memKey γs.ak ∗
+      ∃ γss : GName, inv srvStorTokN (memTokShared γs γss) ∗
+        monoNatLbOwn γss (uint.nat σ.ss.index') := by
+  iintro Htok
+  icases (memSnapTok_split ms γs σ).1 $$ Htok with ⟨#Hro, Hak, Htg⟩
+  imod mono_nat_own_alloc (GF := GF) (uint.nat σ.ss.index') with ⟨%γss, Ha, #Hlb⟩
+  imod inv_alloc srvStorTokN Ec (memTokShared γs γss) $$ [Htg Ha] with #Hinv
+  · inext
+    iunfold memTokShared
+    iexists σ
+    iframe Htg Ha
+    ipureintro; exact h
+  imodintro
+  iframe Hro Hak
+  iexists γss
+  iframe Hinv Hlb
+
+/-- A lower bound of the counter is one of every smaller index. -/
+theorem srvSnapState_sl_le (s ep ms : Loc) (γs : MemStorNames) (ai sl sl' : w64)
+    (h : uint.Z sl' ≤ uint.Z sl) :
+    srvSnapState (GF := GF) s ep ms γs ai sl ⊢ srvSnapState s ep ms γs ai sl' := by
+  iintro H
+  iunfold srvSnapState at H
+  icases H with ⟨%d, %m, %f, Hd, Hm, Hf, %Hdm, #Hms, #Hro, Hak, %γss, #Hinv, #Hlb⟩
+  iunfold srvSnapState
+  iexists d, m, f
+  iframe Hd Hm Hf Hms Hro Hak
+  isplitr
+  · ipureintro; exact Hdm
+  iexists γss
+  iframe Hinv
+  iapply monoNatLbOwn_le (uint.nat sl') (by word) $$ Hlb
 
 /-! ## The apply thread's backend, per batch (D22 receiver epochs, S7f) -/
 

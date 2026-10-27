@@ -251,6 +251,13 @@ removed, ..., adequacy coverage" below.
     `applied_jump` (the ghost jumps, the atomic stays: Go's lag), the write counter decoupled
     (`srvWTTaken`, a count the apply functions raise by the entries applied; `applyRes` keeps
     `ai ≤ w`, J8a's to make conditional). No axiom (`notes/decisions.md`, "D22 J5").
+    **J4 (part a) done (2026-10-26)**: the storage's token shared (`srvSnapState`: its ghost part in
+    `srvStorTokN`'s invariant, allocated by `run` after `Snapshot()`), `compactRaftLog` over it
+    (`Compact.wp_shared`), `storage.Release` over any `Rm`. **`EtcdServer.snapshot` still an
+    axiom**: `CreateSnapshot` needs the created snapshot's registry certificate, and the server has
+    no registry authority (`bootOk`), nor yet J1a's bundle at the apply thread; J4b's brief, and an
+    L3 obligation (`ep.confState`'s certificate), in `notes/decisions.md`, "D22 J4". The ceiling
+    `γsc` moved to J6b.
   - **J7 of the S-j plan done (2026-10-26)** (`notes/snapshot-sj-plan.md`; `notes/decisions.md`,
     "D22 J7"): `SnapRecvFacts.lean` (no `sorry`) derives `specSnap`'s `hpre`, `hkI`, `hlease`,
     `halarm`, `hauthb`, `hmemb`, `himg`, `hA'` (`snapRecv_image`, the `SnapImageFacts` record),

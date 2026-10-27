@@ -284,6 +284,9 @@ theorem EtcdServer.run.wp_proof
   iapply Hsnap
   inext
   iintro %sn %pm0 %cs0 %sv %Hsv #Hsn #Hpm0 #Hcs0' #Hcsok ⟨%σ0, Htok0, %Hσ0⟩
+  -- (D22 J4) the token shared from here on: raft's goroutine (`s.r.start`, next) and the apply
+  -- job both use it
+  imod srvStorTok_alloc _ _ σ0 ⊤ Hσ0 $$ Htok0 with ⟨#Hro0, Hak0, %γss0, #Htinv0, #Hslb0⟩
   obtain ⟨Hsvi, Hsvt, Hpm0n, Hcs0n⟩ := Hsv
   -- the snapshot (raft's `ownSnapM`, read-only: nothing writes it), opened to its metadata `md`
   -- and the metadata's conf state `cs`, which `run` reads directly (the index and term through
@@ -504,7 +507,7 @@ theorem EtcdServer.run.wp_proof
     rw [← Hkc0.2, ← HEγr]; exact Hnm.2.2
   ihave HR0 : iprop(applyRes ⟨s, ep_ptr, γ, ci, b, E, γr, ai₀, c₀, x₀, ρ.wait, γn.ms, γn.γs, γp, ρ⟩ []) $$
       [appliedi appliedt confState diskSnapshotIndex memorySnapshotIndex Hfs Hst Hbe Happ Hlr' Hbr Hwr
-        HKV Hao Hkr HRS Htok0]
+        HKV Hao Hkr HRS Hak0]
   · iunfold applyRes
     iexists ⟨γ, TM, E, b⟩, st₀, ai₀, at₀, a₀, t₀, cs, x₀
     isplitr
@@ -521,7 +524,10 @@ theorem EtcdServer.run.wp_proof
       · ipureintro; exact ⟨Int.le_refl _, Int.le_refl _⟩
       isplitr
       · iexact Hms
-      ipureintro; exact ⟨Hσ0, by word⟩
+      iframe Hro0
+      iexists γss0
+      iframe Htinv0
+      iapply monoNatLbOwn_le (uint.nat (W64 0)) (by simp) $$ Hslb0
     iframe Hlog0
     isplitr
     · iexists uint.nat ai₀

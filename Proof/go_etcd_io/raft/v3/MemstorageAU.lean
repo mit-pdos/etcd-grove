@@ -289,6 +289,7 @@ caller's lower bound of the snapshot counter, `CreateSnapshot(i)`'s `prev ≤ i`
 i` -- and each commit keeps the invariant (`Compact` raises `prev` to `ci ≤ ss`; `CreateSnapshot`
 raises `ss` to `i`, which the counter follows, and hands the caller a lower bound at `i`). -/
 
+omit [StorageModel GF] in
 theorem MemoryStorage.Compact.wp_shared
     (wp_Compact : MemoryStorage.Compact.spec (GF := GF) (hG := hG))
     (N : Namespace) (HN : ↑N ## (↑memSnapN : CoPset))
@@ -345,6 +346,7 @@ theorem MemoryStorage.Compact.wp_shared
     iapply HΦ
     ipureintro; right; rfl
 
+omit [StorageModel GF] in
 theorem MemoryStorage.CreateSnapshot.wp_shared
     (wp_CreateSnapshot : MemoryStorage.CreateSnapshot.spec (GF := GF) (hG := hG))
     (N : Namespace) (HN : ↑N ## (↑memSnapN : CoPset))
