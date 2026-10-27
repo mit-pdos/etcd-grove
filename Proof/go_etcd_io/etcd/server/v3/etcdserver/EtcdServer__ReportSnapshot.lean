@@ -30,7 +30,7 @@ theorem EtcdServer.ReportSnapshot.wp_proof :
   wp_start as #Hok
   iunfold srvProcOk at Hok
   icases Hok with ⟨%l, %c, %st, %γ, #Hlg, %Hlgnn, #Hid, %Hγid, #Hcl, #Hrc, #Hst, %Hstnn, #Hn,
-    #Hsi, %HN⟩
+    #Hsi, #Hcok, %HN⟩
   iunfold rnStepIfc at Hsi
   icases Hsi with ⟨%ni, %Hni, -, -, #HRU⟩
   have Hni' : ni = ⟨go.GoType.PointerType node.ty, #γ.nl⟩ :=
