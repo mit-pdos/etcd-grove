@@ -485,6 +485,10 @@ so the baseline is S8d's. The first Lean stage to merge runs `--check --update` 
 
 ## Where J-T stopped (2026-10-27, branch `snapshot-jt`; paused by the user)
 
+**Landed on `lean` (2026-10-27)**: finished on lean's head (with J4b): the full build, the
+examples, `etc/gen-link.py` (only `--server` changed) and the trust base checked; the three
+fixes are in `notes/STATUS.md`'s Snapshots item. What follows is the state at the pause.
+
 Base: `origin/lean` at `ed462bf259` (M5's proved transport, the Perennial bump); the four J-T
 commits rebased onto it cleanly (they were first written on `f6e5c001d6`, also M5-based, pushed as
 `snapshot-jt-m5wip`; `snapshot-jt-old` is the abandoned J6a-based first attempt). Design and

@@ -203,12 +203,15 @@ removed, ..., adequacy coverage" below.
 
 - **Snapshots (track T-S, D22).** Done: S-0..S-d4, S-f..S-i, S-g/S-h, S-r (snapshots in
   `examples/kv`), the fork fixes, the receiver epochs' S1-S7f and S8a-S8c (S6's `store.Restore`
-  axiom proved since restore R5f, 2026-10-24). **J-T (2026-10-27, branch `snapshot-jt`, on M5)**:
+  axiom proved since restore R5f, 2026-10-24). **J-T (2026-10-27, on `lean`; J4b too, below)**:
   the transport handed over unfrozen (`NewServer`'s pool of every other member, the live right in
   `srvApRes`, the no-remote tokens in `srvTrTok`, the opening flag), `RemoveAllPeers` returning
   four `R`s per peer, W8 (the raft protocol's `X-PeerURLs` the sender's directory URLs; `Handler`
-  over the live transport); no closed theorem's statement changed, the trust base unchanged but
-  `URLStringAny_ok` restated (`notes/decisions.md`, "D22 J-T"). Open:
+  over the live transport); no closed theorem's statement changed (checked on landing: no
+  definition in the statements' closure of the examples' `Results.lean` theorems changed), the
+  trust base unchanged but `URLStringAny_ok` restated (`notes/decisions.md`, "D22 J-T"). Landing
+  fixes: the snapshot walk's `AddPeer` post (its third part), `NewServer`'s `lgMu` count with J1a's
+  stock and J-T's pool, `common.peerURLsDir_httpURL` over the `""` literals. Open:
   - **S8d of the receiver epochs** (`applySnapshot` past the empty case; S8a-S8c done, section
     "D22 receiver epochs, S8" below): the spec and proof. Done: W1 (`Rm := snapTakenLb`,
     `storage.Release`'s axiom), W5 (`storage.snapOpensOk` with `backend.dbCloseOk`), W6
