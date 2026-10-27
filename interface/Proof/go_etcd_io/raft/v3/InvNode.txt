@@ -143,9 +143,9 @@ def cfgM_countable : Pos.Countable CfgM :=
     cfgM_countable._proof_1
 
 theorem node_propose_ghost [package_sem : Assumptions] (γ : NodeNames) (id : w64) (n : Loc) (data :
-    List w8) (Q : List EntryM → IProp GF) (E : CoPset) (HE1 : ↑raftN ⊆ E) (Hne : data ≠ []) : ⊢
-    isNode γ id n -∗ propArg γ.raft data Q ={E}=∗ propData γ.raft (propEntryM data) ∗ entTk γ.raft
-    (propEntryM data)
+    List w8) (Q : List EntryM → IProp GF) (E : CoPset) (HE1 : ↑(raftN γ.raft) ⊆ E) : ⊢ isNode γ id n
+    -∗ ⌜data = []⌝ ∨ propArg γ.raft (entKey (W32 0) data) Q ={E}=∗ propData γ.raft (propEntryM data)
+    ∗ entTk γ.raft (propEntryM data)
 
 def advN : Namespace :=
   nroot.@"raft_advancec"
@@ -205,8 +205,8 @@ theorem nodeDriverBusy_lb [package_sem : Assumptions] (γ : NodeNames) (id : w64
     L -∗ dlvLb γ ds
 
 theorem node_prop_register [package_sem : Assumptions] (γ : NodeNames) (id : w64) (n : Loc) (d :
-    List w8) (Q : List EntryM → IProp GF) (E : CoPset) (HE1 : ↑raftN ⊆ E) : ⊢ isNode γ id n -∗
-    propFresh γ.raft d ={E}=∗ propIs γ.raft d Q
+    List w8) (Q : List EntryM → IProp GF) (E : CoPset) (HE1 : ↑(raftN γ.raft) ⊆ E) : ⊢ isNode γ id n
+    -∗ propFresh γ.raft d ={E}=∗ propIs γ.raft d Q
 
 theorem netP_local [package_sem : Assumptions] (γ : NodeNames) (id : w64) (ml : Loc) (st : MsgSt)
     (Hty : st.msg.Type' = MsgTransferLeader ∨ st.msg.Type' = MsgForgetLeader ∨ st.msg.Type' =
@@ -220,8 +220,8 @@ theorem isHandshake_isChan {V : Type} [Pos.Countable V] [ZeroVal V] [TypedPoints
     γc V
 
 theorem node_committed_data [package_sem : Assumptions] (γ : NodeNames) (id : w64) (n : Loc) (l :
-    List EntryM) (E : CoPset) (HE : ↑raftN ⊆ E) : ⊢ isNode γ id n -∗ isCommitted γ.raft l ={E}=∗ ∃
-    ods, [∗list] e;o ∈ l;ods, entDataIs γ.raft e o
+    List EntryM) (E : CoPset) (HE : ↑(raftN γ.raft) ⊆ E) : ⊢ isNode γ id n -∗ isCommitted γ.raft l
+    ={E}=∗ ∃ ods, [∗list] e;o ∈ l;ods, entDataIs γ.raft e o
 
 def (sealed) runCfg (γ : NodeNames) (rs : RNState) : IProp GF
 

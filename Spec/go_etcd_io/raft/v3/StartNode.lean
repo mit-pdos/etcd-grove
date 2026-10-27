@@ -25,9 +25,9 @@ peers; dynamically, since 2026-10-25, T-M M2a, `raft_dyn_alloc_boot`, `Protocol/
 every member at `rboot c0 bootLog`, `c0` the peers' configuration, at the configuration index `0`,
 so that the application's re-application of the boot entries through the first `Ready` is the
 dynamic mode's ordinary `ApplyConfChange`). This node takes its `bootInit γ md cv.ID' V bootLog`
-and `isCommitted γ bootLog`, and the log's description `BootLogOk γ.reCCOk ps bootLog` (entry `k`: type
-`1`, term `1`, index `k + 1`, bytes decoding to `AddNode ps[k]`, admitted by the cluster's
-conf-change policy).
+and `isCommitted γ bootLog`, and the log's description `BootLogOk ps bootLog` (entry `k`: type
+`1`, term `1`, index `k + 1`, bytes decoding to `AddNode ps[k]`; until 2026-10-27 also admitted by
+the cluster's conf-change policy, now each a tracked proposal the allocation registered).
 
 **The bytes** (`bootMarshal`, `InvBoot.lean`): `proto.Marshal` of the `k`-th peer's conf change
 returns `bootLog[k]`'s bytes -- protobuf's determinism at these inputs, a trust-boundary fact
@@ -100,7 +100,7 @@ abbrev StartNode.spec : Prop :=
   γ.reCfg = GMap.listToSet ps →
   -- the bootstrap log, the ghost state's
   γ.reBoot = bootLog →
-  BootLogOk γ.reCCOk ps bootLog →
+  BootLogOk ps bootLog →
   -- (D19i part 1) the floor not raised yet: the storage's view, fresh to raft
   σ.fl = W64 0 →
   -- (D22 S-d4, 2026-10-21) the node takes a `MsgSnap` from the network (`NodeNames.snapIn`) only

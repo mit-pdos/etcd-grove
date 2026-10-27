@@ -145,7 +145,7 @@ no witness: `witsB`), in the no-snapshot and no-transfer modes `ns`, `nx` or not
 theorem raft_dyn_alloc_boot (E : CoPset) (dec : CCDec) (c0 : CCState) (h0 : CfgOk c0)
     (ids : GSet w64) (ccOk : w32 → List w8 → Prop) (bootLog : List EntryM)
     (C : RaftNames → IProp GF) (ns nx : Bool) :
-    W64 0 ∉ ids → bootLog ≠ [] → BootWf ccOk bootLog →
+    W64 0 ∉ ids → bootLog ≠ [] → BootWf bootLog →
     ⊢ allocClientGen E c0.cfg.incoming (some (DynCfg.all (DynCfg.ofFold dec c0 h0))) ccOk bootLog C -∗
       |={E}=> ∃ γ : RaftNames,
         ⌜γ.dyn = some (DynCfg.ofFold dec c0 h0) ∧ γ.reCCOk = ccOk ∧ γ.reCfg = c0.cfg.incoming ∧

@@ -11,7 +11,7 @@ theorem RawNode.Propose.wp_proof [package_sem : Assumptions] (wp_raft_Step : raf
         isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
             "Hrn" ∷ ownRawNode γ rn id rs ∗
               "#Hdata" ∷ ownSlice data_sl data DFrac.discard ∗
-                "%Hne" ∷ ⌜data ≠ []⌝ ∗ "#Hent" ∷ propData γ (propEntryM data) ∗ "Htk" ∷ entTk γ (propEntryM data) -∗
+                "#Hent" ∷ propData γ (propEntryM data) ∗ "Htk" ∷ entTk γ (propEntryM data) -∗
           (▷
               ∀ err,
                 "Hrn" ∷ ownRawNode γ rn id rs ∗

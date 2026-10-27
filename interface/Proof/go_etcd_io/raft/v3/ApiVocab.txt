@@ -37,6 +37,14 @@ def sentTypes : List w32 :=
   [MsgProp, MsgApp, MsgAppResp, MsgVote, MsgVoteResp, MsgHeartbeat, MsgHeartbeatResp, MsgReadIndex, MsgReadIndexResp,
     MsgPreVote, MsgPreVoteResp, MsgSnap]
 
+def ccPropArg (γ : RaftNames) (o : ConfChangeIM) : IProp GF :=
+  iprop(∀ bs,
+      ⌜MarshalsConfChange (some o) bs⌝ ={⊤}=∗
+        ⌜Filler (confChangeEntryType (some o)) bs⌝ ∨
+          ∃ Q,
+            propIs γ (entKey (confChangeEntryType (some o)) bs) Q ∗
+              propAu1 γ (entKey (confChangeEntryType (some o)) bs) Q)
+
 def RespType (t : w32) : Prop :=
   t = MsgAppResp ∨ t = MsgVoteResp ∨ t = MsgPreVoteResp
 
@@ -195,9 +203,6 @@ def peersCtx (pv : List Peer) (ctxs : List (List w8)) : IProp GF :=
 
 def readyDq (st : MsgSt) : DFrac :=
   if RespType st.msg.Type' then DFrac.own (Qp.half 1) else DFrac.own 1
-
-def CCAllowed (γ : RaftNames) (o : ConfChangeIM) : Prop :=
-  ∀ (bs : List w8), MarshalsConfChange (some o) bs → γ.reCCOk (confChangeEntryType (some o)) bs
 
 theorem msgDat_pers (γ : RaftNames) (st : MsgSt) : Persistent (msgDat γ st)
 

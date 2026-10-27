@@ -31,7 +31,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- The one-entry batch `[]pb.Entry{{Data: data}}`, then `stepWait`. (Raft v3.7, stage R5: the
 message is `&pb.Message{Type: pb.MsgProp.Enum(), Entries: []*pb.Entry{{Data: data}}}`, its entry
 allocated by the slice literal (`wp_slice_literal_ex`, as `confChangeToMsg`), holding the frozen
-bytes `data_sl ↦*□ data` (D6: `propEntryM data`, `data ≠ []` for `node_propose_ghost`), frozen
+bytes `data_sl ↦*□ data` (D6: `propEntryM data`; `node_propose_ghost`), frozen
 (`entOwn_freeze`); the message owned (`msgIn ml 1`); `MsgProp.Enum()` is a new callee. Stage R7a:
 any `nodeCtx`, the error `propErr`.) -/
 theorem node.Propose.wp_proof
@@ -39,10 +39,11 @@ theorem node.Propose.wp_proof
     (wp_MessageType_Enum : raftpb.MessageType.Enum.spec (GF := GF) (hG := hG)) :
     node.Propose.spec (GF := GF) (hG := hG) := by
   intro γ id n data_sl data Q ctx cd
-  wp_start as ⟨#Hnode, #Hctx, #Hdata, %Hne, Harg⟩
+  wp_start as ⟨#Hnode, #Hctx, #Hdata, Harg⟩
   wp_auto
-  -- the proposal's ghost work (2026-10-10): the update deposited
-  imod node_propose_ghost γ id n data Q ⊤ CoPset.subseteq_top Hne $$ Hnode Harg
+  -- the proposal's ghost work (2026-10-10): the update deposited (2026-10-27: none for an empty
+  -- `data`, a filler)
+  imod node_propose_ghost γ id n data Q ⊤ CoPset.subseteq_top $$ Hnode Harg
     with ⟨#Hent, Htk⟩
   rw [show raftpb.MsgProp = #((W32 2 : raftpb.MessageType)) from rfl]
   haveI : go.NotInterface go.int32 := ⟨by unfold go.int32; trivial⟩

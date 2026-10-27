@@ -283,11 +283,10 @@ structure RaftNames where
   record's, the node-local witnesses) are required. A function of the `GooseExts` instance
   (`DynCfg.all`), since `RaftNames` takes none. -/
   reDyn : Option ((e : GooseExts) → @DynCfg e)
-  /-- The conf-change entries' bytes the cluster admits (2026-10-15, stage N): every conf-change
-  entry's data `bs`, of type `ty`, satisfies `reCCOk ty bs` (`entDataIs`), which
-  `ProposeConfChange` asks of the change it proposes (`CCAllowed`). A client that applies the
-  conf entries with a decoder of the entry alone (a pure `CCDec` cannot read a slice's bytes)
-  pins the changes it may meet here; `fun _ _ => True` admits every change. -/
+  /-- The conf-change entries' bytes the cluster admits (2026-10-15, stage N). Unused since
+  2026-10-27: a conf-change entry is a tracked proposal (`propDataIs`), whose client states what it
+  admits in its own update, so neither the entries' data (`entDataIs`) nor `ProposeConfChange`
+  (`CCAllowed`, gone) mention it any more; only the allocation still sets it. -/
   reCCOk : w32 → List w8 → Prop
   /-- The cluster's bootstrap log (2026-10-16, stage R8b, D12): the entries every member starts
   with, committed from the start (`RawNode.Bootstrap`'s one `EntryConfChange` per peer at term
@@ -991,7 +990,39 @@ What an entry's `Data'` holds, for the updates over the committed log (`propAu1`
 leader's own entry (the empty entry a new leader appends) has no bytes; every other
 entry was proposed, with data whose atomic update was deposited (`deposited`). Since D6
 (stage R4) `Data'` is the bytes themselves; until then it was the slice, and a ghost map of
-proposed slices (`isPropData`, `RaftNames.reSl`) recorded which bytes it held. -/
+proposed slices (`isPropData`, `RaftNames.reSl`) recorded which bytes it held.
+
+Since 2026-10-27 the line is drawn by `Filler`: an entry that carries nothing (empty data, of type
+normal or `ConfChangeV2`) is raft's own and fires the standing `noopAu`; every other entry -- a
+normal entry with bytes, any conf-change entry but an empty `ConfChangeV2`, the bootstrap entries
+included -- is a tracked proposal, keyed in the registry by its type and data (`entKey`), whose own
+update fires (`propAu1`). Until then a conf-change entry was raft's own too, admitted by the
+cluster's policy `reCCOk`. -/
+
+/-- **A filler** (2026-10-27): an entry of type `ty` with data `d` that carries nothing -- no bytes,
+of type `EntryNormal` (`0`) or `EntryConfChangeV2` (`2`). Raft appends these itself: a new leader's
+empty entry (raft.go:961), the auto-leave entry (raft.go:742), the empty normal entry in place of a
+refused conf change (raft.go:1341); a client's empty proposal is one too. Every other entry is a
+tracked proposal (`propDataIs`). -/
+def Filler (ty : w32) (d : List w8) : Prop := d = [] ∧ (ty = W32 0 ∨ ty = W32 2)
+
+instance (ty : w32) (d : List w8) : Decidable (Filler ty d) := by unfold Filler; infer_instance
+
+/-- **The registry key of an entry** of type `ty` with data `d` (2026-10-27): the type's four
+little-endian bytes, then the data. Injective (`entKey_inj`), so that a conf change and a normal
+proposal with the same bytes do not share a slot, and a client recovers both from the key. -/
+def entKey (ty : w32) (d : List w8) : List w8 := u32Le ty ++ d
+
+theorem entKey_inj {ty1 ty2 : w32} {d1 d2 : List w8} (h : entKey ty1 d1 = entKey ty2 d2) :
+    ty1 = ty2 ∧ d1 = d2 := by
+  unfold entKey at h
+  have hl : (u32Le ty1).length = (u32Le ty2).length := by rw [u32Le_length, u32Le_length]
+  obtain ⟨h1, h2⟩ := List.append_inj h hl
+  exact ⟨u32Le_inj h1, h2⟩
+
+/-- A normal entry's bytes decode as its type says: there is nothing to decode. -/
+theorem CCDecodes_normal (d : List w8) : CCDecodes (W32 0) d :=
+  ⟨fun h => absurd h (by decide), fun h => absurd h (by decide)⟩
 
 /-- A registered data's record (2026-10-21): its result predicate's name, its deposits' map's
 name. -/
@@ -1031,22 +1062,23 @@ theorem propTk_set (γ : RaftNames) (d : List w8) (i : w64) :
   iexists p, k, γt
   iframe Hp Hk Hv
 
-/-- The data of entry `e`: `some d` for a normal entry holding the (non-empty, D6) client data
-`d`; `none` for an entry that is not a client operation -- a normal entry with no bytes (a
-leader's own entry, a refused conf change's replacement), or (since 2026-10-13,
-reconfiguration stage D) an entry of another type, whose bytes decode as its type says
-(`CCDecodes`: a conf-change entry's, which `stepLeader` `Unmarshal`s). Only normal entries'
-data are client operations (`propAu1` of their data moves the client's log, `noopAu` the
-others', `GhostState.lean`). Until 2026-10-13 `none` was any entry with the zero slice, and
-every entry was normal.
+/-- The data of entry `e` (2026-10-27): `none` for a filler (`Filler`: raft's own entry, or a
+client's empty proposal), `some k` for every other entry, a tracked proposal registered under its
+key `k = entKey e.Type' e.Data'` (`deposited`). Either way the bytes decode as the type says
+(`CCDecodes`: a conf-change entry's, which `stepLeader` `Unmarshal`s). The standing `noopAu` fires
+at a filler, the proposal's `propAu1 γ k` at any other entry (`GhostState.lean`).
 
-Since 2026-10-19 (D21 M6, D20 (b)) this is the data of an entry in a log (stamped), and a
-client operation's carries the index its proposal was appended at (`propIdx γ d e.Index'`);
-a proposed entry, not yet stamped, has `propDataIs` (what `entDataIs` was until then). -/
+History: until 2026-10-13 every entry was normal and `none` the zero slice; until 2026-10-27 `some d`
+was a normal entry with bytes `d` (the registry keyed by data), and `none` also any conf-change entry
+the cluster's policy admitted (`reCCOk`), so conf changes and the bootstrap entries fired `noopAu`.
+
+Since 2026-10-19 (D21 M6, D20 (b)) this is the data of a proposed entry (not yet stamped);
+`entDataIs` is that of an entry in a log, whose proposal carries the index it was appended at
+(`propIdx γ k e.Index'`). -/
 def propDataIs (γ : RaftNames) (e : EntryM) : Option (List w8) → IProp GF
-  | none => iprop(⌜e.Type' = W32 0 ∧ e.Data' = []⌝ ∨
-      ⌜e.Type' ≠ W32 0 ∧ CCDecodes e.Type' e.Data' ∧ γ.reCCOk e.Type' e.Data'⌝)
-  | some d => iprop(⌜e.Data' = d ∧ d ≠ [] ∧ e.Type' = W32 0⌝ ∗ deposited γ d)
+  | none => iprop(⌜Filler e.Type' e.Data' ∧ CCDecodes e.Type' e.Data'⌝)
+  | some k => iprop(⌜entKey e.Type' e.Data' = k ∧ ¬ Filler e.Type' e.Data' ∧
+      CCDecodes e.Type' e.Data'⌝ ∗ deposited γ k)
 
 def entDataIs (γ : RaftNames) (e : EntryM) : Option (List w8) → IProp GF
   | none => propDataIs γ e none
@@ -1089,12 +1121,10 @@ theorem propDataIs_agree (γ : RaftNames) (e : EntryM) (o1 o2 : Option (List w8)
     ⊢ propDataIs (GF := GF) γ e o1 -∗ propDataIs γ e o2 -∗ ⌜o1 = o2⌝ := by
   cases o1 <;> cases o2 <;> unfold propDataIs
   · iintro _ _; ipureintro; rfl
-  · iintro (%H1 | %H1) ⟨%H2, -⟩
-    · exact absurd (H2.1.symm.trans H1.2) H2.2.1
-    · exact absurd H2.2.2 H1.1
-  · iintro ⟨%H1, -⟩ (%H2 | %H2)
-    · exact absurd (H1.1.symm.trans H2.2) H1.2.1
-    · exact absurd H1.2.2 H2.1
+  · iintro %H1 ⟨%H2, -⟩
+    exact absurd H1.1 H2.2.1
+  · iintro ⟨%H1, -⟩ %H2
+    exact absurd H2.1 H1.2.1
   · iintro ⟨%H1, -⟩ ⟨%H2, -⟩
     ipureintro; rw [← H1.1, ← H2.1]
 
@@ -1131,11 +1161,11 @@ theorem propDataIs_stamp (γ : RaftNames) (e : EntryM) (t i : w64) (o : Option (
     propDataIs (GF := GF) γ { e with Term' := t, Index' := i } o = propDataIs γ e o := by
   cases o <;> rfl
 
-/-- **The ticket a proposed entry carries** (D21 M6): a client operation's (a normal entry with
-bytes), its data's ticket; nothing for any other entry. -/
+/-- **The ticket a proposed entry carries** (D21 M6): a tracked proposal's (2026-10-27: any entry
+but a filler; until then a normal entry with bytes), its key's ticket; nothing for a filler. -/
 def entTk (γ : RaftNames) (e : EntryM) : IProp GF :=
-  if e.Type' = W32 0 ∧ e.Data' ≠ [] then propTk γ e.Data'
-  else iprop(emp)
+  if Filler e.Type' e.Data' then iprop(emp)
+  else propTk γ (entKey e.Type' e.Data')
 
 /-- **The tickets a message carries** (D21 M6): a proposal's, its entries'. -/
 def msgTks (γ : RaftNames) (m : Msg) : IProp GF :=
@@ -1248,9 +1278,8 @@ theorem propData_zero (γ : RaftNames) : ⊢ propData (GF := GF) γ (zero_val En
   unfold propData
   iexists none
   unfold propDataIs
-  ileft
   ipureintro
-  exact ⟨rfl, rfl⟩
+  exact ⟨⟨rfl, Or.inl rfl⟩, CCDecodes_normal _⟩
 
 /-- `stepLeader`'s conf-change loop keeps the entries' data: a kept entry's is its own, a
 replaced one's is the empty normal entry's (2026-10-13). -/
@@ -1288,7 +1317,7 @@ theorem entTk_propRepl (γ : RaftNames) (es es' : List EntryM) (H : PropRepl es 
       · iclear Hx'
         rw [Hz]
         unfold entTk
-        rw [if_neg (by intro h; exact h.2 rfl)]
+        rw [if_pos ⟨rfl, Or.inl rfl⟩]
         iempintro
     · iapply ih $$ Hl
 
@@ -1308,11 +1337,12 @@ theorem propData_stampTk (γ : RaftNames) (e : EntryM) (t i : w64) :
     rw [propDataIs_stamp γ e t i]
     iexact Hd
   | some d =>
-    ihave %Hdd : ⌜e.Data' = d ∧ d ≠ [] ∧ e.Type' = W32 0⌝ $$ [Hd]
+    ihave %Hdd : ⌜entKey e.Type' e.Data' = d ∧ ¬ Filler e.Type' e.Data' ∧
+        CCDecodes e.Type' e.Data'⌝ $$ [Hd]
     · unfold propDataIs; icases Hd with ⟨%H, -⟩; ipureintro; exact H
-    obtain ⟨Hed, Hne, Hty⟩ := Hdd
+    obtain ⟨Hk, Hnf, Hdec⟩ := Hdd
     unfold entTk
-    rw [ite_eq_left_iff.mpr (fun h => absurd ⟨Hty, by rw [Hed]; exact Hne⟩ h), Hed]
+    rw [if_neg Hnf, Hk]
     iunfold propDataIs at Hd
     icases Hd with ⟨-, #Hdep⟩
     imod propTk_set γ d i $$ Htk with #Hi
@@ -1320,7 +1350,7 @@ theorem propData_stampTk (γ : RaftNames) (e : EntryM) (t i : w64) :
     iexists some d
     simp only [entDataIs, propDataIs]
     iframe Hdep Hi
-    ipureintro; exact ⟨trivial, Hne, Hty⟩
+    ipureintro; exact ⟨Hk, Hnf, Hdec⟩
 
 /-- The boot entry `e` of the bootstrap log `L` (2026-10-16, stage R8b, D12), with its
 predecessor's term `pt`: `e` is `L`'s entry at its index (`L[i - 1]`), of term `1`; its

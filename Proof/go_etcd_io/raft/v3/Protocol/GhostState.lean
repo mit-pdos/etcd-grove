@@ -796,11 +796,12 @@ their raft positions (entry `k` of `L` has index `k + 1`). `raftCommitInv` holds
 half of the ghost variable `reRLog`, always at the global committed log; raft cannot move it
 without the client.
 
-What moves it is a deposited **atomic update**: for an entry `e` with the client data `d`
-(`entDataIs γ e (some d)`), the update of the proposal of `d` (`propAu1 γ d Q`, fired at most
-once: a proposal is appended once, its ticket travelling with it); for an entry of raft's own (a
-leader's empty entry, a refused conf change's replacement, a conf-change entry: `entDataIs γ e
-none`), the standing persistent `noopAu γ` the client gave at allocation. Both are fired by the
+What moves it is a deposited **atomic update**: for a tracked entry `e`, registered under the key
+`k` (`entDataIs γ e (some k)`, `k = entKey e.Type' e.Data'`: every entry but a filler, conf changes
+and the bootstrap entries included), the update of its proposal (`propAu1 γ k Q`, fired at most
+once: a proposal is appended once, its ticket travelling with it); for a filler (`Filler`: a
+leader's empty entry, a refused conf change's replacement, an empty proposal or `ConfChangeV2`:
+`entDataIs γ e none`), the standing persistent `noopAu γ` the client gave at allocation. Both are fired by the
 ghost commit (`commit_extend`), at the committed entry, with the log before it; their results are
 persistent (`□ Q L`). The entry is raft's
 choice: the updates bind it with `∀∀` and hand the client its data (`entDataIs`). A read's
@@ -945,8 +946,9 @@ def propAu1 (γ : RaftNames) (d : List w8) (Q : List EntryM → IProp GF) : IPro
                    ⌜uint.Z e.Index' = (L.length : Int) + 1⌝,
                  COMM □ Q L }>)
 
-/-- The standing update for raft's own entries (see the section header): the client gives it
-at allocation (`ownRaftGhost_alloc_gen`); it lives in `raftCommitInv`. -/
+/-- The standing update for the fillers (see the section header; `entDataIs γ e none` is
+`Filler`, since 2026-10-27): the client gives it at allocation (`ownRaftGhost_alloc_gen`); it lives
+in `raftCommitInv`. -/
 def noopAu (γ : RaftNames) : IProp GF :=
   iprop(□ AU <{ ∃∃ (L : List EntryM), rLog γ L }> @ ⊤ \ ↑(raftN γ), ∅
               <{ ∀∀ (e : EntryM), rLog γ (L ++ [e]) ∗ entDataIs γ e none ∗

@@ -921,6 +921,14 @@ private theorem alloc_nodes (γ : RaftNames) (ids : GSet w64) (t : w64) (L : Lis
     · iapply IH (fun h => Hnz (Hsub _ h)) HL HwfL Hlen Hones Ht
         $$ Hinv Hc0 HrL Hv Hm Ha Hc Hl Hw He Hlc Hrq Hcinv Hcr0
 
+/-- The fresh-data tokens `F` with the keys of the entries `L` added (2026-10-27). -/
+def bootFreshFrom (F : GMap (List w8) Unit) (L : List EntryM) : GMap (List w8) Unit :=
+  L.foldl (fun m e => Std.insert m (entKey e.Type' e.Data') ()) F
+
+/-- **The fresh-data tokens a cluster starting at the log `L` has spent** (2026-10-27): the keys
+of its entries, registered at allocation (`boot_register`); `∅` for the empty log. -/
+def bootFresh (L : List EntryM) : GMap (List w8) Unit := bootFreshFrom ∅ L
+
 /-- What the client of a new ghost state is handed before the commit invariant exists
 (2026-10-14, stage R): its half of the full committed log, the authorities of the fresh-data
 tokens and of the fresh read-context tokens, and the empty log's
@@ -936,58 +944,165 @@ def allocClient (E : CoPset) (cfg : GSet w64) (dyn : Option ((e : GooseExts) →
 bootstrap log; `[]` for `allocClient`, `allocClientBoot` is the static instance). Since
 2026-10-18 (item 9, point 7) the continuation also learns the conf-change policy `ccOk`
 (`γ.reCCOk = ccOk`): a client whose standing update admits raft's conf-change entries by the
-policy (the server's, `srvCCPolicy`) needs it before the allocation returns. -/
+policy (the server's, `srvCCPolicy`) needs it before the allocation returns. (Since 2026-10-27
+the policy is unused, `RaftNames.reCCOk`, and the client gets the fresh-data tokens of every key
+but the boot entries', which the allocation registers: `bootFresh L`.) -/
 def allocClientGen (E : CoPset) (cfg : GSet w64) (dyn : Option ((e : GooseExts) → @DynCfg e))
     (ccOk : w32 → List w8 → Prop) (L : List EntryM) (C : RaftNames → IProp GF) : IProp GF :=
   iprop(∀ γ : RaftNames, ⌜γ.reCfg = cfg ∧ γ.reDyn = dyn ∧ γ.reCCOk = ccOk ∧ γ.reBoot = L⌝ -∗
     isCommitted γ L -∗ rLog γ L -∗
-    ghostMapAuth γ.reFresh 1 (∅ : GMap (List w8) Unit) -∗
+    -- (2026-10-27) the fresh-data tokens, but the boot entries' keys (registered: `bootFresh`)
+    ghostMapAuth γ.reFresh 1 (bootFresh L) -∗
     ghostMapAuth γ.reRdFresh 1 (∅ : GMap (List w8) Unit) ={E}=∗ noopAu γ ∗ C γ)
 
 theorem allocClient_gen (E : CoPset) (cfg : GSet w64) (dyn : Option ((e : GooseExts) → @DynCfg e))
     (ccOk : w32 → List w8 → Prop) (C : RaftNames → IProp GF) :
     allocClient (GF := GF) E cfg dyn C ⊢ allocClientGen E cfg dyn ccOk [] C := by
   unfold allocClient allocClientGen
+  rw [show bootFresh ([] : List EntryM) = ∅ from rfl]
   iintro H %γ %Hγ #Hc HrL Hf Hrf
   iapply H $$ %γ %(And.intro Hγ.1 Hγ.2.1) Hc HrL Hf Hrf
 
 /-- What the allocation needs of the log a cluster starts with (2026-10-16, stage R8b):
-`BootLogOk` with the peers forgotten -- entry `k` at term `1` and index `k + 1`, an entry of
-another type than normal whose bytes decode as its type says and are admitted by the policy
-`ccOk` (`RaftNames.reCCOk`, so that `entDataIs e none` holds of it). -/
-def BootWf (ccOk : w32 → List w8 → Prop) (L : List EntryM) : Prop :=
+`BootLogOk` with the peers forgotten -- entry `k` at term `1` and index `k + 1`, a tracked entry
+(2026-10-27: no filler, `Filler`) whose bytes decode as its type says, the entries' keys
+(`entKey`) distinct: each is registered as a proposal of its own (`boot_register`). (Until
+2026-10-27: an entry of another type than normal admitted by the policy `ccOk`, so that
+`entDataIs e none` held of it.) -/
+def BootWf (L : List EntryM) : Prop :=
   (L.length : Int) < 2 ^ 61 ∧
-  ∀ (k : Nat) (e : EntryM), L[k]? = some e →
+  (∀ (k : Nat) (e : EntryM), L[k]? = some e →
     e.Term' = W64 1 ∧ uint.Z e.Index' = (k : Int) + 1 ∧
-    e.Type' ≠ W32 0 ∧ CCDecodes e.Type' e.Data' ∧ ccOk e.Type' e.Data'
+    ¬ Filler e.Type' e.Data' ∧ CCDecodes e.Type' e.Data') ∧
+  (L.map fun e => entKey e.Type' e.Data').Nodup
 
-theorem BootWf_nil (ccOk : w32 → List w8 → Prop) : BootWf ccOk [] :=
-  ⟨by simp, fun _ _ h => by simp at h⟩
+theorem BootWf_nil : BootWf [] :=
+  ⟨by simp, fun _ _ h => by simp at h, List.nodup_nil⟩
 
-theorem BootWf.wf {ccOk : w32 → List w8 → Prop} {L : List EntryM} (H : BootWf ccOk L) :
-    PlogWf base0 L := by
+theorem BootWf.wf {L : List EntryM} (H : BootWf L) : PlogWf base0 L := by
   intro k e Hk
   rw [base0_index]; push_cast
-  have := (H.2 k e Hk).2.1
+  have := (H.2.1 k e Hk).2.1
   omega
 
-theorem BootWf.terms {ccOk : w32 → List w8 → Prop} {L : List EntryM} (H : BootWf ccOk L) :
-    ∀ e ∈ L, e.Term' = W64 1 := by
+theorem BootWf.terms {L : List EntryM} (H : BootWf L) : ∀ e ∈ L, e.Term' = W64 1 := by
   intro e He
   obtain ⟨k, Hk⟩ := List.getElem?_of_mem He
-  exact (H.2 k e Hk).1
+  exact (H.2.1 k e Hk).1
 
-theorem BootWf.data {ccOk : w32 → List w8 → Prop} {L : List EntryM} (H : BootWf ccOk L) :
-    ∀ e ∈ L, e.Type' ≠ W32 0 ∧ CCDecodes e.Type' e.Data' ∧ ccOk e.Type' e.Data' := by
+/-- A boot entry: a tracked entry whose bytes decode, at an index within the log. -/
+theorem BootWf.data {L : List EntryM} (H : BootWf L) :
+    ∀ e ∈ L, ¬ Filler e.Type' e.Data' ∧ CCDecodes e.Type' e.Data' ∧
+      uint.Z e.Index' ≤ (L.length : Int) := by
   intro e He
   obtain ⟨k, Hk⟩ := List.getElem?_of_mem He
-  exact (H.2 k e Hk).2.2
+  obtain ⟨-, Hi, Hnf, Hdec⟩ := H.2.1 k e Hk
+  have := (List.getElem?_eq_some_iff.mp Hk).1
+  exact ⟨Hnf, Hdec, by omega⟩
 
-/-- The data of a log of raft's own entries (no client operation among them), with each
-entry's `entData`. -/
-theorem entsData_none (γ : RaftNames) (L : List EntryM) :
-    ⊢ ⌜∀ e ∈ L, e.Type' ≠ W32 0 ∧ CCDecodes e.Type' e.Data' ∧ γ.reCCOk e.Type' e.Data'⌝ -∗
-      entsData (GF := GF) γ L ∗ [∗list] e ∈ L, entData γ e := by
+/-- **Registering the entries a cluster starts with** (2026-10-27): each entry of `Ls` -- a
+tracked entry whose bytes decode, at an index within the committed log `Lc`, its key fresh -- is
+registered under its key with the trivial result predicate and one deposit, already appended at
+the entry's index (its ticket spent there, `propIdx`), its update never pending: its `entDataIs`
+of its key, its slot in the registry, with its fresh token. -/
+theorem boot_register (γ : RaftNames) (Lc : List EntryM) :
+    ∀ (Ls : List EntryM) (R : GMap (List w8) PropRec) (F : GMap (List w8) Unit),
+    (Ls.map fun e => entKey e.Type' e.Data').Nodup →
+    (∀ e ∈ Ls, ¬ Filler e.Type' e.Data' ∧ CCDecodes e.Type' e.Data' ∧
+      uint.Z e.Index' ≤ (Lc.length : Int) ∧
+      R !! entKey e.Type' e.Data' = none ∧ F !! entKey e.Type' e.Data' = none) →
+    ⊢ ghostMapAuth γ.reProps 1 R -∗ ghostMapAuth γ.reFresh 1 F -∗
+      ([∗map] d ↦ p ∈ R, propSlot (GF := GF) γ d p Lc ∗ propFresh γ d) ==∗
+      ∃ R' : GMap (List w8) PropRec, ghostMapAuth γ.reProps 1 R' ∗
+        ghostMapAuth γ.reFresh 1 (bootFreshFrom F Ls) ∗
+        ([∗map] d ↦ p ∈ R', propSlot γ d p Lc ∗ propFresh γ d) ∗
+        [∗list] e ∈ Ls, entDataIs γ e (some (entKey e.Type' e.Data'))
+  | [], R, F, _, _ => by
+    rw [show bootFreshFrom F [] = F from rfl]
+    iintro Hra Hfa Hs
+    imodintro
+    iexists R
+    iframe Hra Hfa Hs
+    iapply (BigSepL.bigSepL_nil (Φ := fun _ e =>
+      entDataIs (GF := GF) γ e (some (entKey e.Type' e.Data')))).2
+    iempintro
+  | e :: Ls, R, F, Hnd, H => by
+    obtain ⟨Hnf, Hdec, Hidx, HR, HF⟩ := H e (List.mem_cons_self ..)
+    rw [List.map_cons, List.nodup_cons] at Hnd
+    obtain ⟨Hnin, Hnd⟩ := Hnd
+    have Hne : ∀ e' ∈ Ls, entKey e.Type' e.Data' ≠ entKey e'.Type' e'.Data' := by
+      intro e' He' Heq
+      exact Hnin (Heq ▸ List.mem_map_of_mem He')
+    rw [show bootFreshFrom F (e :: Ls) =
+      bootFreshFrom (Std.insert F (entKey e.Type' e.Data') ()) Ls from rfl]
+    iintro Hra Hfa Hs
+    imod saved_pred_alloc (fun _ : List EntryM => iprop(True : IProp GF)) DFrac.discard trivial
+      with ⟨%γq, #Hsp⟩
+    imod dghostVar_alloc (GF := GF) (some e.Index' : Option w64) with ⟨%γt, Hv⟩
+    imod dghostVar_persist γt 1 (some e.Index' : Option w64) $$ Hv with #Hv
+    imod ghost_map_alloc_empty (GF := GF) (K := Nat) (V := GName) with ⟨%γd, HKa⟩
+    imod ghost_map_insert_persist (0 : Nat) γt (GMap.lookup_empty (K := Nat) (V := GName) 0) $$ HKa with ⟨HKa, #Hkf⟩
+    imod ghost_map_insert_persist (entKey e.Type' e.Data') ((γq, γd) : PropRec) HR $$ Hra
+      with ⟨Hra, #Hfrag⟩
+    imod ghost_map_insert (entKey e.Type' e.Data') () HF $$ Hfa with ⟨Hfa, Hfr⟩
+    ihave #He : entDataIs (GF := GF) γ e (some (entKey e.Type' e.Data')) $$ []
+    · simp only [entDataIs, propDataIs]
+      isplitr
+      · isplitr
+        · ipureintro; exact ⟨by trivial, Hnf, Hdec⟩
+        · unfold deposited; iexists ((γq, γd) : PropRec); iexact Hfrag
+      · unfold propIdx
+        iexists ((γq, γd) : PropRec), 0, γt
+        iframe Hfrag Hkf Hv
+    ihave Hslot : propSlot (GF := GF) γ (entKey e.Type' e.Data') ((γq, γd) : PropRec) Lc $$ [HKa]
+    · unfold propSlot propSlotRes
+      isplitr
+      · imodintro
+        iintro %m %e' %_ _
+        unfold qRes
+        iexists (fun _ : List EntryM => iprop(True : IProp GF))
+        iframe Hsp
+        imodintro
+        itrivial
+      iexists Std.insert (∅ : GMap Nat GName) 0 γt
+      iframe HKa
+      iapply (BigSepM.bigSepM_insert (Φ := fun (_k : Nat) (γt : GName) =>
+        depSlot (GF := GF) γ (entKey e.Type' e.Data') γq γt Lc) (GMap.lookup_empty (K := Nat) (V := GName) 0)).2
+      isplitr
+      · unfold depSlot
+        iright
+        iexists e.Index'
+        iframe Hv
+        ipureintro; exact Hidx
+      · iapply (BigSepM.bigSepM_empty (Φ := fun (_k : Nat) (γt : GName) =>
+          depSlot (GF := GF) γ (entKey e.Type' e.Data') γq γt Lc)).2
+        iempintro
+    imod boot_register γ Lc Ls (Std.insert R (entKey e.Type' e.Data') ((γq, γd) : PropRec))
+      (Std.insert F (entKey e.Type' e.Data') ()) Hnd
+      (fun e' He' => by
+        obtain ⟨H1, H2, H3, H4, H5⟩ := H e' (List.mem_cons_of_mem _ He')
+        refine ⟨H1, H2, H3, ?_, ?_⟩
+        · show (<[entKey e.Type' e.Data' := ((γq, γd) : PropRec)]> R) !! _ = none
+          rw [GMap.lookup_insert_ne _ _ (Hne e' He')]; exact H4
+        · show (<[entKey e.Type' e.Data' := ()]> F) !! _ = none
+          rw [GMap.lookup_insert_ne _ _ (Hne e' He')]; exact H5)
+      $$ Hra Hfa [Hs Hslot Hfr] with ⟨%R', Hra, Hfa, Hs, #Hl⟩
+    · iapply (BigSepM.bigSepM_insert (Φ := fun d (p : PropRec) =>
+        iprop(propSlot (GF := GF) γ d p Lc ∗ propFresh γ d)) HR).2
+      iframe Hs Hslot
+      unfold propFresh; iexact Hfr
+    imodintro
+    iexists R'
+    iframe Hra Hfa Hs
+    iapply (BigSepL.bigSepL_cons (Φ := fun _ e =>
+      entDataIs (GF := GF) γ e (some (entKey e.Type' e.Data')))).2
+    iframe He Hl
+
+/-- The data of a log whose entries are registered under their keys, with each entry's
+`entData`. -/
+theorem entsData_keys (γ : RaftNames) (L : List EntryM) :
+    ([∗list] e ∈ L, entDataIs (GF := GF) γ e (some (entKey e.Type' e.Data'))) ⊢
+      entsData γ L ∗ [∗list] e ∈ L, entData γ e := by
   induction L with
   | nil =>
     iintro -
@@ -996,19 +1111,19 @@ theorem entsData_none (γ : RaftNames) (L : List EntryM) :
       iapply (BigSepL2.bigSepL2_nil (Φ := fun _ e o => entDataIs (GF := GF) γ e o)).2; iempintro
     · iapply (BigSepL.bigSepL_nil (Φ := fun _ e => entData (GF := GF) γ e)).2; iempintro
   | cons e L ih =>
-    iintro %H
-    ihave ⟨#Hd, #Hl⟩ := ih $$ %(fun e' h => H e' (List.mem_cons.mpr (Or.inr h)))
-    ihave #He : entDataIs (GF := GF) γ e none $$ []
-    · simp only [entDataIs, propDataIs]; iright; ipureintro; exact H e (List.mem_cons.mpr (Or.inl rfl))
+    iintro #H
+    icases (BigSepL.bigSepL_cons (Φ := fun _ e =>
+      entDataIs (GF := GF) γ e (some (entKey e.Type' e.Data')))).1 $$ H with ⟨#He, #HL⟩
+    ihave ⟨#Hd, #Hl⟩ := ih $$ HL
     isplitr
     · unfold entsData
       icases Hd with ⟨%ods, #Hds⟩
-      iexists none :: ods
+      iexists some (entKey e.Type' e.Data') :: ods
       iapply (BigSepL2.bigSepL2_cons (Φ := fun _ e o => entDataIs (GF := GF) γ e o)).2
       iframe He Hds
     · iapply (BigSepL.bigSepL_cons (Φ := fun _ e => entData (GF := GF) γ e)).2
       isplitr
-      · unfold entData; iexists none; iexact He
+      · unfold entData; iexists some (entKey e.Type' e.Data'); iexact He
       · iexact Hl
 
 /-- **The allocation's core** (2026-10-16, stage R8b, D12): a fresh ghost state for the nodes
@@ -1038,7 +1153,7 @@ theorem ownRaftGhost_alloc_core (E : CoPset) (cfg ids : GSet w64)
     -- (2026-10-14, reconfiguration stage B2) the voters are not empty: `RaftNames.reCfg_ne`
     cfg ≠ ∅ →
     W64 0 ∉ ids →
-    BootWf ccOk L → (L ≠ [] → 1 ≤ uint.Z t) →
+    BootWf L → (L ≠ [] → 1 ≤ uint.Z t) →
     ⊢ allocClientGen E cfg dyn ccOk L C -∗
       |={E}=> ∃ γ : RaftNames, ⌜γ.reCfg = cfg ∧ γ.reDyn = dyn ∧ γ.reCCOk = ccOk ∧ γ.reBoot = L ∧
           γ.reTracked = trk ∧ γ.reNoSnap = ns ∧ γ.reNoXfer = nx ∧ γ.reSnapOkRaw = sok ∧
@@ -1111,12 +1226,22 @@ theorem ownRaftGhost_alloc_core (E : CoPset) (cfg ids : GSet w64)
     ← e15, ← e15', ← e16, ← e17]
   ihave #Hc0 : isCommitted (GF := GF) γ0 L $$ []
   · rw [isCommitted_unseal]; unfold isCommittedDef; iexact Hclb
-  -- the entries' data (the bootstrap log's: conf changes the policy admits), and the records
-  ihave ⟨#Hds, #Hents⟩ := entsData_none γ0 L $$ %(by rw [eCC]; exact HLok.data)
+  -- (2026-10-27) the bootstrap log's entries, registered as proposals already appended; their
+  -- data, and the records
+  imod boot_register γ0 L L ∅ ∅ HLok.2.2
+    (fun e He => by
+      obtain ⟨H1, H2, H3⟩ := HLok.data e He
+      exact ⟨H1, H2, H3, GMap.lookup_empty _, GMap.lookup_empty _⟩)
+    $$ Hpra Hfra [] with ⟨%R0, Hpra, Hfra, Hs0, #Hents0⟩
+  · iapply (BigSepM.bigSepM_empty (Φ := fun d (p : PropRec) =>
+      iprop(propSlot (GF := GF) γ0 d p L ∗ propFresh γ0 d))).2
+    iempintro
+  ihave ⟨#Hds, #Hents⟩ := entsData_keys γ0 L $$ Hents0
   ihave #HrL : logRecs (GF := GF) γ0 base0 L $$ []
   · iapply logRecs_boot_intro γ0 L eB HwfL Hlen Hones $$ Hents
   -- the client's part: its standing update
   iunfold allocClientGen at Hcl
+  iunfold bootFresh at Hcl
   imod Hcl $$ %γ0 [] Hc0 [Hcl2] Hfra Hrfa with ⟨#Hnoop, HCl⟩
   · ipureintro; exact ⟨e0, eD, eCC, eB⟩
   · unfold rLog; iexact Hcl2
@@ -1150,7 +1275,7 @@ theorem ownRaftGhost_alloc_core (E : CoPset) (cfg ids : GSet w64)
       isplitr
       · ipureintro; exact Hx
       · iexact Ha2
-  rw [BigSepM.bigSepM_sep_eq]
+  rw [BigSepM.bigSepM_sep_eq (m := toMap ids)]
   icases Hv2 with ⟨Hv, Hvt⟩
   ihave Htbl : votesTbl (GF := GF) γ0 $$ [Hvt]
   · unfold votesTbl
@@ -1182,16 +1307,14 @@ theorem ownRaftGhost_alloc_core (E : CoPset) (cfg ids : GSet w64)
       iapply (BigSepM.bigSepM_empty).2; iempintro
     unfold logRest
     iframe Hq1 Hds
-  imod inv_alloc (raftRegN γ0) E (regsOwn γ0) $$ [Hq2 Hpra Hrda] with #Hreg
+  imod inv_alloc (raftRegN γ0) E (regsOwn γ0) $$ [Hq2 Hpra Hrda Hs0] with #Hreg
   · inext
     unfold regsOwn regsAt propsOwn readsReg
     iexists L
     iframe Hq2
-    iexists ∅, ∅
-    iframe Hpra Hrda Hnoop
-    isplitl
-    · iapply (BigSepM.bigSepM_empty).2; iempintro
-    · iapply (BigSepM.bigSepM_empty).2; iempintro
+    iexists R0, ∅
+    iframe Hpra Hrda Hnoop Hs0
+    iapply (BigSepM.bigSepM_empty).2; iempintro
   ihave #Hinv' : raftCommitInv (GF := GF) γ0 $$ []
   · unfold raftCommitInv raftLogInv raftRegInv; iframe Hinv Hreg
   imodintro
@@ -1233,7 +1356,7 @@ theorem ownRaftGhost_alloc_gen (E : CoPset) (cfg ids : GSet w64)
   imod ownRaftGhost_alloc_core E cfg ids dyn ccOk [] (W64 0) C none (fun _ h => by cases h)
     false (fun h => by cases h) false (fun h => by cases h) (fun _ _ => True) (fun _ => none)
     (nroot .@ "raft_commit") Hcne Hnz
-    (BootWf_nil _)
+    BootWf_nil
     (fun h => absurd rfl h) $$ Hcl' with ⟨%γ, %Hγ, H⟩
   imodintro
   iexists γ
@@ -1265,7 +1388,7 @@ theorem ownRaftGhost_alloc_snap (E : CoPset) (cfg ids : GSet w64)
   ihave Hcl' := allocClient_gen E cfg none ccOk C $$ Hcl
   imod ownRaftGhost_alloc_core E cfg ids none ccOk [] (W64 0) C none (fun _ h => by cases h)
     false (fun h => by cases h) false (fun h => by cases h) sok (fun _ => none) (nroot .@ "raft_commit") Hcne Hnz
-    (BootWf_nil _)
+    BootWf_nil
     (fun h => absurd rfl h) $$ Hcl' with ⟨%γ, %Hγ, H⟩
   imodintro
   iexists γ
@@ -1284,14 +1407,13 @@ def bootPState (bootLog : List EntryM) : PState :=
 
 /-- The bootstrap log of the peers `ps`, as `Bootstrap` builds it: one entry per peer, entry `k`
 an `EntryConfChange` (type `1`) at term `1` and index `k + 1`, whose bytes decode (`ccDecodeV1`)
-to `AddNode ps[k]` and are admitted by the cluster's policy `ccOk` (`RaftNames.reCCOk`, so that
-`entDataIs e none` holds of it). -/
-def BootLogOk (ccOk : w32 → List w8 → Prop) (ps : List w64) (bootLog : List EntryM) : Prop :=
+to `AddNode ps[k]`. (Until 2026-10-27 also admitted by the cluster's policy `ccOk`, so that
+`entDataIs e none` held of it; each is now a tracked proposal, registered at allocation.) -/
+def BootLogOk (ps : List w64) (bootLog : List EntryM) : Prop :=
   bootLog.length = ps.length ∧ (bootLog.length : Int) < 2 ^ 61 ∧
   ∀ (k : Nat) (e : EntryM), bootLog[k]? = some e →
     e.Term' = W64 1 ∧ uint.Z e.Index' = (k : Int) + 1 ∧ e.Type' = W32 1 ∧
-    (∃ m : ConfChangeM, ccDecodeV1 e.Data' = some m ∧ m.type = W32 0 ∧ ps[k]? = some m.nodeId) ∧
-    ccOk (W32 1) e.Data'
+    (∃ m : ConfChangeM, ccDecodeV1 e.Data' = some m ∧ m.type = W32 0 ∧ ps[k]? = some m.nodeId)
 
 theorem bootPState_eq (bootLog : List EntryM) : bootPState bootLog = initPStateAt (W64 1) bootLog :=
   rfl
@@ -1304,15 +1426,32 @@ private theorem W32_ne (a b : Int) (h0 : 0 ≤ a) (h1 : a < 2 ^ 32) (h0' : 0 ≤
   rw [uint_Z_W32 a h0 h1, uint_Z_W32 b h0' h1'] at this
   exact hne this
 
-/-- What the allocation needs of a bootstrap log. -/
-theorem BootLogOk.wf {ccOk : w32 → List w8 → Prop} {ps : List w64} {bootLog : List EntryM}
-    (H : BootLogOk ccOk ps bootLog) : BootWf ccOk bootLog := by
-  refine ⟨H.2.1, fun k e Hk => ?_⟩
-  obtain ⟨Ht, Hi, Hty, ⟨m, Hm, -, -⟩, Hok⟩ := H.2.2 k e Hk
-  refine ⟨Ht, Hi, by rw [Hty]; exact W32_ne 1 0 (by omega) (by omega) (by omega) (by omega) (by omega),
-    ⟨fun _ => ⟨m, Hm⟩, fun h => absurd (Hty.symm.trans h)
-      (W32_ne 1 2 (by omega) (by omega) (by omega) (by omega) (by omega))⟩, ?_⟩
-  rw [Hty]; exact Hok
+/-- What the allocation needs of a bootstrap log: with distinct peers, distinct entries (an entry's
+bytes decode to its peer's `AddNode`). -/
+theorem BootLogOk.wf {ps : List w64} {bootLog : List EntryM}
+    (H : BootLogOk ps bootLog) (Hnd : ps.Nodup) : BootWf bootLog := by
+  refine ⟨H.2.1, fun k e Hk => ?_, ?_⟩
+  · obtain ⟨Ht, Hi, Hty, ⟨m, Hm, -, -⟩⟩ := H.2.2 k e Hk
+    refine ⟨Ht, Hi, ?_, ⟨fun _ => ⟨m, Hm⟩, fun h => absurd (Hty.symm.trans h)
+      (W32_ne 1 2 (by omega) (by omega) (by omega) (by omega) (by omega))⟩⟩
+    rintro ⟨-, h | h⟩ <;> rw [Hty] at h
+    · exact W32_ne 1 0 (by omega) (by omega) (by omega) (by omega) (by omega) h
+    · exact W32_ne 1 2 (by omega) (by omega) (by omega) (by omega) (by omega) h
+  · rw [List.nodup_iff_eq_of_getElem_eq]
+    intro i j Hi Hj Heq
+    rw [List.length_map] at Hi Hj
+    rw [List.getElem_map, List.getElem_map] at Heq
+    have Hd := (entKey_inj Heq).2
+    obtain ⟨-, -, -, ⟨mi, Hmi, -, Hpi⟩⟩ := H.2.2 i _ (List.getElem?_eq_getElem Hi)
+    obtain ⟨-, -, -, ⟨mj, Hmj, -, Hpj⟩⟩ := H.2.2 j _ (List.getElem?_eq_getElem Hj)
+    rw [Hd, Hmj, Option.some.injEq] at Hmi
+    subst Hmi
+    have Hi' : i < ps.length := by rw [← H.1]; exact Hi
+    have Hj' : j < ps.length := by rw [← H.1]; exact Hj
+    rw [List.getElem?_eq_getElem Hi'] at Hpi
+    rw [List.getElem?_eq_getElem Hj'] at Hpj
+    exact List.nodup_iff_eq_of_getElem_eq.mp Hnd i j Hi' Hj'
+      (Option.some.inj (Hpi.trans Hpj.symm))
 
 /-- `allocClient` for a cluster starting at the bootstrap log: the client's half of the committed
 log and its commit fact are at `bootLog`. -/
@@ -1320,12 +1459,12 @@ def allocClientBoot (E : CoPset) (cfg : GSet w64) (ccOk : w32 → List w8 → Pr
     (bootLog : List EntryM) (C : RaftNames → IProp GF) : IProp GF :=
   iprop(∀ γ : RaftNames, ⌜γ.reCfg = cfg ∧ γ.reDyn = none ∧ γ.reCCOk = ccOk ∧ γ.reBoot = bootLog⌝ -∗
     isCommitted γ bootLog -∗ rLog γ bootLog -∗
-    ghostMapAuth γ.reFresh 1 (∅ : GMap (List w8) Unit) -∗
+    ghostMapAuth γ.reFresh 1 (bootFresh bootLog) -∗
     ghostMapAuth γ.reRdFresh 1 (∅ : GMap (List w8) Unit) ={E}=∗ noopAu γ ∗ C γ)
 
 /-- **The allocation of a new cluster's ghost state** (stage R8b): as `ownRaftGhost_alloc`, in the
 static mode, but every node at `bootPState bootLog` and the committed log `bootLog` from the start
-(`BootLogOk`: the peers' conf-change entries, admitted by `ccOk`); `ownRaftGhost_alloc_core` at
+(`BootLogOk`: the peers' conf-change entries, registered as proposals); `ownRaftGhost_alloc_core` at
 the bootstrap log (2026-10-16, stage R8b). -/
 theorem ownRaftGhost_alloc_boot (E : CoPset) (cfg ids : GSet w64) (ccOk : w32 → List w8 → Prop)
     (ps : List w64) (bootLog : List EntryM) (C : RaftNames → IProp GF)
@@ -1337,7 +1476,9 @@ theorem ownRaftGhost_alloc_boot (E : CoPset) (cfg ids : GSet w64) (ccOk : w32 �
     cfg ≠ ∅ →
     W64 0 ∉ ids →
     cfg = GMap.listToSet ps →
-    BootLogOk ccOk ps bootLog →
+    -- (2026-10-27) distinct peers: distinct boot entries, each registered under its key
+    ps.Nodup →
+    BootLogOk ps bootLog →
     ⊢ allocClientBoot E cfg ccOk bootLog C -∗
       |={E}=> ∃ γ : RaftNames,
         ⌜γ.reCfg = cfg ∧ γ.reDyn = none ∧ γ.reCCOk = ccOk ∧ γ.reBoot = bootLog ∧
@@ -1347,7 +1488,7 @@ theorem ownRaftGhost_alloc_boot (E : CoPset) (cfg ids : GSet w64) (ccOk : w32 �
         ([∗map] id ↦ _u ∈ toMap ids, ownRaftGhost γ id (bootPState bootLog)) ∗
         C γ ∗
         (rdCred γ (2 ^ 64 - 2) ∗ rdCredInv γ) := by
-  intro Hcne Hnz Hcfg Hok
+  intro Hcne Hnz Hcfg Hnd Hok
   have Hbne : bootLog ≠ [] := by
     intro h
     rw [h] at Hok
@@ -1359,7 +1500,7 @@ theorem ownRaftGhost_alloc_boot (E : CoPset) (cfg ids : GSet w64) (ccOk : w32 �
   · unfold allocClientGen allocClientBoot; iexact Hcl
   imod ownRaftGhost_alloc_core E cfg ids none ccOk bootLog (W64 1) C (some cfg)
     (fun T hT => by cases hT; exact ⟨GMap.subseteq_refl _, rfl⟩) ns (fun _ => Hbne) nx (fun _ => Hbne)
-    (fun _ _ => True) sl (nroot .@ "raft_commit") Hcne Hnz Hok.wf
+    (fun _ _ => True) sl (nroot .@ "raft_commit") Hcne Hnz (Hok.wf Hnd)
     (fun _ => by rw [show uint.Z (W64 1) = 1 from rfl]; exact Int.le_refl _)
     $$ Hcl' with ⟨%γ, %Hγ, H⟩
   imodintro

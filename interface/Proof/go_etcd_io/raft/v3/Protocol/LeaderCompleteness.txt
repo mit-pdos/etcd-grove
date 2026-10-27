@@ -17,7 +17,7 @@ theorem camp_last (T : w64) (F0 : List EntryM) : CampOk T F0 → plogTermAt base
 
 theorem fire_one [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (G : List EntryM) (m : Nat) (e : EntryM)
     : PlogWf base0 G → G[m]? = some e → ⊢ logRecs γ base0 G -∗ commitSt γ (List.take m G) ={⊤ \
-    ↑raftN}=∗ commitSt γ (List.take (m + 1) G)
+    ↑(raftN γ)}=∗ commitSt γ (List.take (m + 1) G)
 
 theorem lc_core [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (k : Nat) (T t n : w64) (F : List EntryM)
     (c : w64) (F0 G : List EntryM) : uint.Z T < ↑k → uint.Z t < uint.Z T → PlogWf base0 G →
@@ -30,7 +30,7 @@ theorem rlq_join [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (l1 l2 : List EntryM
 
 theorem commit_extend [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (t n : w64) (G : List EntryM) (ldr :
     w64) : ⊢ raftCommitInv γ -∗ regsOwn γ -∗ cq γ t n G -∗ isLeader γ ldr t -∗ cmtLb γ ldr t n ={⊤ \
-    ↑raftRegN}=∗ regsOwn γ ∗ isCommitted γ (List.take (uint.Z n).toNat G)
+    ↑(raftRegN γ)}=∗ regsOwn γ ∗ isCommitted γ (List.take (uint.Z n).toNat G)
 
 def commitSt [InvGS GF] (γ : RaftNames) (l : List EntryM) : IProp GF :=
   iprop(ownCommitted γ l ∗ entsData γ l ∗ ghostVar γ.reRLog (Qp.half 1) l ∗ regsAt γ l)
@@ -53,7 +53,7 @@ theorem bigSepL_fupd_thread.{u_1} [ReceiptGS GF] [InvGS GF] {A : Type u_1} (E : 
 
 theorem fire_upto_open [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (G : List EntryM) (d m : Nat) :
     PlogWf base0 G → m + d ≤ G.length → ⊢ logRecs γ base0 G -∗ commitSt γ (List.take m G) ={(⊤ \
-    ↑raftRegN) \ ↑raftLogN}=∗ commitSt γ (List.take (m + d) G)
+    ↑(raftRegN γ)) \ ↑(raftLogN γ)}=∗ commitSt γ (List.take (m + d) G)
 
 theorem lc_far_newer [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (T t n : w64) (F : List EntryM) (a :
     w64) (F0 G : List EntryM) (kw tmc : w64) (IH : LcIH γ T) : uint.Z t < uint.Z T → uint.Z tmc <
@@ -67,8 +67,8 @@ theorem entDataIs_deposited [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (e : Entr
     entDataIs γ e (some d) ⊢ deposited γ d
 
 theorem fire_upto [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (G : List EntryM) (d m : Nat) : PlogWf
-    base0 G → m + d ≤ G.length → ⊢ logRecs γ base0 G -∗ commitSt γ (List.take m G) ={⊤ \ ↑raftN}=∗
-    commitSt γ (List.take (m + d) G)
+    base0 G → m + d ≤ G.length → ⊢ logRecs γ base0 G -∗ commitSt γ (List.take m G) ={⊤ \ ↑(raftN
+    γ)}=∗ commitSt γ (List.take (m + d) G)
 
 theorem lc_adj_gen [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (T t n : w64) (F : List EntryM) (c :
     w64) (F0 G : List EntryM) (q V : GSet w64) (IH : LcIH γ T) : uint.Z t < uint.Z T → PlogWf base0
@@ -93,12 +93,12 @@ theorem getElem?_snoc_cases.{u_1} {A : Type u_1} {l : List A} {e e' : A} {m : Na
 
 theorem vote_insert [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (γv : GName) (voted : GMap
     w64 w64) (T c : w64) : γ.reVotes !! id = some γv → voted !! T = none → ⊢ raftCommitInv γ -∗
-    voteJust γ id T c -∗ ghostMapAuth γv (Qp.half 1) voted ={⊤ \ ↑raftRegN}=∗ ghostMapAuth γv
+    voteJust γ id T c -∗ ghostMapAuth γv (Qp.half 1) voted ={⊤ \ ↑(raftRegN γ)}=∗ ghostMapAuth γv
     (Qp.half 1) <[T := c]>voted ∗ T ↪[γv]□ c
 
 theorem readSlot_fire [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (r : GName × List EntryM) (l : List
     EntryM) (e : EntryM) : ⊢ readSlot γ r l -∗ ghostVar γ.reRLog (Qp.half 1) (l ++ [e]) ={⊤ \
-    ↑raftN}=∗ ghostVar γ.reRLog (Qp.half 1) (l ++ [e]) ∗ readSlot γ r (l ++ [e])
+    ↑(raftN γ)}=∗ ghostVar γ.reRLog (Qp.half 1) (l ++ [e]) ∗ readSlot γ r (l ++ [e])
 
 theorem tbl_voter [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (v T c t i : w64) : uint.Z t < uint.Z T
     → 0 < uint.Z i → ⊢ votesTbl γ -∗ isVote γ v T c -∗ isAcked γ v t i -∗ ∃ d Fv Fc, isCamp γ c T Fc
@@ -117,7 +117,7 @@ theorem rlq_split [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (l : List EntryM) :
     (Qp.half 1) l -∗ ghostVar γ.reRLog rlq l ∗ ghostVar γ.reRLog rlq l
 
 theorem win_register [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id T : w64) (c : CfgM) (V : GSet
-    w64) : ⊢ raftCommitInv γ -∗ isWinCore γ id T c V ={⊤ \ ↑raftRegN}=∗ isWin γ id T V
+    w64) : ⊢ raftCommitInv γ -∗ isWinCore γ id T c V ={⊤ \ ↑(raftRegN γ)}=∗ isWin γ id T V
 
 theorem prefix_camp_last (T : w64) (F0 X : List EntryM) : CampOk T F0 → F0 <+: X → plogTermAt base0
     X (W64 (plogLastIndexZ base0 F0)) = some (plogLast base0 F0).term'
@@ -165,4 +165,4 @@ theorem lc_far_older [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (T t : w64) (F :
 
 theorem readsReg_fire [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (l : List EntryM) (e : EntryM) (RR :
     GMap (List w8) (GName × List EntryM)) : ⊢ readsReg γ l RR -∗ ghostVar γ.reRLog (Qp.half 1) (l ++
-    [e]) ={⊤ \ ↑raftN}=∗ ghostVar γ.reRLog (Qp.half 1) (l ++ [e]) ∗ readsReg γ (l ++ [e]) RR
+    [e]) ={⊤ \ ↑(raftN γ)}=∗ ghostVar γ.reRLog (Qp.half 1) (l ++ [e]) ∗ readsReg γ (l ++ [e]) RR

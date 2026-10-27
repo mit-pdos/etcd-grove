@@ -20,8 +20,8 @@ proof that uses one as a lemma rather than taking it as a callee's spec, are
   names, never their bodies -- the node struct's channels, their protocols and the ghost state
   between `run` and the driver. What the client receives or must build is transparent: a
   `Ready`'s data (`readyData`, `readySnapData`, `readyDataL`), a message to step (`stepP`, `netP`,
-  `fwdP`), a proposal (`propArg`), the term budget (`budgetInv`, `termLB`, `tickCred`), the errors
-  (`InvNodeCtx`);
+  `fwdP`), a proposal (`propArg`, `ccPropArg`, keyed by `entKey`), the term budget (`budgetInv`,
+  `termLB`, `tickCred`), the errors (`InvNodeCtx`);
 - `Proof/go_etcd_io/raft/v3/ApiVocab.lean`: the records and predicates of those statements that
   raft's internals also use (`QMsg`, `SnapLoan`, `RNMode`, `RNState`, `NetMsgOk`, `SentMsgOk`,
   `isRaftMsg`, `readyIdx`, `bootInit`, `ConfigValid`, ...);

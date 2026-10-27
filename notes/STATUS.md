@@ -413,6 +413,39 @@ Other notes in use: `notes/snapshot-receiver-epochs.md` (S5's plan),
 
 In status-history.md: the raft v3.7 retarget ("Retargeting raft to v3.7, stage R0" to "stage R8b"), reconfiguration (stages 0, A1-A3, B1-B8, D, L, N), the read index and proposals (stage R, stage F), CheckQuorum and PreVote, the multi-member stages "D21 M0" to "D21 M6", and the witness stages W1-W3b-A and W5.
 
+## Proposals keyed by type and data; fillers only fire `noopAu` (2026-10-27, branch `raft-api`)
+
+For the node API redesign (`Proof/go_etcd_io/raft/v3/NodeApiDraft.lean`), where the client gives an
+update only for entries it requested, raft's proof now tracks every entry but a **filler** as a
+proposal:
+
+- **Fillers.** `Filler ty d`: `d = []`, of type normal (`0`) or `ConfChangeV2` (`2`)
+  (`Protocol/Ghost.lean`). `propDataIs γ e none` is `Filler ∧ CCDecodes`. The decoding conjunct is
+  needed by `propData_ccEnts`; `ccDecodeV2` is opaque, so an empty `ConfChangeV2` is not known to
+  decode. Only fillers fire the standing `noopAu`.
+- **Keys.** The registry's key is `entKey ty d = u32Le ty ++ d`, which is injective (`entKey_inj`).
+  `propDataIs γ e (some k)` is `entKey e.Type' e.Data' = k ∧ ¬Filler ∧ CCDecodes`, with
+  `deposited γ k`. `entTk` is the key's ticket for a non-filler. Every non-filler is tracked:
+  normal entries with bytes, conf changes, the bootstrap entries.
+- **The bootstrap entries** are registered at allocation (`boot_register`, `Protocol/Facts.lean`):
+  - Each is a proposal with the trivial result predicate and one deposit, already appended at its
+    index.
+  - The client gets the fresh-token authority at `bootFresh L` (`allocClientGen`,
+    `allocClientBoot`).
+  - `BootWf L` (no `ccOk` any more) asks for no filler and distinct keys. `BootLogOk ps bootLog`
+    (no `ccOk`) gives them with `ps.Nodup`, a new premise of `ownRaftGhost_alloc_boot`.
+- **Specs:**
+  - `node.Propose`: `⌜data = []⌝ ∨ propArg γ (entKey (W32 0) data) Q`; the old `data ≠ []` is gone.
+  - `node.ProposeConfChange`, `RawNode.ProposeConfChange`: `ccPropArg γ o` (`ApiVocab`) replaces
+    `CCAllowed`. Once `o` is marshaled to `bs`, a `={⊤}=∗` step gives either `Filler` or `propIs ∗
+    propAu1` for `entKey ty bs`. It is deposited by `cc_propose_ghost`. A refused change's ticket is
+    dropped, and its update never fires.
+  - `RawNode.Propose` lost its `data ≠ []`.
+- **`reCCOk` is unused.** It is still a `RaftNames` field set by the allocation. Removing it would
+  ripple through the allocation statements and the clients.
+- **Clients (kv, etcd server) are not updated.** They are expected to break on this branch:
+  `CCAllowed`, `BootLogOk`'s arity, `allocClient*`'s `bootFresh`, and `propArg`'s key.
+
 ## Raft's signature, stage 1: the node API (2026-10-26, branch `raft-modsig`)
 
 `notes/decisions.md`, "Package signatures, enforced by Lean's module system". In short:
