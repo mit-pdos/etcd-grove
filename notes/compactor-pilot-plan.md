@@ -259,9 +259,10 @@ whose invariant contradicts the function; repairs introduce defects.
 | missing laws: `firstSample`'s agreement, `revPermit`'s and `modePermit`'s persistence | added (`firstSample_agree` proved) |
 | coupling (the clock's `Defs` imports `BaseApply`; `Compact`'s spec imports the compactor's `Defs`) | left: a cleanup for the freeze |
 
-**Pending (the user's):** push the fork branch `goose-lean-compactorstart` (`964dccdb4`); then the examples'
-`go.mod` replaces (`examples/go.mod`, `examples/k8setcd3/go.mod`) move to it with `go mod tidy`, which
-`etc/goose.py --check` requires (until then the translation is made with `--src etcd=<local clone>`).
+**The fork fix, landed on the branch:** the user pushed `goose-lean-compactorstart` (`964dccdb4`); the
+examples' `go.mod` replaces moved to it (`v3.0.0-20261027170615-964dccdb4205`, `go mod tidy`);
+`etc/goose.py --check` passes for every project against the pushed pin; the examples build and
+`examples/kv`'s tests pass.
 
 **Step 3 of phase 3 (planned): an easy and a hard proof.** The easy one, `Revision.Run` (the same
 loop shape as `Periodic.Run`, with no window and no clock bound to chain); the hard one,
