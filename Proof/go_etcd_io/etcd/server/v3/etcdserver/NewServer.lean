@@ -1219,7 +1219,7 @@ theorem NewServer.wp_proofM (on : Bool)
   ipersist DataDirS
   ipersist snapshotter
   ipersist beHooks
-  have hMR3 : 2 ^ 29 + 2 ^ 28 + 2 ^ 23 + 200 ≤ Int.toNat sync.rwmutex.actualMaxReaders := by
+  have hMR3 : 2 ^ 29 + 2 ^ 28 + 2 ^ 23 + 2 ^ 22 + 200 ≤ Int.toNat sync.rwmutex.actualMaxReaders := by
     rw [sync.rwmutex.actualMaxReaders_unseal]; decide
   obtain ⟨stp, Hstp, Hstpss⟩ := Hrn15
   ihave HsnapB : srvSnapBoot s cil

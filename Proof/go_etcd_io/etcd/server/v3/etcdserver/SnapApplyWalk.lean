@@ -708,7 +708,7 @@ theorem applySnapshot_walk
         icases replicate_takeN _ 8 _ H8 $$ HR8s with ⟨HR8, HR8s⟩
         wp_apply (hAP γn t c L px.2 mpu (DFrac.own 1) mpus Hne Hpl Hown
             (by rw [hlid]; exact fun h => Hpid h.symm) Hpm) $$ [Htlive Hmpus HR8]
-          as ⟨Htlive, Hmpus⟩
+          as ⟨Htlive, Hmpus, -⟩
         · iframe Htlive Hmpus HR8
         (try wp_auto)
         ihave Hmso : iprop([∗list] p ∈ mps, memberDirIs (GF := GF) dir p.1 p.2)

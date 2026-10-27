@@ -71,7 +71,8 @@ theorem peerURLsDir_httpURL (dir : w64 → List GoString) (id : w64) (host : GoS
   have hpl := (hd.2.2 id _ hm).2
   rw [List.drop_left' (by rfl)] at hpl
   obtain ⟨hne, hb⟩ := types.plainHostPort_noEscape host hpl
-  exact ⟨⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, hne, hb⟩, hm⟩
+  have he : stringToGoString "" = [] := by simp [stringToGoString]
+  exact ⟨⟨rfl, he.symm, rfl, he.symm, he.symm, he.symm, he.symm, rfl, rfl, he.symm, hne, hb⟩, hm⟩
 
 /-- **The URLs of a one-member cluster's member `name`** (`StartServer`'s): its peer URLs
 `[http://peerAddr]`, its client URLs `[http://client]`, the initial cluster's map `{name ↦ _}` and
