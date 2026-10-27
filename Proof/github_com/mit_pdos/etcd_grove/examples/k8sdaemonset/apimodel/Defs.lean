@@ -352,6 +352,16 @@ def graceOk (r : Res) (f : GoFunc) : IProp GF :=
     {{ RET #(graceOf r st dop.GracePeriodSeconds'); objAt x (DFrac.own 1) st ∗
         kd.meta.DeleteOptions.own opts dq dop }})
 
+instance prepareOk_persistent (r : Res) (f : GoFunc) : Persistent (prepareOk (GF := GF) r f) := by
+  unfold prepareOk; infer_instance
+
+instance mutateOk_persistent (r : Res) (mutR : Obj → Obj → Option Obj → Prop) (f : GoFunc) :
+    Persistent (mutateOk (GF := GF) r mutR f) := by
+  unfold mutateOk; infer_instance
+
+instance graceOk_persistent (r : Res) (f : GoFunc) : Persistent (graceOk (GF := GF) r f) := by
+  unfold graceOk; infer_instance
+
 /-! ## What the operations return -/
 
 /-- **What a server write returns** (`create`, `update`: the object, an interface value): as

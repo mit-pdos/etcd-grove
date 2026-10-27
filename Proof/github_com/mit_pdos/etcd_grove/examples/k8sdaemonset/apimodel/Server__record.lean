@@ -61,6 +61,8 @@ theorem Server.record.wp_proof
     wp_auto
     wp_apply (wp_Broadcast L.cond _) $$ Hcond
     iapply HΦ
+    iframe Ho
+    iintro Ho
     unfold tableLocked Table.record applyChange
     simp only
     iexists _, s', _
@@ -88,6 +90,8 @@ theorem Server.record.wp_proof
     wp_auto
     wp_apply (wp_Broadcast L.cond _) $$ Hcond
     iapply HΦ
+    iframe Ho
+    iintro Ho
     unfold tableLocked Table.record applyChange
     simp only
     iexists _, s', _
@@ -115,11 +119,13 @@ theorem Server.record.wp_proof
     wp_auto
     wp_apply (wp_Broadcast L.cond _) $$ Hcond
     iapply HΦ
+    iframe Ho
+    iintro -
     unfold tableLocked Table.record applyChange
     simp only
     iexists _, s', _
     iframe HM Hlog Hsl Hcap
-    isplitl [Hrel Ho]
+    isplitl [Hrel]
     · rw [show (k8s_io.apimachinery.pkg.types.NamespacedName.mk o.meta.Namespace' o.meta.Name') = o.key from rfl]
       iapply objsRel_delete
       iframe
