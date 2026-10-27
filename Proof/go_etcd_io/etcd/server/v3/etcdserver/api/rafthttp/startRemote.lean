@@ -38,7 +38,7 @@ theorem rafthttp.startRemote.wp_proof
   iunfold trFixed at Htr'
   icases Htr' with ⟨%lg, %ls, %ss, %turls, %tuvs, %cid, %r, %ec, %srt, %prt, %drf, %ppr, %spr, #Hlg, %Hlgnn,
     #Hlid, #HtURLs, #Htuvs, #Hcid, #Hr, #Hraft, #Hec, #Hsrt, #Hsrtok, #Hprt, #Hprtok, #Hdrf, #Hls,
-    %Hlsnn, #Hss, %Hssnn, #Hppr, #Hspr, #Hreg, #Hpreg0, #HPfx, %Hmem⟩
+    %Hlsnn, #Hss, %Hssnn, #Hppr, #Hspr, #Hreg, #Hpreg0, #HPfx, %⟨Hmem, Hturls⟩⟩
   have Hpp : Rh.member pid ∧ pid ≠ lid := ⟨Hpm, fun h => Hnp h.symm⟩
   ihave #Hpreg := Hpreg0 $$ %pid %Hpp
   wp_auto
@@ -60,7 +60,9 @@ theorem rafthttp.startRemote.wp_proof
     iframe #
     isplitr
     · ipureintro; exact Hlgnn
-    ipureintro; exact ⟨Hmem, Hnp⟩
+    isplitr
+    · ipureintro; exact ⟨Hmem, Hnp⟩
+    ipureintro; exact Hturls
   (try wp_auto)
   obtain ⟨pl, hpl⟩ : ∃ pl : Loc, pl = «$r0_ptr» := ⟨_, rfl⟩
   subst hpl

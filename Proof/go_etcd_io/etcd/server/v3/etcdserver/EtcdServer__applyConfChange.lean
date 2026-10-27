@@ -112,7 +112,7 @@ local macro "nov3_post" : tactic => `(tactic| (
   simp only [Bool.false_eq_true, ↓reduceIte, dvCCPost, ccMembRes, hst]
   iframe Hpre Hrt Hrc
   iexists γn, c
-  iframe Hfz Htk
+  iframe Hlive
   ipureintro; exact Hcl))
 
 /-- A conf change's `NodeId` field, replaced (`cc.NodeId = new(raft.None)`). -/
@@ -300,7 +300,7 @@ local macro "succ_tail" : tactic => `(tactic| (
     cases hrd : γs.raft.reDyn with
     | none =>
       simp only [ccMembRes, hrd]
-      icases Hmr with ⟨#Hrc, %γn, %c, %Hcl, #Hfz, Htk⟩
+      icases Hmr with ⟨#Hrc, %γn, %c, %Hcl, Hlive⟩
       ihave #HrcG := (membership.isRaftCluster_static cl).1 $$ Hrc
       wp_apply (hAdd cl membership.rcStatic rs.mem _ (DFrac.own 1) (membership.ccMemberAt m) true lgc cid
         ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.membershipBackend.ty, #mbl⟩
@@ -380,7 +380,7 @@ local macro "succ_tail" : tactic => `(tactic| (
         try simp only [ccMembRes, hrd]
         iframe Hrc
         iexists γn, c
-        iframe Hfz Htk
+        iframe Hlive
         ipureintro; exact Hcl
       · wsteps
         rw [decide_eq_false hlid]
@@ -389,8 +389,8 @@ local macro "succ_tail" : tactic => `(tactic| (
             pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp $$ []
         · iPkgInit
         wsteps
-        wp_apply (rafthttp.Transport.AddPeer_frozen γn tl c prs m.nodeId pu (Hpeer hty0 hlid))
-          $$ [Htk] as Htk
+        wp_apply (rafthttp.Transport.AddPeer_known γn tl c prs m.nodeId pu (Hpeer hty0 hlid))
+          $$ [Hlive] as Hlive
         · iframe #; iframe
         wsteps
         ihave Hmh : membership.memberAt («$r0_ptr».[go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext, go!"Member"]) (1 : Qp).half (membership.ccMemberAt m) $$ [ID PeerURLs IsLearner Name ClientURLs Hpus Hcus]
@@ -441,7 +441,7 @@ local macro "succ_tail" : tactic => `(tactic| (
         try simp only [ccMembRes, hrd]
         iframe Hrc
         iexists γn, c
-        iframe Hfz Htk
+        iframe Hlive
         ipureintro; exact Hcl
     | some dynf =>
       simp only [ccMembRes, hrd]
@@ -647,6 +647,7 @@ local macro "succ_tail" : tactic => `(tactic| (
     wsteps
     wp_apply (hRemovePeer γn tl c prs m.nodeId) $$ [Hlive] as Hlive
     · iframe #; iframe
+      iright; iunfold trNoRemOr; ileft; ipureintro; rw [Hcl.2]; simp
     wsteps
     have hcr : ccRest true m rs = ⟨apply.bkPut (apply.bkDel rs.bk go!"members"
         (apply.memberKey m.nodeId)) go!"members_removed" (apply.memberKey m.nodeId)
@@ -821,7 +822,7 @@ theorem EtcdServer.applyConfChange.wp_proof
       simp only [membership.ccMemberAt]
       iframe
     simp only [ccMembRes, hst]
-    icases Hmr with ⟨#Hrc, %γn, %c, %Hcl, #Hfz, Htk⟩
+    icases Hmr with ⟨#Hrc, %γn, %c, %Hcl, Hlive⟩
     ihave #HrcG := (membership.isRaftCluster_static cl).1 $$ Hrc
     wp_apply (hAdd cl membership.rcStatic rs.mem _ (DFrac.own 1) (membership.ccMemberAt m) false lgc cid
       ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.membershipBackend.ty, #mbl⟩
@@ -846,8 +847,8 @@ theorem EtcdServer.applyConfChange.wp_proof
           pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp $$ []
       · iPkgInit
       wp_auto
-      wp_apply (rafthttp.Transport.AddPeer_frozen γn tl c prs m.nodeId pu (Hpeer hty0 hlid))
-        $$ [Htk] as Htk
+      wp_apply (rafthttp.Transport.AddPeer_known γn tl c prs m.nodeId pu (Hpeer hty0 hlid))
+        $$ [Hlive] as Hlive
       · iframe #; iframe
       nov3_post
   · -- with `v3` (`ApplyBoth`)

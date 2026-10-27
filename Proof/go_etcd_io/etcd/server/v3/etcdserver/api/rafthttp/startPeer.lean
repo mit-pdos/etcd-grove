@@ -134,6 +134,9 @@ local macro "sp_reader" cr:term "," ty:term "," rl:term : tactic => `(tactic| (
       iexists lg, t, ps, rcc, pcc, γr, γp
       iframe #
       ipureintro; exact Hlgnn
+    ihave #Hidu : iprop(∃ lidT : w64, t.[rafthttp.Transport, go!"ID"] ↦□ lidT ∗
+        ⌜trURLsOk Rh lidT tuvs⌝) $$ []
+    · iexists lid; iframe #; ipureintro; exact Hturls
     iunfold srCfg
     iexists $rl, pk, t, turls, tuvs, cid, srt, ec
     iframe #
@@ -173,7 +176,7 @@ theorem rafthttp.startPeer.wp_proof
   iunfold trFixed at Htr'
   icases Htr' with ⟨%lg, %ls, %ss, %turls, %tuvs, %cid, %r, %ec, %srt, %prt, %drf, %ppr, %spr, #Hlg, %Hlgnn,
     #Hlid, #HtURLs, #Htuvs, #Hcid, #Hr, #Hraft, #Hec, #Hsrt, #Hsrtok, #Hprt, #Hprtok, #Hdrf, #Hls,
-    %Hlsnn, #Hss, %Hssnn, #Hppr, #Hspr, #Hreg, #Hpreg0, #HPfx, %Hmem⟩
+    %Hlsnn, #Hss, %Hssnn, #Hppr, #Hspr, #Hreg, #Hpreg0, #HPfx, %⟨Hmem, Hturls⟩⟩
   have Hpp : Rh.member pid ∧ pid ≠ lid := ⟨Hpm, fun h => Hnp h.symm⟩
   ihave #Hpreg := Hpreg0 $$ %pid %Hpp
   wp_apply wp_with_defer as %defer defer
@@ -199,7 +202,9 @@ theorem rafthttp.startPeer.wp_proof
     iframe #
     isplitr
     · ipureintro; exact Hlgnn
-    ipureintro; exact ⟨Hmem, Hnp⟩
+    isplitr
+    · ipureintro; exact ⟨Hmem, Hnp⟩
+    ipureintro; exact Hturls
   (try wp_auto)
   obtain ⟨pl, hpl⟩ : ∃ pl : Loc, pl = «$r0_ptr» := ⟨_, rfl⟩
   subst hpl

@@ -37,6 +37,10 @@ structure TrN (GF : BundledGFunctors) where
   γs : GName
   γr : GName
   L : List w64
+  /-- (D22 J-T) the no-remote tokens' map: one token per id of `L` (`trNoRem`). -/
+  γk : GName
+  /-- (D22 J-T) the opening flag (`trUnopened`, `trOpened`). -/
+  γo : GName
 
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -123,7 +127,7 @@ theorem netHttpOk_single (γn : NetNames GF) (lid : w64)
 
 /-- **A started transport `t` of the network `γn`, with the names `c`** (persistent). -/
 def trState (γn : NetNames GF) (t : Loc) (c : TrN GF) : IProp GF :=
-  iprop(trFixed (netRh γn) t c.lid c.γd c.R ∗ trProbers t ∗ trStopInv (netRh γn) c.R c.γs c.L ∗
+  iprop(trFixed (netRh γn) t c.lid c.γd c.R ∗ trProbers t ∗ trStopInv (netRh γn) c.R c.γs c.L c.γk c.γo ∗
     sync.isRWMutexGuard (t.[rafthttp.Transport, go!"mu"])
       (trLockP (netRh γn) t c.lid c.γd c.R c.γs c.γr) ∗
     ∃ (ss : Loc) (Rm : w64 → IProp GF), t.[rafthttp.Transport, go!"Snapshotter"] ↦□ ss ∗
@@ -152,6 +156,26 @@ instance trFrozen_persistent (γn : NetNames GF) (t : Loc) (c : TrN GF) (rs : tr
 def trTok (γn : NetNames GF) (t : Loc) (c : TrN GF) : IProp GF :=
   trReadTok (netRh γn) t c.lid c.γd c.R c.γs c.γr
 
+/-- **The member `f`'s no-remote token** (exclusive; D22 J-T): while held, `f` has no remote
+(`trTok_noRemote`); what `CutPeer` and `MendPeer` take, `RemoveAllPeers` takes back for each
+peer of `L`, and `AddPeer` gives out before the transport is opened. -/
+def trNoRem (c : TrN GF) (f : w64) : IProp GF := trTokAt c.γk f 1
+
+/-- **`f` has no remote** (D22 J-T): `f` is not one of the ids the pool budgets (no remote is ever
+started for it), or its token. -/
+def trNoRemOr (c : TrN GF) (f : w64) : IProp GF := iprop(⌜f ∉ c.L⌝ ∨ trNoRem c f)
+
+/-- **The transport not yet opened** (exclusive, `Start`'s; D22 J-T): no remote has been started,
+so `AddPeer` of an id of the pool gives out its token. -/
+def trUnopened (c : TrN GF) : IProp GF := trUnopenedAt c.γo
+
+/-- **The transport opened** (persistent; D22 J-T): what a remote's start (`AddRemote`, the
+handlers') needs. -/
+def trOpened (c : TrN GF) : IProp GF := trOpenedAt c.γo
+
+instance trOpened_persistent (c : TrN GF) : Persistent (trOpened c) := by
+  unfold trOpened; infer_instance
+
 /-- **The freeze**: a live transport given up for good, with the stop token (D43 M5e). -/
 theorem trLive_freeze (γn : NetNames GF) (t : Loc) (c : TrN GF) (rs : trIds) (E : CoPset) :
     ⊢ trLive γn t c rs ={E}=∗ trFrozen γn t c rs ∗ trFrozenTok c.γr rs := by
@@ -172,13 +196,43 @@ theorem trLive_freeze (γn : NetNames GF) (t : Loc) (c : TrN GF) (rs : trIds) (E
   iunfold trFrozenTok
   iexact Htk
 
+/-- **The no-remote tokens of `L`, allocated** (D22 J-T): `L` without repeats. -/
+theorem trToks_alloc : ∀ (L : List w64), L.Nodup →
+    ⊢ |==> ∃ γk : GName, ghostMapAuth (GF := GF) γk 1 (GMap.listToSet L) ∗
+      [∗list] id ∈ L, trTokAt γk id 1
+  | [], _ => by
+    iintro
+    imod ghost_map_alloc_empty (GF := GF) (K := w64) (V := Unit) with ⟨%γk, Hk⟩
+    imodintro
+    iexists γk
+    iframe
+    iapply BigSepL.bigSepL_nil.2; itrivial
+  | x :: L, hnd => by
+    have hnd' := List.nodup_cons.1 hnd
+    iintro
+    imod (trToks_alloc L hnd'.2) with ⟨%γk, Hk, Hts⟩
+    have hx : (GMap.listToSet L).lookup x = none := by
+      cases h : (GMap.listToSet L).lookup x with
+      | none => rfl
+      | some _ =>
+        exact absurd ((GMap.elem_of_list_to_set x L).1 (by rw [GMap.mem_iff]; simp [h])) hnd'.1
+    imod ghost_map_insert x () hx $$ Hk with ⟨Hk, Ht⟩
+    imodintro
+    iexists γk
+    isplitl [Hk]
+    · rw [show GMap.listToSet (x :: L) = (GMap.listToSet L).insert x () from rfl]
+      iexact Hk
+    iapply BigSepL.bigSepL_cons.2
+    iframe
+    iunfold trTokAt; iexact Ht
+
 /-- The lock's reader tokens are the transport's (`n` kept abstract: the kernel would unfold a
 literal count). -/
 theorem trToks_mk (γn : NetNames GF) (t : Loc) (lid : w64) (γd : GName) (R : IProp GF)
-    (γs γr : GName) (L : List w64) (n : Nat) :
+    (γs γr : GName) (L : List w64) (γk γo : GName) (n : Nat) :
     ([∗list] _x ∈ List.replicate n (), sync.ownRWMutex (t.[rafthttp.Transport, go!"mu"])
       (trLockP (netRh γn) t lid γd R γs γr)) ⊢
-      [∗list] _x ∈ List.replicate n (), trTok γn t ⟨lid, γd, R, γs, γr, L⟩ := by
+      [∗list] _x ∈ List.replicate n (), trTok γn t ⟨lid, γd, R, γs, γr, L, γk, γo⟩ := by
   unfold trTok trReadTok
   exact .rfl
 
@@ -209,7 +263,8 @@ theorem rafthttp.Transport.Start_full
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
         t ↦ tv ∗
         ⌜tv.Logger' ≠ null ∧ tv.ServerStats' ≠ null ∧ tv.LeaderStats' ≠ null ∧
-          tv.mu' = zero_val _root_.Perennial.sync.RWMutex ∧ γn.dir tv.ID' ≠ []⌝ ∗
+          tv.mu' = zero_val _root_.Perennial.sync.RWMutex ∧ γn.dir tv.ID' ≠ [] ∧ L.Nodup ∧
+        trURLsOk (netRh γn) tv.ID' uvs⌝ ∗
         tv.URLs' ↦*□ uvs ∗ □ netRaftOk γn tv.ID' γd R tv.Raft' ∗
         snap.isSnapshotter tv.Snapshotter' ∗
         inv snapDirN (snapDirInv tv.Snapshotter' γd γn.N.img Rm) ∗ netHttpOk γn tv.ID' ∗
@@ -219,11 +274,11 @@ theorem rafthttp.Transport.Start_full
     {{ (err : GoInterface), RET #err;
         ⌜err ≠ GoInterface.nil⌝ ∨
         ⌜err = GoInterface.nil⌝ ∗ ∃ c : TrN GF, ⌜c.lid = tv.ID' ∧ c.γd = γd ∧ c.R = R ∧ c.L = L⌝ ∗
-          trLive γn t c [] ∗
+          trLive γn t c [] ∗ trUnopened c ∗
           [∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), trTok γn t c }} := by
   wp_start_folded as ⟨Ht, %Hpre, #Huvs, #Hraft, #Hss, #Hdir, #Hnet, #Hlsi, Hlsf, HRL⟩
   iStructNamed Ht
-  obtain ⟨Hlgnn, Hssnn, Hlsnn, Hmu0, Hmem⟩ := Hpre
+  obtain ⟨Hlgnn, Hssnn, Hlsnn, Hmu0, Hmem, HLnd, Hturls⟩ := Hpre
   iapply wp_fupd
   wp_apply (rafthttp.Transport.Start_core hNSRT hNRT hNewProber hEvery (raftHttpNet (netRh γn)) t
       tv.TLSInfo' tv.DialTimeout' (DFrac.own 1) (DFrac.own 1) tv.streamRt' tv.pipelineRt'
@@ -246,25 +301,44 @@ theorem rafthttp.Transport.Start_full
   icases (ghostVar_split_half γs 1 _).1 $$ Hgs with ⟨Hgs1, Hgs2⟩
   imod ghostVar_alloc ((([] : List w64) : trIds), false) with ⟨%γr, Hgr⟩
   icases (ghostVar_split_half γr 1 _).1 $$ Hgr with ⟨Hgr1, Hgr2⟩
+  imod (trToks_alloc (GF := GF) L HLnd) with ⟨%γk, Hak, Htks⟩
+  imod dghostVar_alloc (GF := GF) false with ⟨%γo, Hob⟩
+  ihave ⟨Hob1, Hob2⟩ := dghostVar_split γo false (DFrac.own (1 : Qp).half) (DFrac.own (1 : Qp).half)
+    $$ [Hob]
+  · rw [DFrac.op_own, Qp.half_add_half]; iexact Hob
   imod (inv_alloc trStopN ⊤ iprop(∃ (pm' rm' : Loc) (PM : GMap w64 GoInterface)
-      (RM : GMap w64 Loc) (T : List w64), ghostVar γs (1 : Qp).half ((pm', rm', PM, RM, T) : trRec) ∗
+      (RM : GMap w64 Loc) (T : List w64) (b : Bool),
+      ghostVar γs (1 : Qp).half ((pm', rm', PM, RM, T) : trRec) ∗
       ([∗map] id ↦ pi ∈ PM, ∃ p : Loc,
         ⌜pi = interface.mkOk (go.GoType.PointerType rafthttp.peer.ty) #p⌝ ∗
           peerStop (netRh γn) id R p) ∗
-      ([∗map] id ↦ g ∈ RM, remoteStop (netRh γn) id R g) ∗ trPool R L T)) $$ [Hgs2 HRL]
-    with #Hstop
+      ([∗map] id ↦ g ∈ RM, remoteStop (netRh γn) id R g) ∗ trPool R γk rm' PM L T ∗
+      ghostMapAuth γk 1 (GMap.listToSet L) ∗ dghostVar γo (DFrac.own (1 : Qp).half) b ∗
+      ⌜b = false → T = []⌝ ∗ (if b then dghostVar γo DFrac.discard true else iprop(True))))
+    $$ [Hgs2 HRL Hak Htks Hob1] with #Hstop
   · inext
-    iexists pm, rm, ∅, ∅, []
-    iframe Hgs2
+    iexists pm, rm, ∅, ∅, [], false
+    iframe Hgs2 Hak Hob1
     isplitr
     · iapply BigSepM.bigSepM_empty.2; itrivial
     isplitr
     · iapply BigSepM.bigSepM_empty.2; itrivial
-    iunfold trPool
+    isplitl [HRL Htks]
+    · iunfold trPool
+      isplitr
+      · ipureintro; exact ⟨fun _ h => by simp at h, HLnd⟩
+      ihave H := BigSepL.bigSepL_sep_eqv.2 $$ [HRL Htks]
+      · iframe
+      iapply BigSepL.bigSepL_mono_of_forall (Φ := fun _ x => iprop((R ∗ R ∗ R ∗ R) ∗ trTokAt γk x 1))
+        (fun {_ x} => by
+          iintro ⟨⟨H1, H2, H3, H4⟩, Ht⟩; iunfold trPoolE; iright
+          isplitr
+          · ipureintro; simp
+          ileft; iframe) $$ H
     isplitr
-    · ipureintro; intro _ h; simp at h
-    iapply BigSepL.bigSepL_mono_of_forall (Φ := fun _ _ => iprop(R ∗ R ∗ R ∗ R))
-      (fun {_ x} => by iintro H; iunfold trPoolE; iright; iexact H) $$ HRL
+    · ipureintro; intro _; rfl
+    simp only [Bool.false_eq_true, ↓reduceIte]
+    itrivial
   -- the lock
   rw [Hmu0]
   ipersist LeaderStats
@@ -280,7 +354,7 @@ theorem rafthttp.Transport.Start_full
     · iunfold mapOrNil; iright; iexact Hrmm
     isplitr
     · ipureintro
-      refine ⟨fun _ => ⟨Hpmnn, Hrmnn⟩, fun _ id h => by simp at h, fun _ id => by simp⟩
+      refine ⟨fun _ => ⟨Hpmnn, Hrmnn⟩, fun _ id => by simp, fun _ id => by simp⟩
     isplitr
     · imodintro; iunfold peersOk; iapply BigSepM.bigSepM_empty.2; itrivial
     isplitr
@@ -303,7 +377,7 @@ theorem rafthttp.Transport.Start_full
   iright
   isplitr
   · ipureintro; rfl
-  iexists ⟨tv.ID', γd, R, γs, γr, L⟩
+  iexists ⟨tv.ID', γd, R, γs, γr, L, γk, γo⟩
   isplitr
   · ipureintro; exact ⟨rfl, rfl, rfl, rfl⟩
   isplitl [Hgr2]
@@ -317,7 +391,7 @@ theorem rafthttp.Transport.Start_full
         tv.ErrorC', srt, prt, drf, pp, sp
       simp only [netRh]
       iframe #
-      ipureintro; exact ⟨Hlgnn, Hlsnn, Hssnn, Hmem⟩
+      ipureintro; exact ⟨Hlgnn, Hlsnn, Hssnn, Hmem, Hturls⟩
     isplitr
     · iunfold trProbers
       iexists pp, sp
@@ -325,6 +399,8 @@ theorem rafthttp.Transport.Start_full
     isplitr
     · iunfold trStopInv; iexact Hstop
     iframe #
+  isplitl [Hob2]
+  · iunfold trUnopened; iunfold trUnopenedAt; iexact Hob2
   iapply trToks_mk $$ Htoks
 
 end proof

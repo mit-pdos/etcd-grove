@@ -5,10 +5,12 @@ apply-thread resource). Lean-first (no Rocq counterpart).
 `EtcdServer.applyConfChange` writes the cluster's members, raft's configuration and the
 transport's peers. What it needs beyond the apply environment:
 * `ccMembRes γs cl t lid rs`: in raft's static mode the cluster's static instance
-  (`isRaftCluster`) and the frozen transport with its stop token (`trFrozenTok`: not stopped, so
-  `AddPeer` of a known peer returns, `AddPeer_frozen`); in the dynamic mode the live transport
-  (`trLive`, the peers' ids `rs`), the cluster's dynamic instance and the removed map's writer
-  half (`rcRemovedOwn`).
+  (`isRaftCluster`) and (D22 J-T, 2026-10-27: until then frozen, with its stop token) the live
+  transport (`trLive`, the peers' ids `rs`: `AddPeer` of a known peer returns, `AddPeer_known`,
+  and the snapshot path's `RemoveAllPeers` and `AddPeer`s take it); in the dynamic mode the live
+  transport, with no pool (`c.L = []`: no remote is ever started, so `RemovePeer` needs no
+  no-remote token; M8's dynamic `NewServer` is to restate it), the cluster's dynamic instance and
+  the removed map's writer half (`rcRemovedOwn`).
 * `ccPeersAfter v3 m bk rs`: the peers' ids after the change: a `RemoveNode` that passes the
   validation (`ccValidOn`, or no `v3`) removes its node (`transport.RemovePeer`).
 -/
@@ -225,9 +227,9 @@ the transport `t` with the member `lid` and the peers' ids `rs`. -/
 def ccMembRes (γs : ServerRaftNames) (cl t : Loc) (lid : w64) (rs : trIds) : IProp GF :=
   match γs.raft.reDyn with
   | none => iprop(membership.isRaftCluster cl ∗ ∃ (γn : NetNames GF) (c : TrN GF), ⌜c.lid = lid⌝ ∗
-      trFrozen γn t c rs ∗ trFrozenTok c.γr rs)
+      trLive γn t c rs)
   | some _ => iprop(∃ (γn : NetNames GF) (c : TrN GF) (γc : GName) (rm : GMap w64 Bool),
-      ⌜c.lid = lid⌝ ∗ trLive γn t c rs ∗ membership.isRaftClusterG cl (membership.rcDyn γc) ∗
+      ⌜c.lid = lid ∧ c.L = []⌝ ∗ trLive γn t c rs ∗ membership.isRaftClusterG cl (membership.rcDyn γc) ∗
       membership.rcRemovedOwn γc rm)
 
 /-- **The dynamic mode's positional policy** (persistent; D43 M5d, the user's decision: an
@@ -249,7 +251,7 @@ instance srvDynLog_persistent (γs : ServerRaftNames) (lid : w64) :
 /-- **The apply thread's membership resource** (D43 M5d/M5e, the user's (B)) after the applied log
 `A`: the server's fields `applyConfChange` reads (`s.beHooks` with the hooks' facts, `s.r.transport`,
 `s.memberID`, `s.cluster` with its logger and id), the cluster and the transport as it writes them
-(`ccMembRes`: in raft's static mode the frozen transport's stop token), the peers covering the other
+(`ccMembRes`: the live transport), the peers covering the other
 boot members (`srvPeersCover`), the in-memory members among the boot configuration's
 (`srvMemOk`), and the dynamic mode's positional policy (`srvDynLog`). -/
 def srvApRes (s : Loc) (γr : ReadNames) (A : List EntryModel) : IProp GF :=

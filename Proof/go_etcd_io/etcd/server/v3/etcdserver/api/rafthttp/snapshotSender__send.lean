@@ -155,7 +155,7 @@ theorem rafthttp.snapshotSender.send.wp_proof
   iunfold snapSenderOk at Hs'
   icases Hs' with ⟨%tr, %pk, %ps, %r, %ec, %sc, %γs, %lg, %urls, %uvs, %lid, %cid, %rt, %γd, %Rr,
     #Hfrom, #Hto, #Hcid, #Htr, #Hpk, #Hps, #Hr, #Hec, #Hsc, #Hlg, %Hlgnn, #Hurls, #Huvs, #Hrtf,
-    #Hrt, #Hpick, #Hpst, #Hraft, #Hstop, #Hreg, %Hmem⟩
+    #Hrt, #Hpick, #Hpst, #Hraft, #Hstop, #Hreg, %Hmem, %Hturls⟩
   ihave ⟨#HfM, ⟨%tsz, #HfT, %Htsz⟩, %rd, %ri, #HfR, %Hrd, #Hwrap, #Hclose⟩ := hFields m ml rc $$ Hmsg
   ihave Hri : (go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.rafthttpInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
@@ -217,7 +217,7 @@ theorem rafthttp.snapshotSender.send.wp_proof
   · iapply raftProto_req_of_snap _ _ _ rfl rfl
     iunfold snapReq
     ipureintro
-    exact ⟨lid, Hfrom, Hmem.1, by rw [Hu.2]; exact Hmem.2⟩
+    exact ⟨lid, Hfrom.1, Hmem.1, by rw [Hu.2]; exact Hmem.2, peerURLsHdrOk_of Rh lid uvs hdrs Hturls (Hfrom.2 Hturls.1 (fun u hu => (Hturls.2 u hu).1))⟩
   wp_apply hPost Rh s pid req _ γk (snapPre bs) (snapPhi bs (fun t => backend.boltImage t D)) rfl
       Hu.2 $$ [$Hreq $Hstr $Htk] as %err #Herr
   · iframe #

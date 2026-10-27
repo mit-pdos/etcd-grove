@@ -48,7 +48,8 @@ def snapSenderOk (Rh : RaftHttp GF) (pid : w64) (s : Loc) : IProp GF :=
     tr.[rafthttp.Transport, go!"URLs"] ↦□ urls ∗ urls ↦*□ uvs ∗
     tr.[rafthttp.Transport, go!"pipelineRt"] ↦□ rt ∗ http.roundTripperOk (raftHttpNet Rh) rt ∗
     pickerOk pk (peerURL Rh pid) ∗ peerStatusOk ps ∗ netRaftOk Rh.γn lid γd R r ∗
-    ownBroadcastChan sc γs iprop(True) .Unknown ∗ pipeReg Rh pid ∗ ⌜Rh.member lid ∧ lid ≠ pid⌝)
+    ownBroadcastChan sc γs iprop(True) .Unknown ∗ pipeReg Rh pid ∗ ⌜Rh.member lid ∧ lid ≠ pid⌝ ∗
+    ⌜trURLsOk Rh lid uvs⌝)
 
 set_option synthInstance.maxHeartbeats 8000000 in
 set_option synthInstance.maxSize 65536 in

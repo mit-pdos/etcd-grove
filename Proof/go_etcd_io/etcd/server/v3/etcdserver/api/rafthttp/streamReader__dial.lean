@@ -299,9 +299,11 @@ theorem rafthttp.streamReader.dial.wp_proof
   icases Hd with ⟨#Hcfg, %ec, #Herrc⟩
   iunfold srCfg at Hcfg
   icases Hcfg with ⟨%rl, %pk, %tr', %urls, %uvs, %cid, %rt, %ec', #Htyp, -, -, #Hpk, #Hpick,
-    #Htr2, #Hurls, #Huvs, #Hcid, #Hrtf, #Hrt, -, #Hreg, #Hpreg, #HPfx⟩
+    #Htr2, #Hurls, #Huvs, #Hcid, #Hrtf, #Hrt, -, ⟨%lidT, #HtrID, %Hturls⟩, #Hreg, #Hpreg, #HPfx⟩
   icombine Htr Htr2 gives %Htreq
   subst Htreq
+  icombine Hlid HtrID gives %Hlideq
+  subst Hlideq
   ihave Hri : (go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.rafthttpInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hri with ⟨-, -, -, -, -, -, #HIV, #HCM, -, #HMR, -, -, -, -, -, -, -, -, -, #HUS, -⟩
@@ -373,7 +375,7 @@ theorem rafthttp.streamReader.dial.wp_proof
     unfold http.reqRest
     iexact Hrest
   (try wp_auto)
-  wp_apply hSetPeer req _ urls uvs $$ [$Hreq] as ⟨%hs, -, Hreq⟩
+  wp_apply hSetPeer req _ urls uvs $$ [$Hreq] as ⟨%hs, -, %Hpu, Hreq⟩
   · iframe #
   (try wp_auto)
   wp_apply hWithContext req _ (.fixed []) ctx $$ [$Hreq $Hstr] as %req' ⟨Hreq, Hstr⟩
@@ -413,7 +415,8 @@ theorem rafthttp.streamReader.dial.wp_proof
       iexists (γw, ty, lid)
       iframe #
       ipureintro
-      refine ⟨rfl, Hmem, ?_⟩
+      refine ⟨rfl, Hmem, ?_, peerURLsHdrOk_of Rh _ uvs hs Hturls
+        (Hpu Hturls.1 (fun u hu => (Hturls.2 u hu).1))⟩
       show lid ≠ Rh.owner u.Host'
       rw [howner]; exact Hnp
     iunfold pipeReg at Hpreg
