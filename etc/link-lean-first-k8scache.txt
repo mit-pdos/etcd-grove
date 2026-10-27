@@ -1,0 +1,46 @@
+# The functions linked in `Proof/k8s_io/client_go/tools/cache/Link.lean` (all Lean-first), read
+# by `etc/gen-link.py --k8scache`: `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`.
+# client-go's local cache (`k8s.io/client-go/tools/cache`, notes/k8s-daemonset-plan.md phase 2):
+# the store keys and the thread-safe store; the results are in the namespace `k8scache`.
+#
+# the trust boundary: names-only functions (axioms)
+strconv_ParseInt:
+#
+# k8s.io/apimachinery/pkg/util/sets (`Set[T]`'s methods the indices use)
+Set__Insert:
+Set__Delete:
+#
+# the store keys (`object-names.go`, `store.go`)
+ObjectName__String:
+SplitMetaNamespaceKey:
+#
+# the indices (`thread_safe_store.go`'s `storeIndex`)
+storeIndex__addKeyToIndex: Set__Insert
+storeIndex__deleteKeyFromIndex: Set__Delete
+storeIndex__updateSingleIndex: storeIndex__addKeyToIndex storeIndex__deleteKeyFromIndex
+storeIndex__updateIndices: storeIndex__updateSingleIndex
+storeIndex__getKeysByIndex:
+storeIndex__reset:
+#
+# the store's metrics (`informer_metrics.go`, `reflector_metrics.go`, `identity.go`)
+noopMetric__Set:
+InformerNameAndResource__Reserved:
+newStoreMetrics: noopMetric__Set InformerNameAndResource__Reserved
+#
+# the thread-safe store (`thread_safe_store.go`'s `threadSafeMap`)
+rvFromObject:
+parseRVForMetricsWithTruncation: strconv_ParseInt
+threadSafeMap__updateLocked: storeIndex__updateIndices
+threadSafeMap__deleteLocked: storeIndex__updateIndices
+threadSafeMap__Update: rvFromObject parseRVForMetricsWithTruncation threadSafeMap__updateLocked
+threadSafeMap__Add: threadSafeMap__Update
+threadSafeMap__DeleteWithObject: rvFromObject parseRVForMetricsWithTruncation threadSafeMap__deleteLocked
+threadSafeMap__Delete: threadSafeMap__DeleteWithObject
+threadSafeMap__Bookmark: parseRVForMetricsWithTruncation
+threadSafeMap__Replace: parseRVForMetricsWithTruncation storeIndex__reset storeIndex__updateIndices
+threadSafeMap__Get:
+threadSafeMap__List:
+threadSafeMap__ListKeys:
+threadSafeMap__ByIndex: storeIndex__getKeysByIndex
+threadSafeMap__Resync:
+NewThreadSafeStore: newStoreMetrics

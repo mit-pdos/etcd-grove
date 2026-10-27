@@ -52,6 +52,7 @@ usage: etc/gen-link.py --raft > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --common > Proof/github_com/mit_pdos/etcd_grove/examples/common/Link.lean
        etc/gen-link.py --workqueue > Proof/k8s_io/client_go/util/workqueue/Link.lean
        etc/gen-link.py --consistency > Proof/k8s_io/client_go/util/consistency/Link.lean
+       etc/gen-link.py --k8scache > Proof/k8s_io/client_go/tools/cache/Link.lean
 
 `--cache` links the proofs of etcd's `cache` package (`Proof/go_etcd_io/etcd/cache/v3/` and
 the specs and proofs of its functions), which are all
@@ -399,6 +400,13 @@ LEAN_FIRST = {
                       "k8s_io.client_go.util.consistency.Assumptions",
                       "client-go's consistency store's proofs (`k8s.io/client-go/util/consistency`)",
                       [""]),
+    # client-go's local cache (k8s.io/client-go/tools/cache, notes/k8s-daemonset-plan.md phase 2):
+    # the store keys and the thread-safe store, over sets' and the trust boundary of
+    # `strconv.ParseInt`
+    "--k8scache": ("link-lean-first-k8scache.txt",
+                   "k8s_io.client_go.tools.cache k8s_io.apimachinery.pkg.util.sets",
+                   "k8s_io.client_go.tools.cache.Assumptions",
+                   "client-go's local cache's proofs (`k8s.io/client-go/tools/cache`)", [""]),
     "--common": ("link-lean-first-common.txt",
                  "github_com.mit_pdos.etcd_grove.examples.common",
                  "github_com.mit_pdos.etcd_grove.examples.common.Assumptions",
@@ -408,7 +416,7 @@ LEAN_FIRST = {
 NAMESPACED = {"--backend": "backend", "--client": "client", "--concurrency": "concurrency", "--leasing": "leasing", "--recipes": "recipes", "--v3lock": "v3lock", "--v3election": "v3election",
               "--txn": "txn", "--porcupine": "porcupine", "--lintest": "lintest",
               "--lintest-counter": "lintest", "--linkv3p": "linkv3p", "--linkvtxn": "linkvtxn", "--watchkv": "watchkv", "--authkv": "authkv", "--cachekv": "cachekv", "--common": "common", "--k8s": "kubernetes", "--k8s-etcd3": "k8s", "--cacher": "cacher", "--k8setcd3": "k8setcd3", "--apply": "apply", "--v3rpc": "v3rpc", "--read": "read",
-              "--workqueue": "workqueue", "--consistency": "consistency"}
+              "--workqueue": "workqueue", "--consistency": "consistency", "--k8scache": "k8scache"}
 # The Links a mode imports for the callees' results they already define (see "Reuse" above), by
 # their module below `Proof/`, beside those of its `@` callees.
 REUSES = {"--server": ["Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Link"]}

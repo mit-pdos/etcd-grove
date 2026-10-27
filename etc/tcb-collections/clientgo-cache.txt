@@ -1,0 +1,9 @@
+# client-go's local cache (k8s.io/client-go/tools/cache, notes/k8s-daemonset-plan.md phase 2): the
+# store keys and the thread-safe store, every linked result of
+# Proof/k8s_io/client_go/tools/cache/Link.lean.
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/clientgo-cache.txt [--check [--update]]
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots ^Proof/k8s_io/client_go/tools/cache/Link\.lean$
