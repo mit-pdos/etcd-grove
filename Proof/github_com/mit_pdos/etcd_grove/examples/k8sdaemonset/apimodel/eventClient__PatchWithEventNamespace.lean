@@ -1,0 +1,39 @@
+/-
+Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/k8sdaemonset/apimodel/eventClient__PatchWithEventNamespace.lean`. Lean-first.
+-/
+module
+
+public import Spec.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.eventClient__PatchWithEventNamespace
+
+@[expose] public section
+
+set_option linter.unusedSectionVars false
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+namespace apimodel
+
+open Iris Iris.BI Iris.ProofMode
+open github_com.mit_pdos.etcd_grove.examples.k8sdaemonset
+
+section proof
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : apimodel.Assumptions]
+
+theorem eventClient.PatchWithEventNamespace.wp_proof : eventClient.PatchWithEventNamespace.spec (GF := GF) (hG := hG) := by
+  intro c e data
+  wp_start
+  wp_auto
+  iapply HΦ
+  itrivial
+
+end proof
+
+end apimodel
+end EtcdGrove
+end Perennial
