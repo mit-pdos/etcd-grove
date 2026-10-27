@@ -8,6 +8,10 @@
 # `ConfChange.Unmarshal`).
 NewMemoryStorage: @
 MemoryStorage__Snapshot: @
+MemoryStorage__LastIndex: @
+MemoryStorage__FirstIndex: @
+MemoryStorage__Term: @
+MemoryStorage__Entries: @
 MemoryStorage__Append: @
 MemoryStorage__ApplySnapshot: @
 MemoryStorage__CreateSnapshot: @
@@ -75,7 +79,7 @@ kv_deliverable: raftpb_Message__GetType raftpb_Message__GetTerm raftpb_Message__
 kv_transfers__take:
 kv_deliver: kv_deliverable kv_transfers__take node__Step raftpb_Message__GetType raftpb_Message__GetTo proto_CloneSnapshot
 kv_tick: node__Tick
-kv_StartCluster: NewStorage Storage__InitialState Storage__Snapshot kv_New kv_deliver kv_tick kv_quietLogger__Debugf kv_quietLogger__Errorf kv_quietLogger__Infof kv_quietLogger__Warningf RestartNode
+kv_StartCluster: NewStorage Storage__InitialState Storage__Snapshot kv_New kv_deliver kv_tick kv_quietLogger__Debugf kv_quietLogger__Errorf kv_quietLogger__Infof kv_quietLogger__Warningf RestartNode MemoryStorage__LastIndex MemoryStorage__FirstIndex MemoryStorage__Term MemoryStorage__Entries
 # the randomized linearizability test (examples/kv/check.go)
 kv_copyMap:
 kv_within:

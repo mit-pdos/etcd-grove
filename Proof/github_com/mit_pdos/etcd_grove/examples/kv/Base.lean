@@ -462,7 +462,7 @@ def StateEnc (H : List (List w8)) (d : List w8) : Prop :=
     (∀ k, ((kvs.lookup k).getD []) = kvFold H k) ∧
     AnsTab (fun o => ops.lookup o) H
 
-/-- **The key-value cluster's data certificate** (`RaftNames.reSnapOkRaw`, see the section
+/-- **The key-value cluster's data certificate** (the static cluster's `snapOk`, see the section
 header): the data of a snapshot at the end of the committed prefix `L` encodes the replicated
 state of `L`. -/
 def kvSnapOk [GooseExts] (L : List Draft.LogEntry) (d : List w8) : Prop :=

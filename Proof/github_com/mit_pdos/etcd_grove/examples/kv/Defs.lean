@@ -3,49 +3,43 @@ Lean-first (no Rocq counterpart).
 
 # The key-value store's predicates (2026-10-10; 2026-10-14, stage R; the store, 2026-10-19)
 
-## The client-facing state
+## The client-facing state (2026-10-27: over raft's draft API, `NodeApiDraft.lean`)
 
-A cluster of replicas shares raft's ghost state `γr.raft`. The store keeps the client's half
-of raft's full committed log (`rLog γr.raft L`, `Protocol/GhostState.lean`) with its entries'
-data `ods`; the store's history is their client data, first occurrences (`firstOcc ods`),
-and the invariant keeps half of a ghost variable at the history (`rkvInv`); the store's state
-is its fold (`kvFold`, `Base.lean`: every key's value). A client holds `rkvVal γr m`, the other
-half, at a history whose fold is `m` (a ghost variable holds a countable value: the history,
-not the map). `Put`/`Get`/`Append` hand their atomic update over `rkvVal` to `do`, which mints
-the operation and keeps the update in the operation's slot (`opSlot`, with a later credit),
-registers the operation's datum with raft once (`node_prop_register`), and gives every
-`Node.Propose` of it -- a retry of a dropped proposal included -- a new atomic update over raft's
-log that moves the store's log at a committed occurrence of the datum (`kv_propAu`,
-`Lemmas.lean`; raft fires each at most once): at the first, it opens `rkvInv`, runs the client's
-update from the slot and moves the history -- the linearization point; at a later one (a retry,
-a redelivered proposal) only the log moves.
-The result -- the key's value after the operation -- stays in the slot until the client
-collects it with its ticket (`kv_collect`). The standing update for raft's own entries is the
-store's too (`kv_noopAu`, given at allocation).
+A cluster of replicas shares raft's cluster `γr.cluster`, in the store's namespace `kvRaftN` (the
+caller's, for the draft API). The store's invariant (`rkvInv`) owns raft's committed requested
+entries (`Draft.ownCommittedOps`: every entry the store asked for that committed, raft's fillers
+left out), and the store's history is their data, first occurrences (`logHist`, `Base.lean`); the
+invariant keeps half of a ghost variable at the history, and the store's state is its fold
+(`kvFold`: every key's value). A client holds `rkvVal γr m`, the other half, at a history whose
+fold is `m`. `Put`/`Get`/`Append` hand their atomic update over `rkvVal` to `do`, which mints the
+operation and keeps the update in the operation's slot (`opSlot`, with a later credit), and gives
+every `Node.Propose` of it -- a retry of a dropped proposal included -- a new atomic update over the
+committed requested entries (`kv_propAu`, `Lemmas.lean`; raft fires each at most once): the history
+moves by the datum, and at its first occurrence the update runs the client's from the slot -- the
+linearization point. The result -- the key's value after the operation -- stays in the slot until
+the client collects it with its ticket (`kv_collect`). Raft's own entries (fillers) leave the
+committed requested entries alone, so the store gives no update for them.
 
-## Fresh data
+## Minting
 
-`Node.Propose` wants a fresh token (`propFresh`) for an operation's first proposal. The
-store mints one per operation, keyed by the operation's `(replica, seq)`
-(`MintOk`): `rkvInv` holds the authority of raft's fresh-token map (`reFresh`), each
-replica's last sequence number (`seq`, the replica's element under its lock), and the
-persistent record of each minted operation (`mint`): every token is of a minted
-operation, and every minted `(i, s)` has `s` at most replica `i`'s last sequence number.
-So a new sequence number mints a token nobody had, and a datum with a token is the one
-minted at its key. Every datum in the log was minted (only the store's updates move it),
-so a new operation's datum is not in the history and its slot starts pending.
-
-A read (2026-10-13, `Read`) mints its context the same way, from the same sequence numbers,
-with a fresh token of raft's read registry (`reRdFresh`, 2026-10-14, stage R; `MintOk`'s third
-clause): a deposited context with a minted key is the one minted there (`kv_read_minted`).
+The store mints each operation's datum, and each read's context, at the operation's `(replica,
+seq)` (`MintOk`): the invariant holds each replica's last sequence number (`seq`, the replica's
+element under its lock) and the persistent record of each minted datum (`mint`); every committed
+datum, every slot's datum and every read context used (`Draft.ownReadCtxs`, also the invariant's)
+was minted (only the store's updates move the committed requested entries). So a new sequence
+number mints a datum nobody had: not in the history (its slot starts pending), not a used read
+context (`Draft.readCtx_commit` takes it). A datum or a read state's context with a minted key is
+the one minted there (`kv_committed_minted`, `kv_read_minted`: a read state's context was
+committed, `Draft.readStateOk_used`).
 
 ## Lower bounds on the history
 
-`kvLb γr L` (persistent): the store's history has the prefix `L`: `L`
-is the client data of a committed log (`firstOcc` of its entries' data). Every committed
-log is a prefix of raft's, whose client data is the history, so `L` is a prefix of the
-history; and conversely the history now is such an `L` (`kvLb_current`). `Read` takes
-one at its call and returns its key's value after a longer one (`readP`).
+`kvLb γr L` (persistent): the store's history has the prefix `L`: `L` is the history of a
+committed log (`Draft.isCommittedLogLb`), whose requested entries are a prefix of the store's
+(`Draft.ownCommittedOps_lb_prefix`); and conversely the history now is such an `L`
+(`kvLb_current`). `Read` takes one at its call and returns its key's value after a longer one: it
+commits its context, once, to the read seeing the requested entries of `L`'s log
+(`kv_mint_read`, `kv_readAu`), and a read state of it gives that back (`Draft.readStateOk_ctx`).
 
 ## A replica
 
@@ -57,17 +51,16 @@ which the replica's applier sends the key's value after the operation, with wher
 operation's entry first is in a committed log (`waitP`); and (2026-10-13) the reads waiting
 for their answer (`readsOwn`): each a handoff channel for the read context minted at `(id,
 seq)`, on which the applier sends a read index of the context with its key's value after a
-committed log at least that long (`readAns`; 2026-10-14, stage R: the read's record comes
-with its deposit, inside `Node.ReadIndex`, after the waiter is made, and the reader turns the
-answer into `readP`). The applier's own state -- the store's map, the applied-encodings
+committed log at least that long (`readAns`; the reader, which committed the context, turns it
+into a value after its lower bound). The applier's own state -- the store's map, the applied-encodings
 table, and the committed prefix it applied (`runOwn`) -- is the `run` goroutine's alone
 (only `apply` and `answer` touch those fields, holding the lock for the waiters).
 
-## Raft v3.7 (2026-10-16, stage R6b)
+## Raft's `Ready`s
 
-The entries of the logs are the model's records (`EntryM`, `Proof/go_etcd_io/raft/v3/PbModel.lean`:
-what the getters of a `*pb.Entry` return), as raft's ghost state has them since the retarget; the
-`Ready`'s messages are owned pointers (`sendSpec`); a `ReadState`'s context is its bytes (`rsOk`).
+The entries of a `Ready` are the model's records (`EntryM`, what the getters of a `*pb.Entry`
+return) of the draft's log entries (`Draft.LogEntry.toEntryM`); its messages are owned pointers,
+sent (`sendSpec`, `Draft.sentMsg`); a `ReadState`'s context is its bytes (`rsOk`).
 
 ## The storage
 

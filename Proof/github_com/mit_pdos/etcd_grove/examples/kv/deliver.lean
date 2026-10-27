@@ -61,7 +61,7 @@ theorem snapOpt_null_none (dq : DFrac) (s : Option SnapshotM) (h : s = none) :
 set_option hygiene false in
 /-- The tail of an iteration that steps the wire's copy of the message `q` into its node `n`:
 the copy's struct built from `m`'s fields' loads (`iNamed`), the appended entries slice and
-(D22 S-r) the snapshot's clone `snc` (`Hsnc`), owned (`msgPtsC_of_struct`), made `stepP`
+(D22 S-r) the snapshot's clone `snc` (`Hsnc`), owned (`msgPtsC_of_struct`), made `Draft.stepIn`
 (`Draft.stepIn_intro`, `deliverable_step`), `Node.Step`. Expects the tick credit `Htc`, the
 message's credits `Hc1`, `Hmok`, `HisNode`, and the loop's `Hk1`. -/
 local macro "deliver_tail " snc:term : tactic =>

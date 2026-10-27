@@ -1,10 +1,9 @@
 /- Lean-first (no Rocq counterpart).
 
-`New(id, node, storage, send)` (kv.go:96): replica `id` on its running node (the
-driver's token at the empty committed log) and its storage; it starts `run`. Since
-2026-10-21 (D22 S-r; from stage N, 2026-10-15, in raft's dynamic mode of the cluster's conf changes,
-`KVCC`) the node is in raft's static mode (`KVStat`: no conf change admitted), with the driver's
-view of its configuration (`nodeCfg`), which `run` keeps. The replica's
+`New(id, node, storage, send)` (kv.go:96): replica `id` on its running node (the driver's token
+idle at its start on the store's storage) of the store's static cluster (`Draft.isStaticCluster`,
+2026-10-27: raft's draft API; until then raft's static mode, `KVStat`), and its storage; it starts
+`run`. The replica's
 seq token (`id ↪[γr.seq] 0`, from the cluster's allocation) starts its sequence numbers. (D22
 S-r, 2026-10-21) And what `run` holds of the storage to install and take snapshots (`runStor`: its
 snapshot token at the fresh storage, its certificate registry, its voters).

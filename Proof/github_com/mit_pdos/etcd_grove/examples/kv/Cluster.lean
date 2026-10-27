@@ -11,10 +11,10 @@ raft's `Node`, connected in process by `deliver`, each node driven by a `tick` g
   methods return (`quietLogger.{Debugf,Errorf,Infof,Warningf}`), which is raft's
   `isLogger` (`qLogger_isLogger`).
 * **The transport** (`deliverable`, `deliver`): `Ready` says of each of its messages only
-  that it was legitimately sent (`isRaftMsg`) and of a term within the budget (`termLB`);
-  `Node.Step` takes more (`stepP`: the type, the target, a nonzero term and sender but for a
-  forwarded read-index request (unstamped), its entries owned, a `MsgReadIndex`'s read
-  credit and (2026-10-13) a `MsgTimeoutNow`'s tick credit). The transport checks in Go what
+  that it was sent (`Draft.sentMsg`), with its credits (`Draft.msgCredits`); `Node.Step` takes
+  more (`Draft.stepIn`, `Draft.stepIn_intro`: the type, the target, a nonzero term and sender but
+  for a forwarded read-index request (unstamped), its entries owned, and a `MsgTimeoutNow`'s tick
+  credit). The transport checks in Go what
   it can (`Deliverable`: the type, a sender other than the target, a term (none on a
   forwarded read-index request), a nil context but on a heartbeat, its response or a vote
   request, and (2026-10-13) no entries on a `MsgTimeoutNow`), routes by `To` (so the target
@@ -30,12 +30,12 @@ raft's `Node`, connected in process by `deliver`, each node driven by a `tick` g
   `Entries` nor hand it to `Step`: `deliver` steps the wire's copy of every message instead.
 * **The transfer budget** (`isTransfers`, 2026-10-13): a `MsgTimeoutNow` makes its target
   campaign at once, one term past its own or the message's, so `Node.Step` takes it with a
-  tick credit of the term budget (`netP`). The transport holds `timeouts` of them in a
+  tick credit (`Draft.tickCredit`). The transport holds `timeouts` of them in a
   mutex-protected counter (`transfers`, `transfersInv`: one credit per count) and passes a
   `MsgTimeoutNow` on only while one is left (`transfers.take`), as `tick` bounds a node's
   ticks; `Main` allocates them with the budget.
 * **The peers** (`kvPeerOk`): the node a peer table maps an id to is that id's, of the
-  cluster's raft ghost state and term budget (persistent).
+  cluster (persistent).
 -/
 module
 

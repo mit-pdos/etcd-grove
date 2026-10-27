@@ -7,30 +7,34 @@ states Go values whose contexts hold their bytes (`readStatesPts_rsOk`), its har
 `proto.Unmarshal` into a fresh `pb.ConfChange`, applied by pointer (`ownConfChange_persist`:
 `node.ApplyConfChange` reads it on raft's goroutine).
 
+**Raft's draft API (2026-10-27).** A `Ready` comes through `Draft.node.readyRecv`: its committed
+entries (`Draft.committedEntriesAt`, normal ones in the store's static cluster,
+`Draft.isStaticCluster_normal`, so the conf-change branch is dead), its read states, and the rest
+(`Draft.readyRest`): the entries to persist, the messages, and the snapshot part (`Draft.readySnap`),
+in the storage contract's vocabulary.
+
 **Snapshots (D22 S-r, 2026-10-21).** The loop holds the storage's snapshot token at the
 application's view `σt` (`runStor`, destructured once), whose snapshot is at `snapIndex`, at most
-the applied index, which is now exactly the length of the committed log applied (`readyIdx`
-bounds it below `2^64`). A `Ready` comes with or without a snapshot (`readyDataL_split`, the loan
-`L`); the two meet after `if rd.Snapshot != nil` (`wp_join`) at the committed log applied `D0`
-(the snapshot's prefix, or the log as before), the storage's token, and the right to append the
-`Ready`'s entries with the receipt `Advance` takes (`advReceipt`):
+the applied index, which is exactly the length of the committed log applied (the `Ready`'s indices'
+bound keeps it below `2^64`). A `Ready` comes with or without a snapshot (the loan `L`); the two meet
+after `if rd.Snapshot != nil` (`wp_join`) at the committed log applied `D0`, the storage's token,
+and the right to append the `Ready`'s entries with the receipt `Advance` takes (`advReceipt`):
 
-* with a snapshot: its data certificate (`readyOut`'s certificate in the storage's registry, read
-  through `memCertInv`) says that the data encodes the replicated state of a committed prefix as
-  long as the snapshot's index, which is the loan's committed log (`isCommitted_agree`); its
-  decoded maps (`decodeState`) are `runOwn`'s at that log (`maps_of_stateEnc`), which `install`
-  puts in place, answering this replica's waiters among the snapshot's operations; the storage
-  installs it (`ApplySnapshot`, newer than the application's snapshot: `snapIndex` is at most the
-  applied index, below the snapshot's), then takes the entries after it (`memStorage_handout`,
+* with a snapshot: its certificate (`Draft.snapshotCert_data`) says that the data encodes the
+  replicated state of a committed log as long as the snapshot's index, which is the one the
+  `Ready` hands out (`Draft.isCommittedLogLb_agree`); its decoded maps (`decodeState`) are
+  `runOwn`'s at that log (`maps_of_stateEnc`), which `install` puts in place, answering this
+  replica's waiters among the snapshot's operations; the storage installs it (`ApplySnapshot`, its
+  registry's certificate from `readyOut`), then takes the entries after it (`memStorage_handout`,
   `memStorage_absorb`), the receipt `snapReceipt`;
 * without one: as before (`appendRight`, `appendReceipt`).
 
 After `Advance`, every `snapEvery` applied entries (never right after a snapshot `Ready`: it
 applies nothing), the replica takes a snapshot of its state at the applied index: the floor's
-witness (`reqWit`, `kvStorFloor_at`) bounds the index, the data is `encodeState`'s
-(`stateEnc_intro`), the configuration the cluster's voters (`Storage.voters`, `raftSnapCert_static`),
-both certificates registered at any term (`memCert_registerAny`); then `Compact`s to `snapMargin`
-below it. `reconf` stays `false`: in the static mode no committed entry is a conf change.
+witness (`Advance`'s, `kvStorFloor_at`) bounds the index, the data is `encodeState`'s
+(`stateEnc_intro`), the configuration the cluster's voters (`Storage.voters`); it is certified
+(`Draft.snapshotCert_static`) and registered at any term (`Draft.storageCert_registerAny`); then
+`Compact`s to `snapMargin` below it. `reconf` stays `false`: no committed entry is a conf change.
 -/
 module
 

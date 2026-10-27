@@ -37,7 +37,10 @@ module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.Storage__Snapshot
 public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.Storage__InitialState
-public import Proof.go_etcd_io.raft.v3.Linked
+public import Spec.go_etcd_io.raft.v3.MemoryStorage__LastIndex
+public import Spec.go_etcd_io.raft.v3.MemoryStorage__FirstIndex
+public import Spec.go_etcd_io.raft.v3.MemoryStorage__Term
+public import Spec.go_etcd_io.raft.v3.MemoryStorage__Entries
 
 @[expose] public section
 
@@ -49,7 +52,6 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 
-open RaftLink
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
@@ -173,6 +175,10 @@ theorem kvStorCertLink_intro (γ : Draft.Cluster) (N : Namespace) (s ms : Loc) (
 /-- **The store's storage is a raft `Storage`.** -/
 theorem kvStorage_isStorage
     (wp_Snapshot : kv.Storage.Snapshot.spec (GF := GF) (hG := hG))
+    (wp_LastIndex : MemoryStorage.LastIndex.spec (GF := GF) (hG := hG))
+    (wp_FirstIndex : MemoryStorage.FirstIndex.spec (GF := GF) (hG := hG))
+    (wp_Term : MemoryStorage.Term.spec (GF := GF) (hG := hG))
+    (wp_Entries : MemoryStorage.Entries.spec (GF := GF) (hG := hG))
     (s ms : Loc) (γs : MemStorNames) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kv -∗
       kvStorRec (GF := GF) s ms γs -∗ isStorage (kvStorIface s) := by
@@ -192,7 +198,7 @@ theorem kvStorage_isStorage
     ihave ⟨#Hinit, Hown⟩ := ownMemoryStorage_init ms γs σ $$ Hown
     wp_method_call
     wp_auto
-    wp_apply MemoryStorage.wp_LastIndex $$ [$Hown] as %li ⟨%Hli, Hown⟩
+    wp_apply wp_LastIndex $$ [$Hown] as %li ⟨%Hli, Hown⟩
     · ipureintro; exact Hpn
     iapply HΦ
     ihave Hown := kvOwnStorage_intro s ms γs σ $$ Hrec Hown
@@ -206,7 +212,7 @@ theorem kvStorage_isStorage
     ihave ⟨#Hinit, Hown⟩ := ownMemoryStorage_init ms γs σ $$ Hown
     wp_method_call
     wp_auto
-    wp_apply MemoryStorage.wp_FirstIndex $$ [$Hown] as %fi ⟨%Hfi, #Hcut, Hown⟩
+    wp_apply wp_FirstIndex $$ [$Hown] as %fi ⟨%Hfi, #Hcut, Hown⟩
     iapply HΦ
     ihave Hown := kvOwnStorage_intro s ms γs σ $$ Hrec Hown
     iframe Hown
@@ -223,7 +229,7 @@ theorem kvStorage_isStorage
     ihave ⟨#Hinit, Hown⟩ := ownMemoryStorage_init ms γs σ $$ Hown
     wp_method_call
     wp_auto
-    wp_apply MemoryStorage.wp_Term ms γs σ i0 ec $$ [$Hown $Hec] as %t %err ⟨Ht, Hown⟩
+    wp_apply wp_Term ms γs σ i0 ec $$ [$Hown $Hec] as %t %err ⟨Ht, Hown⟩
     · ipureintro; exact ⟨Hr, Hpf⟩
     iapply HΦ
     ihave Hown := kvOwnStorage_intro s ms γs σ $$ Hrec Hown
@@ -242,7 +248,7 @@ theorem kvStorage_isStorage
     ihave ⟨#Hinit, Hown⟩ := ownMemoryStorage_init ms γs σ $$ Hown
     wp_method_call
     wp_auto
-    wp_apply MemoryStorage.wp_Entries ms γs σ lo hi maxSize ec $$ [$Hown $Hec]
+    wp_apply wp_Entries ms γs σ lo hi maxSize ec $$ [$Hown $Hec]
       as %sl %es %err Hres
     · ipureintro; exact ⟨Hr, Hpf⟩
     iapply HΦ $$ %sl %es %err

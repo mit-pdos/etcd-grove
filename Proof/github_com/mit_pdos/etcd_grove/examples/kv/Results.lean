@@ -117,7 +117,8 @@ theorem kv_NewStorage : kv.NewStorage.spec (GF := GF) (hG := hG) :=
 theorem kv_storage_isStorage (s ms : Loc) (γs : MemStorNames) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kv -∗
       kvStorRec (GF := GF) s ms γs -∗ isStorage (kvStorIface s) :=
-  kvStorage_isStorage kv.Storage.wp_Snapshot s ms γs
+  kvStorage_isStorage kv.Storage.wp_Snapshot MemoryStorage.wp_LastIndex MemoryStorage.wp_FirstIndex
+    MemoryStorage.wp_Term MemoryStorage.wp_Entries s ms γs
 
 /-- ... and its `InitialState` is a fresh empty hard state and the voters' conf state, read-only
 for good, as `RestartNode` asks of its storage (raft v3.7: `RestartNode.spec`'s premise). -/

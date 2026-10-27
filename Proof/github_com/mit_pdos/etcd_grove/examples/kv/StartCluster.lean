@@ -2,12 +2,10 @@
 Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/kv/StartCluster.lean`. Lean-first (no
 Rocq counterpart).
 
-The cluster bring-up of the register's `Main` (until 2026-10-19), at any storage registry
-(`[KVStor GF]`): raft's ghost state for the voters `1, 2, 3` (2026-10-21, D22 S-r: in the static
-mode, admitting no configuration change, `ownRaftGhost_alloc_snap`; from stage N until then in the
-dynamic mode of the cluster's one change, `RemoveMember(3)`) with the
-store's invariant (`rkvInv_alloc`, which gives the client's half at the empty store), the term
-budget, then a first loop over the voters (`NewStorage`, `RestartNode` into `peers` and
+The cluster bring-up of the store's `Main`, at any storage registry (`[KVStor GF]`): raft's
+static cluster of the voters `1, 2, 3` (2026-10-27: raft's draft API, `Draft.cluster_alloc_static`,
+with the term budget; until then `ownRaftGhost_alloc_snap` and `budget_alloc`) with the store's
+invariant (`rkvInv_alloc`, which gives the client's half at the empty store), then a first loop over the voters (`NewStorage`, `RestartNode` into `peers` and
 `storages`), the transfer budget and the `send` closure (`deliver`), and a second loop that
 starts each replica (`New`), appends it to `kvs` and forks its `tick`.
 
@@ -145,7 +143,7 @@ theorem clusterIds_size : 1 < GMap.size (GMap.listToSet clusterIds) := by
   intro k
   rw [listToSet_constMap, constMap_lookup_isSome]
 
-/-- The cluster has a voter (what `ownRaftGhost_alloc` asks). -/
+/-- The cluster has a voter. -/
 theorem clusterIds_ne : GMap.listToSet clusterIds ≠ ∅ := by
   intro h
   have := clusterIds_size
@@ -210,7 +208,11 @@ theorem StartCluster.wp_proof
     (wp_Errorf : quietLogger.Errorf.spec (GF := GF) (hG := hG))
     (wp_Infof : quietLogger.Infof.spec (GF := GF) (hG := hG))
     (wp_Warningf : quietLogger.Warningf.spec (GF := GF) (hG := hG))
-    (wp_RestartNode : Draft.RestartNode.spec (GF := GF) (hG := hG)) :
+    (wp_RestartNode : Draft.RestartNode.spec (GF := GF) (hG := hG))
+    (wp_LastIndex : MemoryStorage.LastIndex.spec (GF := GF) (hG := hG))
+    (wp_FirstIndex : MemoryStorage.FirstIndex.spec (GF := GF) (hG := hG))
+    (wp_Term : MemoryStorage.Term.spec (GF := GF) (hG := hG))
+    (wp_Entries : MemoryStorage.Entries.spec (GF := GF) (hG := hG)) :
     StartCluster.spec (GF := GF) (hG := hG) := by
   intro vsl Hrb
   wp_start as ⟨#HstorInv, #Hvsl⟩
@@ -279,7 +281,8 @@ theorem StartCluster.wp_proof
     rw [drop_cons_of_getElem? _ _ _ Hid0]
     icases Htodo with ⟨⟨Hboot, Hseq⟩, Htodo⟩
     ihave #Hlogger := qLogger_isLogger wp_Debugf wp_Errorf wp_Infof wp_Warningf
-    ihave #Hstor := kvStorage_isStorage wp_Snapshot st ms γs $$ Hpkg Hrec
+    ihave #Hstor := kvStorage_isStorage wp_Snapshot wp_LastIndex wp_FirstIndex wp_Term wp_Entries st
+      ms γs $$ Hpkg Hrec
     ihave #Hinit := kvStorage_initialState wp_InitialState st _ clusterIds memStorEmpty
       $$ Hpkg Hvoters Hvsl
     have Hiface : kvStorIface st = GoInterface.ok ⟨go.GoType.PointerType rStorageTy, #st⟩ := rfl
