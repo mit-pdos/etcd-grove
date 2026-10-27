@@ -56,16 +56,16 @@ theorem Main.wp_proof
     (wp_NewClient : common.NewClient.spec (GF := GF) (hG := hG))
     (wp_Check : Check.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS CRE CEC N id bootLog clients ops Hbf Htb Hrb48 HrbN Hck Haf Hbuq Hdbo Hms hAs
+  intro CS CRE CEC N id ctxs boot clients ops Hbf Htb Hrb48 HrbN Hck Haf Hbuq Hdbo Hms hAs
     H0 H31 Hops Hmul
   wp_start as ⟨Haddr, Htok, #Hprem⟩
   iunfold premises at Hprem
-  icases Hprem with ⟨#Hboot, #Hzap, #Hsetlg, #Htd, #Hns, #Htk, #Hstop, #Hnrl⟩
+  icases Hprem with ⟨#Hboot, #Hmarsh, #Hzap, #Hsetlg, #Htd, #Hns, #Htk, #Hstop, #Hnrl⟩
   -- `Main`'s premises in the shared start's form
-  ihave #Hb := common.bootPremise_of N [id] bootLog (linkvtxnDir id) go!"linkvtxn" go!"linkvtxn"
-      (common.urls1 go!"linkvtxn" go!"127.0.0.1:23806" go!"127.0.0.1:23796") id cfgOk urlsOk (putget.ccOk id)
+  ihave #Hb := common.bootPremise_of N [id] (Draft.LogEntry.toEntries boot 0) ctxs (linkvtxnDir id) go!"linkvtxn" go!"linkvtxn"
+      (common.urls1 go!"linkvtxn" go!"127.0.0.1:23806" go!"127.0.0.1:23796") id cfgOk urlsOk
       (fun _ h => by obtain ⟨h1, h2, h3, h4, h5, h6⟩ := h; exact ⟨h1, by rw [h2]; rfl, h3, h4, h5, h6⟩)
-      (fun _ h => by obtain ⟨h1, h2, h3, h4⟩ := h; exact ⟨h1, h2, h3, h4⟩) rfl $$ Hboot
+      (fun _ h => by obtain ⟨h1, h2, h3, h4⟩ := h; exact ⟨h1, h2, h3, h4⟩) $$ Hboot
   ihave #Hcom : common.commonPremises (GF := GF) $$ []
   · iunfold common.commonPremises; iframe #
   -- `context`'s `closedchan`, from its package's fact
@@ -88,17 +88,20 @@ theorem Main.wp_proof
   wp_apply wp_NewNop as %lg %Hlg
   (try wp_auto)
   -- the ghost state `NewServer` takes (`alloc1`)
-  imod (common.alloc1 id bootLog Hbf.idLow Hbf.boot (linkvtxnDir id) (dirOne_member id _) (by omega))
-    with ⟨%γ, %bud, %ρ, %E₀, %Φs, %γn, %Hal, Hmb, #Hnet, Hetcd⟩
-  obtain ⟨hcfg, hdyn, hcc, hboot, htr, htx, hγn1, hγn2, hlog⟩ := Hal
-  have hblen : bootLog.length ≤ 2 ^ 60 := by rw [Hbf.boot.1]; simp
+  imod (common.alloc1 id ctxs boot Hbf.idLow Hbf.boot Hbf.cc (linkvtxnDir id) (dirOne_member id _)
+      (by omega) (by omega)) $$ Hmarsh
+    with ⟨%γ, %ρ, %E₀, %Φs, %γn, %Hal, Hmb, #Hnet, Hetcd⟩
+  obtain ⟨hvs, hdyn, hboot, hγn1, hγn2, hlog⟩ := Hal
+  have hblen : (Draft.LogEntry.toEntries boot 0).length ≤ 2 ^ 60 := by
+    have hblen0 : boot.length = 1 := by rw [Hbf.boot.1]; rfl
+    simp [Draft.LogEntry.toEntries, hblen0]
   -- `StartServer("linkvtxn", "127.0.0.1:23806", clientAddr, lg)`
   -- (2026-10-24, rafthttp stage 6d) the one-member directory is well formed
   have Hdirok : netDirOk (linkvtxnDir id) :=
     dirOne_ok id _ (by intro h; apply Hbf.idLow; rw [h]; decide) (by decide)
-  wp_apply (wp_StartServer N go!"linkvtxn" go!"127.0.0.1:23806" go!"127.0.0.1:23796" lg bootLog
-      (linkvtxnDir id) id γ bud ρ E₀ Φs γn Htb Hrb48 HrbN hcfg
-      hdyn hcc hboot htr htx hblen hγn1 hγn2 Hdirok Hlg Hck Haf Hbuq Hdbo) $$ [Htok Hmb]
+  wp_apply (wp_StartServer N go!"linkvtxn" go!"127.0.0.1:23806" go!"127.0.0.1:23796" lg (Draft.LogEntry.toEntries boot 0) ctxs
+      (linkvtxnDir id) id γ ρ E₀ Φs γn Htb Hrb48 HrbN hvs
+      hdyn hboot hblen hγn1 hγn2 Hdirok Hlg Hck Haf Hbuq Hdbo) $$ [Htok Hmb]
     as %srv %err Hr
   · iframe; iframe #
   icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, Hup⟩)
@@ -162,7 +165,7 @@ theorem Main.wp_proof
     intro a ha; simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at ha
     subst ha; exact Hnr
   -- the instance's invariant, at the server's start store (empty)
-  imod (linkvInv_alloc_boot ρ.rd.kv hlog (putget.ccOk id) [id] bootLog Hbf.boot ⊤) $$ Hetcd
+  imod (linkvInv_alloc_boot ρ.rd.kv hlog (fun _ _ => True) [id] (Draft.LogEntry.toEntries boot 0) (srvBootLogOk_of_BootLog _ _ _ Hbf.boot) ⊤) $$ Hetcd
     with ⟨%γl, #Hlinv, Hst⟩
   -- `Check(cli, clients, ops, 0)`
   wp_apply (wp_Check γl cl go!"127.0.0.1:23796" _ E ρ.rd cid mid clients ops (W64 0) hAs

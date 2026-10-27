@@ -53,7 +53,7 @@ theorem alloc1 (id : w64) (ctxs : List (List w8)) (boot : List Draft.LogEntry)
       ⌜γ.vs = [id] ∧ γ.dyn = false ∧ γ.boot = Draft.LogEntry.toEntries boot 0 ∧
         γn.N = srvNet γ ∧ γn.dir = dir ∧ ρ.rd.kv.log0 = [[], []]⌝ ∗
       memberBoot γ ctxs ρ E₀ Φs id ∗ netHttpOk γn id ∗
-      etcdKV ρ.rd.kv (kvModelSt ρ.rd.kv (bootEntries γ.boot)) := by
+      etcdKV ρ.rd.kv (kvModelSt ρ.rd.kv (bootEntries (Draft.LogEntry.toEntries boot 0))) := by
   iintro #Hmarsh
   imod newServerNames_alloc (GF := GF) with ⟨%idx, %cok, %rev, Hidx, Hcok, Hrev⟩
   -- the member's storage registry, its `bootstrap`'s to join
@@ -85,7 +85,7 @@ theorem alloc1 (id : w64) (ctxs : List (List w8)) (boot : List Draft.LogEntry)
   simp only [env₀]
   rw [hiss', hcnt, hraft, hiss, hvs, hreg]
   rw [← srvPropMint_congr _ γk.ids ρ.ids (by rw [hiss', hiss])]
-  rw [etcdKV_congr ρ.rd.kv γk hst,
+  rw [← hboot, etcdKV_congr ρ.rd.kv γk hst,
     show kvModelSt ρ.rd.kv (bootEntries γ.boot) = kvModelSt γk (bootEntries γ.boot) by
       unfold kvModelSt kvLeases kvModel; rw [hc0', hch', hlog']]
   iframe Hnb Hsrl Hcl Hpm Hrc Hsh HrdC Hidx Hcok Hrev Hnk Hkvρ Hwt Hetcd Hsd Hreg

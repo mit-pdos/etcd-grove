@@ -118,14 +118,15 @@ theorem putget_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [log.NewModel]
     (Hctx : ∀ hG : HeapGS .hasLC putgetGF, ContextReadErrs (GF := putgetGF) (hG := heapAt hG lctx))
     (Hcec : ∀ hG : HeapGS .hasLC putgetGF, ContextErrsClient (GF := putgetGF) (hG := heapAt hG lctx))
-    (id : w64) (bootLog : List EntryM) (Hbf : putget.BootFacts id bootLog)
+    (id : w64) (ctxs : List (List w8)) (boot : List Draft.LogEntry)
+    (Hbf : putget.BootFacts id ctxs boot)
     (Hck : ckptEffectsOk) (Haf : authRecordsFit)
     (Hbuq : apply.backendUnderQuota) (Hdbo : storage.dbOpensOk)
     (HNs : prometheus.namesUnclaimed putgetProgram putgetNames)
     (HAs : addrsUnclaimed putgetProgram [go!"127.0.0.1:23790"])
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC putgetGF,
-      ⊢ putget.premises (GF := putgetGF) (hG := heapAt hG lctx) n id bootLog)
+      ⊢ putget.premises (GF := putgetGF) (hG := heapAt hG lctx) n id ctxs boot)
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
@@ -146,7 +147,7 @@ theorem putget_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   ihave #Hprem' := Hprem hG
   iintro #Hinit Htok ⟨Has, -⟩
   icases BigSepL.bigSepL_cons.1 $$ Has with ⟨Haddr, -⟩
-  have hM := putget.wp_Main (GF := putgetGF) n id bootLog Hbf (by rw [HT]; omega)
+  have hM := putget.wp_Main (GF := putgetGF) n id ctxs boot Hbf (by rw [HT]; omega)
     (by rw [HN]; omega) (by rw [HN]; omega) Hck Haf Hbuq Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
   wp_apply hM $$ [Haddr Htok]
   · iframe; iframe #

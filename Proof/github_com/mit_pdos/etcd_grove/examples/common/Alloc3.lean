@@ -155,20 +155,19 @@ theorem alloc3 (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (boot : List Dr
     -- (2026-10-24, rafthttp stage 6d) the program start's HTTP rights of the peer addresses
     ⊢ bootMarshal (GF := GF) [id₁, id₂, id₃] ctxs (Draft.LogEntry.toEntries boot 0) -∗
       httpProtoFree (GF := GF) a₁ -∗ httpProtoFree (GF := GF) a₂ -∗ httpProtoFree (GF := GF) a₃ ={⊤}=∗
-      ∃ (γ₁ γ₂ γ₃ : SrvRaft) (ρ₁ ρ₂ ρ₃ : ReqNames)
+      ∃ (γ : SrvRaft) (reg₁ reg₂ reg₃ : GName) (ρ₁ ρ₂ ρ₃ : ReqNames)
         (E₁ E₂ E₃ : apply.AEnv GF) (Φs : w64 → w64 → List w8 → GName → IProp GF)
         (γn : NetNames GF),
-      ⌜(∀ γ ∈ [γ₁, γ₂, γ₃], γ.vs = [id₁, id₂, id₃] ∧ γ.dyn = false ∧
-          γ.boot = Draft.LogEntry.toEntries boot 0 ∧ γn.N = srvNet γ) ∧
-        γn.dir = dir ∧ ρ₁.rd.kv.log0 = [[], []] ∧
+      ⌜γ.vs = [id₁, id₂, id₃] ∧ γ.dyn = false ∧ γ.boot = Draft.LogEntry.toEntries boot 0 ∧
+        γn.N = srvNet γ ∧ γn.dir = dir ∧ ρ₁.rd.kv.log0 = [[], []] ∧
         ρ₂.rd.kv.st = ρ₁.rd.kv.st ∧ ρ₃.rd.kv.st = ρ₁.rd.kv.st ∧
         kvModel ρ₂.rd.kv = kvModel ρ₁.rd.kv ∧ kvModel ρ₃.rd.kv = kvModel ρ₁.rd.kv ∧
         ρ₂.rd.kv.log0 = [[], []] ∧ ρ₃.rd.kv.log0 = [[], []]⌝ ∗
-      memberBoot γ₁ ctxs ρ₁ E₁ Φs id₁ ∗
+      memberBoot { γ with reg := reg₁ } ctxs ρ₁ E₁ Φs id₁ ∗
       (netHttpOk γn id₁ ∗ http.httpProtoOwn a₁ (raftProto (netRh γn))) ∗
-      memberBoot γ₂ ctxs ρ₂ E₂ Φs id₂ ∗
+      memberBoot { γ with reg := reg₂ } ctxs ρ₂ E₂ Φs id₂ ∗
       (netHttpOk γn id₂ ∗ http.httpProtoOwn a₂ (raftProto (netRh γn))) ∗
-      memberBoot γ₃ ctxs ρ₃ E₃ Φs id₃ ∗
+      memberBoot { γ with reg := reg₃ } ctxs ρ₃ E₃ Φs id₃ ∗
       (netHttpOk γn id₃ ∗ http.httpProtoOwn a₃ (raftProto (netRh γn))) ∗
       etcdKV ρ₁.rd.kv (kvModelSt ρ₁.rd.kv (bootEntries (Draft.LogEntry.toEntries boot 0))) := by
   obtain ⟨hn12, hn13, hn23⟩ := id_ne id₁ id₂ id₃ Hlow Hlow0
@@ -221,19 +220,16 @@ theorem alloc3 (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (boot : List Dr
   obtain ⟨hst₂, hc0₂, hch₂, hlog₂⟩ := Hρ₂
   obtain ⟨hst₃, hc0₃, hch₃, hlog₃⟩ := Hρ₃
   imodintro
-  iexists { γ with reg := reg₁ }, { γ with reg := reg₂ }, { γ with reg := reg₃ }, ρ₁, ρ₂, ρ₃,
+  iexists γ, reg₁, reg₂, reg₃, ρ₁, ρ₂, ρ₃,
     env₀ idx₁ cok₁ rev₁, env₀ idx₂ cok₂ rev₂, env₀ idx₃ cok₃ rev₃, Φs, γn
   iframe Hb₁ Hb₂ Hb₃ Hs₁ Hs₂ Hs₃ Ho₁ Ho₂ Ho₃
   isplitr
   · ipureintro
-    refine ⟨?_, Hγn.2, by rw [hlog₁, hlog],
+    refine ⟨hvs, hdyn, hboot, Hγn.1, Hγn.2, by rw [hlog₁, hlog],
       by rw [hst₂, hst₁], by rw [hst₃, hst₁],
       by funext B; unfold kvModel; rw [hc0₂, hch₂, hlog₂, hc0₁, hch₁, hlog₁],
       by funext B; unfold kvModel; rw [hc0₃, hch₃, hlog₃, hc0₁, hch₁, hlog₁],
       by rw [hlog₂, hlog], by rw [hlog₃, hlog]⟩
-    intro γ' hγ'
-    simp only [List.mem_cons, List.not_mem_nil, or_false] at hγ'
-    rcases hγ' with h | h | h <;> subst h <;> exact ⟨hvs, hdyn, hboot, by rw [Hγn.1]; rfl⟩
   rw [← hboot]
   rw [etcdKV_congr ρ₁.rd.kv γk hst₁,
     show kvModelSt ρ₁.rd.kv (bootEntries γ.boot) = kvModelSt γk (bootEntries γ.boot) by

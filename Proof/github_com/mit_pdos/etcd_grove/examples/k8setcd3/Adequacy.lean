@@ -114,7 +114,8 @@ theorem k8setcd3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     [log.NewModel]
     (Hctx : ∀ hG : HeapGS .hasLC k8setcd3GF, ContextReadErrs (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx))
-    (id : w64) (bootLog : List EntryM) (Hbf : putget.BootFacts id bootLog)
+    (id : w64) (ctxs : List (List w8)) (boot : List Draft.LogEntry)
+    (Hbf : putget.BootFacts id ctxs boot)
     (Hck : ckptEffectsOk) (Haf : authRecordsFit)
     (Hbuq : apply.backendUnderQuota) (Hdbo : storage.dbOpensOk)
     (clients ops : w64)
@@ -124,7 +125,7 @@ theorem k8setcd3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (HAs : addrsUnclaimed (k8setcd3Program clients ops) [go!"127.0.0.1:23896"])
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC k8setcd3GF,
-      ⊢ k8setcd3.premises (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx) n id bootLog)
+      ⊢ k8setcd3.premises (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx) n id ctxs boot)
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
@@ -178,7 +179,7 @@ theorem k8setcd3_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   · iframe Hown
     iunfold read.readRegPerm
     iframe
-  have hM := k8setcd3.wp_Main (GF := k8setcd3GF) n id bootLog clients ops Hbf
+  have hM := k8setcd3.wp_Main (GF := k8setcd3GF) n id ctxs boot clients ops Hbf
     (by rw [HT]; omega) (by rw [HN]; omega) (by rw [HN]; omega) Hck Haf Hbuq Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
     k8setcd3.storageErrTyOk_holds k8setcd3.objTyOk_holds Hc0 Hc31 Hops Hmul
   wp_apply hM $$ [Haddr Htok]

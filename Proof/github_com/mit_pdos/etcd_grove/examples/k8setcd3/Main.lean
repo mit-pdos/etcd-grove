@@ -76,18 +76,18 @@ theorem Main.wp_proof
     (wp_SetZero : runtime.SetZeroValue.spec (GF := GF) (hG := hG))
     (wp_Check : Check.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS EK RT SC ST VA N id bootLog clients ops Hbf Htb Hrb48 HrbN Hck Haf Hbuq Hdbo Hms hAs
+  intro CS EK RT SC ST VA N id ctxs boot clients ops Hbf Htb Hrb48 HrbN Hck Haf Hbuq Hdbo Hms hAs
     hse Hty H0 H31 Hops Hmul
   have hcon := driver_contractOk wp_Encode wp_cEncode wp_Upd wp_Prep wp_ORV wp_Parse wp_From wp_To
     wp_Dec wp_SetZero (driverSpec_tyOk Hty)
   wp_start as ⟨Haddr, Htok, #Hprem⟩
   iunfold premises at Hprem
-  icases Hprem with ⟨#Hboot, #Hzap, #Hsetlg, #Htd, #Hns, #Htk, #Hstop, #Hnrl⟩
+  icases Hprem with ⟨#Hboot, #Hmarsh, #Hzap, #Hsetlg, #Htd, #Hns, #Htk, #Hstop, #Hnrl⟩
   -- `Main`'s premises in the shared start's form
-  ihave #Hb := common.bootPremise_of N [id] bootLog (k8setcd3Dir id) go!"k8setcd3" go!"k8setcd3"
-      (common.urls1 go!"k8setcd3" go!"127.0.0.1:23906" go!"127.0.0.1:23896") id cfgOk urlsOk (putget.ccOk id)
+  ihave #Hb := common.bootPremise_of N [id] (Draft.LogEntry.toEntries boot 0) ctxs (k8setcd3Dir id) go!"k8setcd3" go!"k8setcd3"
+      (common.urls1 go!"k8setcd3" go!"127.0.0.1:23906" go!"127.0.0.1:23896") id cfgOk urlsOk
       (fun _ h => by obtain ⟨h1, h2, h3, h4, h5, h6⟩ := h; exact ⟨h1, by rw [h2]; rfl, h3, h4, h5, h6⟩)
-      (fun _ h => by obtain ⟨h1, h2, h3, h4⟩ := h; exact ⟨h1, h2, h3, h4⟩) rfl $$ Hboot
+      (fun _ h => by obtain ⟨h1, h2, h3, h4⟩ := h; exact ⟨h1, h2, h3, h4⟩) $$ Hboot
   ihave #Hcom : common.commonPremises (GF := GF) $$ []
   · iunfold common.commonPremises; iframe #
   -- `context`'s `closedchan`, from its package's fact
@@ -110,17 +110,20 @@ theorem Main.wp_proof
   wp_apply wp_NewNop as %lg %Hlg
   (try wp_auto)
   -- the ghost state `NewServer` takes (`alloc1`)
-  imod (common.alloc1 id bootLog Hbf.idLow Hbf.boot (k8setcd3Dir id) (dirOne_member id _) (by omega))
-    with ⟨%γ, %bud, %ρ, %E₀, %Φs, %γn, %Hal, Hmb, #Hnet, Hetcd⟩
-  obtain ⟨hcfg, hdyn, hcc, hboot, htr, htx, hγn1, hγn2, hlog⟩ := Hal
-  have hblen : bootLog.length ≤ 2 ^ 60 := by rw [Hbf.boot.1]; simp
+  imod (common.alloc1 id ctxs boot Hbf.idLow Hbf.boot Hbf.cc (k8setcd3Dir id) (dirOne_member id _)
+      (by omega) (by omega)) $$ Hmarsh
+    with ⟨%γ, %ρ, %E₀, %Φs, %γn, %Hal, Hmb, #Hnet, Hetcd⟩
+  obtain ⟨hvs, hdyn, hboot, hγn1, hγn2, hlog⟩ := Hal
+  have hblen : (Draft.LogEntry.toEntries boot 0).length ≤ 2 ^ 60 := by
+    have hblen0 : boot.length = 1 := by rw [Hbf.boot.1]; rfl
+    simp [Draft.LogEntry.toEntries, hblen0]
   -- `StartServer("k8setcd3", "127.0.0.1:23906", clientAddr, lg)`
   -- (2026-10-24, rafthttp stage 6d) the one-member directory is well formed
   have Hdirok : netDirOk (k8setcd3Dir id) :=
     dirOne_ok id _ (by intro h; apply Hbf.idLow; rw [h]; decide) (by decide)
-  wp_apply (wp_StartServer N go!"k8setcd3" go!"127.0.0.1:23906" go!"127.0.0.1:23896" lg bootLog
-      (k8setcd3Dir id) id γ bud ρ E₀ Φs γn Htb Hrb48 HrbN hcfg
-      hdyn hcc hboot htr htx hblen hγn1 hγn2 Hdirok Hlg Hck Haf Hbuq Hdbo) $$ [Htok Hmb]
+  wp_apply (wp_StartServer N go!"k8setcd3" go!"127.0.0.1:23906" go!"127.0.0.1:23896" lg (Draft.LogEntry.toEntries boot 0) ctxs
+      (k8setcd3Dir id) id γ ρ E₀ Φs γn Htb Hrb48 HrbN hvs
+      hdyn hboot hblen hγn1 hγn2 Hdirok Hlg Hck Haf Hbuq Hdbo) $$ [Htok Hmb]
     as %srv %err Hr
   · iframe; iframe #
   icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, Hup⟩)
@@ -207,11 +210,11 @@ theorem Main.wp_proof
   · iunfold client.kvRegsAt
     iframe #
   -- the seeding, from the server's start state (`σb`: no key, revision `1`)
-  have hboot0 : kvModelSt ρ.rd.kv (bootEntries bootLog) = σb := by
-    have h : kvModel ρ.rd.kv (bootEntries bootLog) = [[], []] := by
+  have hboot0 : kvModelSt ρ.rd.kv (bootEntries (Draft.LogEntry.toEntries boot 0)) = σb := by
+    have h : kvModel ρ.rd.kv (bootEntries (Draft.LogEntry.toEntries boot 0)) = [[], []] := by
       unfold kvModel
-      rw [linkv.kvRaftOf_boot _ _ _ (putget.ccOk id) [id] bootLog Hbf.boot, hlog]
-    rw [kvModelSt_boot _ _ _ bootLog Hbf.boot, h]; rfl
+      rw [linkv.kvRaftOf_boot _ _ _ (fun _ _ => True) [id] (Draft.LogEntry.toEntries boot 0) (srvBootLogOk_of_BootLog _ _ _ Hbf.boot), hlog]
+    rw [kvModelSt_boot _ _ _ (Draft.LogEntry.toEntries boot 0) (srvBootLogOk_of_BootLog _ _ _ Hbf.boot), h]; rfl
   imod (seedInv_alloc ρ.rd.kv σb ⊤) $$ [Hetcd] with ⟨%γs, #Hsi, Hs⟩
   · rw [← hboot0]; iexact Hetcd
   ihave #Hkc' := Hkc

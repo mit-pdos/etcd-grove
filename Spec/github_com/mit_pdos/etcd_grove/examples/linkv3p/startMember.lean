@@ -25,7 +25,7 @@ namespace EtcdGrove
 namespace linkv3p
 
 open Iris Iris.BI go_etcd_io.raft.v3 go_etcd_io.etcd.server.v3.etcdserver
-open putget3 (httpURL ccOk commonPremises)
+open putget3 (httpURL commonPremises)
 open common (memberBoot)
 
 section spec

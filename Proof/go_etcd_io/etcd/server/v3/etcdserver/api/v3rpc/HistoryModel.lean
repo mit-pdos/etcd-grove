@@ -312,9 +312,22 @@ theorem etcdModelOfHistory_EtcdStep (γ : ServerRaftNames) (γk : KVNames) :
 /-! ## From a member's facts -/
 
 /-- **A member's KV names agree with the history's** on what the model reads, and its raft names
-are the history's. -/
+are the history's but for the storage registry (2026-10-27, the server port: `SrvRaft.reg` is the
+member's own `MemoryStorage` registry, which the history does not read; until then the raft names
+were the history's). -/
 def memberOf (γ : ServerRaftNames) (γk : KVNames) (γr : ReadNames) : Prop :=
-  γr.raft = γ ∧ γr.kv.c0 = γk.c0 ∧ γr.kv.ch0 = γk.ch0 ∧ γr.kv.log0 = γk.log0
+  { γr.raft with raft := { γr.raft.raft with reg := γ.raft.reg } } = γ ∧
+    γr.kv.c0 = γk.c0 ∧ γr.kv.ch0 = γk.ch0 ∧ γr.kv.log0 = γk.log0
+
+/-- A member whose raft names are the history's is one. -/
+theorem memberOf_of_eq (γ : ServerRaftNames) (γk : KVNames) (γr : ReadNames) (hr : γr.raft = γ)
+    (hc0 : γr.kv.c0 = γk.c0) (hch : γr.kv.ch0 = γk.ch0) (hlog : γr.kv.log0 = γk.log0) :
+    memberOf γ γk γr := ⟨by subst hr; rfl, hc0, hch, hlog⟩
+
+/-- The committed log's lower bounds do not read the storage registry. -/
+theorem srvRLogLb_reg (γ : ServerRaftNames) (r : GName) (A : List EntryModel) :
+    srvRLogLb (GF := GF) γ A ⊢ srvRLogLb { γ with raft := { γ.raft with reg := r } } A :=
+  BI.entails_refl
 
 /-- **A member's certified, sealed, small log of more than two revisions is a history log.** -/
 theorem histLog_of_cert (γ : ServerRaftNames) (γk : KVNames) (E : apply.AEnv GF)
@@ -334,7 +347,8 @@ theorem histLog_of_cert (γ : ServerRaftNames) (γk : KVNames) (E : apply.AEnv G
   iunfold histLog
   iexists A
   rw [← hr]
-  iframe HA
+  ihave #HA' := srvRLogLb_reg γr.raft γ.raft.reg A $$ HA
+  iframe HA'
   ipureintro
   refine ⟨?_, Hw.1, Hw.2, Hsm⟩
   rw [← hA, kvModel_congr γk γr.kv hc0 hch hlog]
