@@ -32,11 +32,13 @@ links: []
 - **Expected**: either the documentation says a handle is invalid once its bucket (or an
   ancestor) is deleted, or the handle's operations return an error (e.g. `ErrBucketNotFound`)
   instead of panicking or acting on the freed bucket.
-- **How the proof handles it**: it does not yet. `wBkt tx b n` is persistent
-  (`Proof/go_etcd_io/etcd/server/v3/storage/backend/InvBbolt.lean`, `wBkt_persistent`) and
-  `Tx.DeleteBucket_kv` leaves it, so the trust-boundary specs allow exactly these calls: the audit's
-  latent false row (`notes/audit.md`, "bbolt", the `wBkt` trio, stopped in D19l). No proof reaches
-  the failing instance (the backend re-fetches handles).
+- **How the proof handles it**: bbolt's trust-boundary specs give a handle at its bucket's
+  generation (`wBkt tx b n g`) and `Tx.DeleteBucket_kv` bumps the name's generation, so `Put`,
+  `Delete` and `Cursor` through a deleted bucket's handle are not allowed (`G n = g`,
+  `Spec/go_etcd_io/bbolt/Bucket__Put_kv.lean`; since 2026-10-27, `notes/decisions.md`, "bbolt
+  handles at a generation"). Until then `wBkt tx b n` was persistent across the delete: the
+  audit's latent false row (`notes/audit.md`, "bbolt", the `wBkt` trio). No proof reached the
+  failing instance (the backend re-fetches handles).
 - **Possible fixes**: document it on `Tx.Bucket`/`DeleteBucket`; or mark the deleted child (and
   its descendants) so that their methods return `ErrBucketNotFound`.
 - **Found**: 2026-10-27, by `etc/spec-test/bbolt` (step 2 of `notes/spec-first-plan.md`): a

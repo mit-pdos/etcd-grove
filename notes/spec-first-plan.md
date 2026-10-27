@@ -244,5 +244,5 @@ axioms, which no proof will check), as spec-guided call-sequence testing with pr
 not as checking of recorded traces alone: the sequences the specs allow are where the false
 resource parts show. Next libraries by the paper replay's yield: etcd's own names-only axioms
 (mvcc, lease, quota: call sequences), prometheus and `strconv`-like single calls (cheap), rafthttp.
-The `wBkt` trio needs a decision (D19l stopped it): `DeleteBucket_kv` taking back the bucket's
-handles, or `wBkt` tied to a bucket identity.
+The `wBkt` trio: fixed 2026-10-27 (handles at a generation, `notes/decisions.md`, "bbolt handles at
+a generation"); the tester now runs the new statements by default (`-old-wbkt` for the old).

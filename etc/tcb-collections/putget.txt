@@ -267,9 +267,9 @@ axiom backend.optsAt
 axiom backend.optsAt_discard_persistent
 axiom backend.ownCur
 axiom backend.ownDB
-axiom backend.ownWTx
-axiom backend.ownWTx_fill
-axiom backend.ownWTx_live
+axiom backend.ownWTxG
+axiom backend.ownWTxG_fill
+axiom backend.ownWTxG_live
 axiom backend.rBkt
 axiom backend.rBkt_persistent
 axiom backend.rBkt_timeless

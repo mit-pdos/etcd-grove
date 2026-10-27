@@ -18,8 +18,9 @@
 // survive, or that returns what the model says it cannot.
 //
 // Each spec is transcribed by hand from its Lean statement (the comment on each step cites it).
-// The -old flags select the statements the axiom audit found false (notes/audit.md, "bbolt"), as
-// they were before audit B4b (commit 39dd386a43).
+// The -old flags select statements found false: -old-info and -old-cursor-kvw the axiom audit's
+// (notes/audit.md, "bbolt"), as they were before audit B4b (commit 39dd386a43); -old-wbkt the
+// handles without a generation, as before 2026-10-27 (issues/bbolt-deleted-bucket-handle.md).
 package main
 
 import (
@@ -104,9 +105,10 @@ type txG struct {
 	txLive   bool // txLive tx 1 (for a writer: only while lent out of ownWTx, see below)
 	rtxSnap  *Data
 	rtxStats bool
-	ownWTx   bool // ownWTx tx γ D S
+	ownWTx   bool // ownWTxG tx γ D S G
 	D, S     Data
-	txDone   bool // persistent
+	G        map[string]int // each bucket name's generation
+	txDone   bool           // persistent
 	// The current Cursor_kvw: a cursor holding txLive tx 1 and the wand back to ownWTx.
 	wandCur *curG
 }
@@ -119,12 +121,17 @@ type curG struct {
 	pos   int // -1: none
 }
 
-type bktW struct { // wBkt tx b n, persistent
-	tx *txG
-	h  *bolt.Bucket
-	n  string
-	id int // the handle's number in the run's log
+type bktW struct { // wBkt tx b n g, persistent
+	tx  *txG
+	h   *bolt.Bucket
+	n   string
+	gen int
+	id  int // the handle's number in the run's log
 }
+
+// current: the handle is at its bucket's current generation (Put_kv's `G n = g`); always, with
+// -old-wbkt (wBkt without a generation, as before 2026-10-27).
+func (w bktW) current() bool { return *oldWBkt || w.gen == w.tx.G[w.n] }
 
 type bktR struct { // rBkt tx b es, persistent
 	tx *txG
@@ -152,7 +159,7 @@ var (
 	steps        = flag.Int("steps", 60, "calls per run")
 	seed         = flag.Int64("seed", 1, "first seed")
 	verbose      = flag.Bool("v", false, "print every run's trace")
-	fixWBkt      = flag.Bool("fix-wbkt", false, "wBkt tx b n not persistent across DeleteBucket n (a corrected statement; the current one is false)")
+	oldWBkt      = flag.Bool("old-wbkt", false, "wBkt without a generation, as before 2026-10-27 (false: a deleted bucket's handle)")
 	mutant       = flag.String("mutant", "", "a deliberately wrong spec: seek-gt, wrtok-dup, commit-old, rollback-keeps-live, read-latest, create-resets, delete-noop")
 	blockAfter   = flag.Duration("block-after", 100*time.Millisecond, "a call not returned by then is blocked")
 )
@@ -189,7 +196,7 @@ var keys = []string{"k1", "k2", "k3"}
 
 func (s *state) newW(t *txG, b *bolt.Bucket, n string) {
 	s.nbkt++
-	s.wbkts = append(s.wbkts, bktW{t, b, n, s.nbkt})
+	s.wbkts = append(s.wbkts, bktW{t, b, n, t.G[n], s.nbkt})
 }
 
 func (s *state) logf(format string, a ...any) { s.log = append(s.log, fmt.Sprintf(format, a...)) }
@@ -253,7 +260,7 @@ var stepsTable = []step{
 		t := &txG{h: h, db: d, write: w, txDB: true}
 		if w {
 			d.wrTok = *mutant == "wrtok-dup"
-			t.ownWTx, t.D, t.S = true, d.D, d.D.clone()
+			t.ownWTx, t.D, t.S, t.G = true, d.D, d.D.clone(), map[string]int{}
 		} else {
 			snap := d.D
 			t.txLive, t.rtxSnap, t.rtxStats = true, &snap, true
@@ -320,8 +327,8 @@ var stepsTable = []step{
 		}
 		return true
 	}},
-	// Tx.Bucket_kvw: ownWTx tx γ D S
-	// {ownWTx tx γ D S ∗ (S n = none ∧ b = null ∨ S n ≠ none ∧ b ≠ null ∗ wBkt tx b n)}
+	// Tx.Bucket_kvw: ownWTxG tx γ D S G
+	// {ownWTxG tx γ D S G ∗ (S n = none ∧ b = null ∨ S n ≠ none ∧ b ≠ null ∗ wBkt tx b n (G n))}
 	{"Tx.Bucket(w)", func(s *state, r *rand.Rand) bool {
 		t, ok := pick(r, s.txs)
 		if !ok || !t.ownWTx {
@@ -340,8 +347,8 @@ var stepsTable = []step{
 		}
 		return true
 	}},
-	// Tx.CreateBucketIfNotExists_kv: 0 < |n| ≤ maxKeySize → ownWTx tx γ D S
-	// {err = nil ∗ ownWTx tx γ D (S n = none ? S[n := ∅] : S) ∗ wBkt tx b n}
+	// Tx.CreateBucketIfNotExists_kv: 0 < |n| ≤ maxKeySize → ownWTxG tx γ D S G
+	// {err = nil ∗ ownWTxG tx γ D (S n = none ? S[n := ∅] : S) G ∗ wBkt tx b n (G n)}
 	{"CreateBucketIfNotExists", func(s *state, r *rand.Rand) bool {
 		t, ok := pick(r, s.txs)
 		if !ok || !t.ownWTx {
@@ -361,9 +368,9 @@ var stepsTable = []step{
 		s.newW(t, b, n)
 		return true
 	}},
-	// Tx.DeleteBucket_kv: ownWTx tx γ D S
-	// {(S n = none ∗ ownWTx tx γ D S ∗ err = ErrBucketNotFound) ∨
-	//  (S n ≠ none ∧ err = nil ∗ ownWTx tx γ D (S.delete n))}
+	// Tx.DeleteBucket_kv: ownWTxG tx γ D S G
+	// {(S n = none ∗ ownWTxG tx γ D S G ∗ err = ErrBucketNotFound) ∨
+	//  (S n ≠ none ∧ err = nil ∗ ownWTxG tx γ D (S.delete n) G[n := G n + 1])}
 	{"DeleteBucket", func(s *state, r *rand.Rand) bool {
 		t, ok := pick(r, s.txs)
 		if !ok || !t.ownWTx {
@@ -378,30 +385,21 @@ var stepsTable = []step{
 				fail("DeleteBucket(%s) of an existing bucket returned %v", n, err)
 			}
 			delete(t.S, n)
-			if *fixWBkt {
-				// A corrected wBkt: the handles of the deleted bucket are no longer the bucket's.
-				var keep []bktW
-				for _, w := range s.wbkts {
-					if w.tx != t || w.n != n {
-						keep = append(keep, w)
-					}
-				}
-				s.wbkts = keep
-			}
+			t.G[n]++ // the name's generation bumped
 		} else if !errors.Is(err, berrors.ErrBucketNotFound) {
 			fail("DeleteBucket(%s) of a missing bucket returned %v, spec says ErrBucketNotFound", n, err)
 		}
 		return true
 	}},
-	// Bucket.Put_kv: S n = some m → 0 < |k| ≤ maxKeySize → ownWTx tx γ D S ∗ wBkt tx b n
-	// {|v| ≤ maxValueSize ∧ err = nil ∗ ownWTx tx γ D S[n := m[k := v]] ∨ ...}
+	// Bucket.Put_kv: G n = g → S n = some m → 0 < |k| ≤ maxKeySize → ownWTxG tx γ D S G ∗ wBkt tx b n g
+	// {|v| ≤ maxValueSize ∧ err = nil ∗ ownWTxG tx γ D S[n := m[k := v]] G ∨ ...}
 	{"Put", func(s *state, r *rand.Rand) bool {
 		w, ok := pick(r, s.wbkts)
 		if !ok || !w.tx.ownWTx {
 			return false
 		}
 		m, found := w.tx.S[w.n]
-		if !found {
+		if !found || !w.current() {
 			return false
 		}
 		k, v := keys[r.Intn(len(keys))], fmt.Sprintf("v%d", r.Intn(100))
@@ -417,15 +415,15 @@ var stepsTable = []step{
 		w.tx.S[w.n] = m
 		return true
 	}},
-	// Bucket.Delete_kv: S n = some m → ownWTx tx γ D S ∗ wBkt tx b n
-	// {RET nil; ownWTx tx γ D S[n := m.delete k]}
+	// Bucket.Delete_kv: G n = g → S n = some m → ownWTxG tx γ D S G ∗ wBkt tx b n g
+	// {RET nil; ownWTxG tx γ D S[n := m.delete k] G}
 	{"Delete", func(s *state, r *rand.Rand) bool {
 		w, ok := pick(r, s.wbkts)
 		if !ok || !w.tx.ownWTx {
 			return false
 		}
 		m, found := w.tx.S[w.n]
-		if !found {
+		if !found || !w.current() {
 			return false
 		}
 		k := keys[r.Intn(len(keys))]
@@ -455,17 +453,17 @@ var stepsTable = []step{
 		s.curs = append(s.curs, &curG{h: c, tx: b.tx, owned: true, es: b.es, pos: -1})
 		return true
 	}},
-	// Bucket.Cursor_kvw: S n = some m → ownWTx tx γ D S ∗ wBkt tx b n
+	// Bucket.Cursor_kvw: G n = g → S n = some m → ownWTxG tx γ D S G ∗ wBkt tx b n g
 	// current: {ownCur tx c (bktEnts m) none ∗ txLive tx 1 ∗
-	//           (∀ pos, ownCur tx c (bktEnts m) pos -∗ txLive tx 1 -∗ ownWTx tx γ D S)}
-	// old:     {ownCur tx c (bktEnts m) none ∗ ownWTx tx γ D S}
+	//           (∀ pos, ownCur tx c (bktEnts m) pos -∗ txLive tx 1 -∗ ownWTxG tx γ D S G)}
+	// old:     {ownCur tx c (bktEnts m) none ∗ ownWTxG tx γ D S G}
 	{"Cursor(w)", func(s *state, r *rand.Rand) bool {
 		w, ok := pick(r, s.wbkts)
 		if !ok || !w.tx.ownWTx {
 			return false
 		}
 		m, found := w.tx.S[w.n]
-		if !found {
+		if !found || !w.current() {
 			return false
 		}
 		var c *bolt.Cursor
@@ -700,8 +698,8 @@ func main() {
 		}
 		refuted[key]++
 	}
-	fmt.Printf("runs %d, steps %d, old-info %v, old-cursor-kvw %v, fix-wbkt %v; %d refuted, %d ended blocked\n",
-		*runs, *steps, *oldInfo, *oldCursorKvw, *fixWBkt, total, blockedRuns)
+	fmt.Printf("runs %d, steps %d, old-info %v, old-cursor-kvw %v, old-wbkt %v; %d refuted, %d ended blocked\n",
+		*runs, *steps, *oldInfo, *oldCursorKvw, *oldWBkt, total, blockedRuns)
 	if *mutant != "" {
 		fmt.Printf("mutant %s\n", *mutant)
 	}

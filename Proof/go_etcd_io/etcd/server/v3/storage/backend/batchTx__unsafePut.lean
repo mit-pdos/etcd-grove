@@ -45,13 +45,13 @@ theorem backend.batchTx.unsafePut.wp_proof
     ⟨%db, %lg, %h, #Hbe, #Hlg, %Hlgn, #-, #-, #-, #-, #-, %HP⟩
   · iframe #
   unfold btW
-  icases Hw with ⟨Htx, Hpend, Hwtx⟩
+  icases Hw with ⟨Htx, Hpend, ⟨%G, Hwtx⟩⟩
   unfold isBucket
   icases Hbk with ⟨%bo, %Hbo, #-, #HName, #-⟩
   subst Hbo
   wp_auto
   wp_apply HName as %ns #Hns
-  wp_apply (hBucket st.tx γ.db st.C st.S ns bi.name DFrac.discard) $$ [$Hwtx $Hns] as %bkt ⟨Hwtx, -, Hbr⟩
+  wp_apply (hBucket st.tx γ.db st.C st.S G ns bi.name DFrac.discard) $$ [$Hwtx $Hns] as %bkt ⟨Hwtx, -, Hbr⟩
   icases Hbr with (%Hn | ⟨%Hn, #Hwb⟩)
   · obtain ⟨Hn, Hnil⟩ := Hn
     subst Hnil
@@ -71,11 +71,11 @@ theorem backend.batchTx.unsafePut.wp_proof
   wp_if_destruct
   · exact absurd rfl Hnn
   wp_join with [Hwtx bucket]
-  · icases ownWTx_fill st.tx bkt γ.db st.C st.S bi.name $$ [$Hwtx $Hwb] with ⟨%f, Hf, Hback⟩
+  · icases ownWTxG_fill st.tx bkt γ.db st.C st.S G bi.name (G bi.name) $$ [$Hwtx $Hwb] with ⟨%f, Hf, Hback⟩
     wp_auto
     ispecialize Hback $$ %_ Hf
     wp_join_done
-  wp_apply (hPut st.tx γ.db st.C st.S bkt bi.name m key value kb vb dk Hm Hk0 Hk1)
+  wp_apply (hPut st.tx γ.db st.C st.S G bkt bi.name (G bi.name) m key value kb vb dk rfl Hm Hk0 Hk1)
     $$ [$Hwtx $Hwb $Hkey $Hval] as %err ⟨Hkey, Hres⟩
   icases Hres with (⟨%Hok, Hwtx⟩ | ⟨%Hbig, Hwtx⟩)
   · obtain ⟨-, Herr⟩ := Hok
@@ -84,6 +84,8 @@ theorem backend.batchTx.unsafePut.wp_proof
     iapply HΦ
     unfold BSess.put bktOf
     rw [Hm]
+    iframe
+    iexists G
     iframe
   · -- a value above `MaxValueSize`: bbolt's error, and `lg.Fatal` (never returns)
     obtain ⟨-, Herr⟩ := Hbig

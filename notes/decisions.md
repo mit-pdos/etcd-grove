@@ -9526,6 +9526,11 @@ the fix is in what `ownWTx` records.
   the same files as (A), a smaller change.
 - *(C) Keep, as now* (latent: no proof deletes and re-creates).
 - *Recommendation:* (B), in phase C with the bbolt model (`notes/audit.md`, Plan).
+  *Superseded* (2026-10-27, "bbolt handles at a generation (D19l (iv) carried out, (A))"): (B)
+  forbids re-creating a deleted name within the bbolt transaction, which etcd does (the membership
+  schema deletes and creates `Cluster`) and which the backend's callers cannot see, since the
+  batch transaction commits on its own schedule; and (A) was cheaper than counted here (`wBkt`
+  was named in 6 files, not about 30).
 
 **(v) `mvcc.store.restore`** (a `meta` bucket with a finished or scheduled compaction makes Go set
 `compactMainRev`/`currentRev` otherwise and call `compactLockfree`; the spec fixes only the `key`
@@ -23817,3 +23822,33 @@ client needs at least `authPubLb γa 0` (the server could keep one in `srvAuthLb
 that means something, a bound from a write it saw. The read-only `Txn` with auth on (`Txn.specOn`'s
 read branch over E3m's `apply_check_txn_auth_lb`); the admin proposers, the Auth handlers,
 `setupAuthOk`; `examples/authkv` and the closed theorem.
+
+## bbolt handles at a generation (D19l (iv) carried out, (A)) (2026-10-27)
+
+**2026-10-27 · taken (the user)**
+
+`wBkt tx b n` was persistent and `Tx.DeleteBucket_kv` left it, so after `DeleteBucket(n)` and
+`CreateBucketIfNotExists(n)` the specs allowed `Put`, `Delete` and `Cursor` through the old
+handle; bbolt frees a deleted bucket's nodes, and the old handle's `Put` panics while its reads
+and deletes miss the data (`issues/bbolt-deleted-bucket-handle.md`, reproduced). Found false by
+the audit (D19l (iv), stopped, latent), refuted by `etc/spec-test/bbolt` (step 2 of
+`notes/spec-first-plan.md`) in 28 of 3000 runs.
+
+**Decision:** D19l's option (A), generations (its recommendation, (B), superseded above).
+- `InvBbolt.lean`: `ownWTxG tx γ D S G` (the axiom, `G : GoString → Nat` each name's
+  generation) and `wBkt tx b n g`; `ownWTx tx γ D S := ∃ G, ownWTxG tx γ D S G` (an `abbrev`),
+  so the backend's specs and invariants, and `Begin_kv`/`Commit_kv`, keep their text. The laws
+  are `ownWTxG_live`/`ownWTxG_fill` (`ownWTx_live` now a theorem from the former).
+- `Tx.Bucket_kvw` and `CreateBucketIfNotExists_kv` give `wBkt tx b n (G n)`; `DeleteBucket_kv`
+  bumps `G n`; `Bucket.Put_kv`, `Delete_kv` and `Cursor_kvw` take `G n = g`. A name can be
+  deleted and re-created in the same transaction, as in Go.
+- The backend's five operations (`unsafePut`, `UnsafeDelete`, `UnsafeRange`,
+  `UnsafeCreateBucket`, `UnsafeDeleteBucket`) open `ownWTx`'s `∃ G` and close it after the call:
+  they fetch the handle by name for every operation, so it is always current (`rfl`).
+- Rejected: (B), deleted names (above); a non-persistent `wBkt` (`DeleteBucket` cannot collect
+  the copies of a persistent fact, and making handles exclusive would thread them through every
+  backend operation).
+
+The axioms are the same (`ownWTx` and its two laws replaced by `ownWTxG` and its two laws,
+`ownWTx_live` proved); `etc/spec-test/bbolt` now tests the new statements (no refutation in
+10 000 runs; `-old-wbkt` for the old ones).

@@ -41,17 +41,19 @@ theorem backend.batchTx.UnsafeCreateBucket.wp_proof
     ⟨%db, %lg, %h, #Hbe, #Hlg, %Hlgn, #-, #-, #-, #-, #-, %HP⟩
   · iframe #
   unfold btW
-  icases Hw with ⟨Htx, Hpend, Hwtx⟩
+  icases Hw with ⟨Htx, Hpend, ⟨%G, Hwtx⟩⟩
   unfold isBucket
   icases Hbk with ⟨%bo, %Hbo, #-, #HName, #-⟩
   subst Hbo
   wp_auto
   wp_apply HName as %ns #Hns
-  wp_apply (hCreate st.tx γ.db st.C st.S ns bi.name DFrac.discard Hn0 Hn1) $$ [$Hwtx $Hns]
+  wp_apply (hCreate st.tx γ.db st.C st.S G ns bi.name DFrac.discard Hn0 Hn1) $$ [$Hwtx $Hns]
     as %bkt %err ⟨%Herr, Hwtx, -, -⟩
   subst Herr
   wp_auto
   iapply HΦ
+  iframe
+  iexists G
   iframe
 
 end proof
