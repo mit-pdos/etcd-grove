@@ -410,6 +410,9 @@ was fixed; candidate drafted 2026-10-23), [bbolt-large-values-leaf-unreadable](b
 [bbolt-txstats-unaligned-32bit](bbolt-txstats-unaligned-32bit.md) (a regression on `main`, not
 released: every transaction panics on 32-bit platforms; worth reporting before a release ships
 it), [bbolt-large-page-size](bbolt-large-page-size.md) (an option check),
+[bbolt-deleted-bucket-handle](bbolt-deleted-bucket-handle.md) (a handle used after its bucket's
+`DeleteBucket` in the same transaction panics or silently misses data; documentation or an
+error return; added 2026-10-27),
 [bbolt-mmap-madvise-leak](bbolt-mmap-madvise-leak.md) (one line; moot if #940 lands).
 
 ## Kubernetes (the API server's etcd3 store and its test model; not etcd's)
