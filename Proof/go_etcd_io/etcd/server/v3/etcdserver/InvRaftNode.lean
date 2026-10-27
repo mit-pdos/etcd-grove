@@ -96,7 +96,7 @@ abbrev RNNames.reg [GooseExts] (γ : RNNames) : GName := γ.node.reg
 
 /-- The cluster's names at the wrapper's start log (for `srvLE`/`srvCfgView`, which read only the
 cluster and the start log). -/
-def RNNames.srv [GooseExts] (γ : RNNames) : ServerRaftNames := ⟨γ.node, γ.pre, W64 0⟩
+abbrev RNNames.srv [GooseExts] (γ : RNNames) : ServerRaftNames := ⟨γ.node, γ.pre, W64 0⟩
 
 /-- Raft's full committed log holding the server's `L` after its start (`srvLogOf`, by the
 wrapper's names). -/

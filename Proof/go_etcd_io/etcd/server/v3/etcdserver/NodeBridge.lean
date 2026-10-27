@@ -26,17 +26,7 @@ package facts (`srvErrVars`' `errVarLeaf go_etcd_io.raft.v3.ErrProposalDropped`)
 -/
 module
 
-public import Spec.go_etcd_io.raft.v3.node__Ready
-public import Spec.go_etcd_io.raft.v3.node__Advance
-public import Spec.go_etcd_io.raft.v3.node__Tick
-public import Spec.go_etcd_io.raft.v3.node__ReadIndex
-public import Spec.go_etcd_io.raft.v3.node__Propose
-public import Spec.go_etcd_io.raft.v3.node__ApplyConfChange
-public import Spec.go_etcd_io.raft.v3.node__Step
-public import Spec.go_etcd_io.raft.v3.node__ReportUnreachable
-public import Spec.go_etcd_io.raft.v3.node__ReportSnapshot
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftNode
-public import Proof.go_etcd_io.raft.v3.Linked
 
 @[expose] public section
 
@@ -47,7 +37,6 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 
-open RaftLink
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.raft.v3
 
@@ -71,10 +60,16 @@ instance rnStopOk_persistent (n : Loc) : Persistent (rnStopOk (GF := GF) n) := b
 
 /-! ## Raft's node, by the wrapper's names -/
 
-/-- Raft's node, by the wrapper's names (`isNode`, with the storage registry's name). -/
-abbrev rnIsNode (γ : RNNames) : IProp GF :=
-  letI : MemStorReg GF := ⟨γ.reg⟩
-  isNode γ.node γ.id γ.nl
+/-- Raft's node, by the wrapper's names (the node API's `isNode` of the node `nl` in the
+server's cluster). -/
+def rnIsNode (γ : RNNames) : IProp GF :=
+  letI := srvStor (GF := GF) γ.node
+  Draft.isNode γ.nl γ.node.cl srvClusterN γ.id
+
+instance rnIsNode_persistent (γ : RNNames) : Persistent (rnIsNode (GF := GF) γ) := by
+  unfold rnIsNode
+  letI := srvStor (GF := GF) γ.node
+  exact Draft.isNode_persistent _ _ _ _
 
 /-- The `MemoryStorage`'s registration, by the wrapper's names (`isRaftNode`'s `Hreg`). -/
 abbrev rnMemStorReg (γ : RNNames) : IProp GF :=
@@ -86,14 +81,15 @@ abbrev rnNodeIface (γ : RNNames) : GoInterface :=
   interface.mkOk (go.GoType.PointerType node.ty) #γ.nl
 
 /-- **The node's inbound methods** (persistent; D21 M2, 2026-10-19): `Step` of a peer's message
-(raft's `stepP`, over a context the node API takes) and the two reports, which
+(the node API's `stepIn`, over a context the node API takes) and the two reports, which
 `EtcdServer.Process`/`ReportUnreachable`/`ReportSnapshot` call (from the transport's goroutines,
 as soon as it starts: so stated apart from `isRaftNodeIfc`, whose `ReadIndex` needs the server's
 committed index, allocated later). -/
 def rnStepIfc (γ : RNNames) (n : GoInterface) : IProp GF :=
+  letI := srvStor (GF := GF) γ.node
   iprop(∃ ni : GoInterfaceOk, ⌜n = GoInterface.ok ni⌝ ∗
     □ (∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (ml : Loc),
-      {{ nodeCtx ctx cd ∗ stepP γ.node γ.id ml }}
+      {{ nodeCtx ctx cd ∗ Draft.stepIn γ.node.cl srvClusterN γ.id ml }}
         (App (App (Val #(methods ni.ty go!"Step" ni.v)) (Val #(GoInterface.ok ctx))) (Val #ml))
       {{ (err : GoInterface), RET #err; nodeErr cd err }}) ∗
     □ (∀ x : w64, {{ True }} (App (Val #(methods ni.ty go!"ReportUnreachable" ni.v)) (Val #x))
@@ -273,28 +269,52 @@ theorem isRNMemStor_of_memstorage (γ : RNNames) :
   iunfold rnAppendReceipt
   iexact Hrcpt
 
-/-- **The node meets `raftPropose`** (`node.Propose.spec`, and since audit phase B3,
-2026-10-18, `node.ApplyConfChange.spec` in the static mode for a change `ccRaftOk` admits,
-`ccShrink_of_raftOk`): raft's commit invariant and the
-proposals' witnesses are the server's (`srvPropWits_of_raft`); a `Propose` over the request
-path's context (`txnCtx_nodeCtx`) with the server's argument (`srvPropArg`, converted by
-`srvPropAu1_to_propAu1`) returns raft's result in the server's terms (`srvPropRes`) and an error
-the gRPC layer takes (`applyErrIs_of_propErr`). -/
+/-- **The error of `Propose`** (the node API's: `nil`, `ErrStopped`, `ErrProposalDropped` or the
+context's), as the gRPC layer takes it. -/
+theorem applyErrIs_of_proposeErr (cd : context.ContextDesc (IProp GF)) (err : GoInterface) :
+    ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver -∗
+      (⌜err = interface.nil⌝ ∨ errStopped err ∨ errProposalDropped err ∨ ctxErr cd err) -∗
+      applyErrIs err := by
+  iintro #Hpkg #Herr
+  icases Herr with (%Hnil | #Hs | #Hpd | #Hc)
+  · iapply applyErrIs_of_nodeErr cd err $$ Hpkg []
+    iunfold nodeErr; ileft; ipureintro; exact Hnil
+  · iapply applyErrIs_of_nodeErr cd err $$ Hpkg []
+    iunfold nodeErr; iright; ileft; iexact Hs
+  · iapply applyErrIs_of_stepErr err $$ Hpkg []
+    iunfold stepErr; iright; iexact Hpd
+  · iapply applyErrIs_of_ctxErr cd err $$ Hpkg Hc
+
+/-- The cluster's kind reads only the cluster. -/
+theorem srvClusterOk_congr (γ1 γ2 : ServerRaftNames) (h : γ1.raft = γ2.raft) :
+    srvClusterOk (GF := GF) γ1 = srvClusterOk γ2 := by
+  unfold srvClusterOk; rw [h]
+
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
+/-- **The node meets `raftPropose`** (2026-10-27: the node API's `node.Propose.spec`, the server's
+proposal registered and its update converted, `srvProp_register`/`srvPropAu_api`; and
+`node.ApplyConfChange.spec` in a static cluster for a change `ccRaftOk` admits,
+`Draft.ccShrink_addVoter`): the proposals' witnesses are the server's registry's
+(`srvPropWits_of`). -/
 theorem raftPropose_of_isNode (E : RNEnv GF) (γ : RNNames)
-    (wp_Propose : letI : MemStorReg GF := ⟨γ.reg⟩; node.Propose.spec (GF := GF) (hG := hG))
-    (wp_ApplyConfChange : letI : MemStorReg GF := ⟨γ.reg⟩;
-      node.ApplyConfChange.spec (GF := GF) (hG := hG)) :
+    (wp_Propose : letI := srvStor (GF := GF) γ.node;
+      Draft.node.Propose.spec (GF := GF) (hG := hG))
+    (wp_ApplyConfChange : letI := srvStor (GF := GF) γ.node;
+      Draft.node.ApplyConfChange.spec (GF := GF) (hG := hG)) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       rnEnvOk E γ ∗ rnIsNode γ ∗ srvRaftLogInv E.γr.raft ⊢
       raftPropose E.γr.raft (rnNodeIface γ) := by
-  letI : MemStorReg GF := ⟨γ.reg⟩
+  letI := srvStor (GF := GF) γ.node
   iintro ⟨#Hpkg, #Henv, #Hnode, #Hinv⟩
+  iunfold rnIsNode at Hnode
   ihave #Hpraft : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
   · iPkgInit
   iunfold rnEnvOk at Henv
-  icases Henv with ⟨-, %Hn, %Hmode, -, -, -, -, -⟩
+  icases Henv with ⟨-, %Hn, -, -, -, -, -, -, -⟩
   obtain ⟨Hraft, -, -⟩ := Hn
-  obtain ⟨Hstd, -, -⟩ := Hmode
+  ihave #Hnode' : Draft.isNode γ.nl E.γr.raft.raft.cl srvClusterN γ.id $$ []
+  · rw [Hraft]; iexact Hnode
   iunfold raftPropose
   iexists ⟨go.GoType.PointerType node.ty, #γ.nl⟩
   isplitr
@@ -302,178 +322,222 @@ theorem raftPropose_of_isNode (E : RNEnv GF) (γ : RNNames)
   isplitr
   · iexact Hinv
   isplitr
-  · iapply srvPropWits_of_raft E.γr.raft $$ Hinv
+  · iapply srvPropWits_of E.γr.raft $$ Hinv
   isplitr
   rotate_left
-  · -- `ApplyConfChange` (audit phase B3): raft's static mode, a change that keeps the voters
-    iintro !> %c %cm %Hrd %Hok %Φ !> Hc HΦ
-    -- (D43 M3) the static clause is raft's static mode's (`reDyn = none`, `rnEnvOk`)
-    have Hstatic : γ.node.mode = .static := Hstd.2 (by rw [← Hraft]; exact Hrd)
-    have hsh : CCShrink γ.node.raft.reCfg (ccV2Of (.v1 cm)).1 (ccV2Of (.v1 cm)).2 := by
-      rw [← Hraft]; exact ccShrink_of_raftOk _ cm Hok
-    wp_apply (wp_ApplyConfChange γ.node γ.id γ.nl c (.v1 cm) [] 0 (cfgState ∅ ∅) 0 ⟨W64 0, W64 0, W32 0, []⟩
-        (cfgState ∅ ∅) (fun _ => hsh)
-        (fun dec c0 h0 h1 hd => absurd (hd ▸ Hstatic) (by simp))) $$ [Hc]
-      as %csp %cs ⟨Hcs, -⟩
+  · -- `ApplyConfChange` (audit phase B3): a static cluster, a change that keeps the voters
+    iintro !> %c %cm %Hstatic %Hok %Φ !> Hc HΦ
+    ihave #Hcl := Hinv
+    iunfold srvRaftLogInv at Hcl
+    icases Hcl with ⟨-, #Hcl, -, -⟩
+    iunfold srvClusterOk at Hcl
+    isimp only [Hstatic, Bool.false_eq_true, ↓reduceIte] at Hcl
+    icases Hcl with ⟨#Hst, -, -, -⟩
+    have hsh := Draft.ccShrink_addVoter (GMap.listToSet E.γr.raft.raft.vs) cm Hok.1 Hok.2
+    wp_apply (wp_ApplyConfChange γ.nl E.γr.raft.raft.cl srvClusterN γ.id E.γr.raft.raft.vs
+        (fun _ _ => False) c (.v1 cm) hsh) $$ [Hc] as %csp %cs ⟨Hcs, -⟩
     · iframe #
       iframe Hc
-      ileft; ipureintro; exact Hstatic
     iapply HΦ
     iexists cs
     iexact Hcs
-  iintro !> %ctx %cd %dsl %data %Q %Φ !> ⟨#Hctx, #Hdata, %Hne, Harg⟩ HΦ
+  iintro !> %ctx %cd %dsl %data %Q %Φ !> ⟨#Hctx, #Hdata, %Hne, Harg, Hlc⟩ HΦ
   ihave #Hnctx := txnCtx_nodeCtx ctx cd $$ Hctx
   iunfold srvPropArg at Harg
-  icases Harg with ⟨Hfr, Hau⟩
-  iunfold srvPropFresh at Hfr
-  -- (2026-10-21) the data registered with the lifted predicate (raft's public ghost step), then
-  -- proposed once with the update (D21 M6: fired at most once)
-  ihave #Hnode' : isNode γ.node γ.id γ.nl $$ []
-  · iunfold rnIsNode at Hnode; iexact Hnode
-  imod node_prop_register γ.node γ.id γ.nl data (srvLift E.γr.raft Q) ⊤ CoPset.subseteq_top
-    $$ Hnode' [Hfr] with #Hpi
-  · rw [← Hraft]; iexact Hfr
-  ihave Harg' : propArg γ.node.raft data (srvLift E.γr.raft Q) $$ [Hau]
-  · unfold propArg
-    iframe Hpi
-    rw [← Hraft]
-    iapply srvPropAu1_to_propAu1 E.γr.raft data Q $$ Hinv Hau
-  wp_apply wp_Propose γ.node γ.id γ.nl dsl data (srvLift E.γr.raft Q) ctx cd $$ [Harg']
+  icases Harg with ⟨Hfr, Hau, #HQinv⟩
+  -- (2026-10-27) the proposal registered with the server's registry, then proposed once with the
+  -- node API's update
+  imod srvProp_register E.γr.raft data Q ⊤ (fun _ _ => CoPset.mem_full) $$ Hinv Hfr
+    with ⟨%γQ, %γt, #Hel, #HQ, Htk⟩
+  ihave Hapi := srvPropAu_api E.γr.raft data Q γQ γt Hne $$ Hinv Hel HQ Htk Hlc Hau
+  wp_apply wp_Propose γ.nl E.γr.raft.raft.cl srvClusterN γ.id dsl data ctx cd $$ [Hapi]
     as %err #Herr
   · iframe #
-    iframe Harg'
-    ipureintro; exact Hne
+    iframe Hapi
   iapply HΦ
   isplitr
   · iunfold srvPropRes
-    ihave #Hdep := propIs_deposited $$ Hpi
     isplitr
     · iunfold srvDeposited
-      rw [Hraft]
-      iexact Hdep
+      iexists (γQ, γt)
+      iexact Hel
     iunfold srvIsProp
-    rw [Hraft]
-    iexact Hpi
-  · iapply applyErrIs_of_propErr cd err $$ Hpkg Herr
+    iexists γQ, γt
+    iframe Hel HQ HQinv
+  · iapply applyErrIs_of_proposeErr cd err $$ Hpkg Herr
 
-/-- **The node meets `raftApplyCCDyn`** (D43 M3, 2026-10-25): in raft's dynamic mode,
-`node.ApplyConfChange.spec`'s dynamic case, with the driver's view and the committed log handed
-out; its answer is the view at `(k + 1, cs')`. -/
+/-- **The node meets `raftApplyCCDyn`** (D43 M3; 2026-10-27: the node API's
+`node.ApplyConfChange.dynamicSpec`, at the cluster's decoder): with the driver's view and the
+committed log delivered; its answer is the view at `⟨k + 1, m'⟩`. -/
 theorem raftApplyCCDyn_of_isNode (γ : RNNames)
-    (wp_ApplyConfChange : letI : MemStorReg GF := ⟨γ.reg⟩;
-      node.ApplyConfChange.spec (GF := GF) (hG := hG))
-    (Hdyn : γ.node.mode.isDyn = true) :
-    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ rnIsNode γ ⊢
-      raftApplyCCDyn γ.node (rnNodeIface γ) := by
-  letI : MemStorReg GF := ⟨γ.reg⟩
-  iintro ⟨#Hpraft, #Hnode⟩
-  ihave #Hnode' : isNode γ.node γ.id γ.nl $$ []
-  · iunfold rnIsNode at Hnode; iexact Hnode
+    (wp_ApplyConfChange_dyn : letI := srvStor (GF := GF) γ.node;
+      Draft.node.ApplyConfChange.dynamicSpec (GF := GF) (hG := hG))
+    (Hdyn : γ.node.dyn = true) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ rnIsNode γ ∗ srvClusterOk γ.srv ⊢
+      raftApplyCCDyn γ.srv γ.nl (rnNodeIface γ) := by
+  letI := srvStor (GF := GF) γ.node
+  iintro ⟨#Hpraft, #Hnode, #Hcl⟩
+  iunfold rnIsNode at Hnode
+  iunfold srvClusterOk at Hcl
+  isimp only [Hdyn, ↓reduceIte] at Hcl
+  icases Hcl with ⟨#Hdc, -, -, -⟩
   iunfold raftApplyCCDyn
   iexists ⟨go.GoType.PointerType node.ty, #γ.nl⟩
   isplitr
   · ipureintro; rfl
   isplitr
   · ipureintro; exact Hdyn
-  iintro !> %c %cm %ds %ca %cfg %k %e %cs' %Hpre %Φ !> ⟨Hc, Hcfg, #Hdl⟩ HΦ
-  have Hnst : γ.node.mode ≠ .static := fun h => by rw [h] at Hdyn; simp [RNMode.isDyn] at Hdyn
-  wp_apply (wp_ApplyConfChange γ.node γ.id γ.nl c (.v1 cm) ds ca cfg k e cs'
-      (fun h => absurd h Hnst) Hpre) $$ [Hc Hcfg]
-    as %csp %cs ⟨Hcs, Hpost⟩
+  iintro !> %c %cm %l %v %k %e %m' %Hpre %Φ !> ⟨Hc, Hcfg, #Hdl⟩ HΦ
+  obtain ⟨h1, h2, h3, h4, o', h5, h6, h7, h8⟩ := Hpre
+  wp_apply (wp_ApplyConfChange_dyn γ.nl γ.node.cl srvClusterN γ.id
+      (Draft.Membership.simple γ.node.cfg) γ.node.dec c (.v1 cm) o' l k e v m'
+      h1 h2 h3 h4 h5 h6 h7 h8) $$ [Hc Hcfg]
+    as %csp %cs ⟨Hcs, Hcfg, -⟩
   · iframe #
-    iframe Hc
-    iright
-    iexact Hcfg
-  icases Hpost with (⟨%Hst, -⟩ | ⟨-, Hcfg, -⟩)
-  · exact absurd Hst Hnst
+    iframe Hc Hcfg
   iapply HΦ
   iframe Hcfg
   iexists cs
   iexact Hcs
 
-/-- **The node meets `isRaftNodeIfc`** but for `Stop` (`rnStopOk`, the premise): `Ready` from
-`node.Ready.spec` (`rnReadyP` is raft's `readyP`), `Advance` from `node.Advance.spec` (the
-static mode's premise vacuous, the storage the `MemoryStorage`: `rnEnvOk`), `Tick` from
-`node.Tick.spec` (`E.T` raft's tick credit), `ReadIndex` from `node.ReadIndex.spec` over the
-request's context: the committed log reaching the caller's bound (`committedAtLeast_log`), the
-read's update converted (`srvReadAu_to_readAu`), the credit and the fresh token raft's; the
-registration `E.RQ id n Qr` is raft's deposit (`srvRQ`), the error `applyErrIs_of_nodeErr`'s. -/
-theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames) (s : Loc)
-    (wp_Ready : letI : MemStorReg GF := ⟨γ.reg⟩; node.Ready.spec (GF := GF) (hG := hG))
-    (wp_Advance : letI : MemStorReg GF := ⟨γ.reg⟩; node.Advance.spec (GF := GF) (hG := hG))
-    (wp_Tick : letI : MemStorReg GF := ⟨γ.reg⟩; node.Tick.spec (GF := GF) (hG := hG))
-    (wp_ReadIndex : letI : MemStorReg GF := ⟨γ.reg⟩; node.ReadIndex.spec (GF := GF) (hG := hG))
-    (wp_ApplyConfChange : letI : MemStorReg GF := ⟨γ.reg⟩;
-      node.ApplyConfChange.spec (GF := GF) (hG := hG)) :
+/-- **The node meets `isRaftNodeIfc`** but for `Stop` (`rnStopOk`, the premise) (2026-10-27: over
+the node API): `Ready` from `node.Ready.spec`, `Advance` from `node.Advance.spec` (a static
+cluster) or `node.Advance.dynamicSpec` (a dynamic one, at the driver's view), `Tick` from
+`node.Tick.spec` (a time receipt, `tickCredit_intro`), `ReadIndex` from `node.ReadIndex.spec`, the
+context committed to the read's update after the committed log the caller's bound names
+(`srvReadCtx_commit`, by the context's fresh token), the credit the node API's; the
+registration `E.RQ id n Qr` is the context's (`srvRQ`), the error `applyErrIs_of_nodeErr`'s. -/
+theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames) (s : Loc) (issued : GName)
+    (wp_Ready : letI := srvStor (GF := GF) γ.node; Draft.node.Ready.spec (GF := GF) (hG := hG))
+    (wp_Advance : letI := srvStor (GF := GF) γ.node;
+      Draft.node.Advance.spec (GF := GF) (hG := hG))
+    (wp_Advance_dyn : letI := srvStor (GF := GF) γ.node;
+      Draft.node.Advance.dynamicSpec (GF := GF) (hG := hG))
+    (wp_Tick : letI := srvStor (GF := GF) γ.node; Draft.node.Tick.spec (GF := GF) (hG := hG))
+    (wp_ReadIndex : letI := srvStor (GF := GF) γ.node;
+      Draft.node.ReadIndex.spec (GF := GF) (hG := hG))
+    (wp_ApplyConfChange_dyn : letI := srvStor (GF := GF) γ.node;
+      Draft.node.ApplyConfChange.dynamicSpec (GF := GF) (hG := hG)) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      rnEnvOk E γ ∗ rnIsNode γ ∗ srvRaftLogInv E.γr.raft ∗ srvCommittedInv s E.γr ∗
-      rnStopOk γ.nl ∗ rnMemStorReg γ ⊢
+      rnEnvOk E γ ∗ rnIsNode γ ∗ srvCommittedInv s E.γr ∗
+      rnStopOk γ.nl ∗ rnMemStorReg γ ∗ srvRdCtxInv E.γr.raft issued ⊢
       isRaftNodeIfc E γ (rnNodeIface γ) := by
-  letI : MemStorReg GF := ⟨γ.reg⟩
-  iintro ⟨#Hpkg, #Henv, #Hnode, #Hinv, #Hcinv, #Hstop, #Hreg⟩
+  letI := srvStor (GF := GF) γ.node
+  iintro ⟨#Hpkg, #Henv, #Hnode, #Hcinv, #Hstop, #Hreg, #Hci⟩
+  ihave #Hnode0 := Hnode
+  iunfold rnIsNode at Hnode0
   ihave #Hpraft : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
   · iPkgInit
-  iunfold rnEnvOk at Henv
-  icases Henv with ⟨%HT, %Hn, %Hmode, -, -, -, -, %HRQ⟩
+  ihave #Henv' := Henv
+  iunfold rnEnvOk at Henv'
+  icases Henv' with ⟨%HT, %Hn, -, -, #Hinv, -, -, -, %HRQ⟩
   obtain ⟨Hraft, Hpre, Hai0⟩ := Hn
-  obtain ⟨-, -, Hstor, Hns⟩ := Hmode
+  ihave #Hcl : srvClusterOk γ.srv $$ []
+  · iunfold srvRaftLogInv at Hinv
+    icases Hinv with ⟨-, #H, -, -⟩
+    rw [srvClusterOk_congr γ.srv E.γr.raft (by rw [Hraft])]
+    iexact H
   iunfold isRaftNodeIfc
   iexists ⟨go.GoType.PointerType node.ty, #γ.nl⟩
   isplitr
   · ipureintro; rfl
   isplitr
-  · -- (D43 M3) the dynamic mode's `ApplyConfChange`
-    cases hd : γ.node.mode.isDyn
+  · -- (D43 M3) a dynamic cluster's `ApplyConfChange`
+    cases hd : γ.node.dyn
     · ileft; ipureintro; rfl
     · iright
-      iapply raftApplyCCDyn_of_isNode γ wp_ApplyConfChange hd
-      iframe Hpraft Hnode
+      iapply raftApplyCCDyn_of_isNode γ wp_ApplyConfChange_dyn hd
+      iframe Hpraft Hnode Hcl
   isplitr
   · -- `Ready`
     iintro !> %Φ !> - HΦ
-    wp_apply wp_Ready γ.node γ.id γ.nl $$ [] as %ch #Hch
+    wp_apply wp_Ready γ.node.cl srvClusterN γ.id γ.nl $$ [] as %ch #Hch
     · iframe #
     iapply HΦ
-    iunfold isReadyChan at Hch
-    iunfold rnReadyP
     iexact Hch
   isplitr
   · -- `Advance`
     iintro !> %d %ce %es %p %Φ !> ⟨Hbusy, Hcv, Hrcpt⟩ HΦ
     iunfold rnBusyN at Hbusy
-    -- (D43 M3) the view after the batch: in the dynamic mode its conf entries applied (A1)
-    icases rnCfgAt_open γ (d ++ ce) $$ Hcv with ⟨%ca, %cfg, Hcfg, %Hnc, Hcl⟩
     iunfold rnAppendReceipt at Hrcpt
-    wp_apply wp_Advance γ.node γ.id γ.nl (rnLogOf γ (d ++ ce)) (es.map EntryModel.toM) ca cfg p none
-      Hnc $$ [Hbusy Hrcpt Hcfg]
-      as ⟨Hdrv, Hcfg, #Hw⟩
-    · iframe #
-      rw [Hstor]
-      iframe Hbusy Hcfg
-      simp only [advReceipt]
-      iexact Hrcpt
-    -- (D22 S-d4) the floor's witness: raft's no-snapshot mode
-    icases reqWit_none γ.node _ (.inl Hns) $$ Hw with ⟨%x, #Hfl, %Hx⟩
-    iapply HΦ
-    isplitl [Hdrv Hcfg Hcl]
-    · iunfold rnDrv
-      iframe Hdrv
-      iapply Hcl $$ Hcfg
-    -- (D19i part 1) the floor's witness, the `MemoryStorage`'s
-    iunfold memFloorAtLeast
-    iexists x
-    isplitr
-    · ihave #Hfl' : storFloor (memStorIface γ.ms) x $$ []
-      · rw [← Hstor]; iexact Hfl
-      iapply memStorFloor_at γ.ms γ.γs x $$ Hreg Hfl'
-    ipureintro
-    simp only [rnLogOf, List.length_map, List.append_assoc] at Hx ⊢
-    exact Hx
+    iunfold srvClusterOk at Hcl
+    cases hd : γ.node.dyn
+    · -- a static cluster
+      have hd' : γ.srv.raft.dyn = false := hd
+      isimp only [hd', Bool.false_eq_true, ↓reduceIte] at Hcl
+      icases Hcl with ⟨#Hst0, -, -, -⟩
+      ihave #Hst : Draft.isStaticCluster γ.node.cl srvClusterN γ.node.vs (fun _ _ => False) $$ []
+      · iexact Hst0
+      wp_apply (wp_Advance γ.nl γ.node.cl srvClusterN γ.node.vs (fun _ _ => False)
+          ⟨memStorIface γ.ms, srvLE γ.srv (d ++ ce), p, some (es.map EntryModel.toM, none)⟩
+          (es.map EntryModel.toM) none rfl) $$ [Hbusy Hrcpt]
+        as ⟨Hdrv, %x, #Hfl, %Hx⟩
+      · iframe #
+        iframe Hbusy
+        simp only [advReceipt]
+        iexact Hrcpt
+      iapply HΦ
+      isplitl [Hdrv Hcv]
+      · iunfold rnDrv
+        isplitl [Hdrv]
+        · iExactEq Hdrv; rfl
+        · iexact Hcv
+      iunfold memFloorAtLeast
+      iexists x
+      isplitr
+      · iapply (letI : MemStorReg GF := ⟨γ.reg⟩; memStorFloor_at γ.ms γ.γs x) $$ Hreg Hfl
+      ipureintro
+      simp only [srvLE, List.length_map, List.length_append] at Hx ⊢
+      omega
+    · -- a dynamic cluster: the view after the batch, its conf entries applied (A1)
+      have hd' : γ.srv.raft.dyn = true := hd
+      isimp only [hd', ↓reduceIte] at Hcl
+      icases Hcl with ⟨#Hdc0, -, -, -⟩
+      ihave #Hdc : Draft.isDynamicCluster γ.node.cl srvClusterN
+          (Draft.Membership.simple γ.node.cfg) γ.node.dec $$ []
+      · iexact Hdc0
+      iunfold rnCfgAt at Hcv
+      isimp only [hd, ↓reduceIte] at Hcv
+      iunfold srvCfgView at Hcv
+      icases Hcv with ⟨%v, Hcfg, %Hok⟩
+      have Hnc : Draft.NoConfChangeIn (srvLE γ.srv (d ++ ce)) v.applied
+          (srvLE γ.srv (d ++ ce)).length := by
+        have h := Hok.2.1
+        simp only [srvLE, List.length_map, ← List.append_assoc] at h ⊢
+        exact h
+      wp_apply (wp_Advance_dyn γ.nl γ.node.cl srvClusterN (Draft.Membership.simple γ.node.cfg)
+          γ.node.dec
+          ⟨memStorIface γ.ms, srvLE γ.srv (d ++ ce), p, some (es.map EntryModel.toM, none)⟩
+          (es.map EntryModel.toM) none v rfl Hnc) $$ [Hbusy Hrcpt Hcfg]
+        as ⟨Hdrv, Hcfg, %x, #Hfl, %Hx⟩
+      · iframe #
+        iframe Hbusy Hcfg
+        simp only [advReceipt]
+        iexact Hrcpt
+      iapply HΦ
+      isplitl [Hdrv Hcfg]
+      · iunfold rnDrv
+        isplitl [Hdrv]
+        · iExactEq Hdrv; rfl
+        iunfold rnCfgAt
+        isimp only [hd, ↓reduceIte]
+        iunfold srvCfgView
+        iexists v
+        iframe Hcfg
+        ipureintro; exact Hok
+      iunfold memFloorAtLeast
+      iexists x
+      isplitr
+      · iapply (letI : MemStorReg GF := ⟨γ.reg⟩; memStorFloor_at γ.ms γ.γs x) $$ Hreg Hfl
+      ipureintro
+      simp only [srvLE, List.length_map, List.length_append] at Hx ⊢
+      omega
   isplitr
-  · -- `Tick`, for a time receipt (D19b: raft's tick credit)
+  · -- `Tick`, for a time receipt (the node API's tick credit)
     iintro !> %Φ !> Hcred HΦ
-    wp_apply wp_Tick γ.node γ.id γ.nl $$ [Hcred]
-    · iframe #; unfold tickCred; iframe Hcred
+    ihave Hcred := Draft.tickCredit_intro γ.node.cl 1 $$ Hcred
+    wp_apply wp_Tick γ.nl γ.node.cl srvClusterN γ.id $$ [Hcred]
+    · iframe #; iframe Hcred
     iapply HΦ
     itrivial
   isplitr
@@ -483,25 +547,20 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames) (s : Loc)
   · -- `ReadIndex`
     iintro !> %ctx %cd %sl %id %n %Qr %Φ !> ⟨#Hctx, #Hsl, #Hcal, #Hau, Hcred, Hfresh⟩ HΦ
     imod committedAtLeast_log s E.γr n ⊤ CoPset.subseteq_top $$ Hcinv Hcal with ⟨%L, #HL, %HnL⟩
-    ihave #HL' : isCommitted γ.node.raft (srvLogOf E.γr.raft L) $$ []
-    · iunfold srvRLogLb at HL
-      rw [← Hraft]
-      iexact HL
-    ihave #Hau' : readAu γ.node.raft (srvLift E.γr.raft Qr) $$ []
-    · rw [← Hraft]
-      iapply srvReadAu_to_readAu E.γr.raft Qr $$ Hinv Hau
-    ihave Hfresh' : rdFresh γ.node.raft (beBytes id) $$ [Hfresh]
-    · iunfold srvRdFresh at Hfresh
-      rw [← Hraft]
-      iexact Hfresh
+    ihave #HL0 : Draft.isCommittedLogLb E.γr.raft.raft.cl (srvLE E.γr.raft L) $$ []
+    · iunfold srvRLogLb at HL; icases HL with ⟨#H, -⟩; iexact H
+    imod srvReadCtx_commit E.γr.raft issued (beBytes id) Qr (srvLE E.γr.raft L) ⊤
+        (fun _ _ => CoPset.mem_full) $$ Hinv Hci Hfresh Hau HL0 with ⟨#Hrc, #Haft⟩
     ihave #Hnctx : nodeCtx ctx cd $$ []
     · iunfold nodeCtx
       iright
       iexact Hctx
+    ihave #Hrc' : Draft.isReadCtx γ.node.cl srvClusterN (beBytes id) (srvReadQ E.γr.raft Qr) $$ []
+    · rw [← Hraft]; iexact Hrc
     iunfold rnReadCred at Hcred
-    wp_apply wp_ReadIndex γ.node γ.id γ.nl sl (beBytes id) (srvLift E.γr.raft Qr)
-      (srvLogOf E.γr.raft L) ctx cd $$ [Hfresh' Hcred] as %err ⟨⟨%Lc, %HLc, #Hreq, #Hrd⟩, #Herr⟩
-    · iframe #; iframe Hfresh' Hcred
+    wp_apply wp_ReadIndex γ.nl γ.node.cl srvClusterN γ.id sl (beBytes id)
+      (srvReadQ E.γr.raft Qr) ctx cd $$ [Hcred] as %err #Herr
+    · iframe #; iframe Hcred
     iapply HΦ
     isplitr
     · iapply applyErrIs_of_nodeErr cd err $$ Hpkg Herr
@@ -509,29 +568,25 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames) (s : Loc)
       rw [HRQ]
       iunfold srvRQ
       iintro !>
-      iexists Lc
-      isplitr
-      · rw [Hraft]; iexact Hrd
-      isplitr
-      · rw [Hraft]; iexact Hreq
-      · ipureintro
-        have h := HLc.length_le
-        rw [srvLogOf_length, Hpre] at h
-        push_cast
-        omega
+      iexists srvLE E.γr.raft L
+      iframe Hrc Haft
+      ipureintro
+      rw [srvLE_length, Hpre]
+      omega
 
-/-- **The node meets `rnStepIfc`** (D21 M2): raft's `node.Step`, `ReportUnreachable`,
-`ReportSnapshot`, over raft's `isNode`. -/
+/-- **The node meets `rnStepIfc`** (D21 M2; 2026-10-27: the node API's `node.Step`,
+`ReportUnreachable`, `ReportSnapshot`). -/
 theorem rnStepIfc_of_isNode (γ : RNNames)
-    (wp_Step : letI : MemStorReg GF := ⟨γ.reg⟩; node.Step.spec (GF := GF) (hG := hG))
-    (wp_ReportUnreachable : letI : MemStorReg GF := ⟨γ.reg⟩;
-      node.ReportUnreachable.spec (GF := GF) (hG := hG))
-    (wp_ReportSnapshot : letI : MemStorReg GF := ⟨γ.reg⟩;
-      node.ReportSnapshot.spec (GF := GF) (hG := hG)) :
+    (wp_Step : letI := srvStor (GF := GF) γ.node; Draft.node.Step.spec (GF := GF) (hG := hG))
+    (wp_ReportUnreachable : letI := srvStor (GF := GF) γ.node;
+      Draft.node.ReportUnreachable.spec (GF := GF) (hG := hG))
+    (wp_ReportSnapshot : letI := srvStor (GF := GF) γ.node;
+      Draft.node.ReportSnapshot.spec (GF := GF) (hG := hG)) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ rnIsNode γ ⊢
       rnStepIfc γ (rnNodeIface γ) := by
-  letI : MemStorReg GF := ⟨γ.reg⟩
+  letI := srvStor (GF := GF) γ.node
   iintro ⟨#Hpkg, #Hnode⟩
+  iunfold rnIsNode at Hnode
   ihave #Hpraft : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
   · iPkgInit
   iunfold rnStepIfc
@@ -540,18 +595,18 @@ theorem rnStepIfc_of_isNode (γ : RNNames)
   · ipureintro; rfl
   isplitr
   · iintro !> %ctx %cd %ml %Φ !> ⟨#Hctx, Hst⟩ HΦ
-    wp_apply wp_Step γ.node γ.id γ.nl ml ctx cd $$ [Hst] as %err #Herr
+    wp_apply wp_Step γ.nl γ.node.cl srvClusterN γ.id ml ctx cd $$ [Hst] as %err #Herr
     · iframe #; iframe Hst
     iapply HΦ
     iexact Herr
   isplitr
   · iintro !> %x %Φ !> - HΦ
-    wp_apply wp_ReportUnreachable γ.node γ.id γ.nl x $$ []
+    wp_apply wp_ReportUnreachable γ.nl γ.node.cl srvClusterN γ.id x $$ []
     · iframe #
     iapply HΦ
     itrivial
   · iintro !> %x %st %Φ !> - HΦ
-    wp_apply wp_ReportSnapshot γ.node γ.id γ.nl x st $$ []
+    wp_apply wp_ReportSnapshot γ.nl γ.node.cl srvClusterN γ.id x st $$ []
     · iframe #
     iapply HΦ
     itrivial

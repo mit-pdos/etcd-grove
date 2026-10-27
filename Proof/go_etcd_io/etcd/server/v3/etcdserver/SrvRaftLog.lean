@@ -1671,11 +1671,13 @@ theorem srvCtxDeposited_minted (γ : ServerRaftNames) (γi : IdNames) (c : List 
 context `c` is unused (the invariant keeps the token of every committed one), and is committed to
 the read's update (`srvReadAu_api`); the token is kept. -/
 theorem srvReadCtx_commit [go_etcd_io.raft.v3.Assumptions] (γ : ServerRaftNames) (issued : GName) (c : List w8)
-    (Qr : List EntryModel → IProp GF) (E : CoPset) (hE : ↑srvRdUsedN ⊆ E) :
-    ⊢ srvRaftLogInv (GF := GF) γ -∗ srvRdCtxInv γ issued -∗ srvRdFresh γ c -∗ srvReadAu γ Qr ={E}=∗
-      Draft.isReadCtx γ.raft.cl srvClusterN c (srvReadQ γ Qr) := by
+    (Qr : List EntryModel → IProp GF) (l0 : List Draft.LogEntry) (E : CoPset) (hE : ↑srvRdUsedN ⊆ E) :
+    ⊢ srvRaftLogInv (GF := GF) γ -∗ srvRdCtxInv γ issued -∗ srvRdFresh γ c -∗ srvReadAu γ Qr -∗
+      Draft.isCommittedLogLb γ.raft.cl l0 ={E}=∗
+      Draft.isReadCtx γ.raft.cl srvClusterN c (srvReadQ γ Qr) ∗
+        Draft.readCtxAfter γ.raft.cl srvClusterN c l0 := by
   letI := srvAnyStor (GF := GF)
-  iintro #Hinv #Hci Ht #Hra
+  iintro #Hinv #Hci Ht #Hra #Hl0
   ihave #Hau := srvReadAu_api γ Qr $$ Hinv Hra
   iunfold srvRdCtxInv at Hci
   icases Hci with ⟨-, #Hused⟩
@@ -1688,9 +1690,9 @@ theorem srvReadCtx_commit [go_etcd_io.raft.v3.Assumptions] (γ : ServerRaftNames
     ihave %Hne := ghostMapElem_ne γ.raft.rdFresh c c (DFrac.own 1) () () $$ Ht Ht'
     exact absurd rfl Hne
   have hcU : c ∉ Uc := fun h => hc ((HUL c).1 h)
-  imod Draft.readCtx_commit γ.raft.cl srvClusterN Uc c (srvReadQ γ Qr) hcU $$ [Hu Hau]
-    with ⟨Hu, #Hrc⟩
-  · iframe Hu Hau
+  imod Draft.readCtx_commit_after γ.raft.cl srvClusterN Uc c (srvReadQ γ Qr) l0 hcU $$ [Hu Hau]
+    with ⟨Hu, #Hrc, #Haft⟩
+  · iframe Hu Hl0 Hau
   imod Hclose $$ [Hu Hts Ht] with -
   · inext
     iexists insert c Uc, c :: Lc
@@ -1703,7 +1705,7 @@ theorem srvReadCtx_commit [go_etcd_io.raft.v3.Assumptions] (γ : ServerRaftNames
     intro c'
     rw [GMap.elem_of_insert_set, List.mem_cons, HUL c']
   imodintro
-  iexact Hrc
+  iframe Hrc Haft
 
 end mint
 
