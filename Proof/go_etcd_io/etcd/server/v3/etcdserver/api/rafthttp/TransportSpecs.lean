@@ -49,7 +49,7 @@ theorem rafthttp.Transport.Start_ok
     $$ [Ht Hlsf HRL] as %err Hres
   · iframe; iframe #; ipureintro; exact Hpre
   iapply HΦ
-  icases Hres with (%He | ⟨%He, %c, %Hc, Hl, Htoks⟩)
+  icases Hres with (%He | ⟨%He, %c, %Hc, Hl, Hun, Htoks⟩)
   · ileft; ipureintro; exact He
   iright
   isplitr
@@ -99,16 +99,16 @@ theorem rafthttp.Transport.AddRemote_ok
 theorem rafthttp.Transport.CutPeer_ok
     (hM : rafthttp.peer.Pause.spec (GF := GF) (hG := hG)) :
     rafthttp.Transport.CutPeer.spec (GF := GF) (hG := hG) := by
-  intro hpp γn t c id Hid
+  intro hpp γn t c id
   haveI := hpp
-  exact rafthttp.Transport.CutPeer_full hM γn t c id Hid
+  exact rafthttp.Transport.CutPeer_full hM γn t c id
 
 theorem rafthttp.Transport.MendPeer_ok
     (hM : rafthttp.peer.Resume.spec (GF := GF) (hG := hG)) :
     rafthttp.Transport.MendPeer.spec (GF := GF) (hG := hG) := by
-  intro hpp γn t c id Hid
+  intro hpp γn t c id
   haveI := hpp
-  exact rafthttp.Transport.MendPeer_full hM γn t c id Hid
+  exact rafthttp.Transport.MendPeer_full hM γn t c id
 
 theorem rafthttp.Transport.Handler_ok
     (hNPH : rafthttp.newPipelineHandler.spec (GF := GF) (hG := hG))
@@ -119,11 +119,17 @@ theorem rafthttp.Transport.Handler_ok
     (hPServe : rafthttp.pipelineHandler.ServeHTTP.spec (GF := GF) (hG := hG))
     (hSServe : rafthttp.streamHandler.ServeHTTP.spec (GF := GF) (hG := hG))
     (hSnServe : rafthttp.snapshotHandler.ServeHTTP.spec (GF := GF) (hG := hG))
-    (hARR : rafthttp.addRemoteFromRequest.spec (GF := GF) (hG := hG)) :
+    (hARR : rafthttp.addRemoteFromRequest.spec (GF := GF) (hG := hG))
+    (hNewURLs : types.NewURLs.spec (GF := GF) (hG := hG))
+    (hStartRemote : rafthttp.startRemote.spec (GF := GF) (hG := hG))
+    (hIDStringPtr : types.ID.String_ptr.spec (GF := GF) (hG := hG))
+    (hInfo : zap.Logger.Info.spec (GF := GF) (hG := hG))
+    (hZString : zap.String.spec (GF := GF) (hG := hG))
+    (hZStrings : zap.Strings.spec (GF := GF) (hG := hG)) :
     rafthttp.Transport.Handler.spec (GF := GF) (hG := hG) :=
-  fun γn t c rs a Hown Hcov =>
-    rafthttp.Transport.Handler_full hNPH hNSH hNSnH hNewHandler hGet hPServe hSServe hSnServe hARR γn t c rs
-      a Hown Hcov
+  fun γn t c a Hown Hcov =>
+    rafthttp.Transport.Handler_full hNPH hNSH hNSnH hNewHandler hGet hPServe hSServe hSnServe hARR
+      hNewURLs hStartRemote hIDStringPtr hInfo hZString hZStrings γn t c a Hown Hcov
 
 end proof
 

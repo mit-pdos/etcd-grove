@@ -43,7 +43,7 @@ unmarshals to it, not a promotion (`ccApplyOk`, the boot entries'), and, in raft
 (D43 M5d, the user's decision), a `RemoveNode` of a member of the configuration other than the
 local one (`lid`; the stopping server is M6's), so it returns `removed = false`. An `AddNode`'s
 node is the local member or one of the transport's peers (`prs`: `AddPeer` of a known peer
-returns at once, `AddPeer_frozen`, `AddPeer_known`); the members map stays within its bound.
+returns at once, `AddPeer_known`); the members map stays within its bound.
 
 **Its effect on the rest buckets and the members**: `E.RO` (`srvRestOwnH γB cl H`, the cluster's
 `be` field among `H`, `clusterBeOn`) at `rs` goes to `ccRest v3 m rs` (the member saved and added

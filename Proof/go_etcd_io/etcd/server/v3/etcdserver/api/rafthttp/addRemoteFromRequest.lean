@@ -30,7 +30,7 @@ theorem rafthttp.addRemoteFromRequest.wp_proof
     rafthttp.addRemoteFromRequest.spec (GF := GF) (hG := hG) := by
   intro Rh lid ti r R rd
   wp_start as ⟨#HR, %Hfrom, #HAR⟩
-  obtain ⟨f, Hf, Hfm, Hfne⟩ := Hfrom
+  obtain ⟨f, Hf, Hfm, Hfne, Hfu⟩ := Hfrom
   iunfold http.reqAt at HR
   icases HR with ⟨-, -, ⟨%hm, #HHm, #Hhs⟩, -, -, -⟩
   wp_auto
@@ -52,7 +52,7 @@ theorem rafthttp.addRemoteFromRequest.wp_proof
     wp_apply hSplit _ _ (by decide) as %sl ⟨Hsl, -⟩
     (try wp_auto)
     wp_apply HAR $$ [Hsl]
-    · iframe Hsl; ipureintro; exact ⟨Hfm, Hfne⟩
+    · iframe Hsl; ipureintro; exact ⟨Hfm, Hfne, Hfu⟩
     (try wp_auto)
     iapply HΦ; itrivial
 

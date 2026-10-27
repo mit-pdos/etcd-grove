@@ -42,7 +42,7 @@ abbrev StartServer.spec : Prop :=
   threadBound GF ≤ 2 ^ 31 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
   γ.reCfg = GMap.listToSet [id] → γ.reDyn = none → γ.reCCOk = ccOk [id] → γ.reBoot = bootLog →
   γ.reNoSnap = true → γ.reNoXfer = true → bootLog.length ≤ 2 ^ 60 →
-  γn.N = srvNet γ bud → γn.dir = dir → netDirOk dir →
+  γn.N = srvNet γ bud → γn.dir = dir → netDirOk dir → go!"http://" ++ peerAddr ∈ dir id →
   lg ≠ null →
   ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → storage.dbOpensOk →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.common ∗

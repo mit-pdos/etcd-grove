@@ -1,7 +1,8 @@
 /-
 `setPeerURLsHeader(req, urls)` (`util.go`; rafthttp stage 5e-3). Lean-first. (Proved in stage 6e,
 2026-10-24, over `url.URL.String` of any URL, `URLStringAny_spec`; its post since then says the
-other headers are kept, what `createPostRequest`'s `X-Server-From` needs.)
+other headers are kept, what `createPostRequest`'s `X-Server-From` needs; since D22 J-T,
+2026-10-27, the header's value, what the protocol's `X-PeerURLs` needs, W8.)
 -/
 module
 
@@ -22,13 +23,17 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- **`setPeerURLsHeader(req, urls)`** on a request being built: the request with some headers. -/
+/-- **`setPeerURLsHeader(req, urls)`** on a request being built: the request with some headers,
+the others kept; (2026-10-27, D22 J-T, W8) of URLs of only the scheme `http` and a plain host,
+`X-PeerURLs` their strings (`http://host`) joined by `,` (`peerURLsHdr`). -/
 abbrev rafthttp.setPeerURLsHeader.spec : Prop :=
   ∀ (r : Loc) (R : http.HReq) (urls : GoSlice) (uvs : List net.url.URL),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗ http.reqOwn r R ∗ urls ↦*□ uvs }}
     (App (App (Val (@! rafthttp.setPeerURLsHeader)) (Val #r)) (Val #urls))
   {{ RET #(); ∃ hs : List (GoString × GoString),
       ⌜∀ k, http.canonKey k ≠ http.canonKey go!"X-PeerURLs" → http.hdrGet hs k = http.hdrGet R.hdr k⌝ ∗
+      ⌜uvs ≠ [] → (∀ u ∈ uvs, http.urlRootPlain u) →
+        http.hdrGet hs go!"X-PeerURLs" = peerURLsHdr uvs⌝ ∗
       http.reqOwn r { R with hdr := hs } }}
 
 end spec

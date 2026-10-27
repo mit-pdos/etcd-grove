@@ -147,7 +147,7 @@ theorem applySnapshot_walk
        membership.isRaftCluster cl ∗
        rnTransportAddr (srvRAddr s) ↦□ (interface.mkOk (go.GoType.PointerType
          go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Transport.ty) #t : GoInterface) ∗
-       trLive γn t c rs ∗ srvMemberIDAddr s ↦□ idm ∗
+       (trLive γn t c rs ∗ trPeersNoRem c rs) ∗ srvMemberIDAddr s ↦□ idm ∗
        ([∗list] _x ∈ List.replicate (8 * ps.length) (), c.R) ∗
        srvMembersDir cl ps dir ∗
        epMemSnapAddr ep ↦ msi ∗ epConfState ep cs0 ∗
@@ -611,8 +611,13 @@ theorem applySnapshot_walk
   -- `s.r.transport.RemoveAllPeers()`
   ihave #Hrhpkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp $$ []
   · iPkgInit
-  wp_apply hRAP γn t c rs $$ [Htlive] as Htlive
-  · iframe #; iframe Htlive
+  -- (D22 J-T) the peers' no-remote facts go back to the transport; four of each peer's `R`s come
+  -- back (dropped here: the `AddPeer`s below take the premise's eight each)
+  icases Htlive with ⟨Htlive, Hpnr⟩
+  iunfold trPeersNoRem at Hpnr
+  icases Hpnr with ⟨%Q, %HQ, Htks⟩
+  wp_apply hRAP γn t c rs Q HQ.1 HQ.2 $$ [Htlive Htks] as ⟨Htlive, -⟩
+  · iframe #; iframe
   (try wp_auto)
   wp_apply hInfo $$ []
   · ipureintro; exact Hlgnn

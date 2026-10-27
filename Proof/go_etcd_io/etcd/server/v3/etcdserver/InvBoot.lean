@@ -83,6 +83,15 @@ transport's `AddPeer` parses). -/
 def netDirOk (dir : w64 → List GoString) : Prop :=
   dir 0 = [] ∧ dirHostsDistinct dir ∧ ∀ (id : w64) (s : GoString), s ∈ dir id → types.plainPeerURL s
 
+/-- **The member's configured peer URLs are its directory URLs** (2026-10-27, D22 J-T, W8; a
+premise of `NewServer.spec`, of the caller's configuration): non-empty, each of only the scheme
+`http` and a plain host (`http.urlRootPlain`), `http://` and the host one of the member's peer
+URLs in the directory. The transport sends them in `X-PeerURLs` (`setPeerURLsHeader`), which a
+peer's handler may add a remote for. -/
+def peerURLsDir (dir : w64 → List GoString) (id : w64) (uvs : List _root_.Perennial.net.url.URL) :
+    Prop :=
+  uvs ≠ [] ∧ ∀ u ∈ uvs, http.urlRootPlain u ∧ go!"http://" ++ u.Host' ∈ dir id
+
 /-- **A one-member directory** (rafthttp stage 6d; the one-member examples'): the member `id`'s one
 peer URL `url`, no other member. -/
 def dirOne (id : w64) (url : GoString) (i : w64) : List GoString := if i = id then [url] else []
@@ -122,6 +131,35 @@ theorem addPeer_dir (γn : NetNames GF) (dir : w64 → List GoString) (hγ : γn
     (netRh_member γn pid).2 ((hps pid).2 hp)⟩
   rw [netRh_owner]
   exact netOwner_of_mem γn.dir hd.2.1 pid h hm
+
+omit [MemStorReg GF] in
+/-- Four of `n` copies of `P` for each id of `l` (D22 J-T: the transport's pool). -/
+theorem replicate_list4 (P : IProp GF) : ∀ (l : List w64) (n : Nat), 4 * l.length ≤ n →
+    ([∗list] _x ∈ List.replicate n (), P) ⊢ [∗list] _x ∈ l, P ∗ P ∗ P ∗ P
+  | [], _, _ => by
+    iintro -
+    iapply BigSepL.bigSepL_nil.2; itrivial
+  | x :: l, n, h => by
+    obtain ⟨m, rfl⟩ : ∃ m, n = m + 4 := ⟨n - 4, by simp only [List.length_cons] at h; omega⟩
+    rw [show List.replicate (m + 4) () = () :: () :: () :: () :: List.replicate m () by
+      simp [List.replicate_succ]]
+    iintro H
+    icases BigSepL.bigSepL_cons.1 $$ H with ⟨H1, H⟩
+    icases BigSepL.bigSepL_cons.1 $$ H with ⟨H2, H⟩
+    icases BigSepL.bigSepL_cons.1 $$ H with ⟨H3, H⟩
+    icases BigSepL.bigSepL_cons.1 $$ H with ⟨H4, H⟩
+    iapply BigSepL.bigSepL_cons.2
+    iframe H1 H2 H3 H4
+    iapply replicate_list4 P l m (by simp only [List.length_cons] at h; omega) $$ H
+
+omit [MemStorReg GF] in
+/-- **The transport's configured peer URLs are its member's** (D22 J-T, W8): from the directory. -/
+theorem trURLsOk_of_dir (γn : NetNames GF) (dir : w64 → List GoString) (hγ : γn.dir = dir)
+    (hd : netDirOk dir) (ps : List w64) (hps : ∀ f, dir f ≠ [] ↔ f ∈ ps) (id : w64)
+    (hid : id ∈ ps) (uvs : List _root_.Perennial.net.url.URL) (hu : peerURLsDir dir id uvs) :
+    trURLsOk (netRh γn) id uvs := by
+  obtain ⟨-, hpl, hown, -⟩ := addPeer_dir γn dir hγ hd ps hps id hid (dir id) rfl
+  exact ⟨hu.1, fun u hu' => ⟨(hu.2 u hu').1, hpl _ (hu.2 u hu').2, hown _ (hu.2 u hu').2⟩⟩
 
 omit [MemStorReg GF] in
 /-- The members' loop's coverage, a step further: the ids added so far (`L`, within `L'`), and
@@ -480,7 +518,7 @@ abbrev SrvKey := Loc × Loc × w64 × GName × GName × GName
 
 /-- The transport's names of a key. -/
 abbrev SrvKey.trN (x : SrvKey) : TrN GF :=
-  ⟨x.2.2.1, x.2.2.2.1, srvLgReader x.1, x.2.2.2.2.1, x.2.2.2.2.2, []⟩
+  ⟨x.2.2.1, x.2.2.2.1, srvLgReader x.1, x.2.2.2.2.1, x.2.2.2.2.2, [], x.2.2.2.2.1, x.2.2.2.2.1⟩
 
 /-- **The raft loop's key to the transport's `Send`** (rafthttp stage 6d, 2026-10-24, the user's
 choice: the raft loop holds one of the transport's lock's reader tokens): the server's transport's
@@ -517,7 +555,7 @@ theorem srvTrKey_of_trTok (γn : NetNames GF) (γk : GName) (s t : Loc) (c : TrN
   iunfold srvTrKey
   iexists (s, t, c.lid, c.γd, c.γs, c.γr)
   iframe Hk
-  obtain ⟨lid, γd, R, γs, γr, L⟩ := c
+  obtain ⟨lid, γd, R, γs, γr, L, γk', γo⟩ := c
   simp only at hR
   subst hR
   iunfold trTok at Htok
@@ -545,7 +583,7 @@ theorem netTransport_of_key (γn : NetNames GF) (lid : w64) (tr : GoInterface) (
     ihave %Heq := ghostMapElem_agree () γk DFrac.discard DFrac.discard _ _ $$ Hk Hx
     subst Heq
     ihave Htok' : trTok γn t c $$ [Htok]
-    · obtain ⟨lid', γd, R, γs, γr, L⟩ := c
+    · obtain ⟨lid', γd, R, γs, γr, L, γk', γo⟩ := c
       simp only at hR
       subst hR
       iunfold trTok at Htok

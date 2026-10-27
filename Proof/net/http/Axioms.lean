@@ -126,7 +126,8 @@ axiom reqURL_ok : reqURL_spec (GF := GF)
 /-- (rafthttp stage 6e) `http.StatusText` (`StatusText_spec`). -/
 axiom StatusText_ok : StatusText_spec (GF := GF)
 
-/-- (rafthttp stage 6e) `url.URL.String` of any URL (`URLStringAny_spec`). -/
+/-- (rafthttp stage 6e) `url.URL.String` of any URL (`URLStringAny_spec`; restated 2026-10-27, D22
+J-T: a URL of only `http` and a plain host renders as `http://` and the host). -/
 axiom URLStringAny_ok : URLStringAny_spec (GF := GF)
 
 /-- (2026-10-23, stage 5f: the stream writer's) `ResponseWriter.Write` (`respWrite_spec`): writes a

@@ -964,15 +964,34 @@ def StatusText_spec : Prop :=
         (App (Val (@! _root_.Perennial.net.http.StatusText)) (Val #code))
       {{ (s : GoString), RET #s; True }}
 
+/-- **A byte `url.URL.String` writes unescaped in a host** (2026-10-27, D22 J-T, W8): a letter, a
+digit, `.`, `-` or `:` (Go's `shouldEscape(c, encodeHost)` is false for each: alphanumerics and the
+unreserved `-` `.`, and `:` among the host's allowed sub-delimiters). -/
+def hostByteNoEscape (c : w8) : Prop :=
+  (48 ≤ c.toNat ∧ c.toNat ≤ 57) ∨ (65 ≤ c.toNat ∧ c.toNat ≤ 90) ∨ (97 ≤ c.toNat ∧ c.toNat ≤ 122) ∨
+    c.toNat = 46 ∨ c.toNat = 45 ∨ c.toNat = 58
+
+/-- **A URL of only the scheme `http` and a host** (2026-10-27, D22 J-T, W8): what a member's
+configured peer URL is (`http://host:port`, `types.parsedPeerURL`'s fields), the host non-empty and
+of bytes `escape` keeps. -/
+def urlRootPlain (u : _root_.Perennial.net.url.URL) : Prop :=
+  u.Scheme' = go!"http" ∧ u.Opaque' = "" ∧ u.User' = null ∧ u.Fragment' = "" ∧
+    u.RawQuery' = "" ∧ u.RawPath' = "" ∧ u.RawFragment' = "" ∧ u.ForceQuery' = false ∧
+    u.OmitHost' = false ∧ u.Path' = "" ∧ u.Host' ≠ [] ∧ ∀ c ∈ u.Host', hostByteNoEscape c
+
 /-- `u.String()` of any URL (2026-10-24, rafthttp stage 6e: `setPeerURLsHeader` renders the
 transport's peer URLs, whatever they are): some string; it reads the URL only. Go's `URL.String`
-assembles its fields with `escape` and never panics. -/
+assembles its fields with `escape` and never panics. (2026-10-27, D22 J-T, W8: restated, the
+string of a URL of only the scheme `http` and a plain host is `http://` and the host: Go writes
+the scheme, `:`, `//` (a host is set), `escape(host, encodeHost)` (the host itself, its bytes
+unescaped: `hostByteNoEscape`), the escaped path (`""`: `Path` and `RawPath` empty), and no query
+or fragment.) -/
 def URLStringAny_spec : Prop :=
   ∀ (p : Loc) (dq : DFrac) (u : _root_.Perennial.net.url.URL),
     ⊢ {{ (p ↦{dq} u : IProp GF) }}
         (App (Val (p @!! go.GoType.PointerType _root_.Perennial.net.url.URL.ty @!! go!"String"))
           (Val #()))
-      {{ (s : GoString), RET #s; p ↦{dq} u }}
+      {{ (s : GoString), RET #s; p ↦{dq} u ∗ ⌜urlRootPlain u → s = go!"http://" ++ u.Host'⌝ }}
 
 /-! `encoding/binary`'s `Write` and `Read` of an integer (the codecs' length prefixes) are
 `Spec/encoding/binary/{WriteUint64,WriteUint8,ReadUint64}.lean`. -/

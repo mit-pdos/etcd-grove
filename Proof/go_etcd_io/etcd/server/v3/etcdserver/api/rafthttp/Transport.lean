@@ -76,7 +76,8 @@ def trFixed (Rh : RaftHttp GF) (t : Loc) (lid : w64) (γd : GName) (R : IProp GF
     t.[rafthttp.Transport, go!"pipelineProber"] ↦□ pp ∗
     t.[rafthttp.Transport, go!"streamProber"] ↦□ sp ∗
     streamRegInv Rh ∗ (□ ∀ pid : w64, ⌜Rh.member pid ∧ pid ≠ lid⌝ -∗ pipeReg Rh pid) ∗
-    globalAddr rafthttp.RaftStreamPrefix ↦□ go!"/raft/stream" ∗ ⌜Rh.member lid⌝)
+    globalAddr rafthttp.RaftStreamPrefix ↦□ go!"/raft/stream" ∗
+    ⌜Rh.member lid ∧ trURLsOk Rh lid uvs⌝)
 
 set_option synthInstance.maxHeartbeats 8000000 in
 set_option synthInstance.maxSize 65536 in

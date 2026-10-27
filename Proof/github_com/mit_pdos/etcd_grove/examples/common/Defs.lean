@@ -61,6 +61,18 @@ def httpURL (host : GoString) : _root_.Perennial.net.url.URL :=
   { Scheme' := go!"http", Opaque' := [], User' := null, Host' := host, Path' := [], Fragment' := [],
     RawQuery' := [], RawPath' := [], RawFragment' := [], ForceQuery' := false, OmitHost' := false }
 
+/-- **`[http://host]` is the member's directory URLs** (D22 J-T, W8: `NewServer`'s
+`peerURLsDir` premise, from a well-formed directory holding `http://host` for the member). -/
+theorem peerURLsDir_httpURL (dir : w64 → List GoString) (id : w64) (host : GoString)
+    (hd : netDirOk dir) (hm : go!"http://" ++ host ∈ dir id) :
+    peerURLsDir dir id [httpURL host] := by
+  refine ⟨by simp, fun u hu => ?_⟩
+  rw [List.mem_singleton.1 hu]
+  have hpl := (hd.2.2 id _ hm).2
+  rw [List.drop_left' (by rfl)] at hpl
+  obtain ⟨hne, hb⟩ := types.plainHostPort_noEscape host hpl
+  exact ⟨⟨rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, rfl, hne, hb⟩, hm⟩
+
 /-- **The URLs of a one-member cluster's member `name`** (`StartServer`'s): its peer URLs
 `[http://peerAddr]`, its client URLs `[http://client]`, the initial cluster's map `{name ↦ _}` and
 the member's initial URLs its peer URLs. -/

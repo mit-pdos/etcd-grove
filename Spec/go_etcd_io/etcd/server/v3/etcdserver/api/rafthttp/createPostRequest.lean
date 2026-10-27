@@ -22,7 +22,8 @@ variable [sem : go.Semantics]
 
 /-- **`createPostRequest`** of a plain URL `u` and a body reader of `bs`: a `POST` to `u`'s host
 at `path` with that body (and some headers): `NewRequest` does not fail (`http.NewRequest_spec`),
-so its `lg.Panic` is dead. -/
+so its `lg.Panic` is dead; `X-Server-From` the sender's id, and (D22 J-T, W8) `X-PeerURLs` the
+transport's URLs' strings (`setPeerURLsHeader`). -/
 abbrev rafthttp.createPostRequest.spec : Prop :=
   ∀ (lg : Loc) (u : net.url.URL) (path : GoString) (body : GoInterface) (K : http.Body)
     (ct : GoString) (urls : GoSlice) (uvs : List net.url.URL)
@@ -34,7 +35,9 @@ abbrev rafthttp.createPostRequest.spec : Prop :=
       (Val #u)) (Val #path)) (Val #body)) (Val #ct)) (Val #urls)) (Val #fr)) (Val #cid))
   {{ (req : Loc), RET #req; ∃ hdrs : List (GoString × GoString),
         http.reqOwn req ⟨go!"POST", u.Host', path, hdrs, K.bytes⟩ ∗ http.reqStream req K ∗
-        ⌜http.hdrGet hdrs go!"X-Server-From" = types.idStr fr⌝ }}
+        ⌜http.hdrGet hdrs go!"X-Server-From" = types.idStr fr ∧
+          (uvs ≠ [] → (∀ u ∈ uvs, http.urlRootPlain u) →
+            http.hdrGet hdrs go!"X-PeerURLs" = peerURLsHdr uvs)⌝ }}
 
 end spec
 

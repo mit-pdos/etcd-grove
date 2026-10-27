@@ -33,7 +33,8 @@ theorem rafthttp.newSnapshotSender.wp_proof :
   iunfold trFixed at Htr'
   icases Htr' with ⟨%lg, %ls, %ss0, %turls, %tuvs, %cid, %r, %ec, %srt, %prt, %drf, %ppr, %spr,
     #Hlg, %Hlgnn, #Hlid, #HtURLs, #Htuvs, #Hcid, #Hr, #Hraft, #Hec, #Hsrt, #Hsrtok, #Hprt, #Hprtok,
-    #Hdrf, #Hls, %Hlsnn, #Hss, %Hssnn, #Hppr, #Hspr, #Hreg, #Hpreg, #HPfx, %Hmem⟩
+    #Hdrf, #Hls, %Hlsnn, #Hss, %Hssnn, #Hppr, #Hspr, #Hreg, #Hpreg, #HPfx, %HmemU⟩
+  obtain ⟨Hmem, Hturls⟩ := HmemU
   (try wp_auto)
   wp_apply chan.wp_make1 (V := Unit) as %sc %γs ⟨#Hscc, %-, Hsco⟩
   imod alloc_broadcast_chan (E := ⊤) iprop(True) γs sc $$ Hscc Hsco with Hbc
@@ -60,7 +61,9 @@ theorem rafthttp.newSnapshotSender.wp_proof :
     isplitr
     · iapply Hpreg
       ipureintro; exact ⟨Hpm, Hne⟩
-    ipureintro; exact ⟨Hmem, fun h => Hne h.symm⟩
+    isplitr
+    · ipureintro; exact ⟨Hmem, fun h => Hne h.symm⟩
+    ipureintro; exact Hturls
   iunfold snapSenderStop
   iexists sc, γs
   iframe #; iframe
