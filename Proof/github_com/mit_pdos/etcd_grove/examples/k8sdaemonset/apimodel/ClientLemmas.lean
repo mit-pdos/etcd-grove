@@ -60,6 +60,33 @@ theorem replaceMut_res {st o o'' : Obj} (h : replaceMut st o (some o'')) : o'' =
   unfold replaceMut at h
   cases h; rfl
 
+/-- A list's objects are the table's resource. -/
+theorem listOk_res {r : Res} {ns : GoString} {σ : St} {os : List Obj} (hwf : σ.wf)
+    (h : listOk r ns σ os) : ∀ o ∈ os, o.res = r := by
+  intro o ho
+  have ho' := h.mem_iff.mp ho
+  simp only [List.mem_map, List.mem_filter] at ho'
+  obtain ⟨⟨k, o'⟩, ⟨hmem, -⟩, rfl⟩ := ho'
+  exact (wf_stored hwf ((GMap.mem_toList _ k o').mp hmem)).1
+
+theorem list_set_app_replicate {α : Type} (vs : List α) (m : Nat) (z v : α) (hm : 0 < m) :
+    (vs ++ List.replicate m z).set vs.length v = (vs ++ [v]) ++ List.replicate (m - 1) z := by
+  obtain ⟨m', rfl⟩ : ∃ m', m = m' + 1 := ⟨m - 1, by omega⟩
+  simp [List.set_append_right, List.replicate_succ]
+
+theorem list_bnd {α : Type} (vs : List α) (z : α) (n ilen slen : w64) (hn : 0 ≤ sint.Z n)
+    (hlt : sint.Z n < sint.Z slen) (hvs : vs.length = sint.nat n)
+    (hl : (vs ++ List.replicate (sint.nat slen - sint.nat n) z).length = sint.nat ilen ∧ 0 ≤ sint.Z ilen)
+    (hsl : 0 ≤ sint.Z slen) :
+    (0 ≤ sint.Z n ∧ sint.Z n < sint.Z ilen) ∧
+      (0 ≤ sint.Z n ∧ sint.Z n < ((vs ++ List.replicate (sint.nat slen - sint.nat n) z).length : Int)) ∧
+      0 < sint.nat slen - sint.nat n := by
+  simp only [List.length_append, List.length_replicate] at hl ⊢
+  have h1 : ((sint.nat n : Nat) : Int) = sint.Z n := Int.toNat_of_nonneg hn
+  have h2 : ((sint.nat slen : Nat) : Int) = sint.Z slen := Int.toNat_of_nonneg hsl
+  have h3 : ((sint.nat ilen : Nat) : Int) = sint.Z ilen := Int.toNat_of_nonneg hl.2
+  omega
+
 end pure
 
 section lemmas
