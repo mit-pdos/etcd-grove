@@ -584,31 +584,25 @@ theorem entriesAt_of_entRO (ls : List Loc) (es : List EntryM) :
     rw [EntryModel.toM_ofM]
     iexact He'
 
-/-- **Receiving a `Ready`** (in the loop's `select`; 2026-10-16, stage R7b: raft's payload, the
-server's data derived): the idle driver at `L` learns the payload's log is `L`, and is busy with
-it; the messages persisted (`msgOwn_persist`), `E.C` of the committed log (`rnEnvOk`), the entries
-fit (`rnLogFits`), the read states answered (`rnReadStateBridge`); each message with the read
-credit raft hands out with it (2026-10-19, D21 stage M1; until then dropped); (D43 M3) and the
-committed log handed out through the batch (`dlvLb`, persistent: raft's `ApplyConfChange` checks a
-conf change against it). -/
-theorem rn_ready_recv (E : RNEnv GF) (γ : RNNames) (L : List EntryModel) (p : HardStateM)
-    (rd : Ready) :
-    rnEnvOk E γ -∗ rnLogFits γ -∗ rnReadStateBridge E γ -∗ rnDrv γ L p -∗ rnReadyP E γ rd ={⊤}=∗
+/-- (D22 integration 2, 2026-10-27) **`rn_ready_recv` after the payload is taken**: from raft's
+`readyData` with the driver busy at the committed log handed out and its lower bound
+(`readyP_take`/`readyP_take_ns`), the server's data. Shared by `rn_ready_recv` and
+`rn_ready_recvL`'s no-snapshot case. -/
+theorem rn_ready_recv_of (E : RNEnv GF) (γ : RNNames) (L : List EntryModel) (p : HardStateM)
+    (rd : Ready) (ce es : List EntryM) (ms : List QMsg) (p' : HardStateM) :
+    letI : MemStorReg GF := ⟨γ.reg⟩
+    rnEnvOk E γ -∗ rnLogFits γ -∗ rnReadStateBridge E γ -∗ rnCfgAt γ L -∗
+      readyData γ.node rd (rnLogOf γ L) ce es ms p p' -∗
+      nodeDriverBusy γ.node γ.id γ.nl (rnLogOf γ L ++ ce) es p' -∗
+      dlvLb γ.node (rnLogOf γ L ++ ce) ={⊤}=∗
       ∃ ce es p', rnReadyData E γ rd L ce es p p' ∗ rnBusy γ L ce es p' ∗
         dlvLb γ.node (rnLogOf γ (L ++ ce)) := by
   letI : MemStorReg GF := ⟨γ.reg⟩
-  iintro #Henv #Hfits #Hbr Hdrv HP
+  iintro #Henv #Hfits #Hbr Hcfg Hdata Hbusy #Hlb
   iunfold rnEnvOk at Henv
   icases Henv with ⟨-, %Hn, %Hmode, -, #HM, #HC, -, -⟩
   obtain ⟨Hraft, Hpre, Hai0⟩ := Hn
-  obtain ⟨-, -, Hstor, Hns⟩ := Hmode
-  iunfold rnReadyP at HP
-  iunfold rnDrv at Hdrv
-  icases Hdrv with ⟨Hdrv, Hcfg⟩
-  -- (D22 S-d4) no snapshot: raft's no-snapshot mode; (2026-10-26) through raft's law, the payload
-  -- and the driver's token being sealed (`readyP_take_ns`)
-  icases readyP_take_ns γ.node γ.id γ.nl rd _ _ (.inl Hns) $$ HP Hdrv with
-    ⟨%ce, %es, %ms, %p', Hdata, Hbusy, #Hlb⟩
+  obtain ⟨-, -, Hstor, -⟩ := Hmode
   iunfold rnLogFits at Hfits
   icases Hfits with %Hrb
   iunfold readyData at Hdata
@@ -690,6 +684,33 @@ theorem rn_ready_recv (E : RNEnv GF) (γ : RNNames) (L : List EntryModel) (p : H
   · rw [rnLogOf_append, EntryModel.map_toM_ofM]
     iexact Hlb
 
+/-- **Receiving a `Ready`** (in the loop's `select`; 2026-10-16, stage R7b: raft's payload, the
+server's data derived): the idle driver at `L` learns the payload's log is `L`, and is busy with
+it; the messages persisted (`msgOwn_persist`), `E.C` of the committed log (`rnEnvOk`), the entries
+fit (`rnLogFits`), the read states answered (`rnReadStateBridge`); each message with the read
+credit raft hands out with it (2026-10-19, D21 stage M1; until then dropped); (D43 M3) and the
+committed log handed out through the batch (`dlvLb`, persistent: raft's `ApplyConfChange` checks a
+conf change against it). -/
+theorem rn_ready_recv (E : RNEnv GF) (γ : RNNames) (L : List EntryModel) (p : HardStateM)
+    (rd : Ready) :
+    rnEnvOk E γ -∗ rnLogFits γ -∗ rnReadStateBridge E γ -∗ rnDrv γ L p -∗ rnReadyP E γ rd ={⊤}=∗
+      ∃ ce es p', rnReadyData E γ rd L ce es p p' ∗ rnBusy γ L ce es p' ∗
+        dlvLb γ.node (rnLogOf γ (L ++ ce)) := by
+  letI : MemStorReg GF := ⟨γ.reg⟩
+  iintro #Henv #Hfits #Hbr Hdrv HP
+  ihave %Hns : ⌜γ.node.raft.reNoSnap = true⌝ $$ [Henv]
+  · iunfold rnEnvOk at Henv
+    icases Henv with ⟨-, -, %Hmode, -⟩
+    ipureintro; exact Hmode.2.2.2
+  iunfold rnReadyP at HP
+  iunfold rnDrv at Hdrv
+  icases Hdrv with ⟨Hdrv, Hcfg⟩
+  -- (D22 S-d4) no snapshot: raft's no-snapshot mode; (2026-10-26) through raft's law, the payload
+  -- and the driver's token being sealed (`readyP_take_ns`)
+  icases readyP_take_ns γ.node γ.id γ.nl rd _ _ (.inl Hns) $$ HP Hdrv with
+    ⟨%ce, %es, %ms, %p', Hdata, Hbusy, #Hlb⟩
+  iapply rn_ready_recv_of E γ L p rd ce es ms p' $$ Henv Hfits Hbr Hcfg Hdata Hbusy Hlb
+
 /-! ## (D22 J6a) A `Ready` with a snapshot -/
 
 /-- (D22 J6a, 2026-10-26) **What a `Ready` with a snapshot gives the driver** (raft's
@@ -739,16 +760,17 @@ theorem rn_ready_recvL (E : RNEnv GF) (γ : RNNames) (L : List EntryModel) (p : 
   letI : MemStorReg GF := ⟨γ.reg⟩
   iintro #Henv #Hfits #Hbr Hdrv HP
   iunfold rnReadyP at HP
-  iunfold readyP at HP
-  icases HP with ⟨%d, %ce, %es, %ms, %p0, %p', %Lo, Hd, Hrof, Hdata, #Hlb⟩
+  iunfold rnDrv at Hdrv
+  icases Hdrv with ⟨Hdrv, Hcfg⟩
+  -- (D22 integration 2) through raft's law, the payload and the driver's token being sealed
+  icases readyP_take γ.node γ.id γ.nl rd _ _ $$ HP Hdrv with
+    ⟨%ce, %es, %ms, %p', %Lo, Hdata, Hbusy, #Hlb⟩
   cases Lo with
   | none =>
-    -- no snapshot: `rn_ready_recv`, over the payload put back
-    ihave HP : rnReadyP E γ rd $$ [Hd Hrof Hdata]
-    · iunfold rnReadyP; iunfold readyP
-      iexists d, ce, es, ms, p0, p', none
-      iframe Hd Hrof Hdata Hlb
-    imod rn_ready_recv E γ L p rd $$ Henv Hfits Hbr Hdrv HP with ⟨%ce', %es', %p'', H1, H2, #H3⟩
+    -- no snapshot: `rn_ready_recv`'s data
+    simp only [readyDataL, dlvAfter]
+    imod rn_ready_recv_of E γ L p rd ce es ms p' $$ Henv Hfits Hbr Hcfg Hdata Hbusy Hlb
+      with ⟨%ce', %es', %p'', H1, H2, #H3⟩
     imodintro
     ileft
     iexists ce', es', p''
@@ -759,13 +781,6 @@ theorem rn_ready_recvL (E : RNEnv GF) (γ : RNNames) (L : List EntryModel) (p : 
     icases Henv with ⟨-, %Hn, %Hmode, -, #HM, #HC, -, -⟩
     obtain ⟨Hraft, Hpre, Hai0⟩ := Hn
     obtain ⟨-, -, Hstor, -⟩ := Hmode
-    iunfold rnDrv at Hdrv
-    icases Hdrv with ⟨Hdrv, Hcfg⟩
-    iunfold nodeDriver at Hdrv
-    icases Hdrv with ⟨#Hnode, Hds, -, Hreq⟩
-    ihave %Heq := dghostVar_agree _ _ _ _ _ $$ Hd Hds
-    simp only [Prod.mk.injEq] at Heq
-    obtain ⟨rfl, rfl⟩ := Heq
     iunfold rnLogFits at Hfits
     icases Hfits with %Hrb
     simp only [readyDataL, readySnapData]
@@ -856,20 +871,12 @@ theorem rn_ready_recvL (E : RNEnv GF) (γ : RNNames) (L : List EntryModel) (p : 
       · iexact Hloc
       rw [EntryModel.map_toM_ofM]
       iexact Hout
-    isplitl [Hcfg Hd Hds Hrof Hreq]
+    isplitl [Hcfg Hbusy]
     · iunfold rnBusyS
       iframe Hcfg
-      iunfold nodeDriverBusy
-      iframe Hnode
       rw [EntryModel.map_toM_ofM]
-      isplitr
-      · iunfold dlvLb; iExactEq Hlb; rfl
-      iexists rnLogOf γ L, [], _
-      iframe Hd Hds Hrof
-      isplitr
-      · ipureintro; rfl
-      iexact Hreq
-    · iunfold dlvLb; iExactEq Hlb; rfl
+      iExactEq Hbusy; rfl
+    · iExactEq Hlb; rfl
 
 /-! ## The other components -/
 
