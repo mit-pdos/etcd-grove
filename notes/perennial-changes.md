@@ -17,6 +17,27 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### Goose: extensions defined outside Perennial (2026-10-27, branch `worktree-durable-kv`)
+
+- **Missing.** Goose's table of the Go packages implemented with a GooseLang extension
+  (`goose/util/util.go`, `extMapping`) is closed, and an extension's prelude modules are always
+  `Perennial.<Name>Prelude`/`Perennial.Proof.<Name>Prelude`: a project cannot define an
+  extension of its own, whose `[ElemExt …]` binders and prelude imports the translation needs.
+- **Needed by.** The durable-state extension `durableExt` (`GooseLang/Ext/Durable/`, the Go
+  package `examples/durable`) and `examples/durablekv`.
+- **Workaround here.** None that keeps the translation generated: the projects `durable` and
+  `durablekv` of `etc/goose.py` pass `-ext` (`Project.exts`) and are translated with
+  `etc/goose.py --perennial /home/ubuntu/perennial-goose-ext-flag-at-pin` (the change cherry-picked onto the pin `f73703285`, branch `goose-ext-flag-at-pin`, `5e8642186`: the translator of `lean` emits definitions the pinned library lacks); with the pinned translator,
+  which has no `-ext`, `etc/goose.py --check` fails on those two projects (and so CI), so the
+  branch waits for the pin bump before it merges.
+- **Proposed change.** Perennial branch `goose-ext-flag` (`0c64462e9`, off `lean` `edcadb1e5`):
+  `-ext PKG=NAME` (goose and proofgen) adds PKG to the table as the package of extension NAME,
+  and an extension's preludes are under its package's Lean root (`-lean-root`):
+  `ROOT.<Name>Prelude`, `ROOT.Proof.<Name>Prelude` (the built-in extensions' root is
+  `Perennial`, so their output is unchanged; goose's tests pass).
+- **Status.** Open: not landed (goose is Perennial's trusted base: it needs the
+  `review-trusted` review and `etc/land.sh`).
+
 ### Translation: `sort.StringSlice`'s methods (2026-10-25, leases T3, branch `leases-t3`)
 
 - **Missing.** Perennial's `sort` declares the type `sort.StringSlice` but none of its methods
