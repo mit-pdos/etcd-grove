@@ -1,10 +1,17 @@
 # Types and names only, but for `NewTimeoutError` (the watch cache's timeout,
 # `storage.NewTooLargeResourceVersionError`'s; KEP-6404, notes/kep-6404-plan.md): function and
 # method bodies are axiomatized (project k8s-apiserver; notes/k8s-etcd3-goose.md).
-translate = ["!*", "NewTimeoutError"]
+# With bodies too (the model API server's errors, examples/k8sdaemonset/apimodel;
+# notes/k8s-apimodel-goose.md): `NewBadRequest`, `NewResourceExpired`, `NewNotFound`,
+# `NewAlreadyExists` (their messages `Sprintf`s of strings); `NewConflict` and `NewInternalError`
+# format an error (`%v`), which Perennial's `Sprintf` model does not cover: names only, specified
+# at the trust boundary.
+translate = ["!*", "NewTimeoutError", "NewBadRequest", "NewResourceExpired", "NewNotFound",
+  "NewAlreadyExists"]
 # what `NewTimeoutError`'s body names: `fmt.Sprintf`, `http.StatusGatewayTimeout`, metav1's
 # `Status` constants
-imports = ["!*", "fmt", "net/http", "k8s.io/apimachinery/pkg/apis/meta/v1"]
+imports = ["!*", "fmt", "net/http", "k8s.io/apimachinery/pkg/apis/meta/v1",
+  "k8s.io/apimachinery/pkg/runtime/schema"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

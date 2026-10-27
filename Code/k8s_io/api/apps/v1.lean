@@ -227,7 +227,8 @@ axiom StatefulSetRevisionLabel [FfiSyntax] [GoGlobalContext] : val
 
 axiom DeprecatedRollbackTo [FfiSyntax] [GoGlobalContext] : val
 
-axiom DeprecatedTemplateGeneration [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def DeprecatedTemplateGeneration [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"deprecated.daemonset.template.generation")
 
 axiom StatefulSetPodNameLabel [FfiSyntax] [GoGlobalContext] : val
 
@@ -261,7 +262,8 @@ axiom DeploymentProgressing [FfiSyntax] [GoGlobalContext] : val
 
 axiom DeploymentReplicaFailure [FfiSyntax] [GoGlobalContext] : val
 
-axiom RollingUpdateDaemonSetStrategyType [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def RollingUpdateDaemonSetStrategyType [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"RollingUpdate")
 
 axiom OnDeleteDaemonSetStrategyType [FfiSyntax] [GoGlobalContext] : val
 
@@ -1837,6 +1839,72 @@ class DaemonSet.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [
   set_Spec : ∀ (x : DaemonSet) (y : DaemonSetSpec), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSet.underlying go!"Spec") (PairV #x #y) (Val #(({ x with Spec' := y } : DaemonSet)))
   get_Status : ∀ (x : DaemonSet), go.IsGoStepPureDetTagged under (StructFieldGet DaemonSet.underlying go!"Status") #x (Val #(x.Status'))
   set_Status : ∀ (x : DaemonSet) (y : DaemonSetStatus), go.IsGoStepPureDetTagged under (StructFieldSet DaemonSet.underlying go!"Status") (PairV #x #y) (Val #(({ x with Status' := y } : DaemonSet)))
+  ptr_GetAnnotations_unfold : MethodUnfold (go.GoType.PointerType DaemonSet.ty) go!"GetAnnotations" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"GetAnnotations"))) (App (Val (GoInstruction (StructFieldRef DaemonSet.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_GetCreationTimestamp_unfold : MethodUnfold (go.GoType.PointerType DaemonSet.ty) go!"GetCreationTimestamp" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"GetCreationTimestamp"))) (App (Val (GoInstruction (StructFieldRef DaemonSet.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_GetDeletionGracePeriodSeconds_unfold : MethodUnfold (go.GoType.PointerType DaemonSet.ty) go!"GetDeletionGracePeriodSeconds" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"GetDeletionGracePeriodSeconds"))) (App (Val (GoInstruction (StructFieldRef DaemonSet.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_GetDeletionTimestamp_unfold : MethodUnfold (go.GoType.PointerType DaemonSet.ty) go!"GetDeletionTimestamp" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"GetDeletionTimestamp"))) (App (Val (GoInstruction (StructFieldRef DaemonSet.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_GetFinalizers_unfold : MethodUnfold (go.GoType.PointerType DaemonSet.ty) go!"GetFinalizers" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"GetFinalizers"))) (App (Val (GoInstruction (StructFieldRef DaemonSet.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_GetGenerateName_unfold : MethodUnfold (go.GoType.PointerType DaemonSet.ty) go!"GetGenerateName" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"GetGenerateName"))) (App (Val (GoInstruction (StructFieldRef DaemonSet.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_GetGeneration_unfold : MethodUnfold (go.GoType.PointerType DaemonSet.ty) go!"GetGeneration" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"GetGeneration"))) (App (Val (GoInstruction (StructFieldRef DaemonSet.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_GetLabels_unfold : MethodUnfold (go.GoType.PointerType DaemonSet.ty) go!"GetLabels" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"GetLabels"))) (App (Val (GoInstruction (StructFieldRef DaemonSet.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_GetManagedFields_unfold : MethodUnfold (go.GoType.PointerType DaemonSet.ty) go!"GetManagedFields" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"GetManagedFields"))) (App (Val (GoInstruction (StructFieldRef DaemonSet.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_GetName_unfold : MethodUnfold (go.GoType.PointerType DaemonSet.ty) go!"GetName" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"GetName"))) (App (Val (GoInstruction (StructFieldRef DaemonSet.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_GetNamespace_unfold : MethodUnfold (go.GoType.PointerType DaemonSet.ty) go!"GetNamespace" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"GetNamespace"))) (App (Val (GoInstruction (StructFieldRef DaemonSet.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_GetObjectKind_unfold : MethodUnfold (go.GoType.PointerType DaemonSet.ty) go!"GetObjectKind" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta.ty) go!"GetObjectKind"))) (App (Val (GoInstruction (StructFieldRef DaemonSet.ty go!"TypeMeta"))) (Var "$r"))))
+  ptr_GetObjectMeta_unfold : MethodUnfold (go.GoType.PointerType DaemonSet.ty) go!"GetObjectMeta" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"GetObjectMeta"))) (App (Val (GoInstruction (StructFieldRef DaemonSet.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_GetOwnerReferences_unfold : MethodUnfold (go.GoType.PointerType DaemonSet.ty) go!"GetOwnerReferences" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"GetOwnerReferences"))) (App (Val (GoInstruction (StructFieldRef DaemonSet.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_GetResourceVersion_unfold : MethodUnfold (go.GoType.PointerType DaemonSet.ty) go!"GetResourceVersion" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"GetResourceVersion"))) (App (Val (GoInstruction (StructFieldRef DaemonSet.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_GetSelfLink_unfold : MethodUnfold (go.GoType.PointerType DaemonSet.ty) go!"GetSelfLink" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"GetSelfLink"))) (App (Val (GoInstruction (StructFieldRef DaemonSet.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_GetUID_unfold : MethodUnfold (go.GoType.PointerType DaemonSet.ty) go!"GetUID" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"GetUID"))) (App (Val (GoInstruction (StructFieldRef DaemonSet.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_SetAnnotations_unfold : MethodUnfold (go.GoType.PointerType DaemonSet.ty) go!"SetAnnotations" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"SetAnnotations"))) (App (Val (GoInstruction (StructFieldRef DaemonSet.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_SetCreationTimestamp_unfold : MethodUnfold (go.GoType.PointerType DaemonSet.ty) go!"SetCreationTimestamp" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"SetCreationTimestamp"))) (App (Val (GoInstruction (StructFieldRef DaemonSet.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_SetDeletionGracePeriodSeconds_unfold : MethodUnfold (go.GoType.PointerType DaemonSet.ty) go!"SetDeletionGracePeriodSeconds" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"SetDeletionGracePeriodSeconds"))) (App (Val (GoInstruction (StructFieldRef DaemonSet.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_SetDeletionTimestamp_unfold : MethodUnfold (go.GoType.PointerType DaemonSet.ty) go!"SetDeletionTimestamp" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"SetDeletionTimestamp"))) (App (Val (GoInstruction (StructFieldRef DaemonSet.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_SetFinalizers_unfold : MethodUnfold (go.GoType.PointerType DaemonSet.ty) go!"SetFinalizers" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"SetFinalizers"))) (App (Val (GoInstruction (StructFieldRef DaemonSet.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_SetGenerateName_unfold : MethodUnfold (go.GoType.PointerType DaemonSet.ty) go!"SetGenerateName" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"SetGenerateName"))) (App (Val (GoInstruction (StructFieldRef DaemonSet.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_SetGeneration_unfold : MethodUnfold (go.GoType.PointerType DaemonSet.ty) go!"SetGeneration" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"SetGeneration"))) (App (Val (GoInstruction (StructFieldRef DaemonSet.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_SetGroupVersionKind_unfold : MethodUnfold (go.GoType.PointerType DaemonSet.ty) go!"SetGroupVersionKind" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta.ty) go!"SetGroupVersionKind"))) (App (Val (GoInstruction (StructFieldRef DaemonSet.ty go!"TypeMeta"))) (Var "$r"))))
+  ptr_SetLabels_unfold : MethodUnfold (go.GoType.PointerType DaemonSet.ty) go!"SetLabels" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"SetLabels"))) (App (Val (GoInstruction (StructFieldRef DaemonSet.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_SetManagedFields_unfold : MethodUnfold (go.GoType.PointerType DaemonSet.ty) go!"SetManagedFields" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"SetManagedFields"))) (App (Val (GoInstruction (StructFieldRef DaemonSet.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_SetName_unfold : MethodUnfold (go.GoType.PointerType DaemonSet.ty) go!"SetName" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"SetName"))) (App (Val (GoInstruction (StructFieldRef DaemonSet.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_SetNamespace_unfold : MethodUnfold (go.GoType.PointerType DaemonSet.ty) go!"SetNamespace" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"SetNamespace"))) (App (Val (GoInstruction (StructFieldRef DaemonSet.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_SetOwnerReferences_unfold : MethodUnfold (go.GoType.PointerType DaemonSet.ty) go!"SetOwnerReferences" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"SetOwnerReferences"))) (App (Val (GoInstruction (StructFieldRef DaemonSet.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_SetResourceVersion_unfold : MethodUnfold (go.GoType.PointerType DaemonSet.ty) go!"SetResourceVersion" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"SetResourceVersion"))) (App (Val (GoInstruction (StructFieldRef DaemonSet.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_SetSelfLink_unfold : MethodUnfold (go.GoType.PointerType DaemonSet.ty) go!"SetSelfLink" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"SetSelfLink"))) (App (Val (GoInstruction (StructFieldRef DaemonSet.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_SetUID_unfold : MethodUnfold (go.GoType.PointerType DaemonSet.ty) go!"SetUID" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"SetUID"))) (App (Val (GoInstruction (StructFieldRef DaemonSet.ty go!"ObjectMeta"))) (Var "$r"))))
 
 attribute [instance] DaemonSet.TypeAssumptions.type_repr
   DaemonSet.TypeAssumptions.underlying
@@ -1848,6 +1916,39 @@ attribute [instance] DaemonSet.TypeAssumptions.type_repr
   DaemonSet.TypeAssumptions.set_Spec
   DaemonSet.TypeAssumptions.get_Status
   DaemonSet.TypeAssumptions.set_Status
+  DaemonSet.TypeAssumptions.ptr_GetAnnotations_unfold
+  DaemonSet.TypeAssumptions.ptr_GetCreationTimestamp_unfold
+  DaemonSet.TypeAssumptions.ptr_GetDeletionGracePeriodSeconds_unfold
+  DaemonSet.TypeAssumptions.ptr_GetDeletionTimestamp_unfold
+  DaemonSet.TypeAssumptions.ptr_GetFinalizers_unfold
+  DaemonSet.TypeAssumptions.ptr_GetGenerateName_unfold
+  DaemonSet.TypeAssumptions.ptr_GetGeneration_unfold
+  DaemonSet.TypeAssumptions.ptr_GetLabels_unfold
+  DaemonSet.TypeAssumptions.ptr_GetManagedFields_unfold
+  DaemonSet.TypeAssumptions.ptr_GetName_unfold
+  DaemonSet.TypeAssumptions.ptr_GetNamespace_unfold
+  DaemonSet.TypeAssumptions.ptr_GetObjectKind_unfold
+  DaemonSet.TypeAssumptions.ptr_GetObjectMeta_unfold
+  DaemonSet.TypeAssumptions.ptr_GetOwnerReferences_unfold
+  DaemonSet.TypeAssumptions.ptr_GetResourceVersion_unfold
+  DaemonSet.TypeAssumptions.ptr_GetSelfLink_unfold
+  DaemonSet.TypeAssumptions.ptr_GetUID_unfold
+  DaemonSet.TypeAssumptions.ptr_SetAnnotations_unfold
+  DaemonSet.TypeAssumptions.ptr_SetCreationTimestamp_unfold
+  DaemonSet.TypeAssumptions.ptr_SetDeletionGracePeriodSeconds_unfold
+  DaemonSet.TypeAssumptions.ptr_SetDeletionTimestamp_unfold
+  DaemonSet.TypeAssumptions.ptr_SetFinalizers_unfold
+  DaemonSet.TypeAssumptions.ptr_SetGenerateName_unfold
+  DaemonSet.TypeAssumptions.ptr_SetGeneration_unfold
+  DaemonSet.TypeAssumptions.ptr_SetGroupVersionKind_unfold
+  DaemonSet.TypeAssumptions.ptr_SetLabels_unfold
+  DaemonSet.TypeAssumptions.ptr_SetManagedFields_unfold
+  DaemonSet.TypeAssumptions.ptr_SetName_unfold
+  DaemonSet.TypeAssumptions.ptr_SetNamespace_unfold
+  DaemonSet.TypeAssumptions.ptr_SetOwnerReferences_unfold
+  DaemonSet.TypeAssumptions.ptr_SetResourceVersion_unfold
+  DaemonSet.TypeAssumptions.ptr_SetSelfLink_unfold
+  DaemonSet.TypeAssumptions.ptr_SetUID_unfold
 
 structure DaemonSetList [FfiSyntax] where
   mk ::
@@ -2202,6 +2303,72 @@ class ControllerRevision.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalC
   set_Data : ∀ (x : ControllerRevision) (y : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.RawExtension), go.IsGoStepPureDetTagged under (StructFieldSet ControllerRevision.underlying go!"Data") (PairV #x #y) (Val #(({ x with Data' := y } : ControllerRevision)))
   get_Revision : ∀ (x : ControllerRevision), go.IsGoStepPureDetTagged under (StructFieldGet ControllerRevision.underlying go!"Revision") #x (Val #(x.Revision'))
   set_Revision : ∀ (x : ControllerRevision) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ControllerRevision.underlying go!"Revision") (PairV #x #y) (Val #(({ x with Revision' := y } : ControllerRevision)))
+  ptr_GetAnnotations_unfold : MethodUnfold (go.GoType.PointerType ControllerRevision.ty) go!"GetAnnotations" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"GetAnnotations"))) (App (Val (GoInstruction (StructFieldRef ControllerRevision.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_GetCreationTimestamp_unfold : MethodUnfold (go.GoType.PointerType ControllerRevision.ty) go!"GetCreationTimestamp" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"GetCreationTimestamp"))) (App (Val (GoInstruction (StructFieldRef ControllerRevision.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_GetDeletionGracePeriodSeconds_unfold : MethodUnfold (go.GoType.PointerType ControllerRevision.ty) go!"GetDeletionGracePeriodSeconds" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"GetDeletionGracePeriodSeconds"))) (App (Val (GoInstruction (StructFieldRef ControllerRevision.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_GetDeletionTimestamp_unfold : MethodUnfold (go.GoType.PointerType ControllerRevision.ty) go!"GetDeletionTimestamp" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"GetDeletionTimestamp"))) (App (Val (GoInstruction (StructFieldRef ControllerRevision.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_GetFinalizers_unfold : MethodUnfold (go.GoType.PointerType ControllerRevision.ty) go!"GetFinalizers" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"GetFinalizers"))) (App (Val (GoInstruction (StructFieldRef ControllerRevision.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_GetGenerateName_unfold : MethodUnfold (go.GoType.PointerType ControllerRevision.ty) go!"GetGenerateName" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"GetGenerateName"))) (App (Val (GoInstruction (StructFieldRef ControllerRevision.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_GetGeneration_unfold : MethodUnfold (go.GoType.PointerType ControllerRevision.ty) go!"GetGeneration" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"GetGeneration"))) (App (Val (GoInstruction (StructFieldRef ControllerRevision.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_GetLabels_unfold : MethodUnfold (go.GoType.PointerType ControllerRevision.ty) go!"GetLabels" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"GetLabels"))) (App (Val (GoInstruction (StructFieldRef ControllerRevision.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_GetManagedFields_unfold : MethodUnfold (go.GoType.PointerType ControllerRevision.ty) go!"GetManagedFields" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"GetManagedFields"))) (App (Val (GoInstruction (StructFieldRef ControllerRevision.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_GetName_unfold : MethodUnfold (go.GoType.PointerType ControllerRevision.ty) go!"GetName" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"GetName"))) (App (Val (GoInstruction (StructFieldRef ControllerRevision.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_GetNamespace_unfold : MethodUnfold (go.GoType.PointerType ControllerRevision.ty) go!"GetNamespace" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"GetNamespace"))) (App (Val (GoInstruction (StructFieldRef ControllerRevision.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_GetObjectKind_unfold : MethodUnfold (go.GoType.PointerType ControllerRevision.ty) go!"GetObjectKind" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta.ty) go!"GetObjectKind"))) (App (Val (GoInstruction (StructFieldRef ControllerRevision.ty go!"TypeMeta"))) (Var "$r"))))
+  ptr_GetObjectMeta_unfold : MethodUnfold (go.GoType.PointerType ControllerRevision.ty) go!"GetObjectMeta" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"GetObjectMeta"))) (App (Val (GoInstruction (StructFieldRef ControllerRevision.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_GetOwnerReferences_unfold : MethodUnfold (go.GoType.PointerType ControllerRevision.ty) go!"GetOwnerReferences" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"GetOwnerReferences"))) (App (Val (GoInstruction (StructFieldRef ControllerRevision.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_GetResourceVersion_unfold : MethodUnfold (go.GoType.PointerType ControllerRevision.ty) go!"GetResourceVersion" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"GetResourceVersion"))) (App (Val (GoInstruction (StructFieldRef ControllerRevision.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_GetSelfLink_unfold : MethodUnfold (go.GoType.PointerType ControllerRevision.ty) go!"GetSelfLink" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"GetSelfLink"))) (App (Val (GoInstruction (StructFieldRef ControllerRevision.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_GetUID_unfold : MethodUnfold (go.GoType.PointerType ControllerRevision.ty) go!"GetUID" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"GetUID"))) (App (Val (GoInstruction (StructFieldRef ControllerRevision.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_SetAnnotations_unfold : MethodUnfold (go.GoType.PointerType ControllerRevision.ty) go!"SetAnnotations" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"SetAnnotations"))) (App (Val (GoInstruction (StructFieldRef ControllerRevision.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_SetCreationTimestamp_unfold : MethodUnfold (go.GoType.PointerType ControllerRevision.ty) go!"SetCreationTimestamp" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"SetCreationTimestamp"))) (App (Val (GoInstruction (StructFieldRef ControllerRevision.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_SetDeletionGracePeriodSeconds_unfold : MethodUnfold (go.GoType.PointerType ControllerRevision.ty) go!"SetDeletionGracePeriodSeconds" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"SetDeletionGracePeriodSeconds"))) (App (Val (GoInstruction (StructFieldRef ControllerRevision.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_SetDeletionTimestamp_unfold : MethodUnfold (go.GoType.PointerType ControllerRevision.ty) go!"SetDeletionTimestamp" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"SetDeletionTimestamp"))) (App (Val (GoInstruction (StructFieldRef ControllerRevision.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_SetFinalizers_unfold : MethodUnfold (go.GoType.PointerType ControllerRevision.ty) go!"SetFinalizers" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"SetFinalizers"))) (App (Val (GoInstruction (StructFieldRef ControllerRevision.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_SetGenerateName_unfold : MethodUnfold (go.GoType.PointerType ControllerRevision.ty) go!"SetGenerateName" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"SetGenerateName"))) (App (Val (GoInstruction (StructFieldRef ControllerRevision.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_SetGeneration_unfold : MethodUnfold (go.GoType.PointerType ControllerRevision.ty) go!"SetGeneration" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"SetGeneration"))) (App (Val (GoInstruction (StructFieldRef ControllerRevision.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_SetGroupVersionKind_unfold : MethodUnfold (go.GoType.PointerType ControllerRevision.ty) go!"SetGroupVersionKind" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta.ty) go!"SetGroupVersionKind"))) (App (Val (GoInstruction (StructFieldRef ControllerRevision.ty go!"TypeMeta"))) (Var "$r"))))
+  ptr_SetLabels_unfold : MethodUnfold (go.GoType.PointerType ControllerRevision.ty) go!"SetLabels" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"SetLabels"))) (App (Val (GoInstruction (StructFieldRef ControllerRevision.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_SetManagedFields_unfold : MethodUnfold (go.GoType.PointerType ControllerRevision.ty) go!"SetManagedFields" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"SetManagedFields"))) (App (Val (GoInstruction (StructFieldRef ControllerRevision.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_SetName_unfold : MethodUnfold (go.GoType.PointerType ControllerRevision.ty) go!"SetName" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"SetName"))) (App (Val (GoInstruction (StructFieldRef ControllerRevision.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_SetNamespace_unfold : MethodUnfold (go.GoType.PointerType ControllerRevision.ty) go!"SetNamespace" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"SetNamespace"))) (App (Val (GoInstruction (StructFieldRef ControllerRevision.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_SetOwnerReferences_unfold : MethodUnfold (go.GoType.PointerType ControllerRevision.ty) go!"SetOwnerReferences" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"SetOwnerReferences"))) (App (Val (GoInstruction (StructFieldRef ControllerRevision.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_SetResourceVersion_unfold : MethodUnfold (go.GoType.PointerType ControllerRevision.ty) go!"SetResourceVersion" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"SetResourceVersion"))) (App (Val (GoInstruction (StructFieldRef ControllerRevision.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_SetSelfLink_unfold : MethodUnfold (go.GoType.PointerType ControllerRevision.ty) go!"SetSelfLink" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"SetSelfLink"))) (App (Val (GoInstruction (StructFieldRef ControllerRevision.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_SetUID_unfold : MethodUnfold (go.GoType.PointerType ControllerRevision.ty) go!"SetUID" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"SetUID"))) (App (Val (GoInstruction (StructFieldRef ControllerRevision.ty go!"ObjectMeta"))) (Var "$r"))))
 
 attribute [instance] ControllerRevision.TypeAssumptions.type_repr
   ControllerRevision.TypeAssumptions.underlying
@@ -2213,6 +2380,39 @@ attribute [instance] ControllerRevision.TypeAssumptions.type_repr
   ControllerRevision.TypeAssumptions.set_Data
   ControllerRevision.TypeAssumptions.get_Revision
   ControllerRevision.TypeAssumptions.set_Revision
+  ControllerRevision.TypeAssumptions.ptr_GetAnnotations_unfold
+  ControllerRevision.TypeAssumptions.ptr_GetCreationTimestamp_unfold
+  ControllerRevision.TypeAssumptions.ptr_GetDeletionGracePeriodSeconds_unfold
+  ControllerRevision.TypeAssumptions.ptr_GetDeletionTimestamp_unfold
+  ControllerRevision.TypeAssumptions.ptr_GetFinalizers_unfold
+  ControllerRevision.TypeAssumptions.ptr_GetGenerateName_unfold
+  ControllerRevision.TypeAssumptions.ptr_GetGeneration_unfold
+  ControllerRevision.TypeAssumptions.ptr_GetLabels_unfold
+  ControllerRevision.TypeAssumptions.ptr_GetManagedFields_unfold
+  ControllerRevision.TypeAssumptions.ptr_GetName_unfold
+  ControllerRevision.TypeAssumptions.ptr_GetNamespace_unfold
+  ControllerRevision.TypeAssumptions.ptr_GetObjectKind_unfold
+  ControllerRevision.TypeAssumptions.ptr_GetObjectMeta_unfold
+  ControllerRevision.TypeAssumptions.ptr_GetOwnerReferences_unfold
+  ControllerRevision.TypeAssumptions.ptr_GetResourceVersion_unfold
+  ControllerRevision.TypeAssumptions.ptr_GetSelfLink_unfold
+  ControllerRevision.TypeAssumptions.ptr_GetUID_unfold
+  ControllerRevision.TypeAssumptions.ptr_SetAnnotations_unfold
+  ControllerRevision.TypeAssumptions.ptr_SetCreationTimestamp_unfold
+  ControllerRevision.TypeAssumptions.ptr_SetDeletionGracePeriodSeconds_unfold
+  ControllerRevision.TypeAssumptions.ptr_SetDeletionTimestamp_unfold
+  ControllerRevision.TypeAssumptions.ptr_SetFinalizers_unfold
+  ControllerRevision.TypeAssumptions.ptr_SetGenerateName_unfold
+  ControllerRevision.TypeAssumptions.ptr_SetGeneration_unfold
+  ControllerRevision.TypeAssumptions.ptr_SetGroupVersionKind_unfold
+  ControllerRevision.TypeAssumptions.ptr_SetLabels_unfold
+  ControllerRevision.TypeAssumptions.ptr_SetManagedFields_unfold
+  ControllerRevision.TypeAssumptions.ptr_SetName_unfold
+  ControllerRevision.TypeAssumptions.ptr_SetNamespace_unfold
+  ControllerRevision.TypeAssumptions.ptr_SetOwnerReferences_unfold
+  ControllerRevision.TypeAssumptions.ptr_SetResourceVersion_unfold
+  ControllerRevision.TypeAssumptions.ptr_SetSelfLink_unfold
+  ControllerRevision.TypeAssumptions.ptr_SetUID_unfold
 
 structure ControllerRevisionList [FfiSyntax] where
   mk ::

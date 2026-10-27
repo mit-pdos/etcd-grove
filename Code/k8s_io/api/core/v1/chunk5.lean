@@ -16,6 +16,87 @@ noncomputable section
 
 namespace k8s_io.api.core.v1
 
+class EndpointPort.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying EndpointPort.underlying EndpointPort
+  underlying : go.UnderlyingDirectedEq EndpointPort.ty EndpointPort.underlying
+  get_Name : ∀ (x : EndpointPort), go.IsGoStepPureDetTagged under (StructFieldGet EndpointPort.underlying go!"Name") #x (Val #(x.Name'))
+  set_Name : ∀ (x : EndpointPort) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet EndpointPort.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : EndpointPort)))
+  get_Port : ∀ (x : EndpointPort), go.IsGoStepPureDetTagged under (StructFieldGet EndpointPort.underlying go!"Port") #x (Val #(x.Port'))
+  set_Port : ∀ (x : EndpointPort) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet EndpointPort.underlying go!"Port") (PairV #x #y) (Val #(({ x with Port' := y } : EndpointPort)))
+  get_Protocol : ∀ (x : EndpointPort), go.IsGoStepPureDetTagged under (StructFieldGet EndpointPort.underlying go!"Protocol") #x (Val #(x.Protocol'))
+  set_Protocol : ∀ (x : EndpointPort) (y : Protocol), go.IsGoStepPureDetTagged under (StructFieldSet EndpointPort.underlying go!"Protocol") (PairV #x #y) (Val #(({ x with Protocol' := y } : EndpointPort)))
+  get_AppProtocol : ∀ (x : EndpointPort), go.IsGoStepPureDetTagged under (StructFieldGet EndpointPort.underlying go!"AppProtocol") #x (Val #(x.AppProtocol'))
+  set_AppProtocol : ∀ (x : EndpointPort) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet EndpointPort.underlying go!"AppProtocol") (PairV #x #y) (Val #(({ x with AppProtocol' := y } : EndpointPort)))
+
+attribute [instance] EndpointPort.TypeAssumptions.type_repr
+  EndpointPort.TypeAssumptions.underlying
+  EndpointPort.TypeAssumptions.get_Name
+  EndpointPort.TypeAssumptions.set_Name
+  EndpointPort.TypeAssumptions.get_Port
+  EndpointPort.TypeAssumptions.set_Port
+  EndpointPort.TypeAssumptions.get_Protocol
+  EndpointPort.TypeAssumptions.set_Protocol
+  EndpointPort.TypeAssumptions.get_AppProtocol
+  EndpointPort.TypeAssumptions.set_AppProtocol
+
+class EndpointsList.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying EndpointsList.underlying EndpointsList
+  underlying : go.UnderlyingDirectedEq EndpointsList.ty EndpointsList.underlying
+  get_TypeMeta : ∀ (x : EndpointsList), go.IsGoStepPureDetTagged under (StructFieldGet EndpointsList.underlying go!"TypeMeta") #x (Val #(x.TypeMeta'))
+  set_TypeMeta : ∀ (x : EndpointsList) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta), go.IsGoStepPureDetTagged under (StructFieldSet EndpointsList.underlying go!"TypeMeta") (PairV #x #y) (Val #(({ x with TypeMeta' := y } : EndpointsList)))
+  get_ListMeta : ∀ (x : EndpointsList), go.IsGoStepPureDetTagged under (StructFieldGet EndpointsList.underlying go!"ListMeta") #x (Val #(x.ListMeta'))
+  set_ListMeta : ∀ (x : EndpointsList) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta), go.IsGoStepPureDetTagged under (StructFieldSet EndpointsList.underlying go!"ListMeta") (PairV #x #y) (Val #(({ x with ListMeta' := y } : EndpointsList)))
+  get_Items : ∀ (x : EndpointsList), go.IsGoStepPureDetTagged under (StructFieldGet EndpointsList.underlying go!"Items") #x (Val #(x.Items'))
+  set_Items : ∀ (x : EndpointsList) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet EndpointsList.underlying go!"Items") (PairV #x #y) (Val #(({ x with Items' := y } : EndpointsList)))
+
+attribute [instance] EndpointsList.TypeAssumptions.type_repr
+  EndpointsList.TypeAssumptions.underlying
+  EndpointsList.TypeAssumptions.get_TypeMeta
+  EndpointsList.TypeAssumptions.set_TypeMeta
+  EndpointsList.TypeAssumptions.get_ListMeta
+  EndpointsList.TypeAssumptions.set_ListMeta
+  EndpointsList.TypeAssumptions.get_Items
+  EndpointsList.TypeAssumptions.set_Items
+
+class NodeSpec.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying NodeSpec.underlying NodeSpec
+  underlying : go.UnderlyingDirectedEq NodeSpec.ty NodeSpec.underlying
+  get_PodCIDR : ∀ (x : NodeSpec), go.IsGoStepPureDetTagged under (StructFieldGet NodeSpec.underlying go!"PodCIDR") #x (Val #(x.PodCIDR'))
+  set_PodCIDR : ∀ (x : NodeSpec) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet NodeSpec.underlying go!"PodCIDR") (PairV #x #y) (Val #(({ x with PodCIDR' := y } : NodeSpec)))
+  get_PodCIDRs : ∀ (x : NodeSpec), go.IsGoStepPureDetTagged under (StructFieldGet NodeSpec.underlying go!"PodCIDRs") #x (Val #(x.PodCIDRs'))
+  set_PodCIDRs : ∀ (x : NodeSpec) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet NodeSpec.underlying go!"PodCIDRs") (PairV #x #y) (Val #(({ x with PodCIDRs' := y } : NodeSpec)))
+  get_ProviderID : ∀ (x : NodeSpec), go.IsGoStepPureDetTagged under (StructFieldGet NodeSpec.underlying go!"ProviderID") #x (Val #(x.ProviderID'))
+  set_ProviderID : ∀ (x : NodeSpec) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet NodeSpec.underlying go!"ProviderID") (PairV #x #y) (Val #(({ x with ProviderID' := y } : NodeSpec)))
+  get_Unschedulable : ∀ (x : NodeSpec), go.IsGoStepPureDetTagged under (StructFieldGet NodeSpec.underlying go!"Unschedulable") #x (Val #(x.Unschedulable'))
+  set_Unschedulable : ∀ (x : NodeSpec) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet NodeSpec.underlying go!"Unschedulable") (PairV #x #y) (Val #(({ x with Unschedulable' := y } : NodeSpec)))
+  get_Taints : ∀ (x : NodeSpec), go.IsGoStepPureDetTagged under (StructFieldGet NodeSpec.underlying go!"Taints") #x (Val #(x.Taints'))
+  set_Taints : ∀ (x : NodeSpec) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet NodeSpec.underlying go!"Taints") (PairV #x #y) (Val #(({ x with Taints' := y } : NodeSpec)))
+  get_ConfigSource : ∀ (x : NodeSpec), go.IsGoStepPureDetTagged under (StructFieldGet NodeSpec.underlying go!"ConfigSource") #x (Val #(x.ConfigSource'))
+  set_ConfigSource : ∀ (x : NodeSpec) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet NodeSpec.underlying go!"ConfigSource") (PairV #x #y) (Val #(({ x with ConfigSource' := y } : NodeSpec)))
+  get_DoNotUseExternalID : ∀ (x : NodeSpec), go.IsGoStepPureDetTagged under (StructFieldGet NodeSpec.underlying go!"DoNotUseExternalID") #x (Val #(x.DoNotUseExternalID'))
+  set_DoNotUseExternalID : ∀ (x : NodeSpec) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet NodeSpec.underlying go!"DoNotUseExternalID") (PairV #x #y) (Val #(({ x with DoNotUseExternalID' := y } : NodeSpec)))
+  get_PodPreemptionPolicy : ∀ (x : NodeSpec), go.IsGoStepPureDetTagged under (StructFieldGet NodeSpec.underlying go!"PodPreemptionPolicy") #x (Val #(x.PodPreemptionPolicy'))
+  set_PodPreemptionPolicy : ∀ (x : NodeSpec) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet NodeSpec.underlying go!"PodPreemptionPolicy") (PairV #x #y) (Val #(({ x with PodPreemptionPolicy' := y } : NodeSpec)))
+
+attribute [instance] NodeSpec.TypeAssumptions.type_repr
+  NodeSpec.TypeAssumptions.underlying
+  NodeSpec.TypeAssumptions.get_PodCIDR
+  NodeSpec.TypeAssumptions.set_PodCIDR
+  NodeSpec.TypeAssumptions.get_PodCIDRs
+  NodeSpec.TypeAssumptions.set_PodCIDRs
+  NodeSpec.TypeAssumptions.get_ProviderID
+  NodeSpec.TypeAssumptions.set_ProviderID
+  NodeSpec.TypeAssumptions.get_Unschedulable
+  NodeSpec.TypeAssumptions.set_Unschedulable
+  NodeSpec.TypeAssumptions.get_Taints
+  NodeSpec.TypeAssumptions.set_Taints
+  NodeSpec.TypeAssumptions.get_ConfigSource
+  NodeSpec.TypeAssumptions.set_ConfigSource
+  NodeSpec.TypeAssumptions.get_DoNotUseExternalID
+  NodeSpec.TypeAssumptions.set_DoNotUseExternalID
+  NodeSpec.TypeAssumptions.get_PodPreemptionPolicy
+  NodeSpec.TypeAssumptions.set_PodPreemptionPolicy
+
 class NodePodPreemptionPolicy.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying NodePodPreemptionPolicy.underlying NodePodPreemptionPolicy
   underlying : go.UnderlyingDirectedEq NodePodPreemptionPolicy.ty NodePodPreemptionPolicy.underlying
@@ -432,6 +513,72 @@ class Node.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSem
   set_Spec : ∀ (x : Node) (y : NodeSpec), go.IsGoStepPureDetTagged under (StructFieldSet Node.underlying go!"Spec") (PairV #x #y) (Val #(({ x with Spec' := y } : Node)))
   get_Status : ∀ (x : Node), go.IsGoStepPureDetTagged under (StructFieldGet Node.underlying go!"Status") #x (Val #(x.Status'))
   set_Status : ∀ (x : Node) (y : NodeStatus), go.IsGoStepPureDetTagged under (StructFieldSet Node.underlying go!"Status") (PairV #x #y) (Val #(({ x with Status' := y } : Node)))
+  ptr_GetAnnotations_unfold : MethodUnfold (go.GoType.PointerType Node.ty) go!"GetAnnotations" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"GetAnnotations"))) (App (Val (GoInstruction (StructFieldRef Node.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_GetCreationTimestamp_unfold : MethodUnfold (go.GoType.PointerType Node.ty) go!"GetCreationTimestamp" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"GetCreationTimestamp"))) (App (Val (GoInstruction (StructFieldRef Node.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_GetDeletionGracePeriodSeconds_unfold : MethodUnfold (go.GoType.PointerType Node.ty) go!"GetDeletionGracePeriodSeconds" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"GetDeletionGracePeriodSeconds"))) (App (Val (GoInstruction (StructFieldRef Node.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_GetDeletionTimestamp_unfold : MethodUnfold (go.GoType.PointerType Node.ty) go!"GetDeletionTimestamp" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"GetDeletionTimestamp"))) (App (Val (GoInstruction (StructFieldRef Node.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_GetFinalizers_unfold : MethodUnfold (go.GoType.PointerType Node.ty) go!"GetFinalizers" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"GetFinalizers"))) (App (Val (GoInstruction (StructFieldRef Node.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_GetGenerateName_unfold : MethodUnfold (go.GoType.PointerType Node.ty) go!"GetGenerateName" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"GetGenerateName"))) (App (Val (GoInstruction (StructFieldRef Node.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_GetGeneration_unfold : MethodUnfold (go.GoType.PointerType Node.ty) go!"GetGeneration" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"GetGeneration"))) (App (Val (GoInstruction (StructFieldRef Node.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_GetLabels_unfold : MethodUnfold (go.GoType.PointerType Node.ty) go!"GetLabels" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"GetLabels"))) (App (Val (GoInstruction (StructFieldRef Node.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_GetManagedFields_unfold : MethodUnfold (go.GoType.PointerType Node.ty) go!"GetManagedFields" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"GetManagedFields"))) (App (Val (GoInstruction (StructFieldRef Node.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_GetName_unfold : MethodUnfold (go.GoType.PointerType Node.ty) go!"GetName" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"GetName"))) (App (Val (GoInstruction (StructFieldRef Node.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_GetNamespace_unfold : MethodUnfold (go.GoType.PointerType Node.ty) go!"GetNamespace" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"GetNamespace"))) (App (Val (GoInstruction (StructFieldRef Node.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_GetObjectKind_unfold : MethodUnfold (go.GoType.PointerType Node.ty) go!"GetObjectKind" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta.ty) go!"GetObjectKind"))) (App (Val (GoInstruction (StructFieldRef Node.ty go!"TypeMeta"))) (Var "$r"))))
+  ptr_GetObjectMeta_unfold : MethodUnfold (go.GoType.PointerType Node.ty) go!"GetObjectMeta" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"GetObjectMeta"))) (App (Val (GoInstruction (StructFieldRef Node.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_GetOwnerReferences_unfold : MethodUnfold (go.GoType.PointerType Node.ty) go!"GetOwnerReferences" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"GetOwnerReferences"))) (App (Val (GoInstruction (StructFieldRef Node.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_GetResourceVersion_unfold : MethodUnfold (go.GoType.PointerType Node.ty) go!"GetResourceVersion" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"GetResourceVersion"))) (App (Val (GoInstruction (StructFieldRef Node.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_GetSelfLink_unfold : MethodUnfold (go.GoType.PointerType Node.ty) go!"GetSelfLink" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"GetSelfLink"))) (App (Val (GoInstruction (StructFieldRef Node.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_GetUID_unfold : MethodUnfold (go.GoType.PointerType Node.ty) go!"GetUID" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"GetUID"))) (App (Val (GoInstruction (StructFieldRef Node.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_SetAnnotations_unfold : MethodUnfold (go.GoType.PointerType Node.ty) go!"SetAnnotations" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"SetAnnotations"))) (App (Val (GoInstruction (StructFieldRef Node.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_SetCreationTimestamp_unfold : MethodUnfold (go.GoType.PointerType Node.ty) go!"SetCreationTimestamp" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"SetCreationTimestamp"))) (App (Val (GoInstruction (StructFieldRef Node.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_SetDeletionGracePeriodSeconds_unfold : MethodUnfold (go.GoType.PointerType Node.ty) go!"SetDeletionGracePeriodSeconds" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"SetDeletionGracePeriodSeconds"))) (App (Val (GoInstruction (StructFieldRef Node.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_SetDeletionTimestamp_unfold : MethodUnfold (go.GoType.PointerType Node.ty) go!"SetDeletionTimestamp" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"SetDeletionTimestamp"))) (App (Val (GoInstruction (StructFieldRef Node.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_SetFinalizers_unfold : MethodUnfold (go.GoType.PointerType Node.ty) go!"SetFinalizers" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"SetFinalizers"))) (App (Val (GoInstruction (StructFieldRef Node.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_SetGenerateName_unfold : MethodUnfold (go.GoType.PointerType Node.ty) go!"SetGenerateName" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"SetGenerateName"))) (App (Val (GoInstruction (StructFieldRef Node.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_SetGeneration_unfold : MethodUnfold (go.GoType.PointerType Node.ty) go!"SetGeneration" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"SetGeneration"))) (App (Val (GoInstruction (StructFieldRef Node.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_SetGroupVersionKind_unfold : MethodUnfold (go.GoType.PointerType Node.ty) go!"SetGroupVersionKind" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta.ty) go!"SetGroupVersionKind"))) (App (Val (GoInstruction (StructFieldRef Node.ty go!"TypeMeta"))) (Var "$r"))))
+  ptr_SetLabels_unfold : MethodUnfold (go.GoType.PointerType Node.ty) go!"SetLabels" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"SetLabels"))) (App (Val (GoInstruction (StructFieldRef Node.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_SetManagedFields_unfold : MethodUnfold (go.GoType.PointerType Node.ty) go!"SetManagedFields" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"SetManagedFields"))) (App (Val (GoInstruction (StructFieldRef Node.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_SetName_unfold : MethodUnfold (go.GoType.PointerType Node.ty) go!"SetName" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"SetName"))) (App (Val (GoInstruction (StructFieldRef Node.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_SetNamespace_unfold : MethodUnfold (go.GoType.PointerType Node.ty) go!"SetNamespace" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"SetNamespace"))) (App (Val (GoInstruction (StructFieldRef Node.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_SetOwnerReferences_unfold : MethodUnfold (go.GoType.PointerType Node.ty) go!"SetOwnerReferences" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"SetOwnerReferences"))) (App (Val (GoInstruction (StructFieldRef Node.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_SetResourceVersion_unfold : MethodUnfold (go.GoType.PointerType Node.ty) go!"SetResourceVersion" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"SetResourceVersion"))) (App (Val (GoInstruction (StructFieldRef Node.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_SetSelfLink_unfold : MethodUnfold (go.GoType.PointerType Node.ty) go!"SetSelfLink" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"SetSelfLink"))) (App (Val (GoInstruction (StructFieldRef Node.ty go!"ObjectMeta"))) (Var "$r"))))
+  ptr_SetUID_unfold : MethodUnfold (go.GoType.PointerType Node.ty) go!"SetUID" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta.ty) go!"SetUID"))) (App (Val (GoInstruction (StructFieldRef Node.ty go!"ObjectMeta"))) (Var "$r"))))
 
 attribute [instance] Node.TypeAssumptions.type_repr
   Node.TypeAssumptions.underlying
@@ -443,6 +590,39 @@ attribute [instance] Node.TypeAssumptions.type_repr
   Node.TypeAssumptions.set_Spec
   Node.TypeAssumptions.get_Status
   Node.TypeAssumptions.set_Status
+  Node.TypeAssumptions.ptr_GetAnnotations_unfold
+  Node.TypeAssumptions.ptr_GetCreationTimestamp_unfold
+  Node.TypeAssumptions.ptr_GetDeletionGracePeriodSeconds_unfold
+  Node.TypeAssumptions.ptr_GetDeletionTimestamp_unfold
+  Node.TypeAssumptions.ptr_GetFinalizers_unfold
+  Node.TypeAssumptions.ptr_GetGenerateName_unfold
+  Node.TypeAssumptions.ptr_GetGeneration_unfold
+  Node.TypeAssumptions.ptr_GetLabels_unfold
+  Node.TypeAssumptions.ptr_GetManagedFields_unfold
+  Node.TypeAssumptions.ptr_GetName_unfold
+  Node.TypeAssumptions.ptr_GetNamespace_unfold
+  Node.TypeAssumptions.ptr_GetObjectKind_unfold
+  Node.TypeAssumptions.ptr_GetObjectMeta_unfold
+  Node.TypeAssumptions.ptr_GetOwnerReferences_unfold
+  Node.TypeAssumptions.ptr_GetResourceVersion_unfold
+  Node.TypeAssumptions.ptr_GetSelfLink_unfold
+  Node.TypeAssumptions.ptr_GetUID_unfold
+  Node.TypeAssumptions.ptr_SetAnnotations_unfold
+  Node.TypeAssumptions.ptr_SetCreationTimestamp_unfold
+  Node.TypeAssumptions.ptr_SetDeletionGracePeriodSeconds_unfold
+  Node.TypeAssumptions.ptr_SetDeletionTimestamp_unfold
+  Node.TypeAssumptions.ptr_SetFinalizers_unfold
+  Node.TypeAssumptions.ptr_SetGenerateName_unfold
+  Node.TypeAssumptions.ptr_SetGeneration_unfold
+  Node.TypeAssumptions.ptr_SetGroupVersionKind_unfold
+  Node.TypeAssumptions.ptr_SetLabels_unfold
+  Node.TypeAssumptions.ptr_SetManagedFields_unfold
+  Node.TypeAssumptions.ptr_SetName_unfold
+  Node.TypeAssumptions.ptr_SetNamespace_unfold
+  Node.TypeAssumptions.ptr_SetOwnerReferences_unfold
+  Node.TypeAssumptions.ptr_SetResourceVersion_unfold
+  Node.TypeAssumptions.ptr_SetSelfLink_unfold
+  Node.TypeAssumptions.ptr_SetUID_unfold
 
 class NodeList.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying NodeList.underlying NodeList
@@ -1039,177 +1219,6 @@ attribute [instance] LimitRange.TypeAssumptions.type_repr
   LimitRange.TypeAssumptions.set_ObjectMeta
   LimitRange.TypeAssumptions.get_Spec
   LimitRange.TypeAssumptions.set_Spec
-
-class LimitRangeList.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying LimitRangeList.underlying LimitRangeList
-  underlying : go.UnderlyingDirectedEq LimitRangeList.ty LimitRangeList.underlying
-  get_TypeMeta : ∀ (x : LimitRangeList), go.IsGoStepPureDetTagged under (StructFieldGet LimitRangeList.underlying go!"TypeMeta") #x (Val #(x.TypeMeta'))
-  set_TypeMeta : ∀ (x : LimitRangeList) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta), go.IsGoStepPureDetTagged under (StructFieldSet LimitRangeList.underlying go!"TypeMeta") (PairV #x #y) (Val #(({ x with TypeMeta' := y } : LimitRangeList)))
-  get_ListMeta : ∀ (x : LimitRangeList), go.IsGoStepPureDetTagged under (StructFieldGet LimitRangeList.underlying go!"ListMeta") #x (Val #(x.ListMeta'))
-  set_ListMeta : ∀ (x : LimitRangeList) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta), go.IsGoStepPureDetTagged under (StructFieldSet LimitRangeList.underlying go!"ListMeta") (PairV #x #y) (Val #(({ x with ListMeta' := y } : LimitRangeList)))
-  get_Items : ∀ (x : LimitRangeList), go.IsGoStepPureDetTagged under (StructFieldGet LimitRangeList.underlying go!"Items") #x (Val #(x.Items'))
-  set_Items : ∀ (x : LimitRangeList) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet LimitRangeList.underlying go!"Items") (PairV #x #y) (Val #(({ x with Items' := y } : LimitRangeList)))
-
-attribute [instance] LimitRangeList.TypeAssumptions.type_repr
-  LimitRangeList.TypeAssumptions.underlying
-  LimitRangeList.TypeAssumptions.get_TypeMeta
-  LimitRangeList.TypeAssumptions.set_TypeMeta
-  LimitRangeList.TypeAssumptions.get_ListMeta
-  LimitRangeList.TypeAssumptions.set_ListMeta
-  LimitRangeList.TypeAssumptions.get_Items
-  LimitRangeList.TypeAssumptions.set_Items
-
-class ResourceQuotaScope.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  underlying : go.UnderlyingDirectedEq ResourceQuotaScope.ty ResourceQuotaScope.underlying
-
-attribute [instance] ResourceQuotaScope.TypeAssumptions.underlying
-
-class ResourceQuotaSpec.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying ResourceQuotaSpec.underlying ResourceQuotaSpec
-  underlying : go.UnderlyingDirectedEq ResourceQuotaSpec.ty ResourceQuotaSpec.underlying
-  get_Hard : ∀ (x : ResourceQuotaSpec), go.IsGoStepPureDetTagged under (StructFieldGet ResourceQuotaSpec.underlying go!"Hard") #x (Val #(x.Hard'))
-  set_Hard : ∀ (x : ResourceQuotaSpec) (y : ResourceList), go.IsGoStepPureDetTagged under (StructFieldSet ResourceQuotaSpec.underlying go!"Hard") (PairV #x #y) (Val #(({ x with Hard' := y } : ResourceQuotaSpec)))
-  get_Scopes : ∀ (x : ResourceQuotaSpec), go.IsGoStepPureDetTagged under (StructFieldGet ResourceQuotaSpec.underlying go!"Scopes") #x (Val #(x.Scopes'))
-  set_Scopes : ∀ (x : ResourceQuotaSpec) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ResourceQuotaSpec.underlying go!"Scopes") (PairV #x #y) (Val #(({ x with Scopes' := y } : ResourceQuotaSpec)))
-  get_ScopeSelector : ∀ (x : ResourceQuotaSpec), go.IsGoStepPureDetTagged under (StructFieldGet ResourceQuotaSpec.underlying go!"ScopeSelector") #x (Val #(x.ScopeSelector'))
-  set_ScopeSelector : ∀ (x : ResourceQuotaSpec) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ResourceQuotaSpec.underlying go!"ScopeSelector") (PairV #x #y) (Val #(({ x with ScopeSelector' := y } : ResourceQuotaSpec)))
-
-attribute [instance] ResourceQuotaSpec.TypeAssumptions.type_repr
-  ResourceQuotaSpec.TypeAssumptions.underlying
-  ResourceQuotaSpec.TypeAssumptions.get_Hard
-  ResourceQuotaSpec.TypeAssumptions.set_Hard
-  ResourceQuotaSpec.TypeAssumptions.get_Scopes
-  ResourceQuotaSpec.TypeAssumptions.set_Scopes
-  ResourceQuotaSpec.TypeAssumptions.get_ScopeSelector
-  ResourceQuotaSpec.TypeAssumptions.set_ScopeSelector
-
-class ScopeSelector.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying ScopeSelector.underlying ScopeSelector
-  underlying : go.UnderlyingDirectedEq ScopeSelector.ty ScopeSelector.underlying
-  get_MatchExpressions : ∀ (x : ScopeSelector), go.IsGoStepPureDetTagged under (StructFieldGet ScopeSelector.underlying go!"MatchExpressions") #x (Val #(x.MatchExpressions'))
-  set_MatchExpressions : ∀ (x : ScopeSelector) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ScopeSelector.underlying go!"MatchExpressions") (PairV #x #y) (Val #(({ x with MatchExpressions' := y } : ScopeSelector)))
-
-attribute [instance] ScopeSelector.TypeAssumptions.type_repr
-  ScopeSelector.TypeAssumptions.underlying
-  ScopeSelector.TypeAssumptions.get_MatchExpressions
-  ScopeSelector.TypeAssumptions.set_MatchExpressions
-
-class ScopeSelectorOperator.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  underlying : go.UnderlyingDirectedEq ScopeSelectorOperator.ty ScopeSelectorOperator.underlying
-
-attribute [instance] ScopeSelectorOperator.TypeAssumptions.underlying
-
-class ScopedResourceSelectorRequirement.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying ScopedResourceSelectorRequirement.underlying ScopedResourceSelectorRequirement
-  underlying : go.UnderlyingDirectedEq ScopedResourceSelectorRequirement.ty ScopedResourceSelectorRequirement.underlying
-  get_ScopeName : ∀ (x : ScopedResourceSelectorRequirement), go.IsGoStepPureDetTagged under (StructFieldGet ScopedResourceSelectorRequirement.underlying go!"ScopeName") #x (Val #(x.ScopeName'))
-  set_ScopeName : ∀ (x : ScopedResourceSelectorRequirement) (y : ResourceQuotaScope), go.IsGoStepPureDetTagged under (StructFieldSet ScopedResourceSelectorRequirement.underlying go!"ScopeName") (PairV #x #y) (Val #(({ x with ScopeName' := y } : ScopedResourceSelectorRequirement)))
-  get_Operator : ∀ (x : ScopedResourceSelectorRequirement), go.IsGoStepPureDetTagged under (StructFieldGet ScopedResourceSelectorRequirement.underlying go!"Operator") #x (Val #(x.Operator'))
-  set_Operator : ∀ (x : ScopedResourceSelectorRequirement) (y : ScopeSelectorOperator), go.IsGoStepPureDetTagged under (StructFieldSet ScopedResourceSelectorRequirement.underlying go!"Operator") (PairV #x #y) (Val #(({ x with Operator' := y } : ScopedResourceSelectorRequirement)))
-  get_Values : ∀ (x : ScopedResourceSelectorRequirement), go.IsGoStepPureDetTagged under (StructFieldGet ScopedResourceSelectorRequirement.underlying go!"Values") #x (Val #(x.Values'))
-  set_Values : ∀ (x : ScopedResourceSelectorRequirement) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ScopedResourceSelectorRequirement.underlying go!"Values") (PairV #x #y) (Val #(({ x with Values' := y } : ScopedResourceSelectorRequirement)))
-
-attribute [instance] ScopedResourceSelectorRequirement.TypeAssumptions.type_repr
-  ScopedResourceSelectorRequirement.TypeAssumptions.underlying
-  ScopedResourceSelectorRequirement.TypeAssumptions.get_ScopeName
-  ScopedResourceSelectorRequirement.TypeAssumptions.set_ScopeName
-  ScopedResourceSelectorRequirement.TypeAssumptions.get_Operator
-  ScopedResourceSelectorRequirement.TypeAssumptions.set_Operator
-  ScopedResourceSelectorRequirement.TypeAssumptions.get_Values
-  ScopedResourceSelectorRequirement.TypeAssumptions.set_Values
-
-class ResourceQuotaStatus.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying ResourceQuotaStatus.underlying ResourceQuotaStatus
-  underlying : go.UnderlyingDirectedEq ResourceQuotaStatus.ty ResourceQuotaStatus.underlying
-  get_Hard : ∀ (x : ResourceQuotaStatus), go.IsGoStepPureDetTagged under (StructFieldGet ResourceQuotaStatus.underlying go!"Hard") #x (Val #(x.Hard'))
-  set_Hard : ∀ (x : ResourceQuotaStatus) (y : ResourceList), go.IsGoStepPureDetTagged under (StructFieldSet ResourceQuotaStatus.underlying go!"Hard") (PairV #x #y) (Val #(({ x with Hard' := y } : ResourceQuotaStatus)))
-  get_Used : ∀ (x : ResourceQuotaStatus), go.IsGoStepPureDetTagged under (StructFieldGet ResourceQuotaStatus.underlying go!"Used") #x (Val #(x.Used'))
-  set_Used : ∀ (x : ResourceQuotaStatus) (y : ResourceList), go.IsGoStepPureDetTagged under (StructFieldSet ResourceQuotaStatus.underlying go!"Used") (PairV #x #y) (Val #(({ x with Used' := y } : ResourceQuotaStatus)))
-
-attribute [instance] ResourceQuotaStatus.TypeAssumptions.type_repr
-  ResourceQuotaStatus.TypeAssumptions.underlying
-  ResourceQuotaStatus.TypeAssumptions.get_Hard
-  ResourceQuotaStatus.TypeAssumptions.set_Hard
-  ResourceQuotaStatus.TypeAssumptions.get_Used
-  ResourceQuotaStatus.TypeAssumptions.set_Used
-
-class ResourceQuota.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying ResourceQuota.underlying ResourceQuota
-  underlying : go.UnderlyingDirectedEq ResourceQuota.ty ResourceQuota.underlying
-  get_TypeMeta : ∀ (x : ResourceQuota), go.IsGoStepPureDetTagged under (StructFieldGet ResourceQuota.underlying go!"TypeMeta") #x (Val #(x.TypeMeta'))
-  set_TypeMeta : ∀ (x : ResourceQuota) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta), go.IsGoStepPureDetTagged under (StructFieldSet ResourceQuota.underlying go!"TypeMeta") (PairV #x #y) (Val #(({ x with TypeMeta' := y } : ResourceQuota)))
-  get_ObjectMeta : ∀ (x : ResourceQuota), go.IsGoStepPureDetTagged under (StructFieldGet ResourceQuota.underlying go!"ObjectMeta") #x (Val #(x.ObjectMeta'))
-  set_ObjectMeta : ∀ (x : ResourceQuota) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta), go.IsGoStepPureDetTagged under (StructFieldSet ResourceQuota.underlying go!"ObjectMeta") (PairV #x #y) (Val #(({ x with ObjectMeta' := y } : ResourceQuota)))
-  get_Spec : ∀ (x : ResourceQuota), go.IsGoStepPureDetTagged under (StructFieldGet ResourceQuota.underlying go!"Spec") #x (Val #(x.Spec'))
-  set_Spec : ∀ (x : ResourceQuota) (y : ResourceQuotaSpec), go.IsGoStepPureDetTagged under (StructFieldSet ResourceQuota.underlying go!"Spec") (PairV #x #y) (Val #(({ x with Spec' := y } : ResourceQuota)))
-  get_Status : ∀ (x : ResourceQuota), go.IsGoStepPureDetTagged under (StructFieldGet ResourceQuota.underlying go!"Status") #x (Val #(x.Status'))
-  set_Status : ∀ (x : ResourceQuota) (y : ResourceQuotaStatus), go.IsGoStepPureDetTagged under (StructFieldSet ResourceQuota.underlying go!"Status") (PairV #x #y) (Val #(({ x with Status' := y } : ResourceQuota)))
-
-attribute [instance] ResourceQuota.TypeAssumptions.type_repr
-  ResourceQuota.TypeAssumptions.underlying
-  ResourceQuota.TypeAssumptions.get_TypeMeta
-  ResourceQuota.TypeAssumptions.set_TypeMeta
-  ResourceQuota.TypeAssumptions.get_ObjectMeta
-  ResourceQuota.TypeAssumptions.set_ObjectMeta
-  ResourceQuota.TypeAssumptions.get_Spec
-  ResourceQuota.TypeAssumptions.set_Spec
-  ResourceQuota.TypeAssumptions.get_Status
-  ResourceQuota.TypeAssumptions.set_Status
-
-class ResourceQuotaList.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying ResourceQuotaList.underlying ResourceQuotaList
-  underlying : go.UnderlyingDirectedEq ResourceQuotaList.ty ResourceQuotaList.underlying
-  get_TypeMeta : ∀ (x : ResourceQuotaList), go.IsGoStepPureDetTagged under (StructFieldGet ResourceQuotaList.underlying go!"TypeMeta") #x (Val #(x.TypeMeta'))
-  set_TypeMeta : ∀ (x : ResourceQuotaList) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta), go.IsGoStepPureDetTagged under (StructFieldSet ResourceQuotaList.underlying go!"TypeMeta") (PairV #x #y) (Val #(({ x with TypeMeta' := y } : ResourceQuotaList)))
-  get_ListMeta : ∀ (x : ResourceQuotaList), go.IsGoStepPureDetTagged under (StructFieldGet ResourceQuotaList.underlying go!"ListMeta") #x (Val #(x.ListMeta'))
-  set_ListMeta : ∀ (x : ResourceQuotaList) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta), go.IsGoStepPureDetTagged under (StructFieldSet ResourceQuotaList.underlying go!"ListMeta") (PairV #x #y) (Val #(({ x with ListMeta' := y } : ResourceQuotaList)))
-  get_Items : ∀ (x : ResourceQuotaList), go.IsGoStepPureDetTagged under (StructFieldGet ResourceQuotaList.underlying go!"Items") #x (Val #(x.Items'))
-  set_Items : ∀ (x : ResourceQuotaList) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ResourceQuotaList.underlying go!"Items") (PairV #x #y) (Val #(({ x with Items' := y } : ResourceQuotaList)))
-
-attribute [instance] ResourceQuotaList.TypeAssumptions.type_repr
-  ResourceQuotaList.TypeAssumptions.underlying
-  ResourceQuotaList.TypeAssumptions.get_TypeMeta
-  ResourceQuotaList.TypeAssumptions.set_TypeMeta
-  ResourceQuotaList.TypeAssumptions.get_ListMeta
-  ResourceQuotaList.TypeAssumptions.set_ListMeta
-  ResourceQuotaList.TypeAssumptions.get_Items
-  ResourceQuotaList.TypeAssumptions.set_Items
-
-class SecretType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  underlying : go.UnderlyingDirectedEq SecretType.ty SecretType.underlying
-
-attribute [instance] SecretType.TypeAssumptions.underlying
-
-class Secret.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying Secret.underlying Secret
-  underlying : go.UnderlyingDirectedEq Secret.ty Secret.underlying
-  get_TypeMeta : ∀ (x : Secret), go.IsGoStepPureDetTagged under (StructFieldGet Secret.underlying go!"TypeMeta") #x (Val #(x.TypeMeta'))
-  set_TypeMeta : ∀ (x : Secret) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta), go.IsGoStepPureDetTagged under (StructFieldSet Secret.underlying go!"TypeMeta") (PairV #x #y) (Val #(({ x with TypeMeta' := y } : Secret)))
-  get_ObjectMeta : ∀ (x : Secret), go.IsGoStepPureDetTagged under (StructFieldGet Secret.underlying go!"ObjectMeta") #x (Val #(x.ObjectMeta'))
-  set_ObjectMeta : ∀ (x : Secret) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta), go.IsGoStepPureDetTagged under (StructFieldSet Secret.underlying go!"ObjectMeta") (PairV #x #y) (Val #(({ x with ObjectMeta' := y } : Secret)))
-  get_Immutable : ∀ (x : Secret), go.IsGoStepPureDetTagged under (StructFieldGet Secret.underlying go!"Immutable") #x (Val #(x.Immutable'))
-  set_Immutable : ∀ (x : Secret) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Secret.underlying go!"Immutable") (PairV #x #y) (Val #(({ x with Immutable' := y } : Secret)))
-  get_Data : ∀ (x : Secret), go.IsGoStepPureDetTagged under (StructFieldGet Secret.underlying go!"Data") #x (Val #(x.Data'))
-  set_Data : ∀ (x : Secret) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Secret.underlying go!"Data") (PairV #x #y) (Val #(({ x with Data' := y } : Secret)))
-  get_StringData : ∀ (x : Secret), go.IsGoStepPureDetTagged under (StructFieldGet Secret.underlying go!"StringData") #x (Val #(x.StringData'))
-  set_StringData : ∀ (x : Secret) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Secret.underlying go!"StringData") (PairV #x #y) (Val #(({ x with StringData' := y } : Secret)))
-  get_Type : ∀ (x : Secret), go.IsGoStepPureDetTagged under (StructFieldGet Secret.underlying go!"Type") #x (Val #(x.Type'))
-  set_Type : ∀ (x : Secret) (y : SecretType), go.IsGoStepPureDetTagged under (StructFieldSet Secret.underlying go!"Type") (PairV #x #y) (Val #(({ x with Type' := y } : Secret)))
-
-attribute [instance] Secret.TypeAssumptions.type_repr
-  Secret.TypeAssumptions.underlying
-  Secret.TypeAssumptions.get_TypeMeta
-  Secret.TypeAssumptions.set_TypeMeta
-  Secret.TypeAssumptions.get_ObjectMeta
-  Secret.TypeAssumptions.set_ObjectMeta
-  Secret.TypeAssumptions.get_Immutable
-  Secret.TypeAssumptions.set_Immutable
-  Secret.TypeAssumptions.get_Data
-  Secret.TypeAssumptions.set_Data
-  Secret.TypeAssumptions.get_StringData
-  Secret.TypeAssumptions.set_StringData
-  Secret.TypeAssumptions.get_Type
-  Secret.TypeAssumptions.set_Type
 
 end k8s_io.api.core.v1
 

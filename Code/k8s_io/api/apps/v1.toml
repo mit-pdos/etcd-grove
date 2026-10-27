@@ -2,7 +2,13 @@
 # registration code) are axiomatized (project k8s-apiserver; notes/k8s-clientgo-goose.md). It
 # imports what its types name, so that the API types (`DaemonSet`, `ControllerRevision`, ...) are
 # concrete structs the listers read fields of (gap G4 of notes/k8s-etcd3-goose.md).
-translate = ["!*"]
+# The promoted `metav1.Object` accessors of the resources the model API server serves (their
+# unfolds into `ObjectMeta`'s, translated with bodies; examples/k8sdaemonset/apimodel,
+# notes/k8s-apimodel-goose.md); the types' own methods stay names only.
+translate = ["!*", "DaemonSet.Get*", "DaemonSet.Set*", "ControllerRevision.Get*",
+  "ControllerRevision.Set*",
+  # the constants the model reads (a names-only constant is a value of unknown shape)
+  "RollingUpdateDaemonSetStrategyType", "DeprecatedTemplateGeneration"]
 imports = ["!*", "k8s.io/api/core/v1", "k8s.io/apimachinery/pkg/apis/meta/v1",
   "k8s.io/apimachinery/pkg/runtime", "k8s.io/apimachinery/pkg/util/intstr"]
 

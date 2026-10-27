@@ -433,46 +433,65 @@ axiom StatusSuccess [FfiSyntax] [GoGlobalContext] : val
 @[reducible] noncomputable def StatusFailure [FfiSyntax] [GoGlobalContext] : val :=
   #(go!"Failure")
 
-axiom StatusReasonUnknown [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def StatusReasonUnknown [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"")
 
-axiom StatusReasonUnauthorized [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def StatusReasonUnauthorized [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"Unauthorized")
 
-axiom StatusReasonForbidden [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def StatusReasonForbidden [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"Forbidden")
 
-axiom StatusReasonNotFound [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def StatusReasonNotFound [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"NotFound")
 
-axiom StatusReasonAlreadyExists [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def StatusReasonAlreadyExists [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"AlreadyExists")
 
-axiom StatusReasonConflict [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def StatusReasonConflict [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"Conflict")
 
-axiom StatusReasonGone [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def StatusReasonGone [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"Gone")
 
-axiom StatusReasonInvalid [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def StatusReasonInvalid [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"Invalid")
 
-axiom StatusReasonServerTimeout [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def StatusReasonServerTimeout [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"ServerTimeout")
 
-axiom StatusReasonStoreReadError [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def StatusReasonStoreReadError [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"StorageReadError")
 
 @[reducible] noncomputable def StatusReasonTimeout [FfiSyntax] [GoGlobalContext] : val :=
   #(go!"Timeout")
 
-axiom StatusReasonTooManyRequests [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def StatusReasonTooManyRequests [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"TooManyRequests")
 
-axiom StatusReasonBadRequest [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def StatusReasonBadRequest [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"BadRequest")
 
-axiom StatusReasonMethodNotAllowed [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def StatusReasonMethodNotAllowed [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"MethodNotAllowed")
 
-axiom StatusReasonNotAcceptable [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def StatusReasonNotAcceptable [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"NotAcceptable")
 
-axiom StatusReasonRequestEntityTooLarge [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def StatusReasonRequestEntityTooLarge [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"RequestEntityTooLarge")
 
-axiom StatusReasonUnsupportedMediaType [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def StatusReasonUnsupportedMediaType [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"UnsupportedMediaType")
 
-axiom StatusReasonInternalError [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def StatusReasonInternalError [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"InternalError")
 
-axiom StatusReasonExpired [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def StatusReasonExpired [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"Expired")
 
-axiom StatusReasonServiceUnavailable [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def StatusReasonServiceUnavailable [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"ServiceUnavailable")
 
 axiom CauseTypeFieldValueNotFound [FfiSyntax] [GoGlobalContext] : val
 
@@ -1082,6 +1101,398 @@ noncomputable def Convert_url_Values_To_v1_UpdateOptions [FfiSyntax] [GoGlobalCo
 noncomputable def RegisterDefaults [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1.RegisterDefaults"
 
+/-- go: meta.go:158:24 -/
+noncomputable def ObjectMeta.GetObjectMeta.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "obj"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "obj" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ObjectMeta.ty)))) (Var "obj"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (Convert (go.GoType.PointerType ObjectMeta.ty) Object.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ObjectMeta.ty)))) (Var "obj"))))))))
+
+/-- Namespace implements metav1.Object for any object with an ObjectMeta typed field. Allows
+    fast, direct access to metadata fields for API objects.
+
+    go: meta.go:162:25 -/
+noncomputable def ObjectMeta.GetNamespace.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "meta"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "meta" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef ObjectMeta.ty go!"Namespace"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta")))))))))
+
+/-- go: meta.go:163:25 -/
+noncomputable def ObjectMeta.SetNamespace.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "meta"
+  (Lam "namespace"
+  (App (Val exceptionDo)
+  (Let "meta" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))
+  (Let "namespace" (App (Val (GoInstruction (GoAlloc go.string))) (Var "namespace"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (Var "namespace"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (StructFieldRef ObjectMeta.ty go!"Namespace"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))) (Var "$r0")))))))))))
+
+/-- go: meta.go:164:25 -/
+noncomputable def ObjectMeta.GetName.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "meta"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "meta" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef ObjectMeta.ty go!"Name"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta")))))))))
+
+/-- go: meta.go:165:25 -/
+noncomputable def ObjectMeta.SetName.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "meta"
+  (Lam "name"
+  (App (Val exceptionDo)
+  (Let "meta" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))
+  (Let "name" (App (Val (GoInstruction (GoAlloc go.string))) (Var "name"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (Var "name"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (StructFieldRef ObjectMeta.ty go!"Name"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))) (Var "$r0")))))))))))
+
+/-- go: meta.go:166:25 -/
+noncomputable def ObjectMeta.GetGenerateName.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "meta"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "meta" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef ObjectMeta.ty go!"GenerateName"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta")))))))))
+
+/-- go: meta.go:167:25 -/
+noncomputable def ObjectMeta.SetGenerateName.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "meta"
+  (Lam "generateName"
+  (App (Val exceptionDo)
+  (Let "meta" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))
+  (Let "generateName" (App (Val (GoInstruction (GoAlloc go.string))) (Var "generateName"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (Var "generateName"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (StructFieldRef ObjectMeta.ty go!"GenerateName"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))) (Var "$r0")))))))))))
+
+/-- go: meta.go:168:25 -/
+noncomputable def ObjectMeta.GetUID.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "meta"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "meta" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.types.UID.ty))) (App (Val (GoInstruction (StructFieldRef ObjectMeta.ty go!"UID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta")))))))))
+
+/-- go: meta.go:169:25 -/
+noncomputable def ObjectMeta.SetUID.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "meta"
+  (Lam "uid"
+  (App (Val exceptionDo)
+  (Let "meta" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))
+  (Let "uid" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.types.UID.ty))) (Var "uid"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.apimachinery.pkg.types.UID.ty))) (Var "uid"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.types.UID.ty))) (Pair (App (Val (GoInstruction (StructFieldRef ObjectMeta.ty go!"UID"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))) (Var "$r0")))))))))))
+
+/-- go: meta.go:170:25 -/
+noncomputable def ObjectMeta.GetResourceVersion.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "meta"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "meta" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef ObjectMeta.ty go!"ResourceVersion"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta")))))))))
+
+/-- go: meta.go:171:25 -/
+noncomputable def ObjectMeta.SetResourceVersion.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "meta"
+  (Lam "version"
+  (App (Val exceptionDo)
+  (Let "meta" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))
+  (Let "version" (App (Val (GoInstruction (GoAlloc go.string))) (Var "version"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (Var "version"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (StructFieldRef ObjectMeta.ty go!"ResourceVersion"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))) (Var "$r0")))))))))))
+
+/-- go: meta.go:172:25 -/
+noncomputable def ObjectMeta.GetGeneration.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "meta"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "meta" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.int64))) (App (Val (GoInstruction (StructFieldRef ObjectMeta.ty go!"Generation"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta")))))))))
+
+/-- go: meta.go:173:25 -/
+noncomputable def ObjectMeta.SetGeneration.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "meta"
+  (Lam "generation"
+  (App (Val exceptionDo)
+  (Let "meta" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))
+  (Let "generation" (App (Val (GoInstruction (GoAlloc go.int64))) (Var "generation"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int64))) (Var "generation"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int64))) (Pair (App (Val (GoInstruction (StructFieldRef ObjectMeta.ty go!"Generation"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))) (Var "$r0")))))))))))
+
+/-- go: meta.go:174:25 -/
+noncomputable def ObjectMeta.GetSelfLink.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "meta"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "meta" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef ObjectMeta.ty go!"SelfLink"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta")))))))))
+
+/-- go: meta.go:175:25 -/
+noncomputable def ObjectMeta.SetSelfLink.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "meta"
+  (Lam "selfLink"
+  (App (Val exceptionDo)
+  (Let "meta" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))
+  (Let "selfLink" (App (Val (GoInstruction (GoAlloc go.string))) (Var "selfLink"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.string))) (Var "selfLink"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.string))) (Pair (App (Val (GoInstruction (StructFieldRef ObjectMeta.ty go!"SelfLink"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))) (Var "$r0")))))))))))
+
+/-- go: meta.go:176:25 -/
+noncomputable def ObjectMeta.GetCreationTimestamp.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "meta"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "meta" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad Time.ty))) (App (Val (GoInstruction (StructFieldRef ObjectMeta.ty go!"CreationTimestamp"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta")))))))))
+
+/-- go: meta.go:177:25 -/
+noncomputable def ObjectMeta.SetCreationTimestamp.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "meta"
+  (Lam "creationTimestamp"
+  (App (Val exceptionDo)
+  (Let "meta" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))
+  (Let "creationTimestamp" (App (Val (GoInstruction (GoAlloc Time.ty))) (Var "creationTimestamp"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad Time.ty))) (Var "creationTimestamp"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Time.ty))) (Pair (App (Val (GoInstruction (StructFieldRef ObjectMeta.ty go!"CreationTimestamp"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))) (Var "$r0")))))))))))
+
+/-- go: meta.go:180:25 -/
+noncomputable def ObjectMeta.GetDeletionTimestamp.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "meta"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "meta" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Time.ty)))) (App (Val (GoInstruction (StructFieldRef ObjectMeta.ty go!"DeletionTimestamp"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta")))))))))
+
+/-- go: meta.go:181:25 -/
+noncomputable def ObjectMeta.SetDeletionTimestamp.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "meta"
+  (Lam "deletionTimestamp"
+  (App (Val exceptionDo)
+  (Let "meta" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))
+  (Let "deletionTimestamp" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Time.ty)))) (Var "deletionTimestamp"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Time.ty)))) (Var "deletionTimestamp"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Time.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef ObjectMeta.ty go!"DeletionTimestamp"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))) (Var "$r0")))))))))))
+
+/-- go: meta.go:184:25 -/
+noncomputable def ObjectMeta.GetDeletionGracePeriodSeconds.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "meta"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "meta" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType go.int64)))) (App (Val (GoInstruction (StructFieldRef ObjectMeta.ty go!"DeletionGracePeriodSeconds"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta")))))))))
+
+/-- go: meta.go:187:25 -/
+noncomputable def ObjectMeta.SetDeletionGracePeriodSeconds.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "meta"
+  (Lam "deletionGracePeriodSeconds"
+  (App (Val exceptionDo)
+  (Let "meta" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))
+  (Let "deletionGracePeriodSeconds" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType go.int64)))) (Var "deletionGracePeriodSeconds"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType go.int64)))) (Var "deletionGracePeriodSeconds"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType go.int64)))) (Pair (App (Val (GoInstruction (StructFieldRef ObjectMeta.ty go!"DeletionGracePeriodSeconds"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))) (Var "$r0")))))))))))
+
+/-- go: meta.go:190:25 -/
+noncomputable def ObjectMeta.GetLabels.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "meta"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "meta" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.string)))) (App (Val (GoInstruction (StructFieldRef ObjectMeta.ty go!"Labels"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta")))))))))
+
+/-- go: meta.go:191:25 -/
+noncomputable def ObjectMeta.SetLabels.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "meta"
+  (Lam "labels"
+  (App (Val exceptionDo)
+  (Let "meta" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))
+  (Let "labels" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType go.string go.string)))) (Var "labels"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.string)))) (Var "labels"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.string go.string)))) (Pair (App (Val (GoInstruction (StructFieldRef ObjectMeta.ty go!"Labels"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))) (Var "$r0")))))))))))
+
+/-- go: meta.go:192:25 -/
+noncomputable def ObjectMeta.GetAnnotations.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "meta"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "meta" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.string)))) (App (Val (GoInstruction (StructFieldRef ObjectMeta.ty go!"Annotations"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta")))))))))
+
+/-- go: meta.go:193:25 -/
+noncomputable def ObjectMeta.SetAnnotations.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "meta"
+  (Lam "annotations"
+  (App (Val exceptionDo)
+  (Let "meta" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))
+  (Let "annotations" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType go.string go.string)))) (Var "annotations"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string go.string)))) (Var "annotations"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.MapType go.string go.string)))) (Pair (App (Val (GoInstruction (StructFieldRef ObjectMeta.ty go!"Annotations"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))) (Var "$r0")))))))))))
+
+/-- go: meta.go:194:25 -/
+noncomputable def ObjectMeta.GetFinalizers.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "meta"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "meta" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (App (Val (GoInstruction (StructFieldRef ObjectMeta.ty go!"Finalizers"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta")))))))))
+
+/-- go: meta.go:195:25 -/
+noncomputable def ObjectMeta.SetFinalizers.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "meta"
+  (Lam "finalizers"
+  (App (Val exceptionDo)
+  (Let "meta" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))
+  (Let "finalizers" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.string)))) (Var "finalizers"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.string)))) (Var "finalizers"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.string)))) (Pair (App (Val (GoInstruction (StructFieldRef ObjectMeta.ty go!"Finalizers"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))) (Var "$r0")))))))))))
+
+/-- go: meta.go:196:25 -/
+noncomputable def ObjectMeta.GetOwnerReferences.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "meta"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "meta" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType OwnerReference.ty)))) (App (Val (GoInstruction (StructFieldRef ObjectMeta.ty go!"OwnerReferences"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta")))))))))
+
+/-- go: meta.go:197:25 -/
+noncomputable def ObjectMeta.SetOwnerReferences.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "meta"
+  (Lam "references"
+  (App (Val exceptionDo)
+  (Let "meta" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))
+  (Let "references" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType OwnerReference.ty)))) (Var "references"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType OwnerReference.ty)))) (Var "references"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType OwnerReference.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef ObjectMeta.ty go!"OwnerReferences"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))) (Var "$r0")))))))))))
+
+/-- go: meta.go:200:25 -/
+noncomputable def ObjectMeta.GetManagedFields.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "meta"
+  (Lam BAnon
+  (App (Val exceptionDo)
+  (Let "meta" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType ManagedFieldsEntry.ty)))) (App (Val (GoInstruction (StructFieldRef ObjectMeta.ty go!"ManagedFields"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta")))))))))
+
+/-- go: meta.go:201:25 -/
+noncomputable def ObjectMeta.SetManagedFields.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "meta"
+  (Lam "managedFields"
+  (App (Val exceptionDo)
+  (Let "meta" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))
+  (Let "managedFields" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType ManagedFieldsEntry.ty)))) (Var "managedFields"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType ManagedFieldsEntry.ty)))) (Var "managedFields"))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType ManagedFieldsEntry.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef ObjectMeta.ty go!"ManagedFields"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType ObjectMeta.ty)))) (Var "meta"))) (Var "$r0")))))))))))
+
+/-- Now returns the current local time.
+
+    go: time.go:56:6 -/
+noncomputable def Now.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV BAnon
+  (App (Val exceptionDo)
+  (App (Val doReturn)
+  (Let "$v0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Now []))) (Val #())) (Val #()))
+  (App (Val (GoInstruction (CompositeLiteral Time.ty))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.time.Time.ty (Var "$v0")))]))))))
+
+/-- Equal reports whether the time instant t is equal to u.
+
+    go: time.go:77:16 -/
+noncomputable def Time.Equal.impl [FfiSyntax] [GoGlobalContext] : val :=
+  (LamV "t"
+  (Lam "u"
+  (App (Val exceptionDo)
+  (Let "t" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Time.ty)))) (Var "t"))
+  (Let "u" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Time.ty)))) (Var "u"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #false))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType Time.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Time.ty)))) (Var "t")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Time.ty)))) (Val UntypedNil))))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType Time.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Time.ty)))) (Var "u")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Time.ty)))) (Val UntypedNil))))) (Val #false)))
+  (App (Val doReturn)
+  (Let "$a0" (App (Val (GoInstruction (GoLoad _root_.Perennial.time.Time.ty))) (App (Val (GoInstruction (StructFieldRef Time.ty go!"Time"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Time.ty)))) (Var "u"))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.time.Time.ty) go!"Equal"))) (App (Val (GoInstruction (StructFieldRef Time.ty go!"Time"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Time.ty)))) (Var "t")))) (Var "$a0"))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType Time.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Time.ty)))) (Var "t")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Time.ty)))) (Val UntypedNil)))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType Time.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Time.ty)))) (Var "u")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType Time.ty)))) (Val UntypedNil)))) (Val #false)))
+  (App (Val doReturn)
+  (Val #true))
+  (App (Val doExecute)
+  (Val #())))))))))
+
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.apis.«meta».v1 where
   pkgImportedPkgs := [pkg_id.k8s_io.apimachinery.pkg.runtime.schema, pkg_id.k8s_io.apimachinery.pkg.types, pkg_id.k8s_io.apimachinery.pkg.runtime, pkg_id.time]
 
@@ -1658,11 +2069,13 @@ class Time.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSem
   underlying : go.UnderlyingDirectedEq Time.ty Time.underlying
   get_Time : ∀ (x : Time), go.IsGoStepPureDetTagged under (StructFieldGet Time.underlying go!"Time") #x (Val #(x.Time'))
   set_Time : ∀ (x : Time) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet Time.underlying go!"Time") (PairV #x #y) (Val #(({ x with Time' := y } : Time)))
+  ptr_Equal_unfold : MethodUnfold (go.GoType.PointerType Time.ty) go!"Equal" Time.Equal.impl
 
 attribute [instance] Time.TypeAssumptions.type_repr
   Time.TypeAssumptions.underlying
   Time.TypeAssumptions.get_Time
   Time.TypeAssumptions.set_Time
+  Time.TypeAssumptions.ptr_Equal_unfold
 
 structure Timestamp [FfiSyntax] where
   mk ::
@@ -1905,6 +2318,37 @@ class ObjectMeta.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
   set_Finalizers : ∀ (x : ObjectMeta) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ObjectMeta.underlying go!"Finalizers") (PairV #x #y) (Val #(({ x with Finalizers' := y } : ObjectMeta)))
   get_ManagedFields : ∀ (x : ObjectMeta), go.IsGoStepPureDetTagged under (StructFieldGet ObjectMeta.underlying go!"ManagedFields") #x (Val #(x.ManagedFields'))
   set_ManagedFields : ∀ (x : ObjectMeta) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ObjectMeta.underlying go!"ManagedFields") (PairV #x #y) (Val #(({ x with ManagedFields' := y } : ObjectMeta)))
+  ptr_GetAnnotations_unfold : MethodUnfold (go.GoType.PointerType ObjectMeta.ty) go!"GetAnnotations" ObjectMeta.GetAnnotations.impl
+  ptr_GetCreationTimestamp_unfold : MethodUnfold (go.GoType.PointerType ObjectMeta.ty) go!"GetCreationTimestamp" ObjectMeta.GetCreationTimestamp.impl
+  ptr_GetDeletionGracePeriodSeconds_unfold : MethodUnfold (go.GoType.PointerType ObjectMeta.ty) go!"GetDeletionGracePeriodSeconds" ObjectMeta.GetDeletionGracePeriodSeconds.impl
+  ptr_GetDeletionTimestamp_unfold : MethodUnfold (go.GoType.PointerType ObjectMeta.ty) go!"GetDeletionTimestamp" ObjectMeta.GetDeletionTimestamp.impl
+  ptr_GetFinalizers_unfold : MethodUnfold (go.GoType.PointerType ObjectMeta.ty) go!"GetFinalizers" ObjectMeta.GetFinalizers.impl
+  ptr_GetGenerateName_unfold : MethodUnfold (go.GoType.PointerType ObjectMeta.ty) go!"GetGenerateName" ObjectMeta.GetGenerateName.impl
+  ptr_GetGeneration_unfold : MethodUnfold (go.GoType.PointerType ObjectMeta.ty) go!"GetGeneration" ObjectMeta.GetGeneration.impl
+  ptr_GetLabels_unfold : MethodUnfold (go.GoType.PointerType ObjectMeta.ty) go!"GetLabels" ObjectMeta.GetLabels.impl
+  ptr_GetManagedFields_unfold : MethodUnfold (go.GoType.PointerType ObjectMeta.ty) go!"GetManagedFields" ObjectMeta.GetManagedFields.impl
+  ptr_GetName_unfold : MethodUnfold (go.GoType.PointerType ObjectMeta.ty) go!"GetName" ObjectMeta.GetName.impl
+  ptr_GetNamespace_unfold : MethodUnfold (go.GoType.PointerType ObjectMeta.ty) go!"GetNamespace" ObjectMeta.GetNamespace.impl
+  ptr_GetObjectMeta_unfold : MethodUnfold (go.GoType.PointerType ObjectMeta.ty) go!"GetObjectMeta" ObjectMeta.GetObjectMeta.impl
+  ptr_GetOwnerReferences_unfold : MethodUnfold (go.GoType.PointerType ObjectMeta.ty) go!"GetOwnerReferences" ObjectMeta.GetOwnerReferences.impl
+  ptr_GetResourceVersion_unfold : MethodUnfold (go.GoType.PointerType ObjectMeta.ty) go!"GetResourceVersion" ObjectMeta.GetResourceVersion.impl
+  ptr_GetSelfLink_unfold : MethodUnfold (go.GoType.PointerType ObjectMeta.ty) go!"GetSelfLink" ObjectMeta.GetSelfLink.impl
+  ptr_GetUID_unfold : MethodUnfold (go.GoType.PointerType ObjectMeta.ty) go!"GetUID" ObjectMeta.GetUID.impl
+  ptr_SetAnnotations_unfold : MethodUnfold (go.GoType.PointerType ObjectMeta.ty) go!"SetAnnotations" ObjectMeta.SetAnnotations.impl
+  ptr_SetCreationTimestamp_unfold : MethodUnfold (go.GoType.PointerType ObjectMeta.ty) go!"SetCreationTimestamp" ObjectMeta.SetCreationTimestamp.impl
+  ptr_SetDeletionGracePeriodSeconds_unfold : MethodUnfold (go.GoType.PointerType ObjectMeta.ty) go!"SetDeletionGracePeriodSeconds" ObjectMeta.SetDeletionGracePeriodSeconds.impl
+  ptr_SetDeletionTimestamp_unfold : MethodUnfold (go.GoType.PointerType ObjectMeta.ty) go!"SetDeletionTimestamp" ObjectMeta.SetDeletionTimestamp.impl
+  ptr_SetFinalizers_unfold : MethodUnfold (go.GoType.PointerType ObjectMeta.ty) go!"SetFinalizers" ObjectMeta.SetFinalizers.impl
+  ptr_SetGenerateName_unfold : MethodUnfold (go.GoType.PointerType ObjectMeta.ty) go!"SetGenerateName" ObjectMeta.SetGenerateName.impl
+  ptr_SetGeneration_unfold : MethodUnfold (go.GoType.PointerType ObjectMeta.ty) go!"SetGeneration" ObjectMeta.SetGeneration.impl
+  ptr_SetLabels_unfold : MethodUnfold (go.GoType.PointerType ObjectMeta.ty) go!"SetLabels" ObjectMeta.SetLabels.impl
+  ptr_SetManagedFields_unfold : MethodUnfold (go.GoType.PointerType ObjectMeta.ty) go!"SetManagedFields" ObjectMeta.SetManagedFields.impl
+  ptr_SetName_unfold : MethodUnfold (go.GoType.PointerType ObjectMeta.ty) go!"SetName" ObjectMeta.SetName.impl
+  ptr_SetNamespace_unfold : MethodUnfold (go.GoType.PointerType ObjectMeta.ty) go!"SetNamespace" ObjectMeta.SetNamespace.impl
+  ptr_SetOwnerReferences_unfold : MethodUnfold (go.GoType.PointerType ObjectMeta.ty) go!"SetOwnerReferences" ObjectMeta.SetOwnerReferences.impl
+  ptr_SetResourceVersion_unfold : MethodUnfold (go.GoType.PointerType ObjectMeta.ty) go!"SetResourceVersion" ObjectMeta.SetResourceVersion.impl
+  ptr_SetSelfLink_unfold : MethodUnfold (go.GoType.PointerType ObjectMeta.ty) go!"SetSelfLink" ObjectMeta.SetSelfLink.impl
+  ptr_SetUID_unfold : MethodUnfold (go.GoType.PointerType ObjectMeta.ty) go!"SetUID" ObjectMeta.SetUID.impl
 
 attribute [instance] ObjectMeta.TypeAssumptions.type_repr
   ObjectMeta.TypeAssumptions.underlying
@@ -1938,6 +2382,37 @@ attribute [instance] ObjectMeta.TypeAssumptions.type_repr
   ObjectMeta.TypeAssumptions.set_Finalizers
   ObjectMeta.TypeAssumptions.get_ManagedFields
   ObjectMeta.TypeAssumptions.set_ManagedFields
+  ObjectMeta.TypeAssumptions.ptr_GetAnnotations_unfold
+  ObjectMeta.TypeAssumptions.ptr_GetCreationTimestamp_unfold
+  ObjectMeta.TypeAssumptions.ptr_GetDeletionGracePeriodSeconds_unfold
+  ObjectMeta.TypeAssumptions.ptr_GetDeletionTimestamp_unfold
+  ObjectMeta.TypeAssumptions.ptr_GetFinalizers_unfold
+  ObjectMeta.TypeAssumptions.ptr_GetGenerateName_unfold
+  ObjectMeta.TypeAssumptions.ptr_GetGeneration_unfold
+  ObjectMeta.TypeAssumptions.ptr_GetLabels_unfold
+  ObjectMeta.TypeAssumptions.ptr_GetManagedFields_unfold
+  ObjectMeta.TypeAssumptions.ptr_GetName_unfold
+  ObjectMeta.TypeAssumptions.ptr_GetNamespace_unfold
+  ObjectMeta.TypeAssumptions.ptr_GetObjectMeta_unfold
+  ObjectMeta.TypeAssumptions.ptr_GetOwnerReferences_unfold
+  ObjectMeta.TypeAssumptions.ptr_GetResourceVersion_unfold
+  ObjectMeta.TypeAssumptions.ptr_GetSelfLink_unfold
+  ObjectMeta.TypeAssumptions.ptr_GetUID_unfold
+  ObjectMeta.TypeAssumptions.ptr_SetAnnotations_unfold
+  ObjectMeta.TypeAssumptions.ptr_SetCreationTimestamp_unfold
+  ObjectMeta.TypeAssumptions.ptr_SetDeletionGracePeriodSeconds_unfold
+  ObjectMeta.TypeAssumptions.ptr_SetDeletionTimestamp_unfold
+  ObjectMeta.TypeAssumptions.ptr_SetFinalizers_unfold
+  ObjectMeta.TypeAssumptions.ptr_SetGenerateName_unfold
+  ObjectMeta.TypeAssumptions.ptr_SetGeneration_unfold
+  ObjectMeta.TypeAssumptions.ptr_SetLabels_unfold
+  ObjectMeta.TypeAssumptions.ptr_SetManagedFields_unfold
+  ObjectMeta.TypeAssumptions.ptr_SetName_unfold
+  ObjectMeta.TypeAssumptions.ptr_SetNamespace_unfold
+  ObjectMeta.TypeAssumptions.ptr_SetOwnerReferences_unfold
+  ObjectMeta.TypeAssumptions.ptr_SetResourceVersion_unfold
+  ObjectMeta.TypeAssumptions.ptr_SetSelfLink_unfold
+  ObjectMeta.TypeAssumptions.ptr_SetUID_unfold
 
 structure OwnerReference [FfiSyntax] where
   mk ::
@@ -3849,6 +4324,7 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   Condition_instance : Condition.TypeAssumptions
   WatchEvent_instance : WatchEvent.TypeAssumptions
   InternalEvent_instance : InternalEvent.TypeAssumptions
+  Now_unfold : FuncUnfold Now [] Now.impl
   import_schema_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.Assumptions
   import_types_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.types.Assumptions
   import_runtime_Assumption : _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Assumptions
@@ -3924,6 +4400,7 @@ attribute [instance] Assumptions.Duration_instance
   Assumptions.Condition_instance
   Assumptions.WatchEvent_instance
   Assumptions.InternalEvent_instance
+  Assumptions.Now_unfold
   Assumptions.import_schema_Assumption
   Assumptions.import_types_Assumption
   Assumptions.import_runtime_Assumption

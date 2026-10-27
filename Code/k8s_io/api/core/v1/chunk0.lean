@@ -2005,13 +2005,16 @@ axiom ResourceHealthStatusUnknown [FfiSyntax] [GoGlobalContext] : val
 
 axiom ResourceHealthMessageMaxLength [FfiSyntax] [GoGlobalContext] : val
 
-axiom PodPending [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def PodPending [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"Pending")
 
 axiom PodRunning [FfiSyntax] [GoGlobalContext] : val
 
-axiom PodSucceeded [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def PodSucceeded [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"Succeeded")
 
-axiom PodFailed [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def PodFailed [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"Failed")
 
 axiom PodUnknown [FfiSyntax] [GoGlobalContext] : val
 
@@ -2055,7 +2058,8 @@ axiom PodResizeStatusDeferred [FfiSyntax] [GoGlobalContext] : val
 
 axiom PodResizeStatusInfeasible [FfiSyntax] [GoGlobalContext] : val
 
-axiom RestartPolicyAlways [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def RestartPolicyAlways [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"Always")
 
 axiom RestartPolicyOnFailure [FfiSyntax] [GoGlobalContext] : val
 
@@ -2077,13 +2081,15 @@ axiom ContainerRestartRuleOnExitCodesOpNotIn [FfiSyntax] [GoGlobalContext] : val
 
 axiom DNSClusterFirstWithHostNet [FfiSyntax] [GoGlobalContext] : val
 
-axiom DNSClusterFirst [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def DNSClusterFirst [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"ClusterFirst")
 
 axiom DNSDefault [FfiSyntax] [GoGlobalContext] : val
 
 axiom DNSNone [FfiSyntax] [GoGlobalContext] : val
 
-axiom DefaultTerminationGracePeriodSeconds [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def DefaultTerminationGracePeriodSeconds [FfiSyntax] [GoGlobalContext] : val :=
+  #(30 : Int)
 
 axiom NodeSelectorOpIn [FfiSyntax] [GoGlobalContext] : val
 
@@ -2405,7 +2411,8 @@ axiom DefaultProcMount [FfiSyntax] [GoGlobalContext] : val
 
 axiom UnmaskedProcMount [FfiSyntax] [GoGlobalContext] : val
 
-axiom DefaultSchedulerName [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def DefaultSchedulerName [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"default-scheduler")
 
 axiom DefaultHardPodAffinitySymmetricWeight [FfiSyntax] [GoGlobalContext] : val
 

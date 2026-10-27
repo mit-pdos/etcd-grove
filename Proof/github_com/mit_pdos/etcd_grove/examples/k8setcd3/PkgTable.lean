@@ -463,7 +463,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
   have h63 : GetIsPkgInitProp pkg_id.k8s_io.apimachinery.pkg.api.errors (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact ⟨h13, h60, h62, True.intro⟩
+    exact ⟨h13, h60, h62, h48, True.intro⟩
   have h64 : GetIsPkgInitProp pkg_id.k8s_io.apimachinery.pkg.fields (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
@@ -475,7 +475,7 @@ theorem getIsPkgInit_wf : GetIsPkgInitProp pkg_id.github_com.mit_pdos.etcd_grove
   have h66 : GetIsPkgInitProp pkg_id.k8s_io.apimachinery.pkg.watch (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl
-    exact True.intro
+    exact ⟨h50, True.intro⟩
   have h67 : GetIsPkgInitProp pkg_id.k8s_io.apimachinery.pkg.sharding (getIsPkgInit (GF := GF)) := by
     refine And.intro ?_ ?_
     · rfl

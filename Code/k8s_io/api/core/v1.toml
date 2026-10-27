@@ -3,7 +3,13 @@
 # notes/k8s-clientgo-goose.md). It imports what its types name, so that the API types (`Pod`,
 # `Node`, `PodSpec`, ...) are concrete structs (gap G4 of notes/k8s-etcd3-goose.md); `resource`
 # and `intstr` are names only, so `resource.Quantity` and `intstr.IntOrString` stay axiomatized.
-translate = ["!*"]
+# The promoted `metav1.Object` accessors of the resources the model API server serves (their
+# unfolds into `ObjectMeta`'s, translated with bodies; examples/k8sdaemonset/apimodel,
+# notes/k8s-apimodel-goose.md); the types' own methods stay names only.
+translate = ["!*", "Pod.Get*", "Pod.Set*", "Node.Get*", "Node.Set*",
+  # the constants the model reads (a names-only constant is a value of unknown shape)
+  "DefaultTerminationGracePeriodSeconds", "PodPending", "PodFailed", "PodSucceeded",
+  "RestartPolicyAlways", "DNSClusterFirst", "DefaultSchedulerName"]
 imports = ["!*", "k8s.io/apimachinery/pkg/apis/meta/v1", "k8s.io/apimachinery/pkg/types",
   "k8s.io/apimachinery/pkg/runtime", "k8s.io/apimachinery/pkg/api/resource",
   "k8s.io/apimachinery/pkg/util/intstr"]

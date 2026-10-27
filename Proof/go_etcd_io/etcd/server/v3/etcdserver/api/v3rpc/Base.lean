@@ -25,6 +25,7 @@ public import Proof.go_etcd_io.etcd.pkg.v3.adt.Base
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.BaseGrpc
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.BaseStart
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.BaseWatch
+public import Proof.math.rand.Base
 
 @[expose] public section
 
@@ -49,12 +50,7 @@ instance utf8_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.unicode.utf8 :=
 instance utf8_get_is_pkg_init_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.unicode.utf8 :=
   build_get_is_pkg_init_wf
 
--- `math/rand` (names only; the watch slice's unit W-S: `GetProgressReportInterval`'s jitter,
--- `rand.Int63n`)
-instance mathRand_is_pkg_init_inst : IsPkgInit (IProp GF) pkg_id.math.rand :=
-  define_is_pkg_init iprop(True)
-instance mathRand_get_is_pkg_init_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.math.rand :=
-  build_get_is_pkg_init_wf
+-- (`math/rand`'s instance: `Proof/math/rand/Base.lean`, since 2026-10-27)
 
 namespace go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc
 

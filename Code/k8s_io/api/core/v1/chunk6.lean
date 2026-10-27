@@ -16,6 +16,177 @@ noncomputable section
 
 namespace k8s_io.api.core.v1
 
+class LimitRangeList.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying LimitRangeList.underlying LimitRangeList
+  underlying : go.UnderlyingDirectedEq LimitRangeList.ty LimitRangeList.underlying
+  get_TypeMeta : ∀ (x : LimitRangeList), go.IsGoStepPureDetTagged under (StructFieldGet LimitRangeList.underlying go!"TypeMeta") #x (Val #(x.TypeMeta'))
+  set_TypeMeta : ∀ (x : LimitRangeList) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta), go.IsGoStepPureDetTagged under (StructFieldSet LimitRangeList.underlying go!"TypeMeta") (PairV #x #y) (Val #(({ x with TypeMeta' := y } : LimitRangeList)))
+  get_ListMeta : ∀ (x : LimitRangeList), go.IsGoStepPureDetTagged under (StructFieldGet LimitRangeList.underlying go!"ListMeta") #x (Val #(x.ListMeta'))
+  set_ListMeta : ∀ (x : LimitRangeList) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta), go.IsGoStepPureDetTagged under (StructFieldSet LimitRangeList.underlying go!"ListMeta") (PairV #x #y) (Val #(({ x with ListMeta' := y } : LimitRangeList)))
+  get_Items : ∀ (x : LimitRangeList), go.IsGoStepPureDetTagged under (StructFieldGet LimitRangeList.underlying go!"Items") #x (Val #(x.Items'))
+  set_Items : ∀ (x : LimitRangeList) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet LimitRangeList.underlying go!"Items") (PairV #x #y) (Val #(({ x with Items' := y } : LimitRangeList)))
+
+attribute [instance] LimitRangeList.TypeAssumptions.type_repr
+  LimitRangeList.TypeAssumptions.underlying
+  LimitRangeList.TypeAssumptions.get_TypeMeta
+  LimitRangeList.TypeAssumptions.set_TypeMeta
+  LimitRangeList.TypeAssumptions.get_ListMeta
+  LimitRangeList.TypeAssumptions.set_ListMeta
+  LimitRangeList.TypeAssumptions.get_Items
+  LimitRangeList.TypeAssumptions.set_Items
+
+class ResourceQuotaScope.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : go.UnderlyingDirectedEq ResourceQuotaScope.ty ResourceQuotaScope.underlying
+
+attribute [instance] ResourceQuotaScope.TypeAssumptions.underlying
+
+class ResourceQuotaSpec.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying ResourceQuotaSpec.underlying ResourceQuotaSpec
+  underlying : go.UnderlyingDirectedEq ResourceQuotaSpec.ty ResourceQuotaSpec.underlying
+  get_Hard : ∀ (x : ResourceQuotaSpec), go.IsGoStepPureDetTagged under (StructFieldGet ResourceQuotaSpec.underlying go!"Hard") #x (Val #(x.Hard'))
+  set_Hard : ∀ (x : ResourceQuotaSpec) (y : ResourceList), go.IsGoStepPureDetTagged under (StructFieldSet ResourceQuotaSpec.underlying go!"Hard") (PairV #x #y) (Val #(({ x with Hard' := y } : ResourceQuotaSpec)))
+  get_Scopes : ∀ (x : ResourceQuotaSpec), go.IsGoStepPureDetTagged under (StructFieldGet ResourceQuotaSpec.underlying go!"Scopes") #x (Val #(x.Scopes'))
+  set_Scopes : ∀ (x : ResourceQuotaSpec) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ResourceQuotaSpec.underlying go!"Scopes") (PairV #x #y) (Val #(({ x with Scopes' := y } : ResourceQuotaSpec)))
+  get_ScopeSelector : ∀ (x : ResourceQuotaSpec), go.IsGoStepPureDetTagged under (StructFieldGet ResourceQuotaSpec.underlying go!"ScopeSelector") #x (Val #(x.ScopeSelector'))
+  set_ScopeSelector : ∀ (x : ResourceQuotaSpec) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ResourceQuotaSpec.underlying go!"ScopeSelector") (PairV #x #y) (Val #(({ x with ScopeSelector' := y } : ResourceQuotaSpec)))
+
+attribute [instance] ResourceQuotaSpec.TypeAssumptions.type_repr
+  ResourceQuotaSpec.TypeAssumptions.underlying
+  ResourceQuotaSpec.TypeAssumptions.get_Hard
+  ResourceQuotaSpec.TypeAssumptions.set_Hard
+  ResourceQuotaSpec.TypeAssumptions.get_Scopes
+  ResourceQuotaSpec.TypeAssumptions.set_Scopes
+  ResourceQuotaSpec.TypeAssumptions.get_ScopeSelector
+  ResourceQuotaSpec.TypeAssumptions.set_ScopeSelector
+
+class ScopeSelector.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying ScopeSelector.underlying ScopeSelector
+  underlying : go.UnderlyingDirectedEq ScopeSelector.ty ScopeSelector.underlying
+  get_MatchExpressions : ∀ (x : ScopeSelector), go.IsGoStepPureDetTagged under (StructFieldGet ScopeSelector.underlying go!"MatchExpressions") #x (Val #(x.MatchExpressions'))
+  set_MatchExpressions : ∀ (x : ScopeSelector) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ScopeSelector.underlying go!"MatchExpressions") (PairV #x #y) (Val #(({ x with MatchExpressions' := y } : ScopeSelector)))
+
+attribute [instance] ScopeSelector.TypeAssumptions.type_repr
+  ScopeSelector.TypeAssumptions.underlying
+  ScopeSelector.TypeAssumptions.get_MatchExpressions
+  ScopeSelector.TypeAssumptions.set_MatchExpressions
+
+class ScopeSelectorOperator.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : go.UnderlyingDirectedEq ScopeSelectorOperator.ty ScopeSelectorOperator.underlying
+
+attribute [instance] ScopeSelectorOperator.TypeAssumptions.underlying
+
+class ScopedResourceSelectorRequirement.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying ScopedResourceSelectorRequirement.underlying ScopedResourceSelectorRequirement
+  underlying : go.UnderlyingDirectedEq ScopedResourceSelectorRequirement.ty ScopedResourceSelectorRequirement.underlying
+  get_ScopeName : ∀ (x : ScopedResourceSelectorRequirement), go.IsGoStepPureDetTagged under (StructFieldGet ScopedResourceSelectorRequirement.underlying go!"ScopeName") #x (Val #(x.ScopeName'))
+  set_ScopeName : ∀ (x : ScopedResourceSelectorRequirement) (y : ResourceQuotaScope), go.IsGoStepPureDetTagged under (StructFieldSet ScopedResourceSelectorRequirement.underlying go!"ScopeName") (PairV #x #y) (Val #(({ x with ScopeName' := y } : ScopedResourceSelectorRequirement)))
+  get_Operator : ∀ (x : ScopedResourceSelectorRequirement), go.IsGoStepPureDetTagged under (StructFieldGet ScopedResourceSelectorRequirement.underlying go!"Operator") #x (Val #(x.Operator'))
+  set_Operator : ∀ (x : ScopedResourceSelectorRequirement) (y : ScopeSelectorOperator), go.IsGoStepPureDetTagged under (StructFieldSet ScopedResourceSelectorRequirement.underlying go!"Operator") (PairV #x #y) (Val #(({ x with Operator' := y } : ScopedResourceSelectorRequirement)))
+  get_Values : ∀ (x : ScopedResourceSelectorRequirement), go.IsGoStepPureDetTagged under (StructFieldGet ScopedResourceSelectorRequirement.underlying go!"Values") #x (Val #(x.Values'))
+  set_Values : ∀ (x : ScopedResourceSelectorRequirement) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ScopedResourceSelectorRequirement.underlying go!"Values") (PairV #x #y) (Val #(({ x with Values' := y } : ScopedResourceSelectorRequirement)))
+
+attribute [instance] ScopedResourceSelectorRequirement.TypeAssumptions.type_repr
+  ScopedResourceSelectorRequirement.TypeAssumptions.underlying
+  ScopedResourceSelectorRequirement.TypeAssumptions.get_ScopeName
+  ScopedResourceSelectorRequirement.TypeAssumptions.set_ScopeName
+  ScopedResourceSelectorRequirement.TypeAssumptions.get_Operator
+  ScopedResourceSelectorRequirement.TypeAssumptions.set_Operator
+  ScopedResourceSelectorRequirement.TypeAssumptions.get_Values
+  ScopedResourceSelectorRequirement.TypeAssumptions.set_Values
+
+class ResourceQuotaStatus.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying ResourceQuotaStatus.underlying ResourceQuotaStatus
+  underlying : go.UnderlyingDirectedEq ResourceQuotaStatus.ty ResourceQuotaStatus.underlying
+  get_Hard : ∀ (x : ResourceQuotaStatus), go.IsGoStepPureDetTagged under (StructFieldGet ResourceQuotaStatus.underlying go!"Hard") #x (Val #(x.Hard'))
+  set_Hard : ∀ (x : ResourceQuotaStatus) (y : ResourceList), go.IsGoStepPureDetTagged under (StructFieldSet ResourceQuotaStatus.underlying go!"Hard") (PairV #x #y) (Val #(({ x with Hard' := y } : ResourceQuotaStatus)))
+  get_Used : ∀ (x : ResourceQuotaStatus), go.IsGoStepPureDetTagged under (StructFieldGet ResourceQuotaStatus.underlying go!"Used") #x (Val #(x.Used'))
+  set_Used : ∀ (x : ResourceQuotaStatus) (y : ResourceList), go.IsGoStepPureDetTagged under (StructFieldSet ResourceQuotaStatus.underlying go!"Used") (PairV #x #y) (Val #(({ x with Used' := y } : ResourceQuotaStatus)))
+
+attribute [instance] ResourceQuotaStatus.TypeAssumptions.type_repr
+  ResourceQuotaStatus.TypeAssumptions.underlying
+  ResourceQuotaStatus.TypeAssumptions.get_Hard
+  ResourceQuotaStatus.TypeAssumptions.set_Hard
+  ResourceQuotaStatus.TypeAssumptions.get_Used
+  ResourceQuotaStatus.TypeAssumptions.set_Used
+
+class ResourceQuota.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying ResourceQuota.underlying ResourceQuota
+  underlying : go.UnderlyingDirectedEq ResourceQuota.ty ResourceQuota.underlying
+  get_TypeMeta : ∀ (x : ResourceQuota), go.IsGoStepPureDetTagged under (StructFieldGet ResourceQuota.underlying go!"TypeMeta") #x (Val #(x.TypeMeta'))
+  set_TypeMeta : ∀ (x : ResourceQuota) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta), go.IsGoStepPureDetTagged under (StructFieldSet ResourceQuota.underlying go!"TypeMeta") (PairV #x #y) (Val #(({ x with TypeMeta' := y } : ResourceQuota)))
+  get_ObjectMeta : ∀ (x : ResourceQuota), go.IsGoStepPureDetTagged under (StructFieldGet ResourceQuota.underlying go!"ObjectMeta") #x (Val #(x.ObjectMeta'))
+  set_ObjectMeta : ∀ (x : ResourceQuota) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta), go.IsGoStepPureDetTagged under (StructFieldSet ResourceQuota.underlying go!"ObjectMeta") (PairV #x #y) (Val #(({ x with ObjectMeta' := y } : ResourceQuota)))
+  get_Spec : ∀ (x : ResourceQuota), go.IsGoStepPureDetTagged under (StructFieldGet ResourceQuota.underlying go!"Spec") #x (Val #(x.Spec'))
+  set_Spec : ∀ (x : ResourceQuota) (y : ResourceQuotaSpec), go.IsGoStepPureDetTagged under (StructFieldSet ResourceQuota.underlying go!"Spec") (PairV #x #y) (Val #(({ x with Spec' := y } : ResourceQuota)))
+  get_Status : ∀ (x : ResourceQuota), go.IsGoStepPureDetTagged under (StructFieldGet ResourceQuota.underlying go!"Status") #x (Val #(x.Status'))
+  set_Status : ∀ (x : ResourceQuota) (y : ResourceQuotaStatus), go.IsGoStepPureDetTagged under (StructFieldSet ResourceQuota.underlying go!"Status") (PairV #x #y) (Val #(({ x with Status' := y } : ResourceQuota)))
+
+attribute [instance] ResourceQuota.TypeAssumptions.type_repr
+  ResourceQuota.TypeAssumptions.underlying
+  ResourceQuota.TypeAssumptions.get_TypeMeta
+  ResourceQuota.TypeAssumptions.set_TypeMeta
+  ResourceQuota.TypeAssumptions.get_ObjectMeta
+  ResourceQuota.TypeAssumptions.set_ObjectMeta
+  ResourceQuota.TypeAssumptions.get_Spec
+  ResourceQuota.TypeAssumptions.set_Spec
+  ResourceQuota.TypeAssumptions.get_Status
+  ResourceQuota.TypeAssumptions.set_Status
+
+class ResourceQuotaList.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying ResourceQuotaList.underlying ResourceQuotaList
+  underlying : go.UnderlyingDirectedEq ResourceQuotaList.ty ResourceQuotaList.underlying
+  get_TypeMeta : ∀ (x : ResourceQuotaList), go.IsGoStepPureDetTagged under (StructFieldGet ResourceQuotaList.underlying go!"TypeMeta") #x (Val #(x.TypeMeta'))
+  set_TypeMeta : ∀ (x : ResourceQuotaList) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta), go.IsGoStepPureDetTagged under (StructFieldSet ResourceQuotaList.underlying go!"TypeMeta") (PairV #x #y) (Val #(({ x with TypeMeta' := y } : ResourceQuotaList)))
+  get_ListMeta : ∀ (x : ResourceQuotaList), go.IsGoStepPureDetTagged under (StructFieldGet ResourceQuotaList.underlying go!"ListMeta") #x (Val #(x.ListMeta'))
+  set_ListMeta : ∀ (x : ResourceQuotaList) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ListMeta), go.IsGoStepPureDetTagged under (StructFieldSet ResourceQuotaList.underlying go!"ListMeta") (PairV #x #y) (Val #(({ x with ListMeta' := y } : ResourceQuotaList)))
+  get_Items : ∀ (x : ResourceQuotaList), go.IsGoStepPureDetTagged under (StructFieldGet ResourceQuotaList.underlying go!"Items") #x (Val #(x.Items'))
+  set_Items : ∀ (x : ResourceQuotaList) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ResourceQuotaList.underlying go!"Items") (PairV #x #y) (Val #(({ x with Items' := y } : ResourceQuotaList)))
+
+attribute [instance] ResourceQuotaList.TypeAssumptions.type_repr
+  ResourceQuotaList.TypeAssumptions.underlying
+  ResourceQuotaList.TypeAssumptions.get_TypeMeta
+  ResourceQuotaList.TypeAssumptions.set_TypeMeta
+  ResourceQuotaList.TypeAssumptions.get_ListMeta
+  ResourceQuotaList.TypeAssumptions.set_ListMeta
+  ResourceQuotaList.TypeAssumptions.get_Items
+  ResourceQuotaList.TypeAssumptions.set_Items
+
+class SecretType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  underlying : go.UnderlyingDirectedEq SecretType.ty SecretType.underlying
+
+attribute [instance] SecretType.TypeAssumptions.underlying
+
+class Secret.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  type_repr : go.TypeReprUnderlying Secret.underlying Secret
+  underlying : go.UnderlyingDirectedEq Secret.ty Secret.underlying
+  get_TypeMeta : ∀ (x : Secret), go.IsGoStepPureDetTagged under (StructFieldGet Secret.underlying go!"TypeMeta") #x (Val #(x.TypeMeta'))
+  set_TypeMeta : ∀ (x : Secret) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.TypeMeta), go.IsGoStepPureDetTagged under (StructFieldSet Secret.underlying go!"TypeMeta") (PairV #x #y) (Val #(({ x with TypeMeta' := y } : Secret)))
+  get_ObjectMeta : ∀ (x : Secret), go.IsGoStepPureDetTagged under (StructFieldGet Secret.underlying go!"ObjectMeta") #x (Val #(x.ObjectMeta'))
+  set_ObjectMeta : ∀ (x : Secret) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta), go.IsGoStepPureDetTagged under (StructFieldSet Secret.underlying go!"ObjectMeta") (PairV #x #y) (Val #(({ x with ObjectMeta' := y } : Secret)))
+  get_Immutable : ∀ (x : Secret), go.IsGoStepPureDetTagged under (StructFieldGet Secret.underlying go!"Immutable") #x (Val #(x.Immutable'))
+  set_Immutable : ∀ (x : Secret) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Secret.underlying go!"Immutable") (PairV #x #y) (Val #(({ x with Immutable' := y } : Secret)))
+  get_Data : ∀ (x : Secret), go.IsGoStepPureDetTagged under (StructFieldGet Secret.underlying go!"Data") #x (Val #(x.Data'))
+  set_Data : ∀ (x : Secret) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Secret.underlying go!"Data") (PairV #x #y) (Val #(({ x with Data' := y } : Secret)))
+  get_StringData : ∀ (x : Secret), go.IsGoStepPureDetTagged under (StructFieldGet Secret.underlying go!"StringData") #x (Val #(x.StringData'))
+  set_StringData : ∀ (x : Secret) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Secret.underlying go!"StringData") (PairV #x #y) (Val #(({ x with StringData' := y } : Secret)))
+  get_Type : ∀ (x : Secret), go.IsGoStepPureDetTagged under (StructFieldGet Secret.underlying go!"Type") #x (Val #(x.Type'))
+  set_Type : ∀ (x : Secret) (y : SecretType), go.IsGoStepPureDetTagged under (StructFieldSet Secret.underlying go!"Type") (PairV #x #y) (Val #(({ x with Type' := y } : Secret)))
+
+attribute [instance] Secret.TypeAssumptions.type_repr
+  Secret.TypeAssumptions.underlying
+  Secret.TypeAssumptions.get_TypeMeta
+  Secret.TypeAssumptions.set_TypeMeta
+  Secret.TypeAssumptions.get_ObjectMeta
+  Secret.TypeAssumptions.set_ObjectMeta
+  Secret.TypeAssumptions.get_Immutable
+  Secret.TypeAssumptions.set_Immutable
+  Secret.TypeAssumptions.get_Data
+  Secret.TypeAssumptions.set_Data
+  Secret.TypeAssumptions.get_StringData
+  Secret.TypeAssumptions.set_StringData
+  Secret.TypeAssumptions.get_Type
+  Secret.TypeAssumptions.set_Type
+
 class SecretList.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying SecretList.underlying SecretList
   underlying : go.UnderlyingDirectedEq SecretList.ty SecretList.underlying
