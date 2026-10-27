@@ -267,7 +267,7 @@ theorem srvIndices_alloc (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (Ec : C
 /-- **The proposals' mint, allocated** (`srvPropMint`; the cluster's since stage M4, 2026-10-19):
 from raft's fresh-data authority (empty; `allocClientBoot`'s continuation output). -/
 theorem srvPropMint_alloc (γ : ServerRaftNames) (γi : IdNames) (E : CoPset) :
-    ⊢ ghostMapAuth (GF := GF) γ.raft.reFresh 1 (∅ : GMap (List w8) Unit) ={E}=∗
+    ⊢ ghostMapAuth (GF := GF) γ.raft.fresh 1 (∅ : GMap (List w8) Unit) ={E}=∗
       srvPropMint γ γi := by
   iintro HF
   iunfold srvPropMint

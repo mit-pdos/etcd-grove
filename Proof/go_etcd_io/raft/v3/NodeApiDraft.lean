@@ -791,6 +791,32 @@ theorem ownCommittedOps_lb_prefix' (γ : Cluster) (ops l : List LogEntry) :
 
 end lawsPure
 
+section lawsPure2
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+
+theorem readStateOk_used' (γ : Cluster) (N : Namespace) (c : List w8) (idx : w64)
+    (U : GSet (List w8)) :
+    readStateOk (GF := GF) γ N c idx ∗ ownReadCtxs γ U ⊢ ⌜c ∈ U⌝ := by
+  unfold readStateOk ownReadCtxs ApiImpl.readStateOk ApiImpl.ownReadCtxs
+  iintro ⟨⟨-, -, %γq, #Hel⟩, %M, HM, %HU⟩
+  icases ghost_map_lookup $$ HM Hel with %HMc
+  ipureintro
+  apply (HU c).mpr
+  show (M.lookup c).isSome = true
+  show (M !! c).isSome = true
+  rw [HMc]; rfl
+
+theorem readCredits_split' (γ : Cluster) (a b : Nat) :
+    readCredits (GF := GF) γ (a + b) ⊣⊢ readCredits γ a ∗ readCredits γ b := by
+  unfold readCredits ApiImpl.readCredits; exact rdCred_split γ.raft a b
+
+theorem readCredit_eq' (γ : Cluster) : readCredit (GF := GF) γ ⊣⊢ readCredits γ 1 := by
+  unfold readCredit readCredits ApiImpl.readCredit; exact .rfl
+
+end lawsPure2
+
 /-! ## The specs -/
 
 section spec

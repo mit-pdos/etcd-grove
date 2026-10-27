@@ -1234,7 +1234,6 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
 
 
 /-- The big-endian bytes of `id` (`binary.BigEndian.PutUint64`, `read.uint64ToBigEndianBytes`):
@@ -1500,7 +1499,7 @@ theorem srvRdFresh_mint (γ : ServerRaftNames) (γi : IdNames) (g : Loc)
   ihave Hc' : iprop(Draft.readCredits γ.raft.cl ((2 ^ 48 - (U.length + 1)) + 1)) $$ [Hc]
   · rw [show (2 ^ 48 - (U.length + 1)) + 1 = 2 ^ 48 - U.length by omega]
     iexact Hc
-  icases (Draft.readCredits_split γ.raft.cl _ 1).1 $$ Hc' with ⟨Hc, Hc1⟩
+  icases (Draft.readCredits_split' γ.raft.cl _ 1).1 $$ Hc' with ⟨Hc, Hc1⟩
   imod Hclose $$ [Hc Hus Hsl] with -
   · inext
     iexists (id :: U)
@@ -1513,7 +1512,7 @@ theorem srvRdFresh_mint (γ : ServerRaftNames) (γi : IdNames) (g : Loc)
   imodintro
   unfold srvRdFresh srvRdCred
   iframe Hfr
-  iapply (Draft.readCredit_eq γ.raft.cl).2 $$ Hc1
+  iapply (Draft.readCredit_eq' γ.raft.cl).2 $$ Hc1
 
 
 /-- **The context `c` was committed with raft** (persistent): a read state of it (what a
@@ -1539,7 +1538,7 @@ theorem srvCtxDeposited_minted (γ : ServerRaftNames) (γi : IdNames) (c : List 
   iunfold srvRdCtxInv at Hinv
   icases Hinv with ⟨#Hctx, #Hused⟩
   iinv Hused with ⟨%Uc, %Lc, >Hu, >Hts, >%HUL⟩ Hclose
-  ihave %Hc := Draft.readStateOk_used γ.raft.cl srvClusterN c i Uc $$ [Hst Hu]
+  ihave %Hc := Draft.readStateOk_used' γ.raft.cl srvClusterN c i Uc $$ [Hst Hu]
   · iframe Hst Hu
   have HcL := (HUL c).1 Hc
   icases BigSepL.bigSepL_mem_acc (Φ := fun c => (c ↪[γ.raft.rdFresh] () : IProp GF)) HcL $$ Hts
@@ -1559,7 +1558,7 @@ theorem srvCtxDeposited_minted (γ : ServerRaftNames) (γi : IdNames) (c : List 
 /-- **Committing a minted context to the server's read** (2026-10-27): by its fresh token, the
 context `c` is unused (the invariant keeps the token of every committed one), and is committed to
 the read's update (`srvReadAu_api`); the token is kept. -/
-theorem srvReadCtx_commit (γ : ServerRaftNames) (issued : GName) (c : List w8)
+theorem srvReadCtx_commit [go_etcd_io.raft.v3.Assumptions] (γ : ServerRaftNames) (issued : GName) (c : List w8)
     (Qr : List EntryModel → IProp GF) (E : CoPset) (hE : ↑srvRdUsedN ⊆ E) :
     ⊢ srvRaftLogInv (GF := GF) γ -∗ srvRdCtxInv γ issued -∗ srvRdFresh γ c -∗ srvReadAu γ Qr ={E}=∗
       Draft.isReadCtx γ.raft.cl srvClusterN c (srvReadQ γ Qr) := by
