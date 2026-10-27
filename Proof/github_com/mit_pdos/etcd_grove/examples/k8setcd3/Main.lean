@@ -120,7 +120,8 @@ theorem Main.wp_proof
     dirOne_ok id _ (by intro h; apply Hbf.idLow; rw [h]; decide) (by decide)
   wp_apply (wp_StartServer N go!"k8setcd3" go!"127.0.0.1:23906" go!"127.0.0.1:23896" lg bootLog
       (k8setcd3Dir id) id γ bud ρ E₀ Φs γn Htb Hrb48 HrbN hcfg
-      hdyn hcc hboot htr htx hblen hγn1 hγn2 Hdirok Hlg Hck Haf Hbuq Hdbo) $$ [Htok Hmb]
+      hdyn hcc hboot htr htx hblen hγn1 hγn2 Hdirok
+      (by simp [k8setcd3Dir, dirOne]) Hlg Hck Haf Hbuq Hdbo) $$ [Htok Hmb]
     as %srv %err Hr
   · iframe; iframe #
   icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, Hup⟩)

@@ -41,7 +41,8 @@ theorem newServer.wp_proof
       NewServer.spec (GF := GF) (hG := hG)) :
     newServer.spec (GF := GF) (hG := hG) := by
   intro CS N name peerAddr client token peer cluster lg M iu Uok ps bootLog dir id γ bud ρ E₀ Φs
-    γn Htb Hrb48 HrbN hcfg hdyn hcc hboot htr htx hblen Hγn1 Hγn2 Hdirok HU Hlg Hck Haf Hbuq Hdbo
+    γn Htb Hrb48 HrbN hcfg hdyn hcc hboot htr htx hblen Hγn1 Hγn2 Hdirok Hdir HU Hlg Hck Haf Hbuq
+    Hdbo
   wp_start as ⟨#Hpeer, #Hcl, #Hsls, #Hboot, #Hcom, #Hcci, Hmb, #Hnet⟩
   iunfold bootPremise at Hboot
   iunfold commonPremises at Hcom
@@ -78,7 +79,7 @@ theorem newServer.wp_proof
         have hne : (W64 281474976710656 : w64) ≠ W64 0 := by decide
         simp only [hne, if_false, h48]
         omega)
-      hblen' hpfx hΦs ⟨fgp, Hfgp, rfl⟩ Hdirok)
+      hblen' hpfx hΦs ⟨fgp, Hfgp, rfl⟩ Hdirok (peerURLsDir_httpURL dir id peerAddr Hdirok Hdir))
     $$ [Hghost HrdCred Hids Hwtok Hidx Hcok Hrev Hnk Hreg Hsdir] as %srv %err Hres
   · iframe
     iframe #

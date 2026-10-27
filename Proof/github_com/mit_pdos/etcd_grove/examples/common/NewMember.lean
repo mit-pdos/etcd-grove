@@ -49,7 +49,7 @@ theorem NewMember.wp_proof
   (try wp_auto)
   -- `newServer(name, peer, client, cluster, token, lg)`
   wp_apply (wp_newServer N name peerAddr client token peer cluster lg M iu Uok ps bootLog dir id
-      γ bud ρ E₀ Φs γn Htb Hrb48 HrbN hcfg hdyn hcc hboot htr htx hblen Hγn1 Hγn2 Hdirok HU Hlg
+      γ bud ρ E₀ Φs γn Htb Hrb48 HrbN hcfg hdyn hcc hboot htr htx hblen Hγn1 Hγn2 Hdirok Hdir HU Hlg
       Hck Haf Hbuq Hdbo) $$ [Hmb] as %s %err Hres
   · iframe; iframe #
   icases Hres with (%Herr | ⟨%Herr, Hmb⟩)
