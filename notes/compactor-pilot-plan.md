@@ -245,6 +245,11 @@ of its three blockers came from round 1's repairs; one finding a false positive)
 New failure patterns (the reviewer's and `LESSONS.md`): once-only resources spent per call; a resource
 whose invariant contradicts the function; repairs introduce defects.
 
+**Step 3 of phase 3 (planned): an easy and a hard proof.** The easy one, `Revision.Run` (the same
+loop shape as `Periodic.Run`, with no window and no clock bound to chain); the hard one,
+`Periodic.Run`. Each records its time and the spec problems it found that the reviews and the glue had
+not; the comparison says whether the hard proof was needed (`notes/spec-first-plan.md`, "Phase 3").
+
 **Review checkpoints** (`notes/spec-first-plan.md`, "Phase 1b", the feedback loop): at the freeze, a
 retrospective of the revisions the review found against those the glue proofs found; at the end of
 phase 4, every revision after the freeze attributed to a review criterion or to "none", and the

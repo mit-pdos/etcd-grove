@@ -117,7 +117,11 @@ the rule it became in `SKILL.md`), so later reviews in the repository start from
 **Phase 3: a few proofs per package.** Prove fully the one or two riskiest bodies of each
 package (most branching, ghost state, concurrency): they check what traces cannot -- invariant
 sufficiency, the ghost design, logical atomicity. Then freeze the specs: a change after the
-freeze needs a `notes/decisions.md` entry with its cause.
+freeze needs a `notes/decisions.md` entry with its cause. Do an easy proof too, not only the riskiest one (the user, 2026-10-27): an easy
+proof is cheap and may already find problems the review missed (a resource it cannot build, a premise
+it cannot meet); measured against the hard one, it says whether the hard proof found anything more,
+and so whether a hard proof per package is needed or an easy one is enough. Record for each: the time
+it took, and the spec problems it found that the review and the glue had not.
 
 **Phase 4: the remaining proofs**, against frozen specs, in parallel (independent per function,
 which suits agents).
