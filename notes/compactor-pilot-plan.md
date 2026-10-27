@@ -153,3 +153,49 @@ before `v3compactor`'s, which now imports it).
 **Glue proofs of phase 1:** `New` (the mode dispatch, `newPeriodic`, `newRevision`, the getters),
 `EtcdServer.Compact`, and `NewServer`/`run` over the new contracts. `Periodic.Run` and
 `Revision.Run` are phase 3's full proofs (`Periodic.Run` first, the riskiest), `sorry` until then.
+
+## Phase 1, step 2: the specs (2026-10-27)
+
+**Written** (all check; proofs `sorry` unless said):
+- the clock's trust boundary: `Proof/github_com/jonboulle/clockwork/Defs.lean` (axiomatized
+  `clockLb`, `stampAt`, `realClock`; `clockOk`), `clockwork.NewRealClock.spec` (an axiom);
+- the compactor's vocabulary, `Proof/.../api/v3compactor/Defs.lean`: `revLb`, `revGetterOk`,
+  `compactReqIs`, `compactableOk c P R`, C1's `revPermit`/`perPermit`/`modePermit`, `CompactEnv`,
+  `isPeriodic`/`periodicRunTok`, `isRevision`, `compactorOk cp RunTok R`;
+- the 14 compactor specs (`Spec/.../api/v3compactor/`), `New.spec` restated (the axiom with post
+  `True` is gone: `New.wp_proof` is a `sorry` until the glue);
+- `EtcdServer.Compact.spec` (over `isServerReq`, at a revision the store has reached), and the
+  getters `CompactionRequest.GetPhysical`/`GetRevision` (translated now, proved);
+- the server's link list (`etc/link-lean-first-server.txt`) and `Link.lean`.
+
+**What writing the specs changed** (the pilot counts these: changes to phase 0's statements and to
+phase 1's design, before any proof):
+1. **C1 restated for the periodic mode.** A compaction's revision is the window's oldest sample,
+   which the code never stamps with a clock reading: it reads the clock (`Now`) before the first
+   sample, and compares elapsed times with `Time.Sub`, which Perennial specifies as returning any
+   duration. With a full window the bound comes from the `After` waits since the sample (each at
+   least `retry`: `stampAt`, taken at the `After` call after the sample). The run's first
+   compaction has no such bound: its sample is the run's first, taken some time after `start`, and
+   only `now - start ≥ period` is known; a scheduling delay between `Now()` and the first `Rev()`
+   would let it compact a revision younger than the retention. `perPermit` says exactly that (its
+   second disjunct). Real delays are milliseconds, so no `issues/` entry; the statement records it.
+2. **`Compactable` threads a resource `R`.** The server's proposal path consumes per-thread pieces
+   (a reader slot `E.RD`, `srvLeadTimeReader`); the compactor's goroutine holds them across its
+   calls (`compactableOk c P R`, `R` given to `Run`). Request ids are minted from the server's
+   persistent `□ |==> idCred ρ.ids 1`.
+3. **Before `Start`.** `Compact`'s proof needs `isServerReq`, which the proofs establish in `Start`,
+   but the compactor runs from `NewServer` on (`issues/etcd-compactor-started-before-start.md`).
+   The glue for `NewServer` must give the compactor a `Compact` contract before `Start`: either an
+   `isServerReq` established in `NewServer`, or a contract whose resource waits for `Start`. Open.
+4. **Two more translated functions**: `Compact` reads `r.GetPhysical()`/`r.GetRevision()` for its
+   trace span (`etcdserverpb.toml`).
+5. **Merging.** `New`'s proof builds the `Run` contract (`compactorOk`), so it takes
+   `Periodic.Run.spec` as a hypothesis, and every closed theorem through `NewServer` would reach
+   `Run`'s `sorry` even with auto-compaction off. The pilot's specs stay on branch
+   `compactor-pilot` (with `lean` merged in) until the compactor's proofs are done; the
+   translation (step 1) is merged.
+
+**Next (step 3, the glue):** `New`, `newPeriodic`, `newRevision`, the getters; `EtcdServer.Compact`
+over `processInternalRaftRequestOnce` (needs the compaction permit: `reqPropOk`'s compaction form,
+`dispatchOk` and the KV model's compaction step); `NewServer`/`run` over the new `New.spec`
+(item 3).

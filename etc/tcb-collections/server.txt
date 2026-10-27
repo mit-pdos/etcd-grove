@@ -107,6 +107,10 @@ axiom binary.WriteUint64.wp_proof
 axiom binary.WriteUint8.wp_proof
 axiom bufferM.ownBuffer_new
 axiom bytes.Buffer.Write.wp_proof
+axiom clockwork.NewRealClock.wp_proof
+axiom clockwork.clockLb
+axiom clockwork.realClock
+axiom clockwork.stampAt
 axiom config.ServerConfig.BackendPath.wp_proof
 axiom config.ServerConfig.PeerDialTimeout.wp_proof
 axiom context.ErrAny.wp_proof
@@ -274,7 +278,6 @@ axiom v2stats.ServerStats.RecvAppendReq.wp_proof
 axiom v2stats.ServerStats.SendAppendReq.wp_proof
 axiom v3alarm.AlarmStore.restore.wp_proof
 axiom v3alarm.NewAlarmStore.wp_proof
-axiom v3compactor.New.wp_proof
 axiom verify.Verify.wp_proof
 axiom version.Cluster.wp_proof
 axiom version.LessThan.wp_proof
@@ -298,3 +301,18 @@ axiom zap.Stringer.wp_proof
 axiom zap.Strings.wp_proof
 axiom zap.Uint64.wp_proof
 axiom zapcore.CheckedEntry.Write.wp_proof
+sorry EtcdServer.Compact.wp_proof
+sorry v3compactor.New.wp_proof
+sorry v3compactor.Periodic.Pause.wp_proof
+sorry v3compactor.Periodic.Resume.wp_proof
+sorry v3compactor.Periodic.Run.wp_proof
+sorry v3compactor.Periodic.Stop.wp_proof
+sorry v3compactor.Periodic.getCompactInterval.wp_proof
+sorry v3compactor.Periodic.getRetentions.wp_proof
+sorry v3compactor.Periodic.getRetryInterval.wp_proof
+sorry v3compactor.Revision.Pause.wp_proof
+sorry v3compactor.Revision.Resume.wp_proof
+sorry v3compactor.Revision.Run.wp_proof
+sorry v3compactor.Revision.Stop.wp_proof
+sorry v3compactor.newPeriodic.wp_proof
+sorry v3compactor.newRevision.wp_proof

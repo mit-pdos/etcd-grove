@@ -1,0 +1,54 @@
+# The spec-first pilot (notes/compactor-pilot-plan.md): etcd's auto-compactor (v3compactor), its
+# clock (the trust boundary) and the server's Compact. Phase 1: the specs written, the proofs
+# `sorry`s that the phases remove (the glue, then Run, then the rest).
+#
+#   etc/tcb-report.py --collection etc/tcb-collections/compactor-pilot.txt [--check [--update]]
+#
+# `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
+# `axiom X`/`sorry X`: the baseline, written by --check --update.
+roots ^v3compactor\.
+roots ^clockwork\.
+roots ^EtcdServer\.wp_Compact$
+axiom attribute.Bool.wp_proof
+axiom attribute.Int64.wp_proof
+axiom backend.optsAt
+axiom clockwork.NewRealClock.wp_proof
+axiom clockwork.clockLb
+axiom clockwork.realClock
+axiom clockwork.stampAt
+axiom context.ErrAny.wp_proof
+axiom context.WithCancelBackground.wp_proof
+axiom context.WithValue.wp_proof
+axiom errors.IsCtxErr.wp_proof
+axiom fmt.Errorf.wp_proof
+axiom prometheus.HistogramVec.WithLabelValues.wp_proof
+axiom proto.MarshalIRR.wp_proof
+axiom strconv.FormatBool.wp_proof
+axiom time.Duration.Seconds.wp_proof
+axiom time.Time.After.wp_proof
+axiom time.Time.IsZero.wp_proof
+axiom trace.SpanFromContext.wp_proof
+axiom trace.WithAttributes.wp_proof
+axiom traceutil.Trace.LogWithStepThreshold.wp_proof
+axiom traceutil.Tracer.Start.wp_proof
+axiom zap.Duration.wp_proof
+axiom zap.Error.wp_proof
+axiom zap.Int64.wp_proof
+axiom zap.Logger.Info.wp_proof
+axiom zap.Logger.Warn.wp_proof
+axiom zap.NewNop.wp_proof
+sorry EtcdServer.Compact.wp_proof
+sorry v3compactor.New.wp_proof
+sorry v3compactor.Periodic.Pause.wp_proof
+sorry v3compactor.Periodic.Resume.wp_proof
+sorry v3compactor.Periodic.Run.wp_proof
+sorry v3compactor.Periodic.Stop.wp_proof
+sorry v3compactor.Periodic.getCompactInterval.wp_proof
+sorry v3compactor.Periodic.getRetentions.wp_proof
+sorry v3compactor.Periodic.getRetryInterval.wp_proof
+sorry v3compactor.Revision.Pause.wp_proof
+sorry v3compactor.Revision.Resume.wp_proof
+sorry v3compactor.Revision.Run.wp_proof
+sorry v3compactor.Revision.Stop.wp_proof
+sorry v3compactor.newPeriodic.wp_proof
+sorry v3compactor.newRevision.wp_proof

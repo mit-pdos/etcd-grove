@@ -66,6 +66,8 @@ class CompactionRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCo
   set_sizeCache : ∀ (x : CompactionRequest) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet CompactionRequest.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : CompactionRequest)))
   method_set : go.MethodSetIs CompactionRequest.ty []
   ptr_method_set : go.MethodSetIs (go.GoType.PointerType CompactionRequest.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetPhysical", (some (go.signature.Signature [] false [go.bool]))), (go!"GetRevision", (some (go.signature.Signature [] false [go.int64]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Message" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_GetPhysical_unfold : MethodUnfold (go.GoType.PointerType CompactionRequest.ty) go!"GetPhysical" CompactionRequest.GetPhysical.impl
+  ptr_GetRevision_unfold : MethodUnfold (go.GoType.PointerType CompactionRequest.ty) go!"GetRevision" CompactionRequest.GetRevision.impl
 
 attribute [instance] CompactionRequest.TypeAssumptions.type_repr
   CompactionRequest.TypeAssumptions.underlying
@@ -81,6 +83,8 @@ attribute [instance] CompactionRequest.TypeAssumptions.type_repr
   CompactionRequest.TypeAssumptions.set_sizeCache
   CompactionRequest.TypeAssumptions.method_set
   CompactionRequest.TypeAssumptions.ptr_method_set
+  CompactionRequest.TypeAssumptions.ptr_GetPhysical_unfold
+  CompactionRequest.TypeAssumptions.ptr_GetRevision_unfold
 
 class CompactionResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying CompactionResponse.underlying CompactionResponse
@@ -1187,19 +1191,6 @@ attribute [instance] AuthDisableRequest.TypeAssumptions.type_repr
   AuthDisableRequest.TypeAssumptions.isUnderlying
   AuthDisableRequest.TypeAssumptions.method_set
   AuthDisableRequest.TypeAssumptions.ptr_method_set
-
-class AuthStatusRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
-  type_repr : go.TypeReprUnderlying AuthStatusRequest.underlying AuthStatusRequest
-  underlying : go.UnderlyingDirectedEq AuthStatusRequest.ty AuthStatusRequest.underlying
-  isUnderlying : go.IsUnderlying AuthStatusRequest.underlying AuthStatusRequest.underlying
-  method_set : go.MethodSetIs AuthStatusRequest.ty []
-  ptr_method_set : go.MethodSetIs (go.GoType.PointerType AuthStatusRequest.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Message" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
-
-attribute [instance] AuthStatusRequest.TypeAssumptions.type_repr
-  AuthStatusRequest.TypeAssumptions.underlying
-  AuthStatusRequest.TypeAssumptions.isUnderlying
-  AuthStatusRequest.TypeAssumptions.method_set
-  AuthStatusRequest.TypeAssumptions.ptr_method_set
 
 end go_etcd_io.etcd.api.v3.etcdserverpb
 
