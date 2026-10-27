@@ -23706,6 +23706,60 @@ questions Q1-Q9 kept at the draft's defaults (the user to review them), but Q5's
 
 ---
 
+## etcd's server on raft's node API (2026-10-27 · branch `server-port`; in progress)
+
+**What:** the server's raft-facing proofs ported off raft's internals onto the node API
+(`NodeApiDraft.lean`), module by module (`notes/STATUS.md`, "etcd's server on raft's node API: the
+port").
+
+**The server's two logs.** The node API gives the client only its requested entries exclusively
+(`ownCommittedOps`) and the committed log, fillers included, as lower bounds (`isCommittedLogLb`);
+raft commits its fillers without the client. The server's apply side reads the real log (its
+indices are the consistent and applied indices): `srvRLogLb γ L` is the API's lower bound of
+`pre ++ L`, the indices consecutive. The KV invariant's log (`srvRLog`, the linearization's) is the
+log of **requested entries** only, each at the index it would have without the fillers: half of a
+mono list whose other half the server's log invariant (`srvLogInv`, `SrvRaftLog.lean`) holds with
+`ownCommittedOps`. The KV model reads only the requested entries above the start's consistent
+index (`kvModel_eqv`, with the KV invariant's `c0 ≤ ai0`), so both logs give the same KV state.
+Alternatives considered: a client-owned full log (needs a standing filler update from raft: the
+API dropped it on purpose); requested entries everywhere (the apply thread's indices are real).
+
+**Registries the server keeps itself** (raft kept them until then; the API's updates are atomic
+only, `COMM True`): the proposals' (`props`: data ↦ result predicate and one-shot token, by the
+server's fresh token; `fired`: data ↦ the log before its entry, with the result), from which
+`srvPropWits` reads a proposal's result at any committed log holding its entry, through the
+result predicate's invariance under "same requested entries" (`srvQInv`, a new conjunct of
+`srvPropArg`/`srvReadAu`, proved for the server's predicates: `kv_qinv`, `reqPropOk_qinv`,
+`readQs_qinv`); the reads (`pend`): a read context's update fires the read at the moment it takes
+effect and registers it; every later requested entry fires the registered reads again
+(`srvPropAu_api`, one later credit from the proposer: `raftPropose` takes `£ 1`), so `srvReadWit`
+gives a read's result at every committed log past its index, as raft's registry did. The read
+contexts' tokens and `ownReadCtxs` are in the read contexts' mint (`srvRdCtxInv`).
+
+**Snapshots.** The server's clusters take none: a static cluster is allocated with `snapOk := False`
+(no snapshot's data is vouched for), a dynamic one is in raft's no-snapshot mode. So a snapshot
+`Ready` (`srv_readySnap_none`) and a `MsgSnap` (`srv_sentMsg_notSnap`, with the draft's
+`sentMsg_snapshot`) are refuted, and the server's snapshot paths (D22: `rnReadySnap`, `rnApSnap`,
+`rnSnapMsg`, `rnRtOk`'s commit witness) are unreachable: their predicates are `False`/`True`.
+
+**Draft items added** (sealed, `sorry`, for the raft side): `isCommittedLogLb_length` (the next
+index fits), `readCtxAfter`/`readCtx_commit_after`/`readStateOk_after` (a read state's index is
+past what was committed before its context: etcd's read-index guarantee in indices),
+`noConfChangeV2`/`noConfChangeV2_filler`/`noConfChangeV2_alloc` (no `ConfChangeV2` filler: etcd
+panics on one), `readyFits`/`readyFits_alloc`/`readyRest_fits` (`MemoryStorage.Append`'s `2^61`
+bound, from raft's time receipts), `isReadyChan_recvAu` (receiving a `Ready` in a `select`),
+`sentMsg_snapshot`. Proved: `readCredits_timeless`, `ccShrink_addVoter` (moved from the server),
+and instance-free copies of laws the server uses in modules without raft's `Assumptions`
+(`isCommittedLogLb_mono'`/`_agree'`, `ownCommittedOps_lb_prefix'`, `readStateOk_used'`,
+`readCredits_split'`, `readCredit_eq'`).
+
+**Proposed changes to existing statements:** the API's laws take `[StorageModel GF]` and raft's
+`Assumptions` they do not use (the section's variables): `omit` them, and the primed copies go;
+`cluster_alloc`/`dynamicCluster_alloc` give `noConfChangeV2` (with `ProposeConfChange` then v1
+only) and `readyFits` (under `receiptBound GF + |boot| ≤ 2^61`), so the two `_alloc` placeholders
+go (`noConfChangeV2_alloc` as stated is not sound for a cluster whose clients proposed a
+`ConfChangeV2` before).
+
 ## Method-set facts are theorems of goose's method sets
 
 **2026-10-27 · accepted** (supersedes "Method sets are premises", item 8 above, and the method-set
