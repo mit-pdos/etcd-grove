@@ -924,6 +924,29 @@ theorem noConfChangeV2_alloc (γ : Cluster) (N : Namespace) (vs : List w64) (sna
     (E : CoPset) :
     ⊢ isStaticCluster (GF := GF) γ N vs snapOk ={E}=∗ noConfChangeV2 γ N := sorry
 
+/-- (2026-10-27, the server port's addition) **A `Ready`'s entries fit `MemoryStorage.Append`'s
+bound** (persistent): every index raft hands out is within its log, whose last index has a record
+keeping a time receipt (`lastRec_receipt`), so below `2 ^ 61` when the receipts' bound past the
+bootstrap log is (`receiptBound GF + |boot| ≤ 2 ^ 61`). Proposed change: the allocations give it
+under that premise. What etcd's raft loop needs to call `MemoryStorage.Append` (it checks no
+bound, unlike the key-value example's `fits`). -/
+@[no_expose] def readyFits (γ : Cluster) (N : Namespace) : IProp GF := sorry
+
+instance readyFits_persistent (γ : Cluster) (N : Namespace) :
+    Persistent (readyFits (GF := GF) γ N) := sorry
+
+theorem readyFits_alloc (γ : Cluster) (N : Namespace) (vs : List w64)
+    (snapOk : List LogEntry → List w8 → Prop) (nb : Nat) (E : CoPset) :
+    receiptBound GF + nb ≤ 2 ^ 61 →
+    ⊢ isStaticCluster (GF := GF) γ N vs snapOk ={E}=∗ readyFits γ N := sorry
+
+theorem readyRest_fits [StorageModel GF] [go.Semantics] (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready)
+    (st : NodeDriverState) (ce : List LogEntry) (es : List EntryM) (h : HardStateM)
+    (L : Option SnapLoan) :
+    readyFits (GF := GF) γ N ∗ readyRest γ N id rd st ce es h L ⊢
+      readyRest γ N id rd st ce es h L ∗
+        ⌜∀ e0, es.head? = some e0 → uint.Z e0.Index' + (es.length : Int) ≤ 2 ^ 61⌝ := sorry
+
 /-- (2026-10-27, the server port's addition; proved) The read credits are timeless: the server
 keeps its share in an invariant, opened without a later credit. -/
 instance readCredits_timeless (γ : Cluster) (n : Nat) : Timeless (readCredits (GF := GF) γ n) := by

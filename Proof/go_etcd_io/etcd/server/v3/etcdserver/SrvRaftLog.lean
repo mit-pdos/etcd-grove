@@ -544,12 +544,14 @@ instance srvLogInv_persistent (γ : ServerRaftNames) : Persistent (srvLogInv (GF
 
 /-- **The cluster's kind** (persistent): static or dynamic (`γ.raft.dyn`) at the voters it started
 with, no snapshot (a static cluster vouches for no snapshot's data: `snapOk` false), leader
-transfer off, no `ConfChangeV2` proposed (so every filler is an empty normal entry). -/
+transfer off, no `ConfChangeV2` proposed (so every filler is an empty normal entry), the
+`Ready`s' entries within `MemoryStorage.Append`'s bound. -/
 def srvClusterOk (γ : ServerRaftNames) : IProp GF :=
   iprop((if γ.raft.dyn then
       Draft.isDynamicCluster γ.raft.cl srvClusterN (Draft.Membership.simple γ.raft.cfg) γ.raft.dec
     else Draft.isStaticCluster γ.raft.cl srvClusterN γ.raft.vs (fun _ _ => False)) ∗
-    Draft.leaderTransferOff γ.raft.cl srvClusterN ∗ Draft.noConfChangeV2 γ.raft.cl srvClusterN)
+    Draft.leaderTransferOff γ.raft.cl srvClusterN ∗ Draft.noConfChangeV2 γ.raft.cl srvClusterN ∗
+    Draft.readyFits γ.raft.cl srvClusterN)
 
 instance srvClusterOk_persistent (γ : ServerRaftNames) : Persistent (srvClusterOk (GF := GF) γ) := by
   unfold srvClusterOk; split <;> infer_instance
@@ -676,7 +678,7 @@ theorem srvRLogLb_intro (γ : ServerRaftNames) (E : CoPset) (hE : ↑srvLogN ⊆
   iunfold srvRaftLogInv at Hinv
   icases Hinv with ⟨#Hli, #Hcl, -, -⟩
   iunfold srvClusterOk at Hcl
-  icases Hcl with ⟨-, -, #Hnv2⟩
+  icases Hcl with ⟨-, -, #Hnv2, -⟩
   ihave %Hfill := Draft.noConfChangeV2_filler γ.raft.cl srvClusterN _ $$ [Hnv2 HL]
   · iframe Hnv2 HL
   iunfold srvLogInv at Hli
@@ -1295,7 +1297,7 @@ theorem srv_sentMsg_notSnap (γ : ServerRaftNames) (src : w64) (st : MsgSt) :
   iunfold srvClusterOk at Hcl
   cases hd : γ.raft.dyn
   · isimp only [hd, Bool.false_eq_true, ↓reduceIte] at Hcl
-    icases Hcl with ⟨#Hk, -, -⟩
+    icases Hcl with ⟨#Hk, -, -, -⟩
     by_cases hsn : st.msg.Type' = MsgSnap
     · iexfalso
       icases Draft.sentMsg_snapshot γ.raft.cl srvClusterN src st hsn $$ Hs with ⟨%sv, -, #Hc⟩
@@ -1305,7 +1307,7 @@ theorem srv_sentMsg_notSnap (γ : ServerRaftNames) (src : w64) (st : MsgSt) :
       exact Hf.2.elim
     · ipureintro; exact hsn
   · isimp only [hd, ↓reduceIte] at Hcl
-    icases Hcl with ⟨#Hk, -, -⟩
+    icases Hcl with ⟨#Hk, -, -, -⟩
     iapply Draft.sentMsg_dynamic_notSnapshot $$ [Hk Hs]
     iframe Hk Hs
 
@@ -1321,7 +1323,7 @@ theorem srv_readySnap_none (γ : ServerRaftNames) (rd : Ready) (st : Draft.NodeD
   iunfold srvClusterOk at Hcl
   cases hd : γ.raft.dyn
   · isimp only [hd, Bool.false_eq_true, ↓reduceIte] at Hcl
-    icases Hcl with ⟨#Hk, -, -⟩
+    icases Hcl with ⟨#Hk, -, -, -⟩
     simp only [Draft.readySnap]
     icases Hs with ⟨-, -, -, #Hc, -⟩
     icases Draft.snapshotCert_data γ.raft.cl srvClusterN γ.raft.vs (fun _ _ => False) _
@@ -1329,7 +1331,7 @@ theorem srv_readySnap_none (γ : ServerRaftNames) (rd : Ready) (st : Draft.NodeD
     · iframe Hk Hc
     exact Hf.2.elim
   · isimp only [hd, ↓reduceIte] at Hcl
-    icases Hcl with ⟨#Hk, -, -⟩
+    icases Hcl with ⟨#Hk, -, -, -⟩
     iapply Draft.readySnap_dynamic $$ [Hk Hs]
     iframe Hk Hs
 

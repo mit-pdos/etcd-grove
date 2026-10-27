@@ -176,10 +176,10 @@ def rnMsgR (E : RNEnv GF) (γ : RNNames) (m : Loc) : IProp GF :=
 
 /-! ## The node's `Ready`/`Advance` exchange -/
 
-/-- A batch's indices fit raft's 64-bit indices (2026-10-27: the node API's bound, `readyRest`;
-until then `MemoryStorage.Append`'s `2^61`, from the time receipts). -/
+/-- `MemoryStorage.Append`'s index bound: the batch's last index at most `2^61` (2026-10-27: the
+node API's `readyRest_fits`). -/
 def rnFits (es : List EntryModel) : Prop :=
-  ∀ e0, es.head? = some e0 → uint.Z e0.index + (es.length : Int) ≤ 2 ^ 64
+  ∀ e0, es.head? = some e0 → uint.Z e0.index + (es.length : Int) ≤ 2 ^ 61
 
 /-- The right to append `es` to the `MemoryStorage` (from a `Ready`): raft's storage API's
 `appendRight` at the storage, and the indices' bound. -/
@@ -578,6 +578,11 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
     rw [Hraft]
     iframe Hcl Hsn
   | none =>
+  ihave #Hfits : Draft.readyFits γ.node.cl srvClusterN $$ []
+  · iunfold srvClusterOk at Hcl; icases Hcl with ⟨-, -, -, #H⟩; rw [Hraft]; iexact H
+  icases Draft.readyRest_fits γ.node.cl srvClusterN γ.id rd _ ce es h none $$ [Hfits Hrest]
+    with ⟨Hrest, %Hfit61⟩
+  · iframe Hfits Hrest
   simp only [Draft.readyRest, Draft.readySnap]
   icases Hrest with ⟨%ms, #Hes, Hmsgs, Hmo, #Hhs, #Hss, %Hbnd, ⟨%Hsnap, Happ⟩⟩
   obtain ⟨Lx, HLx, Hes0, Hdl⟩ := Hbnd
@@ -650,9 +655,9 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
       | none => rw [Hh] at He0; cases He0
       | some x =>
         rw [Hh] at He0; cases He0
-        have := Hes0 x Hh
+        have := Hfit61 x Hh
         simp only [List.length_map]
-        show uint.Z x.Index' + (es.length : Int) ≤ 2 ^ 64
+        show uint.Z x.Index' + (es.length : Int) ≤ 2 ^ 61
         omega
     isplitr
     · iunfold softStateAt; iexact Hss
