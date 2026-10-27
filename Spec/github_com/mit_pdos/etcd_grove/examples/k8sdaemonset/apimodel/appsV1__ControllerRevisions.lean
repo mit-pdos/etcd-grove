@@ -28,7 +28,7 @@ variable [sem : go.Semantics]
 variable [package_sem : apimodel.Assumptions]
 
 abbrev appsV1.ControllerRevisions.spec : Prop :=
-  ∀ (l : Loc) (γ : ApiNames) (cfg : apimodel.Config) (admin : Bool) (ns : GoString),
+  ∀ [ApiDeps] (l : Loc) (γ : ApiNames) (cfg : apimodel.Config) (admin : Bool) (ns : GoString),
   {{ (appsV1At l γ cfg admin : IProp GF) }}
     (App (Val (l @!! go.GoType.PointerType apimodel.appsV1.ty @!! go!"ControllerRevisions")) (Val #ns))
   {{ (x : GoInterface), RET #x; isCRClient x γ cfg ns admin }}

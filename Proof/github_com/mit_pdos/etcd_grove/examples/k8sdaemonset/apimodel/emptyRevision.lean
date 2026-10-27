@@ -26,6 +26,7 @@ variable [sem : go.Semantics]
 variable [package_sem : apimodel.Assumptions]
 
 theorem emptyRevision.wp_proof : emptyRevision.spec (GF := GF) (hG := hG) := by
+  intro _
   wp_start
   wp_apply wp_alloc as %l Hl
   iapply HΦ

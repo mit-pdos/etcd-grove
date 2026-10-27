@@ -28,7 +28,7 @@ variable [sem : go.Semantics]
 variable [package_sem : apimodel.Assumptions]
 
 abbrev eventClient.UpdateWithEventNamespaceWithContext.spec : Prop :=
-  ∀ (c : Loc) (e : Loc) (ctx : GoInterface),
+  ∀ [ApiDeps] (c : Loc) (e : Loc) (ctx : GoInterface),
   {{ (True : IProp GF) }}
     (App (App (Val (c @!! go.GoType.PointerType apimodel.eventClient.ty @!! go!"UpdateWithEventNamespaceWithContext")) (Val #ctx)) (Val #e))
   {{ RET (PairV #e #interface.nil); True }}

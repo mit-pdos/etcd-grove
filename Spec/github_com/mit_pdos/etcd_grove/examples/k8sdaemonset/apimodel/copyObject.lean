@@ -28,7 +28,7 @@ variable [sem : go.Semantics]
 variable [package_sem : apimodel.Assumptions]
 
 abbrev copyObject.spec : Prop :=
-  ∀ (o : GoInterface) (dq : DFrac) (ob : Obj),
+  ∀ [ApiDeps] (o : GoInterface) (dq : DFrac) (ob : Obj),
   {{ (objAt o dq ob : IProp GF) }}
     (App (Val (@! apimodel.copyObject)) (Val #o))
   {{ (x : GoInterface), RET #x; objAt o dq ob ∗ objAt x (DFrac.own 1) ob }}

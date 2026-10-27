@@ -28,7 +28,7 @@ variable [sem : go.Semantics]
 variable [package_sem : apimodel.Assumptions]
 
 abbrev podClient.Watch.spec : Prop :=
-  ∀ (c : Loc) (γ : ApiNames) (cfg : apimodel.Config) (ns : GoString) (admin : Bool) (ctx : GoInterface)
+  ∀ [ApiDeps] (c : Loc) (γ : ApiNames) (cfg : apimodel.Config) (ns : GoString) (admin : Bool) (ctx : GoInterface)
     (opts : k8s_io.apimachinery.pkg.apis.«meta».v1.ListOptions) (dq : DFrac) (lo : kd.meta.ListOptions),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel ∗ podClientAt c γ cfg ns admin ∗ kd.meta.ListOptions.own opts dq lo }}
   <<{ ∀∀ σ, apiState γ σ }>>

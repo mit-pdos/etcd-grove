@@ -26,7 +26,7 @@ variable [sem : go.Semantics]
 variable [package_sem : apimodel.Assumptions]
 
 theorem coreV1.Events.wp_proof : coreV1.Events.spec (GF := GF) (hG := hG) := by
-  intro l γ cfg admin ns
+  intro _ l γ cfg admin ns
   wp_start as Hl
   wp_auto
   wp_apply wp_alloc as %c Hc

@@ -26,7 +26,7 @@ variable [sem : go.Semantics]
 variable [package_sem : apimodel.Assumptions]
 
 theorem appsV1.ControllerRevisions.wp_proof : appsV1.ControllerRevisions.spec (GF := GF) (hG := hG) := by
-  intro l γ cfg admin ns
+  intro _ l γ cfg admin ns
   wp_start as Hl
   unfold appsV1At
   icases Hl with ⟨%s, #Hs, #Ha, #Hsrv⟩

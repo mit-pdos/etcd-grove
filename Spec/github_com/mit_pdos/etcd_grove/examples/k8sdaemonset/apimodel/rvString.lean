@@ -28,7 +28,7 @@ variable [sem : go.Semantics]
 variable [package_sem : apimodel.Assumptions]
 
 abbrev rvString.spec : Prop :=
-  ∀ (n : w64),
+  ∀ [ApiDeps] (n : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.strconv }}
     (App (Val (@! apimodel.rvString)) (Val #n))
   {{ RET #(rvStr n); True }}

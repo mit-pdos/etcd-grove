@@ -28,7 +28,7 @@ variable [sem : go.Semantics]
 variable [package_sem : apimodel.Assumptions]
 
 abbrev Server.remove.spec : Prop :=
-  ∀ (s : Loc) (γ : ApiNames) (cfg : apimodel.Config) (r : Res) (t : Loc) (ns name : GoString)
+  ∀ [ApiDeps] (s : Loc) (γ : ApiNames) (cfg : apimodel.Config) (r : Res) (t : Loc) (ns name : GoString)
     (opts : k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions) (dq : DFrac)
     (dop : kd.meta.DeleteOptions) (grace : GoFunc) (admin : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel ∗ isServer s γ cfg ∗ tableOf s r t ∗ graceOk r grace ∗

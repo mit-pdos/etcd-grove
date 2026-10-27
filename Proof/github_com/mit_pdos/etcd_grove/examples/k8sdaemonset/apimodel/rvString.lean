@@ -28,7 +28,7 @@ variable [package_sem : apimodel.Assumptions]
 
 theorem rvString.wp_proof (wp_FormatUint : strconv.FormatUint.spec (GF := GF) (hG := hG)) :
     rvString.spec (GF := GF) (hG := hG) := by
-  intro n
+  intro _ n
   wp_start
   wp_auto
   wp_apply wp_FormatUint as %str %Hstr

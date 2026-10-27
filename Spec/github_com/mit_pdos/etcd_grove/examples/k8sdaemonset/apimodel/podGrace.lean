@@ -28,7 +28,7 @@ variable [sem : go.Semantics]
 variable [package_sem : apimodel.Assumptions]
 
 abbrev podGrace.spec : Prop :=
-  ∀ (x : GoInterface) (d : kd.core.Pod) (opts : k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions)
+  ∀ [ApiDeps] (x : GoInterface) (d : kd.core.Pod) (opts : k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions)
     (dq : DFrac) (dop : kd.meta.DeleteOptions),
   {{ (objAt x (DFrac.own 1) (.pod d) : IProp GF) ∗ kd.meta.DeleteOptions.own opts dq dop }}
     (App (App (Val (@! apimodel.podGrace)) (Val #x)) (Val #opts))

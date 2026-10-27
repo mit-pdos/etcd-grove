@@ -35,6 +35,7 @@ and Perennial's `typeSetContains` reads a type term as that exact type: the asse
 (`Spec/k8s_io/api/{core,apps}/v1/*__DeepCopyObject.lean`) per type and the method-set fact.
 (`notes/k8s-apimodel-goose.md`, gap C8.) -/
 theorem copyObject.wp_proof : copyObject.spec (GF := GF) (hG := hG) := by
+  intro _
   sorry
 
 end proof

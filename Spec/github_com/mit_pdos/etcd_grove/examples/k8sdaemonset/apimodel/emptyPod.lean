@@ -28,6 +28,7 @@ variable [sem : go.Semantics]
 variable [package_sem : apimodel.Assumptions]
 
 abbrev emptyPod.spec : Prop :=
+  ∀ [ApiDeps],
   {{ (True : IProp GF) }}
     (App (Val (@! apimodel.emptyPod)) (Val #()))
   {{ (x : GoInterface), RET #x; objAt x (DFrac.own 1) (zeroObj .pods) }}

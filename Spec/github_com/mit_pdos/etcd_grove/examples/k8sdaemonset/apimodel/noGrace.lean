@@ -28,7 +28,7 @@ variable [sem : go.Semantics]
 variable [package_sem : apimodel.Assumptions]
 
 abbrev noGrace.spec : Prop :=
-  ∀ (o : GoInterface) (opts : k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions),
+  ∀ [ApiDeps] (o : GoInterface) (opts : k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions),
   {{ (True : IProp GF) }}
     (App (App (Val (@! apimodel.noGrace)) (Val #o)) (Val #opts))
   {{ RET #(W64 0); True }}

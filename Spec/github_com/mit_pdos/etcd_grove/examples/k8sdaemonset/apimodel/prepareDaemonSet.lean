@@ -28,7 +28,7 @@ variable [sem : go.Semantics]
 variable [package_sem : apimodel.Assumptions]
 
 abbrev prepareDaemonSet.spec : Prop :=
-  ∀ (x : GoInterface) (o : Obj),
+  ∀ [ApiDeps] (x : GoInterface) (o : Obj),
   {{ (objAt x (DFrac.own 1) o : IProp GF) ∗ ⌜o.res = .daemonSets⌝ }}
     (App (Val (@! apimodel.prepareDaemonSet)) (Val #x))
   {{ RET #(); objAt x (DFrac.own 1) (prepareD o) }}

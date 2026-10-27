@@ -26,7 +26,7 @@ variable [sem : go.Semantics]
 variable [package_sem : apimodel.Assumptions]
 
 theorem noGrace.wp_proof : noGrace.spec (GF := GF) (hG := hG) := by
-  intro o opts
+  intro _ o opts
   wp_start
   iapply HΦ
   itrivial

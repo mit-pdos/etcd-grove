@@ -26,7 +26,7 @@ variable [sem : go.Semantics]
 variable [package_sem : apimodel.Assumptions]
 
 theorem eventClient.UpdateWithEventNamespace.wp_proof : eventClient.UpdateWithEventNamespace.spec (GF := GF) (hG := hG) := by
-  intro c e
+  intro _ c e
   wp_start
   wp_auto
   iapply HΦ

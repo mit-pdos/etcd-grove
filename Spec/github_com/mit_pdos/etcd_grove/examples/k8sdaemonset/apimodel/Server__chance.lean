@@ -28,7 +28,7 @@ variable [sem : go.Semantics]
 variable [package_sem : apimodel.Assumptions]
 
 abbrev Server.chance.spec : Prop :=
-  ∀ (s : Loc) (γ : ApiNames) (cfg : apimodel.Config) (flag admin : Bool),
+  ∀ [ApiDeps] (s : Loc) (γ : ApiNames) (cfg : apimodel.Config) (flag admin : Bool),
   {{ (isServer s γ cfg : IProp GF) }}
     (App (App (Val (s @!! go.GoType.PointerType apimodel.Server.ty @!! go!"chance")) (Val #flag)) (Val #admin))
   {{ (b : Bool), RET #b; ⌜b = true → mayHappen flag admin⌝ }}

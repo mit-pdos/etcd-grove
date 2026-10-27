@@ -28,7 +28,7 @@ variable [sem : go.Semantics]
 variable [package_sem : apimodel.Assumptions]
 
 abbrev coreV1.Nodes.spec : Prop :=
-  ∀ (l : Loc) (γ : ApiNames) (cfg : apimodel.Config) (admin : Bool),
+  ∀ [ApiDeps] (l : Loc) (γ : ApiNames) (cfg : apimodel.Config) (admin : Bool),
   {{ (coreV1At l γ cfg admin : IProp GF) }}
     (App (Val (l @!! go.GoType.PointerType apimodel.coreV1.ty @!! go!"Nodes")) (Val #()))
   {{ (x : GoInterface), RET #x; isNodeClient x γ cfg admin }}

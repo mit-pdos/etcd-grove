@@ -28,7 +28,7 @@ variable [sem : go.Semantics]
 variable [package_sem : apimodel.Assumptions]
 
 abbrev NewServer.spec : Prop :=
-  ∀ (cfg : apimodel.Config),
+  ∀ [ApiDeps] (cfg : apimodel.Config),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel ∗ ⌜receiptBound GF ≤ 2 ^ 63⌝ }}
     (App (Val (@! apimodel.NewServer)) (Val #cfg))
   {{ (s : Loc) (γ : ApiNames), RET #s; isServer s γ cfg ∗ apiState γ St.empty }}

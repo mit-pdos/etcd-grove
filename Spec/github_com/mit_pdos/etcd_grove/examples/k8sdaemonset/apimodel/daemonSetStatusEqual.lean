@@ -28,7 +28,7 @@ variable [sem : go.Semantics]
 variable [package_sem : apimodel.Assumptions]
 
 abbrev daemonSetStatusEqual.spec : Prop :=
-  ∀ (a b : Loc) (va vb : k8s_io.api.apps.v1.DaemonSetStatus) (da db : kd.apps.DaemonSetStatus),
+  ∀ [ApiDeps] (a b : Loc) (va vb : k8s_io.api.apps.v1.DaemonSetStatus) (da db : kd.apps.DaemonSetStatus),
   {{ (a ↦ va : IProp GF) ∗ kd.apps.DaemonSetStatus.own va (DFrac.own 1) da ∗
       b ↦ vb ∗ kd.apps.DaemonSetStatus.own vb (DFrac.own 1) db }}
     (App (App (Val (@! apimodel.daemonSetStatusEqual)) (Val #a)) (Val #b))

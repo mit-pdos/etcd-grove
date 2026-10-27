@@ -28,7 +28,7 @@ variable [sem : go.Semantics]
 variable [package_sem : apimodel.Assumptions]
 
 abbrev Server.AdminClientset.spec : Prop :=
-  ∀ (s : Loc) (γ : ApiNames) (cfg : apimodel.Config),
+  ∀ [ApiDeps] (s : Loc) (γ : ApiNames) (cfg : apimodel.Config),
   {{ (isServer s γ cfg : IProp GF) }}
     (App (Val (s @!! go.GoType.PointerType apimodel.Server.ty @!! go!"AdminClientset")) (Val #()))
   {{ (c : Loc), RET #c; clientsetAt c γ cfg true }}

@@ -28,11 +28,11 @@ variable [sem : go.Semantics]
 variable [package_sem : apimodel.Assumptions]
 
 abbrev watcher.ResultChan.spec : Prop :=
-  ∀ (w : Loc) (γ : ApiNames) (γw : WatchNames) (r : Res) (ns : GoString) (inits : List Obj),
-  {{ (watchAt (interface.mkOk (go.GoType.PointerType apimodel.watcher.ty) #w) γ γw r ns inits : IProp GF) }}
+  ∀ [ApiDeps] (w : Loc) (γ : ApiNames) (γw : WatchNames) (r : Res) (ns : GoString) (bm : Bool) (inits : List Obj),
+  {{ (watchAt (interface.mkOk (go.GoType.PointerType apimodel.watcher.ty) #w) γ γw r ns bm inits : IProp GF) }}
     (App (Val (w @!! go.GoType.PointerType apimodel.watcher.ty @!! go!"ResultChan")) (Val #()))
   {{ (ch : Loc), RET #ch;
-      isSpsc γw.ch ch (evOk γ γw r ns inits) (fun _ => iprop(True)) }}
+      isSpsc γw.ch ch (evOk γ γw r ns bm inits) (fun _ => iprop(True)) }}
 
 end spec
 

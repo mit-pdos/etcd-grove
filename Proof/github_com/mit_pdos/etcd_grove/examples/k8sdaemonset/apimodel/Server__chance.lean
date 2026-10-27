@@ -28,7 +28,7 @@ variable [package_sem : apimodel.Assumptions]
 
 theorem Server.chance.wp_proof (wp_Int63n : rand.Int63n.spec (GF := GF) (hG := hG)) :
     Server.chance.spec (GF := GF) (hG := hG) := by
-  intro s γ cfg flag admin
+  intro _ s γ cfg flag admin
   wp_start as #Hs
   iNamed Hs
   iNamed Hcfg

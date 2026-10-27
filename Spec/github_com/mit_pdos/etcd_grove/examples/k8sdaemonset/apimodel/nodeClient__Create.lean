@@ -28,7 +28,7 @@ variable [sem : go.Semantics]
 variable [package_sem : apimodel.Assumptions]
 
 abbrev nodeClient.Create.spec : Prop :=
-  ∀ (c : Loc) (γ : ApiNames) (cfg : apimodel.Config) (admin : Bool) (ctx : GoInterface) (p : Loc)
+  ∀ [ApiDeps] (c : Loc) (γ : ApiNames) (cfg : apimodel.Config) (admin : Bool) (ctx : GoInterface) (p : Loc)
     (dq : DFrac) (d : kd.core.Node) (opts : k8s_io.apimachinery.pkg.apis.«meta».v1.CreateOptions),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel ∗ nodeClientAt c γ cfg admin ∗ objPtrAt p dq (.node d) }}
   <<{ ∀∀ σ, apiState γ σ }>>

@@ -26,7 +26,7 @@ variable [sem : go.Semantics]
 variable [package_sem : apimodel.Assumptions]
 
 theorem prepareRevision.wp_proof : prepareRevision.spec (GF := GF) (hG := hG) := by
-  intro x o
+  intro _ x o
   wp_start as ⟨Hx, %Hr⟩
   wp_auto
   iapply HΦ

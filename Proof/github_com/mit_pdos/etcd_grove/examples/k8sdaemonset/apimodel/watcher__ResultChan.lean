@@ -26,7 +26,7 @@ variable [sem : go.Semantics]
 variable [package_sem : apimodel.Assumptions]
 
 theorem watcher.ResultChan.wp_proof : watcher.ResultChan.spec (GF := GF) (hG := hG) := by
-  intro w γ γw r ns inits
+  intro _ w γ γw r ns bm inits
   wp_start as Hw
   unfold watchAt
   icases Hw with ⟨%w', %ch, %dch, %s, %cfg, %g, %Heq, #Hch, #Hdch, #Hs, #Hsrv, #Hsp, #Hdsp, #Hreg⟩

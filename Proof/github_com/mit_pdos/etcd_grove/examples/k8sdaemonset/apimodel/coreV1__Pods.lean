@@ -26,7 +26,7 @@ variable [sem : go.Semantics]
 variable [package_sem : apimodel.Assumptions]
 
 theorem coreV1.Pods.wp_proof : coreV1.Pods.spec (GF := GF) (hG := hG) := by
-  intro l γ cfg admin ns
+  intro _ l γ cfg admin ns
   wp_start as Hl
   unfold coreV1At
   icases Hl with ⟨%s, #Hs, #Ha, #Hsrv⟩

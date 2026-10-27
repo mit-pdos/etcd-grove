@@ -26,7 +26,7 @@ variable [sem : go.Semantics]
 variable [package_sem : apimodel.Assumptions]
 
 theorem coreV1.Nodes.wp_proof : coreV1.Nodes.spec (GF := GF) (hG := hG) := by
-  intro l γ cfg admin
+  intro _ l γ cfg admin
   wp_start as Hl
   unfold coreV1At
   icases Hl with ⟨%s, #Hs, #Ha, #Hsrv⟩

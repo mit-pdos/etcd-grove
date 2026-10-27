@@ -83,6 +83,20 @@ instance watchEvent_countable [FfiSyntax] :
     (by rintro ⟨a, b⟩ ⟨c, d⟩ h; simp only [Pos.encode_eq_iff, Prod.mk.injEq] at h
         obtain ⟨rfl, rfl⟩ := h; rfl)
 
+/-- **The semantics of the packages the model's code calls into** (their `Assumptions`): every
+spec of the model quantifies over it, as the examples' specs over the packages they call. -/
+class ApiDeps [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+  sync_sem : sync.Assumptions
+  time_sem : time.Assumptions
+  core_sem : k8s_io.api.core.v1.Assumptions
+  apps_sem : k8s_io.api.apps.v1.Assumptions
+  meta_sem : k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions
+  errors_sem : k8s_io.apimachinery.pkg.api.errors.Assumptions
+  schema_sem : k8s_io.apimachinery.pkg.runtime.schema.Assumptions
+
+attribute [instance] ApiDeps.sync_sem ApiDeps.time_sem ApiDeps.core_sem ApiDeps.apps_sem
+  ApiDeps.meta_sem ApiDeps.errors_sem ApiDeps.schema_sem
+
 section defs
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -465,16 +479,16 @@ abbrev Pos' : Type := Nat × w64
 /-- **One step of a watch's events**, from position `p` to `p'`, for the event of type `typ`:
 an initial object (`i < |inits|`, the position kept), or, past the initial objects, the next
 change of the log in the namespace (`k'-1`, after changes of other namespaces at `[k, k'-1)`), or a
-bookmark at the version `v'` of a state whose log is `k'` long (its changes at `[k, k')` of other
+bookmark (if bookmarks are allowed, `bm`: requested and flagged) at the version `v'` of a state whose log is `k'` long (its changes at `[k, k')` of other
 namespaces): every change of the table at `k'` or later is at a version after `v'`
 (`pastSt_le`). The object's deep value is `o` (a bookmark's: the resource's zero object at `v'`). -/
-def evStep (r : Res) (ns : GoString) (inits : List Obj) (σ1 : St) (i : Nat) (p p' : Pos')
+def evStep (r : Res) (ns : GoString) (bm : Bool) (inits : List Obj) (σ1 : St) (i : Nat) (p p' : Pos')
     (typ : GoString) (o : Obj) : Prop :=
   (i < inits.length ∧ p' = p ∧ typ = EvTy.added.str ∧ inits[i]? = some o) ∨
   (inits.length ≤ i ∧ ∃ c, (σ1.tbl r).log[p'.1 - 1]? = some c ∧ p.1 < p'.1 ∧
     (∀ j, p.1 ≤ j → j < p'.1 - 1 → ∀ d, (σ1.tbl r).log[j]? = some d → inNs ns d.obj.key = false) ∧
     inNs ns c.obj.key = true ∧ p'.2 = c.rv ∧ typ = c.typ.str ∧ o = c.obj) ∨
-  (inits.length ≤ i ∧ p.1 ≤ p'.1 ∧ p'.1 = (σ1.tbl r).log.length ∧
+  (bm = true ∧ inits.length ≤ i ∧ p.1 ≤ p'.1 ∧ p'.1 = (σ1.tbl r).log.length ∧
     (∀ j, p.1 ≤ j → j < p'.1 → ∀ d, (σ1.tbl r).log[j]? = some d → inNs ns d.obj.key = false) ∧
     p'.2 = σ1.rev ∧ p.2.toNat < p'.2.toNat ∧ typ = go!"BOOKMARK" ∧
     o = (zeroObj r).modMeta (fun m => { m with ResourceVersion' := rvStr σ1.rev }))
@@ -482,21 +496,22 @@ def evStep (r : Res) (ns : GoString) (inits : List Obj) (σ1 : St) (i : Nat) (p 
 /-- **The `i`-th event of a watch** of resource `r` in namespace `ns` (`""`: all) with initial
 objects `inits`: its cursor's positions at `i` and `i + 1`, a state the server was in, the step,
 and the event's object, owned. -/
-def evOk (γ : ApiNames) (γw : WatchNames) (r : Res) (ns : GoString) (inits : List Obj) (i : Int)
+def evOk (γ : ApiNames) (γw : WatchNames) (r : Res) (ns : GoString) (bm : Bool) (inits : List Obj)
+    (i : Int)
     (ev : k8s_io.apimachinery.pkg.watch.Event) : IProp GF :=
   iprop(∃ (p p' : Pos') (σ1 : St) (o : Obj), monoListIdxOwn γw.cur i.toNat p ∗
     monoListIdxOwn γw.cur (i.toNat + 1) p' ∗ pastSt γ σ1 ∗
-    ⌜evStep r ns inits σ1 i.toNat p p' ev.Type' o⌝ ∗ objAt ev.Object' (DFrac.own 1) o)
+    ⌜evStep r ns bm inits σ1 i.toNat p p' ev.Type' o⌝ ∗ objAt ev.Object' (DFrac.own 1) o)
 
 /-- **A started watch** (an interface value, persistent): the `*watcher` `w`, its result channel
 (whose elements are `evOk`), registered with the server (so that `Stop` can stop it). -/
 def watchAt (x : GoInterface) (γ : ApiNames) (γw : WatchNames) (r : Res) (ns : GoString)
-    (inits : List Obj) : IProp GF :=
+    (bm : Bool) (inits : List Obj) : IProp GF :=
   iprop(∃ (w : Loc) (ch dch : Loc) (s : Loc) (cfg : apimodel.Config) (g : SpscNames),
     ⌜x = interface.mkOk (go.GoType.PointerType apimodel.watcher.ty) #w⌝ ∗
     w.[apimodel.watcher, go!"ch"] ↦□ ch ∗ w.[apimodel.watcher, go!"done"] ↦□ dch ∗
     w.[apimodel.watcher, go!"s"] ↦□ s ∗ isServer s γ cfg ∗
-    isSpsc γw.ch ch (evOk γ γw r ns inits) (fun _ => iprop(True)) ∗
+    isSpsc γw.ch ch (evOk γ γw r ns bm inits) (fun _ => iprop(True)) ∗
     isSpsc (V := Unit) g dch (fun _ _ => iprop(False)) (fun _ => iprop(True)) ∗
     w ↪[γ.ws]□ spscCode g)
 
@@ -528,7 +543,8 @@ def watchRet (γ : ApiNames) (cfg : apimodel.Config) (admin : Bool) (r : Res) (n
       (σ.issued lo.ResourceVersion' = none ∨ ∃ n, σ.issued lo.ResourceVersion' = some n ∧
         n.toNat < σ.rev.toNat ∧ mayHappen cfg.ExpireWatches' admin)⌝ ∗ errIs err .expired) ∨
     (⌜err = interface.nil⌝ ∗ ∃ (γw : WatchNames) (inits : List Obj) (n0 : w64),
-      watchAt w γ γw r ns inits ∗ watchCons γw 0 (logStart (σ.tbl r).log n0, n0) ∗
+      watchAt w γ γw r ns (lo.AllowWatchBookmarks' && cfg.Bookmarks' && !admin) inits ∗
+      watchCons γw 0 (logStart (σ.tbl r).log n0, n0) ∗
       pastSt γ σ ∗ ⌜watchStartOk r ns lo σ inits n0⌝))
 
 end defs

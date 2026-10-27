@@ -28,7 +28,7 @@ variable [sem : go.Semantics]
 variable [package_sem : apimodel.Assumptions]
 
 abbrev Clientset.CoreV1.spec : Prop :=
-  ∀ (c : Loc) (γ : ApiNames) (cfg : apimodel.Config) (admin : Bool),
+  ∀ [ApiDeps] (c : Loc) (γ : ApiNames) (cfg : apimodel.Config) (admin : Bool),
   {{ (clientsetAt c γ cfg admin : IProp GF) }}
     (App (Val (c @!! go.GoType.PointerType apimodel.Clientset.ty @!! go!"CoreV1")) (Val #()))
   {{ (x : GoInterface), RET #x; isCoreV1 x γ cfg admin }}

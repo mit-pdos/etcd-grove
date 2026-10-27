@@ -28,7 +28,7 @@ variable [sem : go.Semantics]
 variable [package_sem : apimodel.Assumptions]
 
 abbrev coreV1.Pods.spec : Prop :=
-  ∀ (l : Loc) (γ : ApiNames) (cfg : apimodel.Config) (admin : Bool) (ns : GoString),
+  ∀ [ApiDeps] (l : Loc) (γ : ApiNames) (cfg : apimodel.Config) (admin : Bool) (ns : GoString),
   {{ (coreV1At l γ cfg admin : IProp GF) }}
     (App (Val (l @!! go.GoType.PointerType apimodel.coreV1.ty @!! go!"Pods")) (Val #ns))
   {{ (x : GoInterface), RET #x; isPodClient x γ cfg ns admin }}

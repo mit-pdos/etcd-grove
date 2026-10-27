@@ -26,7 +26,7 @@ variable [sem : go.Semantics]
 variable [package_sem : apimodel.Assumptions]
 
 theorem Clientset.AppsV1.wp_proof : Clientset.AppsV1.spec (GF := GF) (hG := hG) := by
-  intro c γ cfg admin
+  intro _ c γ cfg admin
   wp_start as Hc
   unfold clientsetAt
   icases Hc with ⟨%s, #Hs, #Ha, #Hsrv⟩

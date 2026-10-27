@@ -28,7 +28,7 @@ variable [sem : go.Semantics]
 variable [package_sem : apimodel.Assumptions]
 
 abbrev updateDaemonSetStatus.spec : Prop :=
-  ∀ (x y : GoInterface) (st req : Obj),
+  ∀ [ApiDeps] (x y : GoInterface) (st req : Obj),
   {{ (objAt x (DFrac.own 1) st : IProp GF) ∗ objAt y (DFrac.own 1) req ∗
       ⌜st.res = .daemonSets ∧ req.res = .daemonSets⌝ }}
     (App (App (Val (@! apimodel.updateDaemonSetStatus)) (Val #x)) (Val #y))

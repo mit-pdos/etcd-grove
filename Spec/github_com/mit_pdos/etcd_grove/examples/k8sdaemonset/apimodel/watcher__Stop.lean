@@ -28,9 +28,9 @@ variable [sem : go.Semantics]
 variable [package_sem : apimodel.Assumptions]
 
 abbrev watcher.Stop.spec : Prop :=
-  ∀ (w : Loc) (γ : ApiNames) (γw : WatchNames) (r : Res) (ns : GoString) (inits : List Obj),
+  ∀ [ApiDeps] (w : Loc) (γ : ApiNames) (γw : WatchNames) (r : Res) (ns : GoString) (bm : Bool) (inits : List Obj),
   {{ isPkgInit (PROP := IProp GF) pkg_id.sync ∗
-      watchAt (interface.mkOk (go.GoType.PointerType apimodel.watcher.ty) #w) γ γw r ns inits }}
+      watchAt (interface.mkOk (go.GoType.PointerType apimodel.watcher.ty) #w) γ γw r ns bm inits }}
     (App (Val (w @!! go.GoType.PointerType apimodel.watcher.ty @!! go!"Stop")) (Val #()))
   {{ RET #(); True }}
 

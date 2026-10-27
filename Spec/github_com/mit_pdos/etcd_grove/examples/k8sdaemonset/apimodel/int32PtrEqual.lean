@@ -28,7 +28,7 @@ variable [sem : go.Semantics]
 variable [package_sem : apimodel.Assumptions]
 
 abbrev int32PtrEqual.spec : Prop :=
-  ∀ (a b : Loc) (da db : Option w32),
+  ∀ [ApiDeps] (a b : Loc) (da db : Option w32),
   {{ (ownPtrD (V := w32) ownBaseD a (DFrac.own 1) da : IProp GF) ∗ ownPtrD (V := w32) ownBaseD b (DFrac.own 1) db }}
     (App (App (Val (@! apimodel.int32PtrEqual)) (Val #a)) (Val #b))
   {{ RET #(decide (da = db)); ownPtrD (V := w32) ownBaseD a (DFrac.own 1) da ∗

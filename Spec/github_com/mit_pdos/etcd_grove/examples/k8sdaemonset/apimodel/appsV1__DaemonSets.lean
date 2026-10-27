@@ -28,7 +28,7 @@ variable [sem : go.Semantics]
 variable [package_sem : apimodel.Assumptions]
 
 abbrev appsV1.DaemonSets.spec : Prop :=
-  ∀ (l : Loc) (γ : ApiNames) (cfg : apimodel.Config) (admin : Bool) (ns : GoString),
+  ∀ [ApiDeps] (l : Loc) (γ : ApiNames) (cfg : apimodel.Config) (admin : Bool) (ns : GoString),
   {{ (appsV1At l γ cfg admin : IProp GF) }}
     (App (Val (l @!! go.GoType.PointerType apimodel.appsV1.ty @!! go!"DaemonSets")) (Val #ns))
   {{ (x : GoInterface), RET #x; isDSClient x γ cfg ns admin }}

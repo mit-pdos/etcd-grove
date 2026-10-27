@@ -16,7 +16,7 @@ stated over, for the proofs above it (the informers, the controller) not to step
   `deleteErr`, `listObjs`, `getObj`, and the log scan of a watch (`logAfter`).
 * `St.wf`: what every state of the server satisfies (the specs give it with the state): versions
   increase along each log and do not exceed `rev`; a logged object is the table's resource and
-  carries its version; the stored objects are the replay of the log (`replay`).
+  carries its version and an issued UID; the stored objects are the replay of the log (`replay`).
 -/
 module
 
@@ -226,6 +226,10 @@ structure St.wf (σ : St) : Prop where
   log_le : ∀ r c, c ∈ (σ.tbl r).log → 2 ≤ c.rv.toNat ∧ c.rv.toNat ≤ σ.rev.toNat
   log_obj : ∀ r c, c ∈ (σ.tbl r).log → c.obj.res = r ∧ c.obj.meta.ResourceVersion' = rvStr c.rv
   objs_replay : ∀ r, (σ.tbl r).objs = replay (σ.tbl r).log
+  uids_lt : σ.uids.toNat < σ.rev.toNat
+  /-- every logged object's UID is one issued (`uid-<n>`, `n ≤ uids`): a create's is fresh -/
+  log_uid : ∀ r c, c ∈ (σ.tbl r).log → ∃ n : w64, 1 ≤ n.toNat ∧ n.toNat ≤ σ.uids.toNat ∧
+    c.obj.meta.UID' = go!"uid-" ++ rvStr n
 
 /-! ### The order of states -/
 

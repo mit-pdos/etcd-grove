@@ -28,7 +28,7 @@ variable [sem : go.Semantics]
 variable [package_sem : apimodel.Assumptions]
 
 abbrev Server.create.spec : Prop :=
-  ∀ (s : Loc) (γ : ApiNames) (cfg : apimodel.Config) (r : Res) (t : Loc) (ns : GoString)
+  ∀ [ApiDeps] (s : Loc) (γ : ApiNames) (cfg : apimodel.Config) (r : Res) (t : Loc) (ns : GoString)
     (inp : GoInterface) (dq : DFrac) (o : Obj) (prep : GoFunc) (admin : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel ∗ isServer s γ cfg ∗ tableOf s r t ∗ prepareOk r prep ∗
       objAt inp dq o ∗ ⌜o.res = r⌝ }}

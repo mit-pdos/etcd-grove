@@ -26,7 +26,7 @@ variable [sem : go.Semantics]
 variable [package_sem : apimodel.Assumptions]
 
 theorem Server.Clientset.wp_proof : Server.Clientset.spec (GF := GF) (hG := hG) := by
-  intro s γ cfg
+  intro _ s γ cfg
   wp_start as #Hs
   wp_auto
   wp_apply +noauto wp_alloc as %c Hc

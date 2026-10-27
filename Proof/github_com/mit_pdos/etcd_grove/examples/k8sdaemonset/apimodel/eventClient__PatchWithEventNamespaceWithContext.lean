@@ -26,7 +26,7 @@ variable [sem : go.Semantics]
 variable [package_sem : apimodel.Assumptions]
 
 theorem eventClient.PatchWithEventNamespaceWithContext.wp_proof : eventClient.PatchWithEventNamespaceWithContext.spec (GF := GF) (hG := hG) := by
-  intro c e ctx data
+  intro _ c e ctx data
   wp_start
   wp_auto
   iapply HΦ
