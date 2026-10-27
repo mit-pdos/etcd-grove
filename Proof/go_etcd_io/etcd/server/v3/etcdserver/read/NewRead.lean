@@ -30,7 +30,7 @@ theorem read.NewRead.wp_proof
     (hNN : read.newNotifier.spec (GF := GF) (hG := hG))
     (hNotify : read.Read.LinearizableReadNotify.spec (GF := GF) (hG := hG)) :
     read.NewRead.spec (GF := GF) (hG := hG) := by
-  intro srv rf γr x
+  intro srv rf γr x F
   wp_start as ⟨#Hd, #Hcci, Hgx⟩
   wp_auto
   wp_apply chan.wp_make2 (V := Unit) (W64 1) as %wc %γw ⟨#Hwc, -, Hwo⟩
@@ -51,7 +51,7 @@ theorem read.NewRead.wp_proof
   imod inv_alloc readInvN ⊤ iprop(∃ (nc : Loc) (γn : NeedNames) (n : w64) (gs : List GName),
       ghostVar γr.notifier (1 : Qp).half (nc, γn) ∗ notifierIs nc γn γr ∗ notifierOwn nc γn γr ∗
       monoNatAuthOwn γn.need 1 (uint.nat n) ∗ committedAtLeast γr n ∗
-      monoListAuthOwn γn.list 1 gs ∗ [∗list] g ∈ gs, regOk γr.kv g)
+      monoListAuthOwn γn.list 1 gs ∗ [∗list] g ∈ gs, regOk γr.kv g F)
       $$ [Hg2 Hown Hauth Hlist] with #Hinv
   · inext; iexists nc, γn, (W64 0), []; iframe Hg2 Hnis Hown Hc0 Hlist
     rw [show uint.nat (W64 0) = 0 by word]; iframe Hauth
@@ -59,9 +59,9 @@ theorem read.NewRead.wp_proof
   imod sync.init_RWMutex (readMuP r γr) (readMuAddr r) $$ [notifier Hg1] mux with Hslots
   · inext; iunfold readMuP; iexists nc, γn; iframe notifier Hg1
   icases sync.ownRWMutex_slots_guard _ _ $$ Hslots with ⟨Hslots, #Hguard⟩
-  ihave #Hrd : readInv (GF := GF) γr $$ []
+  ihave #Hrd : readInv (GF := GF) γr F $$ []
   · iunfold readInv; iexact Hinv
-  ihave #Hpre : isReadPre (GF := GF) r γr $$ []
+  ihave #Hpre : isReadPre (GF := GF) r γr F $$ []
   · iunfold isReadPre
     iexists srv, wc, γw
     iframe server waitC Hbag Hrd Hd
@@ -70,7 +70,7 @@ theorem read.NewRead.wp_proof
   isplitr
   · iunfold isReadNotify
     iintro !> %ctx %cd %c %g %Q %Φ' !> ⟨#Hctx, #Hc, Hrr, #HsQ, #HdQ⟩ HΦ'
-    iapply hNotify r γr ctx cd c g Q $$ [Hrr] HΦ'
+    iapply hNotify r γr ctx cd c g Q F $$ [Hrr] HΦ'
     iframe #; iframe Hrr
   isplitr
   · iintro !> %RQ %LR %NR #Hsrv #Hraft #Hcomp #Hmint

@@ -1293,24 +1293,32 @@ def reqPropOk (γk : KVNames) (rq : apply.IRRModel) (Qr : List EntryModel → IP
 
 /-! ### Reads: a client's deposit and the results of a list of clients -/
 
+/-- **The KV state of the committed log `L` in the auth mode `off`** (its model's, as the KV
+invariant's ghost state on plain logs, `kvModelSt_plain`): the read side's default (E3r). -/
+@[reducible] def kvStOff (γk : KVNames) (L : List EntryModel) : KVState := kvStateOf (kvModel γk L)
+
 /-- **A client's read deposit** for the result predicate `Q` over committed logs: a read update
 with result `Q0`, `Q` being `□ Q0` of the state of the log's model (2026-10-15, unit T2: the whole
 state, T1's was a key's value); or no update at all (`Q` trivial: a read with no client update,
-the read-only `Txn`'s). -/
-def kvDep (γk : KVNames) (Q : List EntryModel → IProp GF) : IProp GF :=
+the read-only `Txn`'s). The state of a log is `F`'s (the auth plan's E3r, 2026-10-27: the read side
+is generic in it), by default the auth mode `off`'s model's (`kvStOff`; with auth on, the mode-`on`
+model's, `kvStOn`). -/
+def kvDep (γk : KVNames) (Q : List EntryModel → IProp GF)
+    (F : List EntryModel → KVState := kvStOff γk) : IProp GF :=
   iprop((∃ Q0 : KVState → IProp GF,
-    ⌜Q = fun L => iprop(□ Q0 (kvStateOf (kvModel γk L)))⌝ ∗ kvReadAu γk Q0) ∨
+    ⌜Q = fun L => iprop(□ Q0 (F L))⌝ ∗ kvReadAu γk Q0) ∨
     ⌜Q = fun _ => iprop(True)⌝)
 
-instance kvDep_persistent (γk : KVNames) (Q : List EntryModel → IProp GF) :
-    Persistent (kvDep (GF := GF) γk Q) := by
+instance kvDep_persistent (γk : KVNames) (Q : List EntryModel → IProp GF)
+    (F : List EntryModel → KVState) : Persistent (kvDep (GF := GF) γk Q F) := by
   unfold kvDep; infer_instance
 
 /-- A registered client: its result predicate (a saved predicate at `g`) and its deposit. -/
-def regOk (γk : KVNames) (g : GName) : IProp GF :=
-  iprop(∃ Q : List EntryModel → IProp GF, savedPredOwn g DFrac.discard Q ∗ kvDep γk Q)
+def regOk (γk : KVNames) (g : GName) (F : List EntryModel → KVState := kvStOff γk) : IProp GF :=
+  iprop(∃ Q : List EntryModel → IProp GF, savedPredOwn g DFrac.discard Q ∗ kvDep γk Q F)
 
-instance regOk_persistent (γk : KVNames) (g : GName) : Persistent (regOk (GF := GF) γk g) := by
+instance regOk_persistent (γk : KVNames) (g : GName) (F : List EntryModel → KVState) :
+    Persistent (regOk (GF := GF) γk g F) := by
   unfold regOk; infer_instance
 
 /-- **The results of the clients `gs` at the log `L`**: each client's `□ Q L`. -/
@@ -2355,18 +2363,20 @@ back; 2026-10-13, unit 4a: Perennial's `RWMutex` bounds the readers), returns `n
 applied index has reached the committed index the caller knew of (`readIndexOk`), or an error
 the gRPC layer can take (`applyErrIs`: the read loop's `ErrStopped`, `ErrLeaderChanged`, ...,
 `errors.New` errors, or the context's `Canceled`/`DeadlineExceeded`; 2026-10-12, unit 3b, as
-`raftPropose`). -/
-def isReadNotify (r : Loc) (γr : ReadNames) : IProp GF :=
+`raftPropose`). The deposit at the state function `F` (E3r; by default the mode `off`'s). -/
+def isReadNotify (r : Loc) (γr : ReadNames) (F : List EntryModel → KVState := kvStOff γr.kv) :
+    IProp GF :=
   iprop(□ (∀ (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (c : w64) (g : GName)
       (Q : List EntryModel → IProp GF),
     {{ mvcc.txnCtx ctx cd ∗ committedAtLeast γr c ∗ readReader r γr ∗
-        savedPredOwn g DFrac.discard Q ∗ kvDep γr.kv Q }}
+        savedPredOwn g DFrac.discard Q ∗ kvDep γr.kv Q F }}
       (App (Val (r @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.read.Read.ty @!!
         go!"LinearizableReadNotify")) (Val #(GoInterface.ok ctx)))
     {{ (err : GoInterface), RET #err; readReader r γr ∗ applyErrIs err ∗
         (⌜err = GoInterface.nil⌝ -∗ readIndexOk γr c ∗ readServed γr c g) }}))
 
-instance isReadNotify_persistent (r : Loc) (γr : ReadNames) : Persistent (isReadNotify (GF := GF) r γr) := by
+instance isReadNotify_persistent (r : Loc) (γr : ReadNames) (F : List EntryModel → KVState) :
+    Persistent (isReadNotify (GF := GF) r γr F) := by
   unfold isReadNotify; infer_instance
 
 /-- The `*auth.AuthInfo` `a` (not nil): its `Username` and `Revision`, read-only. -/

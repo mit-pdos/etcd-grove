@@ -1801,6 +1801,21 @@ theorem server_run_on [EtcdGrove.ErrorStringLeaf] :
     EtcdServer.wp_setCommittedIndex raftNode.wp_start raftNode.wp_apply schedule.wp_NewJob
     schedule.Scheduler.wp_Schedule
 
+/-- **`start` with auth on** (the auth plan's E3r, `EtcdServer__start.lean`'s `wp_proofOn`): from the
+mode-`on` construction premise and the lessor finding no lease, `run` started with auth on
+(`server_run_on`), the request and read views in the mode, and the read loop's precondition at the
+mode-`on` model's state (`kv_read_compose_on`). Every callee linked. -/
+theorem server_start_on [EtcdGrove.ErrorStringLeaf] :
+    EtcdServer.start.specOn (GF := GF) (hG := hG) :=
+  EtcdServer.start.wp_proofOn EtcdServer.wp_Logger zap.Logger.wp_Info zap.wp_String zap.wp_Uint64
+    wait.wp_New wait.wp_NewTimeList wait.timeList.wp_Wait wait.timeList.wp_Trigger read.wp_NewRead
+    notify.wp_NewNotifier EtcdServer.wp_MemberID EtcdServer.wp_Cluster membership.RaftCluster.wp_ID
+    types.ID.wp_String semver.Version.wp_String version.wp_Cluster prometheus.GaugeVec.wp_With
+    server_run_on EtcdServer.wp_ApplyWait EtcdServer.wp_Done EtcdServer.wp_Stopping
+    EtcdServer.wp_LeaderChanged EtcdServer.wp_FirstCommitInTermNotify EtcdServer.wp_NextRequestID
+    EtcdServer.wp_RequestTimeout (EtcdServer.AppliedIndex.wp_proofM true
+      (EtcdServer.getAppliedIndex.wp_proofM true)) raftNode.wp_ReadState raftNode.wp_ReadIndex
+
 end adminLatest
 
 /-- **A refused admin check keeps the model's auth state; a passed one admits the principal** (the
@@ -1834,6 +1849,7 @@ theorem admin_state_auth_enable [GooseExts] (γa : auth.AuthNames) (rq : EtcdGro
 #print axioms Perennial.EtcdGrove.server_apply_entries_on
 #print axioms Perennial.EtcdGrove.server_apply_all_on
 #print axioms Perennial.EtcdGrove.server_run_on
+#print axioms Perennial.EtcdGrove.server_start_on
 #print axioms Perennial.EtcdGrove.admin_state_of_latest
 
 section userAddHandler
@@ -2224,7 +2240,7 @@ result at the header the server stamps, the applied result's auth verdict the mo
 committed prefix before the entry (`resPostM true`, `authTie`). Every callee linked. -/
 theorem server_process_irr_on :
     EtcdServer.processInternalRaftRequestOnce.specM (GF := GF) (hG := hG) true :=
-  EtcdServer.processInternalRaftRequestOnce.wp_proofM true EtcdServer.wp_getAppliedIndex
+  EtcdServer.processInternalRaftRequestOnce.wp_proofM true (EtcdServer.getAppliedIndex.wp_proofM true)
     EtcdServer.wp_getCommittedIndex EtcdServer.wp_FeatureEnabled wp_exceedsRequestLimit
     idutil.Generator.wp_Next EtcdServer.wp_AuthInfoFromCtx wp_getRequestType proto.wp_MarshalIRR
     config.ServerConfig.wp_ReqTimeout trace.wp_SpanFromContext

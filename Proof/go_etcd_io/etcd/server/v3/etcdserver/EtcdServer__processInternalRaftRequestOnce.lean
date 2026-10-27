@@ -457,7 +457,7 @@ local macro "piro_tail" : tactic => `(tactic| (
 set_option maxRecDepth 20000 in
 set_option maxHeartbeats 4000000 in
 theorem EtcdServer.processInternalRaftRequestOnce.wp_proofM (on : Bool)
-    (hAI : EtcdServer.getAppliedIndex.spec (GF := GF) (hG := hG))
+    (hAI : EtcdServer.getAppliedIndex.specM (GF := GF) (hG := hG) on)
     (hCI : EtcdServer.getCommittedIndex.spec (GF := GF) (hG := hG))
     (hFE : EtcdServer.FeatureEnabled.spec (GF := GF) (hG := hG))
     (hEx : exceedsRequestLimit.spec (GF := GF) (hG := hG))
@@ -498,7 +498,7 @@ theorem EtcdServer.processInternalRaftRequestOnce.wp_proofM (on : Bool)
   · iPkgInit
   ihave #Pprom : isPkgInit (PROP := IProp GF) pkg_id.github_com.prometheus.client_golang.prometheus $$ []
   · iPkgInit
-  iunfold srvIndexInvs at Hidx
+  iunfold srvIndexInvsM at Hidx
   icases Hidx with ⟨%γr, #Hai, #Hci⟩
   wp_apply hAI s E γr $$ [] as %ai -
   · iframe #

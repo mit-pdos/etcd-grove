@@ -5,6 +5,7 @@ counterpart).
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvProposer
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ServerOn
 
 @[expose] public section
 
@@ -28,6 +29,15 @@ abbrev EtcdServer.getAppliedIndex.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (γr : ReadNames),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       srvAppliedInv s E γr }}
+    (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"getAppliedIndex")) (Val #()))
+  {{ (v : w64), RET #v; appliedAtLeast γr v }}
+
+/-- **`spec` in the auth mode `on`** (the auth plan's E3r, 2026-10-27): the applied index's
+invariant over the mode's KV model (`srvAppliedInvM on`; `spec` at `on = false`, by definition). -/
+abbrev EtcdServer.getAppliedIndex.specM (on : Bool) : Prop :=
+  ∀ (s : Loc) (E : apply.AEnv GF) (γr : ReadNames),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      srvAppliedInvM on s E γr }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"getAppliedIndex")) (Val #()))
   {{ (v : w64), RET #v; appliedAtLeast γr v }}
 
