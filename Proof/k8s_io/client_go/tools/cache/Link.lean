@@ -20,6 +20,8 @@ public import Proof.k8s_io.client_go.tools.cache.cache__ByIndex
 public import Proof.k8s_io.client_go.tools.cache.cache__Delete
 public import Proof.k8s_io.client_go.tools.cache.cache__Get
 public import Proof.k8s_io.client_go.tools.cache.cache__GetByKey
+public import Proof.k8s_io.client_go.tools.cache.cache__Index
+public import Proof.k8s_io.client_go.tools.cache.cache__LastStoreSyncResourceVersion
 public import Proof.k8s_io.client_go.tools.cache.cache__List
 public import Proof.k8s_io.client_go.tools.cache.cache__ListKeys
 public import Proof.k8s_io.client_go.tools.cache.cache__Replace
@@ -32,6 +34,7 @@ public import Proof.k8s_io.client_go.tools.cache.rvFromObject
 public import Proof.k8s_io.client_go.tools.cache.storeIndex__addKeyToIndex
 public import Proof.k8s_io.client_go.tools.cache.storeIndex__deleteKeyFromIndex
 public import Proof.k8s_io.client_go.tools.cache.storeIndex__getKeysByIndex
+public import Proof.k8s_io.client_go.tools.cache.storeIndex__getKeysFromIndex
 public import Proof.k8s_io.client_go.tools.cache.storeIndex__reset
 public import Proof.k8s_io.client_go.tools.cache.storeIndex__updateIndices
 public import Proof.k8s_io.client_go.tools.cache.storeIndex__updateSingleIndex
@@ -42,6 +45,8 @@ public import Proof.k8s_io.client_go.tools.cache.threadSafeMap__ByIndex
 public import Proof.k8s_io.client_go.tools.cache.threadSafeMap__Delete
 public import Proof.k8s_io.client_go.tools.cache.threadSafeMap__DeleteWithObject
 public import Proof.k8s_io.client_go.tools.cache.threadSafeMap__Get
+public import Proof.k8s_io.client_go.tools.cache.threadSafeMap__Index
+public import Proof.k8s_io.client_go.tools.cache.threadSafeMap__LastStoreSyncResourceVersion
 public import Proof.k8s_io.client_go.tools.cache.threadSafeMap__List
 public import Proof.k8s_io.client_go.tools.cache.threadSafeMap__ListKeys
 public import Proof.k8s_io.client_go.tools.cache.threadSafeMap__Replace
@@ -197,6 +202,26 @@ theorem cache.cache.wp_GetByKey :
 theorem cache.cache.wp_Get :
     EtcdGrove.cache.cache.Get.spec (GF := GF) (hG := hG) :=
   EtcdGrove.cache.cache.Get.wp_proof cache.cache.wp_GetByKey
+
+theorem cache.storeIndex.wp_getKeysFromIndex :
+    EtcdGrove.cache.storeIndex.getKeysFromIndex.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cache.storeIndex.getKeysFromIndex.wp_proof sets.Set.wp_Insert
+
+theorem cache.threadSafeMap.wp_Index :
+    EtcdGrove.cache.threadSafeMap.Index.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cache.threadSafeMap.Index.wp_proof cache.storeIndex.wp_getKeysFromIndex
+
+theorem cache.cache.wp_Index :
+    EtcdGrove.cache.cache.Index.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cache.cache.Index.wp_proof cache.threadSafeMap.wp_Index
+
+theorem cache.threadSafeMap.wp_LastStoreSyncResourceVersion :
+    EtcdGrove.cache.threadSafeMap.LastStoreSyncResourceVersion.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cache.threadSafeMap.LastStoreSyncResourceVersion.wp_proof
+
+theorem cache.cache.wp_LastStoreSyncResourceVersion :
+    EtcdGrove.cache.cache.LastStoreSyncResourceVersion.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cache.cache.LastStoreSyncResourceVersion.wp_proof cache.threadSafeMap.wp_LastStoreSyncResourceVersion
 
 theorem cache.threadSafeMap.wp_List :
     EtcdGrove.cache.threadSafeMap.List.spec (GF := GF) (hG := hG) :=

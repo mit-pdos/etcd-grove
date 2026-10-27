@@ -57,3 +57,8 @@ cache__ByIndex: threadSafeMap__ByIndex
 cache__GetByKey: threadSafeMap__Get
 cache__Get: cache__GetByKey
 cache__Replace: threadSafeMap__Replace
+storeIndex__getKeysFromIndex: Set__Insert
+threadSafeMap__Index: storeIndex__getKeysFromIndex
+cache__Index: threadSafeMap__Index
+threadSafeMap__LastStoreSyncResourceVersion:
+cache__LastStoreSyncResourceVersion: threadSafeMap__LastStoreSyncResourceVersion

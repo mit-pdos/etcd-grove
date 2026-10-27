@@ -34,6 +34,8 @@ namespace k8scache
 #print axioms cache.threadSafeMap.wp_ListKeys
 #print axioms cache.threadSafeMap.wp_ByIndex
 #print axioms cache.threadSafeMap.wp_Resync
+#print axioms cache.threadSafeMap.wp_Index
+#print axioms cache.threadSafeMap.wp_LastStoreSyncResourceVersion
 -- the store over it (`store.go`'s `cache`; phase 4)
 #print axioms cache.cache.wp_Add
 #print axioms cache.cache.wp_Update
@@ -46,6 +48,8 @@ namespace k8scache
 #print axioms cache.cache.wp_ListKeys
 #print axioms cache.cache.wp_ByIndex
 #print axioms cache.cache.wp_Resync
+#print axioms cache.cache.wp_Index
+#print axioms cache.cache.wp_LastStoreSyncResourceVersion
 -- the store keys
 #print axioms cache.ObjectName.wp_String
 #print axioms cache.wp_SplitMetaNamespaceKey
