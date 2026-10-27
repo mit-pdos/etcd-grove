@@ -181,6 +181,17 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   `timeline` field is a `metrics.DispatchTimeline`, is axiomatized (`translate_types` skips a type
   naming a package not imported), so `processEvent` and `UpdateResourceVersion`, which build one,
   cannot be proved until the general fix.
+- **Also the DaemonSet controller (2026-10-27, branch `k8s-daemonset-proof`; gap D2 of
+  `notes/k8s-daemonset-goose.md`).** Kubernetes names nearly every API and client package `v1`, so
+  the substitution hits the controller's main path: `syncDaemonSet` (component-base's
+  `metrics.CounterMetric` named as the controller's `daemon/metrics`), `RealPodControl.createPods`
+  and `DeletePod` (client-go's typed `PodInterface` named as `k8s.io/api/apps/v1`'s), `ComputeHash`
+  (the standard library's `hash.Hash32` as `pkg/util/hash`'s), the node-affinity `Match`es
+  (metav1's `ObjectMeta` as core/v1's); ten functions names only. **Tried**: `pkgRef` returning the
+  package's own path always (the substitution loop deleted) in a scratch copy of the pinned
+  translator: all ten translate and their modules elaborate (the interfaces' modules are in scope
+  through public imports), and no other file of the project changes. Now the most needed of the
+  open Goose changes for the DaemonSet proof.
 
 ### Specs: the builtin `max` (2026-10-26, branch `kep-6404`)
 

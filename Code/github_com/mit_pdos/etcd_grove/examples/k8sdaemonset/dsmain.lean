@@ -88,14 +88,18 @@ noncomputable def serverConfig.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"FailWrites")) (ElementExpression go.bool (Var "$v0"))), (KeyedElement (some (KeyField go!"FailReads")) (ElementExpression go.bool (Var "$v1"))), (KeyedElement (some (KeyField go!"EndWatches")) (ElementExpression go.bool (Var "$v2"))), (KeyedElement (some (KeyField go!"ExpireWatches")) (ElementExpression go.bool (Var "$v3"))), (KeyedElement (some (KeyField go!"Bookmarks")) (ElementExpression go.bool (Var "$v4"))), (KeyedElement (some (KeyField go!"FaultPercent")) (ElementExpression go.int64 (Var "$v5")))])))))))))))
 
 /-- setFeatureGates sets the gates the scenario needs, as kube-controller-manager's
-    --feature-gates=WatchListClient=false,AtomicFIFO=true would. k8s.io/kubernetes/pkg/features'
-    init makes client-go's gates an adapter over this gate (utilfeature.DefaultMutableFeatureGate),
-    so these are the gates client-go's reflector and stores read: WatchListClient off (the
-    reflector lists, then watches; the model rejects a watch-list request), AtomicFIFO on (its
-    default; the stores then report the resource version they have synced to, which the
-    consistency store of StaleControllerConsistencyDaemonSet, on by default, needs).
+    --feature-gates=WatchListClient=false,AtomicFIFO=true,StaleControllerConsistencyDaemonSet=true
+    would. k8s.io/kubernetes/pkg/features' init makes client-go's gates an adapter over this gate
+    (utilfeature.DefaultMutableFeatureGate), so these are also the gates client-go's reflector and
+    stores read (an environment variable, KUBE_FEATURE_WatchListClient, would not be: it is read
+    only by client-go's own gates, which that init replaces). WatchListClient off: the reflector
+    lists, then watches (the model rejects a watch-list request). AtomicFIFO on: the stores report
+    the resource version they have synced to, which the consistency store needs.
+    StaleControllerConsistencyDaemonSet on: the controller uses the consistency store. The last two
+    are on by default; setting them states the configuration in the program rather than in the
+    default table pkg/features' init registers.
 
-    go: dsmain.go:62:6 -/
+    go: dsmain.go:66:6 -/
 noncomputable def setFeatureGates.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val exceptionDo)
@@ -106,7 +110,9 @@ noncomputable def setFeatureGates.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$v1" (Val #false)
   (Let "$k2" (Val #(go!"AtomicFIFO"))
   (Let "$v3" (Val #true)
-  (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType go.string go.bool)))) (LiteralValue [(KeyedElement (some (KeyExpression go.string (Var "$k0"))) (ElementExpression go.bool (Var "$v1"))), (KeyedElement (some (KeyExpression go.string (Var "$k2"))) (ElementExpression go.bool (Var "$v3")))]))))))
+  (Let "$k4" (Val #(go!"StaleControllerConsistencyDaemonSet"))
+  (Let "$v5" (Val #true)
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.MapType go.string go.bool)))) (LiteralValue [(KeyedElement (some (KeyExpression go.string (Var "$k0"))) (ElementExpression go.bool (Var "$v1"))), (KeyedElement (some (KeyExpression go.string (Var "$k2"))) (ElementExpression go.bool (Var "$v3"))), (KeyedElement (some (KeyExpression go.string (Var "$k4"))) (ElementExpression go.bool (Var "$v5")))]))))))))
   (App (App (Val (GoInstruction (MethodResolve _root_.Perennial.k8s_io.component_base.featuregate.MutableVersionedFeatureGate.ty go!"SetFromMap"))) (App (Val (GoInstruction (GoLoad _root_.Perennial.k8s_io.component_base.featuregate.MutableVersionedFeatureGate.ty))) (App (Val (GoInstruction (GlobalVarAddr _root_.Perennial.k8s_io.apiserver.pkg.util.feature.DefaultMutableFeatureGate))) (Val #())))) (Var "$a0")))
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (App (Val (GoInstruction (GoZeroVal go.error))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -121,7 +127,7 @@ noncomputable def setFeatureGates.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- newNode is the scenario's node: Ready.
 
-    go: dsmain.go:72:6 -/
+    go: dsmain.go:77:6 -/
 noncomputable def newNode.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val exceptionDo)
@@ -138,7 +144,7 @@ noncomputable def newNode.impl [FfiSyntax] [GoGlobalContext] : val :=
     would give it (k8s.io/kubernetes/pkg/apis/core/v1: SetDefaults_PodSpec, SetDefaults_Container;
     the model defaults the DaemonSet's own fields but not its template, apimodel's doc.go).
 
-    go: dsmain.go:83:6 -/
+    go: dsmain.go:88:6 -/
 noncomputable def newDaemonSet.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val exceptionDo)
@@ -177,7 +183,7 @@ noncomputable def newDaemonSet.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- controlledBy reports whether the pod's controller is the object with this UID.
 
-    go: dsmain.go:111:6 -/
+    go: dsmain.go:116:6 -/
 noncomputable def controlledBy.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "pod"
   (Lam "uid"
@@ -209,7 +215,7 @@ noncomputable def controlledBy.impl [FfiSyntax] [GoGlobalContext] : val :=
     being deleted count too, as in the robustness test. It returns the number of such pods
     bound to a node (0 if the list fails).
 
-    go: dsmain.go:124:6 -/
+    go: dsmain.go:129:6 -/
 noncomputable def check.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "ctx"
   (Lam "admin"
@@ -322,7 +328,7 @@ noncomputable def check.impl [FfiSyntax] [GoGlobalContext] : val :=
     checks `checks` times, a millisecond apart, and stops everything. It returns the number of
     the DaemonSet's bound pods at the last check.
 
-    go: dsmain.go:156:6 -/
+    go: dsmain.go:161:6 -/
 noncomputable def run.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "cfg"
   (Lam "checks"
@@ -533,7 +539,7 @@ noncomputable def run.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- Main is the theorem's program: the scenario with `checks` checks.
 
-    go: dsmain.go:203:6 -/
+    go: dsmain.go:208:6 -/
 noncomputable def Main.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "checks"
   (App (Val exceptionDo)

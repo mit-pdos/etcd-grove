@@ -3,7 +3,9 @@
 Status: planning (2026-10-26, branch `daemonset-plan`). Decisions: D49 in `notes/decisions.md`
 (the cut: model the API server at the typed clientset, verify client-go's leaf libraries and
 informers). Nothing proved yet. (2026-10-26, branch `k8s-clientgo-leaf`) Phase 1's leaf-library
-half is translated: `notes/k8s-clientgo-goose.md` (gaps C1-C7).
+half is translated: `notes/k8s-clientgo-goose.md` (gaps C1-C7). (2026-10-27, branch
+`k8s-daemonset-proof`) The pin (`k8s.io/kubernetes` `878cfa6c4cc7`), `Main` (`examples/k8sdaemonset/dsmain`)
+and phase 1's controller half: `notes/k8s-daemonset-goose.md` (gaps D1, D2; the call graph of `Main`).
 
 ## Goal
 
@@ -157,10 +159,20 @@ theorem's program runs with it off, the premise "a failed write had no effect" (
    converging over it under failures. `examples/k8sdaemonset/smoke` (build tag `k8ssmoke`, its
    `go.mod` generated from a Kubernetes checkout by `gen-gomod.py`) runs the real controller over it:
    no method the model lacks is called; with failures that have no effect, never two pods (0 of 30
-   runs); with ambiguous writes, two pods in 4 of 50 runs (the suspected bug, confirmed). Still to
-   do: `Main` (the theorem's program: the smoke test's scenario as a function, the checker
-   panicking), the Kubernetes pin for the translation (the smoke test runs at the PR head
-   `13ecb9cc`, whose client-go is newer than the model's pin), the event recorder.
+   runs); with ambiguous writes, two pods in 4 of 50 runs (the suspected bug, confirmed).
+   **Pin and `Main` done** (2026-10-27, branch `k8s-daemonset-proof`; `notes/k8s-daemonset-goose.md`):
+   `examples/k8sdaemonset/go.mod` requires `k8s.io/kubernetes` at master `878cfa6c4cc7`
+   (2026-10-21, the commit the repository's apiserver pin was published from), its staging modules
+   replaced by their mirrors (the four shared pins, the others at their latest commit by
+   2026-10-21T22:14Z; their Go files identical to `878cfa6c4cc7`'s staging). `dsmain.Main(checks)`:
+   the feature gates set programmatically (`DefaultMutableFeatureGate.SetFromMap`: `WatchListClient`
+   off, `AtomicFIFO` and `StaleControllerConsistencyDaemonSet` on; an environment variable would be
+   ignored, `pkg/features`' init replaces client-go's gates), the model with every failure but
+   `AmbiguousWrites`, the node and the (template-defaulted) DaemonSet created by the admin client,
+   the real informer factory and `NewDaemonSetsController`, `Run` with two workers, and `checks`
+   checks (a loop bound, not a context) panicking if two pods of the DaemonSet target one node.
+   Its tests under `-race`: 300 runs of `Main(2000)`, no panic; the checker catches the known bug in 4 of 100 runs with `AmbiguousWrites`. The smoke test now builds in the module at
+   the pin (no generated `go.mod`). Still open: the event recorder (`tools/record`, names only).
 1. **The translation survey** (as `notes/k8s-etcd3-goose.md`). **Leaf libraries done**
    (2026-10-26, `notes/k8s-clientgo-goose.md`): in project `k8s-apiserver` (not a new project:
    `tools/cache` and apimachinery are shared with the KEP-6404 watch cache), with bodies
@@ -173,8 +185,24 @@ theorem's program runs with it off, the premise "a failed write had no effect" (
    worked around), C4 (`min` on `time.Duration`: `Backoff.Next`, `threadSafeMap.Transaction` names
    only), C5 (`intstr.IntOrString` axiomatized), C6 (`cache.Object`'s `comparable`, for phase 4), C7 (`features`' initialization names only:
    its `Init.lean` would need hand-written steps).
-   Still to do in this phase: the controller's packages (`pkg/controller/...`, after phase 0's pin),
-   the informers' half of `tools/cache`, the API types' `DeepCopy`. As first planned: a project `k8s-daemonset` in
+   **Controller half done** (2026-10-27, branch `k8s-daemonset-proof`; `notes/k8s-daemonset-goose.md`):
+   in project `k8s-daemonset`, with bodies `dsmain`, `pkg/controller/daemon{,/util,/metrics}`,
+   `pkg/controller`, `pkg/api/v1/pod`, `pkg/apis/core/v1/helper`, `pkg/util/{labels,hash}`,
+   `pkg/features` (its init names only, C7), `component-helpers/scheduling/corev1{,/nodeaffinity}`:
+   248 of 265 functions; what they name names only (informers, `tools/record`, apimachinery's
+   `equality`, `json`, `strategicpatch`, ..., in `k8s-apiserver`; `hash/fnv` in `etcd`). Gaps: D1
+   (range over a function: `pod.VisitContainers`, unreached; fixed on Perennial's `lean`), **D2**
+   (G3: an interface of a package the file does not import named through a same-named imported
+   package, Kubernetes' `v1`s: `syncDaemonSet`, `RealPodControl.createPods`/`DeletePod`,
+   `ComputeHash`, the node-affinity `Match`es and five patch/taint helpers names only; **blocks
+   phase 5's S1 proof until a Perennial fix**, tried in a scratch translator: everything translates
+   and elaborates without the substitution). The survey's hazards (`getPatch`'s JSON,
+   `ComputeHash`'s spew, `reflect.DeepEqual`, `errors.As`, `fmt.Sprint`, `WaitGroup.Go`, `DeepCopy`,
+   `MustRegister`, the handlers' assertions) all translate: they are boundary specs for the proofs.
+   The call graph of `Main` (`etc/k8s-worklist.py`): 1020 functions, 623 in the verified layers (134
+   of the controller, 125 with bodies; 312 of the informers, 74 with bodies), 397 at the boundary.
+   Still to do in this phase: the informers' half of `tools/cache` (phase 4 translates it), the API
+   types' `DeepCopy`. As first planned: a project `k8s-daemonset` in
    `etc/goose.py` translating the packages of "The cut" with bodies, the rest names-only, and a
    list of what the pinned Goose rejects (G-numbered, `notes/k8s-daemonset-goose.md`). Known in
    advance (from the call-graph survey, 2026-10-26):
@@ -296,8 +324,7 @@ Phases 2 and 3 are independent and can run in parallel; 4 needs 2 and 3; 5 needs
 
 ## Open
 
-- The pin: a master commit with the consistency store in client-go (the PR's base at `13ecb9cc`
-  or later).
+- ~~The pin~~: `878cfa6c4cc7` (2026-10-27, phase 0 above).
 - One node and one DaemonSet first, or N nodes from the start (S1 per node then reads the pod's
   target node, `util.GetTargetNodeName`).
 - Other writers in `Main` (a client that deletes pods at random): S1 should survive them, and

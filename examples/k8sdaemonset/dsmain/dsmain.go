@@ -53,16 +53,21 @@ func serverConfig() apimodel.Config {
 }
 
 // setFeatureGates sets the gates the scenario needs, as kube-controller-manager's
-// --feature-gates=WatchListClient=false,AtomicFIFO=true would. k8s.io/kubernetes/pkg/features'
-// init makes client-go's gates an adapter over this gate (utilfeature.DefaultMutableFeatureGate),
-// so these are the gates client-go's reflector and stores read: WatchListClient off (the
-// reflector lists, then watches; the model rejects a watch-list request), AtomicFIFO on (its
-// default; the stores then report the resource version they have synced to, which the
-// consistency store of StaleControllerConsistencyDaemonSet, on by default, needs).
+// --feature-gates=WatchListClient=false,AtomicFIFO=true,StaleControllerConsistencyDaemonSet=true
+// would. k8s.io/kubernetes/pkg/features' init makes client-go's gates an adapter over this gate
+// (utilfeature.DefaultMutableFeatureGate), so these are also the gates client-go's reflector and
+// stores read (an environment variable, KUBE_FEATURE_WatchListClient, would not be: it is read
+// only by client-go's own gates, which that init replaces). WatchListClient off: the reflector
+// lists, then watches (the model rejects a watch-list request). AtomicFIFO on: the stores report
+// the resource version they have synced to, which the consistency store needs.
+// StaleControllerConsistencyDaemonSet on: the controller uses the consistency store. The last two
+// are on by default; setting them states the configuration in the program rather than in the
+// default table pkg/features' init registers.
 func setFeatureGates() {
 	if err := utilfeature.DefaultMutableFeatureGate.SetFromMap(map[string]bool{
-		"WatchListClient": false,
-		"AtomicFIFO":      true,
+		"WatchListClient":                     false,
+		"AtomicFIFO":                          true,
+		"StaleControllerConsistencyDaemonSet": true,
 	}); err != nil {
 		panic(err)
 	}
