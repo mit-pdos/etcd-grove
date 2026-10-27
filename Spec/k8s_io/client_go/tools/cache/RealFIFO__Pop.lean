@@ -48,10 +48,10 @@ def processOk (OK : GoInterface → IProp GF) (process : GoFunc) (Ψ : FD → Bo
       ⌜r = #err⌝ ∗ Ψ' d err }})
 
 abbrev RealFIFO.Pop.spec : Prop :=
-  ∀ (f : Loc) (γ : FifoNames) (OK : GoInterface → IProp GF) (KF : GoInterface → GoString)
+  ∀ (f : Loc) (γ : FifoNames) (OK : GoInterface → IProp GF)
     (process : GoFunc) (Ψ : FD → Bool → IProp GF) (Ψ' : FD → GoInterface → IProp GF)
     (Ω : val → IProp GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ isFIFO f γ OK KF ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ isFIFO f γ OK ∗
       processOk OK process Ψ Ψ' ∗ popAU γ Ψ Ω ∗ doneAU γ Ψ' Ω }}
     (App (Val (f @!! go.GoType.PointerType RealFIFO.ty @!! go!"Pop")) (Val #process))
   {{ (v : val), RET v; Ω v }}

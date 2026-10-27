@@ -28,13 +28,13 @@ variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
 theorem threadSafeMap.Add.wp_proof
     (wp_Update : threadSafeMap.Update.spec (GF := GF) (hG := hG)) :
     threadSafeMap.Add.spec (GF := GF) (hG := hG) := by
-  intro c γ OK Fam rvOf key obj
-  iintro %Φ ⟨#Hpkg, #Hc, #Hacc, #HOK⟩ HAU
+  intro c γ OK Fam D rvOf key obj
+  iintro %Φ ⟨#Hpkg, #Hc, #Hacc, #HD, #HOK⟩ HAU
   wp_method_call
   wp_call
   wp_auto
   wp_bind
-  iapply (wp_Update c γ OK Fam rvOf key obj) $$ [$Hpkg $Hc $Hacc $HOK]
+  iapply (wp_Update c γ OK Fam D rvOf key obj) $$ [$Hpkg $Hc $Hacc $HD $HOK]
   inext
   imod HAU with ⟨%σ, Hst, Hcl⟩
   imodintro

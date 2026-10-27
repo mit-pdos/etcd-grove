@@ -101,3 +101,6 @@ threadSafeMap__AddIndexers: storeIndex__addIndexers storeIndex__updateSingleInde
 threadSafeMap__GetIndexers:
 cache__AddIndexers: threadSafeMap__AddIndexers
 cache__GetIndexers: threadSafeMap__GetIndexers
+#
+# the listers' paths through the store (listers.go; DaemonSet plan phase 4)
+ListAll: cache__List

@@ -9,7 +9,9 @@
 # `ObjectMeta`'s accessors (the `metav1.Object` methods the model and client-go's informers call
 # through the API types' promoted methods), `Now` and `Time.Equal`.
 translate = ["!*", "StatusFailure", "StatusReasonTimeout", "CauseTypeResourceVersionTooLarge",
-  "ObjectMeta.Get*", "ObjectMeta.Set*", "Now", "Time.Equal", "StatusReason*"]
+  "ObjectMeta.Get*", "ObjectMeta.Set*", "Now", "Time.Equal", "StatusReason*",
+  # (DaemonSet plan phase 4) `ListAllByNamespace` compares the namespace with it
+  "NamespaceAll"]
 imports = ["!*", "k8s.io/apimachinery/pkg/types", "k8s.io/apimachinery/pkg/runtime",
   "k8s.io/apimachinery/pkg/runtime/schema", "time"]
 

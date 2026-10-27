@@ -24,9 +24,9 @@ variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
 
 /-- **`f.Bookmark(rv)`**, logically atomic: a bookmark delta queued. -/
 abbrev RealFIFO.Bookmark.spec : Prop :=
-  ∀ (f : Loc) (γ : FifoNames) (OK : GoInterface → IProp GF) (KF : GoInterface → GoString)
+  ∀ (f : Loc) (γ : FifoNames) (OK : GoInterface → IProp GF)
     (rv : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ isFIFO f γ OK KF }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ isFIFO f γ OK }}
   <<{ ∀∀ q, fifoSt γ q }>>
     (App (Val (f @!! go.GoType.PointerType RealFIFO.ty @!! go!"Bookmark")) (Val #rv))
     @@ ∅

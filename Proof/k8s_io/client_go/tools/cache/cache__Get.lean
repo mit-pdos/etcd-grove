@@ -28,21 +28,21 @@ variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
 theorem cache.Get.wp_proof
     (wp_GetByKey : cache.GetByKey.spec (GF := GF) (hG := hG)) :
     cache.Get.spec (GF := GF) (hG := hG) := by
-  intro ca ts γ OK Fam KF obj
-  iintro %Φ ⟨#Hpkg, #Hca, #HOK, Hr⟩ HAU
+  intro ca ts γ OK Fam kf D KF obj
+  iintro %Φ ⟨#Hpkg, #Hca, #Hkey, #HD, Hr⟩ HAU
   ihave #Hca' := Hca
   iunfold isCache at Hca'
-  icases Hca' with ⟨%kf, #Hcs, #Hkf, #Htr, #Hkey, #Hts⟩
+  icases Hca' with ⟨#Hcs, #Hkf, #Htr, #Hts⟩
   iunfold keyOk at Hkey
   wp_method_call
   wp_call
   wp_auto
-  wp_apply Hkey $$ [$HOK]
+  wp_apply Hkey $$ [$HD]
   iintro %k %err %hk
   obtain ⟨rfl, rfl⟩ := hk
   wp_auto
   wp_bind
-  iapply (wp_GetByKey ca ts γ OK Fam KF (KF obj)) $$ [$Hpkg $Hca $Hr]
+  iapply (wp_GetByKey ca ts γ OK Fam kf (KF obj)) $$ [$Hpkg $Hca $Hr]
   inext
   imod HAU with ⟨%σ, Hst, Hcl⟩
   imodintro

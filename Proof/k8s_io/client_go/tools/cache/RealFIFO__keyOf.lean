@@ -27,19 +27,19 @@ variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
 
 theorem RealFIFO.keyOf.wp_proof :
     RealFIFO.keyOf.spec (GF := GF) (hG := hG) := by
-  intro f OK KF kf obj
+  intro f OK kf obj
   wp_start as ⟨#Hkf, #Hkey, #Hany, %harg, HOK⟩
-  iunfold keyOk at Hkey
+  iunfold keyNoErr at Hkey
   iunfold keyAny at Hany
   rcases harg with ⟨t, v, rfl⟩ | ⟨d, t, w, rfl, hd, ht⟩
   · ihave #HOK' := HOK $$ %(⟨t, v, rfl⟩)
     (try wp_auto)
     wp_apply Hkey $$ [$HOK']
     iintro %k %err %hk
-    obtain ⟨rfl, rfl⟩ := hk
+    subst hk
     (try wp_auto)
     iapply HΦ
-    ipureintro; intro _; exact ⟨rfl, rfl⟩
+    ipureintro; intro _; rfl
   · (try wp_auto)
     rw [hd]
     (try wp_auto)

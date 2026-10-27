@@ -24,8 +24,8 @@ variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
 
 /-- **`f.HasSynced()`**, logically atomic (a read): whether the queue has synced (`syncedClosed`) at the linearization point. -/
 abbrev RealFIFO.HasSynced.spec : Prop :=
-  ∀ (f : Loc) (γ : FifoNames) (OK : GoInterface → IProp GF) (KF : GoInterface → GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ isFIFO f γ OK KF }}
+  ∀ (f : Loc) (γ : FifoNames) (OK : GoInterface → IProp GF),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ isFIFO f γ OK }}
   <<{ ∀∀ q, fifoSt γ q }>>
     (App (Val (f @!! go.GoType.PointerType RealFIFO.ty @!! go!"HasSynced")) (Val #()))
     @@ ∅

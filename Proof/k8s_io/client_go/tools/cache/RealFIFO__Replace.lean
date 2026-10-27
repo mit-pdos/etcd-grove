@@ -31,7 +31,7 @@ theorem RealFIFO.Replace.wp_proof
     (wp_check : RealFIFO.checkSynced_locked.spec (GF := GF) (hG := hG))
     (wp_addr : RealFIFO.addReplaceToItemsLocked.spec (GF := GF) (hG := hG)) :
     RealFIFO.Replace.spec (GF := GF) (hG := hG) := by
-  intro f γ OK KF osl objs rv
+  intro f γ OK osl objs rv
   iintro %Φ ⟨#Hpkg, #Hf, Hosl, #Hok⟩ HAU
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit

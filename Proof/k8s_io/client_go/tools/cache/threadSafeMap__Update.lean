@@ -32,8 +32,8 @@ theorem threadSafeMap.Update.wp_proof
     (wp_parse : parseRVForMetricsWithTruncation.spec (GF := GF) (hG := hG))
     (wp_upd : threadSafeMap.updateLocked.spec (GF := GF) (hG := hG)) :
     threadSafeMap.Update.spec (GF := GF) (hG := hG) := by
-  intro c γ OK Fam rvOf key obj
-  iintro %Φ ⟨#Hpkg, #Hc, #Hacc, #HOK⟩ HAU
+  intro c γ OK Fam D rvOf key obj
+  iintro %Φ ⟨#Hpkg, #Hc, #Hacc, #HD, #HOK⟩ HAU
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   iunfold isTS at Hc
@@ -43,7 +43,7 @@ theorem threadSafeMap.Update.wp_proof
   wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
-  wp_apply wp_rv $$ [$Hacc $HOK] as %rv %rvErr %Hrv
+  wp_apply wp_rv $$ [$Hacc $HD] as %rv %rvErr %Hrv
   (try wp_auto)
   wp_apply wp_parse as %rvInt %parseErr _
   (try wp_auto)

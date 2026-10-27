@@ -29,17 +29,17 @@ def keyOfArg (obj : GoInterface) : Prop :=
   (∃ (d : Delta) (t : go.GoType) (w : val), obj = interface.mkOk Delta.ty #d ∧
     d.Object' = interface.mkOk t w ∧ t ≠ DeletedFinalStateUnknown.ty)
 
-/-- **`f.keyOf(obj)`**: for an object of a pointer type meeting the key function's contract, its
-key and no error; for a delta, some key and error (the key function returns on anything). -/
+/-- **`f.keyOf(obj)`**: for an object of a pointer type meeting the key function's contract, no
+error (`keyNoErr`: the FIFO discards the key); for a delta, some key and error (the key function returns on anything). -/
 abbrev RealFIFO.keyOf.spec : Prop :=
-  ∀ (f : Loc) (OK : GoInterface → IProp GF) (KF : GoInterface → GoString) (kf : GoFunc)
+  ∀ (f : Loc) (OK : GoInterface → IProp GF) (kf : GoFunc)
     (obj : GoInterface),
-  {{ f.[RealFIFO, go!"keyFunc"] ↦□ kf ∗ keyOk OK kf KF ∗ keyAny kf ∗ ⌜keyOfArg obj⌝ ∗
+  {{ f.[RealFIFO, go!"keyFunc"] ↦□ kf ∗ keyNoErr OK kf ∗ keyAny kf ∗ ⌜keyOfArg obj⌝ ∗
       (⌜∃ (t : go.GoType) (v : val), obj = interface.mkOk (go.GoType.PointerType t) v⌝ -∗ □ OK obj) }}
     (App (Val (f @!! go.GoType.PointerType RealFIFO.ty @!! go!"keyOf")) (Val #obj))
   {{ (k : GoString) (err : GoInterface), RET (PairV #k #err);
       ⌜(∃ (t : go.GoType) (v : val), obj = interface.mkOk (go.GoType.PointerType t) v) →
-        k = KF obj ∧ err = interface.nil⌝ }}
+        err = interface.nil⌝ }}
 
 end spec
 

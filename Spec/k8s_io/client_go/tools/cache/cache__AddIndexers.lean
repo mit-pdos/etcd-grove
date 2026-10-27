@@ -27,10 +27,10 @@ variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
 /-- **`ca.AddIndexers(nm)`**, logically atomic: `threadSafeMap.AddIndexers`'. -/
 abbrev cache.AddIndexers.spec : Prop :=
   ∀ (ca ts : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn)
-    (KF : GoInterface → GoString) (nm : Loc) (dn : DFrac) (nfv : GMap GoString GoFunc)
+    (kf : GoFunc) (nm : Loc) (dn : DFrac) (nfv : GMap GoString GoFunc)
     (nids : GMap GoString Nat),
   GMap.size nfv ≤ 2 ^ 62 →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ isCache ca ts γ OK Fam KF ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ isCache ca ts γ OK Fam kf ∗
       nm ↦${dn} nfv ∗ fnsOk OK nfv (GMap.fmap Fam nids) }}
   <<{ ∀∀ σ, storeSt γ σ }>>
     (App (Val (ca @!! go.GoType.PointerType k8s_io.client_go.tools.cache.cache.ty @!! go!"AddIndexers"))

@@ -23,12 +23,15 @@ variable [sem : go.Semantics]
 variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
 
 /-- **`c.Replace(list, rv)`**, logically atomic: the items become the list's objects by their
-keys (`keyedItems KF xs`: a later object at a key wins), the resource version `rv`. -/
+keys (`keyedItems KF xs`: a later object at a key wins), the resource version `rv`.
+The key function's contract is the call's (`keyOk D kf KF`, `D` covering the list's objects: `KF`
+needs to be right on them only). -/
 abbrev cache.Replace.spec : Prop :=
   ∀ (ca ts : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn)
-    (KF : GoInterface → GoString) (sl : GoSlice) (xs : List GoInterface) (rv : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ isCache ca ts γ OK Fam KF ∗
-      sl ↦* xs ∗ □ ([∗list] x ∈ xs, OK x) }}
+    (kf : GoFunc) (D : GoInterface → IProp GF) (KF : GoInterface → GoString)
+    (sl : GoSlice) (xs : List GoInterface) (rv : GoString),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ isCache ca ts γ OK Fam kf ∗
+      keyOk D kf KF ∗ sl ↦* xs ∗ □ ([∗list] x ∈ xs, D x) ∗ □ ([∗list] x ∈ xs, OK x) }}
   <<{ ∀∀ σ, storeSt γ σ }>>
     (App (App (Val (ca @!! go.GoType.PointerType k8s_io.client_go.tools.cache.cache.ty @!! go!"Replace")) (Val #sl)) (Val #rv))
     @@ ∅

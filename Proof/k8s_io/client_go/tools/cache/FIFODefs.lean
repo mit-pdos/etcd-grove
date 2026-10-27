@@ -169,6 +169,16 @@ def obsOk (h : HistogramMetric) : IProp GF :=
 instance obsOk_persistent (h : HistogramMetric) : Persistent (obsOk (GF := GF) h) := by
   cases h <;> unfold obsOk <;> infer_instance
 
+/-- **The key function's contract, as the FIFO needs it**: on an object meeting `OK`, no error (the
+FIFO discards the key: `addToItems_locked` only checks that the object has one). -/
+def keyNoErr (OK : GoInterface → IProp GF) (kf : GoFunc) : IProp GF :=
+  iprop(∀ o : GoInterface, {{ □ OK o }} (App (Val #kf) (Val #o))
+    {{ (k : GoString) (err : GoInterface), RET (PairV #k #err); ⌜err = interface.nil⌝ }})
+
+instance keyNoErr_persistent (OK : GoInterface → IProp GF) (kf : GoFunc) :
+    Persistent (keyNoErr (GF := GF) OK kf) := by
+  unfold keyNoErr; infer_instance
+
 /-- **The key function returns** on any object (its slow-queue trace keys a delta of any kind;
 `MetaNamespaceKeyFunc`'s accessor fails on a non-object, an error the trace ignores). -/
 def keyAny (kf : GoFunc) : IProp GF :=
@@ -180,11 +190,10 @@ instance keyAny_persistent (kf : GoFunc) : Persistent (keyAny (GF := GF) kf) := 
 
 /-- **The FIFO** (persistent): its fixed fields (the informers' configuration), the lock's guard
 over the token, the condition variable over the lock, the invariant. -/
-def isFIFO (f : Loc) (γ : FifoNames) (OK : GoInterface → IProp GF) (KF : GoInterface → GoString) :
-    IProp GF :=
+def isFIFO (f : Loc) (γ : FifoNames) (OK : GoInterface → IProp GF) : IProp GF :=
   iprop(∃ (ch : GoChan) (kf : GoFunc) (mp : Loc) (g : GaugeMetric) (h : HistogramMetric)
       (uwp : Bool) (idn : InformerNameAndResource),
-    f.[RealFIFO, go!"keyFunc"] ↦□ kf ∗ keyOk OK kf KF ∗
+    f.[RealFIFO, go!"keyFunc"] ↦□ kf ∗ keyNoErr OK kf ∗
     f.[RealFIFO, go!"transformer"] ↦□ func.nil ∗
     f.[RealFIFO, go!"emitAtomicEvents"] ↦□ true ∗
     f.[RealFIFO, go!"emitDeltaTypeBookmark"] ↦□ true ∗
@@ -202,8 +211,8 @@ def isFIFO (f : Loc) (γ : FifoNames) (OK : GoInterface → IProp GF) (KF : GoIn
 
 set_option synthInstance.maxSize 512 in
 set_option synthInstance.maxHeartbeats 400000 in
-instance isFIFO_persistent (f : Loc) (γ : FifoNames) (OK : GoInterface → IProp GF)
-    (KF : GoInterface → GoString) : Persistent (isFIFO (GF := GF) f γ OK KF) := by
+instance isFIFO_persistent (f : Loc) (γ : FifoNames) (OK : GoInterface → IProp GF) :
+    Persistent (isFIFO (GF := GF) f γ OK) := by
   unfold isFIFO; infer_instance
 
 theorem qp_one_add_false (q : Qp) (h : (1 : Qp) + q ≤ 1) : False := by

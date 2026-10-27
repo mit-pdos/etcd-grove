@@ -27,10 +27,10 @@ variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
 theorem cache.AddIndexers.wp_proof
     (wp_inner : threadSafeMap.AddIndexers.spec (GF := GF) (hG := hG)) :
     cache.AddIndexers.spec (GF := GF) (hG := hG) := by
-  intro ca ts γ OK Fam KF nm dn nfv nids hsz
+  intro ca ts γ OK Fam kf nm dn nfv nids hsz
   iintro %Φ ⟨#Hpkg, #Hca, Hnm, #Hfns⟩ HAU
   iunfold isCache at Hca
-  icases Hca with ⟨%kf, #Hcs, #Hkf, #Htr, #Hkey, #Hts⟩
+  icases Hca with ⟨#Hcs, #Hkf, #Htr, #Hts⟩
   wp_method_call
   wp_call
   wp_auto

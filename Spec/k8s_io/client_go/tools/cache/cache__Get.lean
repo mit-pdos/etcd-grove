@@ -22,11 +22,14 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
 
-/-- **`c.Get(obj)`**, logically atomic (a reader): the item at the object's key (`KF obj`). -/
+/-- **`c.Get(obj)`**, logically atomic (a reader): the item at the object's key (`KF obj`;
+the key function's contract is the call's, `keyOk D kf KF` with `D` covering `obj`). -/
 abbrev cache.Get.spec : Prop :=
   ∀ (ca ts : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn)
-    (KF : GoInterface → GoString) (obj : GoInterface),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ isCache ca ts γ OK Fam KF ∗ □ OK obj ∗ tsReader ts γ OK Fam }}
+    (kf : GoFunc) (D : GoInterface → IProp GF) (KF : GoInterface → GoString)
+    (obj : GoInterface),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ isCache ca ts γ OK Fam kf ∗ keyOk D kf KF ∗ □ D obj ∗
+      tsReader ts γ OK Fam }}
   <<{ ∀∀ σ, storeSt γ σ }>>
     (App (Val (ca @!! go.GoType.PointerType k8s_io.client_go.tools.cache.cache.ty @!! go!"Get")) (Val #obj))
     @@ ∅

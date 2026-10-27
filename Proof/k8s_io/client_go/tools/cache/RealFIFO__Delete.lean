@@ -31,7 +31,7 @@ theorem RealFIFO.Delete.wp_proof
     (wp_check : RealFIFO.checkSynced_locked.spec (GF := GF) (hG := hG))
     (wp_add : RealFIFO.addToItems_locked.spec (GF := GF) (hG := hG)) :
     RealFIFO.Delete.spec (GF := GF) (hG := hG) := by
-  intro f γ OK KF obj ty v
+  intro f γ OK obj ty v
   iintro %Φ ⟨#Hpkg, #Hf, #HOK, %hobj⟩ HAU
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
@@ -66,7 +66,7 @@ theorem RealFIFO.Delete.wp_proof
     simp only [FQ.addObj, syncsNow]; cases q.synced <;> simp
   rw [hsy]
   (try wp_auto)
-  wp_apply (wp_add f OK KF kf mp g _ go!"Deleted" false obj ty v sl vs)
+  wp_apply (wp_add f OK kf mp g _ go!"Deleted" false obj ty v sl vs)
     $$ [$Hpkg $Hkf $Hkey $Hkany $Htr $Hmp $Hg $Hgok $Hcond $HOK $Hitems $Hsl $Hcap]
     as ⟨%sl', Hitems, Hsl, Hcap⟩
   · ipureintro; exact hobj

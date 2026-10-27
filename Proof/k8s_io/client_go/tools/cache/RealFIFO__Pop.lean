@@ -72,7 +72,7 @@ theorem RealFIFO.Pop.wp_proof
     (wp_tlog : EtcdGrove.trace.Trace.LogIfLong.spec (GF := GF) (hG := hG))
     (wp_wpl : RealFIFO.whileProcessing_locked.spec (GF := GF) (hG := hG)) :
     RealFIFO.Pop.spec (GF := GF) (hG := hG) := by
-  intro f γ OK KF process Ψ Ψ' Ω
+  intro f γ OK process Ψ Ψ' Ω
   wp_start as ⟨#Hf, Hproc, HAU1, HAU2⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
@@ -199,7 +199,7 @@ theorem RealFIFO.Pop.wp_proof
     · -- the slow-queue trace
       icases Hds with ⟨Hd, Hds⟩
       ihave %hka := fdAt_keyOfArg OK d v $$ Hd
-      wp_apply (wp_keyOf f OK KF kf (interface.mkOk Delta.ty #v)) $$ [$Hkf $Hkey $Hkany]
+      wp_apply (wp_keyOf f OK kf (interface.mkOk Delta.ty #v)) $$ [$Hkf $Hkey $Hkany]
       · isplitr
         · ipureintro; exact hka
         iintro %h

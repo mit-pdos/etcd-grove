@@ -53,10 +53,10 @@ theorem keyedItems_mem (KF : GoInterface → GoString) (xs : List GoInterface) :
 theorem cache.Replace.wp_proof
     (wp_inner : threadSafeMap.Replace.spec (GF := GF) (hG := hG)) :
     cache.Replace.spec (GF := GF) (hG := hG) := by
-  intro ca ts γ OK Fam KF sl xs rv
-  iintro %Φ ⟨#Hpkg, #Hca, Hsl, #Hok⟩ HAU
+  intro ca ts γ OK Fam kf D KF sl xs rv
+  iintro %Φ ⟨#Hpkg, #Hca, #Hkey, Hsl, #HD, #Hok⟩ HAU
   iunfold isCache at Hca
-  icases Hca with ⟨%kf, #Hcs, #Hkf, #Htr, #Hkey, #Hts⟩
+  icases Hca with ⟨#Hcs, #Hkf, #Htr, #Hts⟩
   iunfold keyOk at Hkey
   wp_method_call
   wp_call
@@ -80,7 +80,7 @@ theorem cache.Replace.wp_proof
     simp only [show 0 ≤ sint.Z n ∧ sint.Z n < sint.Z sl.len from ⟨Hn.1, Hif⟩, and_self, ↓reduceIte]
     wp_apply wp_load_slice_index sl (sint.Z n) xs (DFrac.own 1) e Hn.1 $$ [Hsl] as Hsl
     · iframe; ipureintro; exact He
-    ihave #He := BigSepL.bigSepL_lookup (Φ := fun _ x => iprop(OK x)) He $$ Hok
+    ihave #He := BigSepL.bigSepL_lookup (Φ := fun _ x => iprop(D x)) He $$ HD
     wp_apply Hkey $$ [$He]
     iintro %k %err %hk
     obtain ⟨rfl, rfl⟩ := hk

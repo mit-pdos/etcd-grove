@@ -12,6 +12,7 @@ public import Proof.k8s_io.client_go.tools.cache.InformerNameAndResource__GroupV
 public import Proof.k8s_io.client_go.tools.cache.InformerNameAndResource__Name_ptr
 public import Proof.k8s_io.client_go.tools.cache.InformerNameAndResource__Reserved
 public import Proof.k8s_io.apimachinery.pkg.util.sets.KeySet
+public import Proof.k8s_io.client_go.tools.cache.ListAll
 public import Proof.k8s_io.client_go.tools.cache.NewThreadSafeStore
 public import Proof.k8s_io.client_go.tools.cache.ObjectName__String
 public import Proof.k8s_io.client_go.tools.cache.RealFIFO__Add
@@ -142,6 +143,18 @@ theorem sets.Set.wp_Insert :
 theorem sets.wp_KeySet :
     EtcdGrove.sets.KeySet.spec (GF := GF) (hG := hG) :=
   EtcdGrove.sets.KeySet.wp_proof sets.Set.wp_Insert
+
+theorem cache.threadSafeMap.wp_List :
+    EtcdGrove.cache.threadSafeMap.List.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cache.threadSafeMap.List.wp_proof
+
+theorem cache.cache.wp_List :
+    EtcdGrove.cache.cache.List.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cache.cache.List.wp_proof cache.threadSafeMap.wp_List
+
+theorem cache.wp_ListAll :
+    EtcdGrove.cache.ListAll.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cache.ListAll.wp_proof cache.cache.wp_List
 
 theorem cache.noopMetric.wp_Set :
     EtcdGrove.cache.noopMetric.Set.spec (GF := GF) (hG := hG) :=
@@ -394,14 +407,6 @@ theorem cache.threadSafeMap.wp_LastStoreSyncResourceVersion :
 theorem cache.cache.wp_LastStoreSyncResourceVersion :
     EtcdGrove.cache.cache.LastStoreSyncResourceVersion.spec (GF := GF) (hG := hG) :=
   EtcdGrove.cache.cache.LastStoreSyncResourceVersion.wp_proof cache.threadSafeMap.wp_LastStoreSyncResourceVersion
-
-theorem cache.threadSafeMap.wp_List :
-    EtcdGrove.cache.threadSafeMap.List.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.cache.threadSafeMap.List.wp_proof
-
-theorem cache.cache.wp_List :
-    EtcdGrove.cache.cache.List.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.cache.cache.List.wp_proof cache.threadSafeMap.wp_List
 
 theorem cache.threadSafeMap.wp_ListKeys :
     EtcdGrove.cache.threadSafeMap.ListKeys.spec (GF := GF) (hG := hG) :=

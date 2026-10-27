@@ -26,8 +26,8 @@ variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
 /-- **`c.ByIndex(n, v)`**, logically atomic (a reader): `threadSafeMap.ByIndex`'s result. -/
 abbrev cache.ByIndex.spec : Prop :=
   ∀ (ca ts : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn)
-    (KF : GoInterface → GoString) (n v : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ isCache ca ts γ OK Fam KF ∗ tsReader ts γ OK Fam }}
+    (kf : GoFunc) (n v : GoString),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ isCache ca ts γ OK Fam kf ∗ tsReader ts γ OK Fam }}
   <<{ ∀∀ σ, storeSt γ σ }>>
     (App (App (Val (ca @!! go.GoType.PointerType k8s_io.client_go.tools.cache.cache.ty @!! go!"ByIndex")) (Val #n)) (Val #v))
     @@ ∅

@@ -24,14 +24,14 @@ variable [sem : go.Semantics]
 variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
 
 /-- **`c.Update(key, obj)`**, logically atomic, for an object meeting `OK` (with the accessor's
-contract `rvAcc`): the items have `obj` at `key`, and the store's resource version becomes the
+contract `rvAcc D rvOf` for the call's object, `D obj`): the items have `obj` at `key`, and the store's resource version becomes the
 object's if its accessor has one (`rvOf obj`), whatever it was: **the resource version is not
 kept monotone by the store**; it is the last written object's. -/
 abbrev threadSafeMap.Update.spec : Prop :=
   ∀ (c : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn)
-    (rvOf : GoInterface → Option GoString) (key : GoString) (obj : GoInterface),
+    (D : GoInterface → IProp GF) (rvOf : GoInterface → Option GoString) (key : GoString) (obj : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ isTS c γ OK Fam ∗
-      rvAcc OK rvOf ∗ □ OK obj }}
+      rvAcc D rvOf ∗ □ D obj ∗ □ OK obj }}
   <<{ ∀∀ σ, storeSt γ σ }>>
     (App (App (Val (c @!! go.GoType.PointerType threadSafeMap.ty @!! go!"Update")) (Val #key))
       (Val #obj))

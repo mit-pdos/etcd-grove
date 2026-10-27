@@ -400,7 +400,8 @@ axiom FinalizerDeleteDependents [FfiSyntax] [GoGlobalContext] : val
 
 axiom NamespaceDefault [FfiSyntax] [GoGlobalContext] : val
 
-axiom NamespaceAll [FfiSyntax] [GoGlobalContext] : val
+@[reducible] noncomputable def NamespaceAll [FfiSyntax] [GoGlobalContext] : val :=
+  #(go!"")
 
 axiom NamespaceNone [FfiSyntax] [GoGlobalContext] : val
 

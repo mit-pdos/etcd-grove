@@ -55,6 +55,8 @@ namespace k8scache
 #print axioms cache.threadSafeMap.wp_GetIndexers
 #print axioms cache.cache.wp_AddIndexers
 #print axioms cache.cache.wp_GetIndexers
+-- the listers' paths through the store (phase 4)
+#print axioms cache.wp_ListAll
 -- the informers' FIFO (`RealFIFO`, atomic events; phase 4)
 #print axioms cache.RealFIFO.wp_Add
 #print axioms cache.RealFIFO.wp_Update

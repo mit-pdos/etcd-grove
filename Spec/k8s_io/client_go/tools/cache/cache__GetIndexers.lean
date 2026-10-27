@@ -26,8 +26,8 @@ variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
 /-- `ca.GetIndexers()`: the store's indexers' map `γ.im` (shared, read without the lock). -/
 abbrev cache.GetIndexers.spec : Prop :=
   ∀ (ca ts : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn)
-    (KF : GoInterface → GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ isCache ca ts γ OK Fam KF }}
+    (kf : GoFunc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ isCache ca ts γ OK Fam kf }}
     (App (Val (ca @!! go.GoType.PointerType k8s_io.client_go.tools.cache.cache.ty @!! go!"GetIndexers"))
       (Val #()))
   {{ RET #γ.im; True }}

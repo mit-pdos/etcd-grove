@@ -27,7 +27,7 @@ variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
 
 theorem RealFIFO.Bookmark.wp_proof :
     RealFIFO.Bookmark.spec (GF := GF) (hG := hG) := by
-  intro f γ OK KF rv
+  intro f γ OK rv
   iintro %Φ ⟨#Hpkg, #Hf⟩ HAU
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit

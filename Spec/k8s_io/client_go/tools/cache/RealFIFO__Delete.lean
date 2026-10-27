@@ -25,9 +25,9 @@ variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
 /-- **`f.Delete(obj)`**, logically atomic, for an object meeting the client's contract whose
 dynamic type is a pointer type (the watch's objects): `FQ.addObj "Deleted" obj`. -/
 abbrev RealFIFO.Delete.spec : Prop :=
-  ∀ (f : Loc) (γ : FifoNames) (OK : GoInterface → IProp GF) (KF : GoInterface → GoString)
+  ∀ (f : Loc) (γ : FifoNames) (OK : GoInterface → IProp GF)
     (obj : GoInterface) (ty : go.GoType) (v : val),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ isFIFO f γ OK KF ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ isFIFO f γ OK ∗
       □ OK obj ∗ ⌜obj = interface.mkOk (go.GoType.PointerType ty) v⌝ }}
   <<{ ∀∀ q, fifoSt γ q }>>
     (App (Val (f @!! go.GoType.PointerType RealFIFO.ty @!! go!"Delete")) (Val #obj))

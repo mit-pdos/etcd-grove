@@ -26,8 +26,8 @@ variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
 none). Needs one of the store lock's reader slots. -/
 abbrev cache.GetByKey.spec : Prop :=
   ∀ (ca ts : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn)
-    (KF : GoInterface → GoString) (key : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ isCache ca ts γ OK Fam KF ∗ tsReader ts γ OK Fam }}
+    (kf : GoFunc) (key : GoString),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ isCache ca ts γ OK Fam kf ∗ tsReader ts γ OK Fam }}
   <<{ ∀∀ σ, storeSt γ σ }>>
     (App (Val (ca @!! go.GoType.PointerType k8s_io.client_go.tools.cache.cache.ty @!! go!"GetByKey")) (Val #key))
     @@ ∅

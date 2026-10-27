@@ -25,9 +25,9 @@ variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
 /-- **`f.Replace(objs, rv)`**, logically atomic (atomic events): `FQ.replace`; the list's
 slice, with its objects' contracts, moves into the queue. -/
 abbrev RealFIFO.Replace.spec : Prop :=
-  ∀ (f : Loc) (γ : FifoNames) (OK : GoInterface → IProp GF) (KF : GoInterface → GoString)
+  ∀ (f : Loc) (γ : FifoNames) (OK : GoInterface → IProp GF)
     (osl : GoSlice) (objs : List GoInterface) (rv : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ isFIFO f γ OK KF ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ isFIFO f γ OK ∗
       osl ↦* objs ∗ □ ([∗list] o ∈ objs, OK o) }}
   <<{ ∀∀ q, fifoSt γ q }>>
     (App (App (Val (f @!! go.GoType.PointerType RealFIFO.ty @!! go!"Replace")) (Val #osl))

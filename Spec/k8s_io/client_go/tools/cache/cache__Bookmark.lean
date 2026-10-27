@@ -25,8 +25,8 @@ variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
 /-- **`c.Bookmark(rv)`**, logically atomic: the resource version set. -/
 abbrev cache.Bookmark.spec : Prop :=
   ∀ (ca ts : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn)
-    (KF : GoInterface → GoString) (rv : GoString),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ isCache ca ts γ OK Fam KF }}
+    (kf : GoFunc) (rv : GoString),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ isCache ca ts γ OK Fam kf }}
   <<{ ∀∀ σ, storeSt γ σ }>>
     (App (Val (ca @!! go.GoType.PointerType k8s_io.client_go.tools.cache.cache.ty @!! go!"Bookmark")) (Val #rv))
     @@ ∅
