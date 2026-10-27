@@ -989,10 +989,12 @@ theorem NewServer.wp_proofM (on : Bool)
   ihave #Hst : trState γn t c $$ [Htlive]
   · iunfold trLive at Htlive; icases Htlive with ⟨#H, -⟩; iexact H
   imod (trOpen_state γn t c) $$ Hst Hun with #Hop
-  have HcLnd : c.L.Nodup := by rw [HcL]; exact HLnd
+  have HcLnd : c.L.Nodup := by rw [HcL]; exact Hrnodup.filter _
+  have HcLm : ∀ f, f ∈ c.L ↔ f ∈ ps ∧ f ≠ id := by
+    intro f; rw [HcL, List.mem_filter]; simp
   have HcLcov : ∀ f ∈ c.L, f ∈ L := by
     intro f hf
-    rw [HcL, HLmem] at hf
+    rw [HcLm] at hf
     apply Hcov f _ hf.2
     rw [netRh_member, Hγn.2]; exact (Hdirps.1 f).2 hf.1
   ihave Hnrs := trNoRemAcc_full c L HcLnd HcLcov $$ Hnr
@@ -1242,7 +1244,7 @@ theorem NewServer.wp_proofM (on : Bool)
     iframe Hst Hop
     ipureintro
     intro f hf hne
-    rw [HcL, HLmem]
+    rw [HcLm]
     refine ⟨?_, hne⟩
     rw [netRh_member, Hγn.2] at hf
     exact (Hdirps.1 f).1 hf

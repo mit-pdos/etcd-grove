@@ -52,7 +52,12 @@ links: []
   so `AddRemote` returns before `NewURLs` (`AddRemote_frozen`); on a live transport
   (`AddRemote_core`, `Proof/.../api/rafthttp/TransportAdd.lean`) the URL strings are a premise
   (non-empty, plain, owned by the id). The dynamic mode's handler (M8) needs the raft protocol to
-  carry that fact of the `X-PeerURLs` header of a request from another member.
+  carry that fact of the `X-PeerURLs` header of a request from another member. (2026-10-27, D22
+  J-T: done; the transport is live in the static mode too, and the raft protocol, `fromOkAt` and
+  `streamReq`, says a member's `X-PeerURLs` is its directory URLs, which `setPeerURLsHeader`
+  proves of the sender; so a member's request never reaches the panic. A request from outside the
+  cluster is outside the model, which registers the peer port's protocol for members only, so the
+  issue stands for etcd's real network.)
 - **Possible fixes**: in `AddRemote`, log and return on a `NewURLs` error instead of
   `Logger.Panic` (the remote is only an optimization for answering a not-yet-peer).
 - **Found**: 2026-10-26, D43 M5c (the handlers' `AddRemote` on a live transport).

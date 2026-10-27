@@ -611,7 +611,9 @@ theorem applySnapshot_walk
   · iPkgInit
   -- (D22 J-T) the peers' no-remote facts go back to the transport; four of each peer's `R`s come
   -- back (dropped here: the `AddPeer`s below take the premise's eight each)
-  icases Htlive with ⟨Htlive, %Q, %HQ, Htks⟩
+  icases Htlive with ⟨Htlive, Hpnr⟩
+  iunfold trPeersNoRem at Hpnr
+  icases Hpnr with ⟨%Q, %HQ, Htks⟩
   wp_apply hRAP γn t c rs Q HQ.1 HQ.2 $$ [Htlive Htks] as ⟨Htlive, -⟩
   · iframe #; iframe
   (try wp_auto)

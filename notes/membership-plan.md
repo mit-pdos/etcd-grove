@@ -287,6 +287,13 @@ the requests in flight finish (`ErrStopped`). *(B)* Also `Stop`/`HardStop` from 
   (replacing the contracts `configureRemoveOk`, `mayRemoveOk`): the proposal through
   `node.ProposeConfChange` (proved), the wait registry, `ErrStopped`; the client's `MemberRemove`
   and the gRPC `ClusterServer.MemberRemove` (translate or contract, decided in M0).
+- *Note from the snapshot track (2026-10-27, D22 J-T; decided by the orchestrator while the user was
+  away):* J-T unfroze the static server's transport (pool `L` = the other members, the no-remote
+  tokens, the opening flag, W8's `X-PeerURLs` in the protocol; `notes/decisions.md`, "D22 J-T").
+  For the dynamic mode it added `c.L = []` to `ccMembRes`'s dynamic branch, so `RemovePeer` there
+  needs no no-remote token; M8's dynamic `NewServer` is to restate that branch (a pool for the
+  members a handler may add a remote for, with the tokens of the peers it removes: `RemovePeer`
+  takes `⌜id ∉ rs⌝ ∨ trNoRemOr c id`).
 - **M8. The example and its closed theorem.** A three-member cluster, a client that writes, removes
   one member (another member, then the variant removing the leader or the client's own endpoint),
   and keeps writing and reading; its safety the KV model's (as putget3's), with the removed
