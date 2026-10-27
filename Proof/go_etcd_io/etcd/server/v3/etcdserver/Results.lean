@@ -1759,6 +1759,36 @@ theorem server_apply_entry_normal_on :
     zap.wp_Error go_humanize.wp_Bytes zap.Logger.wp_Warn EtcdServer.wp_GoAttach
     EtcdServer.wp_MemberID
 
+/-- **The apply loop over a batch with auth on** (the auth plan's E3p, `EtcdServer__apply.lean`'s
+`wp_proofOn`): each entry through `server_apply_entry_normal_on` (its admin step's time receipt from
+the iteration's Go steps), each conf change through `applyConfChange`; the apply thread after the
+batch at the mode-`on` model of the committed log (`kvAppliedOn`). -/
+theorem server_apply_on :
+    EtcdServer.apply.specOn (GF := GF) (hG := hG) :=
+  EtcdServer.apply.wp_proofOn zap.Logger.wp_Debug zap.wp_Int' zap.wp_Uint64 zap.wp_Stringer
+    consistentIndex.wp_ConsistentIndex consistentIndex.wp_SetConsistentApplyingIndex
+    consistentIndex.wp_SetConsistentIndex raftpb.Entry.wp_GetIndex raftpb.Entry.wp_GetTerm
+    raftpb.Entry.wp_GetType server_apply_entry_normal_on
+    (EtcdServer.setAppliedIndex.wp_proofM true) (EtcdServer.setTerm.wp_proofM true)
+    pbutil.wp_MustUnmarshalMessage EtcdServer.wp_applyConfChange raftpb.ConfChange.wp_GetId
+    membership.RaftCluster.wp_Members
+
+/-- **`applyEntries` with auth on** (the auth plan's E3p): the batch's unapplied entries through
+`server_apply_on`. -/
+theorem server_apply_entries_on :
+    EtcdServer.applyEntries.specOn (GF := GF) (hG := hG) :=
+  EtcdServer.applyEntries.wp_proofOn raftpb.Entry.wp_GetIndex server_apply_on
+
+/-- **`applyAll` with auth on** (the auth plan's E3p): the batch through `server_apply_entries_on`,
+the snapshot and compaction with the mode-`on` applier row (`snapshot`'s contract over the part
+both rows share, `srvApplyKVCore`). -/
+theorem server_apply_all_on [EtcdGrove.ErrorStringLeaf] :
+    EtcdServer.applyAll.specOn (GF := GF) (hG := hG) :=
+  EtcdServer.applyAll.wp_proofOn EtcdServer.wp_applySnapshot server_apply_entries_on
+    EtcdServer.wp_Backend EtcdServer.wp_Logger backend.wp_VerifyBackendConsistency
+    (EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proofOn EtcdServer.wp_shouldSnapshotToDisk
+      EtcdServer.wp_shouldSnapshotToMemory EtcdServer.wp_snapshot EtcdServer.wp_compactRaftLog)
+
 end adminLatest
 
 /-- **A refused admin check keeps the model's auth state; a passed one admits the principal** (the
@@ -1788,6 +1818,9 @@ theorem admin_state_auth_enable [ext : FfiSyntax] (γa : auth.AuthNames) (rq : E
 #print axioms Perennial.EtcdGrove.apply_apply_admin_latest
 #print axioms Perennial.EtcdGrove.server_admin_entry_on
 #print axioms Perennial.EtcdGrove.server_apply_entry_normal_on
+#print axioms Perennial.EtcdGrove.server_apply_on
+#print axioms Perennial.EtcdGrove.server_apply_entries_on
+#print axioms Perennial.EtcdGrove.server_apply_all_on
 #print axioms Perennial.EtcdGrove.admin_state_of_latest
 
 section userAddHandler

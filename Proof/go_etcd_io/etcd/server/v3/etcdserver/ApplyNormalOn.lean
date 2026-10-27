@@ -25,6 +25,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ApplyEntryOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AppliedOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ApplyTieOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.UberOn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ApplyKVCore
 
 @[expose] public section
 
@@ -336,6 +337,29 @@ theorem kvEntryOn_nodata (c₀ : w64) (ch : apply.Chain) (s : auth.AuthState × 
   unfold kvEntryOn
   rw [if_neg (fun h => h.2 hd), kvEntry_nonwrite c₀ ch [] s.2 m (Or.inl hd)]
 
+
+/-- **An entry's premise in the mode `on` at a small log, from its shape** (`entryOk_of_shape`'s, for
+the apply loop with auth on): a plain request's as there, an admitted admin request's from the
+chain's mode (`authEnable` dispatchable only with auth on). -/
+theorem entryOkOn_of_shape (x : apply.ApplyKV) (m : EntryModel) (hs : entryShapeOn m)
+    (ht : m.typ = W32 0) (hl : x.log.length ≤ mvcc.logCh x.log + 2)
+    (hc : mvcc.logCh x.log < 2 ^ 48) (ha : x.chain.authOn = true) : entryOkOn x m := by
+  rcases hs.1 ht with hd | ⟨rq, hdec, hid, hsh⟩
+  · exact Or.inl hd
+  · refine Or.inr ⟨rq, hdec, hid, ?_⟩
+    rcases hsh with hsh | hadm
+    · exact ⟨Or.inl (hsh.2 x.log (rqSmall_of_small x.log rq hl hc)), hsh.1 _⟩
+    · refine ⟨Or.inr hadm, ?_, ?_, fun _ => ha⟩
+      · intro h; unfold apply.adminKindOk at hadm; rw [h] at hadm; exact hadm
+      · intro h; unfold apply.adminKindOk at hadm; rw [h] at hadm; exact hadm
+
+
+/-- A conf change leaves the mode-`on` model's state. -/
+theorem kvEntryOn_cc (c₀ : w64) (ch : apply.Chain) (s : auth.AuthState × mvcc.Log)
+    (m : EntryModel) (ht : m.typ ≠ W32 0) : kvEntryOn c₀ ch s m = s := by
+  unfold kvEntryOn
+  rw [if_neg (fun h => ht h.1), kvEntry_nonwrite c₀ ch [] s.2 m (Or.inr (Or.inl ht))]
+
 end pure
 
 section lemmas
@@ -437,6 +461,35 @@ theorem kvAppliedLOn_cert (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.A
   · iunfold kvAppliedLOn; iframe HB Hhi Hc; ipureintro; exact Hl
   iframe Hc
   ipureintro; exact Hl
+
+
+/-- **No registration in the mode `on` either** (a conf change's id: `entryWaitOk`'s refutation of
+`reqWaitR`, at `reqWaitRM on`: the same claim, at the mode-off result). -/
+theorem reqWaitRM_none (on : Bool) (ρ : ReqNames) (E : apply.AEnv GF) (id : w64) :
+    (□ ∀ Ψ, reqWaitR (GF := GF) ρ E id Ψ -∗ False) ⊢ □ ∀ Ψ, reqWaitRM on ρ E id Ψ -∗ False := by
+  iintro #H
+  imodintro
+  iintro %Ψ HR
+  iunfold reqWaitRM at HR
+  icases HR with ⟨%d, %rq, %γf, %F, Hc, Hf, %Hp⟩
+  iapply H $$ %(resultΨ E ρ rq F)
+  iunfold reqWaitR
+  iexists d, rq, γf, F
+  iframe Hc Hf
+  ipureintro; exact ⟨Hp.1, rfl, Hp.2.2⟩
+
+/-- The member's registry, from the server's view in the mode (`isServer_waitIs`'s). -/
+theorem isServerM_waitIs (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc)
+    (TM : MetaCI → IProp GF) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) :
+    isServerM (GF := GF) on s γ ci TM E ρ γr ⊢ idWaitIs ρ.ids ρ.ids.pfx ρ.wait := by
+  iintro #H
+  iunfold isServerM at H
+  icases H with ⟨-, -, ⟨%v, #Hf⟩, -⟩
+  iunfold srvFieldsAtM at Hf
+  icases Hf with ⟨-, -, -, #Hwi, -⟩
+  iunfold waitInvM at Hwi
+  icases Hwi with ⟨-, #Hn⟩
+  iexact Hn
 
 end lemmas
 
@@ -546,6 +599,169 @@ theorem srvApplyKVOn_idxCert (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : ap
     iexact Hw
   iframe Hc
   ipureintro; exact Ha
+
+
+/-- `srvApplyKVOn`'s backend ownership, lent (`srvApplyKV_beOwn`'s). -/
+theorem srvApplyKVOn_beOwn (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV)
+    (st : auth.AuthState) :
+    srvApplyKVOn (GF := GF) s E γw x st ⊢
+      srvBeOwn s E ∗ (srvBeOwn s E -∗ srvApplyKVOn s E γw x st) := by
+  iintro H
+  iunfold srvApplyKVOn at H
+  icases H with ⟨%ua, Hua, #Hb, #Hap, Hkv, Hbo, Hrest⟩
+  iframe Hbo
+  iintro Hbo
+  iunfold srvApplyKVOn
+  iexists ua
+  isplitl [Hua]
+  · iexact Hua
+  isplitr
+  · iexact Hb
+  isplitr
+  · iexact Hap
+  isplitl [Hkv]
+  · iexact Hkv
+  isplitl [Hbo]
+  · iexact Hbo
+  iexact Hrest
+
+/-- **One write token, the count raised by one, with auth on** (`srvWTPool_take_n`'s). -/
+theorem srvWTPool_take_nOn (s : Loc) (E : apply.AEnv GF) (γp γw : GName) (x : apply.ApplyKV)
+    (st : auth.AuthState) (n : Nat) :
+    ⊢ srvWTPool (GF := GF) E γp -∗ ⧗ 1 -∗ srvWTTaken γp n -∗ srvApplyKVOn s E γw x st ={⊤}=∗
+      mvcc.storeWT E.γ ∗ srvWTTaken γp (n + 1) ∗ srvApplyKVOn s E γw x st := by
+  iintro #Hp Hr #Hv HKV
+  icases srvApplyKVOn_beOwn s E γw x st $$ HKV with ⟨Hbo, HKV⟩
+  icases srvBeOwn_frag s E $$ Hbo with ⟨%d, %Hd, Hg, Hbo⟩
+  unfold srvWTPool
+  iinv Hp with ⟨%a, %m, %d', >Ha, >Hg', >Hn, >Hc, >%Hb, Hrt⟩ Hclose
+  ihave %Hdd := dghostVar_agree E.γbe d _ d' _ $$ Hg Hg'
+  subst Hdd
+  unfold srvWTTaken
+  icases monoNatLbOwn_valid γp 1 a n $$ Hc Hv with %Hva
+  replace Hva := Hva.2
+  icases receipt_add_one_lt a $$ [Hr Ha] with ⟨%Hlt, Ha⟩
+  · iframe
+  obtain ⟨m', rfl⟩ : ∃ m', m = m' + 1 := ⟨m - 1, by omega⟩
+  icases wbToks_split d m' $$ Hn with ⟨Ht, Hn⟩
+  imod mono_nat_own_update (a + 1) (by omega) $$ Hc with ⟨Hc, #Hlb⟩
+  imod Hclose $$ [Ha Hg' Hn Hc Hrt] with -
+  · inext
+    iexists a + 1, m', d
+    iframe Ha Hg' Hn Hc Hrt
+    ipureintro; omega
+  ihave Hbo := Hbo $$ Hg
+  ihave HKV := HKV $$ Hbo
+  imodintro
+  iframe HKV
+  isplitl [Ht]
+  · iapply storeWT_of_wbTok E.γ d Hd $$ Ht
+  iapply monoNatLbOwn_le (n + 1) (by omega) $$ Hlb
+
+/-- **The apply thread's KV log is small, with auth on** (`srvApplyKV_small`'s). -/
+theorem srvApplyKVOn_small (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV)
+    (st : auth.AuthState) :
+    srvApplyKVOn (GF := GF) s E γw x st ⊢
+      ⌜x.log.length ≤ mvcc.logCh x.log + 2 ∧ mvcc.logCh x.log < 2 ^ 48⌝ ∗
+        srvApplyKVOn s E γw x st := by
+  apply persistent_entails_right
+  iintro H
+  iunfold srvApplyKVOn at H
+  icases H with ⟨%ua, -, -, -, Hkv, -⟩
+  iunfold apply.applyKV at Hkv
+  icases Hkv with ⟨%p, -, -, Hk⟩
+  iunfold apply.kvOwn at Hk
+  icases Hk with ⟨-, Hsw, -⟩
+  iunfold txn.kvWriter at Hsw
+  icases Hsw with ⟨Hsw, -⟩
+  iapply txn.soleWriter_small' $$ Hsw
+
+/-- **The uber-applier and the store's reader's token, lent, with auth on** (`srvApplyKV_ua_rt`'s,
+for `applyConfChange`). -/
+theorem srvApplyKVOn_ua_rt (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV)
+    (st : auth.AuthState) :
+    srvApplyKVOn (GF := GF) s E γw x st ⊢ ∃ ua : GoInterface, srvUberApplyAddr s ↦ ua ∗
+      apply.applierFor ua E ∗ mvcc.storeRT E.γ ∗
+      (srvUberApplyAddr s ↦ ua -∗ mvcc.storeRT E.γ -∗ srvApplyKVOn s E γw x st) := by
+  iintro H
+  iunfold srvApplyKVOn at H
+  icases H with ⟨%ua, Hua, #Hb, #Hap, Hkv, Hbo, Hrest⟩
+  iunfold apply.applyKV at Hkv
+  icases Hkv with ⟨%p, %Hp, Hu, Ho⟩
+  iunfold apply.kvOwn at Ho
+  icases Ho with ⟨Hsr, Hsw, Hll, Hrd, Hwo⟩
+  icases mvcc.writerOwn_rt E.γ $$ Hwo with ⟨Hrt, Hwo⟩
+  iexists ua
+  iframe Hua Hrt
+  isplitr
+  · iexact Hap
+  iintro Hua Hrt
+  ihave Hwo := Hwo $$ Hrt
+  iunfold srvApplyKVOn
+  iexists ua
+  isplitl [Hua]
+  · iexact Hua
+  isplitr
+  · iexact Hb
+  isplitr
+  · iexact Hap
+  isplitl [Hu Hsr Hsw Hll Hrd Hwo]
+  · iunfold apply.applyKV
+    iexists p
+    iframe Hu
+    isplitr
+    · ipureintro; exact Hp
+    iunfold apply.kvOwn
+    iframe
+  isplitl [Hbo]
+  · iexact Hbo
+  iexact Hrest
+
+
+/-- **The mode-`on` row lends its part shared with the mode-off row** (`srvApplyKV_core`'s; E3p, for
+`snapshot`). -/
+theorem srvApplyKVOn_core (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV)
+    (st : auth.AuthState) :
+    srvApplyKVOn (GF := GF) s E γw x st ⊢
+      ∃ ua, srvApplyKVCore s E γw x ua ∗
+        (srvApplyKVCore s E γw x ua -∗ srvApplyKVOn s E γw x st) := by
+  iintro H
+  iunfold srvApplyKVOn at H
+  icases H with ⟨%ua, Hua, #Hb, #Hap, Hkv, Hbo, Hra, Har, Hw⟩
+  iexists ua
+  isplitl [Hua Hkv Hbo Hra Hw]
+  · iunfold srvApplyKVCore
+    isplitl [Hua]
+    · iexact Hua
+    isplitr
+    · iexact Hap
+    isplitl [Hkv]
+    · iexact Hkv
+    isplitl [Hbo]
+    · iexact Hbo
+    isplitl [Hra]
+    · iexact Hra
+    iexact Hw
+  iintro Hc
+  iunfold srvApplyKVCore at Hc
+  icases Hc with ⟨Hua, -, Hkv, Hbo, Hra, Hw⟩
+  iunfold srvApplyKVOn
+  iexists ua
+  isplitl [Hua]
+  · iexact Hua
+  isplitr
+  · iexact Hb
+  isplitr
+  · iexact Hap
+  isplitl [Hkv]
+  · iexact Hkv
+  isplitl [Hbo]
+  · iexact Hbo
+  isplitl [Hra]
+  · iexact Hra
+  isplitl [Har]
+  · iexact Har
+  iexact Hw
 
 end row
 

@@ -24,8 +24,9 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-theorem EtcdServer.setAppliedIndex.wp_proof :
-    EtcdServer.setAppliedIndex.spec (GF := GF) (hG := hG) := by
+/-- In either auth mode (E3p): the invariant's body is the mode's (`srvAppliedBodyM`). -/
+theorem EtcdServer.setAppliedIndex.wp_proofM (on : Bool) :
+    EtcdServer.setAppliedIndex.specM (GF := GF) (hG := hG) on := by
   intro s E γr v v' L
   wp_start as ⟨#Hinv, Hpre, #Hc⟩
   iunfold srvAppliedPre at Hpre
@@ -36,12 +37,12 @@ theorem EtcdServer.setAppliedIndex.wp_proof :
   wp_apply_core sync.atomic.Uint64.wp_Store (srvAppliedIndexAddr s) v' $$ [] [HΦ Hown Hpo]
   · iexact Hatomic
   ihave #Hinv' := Hinv
-  iunfold srvAppliedInv at Hinv'
+  iunfold srvAppliedInvM at Hinv'
   iinv Hinv' with Hi Hclose
   iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
   iintro Hmask
   inext
-  iunfold srvAppliedBody at Hi
+  iunfold srvAppliedBodyM at Hi
   icases Hi with ⟨%vat, %v0, %L0, %M, %p, Hv, Hauth, HM, Hp, %HMk, #HL0, #Hc0, #Hkl⟩
   iexists vat
   iframe Hv
@@ -60,7 +61,7 @@ theorem EtcdServer.setAppliedIndex.wp_proof :
   imod ghostVar_update_halves false γr.pend true true $$ Hpo Hp with ⟨Hpo, Hp⟩
   imod Hclose $$ [Hv Hauth HM Hp] with -
   · inext
-    iunfold srvAppliedBody
+    iunfold srvAppliedBodyM
     iexists v', v', L, M, false
     iframe Hv Hauth HM Hp Hc HLv' Hkl
     ipureintro
@@ -75,6 +76,10 @@ theorem EtcdServer.setAppliedIndex.wp_proof :
   iframe Hown Hpo
   iunfold appliedAtLeast
   iframe Hlb HLv'
+
+theorem EtcdServer.setAppliedIndex.wp_proof :
+    EtcdServer.setAppliedIndex.spec (GF := GF) (hG := hG) :=
+  EtcdServer.setAppliedIndex.wp_proofM false
 
 end proof
 

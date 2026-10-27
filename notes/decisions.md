@@ -23286,3 +23286,53 @@ post), `commitOkOn_plain` (`irrNoZeroEnd`). New: `entryOkOn`, `EtcdServer.applyE
 published lower bound `authPublishT` at the apply thread's admin steps is not in `specOn`'s post and
 is for them); then the admin proposers over `raftRequest.specM true`, the Auth handlers,
 `setupAuthOk`; then `examples/authkv` and the closed theorem.
+
+## E3p of the auth plan: the apply loop with auth on; `snapshot`'s contract over the row's shared part (2026-10-27 · `notes/auth-plan.md`, E3o's first left item)
+
+`EtcdServer.apply.specOn`, `applyEntries.specOn`, `applyAll.specOn` (each spec file, next to `spec`)
+and their proofs `wp_proofOn` (next to `wp_proof`, by the same edits of the mode-off proof: E3o's
+precedent); restated `server_apply_on`, `server_apply_entries_on`, `server_apply_all_on`
+(`Results.lean`, every callee linked, no `sorry`). Each takes, beside `spec`'s, the server with auth
+on (`isServerM true`, the environment's mode `on γa`), the server's lessor finding no lease
+(`srvLessorNil`), the receipts' bound (`receiptBound GF ≤ 2^48`), the batch of the mode-`on` log's
+shapes (`logShapeOn`: an admitted admin request too), the applier row at the model's auth state `sa`
+(`srvApplyKVOn`) and the apply thread at the mode-`on` model (`kvAppliedOn … srvAuthSt0`); after the
+batch, at the model's state after it (some `sa'`).
+
+- **Each entry's premise** (`entryOkOn`, `applyEntryNormal.specOn`'s): `entryOkOn_of_shape`, from
+  `logShapeOn` at the small log (`srvApplyKVOn_small`) and the chain's mode (an admitted
+  `authEnable` is dispatchable only with auth on: `srvApplyKVOn_idxCert`'s `x.chain.authOn =
+  E.authOn`).
+- **Each entry's time receipt for its admin step** (`applyEntryNormal.specOn`'s `⧗ 1`): the loop's
+  iteration takes a second receipt at a Go step (the zero value of `index`'s allocation,
+  `wp_go_step_receipt'`), beside D19b's for the write token (`srvWTPool_take_nOn`).
+- **A conf change with auth on**: the model's state kept (`kvEntryOn_cc`), the step through
+  `kv_applied_step_on`/`kvApplied_nextOn`/`applied_predepositM true`; its `Trigger` meets no
+  registration in the mode either (`reqWaitRM_none` from `entryWaitOk`'s refutation);
+  `applyConfChange` gets the applier as before (`srvApplyKVOn_ua_rt`).
+- **Callees in either mode**: `setAppliedIndex.specM on` (the applied index's invariant over the
+  mode's model, `srvAppliedInvM`) and `setTerm.specM on` (`srvAtomicsM`), each `wp_proofM`, with
+  `spec`/`wp_proof` its instance at `false` (by definition); `snapshotIfNeededAndCompactRaftLog.specOn`.
+
+**`EtcdServer.snapshot`'s contract restated** (an axiom, the trust boundary; count unchanged): it took
+and gave back the whole mode-off row `srvApplyKV`, whose auth part (`srvAuthApplyRes`) the mode-`on`
+row does not have (`srvAuthApplyResB`, with the history's latest state, which a rebuilt row could not
+recover). It now takes `srvApplyKVCore s E γw x ua` (`ApplyKVCore.lean`): the row without the auth
+store's apply-side resource -- the uber-applier at the field, its applier facts, the KV writer, the
+backend's ownership, the minted revisions and the wait -- which both rows lend (`srvApplyKV_core`,
+`srvApplyKVOn_core`). The contract asks less than before (stronger as a statement), by exactly the
+auth resource: Go's `snapshot` (`server.go`) commits the KV (`s.KV().Commit()`), creates the raft
+snapshot and saves it; it calls nothing of the auth store (`s.authStore`). The audit's verdict on
+the rest (`notes/audit.md`, D19i) is unchanged.
+
+**Exported statements changed.** `EtcdServer.snapshot.spec` (above). New: `srvApplyKVCore`,
+`entryOkOn_of_shape`, `kvEntryOn_cc`, `reqWaitRM_none`, `isServerM_waitIs`, `srvApplyKVOn_beOwn`,
+`srvWTPool_take_nOn`, `srvApplyKVOn_small`, `srvApplyKVOn_ua_rt`, `srvApplyKVOn_core`, the specs and
+proofs above. No closed theorem changed.
+
+**Not done (in order).** `run` and `start` with auth on: a mode-`on` `isServerRun` (its `applyRes`
+over `srvApplyKVOn`/`kvAppliedOn`, the boot's `applyBuiltOn`), `run`'s loop over `applyAll.specOn`,
+`start` from `isServerBuiltOn`; the readers' published lower bound `authPublishT` at the apply
+thread's admin steps is not in these posts yet. Then the admin proposers over `raftRequest.specM
+true`, the Auth handlers, `setupAuthOk`; then `examples/authkv` and the closed theorem.
+
