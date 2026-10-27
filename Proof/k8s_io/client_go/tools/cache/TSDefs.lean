@@ -222,6 +222,20 @@ instance rvAcc_persistent (OK : GoInterface → IProp GF) (rvOf : GoInterface �
     Persistent (rvAcc (GF := GF) OK rvOf) := by
   unfold rvAcc; infer_instance
 
+/-- The objects of some of the items' keys meet their contract. -/
+theorem okNil_of_keys (OK : GoInterface → IProp GF) (it : Items) (ks : List GoString)
+    (h : ∀ k ∈ ks, k ∈ it) :
+    □ ([∗map] _k ↦ o ∈ it, okNil OK o) ⊢ [∗list] o ∈ ks.map (objAt it), okNil OK o := by
+  rw [BigSepL.bigSepL_map]
+  apply BigSepL.bigSepL_intro
+  intro i k hk
+  have hm := h k (List.mem_of_getElem? hk)
+  rw [GMap.mem_iff] at hm
+  obtain ⟨o, ho⟩ := Option.isSome_iff_exists.1 hm
+  unfold objAt
+  rw [ho]
+  exact intuitionistically_elim.trans (BigSepM.bigSepM_lookup ho)
+
 /-- One of the store lock's reader slots. -/
 def tsReader (c : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn) : IProp GF :=
   sync.ownRWMutex (structFieldRef threadSafeMap go!"lock" c) (tsP c γ OK Fam)
