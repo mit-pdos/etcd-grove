@@ -24177,6 +24177,50 @@ that means something, a bound from a write it saw. The read-only `Txn` with auth
 read branch over E3m's `apply_check_txn_auth_lb`); the admin proposers, the Auth handlers,
 `setupAuthOk`; `examples/authkv` and the closed theorem.
 
+## D22 J4b: `EtcdServer.snapshot` translated and proved, not linked (2026-10-27 · decided by the orchestrator while the user was away (J5/J4))
+
+The coordinator's process change (2026-10-27): J4b on top of J4a without merging `lean` again.
+
+- **Translated** (`Code/go_etcd_io/etcd/server/v3/etcdserver.toml`): `EtcdServer.snapshot` and
+  `verifyConsistentIndexIsLatest`.
+- **`verifyConsistentIndexIsLatest.spec`** (new, proved): a read-only snapshot whose index is at
+  most `cindex` passes `verify.Verify`'s check (no panic with assertions on).
+- **`EtcdServer.snapshot.specFull`** (new, `Spec/.../EtcdServer__snapshot.lean`), proved
+  (`EtcdServer.snapshot.wp_proof_full`, `SnapTakeProof.lean`, both `toDisk` cases, every `Panic`
+  refuted): `spec` (the axiom) plus what the body needs: the server's view (`isServer`,
+  `isServerApplyAll`); with `toDisk`, `KV().Commit()`'s contract `srvKVCommitOk kv RC RC'` with
+  `RC` (as the merged snapshot's sender, `SnapSendBranch.lean`: abstract, for whoever discharges
+  it from the store's writer resources); the storage's certificate registry (`memCertReg γs`,
+  `SnapTake.lean`: the registry's authority in an invariant tying its entries to nothing, free in
+  raft's no-snapshot mode where raft reads no storage certificate); `uint.Z ai ≤ uint.Z (ciEff γ
+  st.k)` (`verifyConsistentIndexIsLatest`'s check); the disk's storage (`srvSnapDisk s γr`: the
+  `*storage.storage` interface, `saveSnapOk` (the WAL's `SaveSnap` returns `nil`, names-only),
+  `inv snapDirN (snapDirInv ss γd img Rm)` with `□ ∀ j, monoNatLbOwn γr.applied (j + 1) -∗ Rm j`,
+  which both `NewServer`'s `Rm = True` and J1a's `srvSnapRm` meet) with `appliedAtLeast γr ai`, and
+  `storage.releaseOk`. `CreateSnapshot.wp_reg` (`SnapTake.lean`): `CreateSnapshot` over the shared
+  token and the registry, any `memCsArg` (`ep.confState` may be `nil`), the any-term entry
+  registered at the linearization point.
+- **raft's `isInitialized`** gains `ErrSnapOODNew` (`ErrSnapOutOfDate` as the `errors.New` error it
+  is, `storage.go:32`), for `errors.Is(err, raft.ErrSnapOutOfDate)` (a leaf error, as
+  `ErrCompactedNew`); raft's `Init.lean` proves it unchanged. A stronger package fact: no
+  statement weakens.
+- **Not linked**: `snapshot.spec` stays the axiom `snapshotIfNeededAndCompactRaftLog` uses (axioms
+  unchanged by J4b), because `specFull`'s premises do not reach `applyAll`. **To link** (after
+  J1a; the integration's or J4c's): (1) `bootOk` hands over `memCertAuth γs` (true:
+  `NewMemoryStorage.spec`'s; `memCertReg_alloc`), `NewServer` allocates `memCertReg`; (2)
+  `srvSnapDisk` from J1a's `srvSnapRO` (its `rnStorageAddr`, `storageSnap`, directory invariant at
+  `srvSnapRm`, plus a `SaveSnap` clause in `bootOk`, J1a's); (3) `uint.Z ai ≤ uint.Z (ciEff γ
+  st.k)` kept by `applyRes` (`applyEntries`'s `ciEff` is `max(ci, ai')` after entries, `ciJ`; at
+  the start `ai₀ ≤ c₀`, true of a new cluster, `ai₀ = 0`); (4) `KV().Commit()`'s `RC` from the
+  store's writer resources in `srvApplyKV` (the write token from `srvWTPool_take_extra`), the open
+  item the merged snapshot's sender has too; (5) `storage.releaseOk` from `snapOpensOk`. Then
+  `snapshotIfNeededAndCompactRaftLog`, `applyAll` and `applyRes` carry the four, `snapshot.spec`
+  is replaced by `specFull` and the axiom goes. L3 replaces `memCertReg` by raft's `memCertInv`
+  (`ep.confState`'s certificate, "D22 J4").
+- `notInterface_uint64_snapTake`: a third local copy of `go.NotInterface go.uint64` (as
+  `sendMergedSnap`'s, `InvStart`'s, `BackendLemmas2`'s): Perennial has no instance for
+  `uint64` (`notes/perennial-changes.md` should list it if it does not).
+
 ## bbolt handles at a generation (D19l (iv) carried out, (A)) (2026-10-27)
 
 **2026-10-27 · taken (the user)**
@@ -24279,4 +24323,31 @@ the read-index lemmas' posts, `Range.specOn`'s post.
 
 **Not done (in order).** The read-only `Txn` with auth on (`Txn.specOn`'s read branch over E3m's
 `apply_check_txn_auth_lb`, which can take the same floor); the admin proposers, the Auth handlers,
+`setupAuthOk`; `examples/authkv` and the closed theorem.
+
+## E3v of the auth plan: the read-only `Txn` with auth on (2026-10-27 · `notes/auth-plan.md`, E3u's first left item)
+
+`EtcdServer.Txn.specOnR` (`Spec/.../EtcdServer__Txn.lean`) and `wp_proofOnR`, linked as
+`server_txn_ro_on` (`Results.lean`). A separate spec, as `Range.specOn` is, rather than a read
+branch of `Txn.specOn`: the writing spec's pre has no read view (`isServerReadM`, `srvRdCall`) and
+its client (the proposer path) none to give; the gRPC layer, which calls `Txn` for both, picks by
+`txnReadonly` as `Txn.spec`'s `if` does.
+
+Premise: the mode `on γa`; pre as `Range.specOn`'s (the request and read views with auth on, the
+deposit at the mode-`on` model's state, the reader's bound `n` and `srvAuthLb`), with the id credit
+(kept, as `Txn.spec`'s) and `⌜txnReadonly t = true ∧ txnGetsOk t⌝`. Success: `∃ info m, ⌜n ≤ m⌝ ∗
+txnClassFrom E.authMode m info t ∗ (if txnSerializable t then True else authFloorAt E.authMode γr c
+m)` and the read at the mode-`on` model (`txnReadOkM true`, `txnReadOk` at `false` by `rfl`).
+`txnClassFrom` (`ReadOn.lean`): the wire transaction `tw` whose model `t` is, and every permission
+its checks see (`apply.txnChecked tw L`) granted at states at indices at least `m`
+(`apply.verdictsFrom`), E3m's `CheckTxnAuth.specLb` post.
+
+The proof is generated from `wp_proof` (as E3s's `Range`): the writing branch is dead
+(`txnReadonly t = true`); the check closure calls `CheckTxnAuth` through `specLb` at the wire
+transaction (`txnRequestIs_W`, `readonlyW_of_txnReadonly`); the store's lower-bound check
+(`srvAuthLb`) is instantiated after the read index at `m` (E3u's `authFloor_of_pubFrom`, carried
+through the `wp_join`), as the code checks after `linearizableReadNotify`; the read through
+`readServed_logRM true`/`readWit_fireOn`. No statement of an existing result changed.
+
+**Not done (in order).** The admin proposers (their answer, and `pubAfterM`), the Auth handlers,
 `setupAuthOk`; `examples/authkv` and the closed theorem.
