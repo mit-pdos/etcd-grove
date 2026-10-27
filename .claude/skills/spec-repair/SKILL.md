@@ -18,13 +18,41 @@ leaky or unusable. Check its findings against the source before acting on them. 
 - a claim the Go code does not support, or one it supports but the spec omits;
 - a premise that is neither a real precondition of the Go code nor a stated, filed scope restriction
   (`issues/`, CLAUDE.md "Issues in the verified code");
-- implementation detail in the statement: ghost names, fractions, internal records or fields;
+- implementation detail in the statement: ghost names, fractions, internal records or fields,
+  masks; the test: an alternative implementation of the same API (etcd's `Put`: one in-memory
+  server, no raft) would have the same spec;
+- a resource the caller passes and gets back for the proof's bookkeeping (a lock's reader slot,
+  a credit): is the spec provable without it, or with a resource every Go caller has
+  (`threadTok`)?
 - a client that unfolds the spec's predicates or opens the package's invariants: a missing law;
+- a conjunct copied from another spec, or a constant (`+ 4`, `2 ^ 62`), whose reason you have not
+  checked: proof slack, or a fact of every reachable state (a law of the vocabulary, not one
+  operation's post);
+- a witness or history predicate beside an atomic update's `Q` (`kvWas γ σ`): the caller's `Q`
+  keeps what it needs; a stale read can still fire the update at the current state, its
+  answer a past state of it;
+- a spec that is really the disjunction of two alternative specs (a precondition
+  `⌜Q = fun _ => True⌝ ∨ AU …`): keep the stronger one, of which the other is a layer on top
+  (here: `kvState` in an invariant gives the trivial AU); a case split on the input is fine;
+- a library predicate parameterized by a caller's predicate (HoCAP style: `isStaticCluster … snapOk`,
+  relating snapshot data to the log, which changed every use of `isStaticCluster`). We write TaDa
+  style: the library's specs take and update client-owned ghost state (making a snapshot: the
+  caller's ownership of the snapshots made, given back with the new one; receiving one: a witness
+  that it is in that set), and the client keeps its own invariant over it (etcd: every snapshot's
+  data empty; an app that makes none: the set stays empty);
+- a special case with its own predicate or spec family beside the general one (raft's
+  `isStaticCluster` beside `isDynamicCluster`): it splits the proof into the two cases; the
+  general spec should cover the special one as an instance (no reconfiguration is a run of the
+  proof with reconfiguration);
 - a spec that no client uses;
-- a statement that `interface/` does not show in full or that hides behind a wrapper.
+- a statement that `interface/` does not show in full or that hides behind a wrapper (an atomic
+  update behind a helper like `kvOpAu1`: write it in the triple), or whose shape differs from
+  its closest sibling's for no reason (the server's `Put` and the client's `kv.Put`).
 
-**Repair.** Fix what the review confirms. Afterwards, spawn a second fresh reviewer on the new
-`interface/` and iterate until it finds nothing you agree with.
+**Repair.** Fix what the review confirms. The vocabulary is in scope: replace or redefine the
+predicates the spec is written in, not only how the spec combines them. After each change, drop
+what existed only for what it changed (a case, a disjunct, a conjunct). Afterwards, spawn a second
+fresh reviewer on the new `interface/` and iterate until it finds nothing you agree with.
 
 **Constraints:**
 
@@ -50,6 +78,10 @@ pushed; a note in `notes/decisions.md` for each spec whose design changed (what 
 in `notes/STATUS.md`; a report listing each finding, what you did about it (fixed, rejected and why,
 or left for the user), and the `interface/` diff of the target. With `--review-only`, the report of
 findings is the deliverable and nothing is changed.
+
+**Iterating with the user:** keep the current candidate, in full (every premise, conjunct and
+new definition, with a header listing its changes), in a scratch file outside the repository
+(never committed), and point to it: no abbreviated sketch in chat.
 
 **Evals** (`evals/`, when added): one small target each, whose review the user can read and
 critique in one sitting.
