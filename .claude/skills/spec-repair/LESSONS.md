@@ -46,3 +46,8 @@ One entry per critique of a run: date, target, what the user said, the rule it b
   snapshot; receiving one out of raft gives a witness that it is in the set; etcd puts the resource in
   an invariant saying the data is empty, and an app that makes no snapshots keeps the set empty. Rule
   (`SKILL.md`, review list): no caller predicate as a library predicate's parameter.
+- 2026-10-27, raft's `isStaticCluster` and `isDynamicCluster`: "having isStaticCluster separate from
+  isDynamicCluster is another bad proof pattern, because it bifurcates the proof into stuff with
+  reconfig and stuff without. In reality, no reconfiguration should be captured by the generic proof
+  with reconfiguration." Rule (`SKILL.md`, review list): no special-case predicate or spec family
+  beside the general one.

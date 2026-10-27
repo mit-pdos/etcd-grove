@@ -40,6 +40,10 @@ leaky or unusable. Check its findings against the source before acting on them. 
   caller's ownership of the snapshots made, given back with the new one; receiving one: a witness
   that it is in that set), and the client keeps its own invariant over it (etcd: every snapshot's
   data empty; an app that makes none: the set stays empty);
+- a special case with its own predicate or spec family beside the general one (raft's
+  `isStaticCluster` beside `isDynamicCluster`): it splits the proof into the two cases; the
+  general spec should cover the special one as an instance (no reconfiguration is a run of the
+  proof with reconfiguration);
 - a spec that no client uses;
 - a statement that `interface/` does not show in full or that hides behind a wrapper (an atomic
   update behind a helper like `kvOpAu1`: write it in the triple), or whose shape differs from
