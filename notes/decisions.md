@@ -24069,3 +24069,30 @@ newly a peer and no remote took its `R`s) or add a persistent "remote taken" wit
 (`id ∈ T`) to `trNoRemOr`. `RemoveAllPeers` returns four `R`s per peer, the `AddPeer`s take
 eight: two `lgMu` slots per peer per snapshot... four per peer leak per snapshot (J0's count with
 the stream writers'), the reader-slot Perennial change (J0 item 5) still gates J8b.
+
+## E3v of the auth plan: the read-only `Txn` with auth on (2026-10-27 · `notes/auth-plan.md`, E3u's first left item)
+
+`EtcdServer.Txn.specOnR` (`Spec/.../EtcdServer__Txn.lean`) and `wp_proofOnR`, linked as
+`server_txn_ro_on` (`Results.lean`). A separate spec, as `Range.specOn` is, rather than a read
+branch of `Txn.specOn`: the writing spec's pre has no read view (`isServerReadM`, `srvRdCall`) and
+its client (the proposer path) none to give; the gRPC layer, which calls `Txn` for both, picks by
+`txnReadonly` as `Txn.spec`'s `if` does.
+
+Premise: the mode `on γa`; pre as `Range.specOn`'s (the request and read views with auth on, the
+deposit at the mode-`on` model's state, the reader's bound `n` and `srvAuthLb`), with the id credit
+(kept, as `Txn.spec`'s) and `⌜txnReadonly t = true ∧ txnGetsOk t⌝`. Success: `∃ info m, ⌜n ≤ m⌝ ∗
+txnClassFrom E.authMode m info t ∗ (if txnSerializable t then True else authFloorAt E.authMode γr c
+m)` and the read at the mode-`on` model (`txnReadOkM true`, `txnReadOk` at `false` by `rfl`).
+`txnClassFrom` (`ReadOn.lean`): the wire transaction `tw` whose model `t` is, and every permission
+its checks see (`apply.txnChecked tw L`) granted at states at indices at least `m`
+(`apply.verdictsFrom`), E3m's `CheckTxnAuth.specLb` post.
+
+The proof is generated from `wp_proof` (as E3s's `Range`): the writing branch is dead
+(`txnReadonly t = true`); the check closure calls `CheckTxnAuth` through `specLb` at the wire
+transaction (`txnRequestIs_W`, `readonlyW_of_txnReadonly`); the store's lower-bound check
+(`srvAuthLb`) is instantiated after the read index at `m` (E3u's `authFloor_of_pubFrom`, carried
+through the `wp_join`), as the code checks after `linearizableReadNotify`; the read through
+`readServed_logRM true`/`readWit_fireOn`. No statement of an existing result changed.
+
+**Not done (in order).** The admin proposers (their answer, and `pubAfterM`), the Auth handlers,
+`setupAuthOk`; `examples/authkv` and the closed theorem.

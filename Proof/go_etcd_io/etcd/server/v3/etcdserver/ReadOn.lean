@@ -127,6 +127,37 @@ theorem rangeReadOkM_false (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : 
     (o : OpFull) (resp : Loc) (Q : List EntryModel → IProp GF) :
     rangeReadOkM (GF := GF) false E γr c F o resp Q = rangeReadOk E γr c F o resp Q := rfl
 
+/-- **A successful read-only `Txn` in the auth mode `on`** (`txnReadOk` with the deposit's committed
+log `L` at the mode's model, `kvModelM on`; `txnReadOk` at `on = false`, by definition; E3v). -/
+def txnReadOkM (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : mvcc.Log)
+    (t : TxnModel) (Q : List EntryModel → IProp GF) (resp : Loc) : IProp GF :=
+  iprop(∃ log : mvcc.Log, mvcc.idxCert E.γ.idx log ∗ mvcc.certOk E.γ log ∗
+    ⌜2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63 ∧ F <+: log⌝ ∗
+    (if txn.txnSerializable t then iprop(True) else readLogOk γr c log) ∗
+    (if txn.txnSerializable t then iprop(True) else
+      ∃ L : List EntryModel, srvRLogLb γr.raft L ∗ ⌜kvModelM on γr.kv L = log⌝ ∗ □ Q L) ∗
+    txn.txnResponseIs false resp (W64 ((log.length : Int) - 1)) t
+      (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).1
+      (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.2 ∗
+    txn.respHdrOwn (structFieldRef etcdserverpb.TxnResponse go!"Header" resp))
+
+theorem txnReadOkM_false (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : mvcc.Log)
+    (t : TxnModel) (Q : List EntryModel → IProp GF) (resp : Loc) :
+    txnReadOkM (GF := GF) false E γr c F t Q resp = txnReadOk E γr c F t Q resp := rfl
+
+/-- **A read-only transaction's checks passed no older than `m`** (persistent; E3v): the wire
+transaction `tw` whose model `t` is, every permission its checks see (`apply.txnChecked`) granted at
+states recorded at indices at least `m` (`apply.verdictsFrom`, E3m's `CheckTxnAuth.specLb`). -/
+def txnClassFrom (M : auth.AuthMode) (m : Nat) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (t : TxnModel) : IProp GF :=
+  iprop(∃ (tw : txn.TxnModelW) (L : List apply.Perm3), ⌜tw.toModel = t ∧ apply.txnChecked tw L⌝ ∗
+    apply.verdictsFrom M m info L)
+
+instance txnClassFrom_persistent (M : auth.AuthMode) (m : Nat)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (t : TxnModel) :
+    Persistent (txnClassFrom (GF := GF) M m info t) := by
+  unfold txnClassFrom; infer_instance
+
 /-- **The auth state at an applied log through an index at least `c` is published** (persistent;
 the auth plan's E3u): what a linearizable read waiting for the read index `c` finds in the applied
 index's invariant (`appliedPubM`). -/
