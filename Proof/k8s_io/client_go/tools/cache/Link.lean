@@ -57,6 +57,9 @@ public import Proof.k8s_io.client_go.tools.cache.cache__Update
 public import Proof.k8s_io.client_go.tools.cache.newStoreMetrics
 public import Proof.k8s_io.client_go.tools.cache.noopMetric__Set
 public import Proof.k8s_io.client_go.tools.cache.parseRVForMetricsWithTruncation
+public import Proof.k8s_io.client_go.tools.cache.processDeltas
+public import Proof.k8s_io.client_go.tools.cache.processReplacedAllInfo
+public import Proof.k8s_io.client_go.tools.cache.reconcileReplacement
 public import Proof.k8s_io.client_go.tools.cache.rvFromObject
 public import Proof.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource__Empty_ptr
 public import Proof.k8s_io.apimachinery.pkg.util.sets.List
@@ -440,6 +443,18 @@ theorem cache.cache.wp_Resync :
 theorem cache.cache.wp_Update :
     EtcdGrove.cache.cache.Update.spec (GF := GF) (hG := hG) :=
   EtcdGrove.cache.cache.Update.wp_proof cache.threadSafeMap.wp_Update
+
+theorem cache.wp_reconcileReplacement :
+    EtcdGrove.cache.reconcileReplacement.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cache.reconcileReplacement.wp_proof cache.cache.wp_ListKeys cache.cache.wp_GetByKey sets.Set.wp_Insert sets.Set.wp_Has
+
+theorem cache.wp_processReplacedAllInfo :
+    EtcdGrove.cache.processReplacedAllInfo.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cache.processReplacedAllInfo.wp_proof cache.wp_reconcileReplacement cache.cache.wp_Get cache.cache.wp_Replace
+
+theorem cache.wp_processDeltas :
+    EtcdGrove.cache.processDeltas.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cache.processDeltas.wp_proof cache.wp_processReplacedAllInfo cache.cache.wp_Get cache.cache.wp_Add cache.cache.wp_Update cache.cache.wp_Delete cache.cache.wp_Bookmark
 
 theorem cache.threadSafeMap.wp_Delete :
     EtcdGrove.cache.threadSafeMap.Delete.spec (GF := GF) (hG := hG) :=

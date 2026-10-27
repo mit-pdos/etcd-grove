@@ -58,6 +58,10 @@ namespace k8scache
 -- the listers' paths through the store (phase 4)
 #print axioms cache.wp_ListAll
 #print axioms cache.wp_ListAllByNamespace
+-- the processing of a popped delta (phase 4)
+#print axioms cache.wp_reconcileReplacement
+#print axioms cache.wp_processReplacedAllInfo
+#print axioms cache.wp_processDeltas
 -- the informers' FIFO (`RealFIFO`, atomic events; phase 4)
 #print axioms cache.RealFIFO.wp_Add
 #print axioms cache.RealFIFO.wp_Update

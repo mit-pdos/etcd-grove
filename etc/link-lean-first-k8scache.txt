@@ -105,3 +105,9 @@ cache__GetIndexers: threadSafeMap__GetIndexers
 # the listers' paths through the store (listers.go; DaemonSet plan phase 4)
 ListAll: cache__List
 ListAllByNamespace: ListAll cache__Index
+#
+# the informer's processing of a popped delta (controller.go's processDeltas; DaemonSet plan
+# phase 4), the store held by its exclusive writer
+reconcileReplacement: cache__ListKeys cache__GetByKey Set__Insert Set__Has
+processReplacedAllInfo: reconcileReplacement cache__Get cache__Replace
+processDeltas: processReplacedAllInfo cache__Get cache__Add cache__Update cache__Delete cache__Bookmark
