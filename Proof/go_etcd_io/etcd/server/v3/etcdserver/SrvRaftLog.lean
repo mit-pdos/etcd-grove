@@ -472,6 +472,10 @@ def srvPendRead (γ : ServerRaftNames) (Lf : List EntryModel) (r : GName × Nat)
   iprop(∃ Qr : List EntryModel → IProp GF, savedPredOwn r.1 DFrac.discard Qr ∗ srvReadAu γ Qr ∗
     □ (∀ j : Nat, ⌜r.2 ≤ j ∧ j ≤ Lf.length⌝ -∗ □ Qr (Lf.take j)))
 
+instance srvPendRead_persistent (γ : ServerRaftNames) (Lf : List EntryModel) (r : GName × Nat) :
+    Persistent (srvPendRead (GF := GF) γ Lf r) := by
+  unfold srvPendRead; infer_instance
+
 /-- **The log invariant's other part**: each fired proposal's result at the log before its entry
 (with its one-shot token), and the registered reads. -/
 def srvLogRegs (γ : ServerRaftNames) (Lf : List EntryModel)
@@ -971,6 +975,204 @@ theorem srvPropWits_of (γ : ServerRaftNames) : ⊢ srvRaftLogInv (GF := GF) γ 
   imod lc_fupd_elim_later $$ Hlc3 HQm with #HQm
   imodintro
   iexact HQm
+
+/-- **What a read context's update records** (persistent), at the requested entries `ops` the
+read took effect at: the read registered, at the server's log `Lk` whose requested entries those
+are, with its result predicate. -/
+def srvReadQ (γ : ServerRaftNames) (Qr : List EntryModel → IProp GF)
+    (ops : List Draft.LogEntry) : IProp GF :=
+  iprop(∃ (γQ : GName) (k : Nat) (Lk : List EntryModel), monoListLbOwn γ.raft.log Lk ∗
+    monoListIdxOwn γ.raft.pend k (γQ, Lk.length) ∗ savedPredOwn γQ DFrac.discard Qr ∗
+    ⌜Draft.opsOf (srvLE γ Lk) = ops⌝)
+
+instance srvReadQ_persistent (γ : ServerRaftNames) (Qr : List EntryModel → IProp GF)
+    (ops : List Draft.LogEntry) : Persistent (srvReadQ (GF := GF) γ Qr ops) := by
+  unfold srvReadQ; infer_instance
+
+/-- **A read's update, as a read context's** (2026-10-27): when the read takes effect, the server's
+read update fires at the server's log, and the read is registered, to fire again at every later
+requested entry (`srvPropAu_api`). -/
+theorem srvReadAu_api (γ : ServerRaftNames) (Qr : List EntryModel → IProp GF) :
+    ⊢ srvRaftLogInv (GF := GF) γ -∗ srvReadAu γ Qr -∗
+      □ AU <{ ∃∃ (ops : List Draft.LogEntry), Draft.ownCommittedOps γ.raft.cl ops }>
+          @ ⊤ \ ↑srvClusterN, ∅
+         <{ Draft.ownCommittedOps γ.raft.cl ops, COMM □ srvReadQ γ Qr ops }> := by
+  iintro #Hinv #Hra
+  iunfold srvRaftLogInv at Hinv
+  icases Hinv with ⟨#Hli, -, -, -⟩
+  iintro !>
+  iauintro
+  unfold atomic_acc
+  iunfold srvLogInv at Hli
+  iinv Hli with ⟨%Lf, %P, %F, %R, >Hcore, Hregs⟩ Hclose
+  iunfold srvLogCore at Hcore
+  icases Hcore with ⟨Hown, Hlog, HP, HF, HR, Hfrs, %Hfacts⟩
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+  iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
+  iintro Hmask
+  iexists Draft.opsOf (srvLE γ Lf)
+  iframe Hown
+  isplit
+  · iintro Hown
+    imod Hmask with -
+    imod Hclose $$ [Hown Hlog HP HF HR Hfrs Hregs] with -
+    · inext
+      iexists Lf, P, F, R
+      iunfold srvLogCore
+      iframe Hown Hlog HP HF HR Hfrs Hregs
+      ipureintro; exact Hfacts
+    imodintro
+    itrivial
+  · iintro Hown
+    imod Hmask with -
+    obtain ⟨Hidx, Hnf, Hfired, HRle⟩ := Hfacts
+    -- the read's update, at the server's log
+    imod (fupd_mask_subseteq (PROP := IProp GF) srv_mask_inner) with Hback
+    ihave #Hra' := Hra
+    iunfold srvReadAu at Hra'
+    icases Hra' with ⟨#Hau, -⟩
+    ihave Hacc := aupd_aacc $$ Hau
+    unfold atomic_acc
+    imod Hacc with Hacc
+    isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hacc
+    icases Hacc with ⟨%L, HL, Hcl⟩
+    iunfold srvRLog at HL
+    ihave %Hag := monoListAuthOwn_agree $$ Hlog HL
+    obtain ⟨-, Heq⟩ := Hag
+    subst Heq
+    icases Hcl with ⟨-, Hcommit⟩
+    imod Hcommit $$ [HL] with #HQL
+    · iunfold srvRLog; iexact HL
+    imod Hback with -
+    -- registered
+    imod saved_pred_alloc Qr DFrac.discard DFrac.valid_discard with ⟨%γQ, #HQ⟩
+    imod monoListAuthOwn_update_app [(γQ, Lf.length)] $$ HR with ⟨HR, #HRlb⟩
+    ihave #Hix := monoListIdxOwn_get (γ := γ.raft.pend) R.length (γQ, Lf.length)
+      (by simp) $$ HRlb
+    ihave #Hlb := monoListLbOwn_get γ.raft.log _ Lf $$ Hlog
+    imod Hclose $$ [Hown Hlog HP HF HR Hfrs Hregs] with -
+    · inext
+      iexists Lf, P, F, R ++ [(γQ, Lf.length)]
+      iunfold srvLogCore
+      iunfold srvLogRegs at Hregs
+      icases Hregs with ⟨HFr, HRr⟩
+      iunfold srvLogRegs
+      iframe Hown Hlog HP HF HR Hfrs HFr
+      isplitr
+      · ipureintro
+        refine ⟨Hidx, Hnf, Hfired, ?_⟩
+        intro r hr
+        rcases List.mem_append.1 hr with hr | hr
+        · exact HRle r hr
+        · rw [List.mem_singleton.1 hr]; exact Nat.le_refl _
+      iapply BigSepL.bigSepL_snoc.2
+      iframe HRr
+      iunfold srvPendRead
+      iexists Qr
+      iframe HQ Hra
+      iintro !> %j %Hj
+      have : j = Lf.length := by simp at Hj; omega
+      rw [this, List.take_length]
+      iexact HQL
+    imodintro
+    iintro !>
+    iunfold srvReadQ
+    iexists γQ, R.length, Lf
+    iframe Hlb Hix HQ
+    ipureintro; rfl
+
+/-- **A read's witness, from a read state** (2026-10-27; until then from raft's, `read_collect`):
+the read state of a context committed to the server's read (`srvReadQ`). -/
+theorem srvReadWit_of (γ : ServerRaftNames) (c : List w8) (Qr : List EntryModel → IProp GF)
+    (i : w64) :
+    ⊢ srvRaftLogInv (GF := GF) γ -∗ Draft.readStateOk γ.raft.cl srvClusterN c i -∗
+      Draft.isReadCtx γ.raft.cl srvClusterN c (srvReadQ γ Qr) -∗ srvReadWit γ Qr i := by
+  letI := srvAnyStor (GF := GF)
+  iintro #Hinv #Hst #Hctx
+  iunfold srvRaftLogInv at Hinv
+  icases Hinv with ⟨#Hli, -, -, %Hai0⟩
+  iunfold srvReadWit
+  iintro !> %L #HL %Hi Hlc
+  iunfold srvRLogLb at HL
+  icases HL with ⟨#HL, %HLi⟩
+  icases (lc_split (n := 2) (m := 3)).1 $$ Hlc with ⟨Hlc2, Hlc⟩
+  icases (lc_split (n := 1) (m := 2)).1 $$ Hlc with ⟨Hlc3, Hlc⟩
+  icases (lc_split (n := 1) (m := 1)).1 $$ Hlc with ⟨Hlc4, -⟩
+  have Hle : uint.nat i ≤ (srvLE γ L).length := by
+    rw [srvLE_length]
+    have : (uint.nat i : Int) = uint.Z i := by word
+    omega
+  imod Draft.readStateOk_ctx γ.raft.cl srvClusterN c i (srvReadQ γ Qr) (srvLE γ L) ⊤
+    (fun _ _ => CoPset.mem_full) Hle $$ Hst Hctx HL with ⟨%l, %Hll, #Hl, HQ⟩
+  icases (lc_split (n := 1) (m := 1)).1 $$ Hlc2 with ⟨Hlc2a, Hlc2b⟩
+  imod lc_fupd_elim_later $$ Hlc2a HQ with HQ
+  imod lc_fupd_elim_later $$ Hlc2b HQ with #HQ
+  iunfold srvReadQ at HQ
+  icases HQ with ⟨%γQ, %k, %Lk, #HLk, #Hix, #HQs, %HLkops⟩
+  -- `l` is a prefix of `pre ++ L`
+  ihave %Hlag := Draft.isCommittedLogLb_agree γ.raft.cl l (srvLE γ L) $$ [Hl HL]
+  · iframe Hl HL
+  have HlL : Draft.opsOf l <+: Draft.opsOf (srvLE γ L) := by
+    rcases Hlag with h | h
+    · exact opsOf_prefix h
+    · have hl := h.length_le
+      have : l = srvLE γ L := (h.eq_of_length (by omega)).symm
+      rw [this]; exact List.prefix_refl _
+  iunfold srvLogInv at Hli
+  iinv Hli with ⟨%Lf, %P, %F, %R, >Hcore, Hregs⟩ Hclose
+  iunfold srvLogCore at Hcore
+  icases Hcore with ⟨Hown, Hlog, HP, HF, HR, Hfrs, %Hfacts⟩
+  obtain ⟨Hidx, Hnf, Hfired, HRle⟩ := Hfacts
+  ihave %Hp := Draft.ownCommittedOps_lb_prefix γ.raft.cl _ _ $$ [Hown HL]
+  · iframe Hown HL
+  ihave %HLkp := mono_list_auth_lb_valid γ.raft.log _ Lf Lk $$ Hlog HLk
+  ihave %HRk := mono_list_auth_idx_lookup γ.raft.pend 1 R k _ $$ HR Hix
+  have HLops := srv_ops_prefix γ L Lf Hnf Hp
+  have HLknf : ∀ m ∈ Lk, ¬ m.toLE.isFiller := fun m hm => Hnf m (HLkp.2.subset hm)
+  -- the read was registered before `L`'s requested entries
+  have HLkle : Lk.length ≤ (Draft.opsOf (L.map EntryModel.toLE)).length := by
+    rw [← HLkops, srvLE_ops_nofill γ Lk HLknf, srvLE_ops γ L] at HlL
+    have := ((List.prefix_append_right_inj _).1 HlL).length_le
+    simpa using this
+  have Hjle : (Draft.opsOf (L.map EntryModel.toLE)).length ≤ Lf.length := by
+    have := HLops.length_le; simpa using this
+  imod lc_fupd_elim_later $$ Hlc3 Hregs with Hregs
+  iunfold srvLogRegs at Hregs
+  icases Hregs with ⟨HFr, HRr⟩
+  ihave #Hpend := (BigSepL.bigSepL_lookup (Φ := fun _ r => srvPendRead (GF := GF) γ Lf r) HRk) $$ HRr
+  iunfold srvPendRead at Hpend
+  icases Hpend with ⟨%Qr', #HQs', #Hra', #Hres⟩
+  ihave #HQL := Hres $$ %(Draft.opsOf (L.map EntryModel.toLE)).length []
+  · ipureintro; exact ⟨HLkle, Hjle⟩
+  iunfold srvReadAu at Hra'
+  icases Hra' with ⟨-, #HQinv⟩
+  iunfold srvQInv at HQinv
+  have Heqv : srvEqv γ (Lf.take (Draft.opsOf (L.map EntryModel.toLE)).length) L := by
+    refine ⟨srvIdxOkW_prefix γ.ai0 _ Lf Hidx (List.take_prefix _ _), HLi, ?_⟩
+    rw [opsOf_nofill _ (fun x hx => by
+      obtain ⟨y, hy, rfl⟩ := List.mem_map.1 hx
+      exact Hnf y (List.mem_of_mem_take hy))]
+    rw [List.map_take]
+    exact (List.prefix_iff_eq_take.1 HLops).symm
+  ihave HQL' := HQinv $$ %_ %L %Heqv HQL
+  ihave #Hsag := saved_pred_agree γQ DFrac.discard DFrac.discard Qr' Qr L $$ HQs' HQs
+  imod Hclose $$ [Hown Hlog HP HF HR Hfrs HFr HRr] with -
+  · inext
+    iexists Lf, P, F, R
+    iunfold srvLogCore
+    iunfold srvLogRegs
+    iframe Hown Hlog HP HF HR Hfrs HFr HRr
+    ipureintro; exact ⟨Hidx, Hnf, Hfired, HRle⟩
+  ihave HQr : iprop(▷ □ Qr L) $$ [HQL']
+  · inext
+    ihave #HQL' := HQL'
+    ihave #Hiff := internalEq_iff _ _ $$ Hsag
+    iintro !>
+    icases Hiff with ⟨Hto, -⟩
+    iapply Hto $$ HQL'
+  imod lc_fupd_elim_later $$ Hlc4 HQr with #HQr
+  imodintro
+  iexact HQr
 
 end bridges
 
