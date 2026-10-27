@@ -85,3 +85,19 @@ InformerNameAndResource__Name_ptr:
 InformerNameAndResource__GroupVersionResource_ptr:
 RealFIFO__whileProcessing_locked: time_Duration__Seconds
 RealFIFO__Pop: RealFIFO__checkSynced_locked RealFIFO__hasSynced_locked RealFIFO__keyOf InformerNameAndResource__Name_ptr InformerNameAndResource__GroupVersionResource_ptr schema_GroupVersionResource__Empty_ptr trace_New trace_Trace__LogIfLong RealFIFO__whileProcessing_locked
+#
+# the indexers' additions (thread_safe_store.go's AddIndexers, GetIndexers; DaemonSet plan
+# phase 4), over sets' KeySet, List, HasAny, Intersection (and Perennial's slices.Sort, cmp.Less)
+Set__Has:
+Set__Len:
+KeySet: Set__Insert
+Set__HasAny: Set__Has
+Set__UnsortedList:
+sets_List: Set__UnsortedList =_root_.Perennial.slices.wp_Sort =_root_.Perennial.cmp.wp_Less
+sets_New: Set__Insert
+Set__Intersection: sets_New Set__Len Set__Has Set__Insert
+storeIndex__addIndexers: KeySet sets_List Set__HasAny Set__Intersection
+threadSafeMap__AddIndexers: storeIndex__addIndexers storeIndex__updateSingleIndex
+threadSafeMap__GetIndexers:
+cache__AddIndexers: threadSafeMap__AddIndexers
+cache__GetIndexers: threadSafeMap__GetIndexers

@@ -11,6 +11,7 @@ module
 public import Proof.k8s_io.client_go.tools.cache.InformerNameAndResource__GroupVersionResource_ptr
 public import Proof.k8s_io.client_go.tools.cache.InformerNameAndResource__Name_ptr
 public import Proof.k8s_io.client_go.tools.cache.InformerNameAndResource__Reserved
+public import Proof.k8s_io.apimachinery.pkg.util.sets.KeySet
 public import Proof.k8s_io.client_go.tools.cache.NewThreadSafeStore
 public import Proof.k8s_io.client_go.tools.cache.ObjectName__String
 public import Proof.k8s_io.client_go.tools.cache.RealFIFO__Add
@@ -29,14 +30,21 @@ public import Proof.k8s_io.client_go.tools.cache.RealFIFO__hasSynced_locked
 public import Proof.k8s_io.client_go.tools.cache.RealFIFO__keyOf
 public import Proof.k8s_io.client_go.tools.cache.RealFIFO__whileProcessing_locked
 public import Proof.k8s_io.apimachinery.pkg.util.sets.Set__Delete
+public import Proof.k8s_io.apimachinery.pkg.util.sets.Set__Has
+public import Proof.k8s_io.apimachinery.pkg.util.sets.Set__HasAny
 public import Proof.k8s_io.apimachinery.pkg.util.sets.Set__Insert
+public import Proof.k8s_io.apimachinery.pkg.util.sets.Set__Intersection
+public import Proof.k8s_io.apimachinery.pkg.util.sets.Set__Len
+public import Proof.k8s_io.apimachinery.pkg.util.sets.Set__UnsortedList
 public import Proof.k8s_io.client_go.tools.cache.SplitMetaNamespaceKey
 public import Proof.k8s_io.client_go.tools.cache.cache__Add
+public import Proof.k8s_io.client_go.tools.cache.cache__AddIndexers
 public import Proof.k8s_io.client_go.tools.cache.cache__Bookmark
 public import Proof.k8s_io.client_go.tools.cache.cache__ByIndex
 public import Proof.k8s_io.client_go.tools.cache.cache__Delete
 public import Proof.k8s_io.client_go.tools.cache.cache__Get
 public import Proof.k8s_io.client_go.tools.cache.cache__GetByKey
+public import Proof.k8s_io.client_go.tools.cache.cache__GetIndexers
 public import Proof.k8s_io.client_go.tools.cache.cache__Index
 public import Proof.k8s_io.client_go.tools.cache.cache__LastStoreSyncResourceVersion
 public import Proof.k8s_io.client_go.tools.cache.cache__List
@@ -49,6 +57,9 @@ public import Proof.k8s_io.client_go.tools.cache.noopMetric__Set
 public import Proof.k8s_io.client_go.tools.cache.parseRVForMetricsWithTruncation
 public import Proof.k8s_io.client_go.tools.cache.rvFromObject
 public import Proof.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource__Empty_ptr
+public import Proof.k8s_io.apimachinery.pkg.util.sets.List
+public import Proof.k8s_io.apimachinery.pkg.util.sets.New
+public import Proof.k8s_io.client_go.tools.cache.storeIndex__addIndexers
 public import Proof.k8s_io.client_go.tools.cache.storeIndex__addKeyToIndex
 public import Proof.k8s_io.client_go.tools.cache.storeIndex__deleteKeyFromIndex
 public import Proof.k8s_io.client_go.tools.cache.storeIndex__getKeysByIndex
@@ -58,11 +69,13 @@ public import Proof.k8s_io.client_go.tools.cache.storeIndex__updateIndices
 public import Proof.k8s_io.client_go.tools.cache.storeIndex__updateSingleIndex
 public import Proof.strconv.ParseInt
 public import Proof.k8s_io.client_go.tools.cache.threadSafeMap__Add
+public import Proof.k8s_io.client_go.tools.cache.threadSafeMap__AddIndexers
 public import Proof.k8s_io.client_go.tools.cache.threadSafeMap__Bookmark
 public import Proof.k8s_io.client_go.tools.cache.threadSafeMap__ByIndex
 public import Proof.k8s_io.client_go.tools.cache.threadSafeMap__Delete
 public import Proof.k8s_io.client_go.tools.cache.threadSafeMap__DeleteWithObject
 public import Proof.k8s_io.client_go.tools.cache.threadSafeMap__Get
+public import Proof.k8s_io.client_go.tools.cache.threadSafeMap__GetIndexers
 public import Proof.k8s_io.client_go.tools.cache.threadSafeMap__Index
 public import Proof.k8s_io.client_go.tools.cache.threadSafeMap__LastStoreSyncResourceVersion
 public import Proof.k8s_io.client_go.tools.cache.threadSafeMap__List
@@ -75,6 +88,8 @@ public import Proof.k8s_io.client_go.tools.cache.threadSafeMap__updateLocked
 public import Proof.time.Duration__Seconds
 public import Proof.k8s_io.utils.trace.New
 public import Proof.k8s_io.utils.trace.Trace__LogIfLong
+public import Perennial.Proof.slices.Link
+public import Perennial.Proof.cmp.Link
 
 @[expose] public section
 
@@ -119,6 +134,14 @@ theorem cache.InformerNameAndResource.wp_Name_ptr :
 theorem cache.InformerNameAndResource.wp_Reserved :
     EtcdGrove.cache.InformerNameAndResource.Reserved.spec (GF := GF) (hG := hG) :=
   EtcdGrove.cache.InformerNameAndResource.Reserved.wp_proof
+
+theorem sets.Set.wp_Insert :
+    EtcdGrove.sets.Set.Insert.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.sets.Set.Insert.wp_proof
+
+theorem sets.wp_KeySet :
+    EtcdGrove.sets.KeySet.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.sets.KeySet.wp_proof sets.Set.wp_Insert
 
 theorem cache.noopMetric.wp_Set :
     EtcdGrove.cache.noopMetric.Set.spec (GF := GF) (hG := hG) :=
@@ -212,9 +235,29 @@ theorem sets.Set.wp_Delete :
     EtcdGrove.sets.Set.Delete.spec (GF := GF) (hG := hG) :=
   EtcdGrove.sets.Set.Delete.wp_proof
 
-theorem sets.Set.wp_Insert :
-    EtcdGrove.sets.Set.Insert.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.sets.Set.Insert.wp_proof
+theorem sets.Set.wp_Has :
+    EtcdGrove.sets.Set.Has.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.sets.Set.Has.wp_proof
+
+theorem sets.Set.wp_HasAny :
+    EtcdGrove.sets.Set.HasAny.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.sets.Set.HasAny.wp_proof sets.Set.wp_Has
+
+theorem sets.wp_New :
+    EtcdGrove.sets.New.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.sets.New.wp_proof sets.Set.wp_Insert
+
+theorem sets.Set.wp_Len :
+    EtcdGrove.sets.Set.Len.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.sets.Set.Len.wp_proof
+
+theorem sets.Set.wp_Intersection :
+    EtcdGrove.sets.Set.Intersection.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.sets.Set.Intersection.wp_proof sets.wp_New sets.Set.wp_Len sets.Set.wp_Has sets.Set.wp_Insert
+
+theorem sets.Set.wp_UnsortedList :
+    EtcdGrove.sets.Set.UnsortedList.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.sets.Set.UnsortedList.wp_proof
 
 theorem cache.wp_SplitMetaNamespaceKey :
     EtcdGrove.cache.SplitMetaNamespaceKey.spec (GF := GF) (hG := hG) :=
@@ -264,6 +307,22 @@ theorem cache.cache.wp_Add :
     EtcdGrove.cache.cache.Add.spec (GF := GF) (hG := hG) :=
   EtcdGrove.cache.cache.Add.wp_proof cache.threadSafeMap.wp_Add
 
+theorem sets.wp_List' :
+    EtcdGrove.sets.List'.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.sets.List'.wp_proof sets.Set.wp_UnsortedList _root_.Perennial.slices.wp_Sort _root_.Perennial.cmp.wp_Less
+
+theorem cache.storeIndex.wp_addIndexers :
+    EtcdGrove.cache.storeIndex.addIndexers.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cache.storeIndex.addIndexers.wp_proof sets.wp_KeySet sets.wp_List' sets.Set.wp_HasAny sets.Set.wp_Intersection
+
+theorem cache.threadSafeMap.wp_AddIndexers :
+    EtcdGrove.cache.threadSafeMap.AddIndexers.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cache.threadSafeMap.AddIndexers.wp_proof cache.storeIndex.wp_addIndexers cache.storeIndex.wp_updateSingleIndex
+
+theorem cache.cache.wp_AddIndexers :
+    EtcdGrove.cache.cache.AddIndexers.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cache.cache.AddIndexers.wp_proof cache.threadSafeMap.wp_AddIndexers
+
 theorem cache.threadSafeMap.wp_Bookmark :
     EtcdGrove.cache.threadSafeMap.Bookmark.spec (GF := GF) (hG := hG) :=
   EtcdGrove.cache.threadSafeMap.Bookmark.wp_proof cache.wp_parseRVForMetricsWithTruncation
@@ -307,6 +366,14 @@ theorem cache.cache.wp_GetByKey :
 theorem cache.cache.wp_Get :
     EtcdGrove.cache.cache.Get.spec (GF := GF) (hG := hG) :=
   EtcdGrove.cache.cache.Get.wp_proof cache.cache.wp_GetByKey
+
+theorem cache.threadSafeMap.wp_GetIndexers :
+    EtcdGrove.cache.threadSafeMap.GetIndexers.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cache.threadSafeMap.GetIndexers.wp_proof
+
+theorem cache.cache.wp_GetIndexers :
+    EtcdGrove.cache.cache.GetIndexers.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cache.cache.GetIndexers.wp_proof cache.threadSafeMap.wp_GetIndexers
 
 theorem cache.storeIndex.wp_getKeysFromIndex :
     EtcdGrove.cache.storeIndex.getKeysFromIndex.spec (GF := GF) (hG := hG) :=

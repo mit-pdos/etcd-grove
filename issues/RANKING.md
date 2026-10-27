@@ -436,6 +436,11 @@ reproduction, worth proposing (with the documentation) after the DaemonSet repor
 (2026-10-27): an off-by-one cap in the exponential limiter gives a negative delay at exactly
 `2^63` ns; unreachable with the defaults (5 ms, 1 ms), so low priority, but a one-character fix
 with a test.
+[k8s-clientgo-getindexers-unlocked-map](k8s-clientgo-getindexers-unlocked-map.md) (2026-10-27):
+`GetIndexers` hands out the store's own indexers' map without the lock while `AddIndexers` (allowed
+on a started shared informer) writes it under the lock; `go test -race` reproduces it; reached by
+`pkg/controller`'s `AddPod*Indexer` on a shared pod informer and by the mutation cache. A
+`RLock` + `maps.Clone` fix; worth bringing with the work-queue findings.
 
 ## How to bring them
 

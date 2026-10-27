@@ -50,6 +50,11 @@ namespace k8scache
 #print axioms cache.cache.wp_Resync
 #print axioms cache.cache.wp_Index
 #print axioms cache.cache.wp_LastStoreSyncResourceVersion
+-- the indexers' additions (phase 4)
+#print axioms cache.threadSafeMap.wp_AddIndexers
+#print axioms cache.threadSafeMap.wp_GetIndexers
+#print axioms cache.cache.wp_AddIndexers
+#print axioms cache.cache.wp_GetIndexers
 -- the informers' FIFO (`RealFIFO`, atomic events; phase 4)
 #print axioms cache.RealFIFO.wp_Add
 #print axioms cache.RealFIFO.wp_Update
