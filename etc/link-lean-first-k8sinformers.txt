@@ -16,3 +16,16 @@ NewNotFound: schema_GroupResource__String_ptr
 # the generic lister (`listers/generic_helpers.go`)
 ResourceIndexer__Get: cache__GetByKey NewNotFound
 ResourceIndexer__List: ListAllByNamespace
+#
+# the trust boundary: k8s.io/api's names-only `Resource` (apps/v1)
+v1_Resource:
+#
+# the generic lister's constructors (`listers/generic_helpers.go`)
+listers_New:
+NewNamespaced:
+#
+# the DaemonSet lister (`listers/apps/v1/daemonset.go`), its namespace lister's promoted methods
+NewDaemonSetLister: v1_Resource listers_New
+daemonSetLister__DaemonSets: NewNamespaced
+daemonSetNamespaceLister__Get: ResourceIndexer__Get
+daemonSetNamespaceLister__List: ResourceIndexer__List

@@ -8,10 +8,17 @@ hand.
 -/
 module
 
+public import Proof.k8s_io.client_go.listers.apps.v1.NewDaemonSetLister
+public import Proof.k8s_io.client_go.listers.NewNamespaced
 public import Proof.k8s_io.apimachinery.pkg.api.errors.NewNotFound
 public import Proof.k8s_io.client_go.listers.ResourceIndexer__Get
 public import Proof.k8s_io.client_go.listers.ResourceIndexer__List
+public import Proof.k8s_io.client_go.listers.apps.v1.daemonSetLister__DaemonSets
+public import Proof.k8s_io.client_go.listers.apps.v1.daemonSetNamespaceLister__Get
+public import Proof.k8s_io.client_go.listers.apps.v1.daemonSetNamespaceLister__List
+public import Proof.k8s_io.client_go.listers.New
 public import Proof.k8s_io.apimachinery.pkg.runtime.schema.GroupResource__String_ptr
+public import Proof.k8s_io.api.apps.v1.Resource
 public import GeneratedProof.k8s_io.client_go.informers
 public import Proof.k8s_io.client_go.Base
 public import Proof.k8s_io.client_go.tools.cache.Link
@@ -44,6 +51,22 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : k8s_io.client_go.informers.Assumptions]
 
+theorem appsv1.wp_Resource :
+    EtcdGrove.appsv1.Resource.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.appsv1.Resource.wp_proof
+
+theorem listers.wp_New :
+    EtcdGrove.listers.New.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.listers.New.wp_proof
+
+theorem appslisters.wp_NewDaemonSetLister :
+    EtcdGrove.appslisters.NewDaemonSetLister.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.appslisters.NewDaemonSetLister.wp_proof appsv1.wp_Resource listers.wp_New
+
+theorem listers.wp_NewNamespaced :
+    EtcdGrove.listers.NewNamespaced.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.listers.NewNamespaced.wp_proof
+
 theorem schema.GroupResource.wp_String_ptr :
     EtcdGrove.schema.GroupResource.String_ptr.spec (GF := GF) (hG := hG) :=
   EtcdGrove.schema.GroupResource.String_ptr.wp_proof
@@ -59,6 +82,18 @@ theorem listers.ResourceIndexer.wp_Get :
 theorem listers.ResourceIndexer.wp_List :
     EtcdGrove.listers.ResourceIndexer.List.spec (GF := GF) (hG := hG) :=
   EtcdGrove.listers.ResourceIndexer.List.wp_proof k8scache.cache.wp_ListAllByNamespace
+
+theorem appslisters.daemonSetLister.wp_DaemonSets :
+    EtcdGrove.appslisters.daemonSetLister.DaemonSets.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.appslisters.daemonSetLister.DaemonSets.wp_proof listers.wp_NewNamespaced
+
+theorem appslisters.daemonSetNamespaceLister.wp_Get :
+    EtcdGrove.appslisters.daemonSetNamespaceLister.Get.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.appslisters.daemonSetNamespaceLister.Get.wp_proof listers.ResourceIndexer.wp_Get
+
+theorem appslisters.daemonSetNamespaceLister.wp_List :
+    EtcdGrove.appslisters.daemonSetNamespaceLister.List.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.appslisters.daemonSetNamespaceLister.List.wp_proof listers.ResourceIndexer.wp_List
 
 end links_hasLC
 
