@@ -33,7 +33,7 @@ variable [GooseExts]
 /-- A bootstrap log's entries change no KV state: they are conf changes. -/
 theorem kvRaftOf_boot (c₀ : w64) (ch : apply.Chain) (log₀ : mvcc.Log)
     (ccOk : w32 → List w8 → Prop) (ps : List w64) (bootLog : List EntryM)
-    (hb : BootLogOk ccOk ps bootLog) : kvRaftOf c₀ ch log₀ (bootEntries bootLog) = log₀ := by
+    (hb : srvBootLogOk ps bootLog) : kvRaftOf c₀ ch log₀ (bootEntries bootLog) = log₀ := by
   obtain ⟨-, -, he⟩ := hb
   unfold kvRaftOf kvRaftSt bootEntries
   rw [List.foldl_map]
@@ -73,7 +73,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkvtxn.Assumpt
 /-- **`linkvInv_alloc` at a new member's start state** (see the file header). -/
 theorem linkvInv_alloc_boot (γk : KVNames) (hlog : γk.log0 = [[], []])
     (ccOk : w32 → List w8 → Prop) (ps : List w64) (bootLog : List EntryM)
-    (hb : BootLogOk ccOk ps bootLog) (Em : CoPset) :
+    (hb : srvBootLogOk ps bootLog) (Em : CoPset) :
     etcdKV (GF := GF) γk (kvModelSt γk (bootEntries bootLog)) ⊢
       |={Em}=> ∃ γ : LinkvNames, linkvInv γ γk ∗ linkvState γ (linkv.pInit TS) := by
   have h : kvModel γk (bootEntries bootLog) = [[], []] := by

@@ -1973,7 +1973,7 @@ theorem server_cluster_alloc_on (cfg nodes : GSet w64) (ccOk : w32 → List w8 �
     (ps : List w64) (bootLog : List EntryM)
     (Φs : w64 → w64 → List w8 → GName → IProp GF)
     (Hcne : cfg ≠ ∅) (Hnz : W64 0 ∉ nodes) (Hcfg : cfg = GMap.listToSet ps)
-    (hboot : BootLogOk ccOk ps bootLog)
+    (hboot : srvBootLogOk ps bootLog)
     (hpol : ∀ ty d, ccOk ty d →
       ty = W32 1 ∧ isConfChangeEncoding d ∧ ccIdOf d = W64 0 ∧ ccBootOk cfg d)
     (Hpd : (ps.map (fun id => uint.Z id % 2 ^ 16)).Nodup)

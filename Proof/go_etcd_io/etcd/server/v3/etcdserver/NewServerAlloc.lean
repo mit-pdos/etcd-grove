@@ -158,7 +158,7 @@ log the conf-change policy `ccOk` admits, every admitted conf change of id `0` i
 form, one `applyConfChange` takes (`srvCCPolicy`'s; audit phase B3, 2026-10-18). -/
 theorem srvBootClient (E : CoPset) (cfg : GSet w64) (ccOk : w32 → List w8 → Prop)
     (ps : List w64) (bootLog : List EntryM) (ids : IdNames)
-    (hboot : BootLogOk ccOk ps bootLog)
+    (hboot : srvBootLogOk ps bootLog)
     (hpol : ∀ ty d, ccOk ty d →
       ty = W32 1 ∧ isConfChangeEncoding d ∧ ccIdOf d = W64 0 ∧ ccBootOk cfg d) :
     ⊢ allocClientBoot (GF := GF) E cfg ccOk bootLog (srvBootOut ids bootLog) := by
@@ -202,7 +202,7 @@ theorem srvRaftBoot_alloc (E : CoPset) (cfg nodes : GSet w64) (ccOk : w32 → Li
     -- (2026-10-26, D22 J2) the members' snapshot directories (`RaftNames.reSnapLoc`)
     (sl : w64 → Option GName)
     (Hcne : cfg ≠ ∅) (Hnz : W64 0 ∉ nodes) (Hcfg : cfg = GMap.listToSet ps)
-    (hboot : BootLogOk ccOk ps bootLog)
+    (hboot : srvBootLogOk ps bootLog)
     (hpol : ∀ ty d, ccOk ty d →
       ty = W32 1 ∧ isConfChangeEncoding d ∧ ccIdOf d = W64 0 ∧ ccBootOk cfg d) :
     ⊢ |={E}=> ∃ γ : RaftNames,
@@ -285,7 +285,7 @@ theorem srvClusterBoot_alloc (cfg nodes : GSet w64) (ccOk : w32 → List w8 → 
     (ps : List w64) (bootLog : List EntryM)
     (Φs : w64 → w64 → List w8 → GName → IProp GF)
     (Hcne : cfg ≠ ∅) (Hnz : W64 0 ∉ nodes) (Hcfg : cfg = GMap.listToSet ps)
-    (hboot : BootLogOk ccOk ps bootLog)
+    (hboot : srvBootLogOk ps bootLog)
     (hpol : ∀ ty d, ccOk ty d →
       ty = W32 1 ∧ isConfChangeEncoding d ∧ ccIdOf d = W64 0 ∧ ccBootOk cfg d)
     (Hpd : (ps.map (fun id => uint.Z id % 2 ^ 16)).Nodup)

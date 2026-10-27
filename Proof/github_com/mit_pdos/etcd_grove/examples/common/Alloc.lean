@@ -4,7 +4,7 @@ Lean-first (no Rocq counterpart). What putget's `putget_alloc` and watchkv's `wa
 once, at a peer-URL directory `dir`, with the raft network's allocation (each `Main`'s
 `netNames_alloc`) inside.
 
-`alloc1`: for the one-member cluster `{id}` and its bootstrap log (`BootLogOk` under `ccOk [id]`,
+`alloc1`: for the one-member cluster `{id}` and its bootstrap log (`srvBootLogOk` under `ccOk [id]`,
 the id's 16 low bits not `0`), everything the member's `NewServer` takes of the ghost state
 (`memberBoot`): the member's names chosen before the call (`newServerNames_alloc`: the store's
 index names, its certificate map, the revisions' map), with the stand-in apply environment `env₀`
@@ -40,7 +40,7 @@ variable [v3rpc_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions
 
 /-- **What a one-member `Main` takes of the ghost state, for its member** (see the file header). -/
 theorem alloc1 (id : w64) (bootLog : List EntryM)
-    (Hlow : uint.Z id % 2 ^ 16 ≠ 0) (Hboot : BootLogOk (ccOk [id]) [id] bootLog)
+    (Hlow : uint.Z id % 2 ^ 16 ≠ 0) (Hboot : srvBootLogOk (ccOk [id]) [id] bootLog)
     (dir : w64 → List GoString) (Hone : ∀ f, dir f ≠ [] → f = id)
     (Hrb : receiptBound GF ≤ 2 ^ 64 - 2) :
     ⊢ |={⊤}=> ∃ (γ : RaftNames) (bud : BudgetNames) (ρ : ReqNames) (E₀ : apply.AEnv GF)

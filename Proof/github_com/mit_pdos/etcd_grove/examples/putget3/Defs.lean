@@ -55,7 +55,7 @@ header). -/
 structure BootFacts (id₁ id₂ id₃ : w64) (bootLog : List EntryM) : Prop where
   idLow : ([id₁, id₂, id₃].map (fun id => uint.Z id % 2 ^ 16)).Nodup
   idLow0 : ∀ id ∈ [id₁, id₂, id₃], uint.Z id % 2 ^ 16 ≠ 0
-  boot : BootLogOk (ccOk [id₁, id₂, id₃]) [id₁, id₂, id₃] bootLog
+  boot : srvBootLogOk (ccOk [id₁, id₂, id₃]) [id₁, id₂, id₃] bootLog
 
 /-- A URL `http://<host>`. -/
 def httpURL (host : GoString) : _root_.Perennial.net.url.URL :=

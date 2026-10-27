@@ -69,7 +69,7 @@ def ccOk (id : w64) : w32 → List w8 → Prop := fun ty d =>
 conf change adding the member, id `0`) under the policy `ccOk id`. -/
 structure BootFacts (id : w64) (bootLog : List EntryM) : Prop where
   idLow : uint.Z id % 2 ^ 16 ≠ 0
-  boot : BootLogOk (ccOk id) [id] bootLog
+  boot : srvBootLogOk (ccOk id) [id] bootLog
 
 /-- `Main`'s peer URL, `http://127.0.0.1:23800`. -/
 def peerURL : _root_.Perennial.net.url.URL :=

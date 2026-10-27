@@ -250,7 +250,7 @@ abbrev NodeStartSpec (reg : GName) : Prop :=
     -- the peers and the bootstrap log
     ps = pv.map Peer.ID' → ps ≠ [] → ps.Nodup → W64 0 ∉ ps →
     (ps.length : Int) ≤ 2 ^ 62 → cv.ID' ∈ ps → γ.reCfg = GMap.listToSet ps →
-    γ.reBoot = bootLog → BootLogOk γ.reCCOk ps bootLog →
+    γ.reBoot = bootLog → srvBootLogOk γ.reCCOk ps bootLog →
     -- (D43 M3, 2026-10-25) raft's mode `md`: in the dynamic mode at the server's decoder, from the
     -- peers' configuration
     (∀ dec c0 h0 h1, md = .dyn dec c0 h0 h1 →

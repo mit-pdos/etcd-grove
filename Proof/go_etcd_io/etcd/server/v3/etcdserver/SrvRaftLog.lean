@@ -146,6 +146,40 @@ theorem srvLogOf_lookup (γ : ServerRaftNames) (L : List EntryModel) (m : Nat) (
   rw [List.getElem?_map, List.getElem?_append_right (by omega), Nat.add_sub_cancel_left, h]
   rfl
 
+/-- **The bootstrap log of the peers `ps`**, as raft's records (2026-10-27: the server's copy of
+raft's `srvBootLogOk`): one entry per peer, at term `1`, at its position, a `ConfChange` whose bytes
+decode to an `AddNode` of the peer. -/
+def srvBootLogOk (ps : List w64) (bootLog : List EntryM) : Prop :=
+  bootLog.length = ps.length ∧ (bootLog.length : Int) < 2 ^ 61 ∧
+  ∀ (k : Nat) (e : EntryM), bootLog[k]? = some e →
+    e.Term' = W64 1 ∧ uint.Z e.Index' = (k : Int) + 1 ∧ e.Type' = W32 1 ∧
+    (∃ m : ConfChangeM, ccDecodeV1 e.Data' = some m ∧ m.type = W32 0 ∧ ps[k]? = some m.nodeId)
+
+/-- The node API's bootstrap log, as raft's records. -/
+theorem srvBootLogOk_of_BootLog (ps : List w64) (ctxs : List (List w8))
+    (boot : List Draft.LogEntry) (h : Draft.BootLog ps ctxs boot) :
+    srvBootLogOk ps (Draft.LogEntry.toEntries boot 0) := by
+  obtain ⟨hl, hlt, hk⟩ := h
+  have hlen : (Draft.LogEntry.toEntries boot 0).length = boot.length := by
+    simp [Draft.LogEntry.toEntries]
+  refine ⟨by rw [hlen, hl], by rw [hlen]; exact hlt, ?_⟩
+  intro k e he
+  unfold Draft.LogEntry.toEntries at he
+  rw [List.getElem?_mapIdx] at he
+  cases hb : boot[k]? with
+  | none => rw [hb] at he; cases he
+  | some x =>
+    rw [hb] at he
+    simp only [Option.map_some, Option.some.injEq] at he
+    subst he
+    obtain ⟨id, ctx, hp, -, ht, hty, hm⟩ := hk k x hb
+    have hkb : k < boot.length := (List.getElem?_eq_some_iff.1 hb).1
+    refine ⟨ht, ?_, hty, ⟨_, hm, rfl, hp⟩⟩
+    simp only [Draft.LogEntry.toEntryM]
+    have : ((0 + k + 1 : Nat) : Int) < 2 ^ 64 := by omega
+    simp only [Nat.zero_add] at this ⊢
+    word
+
 /-- An entry as raft's node API sees it: its index dropped. -/
 def EntryModel.toLE (m : EntryModel) : Draft.LogEntry := ⟨m.term, m.typ, m.data⟩
 

@@ -24,7 +24,7 @@ application's snapshot token (`memSnapTok`), which the call takes and gives back
 
 **The ghost state** is the cluster's, allocated before (`ownRaftGhost_alloc_boot`): this node's
 `ownRaftGhost γ cv.ID' (bootPState bootLog)` and `isCommitted γ bootLog`, with `γ.reBoot =
-bootLog` and `BootLogOk γ.reCCOk ps bootLog`; the peers' contexts and the `Marshal` premise
+bootLog` and `srvBootLogOk γ.reCCOk ps bootLog`; the peers' contexts and the `Marshal` premise
 (`bootMarshal`, `InvBoot.lean`) as `StartNode.spec` takes them. The budget is the cluster's, at
 least at the bootstrap term `1`.
 
@@ -87,7 +87,7 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
   γ.reCfg = GMap.listToSet ps →
   -- the bootstrap log, the ghost state's
   γ.reBoot = bootLog →
-  BootLogOk γ.reCCOk ps bootLog →
+  srvBootLogOk γ.reCCOk ps bootLog →
   -- (D43 M3, 2026-10-25) raft's mode `md`: in the dynamic mode at the server's decoder, from the
   -- peers' configuration
   (∀ dec c0 h0 h1, md = .dyn dec c0 h0 h1 →

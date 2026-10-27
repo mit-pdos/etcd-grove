@@ -80,7 +80,7 @@ def bootEntries (bootLog : List EntryM) : List EntryModel := bootLog.map EntryMo
 /-- A bootstrap log's entries change no lease table (unit T3, L3a). -/
 theorem kvTableOf_boot (c₀ : w64) (ch : apply.Chain) (lt : LeaseTable)
     (ccOk : w32 → List w8 → Prop) (ps : List w64) (bootLog : List EntryM)
-    (hb : BootLogOk ccOk ps bootLog) : kvTableOf c₀ ch lt (bootEntries bootLog) = lt := by
+    (hb : srvBootLogOk ps bootLog) : kvTableOf c₀ ch lt (bootEntries bootLog) = lt := by
   obtain ⟨-, -, he⟩ := hb
   unfold kvTableOf bootEntries
   rw [List.foldl_map]
@@ -106,7 +106,7 @@ theorem kvTableOf_boot (c₀ : w64) (ch : apply.Chain) (lt : LeaseTable)
 
 /-- **The start state of a bootstrap log has no lease** (unit T3, L3a). -/
 theorem kvModelSt_boot (γk : KVNames) (ccOk : w32 → List w8 → Prop) (ps : List w64)
-    (bootLog : List EntryM) (hb : BootLogOk ccOk ps bootLog) :
+    (bootLog : List EntryM) (hb : srvBootLogOk ps bootLog) :
     kvModelSt γk (bootEntries bootLog) = kvStateOf (kvModel γk (bootEntries bootLog)) := by
   unfold kvModelSt kvLeases
   rw [kvTableOf_boot _ _ _ ccOk ps bootLog hb]

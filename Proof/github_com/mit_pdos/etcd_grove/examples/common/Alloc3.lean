@@ -4,7 +4,7 @@ Lean-first (no Rocq counterpart). What putget3's `putget3_alloc`, linkv3's and l
 `cluster3_alloc` were, once, at a peer-URL directory `dir`.
 
 `alloc3`: for the three-member cluster `[id₁, id₂, id₃]` (in `bootstrap`'s order) and its bootstrap
-log (`BootLogOk` under `ccOk`; the ids' 16 low bits distinct and not `0`, D21e (A)): each member's
+log (`srvBootLogOk` under `ccOk`; the ids' 16 low bits distinct and not `0`, D21e (A)): each member's
 names chosen before its `NewServer` (`newServerNames_alloc`), the claimers' facts at each member's
 prefix that member's (`srvFloorFact` of its stand-in environment; the prefixes are distinct); the
 cluster's resources once (`srvClusterBoot_alloc`), the term budget once (`budget_alloc_boot`), each
@@ -114,7 +114,7 @@ theorem memberBoot_of (γ : RaftNames) (bud : BudgetNames) (bootLog : List Entry
 theorem alloc3 (id₁ id₂ id₃ : w64) (bootLog : List EntryM)
     (Hlow : ([id₁, id₂, id₃].map (fun id => uint.Z id % 2 ^ 16)).Nodup)
     (Hlow0 : ∀ id ∈ [id₁, id₂, id₃], uint.Z id % 2 ^ 16 ≠ 0)
-    (Hboot : BootLogOk (ccOk [id₁, id₂, id₃]) [id₁, id₂, id₃] bootLog) (dir : w64 → List GoString)
+    (Hboot : srvBootLogOk (ccOk [id₁, id₂, id₃]) [id₁, id₂, id₃] bootLog) (dir : w64 → List GoString)
     -- (2026-10-24, rafthttp stage 6d) the directory's hosts the three peer addresses, no member `0`
     (a₁ a₂ a₃ : GoString) (Hd0 : dir 0 = [])
     (Hhost : ∀ (i : w64) (h : GoString), go!"http://" ++ h ∈ dir i → h = a₁ ∨ h = a₂ ∨ h = a₃)

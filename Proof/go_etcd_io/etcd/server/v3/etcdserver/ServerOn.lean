@@ -706,7 +706,7 @@ vacuously (both ask of normal entries only). So `NewServer.specM true`'s KV inva
 satisfiable. -/
 theorem kvInvOn_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState)
     (ccOk : w32 → List w8 → Prop) (ps : List w64) (bootLog : List EntryM) (E : CoPset)
-    (hpre : γs.pre = []) (hai : γs.ai0 = W64 0) (hboot : BootLogOk ccOk ps bootLog)
+    (hpre : γs.pre = []) (hai : γs.ai0 = W64 0) (hboot : srvBootLogOk ps bootLog)
     (hcc : ∀ ty d, ccOk ty d → ccIdOf d = W64 0 ∧ ccBootOk γs.raft.cfg d)
     (hc0 : γk.c0 = W64 0) (hch : γk.ch0 = apply.alarmChain true false false)
     (hlog : γk.log0 ≠ []) :
