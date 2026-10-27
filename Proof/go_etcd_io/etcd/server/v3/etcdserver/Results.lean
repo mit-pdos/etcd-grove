@@ -1816,6 +1816,27 @@ theorem server_start_on [EtcdGrove.ErrorStringLeaf] :
     EtcdServer.wp_RequestTimeout (EtcdServer.AppliedIndex.wp_proofM true
       (EtcdServer.getAppliedIndex.wp_proofM true)) raftNode.wp_ReadState raftNode.wp_ReadIndex
 
+/-- **`Range` with auth on** (the auth plan's E3s, 2026-10-27; `EtcdServer.Range.specOn`,
+`Proof/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__Range.lean`): over the request and read
+views with auth on and the read deposit at the mode-`on` model's state, for a reader holding a
+lower bound `n` of the auth store's published index (`authPubLbM`) and the store's range check at
+it (`srvAuthLb`, `start.specOn`'s): a success passed `IsRangePermitted` at states no older than `n`
+(`apply.rangeClassFrom`), and a linearizable one read the mode-`on` model of a committed raft log
+at which the deposit fired (`rangeReadOkM true`). Every callee linked (`doSerialize` through its
+proof in either mode, `doSerialize.wp_proofM`). -/
+theorem server_range_on [go_etcd_io.etcd.cache.v3.Assumptions] :
+    EtcdServer.Range.specOn (GF := GF) (hG := hG) :=
+  EtcdServer.Range.wp_proofOn traceutil.Tracer.wp_Start trace.wp_WithAttributes «attribute».wp_String
+    «attribute».wp_Int64 «attribute».wp_Bool RangeRequest.wp_GetKey RangeRequest.wp_GetRangeEnd
+    RangeRequest.wp_GetRevision RangeRequest.wp_GetLimit RangeRequest.wp_GetCountOnly
+    RangeRequest.wp_GetKeysOnly EtcdServer.wp_Logger traceutil.wp_EnsureTrace
+    txn.wp_WarnOfExpensiveReadOnlyRangeRequest traceutil.Trace.wp_AddField traceutil.Trace.wp_LogIfLong
+    strconv.wp_FormatBool time.Duration.wp_Seconds prometheus.HistogramVec.wp_WithLabelValues
+    traceutil.Trace.wp_Step EtcdServer.wp_KV txn.wp_Range
+    (EtcdServer.doSerialize.wp_proofM true traceutil.wp_Get EtcdServer.wp_AuthInfoFromCtx
+      traceutil.Trace.wp_Step)
+    RangeRequest.wp_String proto.wp_Size
+
 end adminLatest
 
 /-- **A refused admin check keeps the model's auth state; a passed one admits the principal** (the
@@ -1850,6 +1871,7 @@ theorem admin_state_auth_enable [GooseExts] (γa : auth.AuthNames) (rq : EtcdGro
 #print axioms Perennial.EtcdGrove.server_apply_all_on
 #print axioms Perennial.EtcdGrove.server_run_on
 #print axioms Perennial.EtcdGrove.server_start_on
+#print axioms Perennial.EtcdGrove.server_range_on
 #print axioms Perennial.EtcdGrove.admin_state_of_latest
 
 section userAddHandler
@@ -1995,7 +2017,7 @@ theorem srv_auth_tp_on (hValid : auth.ValidSpec (GF := GF) (hG := hG))
     auth.authStore.wp_IsPutPermitted auth.authStore.wp_IsRangePermitted
     auth.authStore.wp_IsDeleteRangePermitted auth.authStore.wp_IsAdminPermitted
     auth.authStore.wp_IsAuthEnabled auth_put_permitted_latest auth_range_permitted_latest
-    auth_delete_range_permitted_latest auth_admin_permitted_latest
+    auth_delete_range_permitted_latest auth_admin_permitted_latest auth_range_permitted_lb
     (auth.authStore.AuthEnable.wp_tieB auth.authStore.wp_refreshRangePermCache
       auth.authStore.wp_setRevision auth.wp_hasRootRole zap.Logger.wp_Info)
     (auth.authStore.UserAdd.wp_tieSureB auth.authStore.wp_commitRevision

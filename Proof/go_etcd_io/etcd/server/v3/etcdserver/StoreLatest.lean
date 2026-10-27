@@ -8,6 +8,9 @@ What the server keeps of its auth store's invariant for the apply thread, with a
   for its reader resource and the apply thread's family `auth.latestRes`
   (`apply.isAuthStoreL_of_authInv`); `NewAuthStore`'s construction gives it (`authStoreKit`'s
   post), the built part keeps it (`srvUberBase`);
+- **the range check at a reader's lower bound** (`authStoreLbM`, E3s): with auth on, the store's
+  `IsRangePermitted` with its verdict no older than any lower bound of the published index
+  (`apply.isAuthStoreRangeLb_of_authInv`); from the same construction, kept beside the above;
 - **the admin steps' resource** (E3f's blocker 1, the user's decision 2026-10-27: a separate row).
   The store's half of its `be` field stays in the server's rest (`authBeOn stl bel`, in
   `srvObjsOn`, whose text and D22's `Recover` premise are unchanged) and an admin entry's
@@ -24,6 +27,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.AuthLatest
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.AuthStepsX
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.AuthCheckTxnLb
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRest
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthApplyRes
 
@@ -53,6 +57,21 @@ def authStoreLatestM (M : auth.AuthMode) (st : GoInterface) (RD : IProp GF) (stl
   match M with
   | .on γa => apply.isAuthStoreL st RD (.on γa) (auth.latestRes stl (.on γa))
   | _ => iprop(True)
+
+/-- **The store's range check no older than a reader's lower bound, in the mode `M`** (the auth
+plan's E3s, 2026-10-27; persistent): in the mode `on γa`, for every lower bound `n` of the published
+index (`auth.authPubLbM`), the store's `IsRangePermitted` with its verdict at states no older than `n`
+(`apply.isAuthStoreRangeLb`, of the store's invariant through E3j's `IsRangePermitted.specLb`);
+`True` in the other modes. What a reader with auth on needs of the store (`Range.specOn`). -/
+def authStoreLbM (M : auth.AuthMode) (st : GoInterface) (RD : IProp GF) : IProp GF :=
+  match M with
+  | .on γa => iprop(□ ∀ n : Nat, auth.authPubLbM (.on γa) n -∗
+      apply.isAuthStoreRangeLb st RD (.on γa) n)
+  | _ => iprop(True)
+
+instance authStoreLbM_persistent (M : auth.AuthMode) (st : GoInterface) (RD : IProp GF) :
+    Persistent (authStoreLbM (GF := GF) M st RD) := by
+  cases M <;> unfold authStoreLbM <;> infer_instance
 
 instance authStoreLatestM_persistent (M : auth.AuthMode) (st : GoInterface) (RD : IProp GF)
     (stl : Loc) : Persistent (authStoreLatestM (GF := GF) M st RD stl) := by

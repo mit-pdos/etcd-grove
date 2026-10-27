@@ -6,6 +6,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRead
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.AuthClass
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReadOn
 
 @[expose] public section
 
@@ -48,6 +49,33 @@ abbrev EtcdServer.Range.spec : Prop :=
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); srvRdCall s E γr c ∗
       ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ (∃ info, apply.rangeClass E.authMode info o) ∗
           rangeReadOk E γr c F o resp Q) ∨
+       (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err)) }}
+
+/-- **`spec` with auth on** (the auth plan's E3s, 2026-10-27; `notes/decisions.md`, "E3s of the
+auth plan"): in the mode `on γa`, over the request and read views with auth on (`isServerReqM
+true`, `isServerReadM true`), the read deposit at the mode-`on` model's state (`kvDep γr.kv Q
+(kvStM true γr.kv)`), and a lower bound `n` of the auth store's published index the reader holds
+(`auth.authPubLbM`), with the server's range check at it (`srvAuthLb`). Success: the auth store's
+`IsRangePermitted` passed for some auth info at states no older than `n` (`apply.rangeClassFrom`:
+a state recorded at an index at least `n` permits the read of the request's range), and the read
+as `spec`'s, a linearizable one at the mode-`on` model of a committed raft log `L` at which the
+deposit gave `□ Q L` (`rangeReadOkM true`). -/
+abbrev EtcdServer.Range.specOn : Prop :=
+  ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (c : w64)
+    (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc) (o : OpFull)
+    (ot : Option Loc) (te : Bool) (Q : List EntryModel → IProp GF) (F : mvcc.Log) (n : Nat)
+    (γa : auth.AuthNames),
+  E.authMode = .on γa →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      isServerReqM true s E ρ ∗ isServerReadM true s E γr ∗ srvAuthLb s E ∗
+      auth.authPubLbM E.authMode n ∗ srvRdCall s E γr c ∗ context.isContext ctx cd ∗
+      traceutil.ctxTraceIs ctx ot ∗ traceutil.ownTraceOpt ot te ∗ txn.rangeRequestIs r o ∗ ⌜txn.validSortTarget o⌝ ∗
+      kvDep γr.kv Q (kvStM true γr.kv) ∗ mvcc.idxCert E.γ.idx F }}
+    (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Range"))
+      (Val #(GoInterface.ok ctx))) (Val #r))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); srvRdCall s E γr c ∗
+      ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ (∃ info, apply.rangeClassFrom E.authMode n info o) ∗
+          rangeReadOkM true E γr c F o resp Q) ∨
        (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err)) }}
 
 end spec

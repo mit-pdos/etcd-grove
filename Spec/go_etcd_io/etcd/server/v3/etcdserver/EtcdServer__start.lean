@@ -54,7 +54,9 @@ abbrev EtcdServer.start.spec : Prop :=
 premise (`isServerBuiltOn`) and the lessor finding no lease (`srvLessorNil`, `run.specOn`'s), in an
 environment with auth on, `run` started with auth on (`isServerRunOn`); the request view and the
 read view in the mode (`isServerReqM true`, `isServerReadM true`) and the read loop's precondition
-at the mode-`on` model's state (`srvStarted` at `kvStM true`: its update fired at `kvInvOn`). -/
+at the mode-`on` model's state (`srvStarted` at `kvStM true`: its update fired at `kvInvOn`);
+(E3s, 2026-10-27) the store's range check at a reader's lower bound, as the server keeps it
+(`srvAuthLb`, what `Range.specOn` takes). -/
 abbrev EtcdServer.start.specOn : Prop :=
   ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF)
     (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames) (b : GoInterface)
@@ -66,7 +68,7 @@ abbrev EtcdServer.start.specOn : Prop :=
       isServerBuiltOn s γ ci TM E ρ γr Er γn b ai₀ at₀ c₀ x₀ N ∗ srvLessorNil s }}
     (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"start")) (Val #()))
   {{ RET #(); ∃ γw : GName, isServerReqM true s E { ρ with wait := γw } ∗
-      isServerReadM true s E γr ∗ srvStarted s γr ρ Er.RQ (kvStM true γr.kv) ∗
+      isServerReadM true s E γr ∗ srvAuthLb s E ∗ srvStarted s γr ρ Er.RQ (kvStM true γr.kv) ∗
       ∃ γp : GName, srvWTPool E γp }}
 
 end spec

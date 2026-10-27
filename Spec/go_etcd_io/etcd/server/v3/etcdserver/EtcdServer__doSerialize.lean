@@ -6,6 +6,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRead
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.AuthClass
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReadOn
 
 @[expose] public section
 
@@ -38,6 +39,28 @@ abbrev EtcdServer.doSerialize.spec : Prop :=
     (C : go_etcd_io.etcd.server.v3.auth.AuthInfo → IProp GF) (t : Loc) (e : Bool),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReq s E ρ ∗ isServerRead s E γr ∗ mvcc.txnCtx ctx cd ∗
+      traceutil.ctxTraceIs ctx (some t) ∗
+      (∀ (a : Loc) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac),
+        {{ a ↦{dq} info ∗ E.RD }} (App (Val #chk) (Val #a))
+        {{ (err : GoInterface), RET #err; a ↦{dq} info ∗ E.RD ∗ applyErrIs err ∗
+            (∀ _ : err = GoInterface.nil, C info) }}) ∗
+      {{ G ∗ traceutil.ownTrace t e }} (App (Val #get) (Val #())) {{ RET #(); Q }} ∗ G ∗
+      traceutil.ownTrace t e ∗ E.RD }}
+    (App (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"doSerialize"))
+      (Val #(GoInterface.ok ctx))) (Val #chk)) (Val #get))
+  {{ (err : GoInterface), RET #err; E.RD ∗
+      ((⌜err = GoInterface.nil⌝ ∗ (∃ info, C info) ∗ Q) ∨ (⌜err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗
+        ((G ∗ traceutil.ownTrace t e) ∨ Q))) }}
+
+/-- **`spec` in the auth mode `on`** (the auth plan's E3s, 2026-10-27): over the request and read
+views in the mode (`isServerReqM on`, `isServerReadM on`; `spec` at `on = false`, by definition).
+`doSerialize` reads only fields both modes share. -/
+abbrev EtcdServer.doSerialize.specM (on : Bool) : Prop :=
+  ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (ctx : GoInterfaceOk)
+    (cd : context.ContextDesc (IProp GF)) (chk get : GoFunc) (G Q : IProp GF)
+    (C : go_etcd_io.etcd.server.v3.auth.AuthInfo → IProp GF) (t : Loc) (e : Bool),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      isServerReqM on s E ρ ∗ isServerReadM on s E γr ∗ mvcc.txnCtx ctx cd ∗
       traceutil.ctxTraceIs ctx (some t) ∗
       (∀ (a : Loc) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (dq : DFrac),
         {{ a ↦{dq} info ∗ E.RD }} (App (Val #chk) (Val #a))
