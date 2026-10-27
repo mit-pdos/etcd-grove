@@ -133,29 +133,40 @@ theorem cluster_alloc (N : Namespace) (ps : List w64) (ctxs : List (List w8)) (b
     ⊢ |==> ∃ γ, ownCommitted (GF := GF) γ boot ∗ [∗list] id ∈ ps, nodeBoot γ N id :=
   sorry
 
+/- The node's predicates take the node `n` first (there is one per node, many per cluster), then
+the cluster and namespace, and the state that changes as one record, so that a new field does not
+change their arity. -/
+
 /-- **A running node** `n` of id `id` in the cluster `γ` (persistent). -/
-@[no_expose] def isNode (γ : Cluster) (N : Namespace) (id : w64) (n : Loc) : IProp GF := sorry
+@[no_expose] def isNode (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) : IProp GF := sorry
 
-instance isNode_persistent (γ : Cluster) (N : Namespace) (id : w64) (n : Loc) :
-    Persistent (isNode (GF := GF) γ N id n) := sorry
+instance isNode_persistent (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) :
+    Persistent (isNode (GF := GF) n γ N id) := sorry
 
-/-- The node's `Ready` channel (persistent). -/
-@[no_expose] def isReadyChan (γ : Cluster) (N : Namespace) (n ch : Loc) : IProp GF := sorry
+/-- The node's `Ready` channel `ch` (persistent). -/
+@[no_expose] def isReadyChan (n : Loc) (γ : Cluster) (N : Namespace) (ch : Loc) : IProp GF := sorry
 
-/-- **The `Ready` loop's token**: the committed log delivered so far `D`, and the hard state last
-handed out `p` (exclusive). -/
-@[no_expose] def nodeDriver (γ : Cluster) (N : Namespace) (n : Loc) (D : List Ent)
-    (p : HardStateM) : IProp GF := sorry
+/-- The state of a node's `Ready` loop. -/
+structure DriverSt where
+  /-- the committed log delivered so far -/
+  dlv : List Ent
+  /-- the hard state last handed out -/
+  hs : HardStateM
+  /-- while a `Ready` is being handled (between receiving it and `Advance`): its entries to persist -/
+  busy : Option (List EntryM)
 
-/-- The token while a `Ready` is being handled: delivered `D`, the entries to persist `es`. -/
-@[no_expose] def nodeDriverBusy (γ : Cluster) (N : Namespace) (n : Loc) (D : List Ent)
-    (es : List EntryM) (p : HardStateM) : IProp GF := sorry
+/-- The state a node's `Ready` loop starts in. -/
+def DriverSt.init : DriverSt := ⟨[], hsZero, none⟩
 
-/-- (open) **The rest of a `Ready`** after its committed entries: the entries to persist, the hard
-state, the messages, the read states, the soft state (today's `readyData` without its first two
-conjuncts); redesigned with the open items. -/
-@[no_expose] def readyRest (γ : Cluster) (N : Namespace) (rd : Ready) (D ce : List Ent)
-    (es : List EntryM) (p p' : HardStateM) : IProp GF := sorry
+/-- **The `Ready` loop's token** (exclusive): one per node, at the loop's state `st`. -/
+@[no_expose] def nodeDriver (n : Loc) (γ : Cluster) (N : Namespace) (st : DriverSt) : IProp GF :=
+  sorry
+
+/-- (open) **The rest of a `Ready`** after its committed entries, from the loop's state `st` to `st'`:
+the entries to persist, the hard state, the messages, the read states, the soft state (today's
+`readyData` without its first two conjuncts); redesigned with the open items. -/
+@[no_expose] def readyRest (n : Loc) (γ : Cluster) (N : Namespace) (rd : Ready) (st st' : DriverSt) :
+    IProp GF := sorry
 
 /-- The Go entries `sl` are the log entries `ce`, at the indices after `base` (read-only). -/
 def committedEntsRO (sl : GoSlice) (base : Nat) (ce : List Ent) : IProp GF :=
@@ -179,7 +190,7 @@ appended) or the context's. -/
 abbrev node.Propose.spec : Prop :=
   ∀ (γ : Cluster) (N : Namespace) (id : w64) (n : Loc) (data_sl : GoSlice) (data : List w8)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode γ N id n ∗ nodeCtx ctx cd ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗ nodeCtx ctx cd ∗
       data_sl ↦*□ data ∗ proposeAu γ N data }}
     (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Propose"))
       (Val #(interface.ok ctx))) (Val #data_sl))
@@ -191,7 +202,7 @@ back. -/
 abbrev node.ProposeConfChange.spec : Prop :=
   ∀ (γ : Cluster) (N : Namespace) (id : w64) (n : Loc) (c : GoInterface) (o : CCMsg) (dq : DFrac)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode γ N id n ∗ nodeCtx ctx cd ∗
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗ nodeCtx ctx cd ∗
       ownCCI c dq (some o) ∗ proposeConfAu γ N o }}
     (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"ProposeConfChange"))
       (Val #(interface.ok ctx))) (Val #c))
@@ -200,22 +211,23 @@ abbrev node.ProposeConfChange.spec : Prop :=
 /-- **`node.Ready()`**: the node's `Ready` channel. -/
 abbrev node.Ready.spec : Prop :=
   ∀ (γ : Cluster) (N : Namespace) (id : w64) (n : Loc),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode γ N id n }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id }}
     (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Ready")) (Val #()))
-  {{ (ch : Loc), RET #ch; isReadyChan γ N n ch }}
+  {{ (ch : Loc), RET #ch; isReadyChan n γ N ch }}
 
 /-- **Receiving a `Ready`** (`for rd := range n.Ready()`): its committed entries are the log's next
-entries `ce` after those delivered so far `D`, field for field (the index from the position), and
+entries `ce` after those delivered so far (`st.dlv`), field for field (the index from the position), and
 the log is committed through them. (open: the rest of the `Ready`, `readyRest`; and a `Ready`
 carrying a snapshot, today's `readyDataL`.) -/
 abbrev node.readyRecv.spec : Prop :=
-  ∀ (γ : Cluster) (N : Namespace) (n ch : Loc) (D : List Ent) (p : HardStateM),
-  {{ isReadyChan (GF := GF) γ N n ch ∗ nodeDriver γ N n D p }}
+  ∀ (n ch : Loc) (γ : Cluster) (N : Namespace) (st : DriverSt),
+  st.busy = none →
+  {{ isReadyChan (GF := GF) n γ N ch ∗ nodeDriver n γ N st }}
     (App (Val (chan.receive Ready.ty)) (Val #ch))
   {{ (rd : Ready), RET (PairV #rd #true);
-      ∃ (ce : List Ent) (es : List EntryM) (p' : HardStateM),
-        committedEntsRO rd.CommittedEntries' D.length ce ∗ isCommittedLb γ (D ++ ce) ∗
-        readyRest γ N rd D ce es p p' ∗ nodeDriverBusy γ N n (D ++ ce) es p' }}
+      ∃ (ce : List Ent) (st' : DriverSt), ⌜st'.dlv = st.dlv ++ ce ∧ st'.busy.isSome⌝ ∗
+        committedEntsRO rd.CommittedEntries' st.dlv.length ce ∗ isCommittedLb γ st'.dlv ∗
+        readyRest n γ N rd st st' ∗ nodeDriver n γ N st' }}
 
 /-- **`StartNode(c, peers)`**: starts a node of the cluster `γ` from its boot token. The ghost
 premises of today's spec (`bootInit`, `isCommitted γ bootLog`, `BootLogOk γ.reCCOk`, the
@@ -263,7 +275,7 @@ abbrev StartNode.spec : Prop :=
     (App (App (Val #(functions StartNode [])) (Val #c)) (Val #peers))
   {{ (nd : GoInterface), RET #nd;
       R ∗ ∃ (n : Loc), ⌜nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗
-        isNode γ N cv.ID' n ∗ nodeDriver γ N n [] hsZero }}
+        isNode n γ N cv.ID' ∗ nodeDriver n γ N DriverSt.init }}
 
 end spec
 
