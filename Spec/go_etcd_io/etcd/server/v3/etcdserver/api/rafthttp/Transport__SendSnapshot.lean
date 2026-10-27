@@ -23,7 +23,8 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- **`t.SendSnapshot(m)`** on a frozen transport of the network `γn` (`trFrozen`), of a merged
+/-- **`t.SendSnapshot(m)`** on a started transport of the network `γn` (`trState`; D43 M5c: the
+peers read under the lock, so not frozen), of a merged
 snapshot message (`snap.msgIs m ml rc`) with its bundle (`netSnapBundle`): it returns.
 
 Why it is true of the Go code (`transport.go:409-418`, `peer.go`, `snapshot_sender.go:66-140` at
@@ -41,9 +42,9 @@ reader, `D` with the bundle's `□ γn.N.img i D`. The read lock is taken withou
 lock's reader tokens (`trTok`): at most `2^30 - 1` goroutines hold it at once, physically (each
 has its own stack; as `netProcSlots`). -/
 abbrev rafthttp.Transport.SendSnapshot.spec : Prop :=
-  ∀ (γn : NetNames GF) (t : Loc) (c : TrN GF) (rs : trIds) (m ml : Loc) (rc : GoInterface),
+  ∀ (γn : NetNames GF) (t : Loc) (c : TrN GF) (m ml : Loc) (rc : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
-      trFrozen γn t c rs ∗ snap.msgIs m ml rc ∗ netSnapBundle γn.N ml rc }}
+      trState γn t c ∗ snap.msgIs m ml rc ∗ netSnapBundle γn.N ml rc }}
     (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"SendSnapshot")) (Val #m))
   {{ RET #(); True }}
 

@@ -60,7 +60,7 @@ def applyBuiltOn (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (E : a
       apply.applyKV E ua x₀) ∗
     revAuth E x₀.log ∗ srvAuthApplyResB s E srvAuthSt0 ∗
     srvAppliedOwn γr ai₀ ∗ appliedLogAt γr ai₀ x₀.log ∗ kvRunOn γr ai₀ c₀ [] x₀ ∗
-    srvRest E γr [] ∗ srvForceSnapAddr s ↦ f)
+    srvRest E γr [] ∗ srvApRes s γr [] ∗ srvForceSnapAddr s ↦ f)
 
 /-- **`start`'s construction premise in the mode `on`** (`isServerBuilt` with the mode-`on` rows:
 `srvReqBuiltM true`, `srvKVInvsM true`, `srvCM true`, `applyBuiltOn`). -/

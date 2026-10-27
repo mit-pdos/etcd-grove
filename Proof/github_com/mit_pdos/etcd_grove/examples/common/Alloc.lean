@@ -104,8 +104,9 @@ theorem alloc1 (id : w64) (bootLog : List EntryM)
     intro ty d h
     simp only at h ⊢
     rw [hcc] at h
+    refine ⟨h.1, h.2.1, h.2.2.1, ccPolOk_of_boot _ _ ?_⟩
     rw [hcfg]
-    exact h
+    exact h.2.2.2
   iunfold idNoZero
   rw [hiss', hiss]
   iexact H0

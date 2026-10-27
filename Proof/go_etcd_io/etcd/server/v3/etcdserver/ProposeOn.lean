@@ -197,8 +197,8 @@ theorem kvModelOn_snoc_nonwrite (γk : KVNames) (st₀ : auth.AuthState) (L : Li
   rfl
 
 /-- **The mode-`on` workload facts, one entry on** (`kvWork_snoc`'s). -/
-theorem kvWorkOn_snoc (cfg : GSet w64) (γk : KVNames) (L : List EntryModel) (e : EntryModel)
-    (hs : entryShapeOn e) (hc : e.typ ≠ W32 0 → ccBootOk cfg e.data) :
+theorem kvWorkOn_snoc (cfg : RaftNames) (γk : KVNames) (L : List EntryModel) (e : EntryModel)
+    (hs : entryShapeOn e) (hc : e.typ ≠ W32 0 → ccPolOk cfg e.data) :
     ⊢ kvWorkOn (GF := GF) cfg γk L -∗ entryClaim γk.ids e -∗ kvWorkOn cfg γk (L ++ [e]) := by
   iintro Hw #He
   iunfold kvWorkOn at Hw
@@ -271,7 +271,7 @@ theorem kv_prop_au_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthS
       have hent : kvModelOn γk st₀ (L ++ [e]) = kvModelOn γk st₀ L :=
         kvModelOn_snoc_nonwrite γk st₀ L e rq (by rw [hed]; exact hdec)
           (plainReq_noAdminP rq hplain) hnw
-      ihave #Hw' := kvWorkOn_snoc γ.raft.reCfg γk L e (hsh e het hed hshape)
+      ihave #Hw' := kvWorkOn_snoc γ.raft γk L e (hsh e het hed hshape)
         (fun h => absurd het h) $$ Hw (Hecl $$ %e %hed)
       imod Hclose $$ [HL Hσ] with -
       · inext
@@ -322,7 +322,7 @@ theorem kv_prop_au_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthS
       obtain ⟨het, hed, hidx⟩ := He
       have hidx' := srvIdxOkW_snoc γ.ai0 L e Hok.2.2.1 hidx (Or.inl het)
       have hdata : e.data ≠ [] := by rw [hed]; exact hd
-      ihave #Hw' := kvWorkOn_snoc γ.raft.reCfg γk L e (hsh e het hed hshape)
+      ihave #Hw' := kvWorkOn_snoc γ.raft γk L e (hsh e het hed hshape)
         (fun h => absurd het h) $$ Hw (Hecl $$ %e %hed)
       have hfacts := kvInvOn_facts_snoc γ γk st₀ L e Hok hidx'
         (commitOkOn_plain _ _ _ L e d rq hed hdec hplain hsa)
@@ -410,7 +410,7 @@ theorem kv_prop_au_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthS
       have hshe : entryShapeOn e :=
         ⟨fun _ => Or.inr ⟨rq, by rw [hed]; exact hdec, ⟨id, hid⟩, Or.inr hadm.1⟩,
           fun h => absurd het h⟩
-      ihave #Hw' := kvWorkOn_snoc γ.raft.reCfg γk L e hshe (fun h => absurd het h)
+      ihave #Hw' := kvWorkOn_snoc γ.raft γk L e hshe (fun h => absurd het h)
         $$ Hw (Hecl $$ %e %hed)
       have hc := commitOkOn_admin γk.c0 γk.ch0 st₀ γk.log0 L e d rq hed hdec hadm
       imod Hclose $$ [HL Hσ] with -

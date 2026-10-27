@@ -34,7 +34,7 @@ variable [ext : FfiSyntax]
 
 /-- **Raft's own entries keep the mode-`on` model's state** (an empty normal entry or a conf
 change: neither is a normal entry with data, so neither is decoded). -/
-theorem kvEntryOn_noop (cfg : GSet w64) (c₀ : w64) (ch : apply.Chain)
+theorem kvEntryOn_noop (cfg : RaftNames) (c₀ : w64) (ch : apply.Chain)
     (s : auth.AuthState × mvcc.Log) (e : EntryModel) (h : srvNoopEntry cfg e) :
     kvEntryOn c₀ ch s e = s := by
   have hk : kvEntry c₀ ch [] s.2 e = s.2 := by
@@ -52,7 +52,7 @@ theorem kvEntryOn_noop (cfg : GSet w64) (c₀ : w64) (ch : apply.Chain)
 
 /-- **Raft's own entries meet the committer's obligation** in the mode `on`, vacuously: both
 `plainEntryOn` and `entryDetOn` ask of normal entries with data only. -/
-theorem commitOkOn_noop (cfg : GSet w64) (c₀ : w64) (ch : apply.Chain)
+theorem commitOkOn_noop (cfg : RaftNames) (c₀ : w64) (ch : apply.Chain)
     (s₀ : auth.AuthState × mvcc.Log) (L : List EntryModel) (e : EntryModel)
     (h : srvNoopEntry cfg e) : commitOkOn c₀ ch s₀ L e := by
   have hn : e.typ = W32 0 → e.data ≠ [] → False := by
@@ -106,12 +106,12 @@ theorem kv_noop_au_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthS
       · left; exact h.1
       · right; exact ⟨h.1, h.2.1⟩
     have hent : kvModelOn γk st₀ (L ++ [e]) = kvModelOn γk st₀ L := by
-      rw [kvModelOn_snoc, kvEntryOn_noop γ.raft.reCfg _ _ _ e He]
+      rw [kvModelOn_snoc, kvEntryOn_noop γ.raft _ _ _ e He]
       rfl
-    ihave #Hnc := noop_claim (GF := GF) γk.ids γ.raft.reCfg e He
-    ihave #Hw' := kvWorkOn_snoc γ.raft.reCfg γk L e
-      (entryShapeOn_of_entryShape e (noop_shape γ.raft.reCfg e He))
-      (noop_cc γ.raft.reCfg e He) $$ Hw Hnc
+    ihave #Hnc := noop_claim (GF := GF) γk.ids γ.raft e He
+    ihave #Hw' := kvWorkOn_snoc γ.raft γk L e
+      (entryShapeOn_of_entryShape e (noop_shape γ.raft e He))
+      (noop_cc γ.raft e He) $$ Hw Hnc
     imod Hclose $$ [HL Hσ] with -
     · inext
       iexists L ++ [e]
@@ -119,7 +119,7 @@ theorem kv_noop_au_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthS
       iframe HL Hσ Hw'
       ipureintro
       exact kvInvOn_facts_snoc γ γk st₀ L e Hok hidx'
-        (commitOkOn_noop γ.raft.reCfg _ _ _ L e He)
+        (commitOkOn_noop γ.raft _ _ _ L e He)
     imodintro
     itrivial
 
@@ -166,7 +166,7 @@ theorem srvBootClientOn (E : CoPset) (cfg : GSet w64) (ccOk : w32 → List w8 �
       rw [Hγ.2.2.1] at h
       have := hpol ty d h
       refine ⟨this.1, this.2.1, this.2.2.1, ?_⟩
-      simp only [γs]; rw [Hγ.1]; exact this.2.2.2) $$ Hsn
+      exact ccPolOk_of_boot _ _ (by simp only [γs]; rw [Hγ.1]; exact this.2.2.2)) $$ Hsn
   imodintro
   isplitl []
   · iexact Hnoop

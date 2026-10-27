@@ -173,14 +173,14 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.backend.Assumptions]
 
 /-- An image's lease, alarm and auth buckets are the boot state's (the rest model writes only
-`members` and `cluster`: `restModel_keep`). -/
+`members`, `members_removed` and `cluster`: `restModel_keep`). -/
 theorem bkRestAt_boot {c0 : w64} {bootLog : List EntryM} {L : List EntryModel} {D : Data}
     (h : bkRestAt c0 bootLog L D) :
     D.lookup go!"lease" = some ∅ ∧ D.lookup go!"alarm" = some ∅ ∧
       D.lookup go!"auth" = some authBoot ∧ D.lookup go!"authUsers" = some ∅ ∧
       D.lookup go!"authRoles" = some ∅ := by
   refine ⟨?_, ?_, ?_, ?_, ?_⟩ <;>
-    (rw [h _ (by decide), bkRestOf, restModel_keep _ _ _ _ (by decide) (by decide)]
+    (rw [h _ (by decide), bkRestOf, restModel_keep _ _ _ _ (by decide) (by decide) (by decide)]
      simp [restBoot, restBootBk])
 
 /-- The readers' view of a backend opened over an image (`newPost`'s `bView`), under the bridge's
