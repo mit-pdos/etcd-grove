@@ -279,6 +279,55 @@ theorem toLE_isFiller (m : EntryModel) :
 
 end pure
 
+section pure2
+variable [GooseExts]
+
+/-- **Facts of the server's log, on a committed log with its requested entries** (2026-10-27): an
+entry-wise fact that reads only an entry's term, type and data, and holds of an empty normal
+entry, holds of every entry of a committed log `A` whose requested entries are a prefix of the
+server's log `L`'s, when it holds of `L`'s (`A`'s fillers are empty normal entries: `srvIdxOkW`). -/
+theorem srv_entry_transfer (ai₀ : w64) (A L : List EntryModel) (P : EntryModel → Prop)
+    (hP : ∀ m m', m.toLE = m'.toLE → P m' → P m)
+    (hfill : ∀ m : EntryModel, m.typ = W32 0 → m.data = [] → P m)
+    (hA : srvIdxOkW ai₀ A) (h : Draft.opsOf (A.map EntryModel.toLE) <+: L.map EntryModel.toLE)
+    (hL : ∀ m ∈ L, P m) : ∀ m ∈ A, P m := by
+  intro m hm
+  by_cases hf : m.toLE.isFiller
+  · obtain ⟨n, hn⟩ := List.getElem?_of_mem hm
+    have ht := (hA n m hn).2
+    obtain ⟨hd, hty⟩ := hf
+    simp only [EntryModel.toLE] at hd hty
+    refine hfill m ?_ hd
+    rcases ht with ht | ⟨ht, -⟩
+    · exact ht
+    · rcases hty with h0 | h2
+      · exact h0
+      · have h12 : (W32 1 : w32) = W32 2 := ht.symm.trans h2
+        exact absurd h12 (by decide)
+  · have hin : m.toLE ∈ Draft.opsOf (A.map EntryModel.toLE) := by
+      unfold Draft.opsOf
+      rw [List.mem_filter]
+      exact ⟨List.mem_map_of_mem hm, by simp [hf]⟩
+    obtain ⟨m', hm', he⟩ := List.mem_map.1 (h.subset hin)
+    exact hP m m' he.symm (hL m' hm')
+
+/-- **A committed log's equivalent prefix of the server's log** (2026-10-27): the prefix of `L`
+holding a committed log `A`'s requested entries, with the same requested entries. -/
+theorem srv_eqv_prefix (γ : ServerRaftNames) (A L : List EntryModel) (hA : srvIdxOkW γ.ai0 A)
+    (hL : srvIdxOkW γ.ai0 L) (hnf : ∀ m ∈ L, ¬ m.toLE.isFiller)
+    (h : Draft.opsOf (A.map EntryModel.toLE) <+: L.map EntryModel.toLE) :
+    ∃ A', A' <+: L ∧ srvEqv γ A A' := by
+  refine ⟨L.take (Draft.opsOf (A.map EntryModel.toLE)).length, List.take_prefix _ _, hA,
+    srvIdxOkW_prefix _ _ L hL (List.take_prefix _ _), ?_⟩
+  have hnf' : ∀ x ∈ (L.take (Draft.opsOf (A.map EntryModel.toLE)).length).map EntryModel.toLE,
+      ¬ x.isFiller := fun x hx => by
+    obtain ⟨y, hy, rfl⟩ := List.mem_map.1 hx
+    exact hnf y (List.mem_of_mem_take hy)
+  rw [opsOf_nofill _ hnf', List.map_take]
+  exact List.prefix_iff_eq_take.1 h
+
+end pure2
+
 /-! ## The server's two views of the committed log -/
 
 section ghost
@@ -669,11 +718,12 @@ variable [sem : go.Semantics]
 /-- **The server's half bounds every prefix of the committed log**, by their requested entries:
 a committed log's requested entries are those of a prefix of the server's log (2026-10-27: until
 then the committed log itself was a prefix of the server's, which held raft's fillers too). -/
-theorem srvRLog_lb (γ : ServerRaftNames) (E : CoPset) (hE : ↑srvLogN ⊆ E)
+theorem srvRLog_lb (γ : ServerRaftNames) (E : CoPset) (hE0 : ↑srvRaftN ⊆ E)
     (L A : List EntryModel) :
     ⊢ srvRaftLogInv (GF := GF) γ -∗ srvRLog γ L -∗ srvRLogLb γ A ={E}=∗
       srvRLog γ L ∗ ⌜srvIdxOkW γ.ai0 L ∧ (∀ m ∈ L, ¬ m.toLE.isFiller) ∧
         Draft.opsOf (A.map EntryModel.toLE) <+: L.map EntryModel.toLE⌝ := by
+  have hE : (↑srvLogN : CoPset) ⊆ E := fun p hp => hE0 p (srvLogN_sub p hp)
   iintro #Hinv HL #HA
   iunfold srvRaftLogInv at Hinv
   icases Hinv with ⟨#Hli, -, -, -⟩
