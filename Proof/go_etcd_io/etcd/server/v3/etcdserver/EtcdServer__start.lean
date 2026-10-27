@@ -881,6 +881,8 @@ theorem EtcdServer.start.wp_proofOn
   iunfold applyBuiltOn at Happ
   icases Happ with ⟨%st₀, %a, %t, %f, Hth, %Hlo, Hbe, Hca, Halg, Hbm, Hbo,
     ⟨%ua, Hua, #HuB, #Hfor, Hkv⟩, HRA, HAR, Hao, #Hlog, Hkr, Hrest, Hap, Hfs⟩
+  -- (E3s) the store's range check at a reader's lower bound, from the built part's store fact
+  ihave #HauLb := srvAuthLb_of_uberBase s ua E $$ HuB
   ihave Hrow : srvApplyKVOn s E γw x₀ srvAuthSt0 $$ [Hua Hkv Hbo HRA HAR HRD]
   · iunfold srvApplyKVOn
     iexists ua
@@ -1020,7 +1022,7 @@ theorem EtcdServer.start.wp_proofOn
   · iexists γp; iexact HWB
   iapply HΦ
   iexists γw
-  iframe Hreq Hrd HWBx
+  iframe Hreq Hrd HauLb HWBx
   iunfold srvStarted
   iframe Hwg2 Hwgs HNR
   isplitr

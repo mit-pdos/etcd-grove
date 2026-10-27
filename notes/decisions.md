@@ -23773,3 +23773,47 @@ results' premise (at `on = true` only).
 admin proposers, the Auth handlers, `setupAuthOk`; `examples/authkv` and the closed theorem.
 `srvLessorNil` is a premise from `applyEntryNormal.specOn` up to `start.specOn`.
 
+
+## E3s of the auth plan: `Range` with auth on, at a reader's lower bound (2026-10-27 · `notes/auth-plan.md`, E3r's first left item)
+
+`EtcdServer.Range.specOn` (`Spec/.../EtcdServer__Range.lean`) and `wp_proofOn` (generated from
+`wp_proof` by the same edits; its tail a copy of the `range_tail` macro, `range_tailOn`), linked as
+`server_range_on` (`Results.lean`, every callee linked; `doSerialize` through
+`doSerialize.wp_proofM true`). Premise: the environment's mode `on γa`. Pre, beside `spec`'s:
+`isServerReqM true`, `isServerReadM true`, the deposit at the mode-`on` model's state (`kvDep γr.kv Q
+(kvStM true γr.kv)`), a lower bound `n` of the auth store's published index (`auth.authPubLbM
+E.authMode n`), and the server's range check at such bounds (`srvAuthLb`). Success: the check passed for
+some auth info at states no older than `n` (`apply.rangeClassFrom E.authMode n info o`: a state
+recorded at an index at least `n` permits the read of `[key, e)` and the token is not stale), and the
+read as `spec`'s over the mode's model (`rangeReadOkM true`: a linearizable read is the mode-`on`
+model of a committed raft log at which the deposit fired).
+
+**Why the lower bound, not `isAuthStore`'s verdict.** The read view's `apply.isAuthStore` in the mode
+`on γa` gives `auth.permVerdict`: *some* recorded state permits the read, possibly one from before a
+revocation the reader already saw. The read path checks outside the apply thread, so the latest state
+(E2r's `isAuthStoreL`) is not available to it; E3g's decision is the reads' freshness as a lower bound
+of the published index, and E3j proved `IsRangePermitted.specLb` against it. `Range.specOn` uses that.
+
+**How the reader gets the check.** `authStoreLbM M st RD` (`StoreLatest.lean`): with auth on,
+`□ ∀ n, authPubLbM n -∗ apply.isAuthStoreRangeLb st RD M n` (E3m's contract), of the store's
+invariant (`apply.isAuthStoreRangeLb_of_authInv` over `auth_range_permitted_lb`). It is produced where
+`authStoreLatestM` is, by the store's construction (`authStoreKit`'s post; `authStoreKit_on` and
+`authSrvTP_on` take `IsRangePermitted.specLb`), kept by the built part beside it (`srvUberBase`, one
+more conjunct), and handed to readers by `start.specOn`'s post (`srvAuthLb`: the `authStore` field
+and `authStoreLbM` of it; `srvAuthLb_of_uberBase`). Statement changes: `authStoreKit`'s post,
+`srvUberBase`, `start.specOn`'s post (one conjunct each), `authSrvTP_on`'s premises. Chosen over a
+new conjunct of `srvReadFieldsAtM true` because that definition is uniform in `on` (`_false` by
+`rfl`) and shared with `isReadServer_of_serverM`.
+
+**The mode-`on` read lemmas** (`ReadOn.lean`): `readIndexOk_logM`, `readIndexOk_logRM`,
+`readServed_logRM` (over `srvAppliedInvM on`), `kv_read_logOn` (`kv_read_log`'s over
+`kvCertInvOn`/`kvLogAtM true`), `readWit_fireOn` (the deposit's result at the mode-`on` model);
+`rangeReadOkM` (`rangeReadOk` at `false`, by `rfl`). `doSerialize.specM on` (it reads only fields both
+modes share; `spec` at `false`).
+
+**Not done (in order).** Where a reader's lower bound comes from: nothing produces `authPubLb` yet but
+publication (`authPublishT`, whose call site in the apply loop is not done) and `authPubLb_le`; a
+client needs at least `authPubLb γa 0` (the server could keep one in `srvAuthLb`) and, for freshness
+that means something, a bound from a write it saw. The read-only `Txn` with auth on (`Txn.specOn`'s
+read branch over E3m's `apply_check_txn_auth_lb`); the admin proposers, the Auth handlers,
+`setupAuthOk`; `examples/authkv` and the closed theorem.

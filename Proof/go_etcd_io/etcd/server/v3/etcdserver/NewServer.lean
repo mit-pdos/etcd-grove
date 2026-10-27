@@ -629,7 +629,7 @@ theorem NewServer.wp_proofM (on : Bool)
   wp_apply HKt'
     $$ [HK Hopen Hhook Hwa Hrbo]
     as %ast ⟨Hopen, Hhook, Hrbo, %RD, %astl, %Hastl, HauthOn, HRDs, #HisReq, #HisAuth,
-      #HstL, HAres, #HauR⟩
+      #HstL, #HstLb, HAres, #HauR⟩
   · iframe Habbe Hablg HB
     iframe Hapkg HK Hopen Hhook Hwa Hrbo
     ipureintro
@@ -1693,6 +1693,9 @@ theorem NewServer.wp_proofM (on : Bool)
     · iexists up, uopts
       iframe Hui
       ipureintro; exact ⟨Hua, Huopts.2.2.2.1, Huopts.2.2.2.2.1⟩
+    -- (E3s) the range check at a reader's lower bound, from the construction
+    isplitr
+    · iexact HstLb
     -- (E3l) the store's checks at the latest state, from the construction
     iexists astl
     isplitr

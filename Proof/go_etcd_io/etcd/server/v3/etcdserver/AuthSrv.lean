@@ -78,7 +78,7 @@ def authStoreKit (M : auth.AuthMode) (tp : GoInterface) : IProp GF :=
         backend.rbOwn d.γB (authBucketsAfter r) ∗
         ∃ (RD : IProp GF) (stl : Loc), ⌜st = auth.authIface stl⌝ ∗ authBeOn stl d.be ∗
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), RD) ∗
-        isReqAuth st RD ∗ authApplyOkM M stl RD ∗ authStoreLatestM M st RD stl ∗
+        isReqAuth st RD ∗ authApplyOkM M stl RD ∗ authStoreLatestM M st RD stl ∗ authStoreLbM M st RD ∗
         authApplyResPre M stl (auth.bump auth.bootState) d ∗
         -- (D22 J1a, 2026-10-26) in the mode `off`, the store's `Recover` on a new backend
         -- (`NewAuthStore`'s axiom's `authRecoverOk`)
@@ -175,6 +175,8 @@ theorem authStoreKit_off (h30 : auth.NewAuthStore.spec (GF := GF) (hG := hG)) (t
   isplitr
   · unfold authStoreLatestM; itrivial
   isplitr
+  · unfold authStoreLbM; itrivial
+  isplitr
   · unfold authApplyResPre
     itrivial
   iintro !> -
@@ -222,6 +224,7 @@ theorem authStoreKit_on
     (hRangeL : auth.authStore.IsRangePermitted.specL (GF := GF) (hG := hG))
     (hDelL : auth.authStore.IsDeleteRangePermitted.specL (GF := GF) (hG := hG))
     (hAdminL : auth.authStore.IsAdminPermitted.specL (GF := GF) (hG := hG))
+    (hRangeLb : auth.authStore.IsRangePermitted.specLb (GF := GF) (hG := hG))
     (hEnableB : auth.authStore.AuthEnable.specTB (GF := GF) (hG := hG))
     (hUserAddB : auth.authStore.UserAdd.specTSureB (GF := GF) (hG := hG))
     (hRoleAddB : auth.authStore.RoleAdd.specTB (GF := GF) (hG := hG))
@@ -276,6 +279,11 @@ theorem authStoreKit_on
   ihave #HstL : authStoreLatestM (.on γa) (auth.authIface stp) (auth.authRd stp R (.on γa)) stp
     $$ []
   · unfold authStoreLatestM; iexact HstL0
+  -- (E3s) the range check at a reader's lower bound, of its invariant
+  ihave #HstLb : authStoreLbM (.on γa) (auth.authIface stp) (auth.authRd stp R (.on γa)) $$ []
+  · unfold authStoreLbM
+    iintro !> %n #Hlb
+    iapply apply.isAuthStoreRangeLb_of_authInv hRangeLb stp R (.on γa) n $$ [$Hpkg $Hinv $Hlb]
   subst hhs'
   -- (E2v) the halves tied to the start's history, whose states are disabled
   ihave ⟨Hown', HX⟩ := auth.tieRes_of_disabled stp γa [auth.bootState, auth.bump auth.bootState]
@@ -308,7 +316,7 @@ theorem authStoreKit_on
   iframe Hopen Hhook Hrbo
   iexists (auth.authRd stp R (.on γa)), stp
   subst Hst
-  iframe HisReq HisAuth HstL HAR
+  iframe HisReq HisAuth HstL HstLb HAR
   isplitr
   · ipureintro; rfl
   isplitl [Hbe]
@@ -348,6 +356,7 @@ theorem authSrvTP_on (h25 : auth.NewTokenProvider.spec (GF := GF) (hG := hG))
     (hRangeL : auth.authStore.IsRangePermitted.specL (GF := GF) (hG := hG))
     (hDelL : auth.authStore.IsDeleteRangePermitted.specL (GF := GF) (hG := hG))
     (hAdminL : auth.authStore.IsAdminPermitted.specL (GF := GF) (hG := hG))
+    (hRangeLb : auth.authStore.IsRangePermitted.specLb (GF := GF) (hG := hG))
     (hEnableB : auth.authStore.AuthEnable.specTB (GF := GF) (hG := hG))
     (hUserAddB : auth.authStore.UserAdd.specTSureB (GF := GF) (hG := hG))
     (hRoleAddB : auth.authStore.RoleAdd.specTB (GF := GF) (hG := hG))
@@ -379,7 +388,7 @@ theorem authSrvTP_on (h25 : auth.NewTokenProvider.spec (GF := GF) (hG := hG))
   isplitr
   · ipureintro; rfl
   iapply (authStoreKit_on h_Warn h_Int h_Revision h_commit h_metrics h_refresh hCtx hTLS hPut hRange
-    hDel hAdmin hEn hPutL hRangeL hDelL hAdminL hEnableB hUserAddB hRoleAddB hUserGrantRoleB
+    hDel hAdmin hEn hPutL hRangeL hDelL hAdminL hRangeLb hEnableB hUserAddB hRoleAddB hUserGrantRoleB
     hRoleGrantPermissionB hD22 _ γa (auth.simpleAdmin p))
     $$ [$HtpA $HA $Hown $Hcur $HI]
 

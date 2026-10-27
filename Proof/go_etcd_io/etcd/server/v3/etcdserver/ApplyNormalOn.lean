@@ -557,7 +557,7 @@ theorem srv_uberAuthStepsL_at
         (auth.latestRes stl (.on γa)) := by
   iintro ⟨#Hpkg, #Hb, #Hf, #Hsteps⟩
   iunfold srvUberBase at Hb
-  icases Hb with ⟨%au, %le, #Hauf, #Hlef, #Hub, %stl', %Hau, #HL⟩
+  icases Hb with ⟨%au, %le, #Hauf, #Hlef, #Hub, -, %stl', %Hau, #HL⟩
   subst Hau
   icombine Hf Hauf gives %Hst
   have Hst' := apply.mkOk_ptr_inj _ _ _ Hst
