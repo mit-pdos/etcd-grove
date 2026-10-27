@@ -72,11 +72,19 @@ last paragraph): the Go model stays the trust base. Status: `notes/k8s-daemonset
   (`writeRet`, `getRet`, `listRet`, `watchRet`). The failure premise is configuration: `mayHappen
   flag admin` (a flagged nondeterministic choice, never for admin clients); an ambiguous write
   (`Config.AmbiguousWrites`) may report a timeout after the write took effect.
-- **Proved** (`Link.lean`, `Results.lean`): `create`, `get`, `list`, `update`, `remove` (and
-  `nextRV`, `record`, `chance`, `rvString`), the typed clients' `Get`, `Create`, `List`,
-  `UpdateStatus`, `Update`, `Delete`, `Watch` over them, the clientsets. **Not proved yet**
-  (specified; the results over them take them as hypotheses, `links_pending`): `watch` and the
-  watcher's goroutine (`run`, `send`, `Stop`), `NewServer`, `preparePod`, `prepareDaemonSet` (C5),
-  `podGrace`, `updateDaemonSetStatus`, `daemonSetStatusEqual`, `int32PtrEqual`; `copyObject` is a
-  `sorry` (C8).
+- **Watch** (`watchRet`, `watchAt`, `evOk`, `watchCons`, `watchStartOk`, `runPre` in `Defs.lean`):
+  400 for a field/label selector or `SendInitialEvents`, a flagged 500, 410 for a version not
+  issued (or an older one when `ExpireWatches` is flagged), else a watch: a result channel (SPSC)
+  each of whose events is a step of a cursor (`evStep`: an initial object, the next change in the
+  namespace, or a bookmark when bookmarks are on and the client is not admin), started at the
+  locked state's version for `""`/`"0"` (initial objects a `listOk` listing) or at the issued
+  version given.
+- **Proved** (`Link.lean`, `Results.lean`): `NewServer`, `create`, `get`, `list`, `update`,
+  `remove`, `watch` (over `watcher.run`'s spec), `watcher.Stop`, `watcher.ResultChan` (and
+  `nextRV`, `record`, `chance`, `rvString`, `newTable`, `podGrace`, `int32PtrEqual`), the typed
+  clients' `Get`, `Create`, `List`, `UpdateStatus`, `Update`, `Delete`, `Watch` over them, the
+  clientsets. **Not proved yet** (specified; the results over them take them as hypotheses,
+  `links_pending`): the watcher's goroutine `run` (`send` has no spec: a `select` over the result
+  and stop channels, both SPSC), `preparePod`, `prepareDaemonSet` (C5), `updateDaemonSetStatus`,
+  `daemonSetStatusEqual`; `copyObject` is a `sorry` (C8).
 - **No infidelity found** in the model's Go code while proving it (the operations match `doc.go`).

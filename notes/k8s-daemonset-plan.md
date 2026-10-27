@@ -269,16 +269,19 @@ theorem's program runs with it off, the premise "a failed write had no effect" (
    the stored objects and the change log, well formed (`St.wf`: versions increasing along each log,
    at most `rev`; logged objects of the table's resource, at their version, with an issued UID;
    the stored objects the log's replay); a history of states (`apiState γ σ` the clients' half).
-   **Proved**: the server's `create`, `get`, `list`, `update`, `remove` (each linearizing under the
-   lock: a write appends a later well-formed state, `St.write_wf`; a check's error or a read at the
-   locked state; a flagged failure or a request-only check at any state), the typed clients' `Get`,
+   **Proved**: `NewServer` (the empty state), the server's `create`, `get`, `list`, `update`,
+   `remove` (each linearizing under the lock: a write appends a later well-formed state,
+   `St.write_wf`; a check's error or a read at the locked state; a flagged failure or a
+   request-only check at any state), `watch` (over the watcher goroutine's spec: the watch's start
+   checked and registered, the result channel an SPSC whose events are steps of a cursor along the
+   log), the watch's `Stop` and `ResultChan`, `podGrace`, `int32PtrEqual`, the typed clients' `Get`,
    `Create`, `List`, `UpdateStatus`, `Update`, `Delete`, `Watch` over them (the caller's update
    passed on, `au_mono`), the clientsets. **Not proved yet** (specified; `links_pending`
-   hypotheses): `watch` and the watcher's goroutine, `NewServer`, `preparePod`, `prepareDaemonSet`
-   (C5), `podGrace`, `updateDaemonSetStatus`, `daemonSetStatusEqual`, `int32PtrEqual`.
-   `copyObject` is a `sorry` (gap C8, the pinned translation's interface assertion: fixed by the
-   Perennial bump, or by the proposed type switch, a TCB change not applied). No infidelity found in
-   the model.
+   hypotheses): the watcher's goroutine `watcher.run` (its precondition `runPre` is what `watch`
+   proves it hands it; `send` needs a `select` over two SPSC channels), `preparePod`,
+   `prepareDaemonSet` (C5), `updateDaemonSetStatus`, `daemonSetStatusEqual`. `copyObject` is a
+   `sorry` (gap C8, the pinned translation's interface assertion: fixed by the Perennial bump, or by
+   the proposed type switch, a TCB change not applied). No infidelity found in the model.
 4. **The informers.** The reflector (list, watch, relist, bookmarks; watch-list off), the FIFO, the
    shared informer's processor and listeners, `WaitForNamedCacheSyncWithContext`: the informer
    contract above, plus the handlers' delivery (in order, with the objects' concrete types, which
