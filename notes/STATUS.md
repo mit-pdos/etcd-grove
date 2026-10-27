@@ -237,7 +237,7 @@ removed, ..., adequacy coverage" below.
     `notes/decisions.md`, "D22 J2".
   - **Integration 2 (2026-10-27)**: J1a, J6a, J4a and J7b merged with `lean` and landed (the
     resolutions joined both sides; `KVModelRestore` over lean's lease table, J6a's `rn_ready_recvL`
-    through raft's sealed `readyP_take`). Trust base unchanged (724 axioms, 5 `sorry`s).
+    through raft's sealed `readyP_take`). Trust base unchanged (724 axioms, 4 `sorry`s after lean's, which removed one).
     `notes/decisions.md`, "D22 integration 2".
   - **J6a done (2026-10-26)**: the raft node's payload with a snapshot (`rnApP = rnApN ∨
     rnApSnap`, `rnReadySnap`, `rn_ready_recvL`, `rnApplyTok_recvS`, `updateCommittedIndex` with a

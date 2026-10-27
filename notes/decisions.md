@@ -23442,4 +23442,4 @@ statement was weakened, none was dropped.
   `nodeDriver`, `nodeDriverBusy` sealed): `rn_ready_recvL` takes the payload by `readyP_take`, its
   no-snapshot case by `rn_ready_recv_of` (new: `rn_ready_recv`'s body after the take, which
   `rn_ready_recv` now calls); `updateCommittedIndex.lean` imports `SnapshotMetadata.GetIndex`'s spec.
-- No axiom or `sorry` added or removed (724, 5); every collection matches its baseline.
+- No axiom or `sorry` added or removed by the integration (724 axioms; 4 `sorry`s, lean having removed one); every collection matches its baseline. Built against Perennial f73703285 (the pin lean moved to during the integration; `SnapRO.lean`'s binders converted).
