@@ -41,15 +41,20 @@ def LogEntry.ofEntryM (e : EntryM) : LogEntry := ⟨e.Term', e.Type', e.Data'⟩
 /-- A raft log as a client sees it (the committed log up to a snapshot, `SnapLoan.dlv`). -/
 def strip (L : List EntryM) : List LogEntry := L.map LogEntry.ofEntryM
 
-/-- **A filler**: an entry that carries nothing, an empty normal entry or an empty `ConfChangeV2`.
-Raft appends these itself: a new leader's entry (`raft.go:961`), the entry leaving a joint
-configuration (`AutoLeave`, `raft.go:742`), the entry in place of a conf change it refuses
+/-- **A filler**: an entry that carries nothing, an empty normal entry. Raft appends these itself:
+a new leader's entry (`raft.go:961`), the entry in place of a conf change it refuses
 (`raft.go:1341`). A client's empty proposal looks the same, so it is a filler too: an operation must
-be encoded as non-empty bytes to take effect as one. -/
+be encoded as non-empty bytes to take effect as one. (2026-10-27: until then also an empty
+`ConfChangeV2`, raft's auto-leave entry, `raft.go:742`, which raft's proof shows is never appended,
+and a client's empty `ConfChangeV2`, which is now a requested entry like any conf change.) -/
 def LogEntry.isFiller (e : LogEntry) : Prop :=
-  e.data = [] ∧ (e.type = W32 0 ∨ e.type = W32 2)
+  e.data = [] ∧ e.type = W32 0
 
 instance (e : LogEntry) : Decidable e.isFiller := by unfold LogEntry.isFiller; infer_instance
+
+/-- **A filler is a normal entry** (`EntryNormal`): what etcd's apply loop needs, which panics on an
+entry of type `EntryConfChangeV2`. (2026-10-27, in place of the server port's `noConfChangeV2`.) -/
+theorem LogEntry.isFiller_normal (e : LogEntry) (h : e.isFiller) : e.type = W32 0 := h.2
 
 /-- **The requested entries** of a log: everything but its fillers. -/
 def opsOf (l : List LogEntry) : List LogEntry := l.filter fun e => !decide e.isFiller

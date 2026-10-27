@@ -701,7 +701,7 @@ theorem ownRaftGhost_step_win (γ : RaftNames) (c : CfgM) (id : w64)
       iexists none
       simp only [entDataIs, propDataIs]
       ipureintro
-      rw [← He]; exact ⟨⟨rfl, Or.inl rfl⟩, CCDecodes_normal _⟩
+      rw [← He]; exact ⟨⟨rfl, rfl⟩, CCDecodes_normal _⟩
     -- (2026-10-18, D19b stage 5) its index is covered by the receipt
     iapply (preceipt_mono (GF := GF) (show (uint.Z e.Index').toNat - γ.reBoot.length ≤ n by
       omega))

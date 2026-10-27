@@ -252,6 +252,23 @@ instance leaderTransferOff_persistent (γ : Cluster) (N : Namespace) :
     (id : w64) : IProp GF :=
   ApiImpl.nodeBoot γ N ps ctxs id
 
+/-- The length of the bootstrap log the cluster was started from (sealed). -/
+@[no_expose] def Cluster.bootLen (γ : Cluster) : Nat := γ.raft.reBoot.length
+
+/-- **The indices raft hands out fit `MemoryStorage.Append`'s bound** (persistent; 2026-10-27, the
+server port's addition): the receipts' bound past the bootstrap log is at most `2 ^ 61`. Every
+index raft hands out is within its log, whose last index has a record keeping a time receipt
+(`lastRec_receipt`), so below the receipts' bound past the bootstrap log; so is every committed log
+(`isCommittedLogLb_length`, `readyRest_fits`). What `cluster_alloc` and `dynamicCluster_alloc` give
+under that premise; what etcd's raft loop needs to call `MemoryStorage.Append` (which checks no
+bound, unlike the key-value example's `fits`). -/
+@[no_expose] def readyFits (γ : Cluster) (_N : Namespace) : IProp GF :=
+  iprop(⌜receiptBound GF + γ.bootLen ≤ 2 ^ 61⌝)
+
+instance readyFits_persistent (γ : Cluster) (N : Namespace) :
+    Persistent (readyFits (GF := GF) γ N) := by
+  unfold readyFits; infer_instance
+
 /-- **A new cluster** of the peers `ps`, in the caller's namespace `N`: the client's committed
 requested entries at the bootstrap entries (one `ConfChangeAddNode` per peer, at term 1: `BootLog`;
 none is a filler), the read contexts with none used, the cluster's read credits, the cluster static
@@ -265,20 +282,28 @@ contexts; the cluster takes snapshots, `snapOk`. A client that takes none choose
 `snapOk := fun _ _ => False`, and refutes a snapshot `Ready` by `snapshotCert_data`.) (2026-10-27,
 for etcd's server: leader transfer on or off, `transfer`, as `dynamicCluster_alloc`. Not so for
 `cluster_alloc_static`: raft's no-transfer mode needs a bootstrap log, whose term-`1` entries stamp
-every message's term past `0`, `ownRaftGhost_alloc_core`'s `Hnx`.) -/
+every message's term past `0`, `ownRaftGhost_alloc_core`'s `Hnx`.) (2026-10-27, for etcd's
+server: `readyFits`, under its premise that the receipts' bound past the bootstrap log is at most
+`2 ^ 61`; until then the placeholder `readyFits_alloc`.) -/
 theorem cluster_alloc (N : Namespace) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
     (snapOk : List LogEntry → List w8 → Prop) (transfer : Bool) (E : CoPset) :
-    receiptBound GF ≤ 2 ^ 64 - 2 →
+    receiptBound GF ≤ 2 ^ 64 - 2 → receiptBound GF + boot.length ≤ 2 ^ 61 →
     BootLog ps ctxs boot → ps.Nodup → ps ≠ [] → W64 0 ∉ ps →
     ⊢ bootMarshal (GF := GF) ps ctxs (LogEntry.toEntries boot 0) -∗
       |={E}=> ∃ γ, ownCommittedOps γ boot ∗ ownReadCtxs γ ∅ ∗ readCredits γ (2 ^ 64 - 2) ∗
         isStaticCluster γ N ps snapOk ∗
-        (if transfer then leaderTransferOn γ N else leaderTransferOff γ N) ∗
+        (if transfer then leaderTransferOn γ N else leaderTransferOff γ N) ∗ readyFits γ N ∗
         [∗list] id ∈ ps, nodeBoot γ N ps ctxs id := by
-  intro Hrb HB Hnd Hne Hnz
+  intro Hrb Hrb2 HB Hnd Hne Hnz
+  iintro Hm
+  imod ApiImpl.cluster_alloc_impl N ps ctxs boot snapOk transfer E Hrb HB Hnd Hne Hnz $$ Hm
+    with ⟨%γ, %Hbl, Ho, Hc, Hr, Hs, Hx, Hb⟩
+  imodintro
+  iexists γ
   unfold ownCommittedOps ownReadCtxs readCredits nodeBoot isStaticCluster leaderTransferOn
-    leaderTransferOff
-  exact ApiImpl.cluster_alloc_impl N ps ctxs boot snapOk transfer E Hrb HB Hnd Hne Hnz
+    leaderTransferOff readyFits Cluster.bootLen
+  iframe Ho Hc Hr Hs Hx Hb
+  ipureintro; rw [Hbl]; exact Hrb2
 
 /-- **A static cluster's boot token** for node `id` (exclusive): what its `RestartNode` takes. -/
 @[no_expose] def nodeRestartBoot (γ : Cluster) (N : Namespace) (vs : List w64) (id : w64) : IProp GF :=
@@ -518,7 +543,7 @@ def readyRest (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeD
     hsOpt rd.HardState' h ∗ softStateRO rd.SoftState' ∗
     ⌜∃ Lx : Int, Lx < 2 ^ 64 ∧
       (∀ e0, es.head? = some e0 → uint.Z e0.Index' + (es.length : Int) ≤ Lx + 1) ∧
-      ((st.delivered ++ ce).length : Int) ≤ Lx⌝ ∗
+      ((st.delivered ++ ce).length : Int) ≤ Lx ∧ Lx < (receiptBound GF : Int) + γ.bootLen⌝ ∗
     readySnap γ N rd st ce es L)
 
 /-- The implementation's rest of a `Ready` is the draft's. -/
@@ -642,17 +667,23 @@ them a change that leaves the peers' membership as it is (`Membership.applyChang
 (Today `raft_dyn_alloc_boot` and `budget_alloc_boot`, with `allocClientGen`'s continuation.) -/
 theorem dynamicCluster_alloc (N : Namespace) (ps : List w64) (ctxs : List (List w8))
     (boot : List LogEntry) (decode : ConfChangeDecoder) (transfer : Bool) (E : CoPset) :
-    receiptBound GF ≤ 2 ^ 64 - 2 →
+    receiptBound GF ≤ 2 ^ 64 - 2 → receiptBound GF + boot.length ≤ 2 ^ 61 →
     BootLog ps ctxs boot → ps.Nodup → ps ≠ [] → W64 0 ∉ ps → (ps.length : Int) ≤ 2 ^ 62 →
     ⊢ bootMarshal (GF := GF) ps ctxs (LogEntry.toEntries boot 0) -∗
       |={E}=> ∃ γ, ownCommittedOps γ boot ∗ ownReadCtxs γ ∅ ∗ readCredits γ (2 ^ 64 - 2) ∗
         isDynamicCluster γ N (Membership.simple (GMap.listToSet ps)) decode ∗
-        (if transfer then leaderTransferOn γ N else leaderTransferOff γ N) ∗
+        (if transfer then leaderTransferOn γ N else leaderTransferOff γ N) ∗ readyFits γ N ∗
         [∗list] id ∈ ps, nodeDynamicBoot γ N ps ctxs id := by
-  intro Hrb HB Hnd Hne Hnz Hlen
+  intro Hrb Hrb2 HB Hnd Hne Hnz Hlen
+  iintro Hm
+  imod ApiImpl.dynamicCluster_alloc_impl N ps ctxs boot decode transfer E Hrb HB Hnd Hne Hnz Hlen
+    $$ Hm with ⟨%γ, %Hbl, Ho, Hc, Hr, Hs, Hx, Hb⟩
+  imodintro
+  iexists γ
   unfold ownCommittedOps ownReadCtxs readCredits nodeDynamicBoot isDynamicCluster leaderTransferOn
-    leaderTransferOff
-  exact ApiImpl.dynamicCluster_alloc_impl N ps ctxs boot decode transfer E Hrb HB Hnd Hne Hnz Hlen
+    leaderTransferOff readyFits Cluster.bootLen
+  iframe Ho Hc Hr Hs Hx Hb
+  ipureintro; rw [Hbl]; exact Hrb2
 
 /- (2026-10-27) No empty dynamic cluster (the draft's `dynamicCluster_alloc_empty`,
 `nodeDynamicRestartBoot`, `RestartNode.dynamicSpec`): a dynamic cluster is in raft's no-snapshot
@@ -753,19 +784,25 @@ theorem msgCredits_snapshot (γ : Cluster) (N : Namespace) (st : MsgSt) :
     st.msg.Type' = MsgSnap → ⊢ |==> msgCredits (GF := GF) γ N st := by
   unfold msgCredits; exact ApiImpl.msgCredits_snapshot_impl γ N st
 
-/-! ### The server port's additions (draft, 2026-10-27, branch `server-port`; `sorry` until raft
-proves them)
+/-! ### The server port's additions (2026-10-27, branch `server-port`; proved the same day, branch
+`raft-api`)
 
 What porting etcd's server onto this API needed beyond the section above (`notes/decisions.md`,
 "etcd's server on raft's node API"). -/
 
 /-- **A committed log's next index fits raft's 64-bit indices** (2026-10-27, the server port's
-addition): its entries are at the indices `1 .. l.length`, each a `uint64`, and raft's log is
-bounded by the cluster's time receipts (`receiptBound GF ≤ 2 ^ 64 - 2`), so the index after it is
-one too. What the server needs to number the requested entries of its own log (`SrvRaftLog.lean`,
-`srvPropAu_api`) and to hand a committed log to its committed index (`E.C`). -/
-theorem isCommittedLogLb_length (γ : Cluster) (l : List LogEntry) :
-    isCommittedLogLb (GF := GF) γ l ⊢ ⌜(l.length : Int) + 1 < 2 ^ 64⌝ := sorry
+addition): every committed entry's index is covered by a time receipt, so a committed log is shorter
+than the receipts' bound past the bootstrap log, at most `2 ^ 61` in a cluster that `readyFits`.
+What the server needs to number the requested entries of its own log (`SrvRaftLog.lean`,
+`srvPropAu_api`) and to hand a committed log to its committed index (`E.C`). (Changed from the
+draft: `readyFits` taken; the receipts' bound alone, `≤ 2 ^ 64 - 2` past a bootstrap log of up to
+`2 ^ 61` entries, does not keep the next index within `2 ^ 64`.) -/
+theorem isCommittedLogLb_length (γ : Cluster) (N : Namespace) (l : List LogEntry) :
+    readyFits (GF := GF) γ N ∗ isCommittedLogLb γ l ⊢ ⌜(l.length : Int) + 1 < 2 ^ 64⌝ := by
+  unfold readyFits Cluster.bootLen isCommittedLogLb ApiImpl.isCommittedLogLb
+  iintro ⟨%Hf, (%Hnil | ⟨-, -, %Hb⟩)⟩
+  · ipureintro; subst Hnil; simp
+  · ipureintro; omega
 
 /-- (2026-10-27, the server port's addition) **The read context `c` was committed after the log
 `l0` was** (persistent): what `readCtx_commit_after` gives with the context. Raft's read index is
@@ -931,52 +968,25 @@ variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 
-/-- (2026-10-27, the server port's addition) **No empty `ConfChangeV2` is proposed in the
-cluster** (persistent): the client renounces `ConfChangeV2` proposals (etcd's server proposes only
-v1 changes, and none of its own). Proposed change: `cluster_alloc`/`dynamicCluster_alloc` give it
-on request, `node.ProposeConfChange` then taking only v1 changes. -/
-@[no_expose] def noConfChangeV2 (γ : Cluster) (N : Namespace) : IProp GF := sorry
-
-instance noConfChangeV2_persistent (γ : Cluster) (N : Namespace) :
-    Persistent (noConfChangeV2 (GF := GF) γ N) := sorry
-
-/-- (the server port's addition) **Every committed filler is an empty normal entry** when no
-`ConfChangeV2` is proposed and the configuration is never joint (no auto-leave entry): a refused
-conf change is replaced by an empty normal entry (`raft.go:1341`), a new leader's entry is an empty
-normal one (`raft.go:961`). What etcd's apply loop needs: it panics on an entry of type
-`EntryConfChangeV2`. -/
-theorem noConfChangeV2_filler (γ : Cluster) (N : Namespace) (l : List LogEntry) :
-    noConfChangeV2 (GF := GF) γ N ∗ isCommittedLogLb γ l ⊢
-      ⌜∀ e ∈ l, e.isFiller → e.type = W32 0⌝ := sorry
-
-/-- (the server port's addition) The allocations' companion: a cluster allocated without any
-`ConfChangeV2` proposal yet may renounce them (see `noConfChangeV2`'s proposed change). -/
-theorem noConfChangeV2_alloc (γ : Cluster) (N : Namespace) (vs : List w64) (snapOk : List LogEntry → List w8 → Prop)
-    (E : CoPset) :
-    ⊢ isStaticCluster (GF := GF) γ N vs snapOk ={E}=∗ noConfChangeV2 γ N := sorry
-
 /-- (2026-10-27, the server port's addition) **A `Ready`'s entries fit `MemoryStorage.Append`'s
-bound** (persistent): every index raft hands out is within its log, whose last index has a record
-keeping a time receipt (`lastRec_receipt`), so below `2 ^ 61` when the receipts' bound past the
-bootstrap log is (`receiptBound GF + |boot| ≤ 2 ^ 61`). Proposed change: the allocations give it
-under that premise. What etcd's raft loop needs to call `MemoryStorage.Append` (it checks no
-bound, unlike the key-value example's `fits`). -/
-@[no_expose] def readyFits (γ : Cluster) (N : Namespace) : IProp GF := sorry
-
-instance readyFits_persistent (γ : Cluster) (N : Namespace) :
-    Persistent (readyFits (GF := GF) γ N) := sorry
-
-theorem readyFits_alloc (γ : Cluster) (N : Namespace) (vs : List w64)
-    (snapOk : List LogEntry → List w8 → Prop) (nb : Nat) (E : CoPset) :
-    receiptBound GF + nb ≤ 2 ^ 61 →
-    ⊢ isStaticCluster (GF := GF) γ N vs snapOk ={E}=∗ readyFits γ N := sorry
-
+bound** (`readyFits`). -/
 theorem readyRest_fits [StorageModel GF] [go.Semantics] (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready)
     (st : NodeDriverState) (ce : List LogEntry) (es : List EntryM) (h : HardStateM)
     (L : Option SnapLoan) :
     readyFits (GF := GF) γ N ∗ readyRest γ N id rd st ce es h L ⊢
       readyRest γ N id rd st ce es h L ∗
-        ⌜∀ e0, es.head? = some e0 → uint.Z e0.Index' + (es.length : Int) ≤ 2 ^ 61⌝ := sorry
+        ⌜∀ e0, es.head? = some e0 → uint.Z e0.Index' + (es.length : Int) ≤ 2 ^ 61⌝ := by
+  unfold readyFits readyRest
+  iintro ⟨%Hf, %ms, Hes, Hm, Hms, Hh, Hss, %Hx, Hsn⟩
+  obtain ⟨Lx, H1, Hhd, H3, HLx⟩ := Hx
+  isplitl
+  · iexists ms
+    iframe Hes Hm Hms Hh Hss Hsn
+    ipureintro; exact ⟨Lx, H1, Hhd, H3, HLx⟩
+  · ipureintro
+    intro e0 he0
+    have := Hhd e0 he0
+    omega
 
 /-- (2026-10-27, the server port's addition; proved) The read credits are timeless: the server
 keeps its share in an invariant, opened without a later credit. -/
@@ -1040,7 +1050,8 @@ abbrev node.Propose.spec : Prop :=
 /-- **`node.ProposeConfChange(ctx, cc)`**: the same, for the conf change `o` that `cc` holds (given
 back): its entry has the type and bytes `MarshalConfChange` gives it, raft choosing the term. The
 update never fires if the leader refuses the change (an empty normal entry commits in its place,
-`raft.go:1341`) or if its entry is a filler (an empty `ConfChangeV2`). -/
+`raft.go:1341`). (2026-10-27: an empty `ConfChangeV2` is no filler any more, `LogEntry.isFiller`:
+its update fires like any conf change's.) -/
 abbrev node.ProposeConfChange.spec : Prop :=
   ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (c : GoInterface) (o : ConfChangeIM) (dq : DFrac)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),

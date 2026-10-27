@@ -128,9 +128,11 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- **A lower bound of the committed log**, fillers included (persistent): `l` is empty, or a
 prefix of the full log (`full`) whose requested entries are a prefix of the requested entries
-(`ops`). -/
+(`ops`), shorter than the receipts' bound past the bootstrap log (2026-10-27: every committed
+entry's index is covered by a time receipt, `isEntryR_receipt`). -/
 def isCommittedLogLb (γ : Cluster) (l : List LogEntry) : IProp GF :=
-  iprop(⌜l = []⌝ ∨ (monoListLbOwn γ.full l ∗ monoListLbOwn γ.ops (opsOf l)))
+  iprop(⌜l = []⌝ ∨ (monoListLbOwn γ.full l ∗ monoListLbOwn γ.ops (opsOf l) ∗
+    ⌜(l.length : Int) < (receiptBound GF : Int) + γ.raft.reBoot.length⌝))
 
 /-- **The committed requested entries, the client's** (exclusive): half of `ops`' authority, and
 a committed log whose requested entries they are. -/
@@ -164,7 +166,7 @@ omit [StorageModel GF] sem package_sem in
 theorem ownCommittedOps_lb_prefix_impl (γ : Cluster) (ops l : List LogEntry) :
     ownCommittedOps (GF := GF) γ ops ∗ isCommittedLogLb γ l ⊢ ⌜opsOf l <+: ops⌝ := by
   unfold ownCommittedOps isCommittedLogLb
-  iintro ⟨⟨Ha, -⟩, (%Hnil | ⟨-, #Hlb⟩)⟩
+  iintro ⟨⟨Ha, -⟩, (%Hnil | ⟨-, #Hlb, -⟩)⟩
   · ipureintro; subst Hnil; exact List.nil_prefix
   icases mono_list_auth_lb_valid $$ Ha Hlb with %H
   ipureintro; exact H.2
@@ -179,12 +181,14 @@ theorem isCommittedLogLb_mono_impl (γ : Cluster) (l1 l2 : List LogEntry) :
     l1 <+: l2 → isCommittedLogLb (GF := GF) γ l2 ⊢ isCommittedLogLb γ l1 := by
   intro Hp
   unfold isCommittedLogLb
-  iintro (%Hnil | ⟨#H1, #H2⟩)
+  iintro (%Hnil | ⟨#H1, #H2, %Hb⟩)
   · ileft; ipureintro; subst Hnil; exact List.prefix_nil.mp Hp
   iright
   isplitl []
   · iapply monoListLbOwn_le _ Hp $$ H1
+  isplitl []
   · iapply monoListLbOwn_le _ (opsOf_prefix Hp) $$ H2
+  ipureintro; have := Hp.length_le; omega
 
 omit [StorageModel GF] sem package_sem in
 theorem isCommittedLogLb_agree_impl (γ : Cluster) (l1 l2 : List LogEntry) :
@@ -301,7 +305,7 @@ instance rdFreshOk_persistent (γ : Cluster) (RF : GMap (List w8) Unit) :
 /-- **The adapter's invariant** (see the file header). -/
 def apiInvBody (γ : Cluster) : IProp GF :=
   iprop(∃ (L : List EntryM) (F RF : GMap (List w8) Unit),
-    rLog γ.raft L ∗ ⌜IdxOk L⌝ ∗
+    rLog γ.raft L ∗ ⌜IdxOk L ∧ (L.length : Int) < (receiptBound GF : Int) + γ.raft.reBoot.length⌝ ∗
     monoListAuthOwn γ.full 1 (strip L) ∗ monoListAuthOwn γ.ops (1 : Qp).half (opsOf (strip L)) ∗
     ghostMapAuth γ.raft.reFresh 1 F ∗ freshOk γ F ∗
     ghostMapAuth γ.raft.reRdFresh 1 RF ∗ rdKeys γ RF ∗ rdFreshOk γ RF)
@@ -364,7 +368,9 @@ theorem api_noopAu (γ : Cluster) (N : Namespace) (HN : γ.raft.reNs = N .@ "raf
       iexists L ++ [e], F, RF
       rw [Hstrip, opsOf_snoc_filler _ _ Hf]
       iframe HrL Hfull Hops HF HFok HRF HRk HRFok
-      ipureintro; exact IdxOk_snoc Hidx HeIdx
+      ipureintro
+      refine ⟨IdxOk_snoc Hidx.1 HeIdx.1, ?_⟩
+      have := HeIdx.2; simp only [List.length_append, List.length_singleton]; push_cast; omega
     imodintro
     itrivial
 
@@ -557,8 +563,10 @@ theorem BootLog_opsOf {ps : List w64} {ctxs : List (List w8)} {boot : List LogEn
   intro e he
   obtain ⟨k, hk⟩ := List.getElem?_of_mem he
   obtain ⟨-, -, -, -, -, Hty, -⟩ := H.2.2 k e hk
-  rintro ⟨-, h | h⟩ <;> rw [Hty] at h <;> have := congrArg (fun x : w32 => uint.Z x) h <;>
-    revert this <;> decide
+  rintro ⟨-, h⟩
+  rw [Hty] at h
+  have := congrArg (fun x : w32 => uint.Z x) h
+  revert this; decide
 
 theorem BootLog_idx {ps : List w64} {ctxs : List (List w8)} {boot : List LogEntry}
     (H : BootLog ps ctxs boot) : IdxOk (LogEntry.toEntries boot 0) := by
@@ -720,7 +728,10 @@ theorem api_alloc_client (N : Namespace) (E : CoPset) (cfg : GSet w64) (ps : Lis
         (allocOut N boot bud md tab) (N .@ "raft") := by
   unfold allocClientGen
   iintro %γr %Hγr #Hc HrL Hfa Hrfa ⟨%γT, #HspT, #Hpis⟩
-  obtain ⟨-, -, -, -, HNs⟩ := Hγr
+  obtain ⟨-, -, -, HbL, HNs⟩ := Hγr
+  have Hblen : (boot.length : Int) < (receiptBound GF : Int) + γr.reBoot.length := by
+    have := receiptBound_pos (GF := GF)
+    rw [HbL, toEntries_length]; omega
   imod mono_list_own_alloc (GF := GF) boot with ⟨%γf, Hf, #Hflb⟩
   imod mono_list_own_alloc (GF := GF) boot with ⟨%γo, Ho, #Holb⟩
   imod ghost_map_alloc_empty (GF := GF) (K := List w8) (V := GName × List LogEntry) with ⟨%γc, Hca⟩
@@ -736,7 +747,7 @@ theorem api_alloc_client (N : Namespace) (E : CoPset) (cfg : GSet w64) (ps : Lis
     rw [strip_toEntries, (BootLog_opsOf HB)]
     iframe HrL Hf Ho1 Hfa Hrfa
     isplitr
-    · ipureintro; exact (BootLog_idx HB)
+    · ipureintro; refine ⟨BootLog_idx HB, ?_⟩; rw [toEntries_length]; exact Hblen
     isplitr
     · unfold freshOk
       imodintro
@@ -773,7 +784,7 @@ theorem api_alloc_client (N : Namespace) (E : CoPset) (cfg : GSet w64) (ps : Lis
     unfold isCommittedLogLb
     rw [(BootLog_opsOf HB)]
     isplitl []
-    · iright; iframe Hflb Holb
+    · iright; iframe Hflb Holb; ipureintro; exact Hblen
     ipureintro; rfl
   · unfold ownReadCtxs
     iexists ∅
@@ -796,7 +807,7 @@ theorem cluster_alloc_impl (N : Namespace) (ps : List w64) (ctxs : List (List w8
     receiptBound GF ≤ 2 ^ 64 - 2 →
     BootLog ps ctxs boot → ps.Nodup → ps ≠ [] → W64 0 ∉ ps →
     ⊢ bootMarshal (GF := GF) ps ctxs (LogEntry.toEntries boot 0) -∗
-      |={E}=> ∃ γ, ownCommittedOps γ boot ∗ ownReadCtxs γ ∅ ∗ readCredits γ (2 ^ 64 - 2) ∗
+      |={E}=> ∃ γ, ⌜γ.raft.reBoot.length = boot.length⌝ ∗ ownCommittedOps γ boot ∗ ownReadCtxs γ ∅ ∗ readCredits γ (2 ^ 64 - 2) ∗
         isStaticCluster γ N ps snapOk ∗
         (if transfer then leaderTransferOn γ N else leaderTransferOff γ N) ∗
         [∗list] id ∈ ps, nodeBoot γ N ps ctxs id := by
@@ -833,6 +844,8 @@ theorem cluster_alloc_impl (N : Namespace) (ps : List w64) (ctxs : List (List w8
     exact ⟨⟨Hcfg, Hdyn, Hns, Hsok, Hγm, Hsl, Hcert, .inr Htrk, Hne, Hnd, Hnz, Hlen⟩, HNs⟩
   imodintro
   iexists γ
+  isplitr
+  · ipureintro; rw [Hboot, toEntries_length]
   iframe Hops Hctx Hst
   isplitl [Hcr]
   · unfold readCredits; iexact Hcr
@@ -958,11 +971,14 @@ theorem api_committed_lb (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N 
     iright
     isplitl []
     · iapply monoListLbOwn_le _ (strip_prefix HDP) $$ Hflb
+    isplitl []
     · iapply monoListLbOwn_le _ (opsOf_prefix (strip_prefix HDP)) $$ Holb
+    ipureintro
+    have := HDP.length_le; have := Hidx.2; rw [strip_length]; omega
   ipureintro
   intro k e Hk
   obtain ⟨r, rfl⟩ := HDP
-  exact Hidx k e (by rw [List.getElem?_append_left (List.getElem?_eq_some_iff.mp Hk).1]; exact Hk)
+  exact Hidx.1 k e (by rw [List.getElem?_append_left (List.getElem?_eq_some_iff.mp Hk).1]; exact Hk)
 
 /-- A log whose term at `c` is known is at least `c` long. -/
 theorem termAt_len (F : List EntryM) (c : w64) (h : plogTermAt base0 F c ≠ none) :
@@ -1922,7 +1938,8 @@ def readyRest (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeD
     hsOpt rd.HardState' h ∗ softStateRO rd.SoftState' ∗
     ⌜∃ Lx : Int, Lx < 2 ^ 64 ∧
       (∀ e0, es.head? = some e0 → uint.Z e0.Index' + (es.length : Int) ≤ Lx + 1) ∧
-      ((st.delivered ++ ce).length : Int) ≤ Lx⌝ ∗
+      ((st.delivered ++ ce).length : Int) ≤ Lx ∧
+      Lx < (receiptBound GF : Int) + γ.raft.reBoot.length⌝ ∗
     readySnap γ N rd st ce es L)
 
 /-- **`node.Ready()`** (the draft's). -/
@@ -2091,7 +2108,9 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
     imod api_msgs γ N ⊤ CoPset.subseteq_top γn Hγr Hγb ms $$ Hci Hmo Hcr Htks with Hms
     rw [Hid0]
     iunfold readyIdx at Hidx
-    icases Hidx with ⟨%Lx, -, %HLx⟩
+    icases Hidx with ⟨%Lx, #Hlr, %HLx⟩
+    imod lastRec_receipt γn.raft Lx $$ Hlr with #Hrc
+    ihave %Hrl := preceipt_lt _ $$ Hrc
     imodintro
     iexists strip ce, es, h, none
     have Hce : LogEntry.toEntries (strip ce) st.delivered.length = ce := by
@@ -2112,7 +2131,7 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
       iframe Hes Hmsgs Hms Hhs Hss
       isplitr
       · ipureintro
-        refine ⟨Lx, HLx.1, HLx.2.1, ?_⟩
+        refine ⟨Lx, HLx.1, HLx.2.1, ?_, by rw [← Hγr]; omega⟩
         have := HLx.2.2
         simp only [List.length_append, strip_length] at this ⊢
         omega
@@ -2167,7 +2186,9 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
     imod Hl1 $$ %_ %⊤ %CoPset.subseteq_top [Hsc] with #Hcert
     · rw [← Hγs]; iexact Hsc
     iunfold readyIdx at Hidx
-    icases Hidx with ⟨%Lx, -, %HLx⟩
+    icases Hidx with ⟨%Lx, #Hlr, %HLx⟩
+    imod lastRec_receipt γn.raft Lx $$ Hlr with #Hrc
+    ihave %Hrl := preceipt_lt _ $$ Hrc
     imodintro
     iexists [], es, h, some l
     isplitl []
@@ -2184,7 +2205,7 @@ theorem readyRecv_open (n ch : Loc) (γ : Cluster) (N : Namespace) (id0 : w64)
       iframe Hes Hmsgs Hms Hhs Hss
       isplitr
       · ipureintro
-        refine ⟨Lx, HLx.1, HLx.2.1, ?_⟩
+        refine ⟨Lx, HLx.1, HLx.2.1, ?_, by rw [← Hγr]; omega⟩
         have := HLx.2.2
         simp only [List.length_append, strip_length, List.length_nil] at this ⊢
         omega
@@ -2601,6 +2622,8 @@ theorem api_propAu1 (γ : Cluster) (N : Namespace) (ty : w32) (data : List w8)
       rw [Hopsn, Hstrip]
       isplitl []
       · iright; iframe Hflb Holb
+        ipureintro; have := HeIdx.2; have := HeIdx.1
+        simp only [List.length_append, List.length_singleton, strip_length] at *; push_cast; omega
       ipureintro; rfl
     imod Hback with -
     imod Hclose $$ [HrL Hfull Hops HF HRF] with -
@@ -2608,7 +2631,9 @@ theorem api_propAu1 (γ : Cluster) (N : Namespace) (ty : w32) (data : List w8)
       iexists L ++ [e], F, RF
       rw [Hopsn, Hstrip]
       iframe HrL Hfull Hops HF HFok HRF HRk HRFok
-      ipureintro; exact IdxOk_snoc Hidx HeIdx
+      ipureintro
+      refine ⟨IdxOk_snoc Hidx.1 HeIdx.1, ?_⟩
+      have := HeIdx.2; simp only [List.length_append, List.length_singleton]; push_cast; omega
     imodintro
     imodintro
     itrivial
