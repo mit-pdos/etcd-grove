@@ -44,3 +44,16 @@ threadSafeMap__ListKeys:
 threadSafeMap__ByIndex: storeIndex__getKeysByIndex
 threadSafeMap__Resync:
 NewThreadSafeStore: newStoreMetrics
+#
+# the store over the thread-safe store (`store.go`'s `cache`; DaemonSet plan phase 4)
+cache__Add: threadSafeMap__Add
+cache__Update: threadSafeMap__Update
+cache__Delete: threadSafeMap__DeleteWithObject
+cache__Bookmark: threadSafeMap__Bookmark
+cache__Resync:
+cache__List: threadSafeMap__List
+cache__ListKeys: threadSafeMap__ListKeys
+cache__ByIndex: threadSafeMap__ByIndex
+cache__GetByKey: threadSafeMap__Get
+cache__Get: cache__GetByKey
+cache__Replace: threadSafeMap__Replace

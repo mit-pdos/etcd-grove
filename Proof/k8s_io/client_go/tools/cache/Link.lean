@@ -14,6 +14,17 @@ public import Proof.k8s_io.client_go.tools.cache.ObjectName__String
 public import Proof.k8s_io.apimachinery.pkg.util.sets.Set__Delete
 public import Proof.k8s_io.apimachinery.pkg.util.sets.Set__Insert
 public import Proof.k8s_io.client_go.tools.cache.SplitMetaNamespaceKey
+public import Proof.k8s_io.client_go.tools.cache.cache__Add
+public import Proof.k8s_io.client_go.tools.cache.cache__Bookmark
+public import Proof.k8s_io.client_go.tools.cache.cache__ByIndex
+public import Proof.k8s_io.client_go.tools.cache.cache__Delete
+public import Proof.k8s_io.client_go.tools.cache.cache__Get
+public import Proof.k8s_io.client_go.tools.cache.cache__GetByKey
+public import Proof.k8s_io.client_go.tools.cache.cache__List
+public import Proof.k8s_io.client_go.tools.cache.cache__ListKeys
+public import Proof.k8s_io.client_go.tools.cache.cache__Replace
+public import Proof.k8s_io.client_go.tools.cache.cache__Resync
+public import Proof.k8s_io.client_go.tools.cache.cache__Update
 public import Proof.k8s_io.client_go.tools.cache.newStoreMetrics
 public import Proof.k8s_io.client_go.tools.cache.noopMetric__Set
 public import Proof.k8s_io.client_go.tools.cache.parseRVForMetricsWithTruncation
@@ -99,6 +110,10 @@ theorem cache.wp_SplitMetaNamespaceKey :
     EtcdGrove.cache.SplitMetaNamespaceKey.spec (GF := GF) (hG := hG) :=
   EtcdGrove.cache.SplitMetaNamespaceKey.wp_proof
 
+theorem cache.wp_rvFromObject :
+    EtcdGrove.cache.rvFromObject.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cache.rvFromObject.wp_proof
+
 theorem strconv.wp_ParseInt :
     EtcdGrove.strconv.ParseInt.spec (GF := GF) (hG := hG) :=
   EtcdGrove.strconv.ParseInt.wp_proof
@@ -107,10 +122,6 @@ theorem cache.wp_parseRVForMetricsWithTruncation :
     EtcdGrove.cache.parseRVForMetricsWithTruncation.spec (GF := GF) (hG := hG) :=
   EtcdGrove.cache.parseRVForMetricsWithTruncation.wp_proof strconv.wp_ParseInt
 
-theorem cache.wp_rvFromObject :
-    EtcdGrove.cache.rvFromObject.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.cache.rvFromObject.wp_proof
-
 theorem cache.storeIndex.wp_addKeyToIndex :
     EtcdGrove.cache.storeIndex.addKeyToIndex.spec (GF := GF) (hG := hG) :=
   EtcdGrove.cache.storeIndex.addKeyToIndex.wp_proof sets.Set.wp_Insert
@@ -118,14 +129,6 @@ theorem cache.storeIndex.wp_addKeyToIndex :
 theorem cache.storeIndex.wp_deleteKeyFromIndex :
     EtcdGrove.cache.storeIndex.deleteKeyFromIndex.spec (GF := GF) (hG := hG) :=
   EtcdGrove.cache.storeIndex.deleteKeyFromIndex.wp_proof sets.Set.wp_Delete
-
-theorem cache.storeIndex.wp_getKeysByIndex :
-    EtcdGrove.cache.storeIndex.getKeysByIndex.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.cache.storeIndex.getKeysByIndex.wp_proof
-
-theorem cache.storeIndex.wp_reset :
-    EtcdGrove.cache.storeIndex.reset.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.cache.storeIndex.reset.wp_proof
 
 theorem cache.storeIndex.wp_updateSingleIndex :
     EtcdGrove.cache.storeIndex.updateSingleIndex.spec (GF := GF) (hG := hG) :=
@@ -147,13 +150,29 @@ theorem cache.threadSafeMap.wp_Add :
     EtcdGrove.cache.threadSafeMap.Add.spec (GF := GF) (hG := hG) :=
   EtcdGrove.cache.threadSafeMap.Add.wp_proof cache.threadSafeMap.wp_Update
 
+theorem cache.cache.wp_Add :
+    EtcdGrove.cache.cache.Add.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cache.cache.Add.wp_proof cache.threadSafeMap.wp_Add
+
 theorem cache.threadSafeMap.wp_Bookmark :
     EtcdGrove.cache.threadSafeMap.Bookmark.spec (GF := GF) (hG := hG) :=
   EtcdGrove.cache.threadSafeMap.Bookmark.wp_proof cache.wp_parseRVForMetricsWithTruncation
 
+theorem cache.cache.wp_Bookmark :
+    EtcdGrove.cache.cache.Bookmark.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cache.cache.Bookmark.wp_proof cache.threadSafeMap.wp_Bookmark
+
+theorem cache.storeIndex.wp_getKeysByIndex :
+    EtcdGrove.cache.storeIndex.getKeysByIndex.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cache.storeIndex.getKeysByIndex.wp_proof
+
 theorem cache.threadSafeMap.wp_ByIndex :
     EtcdGrove.cache.threadSafeMap.ByIndex.spec (GF := GF) (hG := hG) :=
   EtcdGrove.cache.threadSafeMap.ByIndex.wp_proof cache.storeIndex.wp_getKeysByIndex
+
+theorem cache.cache.wp_ByIndex :
+    EtcdGrove.cache.cache.ByIndex.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cache.cache.ByIndex.wp_proof cache.threadSafeMap.wp_ByIndex
 
 theorem cache.threadSafeMap.wp_deleteLocked :
     EtcdGrove.cache.threadSafeMap.deleteLocked.spec (GF := GF) (hG := hG) :=
@@ -163,25 +182,61 @@ theorem cache.threadSafeMap.wp_DeleteWithObject :
     EtcdGrove.cache.threadSafeMap.DeleteWithObject.spec (GF := GF) (hG := hG) :=
   EtcdGrove.cache.threadSafeMap.DeleteWithObject.wp_proof cache.wp_rvFromObject cache.wp_parseRVForMetricsWithTruncation cache.threadSafeMap.wp_deleteLocked
 
-theorem cache.threadSafeMap.wp_Delete :
-    EtcdGrove.cache.threadSafeMap.Delete.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.cache.threadSafeMap.Delete.wp_proof cache.threadSafeMap.wp_DeleteWithObject
+theorem cache.cache.wp_Delete :
+    EtcdGrove.cache.cache.Delete.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cache.cache.Delete.wp_proof cache.threadSafeMap.wp_DeleteWithObject
 
 theorem cache.threadSafeMap.wp_Get :
     EtcdGrove.cache.threadSafeMap.Get.spec (GF := GF) (hG := hG) :=
   EtcdGrove.cache.threadSafeMap.Get.wp_proof
 
+theorem cache.cache.wp_GetByKey :
+    EtcdGrove.cache.cache.GetByKey.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cache.cache.GetByKey.wp_proof cache.threadSafeMap.wp_Get
+
+theorem cache.cache.wp_Get :
+    EtcdGrove.cache.cache.Get.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cache.cache.Get.wp_proof cache.cache.wp_GetByKey
+
 theorem cache.threadSafeMap.wp_List :
     EtcdGrove.cache.threadSafeMap.List.spec (GF := GF) (hG := hG) :=
   EtcdGrove.cache.threadSafeMap.List.wp_proof
+
+theorem cache.cache.wp_List :
+    EtcdGrove.cache.cache.List.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cache.cache.List.wp_proof cache.threadSafeMap.wp_List
 
 theorem cache.threadSafeMap.wp_ListKeys :
     EtcdGrove.cache.threadSafeMap.ListKeys.spec (GF := GF) (hG := hG) :=
   EtcdGrove.cache.threadSafeMap.ListKeys.wp_proof
 
+theorem cache.cache.wp_ListKeys :
+    EtcdGrove.cache.cache.ListKeys.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cache.cache.ListKeys.wp_proof cache.threadSafeMap.wp_ListKeys
+
+theorem cache.storeIndex.wp_reset :
+    EtcdGrove.cache.storeIndex.reset.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cache.storeIndex.reset.wp_proof
+
 theorem cache.threadSafeMap.wp_Replace :
     EtcdGrove.cache.threadSafeMap.Replace.spec (GF := GF) (hG := hG) :=
   EtcdGrove.cache.threadSafeMap.Replace.wp_proof cache.wp_parseRVForMetricsWithTruncation cache.storeIndex.wp_reset cache.storeIndex.wp_updateIndices
+
+theorem cache.cache.wp_Replace :
+    EtcdGrove.cache.cache.Replace.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cache.cache.Replace.wp_proof cache.threadSafeMap.wp_Replace
+
+theorem cache.cache.wp_Resync :
+    EtcdGrove.cache.cache.Resync.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cache.cache.Resync.wp_proof
+
+theorem cache.cache.wp_Update :
+    EtcdGrove.cache.cache.Update.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cache.cache.Update.wp_proof cache.threadSafeMap.wp_Update
+
+theorem cache.threadSafeMap.wp_Delete :
+    EtcdGrove.cache.threadSafeMap.Delete.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cache.threadSafeMap.Delete.wp_proof cache.threadSafeMap.wp_DeleteWithObject
 
 theorem cache.threadSafeMap.wp_Resync :
     EtcdGrove.cache.threadSafeMap.Resync.spec (GF := GF) (hG := hG) :=

@@ -38,6 +38,10 @@ instance keyOk_persistent (OK : GoInterface → IProp GF) (kf : GoFunc) (KF : Go
     Persistent (keyOk OK kf KF) := by
   unfold keyOk; infer_instance
 
+/-- The items `Replace(list, rv)` builds: each object at its key, a later one at a key winning. -/
+def keyedItems (KF : GoInterface → GoString) (xs : List GoInterface) : Items :=
+  xs.foldl (fun m x => <[KF x := x]> m) ∅
+
 /-- **The store** (persistent): `ca` over the thread-safe store `ts`. -/
 def isCache (ca ts : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn)
     (KF : GoInterface → GoString) : IProp GF :=

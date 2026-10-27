@@ -2,7 +2,8 @@
 The results of client-go's local cache (`k8s.io/client-go/tools/cache`; DaemonSet plan phase 2),
 from `Link.lean`: the thread-safe store's methods, logically atomic over the abstract state
 `storeSt γ σ` (`StoreModel.lean`, `TSDefs.lean`: items, resource version, indexers), its
-constructor, and the store keys.
+constructor, the store keys, and (phase 4) the `cache` store over it (`store.go`: each method the
+key function's key, then the thread-safe store's).
 
 `#print axioms` on a result is its trust base: the trust boundary's names-only `strconv.ParseInt`
 (the resource-version metric) and Perennial's. The object accessor (`meta.Accessor`) is a premise
@@ -33,6 +34,18 @@ namespace k8scache
 #print axioms cache.threadSafeMap.wp_ListKeys
 #print axioms cache.threadSafeMap.wp_ByIndex
 #print axioms cache.threadSafeMap.wp_Resync
+-- the store over it (`store.go`'s `cache`; phase 4)
+#print axioms cache.cache.wp_Add
+#print axioms cache.cache.wp_Update
+#print axioms cache.cache.wp_Delete
+#print axioms cache.cache.wp_Replace
+#print axioms cache.cache.wp_Bookmark
+#print axioms cache.cache.wp_Get
+#print axioms cache.cache.wp_GetByKey
+#print axioms cache.cache.wp_List
+#print axioms cache.cache.wp_ListKeys
+#print axioms cache.cache.wp_ByIndex
+#print axioms cache.cache.wp_Resync
 -- the store keys
 #print axioms cache.ObjectName.wp_String
 #print axioms cache.wp_SplitMetaNamespaceKey
