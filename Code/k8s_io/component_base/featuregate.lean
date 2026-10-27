@@ -20,134 +20,134 @@ end pkg_id
 
 namespace k8s_io.component_base.featuregate
 
-noncomputable def Feature.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Feature.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/featuregate.Feature" [])
 
 attribute [irreducible] Feature.ty
 
-noncomputable def FeatureSpec.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def FeatureSpec.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/featuregate.FeatureSpec" [])
 
 attribute [irreducible] FeatureSpec.ty
 
-noncomputable def VersionedSpecs.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def VersionedSpecs.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/featuregate.VersionedSpecs" [])
 
 attribute [irreducible] VersionedSpecs.ty
 
-noncomputable def PromotionVersionMapping.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PromotionVersionMapping.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/featuregate.PromotionVersionMapping" [])
 
 attribute [irreducible] PromotionVersionMapping.ty
 
-noncomputable def prerelease.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def prerelease.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/featuregate.prerelease" [])
 
 attribute [irreducible] prerelease.ty
 
-noncomputable def FeatureGate.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def FeatureGate.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/featuregate.FeatureGate" [])
 
 attribute [irreducible] FeatureGate.ty
 
-noncomputable def MutableFeatureGate.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def MutableFeatureGate.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/featuregate.MutableFeatureGate" [])
 
 attribute [irreducible] MutableFeatureGate.ty
 
-noncomputable def MutableFeatureGateWithLogger.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def MutableFeatureGateWithLogger.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/featuregate.MutableFeatureGateWithLogger" [])
 
 attribute [irreducible] MutableFeatureGateWithLogger.ty
 
-noncomputable def MutableVersionedFeatureGate.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def MutableVersionedFeatureGate.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/featuregate.MutableVersionedFeatureGate" [])
 
 attribute [irreducible] MutableVersionedFeatureGate.ty
 
-noncomputable def MutableVersionedFeatureGateWithLogger.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def MutableVersionedFeatureGateWithLogger.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/featuregate.MutableVersionedFeatureGateWithLogger" [])
 
 attribute [irreducible] MutableVersionedFeatureGateWithLogger.ty
 
-noncomputable def featureGate.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def featureGate.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/component-base/featuregate.featureGate" [])
 
 attribute [irreducible] featureGate.ty
 
-axiom FeatureSpec.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom FeatureSpec.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom MutableFeatureGate.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom MutableFeatureGate.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom MutableFeatureGateWithLogger.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom MutableFeatureGateWithLogger.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom MutableVersionedFeatureGate.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom MutableVersionedFeatureGate.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom MutableVersionedFeatureGateWithLogger.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom MutableVersionedFeatureGateWithLogger.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom featureGate.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom featureGate.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom flagName [FfiSyntax] [GoGlobalContext] : val
+axiom flagName [GooseExts] [GoGlobalContext] : val
 
-axiom allAlphaGate [FfiSyntax] [GoGlobalContext] : val
+axiom allAlphaGate [GooseExts] [GoGlobalContext] : val
 
-axiom allBetaGate [FfiSyntax] [GoGlobalContext] : val
+axiom allBetaGate [GooseExts] [GoGlobalContext] : val
 
-axiom PreAlpha [FfiSyntax] [GoGlobalContext] : val
+axiom PreAlpha [GooseExts] [GoGlobalContext] : val
 
-axiom Alpha [FfiSyntax] [GoGlobalContext] : val
+axiom Alpha [GooseExts] [GoGlobalContext] : val
 
-axiom Beta [FfiSyntax] [GoGlobalContext] : val
+axiom Beta [GooseExts] [GoGlobalContext] : val
 
-axiom GA [FfiSyntax] [GoGlobalContext] : val
+axiom GA [GooseExts] [GoGlobalContext] : val
 
-axiom Deprecated [FfiSyntax] [GoGlobalContext] : val
+axiom Deprecated [GooseExts] [GoGlobalContext] : val
 
-noncomputable def defaultFeatures [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def defaultFeatures [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/featuregate.defaultFeatures"
 
-axiom defaultFeatures.init [FfiSyntax] [GoGlobalContext] : val
+axiom defaultFeatures.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def specialFeatures [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def specialFeatures [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/featuregate.specialFeatures"
 
-axiom specialFeatures.init [FfiSyntax] [GoGlobalContext] : val
+axiom specialFeatures.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def internalPackages [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def internalPackages [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/featuregate.internalPackages"
 
-axiom internalPackages.init [FfiSyntax] [GoGlobalContext] : val
+axiom internalPackages.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def setUnsetAlphaGates [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def setUnsetAlphaGates [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/featuregate.setUnsetAlphaGates"
 
-noncomputable def setUnsetBetaGates [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def setUnsetBetaGates [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/featuregate.setUnsetBetaGates"
 
-noncomputable def NewVersionedFeatureGate [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewVersionedFeatureGate [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/featuregate.NewVersionedFeatureGate"
 
-noncomputable def NewVersionedFeatureGateWithMinCompatibility [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewVersionedFeatureGateWithMinCompatibility [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/featuregate.NewVersionedFeatureGateWithMinCompatibility"
 
-noncomputable def NewFeatureGate [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewFeatureGate [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/featuregate.NewFeatureGate"
 
-noncomputable def stabilityOrder [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def stabilityOrder [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/featuregate.stabilityOrder"
 
-noncomputable def featureEnabled [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def featureEnabled [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/featuregate.featureEnabled"
 
-noncomputable def featureSpecAtEmulationAndMinCompatVersion [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def featureSpecAtEmulationAndMinCompatVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/component-base/featuregate.featureSpecAtEmulationAndMinCompatVersion"
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.component_base.featuregate where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.component_base.featuregate)) (Lam BAnon
   (App (Val exceptionDo)
@@ -169,135 +169,179 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val defaultFeatures.init) (Val #()))))))))
 
-abbrev Feature [FfiSyntax] : Type := GoString
+abbrev Feature [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def Feature.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Feature.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-class Feature.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Feature.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Feature.ty Feature.underlying
+  method_set : go.MethodSetIs Feature.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Feature.ty) []
 
 attribute [instance] Feature.TypeAssumptions.underlying
+  Feature.TypeAssumptions.method_set
+  Feature.TypeAssumptions.ptr_method_set
 
 axiom FeatureSpec : Type
 axiom FeatureSpec.zero_val : ZeroVal FeatureSpec
 attribute [instance] FeatureSpec.zero_val
 
-class FeatureSpec.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class FeatureSpec.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying FeatureSpec.underlying FeatureSpec
   underlying : go.UnderlyingDirectedEq FeatureSpec.ty FeatureSpec.underlying
   isUnderlying : go.IsUnderlying FeatureSpec.underlying FeatureSpec.underlying
+  method_set : go.MethodSetIs FeatureSpec.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType FeatureSpec.ty) [(go!"HelpString", (some (go.signature.Signature [Feature.ty, go.bool] false [go.string])))]
 
 attribute [instance] FeatureSpec.TypeAssumptions.type_repr
   FeatureSpec.TypeAssumptions.underlying
   FeatureSpec.TypeAssumptions.isUnderlying
+  FeatureSpec.TypeAssumptions.method_set
+  FeatureSpec.TypeAssumptions.ptr_method_set
 
-abbrev VersionedSpecs [FfiSyntax] : Type := GoSlice
+abbrev VersionedSpecs [GooseExts] : Type := GoSlice
 
-@[reducible] noncomputable def VersionedSpecs.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def VersionedSpecs.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.SliceType FeatureSpec.ty)
 
-class VersionedSpecs.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class VersionedSpecs.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq VersionedSpecs.ty VersionedSpecs.underlying
+  method_set : go.MethodSetIs VersionedSpecs.ty [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType VersionedSpecs.ty) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
 
 attribute [instance] VersionedSpecs.TypeAssumptions.underlying
+  VersionedSpecs.TypeAssumptions.method_set
+  VersionedSpecs.TypeAssumptions.ptr_method_set
 
-abbrev PromotionVersionMapping [FfiSyntax] : Type := GoMap
+abbrev PromotionVersionMapping [GooseExts] : Type := GoMap
 
-@[reducible] noncomputable def PromotionVersionMapping.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PromotionVersionMapping.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.MapType prerelease.ty go.string)
 
-class PromotionVersionMapping.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class PromotionVersionMapping.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq PromotionVersionMapping.ty PromotionVersionMapping.underlying
+  method_set : go.MethodSetIs PromotionVersionMapping.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PromotionVersionMapping.ty) []
 
 attribute [instance] PromotionVersionMapping.TypeAssumptions.underlying
+  PromotionVersionMapping.TypeAssumptions.method_set
+  PromotionVersionMapping.TypeAssumptions.ptr_method_set
 
-abbrev prerelease [FfiSyntax] : Type := GoString
+abbrev prerelease [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def prerelease.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def prerelease.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-class prerelease.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class prerelease.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq prerelease.ty prerelease.underlying
+  method_set : go.MethodSetIs prerelease.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType prerelease.ty) []
 
 attribute [instance] prerelease.TypeAssumptions.underlying
+  prerelease.TypeAssumptions.method_set
+  prerelease.TypeAssumptions.ptr_method_set
 
-abbrev FeatureGate [FfiSyntax] : Type := GoInterface
+abbrev FeatureGate [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def FeatureGate.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def FeatureGate.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"DeepCopy" (go.signature.Signature [] false [MutableVersionedFeatureGate.ty])), (go.InterfaceElem.MethodElem go!"Dependencies" (go.signature.Signature [] false [(go.GoType.MapType Feature.ty (go.GoType.SliceType Feature.ty))])), (go.InterfaceElem.MethodElem go!"Enabled" (go.signature.Signature [Feature.ty] false [go.bool])), (go.InterfaceElem.MethodElem go!"KnownFeatures" (go.signature.Signature [] false [(go.GoType.SliceType go.string)])), (go.InterfaceElem.MethodElem go!"Validate" (go.signature.Signature [] false [(go.GoType.SliceType go.error)]))])
 
-class FeatureGate.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class FeatureGate.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq FeatureGate.ty FeatureGate.underlying
+  method_set : go.MethodSetIs FeatureGate.ty [(go!"DeepCopy", (some (go.signature.Signature [] false [MutableVersionedFeatureGate.ty]))), (go!"Dependencies", (some (go.signature.Signature [] false [(go.GoType.MapType Feature.ty (go.GoType.SliceType Feature.ty))]))), (go!"Enabled", (some (go.signature.Signature [Feature.ty] false [go.bool]))), (go!"KnownFeatures", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"Validate", (some (go.signature.Signature [] false [(go.GoType.SliceType go.error)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType FeatureGate.ty) []
 
 attribute [instance] FeatureGate.TypeAssumptions.underlying
+  FeatureGate.TypeAssumptions.method_set
+  FeatureGate.TypeAssumptions.ptr_method_set
 
 axiom MutableFeatureGate : Type
 axiom MutableFeatureGate.zero_val : ZeroVal MutableFeatureGate
 attribute [instance] MutableFeatureGate.zero_val
 
-class MutableFeatureGate.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class MutableFeatureGate.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying MutableFeatureGate.underlying MutableFeatureGate
   underlying : go.UnderlyingDirectedEq MutableFeatureGate.ty MutableFeatureGate.underlying
   isUnderlying : go.IsUnderlying MutableFeatureGate.underlying MutableFeatureGate.underlying
+  method_set : go.MethodSetIs MutableFeatureGate.ty [(go!"Add", (some (go.signature.Signature [(go.GoType.MapType Feature.ty FeatureSpec.ty)] false [go.error]))), (go!"AddFlag", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"github.com/spf13/pflag.FlagSet" []))] false []))), (go!"AddMetrics", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, go.string, go.bool] false []))] false []))), (go!"Close", (some (go.signature.Signature [] false []))), (go!"DeepCopy", (some (go.signature.Signature [] false [MutableVersionedFeatureGate.ty]))), (go!"Dependencies", (some (go.signature.Signature [] false [(go.GoType.MapType Feature.ty (go.GoType.SliceType Feature.ty))]))), (go!"Enabled", (some (go.signature.Signature [Feature.ty] false [go.bool]))), (go!"GetAll", (some (go.signature.Signature [] false [(go.GoType.MapType Feature.ty FeatureSpec.ty)]))), (go!"KnownFeatures", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"OverrideDefault", (some (go.signature.Signature [Feature.ty, go.bool] false [go.error]))), (go!"Set", (some (go.signature.Signature [go.string] false [go.error]))), (go!"SetFromMap", (some (go.signature.Signature [(go.GoType.MapType go.string go.bool)] false [go.error]))), (go!"Validate", (some (go.signature.Signature [] false [(go.GoType.SliceType go.error)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType MutableFeatureGate.ty) []
 
 attribute [instance] MutableFeatureGate.TypeAssumptions.type_repr
   MutableFeatureGate.TypeAssumptions.underlying
   MutableFeatureGate.TypeAssumptions.isUnderlying
+  MutableFeatureGate.TypeAssumptions.method_set
+  MutableFeatureGate.TypeAssumptions.ptr_method_set
 
 axiom MutableFeatureGateWithLogger : Type
 axiom MutableFeatureGateWithLogger.zero_val : ZeroVal MutableFeatureGateWithLogger
 attribute [instance] MutableFeatureGateWithLogger.zero_val
 
-class MutableFeatureGateWithLogger.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class MutableFeatureGateWithLogger.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying MutableFeatureGateWithLogger.underlying MutableFeatureGateWithLogger
   underlying : go.UnderlyingDirectedEq MutableFeatureGateWithLogger.ty MutableFeatureGateWithLogger.underlying
   isUnderlying : go.IsUnderlying MutableFeatureGateWithLogger.underlying MutableFeatureGateWithLogger.underlying
+  method_set : go.MethodSetIs MutableFeatureGateWithLogger.ty [(go!"OverrideDefaultWithLogger", (some (go.signature.Signature [(go.GoType.Named go!"github.com/go-logr/logr.Logger" []), Feature.ty, go.bool] false [go.error]))), (go!"SetFromMapWithLogger", (some (go.signature.Signature [(go.GoType.Named go!"github.com/go-logr/logr.Logger" []), (go.GoType.MapType go.string go.bool)] false [go.error]))), (go!"SetWithLogger", (some (go.signature.Signature [(go.GoType.Named go!"github.com/go-logr/logr.Logger" []), go.string] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType MutableFeatureGateWithLogger.ty) []
 
 attribute [instance] MutableFeatureGateWithLogger.TypeAssumptions.type_repr
   MutableFeatureGateWithLogger.TypeAssumptions.underlying
   MutableFeatureGateWithLogger.TypeAssumptions.isUnderlying
+  MutableFeatureGateWithLogger.TypeAssumptions.method_set
+  MutableFeatureGateWithLogger.TypeAssumptions.ptr_method_set
 
 axiom MutableVersionedFeatureGate : Type
 axiom MutableVersionedFeatureGate.zero_val : ZeroVal MutableVersionedFeatureGate
 attribute [instance] MutableVersionedFeatureGate.zero_val
 
-class MutableVersionedFeatureGate.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class MutableVersionedFeatureGate.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying MutableVersionedFeatureGate.underlying MutableVersionedFeatureGate
   underlying : go.UnderlyingDirectedEq MutableVersionedFeatureGate.ty MutableVersionedFeatureGate.underlying
   isUnderlying : go.IsUnderlying MutableVersionedFeatureGate.underlying MutableVersionedFeatureGate.underlying
+  method_set : go.MethodSetIs MutableVersionedFeatureGate.ty [(go!"Add", (some (go.signature.Signature [(go.GoType.MapType Feature.ty FeatureSpec.ty)] false [go.error]))), (go!"AddDependencies", (some (go.signature.Signature [(go.GoType.MapType Feature.ty (go.GoType.SliceType Feature.ty))] false [go.error]))), (go!"AddFlag", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"github.com/spf13/pflag.FlagSet" []))] false []))), (go!"AddMetrics", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, go.string, go.bool] false []))] false []))), (go!"AddVersioned", (some (go.signature.Signature [(go.GoType.MapType Feature.ty VersionedSpecs.ty)] false [go.error]))), (go!"Close", (some (go.signature.Signature [] false []))), (go!"DeepCopy", (some (go.signature.Signature [] false [MutableVersionedFeatureGate.ty]))), (go!"DeepCopyAndReset", (some (go.signature.Signature [] false [MutableVersionedFeatureGate.ty]))), (go!"Dependencies", (some (go.signature.Signature [] false [(go.GoType.MapType Feature.ty (go.GoType.SliceType Feature.ty))]))), (go!"EmulationVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/version.Version" []))]))), (go!"Enabled", (some (go.signature.Signature [Feature.ty] false [go.bool]))), (go!"ExplicitlySet", (some (go.signature.Signature [Feature.ty] false [go.bool]))), (go!"GetAll", (some (go.signature.Signature [] false [(go.GoType.MapType Feature.ty FeatureSpec.ty)]))), (go!"GetAllVersioned", (some (go.signature.Signature [] false [(go.GoType.MapType Feature.ty VersionedSpecs.ty)]))), (go!"KnownFeatures", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"MinCompatibilityVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/version.Version" []))]))), (go!"OverrideDefault", (some (go.signature.Signature [Feature.ty, go.bool] false [go.error]))), (go!"OverrideDefaultAtVersion", (some (go.signature.Signature [Feature.ty, go.bool, (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/version.Version" []))] false [go.error]))), (go!"ResetFeatureValueToDefault", (some (go.signature.Signature [Feature.ty] false [go.error]))), (go!"Set", (some (go.signature.Signature [go.string] false [go.error]))), (go!"SetEmulationVersion", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/version.Version" []))] false [go.error]))), (go!"SetEmulationVersionAndMinCompatibilityVersion", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/version.Version" [])), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/version.Version" []))] false [go.error]))), (go!"SetFromMap", (some (go.signature.Signature [(go.GoType.MapType go.string go.bool)] false [go.error]))), (go!"Validate", (some (go.signature.Signature [] false [(go.GoType.SliceType go.error)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType MutableVersionedFeatureGate.ty) []
 
 attribute [instance] MutableVersionedFeatureGate.TypeAssumptions.type_repr
   MutableVersionedFeatureGate.TypeAssumptions.underlying
   MutableVersionedFeatureGate.TypeAssumptions.isUnderlying
+  MutableVersionedFeatureGate.TypeAssumptions.method_set
+  MutableVersionedFeatureGate.TypeAssumptions.ptr_method_set
 
 axiom MutableVersionedFeatureGateWithLogger : Type
 axiom MutableVersionedFeatureGateWithLogger.zero_val : ZeroVal MutableVersionedFeatureGateWithLogger
 attribute [instance] MutableVersionedFeatureGateWithLogger.zero_val
 
-class MutableVersionedFeatureGateWithLogger.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class MutableVersionedFeatureGateWithLogger.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying MutableVersionedFeatureGateWithLogger.underlying MutableVersionedFeatureGateWithLogger
   underlying : go.UnderlyingDirectedEq MutableVersionedFeatureGateWithLogger.ty MutableVersionedFeatureGateWithLogger.underlying
   isUnderlying : go.IsUnderlying MutableVersionedFeatureGateWithLogger.underlying MutableVersionedFeatureGateWithLogger.underlying
+  method_set : go.MethodSetIs MutableVersionedFeatureGateWithLogger.ty [(go!"OverrideDefaultAtVersionWithLogger", (some (go.signature.Signature [(go.GoType.Named go!"github.com/go-logr/logr.Logger" []), Feature.ty, go.bool, (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/version.Version" []))] false [go.error]))), (go!"SetEmulationVersionAndMinCompatibilityVersionWithLogger", (some (go.signature.Signature [(go.GoType.Named go!"github.com/go-logr/logr.Logger" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/version.Version" [])), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/version.Version" []))] false [go.error]))), (go!"SetEmulationVersionWithLogger", (some (go.signature.Signature [(go.GoType.Named go!"github.com/go-logr/logr.Logger" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/version.Version" []))] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType MutableVersionedFeatureGateWithLogger.ty) []
 
 attribute [instance] MutableVersionedFeatureGateWithLogger.TypeAssumptions.type_repr
   MutableVersionedFeatureGateWithLogger.TypeAssumptions.underlying
   MutableVersionedFeatureGateWithLogger.TypeAssumptions.isUnderlying
+  MutableVersionedFeatureGateWithLogger.TypeAssumptions.method_set
+  MutableVersionedFeatureGateWithLogger.TypeAssumptions.ptr_method_set
 
 axiom featureGate : Type
 axiom featureGate.zero_val : ZeroVal featureGate
 attribute [instance] featureGate.zero_val
 
-class featureGate.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class featureGate.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying featureGate.underlying featureGate
   underlying : go.UnderlyingDirectedEq featureGate.ty featureGate.underlying
   isUnderlying : go.IsUnderlying featureGate.underlying featureGate.underlying
+  method_set : go.MethodSetIs featureGate.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType featureGate.ty) [(go!"Add", (some (go.signature.Signature [(go.GoType.MapType Feature.ty FeatureSpec.ty)] false [go.error]))), (go!"AddDependencies", (some (go.signature.Signature [(go.GoType.MapType Feature.ty (go.GoType.SliceType Feature.ty))] false [go.error]))), (go!"AddFlag", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"github.com/spf13/pflag.FlagSet" []))] false []))), (go!"AddMetrics", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, go.string, go.bool] false []))] false []))), (go!"AddVersioned", (some (go.signature.Signature [(go.GoType.MapType Feature.ty VersionedSpecs.ty)] false [go.error]))), (go!"Close", (some (go.signature.Signature [] false []))), (go!"DeepCopy", (some (go.signature.Signature [] false [MutableVersionedFeatureGate.ty]))), (go!"DeepCopyAndReset", (some (go.signature.Signature [] false [MutableVersionedFeatureGate.ty]))), (go!"Dependencies", (some (go.signature.Signature [] false [(go.GoType.MapType Feature.ty (go.GoType.SliceType Feature.ty))]))), (go!"EmulationVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/version.Version" []))]))), (go!"Enabled", (some (go.signature.Signature [Feature.ty] false [go.bool]))), (go!"ExplicitlySet", (some (go.signature.Signature [Feature.ty] false [go.bool]))), (go!"GetAll", (some (go.signature.Signature [] false [(go.GoType.MapType Feature.ty FeatureSpec.ty)]))), (go!"GetAllVersioned", (some (go.signature.Signature [] false [(go.GoType.MapType Feature.ty VersionedSpecs.ty)]))), (go!"KnownFeatures", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"MinCompatibilityVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/version.Version" []))]))), (go!"OverrideDefault", (some (go.signature.Signature [Feature.ty, go.bool] false [go.error]))), (go!"OverrideDefaultAtVersion", (some (go.signature.Signature [Feature.ty, go.bool, (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/version.Version" []))] false [go.error]))), (go!"OverrideDefaultAtVersionWithLogger", (some (go.signature.Signature [(go.GoType.Named go!"github.com/go-logr/logr.Logger" []), Feature.ty, go.bool, (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/version.Version" []))] false [go.error]))), (go!"OverrideDefaultWithLogger", (some (go.signature.Signature [(go.GoType.Named go!"github.com/go-logr/logr.Logger" []), Feature.ty, go.bool] false [go.error]))), (go!"ResetFeatureValueToDefault", (some (go.signature.Signature [Feature.ty] false [go.error]))), (go!"Set", (some (go.signature.Signature [go.string] false [go.error]))), (go!"SetEmulationVersion", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/version.Version" []))] false [go.error]))), (go!"SetEmulationVersionAndMinCompatibilityVersion", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/version.Version" [])), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/version.Version" []))] false [go.error]))), (go!"SetEmulationVersionAndMinCompatibilityVersionWithLogger", (some (go.signature.Signature [(go.GoType.Named go!"github.com/go-logr/logr.Logger" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/version.Version" [])), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/version.Version" []))] false [go.error]))), (go!"SetEmulationVersionWithLogger", (some (go.signature.Signature [(go.GoType.Named go!"github.com/go-logr/logr.Logger" []), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/version.Version" []))] false [go.error]))), (go!"SetFromMap", (some (go.signature.Signature [(go.GoType.MapType go.string go.bool)] false [go.error]))), (go!"SetFromMapWithLogger", (some (go.signature.Signature [(go.GoType.Named go!"github.com/go-logr/logr.Logger" []), (go.GoType.MapType go.string go.bool)] false [go.error]))), (go!"SetWithLogger", (some (go.signature.Signature [(go.GoType.Named go!"github.com/go-logr/logr.Logger" []), go.string] false [go.error]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Type", (some (go.signature.Signature [] false [go.string]))), (go!"Validate", (some (go.signature.Signature [] false [(go.GoType.SliceType go.error)]))), (go!"k8s.io/component-base/featuregate.featureSpec", (some (go.signature.Signature [Feature.ty] false [FeatureSpec.ty, go.error]))), (go!"k8s.io/component-base/featuregate.featureSpecAtEmulationAndMinCompatVersion", (some (go.signature.Signature [VersionedSpecs.ty] false [(go.GoType.PointerType FeatureSpec.ty)]))), (go!"k8s.io/component-base/featuregate.overrideDefaultAtEmulationAndMinCompatVersion", (some (go.signature.Signature [(go.GoType.Named go!"github.com/go-logr/logr.Logger" []), Feature.ty, go.bool, (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/version.Version" [])), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/version.Version" []))] false [go.error]))), (go!"k8s.io/component-base/featuregate.unsafeRecordQueried", (some (go.signature.Signature [Feature.ty] false []))), (go!"k8s.io/component-base/featuregate.unsafeSetFromMap", (some (go.signature.Signature [(go.GoType.Named go!"github.com/go-logr/logr.Logger" []), (go.GoType.MapType Feature.ty go.bool), (go.GoType.MapType go.string go.bool), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/version.Version" [])), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/version.Version" []))] false [(go.GoType.SliceType go.error)])))]
 
 attribute [instance] featureGate.TypeAssumptions.type_repr
   featureGate.TypeAssumptions.underlying
   featureGate.TypeAssumptions.isUnderlying
+  featureGate.TypeAssumptions.method_set
+  featureGate.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Feature_instance : Feature.TypeAssumptions
   FeatureSpec_instance : FeatureSpec.TypeAssumptions
   VersionedSpecs_instance : VersionedSpecs.TypeAssumptions

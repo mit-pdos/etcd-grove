@@ -4,7 +4,7 @@ Rocq counterpart). raft v3.7 (2026-10-16, stage R6b): a `Ready`'s entries and co
 are read-only entry pointers (`entsRO`), its messages owned pointers (`sendSpec`), its read
 states Go values whose contexts hold their bytes (`readStatesPts_rsOk`), its hard state `hsOpt`
 (unused: the store persists no hard state); a conf-change entry is decoded with
-`proto.Unmarshal` into a fresh `pb.ConfChange`, applied by pointer (`ownCCV1_persist`:
+`proto.Unmarshal` into a fresh `pb.ConfChange`, applied by pointer (`ownConfChange_persist`:
 `node.ApplyConfChange` reads it on raft's goroutine).
 
 **Snapshots (D22 S-r, 2026-10-21).** The loop holds the storage's snapshot token at the
@@ -68,7 +68,7 @@ namespace kv
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

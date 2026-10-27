@@ -22,7 +22,7 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
-attribute [local instance] disk_op disk_model disk_semantics disk_interp
+attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp
 
 section adequacy
 variable [go_gctx : GoGlobalContext]
@@ -40,10 +40,9 @@ thread, of `n < 2^63` steps: the main thread's result, if any, is `#()`; no thre
 thread has ended in a panic. -/
 theorem kv_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
-    [hErr : context.ErrorStringIsError] [hDE : context.DeadlineExceededIsError]
     [hLog : log.NewModel]
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
-    (Hthreads : g.threads = 1)
+    (Hthreads : σ.threads = 1)
     (n : Nat) (Hn : n < 2 ^ 63) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([kvProgram], ((σ, g) : CfgState)) κs (t2, σ2)) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧

@@ -8,12 +8,12 @@ theorem raftpb.MarshalConfChange.wp_proof [package_sem : Assumptions] (wp_ConfCh
     proto.MarshalConfChange.spec) (wp_proto_MarshalConfChangeV2 : proto.MarshalConfChangeV2.spec) :
     raftpb.MarshalConfChange.spec
   -- `Perennial.EtcdGrove.raftpb.MarshalConfChange.spec`, unfolded:
-  ∀ (c : GoInterface) (o : Option CCMsg) (dq : DFrac),
+  ∀ (c : GoInterface) (o : Option ConfChangeIM) (dq : DFrac),
     ⊢
       ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.raft.v3.raftpb ∗ ownCCI c dq o -∗
+        isPkgInit pkg_id.go_etcd_io.raft.v3.raftpb ∗ ownConfChangeI c dq o -∗
           (▷
               ∀ data bs,
-                ownCCI c dq o ∗ ownSlice data bs (DFrac.own 1) ∗ ⌜CCData o bs⌝ -∗
-                  Φ ((intoVal (ccEntryType o), intoVal data), intoVal GoInterface.nil)) -∗
+                ownConfChangeI c dq o ∗ ownSlice data bs (DFrac.own 1) ∗ ⌜MarshalsConfChange o bs⌝ -∗
+                  Φ ((intoVal (confChangeEntryType o), intoVal data), intoVal GoInterface.nil)) -∗
             WP ((intoVal (functions raftpb.MarshalConfChange [])) (intoVal c)) {{ Φ }}

@@ -30,7 +30,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
@@ -38,16 +38,16 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- See the file header. -/
 abbrev node.ProposeConfChange.spec : Prop :=
-  ∀ (γ : NodeNames) (id : w64) (n : Loc) (c : GoInterface) (o : CCMsg) (dq : DFrac)
+  ∀ (γ : NodeNames) (id : w64) (n : Loc) (c : GoInterface) (o : ConfChangeIM) (dq : DFrac)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
   -- (2026-10-15, stage N) a change the cluster admits
   CCAllowed γ.raft o →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode γ id n ∗
       nodeCtx ctx cd ∗
-      ownCCI c dq (some o) }}
+      ownConfChangeI c dq (some o) }}
     (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"ProposeConfChange"))
       (Val #(interface.ok ctx))) (Val #c))
-  {{ (err : GoInterface), RET #err; ownCCI c dq (some o) ∗ nodeErr cd err }}
+  {{ (err : GoInterface), RET #err; ownConfChangeI c dq (some o) ∗ nodeErr cd err }}
 
 end spec
 

@@ -3,10 +3,10 @@
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
 def raftpb.ConfChange.AsV2.spec : Prop :=
-  ∀ (c : Loc) (dq : DFrac) (m : CCV1M),
+  ∀ (c : Loc) (dq : DFrac) (m : ConfChangeM),
     ⊢
       ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.raft.v3.raftpb ∗ ownCCV1 c dq m -∗
-          (▷ ∀ v, ownCCV1 c dq m ∗ ownCCV2 v (DFrac.own 1) m.asV2 -∗ Φ (intoVal v)) -∗
+        isPkgInit pkg_id.go_etcd_io.raft.v3.raftpb ∗ ownConfChange c dq m -∗
+          (▷ ∀ v, ownConfChange c dq m ∗ ownConfChangeV2 v (DFrac.own 1) m.asV2 -∗ Φ (intoVal v)) -∗
             WP ((intoVal (methods raftpb.ConfChange.ty.PointerType go!"AsV2" (intoVal c))) (intoVal ()))
               {{ Φ }}

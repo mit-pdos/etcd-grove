@@ -39,7 +39,7 @@ theorem bksReset_lookup_some {B : GMap w64 (List Ent)} {id : w64} {es : List Ent
   | some _ => rw [h'] at h; cases h; rfl
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

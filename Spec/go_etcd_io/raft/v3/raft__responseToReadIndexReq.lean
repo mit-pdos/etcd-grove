@@ -36,7 +36,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.raft.v3
 
 section results
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- The response to a forwarded read-index request (stage R4: its scalars; the entries, the
 request's, are the message state's, `MsgSt.ents`). -/
@@ -53,7 +53,7 @@ def addReadState (s : NState) (idx : w64) (ctx : List w8) : NState :=
 end results
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]

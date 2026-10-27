@@ -3,11 +3,11 @@
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
 def raftpb.ConfChange.GetNodeId.spec : Prop :=
-  (∀ (p : Loc) (dq : DFrac) (m : CCV1M),
+  (∀ (p : Loc) (dq : DFrac) (m : ConfChangeM),
       ⊢
         ∀ Φ,
-          isPkgInit pkg_id.go_etcd_io.raft.v3.raftpb ∗ ownCCV1 p dq m -∗
-            ▷ (ownCCV1 p dq m -∗ Φ (intoVal m.nodeId)) -∗
+          isPkgInit pkg_id.go_etcd_io.raft.v3.raftpb ∗ ownConfChange p dq m -∗
+            ▷ (ownConfChange p dq m -∗ Φ (intoVal m.nodeId)) -∗
               WP
                 ((intoVal
                     (methods raftpb.ConfChange.ty.PointerType go!"GetNodeId"

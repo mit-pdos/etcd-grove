@@ -44,5 +44,6 @@ inductive StepR (Adm : List EntryM → CCState → Prop) (dec : CCDec) (id : w64
       r.snap = false → NoConfIn r.full (uint.nat r.applied) (uint.nat r.p.commit) → uint.Z r.p.term
       + 1 < 2 ^ 64 → peers.Perm (elements (r.cfg.cfg.voters \ {id})) → StepR Adm dec id B r [] { p
 
-def propBatch (r : RState) (ents : List EntryM) (cs : List (Option CCMsg)) : List EntryM × w64 :=
+def propBatch (r : RState) (ents : List EntryM) (cs : List (Option ConfChangeIM)) : List EntryM ×
+    w64 :=
   propConf r.applied (plastIndex r.p) r.pci ents cs r.cfg.cfg.joint

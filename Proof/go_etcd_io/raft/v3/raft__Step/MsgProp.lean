@@ -36,7 +36,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 section branches
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
@@ -44,7 +44,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 namespace StepProof
 
-omit ffi [FfiInterp ffi] [FfiSemantics ext ffi] go_gctx in
+omit [GooseInterp] [GooseSemantics] go_gctx in
 /-- `proposed` (`Spec/stepLeader.lean`) is `StepC.propose`'s state: the log grows by the
 batch stamped at the leader's term and the indices after the last one, and the
 self-acknowledgement at the new last index is queued. (Checked 2026-10-02: the physical
@@ -67,19 +67,19 @@ private theorem toPState_proposed (id : w64) (s : NState) (ents : List EntryM) :
   simp only [plastIndex, plogLastIndexZ, logLast, List.length_append]
   congr 2; push_cast; simp only [List.length_mapIdx]; omega
 
-omit ext ffi [FfiInterp ffi] [FfiSemantics ext ffi] go_gctx in
+omit [GooseInterp] [GooseSemantics] go_gctx in
 /-- `if` on a decided condition (Mathlib's `if_pos`/`if_neg`, deprecated here). -/
 private theorem ite_pos {α : Sort _} {c : Prop} [Decidable c] {a b : α} (h : c) :
     (if c then a else b) = a := by simp [h]
 
-omit ext ffi [FfiInterp ffi] [FfiSemantics ext ffi] go_gctx in
+omit [GooseInterp] [GooseSemantics] go_gctx in
 private theorem ite_neg {α : Sort _} {c : Prop} [Decidable c] {a b : α} (h : ¬c) :
     (if c then a else b) = b := by simp [h]
 
 /-- A proposal the leader drops after the conf-change loop moved `pendingConfIndex`
 (2026-10-14, stage B7): nothing the protocol sees, `StepR.propDrop` in the dynamic model. -/
 private theorem stepCD_propDrop (c : CfgM) (id : w64) (m : MessageM) (s : NState)
-    (ents : List EntryM) (cs : List (Option CCMsg)) (ctx : List w8)
+    (ents : List EntryM) (cs : List (Option ConfChangeIM)) (ctx : List w8)
     (Hty : m.Type' = MsgProp) (Hr : s.role = .leader) (Hct : CCTypesOk ents cs)
     (Hlen : (ents.length : Int) < 2 ^ 61) :
     StepCD c id B m s [] { s with pci := (leaderPropConf s ents cs c.joint).2 } := by
@@ -124,7 +124,7 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (_Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
     (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
     (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc)
-    (ents : List EntryM) (cs : List (Option CCMsg)) (k0 : Nat) :
+    (ents : List EntryM) (cs : List (Option ConfChangeIM)) (k0 : Nat) :
     m.Type' = MsgProp →
     m.Term' = W64 0 →
     (m.From' = W64 0 ∨ m.From' = id) →

@@ -43,7 +43,7 @@ namespace EtcdGrove
 open Iris Iris.BI GMap go_etcd_io.raft.v3
 
 section dyn
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- The dynamic configurations of a decoder and an initial configuration with `CfgOk`. -/
 def DynCfg.ofFold (dec : CCDec) (c0 : CCState) (h0 : CfgOk c0) : DynCfg where
@@ -250,7 +250,7 @@ theorem noApp0 {dec : CCDec} {c0 : CCState} :
 end dyn
 
 section ghost
-variable [FfiSyntax]
+variable [GooseExts]
 variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 
 /-- The side conditions of `witR_keep` at a rule that keeps the log. -/

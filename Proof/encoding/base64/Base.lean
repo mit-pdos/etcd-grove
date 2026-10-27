@@ -34,7 +34,7 @@ encoding has no error (its trust boundary, the auth plan's E2u), not the encodin
 opaque stdEnc : List w8 → GoString
 
 section init
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

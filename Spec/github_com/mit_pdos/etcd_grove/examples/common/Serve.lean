@@ -36,7 +36,7 @@ namespace common
 open Iris Iris.BI go_etcd_io.raft.v3 go_etcd_io.etcd.server.v3.etcdserver
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -44,7 +44,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.common.Assumptio
 
 /-- See the file header. -/
 abbrev Serve.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [ErrorStringLeaf] [context.ErrorStringIsError]
+  ∀ [go_etcd_io.etcd.cache.v3.Assumptions]
     (s : Loc) (addr : GoString)
     (E : apply.AEnv GF)
     (ρ : ReqNames) (γr : ReadNames) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)

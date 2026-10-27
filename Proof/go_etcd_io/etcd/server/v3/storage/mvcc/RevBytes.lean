@@ -109,7 +109,7 @@ theorem enc_subslice9 (m : w64) (l : List w8) :
   simp
 
 section go
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- The same, of a Go `Revision` value. -/
 theorem revBytes_revOf_eq (v : go_etcd_io.etcd.server.v3.storage.mvcc.Revision) (rest : List w8) :

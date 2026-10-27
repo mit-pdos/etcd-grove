@@ -28,7 +28,7 @@ namespace linkvtxn
 open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.raft.v3
 
 section pure
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- `Main`'s peer URL, `http://127.0.0.1:23806`. -/
 def peerURL : _root_.Perennial.net.url.URL :=
@@ -51,7 +51,7 @@ def linkvtxnDir (id : w64) : w64 → List GoString := dirOne id go!"http://127.0
 end pure
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

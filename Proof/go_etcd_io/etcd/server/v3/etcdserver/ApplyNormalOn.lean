@@ -39,7 +39,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver
 
 section pure
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- **An entry's premise in the auth mode `on`** (`entryOk`'s): no data, or data decoding to a
 request with an id that `rqOk` admits at the apply thread's log or an admitted admin request
@@ -363,7 +363,7 @@ theorem kvEntryOn_cc (c₀ : w64) (ch : apply.Chain) (s : auth.AuthState × mvcc
 end pure
 
 section lemmas
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -494,7 +494,7 @@ theorem isServerM_waitIs (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc)
 end lemmas
 
 section row
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

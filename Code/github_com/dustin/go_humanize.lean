@@ -20,351 +20,351 @@ end pkg_id
 
 namespace github_com.dustin.go_humanize
 
-noncomputable def RelTimeMagnitude.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def RelTimeMagnitude.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/dustin/go-humanize.RelTimeMagnitude" [])
 
 attribute [irreducible] RelTimeMagnitude.ty
 
-axiom RelTimeMagnitude.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom RelTimeMagnitude.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Byte [FfiSyntax] [GoGlobalContext] : val
+axiom Byte [GooseExts] [GoGlobalContext] : val
 
-axiom KiByte [FfiSyntax] [GoGlobalContext] : val
+axiom KiByte [GooseExts] [GoGlobalContext] : val
 
-axiom MiByte [FfiSyntax] [GoGlobalContext] : val
+axiom MiByte [GooseExts] [GoGlobalContext] : val
 
-axiom GiByte [FfiSyntax] [GoGlobalContext] : val
+axiom GiByte [GooseExts] [GoGlobalContext] : val
 
-axiom TiByte [FfiSyntax] [GoGlobalContext] : val
+axiom TiByte [GooseExts] [GoGlobalContext] : val
 
-axiom PiByte [FfiSyntax] [GoGlobalContext] : val
+axiom PiByte [GooseExts] [GoGlobalContext] : val
 
-axiom EiByte [FfiSyntax] [GoGlobalContext] : val
+axiom EiByte [GooseExts] [GoGlobalContext] : val
 
-axiom IByte [FfiSyntax] [GoGlobalContext] : val
+axiom IByte [GooseExts] [GoGlobalContext] : val
 
-axiom KByte [FfiSyntax] [GoGlobalContext] : val
+axiom KByte [GooseExts] [GoGlobalContext] : val
 
-axiom MByte [FfiSyntax] [GoGlobalContext] : val
+axiom MByte [GooseExts] [GoGlobalContext] : val
 
-axiom GByte [FfiSyntax] [GoGlobalContext] : val
+axiom GByte [GooseExts] [GoGlobalContext] : val
 
-axiom TByte [FfiSyntax] [GoGlobalContext] : val
+axiom TByte [GooseExts] [GoGlobalContext] : val
 
-axiom PByte [FfiSyntax] [GoGlobalContext] : val
+axiom PByte [GooseExts] [GoGlobalContext] : val
 
-axiom EByte [FfiSyntax] [GoGlobalContext] : val
+axiom EByte [GooseExts] [GoGlobalContext] : val
 
-axiom Day [FfiSyntax] [GoGlobalContext] : val
+axiom Day [GooseExts] [GoGlobalContext] : val
 
-axiom Week [FfiSyntax] [GoGlobalContext] : val
+axiom Week [GooseExts] [GoGlobalContext] : val
 
-axiom Month [FfiSyntax] [GoGlobalContext] : val
+axiom Month [GooseExts] [GoGlobalContext] : val
 
-axiom Year [FfiSyntax] [GoGlobalContext] : val
+axiom Year [GooseExts] [GoGlobalContext] : val
 
-axiom LongTime [FfiSyntax] [GoGlobalContext] : val
+axiom LongTime [GooseExts] [GoGlobalContext] : val
 
-noncomputable def bigIECExp [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def bigIECExp [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.bigIECExp"
 
-axiom bigIECExp.init [FfiSyntax] [GoGlobalContext] : val
+axiom bigIECExp.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def BigByte [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def BigByte [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.BigByte"
 
-axiom BigByte.init [FfiSyntax] [GoGlobalContext] : val
+axiom BigByte.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def BigKiByte [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def BigKiByte [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.BigKiByte"
 
-axiom BigKiByte.init [FfiSyntax] [GoGlobalContext] : val
+axiom BigKiByte.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def BigMiByte [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def BigMiByte [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.BigMiByte"
 
-axiom BigMiByte.init [FfiSyntax] [GoGlobalContext] : val
+axiom BigMiByte.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def BigGiByte [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def BigGiByte [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.BigGiByte"
 
-axiom BigGiByte.init [FfiSyntax] [GoGlobalContext] : val
+axiom BigGiByte.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def BigTiByte [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def BigTiByte [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.BigTiByte"
 
-axiom BigTiByte.init [FfiSyntax] [GoGlobalContext] : val
+axiom BigTiByte.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def BigPiByte [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def BigPiByte [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.BigPiByte"
 
-axiom BigPiByte.init [FfiSyntax] [GoGlobalContext] : val
+axiom BigPiByte.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def BigEiByte [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def BigEiByte [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.BigEiByte"
 
-axiom BigEiByte.init [FfiSyntax] [GoGlobalContext] : val
+axiom BigEiByte.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def BigZiByte [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def BigZiByte [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.BigZiByte"
 
-axiom BigZiByte.init [FfiSyntax] [GoGlobalContext] : val
+axiom BigZiByte.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def BigYiByte [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def BigYiByte [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.BigYiByte"
 
-axiom BigYiByte.init [FfiSyntax] [GoGlobalContext] : val
+axiom BigYiByte.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def BigRiByte [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def BigRiByte [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.BigRiByte"
 
-axiom BigRiByte.init [FfiSyntax] [GoGlobalContext] : val
+axiom BigRiByte.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def BigQiByte [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def BigQiByte [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.BigQiByte"
 
-axiom BigQiByte.init [FfiSyntax] [GoGlobalContext] : val
+axiom BigQiByte.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def bigSIExp [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def bigSIExp [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.bigSIExp"
 
-axiom bigSIExp.init [FfiSyntax] [GoGlobalContext] : val
+axiom bigSIExp.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def BigSIByte [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def BigSIByte [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.BigSIByte"
 
-axiom BigSIByte.init [FfiSyntax] [GoGlobalContext] : val
+axiom BigSIByte.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def BigKByte [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def BigKByte [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.BigKByte"
 
-axiom BigKByte.init [FfiSyntax] [GoGlobalContext] : val
+axiom BigKByte.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def BigMByte [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def BigMByte [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.BigMByte"
 
-axiom BigMByte.init [FfiSyntax] [GoGlobalContext] : val
+axiom BigMByte.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def BigGByte [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def BigGByte [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.BigGByte"
 
-axiom BigGByte.init [FfiSyntax] [GoGlobalContext] : val
+axiom BigGByte.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def BigTByte [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def BigTByte [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.BigTByte"
 
-axiom BigTByte.init [FfiSyntax] [GoGlobalContext] : val
+axiom BigTByte.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def BigPByte [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def BigPByte [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.BigPByte"
 
-axiom BigPByte.init [FfiSyntax] [GoGlobalContext] : val
+axiom BigPByte.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def BigEByte [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def BigEByte [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.BigEByte"
 
-axiom BigEByte.init [FfiSyntax] [GoGlobalContext] : val
+axiom BigEByte.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def BigZByte [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def BigZByte [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.BigZByte"
 
-axiom BigZByte.init [FfiSyntax] [GoGlobalContext] : val
+axiom BigZByte.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def BigYByte [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def BigYByte [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.BigYByte"
 
-axiom BigYByte.init [FfiSyntax] [GoGlobalContext] : val
+axiom BigYByte.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def BigRByte [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def BigRByte [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.BigRByte"
 
-axiom BigRByte.init [FfiSyntax] [GoGlobalContext] : val
+axiom BigRByte.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def BigQByte [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def BigQByte [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.BigQByte"
 
-axiom BigQByte.init [FfiSyntax] [GoGlobalContext] : val
+axiom BigQByte.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def bigBytesSizeTable [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def bigBytesSizeTable [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.bigBytesSizeTable"
 
-axiom bigBytesSizeTable.init [FfiSyntax] [GoGlobalContext] : val
+axiom bigBytesSizeTable.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ten [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ten [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.ten"
 
-axiom ten.init [FfiSyntax] [GoGlobalContext] : val
+axiom ten.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def bytesSizeTable [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def bytesSizeTable [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.bytesSizeTable"
 
-axiom bytesSizeTable.init [FfiSyntax] [GoGlobalContext] : val
+axiom bytesSizeTable.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def renderFloatPrecisionMultipliers [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def renderFloatPrecisionMultipliers [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.renderFloatPrecisionMultipliers"
 
-axiom renderFloatPrecisionMultipliers.init [FfiSyntax] [GoGlobalContext] : val
+axiom renderFloatPrecisionMultipliers.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def renderFloatPrecisionRounders [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def renderFloatPrecisionRounders [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.renderFloatPrecisionRounders"
 
-axiom renderFloatPrecisionRounders.init [FfiSyntax] [GoGlobalContext] : val
+axiom renderFloatPrecisionRounders.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def siPrefixTable [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def siPrefixTable [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.siPrefixTable"
 
-axiom siPrefixTable.init [FfiSyntax] [GoGlobalContext] : val
+axiom siPrefixTable.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def revSIPrefixTable [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def revSIPrefixTable [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.revSIPrefixTable"
 
-axiom revSIPrefixTable.init [FfiSyntax] [GoGlobalContext] : val
+axiom revSIPrefixTable.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def minSIExponent [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def minSIExponent [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.minSIExponent"
 
-axiom minSIExponent.init [FfiSyntax] [GoGlobalContext] : val
+axiom minSIExponent.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def maxSIExponent [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def maxSIExponent [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.maxSIExponent"
 
-axiom maxSIExponent.init [FfiSyntax] [GoGlobalContext] : val
+axiom maxSIExponent.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def siParseAliases [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def siParseAliases [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.siParseAliases"
 
-axiom siParseAliases.init [FfiSyntax] [GoGlobalContext] : val
+axiom siParseAliases.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def riParseRegex [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def riParseRegex [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.riParseRegex"
 
-noncomputable def errInvalid [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def errInvalid [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.errInvalid"
 
-axiom errInvalid.init [FfiSyntax] [GoGlobalContext] : val
+axiom errInvalid.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def defaultMagnitudes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def defaultMagnitudes [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.defaultMagnitudes"
 
-axiom defaultMagnitudes.init [FfiSyntax] [GoGlobalContext] : val
+axiom defaultMagnitudes.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def oomm [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def oomm [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.oomm"
 
-noncomputable def oom [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def oom [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.oom"
 
-noncomputable def humanateBigBytes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def humanateBigBytes [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.humanateBigBytes"
 
-noncomputable def BigBytes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def BigBytes [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.BigBytes"
 
-noncomputable def BigIBytes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def BigIBytes [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.BigIBytes"
 
-noncomputable def ParseBigBytes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ParseBigBytes [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.ParseBigBytes"
 
-noncomputable def logn [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def logn [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.logn"
 
-noncomputable def countDigits [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def countDigits [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.countDigits"
 
-noncomputable def humanateBytes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def humanateBytes [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.humanateBytes"
 
-noncomputable def Bytes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Bytes [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.Bytes"
 
-noncomputable def BytesN [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def BytesN [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.BytesN"
 
-noncomputable def IBytes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IBytes [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.IBytes"
 
-noncomputable def IBytesN [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IBytesN [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.IBytesN"
 
-noncomputable def ParseBytes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ParseBytes [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.ParseBytes"
 
-noncomputable def Comma [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Comma [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.Comma"
 
-noncomputable def Commaf [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Commaf [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.Commaf"
 
-noncomputable def CommafWithDigits [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def CommafWithDigits [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.CommafWithDigits"
 
-noncomputable def BigComma [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def BigComma [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.BigComma"
 
-noncomputable def ParseComma [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ParseComma [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.ParseComma"
 
-noncomputable def ParseCommaf [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ParseCommaf [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.ParseCommaf"
 
-noncomputable def BigCommaf [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def BigCommaf [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.BigCommaf"
 
-noncomputable def stripTrailingZeros [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def stripTrailingZeros [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.stripTrailingZeros"
 
-noncomputable def stripTrailingDigits [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def stripTrailingDigits [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.stripTrailingDigits"
 
-noncomputable def Ftoa [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Ftoa [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.Ftoa"
 
-noncomputable def FtoaWithDigits [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def FtoaWithDigits [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.FtoaWithDigits"
 
-noncomputable def FormatFloat [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def FormatFloat [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.FormatFloat"
 
-noncomputable def FormatInteger [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def FormatInteger [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.FormatInteger"
 
-noncomputable def Ordinal [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Ordinal [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.Ordinal"
 
-noncomputable def revfmap [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def revfmap [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.revfmap"
 
-noncomputable def init.«0» [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def init.«0» [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.init.0"
 
-noncomputable def ComputeSI [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ComputeSI [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.ComputeSI"
 
-noncomputable def SI [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def SI [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.SI"
 
-noncomputable def SIWithDigits [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def SIWithDigits [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.SIWithDigits"
 
-noncomputable def ParseSI [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ParseSI [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.ParseSI"
 
-noncomputable def Time [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Time [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.Time"
 
-noncomputable def RelTime [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def RelTime [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.RelTime"
 
-noncomputable def CustomRelTime [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def CustomRelTime [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/dustin/go-humanize.CustomRelTime"
 
 noncomputable instance info' : PkgInfo pkg_id.github_com.dustin.go_humanize where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.github_com.dustin.go_humanize)) (Lam BAnon
   (App (Val exceptionDo)
@@ -480,16 +480,20 @@ axiom RelTimeMagnitude : Type
 axiom RelTimeMagnitude.zero_val : ZeroVal RelTimeMagnitude
 attribute [instance] RelTimeMagnitude.zero_val
 
-class RelTimeMagnitude.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class RelTimeMagnitude.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RelTimeMagnitude.underlying RelTimeMagnitude
   underlying : go.UnderlyingDirectedEq RelTimeMagnitude.ty RelTimeMagnitude.underlying
   isUnderlying : go.IsUnderlying RelTimeMagnitude.underlying RelTimeMagnitude.underlying
+  method_set : go.MethodSetIs RelTimeMagnitude.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RelTimeMagnitude.ty) []
 
 attribute [instance] RelTimeMagnitude.TypeAssumptions.type_repr
   RelTimeMagnitude.TypeAssumptions.underlying
   RelTimeMagnitude.TypeAssumptions.isUnderlying
+  RelTimeMagnitude.TypeAssumptions.method_set
+  RelTimeMagnitude.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   RelTimeMagnitude_instance : RelTimeMagnitude.TypeAssumptions
 
 attribute [instance] Assumptions.RelTimeMagnitude_instance

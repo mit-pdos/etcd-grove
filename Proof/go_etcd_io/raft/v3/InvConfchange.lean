@@ -63,7 +63,7 @@ structure CCState where
 
 section model
 open Classical
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- What `checkInvariants` accepts (confchange.go, `checkInvariants`), check by check:
 every voter (incoming or outgoing), learner and staged learner is tracked; a staged learner
@@ -214,7 +214,7 @@ def leaveJointM (s : CCState) : Option CCState :=
 
 end model
 
-theorem applyAll_append [FfiSyntax] (l1 l2 : List ConfChangeSingleM) (s : CCState) :
+theorem applyAll_append [GooseExts] (l1 l2 : List ConfChangeSingleM) (s : CCState) :
     applyAll (l1 ++ l2) s = (applyAll l1 s).bind (applyAll l2) := by
   induction l1 generalizing s with
   | nil => simp [applyAll]
@@ -224,7 +224,7 @@ theorem applyAll_append [FfiSyntax] (l1 l2 : List ConfChangeSingleM) (s : CCStat
     | none => rfl
     | some s' => simp [ih]
 
-theorem applyAll_snoc [FfiSyntax] (l : List ConfChangeSingleM)
+theorem applyAll_snoc [GooseExts] (l : List ConfChangeSingleM)
     (x : ConfChangeSingleM) (s : CCState) :
     applyAll (l ++ [x]) s = (applyAll l s).bind (applyOne x) := by
   induction l generalizing s with
@@ -244,27 +244,27 @@ proj_simps Perennial.EtcdGrove.clearAutoLeave Perennial.EtcdGrove.removeCfg
   Perennial.EtcdGrove.initProgressM Perennial.EtcdGrove.leaveJointState
 
 /-- `pb.ConfChangeSingle{Type: pb.ConfChangeAddNode, NodeId: id}`. -/
-abbrev addNodeCC [FfiSyntax] (id : w64) : ConfChangeSingleM :=
+abbrev addNodeCC [GooseExts] (id : w64) : ConfChangeSingleM :=
   { Type' := W32 0, NodeId' := id }
 
 /-- `pb.ConfChangeSingle{Type: pb.ConfChangeAddLearnerNode, NodeId: id}` (2026-10-13). -/
-abbrev addLearnerCC [FfiSyntax] (id : w64) : ConfChangeSingleM :=
+abbrev addLearnerCC [GooseExts] (id : w64) : ConfChangeSingleM :=
   { Type' := W32 3, NodeId' := id }
 
 /-- The model of a progress map's values: each id's `IsLearner`. -/
-def flagsOf [FfiSyntax] (pvs : GMap w64 tracker.Progress) : GMap w64 Bool :=
+def flagsOf [GooseExts] (pvs : GMap w64 tracker.Progress) : GMap w64 Bool :=
   GMap.fmap (fun pv => pv.IsLearner') pvs
 
 /-- A `Progress` as `initProgress` allocates it: `Match = 0`, `Next = max(LastIndex, 1)`,
 recently active, `StateProbe` and the other fields zero; its `Inflights` fresh, its
 `IsLearner` whatever was asked (and possibly changed since). -/
-def FreshPr [FfiSyntax] (chg : confchange.Changer) (pv : tracker.Progress) : Prop :=
+def FreshPr [GooseExts] (chg : confchange.Changer) (pv : tracker.Progress) : Prop :=
   pv.Match' = W64 0 ∧ uint.Z pv.Next' = max (uint.Z chg.LastIndex') 1 ∧
   pv.sentCommit' = W64 0 ∧ pv.State' = W64 0 ∧ pv.PendingSnapshot' = W64 0 ∧
   pv.RecentActive' = true ∧ pv.MsgAppFlowPaused' = false
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -380,31 +380,31 @@ def ownResult (chg : confchange.Changer) (base : GMap w64 tracker.Progress)
 
 end defs
 
-@[simp] theorem flagsOf_insert [FfiSyntax] (pvs : GMap w64 tracker.Progress) (k : w64)
+@[simp] theorem flagsOf_insert [GooseExts] (pvs : GMap w64 tracker.Progress) (k : w64)
     (pv : tracker.Progress) : flagsOf (<[k := pv]> pvs) = <[k := pv.IsLearner']> (flagsOf pvs) :=
   GMap.fmap_insert _ _ _ _
 
-@[simp] theorem flagsOf_delete [FfiSyntax] (pvs : GMap w64 tracker.Progress) (k : w64) :
+@[simp] theorem flagsOf_delete [GooseExts] (pvs : GMap w64 tracker.Progress) (k : w64) :
     flagsOf (GMap.delete k pvs) = GMap.delete k (flagsOf pvs) :=
   GMap.fmap_delete _ _ _
 
 /-- `IsLearner` in the model is the `Progress`'s. -/
-theorem flagsOf_lookup [FfiSyntax] (pvs : GMap w64 tracker.Progress) (k : w64)
+theorem flagsOf_lookup [GooseExts] (pvs : GMap w64 tracker.Progress) (k : w64)
     (pv : tracker.Progress) (h : pvs !! k = some pv) : flagsOf pvs !! k = some pv.IsLearner' := by
   simp [flagsOf, GMap.lookup_fmap, h]
 
-theorem flagsOf_mem [FfiSyntax] (pvs : GMap w64 tracker.Progress) (k : w64) :
+theorem flagsOf_mem [GooseExts] (pvs : GMap w64 tracker.Progress) (k : w64) :
     k ∈ flagsOf pvs ↔ (pvs !! k).isSome := by
   simp [flagsOf, GMap.mem_iff, GMap.lookup_fmap]
 
-theorem flagsOf_lookup' [FfiSyntax] (pvs : GMap w64 tracker.Progress) (k : w64) :
+theorem flagsOf_lookup' [GooseExts] (pvs : GMap w64 tracker.Progress) (k : w64) :
     flagsOf pvs !! k = (pvs !! k).map (fun pv => pv.IsLearner') := by
   simp [flagsOf, GMap.lookup_fmap]
 
 /-! ### Lemmas on the representation -/
 
 section lemmas
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

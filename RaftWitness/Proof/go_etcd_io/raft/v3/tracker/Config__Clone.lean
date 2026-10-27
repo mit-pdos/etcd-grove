@@ -16,7 +16,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -27,7 +27,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 return mm }`, copied from the translation (`Config.Clone.impl`,
 `Code/go_etcd_io/raft/v3/tracker.lean`) so that its triple is proved once for its four
 calls. -/
-noncomputable abbrev cloneMapBody [FfiSyntax] [GoGlobalContext] : Expr :=
+noncomputable abbrev cloneMapBody [GooseExts] [GoGlobalContext] : Expr :=
   (App (Val exceptionDo)
   (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.MapType go.uint64 (go.GoType.StructType []))))) (Var "m"))
   (App (App (Val exceptionSeq) (Lam BAnon

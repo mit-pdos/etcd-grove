@@ -30,7 +30,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.raft.v3
 
 section pure
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- **Raft's own entries keep the mode-`on` model's state** (an empty normal entry or a conf
 change: neither is a normal entry with data, so neither is decoded). -/
@@ -65,7 +65,7 @@ theorem commitOkOn_noop (cfg : RaftNames) (c₀ : w64) (ch : apply.Chain)
 end pure
 
 section alloc
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

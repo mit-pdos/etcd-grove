@@ -21,7 +21,7 @@ namespace EtcdGrove
 open Iris go_etcd_io.raft.v3
 
 section bridge
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- What `StepC.sendWApp` asks of a request `m` at the protocol state `p` of the configuration
 `c`, but the role. -/

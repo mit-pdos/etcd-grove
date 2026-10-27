@@ -39,7 +39,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.apply go_e
 namespace apply
 
 section pure
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- **A KV request's outcome `oc` decided at the latest state of `hs`** for the principal `ai`
 (the inner chain `ci` of the auth applier): the verdict of the auth applier's method for the
@@ -71,7 +71,7 @@ def kvShapedL (M : auth.AuthMode) (hs : List auth.AuthState) (rq : IRRModel) : P
 end pure
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -143,7 +143,7 @@ end defs
 end apply
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -183,7 +183,7 @@ abbrev apply.uberApplier.dispatch.kvSpecL : Prop :=
 end spec
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

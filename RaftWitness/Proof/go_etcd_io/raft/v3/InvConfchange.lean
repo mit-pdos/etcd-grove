@@ -71,7 +71,7 @@ structure CCState where
 
 section model
 open Classical
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- What `checkInvariants` accepts (confchange.go, `checkInvariants`), check by check:
 every voter (incoming or outgoing), learner and staged learner is tracked; a staged learner
@@ -352,7 +352,7 @@ def leaveJointM (s : CCState) : Option CCState :=
 
 end model
 
-theorem applyAll_append [FfiSyntax] (l1 l2 : List ConfChangeSingleM) (s : CCState) :
+theorem applyAll_append [GooseExts] (l1 l2 : List ConfChangeSingleM) (s : CCState) :
     applyAll (l1 ++ l2) s = (applyAll l1 s).bind (applyAll l2) := by
   induction l1 generalizing s with
   | nil => simp [applyAll]
@@ -362,7 +362,7 @@ theorem applyAll_append [FfiSyntax] (l1 l2 : List ConfChangeSingleM) (s : CCStat
     | none => rfl
     | some s' => simp [ih]
 
-theorem applyAll_snoc [FfiSyntax] (l : List ConfChangeSingleM)
+theorem applyAll_snoc [GooseExts] (l : List ConfChangeSingleM)
     (x : ConfChangeSingleM) (s : CCState) :
     applyAll (l ++ [x]) s = (applyAll l s).bind (applyOne x) := by
   induction l generalizing s with
@@ -384,42 +384,42 @@ proj_simps Perennial.EtcdGrove.clearAutoLeave Perennial.EtcdGrove.removeCfg
 /-- A voters-only, non-joint `Config` value: the incoming voter map is `v`; the outgoing
 voter map, `Learners` and `LearnersNext` are `nil`. What `Restore.spec` says of the
 configuration it starts from (`MakeProgressTracker`'s), and all `Config.Clone` reads. -/
-def ConfigVotersOnly [FfiSyntax] (cfg : tracker.Config) (v : Loc) : Prop :=
+def ConfigVotersOnly [GooseExts] (cfg : tracker.Config) (v : Loc) : Prop :=
   cfg.Voters'.arr = [v, map.nil] ∧ cfg.Learners' = map.nil ∧ cfg.LearnersNext' = map.nil
 
 /-- `ConfigVotersOnly`, and `AutoLeave` off: what Go's `checkInvariants` requires of a
 non-joint config, and what `Config.Clone` produces (it does not copy `AutoLeave`). -/
-def ConfigSimple [FfiSyntax] (cfg : tracker.Config) (v : Loc) : Prop :=
+def ConfigSimple [GooseExts] (cfg : tracker.Config) (v : Loc) : Prop :=
   ConfigVotersOnly cfg v ∧ cfg.AutoLeave' = false
 
 /-- `pb.ConfChangeSingle{Type: pb.ConfChangeAddNode, NodeId: id}`. -/
-abbrev addNodeCC [FfiSyntax] (id : w64) : ConfChangeSingleM :=
+abbrev addNodeCC [GooseExts] (id : w64) : ConfChangeSingleM :=
   { Type' := W32 0, NodeId' := id }
 
 /-- `pb.ConfChangeSingle{Type: pb.ConfChangeAddLearnerNode, NodeId: id}` (2026-10-13). -/
-abbrev addLearnerCC [FfiSyntax] (id : w64) : ConfChangeSingleM :=
+abbrev addLearnerCC [GooseExts] (id : w64) : ConfChangeSingleM :=
   { Type' := W32 3, NodeId' := id }
 
 /-- No `Progress` of the map is a witness's (raft#168's `IsWitness`): the confchange specs are
 of witness-free configurations (`notes/pr-verify/raft-168.md`). -/
-def NoWit [FfiSyntax] (pvs : GMap w64 tracker.Progress) : Prop :=
+def NoWit [GooseExts] (pvs : GMap w64 tracker.Progress) : Prop :=
   ∀ k pv, pvs !! k = some pv → pv.IsWitness' = false
 
 /-- (2026-10-20, witness support) The `Progress` with `IsWitness` is the incoming witness's `w`
 (none at `w = 0`: `WitT_zero`), and the witness is tracked: what the confchange specs keep of the flags. A configuration
 with a witness the incoming half removed while the outgoing half keeps it (Go's `Witnesses =
 [0, W]` with `W` tracked) is outside it, as outside `CfgM` (`notes/raft-witness.md`, `NoOutWit`). -/
-def WitT [FfiSyntax] (w : w64) (pvs : GMap w64 tracker.Progress) : Prop :=
+def WitT [GooseExts] (w : w64) (pvs : GMap w64 tracker.Progress) : Prop :=
   (w ≠ W64 0 → (pvs !! w).isSome) ∧
   ∀ k pv, pvs !! k = some pv → pv.IsWitness' = decide (k = w ∧ w ≠ W64 0)
 
-theorem WitT_zero [FfiSyntax] {pvs : GMap w64 tracker.Progress} : WitT (W64 0) pvs ↔ NoWit pvs := by
+theorem WitT_zero [GooseExts] {pvs : GMap w64 tracker.Progress} : WitT (W64 0) pvs ↔ NoWit pvs := by
   constructor
   · intro h k pv hk; rw [h.2 k pv hk]; simp
   · intro h; exact ⟨fun h0 => absurd rfl h0, fun k pv hk => by rw [h k pv hk]; simp⟩
 
 /-- A fresh `Progress` keeps `WitT` when its flag is the witness's. -/
-theorem WitT.insert [FfiSyntax] {w : w64} {pvs : GMap w64 tracker.Progress} {id : w64}
+theorem WitT.insert [GooseExts] {w : w64} {pvs : GMap w64 tracker.Progress} {id : w64}
     {pv : tracker.Progress} (H : WitT w pvs) (Hpv : pv.IsWitness' = decide (id = w ∧ w ≠ W64 0)) :
     WitT w (<[id := pv]> pvs) := by
   refine ⟨fun h => ?_, fun k q hq => ?_⟩
@@ -431,13 +431,13 @@ theorem WitT.insert [FfiSyntax] {w : w64} {pvs : GMap w64 tracker.Progress} {id 
     · rw [GMap.lookup_insert_ne _ _ hk] at hq; exact H.2 k q hq
 
 /-- Changing a tracked `Progress`'s `IsLearner` keeps `WitT`. -/
-theorem WitT.set_learner [FfiSyntax] {w : w64} {pvs : GMap w64 tracker.Progress} {id : w64}
+theorem WitT.set_learner [GooseExts] {w : w64} {pvs : GMap w64 tracker.Progress} {id : w64}
     {pv : tracker.Progress} (b : Bool) (H : WitT w pvs) (Hpv : pvs !! id = some pv) :
     WitT w (<[id := { pv with IsLearner' := b }]> pvs) :=
   H.insert (H.2 id pv Hpv)
 
 /-- Untracking an id other than the witness keeps `WitT`. -/
-theorem WitT.delete [FfiSyntax] {w : w64} {pvs : GMap w64 tracker.Progress} {id : w64}
+theorem WitT.delete [GooseExts] {w : w64} {pvs : GMap w64 tracker.Progress} {id : w64}
     (H : WitT w pvs) (Hid : w ≠ W64 0 → id ≠ w) : WitT w (GMap.delete id pvs) := by
   refine ⟨fun h => ?_, fun k q hq => ?_⟩
   · rw [GMap.lookup_delete_ne _ (fun e => Hid h e)]; exact H.1 h
@@ -446,7 +446,7 @@ theorem WitT.delete [FfiSyntax] {w : w64} {pvs : GMap w64 tracker.Progress} {id 
     · rw [GMap.lookup_delete_ne _ hk] at hq; exact H.2 k q hq
 
 /-- Untracking the witness leaves none (`remove` clears `Witnesses[0]`). -/
-theorem WitT.delete_wit [FfiSyntax] {w : w64} {pvs : GMap w64 tracker.Progress}
+theorem WitT.delete_wit [GooseExts] {w : w64} {pvs : GMap w64 tracker.Progress}
     (H : WitT w pvs) : WitT (W64 0) (GMap.delete w pvs) := by
   refine ⟨fun h => absurd rfl h, fun k q hq => ?_⟩
   by_cases hk : w = k
@@ -455,7 +455,7 @@ theorem WitT.delete_wit [FfiSyntax] {w : w64} {pvs : GMap w64 tracker.Progress}
     rw [H.2 k q hq]; simp [Ne.symm hk]
 
 /-- A fresh witness's `Progress` at a configuration without one. -/
-theorem WitT.insert_wit [FfiSyntax] {pvs : GMap w64 tracker.Progress} {id : w64}
+theorem WitT.insert_wit [GooseExts] {pvs : GMap w64 tracker.Progress} {id : w64}
     {pv : tracker.Progress} (H : WitT (W64 0) pvs) (Hid : id ≠ W64 0) (Hpv : pv.IsWitness' = true) :
     WitT id (<[id := pv]> pvs) := by
   refine ⟨fun _ => by rw [GMap.lookup_insert_eq]; rfl, fun k q hq => ?_⟩
@@ -465,19 +465,19 @@ theorem WitT.insert_wit [FfiSyntax] {pvs : GMap w64 tracker.Progress} {id : w64}
     rw [H.2 k q hq]; simp [Ne.symm hk]
 
 /-- The model of a progress map's values: each id's `IsLearner`. -/
-def flagsOf [FfiSyntax] (pvs : GMap w64 tracker.Progress) : GMap w64 Bool :=
+def flagsOf [GooseExts] (pvs : GMap w64 tracker.Progress) : GMap w64 Bool :=
   GMap.fmap (fun pv => pv.IsLearner') pvs
 
 /-- A `Progress` as `initProgress` allocates it: `Match = 0`, `Next = max(LastIndex, 1)`,
 recently active, `StateProbe` and the other fields zero; its `Inflights` fresh, its
 `IsLearner` whatever was asked (and possibly changed since). -/
-def FreshPr [FfiSyntax] (chg : confchange.Changer) (pv : tracker.Progress) : Prop :=
+def FreshPr [GooseExts] (chg : confchange.Changer) (pv : tracker.Progress) : Prop :=
   pv.Match' = W64 0 ∧ uint.Z pv.Next' = max (uint.Z chg.LastIndex') 1 ∧
   pv.sentCommit' = W64 0 ∧ pv.State' = W64 0 ∧ pv.PendingSnapshot' = W64 0 ∧
   pv.RecentActive' = true ∧ pv.MsgAppFlowPaused' = false
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -620,31 +620,31 @@ def ownResult (chg : confchange.Changer) (base : GMap w64 tracker.Progress)
 
 end defs
 
-@[simp] theorem flagsOf_insert [FfiSyntax] (pvs : GMap w64 tracker.Progress) (k : w64)
+@[simp] theorem flagsOf_insert [GooseExts] (pvs : GMap w64 tracker.Progress) (k : w64)
     (pv : tracker.Progress) : flagsOf (<[k := pv]> pvs) = <[k := pv.IsLearner']> (flagsOf pvs) :=
   GMap.fmap_insert _ _ _ _
 
-@[simp] theorem flagsOf_delete [FfiSyntax] (pvs : GMap w64 tracker.Progress) (k : w64) :
+@[simp] theorem flagsOf_delete [GooseExts] (pvs : GMap w64 tracker.Progress) (k : w64) :
     flagsOf (GMap.delete k pvs) = GMap.delete k (flagsOf pvs) :=
   GMap.fmap_delete _ _ _
 
 /-- `IsLearner` in the model is the `Progress`'s. -/
-theorem flagsOf_lookup [FfiSyntax] (pvs : GMap w64 tracker.Progress) (k : w64)
+theorem flagsOf_lookup [GooseExts] (pvs : GMap w64 tracker.Progress) (k : w64)
     (pv : tracker.Progress) (h : pvs !! k = some pv) : flagsOf pvs !! k = some pv.IsLearner' := by
   simp [flagsOf, GMap.lookup_fmap, h]
 
-theorem flagsOf_mem [FfiSyntax] (pvs : GMap w64 tracker.Progress) (k : w64) :
+theorem flagsOf_mem [GooseExts] (pvs : GMap w64 tracker.Progress) (k : w64) :
     k ∈ flagsOf pvs ↔ (pvs !! k).isSome := by
   simp [flagsOf, GMap.mem_iff, GMap.lookup_fmap]
 
-theorem flagsOf_lookup' [FfiSyntax] (pvs : GMap w64 tracker.Progress) (k : w64) :
+theorem flagsOf_lookup' [GooseExts] (pvs : GMap w64 tracker.Progress) (k : w64) :
     flagsOf pvs !! k = (pvs !! k).map (fun pv => pv.IsLearner') := by
   simp [flagsOf, GMap.lookup_fmap]
 
 /-! ### Lemmas on the representation -/
 
 section lemmas
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

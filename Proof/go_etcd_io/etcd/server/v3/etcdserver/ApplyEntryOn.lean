@@ -28,7 +28,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver
 
 section pure
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- **After `apply.Apply` on a KV entry in the mode `on`, the apply thread's state is the model's**
 (`apply.Apply.kvSpecL`'s post): a plain KV request of the entry `m` above `c₀`, applied with `v3` at
@@ -68,7 +68,7 @@ theorem kvOn_after_kv (c₀ : w64) (st : auth.AuthState) (x x' : apply.ApplyKV) 
 end pure
 
 section lemmas
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

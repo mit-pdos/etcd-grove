@@ -5,11 +5,11 @@
 theorem raftpb.ConfChangeV2.GetContext.wp_proof [package_sem : Assumptions] :
     raftpb.ConfChangeV2.GetContext.spec
   -- `Perennial.EtcdGrove.raftpb.ConfChangeV2.GetContext.spec`, unfolded:
-  (∀ (p : Loc) (dq : DFrac) (m : CCV2M),
+  (∀ (p : Loc) (dq : DFrac) (m : ConfChangeV2M),
       ⊢
         ∀ Φ,
-          isPkgInit pkg_id.go_etcd_io.raft.v3.raftpb ∗ ownCCV2 p dq m -∗
-            (▷ ∀ cs, ownSlice cs m.context DFrac.discard ∗ ownCCV2 p dq m -∗ Φ (intoVal cs)) -∗
+          isPkgInit pkg_id.go_etcd_io.raft.v3.raftpb ∗ ownConfChangeV2 p dq m -∗
+            (▷ ∀ cs, ownSlice cs m.context DFrac.discard ∗ ownConfChangeV2 p dq m -∗ Φ (intoVal cs)) -∗
               WP
                 ((intoVal
                     (methods raftpb.ConfChangeV2.ty.PointerType

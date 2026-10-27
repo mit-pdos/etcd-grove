@@ -17,7 +17,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.raft.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -38,7 +38,7 @@ theorem raftNode.onStop.wp_proof :
   icases Htri with ⟨%ti, %Htieq, #HSend, #HTrStop⟩
   subst Htieq
   iunfold isRNWal at Hsti
-  icases Hsti with ⟨%si, %Hsieq, #HSave, #HClose⟩
+  icases Hsti with ⟨%si, %Hsieq, #HSave, #HClose, -, -⟩
   subst Hsieq
   iunfold rnDoneTok at Hdone
   icases Hdone with ⟨%dnc', #Hdnc', Hbc⟩

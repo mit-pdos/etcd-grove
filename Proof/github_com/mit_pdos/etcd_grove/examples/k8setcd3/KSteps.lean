@@ -31,7 +31,7 @@ open github_com.mit_pdos.etcd_grove.examples.k8setcd3 (Input Output item)
 open Classical
 
 section go
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- A configuration's contents (`mcfg`): the model's. -/
 abbrev GCfg := linkv.PCfg GSt Input

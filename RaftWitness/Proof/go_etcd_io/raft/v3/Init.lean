@@ -29,9 +29,6 @@ Three things are not facts of the model, and are premises:
   class `log.NewModel` says that the name `log.New` stands for `log.New.model`, a function
   that returns a new `*Logger` (what raft needs of it; the Go function allocates and
   initializes a `Logger`, without failing).
-* `context`'s initializer needs `context.ErrorStringIsError` and
-  `context.DeadlineExceededIsError`, method-set facts
-  (`Perennial/Proof/context_proof/context_init.lean`).
 -/
 module
 
@@ -59,19 +56,19 @@ namespace log
 Perennial's `log` (no layout, so no typed allocation), and raft only stores the pointer (in
 `DefaultLogger`, whose methods the register's `quietLogger` replaces), so the model
 allocates an untyped cell: what Go returns is a fresh, non-`nil` `*Logger`. -/
-def New.model [FfiSyntax] [GoGlobalContext] : val :=
+def New.model [GooseExts] [GoGlobalContext] : val :=
   λ: "out" "prefix" "flag", Alloc (Val #())
 
 /-- The name `log.New` stands for `New.model`: an assumption about the semantics, like the
 `FuncUnfold` fields of a package's `Assumptions` (Perennial translates `log` without
 `New`). -/
-class NewModel [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions] : Prop where
+class NewModel [GooseExts] [GoGlobalContext] [GoSemanticsFunctions] : Prop where
   New_unfold : FuncUnfold log.New [] New.model
 
 attribute [instance] NewModel.New_unfold
 
 section wps
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -91,7 +88,7 @@ end wps
 end log
 
 section opaqueInits
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -142,7 +139,7 @@ local macro "mem_tac" : tactic =>
   `(tactic| repeat (first | exact List.Mem.head _ | apply List.Mem.tail))
 
 section init
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -201,7 +198,7 @@ theorem os.wp_initialize' (get_is_pkg_init : GoString → IProp GF)
 end init
 
 section init_lc
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -321,7 +318,7 @@ end init_lc
 
 
 section init2
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -395,12 +392,12 @@ end init2
 namespace go_etcd_io.raft.v3
 
 section raft_init
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-variable [context.ErrorStringIsError] [context.DeadlineExceededIsError] [log.NewModel]
+variable [log.NewModel]
 
 /-- What `errors.wp_New_ptr` says of its error is what `IsNewError` asks. -/
 theorem isNewError_of_ptr {ii : GoInterfaceOk} (h : errors.IsPointerError ii) :

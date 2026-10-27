@@ -155,7 +155,7 @@ def CfgM.joint (c : CfgM) : Bool := decide (0 < GMap.size c.outgoing)
 in stage B5: the ghost state's dynamic facts read them) -/
 
 section conf
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- The number of conf-change entries of `l`. -/
 def confCount (l : List EntryM) : Nat := l.countP fun e => decide (IsConfEnt e)
@@ -371,7 +371,7 @@ def AppCommitEq (s : PState) (m : Msg) : Prop := m.ty = .app → m.commit = s.co
 end conf
 
 section model
-variable [FfiSyntax]
+variable [GooseExts]
 
 -- `c` is the node's configuration; `id` the node being described.
 variable (c : CfgM) (id : w64)
@@ -630,7 +630,7 @@ inductive StepC : PState → List Msg → PState → Prop where
 end model
 
 section equiv
-variable [FfiSyntax]
+variable [GooseExts]
 
 end equiv
 

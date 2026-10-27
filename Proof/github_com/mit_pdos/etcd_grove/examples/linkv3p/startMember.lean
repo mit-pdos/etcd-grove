@@ -47,7 +47,7 @@ set_option synthInstance.maxSize 4096
 set_option synthInstance.maxHeartbeats 400000
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -62,7 +62,7 @@ theorem startMember.wp_proof
     (wp_Server : v3rpc.Server.spec (GF := GF) (hG := hG))
     (wp_GServe : grpc.Server.Serve.spec (GF := GF) (hG := hG)) :
     startMember.spec (GF := GF) (hG := hG) := by
-  intro CS ESL ESE N name peerAddr client peer cluster lg sl₁ sl₂ sl₃ ps bootLog dir id γ bud ρ E₀
+  intro CS N name peerAddr client peer cluster lg sl₁ sl₂ sl₃ ps bootLog dir id γ bud ρ E₀
     Φs γn
     Htb Hrb48 HrbN hcfg hdyn hcc hboot htr htx hblen Hγn1 Hγn2 Hdirok Hdir Hlg Hck Haf Hbuq Hdbo Hms
   wp_start as ⟨Haddr, Hcaddr, Htok, #Hpeer, #Hcl, #Hs1, #Hs2, #Hs3, #Hboot, #Hcom, #Hcci, Hmb,

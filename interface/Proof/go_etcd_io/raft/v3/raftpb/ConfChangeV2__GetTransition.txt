@@ -5,11 +5,11 @@
 theorem raftpb.ConfChangeV2.GetTransition.wp_proof [package_sem : Assumptions] :
     raftpb.ConfChangeV2.GetTransition.spec
   -- `Perennial.EtcdGrove.raftpb.ConfChangeV2.GetTransition.spec`, unfolded:
-  (∀ (p : Loc) (dq : DFrac) (m : CCV2M),
+  (∀ (p : Loc) (dq : DFrac) (m : ConfChangeV2M),
       ⊢
         ∀ Φ,
-          isPkgInit pkg_id.go_etcd_io.raft.v3.raftpb ∗ ownCCV2 p dq m -∗
-            ▷ (ownCCV2 p dq m -∗ Φ (intoVal m.transition)) -∗
+          isPkgInit pkg_id.go_etcd_io.raft.v3.raftpb ∗ ownConfChangeV2 p dq m -∗
+            ▷ (ownConfChangeV2 p dq m -∗ Φ (intoVal m.transition)) -∗
               WP
                 ((intoVal
                     (methods raftpb.ConfChangeV2.ty.PointerType

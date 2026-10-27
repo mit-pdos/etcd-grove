@@ -27,28 +27,28 @@ end pkg_id
 
 namespace github_com.mit_pdos.etcd_grove.examples.cachekv
 
-@[reducible] noncomputable def clientAddr [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def clientAddr [GooseExts] [GoGlobalContext] : val :=
   #(go!"127.0.0.1:23873")
 
-@[reducible] noncomputable def peerAddr [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def peerAddr [GooseExts] [GoGlobalContext] : val :=
   #(go!"127.0.0.1:23883")
 
-@[reducible] noncomputable def «prefix» [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def «prefix» [GooseExts] [GoGlobalContext] : val :=
   #(go!"ck/")
 
-@[reducible] noncomputable def Ok [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def Ok [GooseExts] [GoGlobalContext] : val :=
   #(0 : Int)
 
-@[reducible] noncomputable def Failed [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def Failed [GooseExts] [GoGlobalContext] : val :=
   #(1 : Int)
 
-@[reducible] noncomputable def WatchEnded [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def WatchEnded [GooseExts] [GoGlobalContext] : val :=
   #(2 : Int)
 
-noncomputable def collect [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def collect [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/cachekv.collect"
 
-noncomputable def Main [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Main [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/cachekv.Main"
 
 /-- collect reads the cache's watch channel wch until an event at revision upTo or above (at once if
@@ -58,7 +58,7 @@ noncomputable def Main [FfiSyntax] [GoGlobalContext] : GoString :=
     cache never sets a response's unexported closeErr), so collect tests the fields.
 
     go: cachekv.go:62:6 -/
-noncomputable def collect.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def collect.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "wch"
   (Lam "upTo"
   (App (Val exceptionDo)
@@ -131,7 +131,7 @@ noncomputable def collect.impl [FfiSyntax] [GoGlobalContext] : val :=
     against the writes.
 
     go: cachekv.go:90:6 -/
-noncomputable def Main.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "nw"
   (Lam "nops"
   (App (Val exceptionDo)
@@ -355,7 +355,7 @@ noncomputable def Main.impl [FfiSyntax] [GoGlobalContext] : val :=
 noncomputable instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.examples.cachekv where
   pkgImportedPkgs := [pkg_id.context, pkg_id.sync, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.etcd.api.v3.mvccpb, pkg_id.go_etcd_io.etcd.cache.v3, pkg_id.go_etcd_io.etcd.client.v3, pkg_id.github_com.mit_pdos.etcd_grove.examples.common]
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.github_com.mit_pdos.etcd_grove.examples.cachekv)) (Lam BAnon
   (App (Val exceptionDo)
@@ -380,7 +380,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.common.initialize') (Val #()))))))))
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   collect_unfold : FuncUnfold collect [] collect.impl
   Main_unfold : FuncUnfold Main [] Main.impl
   import_context_Assumption : _root_.Perennial.context.Assumptions

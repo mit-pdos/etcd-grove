@@ -82,7 +82,7 @@ theorem st0_bgOk (P : BParams) (D : Data) (tx : Loc) : bgOk P (st0 D tx) true wb
 /-! ## The invariants -/
 
 section alloc
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -410,7 +410,7 @@ theorem rep_rdTok (n : Nat) (γ : BNames) (P : BParams) (b rt tm : Loc) :
 
 end alloc
 section alloc2
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

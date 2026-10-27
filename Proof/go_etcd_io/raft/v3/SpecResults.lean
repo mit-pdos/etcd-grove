@@ -35,7 +35,7 @@ def LocalAppendThread : w64 := W64 18446744073709551615
 def LocalApplyThread : w64 := W64 18446744073709551614
 
 section scan
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- The entries `scan lo hi` pages through: the log's at `[lo, hi)`. -/
 def scanRange (ls : LogState) (lo hi : w64) : List EntryM :=
@@ -51,7 +51,7 @@ end scan
 /-! ## `hup`'s results (`Spec/go_etcd_io/raft/v3/raft__hup.lean`) -/
 
 section hup_results
-variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
 /-- What `hup` checked before it campaigned (2026-10-14, reconfiguration stage B7: the dynamic
 model's `StepR.campaign` guard): nothing done, or a campaign (`campaignState`) by a non-leader
@@ -93,7 +93,7 @@ end hup_results
 /-! ## `restore`'s results (`Spec/go_etcd_io/raft/v3/raft__restore.lean`) -/
 
 section restore_results
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- The scope for a snapshot's `ConfState`; see the file header. -/
 def SnapScope (sv : SnapshotM) (cl : CSLists) : Prop :=

@@ -22,12 +22,12 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 /-! ## The thread count grows by at most one per step -/
 
 section threads
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiSemantics ext ffi] [GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GoGlobalContext]
 
 /-- A real thread-pool step adds at most one live thread. -/
 theorem realStep_threads_le {ρ₁ ρ₂ : List Expr × CfgState} {κ : List Observation}
     (h : @Language.Step _ _ _ _ gooseRealLang ρ₁ κ ρ₂) :
-    ρ₂.2.2.threads ≤ ρ₁.2.2.threads + 1 := by
+    ρ₂.2.1.threads ≤ ρ₁.2.1.threads + 1 := by
   obtain ⟨H, t₁, t₂⟩ := h
   rename_i e σ e' σ' eₜ
   obtain ⟨hb⟩ := H
@@ -50,14 +50,14 @@ theorem realStep_threads_le {ρ₁ ρ₂ : List Expr × CfgState} {κ : List Obs
 
 /-- After `k` real steps, at most `k` more threads are live. -/
 theorem threads_le_steps {k : Nat} {ρ₁ ρ₂ : List Expr × CfgState} {κs : List Observation}
-    (h : RealNsteps k ρ₁ κs ρ₂) : ρ₂.2.2.threads ≤ ρ₁.2.2.threads + k := by
+    (h : RealNsteps k ρ₁ κs ρ₂) : ρ₂.2.1.threads ≤ ρ₁.2.1.threads + k := by
   unfold RealNsteps at h
   induction h with
   | refl ρ => omega
   | cons hstep _ ih => have := realStep_threads_le hstep; omega
 
 /-- Any execution of `n` steps from one live thread stays below `n + 2` threads. -/
-theorem realThreadsBelow_of_one {n : Nat} {ρ : List Expr × CfgState} (h1 : ρ.2.2.threads = 1) :
+theorem realThreadsBelow_of_one {n : Nat} {ρ : List Expr × CfgState} (h1 : ρ.2.1.threads = 1) :
     RealThreadsBelow (n + 2) n ρ := by
   intro k κs ρ' hk hsteps
   have := threads_le_steps hsteps

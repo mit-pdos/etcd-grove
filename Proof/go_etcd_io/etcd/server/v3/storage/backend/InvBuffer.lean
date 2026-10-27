@@ -42,7 +42,7 @@ namespace backend
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.storage.backend
 
 section phys
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- A bucket buffer's slice and its slots. -/
 structure BBPhys where
@@ -66,7 +66,7 @@ structure BucketInfo where
   safe : Bool
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -171,7 +171,7 @@ end defs
 /-! ## The slots of a buffer -/
 
 section slots
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

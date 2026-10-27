@@ -50,485 +50,485 @@ end pkg_id
 
 namespace go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp
 
-noncomputable def encoder.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def encoder.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.encoder" [])
 
 attribute [irreducible] encoder.ty
 
-noncomputable def decoder.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def decoder.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.decoder" [])
 
 attribute [irreducible] decoder.ty
 
-noncomputable def peerGetter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def peerGetter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.peerGetter" [])
 
 attribute [irreducible] peerGetter.ty
 
-noncomputable def writerToResponse.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def writerToResponse.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.writerToResponse" [])
 
 attribute [irreducible] writerToResponse.ty
 
-noncomputable def pipelineHandler.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def pipelineHandler.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.pipelineHandler" [])
 
 attribute [irreducible] pipelineHandler.ty
 
-noncomputable def snapshotHandler.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def snapshotHandler.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.snapshotHandler" [])
 
 attribute [irreducible] snapshotHandler.ty
 
-noncomputable def streamHandler.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def streamHandler.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.streamHandler" [])
 
 attribute [irreducible] streamHandler.ty
 
-noncomputable def closeNotifier.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def closeNotifier.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.closeNotifier" [])
 
 attribute [irreducible] closeNotifier.ty
 
-noncomputable def messageEncoder.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def messageEncoder.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.messageEncoder" [])
 
 attribute [irreducible] messageEncoder.ty
 
-noncomputable def messageDecoder.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def messageDecoder.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.messageDecoder" [])
 
 attribute [irreducible] messageDecoder.ty
 
-noncomputable def msgAppV2Encoder.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def msgAppV2Encoder.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.msgAppV2Encoder" [])
 
 attribute [irreducible] msgAppV2Encoder.ty
 
-noncomputable def msgAppV2Decoder.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def msgAppV2Decoder.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.msgAppV2Decoder" [])
 
 attribute [irreducible] msgAppV2Decoder.ty
 
-noncomputable def Peer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Peer.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.Peer" [])
 
 attribute [irreducible] Peer.ty
 
-noncomputable def peer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def peer.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.peer" [])
 
 attribute [irreducible] peer.ty
 
-noncomputable def failureType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def failureType.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.failureType" [])
 
 attribute [irreducible] failureType.ty
 
-noncomputable def peerStatus.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def peerStatus.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.peerStatus" [])
 
 attribute [irreducible] peerStatus.ty
 
-noncomputable def pipeline.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def pipeline.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.pipeline" [])
 
 attribute [irreducible] pipeline.ty
 
-noncomputable def remote.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def remote.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.remote" [])
 
 attribute [irreducible] remote.ty
 
-noncomputable def snapshotSender.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def snapshotSender.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.snapshotSender" [])
 
 attribute [irreducible] snapshotSender.ty
 
-noncomputable def responseAndError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def responseAndError.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.responseAndError" [])
 
 attribute [irreducible] responseAndError.ty
 
-noncomputable def streamType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def streamType.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.streamType" [])
 
 attribute [irreducible] streamType.ty
 
-noncomputable def outgoingConn.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def outgoingConn.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.outgoingConn" [])
 
 attribute [irreducible] outgoingConn.ty
 
-noncomputable def streamWriter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def streamWriter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.streamWriter" [])
 
 attribute [irreducible] streamWriter.ty
 
-noncomputable def streamReader.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def streamReader.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.streamReader" [])
 
 attribute [irreducible] streamReader.ty
 
-noncomputable def Raft.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Raft.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.Raft" [])
 
 attribute [irreducible] Raft.ty
 
-noncomputable def Transporter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Transporter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.Transporter" [])
 
 attribute [irreducible] Transporter.ty
 
-noncomputable def Transport.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Transport.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.Transport" [])
 
 attribute [irreducible] Transport.ty
 
-noncomputable def Pausable.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Pausable.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.Pausable" [])
 
 attribute [irreducible] Pausable.ty
 
-noncomputable def urlPicker.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def urlPicker.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.urlPicker" [])
 
 attribute [irreducible] urlPicker.ty
 
-@[reducible] noncomputable def connReadLimitByte [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def connReadLimitByte [GooseExts] [GoGlobalContext] : val :=
   #(65536 : Int)
 
-@[reducible] noncomputable def snapshotLimitByte [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def snapshotLimitByte [GooseExts] [GoGlobalContext] : val :=
   #(67108864 : Int)
 
-@[reducible] noncomputable def unknownSnapshotSender [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def unknownSnapshotSender [GooseExts] [GoGlobalContext] : val :=
   #(go!"UNKNOWN_SNAPSHOT_SENDER")
 
-@[reducible] noncomputable def msgTypeLinkHeartbeat [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def msgTypeLinkHeartbeat [GooseExts] [GoGlobalContext] : val :=
   #(W8 0)
 
-@[reducible] noncomputable def msgTypeAppEntries [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def msgTypeAppEntries [GooseExts] [GoGlobalContext] : val :=
   #(W8 1)
 
-@[reducible] noncomputable def msgTypeApp [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def msgTypeApp [GooseExts] [GoGlobalContext] : val :=
   #(W8 2)
 
-@[reducible] noncomputable def msgAppV2BufSize [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def msgAppV2BufSize [GooseExts] [GoGlobalContext] : val :=
   #(1048576 : Int)
 
-@[reducible] noncomputable def DefaultConnReadTimeout [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def DefaultConnReadTimeout [GooseExts] [GoGlobalContext] : val :=
   #(W64 5000000000)
 
-@[reducible] noncomputable def DefaultConnWriteTimeout [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def DefaultConnWriteTimeout [GooseExts] [GoGlobalContext] : val :=
   #(W64 5000000000)
 
-@[reducible] noncomputable def recvBufSize [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def recvBufSize [GooseExts] [GoGlobalContext] : val :=
   #(4096 : Int)
 
-@[reducible] noncomputable def maxPendingProposals [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def maxPendingProposals [GooseExts] [GoGlobalContext] : val :=
   #(4096 : Int)
 
-@[reducible] noncomputable def streamAppV2 [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def streamAppV2 [GooseExts] [GoGlobalContext] : val :=
   #(go!"streamMsgAppV2")
 
-@[reducible] noncomputable def streamMsg [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def streamMsg [GooseExts] [GoGlobalContext] : val :=
   #(go!"streamMsg")
 
-@[reducible] noncomputable def pipelineMsg [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def pipelineMsg [GooseExts] [GoGlobalContext] : val :=
   #(go!"pipeline")
 
-@[reducible] noncomputable def sendSnap [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def sendSnap [GooseExts] [GoGlobalContext] : val :=
   #(go!"sendMsgSnap")
 
-@[reducible] noncomputable def connPerPipeline [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def connPerPipeline [GooseExts] [GoGlobalContext] : val :=
   #(4 : Int)
 
-@[reducible] noncomputable def pipelineBufSize [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def pipelineBufSize [GooseExts] [GoGlobalContext] : val :=
   #(64 : Int)
 
-@[reducible] noncomputable def RoundTripperNameRaftMessage [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def RoundTripperNameRaftMessage [GooseExts] [GoGlobalContext] : val :=
   #(go!"ROUND_TRIPPER_RAFT_MESSAGE")
 
-@[reducible] noncomputable def RoundTripperNameSnapshot [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def RoundTripperNameSnapshot [GooseExts] [GoGlobalContext] : val :=
   #(go!"ROUND_TRIPPER_SNAPSHOT")
 
-@[reducible] noncomputable def streamTypeMessage [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def streamTypeMessage [GooseExts] [GoGlobalContext] : val :=
   #(go!"message")
 
-@[reducible] noncomputable def streamTypeMsgAppV2 [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def streamTypeMsgAppV2 [GooseExts] [GoGlobalContext] : val :=
   #(go!"msgappv2")
 
-@[reducible] noncomputable def streamBufSize [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def streamBufSize [GooseExts] [GoGlobalContext] : val :=
   #(4096 : Int)
 
-noncomputable def RaftPrefix [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def RaftPrefix [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.RaftPrefix"
 
-noncomputable def ProbingPrefix [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ProbingPrefix [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.ProbingPrefix"
 
-noncomputable def RaftStreamPrefix [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def RaftStreamPrefix [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.RaftStreamPrefix"
 
-noncomputable def RaftSnapshotPrefix [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def RaftSnapshotPrefix [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.RaftSnapshotPrefix"
 
-noncomputable def errIncompatibleVersion [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def errIncompatibleVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.errIncompatibleVersion"
 
-axiom errIncompatibleVersion.init [FfiSyntax] [GoGlobalContext] : val
+axiom errIncompatibleVersion.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrClusterIDMismatch [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrClusterIDMismatch [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.ErrClusterIDMismatch"
 
-axiom ErrClusterIDMismatch.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrClusterIDMismatch.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def activePeers [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def activePeers [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.activePeers"
 
-axiom activePeers.init [FfiSyntax] [GoGlobalContext] : val
+axiom activePeers.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def disconnectedPeers [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def disconnectedPeers [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.disconnectedPeers"
 
-axiom disconnectedPeers.init [FfiSyntax] [GoGlobalContext] : val
+axiom disconnectedPeers.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def sentBytes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sentBytes [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.sentBytes"
 
-axiom sentBytes.init [FfiSyntax] [GoGlobalContext] : val
+axiom sentBytes.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def receivedBytes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def receivedBytes [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.receivedBytes"
 
-axiom receivedBytes.init [FfiSyntax] [GoGlobalContext] : val
+axiom receivedBytes.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def sentFailures [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def sentFailures [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.sentFailures"
 
-axiom sentFailures.init [FfiSyntax] [GoGlobalContext] : val
+axiom sentFailures.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def recvFailures [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def recvFailures [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.recvFailures"
 
-axiom recvFailures.init [FfiSyntax] [GoGlobalContext] : val
+axiom recvFailures.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def snapshotSend [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def snapshotSend [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.snapshotSend"
 
-axiom snapshotSend.init [FfiSyntax] [GoGlobalContext] : val
+axiom snapshotSend.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def snapshotSendInflights [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def snapshotSendInflights [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.snapshotSendInflights"
 
-axiom snapshotSendInflights.init [FfiSyntax] [GoGlobalContext] : val
+axiom snapshotSendInflights.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def snapshotSendFailures [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def snapshotSendFailures [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.snapshotSendFailures"
 
-axiom snapshotSendFailures.init [FfiSyntax] [GoGlobalContext] : val
+axiom snapshotSendFailures.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def snapshotSendSeconds [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def snapshotSendSeconds [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.snapshotSendSeconds"
 
-axiom snapshotSendSeconds.init [FfiSyntax] [GoGlobalContext] : val
+axiom snapshotSendSeconds.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def snapshotReceive [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def snapshotReceive [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.snapshotReceive"
 
-axiom snapshotReceive.init [FfiSyntax] [GoGlobalContext] : val
+axiom snapshotReceive.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def snapshotReceiveInflights [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def snapshotReceiveInflights [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.snapshotReceiveInflights"
 
-axiom snapshotReceiveInflights.init [FfiSyntax] [GoGlobalContext] : val
+axiom snapshotReceiveInflights.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def snapshotReceiveFailures [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def snapshotReceiveFailures [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.snapshotReceiveFailures"
 
-axiom snapshotReceiveFailures.init [FfiSyntax] [GoGlobalContext] : val
+axiom snapshotReceiveFailures.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def snapshotReceiveSeconds [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def snapshotReceiveSeconds [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.snapshotReceiveSeconds"
 
-axiom snapshotReceiveSeconds.init [FfiSyntax] [GoGlobalContext] : val
+axiom snapshotReceiveSeconds.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def rttSec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def rttSec [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.rttSec"
 
-axiom rttSec.init [FfiSyntax] [GoGlobalContext] : val
+axiom rttSec.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def readBytesLimit [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def readBytesLimit [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.readBytesLimit"
 
-noncomputable def ErrExceedSizeLimit [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrExceedSizeLimit [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.ErrExceedSizeLimit"
 
-axiom ErrExceedSizeLimit.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrExceedSizeLimit.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ConnReadTimeout [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ConnReadTimeout [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.ConnReadTimeout"
 
-noncomputable def ConnWriteTimeout [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ConnWriteTimeout [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.ConnWriteTimeout"
 
-axiom ConnWriteTimeout.init [FfiSyntax] [GoGlobalContext] : val
+axiom ConnWriteTimeout.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def errStopped [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def errStopped [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.errStopped"
 
-axiom errStopped.init [FfiSyntax] [GoGlobalContext] : val
+axiom errStopped.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def proberInterval [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def proberInterval [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.proberInterval"
 
-axiom proberInterval.init [FfiSyntax] [GoGlobalContext] : val
+axiom proberInterval.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def statusMonitoringInterval [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def statusMonitoringInterval [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.statusMonitoringInterval"
 
-axiom statusMonitoringInterval.init [FfiSyntax] [GoGlobalContext] : val
+axiom statusMonitoringInterval.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def statusErrorInterval [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def statusErrorInterval [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.statusErrorInterval"
 
-axiom statusErrorInterval.init [FfiSyntax] [GoGlobalContext] : val
+axiom statusErrorInterval.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def snapResponseReadTimeout [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def snapResponseReadTimeout [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.snapResponseReadTimeout"
 
-axiom snapResponseReadTimeout.init [FfiSyntax] [GoGlobalContext] : val
+axiom snapResponseReadTimeout.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def errUnsupportedStreamType [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def errUnsupportedStreamType [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.errUnsupportedStreamType"
 
-axiom errUnsupportedStreamType.init [FfiSyntax] [GoGlobalContext] : val
+axiom errUnsupportedStreamType.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def supportedStream [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def supportedStream [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.supportedStream"
 
-axiom supportedStream.init [FfiSyntax] [GoGlobalContext] : val
+axiom supportedStream.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def linkHeartbeatMessage [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def linkHeartbeatMessage [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.linkHeartbeatMessage"
 
-axiom linkHeartbeatMessage.init [FfiSyntax] [GoGlobalContext] : val
+axiom linkHeartbeatMessage.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def linkHeartbeatSize [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def linkHeartbeatSize [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.linkHeartbeatSize"
 
-axiom linkHeartbeatSize.init [FfiSyntax] [GoGlobalContext] : val
+axiom linkHeartbeatSize.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def errMemberRemoved [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def errMemberRemoved [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.errMemberRemoved"
 
-axiom errMemberRemoved.init [FfiSyntax] [GoGlobalContext] : val
+axiom errMemberRemoved.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def errMemberNotFound [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def errMemberNotFound [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.errMemberNotFound"
 
-axiom errMemberNotFound.init [FfiSyntax] [GoGlobalContext] : val
+axiom errMemberNotFound.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def newPipelineHandler [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newPipelineHandler [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.newPipelineHandler"
 
-noncomputable def newSnapshotHandler [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newSnapshotHandler [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.newSnapshotHandler"
 
-noncomputable def newStreamHandler [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newStreamHandler [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.newStreamHandler"
 
-noncomputable def checkClusterCompatibilityFromHeader [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def checkClusterCompatibilityFromHeader [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.checkClusterCompatibilityFromHeader"
 
-noncomputable def newCloseNotifier [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newCloseNotifier [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.newCloseNotifier"
 
-noncomputable def init.«0» [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def init.«0» [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.init.0"
 
-noncomputable def newMsgAppV2Encoder [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newMsgAppV2Encoder [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.newMsgAppV2Encoder"
 
-noncomputable def newMsgAppV2Decoder [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newMsgAppV2Decoder [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.newMsgAppV2Decoder"
 
-noncomputable def startPeer [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def startPeer [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.startPeer"
 
-noncomputable def isMsgApp [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def isMsgApp [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.isMsgApp"
 
-noncomputable def isMsgSnap [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def isMsgSnap [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.isMsgSnap"
 
-noncomputable def newPeerStatus [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newPeerStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.newPeerStatus"
 
-noncomputable def waitSchedule [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def waitSchedule [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.waitSchedule"
 
-noncomputable def addPeerToProber [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def addPeerToProber [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.addPeerToProber"
 
-noncomputable def monitorProbingStatus [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def monitorProbingStatus [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.monitorProbingStatus"
 
-noncomputable def startRemote [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def startRemote [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.startRemote"
 
-noncomputable def newSnapshotSender [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newSnapshotSender [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.newSnapshotSender"
 
-noncomputable def createSnapBody [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def createSnapBody [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.createSnapBody"
 
-noncomputable def isLinkHeartbeatMessage [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def isLinkHeartbeatMessage [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.isLinkHeartbeatMessage"
 
-noncomputable def startStreamWriter [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def startStreamWriter [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.startStreamWriter"
 
-noncomputable def checkStreamSupport [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def checkStreamSupport [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.checkStreamSupport"
 
-noncomputable def newURLPicker [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newURLPicker [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.newURLPicker"
 
-noncomputable def NewListener [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewListener [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.NewListener"
 
-noncomputable def NewRoundTripper [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewRoundTripper [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.NewRoundTripper"
 
-noncomputable def newStreamRoundTripper [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newStreamRoundTripper [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.newStreamRoundTripper"
 
-noncomputable def createPostRequest [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def createPostRequest [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.createPostRequest"
 
-noncomputable def checkPostResponse [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def checkPostResponse [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.checkPostResponse"
 
-noncomputable def reportCriticalError [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def reportCriticalError [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.reportCriticalError"
 
-noncomputable def compareMajorMinorVersion [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def compareMajorMinorVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.compareMajorMinorVersion"
 
-noncomputable def serverVersion [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def serverVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.serverVersion"
 
-noncomputable def minClusterVersion [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def minClusterVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.minClusterVersion"
 
-noncomputable def checkVersionCompatibility [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def checkVersionCompatibility [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.checkVersionCompatibility"
 
-noncomputable def setPeerURLsHeader [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def setPeerURLsHeader [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.setPeerURLsHeader"
 
-noncomputable def addRemoteFromRequest [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def addRemoteFromRequest [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.addRemoteFromRequest"
 
 /-- newPipelineHandler returns a handler for handling raft messages
@@ -538,7 +538,7 @@ noncomputable def addRemoteFromRequest [FfiSyntax] [GoGlobalContext] : GoString 
     and forwards it to the given raft state machine for processing.
 
     go: http.go:89:6 -/
-noncomputable def newPipelineHandler.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def newPipelineHandler.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "r"
   (Lam "cid"
@@ -567,7 +567,7 @@ noncomputable def newPipelineHandler.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType pipelineHandler.ty)))) (Pair (Var "h") (Var "$r0"))))))))))))))
 
 /-- go: http.go:103:27 -/
-noncomputable def pipelineHandler.ServeHTTP.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def pipelineHandler.ServeHTTP.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "h"
   (Lam "w"
   (Lam "r"
@@ -765,7 +765,7 @@ noncomputable def pipelineHandler.ServeHTTP.impl [FfiSyntax] [GoGlobalContext] :
   (Val #()))))))))))))
 
 /-- go: http.go:182:6 -/
-noncomputable def newSnapshotHandler.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def newSnapshotHandler.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "r"
   (Lam "snapshotter"
@@ -807,7 +807,7 @@ noncomputable def newSnapshotHandler.impl [FfiSyntax] [GoGlobalContext] : val :=
     2. this case should happen rarely, so no further optimization is done.
 
     go: http.go:208:27 -/
-noncomputable def snapshotHandler.ServeHTTP.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def snapshotHandler.ServeHTTP.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "h"
   (Lam "w"
   (Lam "r"
@@ -1195,7 +1195,7 @@ noncomputable def snapshotHandler.ServeHTTP.impl [FfiSyntax] [GoGlobalContext] :
   (App (Val (GoInstruction (GoStore _root_.Perennial.time.Time.ty))) (Pair (Var "start") (Var "$r0"))))))))))))))))
 
 /-- go: http.go:345:6 -/
-noncomputable def newStreamHandler.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def newStreamHandler.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "pg"
   (Lam "r"
@@ -1229,7 +1229,7 @@ noncomputable def newStreamHandler.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType streamHandler.ty)))) (Pair (Var "h") (Var "$r0"))))))))))))))))))
 
 /-- go: http.go:360:25 -/
-noncomputable def streamHandler.ServeHTTP.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def streamHandler.ServeHTTP.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "h"
   (Lam "w"
   (Lam "r"
@@ -1530,7 +1530,7 @@ noncomputable def streamHandler.ServeHTTP.impl [FfiSyntax] [GoGlobalContext] : v
     matches the one in the header.
 
     go: http.go:471:6 -/
-noncomputable def checkClusterCompatibilityFromHeader.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def checkClusterCompatibilityFromHeader.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (Lam "localID"
   (Lam "header"
@@ -1707,7 +1707,7 @@ noncomputable def checkClusterCompatibilityFromHeader.impl [FfiSyntax] [GoGlobal
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "remoteName") (Var "$r0"))))))))))))))))
 
 /-- go: http.go:532:6 -/
-noncomputable def newCloseNotifier.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def newCloseNotifier.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val exceptionDo)
   (App (Val doReturn)
@@ -1715,7 +1715,7 @@ noncomputable def newCloseNotifier.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (CompositeLiteral closeNotifier.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"done")) (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])) (Var "$v0")))])))))))
 
 /-- go: http.go:538:25 -/
-noncomputable def closeNotifier.Close.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def closeNotifier.Close.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1728,7 +1728,7 @@ noncomputable def closeNotifier.Close.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (App (Val (GoInstruction (FuncResolve go.close [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #())) (Var "$a0")))))))))
 
 /-- go: http.go:543:25 -/
-noncomputable def closeNotifier.closeNotify.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def closeNotifier.closeNotify.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1737,7 +1737,7 @@ noncomputable def closeNotifier.closeNotify.impl [FfiSyntax] [GoGlobalContext] :
   (App (Val (GoInstruction (Convert (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])) (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef closeNotifier.ty go!"done"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType closeNotifier.ty)))) (Var "n"))))))))))
 
 /-- go: msg_codec.go:34:28 -/
-noncomputable def messageEncoder.encode.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def messageEncoder.encode.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "enc"
   (Lam "m"
   (App (Val exceptionDo)
@@ -1776,7 +1776,7 @@ noncomputable def messageEncoder.encode.impl [FfiSyntax] [GoGlobalContext] : val
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))))))
 
 /-- go: msg_codec.go:52:28 -/
-noncomputable def messageDecoder.decode.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def messageDecoder.decode.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "dec"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1789,7 +1789,7 @@ noncomputable def messageDecoder.decode.impl [FfiSyntax] [GoGlobalContext] : val
   (Pair (Var "$ret0") (Var "$ret1"))))))))))
 
 /-- go: msg_codec.go:56:28 -/
-noncomputable def messageDecoder.decodeLimit.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def messageDecoder.decodeLimit.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "dec"
   (Lam "numBytes"
   (App (Val exceptionDo)
@@ -1848,7 +1848,7 @@ noncomputable def messageDecoder.decodeLimit.impl [FfiSyntax] [GoGlobalContext] 
   (App (Val (GoInstruction (GoStore go.error))) (Pair (Var "err") (Var "$r0")))))))))))))))
 
 /-- go: msgappv2_codec.go:77:6 -/
-noncomputable def newMsgAppV2Encoder.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def newMsgAppV2Encoder.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "w"
   (Lam "fs"
   (App (Val exceptionDo)
@@ -1863,7 +1863,7 @@ noncomputable def newMsgAppV2Encoder.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (CompositeLiteral msgAppV2Encoder.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"w")) (ElementExpression _root_.Perennial.io.Writer.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"fs")) (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.FollowerStats.ty) (Var "$v1"))), (KeyedElement (some (KeyField go!"buf")) (ElementExpression (go.GoType.SliceType go.byte) (Var "$v2"))), (KeyedElement (some (KeyField go!"uint64buf")) (ElementExpression (go.GoType.SliceType go.byte) (Var "$v3"))), (KeyedElement (some (KeyField go!"uint8buf")) (ElementExpression (go.GoType.SliceType go.byte) (Var "$v4")))]))))))))))))))
 
 /-- go: msgappv2_codec.go:87:29 -/
-noncomputable def msgAppV2Encoder.encode.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def msgAppV2Encoder.encode.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "enc"
   (Lam "m"
   (App (Val exceptionDo)
@@ -2165,7 +2165,7 @@ noncomputable def msgAppV2Encoder.encode.impl [FfiSyntax] [GoGlobalContext] : va
   (App (Val (GoInstruction (GoStore _root_.Perennial.time.Time.ty))) (Pair (Var "start") (Var "$r0"))))))))))))
 
 /-- go: msgappv2_codec.go:168:6 -/
-noncomputable def newMsgAppV2Decoder.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def newMsgAppV2Decoder.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "r"
   (Lam "local"
   (Lam "remote"
@@ -2183,7 +2183,7 @@ noncomputable def newMsgAppV2Decoder.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (CompositeLiteral msgAppV2Decoder.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"r")) (ElementExpression _root_.Perennial.io.Reader.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"local")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty (Var "$v1"))), (KeyedElement (some (KeyField go!"remote")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty (Var "$v2"))), (KeyedElement (some (KeyField go!"buf")) (ElementExpression (go.GoType.SliceType go.byte) (Var "$v3"))), (KeyedElement (some (KeyField go!"uint64buf")) (ElementExpression (go.GoType.SliceType go.byte) (Var "$v4"))), (KeyedElement (some (KeyField go!"uint8buf")) (ElementExpression (go.GoType.SliceType go.byte) (Var "$v5")))])))))))))))))))))
 
 /-- go: msgappv2_codec.go:179:29 -/
-noncomputable def msgAppV2Decoder.decode.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def msgAppV2Decoder.decode.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "dec"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -2458,7 +2458,7 @@ noncomputable def msgAppV2Decoder.decode.impl [FfiSyntax] [GoGlobalContext] : va
   (Var "$r0"))))))))))))))))
 
 /-- go: peer.go:131:6 -/
-noncomputable def startPeer.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def startPeer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "urls"
   (Lam "peerID"
@@ -2718,7 +2718,7 @@ noncomputable def startPeer.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #()))))))))))))))
 
 /-- go: peer.go:236:16 -/
-noncomputable def peer.send.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def peer.send.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "p"
   (Lam "m"
   (App (Val exceptionDo)
@@ -2806,7 +2806,7 @@ noncomputable def peer.send.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef peer.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType peer.ty)))) (Var "p")))) (Val #()))))))))))
 
 /-- go: peer.go:268:16 -/
-noncomputable def peer.sendSnap.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def peer.sendSnap.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "p"
   (Lam "m"
   (App (Val exceptionDo)
@@ -2822,7 +2822,7 @@ noncomputable def peer.sendSnap.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Var "$go") (Var "$a0"))))))))))))
 
 /-- go: peer.go:272:16 -/
-noncomputable def peer.update.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def peer.update.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "p"
   (Lam "urls"
   (App (Val exceptionDo)
@@ -2836,7 +2836,7 @@ noncomputable def peer.update.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType urlPicker.ty) go!"update"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType urlPicker.ty)))) (App (Val (GoInstruction (StructFieldRef peer.ty go!"picker"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType peer.ty)))) (Var "p"))))) (Var "$a0"))))))))))
 
 /-- go: peer.go:276:16 -/
-noncomputable def peer.attachOutgoingConn.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def peer.attachOutgoingConn.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "p"
   (Lam "conn"
   (App (Val exceptionDo)
@@ -2875,7 +2875,7 @@ noncomputable def peer.attachOutgoingConn.impl [FfiSyntax] [GoGlobalContext] : v
   (Val #()))))))))))))))
 
 /-- go: peer.go:293:16 -/
-noncomputable def peer.activeSince.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def peer.activeSince.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "p"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -2887,7 +2887,7 @@ noncomputable def peer.activeSince.impl [FfiSyntax] [GoGlobalContext] : val :=
     messages without returning an error.
 
     go: peer.go:297:16 -/
-noncomputable def peer.Pause.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def peer.Pause.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "p"
   (Lam BAnon
   (App (Val wrapDefer)
@@ -2919,7 +2919,7 @@ noncomputable def peer.Pause.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- Resume resumes a paused peer.
 
     go: peer.go:306:16 -/
-noncomputable def peer.Resume.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def peer.Resume.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "p"
   (Lam BAnon
   (App (Val wrapDefer)
@@ -2949,7 +2949,7 @@ noncomputable def peer.Resume.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef peer.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType peer.ty)))) (Var "p")))) (Val #()))))))))))
 
 /-- go: peer.go:314:16 -/
-noncomputable def peer.stop.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def peer.stop.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "p"
   (Lam BAnon
   (App (Val wrapDefer)
@@ -3019,7 +3019,7 @@ noncomputable def peer.stop.impl [FfiSyntax] [GoGlobalContext] : val :=
     string name are returned.
 
     go: peer.go:337:16 -/
-noncomputable def peer.pick.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def peer.pick.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "p"
   (Lam "m"
   (App (Val exceptionDo)
@@ -3068,7 +3068,7 @@ noncomputable def peer.pick.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))))) (Pair (Var "writec") (Var "$r0"))))))))))))))))))))
 
 /-- go: peer.go:351:6 -/
-noncomputable def isMsgApp.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def isMsgApp.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "m"
   (App (Val exceptionDo)
   (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))
@@ -3076,7 +3076,7 @@ noncomputable def isMsgApp.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetType"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))) (Val #())) (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.MsgApp)))))))
 
 /-- go: peer.go:353:6 -/
-noncomputable def isMsgSnap.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def isMsgSnap.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "m"
   (App (Val exceptionDo)
   (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))
@@ -3084,7 +3084,7 @@ noncomputable def isMsgSnap.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoOp GoEquals _root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty))) (Pair (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetType"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))) (Val #())) (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.MsgSnap)))))))
 
 /-- go: peer_status.go:42:6 -/
-noncomputable def newPeerStatus.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def newPeerStatus.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (Lam "local"
   (Lam "id"
@@ -3106,7 +3106,7 @@ noncomputable def newPeerStatus.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #())))))))))))
 
 /-- go: peer_status.go:49:22 -/
-noncomputable def peerStatus.activate.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def peerStatus.activate.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
   (App (Val wrapDefer)
@@ -3151,7 +3151,7 @@ noncomputable def peerStatus.activate.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef peerStatus.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType peerStatus.ty)))) (Var "s")))) (Val #()))))))))))
 
 /-- go: peer_status.go:61:22 -/
-noncomputable def peerStatus.deactivate.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def peerStatus.deactivate.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "failure"
   (Lam "reason"
@@ -3236,7 +3236,7 @@ noncomputable def peerStatus.deactivate.impl [FfiSyntax] [GoGlobalContext] : val
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef peerStatus.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType peerStatus.ty)))) (Var "s")))) (Val #())))))))))))))
 
 /-- go: peer_status.go:80:22 -/
-noncomputable def peerStatus.isActive.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def peerStatus.isActive.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
   (App (Val wrapDefer)
@@ -3256,7 +3256,7 @@ noncomputable def peerStatus.isActive.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef peerStatus.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType peerStatus.ty)))) (Var "s")))) (Val #())))))))))
 
 /-- go: peer_status.go:86:22 -/
-noncomputable def peerStatus.activeSince.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def peerStatus.activeSince.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
   (App (Val wrapDefer)
@@ -3276,7 +3276,7 @@ noncomputable def peerStatus.activeSince.impl [FfiSyntax] [GoGlobalContext] : va
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef peerStatus.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType peerStatus.ty)))) (Var "s")))) (Val #())))))))))
 
 /-- go: pipeline.go:64:20 -/
-noncomputable def pipeline.start.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def pipeline.start.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "p"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -3326,7 +3326,7 @@ noncomputable def pipeline.start.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (Pair (App (Val (GoInstruction (StructFieldRef pipeline.ty go!"stopc"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType pipeline.ty)))) (Var "p"))) (Var "$r0")))))))))))
 
 /-- go: pipeline.go:81:20 -/
-noncomputable def pipeline.stop.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def pipeline.stop.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "p"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -3356,7 +3356,7 @@ noncomputable def pipeline.stop.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (FuncResolve go.close [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #())) (Var "$a0"))))))))))
 
 /-- go: pipeline.go:94:20 -/
-noncomputable def pipeline.handle.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def pipeline.handle.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "p"
   (Lam BAnon
   (App (Val wrapDefer)
@@ -3473,7 +3473,7 @@ noncomputable def pipeline.handle.impl [FfiSyntax] [GoGlobalContext] : val :=
     error on any failure.
 
     go: pipeline.go:134:20 -/
-noncomputable def pipeline.post.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def pipeline.post.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "p"
   (Lam "data"
   (App (Val wrapDefer)
@@ -3635,7 +3635,7 @@ noncomputable def pipeline.post.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.net.url.URL.ty))) (Pair (Var "u") (Var "$r0"))))))))))))))
 
 /-- go: remote.go:32:6 -/
-noncomputable def startRemote.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def startRemote.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "tr"
   (Lam "urls"
   (Lam "id"
@@ -3680,7 +3680,7 @@ noncomputable def startRemote.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType urlPicker.ty)))) (Pair (Var "picker") (Var "$r0"))))))))))))))
 
 /-- go: remote.go:54:18 -/
-noncomputable def remote.send.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def remote.send.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "g"
   (Lam "m"
   (App (Val exceptionDo)
@@ -3744,7 +3744,7 @@ noncomputable def remote.send.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #())))]))))))))))
 
 /-- go: remote.go:85:18 -/
-noncomputable def remote.stop.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def remote.stop.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "g"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -3756,7 +3756,7 @@ noncomputable def remote.stop.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType pipeline.ty) go!"stop"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType pipeline.ty)))) (App (Val (GoInstruction (StructFieldRef remote.ty go!"pipeline"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType remote.ty)))) (Var "g"))))) (Val #()))))))))
 
 /-- go: remote.go:89:18 -/
-noncomputable def remote.Pause.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def remote.Pause.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "g"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -3768,7 +3768,7 @@ noncomputable def remote.Pause.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType remote.ty) go!"stop"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType remote.ty)))) (Var "g"))) (Val #()))))))))
 
 /-- go: remote.go:93:18 -/
-noncomputable def remote.Resume.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def remote.Resume.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "g"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -3780,7 +3780,7 @@ noncomputable def remote.Resume.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType pipeline.ty) go!"start"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType pipeline.ty)))) (App (Val (GoInstruction (StructFieldRef remote.ty go!"pipeline"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType remote.ty)))) (Var "g"))))) (Val #()))))))))
 
 /-- go: snapshot_sender.go:51:6 -/
-noncomputable def newSnapshotSender.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def newSnapshotSender.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "tr"
   (Lam "picker"
   (Lam "to"
@@ -3803,7 +3803,7 @@ noncomputable def newSnapshotSender.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (CompositeLiteral snapshotSender.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"from")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"to")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty (Var "$v1"))), (KeyedElement (some (KeyField go!"cid")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty (Var "$v2"))), (KeyedElement (some (KeyField go!"tr")) (ElementExpression (go.GoType.PointerType Transport.ty) (Var "$v3"))), (KeyedElement (some (KeyField go!"picker")) (ElementExpression (go.GoType.PointerType urlPicker.ty) (Var "$v4"))), (KeyedElement (some (KeyField go!"status")) (ElementExpression (go.GoType.PointerType peerStatus.ty) (Var "$v5"))), (KeyedElement (some (KeyField go!"r")) (ElementExpression Raft.ty (Var "$v6"))), (KeyedElement (some (KeyField go!"errorc")) (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv go.error) (Var "$v7"))), (KeyedElement (some (KeyField go!"stopc")) (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])) (Var "$v8")))]))))))))))))))))))))))
 
 /-- go: snapshot_sender.go:65:26 -/
-noncomputable def snapshotSender.stop.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def snapshotSender.stop.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -3816,7 +3816,7 @@ noncomputable def snapshotSender.stop.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (App (Val (GoInstruction (FuncResolve go.close [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #())) (Var "$a0")))))))))
 
 /-- go: snapshot_sender.go:67:26 -/
-noncomputable def snapshotSender.send.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def snapshotSender.send.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "merged"
   (App (Val wrapDefer)
@@ -4056,7 +4056,7 @@ noncomputable def snapshotSender.send.impl [FfiSyntax] [GoGlobalContext] : val :
     It returns nil when request is sent out and processed successfully.
 
     go: snapshot_sender.go:147:26 -/
-noncomputable def snapshotSender.post.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def snapshotSender.post.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "req"
   (App (Val wrapDefer)
@@ -4190,7 +4190,7 @@ noncomputable def snapshotSender.post.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val (GoInstruction (GoStore _root_.Perennial.context.Context.ty))) (Pair (Var "ctx") (Var "$r0")))))))))))))))))))
 
 /-- go: snapshot_sender.go:185:6 -/
-noncomputable def createSnapBody.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def createSnapBody.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (Lam "merged"
   (App (Val exceptionDo)
@@ -4235,7 +4235,7 @@ noncomputable def createSnapBody.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.bytes.Buffer.ty)))) (Pair (Var "buf") (Var "$r0"))))))))))))
 
 /-- go: stream.go:71:21 -/
-noncomputable def streamType.endpoint.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def streamType.endpoint.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "lg"
   (App (Val exceptionDo)
@@ -4269,7 +4269,7 @@ noncomputable def streamType.endpoint.impl [FfiSyntax] [GoGlobalContext] : val :
   (Val #()))))))))))))
 
 /-- go: stream.go:85:21 -/
-noncomputable def streamType.String.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def streamType.String.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -4285,7 +4285,7 @@ noncomputable def streamType.String.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #(go!"unknown stream"))))))))))
 
 /-- go: stream.go:104:6 -/
-noncomputable def isLinkHeartbeatMessage.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def isLinkHeartbeatMessage.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "m"
   (App (Val exceptionDo)
   (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Var "m"))
@@ -4296,7 +4296,7 @@ noncomputable def isLinkHeartbeatMessage.impl [FfiSyntax] [GoGlobalContext] : va
     messages and writes to the attached outgoing connection.
 
     go: stream.go:141:6 -/
-noncomputable def startStreamWriter.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def startStreamWriter.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (Lam "local"
   (Lam "id"
@@ -4334,7 +4334,7 @@ noncomputable def startStreamWriter.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType streamWriter.ty)))) (Pair (Var "w") (Var "$r0"))))))))))))))))))))
 
 /-- go: stream.go:160:25 -/
-noncomputable def streamWriter.run.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def streamWriter.run.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cw"
   (Lam BAnon
   (App (Val wrapDefer)
@@ -4710,7 +4710,7 @@ noncomputable def streamWriter.run.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.time.Ticker.ty)))) (Pair (Var "tickc") (Var "$r0")))))))))))))))))))
 
 /-- go: stream.go:311:25 -/
-noncomputable def streamWriter.writec.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def streamWriter.writec.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cw"
   (Lam BAnon
   (App (Val wrapDefer)
@@ -4730,7 +4730,7 @@ noncomputable def streamWriter.writec.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef streamWriter.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType streamWriter.ty)))) (Var "cw")))) (Val #())))))))))
 
 /-- go: stream.go:317:25 -/
-noncomputable def streamWriter.close.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def streamWriter.close.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cw"
   (Lam BAnon
   (App (Val wrapDefer)
@@ -4750,7 +4750,7 @@ noncomputable def streamWriter.close.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef streamWriter.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType streamWriter.ty)))) (Var "cw")))) (Val #())))))))))
 
 /-- go: stream.go:323:25 -/
-noncomputable def streamWriter.closeUnlocked.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def streamWriter.closeUnlocked.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cw"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -4802,7 +4802,7 @@ noncomputable def streamWriter.closeUnlocked.impl [FfiSyntax] [GoGlobalContext] 
   (Val #()))))))))
 
 /-- go: stream.go:344:25 -/
-noncomputable def streamWriter.attach.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def streamWriter.attach.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cw"
   (Lam "conn"
   (App (Val exceptionDo)
@@ -4818,7 +4818,7 @@ noncomputable def streamWriter.attach.impl [FfiSyntax] [GoGlobalContext] : val :
   (Val #false))))]))))))))))
 
 /-- go: stream.go:353:25 -/
-noncomputable def streamWriter.stop.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def streamWriter.stop.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cw"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -4834,7 +4834,7 @@ noncomputable def streamWriter.stop.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (FuncResolve go.close [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #())) (Var "$a0"))))))))))
 
 /-- go: stream.go:385:25 -/
-noncomputable def streamReader.start.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def streamReader.start.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cr"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -4876,7 +4876,7 @@ noncomputable def streamReader.start.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (Pair (App (Val (GoInstruction (StructFieldRef streamReader.ty go!"done"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType streamReader.ty)))) (Var "cr"))) (Var "$r0")))))))))))
 
 /-- go: stream.go:396:25 -/
-noncomputable def streamReader.run.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def streamReader.run.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cr"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -5053,7 +5053,7 @@ noncomputable def streamReader.run.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore streamType.ty))) (Pair (Var "t") (Var "$r0"))))))))))))
 
 /-- go: stream.go:471:25 -/
-noncomputable def streamReader.decodeLoop.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def streamReader.decodeLoop.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cr"
   (Lam "rc"
   (Lam "t"
@@ -5241,7 +5241,7 @@ noncomputable def streamReader.decodeLoop.impl [FfiSyntax] [GoGlobalContext] : v
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef streamReader.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType streamReader.ty)))) (Var "cr")))) (Val #()))))))))))))
 
 /-- go: stream.go:561:25 -/
-noncomputable def streamReader.stop.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def streamReader.stop.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cr"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -5265,7 +5265,7 @@ noncomputable def streamReader.stop.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef streamReader.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType streamReader.ty)))) (Var "cr")))) (Val #())))))))))
 
 /-- go: stream.go:569:25 -/
-noncomputable def streamReader.dial.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def streamReader.dial.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cr"
   (Lam "t"
   (App (Val exceptionDo)
@@ -5580,7 +5580,7 @@ noncomputable def streamReader.dial.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.net.url.URL.ty))) (Pair (Var "u") (Var "$r0"))))))))))))
 
 /-- go: stream.go:681:25 -/
-noncomputable def streamReader.close.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def streamReader.close.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cr"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -5620,7 +5620,7 @@ noncomputable def streamReader.close.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #())))))))))
 
 /-- go: stream.go:697:25 -/
-noncomputable def streamReader.pause.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def streamReader.pause.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cr"
   (Lam BAnon
   (App (Val wrapDefer)
@@ -5644,7 +5644,7 @@ noncomputable def streamReader.pause.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef streamReader.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType streamReader.ty)))) (Var "cr")))) (Val #()))))))))))
 
 /-- go: stream.go:703:25 -/
-noncomputable def streamReader.resume.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def streamReader.resume.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cr"
   (Lam BAnon
   (App (Val wrapDefer)
@@ -5671,7 +5671,7 @@ noncomputable def streamReader.resume.impl [FfiSyntax] [GoGlobalContext] : val :
     given version.
 
     go: stream.go:711:6 -/
-noncomputable def checkStreamSupport.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def checkStreamSupport.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "v"
   (Lam "t"
   (App (Val exceptionDo)
@@ -5708,7 +5708,7 @@ noncomputable def checkStreamSupport.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)))) (Pair (Var "nv") (Var "$r0"))))))))))))
 
 /-- go: transport.go:134:21 -/
-noncomputable def Transport.Start.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Transport.Start.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -5784,7 +5784,7 @@ noncomputable def Transport.Start.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.net.http.RoundTripper.ty))) (Pair (Var "$l0") (Var "$r0"))))))))))))))))
 
 /-- go: transport.go:158:21 -/
-noncomputable def Transport.Handler.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Transport.Handler.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -5845,7 +5845,7 @@ noncomputable def Transport.Handler.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.net.http.Handler.ty))) (Pair (Var "pipelineHandler") (Var "$r0")))))))))))
 
 /-- go: transport.go:170:21 -/
-noncomputable def Transport.Get.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Transport.Get.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "id"
   (App (Val wrapDefer)
@@ -5866,7 +5866,7 @@ noncomputable def Transport.Get.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef Transport.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Transport.ty)))) (Var "t")))) (Val #()))))))))))
 
 /-- go: transport.go:176:21 -/
-noncomputable def Transport.Send.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Transport.Send.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "msgs"
   (App (Val exceptionDo)
@@ -5970,7 +5970,7 @@ noncomputable def Transport.Send.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)))) (Pair (Var "m") (Var "$value"))))))))))))))))
 
 /-- go: transport.go:212:21 -/
-noncomputable def Transport.Stop.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Transport.Stop.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam BAnon
   (App (Val wrapDefer)
@@ -6072,7 +6072,7 @@ noncomputable def Transport.Stop.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- CutPeer drops messages to the specified peer.
 
     go: transport.go:234:21 -/
-noncomputable def Transport.CutPeer.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Transport.CutPeer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "id"
   (App (Val exceptionDo)
@@ -6128,7 +6128,7 @@ noncomputable def Transport.CutPeer.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- MendPeer recovers the message dropping behavior of the given peer.
 
     go: transport.go:249:21 -/
-noncomputable def Transport.MendPeer.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Transport.MendPeer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "id"
   (App (Val exceptionDo)
@@ -6182,7 +6182,7 @@ noncomputable def Transport.MendPeer.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef Transport.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Transport.ty)))) (Var "t")))) (Val #()))))))))))
 
 /-- go: transport.go:263:21 -/
-noncomputable def Transport.AddRemote.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Transport.AddRemote.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "id"
   (Lam "us"
@@ -6301,7 +6301,7 @@ noncomputable def Transport.AddRemote.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef Transport.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Transport.ty)))) (Var "t")))) (Val #())))))))))))))
 
 /-- go: transport.go:296:21 -/
-noncomputable def Transport.AddPeer.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Transport.AddPeer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "id"
   (Lam "us"
@@ -6428,7 +6428,7 @@ noncomputable def Transport.AddPeer.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef Transport.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Transport.ty)))) (Var "t")))) (Val #())))))))))))))
 
 /-- go: transport.go:327:21 -/
-noncomputable def Transport.RemovePeer.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Transport.RemovePeer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "id"
   (App (Val wrapDefer)
@@ -6453,7 +6453,7 @@ noncomputable def Transport.RemovePeer.impl [FfiSyntax] [GoGlobalContext] : val 
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef Transport.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Transport.ty)))) (Var "t")))) (Val #())))))))))))
 
 /-- go: transport.go:333:21 -/
-noncomputable def Transport.RemoveAllPeers.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Transport.RemoveAllPeers.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam BAnon
   (App (Val wrapDefer)
@@ -6487,7 +6487,7 @@ noncomputable def Transport.RemoveAllPeers.impl [FfiSyntax] [GoGlobalContext] : 
 /-- the caller of this function must have the peers mutex.
 
     go: transport.go:342:21 -/
-noncomputable def Transport.removePeer.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Transport.removePeer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "id"
   (App (Val exceptionDo)
@@ -6559,7 +6559,7 @@ noncomputable def Transport.removePeer.impl [FfiSyntax] [GoGlobalContext] : val 
   (App (Val (GoInstruction (GoStore Peer.ty))) (Pair (Var "peer") (Var "$r0"))))))))))))))))))
 
 /-- go: transport.go:370:21 -/
-noncomputable def Transport.UpdatePeer.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Transport.UpdatePeer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "id"
   (Lam "us"
@@ -6677,7 +6677,7 @@ noncomputable def Transport.UpdatePeer.impl [FfiSyntax] [GoGlobalContext] : val 
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef Transport.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Transport.ty)))) (Var "t")))) (Val #())))))))))))))
 
 /-- go: transport.go:400:21 -/
-noncomputable def Transport.ActiveSince.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Transport.ActiveSince.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "id"
   (App (Val wrapDefer)
@@ -6717,7 +6717,7 @@ noncomputable def Transport.ActiveSince.impl [FfiSyntax] [GoGlobalContext] : val
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef Transport.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Transport.ty)))) (Var "t")))) (Val #()))))))))))
 
 /-- go: transport.go:409:21 -/
-noncomputable def Transport.SendSnapshot.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Transport.SendSnapshot.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam "m"
   (App (Val wrapDefer)
@@ -6757,7 +6757,7 @@ noncomputable def Transport.SendSnapshot.impl [FfiSyntax] [GoGlobalContext] : va
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef Transport.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Transport.ty)))) (Var "t")))) (Val #())))))))))))
 
 /-- go: transport.go:426:21 -/
-noncomputable def Transport.Pause.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Transport.Pause.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam BAnon
   (App (Val wrapDefer)
@@ -6791,7 +6791,7 @@ noncomputable def Transport.Pause.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef Transport.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Transport.ty)))) (Var "t")))) (Val #()))))))))))
 
 /-- go: transport.go:434:21 -/
-noncomputable def Transport.Resume.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Transport.Resume.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam BAnon
   (App (Val wrapDefer)
@@ -6829,7 +6829,7 @@ noncomputable def Transport.Resume.impl [FfiSyntax] [GoGlobalContext] : val :=
     first peer connection becomes active.
 
     go: transport.go:445:21 -/
-noncomputable def Transport.ActivePeers.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Transport.ActivePeers.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "t"
   (Lam BAnon
   (App (Val wrapDefer)
@@ -6867,7 +6867,7 @@ noncomputable def Transport.ActivePeers.impl [FfiSyntax] [GoGlobalContext] : val
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef Transport.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Transport.ty)))) (Var "t")))) (Val #()))))))))))
 
 /-- go: urlpick.go:30:6 -/
-noncomputable def newURLPicker.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def newURLPicker.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "urls"
   (App (Val exceptionDo)
   (Let "urls" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty))) (Var "urls"))
@@ -6876,7 +6876,7 @@ noncomputable def newURLPicker.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (CompositeLiteral urlPicker.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"urls")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty (Var "$v0")))]))))))))
 
 /-- go: urlpick.go:36:21 -/
-noncomputable def urlPicker.update.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def urlPicker.update.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "p"
   (Lam "urls"
   (App (Val wrapDefer)
@@ -6905,7 +6905,7 @@ noncomputable def urlPicker.update.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef urlPicker.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType urlPicker.ty)))) (Var "p")))) (Val #())))))))))))
 
 /-- go: urlpick.go:43:21 -/
-noncomputable def urlPicker.pick.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def urlPicker.pick.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "p"
   (Lam BAnon
   (App (Val wrapDefer)
@@ -6928,7 +6928,7 @@ noncomputable def urlPicker.pick.impl [FfiSyntax] [GoGlobalContext] : val :=
     and it should use other possible urls.
 
     go: urlpick.go:51:21 -/
-noncomputable def urlPicker.unreachable.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def urlPicker.unreachable.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "p"
   (Lam "u"
   (App (Val wrapDefer)
@@ -6959,7 +6959,7 @@ noncomputable def urlPicker.unreachable.impl [FfiSyntax] [GoGlobalContext] : val
 /-- createPostRequest creates a HTTP POST request that sends raft message.
 
     go: util.go:64:6 -/
-noncomputable def createPostRequest.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def createPostRequest.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (Lam "u"
   (Lam "path"
@@ -7052,7 +7052,7 @@ noncomputable def createPostRequest.impl [FfiSyntax] [GoGlobalContext] : val :=
     raft message.
 
     go: util.go:85:6 -/
-noncomputable def checkPostResponse.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def checkPostResponse.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (Lam "resp"
   (Lam "body"
@@ -7131,7 +7131,7 @@ noncomputable def checkPostResponse.impl [FfiSyntax] [GoGlobalContext] : val :=
     good enough.
 
     go: util.go:124:6 -/
-noncomputable def reportCriticalError.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def reportCriticalError.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "err"
   (Lam "errc"
   (App (Val exceptionDo)
@@ -7151,7 +7151,7 @@ noncomputable def reportCriticalError.impl [FfiSyntax] [GoGlobalContext] : val :
     and 1 if a > b.
 
     go: util.go:134:6 -/
-noncomputable def compareMajorMinorVersion.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def compareMajorMinorVersion.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "b"
   (App (Val exceptionDo)
@@ -7192,7 +7192,7 @@ noncomputable def compareMajorMinorVersion.impl [FfiSyntax] [GoGlobalContext] : 
 /-- serverVersion returns the server version from the given header.
 
     go: util.go:148:6 -/
-noncomputable def serverVersion.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def serverVersion.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "h"
   (App (Val exceptionDo)
   (Let "h" (App (Val (GoInstruction (GoAlloc _root_.Perennial.net.http.Header.ty))) (Var "h"))
@@ -7216,7 +7216,7 @@ noncomputable def serverVersion.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- serverVersion returns the min cluster version from the given header.
 
     go: util.go:158:6 -/
-noncomputable def minClusterVersion.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def minClusterVersion.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "h"
   (App (Val exceptionDo)
   (Let "h" (App (Val (GoInstruction (GoAlloc _root_.Perennial.net.http.Header.ty))) (Var "h"))
@@ -7241,7 +7241,7 @@ noncomputable def minClusterVersion.impl [FfiSyntax] [GoGlobalContext] : val :=
     with the local version.
 
     go: util.go:169:6 -/
-noncomputable def checkVersionCompatibility.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def checkVersionCompatibility.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "name"
   (Lam "server"
   (Lam "minCluster"
@@ -7294,7 +7294,7 @@ noncomputable def checkVersionCompatibility.impl [FfiSyntax] [GoGlobalContext] :
 /-- setPeerURLsHeader reports local urls for peer discovery
 
     go: util.go:186:6 -/
-noncomputable def setPeerURLsHeader.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def setPeerURLsHeader.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "req"
   (Lam "urls"
   (App (Val exceptionDo)
@@ -7336,7 +7336,7 @@ noncomputable def setPeerURLsHeader.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- addRemoteFromRequest adds a remote peer according to an http request header
 
     go: util.go:199:6 -/
-noncomputable def addRemoteFromRequest.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def addRemoteFromRequest.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "tr"
   (Lam "r"
   (App (Val exceptionDo)
@@ -7382,7 +7382,7 @@ noncomputable def addRemoteFromRequest.impl [FfiSyntax] [GoGlobalContext] : val 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp where
   pkgImportedPkgs := [pkg_id.go_etcd_io.raft.v3.raftpb, pkg_id.context, pkg_id.errors, pkg_id.fmt, pkg_id.io, pkg_id.net.http, pkg_id.path, pkg_id.strings, pkg_id.time, pkg_id.github_com.dustin.go_humanize, pkg_id.go_uber_org.zap, pkg_id.google_golang_org.protobuf.proto, pkg_id.go_etcd_io.etcd.api.v3.version, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.pkg.v3.ioutil, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap, pkg_id.github_com.prometheus.client_golang.prometheus, pkg_id.encoding.binary, pkg_id.go_etcd_io.etcd.pkg.v3.pbutil, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats, pkg_id.sync, pkg_id.golang_org.x.time.rate, pkg_id.go_etcd_io.raft.v3, pkg_id.bytes, pkg_id.github_com.xiang90.probing, pkg_id.go_etcd_io.etcd.pkg.v3.httputil, pkg_id.github_com.Masterminds.semver.v3, pkg_id.go_etcd_io.etcd.client.pkg.v3.transport, pkg_id.net.url, pkg_id.net]
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp)) (Lam BAnon
   (App (Val exceptionDo)
@@ -7620,67 +7620,91 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc ConnReadTimeout _root_.Perennial.time.Duration.ty)) (Val #()))))))))
 
-abbrev encoder [FfiSyntax] : Type := GoInterface
+abbrev encoder [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def encoder.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"encode" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)] false [go.error]))])
+@[reducible] noncomputable def encoder.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.encode" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)] false [go.error]))])
 
-class encoder.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class encoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq encoder.ty encoder.underlying
+  method_set : go.MethodSetIs encoder.ty [(go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.encode", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType encoder.ty) []
 
 attribute [instance] encoder.TypeAssumptions.underlying
+  encoder.TypeAssumptions.method_set
+  encoder.TypeAssumptions.ptr_method_set
 
-abbrev decoder [FfiSyntax] : Type := GoInterface
+abbrev decoder [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def decoder.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"decode" (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty), go.error]))])
+@[reducible] noncomputable def decoder.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.decode" (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty), go.error]))])
 
-class decoder.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class decoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq decoder.ty decoder.underlying
+  method_set : go.MethodSetIs decoder.ty [(go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.decode", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType decoder.ty) []
 
 attribute [instance] decoder.TypeAssumptions.underlying
+  decoder.TypeAssumptions.method_set
+  decoder.TypeAssumptions.ptr_method_set
 
-abbrev peerGetter [FfiSyntax] : Type := GoInterface
+abbrev peerGetter [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def peerGetter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def peerGetter.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Get" (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [Peer.ty]))])
 
-class peerGetter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class peerGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq peerGetter.ty peerGetter.underlying
+  method_set : go.MethodSetIs peerGetter.ty [(go!"Get", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [Peer.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType peerGetter.ty) []
 
 attribute [instance] peerGetter.TypeAssumptions.underlying
+  peerGetter.TypeAssumptions.method_set
+  peerGetter.TypeAssumptions.ptr_method_set
 
-abbrev writerToResponse [FfiSyntax] : Type := GoInterface
+abbrev writerToResponse [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def writerToResponse.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def writerToResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"WriteTo" (go.signature.Signature [_root_.Perennial.net.http.ResponseWriter.ty] false []))])
 
-class writerToResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class writerToResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq writerToResponse.ty writerToResponse.underlying
+  method_set : go.MethodSetIs writerToResponse.ty [(go!"WriteTo", (some (go.signature.Signature [_root_.Perennial.net.http.ResponseWriter.ty] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType writerToResponse.ty) []
 
 attribute [instance] writerToResponse.TypeAssumptions.underlying
+  writerToResponse.TypeAssumptions.method_set
+  writerToResponse.TypeAssumptions.ptr_method_set
 
-abbrev Transporter [FfiSyntax] : Type := GoInterface
+abbrev Transporter [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def Transporter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Transporter.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"ActivePeers" (go.signature.Signature [] false [go.int])), (go.InterfaceElem.MethodElem go!"ActiveSince" (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [_root_.Perennial.time.Time.ty])), (go.InterfaceElem.MethodElem go!"AddPeer" (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty, (go.GoType.SliceType go.string)] false [])), (go.InterfaceElem.MethodElem go!"AddRemote" (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty, (go.GoType.SliceType go.string)] false [])), (go.InterfaceElem.MethodElem go!"Handler" (go.signature.Signature [] false [_root_.Perennial.net.http.Handler.ty])), (go.InterfaceElem.MethodElem go!"RemoveAllPeers" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"RemovePeer" (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [])), (go.InterfaceElem.MethodElem go!"Send" (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))] false [])), (go.InterfaceElem.MethodElem go!"SendSnapshot" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message.ty)] false [])), (go.InterfaceElem.MethodElem go!"Start" (go.signature.Signature [] false [go.error])), (go.InterfaceElem.MethodElem go!"Stop" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"UpdatePeer" (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty, (go.GoType.SliceType go.string)] false []))])
 
-class Transporter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Transporter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Transporter.ty Transporter.underlying
+  method_set : go.MethodSetIs Transporter.ty [(go!"ActivePeers", (some (go.signature.Signature [] false [go.int]))), (go!"ActiveSince", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [_root_.Perennial.time.Time.ty]))), (go!"AddPeer", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty, (go.GoType.SliceType go.string)] false []))), (go!"AddRemote", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty, (go.GoType.SliceType go.string)] false []))), (go!"Handler", (some (go.signature.Signature [] false [_root_.Perennial.net.http.Handler.ty]))), (go!"RemoveAllPeers", (some (go.signature.Signature [] false []))), (go!"RemovePeer", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false []))), (go!"Send", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))] false []))), (go!"SendSnapshot", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message.ty)] false []))), (go!"Start", (some (go.signature.Signature [] false [go.error]))), (go!"Stop", (some (go.signature.Signature [] false []))), (go!"UpdatePeer", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty, (go.GoType.SliceType go.string)] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Transporter.ty) []
 
 attribute [instance] Transporter.TypeAssumptions.underlying
+  Transporter.TypeAssumptions.method_set
+  Transporter.TypeAssumptions.ptr_method_set
 
-abbrev Raft [FfiSyntax] : Type := GoInterface
+abbrev Raft [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def Raft.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Raft.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"IsIDRemoved" (go.signature.Signature [go.uint64] false [go.bool])), (go.InterfaceElem.MethodElem go!"Process" (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)] false [go.error])), (go.InterfaceElem.MethodElem go!"ReportSnapshot" (go.signature.Signature [go.uint64, _root_.Perennial.go_etcd_io.raft.v3.SnapshotStatus.ty] false [])), (go.InterfaceElem.MethodElem go!"ReportUnreachable" (go.signature.Signature [go.uint64] false []))])
 
-class Raft.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Raft.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Raft.ty Raft.underlying
+  method_set : go.MethodSetIs Raft.ty [(go!"IsIDRemoved", (some (go.signature.Signature [go.uint64] false [go.bool]))), (go!"Process", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)] false [go.error]))), (go!"ReportSnapshot", (some (go.signature.Signature [go.uint64, _root_.Perennial.go_etcd_io.raft.v3.SnapshotStatus.ty] false []))), (go!"ReportUnreachable", (some (go.signature.Signature [go.uint64] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Raft.ty) []
 
 attribute [instance] Raft.TypeAssumptions.underlying
+  Raft.TypeAssumptions.method_set
+  Raft.TypeAssumptions.ptr_method_set
 
-structure pipelineHandler [FfiSyntax] where
+structure pipelineHandler [GooseExts] where
   mk ::
   lg' : Loc
   localID' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID
@@ -7688,27 +7712,27 @@ structure pipelineHandler [FfiSyntax] where
   r' : Raft
   cid' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID
 
-noncomputable instance pipelineHandler.zero_val [FfiSyntax] : ZeroVal pipelineHandler :=
+noncomputable instance pipelineHandler.zero_val [GooseExts] : ZeroVal pipelineHandler :=
   ⟨pipelineHandler.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def pipelineHandler.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def pipelineHandler.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"lg" (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)),
 (go.field_decl.FieldDecl go!"localID" _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty),
 (go.field_decl.FieldDecl go!"tr" Transporter.ty),
 (go.field_decl.FieldDecl go!"r" Raft.ty),
 (go.field_decl.FieldDecl go!"cid" _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty)]
 
-@[irreducible] noncomputable def pipelineHandler.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def pipelineHandler.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   pipelineHandler.fieldsUnsealed
 
-noncomputable instance equals_unfold_pipelineHandler [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_pipelineHandler [GooseExts] [GoGlobalContext] :
     EqualsUnfold pipelineHandler.fields pipelineHandler.fieldsUnsealed :=
   ⟨by unfold pipelineHandler.fields; rfl⟩
 
-@[reducible] noncomputable def pipelineHandler.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def pipelineHandler.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType pipelineHandler.fields)
 
-class pipelineHandler.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class pipelineHandler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying pipelineHandler.underlying pipelineHandler
   underlying : go.UnderlyingDirectedEq pipelineHandler.ty pipelineHandler.underlying
   get_lg : ∀ (x : pipelineHandler), go.IsGoStepPureDetTagged under (StructFieldGet pipelineHandler.underlying go!"lg") #x (Val #(x.lg'))
@@ -7721,6 +7745,8 @@ class pipelineHandler.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCont
   set_r : ∀ (x : pipelineHandler) (y : Raft), go.IsGoStepPureDetTagged under (StructFieldSet pipelineHandler.underlying go!"r") (PairV #x #y) (Val #(({ x with r' := y } : pipelineHandler)))
   get_cid : ∀ (x : pipelineHandler), go.IsGoStepPureDetTagged under (StructFieldGet pipelineHandler.underlying go!"cid") #x (Val #(x.cid'))
   set_cid : ∀ (x : pipelineHandler) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID), go.IsGoStepPureDetTagged under (StructFieldSet pipelineHandler.underlying go!"cid") (PairV #x #y) (Val #(({ x with cid' := y } : pipelineHandler)))
+  method_set : go.MethodSetIs pipelineHandler.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType pipelineHandler.ty) [(go!"ServeHTTP", (some (go.signature.Signature [_root_.Perennial.net.http.ResponseWriter.ty, (go.GoType.PointerType _root_.Perennial.net.http.Request.ty)] false [])))]
   ptr_ServeHTTP_unfold : MethodUnfold (go.GoType.PointerType pipelineHandler.ty) go!"ServeHTTP" pipelineHandler.ServeHTTP.impl
 
 attribute [instance] pipelineHandler.TypeAssumptions.type_repr
@@ -7735,9 +7761,11 @@ attribute [instance] pipelineHandler.TypeAssumptions.type_repr
   pipelineHandler.TypeAssumptions.set_r
   pipelineHandler.TypeAssumptions.get_cid
   pipelineHandler.TypeAssumptions.set_cid
+  pipelineHandler.TypeAssumptions.method_set
+  pipelineHandler.TypeAssumptions.ptr_method_set
   pipelineHandler.TypeAssumptions.ptr_ServeHTTP_unfold
 
-structure snapshotHandler [FfiSyntax] where
+structure snapshotHandler [GooseExts] where
   mk ::
   lg' : Loc
   tr' : Transporter
@@ -7746,10 +7774,10 @@ structure snapshotHandler [FfiSyntax] where
   localID' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID
   cid' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID
 
-noncomputable instance snapshotHandler.zero_val [FfiSyntax] : ZeroVal snapshotHandler :=
+noncomputable instance snapshotHandler.zero_val [GooseExts] : ZeroVal snapshotHandler :=
   ⟨snapshotHandler.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def snapshotHandler.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def snapshotHandler.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"lg" (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)),
 (go.field_decl.FieldDecl go!"tr" Transporter.ty),
 (go.field_decl.FieldDecl go!"r" Raft.ty),
@@ -7757,17 +7785,17 @@ noncomputable instance snapshotHandler.zero_val [FfiSyntax] : ZeroVal snapshotHa
 (go.field_decl.FieldDecl go!"localID" _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty),
 (go.field_decl.FieldDecl go!"cid" _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty)]
 
-@[irreducible] noncomputable def snapshotHandler.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def snapshotHandler.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   snapshotHandler.fieldsUnsealed
 
-noncomputable instance equals_unfold_snapshotHandler [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_snapshotHandler [GooseExts] [GoGlobalContext] :
     EqualsUnfold snapshotHandler.fields snapshotHandler.fieldsUnsealed :=
   ⟨by unfold snapshotHandler.fields; rfl⟩
 
-@[reducible] noncomputable def snapshotHandler.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def snapshotHandler.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType snapshotHandler.fields)
 
-class snapshotHandler.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class snapshotHandler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying snapshotHandler.underlying snapshotHandler
   underlying : go.UnderlyingDirectedEq snapshotHandler.ty snapshotHandler.underlying
   get_lg : ∀ (x : snapshotHandler), go.IsGoStepPureDetTagged under (StructFieldGet snapshotHandler.underlying go!"lg") #x (Val #(x.lg'))
@@ -7782,6 +7810,8 @@ class snapshotHandler.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCont
   set_localID : ∀ (x : snapshotHandler) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID), go.IsGoStepPureDetTagged under (StructFieldSet snapshotHandler.underlying go!"localID") (PairV #x #y) (Val #(({ x with localID' := y } : snapshotHandler)))
   get_cid : ∀ (x : snapshotHandler), go.IsGoStepPureDetTagged under (StructFieldGet snapshotHandler.underlying go!"cid") #x (Val #(x.cid'))
   set_cid : ∀ (x : snapshotHandler) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID), go.IsGoStepPureDetTagged under (StructFieldSet snapshotHandler.underlying go!"cid") (PairV #x #y) (Val #(({ x with cid' := y } : snapshotHandler)))
+  method_set : go.MethodSetIs snapshotHandler.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType snapshotHandler.ty) [(go!"ServeHTTP", (some (go.signature.Signature [_root_.Perennial.net.http.ResponseWriter.ty, (go.GoType.PointerType _root_.Perennial.net.http.Request.ty)] false [])))]
   ptr_ServeHTTP_unfold : MethodUnfold (go.GoType.PointerType snapshotHandler.ty) go!"ServeHTTP" snapshotHandler.ServeHTTP.impl
 
 attribute [instance] snapshotHandler.TypeAssumptions.type_repr
@@ -7798,9 +7828,11 @@ attribute [instance] snapshotHandler.TypeAssumptions.type_repr
   snapshotHandler.TypeAssumptions.set_localID
   snapshotHandler.TypeAssumptions.get_cid
   snapshotHandler.TypeAssumptions.set_cid
+  snapshotHandler.TypeAssumptions.method_set
+  snapshotHandler.TypeAssumptions.ptr_method_set
   snapshotHandler.TypeAssumptions.ptr_ServeHTTP_unfold
 
-structure streamHandler [FfiSyntax] where
+structure streamHandler [GooseExts] where
   mk ::
   lg' : Loc
   tr' : Loc
@@ -7809,10 +7841,10 @@ structure streamHandler [FfiSyntax] where
   id' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID
   cid' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID
 
-noncomputable instance streamHandler.zero_val [FfiSyntax] : ZeroVal streamHandler :=
+noncomputable instance streamHandler.zero_val [GooseExts] : ZeroVal streamHandler :=
   ⟨streamHandler.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def streamHandler.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def streamHandler.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"lg" (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)),
 (go.field_decl.FieldDecl go!"tr" (go.GoType.PointerType Transport.ty)),
 (go.field_decl.FieldDecl go!"peerGetter" peerGetter.ty),
@@ -7820,17 +7852,17 @@ noncomputable instance streamHandler.zero_val [FfiSyntax] : ZeroVal streamHandle
 (go.field_decl.FieldDecl go!"id" _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty),
 (go.field_decl.FieldDecl go!"cid" _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty)]
 
-@[irreducible] noncomputable def streamHandler.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def streamHandler.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   streamHandler.fieldsUnsealed
 
-noncomputable instance equals_unfold_streamHandler [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_streamHandler [GooseExts] [GoGlobalContext] :
     EqualsUnfold streamHandler.fields streamHandler.fieldsUnsealed :=
   ⟨by unfold streamHandler.fields; rfl⟩
 
-@[reducible] noncomputable def streamHandler.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def streamHandler.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType streamHandler.fields)
 
-class streamHandler.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class streamHandler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying streamHandler.underlying streamHandler
   underlying : go.UnderlyingDirectedEq streamHandler.ty streamHandler.underlying
   get_lg : ∀ (x : streamHandler), go.IsGoStepPureDetTagged under (StructFieldGet streamHandler.underlying go!"lg") #x (Val #(x.lg'))
@@ -7845,6 +7877,8 @@ class streamHandler.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContex
   set_id : ∀ (x : streamHandler) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID), go.IsGoStepPureDetTagged under (StructFieldSet streamHandler.underlying go!"id") (PairV #x #y) (Val #(({ x with id' := y } : streamHandler)))
   get_cid : ∀ (x : streamHandler), go.IsGoStepPureDetTagged under (StructFieldGet streamHandler.underlying go!"cid") #x (Val #(x.cid'))
   set_cid : ∀ (x : streamHandler) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID), go.IsGoStepPureDetTagged under (StructFieldSet streamHandler.underlying go!"cid") (PairV #x #y) (Val #(({ x with cid' := y } : streamHandler)))
+  method_set : go.MethodSetIs streamHandler.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType streamHandler.ty) [(go!"ServeHTTP", (some (go.signature.Signature [_root_.Perennial.net.http.ResponseWriter.ty, (go.GoType.PointerType _root_.Perennial.net.http.Request.ty)] false [])))]
   ptr_ServeHTTP_unfold : MethodUnfold (go.GoType.PointerType streamHandler.ty) go!"ServeHTTP" streamHandler.ServeHTTP.impl
 
 attribute [instance] streamHandler.TypeAssumptions.type_repr
@@ -7861,33 +7895,37 @@ attribute [instance] streamHandler.TypeAssumptions.type_repr
   streamHandler.TypeAssumptions.set_id
   streamHandler.TypeAssumptions.get_cid
   streamHandler.TypeAssumptions.set_cid
+  streamHandler.TypeAssumptions.method_set
+  streamHandler.TypeAssumptions.ptr_method_set
   streamHandler.TypeAssumptions.ptr_ServeHTTP_unfold
 
-structure closeNotifier [FfiSyntax] where
+structure closeNotifier [GooseExts] where
   mk ::
   done' : GoChan
 
-noncomputable instance closeNotifier.zero_val [FfiSyntax] : ZeroVal closeNotifier :=
+noncomputable instance closeNotifier.zero_val [GooseExts] : ZeroVal closeNotifier :=
   ⟨closeNotifier.mk zeroValDef⟩
 
-@[reducible] noncomputable def closeNotifier.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def closeNotifier.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"done" (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])))]
 
-@[irreducible] noncomputable def closeNotifier.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def closeNotifier.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   closeNotifier.fieldsUnsealed
 
-noncomputable instance equals_unfold_closeNotifier [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_closeNotifier [GooseExts] [GoGlobalContext] :
     EqualsUnfold closeNotifier.fields closeNotifier.fieldsUnsealed :=
   ⟨by unfold closeNotifier.fields; rfl⟩
 
-@[reducible] noncomputable def closeNotifier.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def closeNotifier.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType closeNotifier.fields)
 
-class closeNotifier.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class closeNotifier.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying closeNotifier.underlying closeNotifier
   underlying : go.UnderlyingDirectedEq closeNotifier.ty closeNotifier.underlying
   get_done : ∀ (x : closeNotifier), go.IsGoStepPureDetTagged under (StructFieldGet closeNotifier.underlying go!"done") #x (Val #(x.done'))
   set_done : ∀ (x : closeNotifier) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet closeNotifier.underlying go!"done") (PairV #x #y) (Val #(({ x with done' := y } : closeNotifier)))
+  method_set : go.MethodSetIs closeNotifier.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType closeNotifier.ty) [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.closeNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))])))]
   ptr_Close_unfold : MethodUnfold (go.GoType.PointerType closeNotifier.ty) go!"Close" closeNotifier.Close.impl
   ptr_closeNotify_unfold : MethodUnfold (go.GoType.PointerType closeNotifier.ty) go!"closeNotify" closeNotifier.closeNotify.impl
 
@@ -7895,67 +7933,75 @@ attribute [instance] closeNotifier.TypeAssumptions.type_repr
   closeNotifier.TypeAssumptions.underlying
   closeNotifier.TypeAssumptions.get_done
   closeNotifier.TypeAssumptions.set_done
+  closeNotifier.TypeAssumptions.method_set
+  closeNotifier.TypeAssumptions.ptr_method_set
   closeNotifier.TypeAssumptions.ptr_Close_unfold
   closeNotifier.TypeAssumptions.ptr_closeNotify_unfold
 
-structure messageEncoder [FfiSyntax] where
+structure messageEncoder [GooseExts] where
   mk ::
   w' : _root_.Perennial.io.Writer
 
-noncomputable instance messageEncoder.zero_val [FfiSyntax] : ZeroVal messageEncoder :=
+noncomputable instance messageEncoder.zero_val [GooseExts] : ZeroVal messageEncoder :=
   ⟨messageEncoder.mk zeroValDef⟩
 
-@[reducible] noncomputable def messageEncoder.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def messageEncoder.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"w" _root_.Perennial.io.Writer.ty)]
 
-@[irreducible] noncomputable def messageEncoder.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def messageEncoder.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   messageEncoder.fieldsUnsealed
 
-noncomputable instance equals_unfold_messageEncoder [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_messageEncoder [GooseExts] [GoGlobalContext] :
     EqualsUnfold messageEncoder.fields messageEncoder.fieldsUnsealed :=
   ⟨by unfold messageEncoder.fields; rfl⟩
 
-@[reducible] noncomputable def messageEncoder.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def messageEncoder.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType messageEncoder.fields)
 
-class messageEncoder.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class messageEncoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying messageEncoder.underlying messageEncoder
   underlying : go.UnderlyingDirectedEq messageEncoder.ty messageEncoder.underlying
   get_w : ∀ (x : messageEncoder), go.IsGoStepPureDetTagged under (StructFieldGet messageEncoder.underlying go!"w") #x (Val #(x.w'))
   set_w : ∀ (x : messageEncoder) (y : _root_.Perennial.io.Writer), go.IsGoStepPureDetTagged under (StructFieldSet messageEncoder.underlying go!"w") (PairV #x #y) (Val #(({ x with w' := y } : messageEncoder)))
+  method_set : go.MethodSetIs messageEncoder.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType messageEncoder.ty) [(go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.encode", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)] false [go.error])))]
   ptr_encode_unfold : MethodUnfold (go.GoType.PointerType messageEncoder.ty) go!"encode" messageEncoder.encode.impl
 
 attribute [instance] messageEncoder.TypeAssumptions.type_repr
   messageEncoder.TypeAssumptions.underlying
   messageEncoder.TypeAssumptions.get_w
   messageEncoder.TypeAssumptions.set_w
+  messageEncoder.TypeAssumptions.method_set
+  messageEncoder.TypeAssumptions.ptr_method_set
   messageEncoder.TypeAssumptions.ptr_encode_unfold
 
-structure messageDecoder [FfiSyntax] where
+structure messageDecoder [GooseExts] where
   mk ::
   r' : _root_.Perennial.io.Reader
 
-noncomputable instance messageDecoder.zero_val [FfiSyntax] : ZeroVal messageDecoder :=
+noncomputable instance messageDecoder.zero_val [GooseExts] : ZeroVal messageDecoder :=
   ⟨messageDecoder.mk zeroValDef⟩
 
-@[reducible] noncomputable def messageDecoder.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def messageDecoder.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"r" _root_.Perennial.io.Reader.ty)]
 
-@[irreducible] noncomputable def messageDecoder.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def messageDecoder.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   messageDecoder.fieldsUnsealed
 
-noncomputable instance equals_unfold_messageDecoder [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_messageDecoder [GooseExts] [GoGlobalContext] :
     EqualsUnfold messageDecoder.fields messageDecoder.fieldsUnsealed :=
   ⟨by unfold messageDecoder.fields; rfl⟩
 
-@[reducible] noncomputable def messageDecoder.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def messageDecoder.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType messageDecoder.fields)
 
-class messageDecoder.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class messageDecoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying messageDecoder.underlying messageDecoder
   underlying : go.UnderlyingDirectedEq messageDecoder.ty messageDecoder.underlying
   get_r : ∀ (x : messageDecoder), go.IsGoStepPureDetTagged under (StructFieldGet messageDecoder.underlying go!"r") #x (Val #(x.r'))
   set_r : ∀ (x : messageDecoder) (y : _root_.Perennial.io.Reader), go.IsGoStepPureDetTagged under (StructFieldSet messageDecoder.underlying go!"r") (PairV #x #y) (Val #(({ x with r' := y } : messageDecoder)))
+  method_set : go.MethodSetIs messageDecoder.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType messageDecoder.ty) [(go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.decode", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.decodeLimit", (some (go.signature.Signature [go.uint64] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty), go.error])))]
   ptr_decode_unfold : MethodUnfold (go.GoType.PointerType messageDecoder.ty) go!"decode" messageDecoder.decode.impl
   ptr_decodeLimit_unfold : MethodUnfold (go.GoType.PointerType messageDecoder.ty) go!"decodeLimit" messageDecoder.decodeLimit.impl
 
@@ -7963,10 +8009,12 @@ attribute [instance] messageDecoder.TypeAssumptions.type_repr
   messageDecoder.TypeAssumptions.underlying
   messageDecoder.TypeAssumptions.get_r
   messageDecoder.TypeAssumptions.set_r
+  messageDecoder.TypeAssumptions.method_set
+  messageDecoder.TypeAssumptions.ptr_method_set
   messageDecoder.TypeAssumptions.ptr_decode_unfold
   messageDecoder.TypeAssumptions.ptr_decodeLimit_unfold
 
-structure msgAppV2Encoder [FfiSyntax] where
+structure msgAppV2Encoder [GooseExts] where
   mk ::
   w' : _root_.Perennial.io.Writer
   fs' : Loc
@@ -7976,10 +8024,10 @@ structure msgAppV2Encoder [FfiSyntax] where
   uint64buf' : GoSlice
   uint8buf' : GoSlice
 
-noncomputable instance msgAppV2Encoder.zero_val [FfiSyntax] : ZeroVal msgAppV2Encoder :=
+noncomputable instance msgAppV2Encoder.zero_val [GooseExts] : ZeroVal msgAppV2Encoder :=
   ⟨msgAppV2Encoder.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def msgAppV2Encoder.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def msgAppV2Encoder.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"w" _root_.Perennial.io.Writer.ty),
 (go.field_decl.FieldDecl go!"fs" (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.FollowerStats.ty)),
 (go.field_decl.FieldDecl go!"term" go.uint64),
@@ -7988,17 +8036,17 @@ noncomputable instance msgAppV2Encoder.zero_val [FfiSyntax] : ZeroVal msgAppV2En
 (go.field_decl.FieldDecl go!"uint64buf" (go.GoType.SliceType go.byte)),
 (go.field_decl.FieldDecl go!"uint8buf" (go.GoType.SliceType go.byte))]
 
-@[irreducible] noncomputable def msgAppV2Encoder.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def msgAppV2Encoder.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   msgAppV2Encoder.fieldsUnsealed
 
-noncomputable instance equals_unfold_msgAppV2Encoder [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_msgAppV2Encoder [GooseExts] [GoGlobalContext] :
     EqualsUnfold msgAppV2Encoder.fields msgAppV2Encoder.fieldsUnsealed :=
   ⟨by unfold msgAppV2Encoder.fields; rfl⟩
 
-@[reducible] noncomputable def msgAppV2Encoder.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def msgAppV2Encoder.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType msgAppV2Encoder.fields)
 
-class msgAppV2Encoder.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class msgAppV2Encoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying msgAppV2Encoder.underlying msgAppV2Encoder
   underlying : go.UnderlyingDirectedEq msgAppV2Encoder.ty msgAppV2Encoder.underlying
   get_w : ∀ (x : msgAppV2Encoder), go.IsGoStepPureDetTagged under (StructFieldGet msgAppV2Encoder.underlying go!"w") #x (Val #(x.w'))
@@ -8015,6 +8063,8 @@ class msgAppV2Encoder.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCont
   set_uint64buf : ∀ (x : msgAppV2Encoder) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet msgAppV2Encoder.underlying go!"uint64buf") (PairV #x #y) (Val #(({ x with uint64buf' := y } : msgAppV2Encoder)))
   get_uint8buf : ∀ (x : msgAppV2Encoder), go.IsGoStepPureDetTagged under (StructFieldGet msgAppV2Encoder.underlying go!"uint8buf") #x (Val #(x.uint8buf'))
   set_uint8buf : ∀ (x : msgAppV2Encoder) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet msgAppV2Encoder.underlying go!"uint8buf") (PairV #x #y) (Val #(({ x with uint8buf' := y } : msgAppV2Encoder)))
+  method_set : go.MethodSetIs msgAppV2Encoder.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType msgAppV2Encoder.ty) [(go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.encode", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)] false [go.error])))]
   ptr_encode_unfold : MethodUnfold (go.GoType.PointerType msgAppV2Encoder.ty) go!"encode" msgAppV2Encoder.encode.impl
 
 attribute [instance] msgAppV2Encoder.TypeAssumptions.type_repr
@@ -8033,9 +8083,11 @@ attribute [instance] msgAppV2Encoder.TypeAssumptions.type_repr
   msgAppV2Encoder.TypeAssumptions.set_uint64buf
   msgAppV2Encoder.TypeAssumptions.get_uint8buf
   msgAppV2Encoder.TypeAssumptions.set_uint8buf
+  msgAppV2Encoder.TypeAssumptions.method_set
+  msgAppV2Encoder.TypeAssumptions.ptr_method_set
   msgAppV2Encoder.TypeAssumptions.ptr_encode_unfold
 
-structure msgAppV2Decoder [FfiSyntax] where
+structure msgAppV2Decoder [GooseExts] where
   mk ::
   r' : _root_.Perennial.io.Reader
   local' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID
@@ -8046,10 +8098,10 @@ structure msgAppV2Decoder [FfiSyntax] where
   uint64buf' : GoSlice
   uint8buf' : GoSlice
 
-noncomputable instance msgAppV2Decoder.zero_val [FfiSyntax] : ZeroVal msgAppV2Decoder :=
+noncomputable instance msgAppV2Decoder.zero_val [GooseExts] : ZeroVal msgAppV2Decoder :=
   ⟨msgAppV2Decoder.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def msgAppV2Decoder.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def msgAppV2Decoder.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"r" _root_.Perennial.io.Reader.ty),
 (go.field_decl.FieldDecl go!"local" _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty),
 (go.field_decl.FieldDecl go!"remote" _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty),
@@ -8059,17 +8111,17 @@ noncomputable instance msgAppV2Decoder.zero_val [FfiSyntax] : ZeroVal msgAppV2De
 (go.field_decl.FieldDecl go!"uint64buf" (go.GoType.SliceType go.byte)),
 (go.field_decl.FieldDecl go!"uint8buf" (go.GoType.SliceType go.byte))]
 
-@[irreducible] noncomputable def msgAppV2Decoder.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def msgAppV2Decoder.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   msgAppV2Decoder.fieldsUnsealed
 
-noncomputable instance equals_unfold_msgAppV2Decoder [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_msgAppV2Decoder [GooseExts] [GoGlobalContext] :
     EqualsUnfold msgAppV2Decoder.fields msgAppV2Decoder.fieldsUnsealed :=
   ⟨by unfold msgAppV2Decoder.fields; rfl⟩
 
-@[reducible] noncomputable def msgAppV2Decoder.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def msgAppV2Decoder.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType msgAppV2Decoder.fields)
 
-class msgAppV2Decoder.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class msgAppV2Decoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying msgAppV2Decoder.underlying msgAppV2Decoder
   underlying : go.UnderlyingDirectedEq msgAppV2Decoder.ty msgAppV2Decoder.underlying
   get_r : ∀ (x : msgAppV2Decoder), go.IsGoStepPureDetTagged under (StructFieldGet msgAppV2Decoder.underlying go!"r") #x (Val #(x.r'))
@@ -8088,6 +8140,8 @@ class msgAppV2Decoder.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCont
   set_uint64buf : ∀ (x : msgAppV2Decoder) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet msgAppV2Decoder.underlying go!"uint64buf") (PairV #x #y) (Val #(({ x with uint64buf' := y } : msgAppV2Decoder)))
   get_uint8buf : ∀ (x : msgAppV2Decoder), go.IsGoStepPureDetTagged under (StructFieldGet msgAppV2Decoder.underlying go!"uint8buf") #x (Val #(x.uint8buf'))
   set_uint8buf : ∀ (x : msgAppV2Decoder) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet msgAppV2Decoder.underlying go!"uint8buf") (PairV #x #y) (Val #(({ x with uint8buf' := y } : msgAppV2Decoder)))
+  method_set : go.MethodSetIs msgAppV2Decoder.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType msgAppV2Decoder.ty) [(go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.decode", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty), go.error])))]
   ptr_decode_unfold : MethodUnfold (go.GoType.PointerType msgAppV2Decoder.ty) go!"decode" msgAppV2Decoder.decode.impl
 
 attribute [instance] msgAppV2Decoder.TypeAssumptions.type_repr
@@ -8108,19 +8162,25 @@ attribute [instance] msgAppV2Decoder.TypeAssumptions.type_repr
   msgAppV2Decoder.TypeAssumptions.set_uint64buf
   msgAppV2Decoder.TypeAssumptions.get_uint8buf
   msgAppV2Decoder.TypeAssumptions.set_uint8buf
+  msgAppV2Decoder.TypeAssumptions.method_set
+  msgAppV2Decoder.TypeAssumptions.ptr_method_set
   msgAppV2Decoder.TypeAssumptions.ptr_decode_unfold
 
-abbrev Peer [FfiSyntax] : Type := GoInterface
+abbrev Peer [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def Peer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"activeSince" (go.signature.Signature [] false [_root_.Perennial.time.Time.ty])), (go.InterfaceElem.MethodElem go!"attachOutgoingConn" (go.signature.Signature [(go.GoType.PointerType outgoingConn.ty)] false [])), (go.InterfaceElem.MethodElem go!"send" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)] false [])), (go.InterfaceElem.MethodElem go!"sendSnap" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message.ty)] false [])), (go.InterfaceElem.MethodElem go!"stop" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"update" (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty] false []))])
+@[reducible] noncomputable def Peer.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.activeSince" (go.signature.Signature [] false [_root_.Perennial.time.Time.ty])), (go.InterfaceElem.MethodElem go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.attachOutgoingConn" (go.signature.Signature [(go.GoType.PointerType outgoingConn.ty)] false [])), (go.InterfaceElem.MethodElem go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.send" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)] false [])), (go.InterfaceElem.MethodElem go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.sendSnap" (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message.ty)] false [])), (go.InterfaceElem.MethodElem go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.stop" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.update" (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty] false []))])
 
-class Peer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Peer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Peer.ty Peer.underlying
+  method_set : go.MethodSetIs Peer.ty [(go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.activeSince", (some (go.signature.Signature [] false [_root_.Perennial.time.Time.ty]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.attachOutgoingConn", (some (go.signature.Signature [(go.GoType.PointerType outgoingConn.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.send", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.sendSnap", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.stop", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.update", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Peer.ty) []
 
 attribute [instance] Peer.TypeAssumptions.underlying
+  Peer.TypeAssumptions.method_set
+  Peer.TypeAssumptions.ptr_method_set
 
-structure peer [FfiSyntax] where
+structure peer [GooseExts] where
   mk ::
   lg' : Loc
   localID' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID
@@ -8141,10 +8201,10 @@ structure peer [FfiSyntax] where
   cancel' : _root_.Perennial.context.CancelFunc
   stopc' : GoChan
 
-noncomputable instance peer.zero_val [FfiSyntax] : ZeroVal peer :=
+noncomputable instance peer.zero_val [GooseExts] : ZeroVal peer :=
   ⟨peer.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def peer.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def peer.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"lg" (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)),
 (go.field_decl.FieldDecl go!"localID" _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty),
 (go.field_decl.FieldDecl go!"id" _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty),
@@ -8164,17 +8224,17 @@ noncomputable instance peer.zero_val [FfiSyntax] : ZeroVal peer :=
 (go.field_decl.FieldDecl go!"cancel" _root_.Perennial.context.CancelFunc.ty),
 (go.field_decl.FieldDecl go!"stopc" (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])))]
 
-@[irreducible] noncomputable def peer.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def peer.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   peer.fieldsUnsealed
 
-noncomputable instance equals_unfold_peer [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_peer [GooseExts] [GoGlobalContext] :
     EqualsUnfold peer.fields peer.fieldsUnsealed :=
   ⟨by unfold peer.fields; rfl⟩
 
-@[reducible] noncomputable def peer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def peer.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType peer.fields)
 
-class peer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class peer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying peer.underlying peer
   underlying : go.UnderlyingDirectedEq peer.ty peer.underlying
   get_lg : ∀ (x : peer), go.IsGoStepPureDetTagged under (StructFieldGet peer.underlying go!"lg") #x (Val #(x.lg'))
@@ -8213,6 +8273,8 @@ class peer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSem
   set_cancel : ∀ (x : peer) (y : _root_.Perennial.context.CancelFunc), go.IsGoStepPureDetTagged under (StructFieldSet peer.underlying go!"cancel") (PairV #x #y) (Val #(({ x with cancel' := y } : peer)))
   get_stopc : ∀ (x : peer), go.IsGoStepPureDetTagged under (StructFieldGet peer.underlying go!"stopc") #x (Val #(x.stopc'))
   set_stopc : ∀ (x : peer) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet peer.underlying go!"stopc") (PairV #x #y) (Val #(({ x with stopc' := y } : peer)))
+  method_set : go.MethodSetIs peer.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType peer.ty) [(go!"Pause", (some (go.signature.Signature [] false []))), (go!"Resume", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.activeSince", (some (go.signature.Signature [] false [_root_.Perennial.time.Time.ty]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.attachOutgoingConn", (some (go.signature.Signature [(go.GoType.PointerType outgoingConn.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.pick", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)] false [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)), go.string]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.send", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.sendSnap", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.stop", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.update", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty] false [])))]
   ptr_Pause_unfold : MethodUnfold (go.GoType.PointerType peer.ty) go!"Pause" peer.Pause.impl
   ptr_Resume_unfold : MethodUnfold (go.GoType.PointerType peer.ty) go!"Resume" peer.Resume.impl
   ptr_activeSince_unfold : MethodUnfold (go.GoType.PointerType peer.ty) go!"activeSince" peer.activeSince.impl
@@ -8261,6 +8323,8 @@ attribute [instance] peer.TypeAssumptions.type_repr
   peer.TypeAssumptions.set_cancel
   peer.TypeAssumptions.get_stopc
   peer.TypeAssumptions.set_stopc
+  peer.TypeAssumptions.method_set
+  peer.TypeAssumptions.ptr_method_set
   peer.TypeAssumptions.ptr_Pause_unfold
   peer.TypeAssumptions.ptr_Resume_unfold
   peer.TypeAssumptions.ptr_activeSince_unfold
@@ -8271,35 +8335,37 @@ attribute [instance] peer.TypeAssumptions.type_repr
   peer.TypeAssumptions.ptr_stop_unfold
   peer.TypeAssumptions.ptr_update_unfold
 
-structure failureType [FfiSyntax] where
+structure failureType [GooseExts] where
   mk ::
   source' : GoString
   action' : GoString
 
-noncomputable instance failureType.zero_val [FfiSyntax] : ZeroVal failureType :=
+noncomputable instance failureType.zero_val [GooseExts] : ZeroVal failureType :=
   ⟨failureType.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def failureType.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def failureType.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"source" go.string),
 (go.field_decl.FieldDecl go!"action" go.string)]
 
-@[irreducible] noncomputable def failureType.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def failureType.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   failureType.fieldsUnsealed
 
-noncomputable instance equals_unfold_failureType [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_failureType [GooseExts] [GoGlobalContext] :
     EqualsUnfold failureType.fields failureType.fieldsUnsealed :=
   ⟨by unfold failureType.fields; rfl⟩
 
-@[reducible] noncomputable def failureType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def failureType.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType failureType.fields)
 
-class failureType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class failureType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying failureType.underlying failureType
   underlying : go.UnderlyingDirectedEq failureType.ty failureType.underlying
   get_source : ∀ (x : failureType), go.IsGoStepPureDetTagged under (StructFieldGet failureType.underlying go!"source") #x (Val #(x.source'))
   set_source : ∀ (x : failureType) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet failureType.underlying go!"source") (PairV #x #y) (Val #(({ x with source' := y } : failureType)))
   get_action : ∀ (x : failureType), go.IsGoStepPureDetTagged under (StructFieldGet failureType.underlying go!"action") #x (Val #(x.action'))
   set_action : ∀ (x : failureType) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet failureType.underlying go!"action") (PairV #x #y) (Val #(({ x with action' := y } : failureType)))
+  method_set : go.MethodSetIs failureType.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType failureType.ty) []
 
 attribute [instance] failureType.TypeAssumptions.type_repr
   failureType.TypeAssumptions.underlying
@@ -8307,8 +8373,10 @@ attribute [instance] failureType.TypeAssumptions.type_repr
   failureType.TypeAssumptions.set_source
   failureType.TypeAssumptions.get_action
   failureType.TypeAssumptions.set_action
+  failureType.TypeAssumptions.method_set
+  failureType.TypeAssumptions.ptr_method_set
 
-structure peerStatus [FfiSyntax] where
+structure peerStatus [GooseExts] where
   mk ::
   lg' : Loc
   local' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID
@@ -8317,10 +8385,10 @@ structure peerStatus [FfiSyntax] where
   active' : Bool
   since' : _root_.Perennial.time.Time
 
-noncomputable instance peerStatus.zero_val [FfiSyntax] : ZeroVal peerStatus :=
+noncomputable instance peerStatus.zero_val [GooseExts] : ZeroVal peerStatus :=
   ⟨peerStatus.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def peerStatus.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def peerStatus.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"lg" (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)),
 (go.field_decl.FieldDecl go!"local" _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty),
 (go.field_decl.FieldDecl go!"id" _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty),
@@ -8328,17 +8396,17 @@ noncomputable instance peerStatus.zero_val [FfiSyntax] : ZeroVal peerStatus :=
 (go.field_decl.FieldDecl go!"active" go.bool),
 (go.field_decl.FieldDecl go!"since" _root_.Perennial.time.Time.ty)]
 
-@[irreducible] noncomputable def peerStatus.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def peerStatus.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   peerStatus.fieldsUnsealed
 
-noncomputable instance equals_unfold_peerStatus [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_peerStatus [GooseExts] [GoGlobalContext] :
     EqualsUnfold peerStatus.fields peerStatus.fieldsUnsealed :=
   ⟨by unfold peerStatus.fields; rfl⟩
 
-@[reducible] noncomputable def peerStatus.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def peerStatus.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType peerStatus.fields)
 
-class peerStatus.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class peerStatus.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying peerStatus.underlying peerStatus
   underlying : go.UnderlyingDirectedEq peerStatus.ty peerStatus.underlying
   get_lg : ∀ (x : peerStatus), go.IsGoStepPureDetTagged under (StructFieldGet peerStatus.underlying go!"lg") #x (Val #(x.lg'))
@@ -8353,6 +8421,8 @@ class peerStatus.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
   set_active : ∀ (x : peerStatus) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet peerStatus.underlying go!"active") (PairV #x #y) (Val #(({ x with active' := y } : peerStatus)))
   get_since : ∀ (x : peerStatus), go.IsGoStepPureDetTagged under (StructFieldGet peerStatus.underlying go!"since") #x (Val #(x.since'))
   set_since : ∀ (x : peerStatus) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet peerStatus.underlying go!"since") (PairV #x #y) (Val #(({ x with since' := y } : peerStatus)))
+  method_set : go.MethodSetIs peerStatus.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType peerStatus.ty) [(go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.activate", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.activeSince", (some (go.signature.Signature [] false [_root_.Perennial.time.Time.ty]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.deactivate", (some (go.signature.Signature [failureType.ty, go.string] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.isActive", (some (go.signature.Signature [] false [go.bool])))]
   ptr_activate_unfold : MethodUnfold (go.GoType.PointerType peerStatus.ty) go!"activate" peerStatus.activate.impl
   ptr_activeSince_unfold : MethodUnfold (go.GoType.PointerType peerStatus.ty) go!"activeSince" peerStatus.activeSince.impl
   ptr_deactivate_unfold : MethodUnfold (go.GoType.PointerType peerStatus.ty) go!"deactivate" peerStatus.deactivate.impl
@@ -8372,12 +8442,14 @@ attribute [instance] peerStatus.TypeAssumptions.type_repr
   peerStatus.TypeAssumptions.set_active
   peerStatus.TypeAssumptions.get_since
   peerStatus.TypeAssumptions.set_since
+  peerStatus.TypeAssumptions.method_set
+  peerStatus.TypeAssumptions.ptr_method_set
   peerStatus.TypeAssumptions.ptr_activate_unfold
   peerStatus.TypeAssumptions.ptr_activeSince_unfold
   peerStatus.TypeAssumptions.ptr_deactivate_unfold
   peerStatus.TypeAssumptions.ptr_isActive_unfold
 
-structure pipeline [FfiSyntax] where
+structure pipeline [GooseExts] where
   mk ::
   peerID' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID
   tr' : Loc
@@ -8390,10 +8462,10 @@ structure pipeline [FfiSyntax] where
   wg' : _root_.Perennial.sync.WaitGroup
   stopc' : GoChan
 
-noncomputable instance pipeline.zero_val [FfiSyntax] : ZeroVal pipeline :=
+noncomputable instance pipeline.zero_val [GooseExts] : ZeroVal pipeline :=
   ⟨pipeline.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def pipeline.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def pipeline.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"peerID" _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty),
 (go.field_decl.FieldDecl go!"tr" (go.GoType.PointerType Transport.ty)),
 (go.field_decl.FieldDecl go!"picker" (go.GoType.PointerType urlPicker.ty)),
@@ -8405,17 +8477,17 @@ noncomputable instance pipeline.zero_val [FfiSyntax] : ZeroVal pipeline :=
 (go.field_decl.FieldDecl go!"wg" _root_.Perennial.sync.WaitGroup.ty),
 (go.field_decl.FieldDecl go!"stopc" (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])))]
 
-@[irreducible] noncomputable def pipeline.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def pipeline.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   pipeline.fieldsUnsealed
 
-noncomputable instance equals_unfold_pipeline [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_pipeline [GooseExts] [GoGlobalContext] :
     EqualsUnfold pipeline.fields pipeline.fieldsUnsealed :=
   ⟨by unfold pipeline.fields; rfl⟩
 
-@[reducible] noncomputable def pipeline.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def pipeline.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType pipeline.fields)
 
-class pipeline.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class pipeline.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying pipeline.underlying pipeline
   underlying : go.UnderlyingDirectedEq pipeline.ty pipeline.underlying
   get_peerID : ∀ (x : pipeline), go.IsGoStepPureDetTagged under (StructFieldGet pipeline.underlying go!"peerID") #x (Val #(x.peerID'))
@@ -8438,6 +8510,8 @@ class pipeline.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
   set_wg : ∀ (x : pipeline) (y : _root_.Perennial.sync.WaitGroup), go.IsGoStepPureDetTagged under (StructFieldSet pipeline.underlying go!"wg") (PairV #x #y) (Val #(({ x with wg' := y } : pipeline)))
   get_stopc : ∀ (x : pipeline), go.IsGoStepPureDetTagged under (StructFieldGet pipeline.underlying go!"stopc") #x (Val #(x.stopc'))
   set_stopc : ∀ (x : pipeline) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet pipeline.underlying go!"stopc") (PairV #x #y) (Val #(({ x with stopc' := y } : pipeline)))
+  method_set : go.MethodSetIs pipeline.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType pipeline.ty) [(go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.handle", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.post", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.start", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.stop", (some (go.signature.Signature [] false [])))]
   ptr_handle_unfold : MethodUnfold (go.GoType.PointerType pipeline.ty) go!"handle" pipeline.handle.impl
   ptr_post_unfold : MethodUnfold (go.GoType.PointerType pipeline.ty) go!"post" pipeline.post.impl
   ptr_start_unfold : MethodUnfold (go.GoType.PointerType pipeline.ty) go!"start" pipeline.start.impl
@@ -8465,12 +8539,14 @@ attribute [instance] pipeline.TypeAssumptions.type_repr
   pipeline.TypeAssumptions.set_wg
   pipeline.TypeAssumptions.get_stopc
   pipeline.TypeAssumptions.set_stopc
+  pipeline.TypeAssumptions.method_set
+  pipeline.TypeAssumptions.ptr_method_set
   pipeline.TypeAssumptions.ptr_handle_unfold
   pipeline.TypeAssumptions.ptr_post_unfold
   pipeline.TypeAssumptions.ptr_start_unfold
   pipeline.TypeAssumptions.ptr_stop_unfold
 
-structure remote [FfiSyntax] where
+structure remote [GooseExts] where
   mk ::
   lg' : Loc
   localID' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID
@@ -8478,27 +8554,27 @@ structure remote [FfiSyntax] where
   status' : Loc
   pipeline' : Loc
 
-noncomputable instance remote.zero_val [FfiSyntax] : ZeroVal remote :=
+noncomputable instance remote.zero_val [GooseExts] : ZeroVal remote :=
   ⟨remote.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def remote.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def remote.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"lg" (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)),
 (go.field_decl.FieldDecl go!"localID" _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty),
 (go.field_decl.FieldDecl go!"id" _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty),
 (go.field_decl.FieldDecl go!"status" (go.GoType.PointerType peerStatus.ty)),
 (go.field_decl.FieldDecl go!"pipeline" (go.GoType.PointerType pipeline.ty))]
 
-@[irreducible] noncomputable def remote.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def remote.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   remote.fieldsUnsealed
 
-noncomputable instance equals_unfold_remote [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_remote [GooseExts] [GoGlobalContext] :
     EqualsUnfold remote.fields remote.fieldsUnsealed :=
   ⟨by unfold remote.fields; rfl⟩
 
-@[reducible] noncomputable def remote.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def remote.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType remote.fields)
 
-class remote.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class remote.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying remote.underlying remote
   underlying : go.UnderlyingDirectedEq remote.ty remote.underlying
   get_lg : ∀ (x : remote), go.IsGoStepPureDetTagged under (StructFieldGet remote.underlying go!"lg") #x (Val #(x.lg'))
@@ -8511,6 +8587,8 @@ class remote.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoS
   set_status : ∀ (x : remote) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet remote.underlying go!"status") (PairV #x #y) (Val #(({ x with status' := y } : remote)))
   get_pipeline : ∀ (x : remote), go.IsGoStepPureDetTagged under (StructFieldGet remote.underlying go!"pipeline") #x (Val #(x.pipeline'))
   set_pipeline : ∀ (x : remote) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet remote.underlying go!"pipeline") (PairV #x #y) (Val #(({ x with pipeline' := y } : remote)))
+  method_set : go.MethodSetIs remote.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType remote.ty) [(go!"Pause", (some (go.signature.Signature [] false []))), (go!"Resume", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.send", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.stop", (some (go.signature.Signature [] false [])))]
   ptr_Pause_unfold : MethodUnfold (go.GoType.PointerType remote.ty) go!"Pause" remote.Pause.impl
   ptr_Resume_unfold : MethodUnfold (go.GoType.PointerType remote.ty) go!"Resume" remote.Resume.impl
   ptr_send_unfold : MethodUnfold (go.GoType.PointerType remote.ty) go!"send" remote.send.impl
@@ -8528,12 +8606,14 @@ attribute [instance] remote.TypeAssumptions.type_repr
   remote.TypeAssumptions.set_status
   remote.TypeAssumptions.get_pipeline
   remote.TypeAssumptions.set_pipeline
+  remote.TypeAssumptions.method_set
+  remote.TypeAssumptions.ptr_method_set
   remote.TypeAssumptions.ptr_Pause_unfold
   remote.TypeAssumptions.ptr_Resume_unfold
   remote.TypeAssumptions.ptr_send_unfold
   remote.TypeAssumptions.ptr_stop_unfold
 
-structure snapshotSender [FfiSyntax] where
+structure snapshotSender [GooseExts] where
   mk ::
   from' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID
   to' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID
@@ -8545,10 +8625,10 @@ structure snapshotSender [FfiSyntax] where
   errorc' : GoChan
   stopc' : GoChan
 
-noncomputable instance snapshotSender.zero_val [FfiSyntax] : ZeroVal snapshotSender :=
+noncomputable instance snapshotSender.zero_val [GooseExts] : ZeroVal snapshotSender :=
   ⟨snapshotSender.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def snapshotSender.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def snapshotSender.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"from" _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty),
 (go.field_decl.FieldDecl go!"to" _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty),
 (go.field_decl.FieldDecl go!"cid" _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty),
@@ -8559,17 +8639,17 @@ noncomputable instance snapshotSender.zero_val [FfiSyntax] : ZeroVal snapshotSen
 (go.field_decl.FieldDecl go!"errorc" (go.GoType.ChannelType go.ChanDir.sendrecv go.error)),
 (go.field_decl.FieldDecl go!"stopc" (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])))]
 
-@[irreducible] noncomputable def snapshotSender.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def snapshotSender.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   snapshotSender.fieldsUnsealed
 
-noncomputable instance equals_unfold_snapshotSender [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_snapshotSender [GooseExts] [GoGlobalContext] :
     EqualsUnfold snapshotSender.fields snapshotSender.fieldsUnsealed :=
   ⟨by unfold snapshotSender.fields; rfl⟩
 
-@[reducible] noncomputable def snapshotSender.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def snapshotSender.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType snapshotSender.fields)
 
-class snapshotSender.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class snapshotSender.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying snapshotSender.underlying snapshotSender
   underlying : go.UnderlyingDirectedEq snapshotSender.ty snapshotSender.underlying
   get_from : ∀ (x : snapshotSender), go.IsGoStepPureDetTagged under (StructFieldGet snapshotSender.underlying go!"from") #x (Val #(x.from'))
@@ -8590,6 +8670,8 @@ class snapshotSender.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalConte
   set_errorc : ∀ (x : snapshotSender) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet snapshotSender.underlying go!"errorc") (PairV #x #y) (Val #(({ x with errorc' := y } : snapshotSender)))
   get_stopc : ∀ (x : snapshotSender), go.IsGoStepPureDetTagged under (StructFieldGet snapshotSender.underlying go!"stopc") #x (Val #(x.stopc'))
   set_stopc : ∀ (x : snapshotSender) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet snapshotSender.underlying go!"stopc") (PairV #x #y) (Val #(({ x with stopc' := y } : snapshotSender)))
+  method_set : go.MethodSetIs snapshotSender.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType snapshotSender.ty) [(go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.post", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.net.http.Request.ty)] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.send", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.stop", (some (go.signature.Signature [] false [])))]
   ptr_post_unfold : MethodUnfold (go.GoType.PointerType snapshotSender.ty) go!"post" snapshotSender.post.impl
   ptr_send_unfold : MethodUnfold (go.GoType.PointerType snapshotSender.ty) go!"send" snapshotSender.send.impl
   ptr_stop_unfold : MethodUnfold (go.GoType.PointerType snapshotSender.ty) go!"stop" snapshotSender.stop.impl
@@ -8614,35 +8696,37 @@ attribute [instance] snapshotSender.TypeAssumptions.type_repr
   snapshotSender.TypeAssumptions.set_errorc
   snapshotSender.TypeAssumptions.get_stopc
   snapshotSender.TypeAssumptions.set_stopc
+  snapshotSender.TypeAssumptions.method_set
+  snapshotSender.TypeAssumptions.ptr_method_set
   snapshotSender.TypeAssumptions.ptr_post_unfold
   snapshotSender.TypeAssumptions.ptr_send_unfold
   snapshotSender.TypeAssumptions.ptr_stop_unfold
 
-structure responseAndError [FfiSyntax] where
+structure responseAndError [GooseExts] where
   mk ::
   resp' : Loc
   body' : GoSlice
   err' : GoError
 
-noncomputable instance responseAndError.zero_val [FfiSyntax] : ZeroVal responseAndError :=
+noncomputable instance responseAndError.zero_val [GooseExts] : ZeroVal responseAndError :=
   ⟨responseAndError.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def responseAndError.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def responseAndError.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"resp" (go.GoType.PointerType _root_.Perennial.net.http.Response.ty)),
 (go.field_decl.FieldDecl go!"body" (go.GoType.SliceType go.byte)),
 (go.field_decl.FieldDecl go!"err" go.error)]
 
-@[irreducible] noncomputable def responseAndError.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def responseAndError.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   responseAndError.fieldsUnsealed
 
-noncomputable instance equals_unfold_responseAndError [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_responseAndError [GooseExts] [GoGlobalContext] :
     EqualsUnfold responseAndError.fields responseAndError.fieldsUnsealed :=
   ⟨by unfold responseAndError.fields; rfl⟩
 
-@[reducible] noncomputable def responseAndError.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def responseAndError.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType responseAndError.fields)
 
-class responseAndError.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class responseAndError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying responseAndError.underlying responseAndError
   underlying : go.UnderlyingDirectedEq responseAndError.ty responseAndError.underlying
   get_resp : ∀ (x : responseAndError), go.IsGoStepPureDetTagged under (StructFieldGet responseAndError.underlying go!"resp") #x (Val #(x.resp'))
@@ -8651,6 +8735,8 @@ class responseAndError.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCon
   set_body : ∀ (x : responseAndError) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet responseAndError.underlying go!"body") (PairV #x #y) (Val #(({ x with body' := y } : responseAndError)))
   get_err : ∀ (x : responseAndError), go.IsGoStepPureDetTagged under (StructFieldGet responseAndError.underlying go!"err") #x (Val #(x.err'))
   set_err : ∀ (x : responseAndError) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet responseAndError.underlying go!"err") (PairV #x #y) (Val #(({ x with err' := y } : responseAndError)))
+  method_set : go.MethodSetIs responseAndError.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType responseAndError.ty) []
 
 attribute [instance] responseAndError.TypeAssumptions.type_repr
   responseAndError.TypeAssumptions.underlying
@@ -8660,14 +8746,18 @@ attribute [instance] responseAndError.TypeAssumptions.type_repr
   responseAndError.TypeAssumptions.set_body
   responseAndError.TypeAssumptions.get_err
   responseAndError.TypeAssumptions.set_err
+  responseAndError.TypeAssumptions.method_set
+  responseAndError.TypeAssumptions.ptr_method_set
 
-abbrev streamType [FfiSyntax] : Type := GoString
+abbrev streamType [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def streamType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def streamType.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-class streamType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class streamType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq streamType.ty streamType.underlying
+  method_set : go.MethodSetIs streamType.ty [(go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.endpoint", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType streamType.ty) [(go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.endpoint", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)] false [go.string])))]
   String_unfold : MethodUnfold streamType.ty go!"String" streamType.String.impl
   endpoint_unfold : MethodUnfold streamType.ty go!"endpoint" streamType.endpoint.impl
   ptr_String_unfold : MethodUnfold (go.GoType.PointerType streamType.ty) go!"String" (LamV "$r"
@@ -8676,12 +8766,14 @@ class streamType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
 (App (Val (GoInstruction (MethodResolve streamType.ty go!"endpoint"))) (App (Val (GoInstruction (GoLoad streamType.ty))) (Var "$r"))))
 
 attribute [instance] streamType.TypeAssumptions.underlying
+  streamType.TypeAssumptions.method_set
+  streamType.TypeAssumptions.ptr_method_set
   streamType.TypeAssumptions.String_unfold
   streamType.TypeAssumptions.endpoint_unfold
   streamType.TypeAssumptions.ptr_String_unfold
   streamType.TypeAssumptions.ptr_endpoint_unfold
 
-structure outgoingConn [FfiSyntax] where
+structure outgoingConn [GooseExts] where
   mk ::
   t' : streamType
   Writer' : _root_.Perennial.io.Writer
@@ -8690,10 +8782,10 @@ structure outgoingConn [FfiSyntax] where
   localID' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID
   peerID' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID
 
-noncomputable instance outgoingConn.zero_val [FfiSyntax] : ZeroVal outgoingConn :=
+noncomputable instance outgoingConn.zero_val [GooseExts] : ZeroVal outgoingConn :=
   ⟨outgoingConn.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def outgoingConn.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def outgoingConn.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"t" streamType.ty),
 (go.field_decl.EmbeddedField go!"Writer" _root_.Perennial.io.Writer.ty),
 (go.field_decl.EmbeddedField go!"Flusher" _root_.Perennial.net.http.Flusher.ty),
@@ -8701,17 +8793,17 @@ noncomputable instance outgoingConn.zero_val [FfiSyntax] : ZeroVal outgoingConn 
 (go.field_decl.FieldDecl go!"localID" _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty),
 (go.field_decl.FieldDecl go!"peerID" _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty)]
 
-@[irreducible] noncomputable def outgoingConn.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def outgoingConn.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   outgoingConn.fieldsUnsealed
 
-noncomputable instance equals_unfold_outgoingConn [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_outgoingConn [GooseExts] [GoGlobalContext] :
     EqualsUnfold outgoingConn.fields outgoingConn.fieldsUnsealed :=
   ⟨by unfold outgoingConn.fields; rfl⟩
 
-@[reducible] noncomputable def outgoingConn.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def outgoingConn.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType outgoingConn.fields)
 
-class outgoingConn.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class outgoingConn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying outgoingConn.underlying outgoingConn
   underlying : go.UnderlyingDirectedEq outgoingConn.ty outgoingConn.underlying
   get_t : ∀ (x : outgoingConn), go.IsGoStepPureDetTagged under (StructFieldGet outgoingConn.underlying go!"t") #x (Val #(x.t'))
@@ -8726,6 +8818,8 @@ class outgoingConn.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext
   set_localID : ∀ (x : outgoingConn) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID), go.IsGoStepPureDetTagged under (StructFieldSet outgoingConn.underlying go!"localID") (PairV #x #y) (Val #(({ x with localID' := y } : outgoingConn)))
   get_peerID : ∀ (x : outgoingConn), go.IsGoStepPureDetTagged under (StructFieldGet outgoingConn.underlying go!"peerID") #x (Val #(x.peerID'))
   set_peerID : ∀ (x : outgoingConn) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID), go.IsGoStepPureDetTagged under (StructFieldSet outgoingConn.underlying go!"peerID") (PairV #x #y) (Val #(({ x with peerID' := y } : outgoingConn)))
+  method_set : go.MethodSetIs outgoingConn.ty [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Flush", (some (go.signature.Signature [] false []))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType outgoingConn.ty) [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Flush", (some (go.signature.Signature [] false []))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
   Close_unfold : MethodUnfold outgoingConn.ty go!"Close" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.io.Closer.ty go!"Close"))) (App (Val (GoInstruction (StructFieldGet outgoingConn.ty go!"Closer"))) (Var "$r"))))
   Flush_unfold : MethodUnfold outgoingConn.ty go!"Flush" (LamV "$r"
@@ -8753,6 +8847,8 @@ attribute [instance] outgoingConn.TypeAssumptions.type_repr
   outgoingConn.TypeAssumptions.set_localID
   outgoingConn.TypeAssumptions.get_peerID
   outgoingConn.TypeAssumptions.set_peerID
+  outgoingConn.TypeAssumptions.method_set
+  outgoingConn.TypeAssumptions.ptr_method_set
   outgoingConn.TypeAssumptions.Close_unfold
   outgoingConn.TypeAssumptions.Flush_unfold
   outgoingConn.TypeAssumptions.Write_unfold
@@ -8760,7 +8856,7 @@ attribute [instance] outgoingConn.TypeAssumptions.type_repr
   outgoingConn.TypeAssumptions.ptr_Flush_unfold
   outgoingConn.TypeAssumptions.ptr_Write_unfold
 
-structure streamWriter [FfiSyntax] where
+structure streamWriter [GooseExts] where
   mk ::
   lg' : Loc
   localID' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID
@@ -8776,10 +8872,10 @@ structure streamWriter [FfiSyntax] where
   stopc' : GoChan
   done' : GoChan
 
-noncomputable instance streamWriter.zero_val [FfiSyntax] : ZeroVal streamWriter :=
+noncomputable instance streamWriter.zero_val [GooseExts] : ZeroVal streamWriter :=
   ⟨streamWriter.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def streamWriter.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def streamWriter.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"lg" (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)),
 (go.field_decl.FieldDecl go!"localID" _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty),
 (go.field_decl.FieldDecl go!"peerID" _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty),
@@ -8794,17 +8890,17 @@ noncomputable instance streamWriter.zero_val [FfiSyntax] : ZeroVal streamWriter 
 (go.field_decl.FieldDecl go!"stopc" (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))),
 (go.field_decl.FieldDecl go!"done" (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])))]
 
-@[irreducible] noncomputable def streamWriter.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def streamWriter.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   streamWriter.fieldsUnsealed
 
-noncomputable instance equals_unfold_streamWriter [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_streamWriter [GooseExts] [GoGlobalContext] :
     EqualsUnfold streamWriter.fields streamWriter.fieldsUnsealed :=
   ⟨by unfold streamWriter.fields; rfl⟩
 
-@[reducible] noncomputable def streamWriter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def streamWriter.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType streamWriter.fields)
 
-class streamWriter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class streamWriter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying streamWriter.underlying streamWriter
   underlying : go.UnderlyingDirectedEq streamWriter.ty streamWriter.underlying
   get_lg : ∀ (x : streamWriter), go.IsGoStepPureDetTagged under (StructFieldGet streamWriter.underlying go!"lg") #x (Val #(x.lg'))
@@ -8833,6 +8929,8 @@ class streamWriter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext
   set_stopc : ∀ (x : streamWriter) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet streamWriter.underlying go!"stopc") (PairV #x #y) (Val #(({ x with stopc' := y } : streamWriter)))
   get_done : ∀ (x : streamWriter), go.IsGoStepPureDetTagged under (StructFieldGet streamWriter.underlying go!"done") #x (Val #(x.done'))
   set_done : ∀ (x : streamWriter) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet streamWriter.underlying go!"done") (PairV #x #y) (Val #(({ x with done' := y } : streamWriter)))
+  method_set : go.MethodSetIs streamWriter.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType streamWriter.ty) [(go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.attach", (some (go.signature.Signature [(go.GoType.PointerType outgoingConn.ty)] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.close", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.closeUnlocked", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.run", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.stop", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.writec", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)), go.bool])))]
   ptr_attach_unfold : MethodUnfold (go.GoType.PointerType streamWriter.ty) go!"attach" streamWriter.attach.impl
   ptr_close_unfold : MethodUnfold (go.GoType.PointerType streamWriter.ty) go!"close" streamWriter.close.impl
   ptr_closeUnlocked_unfold : MethodUnfold (go.GoType.PointerType streamWriter.ty) go!"closeUnlocked" streamWriter.closeUnlocked.impl
@@ -8868,6 +8966,8 @@ attribute [instance] streamWriter.TypeAssumptions.type_repr
   streamWriter.TypeAssumptions.set_stopc
   streamWriter.TypeAssumptions.get_done
   streamWriter.TypeAssumptions.set_done
+  streamWriter.TypeAssumptions.method_set
+  streamWriter.TypeAssumptions.ptr_method_set
   streamWriter.TypeAssumptions.ptr_attach_unfold
   streamWriter.TypeAssumptions.ptr_close_unfold
   streamWriter.TypeAssumptions.ptr_closeUnlocked_unfold
@@ -8875,7 +8975,7 @@ attribute [instance] streamWriter.TypeAssumptions.type_repr
   streamWriter.TypeAssumptions.ptr_stop_unfold
   streamWriter.TypeAssumptions.ptr_writec_unfold
 
-structure streamReader [FfiSyntax] where
+structure streamReader [GooseExts] where
   mk ::
   lg' : Loc
   peerID' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID
@@ -8894,10 +8994,10 @@ structure streamReader [FfiSyntax] where
   cancel' : _root_.Perennial.context.CancelFunc
   done' : GoChan
 
-noncomputable instance streamReader.zero_val [FfiSyntax] : ZeroVal streamReader :=
+noncomputable instance streamReader.zero_val [GooseExts] : ZeroVal streamReader :=
   ⟨streamReader.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def streamReader.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def streamReader.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"lg" (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)),
 (go.field_decl.FieldDecl go!"peerID" _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty),
 (go.field_decl.FieldDecl go!"typ" streamType.ty),
@@ -8915,17 +9015,17 @@ noncomputable instance streamReader.zero_val [FfiSyntax] : ZeroVal streamReader 
 (go.field_decl.FieldDecl go!"cancel" _root_.Perennial.context.CancelFunc.ty),
 (go.field_decl.FieldDecl go!"done" (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])))]
 
-@[irreducible] noncomputable def streamReader.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def streamReader.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   streamReader.fieldsUnsealed
 
-noncomputable instance equals_unfold_streamReader [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_streamReader [GooseExts] [GoGlobalContext] :
     EqualsUnfold streamReader.fields streamReader.fieldsUnsealed :=
   ⟨by unfold streamReader.fields; rfl⟩
 
-@[reducible] noncomputable def streamReader.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def streamReader.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType streamReader.fields)
 
-class streamReader.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class streamReader.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying streamReader.underlying streamReader
   underlying : go.UnderlyingDirectedEq streamReader.ty streamReader.underlying
   get_lg : ∀ (x : streamReader), go.IsGoStepPureDetTagged under (StructFieldGet streamReader.underlying go!"lg") #x (Val #(x.lg'))
@@ -8960,6 +9060,8 @@ class streamReader.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext
   set_cancel : ∀ (x : streamReader) (y : _root_.Perennial.context.CancelFunc), go.IsGoStepPureDetTagged under (StructFieldSet streamReader.underlying go!"cancel") (PairV #x #y) (Val #(({ x with cancel' := y } : streamReader)))
   get_done : ∀ (x : streamReader), go.IsGoStepPureDetTagged under (StructFieldGet streamReader.underlying go!"done") #x (Val #(x.done'))
   set_done : ∀ (x : streamReader) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet streamReader.underlying go!"done") (PairV #x #y) (Val #(({ x with done' := y } : streamReader)))
+  method_set : go.MethodSetIs streamReader.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType streamReader.ty) [(go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.close", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.decodeLoop", (some (go.signature.Signature [_root_.Perennial.io.ReadCloser.ty, streamType.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.dial", (some (go.signature.Signature [streamType.ty] false [_root_.Perennial.io.ReadCloser.ty, go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.pause", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.resume", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.run", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.start", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.stop", (some (go.signature.Signature [] false [])))]
   ptr_close_unfold : MethodUnfold (go.GoType.PointerType streamReader.ty) go!"close" streamReader.close.impl
   ptr_decodeLoop_unfold : MethodUnfold (go.GoType.PointerType streamReader.ty) go!"decodeLoop" streamReader.decodeLoop.impl
   ptr_dial_unfold : MethodUnfold (go.GoType.PointerType streamReader.ty) go!"dial" streamReader.dial.impl
@@ -9003,6 +9105,8 @@ attribute [instance] streamReader.TypeAssumptions.type_repr
   streamReader.TypeAssumptions.set_cancel
   streamReader.TypeAssumptions.get_done
   streamReader.TypeAssumptions.set_done
+  streamReader.TypeAssumptions.method_set
+  streamReader.TypeAssumptions.ptr_method_set
   streamReader.TypeAssumptions.ptr_close_unfold
   streamReader.TypeAssumptions.ptr_decodeLoop_unfold
   streamReader.TypeAssumptions.ptr_dial_unfold
@@ -9012,7 +9116,7 @@ attribute [instance] streamReader.TypeAssumptions.type_repr
   streamReader.TypeAssumptions.ptr_start_unfold
   streamReader.TypeAssumptions.ptr_stop_unfold
 
-structure Transport [FfiSyntax] where
+structure Transport [GooseExts] where
   mk ::
   Logger' : Loc
   DialTimeout' : _root_.Perennial.time.Duration
@@ -9034,10 +9138,10 @@ structure Transport [FfiSyntax] where
   pipelineProber' : _root_.Perennial.github_com.xiang90.probing.Prober
   streamProber' : _root_.Perennial.github_com.xiang90.probing.Prober
 
-noncomputable instance Transport.zero_val [FfiSyntax] : ZeroVal Transport :=
+noncomputable instance Transport.zero_val [GooseExts] : ZeroVal Transport :=
   ⟨Transport.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Transport.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Transport.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Logger" (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)),
 (go.field_decl.FieldDecl go!"DialTimeout" _root_.Perennial.time.Duration.ty),
 (go.field_decl.FieldDecl go!"DialRetryFrequency" _root_.Perennial.golang_org.x.time.rate.Limit.ty),
@@ -9058,17 +9162,17 @@ noncomputable instance Transport.zero_val [FfiSyntax] : ZeroVal Transport :=
 (go.field_decl.FieldDecl go!"pipelineProber" _root_.Perennial.github_com.xiang90.probing.Prober.ty),
 (go.field_decl.FieldDecl go!"streamProber" _root_.Perennial.github_com.xiang90.probing.Prober.ty)]
 
-@[irreducible] noncomputable def Transport.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Transport.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Transport.fieldsUnsealed
 
-noncomputable instance equals_unfold_Transport [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Transport [GooseExts] [GoGlobalContext] :
     EqualsUnfold Transport.fields Transport.fieldsUnsealed :=
   ⟨by unfold Transport.fields; rfl⟩
 
-@[reducible] noncomputable def Transport.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Transport.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Transport.fields)
 
-class Transport.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Transport.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Transport.underlying Transport
   underlying : go.UnderlyingDirectedEq Transport.ty Transport.underlying
   get_Logger : ∀ (x : Transport), go.IsGoStepPureDetTagged under (StructFieldGet Transport.underlying go!"Logger") #x (Val #(x.Logger'))
@@ -9109,6 +9213,8 @@ class Transport.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [
   set_pipelineProber : ∀ (x : Transport) (y : _root_.Perennial.github_com.xiang90.probing.Prober), go.IsGoStepPureDetTagged under (StructFieldSet Transport.underlying go!"pipelineProber") (PairV #x #y) (Val #(({ x with pipelineProber' := y } : Transport)))
   get_streamProber : ∀ (x : Transport), go.IsGoStepPureDetTagged under (StructFieldGet Transport.underlying go!"streamProber") #x (Val #(x.streamProber'))
   set_streamProber : ∀ (x : Transport) (y : _root_.Perennial.github_com.xiang90.probing.Prober), go.IsGoStepPureDetTagged under (StructFieldSet Transport.underlying go!"streamProber") (PairV #x #y) (Val #(({ x with streamProber' := y } : Transport)))
+  method_set : go.MethodSetIs Transport.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Transport.ty) [(go!"ActivePeers", (some (go.signature.Signature [] false [go.int]))), (go!"ActiveSince", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [_root_.Perennial.time.Time.ty]))), (go!"AddPeer", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty, (go.GoType.SliceType go.string)] false []))), (go!"AddRemote", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty, (go.GoType.SliceType go.string)] false []))), (go!"CutPeer", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false []))), (go!"Get", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [Peer.ty]))), (go!"Handler", (some (go.signature.Signature [] false [_root_.Perennial.net.http.Handler.ty]))), (go!"MendPeer", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false []))), (go!"Pause", (some (go.signature.Signature [] false []))), (go!"RemoveAllPeers", (some (go.signature.Signature [] false []))), (go!"RemovePeer", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false []))), (go!"Resume", (some (go.signature.Signature [] false []))), (go!"Send", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))] false []))), (go!"SendSnapshot", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.snap.Message.ty)] false []))), (go!"Start", (some (go.signature.Signature [] false [go.error]))), (go!"Stop", (some (go.signature.Signature [] false []))), (go!"UpdatePeer", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty, (go.GoType.SliceType go.string)] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.removePeer", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [])))]
   ptr_ActivePeers_unfold : MethodUnfold (go.GoType.PointerType Transport.ty) go!"ActivePeers" Transport.ActivePeers.impl
   ptr_ActiveSince_unfold : MethodUnfold (go.GoType.PointerType Transport.ty) go!"ActiveSince" Transport.ActiveSince.impl
   ptr_AddPeer_unfold : MethodUnfold (go.GoType.PointerType Transport.ty) go!"AddPeer" Transport.AddPeer.impl
@@ -9168,6 +9274,8 @@ attribute [instance] Transport.TypeAssumptions.type_repr
   Transport.TypeAssumptions.set_pipelineProber
   Transport.TypeAssumptions.get_streamProber
   Transport.TypeAssumptions.set_streamProber
+  Transport.TypeAssumptions.method_set
+  Transport.TypeAssumptions.ptr_method_set
   Transport.TypeAssumptions.ptr_ActivePeers_unfold
   Transport.TypeAssumptions.ptr_ActiveSince_unfold
   Transport.TypeAssumptions.ptr_AddPeer_unfold
@@ -9187,41 +9295,45 @@ attribute [instance] Transport.TypeAssumptions.type_repr
   Transport.TypeAssumptions.ptr_UpdatePeer_unfold
   Transport.TypeAssumptions.ptr_removePeer_unfold
 
-abbrev Pausable [FfiSyntax] : Type := GoInterface
+abbrev Pausable [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def Pausable.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Pausable.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Pause" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"Resume" (go.signature.Signature [] false []))])
 
-class Pausable.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Pausable.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Pausable.ty Pausable.underlying
+  method_set : go.MethodSetIs Pausable.ty [(go!"Pause", (some (go.signature.Signature [] false []))), (go!"Resume", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Pausable.ty) []
 
 attribute [instance] Pausable.TypeAssumptions.underlying
+  Pausable.TypeAssumptions.method_set
+  Pausable.TypeAssumptions.ptr_method_set
 
-structure urlPicker [FfiSyntax] where
+structure urlPicker [GooseExts] where
   mk ::
   mu' : _root_.Perennial.sync.Mutex
   urls' : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs
   picked' : w64
 
-noncomputable instance urlPicker.zero_val [FfiSyntax] : ZeroVal urlPicker :=
+noncomputable instance urlPicker.zero_val [GooseExts] : ZeroVal urlPicker :=
   ⟨urlPicker.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def urlPicker.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def urlPicker.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"mu" _root_.Perennial.sync.Mutex.ty),
 (go.field_decl.FieldDecl go!"urls" _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty),
 (go.field_decl.FieldDecl go!"picked" go.int)]
 
-@[irreducible] noncomputable def urlPicker.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def urlPicker.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   urlPicker.fieldsUnsealed
 
-noncomputable instance equals_unfold_urlPicker [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_urlPicker [GooseExts] [GoGlobalContext] :
     EqualsUnfold urlPicker.fields urlPicker.fieldsUnsealed :=
   ⟨by unfold urlPicker.fields; rfl⟩
 
-@[reducible] noncomputable def urlPicker.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def urlPicker.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType urlPicker.fields)
 
-class urlPicker.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class urlPicker.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying urlPicker.underlying urlPicker
   underlying : go.UnderlyingDirectedEq urlPicker.ty urlPicker.underlying
   get_mu : ∀ (x : urlPicker), go.IsGoStepPureDetTagged under (StructFieldGet urlPicker.underlying go!"mu") #x (Val #(x.mu'))
@@ -9230,6 +9342,8 @@ class urlPicker.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [
   set_urls : ∀ (x : urlPicker) (y : _root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs), go.IsGoStepPureDetTagged under (StructFieldSet urlPicker.underlying go!"urls") (PairV #x #y) (Val #(({ x with urls' := y } : urlPicker)))
   get_picked : ∀ (x : urlPicker), go.IsGoStepPureDetTagged under (StructFieldGet urlPicker.underlying go!"picked") #x (Val #(x.picked'))
   set_picked : ∀ (x : urlPicker) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet urlPicker.underlying go!"picked") (PairV #x #y) (Val #(({ x with picked' := y } : urlPicker)))
+  method_set : go.MethodSetIs urlPicker.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType urlPicker.ty) [(go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.pick", (some (go.signature.Signature [] false [_root_.Perennial.net.url.URL.ty]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.unreachable", (some (go.signature.Signature [_root_.Perennial.net.url.URL.ty] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/rafthttp.update", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.URLs.ty] false [])))]
   ptr_pick_unfold : MethodUnfold (go.GoType.PointerType urlPicker.ty) go!"pick" urlPicker.pick.impl
   ptr_unreachable_unfold : MethodUnfold (go.GoType.PointerType urlPicker.ty) go!"unreachable" urlPicker.unreachable.impl
   ptr_update_unfold : MethodUnfold (go.GoType.PointerType urlPicker.ty) go!"update" urlPicker.update.impl
@@ -9242,11 +9356,13 @@ attribute [instance] urlPicker.TypeAssumptions.type_repr
   urlPicker.TypeAssumptions.set_urls
   urlPicker.TypeAssumptions.get_picked
   urlPicker.TypeAssumptions.set_picked
+  urlPicker.TypeAssumptions.method_set
+  urlPicker.TypeAssumptions.ptr_method_set
   urlPicker.TypeAssumptions.ptr_pick_unfold
   urlPicker.TypeAssumptions.ptr_unreachable_unfold
   urlPicker.TypeAssumptions.ptr_update_unfold
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   encoder_instance : encoder.TypeAssumptions
   decoder_instance : decoder.TypeAssumptions
   peerGetter_instance : peerGetter.TypeAssumptions

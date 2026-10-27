@@ -50,7 +50,7 @@ once). -/
 def srvAuthSt0 : auth.AuthState := auth.bump auth.bootState
 
 section pure
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- **The committed log's shapes in the auth mode `on`**: `logShape` off, `logShapeOn` on. -/
 def logShapeM (on : Bool) (L : List EntryModel) : Prop :=
@@ -87,7 +87,7 @@ theorem kvModelM_true (γk : KVNames) (L : List EntryModel) :
 end pure
 
 section appliedM
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -150,7 +150,7 @@ theorem srvAppliedInvM_false (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
 end appliedM
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -339,7 +339,9 @@ def srvBuiltG (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
     "#Hcv" ∷ clusterVersionOk s ∗
     "%Hbound" ∷ ⌜threadBound GF ≤ 2 ^ 31⌝ ∗
     "Hua" ∷ srvUberRowM on s E x₀ ∗
-    "Hwtok" ∷ idWaitTok ρ.ids)
+    "Hwtok" ∷ idWaitTok ρ.ids ∗
+    -- (2026-10-26, D22 J1a) what the snapshot path takes of the construction (`SnapRO.lean`)
+    "Hsnapb" ∷ srvSnapBoot s ci E γr)
 
 theorem srvBuiltG_false (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames)
@@ -350,7 +352,7 @@ theorem srvBuiltG_false (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → 
 end defs
 
 section lemmas
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -386,7 +388,7 @@ theorem applyBuiltNAM_of_On (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (
 end lemmas
 
 section lemmas
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

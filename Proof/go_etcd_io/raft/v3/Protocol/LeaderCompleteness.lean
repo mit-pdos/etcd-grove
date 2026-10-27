@@ -28,7 +28,7 @@ namespace EtcdGrove
 open Iris Iris.BI GMap go_etcd_io.raft.v3
 
 section ghost
-variable [FfiSyntax]
+variable [GooseExts]
 variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 
 /-! ### Leader Completeness, over the vote table (2026-10-05)

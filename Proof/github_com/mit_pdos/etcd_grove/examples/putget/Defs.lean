@@ -55,7 +55,7 @@ namespace putget
 open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.raft.v3
 
 section pure
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- **The server's conf-change policy for the one-member cluster `{id}`** (`srvCCPolicy`'s
 clauses, D19c): a v1 conf change, a `ConfChange` encoding of id `0`, which changes nothing of the
@@ -93,7 +93,7 @@ def putgetDir (id : w64) : w64 → List GoString := dirOne id go!"http://127.0.0
 end pure
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

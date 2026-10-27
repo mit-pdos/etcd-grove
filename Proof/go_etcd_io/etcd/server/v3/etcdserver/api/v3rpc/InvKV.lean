@@ -84,7 +84,7 @@ def txnAllCheck (n : Int) (cs : List CmpModel) (ts es : List ReqOp) : Option Che
     | _, _ => some .duplicateKey
 
 section srvM
-variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
 /-- `*EtcdServer` `s`'s method `m`. -/
 abbrev srvM (s : Loc) (m : GoString) : val :=
@@ -93,7 +93,7 @@ abbrev srvM (s : Loc) (m : GoString) : val :=
 end srvM
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -306,7 +306,7 @@ inductive KVReq where
 
 /-- **The parameters of the server's contract** (`raftKV`), which units 2 and 3 instantiate (see
 the file header). -/
-structure KVAns [FfiSyntax] (GF : BundledGFunctors) where
+structure KVAns [GooseExts] (GF : BundledGFunctors) where
   /-- What a call needs, of its context `ctx` and per request. -/
   call : GoInterface → IProp GF
   /-- What a request must satisfy beyond its check (2026-10-12, unit 3b: the server's read-only
@@ -320,7 +320,7 @@ structure KVAns [FfiSyntax] (GF : BundledGFunctors) where
   revR : IProp GF
 
 section contract
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

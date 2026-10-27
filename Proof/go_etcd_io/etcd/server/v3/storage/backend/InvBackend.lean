@@ -98,7 +98,7 @@ structure BNames where
   cln : GName
 
 section phys
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- The read side's layout: the interval's bbolt read transaction (null once the backend
 stopped) and `WaitGroup` (with the protocol's ghost names), the current state's index in the
@@ -141,7 +141,7 @@ def rdMax : Nat := 2 ^ 31 - 2
 def qsum (outs : GMap Nat Qp) : Rat := (outs.toList.map (fun x => ((x.2 : Qp) : Rat))).sum
 
 section addrs
-variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
 abbrev bF (f : GoString) (b : Loc) : Loc := structFieldRef backend f b
 abbrev btOf (t : Loc) : Loc := structFieldRef batchTxBuffered go!"batchTx" t
@@ -167,7 +167,7 @@ abbrev cverOf (b : Loc) : Loc := structFieldRef txReadBufferCache go!"bufVersion
 end addrs
 
 section preds
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -745,7 +745,7 @@ theorem rtHeld_eq (γ : BNames) (P : BParams) (b : Loc) (rtx : Loc) (rv : RView)
 end preds
 
 section shares
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 

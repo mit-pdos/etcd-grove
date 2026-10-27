@@ -50,7 +50,7 @@ namespace go_etcd_io.etcd.client.v3
 
 /-- The pinned translator's output for `(*Client).dialWithBalancer`, with grpc's
 `resolver.Builder` for the type it misnames (see the file header). -/
-noncomputable def Client.dialWithBalancer.trustedImpl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Client.dialWithBalancer.trustedImpl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "dopts"
   (App (Val exceptionDo)
@@ -82,7 +82,7 @@ noncomputable def Client.dialWithBalancer.trustedImpl [FfiSyntax] [GoGlobalConte
 
 /-- **`(*Client).dialWithBalancer`'s body, and grpc `resolver.Builder`'s underlying type** (a
 hypothesis on the semantics in use; see the file header). -/
-class DialWithBalancerBody [FfiSyntax] [GoGlobalContext] [GoLocalContext]
+class DialWithBalancerBody [GooseExts] [GoGlobalContext] [GoLocalContext]
     [GoSemanticsFunctions] : Prop where
   /-- The method's body is `trustedImpl`: what the generated `Client.TypeAssumptions` would hold
   as `ptr_dialWithBalancer_unfold`. -/

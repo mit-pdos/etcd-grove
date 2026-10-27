@@ -51,10 +51,10 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 open github_com.anishathalye.porcupine github_com.anishathalye.porcupine.Theory
 
 /-- The test's input struct. -/
-abbrev KVInput [FfiSyntax] := github_com.mit_pdos.etcd_grove.examples.kvwitness.Input
+abbrev KVInput [GooseExts] := github_com.mit_pdos.etcd_grove.examples.kvwitness.Input
 
 section model
-variable [ext : FfiSyntax] [go_gctx : GoGlobalContext]
+variable [GooseExts] [go_gctx : GoGlobalContext]
 
 /-- The type `map[string]string`. -/
 abbrev kvMapTy : go.GoType := go.GoType.MapType go.string go.string
@@ -95,7 +95,7 @@ def kvM : SeqModel KVMap OpV where
 end model
 
 section inj
-variable [ext : FfiSyntax] [go_gctx : GoGlobalContext] [lctx : GoLocalContext]
+variable [GooseExts] [go_gctx : GoGlobalContext] [lctx : GoLocalContext]
 variable [GoSemanticsFunctions] [go.CoreSemantics]
 variable [ta : github_com.mit_pdos.etcd_grove.examples.kvwitness.Input.TypeAssumptions]
 
@@ -151,7 +151,7 @@ end inj
 
 /-- `Check`'s `apply` on the input `x`: the operation it runs is `kvNext` of its kind (a `Get`,
 a `Put`, or else an `Append`), and its answer is `inOut`. -/
-theorem inStep_kvNext [FfiSyntax] (x : KVInput) (s : KVMap) :
+theorem inStep_kvNext [GooseExts] (x : KVInput) (s : KVMap) :
     inStep x s = kvNext (if x.Kind' = opGetB then opGetB else if x.Kind' = opPutB then opPutB
       else opAppendB) x.Key' x.Val' s := by
   have h1 : opGetB ≠ opPutB := by decide
@@ -166,7 +166,7 @@ theorem inStep_kvNext [FfiSyntax] (x : KVInput) (s : KVMap) :
     · rw [if_neg hp, if_neg hp, if_neg h3, if_pos rfl]
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

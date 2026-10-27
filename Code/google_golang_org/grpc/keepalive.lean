@@ -21,17 +21,17 @@ end pkg_id
 
 namespace google_golang_org.grpc.keepalive
 
-noncomputable def ClientParameters.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ClientParameters.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/keepalive.ClientParameters" [])
 
 attribute [irreducible] ClientParameters.ty
 
-noncomputable def ServerParameters.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ServerParameters.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/keepalive.ServerParameters" [])
 
 attribute [irreducible] ServerParameters.ty
 
-noncomputable def EnforcementPolicy.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EnforcementPolicy.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/keepalive.EnforcementPolicy" [])
 
 attribute [irreducible] EnforcementPolicy.ty
@@ -39,40 +39,40 @@ attribute [irreducible] EnforcementPolicy.ty
 noncomputable instance info' : PkgInfo pkg_id.google_golang_org.grpc.keepalive where
   pkgImportedPkgs := [pkg_id.time]
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.google_golang_org.grpc.keepalive)) (Lam BAnon
   (App (Val exceptionDo)
   (App (Val doExecute)
   (App (Val _root_.Perennial.time.initialize') (Val #())))))))
 
-structure ClientParameters [FfiSyntax] where
+structure ClientParameters [GooseExts] where
   mk ::
   Time' : _root_.Perennial.time.Duration
   Timeout' : _root_.Perennial.time.Duration
   PermitWithoutStream' : Bool
 
-noncomputable instance ClientParameters.zero_val [FfiSyntax] : ZeroVal ClientParameters :=
+noncomputable instance ClientParameters.zero_val [GooseExts] : ZeroVal ClientParameters :=
   ⟨ClientParameters.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ClientParameters.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ClientParameters.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Time" _root_.Perennial.time.Duration.ty),
 (go.field_decl.FieldDecl go!"Timeout" _root_.Perennial.time.Duration.ty),
 (go.field_decl.FieldDecl go!"PermitWithoutStream" go.bool)]
 
-@[irreducible] noncomputable def ClientParameters.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ClientParameters.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ClientParameters.fieldsUnsealed
 
-noncomputable instance equals_unfold_ClientParameters [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ClientParameters [GooseExts] [GoGlobalContext] :
     EqualsUnfold ClientParameters.fields ClientParameters.fieldsUnsealed :=
   ⟨by unfold ClientParameters.fields; rfl⟩
 
-@[reducible] noncomputable def ClientParameters.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ClientParameters.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ClientParameters.fields)
 
-class ClientParameters.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ClientParameters.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ClientParameters.underlying ClientParameters
   underlying : go.UnderlyingDirectedEq ClientParameters.ty ClientParameters.underlying
   get_Time : ∀ (x : ClientParameters), go.IsGoStepPureDetTagged under (StructFieldGet ClientParameters.underlying go!"Time") #x (Val #(x.Time'))
@@ -81,6 +81,8 @@ class ClientParameters.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCon
   set_Timeout : ∀ (x : ClientParameters) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet ClientParameters.underlying go!"Timeout") (PairV #x #y) (Val #(({ x with Timeout' := y } : ClientParameters)))
   get_PermitWithoutStream : ∀ (x : ClientParameters), go.IsGoStepPureDetTagged under (StructFieldGet ClientParameters.underlying go!"PermitWithoutStream") #x (Val #(x.PermitWithoutStream'))
   set_PermitWithoutStream : ∀ (x : ClientParameters) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ClientParameters.underlying go!"PermitWithoutStream") (PairV #x #y) (Val #(({ x with PermitWithoutStream' := y } : ClientParameters)))
+  method_set : go.MethodSetIs ClientParameters.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ClientParameters.ty) []
 
 attribute [instance] ClientParameters.TypeAssumptions.type_repr
   ClientParameters.TypeAssumptions.underlying
@@ -90,8 +92,10 @@ attribute [instance] ClientParameters.TypeAssumptions.type_repr
   ClientParameters.TypeAssumptions.set_Timeout
   ClientParameters.TypeAssumptions.get_PermitWithoutStream
   ClientParameters.TypeAssumptions.set_PermitWithoutStream
+  ClientParameters.TypeAssumptions.method_set
+  ClientParameters.TypeAssumptions.ptr_method_set
 
-structure ServerParameters [FfiSyntax] where
+structure ServerParameters [GooseExts] where
   mk ::
   MaxConnectionIdle' : _root_.Perennial.time.Duration
   MaxConnectionAge' : _root_.Perennial.time.Duration
@@ -99,27 +103,27 @@ structure ServerParameters [FfiSyntax] where
   Time' : _root_.Perennial.time.Duration
   Timeout' : _root_.Perennial.time.Duration
 
-noncomputable instance ServerParameters.zero_val [FfiSyntax] : ZeroVal ServerParameters :=
+noncomputable instance ServerParameters.zero_val [GooseExts] : ZeroVal ServerParameters :=
   ⟨ServerParameters.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ServerParameters.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ServerParameters.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"MaxConnectionIdle" _root_.Perennial.time.Duration.ty),
 (go.field_decl.FieldDecl go!"MaxConnectionAge" _root_.Perennial.time.Duration.ty),
 (go.field_decl.FieldDecl go!"MaxConnectionAgeGrace" _root_.Perennial.time.Duration.ty),
 (go.field_decl.FieldDecl go!"Time" _root_.Perennial.time.Duration.ty),
 (go.field_decl.FieldDecl go!"Timeout" _root_.Perennial.time.Duration.ty)]
 
-@[irreducible] noncomputable def ServerParameters.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ServerParameters.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ServerParameters.fieldsUnsealed
 
-noncomputable instance equals_unfold_ServerParameters [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ServerParameters [GooseExts] [GoGlobalContext] :
     EqualsUnfold ServerParameters.fields ServerParameters.fieldsUnsealed :=
   ⟨by unfold ServerParameters.fields; rfl⟩
 
-@[reducible] noncomputable def ServerParameters.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ServerParameters.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ServerParameters.fields)
 
-class ServerParameters.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ServerParameters.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ServerParameters.underlying ServerParameters
   underlying : go.UnderlyingDirectedEq ServerParameters.ty ServerParameters.underlying
   get_MaxConnectionIdle : ∀ (x : ServerParameters), go.IsGoStepPureDetTagged under (StructFieldGet ServerParameters.underlying go!"MaxConnectionIdle") #x (Val #(x.MaxConnectionIdle'))
@@ -132,6 +136,8 @@ class ServerParameters.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCon
   set_Time : ∀ (x : ServerParameters) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet ServerParameters.underlying go!"Time") (PairV #x #y) (Val #(({ x with Time' := y } : ServerParameters)))
   get_Timeout : ∀ (x : ServerParameters), go.IsGoStepPureDetTagged under (StructFieldGet ServerParameters.underlying go!"Timeout") #x (Val #(x.Timeout'))
   set_Timeout : ∀ (x : ServerParameters) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet ServerParameters.underlying go!"Timeout") (PairV #x #y) (Val #(({ x with Timeout' := y } : ServerParameters)))
+  method_set : go.MethodSetIs ServerParameters.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ServerParameters.ty) []
 
 attribute [instance] ServerParameters.TypeAssumptions.type_repr
   ServerParameters.TypeAssumptions.underlying
@@ -145,36 +151,40 @@ attribute [instance] ServerParameters.TypeAssumptions.type_repr
   ServerParameters.TypeAssumptions.set_Time
   ServerParameters.TypeAssumptions.get_Timeout
   ServerParameters.TypeAssumptions.set_Timeout
+  ServerParameters.TypeAssumptions.method_set
+  ServerParameters.TypeAssumptions.ptr_method_set
 
-structure EnforcementPolicy [FfiSyntax] where
+structure EnforcementPolicy [GooseExts] where
   mk ::
   MinTime' : _root_.Perennial.time.Duration
   PermitWithoutStream' : Bool
 
-noncomputable instance EnforcementPolicy.zero_val [FfiSyntax] : ZeroVal EnforcementPolicy :=
+noncomputable instance EnforcementPolicy.zero_val [GooseExts] : ZeroVal EnforcementPolicy :=
   ⟨EnforcementPolicy.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def EnforcementPolicy.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def EnforcementPolicy.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"MinTime" _root_.Perennial.time.Duration.ty),
 (go.field_decl.FieldDecl go!"PermitWithoutStream" go.bool)]
 
-@[irreducible] noncomputable def EnforcementPolicy.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def EnforcementPolicy.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   EnforcementPolicy.fieldsUnsealed
 
-noncomputable instance equals_unfold_EnforcementPolicy [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_EnforcementPolicy [GooseExts] [GoGlobalContext] :
     EqualsUnfold EnforcementPolicy.fields EnforcementPolicy.fieldsUnsealed :=
   ⟨by unfold EnforcementPolicy.fields; rfl⟩
 
-@[reducible] noncomputable def EnforcementPolicy.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def EnforcementPolicy.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType EnforcementPolicy.fields)
 
-class EnforcementPolicy.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class EnforcementPolicy.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying EnforcementPolicy.underlying EnforcementPolicy
   underlying : go.UnderlyingDirectedEq EnforcementPolicy.ty EnforcementPolicy.underlying
   get_MinTime : ∀ (x : EnforcementPolicy), go.IsGoStepPureDetTagged under (StructFieldGet EnforcementPolicy.underlying go!"MinTime") #x (Val #(x.MinTime'))
   set_MinTime : ∀ (x : EnforcementPolicy) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet EnforcementPolicy.underlying go!"MinTime") (PairV #x #y) (Val #(({ x with MinTime' := y } : EnforcementPolicy)))
   get_PermitWithoutStream : ∀ (x : EnforcementPolicy), go.IsGoStepPureDetTagged under (StructFieldGet EnforcementPolicy.underlying go!"PermitWithoutStream") #x (Val #(x.PermitWithoutStream'))
   set_PermitWithoutStream : ∀ (x : EnforcementPolicy) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet EnforcementPolicy.underlying go!"PermitWithoutStream") (PairV #x #y) (Val #(({ x with PermitWithoutStream' := y } : EnforcementPolicy)))
+  method_set : go.MethodSetIs EnforcementPolicy.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType EnforcementPolicy.ty) []
 
 attribute [instance] EnforcementPolicy.TypeAssumptions.type_repr
   EnforcementPolicy.TypeAssumptions.underlying
@@ -182,8 +192,10 @@ attribute [instance] EnforcementPolicy.TypeAssumptions.type_repr
   EnforcementPolicy.TypeAssumptions.set_MinTime
   EnforcementPolicy.TypeAssumptions.get_PermitWithoutStream
   EnforcementPolicy.TypeAssumptions.set_PermitWithoutStream
+  EnforcementPolicy.TypeAssumptions.method_set
+  EnforcementPolicy.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   ClientParameters_instance : ClientParameters.TypeAssumptions
   ServerParameters_instance : ServerParameters.TypeAssumptions
   EnforcementPolicy_instance : EnforcementPolicy.TypeAssumptions

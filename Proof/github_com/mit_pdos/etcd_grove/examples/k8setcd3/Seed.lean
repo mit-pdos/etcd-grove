@@ -28,7 +28,7 @@ open github_com.anishathalye.porcupine github_com.anishathalye.porcupine.Theory
 open github_com.mit_pdos.etcd_grove.examples.k8setcd3 (Input Output Obj item mstore)
 
 section pure
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- A seed key's stored value: its object, value `x`, in the older encoding. -/
 def v0 (k : GoString) : GoString := encodeWith tagV0 k go!"x"
@@ -78,7 +78,7 @@ theorem g0s_items : g0s.items = [itA, itB] := by rfl
 end pure
 
 section rel
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -138,7 +138,7 @@ theorem qp_one_add (q : Qp) (h : (1 : Qp) + q ≤ 1) : False := by
   grind
 
 section ghost
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

@@ -24,26 +24,26 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.api
   go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.api.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions]
 
-omit [FfiSyntax] [GoGlobalContext] in
+omit [GooseExts] [GoGlobalContext] in
 theorem v3rpc.txnAllCheck_ts {n : Int} {cs : List CmpModel} {ts es : List v3rpc.ReqOp}
     (h1 : v3rpc.txnCheck n cs ts es = none) (h2 : v3rpc.ivCheck ts = none) :
     v3rpc.txnAllCheck n cs ts es = some .duplicateKey := by
   unfold v3rpc.txnAllCheck; rw [h1, h2]
 
-omit [FfiSyntax] [GoGlobalContext] in
+omit [GooseExts] [GoGlobalContext] in
 theorem v3rpc.txnAllCheck_es {n : Int} {cs : List CmpModel} {ts es : List v3rpc.ReqOp} {pd}
     (h1 : v3rpc.txnCheck n cs ts es = none) (h2 : v3rpc.ivCheck ts = some pd)
     (h3 : v3rpc.ivCheck es = none) :
     v3rpc.txnAllCheck n cs ts es = some .duplicateKey := by
   unfold v3rpc.txnAllCheck; rw [h1, h2, h3]
 
-omit [FfiSyntax] [GoGlobalContext] in
+omit [GooseExts] [GoGlobalContext] in
 theorem v3rpc.txnAllCheck_ok {n : Int} {cs : List CmpModel} {ts es : List v3rpc.ReqOp} {pd pd'}
     (h1 : v3rpc.txnCheck n cs ts es = none) (h2 : v3rpc.ivCheck ts = some pd)
     (h3 : v3rpc.ivCheck es = some pd') :

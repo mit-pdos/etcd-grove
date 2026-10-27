@@ -3,11 +3,11 @@
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
 def raftpb.ConfChange.GetContext.spec : Prop :=
-  (∀ (p : Loc) (dq : DFrac) (m : CCV1M),
+  (∀ (p : Loc) (dq : DFrac) (m : ConfChangeM),
       ⊢
         ∀ Φ,
-          isPkgInit pkg_id.go_etcd_io.raft.v3.raftpb ∗ ownCCV1 p dq m -∗
-            (▷ ∀ cs, ownSlice cs m.context DFrac.discard ∗ ownCCV1 p dq m -∗ Φ (intoVal cs)) -∗
+          isPkgInit pkg_id.go_etcd_io.raft.v3.raftpb ∗ ownConfChange p dq m -∗
+            (▷ ∀ cs, ownSlice cs m.context DFrac.discard ∗ ownConfChange p dq m -∗ Φ (intoVal cs)) -∗
               WP
                 ((intoVal
                     (methods raftpb.ConfChange.ty.PointerType

@@ -5,22 +5,22 @@
 theorem ccEntsOk_normal (ents : List EntryM) (H : ∀ (e : EntryM), e ∈ ents → e.Type' = W32 0) : ⊢
     ccEntsOk ents (List.map (fun x => none) ents)
 
-theorem ccEntsOk_types (ents : List EntryM) (cs : List (Option CCMsg)) : ccEntsOk ents cs ⊢
+theorem ccEntsOk_types (ents : List EntryM) (cs : List (Option ConfChangeIM)) : ccEntsOk ents cs ⊢
     ⌜CCTypesOk ents cs⌝
 
-theorem ccEntOk_persistent (e : EntryM) (o : Option CCMsg) : Persistent (ccEntOk e o)
+theorem ccEntOk_persistent (e : EntryM) (o : Option ConfChangeIM) : Persistent (ccEntOk e o)
 
-theorem ccEntOk_type (e : EntryM) (o : Option CCMsg) : ccEntOk e o ⊢ ⌜o.isSome = decide (IsConfEnt
-    e)⌝
+theorem ccEntOk_type (e : EntryM) (o : Option ConfChangeIM) : ccEntOk e o ⊢ ⌜o.isSome = decide
+    (IsConfEnt e)⌝
 
-def ccEntOk (e : EntryM) : Option CCMsg → IProp GF :=
+def ccEntOk (e : EntryM) : Option ConfChangeIM → IProp GF :=
   match x✝ with
   | none => iprop(⌜¬IsConfEnt e⌝)
-  | some (CCMsg.v1 m) => iprop(⌜e.Type' = W32 1 ∧ ccDecodeV1 e.Data' = some m⌝)
-  | some (CCMsg.v2 m) => iprop(⌜e.Type' = W32 2 ∧ ccDecodeV2 e.Data' = some m⌝)
+  | some (ConfChangeIM.v1 m) => iprop(⌜e.Type' = W32 1 ∧ ccDecodeV1 e.Data' = some m⌝)
+  | some (ConfChangeIM.v2 m) => iprop(⌜e.Type' = W32 2 ∧ ccDecodeV2 e.Data' = some m⌝)
 
-def ccEntsOk (ents : List EntryM) (cs : List (Option CCMsg)) : IProp GF :=
+def ccEntsOk (ents : List EntryM) (cs : List (Option ConfChangeIM)) : IProp GF :=
   [∗list] e;o ∈ ents;cs, ccEntOk e o
 
-theorem ccEntsOk_persistent (ents : List EntryM) (cs : List (Option CCMsg)) : Persistent (ccEntsOk
-    ents cs)
+theorem ccEntsOk_persistent (ents : List EntryM) (cs : List (Option ConfChangeIM)) : Persistent
+    (ccEntsOk ents cs)

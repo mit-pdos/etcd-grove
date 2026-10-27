@@ -21,7 +21,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.raft.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -54,7 +54,7 @@ theorem applySnapshot_walk
     (hdbo : storage.dbOpensOk) (hsop : storage.snapOpensOk)
     (hP : d.P.Wf ∧ d.P.limit = storage.openLimit cfg ∧ ciKeys d.P ∧ storage.hooksParams d.P)
     (hcfgl : cfg.Logger' ≠ null)
-    (hmeta : metaIs D (sv.Metadata'.Index', sv.Metadata'.Term'))
+    (tI : w64) (hmeta : metaIs D (sv.Metadata'.Index', tI))
     (hSB : consistentIndex.SetBackend.spec (GF := GF) (hG := hG))
     (st : ApplyState) (b : GoInterface)
     (hle : uint.Z (ciEff γ st.k) ≤ uint.Z sv.Metadata'.Index')
@@ -156,8 +156,8 @@ theorem applySnapshot_walk
        srvCfgFieldAddr s go!"WarningApplyDuration" ↦□ wad ∗
        apply.alarmGetIs al Tal zal ∗ Tal ∗
        backend.isStopChans d.γB d.be ∗ backend.bOpen d.γB (1 : Qp).half ∗
-       srvAuthRecoverOk ast ∗
-       □ (∀ (π : ApplyPhys) (b : Loc), ⌜π.m0 = (sv.Metadata'.Index', sv.Metadata'.Term')⌝ →
+       authRecoverOk ast ∗
+       □ (∀ (π : ApplyPhys) (b : Loc), ⌜π.m0 = (sv.Metadata'.Index', tI)⌝ →
           isMetaBackend (interface.mkOk (go.GoType.PointerType
             go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b) (⊤ \ ↑applyN) (readView (γ.withPh π))) }}
       (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applySnapshot")) (Val #ep))
@@ -251,7 +251,7 @@ theorem applySnapshot_walk
   icases ghostVar_halves γmt0 _ $$ Hmt0 with ⟨Hmt0a, Hmt0b⟩
   imod (ghostVar_alloc (GF := GF) false) with ⟨%γwr0, Hwr0⟩
   imod (token_alloc (GF := GF)) with ⟨%γpd0, Hpd0⟩
-  let π0 : ApplyPhys := ⟨γmt0, γwr0, γpd0, (sv.Metadata'.Index', sv.Metadata'.Term'), γmt0, γmt0⟩
+  let π0 : ApplyPhys := ⟨γmt0, γwr0, γpd0, (sv.Metadata'.Index', tI), γmt0, γmt0⟩
   ihave Hcreate := snap_create γ π0 d.P D gx' hmeta $$ Hinv Hpd0 Hmt0a HlateW
   ihave #Hspkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage $$ []
   · iPkgInit
@@ -454,10 +454,12 @@ theorem applySnapshot_walk
   (try wp_auto)
   -- `s.r.storage.Release(snapshot)`: the snapshot's index taken, the older files released
   imod (mono_nat_own_update (uint.nat sv.Metadata'.Index') (by word)) $$ Hγt with ⟨Hγt, #Htk⟩
-  wp_apply hRel stp ss sn smp DFrac.discard DFrac.discard sv.Metadata' γd γt img hstp
+  wp_apply hRel stp ss sn smp DFrac.discard DFrac.discard sv.Metadata' γd img (snapTakenLb γt) hstp
     $$ [] as %rerr ⟨-, -, %Hrerr⟩
   · iframe #
-    iunfold snapTakenLb; iexact Htk
+    iintro !> %j %hj
+    iunfold snapTakenLb
+    iapply monoNatLbOwn_le (uint.nat j) (by word) $$ Htk
   have hrerr : rerr = GoInterface.nil := by
     rcases Hrerr with h | h
     · exact h
@@ -501,7 +503,7 @@ theorem applySnapshot_walk
   · rw [show mvcc.storeRT (GF := GF) (γw.st.withPhys p') = mvcc.kbRT (some d') by
       simp only [mvcc.storeRT, mvcc.StoreNames.withPhys_kb, Hp'.2]]
     rw [kbRT_some]; iexact HwRT
-  iunfold srvAuthRecoverOk at HauR
+  iunfold authRecoverOk at HauR
   ihave #HauR' := HauR $$ %d.be %aubl %sfv.lg %d' %(mvcc.lateW gx')
     %(batchLockInv (γ.withPh (futPhys π0 γB)) (metaTM γB d.P)) %((1 : Qp).half)
     %(((backend.rbData d.P D).insert go!"lease" ∅).insert go!"alarm" ∅)

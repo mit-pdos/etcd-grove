@@ -23,7 +23,7 @@ open Iris Iris.BI OFE CMRA Iris.ProofMode go_etcd_io.raft.v3
 -- from Proof/go_etcd_io/raft/v3/InvNode.lean
 section
 open Iris Iris.BI OFE CMRA Iris.ProofMode go_etcd_io.raft.v3
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -54,7 +54,7 @@ end
 -- from Proof/go_etcd_io/raft/v3/InvNodeCtx.lean
 section
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

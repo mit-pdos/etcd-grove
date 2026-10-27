@@ -37,7 +37,7 @@ theorem apply.alarmChain_eq_base (on ns cr : Bool) (h : apply.alarmChain on ns c
   cases ns <;> cases cr <;> simp_all [apply.alarmChain, apply.baseChain]
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -79,7 +79,7 @@ abbrev apply.uberApplier.Apply.kvSpecL : Prop :=
 end defs
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

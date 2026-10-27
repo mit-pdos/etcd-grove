@@ -181,7 +181,7 @@ theorem entryStep_rejected_no_write (m : EntryModel) (v3 : Bool) (y y' : apply.A
 /-! ## The apply loop -/
 
 section triples
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -202,7 +202,7 @@ x'.log`), the applied index's waiters through `ai'` released (`applyWait.Trigger
 no-snapshot contract (`ap.snapshot = nil`) and the snapshot, compaction and merged-snapshot
 contracts. (2026-10-26) Under `ErrorStringLeaf`: the compaction (`compactRaftLog`, proved since)
 decides `errors.Is(err, raft.ErrCompacted)` of an `errors.New` error. -/
-theorem applyAll_model [ErrorStringLeaf] : EtcdServer.applyAll.spec (GF := GF) (hG := hG) :=
+theorem applyAll_model : EtcdServer.applyAll.spec (GF := GF) (hG := hG) :=
   EtcdServer.wp_applyAll
 
 /-- **The applied logs** (the apply-side half of `range_linearizable`'s log; the request path's
@@ -419,7 +419,7 @@ uber-applier's chain (`alarmChain`), the outcome is `alarmPut`/`alarmDelete` (th
 (`apply.apply_kv`). The writing `Txn` and the read side: unit 3b's, below. -/
 
 section request
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -598,7 +598,7 @@ error. **`txn_applied_model`** (pure): through the uber-applier's chain the outc
 (the txn package's `txnModel` or a layer's rejection), the log after the outcome's. -/
 
 section read
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -794,7 +794,7 @@ given up (`crevFrozen_alloc`), so its readers are those of a never-compacted sto
 and the right to close the store holds its scheduler's stop token (D19m (C)). -/
 
 section backend
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -1270,7 +1270,7 @@ end backend
 #print axioms Perennial.EtcdGrove.server_kv_watchable
 
 section latest
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -1311,7 +1311,7 @@ end latest
 #print axioms Perennial.EtcdGrove.auth_delete_range_permitted_latest
 
 section readLb
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -1368,7 +1368,7 @@ end readLb
 #print axioms Perennial.EtcdGrove.auth_delete_range_permitted_lb
 
 section latestApply
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -1540,7 +1540,7 @@ end latestApply
 #print axioms Perennial.EtcdGrove.auth_role_revoke_permission_tie
 
 section userAddSure
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -1560,7 +1560,7 @@ end userAddSure
 #print axioms Perennial.EtcdGrove.auth_user_add_sure
 
 section kvLatest
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -1658,7 +1658,7 @@ end kvLatest
 gives E2t's `outcomeOn`, for a plain KV request at the start chain with auth on and no alarm,
 without `"\x00"` range ends (a transaction's verdict on its own permissions a theorem since E3e,
 `txnVerdictOwn_of`). -/
-theorem kv_outcome_on_latest [ext : FfiSyntax] (c₀ : w64) (s : auth.AuthState × mvcc.Log)
+theorem kv_outcome_on_latest [GooseExts] (c₀ : w64) (s : auth.AuthState × mvcc.Log)
     (m : EntryModel) (rq : EtcdGrove.apply.IRRModel) (ht : m.typ = W32 0) (hd : m.data ≠ [])
     (hdec : EtcdGrove.apply.irrDecode m.data = some rq) (hv : uint.Z c₀ < uint.Z m.index)
     (hna : EtcdGrove.apply.needAdminPermission rq = false)
@@ -1678,7 +1678,7 @@ theorem kv_outcome_on_latest [ext : FfiSyntax] (c₀ : w64) (s : auth.AuthState 
 #print axioms Perennial.EtcdGrove.kv_outcome_on_latest
 
 section adminLatest
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -1805,7 +1805,7 @@ end adminLatest
 
 /-- **A refused admin check keeps the model's auth state; a passed one admits the principal** (the
 auth plan's E3c, `ApplyTieOn.lean`): `adminStateR`'s two cases from the latest-state verdicts. -/
-theorem admin_state_of_latest [ext : FfiSyntax] (γa : auth.AuthNames) (hs : List auth.AuthState)
+theorem admin_state_of_latest [GooseExts] (γa : auth.AuthNames) (hs : List auth.AuthState)
     (st : auth.AuthState) (rq : EtcdGrove.apply.IRRModel) (hl : hs.getLast? = some st) :
     (EtcdGrove.apply.adminRejL (.on γa) hs rq → adminStateR rq st st) ∧
       (EtcdGrove.apply.needAdminPermission rq = true → EtcdGrove.apply.adminPassL (.on γa) hs rq →
@@ -1814,7 +1814,7 @@ theorem admin_state_of_latest [ext : FfiSyntax] (γa : auth.AuthNames) (hs : Lis
 
 /-- **`AuthEnable`'s result is the model's step at the latest state's flag** (the auth plan's E3c,
 `ApplyTieOn.lean`): `AdminReq.result`'s relation `authEnableR` in the mode `on`. -/
-theorem admin_state_auth_enable [ext : FfiSyntax] (γa : auth.AuthNames) (rq : EtcdGrove.apply.IRRModel)
+theorem admin_state_auth_enable [GooseExts] (γa : auth.AuthNames) (rq : EtcdGrove.apply.IRRModel)
     (st : auth.AuthState) (en : Bool) (o : auth.Outcome)
     (ha : auth.adminOk st (some (auth.authInfoM (EtcdGrove.apply.principalOf rq))))
     (hk : EtcdGrove.apply.dispatchKind rq = .authEnable) (h : EtcdGrove.apply.authEnableR (.on γa) en st o) :
@@ -1837,7 +1837,7 @@ theorem admin_state_auth_enable [ext : FfiSyntax] (γa : auth.AuthNames) (rq : E
 #print axioms Perennial.EtcdGrove.admin_state_of_latest
 
 section userAddHandler
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -1857,7 +1857,7 @@ end userAddHandler
 #print axioms Perennial.EtcdGrove.server_user_add_sure
 
 section tokens
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -1956,7 +1956,7 @@ end tokens
 #print axioms Perennial.EtcdGrove.srv_auth_bound_of_inv
 
 section serverAuth
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -2010,7 +2010,7 @@ invariant is the mode's (`kvInvM true`, `kvInvOn`), allocatable at the bootstrap
 took `kvInv`, whose start chain is mode-`off`, so its precondition was unsatisfiable
 (`kvInv_ch0_on_false`, E2p). -/
 theorem server_new_auth_on [go_etcd_io.etcd.cache.v3.Assumptions] [MemStorReg GF]
-    [EtcdGrove.Float64ToInt64Semantics] [EtcdGrove.ErrorStringLeaf]
+    [EtcdGrove.Float64ToInt64Semantics]
     (hValid : auth.ValidSpec (GF := GF) (hG := hG))
     (hD22 : ⊢ authSchemaSrv (GF := GF)) : NewServer.specM (GF := GF) (hG := hG) true :=
   NewServer.wp_proofM true zap.Logger.wp_Error zap.wp_Error zap.Logger.wp_Info zap.Logger.wp_Warn
@@ -2052,7 +2052,7 @@ end serverAuth
 #print axioms Perennial.EtcdGrove.server_new_auth_on
 
 section serverAuthAlloc
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -2120,7 +2120,7 @@ end serverAuthAlloc
 #print axioms Perennial.EtcdGrove.server_built_gap_on
 
 section goroutines
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -2130,22 +2130,22 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 v3/etcdserver/EtcdServer__run.lean`): from `isServerRun` (`start`'s), it applies every batch raft
 commits through the FIFO scheduler, the apply thread's resources chained from job to job, and
 shuts down. -/
-theorem server_run [ErrorStringLeaf] : EtcdServer.run.spec (GF := GF) (hG := hG) := EtcdServer.wp_run
+theorem server_run : EtcdServer.run.spec (GF := GF) (hG := hG) := EtcdServer.wp_run
 
 /-- **The server's `start`** (the request path's unit 4c; `Spec/.../EtcdServer__start.lean`): from
 the construction premise `isServerBuilt` alone, the server's views and `run` started. -/
-theorem server_start [ErrorStringLeaf] : EtcdServer.start.spec (GF := GF) (hG := hG) := EtcdServer.wp_start
+theorem server_start : EtcdServer.start.spec (GF := GF) (hG := hG) := EtcdServer.wp_start
 
 /-- **The server's `Start`** (the request path's unit 4c; `Spec/.../EtcdServer__Start.lean`):
 `start`, then the read loop and nine names-only monitors through `GoAttach`. -/
-theorem server_Start [ErrorStringLeaf] : EtcdServer.Start.spec (GF := GF) (hG := hG) := EtcdServer.wp_Start
+theorem server_Start : EtcdServer.Start.spec (GF := GF) (hG := hG) := EtcdServer.wp_Start
 
 /-- **`start` gives the request path's views** (the request path's unit 4c): from the construction
 premise, `start` returns the views `range_linearizable`, `txn_applied` and the v3rpc results take
 (`isServerReq`, `isServerRead`), the read loop's `server` contract over them (`read_server`), and
 the read loop's lock's reader slots (`srvRdCall`'s `srvReadReader`): those results are conditional
 on `isServerBuilt` alone (and each call's own resources). -/
-theorem start_gives_views [ErrorStringLeaf] (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
+theorem start_gives_views (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames)
     (b : GoInterface) (ai₀ at₀ c₀ : w64) (x₀ : apply.ApplyKV) (N : Nat)
     (Hrb : receiptBound GF ≤ N + 1) (Hai0 : ai₀ = W64 0) :
@@ -2213,7 +2213,7 @@ end goroutines
 #print axioms Perennial.EtcdGrove.idutil_next
 
 section serverProposeOn
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -2266,7 +2266,7 @@ theorem server_txn_on : EtcdServer.Txn.specOn (GF := GF) (hG := hG) :=
 end serverProposeOn
 
 section applyEntryOn
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -2311,7 +2311,7 @@ theorem apply_kv_after_on (c₀ : w64) (st : auth.AuthState) (x x' : EtcdGrove.a
 end applyEntryOn
 
 section applyStateOn
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -2365,7 +2365,7 @@ theorem server_apply_admin_not_nospace_on
 end applyStateOn
 
 section readTxnLb
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

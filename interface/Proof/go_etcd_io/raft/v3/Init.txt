@@ -12,9 +12,8 @@ theorem Perennial.go_etcd_io.raft.v3.raftpb.wp_initialize' [raftpb.Assumptions] 
     pkg_id.go_etcd_io.raft.v3.raftpb -∗ Φ (intoVal ())) -∗ WP (raftpb.initialize' (intoVal ())) {{ Φ
     }}
 
-theorem Perennial.go_etcd_io.raft.v3.os_isPkgInit_Stderr [package_sem : Assumptions]
-    [context.ErrorStringIsError] [context.DeadlineExceededIsError] [log.NewModel] : isPkgInit
-    pkg_id.os ⊢ ∃ f, typedPointsto (globalAddr os.Stderr) f DFrac.discard
+theorem Perennial.go_etcd_io.raft.v3.os_isPkgInit_Stderr [package_sem : Assumptions] [log.NewModel]
+    : isPkgInit pkg_id.os ⊢ ∃ f, typedPointsto (globalAddr os.Stderr) f DFrac.discard
 
 structure Perennial.log.NewModel [GoGlobalContext] [GoSemanticsFunctions] : Prop where
   New_unfold : FuncUnfold log.New [] log.New.model
@@ -39,9 +38,8 @@ theorem Perennial.go_etcd_io.raft.v3.confchange.wp_initialize' [package_sem : As
 theorem Perennial.go_etcd_io.raft.v3.isNewError_of_ptr {ii : GoInterfaceOk} (h :
     errors.IsPointerError ii) : IsNewError (GoInterface.ok ii)
 
-theorem Perennial.go_etcd_io.raft.v3.io_isPkgInit_Discard [package_sem : Assumptions]
-    [context.ErrorStringIsError] [context.DeadlineExceededIsError] [log.NewModel] : isPkgInit
-    pkg_id.io ⊢ ∃ w, typedPointsto (globalAddr io.Discard) w DFrac.discard
+theorem Perennial.go_etcd_io.raft.v3.io_isPkgInit_Discard [package_sem : Assumptions] [log.NewModel]
+    : isPkgInit pkg_id.io ⊢ ∃ w, typedPointsto (globalAddr io.Discard) w DFrac.discard
 
 def Perennial.log.New.model [GoGlobalContext] : val :=
   glv(λ: "out", λ: "prefix", λ: "flag", Alloc (intoVal ()))
@@ -68,11 +66,11 @@ theorem Perennial.google_golang_org.protobuf.proto.wp_initialize'
     pkg_id.google_golang_org.protobuf.proto -∗ Φ (intoVal ())) -∗ WP
     (google_golang_org.protobuf.proto.initialize' (intoVal ())) {{ Φ }}
 
-theorem Perennial.go_etcd_io.raft.v3.wp_initialize' [package_sem : Assumptions]
-    [context.ErrorStringIsError] [context.DeadlineExceededIsError] [log.NewModel] (get_is_pkg_init :
-    GoString → IProp GF) (Hinit : GetIsPkgInitProp pkg_id.go_etcd_io.raft.v3 get_is_pkg_init) : ⊢ ∀
-    Φ, ownInitializing get_is_pkg_init -∗ ▷ (ownInitializing get_is_pkg_init ∗ isPkgInit
-    pkg_id.go_etcd_io.raft.v3 -∗ Φ (intoVal ())) -∗ WP (initialize' (intoVal ())) {{ Φ }}
+theorem Perennial.go_etcd_io.raft.v3.wp_initialize' [package_sem : Assumptions] [log.NewModel]
+    (get_is_pkg_init : GoString → IProp GF) (Hinit : GetIsPkgInitProp pkg_id.go_etcd_io.raft.v3
+    get_is_pkg_init) : ⊢ ∀ Φ, ownInitializing get_is_pkg_init -∗ ▷ (ownInitializing get_is_pkg_init
+    ∗ isPkgInit pkg_id.go_etcd_io.raft.v3 -∗ Φ (intoVal ())) -∗ WP (initialize' (intoVal ())) {{ Φ
+    }}
 
 theorem Perennial.os.wp_initialize' (get_is_pkg_init : GoString → IProp GF) (Hinit :
     GetIsPkgInitProp pkg_id.os get_is_pkg_init) : ⊢ ∀ Φ, ownInitializing get_is_pkg_init -∗ ▷

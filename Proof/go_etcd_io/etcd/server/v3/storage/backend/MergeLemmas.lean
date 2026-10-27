@@ -178,7 +178,7 @@ theorem take_snoc_getElem? {α : Type} (D : List α) (w k : Nat) (e : α) (hw : 
     · rw [ite_eq_right hkw, List.getElem?_eq_none (by simp; omega)]
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

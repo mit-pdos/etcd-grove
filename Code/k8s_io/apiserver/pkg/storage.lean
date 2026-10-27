@@ -43,311 +43,311 @@ end pkg_id
 
 namespace k8s_io.apiserver.pkg.storage
 
-noncomputable def APIObjectVersioner.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def APIObjectVersioner.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage.APIObjectVersioner" [])
 
 attribute [irreducible] APIObjectVersioner.ty
 
-noncomputable def continueToken.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def continueToken.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage.continueToken" [])
 
 attribute [irreducible] continueToken.ty
 
-noncomputable def StorageError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def StorageError.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage.StorageError" [])
 
 attribute [irreducible] StorageError.ty
 
-noncomputable def InvalidError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def InvalidError.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage.InvalidError" [])
 
 attribute [irreducible] InvalidError.ty
 
-noncomputable def InternalError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def InternalError.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage.InternalError" [])
 
 attribute [irreducible] InternalError.ty
 
-noncomputable def Versioner.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Versioner.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage.Versioner" [])
 
 attribute [irreducible] Versioner.ty
 
-noncomputable def ResponseMeta.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ResponseMeta.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage.ResponseMeta" [])
 
 attribute [irreducible] ResponseMeta.ty
 
-noncomputable def IndexerFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def IndexerFunc.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage.IndexerFunc" [])
 
 attribute [irreducible] IndexerFunc.ty
 
-noncomputable def IndexerFuncs.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def IndexerFuncs.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage.IndexerFuncs" [])
 
 attribute [irreducible] IndexerFuncs.ty
 
-noncomputable def MatchValue.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def MatchValue.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage.MatchValue" [])
 
 attribute [irreducible] MatchValue.ty
 
-noncomputable def UpdateFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def UpdateFunc.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage.UpdateFunc" [])
 
 attribute [irreducible] UpdateFunc.ty
 
-noncomputable def ValidateObjectFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ValidateObjectFunc.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage.ValidateObjectFunc" [])
 
 attribute [irreducible] ValidateObjectFunc.ty
 
-noncomputable def Preconditions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Preconditions.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage.Preconditions" [])
 
 attribute [irreducible] Preconditions.ty
 
-noncomputable def Interface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Interface.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage.Interface" [])
 
 attribute [irreducible] Interface.ty
 
-noncomputable def KeysFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def KeysFunc.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage.KeysFunc" [])
 
 attribute [irreducible] KeysFunc.ty
 
-noncomputable def GetOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def GetOptions.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage.GetOptions" [])
 
 attribute [irreducible] GetOptions.ty
 
-noncomputable def ListOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ListOptions.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage.ListOptions" [])
 
 attribute [irreducible] ListOptions.ty
 
-noncomputable def WatchEventWithRecordTime.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def WatchEventWithRecordTime.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage.WatchEventWithRecordTime" [])
 
 attribute [irreducible] WatchEventWithRecordTime.ty
 
-noncomputable def DeleteOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DeleteOptions.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage.DeleteOptions" [])
 
 attribute [irreducible] DeleteOptions.ty
 
-noncomputable def Stats.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Stats.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage.Stats" [])
 
 attribute [irreducible] Stats.ty
 
-noncomputable def ReverseKeyFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ReverseKeyFunc.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage.ReverseKeyFunc" [])
 
 attribute [irreducible] ReverseKeyFunc.ty
 
-noncomputable def AttrFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def AttrFunc.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage.AttrFunc" [])
 
 attribute [irreducible] AttrFunc.ty
 
-noncomputable def FieldMutationFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def FieldMutationFunc.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage.FieldMutationFunc" [])
 
 attribute [irreducible] FieldMutationFunc.ty
 
-noncomputable def SelectionPredicate.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def SelectionPredicate.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage.SelectionPredicate" [])
 
 attribute [irreducible] SelectionPredicate.ty
 
-noncomputable def SimpleUpdateFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def SimpleUpdateFunc.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage.SimpleUpdateFunc" [])
 
 attribute [irreducible] SimpleUpdateFunc.ty
 
-noncomputable def HighWaterMark.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def HighWaterMark.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage.HighWaterMark" [])
 
 attribute [irreducible] HighWaterMark.ty
 
-@[reducible] noncomputable def Feature.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Feature.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-@[reducible] noncomputable def ErrCodeKeyNotFound [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def ErrCodeKeyNotFound [GooseExts] [GoGlobalContext] : val :=
   #(W64 1)
 
-@[reducible] noncomputable def ErrCodeKeyExists [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def ErrCodeKeyExists [GooseExts] [GoGlobalContext] : val :=
   #(W64 2)
 
-@[reducible] noncomputable def ErrCodeResourceVersionConflicts [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def ErrCodeResourceVersionConflicts [GooseExts] [GoGlobalContext] : val :=
   #(W64 3)
 
-@[reducible] noncomputable def ErrCodeInvalidObj [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def ErrCodeInvalidObj [GooseExts] [GoGlobalContext] : val :=
   #(W64 4)
 
-@[reducible] noncomputable def ErrCodeUnreachable [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def ErrCodeUnreachable [GooseExts] [GoGlobalContext] : val :=
   #(W64 5)
 
-@[reducible] noncomputable def ErrCodeTimeout [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def ErrCodeTimeout [GooseExts] [GoGlobalContext] : val :=
   #(W64 6)
 
-@[reducible] noncomputable def ErrCodeCorruptObj [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def ErrCodeCorruptObj [GooseExts] [GoGlobalContext] : val :=
   #(W64 7)
 
-noncomputable def ErrInvalidStartRV [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrInvalidStartRV [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage.ErrInvalidStartRV"
 
-noncomputable def ErrEmptyStartKey [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrEmptyStartKey [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage.ErrEmptyStartKey"
 
-noncomputable def ErrGenericInvalidKey [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrGenericInvalidKey [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage.ErrGenericInvalidKey"
 
-noncomputable def ErrUnrecognizedEncodedVersion [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrUnrecognizedEncodedVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage.ErrUnrecognizedEncodedVersion"
 
-noncomputable def ErrResourceVersionSetOnCreate [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrResourceVersionSetOnCreate [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage.ErrResourceVersionSetOnCreate"
 
-noncomputable def ErrStorageNotReady [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrStorageNotReady [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage.ErrStorageNotReady"
 
-noncomputable def errCodeToMessage [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def errCodeToMessage [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage.errCodeToMessage"
 
-noncomputable def tooLargeResourceVersionCauseMsg [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def tooLargeResourceVersionCauseMsg [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage.tooLargeResourceVersionCauseMsg"
 
-noncomputable def RequestWatchProgress [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def RequestWatchProgress [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage.RequestWatchProgress"
 
-noncomputable def RangeStream [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def RangeStream [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage.RangeStream"
 
-noncomputable def Everything [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Everything [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage.Everything"
 
-noncomputable def DecodeContinue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def DecodeContinue [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage.DecodeContinue"
 
-noncomputable def EncodeContinue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def EncodeContinue [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage.EncodeContinue"
 
-noncomputable def PrepareContinueToken [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def PrepareContinueToken [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage.PrepareContinueToken"
 
-noncomputable def NewKeyNotFoundError [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewKeyNotFoundError [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage.NewKeyNotFoundError"
 
-noncomputable def NewKeyExistsError [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewKeyExistsError [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage.NewKeyExistsError"
 
-noncomputable def NewResourceVersionConflictsError [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewResourceVersionConflictsError [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage.NewResourceVersionConflictsError"
 
-noncomputable def NewUnreachableError [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewUnreachableError [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage.NewUnreachableError"
 
-noncomputable def NewTimeoutError [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewTimeoutError [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage.NewTimeoutError"
 
-noncomputable def NewInvalidObjError [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewInvalidObjError [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage.NewInvalidObjError"
 
-noncomputable def NewCorruptObjError [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewCorruptObjError [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage.NewCorruptObjError"
 
-noncomputable def ResourceVersion [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ResourceVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage.ResourceVersion"
 
-noncomputable def IsNotFound [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsNotFound [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage.IsNotFound"
 
-noncomputable def IsExist [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsExist [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage.IsExist"
 
-noncomputable def IsUnreachable [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsUnreachable [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage.IsUnreachable"
 
-noncomputable def IsConflict [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsConflict [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage.IsConflict"
 
-noncomputable def IsRequestTimeout [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsRequestTimeout [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage.IsRequestTimeout"
 
-noncomputable def IsInvalidObj [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsInvalidObj [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage.IsInvalidObj"
 
-noncomputable def IsCorruptObject [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsCorruptObject [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage.IsCorruptObject"
 
-noncomputable def isErrCode [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def isErrCode [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage.isErrCode"
 
-noncomputable def IsInvalidError [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsInvalidError [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage.IsInvalidError"
 
-noncomputable def NewInvalidError [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewInvalidError [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage.NewInvalidError"
 
-noncomputable def IsInternalError [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsInternalError [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage.IsInternalError"
 
-noncomputable def NewInternalError [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewInternalError [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage.NewInternalError"
 
-noncomputable def NewTooLargeResourceVersionError [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewTooLargeResourceVersionError [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage.NewTooLargeResourceVersionError"
 
-noncomputable def IsTooLargeResourceVersion [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsTooLargeResourceVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage.IsTooLargeResourceVersion"
 
-noncomputable def ValidateAllObjectFunc [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateAllObjectFunc [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage.ValidateAllObjectFunc"
 
-noncomputable def NewUIDPreconditions [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewUIDPreconditions [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage.NewUIDPreconditions"
 
-noncomputable def ValidateListOptions [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateListOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage.ValidateListOptions"
 
-noncomputable def PrepareKey [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def PrepareKey [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage.PrepareKey"
 
-noncomputable def DefaultClusterScopedAttr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def DefaultClusterScopedAttr [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage.DefaultClusterScopedAttr"
 
-noncomputable def DefaultNamespaceScopedAttr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def DefaultNamespaceScopedAttr [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage.DefaultNamespaceScopedAttr"
 
-noncomputable def LabelIndex [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def LabelIndex [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage.LabelIndex"
 
-noncomputable def FieldIndex [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def FieldIndex [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage.FieldIndex"
 
-noncomputable def SimpleUpdate [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def SimpleUpdate [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage.SimpleUpdate"
 
-noncomputable def NamespaceKeyFunc [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NamespaceKeyFunc [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage.NamespaceKeyFunc"
 
-noncomputable def NoNamespaceKeyFunc [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NoNamespaceKeyFunc [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage.NoNamespaceKeyFunc"
 
-noncomputable def AnnotateInitialEventsEndBookmark [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def AnnotateInitialEventsEndBookmark [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage.AnnotateInitialEventsEndBookmark"
 
-noncomputable def HasInitialEventsEndBookmarkAnnotation [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def HasInitialEventsEndBookmarkAnnotation [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage.HasInitialEventsEndBookmarkAnnotation"
 
 /-- UpdateObject implements Versioner
 
     go: api_object_versioner.go:33:29 -/
-noncomputable def APIObjectVersioner.UpdateObject.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def APIObjectVersioner.UpdateObject.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "obj"
   (Lam "resourceVersion"
@@ -399,7 +399,7 @@ noncomputable def APIObjectVersioner.UpdateObject.impl [FfiSyntax] [GoGlobalCont
 /-- UpdateList implements Versioner
 
     go: api_object_versioner.go:47:29 -/
-noncomputable def APIObjectVersioner.UpdateList.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def APIObjectVersioner.UpdateList.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "obj"
   (Lam "resourceVersion"
@@ -465,7 +465,7 @@ noncomputable def APIObjectVersioner.UpdateList.impl [FfiSyntax] [GoGlobalContex
 /-- PrepareObjectForStorage clears resourceVersion and selfLink prior to writing to etcd.
 
     go: api_object_versioner.go:63:29 -/
-noncomputable def APIObjectVersioner.PrepareObjectForStorage.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def APIObjectVersioner.PrepareObjectForStorage.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "obj"
   (App (Val exceptionDo)
@@ -505,7 +505,7 @@ noncomputable def APIObjectVersioner.PrepareObjectForStorage.impl [FfiSyntax] [G
 /-- ObjectResourceVersion implements Versioner
 
     go: api_object_versioner.go:74:29 -/
-noncomputable def APIObjectVersioner.ObjectResourceVersion.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def APIObjectVersioner.ObjectResourceVersion.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "obj"
   (App (Val exceptionDo)
@@ -558,7 +558,7 @@ noncomputable def APIObjectVersioner.ObjectResourceVersion.impl [FfiSyntax] [GoG
     the next value (if you pass "1", you will see updates from "2" onwards).
 
     go: api_object_versioner.go:90:29 -/
-noncomputable def APIObjectVersioner.ParseResourceVersion.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def APIObjectVersioner.ParseResourceVersion.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "resourceVersion"
   (App (Val exceptionDo)
@@ -606,7 +606,7 @@ noncomputable def APIObjectVersioner.ParseResourceVersion.impl [FfiSyntax] [GoGl
     but etcd resource versions are special, they're actually ints, so we can easily compare them.
 
     go: api_object_versioner.go:110:29 -/
-noncomputable def APIObjectVersioner.CompareResourceVersion.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def APIObjectVersioner.CompareResourceVersion.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "lhs"
   (Lam "rhs"
@@ -674,7 +674,7 @@ noncomputable def APIObjectVersioner.CompareResourceVersion.impl [FfiSyntax] [Go
     TODO: return a typed error that instructs clients that they must relist
 
     go: continue.go:47:6 -/
-noncomputable def DecodeContinue.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def DecodeContinue.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "continueValue"
   (Lam "keyPrefix"
   (App (Val exceptionDo)
@@ -782,7 +782,7 @@ noncomputable def DecodeContinue.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- EncodeContinue returns a string representing the encoded continuation of the current query.
 
     go: continue.go:83:6 -/
-noncomputable def EncodeContinue.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EncodeContinue.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "key"
   (Lam "keyPrefix"
   (Lam "resourceVersion"
@@ -839,7 +839,7 @@ noncomputable def EncodeContinue.impl [FfiSyntax] [GoGlobalContext] : val :=
     from the server if they are available.
 
     go: continue.go:100:6 -/
-noncomputable def PrepareContinueToken.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def PrepareContinueToken.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "keyLastItem"
   (Lam "keyPrefix"
   (Lam "resourceVersion"
@@ -895,7 +895,7 @@ noncomputable def PrepareContinueToken.impl [FfiSyntax] [GoGlobalContext] : val 
   (Val #()))))))))))))))))))))
 
 /-- go: errors.go:54:6 -/
-noncomputable def NewKeyNotFoundError.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def NewKeyNotFoundError.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "key"
   (Lam "rv"
   (App (Val exceptionDo)
@@ -908,7 +908,7 @@ noncomputable def NewKeyNotFoundError.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val (GoInstruction (CompositeLiteral StorageError.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Code")) (ElementExpression go.int (Var "$v0"))), (KeyedElement (some (KeyField go!"Key")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"ResourceVersion")) (ElementExpression go.int64 (Var "$v2")))]))))))))))))
 
 /-- go: errors.go:62:6 -/
-noncomputable def NewKeyExistsError.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def NewKeyExistsError.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "key"
   (Lam "rv"
   (App (Val exceptionDo)
@@ -921,7 +921,7 @@ noncomputable def NewKeyExistsError.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (CompositeLiteral StorageError.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Code")) (ElementExpression go.int (Var "$v0"))), (KeyedElement (some (KeyField go!"Key")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"ResourceVersion")) (ElementExpression go.int64 (Var "$v2")))]))))))))))))
 
 /-- go: errors.go:70:6 -/
-noncomputable def NewResourceVersionConflictsError.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def NewResourceVersionConflictsError.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "key"
   (Lam "rv"
   (App (Val exceptionDo)
@@ -934,7 +934,7 @@ noncomputable def NewResourceVersionConflictsError.impl [FfiSyntax] [GoGlobalCon
   (App (Val (GoInstruction (CompositeLiteral StorageError.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Code")) (ElementExpression go.int (Var "$v0"))), (KeyedElement (some (KeyField go!"Key")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"ResourceVersion")) (ElementExpression go.int64 (Var "$v2")))]))))))))))))
 
 /-- go: errors.go:78:6 -/
-noncomputable def NewUnreachableError.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def NewUnreachableError.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "key"
   (Lam "rv"
   (App (Val exceptionDo)
@@ -947,7 +947,7 @@ noncomputable def NewUnreachableError.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val (GoInstruction (CompositeLiteral StorageError.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Code")) (ElementExpression go.int (Var "$v0"))), (KeyedElement (some (KeyField go!"Key")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"ResourceVersion")) (ElementExpression go.int64 (Var "$v2")))]))))))))))))
 
 /-- go: errors.go:86:6 -/
-noncomputable def NewTimeoutError.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def NewTimeoutError.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "key"
   (Lam "msg"
   (App (Val exceptionDo)
@@ -961,7 +961,7 @@ noncomputable def NewTimeoutError.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (CompositeLiteral StorageError.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Code")) (ElementExpression go.int (Var "$v0"))), (KeyedElement (some (KeyField go!"Key")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"err")) (ElementExpression go.error (Var "$v2")))]))))))))))))
 
 /-- go: errors.go:94:6 -/
-noncomputable def NewInvalidObjError.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def NewInvalidObjError.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "key"
   (Lam "msg"
   (App (Val exceptionDo)
@@ -979,7 +979,7 @@ noncomputable def NewInvalidObjError.impl [FfiSyntax] [GoGlobalContext] : val :=
     b) the given object failed to decode with the given err
 
     go: errors.go:105:6 -/
-noncomputable def NewCorruptObjError.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def NewCorruptObjError.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "key"
   (Lam "err"
   (App (Val exceptionDo)
@@ -992,7 +992,7 @@ noncomputable def NewCorruptObjError.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (CompositeLiteral StorageError.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Code")) (ElementExpression go.int (Var "$v0"))), (KeyedElement (some (KeyField go!"Key")) (ElementExpression go.string (Var "$v1"))), (KeyedElement (some (KeyField go!"err")) (ElementExpression go.error (Var "$v2")))]))))))))))))
 
 /-- go: errors.go:122:6 -/
-noncomputable def ResourceVersion.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def ResourceVersion.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "err"
   (App (Val exceptionDo)
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (Var "err"))
@@ -1023,7 +1023,7 @@ noncomputable def ResourceVersion.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #())))))))
 
 /-- go: errors.go:136:24 -/
-noncomputable def StorageError.Unwrap.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def StorageError.Unwrap.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1032,7 +1032,7 @@ noncomputable def StorageError.Unwrap.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (StructFieldRef StorageError.ty go!"err"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType StorageError.ty)))) (Var "e")))))))))
 
 /-- go: errors.go:138:24 -/
-noncomputable def StorageError.Error.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def StorageError.Error.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1050,7 +1050,7 @@ noncomputable def StorageError.Error.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- IsNotFound returns true if and only if err is "key" not found error.
 
     go: errors.go:144:6 -/
-noncomputable def IsNotFound.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def IsNotFound.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "err"
   (App (Val exceptionDo)
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (Var "err"))
@@ -1062,7 +1062,7 @@ noncomputable def IsNotFound.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- IsExist returns true if and only if err is "key" already exists error.
 
     go: errors.go:149:6 -/
-noncomputable def IsExist.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def IsExist.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "err"
   (App (Val exceptionDo)
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (Var "err"))
@@ -1074,7 +1074,7 @@ noncomputable def IsExist.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- IsUnreachable returns true if and only if err indicates the server could not be reached.
 
     go: errors.go:154:6 -/
-noncomputable def IsUnreachable.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def IsUnreachable.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "err"
   (App (Val exceptionDo)
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (Var "err"))
@@ -1086,7 +1086,7 @@ noncomputable def IsUnreachable.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- IsConflict returns true if and only if err is a write conflict.
 
     go: errors.go:159:6 -/
-noncomputable def IsConflict.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def IsConflict.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "err"
   (App (Val exceptionDo)
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (Var "err"))
@@ -1098,7 +1098,7 @@ noncomputable def IsConflict.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- IsRequestTimeout returns true if and only if err indicates that the request has timed out.
 
     go: errors.go:164:6 -/
-noncomputable def IsRequestTimeout.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def IsRequestTimeout.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "err"
   (App (Val exceptionDo)
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (Var "err"))
@@ -1110,7 +1110,7 @@ noncomputable def IsRequestTimeout.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- IsInvalidObj returns true if and only if err is invalid error
 
     go: errors.go:169:6 -/
-noncomputable def IsInvalidObj.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def IsInvalidObj.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "err"
   (App (Val exceptionDo)
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (Var "err"))
@@ -1124,7 +1124,7 @@ noncomputable def IsInvalidObj.impl [FfiSyntax] [GoGlobalContext] : val :=
     b) the given object failed to decode properly
 
     go: errors.go:176:6 -/
-noncomputable def IsCorruptObject.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def IsCorruptObject.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "err"
   (App (Val exceptionDo)
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (Var "err"))
@@ -1147,7 +1147,7 @@ noncomputable def IsCorruptObject.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #())))))))
 
 /-- go: errors.go:188:6 -/
-noncomputable def isErrCode.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def isErrCode.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "err"
   (Lam "code"
   (App (Val exceptionDo)
@@ -1184,7 +1184,7 @@ noncomputable def isErrCode.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- IsInvalidError returns true if and only if err is an InvalidError.
 
     go: errors.go:209:6 -/
-noncomputable def IsInvalidError.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def IsInvalidError.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "err"
   (App (Val exceptionDo)
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (Var "err"))
@@ -1204,7 +1204,7 @@ noncomputable def IsInvalidError.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Var "$r0"))))))))))))
 
 /-- go: errors.go:214:6 -/
-noncomputable def NewInvalidError.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def NewInvalidError.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "errors"
   (App (Val exceptionDo)
   (Let "errors" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorList.ty))) (Var "errors"))
@@ -1213,7 +1213,7 @@ noncomputable def NewInvalidError.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (CompositeLiteral InvalidError.ty))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorList.ty (Var "$v0")))])))))))
 
 /-- go: errors.go:228:24 -/
-noncomputable def InternalError.Error.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def InternalError.Error.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1222,7 +1222,7 @@ noncomputable def InternalError.Error.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val (GoInstruction (GoLoad go.string))) (App (Val (GoInstruction (StructFieldRef InternalError.ty go!"Reason"))) (Var "e"))))))))
 
 /-- go: errors.go:232:24 -/
-noncomputable def InternalError.Unwrap.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def InternalError.Unwrap.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "e"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1233,7 +1233,7 @@ noncomputable def InternalError.Unwrap.impl [FfiSyntax] [GoGlobalContext] : val 
 /-- IsInternalError returns true if and only if err is an InternalError.
 
     go: errors.go:235:6 -/
-noncomputable def IsInternalError.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def IsInternalError.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "err"
   (App (Val exceptionDo)
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (Var "err"))
@@ -1253,7 +1253,7 @@ noncomputable def IsInternalError.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Var "$r0"))))))))))))
 
 /-- go: errors.go:240:6 -/
-noncomputable def NewInternalError.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def NewInternalError.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "err"
   (App (Val exceptionDo)
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (Var "err"))
@@ -1266,7 +1266,7 @@ noncomputable def NewInternalError.impl [FfiSyntax] [GoGlobalContext] : val :=
     a minimum resource version that is larger than the largest currently available resource version for a requested resource.
 
     go: errors.go:248:6 -/
-noncomputable def NewTooLargeResourceVersionError.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def NewTooLargeResourceVersionError.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "minimumResourceVersion"
   (Lam "currentRevision"
   (Lam "retrySeconds"
@@ -1297,7 +1297,7 @@ noncomputable def NewTooLargeResourceVersionError.impl [FfiSyntax] [GoGlobalCont
 /-- IsTooLargeResourceVersion returns true if the error is a TooLargeResourceVersion error.
 
     go: errors.go:260:6 -/
-noncomputable def IsTooLargeResourceVersion.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def IsTooLargeResourceVersion.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "err"
   (App (Val exceptionDo)
   (Let "err" (App (Val (GoInstruction (GoAlloc go.error))) (Var "err"))
@@ -1316,7 +1316,7 @@ noncomputable def IsTooLargeResourceVersion.impl [FfiSyntax] [GoGlobalContext] :
 /-- ValidateAllObjectFunc is a "admit everything" instance of ValidateObjectFunc.
 
     go: interfaces.go:125:6 -/
-noncomputable def ValidateAllObjectFunc.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def ValidateAllObjectFunc.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ctx"
   (Lam "obj"
   (App (Val exceptionDo)
@@ -1328,7 +1328,7 @@ noncomputable def ValidateAllObjectFunc.impl [FfiSyntax] [GoGlobalContext] : val
 /-- NewUIDPreconditions returns a Preconditions with UID set.
 
     go: interfaces.go:140:6 -/
-noncomputable def NewUIDPreconditions.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def NewUIDPreconditions.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "uid"
   (App (Val exceptionDo)
   (Let "uid" (App (Val (GoInstruction (GoAlloc go.string))) (Var "uid"))
@@ -1342,7 +1342,7 @@ noncomputable def NewUIDPreconditions.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.types.UID.ty))) (Pair (Var "u") (Var "$r0"))))))))))
 
 /-- go: interfaces.go:145:25 -/
-noncomputable def Preconditions.Check.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Preconditions.Check.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "p"
   (Lam "key"
   (Lam "obj"
@@ -1420,7 +1420,7 @@ noncomputable def Preconditions.Check.impl [FfiSyntax] [GoGlobalContext] : val :
   (Val #())))))))))))
 
 /-- go: interfaces.go:372:6 -/
-noncomputable def ValidateListOptions.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def ValidateListOptions.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "keyPrefix"
   (Lam "versioner"
   (Lam "opts"
@@ -1539,7 +1539,7 @@ noncomputable def ValidateListOptions.impl [FfiSyntax] [GoGlobalContext] : val :
   (Val #()))))))))))))))
 
 /-- go: interfaces.go:421:6 -/
-noncomputable def PrepareKey.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def PrepareKey.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "resourcePrefix"
   (Lam "key"
   (Lam "recursive"
@@ -1610,7 +1610,7 @@ noncomputable def PrepareKey.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #())))))))))))
 
 /-- go: selection_predicate.go:40:6 -/
-noncomputable def DefaultClusterScopedAttr.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def DefaultClusterScopedAttr.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "obj"
   (App (Val exceptionDo)
   (Let "obj" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Var "obj"))
@@ -1645,7 +1645,7 @@ noncomputable def DefaultClusterScopedAttr.impl [FfiSyntax] [GoGlobalContext] : 
   (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Object.ty))) (Pair (Var "metadata") (Var "$r0")))))))))))))))
 
 /-- go: selection_predicate.go:52:6 -/
-noncomputable def DefaultNamespaceScopedAttr.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def DefaultNamespaceScopedAttr.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "obj"
   (App (Val exceptionDo)
   (Let "obj" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Var "obj"))
@@ -1682,7 +1682,7 @@ noncomputable def DefaultNamespaceScopedAttr.impl [FfiSyntax] [GoGlobalContext] 
   (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Object.ty))) (Pair (Var "metadata") (Var "$r0")))))))))))))))
 
 /-- go: selection_predicate.go:65:19 -/
-noncomputable def AttrFunc.WithFieldMutation.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def AttrFunc.WithFieldMutation.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "f"
   (Lam "fieldMutator"
   (App (Val exceptionDo)
@@ -1740,7 +1740,7 @@ noncomputable def AttrFunc.WithFieldMutation.impl [FfiSyntax] [GoGlobalContext] 
     s.GetAttrs or shard matching fails.
 
     go: selection_predicate.go:96:30 -/
-noncomputable def SelectionPredicate.Matches.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def SelectionPredicate.Matches.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "obj"
   (App (Val exceptionDo)
@@ -1807,7 +1807,7 @@ noncomputable def SelectionPredicate.Matches.impl [FfiSyntax] [GoGlobalContext] 
     match s.Label and s.Field.
 
     go: selection_predicate.go:112:30 -/
-noncomputable def SelectionPredicate.MatchesObjectAttributes.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def SelectionPredicate.MatchesObjectAttributes.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "l"
   (Lam "f"
@@ -1842,7 +1842,7 @@ noncomputable def SelectionPredicate.MatchesObjectAttributes.impl [FfiSyntax] [G
     namespace.
 
     go: selection_predicate.go:125:30 -/
-noncomputable def SelectionPredicate.MatchesSingleNamespace.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def SelectionPredicate.MatchesSingleNamespace.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1881,7 +1881,7 @@ noncomputable def SelectionPredicate.MatchesSingleNamespace.impl [FfiSyntax] [Go
     name.
 
     go: selection_predicate.go:137:30 -/
-noncomputable def SelectionPredicate.MatchesSingle.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def SelectionPredicate.MatchesSingle.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1919,7 +1919,7 @@ noncomputable def SelectionPredicate.MatchesSingle.impl [FfiSyntax] [GoGlobalCon
 /-- Empty returns true if the predicate performs no filtering.
 
     go: selection_predicate.go:149:30 -/
-noncomputable def SelectionPredicate.Empty.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def SelectionPredicate.Empty.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1928,7 +1928,7 @@ noncomputable def SelectionPredicate.Empty.impl [FfiSyntax] [GoGlobalContext] : 
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType SelectionPredicate.ty) go!"ShardingEnabled"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType SelectionPredicate.ty)))) (Var "s"))) (Val #()))) (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType SelectionPredicate.ty) go!"labelFieldEmpty"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType SelectionPredicate.ty)))) (Var "s"))) (Val #())) (Val #false)))))))
 
 /-- go: selection_predicate.go:153:30 -/
-noncomputable def SelectionPredicate.labelFieldEmpty.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def SelectionPredicate.labelFieldEmpty.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1940,7 +1940,7 @@ noncomputable def SelectionPredicate.labelFieldEmpty.impl [FfiSyntax] [GoGlobalC
     the ShardedListAndWatch feature gate is enabled.
 
     go: selection_predicate.go:159:30 -/
-noncomputable def SelectionPredicate.ShardingEnabled.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def SelectionPredicate.ShardingEnabled.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1954,7 +1954,7 @@ noncomputable def SelectionPredicate.ShardingEnabled.impl [FfiSyntax] [GoGlobalC
     wil be returned.
 
     go: selection_predicate.go:167:30 -/
-noncomputable def SelectionPredicate.MatcherIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def SelectionPredicate.MatcherIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "ctx"
   (App (Val exceptionDo)
@@ -2044,7 +2044,7 @@ noncomputable def SelectionPredicate.MatcherIndex.impl [FfiSyntax] [GoGlobalCont
     If ShardSelector is set and non-empty, it delegates to ShardSelector.Matches().
 
     go: selection_predicate.go:184:30 -/
-noncomputable def SelectionPredicate.MatchesSharding.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def SelectionPredicate.MatchesSharding.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "obj"
   (App (Val exceptionDo)
@@ -2066,7 +2066,7 @@ noncomputable def SelectionPredicate.MatchesSharding.impl [FfiSyntax] [GoGlobalC
 /-- SetShardInfoOnList sets shard metadata on the list response if sharding is active.
 
     go: selection_predicate.go:192:30 -/
-noncomputable def SelectionPredicate.SetShardInfoOnList.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def SelectionPredicate.SetShardInfoOnList.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "listObj"
   (App (Val exceptionDo)
@@ -2105,7 +2105,7 @@ noncomputable def SelectionPredicate.SetShardInfoOnList.impl [FfiSyntax] [GoGlob
 /-- LabelIndex add prefix for label index.
 
     go: selection_predicate.go:202:6 -/
-noncomputable def LabelIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def LabelIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "label"
   (App (Val exceptionDo)
   (Let "label" (App (Val (GoInstruction (GoAlloc go.string))) (Var "label"))
@@ -2115,7 +2115,7 @@ noncomputable def LabelIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- FiledIndex add prefix for field index.
 
     go: selection_predicate.go:207:6 -/
-noncomputable def FieldIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def FieldIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "field"
   (App (Val exceptionDo)
   (Let "field" (App (Val (GoInstruction (GoAlloc go.string))) (Var "field"))
@@ -2125,7 +2125,7 @@ noncomputable def FieldIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- SimpleUpdateFunc converts SimpleUpdateFunc into UpdateFunc
 
     go: util.go:33:6 -/
-noncomputable def SimpleUpdate.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def SimpleUpdate.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "fn"
   (App (Val exceptionDo)
   (Let "fn" (App (Val (GoInstruction (GoAlloc SimpleUpdateFunc.ty))) (Var "fn"))
@@ -2152,7 +2152,7 @@ noncomputable def SimpleUpdate.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Pair (Var "out") (Var "$r0"))))))))))))))))))))
 
 /-- go: util.go:40:6 -/
-noncomputable def NamespaceKeyFunc.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def NamespaceKeyFunc.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "prefix"
   (Lam "obj"
   (App (Val exceptionDo)
@@ -2213,7 +2213,7 @@ noncomputable def NamespaceKeyFunc.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #())))))))))
 
 /-- go: util.go:55:6 -/
-noncomputable def NoNamespaceKeyFunc.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def NoNamespaceKeyFunc.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "prefix"
   (Lam "obj"
   (App (Val exceptionDo)
@@ -2276,7 +2276,7 @@ noncomputable def NoNamespaceKeyFunc.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- Update returns true if and only if 'current' is the highest value ever seen.
 
     go: util.go:75:27 -/
-noncomputable def HighWaterMark.Update.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def HighWaterMark.Update.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "hwm"
   (Lam "current"
   (App (Val exceptionDo)
@@ -2314,7 +2314,7 @@ noncomputable def HighWaterMark.Update.impl [FfiSyntax] [GoGlobalContext] : val 
     field is a reference type (i.e. a map).
 
     go: util.go:92:6 -/
-noncomputable def AnnotateInitialEventsEndBookmark.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def AnnotateInitialEventsEndBookmark.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "obj"
   (App (Val exceptionDo)
   (Let "obj" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Var "obj"))
@@ -2365,7 +2365,7 @@ noncomputable def AnnotateInitialEventsEndBookmark.impl [FfiSyntax] [GoGlobalCon
     special annotation which marks that the initial events have been sent.
 
     go: util.go:108:6 -/
-noncomputable def HasInitialEventsEndBookmarkAnnotation.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def HasInitialEventsEndBookmarkAnnotation.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "obj"
   (App (Val exceptionDo)
   (Let "obj" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty))) (Var "obj"))
@@ -2400,7 +2400,7 @@ noncomputable def HasInitialEventsEndBookmarkAnnotation.impl [FfiSyntax] [GoGlob
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apiserver.pkg.storage where
   pkgImportedPkgs := [pkg_id.fmt, pkg_id.strconv, pkg_id.k8s_io.apimachinery.pkg.api.«meta», pkg_id.k8s_io.apimachinery.pkg.runtime, pkg_id.k8s_io.apimachinery.pkg.util.validation.field, pkg_id.encoding.base64, pkg_id.encoding.json, pkg_id.errors, pkg_id.path, pkg_id.strings, pkg_id.k8s_io.apimachinery.pkg.api.errors, pkg_id.k8s_io.apimachinery.pkg.apis.«meta».v1, pkg_id.context, pkg_id.time, pkg_id.k8s_io.apimachinery.pkg.fields, pkg_id.k8s_io.apimachinery.pkg.labels, pkg_id.k8s_io.apimachinery.pkg.types, pkg_id.k8s_io.apimachinery.pkg.watch, pkg_id.k8s_io.apimachinery.pkg.sharding, pkg_id.k8s_io.apiserver.pkg.features, pkg_id.k8s_io.apiserver.pkg.util.feature, pkg_id.sync.atomic, pkg_id.k8s_io.apimachinery.pkg.api.validate.content]
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.apiserver.pkg.storage)) (Lam BAnon
   (App (Val exceptionDo)
@@ -2573,28 +2573,30 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc Everything SelectionPredicate.ty)) (Val #()))))))))
 
-structure APIObjectVersioner [FfiSyntax] where
+structure APIObjectVersioner [GooseExts] where
   mk ::
 
-noncomputable instance APIObjectVersioner.zero_val [FfiSyntax] : ZeroVal APIObjectVersioner :=
+noncomputable instance APIObjectVersioner.zero_val [GooseExts] : ZeroVal APIObjectVersioner :=
   ⟨APIObjectVersioner.mk⟩
 
-@[reducible] noncomputable def APIObjectVersioner.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def APIObjectVersioner.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   []
 
-@[irreducible] noncomputable def APIObjectVersioner.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def APIObjectVersioner.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   APIObjectVersioner.fieldsUnsealed
 
-noncomputable instance equals_unfold_APIObjectVersioner [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_APIObjectVersioner [GooseExts] [GoGlobalContext] :
     EqualsUnfold APIObjectVersioner.fields APIObjectVersioner.fieldsUnsealed :=
   ⟨by unfold APIObjectVersioner.fields; rfl⟩
 
-@[reducible] noncomputable def APIObjectVersioner.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def APIObjectVersioner.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType APIObjectVersioner.fields)
 
-class APIObjectVersioner.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class APIObjectVersioner.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying APIObjectVersioner.underlying APIObjectVersioner
   underlying : go.UnderlyingDirectedEq APIObjectVersioner.ty APIObjectVersioner.underlying
+  method_set : go.MethodSetIs APIObjectVersioner.ty [(go!"CompareResourceVersion", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.int]))), (go!"ObjectResourceVersion", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.uint64, go.error]))), (go!"ParseResourceVersion", (some (go.signature.Signature [go.string] false [go.uint64, go.error]))), (go!"PrepareObjectForStorage", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.error]))), (go!"UpdateList", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.uint64, go.string, (go.GoType.PointerType go.int64)] false [go.error]))), (go!"UpdateObject", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.uint64] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType APIObjectVersioner.ty) [(go!"CompareResourceVersion", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.int]))), (go!"ObjectResourceVersion", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.uint64, go.error]))), (go!"ParseResourceVersion", (some (go.signature.Signature [go.string] false [go.uint64, go.error]))), (go!"PrepareObjectForStorage", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.error]))), (go!"UpdateList", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.uint64, go.string, (go.GoType.PointerType go.int64)] false [go.error]))), (go!"UpdateObject", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.uint64] false [go.error])))]
   CompareResourceVersion_unfold : MethodUnfold APIObjectVersioner.ty go!"CompareResourceVersion" APIObjectVersioner.CompareResourceVersion.impl
   ObjectResourceVersion_unfold : MethodUnfold APIObjectVersioner.ty go!"ObjectResourceVersion" APIObjectVersioner.ObjectResourceVersion.impl
   ParseResourceVersion_unfold : MethodUnfold APIObjectVersioner.ty go!"ParseResourceVersion" APIObjectVersioner.ParseResourceVersion.impl
@@ -2616,6 +2618,8 @@ class APIObjectVersioner.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalC
 
 attribute [instance] APIObjectVersioner.TypeAssumptions.type_repr
   APIObjectVersioner.TypeAssumptions.underlying
+  APIObjectVersioner.TypeAssumptions.method_set
+  APIObjectVersioner.TypeAssumptions.ptr_method_set
   APIObjectVersioner.TypeAssumptions.CompareResourceVersion_unfold
   APIObjectVersioner.TypeAssumptions.ObjectResourceVersion_unfold
   APIObjectVersioner.TypeAssumptions.ParseResourceVersion_unfold
@@ -2629,31 +2633,31 @@ attribute [instance] APIObjectVersioner.TypeAssumptions.type_repr
   APIObjectVersioner.TypeAssumptions.ptr_UpdateList_unfold
   APIObjectVersioner.TypeAssumptions.ptr_UpdateObject_unfold
 
-structure continueToken [FfiSyntax] where
+structure continueToken [GooseExts] where
   mk ::
   APIVersion' : GoString
   ResourceVersion' : w64
   StartKey' : GoString
 
-noncomputable instance continueToken.zero_val [FfiSyntax] : ZeroVal continueToken :=
+noncomputable instance continueToken.zero_val [GooseExts] : ZeroVal continueToken :=
   ⟨continueToken.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def continueToken.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def continueToken.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"APIVersion" go.string),
 (go.field_decl.FieldDecl go!"ResourceVersion" go.int64),
 (go.field_decl.FieldDecl go!"StartKey" go.string)]
 
-@[irreducible] noncomputable def continueToken.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def continueToken.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   continueToken.fieldsUnsealed
 
-noncomputable instance equals_unfold_continueToken [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_continueToken [GooseExts] [GoGlobalContext] :
     EqualsUnfold continueToken.fields continueToken.fieldsUnsealed :=
   ⟨by unfold continueToken.fields; rfl⟩
 
-@[reducible] noncomputable def continueToken.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def continueToken.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType continueToken.fields)
 
-class continueToken.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class continueToken.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying continueToken.underlying continueToken
   underlying : go.UnderlyingDirectedEq continueToken.ty continueToken.underlying
   get_APIVersion : ∀ (x : continueToken), go.IsGoStepPureDetTagged under (StructFieldGet continueToken.underlying go!"APIVersion") #x (Val #(x.APIVersion'))
@@ -2662,6 +2666,8 @@ class continueToken.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContex
   set_ResourceVersion : ∀ (x : continueToken) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet continueToken.underlying go!"ResourceVersion") (PairV #x #y) (Val #(({ x with ResourceVersion' := y } : continueToken)))
   get_StartKey : ∀ (x : continueToken), go.IsGoStepPureDetTagged under (StructFieldGet continueToken.underlying go!"StartKey") #x (Val #(x.StartKey'))
   set_StartKey : ∀ (x : continueToken) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet continueToken.underlying go!"StartKey") (PairV #x #y) (Val #(({ x with StartKey' := y } : continueToken)))
+  method_set : go.MethodSetIs continueToken.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType continueToken.ty) []
 
 attribute [instance] continueToken.TypeAssumptions.type_repr
   continueToken.TypeAssumptions.underlying
@@ -2671,34 +2677,36 @@ attribute [instance] continueToken.TypeAssumptions.type_repr
   continueToken.TypeAssumptions.set_ResourceVersion
   continueToken.TypeAssumptions.get_StartKey
   continueToken.TypeAssumptions.set_StartKey
+  continueToken.TypeAssumptions.method_set
+  continueToken.TypeAssumptions.ptr_method_set
 
-structure StorageError [FfiSyntax] where
+structure StorageError [GooseExts] where
   mk ::
   Code' : w64
   Key' : GoString
   ResourceVersion' : w64
   err' : GoError
 
-noncomputable instance StorageError.zero_val [FfiSyntax] : ZeroVal StorageError :=
+noncomputable instance StorageError.zero_val [GooseExts] : ZeroVal StorageError :=
   ⟨StorageError.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def StorageError.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def StorageError.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Code" go.int),
 (go.field_decl.FieldDecl go!"Key" go.string),
 (go.field_decl.FieldDecl go!"ResourceVersion" go.int64),
 (go.field_decl.FieldDecl go!"err" go.error)]
 
-@[irreducible] noncomputable def StorageError.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def StorageError.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   StorageError.fieldsUnsealed
 
-noncomputable instance equals_unfold_StorageError [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_StorageError [GooseExts] [GoGlobalContext] :
     EqualsUnfold StorageError.fields StorageError.fieldsUnsealed :=
   ⟨by unfold StorageError.fields; rfl⟩
 
-@[reducible] noncomputable def StorageError.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def StorageError.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType StorageError.fields)
 
-class StorageError.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class StorageError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying StorageError.underlying StorageError
   underlying : go.UnderlyingDirectedEq StorageError.ty StorageError.underlying
   get_Code : ∀ (x : StorageError), go.IsGoStepPureDetTagged under (StructFieldGet StorageError.underlying go!"Code") #x (Val #(x.Code'))
@@ -2709,6 +2717,8 @@ class StorageError.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext
   set_ResourceVersion : ∀ (x : StorageError) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet StorageError.underlying go!"ResourceVersion") (PairV #x #y) (Val #(({ x with ResourceVersion' := y } : StorageError)))
   get_err : ∀ (x : StorageError), go.IsGoStepPureDetTagged under (StructFieldGet StorageError.underlying go!"err") #x (Val #(x.err'))
   set_err : ∀ (x : StorageError) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet StorageError.underlying go!"err") (PairV #x #y) (Val #(({ x with err' := y } : StorageError)))
+  method_set : go.MethodSetIs StorageError.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType StorageError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Unwrap", (some (go.signature.Signature [] false [go.error])))]
   ptr_Error_unfold : MethodUnfold (go.GoType.PointerType StorageError.ty) go!"Error" StorageError.Error.impl
   ptr_Unwrap_unfold : MethodUnfold (go.GoType.PointerType StorageError.ty) go!"Unwrap" StorageError.Unwrap.impl
 
@@ -2722,69 +2732,77 @@ attribute [instance] StorageError.TypeAssumptions.type_repr
   StorageError.TypeAssumptions.set_ResourceVersion
   StorageError.TypeAssumptions.get_err
   StorageError.TypeAssumptions.set_err
+  StorageError.TypeAssumptions.method_set
+  StorageError.TypeAssumptions.ptr_method_set
   StorageError.TypeAssumptions.ptr_Error_unfold
   StorageError.TypeAssumptions.ptr_Unwrap_unfold
 
-structure InvalidError [FfiSyntax] where
+structure InvalidError [GooseExts] where
   mk ::
   Errs' : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorList
 
-noncomputable instance InvalidError.zero_val [FfiSyntax] : ZeroVal InvalidError :=
+noncomputable instance InvalidError.zero_val [GooseExts] : ZeroVal InvalidError :=
   ⟨InvalidError.mk zeroValDef⟩
 
-@[reducible] noncomputable def InvalidError.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def InvalidError.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Errs" _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorList.ty)]
 
-@[irreducible] noncomputable def InvalidError.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def InvalidError.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   InvalidError.fieldsUnsealed
 
-noncomputable instance equals_unfold_InvalidError [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_InvalidError [GooseExts] [GoGlobalContext] :
     EqualsUnfold InvalidError.fields InvalidError.fieldsUnsealed :=
   ⟨by unfold InvalidError.fields; rfl⟩
 
-@[reducible] noncomputable def InvalidError.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def InvalidError.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType InvalidError.fields)
 
-class InvalidError.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class InvalidError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying InvalidError.underlying InvalidError
   underlying : go.UnderlyingDirectedEq InvalidError.ty InvalidError.underlying
   get_Errs : ∀ (x : InvalidError), go.IsGoStepPureDetTagged under (StructFieldGet InvalidError.underlying go!"Errs") #x (Val #(x.Errs'))
   set_Errs : ∀ (x : InvalidError) (y : _root_.Perennial.k8s_io.apimachinery.pkg.util.validation.field.ErrorList), go.IsGoStepPureDetTagged under (StructFieldSet InvalidError.underlying go!"Errs") (PairV #x #y) (Val #(({ x with Errs' := y } : InvalidError)))
+  method_set : go.MethodSetIs InvalidError.ty [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType InvalidError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] InvalidError.TypeAssumptions.type_repr
   InvalidError.TypeAssumptions.underlying
   InvalidError.TypeAssumptions.get_Errs
   InvalidError.TypeAssumptions.set_Errs
+  InvalidError.TypeAssumptions.method_set
+  InvalidError.TypeAssumptions.ptr_method_set
 
-structure InternalError [FfiSyntax] where
+structure InternalError [GooseExts] where
   mk ::
   Reason' : GoString
   err' : GoError
 
-noncomputable instance InternalError.zero_val [FfiSyntax] : ZeroVal InternalError :=
+noncomputable instance InternalError.zero_val [GooseExts] : ZeroVal InternalError :=
   ⟨InternalError.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def InternalError.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def InternalError.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Reason" go.string),
 (go.field_decl.FieldDecl go!"err" go.error)]
 
-@[irreducible] noncomputable def InternalError.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def InternalError.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   InternalError.fieldsUnsealed
 
-noncomputable instance equals_unfold_InternalError [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_InternalError [GooseExts] [GoGlobalContext] :
     EqualsUnfold InternalError.fields InternalError.fieldsUnsealed :=
   ⟨by unfold InternalError.fields; rfl⟩
 
-@[reducible] noncomputable def InternalError.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def InternalError.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType InternalError.fields)
 
-class InternalError.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class InternalError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying InternalError.underlying InternalError
   underlying : go.UnderlyingDirectedEq InternalError.ty InternalError.underlying
   get_Reason : ∀ (x : InternalError), go.IsGoStepPureDetTagged under (StructFieldGet InternalError.underlying go!"Reason") #x (Val #(x.Reason'))
   set_Reason : ∀ (x : InternalError) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet InternalError.underlying go!"Reason") (PairV #x #y) (Val #(({ x with Reason' := y } : InternalError)))
   get_err : ∀ (x : InternalError), go.IsGoStepPureDetTagged under (StructFieldGet InternalError.underlying go!"err") #x (Val #(x.err'))
   set_err : ∀ (x : InternalError) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet InternalError.underlying go!"err") (PairV #x #y) (Val #(({ x with err' := y } : InternalError)))
+  method_set : go.MethodSetIs InternalError.ty [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Unwrap", (some (go.signature.Signature [] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType InternalError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Unwrap", (some (go.signature.Signature [] false [go.error])))]
   Error_unfold : MethodUnfold InternalError.ty go!"Error" InternalError.Error.impl
   Unwrap_unfold : MethodUnfold InternalError.ty go!"Unwrap" InternalError.Unwrap.impl
   ptr_Error_unfold : MethodUnfold (go.GoType.PointerType InternalError.ty) go!"Error" (LamV "$r"
@@ -2798,50 +2816,58 @@ attribute [instance] InternalError.TypeAssumptions.type_repr
   InternalError.TypeAssumptions.set_Reason
   InternalError.TypeAssumptions.get_err
   InternalError.TypeAssumptions.set_err
+  InternalError.TypeAssumptions.method_set
+  InternalError.TypeAssumptions.ptr_method_set
   InternalError.TypeAssumptions.Error_unfold
   InternalError.TypeAssumptions.Unwrap_unfold
   InternalError.TypeAssumptions.ptr_Error_unfold
   InternalError.TypeAssumptions.ptr_Unwrap_unfold
 
-abbrev Versioner [FfiSyntax] : Type := GoInterface
+abbrev Versioner [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def Versioner.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Versioner.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"ObjectResourceVersion" (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.uint64, go.error])), (go.InterfaceElem.MethodElem go!"ParseResourceVersion" (go.signature.Signature [go.string] false [go.uint64, go.error])), (go.InterfaceElem.MethodElem go!"PrepareObjectForStorage" (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"UpdateList" (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.uint64, go.string, (go.GoType.PointerType go.int64)] false [go.error])), (go.InterfaceElem.MethodElem go!"UpdateObject" (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.uint64] false [go.error]))])
 
-class Versioner.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Versioner.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Versioner.ty Versioner.underlying
+  method_set : go.MethodSetIs Versioner.ty [(go!"ObjectResourceVersion", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.uint64, go.error]))), (go!"ParseResourceVersion", (some (go.signature.Signature [go.string] false [go.uint64, go.error]))), (go!"PrepareObjectForStorage", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.error]))), (go!"UpdateList", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.uint64, go.string, (go.GoType.PointerType go.int64)] false [go.error]))), (go!"UpdateObject", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.uint64] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Versioner.ty) []
 
 attribute [instance] Versioner.TypeAssumptions.underlying
+  Versioner.TypeAssumptions.method_set
+  Versioner.TypeAssumptions.ptr_method_set
 
-structure ResponseMeta [FfiSyntax] where
+structure ResponseMeta [GooseExts] where
   mk ::
   TTL' : w64
   ResourceVersion' : w64
 
-noncomputable instance ResponseMeta.zero_val [FfiSyntax] : ZeroVal ResponseMeta :=
+noncomputable instance ResponseMeta.zero_val [GooseExts] : ZeroVal ResponseMeta :=
   ⟨ResponseMeta.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ResponseMeta.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ResponseMeta.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"TTL" go.int64),
 (go.field_decl.FieldDecl go!"ResourceVersion" go.uint64)]
 
-@[irreducible] noncomputable def ResponseMeta.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ResponseMeta.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ResponseMeta.fieldsUnsealed
 
-noncomputable instance equals_unfold_ResponseMeta [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ResponseMeta [GooseExts] [GoGlobalContext] :
     EqualsUnfold ResponseMeta.fields ResponseMeta.fieldsUnsealed :=
   ⟨by unfold ResponseMeta.fields; rfl⟩
 
-@[reducible] noncomputable def ResponseMeta.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ResponseMeta.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ResponseMeta.fields)
 
-class ResponseMeta.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ResponseMeta.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ResponseMeta.underlying ResponseMeta
   underlying : go.UnderlyingDirectedEq ResponseMeta.ty ResponseMeta.underlying
   get_TTL : ∀ (x : ResponseMeta), go.IsGoStepPureDetTagged under (StructFieldGet ResponseMeta.underlying go!"TTL") #x (Val #(x.TTL'))
   set_TTL : ∀ (x : ResponseMeta) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ResponseMeta.underlying go!"TTL") (PairV #x #y) (Val #(({ x with TTL' := y } : ResponseMeta)))
   get_ResourceVersion : ∀ (x : ResponseMeta), go.IsGoStepPureDetTagged under (StructFieldGet ResponseMeta.underlying go!"ResourceVersion") #x (Val #(x.ResourceVersion'))
   set_ResourceVersion : ∀ (x : ResponseMeta) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ResponseMeta.underlying go!"ResourceVersion") (PairV #x #y) (Val #(({ x with ResourceVersion' := y } : ResponseMeta)))
+  method_set : go.MethodSetIs ResponseMeta.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ResponseMeta.ty) []
 
 attribute [instance] ResponseMeta.TypeAssumptions.type_repr
   ResponseMeta.TypeAssumptions.underlying
@@ -2849,56 +2875,68 @@ attribute [instance] ResponseMeta.TypeAssumptions.type_repr
   ResponseMeta.TypeAssumptions.set_TTL
   ResponseMeta.TypeAssumptions.get_ResourceVersion
   ResponseMeta.TypeAssumptions.set_ResourceVersion
+  ResponseMeta.TypeAssumptions.method_set
+  ResponseMeta.TypeAssumptions.ptr_method_set
 
-abbrev IndexerFunc [FfiSyntax] : Type := GoFunc
+abbrev IndexerFunc [GooseExts] : Type := GoFunc
 
-@[reducible] noncomputable def IndexerFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def IndexerFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.string]))
 
-class IndexerFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class IndexerFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq IndexerFunc.ty IndexerFunc.underlying
+  method_set : go.MethodSetIs IndexerFunc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType IndexerFunc.ty) []
 
 attribute [instance] IndexerFunc.TypeAssumptions.underlying
+  IndexerFunc.TypeAssumptions.method_set
+  IndexerFunc.TypeAssumptions.ptr_method_set
 
-abbrev IndexerFuncs [FfiSyntax] : Type := GoMap
+abbrev IndexerFuncs [GooseExts] : Type := GoMap
 
-@[reducible] noncomputable def IndexerFuncs.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def IndexerFuncs.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.MapType go.string IndexerFunc.ty)
 
-class IndexerFuncs.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class IndexerFuncs.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq IndexerFuncs.ty IndexerFuncs.underlying
+  method_set : go.MethodSetIs IndexerFuncs.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType IndexerFuncs.ty) []
 
 attribute [instance] IndexerFuncs.TypeAssumptions.underlying
+  IndexerFuncs.TypeAssumptions.method_set
+  IndexerFuncs.TypeAssumptions.ptr_method_set
 
-structure MatchValue [FfiSyntax] where
+structure MatchValue [GooseExts] where
   mk ::
   IndexName' : GoString
   Value' : GoString
 
-noncomputable instance MatchValue.zero_val [FfiSyntax] : ZeroVal MatchValue :=
+noncomputable instance MatchValue.zero_val [GooseExts] : ZeroVal MatchValue :=
   ⟨MatchValue.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def MatchValue.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def MatchValue.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"IndexName" go.string),
 (go.field_decl.FieldDecl go!"Value" go.string)]
 
-@[irreducible] noncomputable def MatchValue.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def MatchValue.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   MatchValue.fieldsUnsealed
 
-noncomputable instance equals_unfold_MatchValue [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_MatchValue [GooseExts] [GoGlobalContext] :
     EqualsUnfold MatchValue.fields MatchValue.fieldsUnsealed :=
   ⟨by unfold MatchValue.fields; rfl⟩
 
-@[reducible] noncomputable def MatchValue.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def MatchValue.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType MatchValue.fields)
 
-class MatchValue.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class MatchValue.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying MatchValue.underlying MatchValue
   underlying : go.UnderlyingDirectedEq MatchValue.ty MatchValue.underlying
   get_IndexName : ∀ (x : MatchValue), go.IsGoStepPureDetTagged under (StructFieldGet MatchValue.underlying go!"IndexName") #x (Val #(x.IndexName'))
   set_IndexName : ∀ (x : MatchValue) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet MatchValue.underlying go!"IndexName") (PairV #x #y) (Val #(({ x with IndexName' := y } : MatchValue)))
   get_Value : ∀ (x : MatchValue), go.IsGoStepPureDetTagged under (StructFieldGet MatchValue.underlying go!"Value") #x (Val #(x.Value'))
   set_Value : ∀ (x : MatchValue) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet MatchValue.underlying go!"Value") (PairV #x #y) (Val #(({ x with Value' := y } : MatchValue)))
+  method_set : go.MethodSetIs MatchValue.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType MatchValue.ty) []
 
 attribute [instance] MatchValue.TypeAssumptions.type_repr
   MatchValue.TypeAssumptions.underlying
@@ -2906,56 +2944,68 @@ attribute [instance] MatchValue.TypeAssumptions.type_repr
   MatchValue.TypeAssumptions.set_IndexName
   MatchValue.TypeAssumptions.get_Value
   MatchValue.TypeAssumptions.set_Value
+  MatchValue.TypeAssumptions.method_set
+  MatchValue.TypeAssumptions.ptr_method_set
 
-abbrev UpdateFunc [FfiSyntax] : Type := GoFunc
+abbrev UpdateFunc [GooseExts] : Type := GoFunc
 
-@[reducible] noncomputable def UpdateFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def UpdateFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, ResponseMeta.ty] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, (go.GoType.PointerType go.uint64), go.error]))
 
-class UpdateFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class UpdateFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq UpdateFunc.ty UpdateFunc.underlying
+  method_set : go.MethodSetIs UpdateFunc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType UpdateFunc.ty) []
 
 attribute [instance] UpdateFunc.TypeAssumptions.underlying
+  UpdateFunc.TypeAssumptions.method_set
+  UpdateFunc.TypeAssumptions.ptr_method_set
 
-abbrev ValidateObjectFunc [FfiSyntax] : Type := GoFunc
+abbrev ValidateObjectFunc [GooseExts] : Type := GoFunc
 
-@[reducible] noncomputable def ValidateObjectFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ValidateObjectFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.error]))
 
-class ValidateObjectFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ValidateObjectFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ValidateObjectFunc.ty ValidateObjectFunc.underlying
+  method_set : go.MethodSetIs ValidateObjectFunc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ValidateObjectFunc.ty) []
 
 attribute [instance] ValidateObjectFunc.TypeAssumptions.underlying
+  ValidateObjectFunc.TypeAssumptions.method_set
+  ValidateObjectFunc.TypeAssumptions.ptr_method_set
 
-structure Preconditions [FfiSyntax] where
+structure Preconditions [GooseExts] where
   mk ::
   UID' : Loc
   ResourceVersion' : Loc
 
-noncomputable instance Preconditions.zero_val [FfiSyntax] : ZeroVal Preconditions :=
+noncomputable instance Preconditions.zero_val [GooseExts] : ZeroVal Preconditions :=
   ⟨Preconditions.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Preconditions.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Preconditions.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"UID" (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.types.UID.ty)),
 (go.field_decl.FieldDecl go!"ResourceVersion" (go.GoType.PointerType go.string))]
 
-@[irreducible] noncomputable def Preconditions.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Preconditions.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Preconditions.fieldsUnsealed
 
-noncomputable instance equals_unfold_Preconditions [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Preconditions [GooseExts] [GoGlobalContext] :
     EqualsUnfold Preconditions.fields Preconditions.fieldsUnsealed :=
   ⟨by unfold Preconditions.fields; rfl⟩
 
-@[reducible] noncomputable def Preconditions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Preconditions.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Preconditions.fields)
 
-class Preconditions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Preconditions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Preconditions.underlying Preconditions
   underlying : go.UnderlyingDirectedEq Preconditions.ty Preconditions.underlying
   get_UID : ∀ (x : Preconditions), go.IsGoStepPureDetTagged under (StructFieldGet Preconditions.underlying go!"UID") #x (Val #(x.UID'))
   set_UID : ∀ (x : Preconditions) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Preconditions.underlying go!"UID") (PairV #x #y) (Val #(({ x with UID' := y } : Preconditions)))
   get_ResourceVersion : ∀ (x : Preconditions), go.IsGoStepPureDetTagged under (StructFieldGet Preconditions.underlying go!"ResourceVersion") #x (Val #(x.ResourceVersion'))
   set_ResourceVersion : ∀ (x : Preconditions) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Preconditions.underlying go!"ResourceVersion") (PairV #x #y) (Val #(({ x with ResourceVersion' := y } : Preconditions)))
+  method_set : go.MethodSetIs Preconditions.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Preconditions.ty) [(go!"Check", (some (go.signature.Signature [go.string, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.error])))]
   ptr_Check_unfold : MethodUnfold (go.GoType.PointerType Preconditions.ty) go!"Check" Preconditions.Check.impl
 
 attribute [instance] Preconditions.TypeAssumptions.type_repr
@@ -2964,57 +3014,69 @@ attribute [instance] Preconditions.TypeAssumptions.type_repr
   Preconditions.TypeAssumptions.set_UID
   Preconditions.TypeAssumptions.get_ResourceVersion
   Preconditions.TypeAssumptions.set_ResourceVersion
+  Preconditions.TypeAssumptions.method_set
+  Preconditions.TypeAssumptions.ptr_method_set
   Preconditions.TypeAssumptions.ptr_Check_unfold
 
-abbrev Interface [FfiSyntax] : Type := GoInterface
+abbrev Interface [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def Interface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"CompactRevision" (go.signature.Signature [] false [go.int64])), (go.InterfaceElem.MethodElem go!"Create" (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.uint64] false [go.error])), (go.InterfaceElem.MethodElem go!"Delete" (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, (go.GoType.PointerType Preconditions.ty), ValidateObjectFunc.ty, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, DeleteOptions.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"EnableResourceSizeEstimation" (go.signature.Signature [KeysFunc.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"Get" (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, GetOptions.ty, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"GetCurrentResourceVersion" (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.uint64, go.error])), (go.InterfaceElem.MethodElem go!"GetList" (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, ListOptions.ty, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"GuaranteedUpdate" (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.bool, (go.GoType.PointerType Preconditions.ty), UpdateFunc.ty, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"ReadinessCheck" (go.signature.Signature [] false [go.error])), (go.InterfaceElem.MethodElem go!"RequestWatchProgress" (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"Stats" (go.signature.Signature [_root_.Perennial.context.Context.ty] false [Stats.ty, go.error])), (go.InterfaceElem.MethodElem go!"Versioner" (go.signature.Signature [] false [Versioner.ty])), (go.InterfaceElem.MethodElem go!"Watch" (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, ListOptions.ty] false [_root_.Perennial.k8s_io.apimachinery.pkg.watch.Interface.ty, go.error]))])
 
-class Interface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Interface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Interface.ty Interface.underlying
+  method_set : go.MethodSetIs Interface.ty [(go!"CompactRevision", (some (go.signature.Signature [] false [go.int64]))), (go!"Create", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.uint64] false [go.error]))), (go!"Delete", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, (go.GoType.PointerType Preconditions.ty), ValidateObjectFunc.ty, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, DeleteOptions.ty] false [go.error]))), (go!"EnableResourceSizeEstimation", (some (go.signature.Signature [KeysFunc.ty] false [go.error]))), (go!"Get", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, GetOptions.ty, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.error]))), (go!"GetCurrentResourceVersion", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.uint64, go.error]))), (go!"GetList", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, ListOptions.ty, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.error]))), (go!"GuaranteedUpdate", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.bool, (go.GoType.PointerType Preconditions.ty), UpdateFunc.ty, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.error]))), (go!"ReadinessCheck", (some (go.signature.Signature [] false [go.error]))), (go!"RequestWatchProgress", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [go.error]))), (go!"Stats", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [Stats.ty, go.error]))), (go!"Versioner", (some (go.signature.Signature [] false [Versioner.ty]))), (go!"Watch", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, ListOptions.ty] false [_root_.Perennial.k8s_io.apimachinery.pkg.watch.Interface.ty, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Interface.ty) []
 
 attribute [instance] Interface.TypeAssumptions.underlying
+  Interface.TypeAssumptions.method_set
+  Interface.TypeAssumptions.ptr_method_set
 
-abbrev KeysFunc [FfiSyntax] : Type := GoFunc
+abbrev KeysFunc [GooseExts] : Type := GoFunc
 
-@[reducible] noncomputable def KeysFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def KeysFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.SliceType go.string), go.error]))
 
-class KeysFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class KeysFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq KeysFunc.ty KeysFunc.underlying
+  method_set : go.MethodSetIs KeysFunc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType KeysFunc.ty) []
 
 attribute [instance] KeysFunc.TypeAssumptions.underlying
+  KeysFunc.TypeAssumptions.method_set
+  KeysFunc.TypeAssumptions.ptr_method_set
 
-structure GetOptions [FfiSyntax] where
+structure GetOptions [GooseExts] where
   mk ::
   IgnoreNotFound' : Bool
   ResourceVersion' : GoString
 
-noncomputable instance GetOptions.zero_val [FfiSyntax] : ZeroVal GetOptions :=
+noncomputable instance GetOptions.zero_val [GooseExts] : ZeroVal GetOptions :=
   ⟨GetOptions.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def GetOptions.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def GetOptions.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"IgnoreNotFound" go.bool),
 (go.field_decl.FieldDecl go!"ResourceVersion" go.string)]
 
-@[irreducible] noncomputable def GetOptions.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def GetOptions.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   GetOptions.fieldsUnsealed
 
-noncomputable instance equals_unfold_GetOptions [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_GetOptions [GooseExts] [GoGlobalContext] :
     EqualsUnfold GetOptions.fields GetOptions.fieldsUnsealed :=
   ⟨by unfold GetOptions.fields; rfl⟩
 
-@[reducible] noncomputable def GetOptions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def GetOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType GetOptions.fields)
 
-class GetOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class GetOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying GetOptions.underlying GetOptions
   underlying : go.UnderlyingDirectedEq GetOptions.ty GetOptions.underlying
   get_IgnoreNotFound : ∀ (x : GetOptions), go.IsGoStepPureDetTagged under (StructFieldGet GetOptions.underlying go!"IgnoreNotFound") #x (Val #(x.IgnoreNotFound'))
   set_IgnoreNotFound : ∀ (x : GetOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet GetOptions.underlying go!"IgnoreNotFound") (PairV #x #y) (Val #(({ x with IgnoreNotFound' := y } : GetOptions)))
   get_ResourceVersion : ∀ (x : GetOptions), go.IsGoStepPureDetTagged under (StructFieldGet GetOptions.underlying go!"ResourceVersion") #x (Val #(x.ResourceVersion'))
   set_ResourceVersion : ∀ (x : GetOptions) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet GetOptions.underlying go!"ResourceVersion") (PairV #x #y) (Val #(({ x with ResourceVersion' := y } : GetOptions)))
+  method_set : go.MethodSetIs GetOptions.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType GetOptions.ty) []
 
 attribute [instance] GetOptions.TypeAssumptions.type_repr
   GetOptions.TypeAssumptions.underlying
@@ -3022,23 +3084,29 @@ attribute [instance] GetOptions.TypeAssumptions.type_repr
   GetOptions.TypeAssumptions.set_IgnoreNotFound
   GetOptions.TypeAssumptions.get_ResourceVersion
   GetOptions.TypeAssumptions.set_ResourceVersion
+  GetOptions.TypeAssumptions.method_set
+  GetOptions.TypeAssumptions.ptr_method_set
 
-abbrev AttrFunc [FfiSyntax] : Type := GoFunc
+abbrev AttrFunc [GooseExts] : Type := GoFunc
 
-@[reducible] noncomputable def AttrFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def AttrFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Set'.ty, _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set'.ty, go.error]))
 
-class AttrFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class AttrFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq AttrFunc.ty AttrFunc.underlying
+  method_set : go.MethodSetIs AttrFunc.ty [(go!"WithFieldMutation", (some (go.signature.Signature [FieldMutationFunc.ty] false [AttrFunc.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType AttrFunc.ty) [(go!"WithFieldMutation", (some (go.signature.Signature [FieldMutationFunc.ty] false [AttrFunc.ty])))]
   WithFieldMutation_unfold : MethodUnfold AttrFunc.ty go!"WithFieldMutation" AttrFunc.WithFieldMutation.impl
   ptr_WithFieldMutation_unfold : MethodUnfold (go.GoType.PointerType AttrFunc.ty) go!"WithFieldMutation" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve AttrFunc.ty go!"WithFieldMutation"))) (App (Val (GoInstruction (GoLoad AttrFunc.ty))) (Var "$r"))))
 
 attribute [instance] AttrFunc.TypeAssumptions.underlying
+  AttrFunc.TypeAssumptions.method_set
+  AttrFunc.TypeAssumptions.ptr_method_set
   AttrFunc.TypeAssumptions.WithFieldMutation_unfold
   AttrFunc.TypeAssumptions.ptr_WithFieldMutation_unfold
 
-structure SelectionPredicate [FfiSyntax] where
+structure SelectionPredicate [GooseExts] where
   mk ::
   Label' : _root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector
   Field' : _root_.Perennial.k8s_io.apimachinery.pkg.fields.Selector
@@ -3050,10 +3118,10 @@ structure SelectionPredicate [FfiSyntax] where
   AllowWatchBookmarks' : Bool
   ShardSelector' : _root_.Perennial.k8s_io.apimachinery.pkg.sharding.Selector
 
-noncomputable instance SelectionPredicate.zero_val [FfiSyntax] : ZeroVal SelectionPredicate :=
+noncomputable instance SelectionPredicate.zero_val [GooseExts] : ZeroVal SelectionPredicate :=
   ⟨SelectionPredicate.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def SelectionPredicate.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def SelectionPredicate.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Label" _root_.Perennial.k8s_io.apimachinery.pkg.labels.Selector.ty),
 (go.field_decl.FieldDecl go!"Field" _root_.Perennial.k8s_io.apimachinery.pkg.fields.Selector.ty),
 (go.field_decl.FieldDecl go!"GetAttrs" AttrFunc.ty),
@@ -3064,17 +3132,17 @@ noncomputable instance SelectionPredicate.zero_val [FfiSyntax] : ZeroVal Selecti
 (go.field_decl.FieldDecl go!"AllowWatchBookmarks" go.bool),
 (go.field_decl.FieldDecl go!"ShardSelector" _root_.Perennial.k8s_io.apimachinery.pkg.sharding.Selector.ty)]
 
-@[irreducible] noncomputable def SelectionPredicate.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def SelectionPredicate.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   SelectionPredicate.fieldsUnsealed
 
-noncomputable instance equals_unfold_SelectionPredicate [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_SelectionPredicate [GooseExts] [GoGlobalContext] :
     EqualsUnfold SelectionPredicate.fields SelectionPredicate.fieldsUnsealed :=
   ⟨by unfold SelectionPredicate.fields; rfl⟩
 
-@[reducible] noncomputable def SelectionPredicate.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def SelectionPredicate.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType SelectionPredicate.fields)
 
-class SelectionPredicate.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class SelectionPredicate.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying SelectionPredicate.underlying SelectionPredicate
   underlying : go.UnderlyingDirectedEq SelectionPredicate.ty SelectionPredicate.underlying
   get_Label : ∀ (x : SelectionPredicate), go.IsGoStepPureDetTagged under (StructFieldGet SelectionPredicate.underlying go!"Label") #x (Val #(x.Label'))
@@ -3095,6 +3163,8 @@ class SelectionPredicate.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalC
   set_AllowWatchBookmarks : ∀ (x : SelectionPredicate) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet SelectionPredicate.underlying go!"AllowWatchBookmarks") (PairV #x #y) (Val #(({ x with AllowWatchBookmarks' := y } : SelectionPredicate)))
   get_ShardSelector : ∀ (x : SelectionPredicate), go.IsGoStepPureDetTagged under (StructFieldGet SelectionPredicate.underlying go!"ShardSelector") #x (Val #(x.ShardSelector'))
   set_ShardSelector : ∀ (x : SelectionPredicate) (y : _root_.Perennial.k8s_io.apimachinery.pkg.sharding.Selector), go.IsGoStepPureDetTagged under (StructFieldSet SelectionPredicate.underlying go!"ShardSelector") (PairV #x #y) (Val #(({ x with ShardSelector' := y } : SelectionPredicate)))
+  method_set : go.MethodSetIs SelectionPredicate.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SelectionPredicate.ty) [(go!"Empty", (some (go.signature.Signature [] false [go.bool]))), (go!"MatcherIndex", (some (go.signature.Signature [_root_.Perennial.context.Context.ty] false [(go.GoType.SliceType MatchValue.ty)]))), (go!"Matches", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.bool, go.error]))), (go!"MatchesObjectAttributes", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.labels.Set'.ty, _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set'.ty] false [go.bool]))), (go!"MatchesSharding", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [go.bool, go.error]))), (go!"MatchesSingle", (some (go.signature.Signature [] false [go.string, go.bool]))), (go!"MatchesSingleNamespace", (some (go.signature.Signature [] false [go.string, go.bool]))), (go!"SetShardInfoOnList", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false []))), (go!"ShardingEnabled", (some (go.signature.Signature [] false [go.bool]))), (go!"k8s.io/apiserver/pkg/storage.labelFieldEmpty", (some (go.signature.Signature [] false [go.bool])))]
   ptr_Empty_unfold : MethodUnfold (go.GoType.PointerType SelectionPredicate.ty) go!"Empty" SelectionPredicate.Empty.impl
   ptr_MatcherIndex_unfold : MethodUnfold (go.GoType.PointerType SelectionPredicate.ty) go!"MatcherIndex" SelectionPredicate.MatcherIndex.impl
   ptr_Matches_unfold : MethodUnfold (go.GoType.PointerType SelectionPredicate.ty) go!"Matches" SelectionPredicate.Matches.impl
@@ -3126,6 +3196,8 @@ attribute [instance] SelectionPredicate.TypeAssumptions.type_repr
   SelectionPredicate.TypeAssumptions.set_AllowWatchBookmarks
   SelectionPredicate.TypeAssumptions.get_ShardSelector
   SelectionPredicate.TypeAssumptions.set_ShardSelector
+  SelectionPredicate.TypeAssumptions.method_set
+  SelectionPredicate.TypeAssumptions.ptr_method_set
   SelectionPredicate.TypeAssumptions.ptr_Empty_unfold
   SelectionPredicate.TypeAssumptions.ptr_MatcherIndex_unfold
   SelectionPredicate.TypeAssumptions.ptr_Matches_unfold
@@ -3137,7 +3209,7 @@ attribute [instance] SelectionPredicate.TypeAssumptions.type_repr
   SelectionPredicate.TypeAssumptions.ptr_ShardingEnabled_unfold
   SelectionPredicate.TypeAssumptions.ptr_labelFieldEmpty_unfold
 
-structure ListOptions [FfiSyntax] where
+structure ListOptions [GooseExts] where
   mk ::
   ResourceVersion' : GoString
   ResourceVersionMatch' : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ResourceVersionMatch
@@ -3147,10 +3219,10 @@ structure ListOptions [FfiSyntax] where
   SendInitialEvents' : Loc
   RecordTimestamps' : Bool
 
-noncomputable instance ListOptions.zero_val [FfiSyntax] : ZeroVal ListOptions :=
+noncomputable instance ListOptions.zero_val [GooseExts] : ZeroVal ListOptions :=
   ⟨ListOptions.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ListOptions.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ListOptions.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"ResourceVersion" go.string),
 (go.field_decl.FieldDecl go!"ResourceVersionMatch" _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.ResourceVersionMatch.ty),
 (go.field_decl.FieldDecl go!"Predicate" SelectionPredicate.ty),
@@ -3159,17 +3231,17 @@ noncomputable instance ListOptions.zero_val [FfiSyntax] : ZeroVal ListOptions :=
 (go.field_decl.FieldDecl go!"SendInitialEvents" (go.GoType.PointerType go.bool)),
 (go.field_decl.FieldDecl go!"RecordTimestamps" go.bool)]
 
-@[irreducible] noncomputable def ListOptions.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ListOptions.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ListOptions.fieldsUnsealed
 
-noncomputable instance equals_unfold_ListOptions [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ListOptions [GooseExts] [GoGlobalContext] :
     EqualsUnfold ListOptions.fields ListOptions.fieldsUnsealed :=
   ⟨by unfold ListOptions.fields; rfl⟩
 
-@[reducible] noncomputable def ListOptions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ListOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ListOptions.fields)
 
-class ListOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ListOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ListOptions.underlying ListOptions
   underlying : go.UnderlyingDirectedEq ListOptions.ty ListOptions.underlying
   get_ResourceVersion : ∀ (x : ListOptions), go.IsGoStepPureDetTagged under (StructFieldGet ListOptions.underlying go!"ResourceVersion") #x (Val #(x.ResourceVersion'))
@@ -3186,6 +3258,8 @@ class ListOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext]
   set_SendInitialEvents : ∀ (x : ListOptions) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ListOptions.underlying go!"SendInitialEvents") (PairV #x #y) (Val #(({ x with SendInitialEvents' := y } : ListOptions)))
   get_RecordTimestamps : ∀ (x : ListOptions), go.IsGoStepPureDetTagged under (StructFieldGet ListOptions.underlying go!"RecordTimestamps") #x (Val #(x.RecordTimestamps'))
   set_RecordTimestamps : ∀ (x : ListOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ListOptions.underlying go!"RecordTimestamps") (PairV #x #y) (Val #(({ x with RecordTimestamps' := y } : ListOptions)))
+  method_set : go.MethodSetIs ListOptions.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ListOptions.ty) []
 
 attribute [instance] ListOptions.TypeAssumptions.type_repr
   ListOptions.TypeAssumptions.underlying
@@ -3203,77 +3277,89 @@ attribute [instance] ListOptions.TypeAssumptions.type_repr
   ListOptions.TypeAssumptions.set_SendInitialEvents
   ListOptions.TypeAssumptions.get_RecordTimestamps
   ListOptions.TypeAssumptions.set_RecordTimestamps
+  ListOptions.TypeAssumptions.method_set
+  ListOptions.TypeAssumptions.ptr_method_set
 
-abbrev WatchEventWithRecordTime [FfiSyntax] : Type := GoInterface
+abbrev WatchEventWithRecordTime [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def WatchEventWithRecordTime.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"RecordTime" (go.signature.Signature [] false [_root_.Perennial.time.Time.ty])), (go.InterfaceElem.MethodElem go!"Unwrap" (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm _root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty)])])
+@[reducible] noncomputable def WatchEventWithRecordTime.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"DeepCopyObject" (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty])), (go.InterfaceElem.MethodElem go!"GetObjectKind" (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.ObjectKind" [])])), (go.InterfaceElem.MethodElem go!"RecordTime" (go.signature.Signature [] false [_root_.Perennial.time.Time.ty])), (go.InterfaceElem.MethodElem go!"Unwrap" (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty]))])
 
-class WatchEventWithRecordTime.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class WatchEventWithRecordTime.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq WatchEventWithRecordTime.ty WatchEventWithRecordTime.underlying
+  method_set : go.MethodSetIs WatchEventWithRecordTime.ty [(go!"DeepCopyObject", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty]))), (go!"GetObjectKind", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.ObjectKind" [])]))), (go!"RecordTime", (some (go.signature.Signature [] false [_root_.Perennial.time.Time.ty]))), (go!"Unwrap", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType WatchEventWithRecordTime.ty) []
 
 attribute [instance] WatchEventWithRecordTime.TypeAssumptions.underlying
+  WatchEventWithRecordTime.TypeAssumptions.method_set
+  WatchEventWithRecordTime.TypeAssumptions.ptr_method_set
 
-structure DeleteOptions [FfiSyntax] where
+structure DeleteOptions [GooseExts] where
   mk ::
   ExpectTransformOrDecodeError' : Bool
 
-noncomputable instance DeleteOptions.zero_val [FfiSyntax] : ZeroVal DeleteOptions :=
+noncomputable instance DeleteOptions.zero_val [GooseExts] : ZeroVal DeleteOptions :=
   ⟨DeleteOptions.mk zeroValDef⟩
 
-@[reducible] noncomputable def DeleteOptions.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def DeleteOptions.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"ExpectTransformOrDecodeError" go.bool)]
 
-@[irreducible] noncomputable def DeleteOptions.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def DeleteOptions.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   DeleteOptions.fieldsUnsealed
 
-noncomputable instance equals_unfold_DeleteOptions [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_DeleteOptions [GooseExts] [GoGlobalContext] :
     EqualsUnfold DeleteOptions.fields DeleteOptions.fieldsUnsealed :=
   ⟨by unfold DeleteOptions.fields; rfl⟩
 
-@[reducible] noncomputable def DeleteOptions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def DeleteOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType DeleteOptions.fields)
 
-class DeleteOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DeleteOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DeleteOptions.underlying DeleteOptions
   underlying : go.UnderlyingDirectedEq DeleteOptions.ty DeleteOptions.underlying
   get_ExpectTransformOrDecodeError : ∀ (x : DeleteOptions), go.IsGoStepPureDetTagged under (StructFieldGet DeleteOptions.underlying go!"ExpectTransformOrDecodeError") #x (Val #(x.ExpectTransformOrDecodeError'))
   set_ExpectTransformOrDecodeError : ∀ (x : DeleteOptions) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet DeleteOptions.underlying go!"ExpectTransformOrDecodeError") (PairV #x #y) (Val #(({ x with ExpectTransformOrDecodeError' := y } : DeleteOptions)))
+  method_set : go.MethodSetIs DeleteOptions.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DeleteOptions.ty) []
 
 attribute [instance] DeleteOptions.TypeAssumptions.type_repr
   DeleteOptions.TypeAssumptions.underlying
   DeleteOptions.TypeAssumptions.get_ExpectTransformOrDecodeError
   DeleteOptions.TypeAssumptions.set_ExpectTransformOrDecodeError
+  DeleteOptions.TypeAssumptions.method_set
+  DeleteOptions.TypeAssumptions.ptr_method_set
 
-structure Stats [FfiSyntax] where
+structure Stats [GooseExts] where
   mk ::
   ObjectCount' : w64
   EstimatedAverageObjectSizeBytes' : w64
 
-noncomputable instance Stats.zero_val [FfiSyntax] : ZeroVal Stats :=
+noncomputable instance Stats.zero_val [GooseExts] : ZeroVal Stats :=
   ⟨Stats.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Stats.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Stats.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"ObjectCount" go.int64),
 (go.field_decl.FieldDecl go!"EstimatedAverageObjectSizeBytes" go.int64)]
 
-@[irreducible] noncomputable def Stats.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Stats.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Stats.fieldsUnsealed
 
-noncomputable instance equals_unfold_Stats [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Stats [GooseExts] [GoGlobalContext] :
     EqualsUnfold Stats.fields Stats.fieldsUnsealed :=
   ⟨by unfold Stats.fields; rfl⟩
 
-@[reducible] noncomputable def Stats.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Stats.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Stats.fields)
 
-class Stats.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Stats.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Stats.underlying Stats
   underlying : go.UnderlyingDirectedEq Stats.ty Stats.underlying
   get_ObjectCount : ∀ (x : Stats), go.IsGoStepPureDetTagged under (StructFieldGet Stats.underlying go!"ObjectCount") #x (Val #(x.ObjectCount'))
   set_ObjectCount : ∀ (x : Stats) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Stats.underlying go!"ObjectCount") (PairV #x #y) (Val #(({ x with ObjectCount' := y } : Stats)))
   get_EstimatedAverageObjectSizeBytes : ∀ (x : Stats), go.IsGoStepPureDetTagged under (StructFieldGet Stats.underlying go!"EstimatedAverageObjectSizeBytes") #x (Val #(x.EstimatedAverageObjectSizeBytes'))
   set_EstimatedAverageObjectSizeBytes : ∀ (x : Stats) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Stats.underlying go!"EstimatedAverageObjectSizeBytes") (PairV #x #y) (Val #(({ x with EstimatedAverageObjectSizeBytes' := y } : Stats)))
+  method_set : go.MethodSetIs Stats.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Stats.ty) []
 
 attribute [instance] Stats.TypeAssumptions.type_repr
   Stats.TypeAssumptions.underlying
@@ -3281,50 +3367,68 @@ attribute [instance] Stats.TypeAssumptions.type_repr
   Stats.TypeAssumptions.set_ObjectCount
   Stats.TypeAssumptions.get_EstimatedAverageObjectSizeBytes
   Stats.TypeAssumptions.set_EstimatedAverageObjectSizeBytes
+  Stats.TypeAssumptions.method_set
+  Stats.TypeAssumptions.ptr_method_set
 
-abbrev ReverseKeyFunc [FfiSyntax] : Type := GoFunc
+abbrev ReverseKeyFunc [GooseExts] : Type := GoFunc
 
-@[reducible] noncomputable def ReverseKeyFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ReverseKeyFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [go.string] false [go.string, go.string, go.error]))
 
-class ReverseKeyFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ReverseKeyFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ReverseKeyFunc.ty ReverseKeyFunc.underlying
+  method_set : go.MethodSetIs ReverseKeyFunc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ReverseKeyFunc.ty) []
 
 attribute [instance] ReverseKeyFunc.TypeAssumptions.underlying
+  ReverseKeyFunc.TypeAssumptions.method_set
+  ReverseKeyFunc.TypeAssumptions.ptr_method_set
 
-abbrev FieldMutationFunc [FfiSyntax] : Type := GoFunc
+abbrev FieldMutationFunc [GooseExts] : Type := GoFunc
 
-@[reducible] noncomputable def FieldMutationFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def FieldMutationFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, _root_.Perennial.k8s_io.apimachinery.pkg.fields.Set'.ty] false [go.error]))
 
-class FieldMutationFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class FieldMutationFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq FieldMutationFunc.ty FieldMutationFunc.underlying
+  method_set : go.MethodSetIs FieldMutationFunc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType FieldMutationFunc.ty) []
 
 attribute [instance] FieldMutationFunc.TypeAssumptions.underlying
+  FieldMutationFunc.TypeAssumptions.method_set
+  FieldMutationFunc.TypeAssumptions.ptr_method_set
 
-abbrev SimpleUpdateFunc [FfiSyntax] : Type := GoFunc
+abbrev SimpleUpdateFunc [GooseExts] : Type := GoFunc
 
-@[reducible] noncomputable def SimpleUpdateFunc.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def SimpleUpdateFunc.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.Object.ty, go.error]))
 
-class SimpleUpdateFunc.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class SimpleUpdateFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq SimpleUpdateFunc.ty SimpleUpdateFunc.underlying
+  method_set : go.MethodSetIs SimpleUpdateFunc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SimpleUpdateFunc.ty) []
 
 attribute [instance] SimpleUpdateFunc.TypeAssumptions.underlying
+  SimpleUpdateFunc.TypeAssumptions.method_set
+  SimpleUpdateFunc.TypeAssumptions.ptr_method_set
 
-abbrev HighWaterMark [FfiSyntax] : Type := w64
+abbrev HighWaterMark [GooseExts] : Type := w64
 
-@[reducible] noncomputable def HighWaterMark.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def HighWaterMark.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.int64
 
-class HighWaterMark.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class HighWaterMark.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq HighWaterMark.ty HighWaterMark.underlying
+  method_set : go.MethodSetIs HighWaterMark.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType HighWaterMark.ty) [(go!"Update", (some (go.signature.Signature [go.int64] false [go.bool])))]
   ptr_Update_unfold : MethodUnfold (go.GoType.PointerType HighWaterMark.ty) go!"Update" HighWaterMark.Update.impl
 
 attribute [instance] HighWaterMark.TypeAssumptions.underlying
+  HighWaterMark.TypeAssumptions.method_set
+  HighWaterMark.TypeAssumptions.ptr_method_set
   HighWaterMark.TypeAssumptions.ptr_Update_unfold
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   APIObjectVersioner_instance : APIObjectVersioner.TypeAssumptions
   continueToken_instance : continueToken.TypeAssumptions
   StorageError_instance : StorageError.TypeAssumptions

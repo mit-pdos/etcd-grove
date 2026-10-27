@@ -19,14 +19,14 @@ open Iris Iris.BI go_etcd_io.raft.v3
 /-- When `u.stableTo(id)` moves entries: `id.index` is an index of the suffix and the
 entry there has term `id.term`. (On the state record since 2026-10-08; before, on the
 Goose value and the entries.) -/
-def UnstableHit [FfiSyntax] (us : UnstableSt) (id : entryID) : Prop :=
+def UnstableHit [GooseExts] (us : UnstableSt) (id : entryID) : Prop :=
   (uint.Z us.offset ≤ uint.Z id.index' ∧
    uint.Z id.index' < uint.Z us.offset + (us.ents.length : Int)) ∧
   ∃ e, us.ents[(uint.Z id.index' - uint.Z us.offset).toNat]? = some e ∧
        e.Term' = id.term'
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]

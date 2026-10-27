@@ -20,31 +20,31 @@ end pkg_id
 
 namespace k8s_io.client_go.util.watchlist
 
-noncomputable def unSupportedWatchListSemantics.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def unSupportedWatchListSemantics.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/client-go/util/watchlist.unSupportedWatchListSemantics" [])
 
 attribute [irreducible] unSupportedWatchListSemantics.ty
 
-noncomputable def scheme [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def scheme [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/util/watchlist.scheme"
 
-axiom scheme.init [FfiSyntax] [GoGlobalContext] : val
+axiom scheme.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def init.«0» [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def init.«0» [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/util/watchlist.init.0"
 
-noncomputable def PrepareWatchListOptionsFromListOptions [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def PrepareWatchListOptionsFromListOptions [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/util/watchlist.PrepareWatchListOptionsFromListOptions"
 
-noncomputable def DoesClientNotSupportWatchListSemantics [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def DoesClientNotSupportWatchListSemantics [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/client-go/util/watchlist.DoesClientNotSupportWatchListSemantics"
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.client_go.util.watchlist where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.client_go.util.watchlist)) (Lam BAnon
   (App (Val exceptionDo)
@@ -54,17 +54,21 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val scheme.init) (Val #()))))))))
 
-abbrev unSupportedWatchListSemantics [FfiSyntax] : Type := GoInterface
+abbrev unSupportedWatchListSemantics [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def unSupportedWatchListSemantics.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def unSupportedWatchListSemantics.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"IsWatchListSemanticsUnSupported" (go.signature.Signature [] false [go.bool]))])
 
-class unSupportedWatchListSemantics.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class unSupportedWatchListSemantics.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq unSupportedWatchListSemantics.ty unSupportedWatchListSemantics.underlying
+  method_set : go.MethodSetIs unSupportedWatchListSemantics.ty [(go!"IsWatchListSemanticsUnSupported", (some (go.signature.Signature [] false [go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType unSupportedWatchListSemantics.ty) []
 
 attribute [instance] unSupportedWatchListSemantics.TypeAssumptions.underlying
+  unSupportedWatchListSemantics.TypeAssumptions.method_set
+  unSupportedWatchListSemantics.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   unSupportedWatchListSemantics_instance : unSupportedWatchListSemantics.TypeAssumptions
 
 attribute [instance] Assumptions.unSupportedWatchListSemantics_instance

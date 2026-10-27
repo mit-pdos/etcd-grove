@@ -20,50 +20,50 @@ end pkg_id
 
 namespace google_golang_org.grpc.internal.status
 
-noncomputable def Status.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Status.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/internal/status.Status" [])
 
 attribute [irreducible] Status.ty
 
-noncomputable def Error.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Error.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/internal/status.Error" [])
 
 attribute [irreducible] Error.ty
 
-axiom Status.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Status.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Error.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Error.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-noncomputable def NewWithProto [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewWithProto [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/internal/status.NewWithProto"
 
-noncomputable def New [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def New [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/internal/status.New"
 
-noncomputable def Newf [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Newf [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/internal/status.Newf"
 
-noncomputable def FromProto [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def FromProto [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/internal/status.FromProto"
 
-noncomputable def Err [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Err [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/internal/status.Err"
 
-noncomputable def Errorf [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Errorf [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/internal/status.Errorf"
 
-noncomputable def IsRestrictedControlPlaneCode [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsRestrictedControlPlaneCode [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/internal/status.IsRestrictedControlPlaneCode"
 
-noncomputable def RawStatusProto [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def RawStatusProto [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/internal/status.RawStatusProto"
 
 noncomputable instance info' : PkgInfo pkg_id.google_golang_org.grpc.internal.status where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.google_golang_org.grpc.internal.status)) (Lam BAnon
   (App (Val exceptionDo)
@@ -74,29 +74,37 @@ axiom Status : Type
 axiom Status.zero_val : ZeroVal Status
 attribute [instance] Status.zero_val
 
-class Status.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Status.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Status.underlying Status
   underlying : go.UnderlyingDirectedEq Status.ty Status.underlying
   isUnderlying : go.IsUnderlying Status.underlying Status.underlying
+  method_set : go.MethodSetIs Status.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Status.ty) [(go!"Code", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/grpc/codes.Code" [])]))), (go!"Details", (some (go.signature.Signature [] false [(go.GoType.SliceType go.any)]))), (go!"Err", (some (go.signature.Signature [] false [go.error]))), (go!"Message", (some (go.signature.Signature [] false [go.string]))), (go!"Proto", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"google.golang.org/genproto/googleapis/rpc/status.Status" []))]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"WithDetails", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.Named go!"google.golang.org/protobuf/runtime/protoiface.MessageV1" []))] true [(go.GoType.PointerType Status.ty), go.error])))]
 
 attribute [instance] Status.TypeAssumptions.type_repr
   Status.TypeAssumptions.underlying
   Status.TypeAssumptions.isUnderlying
+  Status.TypeAssumptions.method_set
+  Status.TypeAssumptions.ptr_method_set
 
 axiom Error : Type
 axiom Error.zero_val : ZeroVal Error
 attribute [instance] Error.zero_val
 
-class Error.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Error.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Error.underlying Error
   underlying : go.UnderlyingDirectedEq Error.ty Error.underlying
   isUnderlying : go.IsUnderlying Error.underlying Error.underlying
+  method_set : go.MethodSetIs Error.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Error.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"GRPCStatus", (some (go.signature.Signature [] false [(go.GoType.PointerType Status.ty)]))), (go!"Is", (some (go.signature.Signature [go.error] false [go.bool])))]
 
 attribute [instance] Error.TypeAssumptions.type_repr
   Error.TypeAssumptions.underlying
   Error.TypeAssumptions.isUnderlying
+  Error.TypeAssumptions.method_set
+  Error.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Status_instance : Status.TypeAssumptions
   Error_instance : Error.TypeAssumptions
 

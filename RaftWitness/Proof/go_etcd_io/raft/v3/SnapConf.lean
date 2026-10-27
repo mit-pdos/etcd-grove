@@ -40,7 +40,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.raft.v3
 
 section model
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- A3 on a `ConfState`: well formed, and denoting the configuration of the prefix `pre`. -/
 def SnapConfOk (dec : CCDec) (c0 : CCState) (pre : List EntryM)
@@ -119,7 +119,7 @@ is not done yet is carrying the certificate from those records to the receiving 
 (notes/STATUS.md, "Snapshots at the public API (stage S)"). -/
 
 section cert
-variable [FfiSyntax] {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF]
+variable [GooseExts] {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF]
 
 /-- `SnapScope`'s facts of a snapshot's lists and index. -/
 def SnapListsOk (k : SnapTrip) : Prop :=

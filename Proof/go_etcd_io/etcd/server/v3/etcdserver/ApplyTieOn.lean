@@ -39,7 +39,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver
 
 section pure
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- **The history after an admin outcome**: `next` appends its state, a refusal and nothing to do
 keep it (`auth.outResX`'s). -/
@@ -175,7 +175,7 @@ theorem applyStep_admin_keep (rq : apply.IRRModel) (x x' : apply.ApplyKV) (out :
 end pure
 
 section res
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -199,7 +199,7 @@ theorem adminOutX_on_noExtra (Î³a : auth.AuthNames) (Own : List auth.AuthState â
 end res
 
 section res2
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

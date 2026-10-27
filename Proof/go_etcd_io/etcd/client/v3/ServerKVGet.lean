@@ -212,7 +212,7 @@ theorem isPrefixGet_rev (pfx : GoString) (o : OpFull) (hp : o.isPrefixGet pfx = 
   exact hp.2.2.2.2.2.1
 
 section kvs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -225,7 +225,7 @@ theorem kvPtrsAt_of_kvsIs (ps : List Loc) (kvs : List EtcdKv) :
 end kvs
 
 section proofs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

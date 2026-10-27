@@ -2,7 +2,7 @@
 The pure vocabulary of conf-change messages (moved here from `InvConfChangeMsg.lean` on
 2026-10-13, reconfiguration stage D, so that the protocol's ghost state can name it
 without importing `Base`; see `InvConfChangeMsg.lean` for what each means):
-`CCV1M`, `CCV2M`, the opaque decoders `ccDecodeV1`/`ccDecodeV2`, `CCMsg`; and (new)
+`ConfChangeM`, `ConfChangeV2M`, the opaque decoders `ccDecodeV1`/`ccDecodeV2`, `ConfChangeIM`; and (new)
 `IsConfEnt` (an entry of type `EntryConfChange` or `EntryConfChangeV2`), `CCDecodes` (a
 conf-change entry's bytes decode), `ccWantsLeave` (an empty `ConfChangeV2`: leave the joint
 configuration) and `PropRepl` (a proposal's batch after `stepLeader`'s conf-change loop:
@@ -26,7 +26,7 @@ open go_etcd_io.raft.v3
 
 /-- The content of a legacy `raftpb.ConfChange` (`raft.pb.go`: `ID`, `Type`, `NodeID`,
 `Context`). -/
-structure CCV1M [FfiSyntax] where
+structure ConfChangeM [GooseExts] where
   type : raftpb.ConfChangeType
   nodeId : w64
   context : List w8
@@ -34,7 +34,7 @@ structure CCV1M [FfiSyntax] where
 
 /-- The content of a `raftpb.ConfChangeV2` (`raft.pb.go`: `Transition`, `Changes`,
 `Context`). -/
-structure CCV2M [FfiSyntax] where
+structure ConfChangeV2M [GooseExts] where
   transition : raftpb.ConfChangeTransition
   changes : List ConfChangeSingleM
   context : List w8
@@ -44,20 +44,20 @@ retarget, gogoproto's generated `(*ConfChange).Unmarshal`): the decoded content 
 values), or `none` where it returns an error. Opaque: the trust-boundary specs of
 `proto.Marshal`/`proto.Unmarshal` (`Spec/google_golang_org/protobuf/proto/{Marshal,Unmarshal}ConfChange.lean`)
 are what is known of it. -/
-opaque ccDecodeV1 [FfiSyntax] : List w8 → Option CCV1M
+opaque ccDecodeV1 [GooseExts] : List w8 → Option ConfChangeM
 
 /-- What protobuf-go's `proto.Unmarshal` makes of `bs` into a `*ConfChangeV2` (until the
 retarget, gogoproto's generated `(*ConfChangeV2).Unmarshal`); `none` where it returns an error.
 Opaque, as `ccDecodeV1`. -/
-opaque ccDecodeV2 [FfiSyntax] : List w8 → Option CCV2M
+opaque ccDecodeV2 [GooseExts] : List w8 → Option ConfChangeV2M
 
 /-- A conf change as `MarshalConfChange` sees it: a legacy `ConfChange` or a `ConfChangeV2`. -/
-inductive CCMsg [FfiSyntax] where
-  | v1 : CCV1M → CCMsg
-  | v2 : CCV2M → CCMsg
+inductive ConfChangeIM [GooseExts] where
+  | v1 : ConfChangeM → ConfChangeIM
+  | v2 : ConfChangeV2M → ConfChangeIM
 
 section pure
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- A configuration-change entry (2026-10-13): `EntryConfChange` (1) or
 `EntryConfChangeV2` (2), what `hasUnappliedConfChanges` and `stepLeader`'s proposal loop
@@ -75,7 +75,7 @@ def CCDecodes (ty : w32) (bs : List w8) : Prop :=
 
 /-- `len(cc.AsV2().Changes) == 0`, `stepLeader`'s `wantsLeaveJoint`: a `ConfChange`'s
 `AsV2` has its one change, a `ConfChangeV2` is its own. -/
-def ccWantsLeave : CCMsg → Bool
+def ccWantsLeave : ConfChangeIM → Bool
   | .v1 _ => false
   | .v2 m => m.changes.isEmpty
 
@@ -106,7 +106,7 @@ stage A3; `joint` defaults to `false`, the only case until then); otherwise it i
 is `i`, and `pendingConfIndex`), `propConf` the loop. -/
 
 def propConfStep (joint : Bool) (applied li : w64) (acc : List EntryM × w64)
-    (x : EntryM × Option CCMsg) : List EntryM × w64 :=
+    (x : EntryM × Option ConfChangeIM) : List EntryM × w64 :=
   match x.2 with
   | none => (acc.1 ++ [x.1], acc.2)
   | some c =>
@@ -114,14 +114,14 @@ def propConfStep (joint : Bool) (applied li : w64) (acc : List EntryM × w64)
       (acc.1 ++ [zero_val EntryM], acc.2)
     else (acc.1 ++ [x.1], li + W64 (acc.1.length : Int) + W64 1)
 
-def propConf (applied li pci : w64) (ents : List EntryM) (cs : List (Option CCMsg))
+def propConf (applied li pci : w64) (ents : List EntryM) (cs : List (Option ConfChangeIM))
     (joint : Bool := false) : List EntryM × w64 :=
   (ents.zip cs).foldl (propConfStep joint applied li) ([], pci)
 
 /-- The decoded conf changes of a batch: one per entry, present exactly for the
 conf-change entries. -/
-def CCTypesOk (ents : List EntryM) (cs : List (Option CCMsg)) : Prop :=
-  List.Forall₂ (fun e (o : Option CCMsg) => o.isSome = decide (IsConfEnt e)) ents cs
+def CCTypesOk (ents : List EntryM) (cs : List (Option ConfChangeIM)) : Prop :=
+  List.Forall₂ (fun e (o : Option ConfChangeIM) => o.isSome = decide (IsConfEnt e)) ents cs
 
 theorem forall₂_app {α β : Type _} {R : α → β → Prop} {a1 a2 : List α} {b1 b2 : List β}
     (H1 : List.Forall₂ R a1 b1) (H2 : List.Forall₂ R a2 b2) :
@@ -130,7 +130,7 @@ theorem forall₂_app {α β : Type _} {R : α → β → Prop} {a1 a2 : List α
   | nil => simpa using H2
   | cons h _ ih => exact List.Forall₂.cons h ih
 
-theorem cctypes_mem {ents : List EntryM} {cs : List (Option CCMsg)}
+theorem cctypes_mem {ents : List EntryM} {cs : List (Option ConfChangeIM)}
     (H : CCTypesOk ents cs) : ∀ x ∈ ents.zip cs, x.2.isSome = true → IsConfEnt x.1 := by
   induction H with
   | nil => intro x hx; simp at hx
@@ -141,7 +141,7 @@ theorem cctypes_mem {ents : List EntryM} {cs : List (Option CCMsg)}
     · simp only at Hs ⊢; rw [Hh] at Hs; exact of_decide_eq_true Hs
     · exact ih x hx Hs
 
-theorem propConf_foldl_repl {joint : Bool} (applied li : w64) (xs : List (EntryM × Option CCMsg))
+theorem propConf_foldl_repl {joint : Bool} (applied li : w64) (xs : List (EntryM × Option ConfChangeIM))
     (Hxs : ∀ x ∈ xs, x.2.isSome = true → IsConfEnt x.1) :
     ∀ (pre : List EntryM) (acc : List EntryM × w64), PropRepl pre acc.1 →
       PropRepl (pre ++ xs.map Prod.fst) (xs.foldl (propConfStep joint applied li) acc).1 := by
@@ -166,7 +166,7 @@ theorem propConf_foldl_repl {joint : Bool} (applied li : w64) (xs : List (EntryM
 
 /-- The loop's batch is the proposal's, with refused conf changes replaced. -/
 theorem propConf_repl {joint : Bool} (applied li pci : w64) (ents : List EntryM)
-    (cs : List (Option CCMsg)) (H : CCTypesOk ents cs) :
+    (cs : List (Option ConfChangeIM)) (H : CCTypesOk ents cs) :
     PropRepl ents (propConf applied li pci ents cs joint).1 := by
   have Hlen := List.Forall₂.length_eq H
   have Hfst : (ents.zip cs).map Prod.fst = ents := List.map_fst_zip (by omega)
@@ -175,7 +175,7 @@ theorem propConf_repl {joint : Bool} (applied li pci : w64) (ents : List EntryM)
   rw [List.nil_append, Hfst] at this; exact this
 
 theorem propConfStep_length {joint : Bool} (applied li : w64) (acc : List EntryM × w64)
-    (x : EntryM × Option CCMsg) :
+    (x : EntryM × Option ConfChangeIM) :
     (propConfStep joint applied li acc x).1.length = acc.1.length + 1 := by
   unfold propConfStep
   split
@@ -183,7 +183,7 @@ theorem propConfStep_length {joint : Bool} (applied li : w64) (acc : List EntryM
   · split <;> simp
 
 theorem foldl_propConfStep_length {joint : Bool} (applied li : w64)
-    (xs : List (EntryM × Option CCMsg)) :
+    (xs : List (EntryM × Option ConfChangeIM)) :
     ∀ acc, (xs.foldl (propConfStep joint applied li) acc).1.length = acc.1.length + xs.length := by
   induction xs with
   | nil => intro acc; simp
@@ -193,7 +193,7 @@ theorem foldl_propConfStep_length {joint : Bool} (applied li : w64)
     rw [ih, propConfStep_length]; omega
 
 theorem propConf_length {joint : Bool} (applied li pci : w64) (es : List EntryM)
-    (cs : List (Option CCMsg)) :
+    (cs : List (Option ConfChangeIM)) :
     (propConf applied li pci es cs joint).1.length = min es.length cs.length := by
   unfold propConf
   rw [foldl_propConfStep_length]
@@ -201,7 +201,7 @@ theorem propConf_length {joint : Bool} (applied li pci : w64) (es : List EntryM)
 
 /-- One more iteration of the loop. -/
 theorem propConf_take_succ (joint : Bool) (applied li pci : w64) (es : List EntryM)
-    (cs : List (Option CCMsg)) (k : Nat) (e : EntryM) (o : Option CCMsg)
+    (cs : List (Option ConfChangeIM)) (k : Nat) (e : EntryM) (o : Option ConfChangeIM)
     (He : es[k]? = some e) (Ho : cs[k]? = some o) :
     propConf applied li pci (es.take (k + 1)) (cs.take (k + 1)) joint =
       propConfStep joint applied li (propConf applied li pci (es.take k) (cs.take k) joint) (e, o) := by
@@ -214,30 +214,30 @@ theorem propConf_take_succ (joint : Bool) (applied li pci : w64) (es : List Entr
   rfl
 
 theorem propConf_take_zero {joint : Bool} (applied li pci : w64) (es : List EntryM)
-    (cs : List (Option CCMsg)) :
+    (cs : List (Option ConfChangeIM)) :
     propConf applied li pci (es.take 0) (cs.take 0) joint = ([], pci) := rfl
 
 end pure
 
 /-! ### The pure part of `InvConfChangeMsg.lean` (moved here in the raft v3.7 retarget, stage R1)
 
-`ccEntryType`, `CCData` and `enterJointOf` name no Go value; the model of applying a change
+`confChangeEntryType`, `MarshalsConfChange` and `enterJointOf` name no Go value; the model of applying a change
 (`CCApply.lean`) reads `enterJointOf`, so they are here rather than with the codec's
 ownership predicates. -/
 
 section codec
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- The `EntryType` of an entry carrying a conf change (`MarshalConfChange`): `nil` and a
 `ConfChangeV2` are `EntryConfChangeV2` (2), a `ConfChange` is `EntryConfChange` (1). -/
-def ccEntryType : Option CCMsg → raftpb.EntryType
+def confChangeEntryType : Option ConfChangeIM → raftpb.EntryType
   | some (.v1 _) => W32 1
   | _ => W32 2
 
 /-- The bytes `bs` carry the conf change `o` (`MarshalConfChange`'s data): for a
 `ConfChange`, bytes `ccDecodeV1` decodes back to it; for a `ConfChangeV2`, `ccDecodeV2`;
 for `nil`, nothing (the data slice is `nil`). -/
-def CCData : Option CCMsg → List w8 → Prop
+def MarshalsConfChange : Option ConfChangeIM → List w8 → Prop
   | none, bs => bs = []
   | some (.v1 m), bs => ccDecodeV1 bs = some m
   | some (.v2 m), bs => ccDecodeV2 bs = some m

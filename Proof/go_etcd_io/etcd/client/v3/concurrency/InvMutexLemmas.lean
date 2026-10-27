@@ -349,7 +349,7 @@ theorem deleteOp_fields (key : GoString) :
   simp [ownerOp, lastCreateOp, keyOp, op_simps]
 
 section iprop
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [EM : EtcdModel GF]

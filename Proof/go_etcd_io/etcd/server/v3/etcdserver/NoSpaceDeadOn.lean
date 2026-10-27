@@ -55,7 +55,7 @@ theorem dispatchStep_on_off (rq : apply.IRRModel) (log : mvcc.Log) (o : apply.Ou
   · rename_i hs; simp only [hs, ↓reduceIte]; exact Or.inr h
 
 section iris
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

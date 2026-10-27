@@ -26,18 +26,17 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.api go_etcd_io.raft.v3
 
-instance responseAndError_countable [FfiSyntax] :
+instance responseAndError_countable [GooseExts] :
     Pos.Countable go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.responseAndError :=
   .ofInjective (fun x => Pos.Countable.encode (x.resp', x.body', x.err'))
     (by intro a b h; have h := Pos.encode_inj h; cases a; cases b; simp_all)
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Assumptions]
-variable [ErrorStringLeaf]
 
 /-- **What the round trip's goroutine sends** for the request `R` to `req` of ticket `γk`: an error
 of net/http's (`RoundTrip`'s or the body read's), or no error, a response whose status the

@@ -105,7 +105,7 @@ def StateLeader : w64 := W64 2
 def StatePreCandidate : w64 := W64 3
 
 section consts
-variable [FfiSyntax]
+variable [GooseExts]
 
 def campaignElection : CampaignType := go!"CampaignElection"
 def campaignPreElection : CampaignType := go!"CampaignPreElection"
@@ -115,7 +115,7 @@ end consts
 
 /-- The `Context` of `campaign(t)`'s vote requests (2026-10-13): the leader-transfer
 marker for a transfer's campaign (`[]byte(t)`), nothing otherwise. -/
-def transferCtx [FfiSyntax] (t : CampaignType) : List w8 :=
+def transferCtx [GooseExts] (t : CampaignType) : List w8 :=
   if t = campaignTransfer then campaignTransfer else []
 
 def VotePending : w8 := W8 1
@@ -178,7 +178,7 @@ theorem mtypeOf_None_ne (t : w32) (Hn : mtypeOf t = none) :
     (rintro rfl; exact absurd Hn (by decide))
 
 section msgs
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- The abstraction of a physical message `m` whose `Entries` slice holds `ents`, with
 the sender and term given separately: `send` stamps both (`From := r.id` when unset,
@@ -211,7 +211,7 @@ instance : EmptyCollection CSLists := ⟨⟨[], [], [], []⟩⟩
 /-- A snapshot as raft knows it (2026-10-15, stage S): its entry id `(Term, Index)`, its
 `ConfState`'s four lists and its `AutoLeave` -- what the log records of the snapshots it may send
 (`LogState.ksn`) and what the application certifies (`raftSnapCert`, `SnapConf.lean`). -/
-structure SnapTrip [FfiSyntax] where
+structure SnapTrip [GooseExts] where
   sid : entryID
   cl : CSLists
   al : Bool
@@ -235,7 +235,7 @@ def absSnap (m : MessageM) (sv : SnapshotM) (voters : CSLists) : Msg :=
 end msgs
 
 section msgs_ghost
-variable [FfiSyntax] {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF]
+variable [GooseExts] {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF]
 
 /-- What a message other than a heartbeat or its response carries as a protocol message
 does not depend on its `Context` (2026-10-12; a heartbeat's is a read-index position): the
@@ -274,7 +274,7 @@ existential `own_raftLog l`, and the "page out" shape that `slice`/`entries` ret
 as `l ↦ lv ∗ s ↦*{dq} es ∗ (l ↦ lv -∗ s ↦*{dq} es -∗ own_raftLog_at …)`.
 notes/decisions.md, "One predicate per object".) -/
 
-structure LogState [FfiSyntax] where
+structure LogState [GooseExts] where
   prev : entryID
   sents : List EntryM
   uents : List EntryM
@@ -465,7 +465,7 @@ theorem prstateW64_inj (p1 p2 : PRState) (H : prstateW64 p1 = prstateW64 p2) : p
   exact (Option.some.inj H')
 
 section abs
-variable [FfiSyntax]
+variable [GooseExts]
 
 def inflightsAbs (iv : tracker.Inflights) : Inflights :=
   ⟨sint.Z iv.count', sint.Z iv.size', uint.Z iv.bytes', uint.Z iv.maxBytes'⟩
@@ -636,7 +636,7 @@ needs (`ownTracker_lookup`). -/
   unfold progressMaybeDecrTo; split <;> (try split) <;> rfl
 
 section logstate
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-! ## Physical transitions of the log
 
@@ -1052,7 +1052,7 @@ structure NGhost where
 deriving DecidableEq
 
 
-structure NState [FfiSyntax] where
+structure NState [GooseExts] where
   term : w64
   vote : w64
   lead : w64
@@ -1128,7 +1128,7 @@ def learnerOf (cfg : GSet w64) (prs : GMap w64 Loc) (id : w64) : Bool :=
 /-! ### The leader's progress bound on a state (2026-10-16, stage R8a, D11) -/
 
 section prvals_ok
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- Every tracked peer of a leader is within its log (vacuous for a non-leader: a follower's log
 may shrink, and `reset` re-initializes the progress on winning). A pure conjunct of `ownRaftPhys`
@@ -1276,7 +1276,7 @@ theorem PrKept.prOkN {ns : Bool} {old pvs : GMap w64 Progress} {ls : LogState}
 end prvals_ok
 
 section phys_state
-variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
 /-- Which of the three `stepX` functions `r.step` holds in each role. The `becomeX`
 functions assign these, and `Step` dispatches a message it does not handle inline

@@ -35,7 +35,7 @@ buffer's version plus the tokens out below `2 ^ 40` (`bgOk`; the version starts 
 def wbInit : Nat := 2 ^ 40 - 1
 
 section preds
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -63,7 +63,7 @@ def newPost (γ : BNames) (P : BParams) (W Pk : BNames → IProp GF) (b : Loc) (
 end preds
 
 section fresh
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -138,7 +138,7 @@ theorem hook_bFresh_false (γ γ' : BNames) (P : BParams) (b : Loc) (st : BSess)
 end fresh
 
 section preds2
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

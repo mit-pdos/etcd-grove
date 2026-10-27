@@ -136,7 +136,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 state `NState` contains one. -/
 
 /-- The log's entries are numbered consecutively from `prev.index + 1`. -/
-def LogIndicesOk [FfiSyntax] (prev : entryID) (ents : List EntryM) : Prop :=
+def LogIndicesOk [GooseExts] (prev : entryID) (ents : List EntryM) : Prop :=
   ∀ (k : Nat) (e : EntryM), ents[k]? = some e →
     uint.Z e.Index' = uint.Z prev.index' + ((k + 1 : Nat) : Int)
 
@@ -146,7 +146,7 @@ def EntryNormal : w32 := W32 0
 suffix's entries `ents`, which start at index `offset`; `inprogress`
 (`u.offsetInProgress`), below which they have been handed to the application; and the
 pending snapshot's id `snap` (`ownSnap`). -/
-structure UnstableSt [FfiSyntax] where
+structure UnstableSt [GooseExts] where
   ents : List EntryM
   offset : w64
   inprogress : w64
@@ -158,14 +158,14 @@ structure UnstableSt [FfiSyntax] where
 
 /-- (D22 S-d1, 2026-10-20) Whether `stableSnapTo(i)` hits: a snapshot is pending at index `i`
 (`u.snapshot != nil && u.snapshot.Metadata.Index == i`). -/
-def snapHit [FfiSyntax] (snap : Option entryID) (i : w64) : Bool :=
+def snapHit [GooseExts] (snap : Option entryID) (i : w64) : Bool :=
   match snap with
   | some sid => decide (sid.index' = i)
   | none => false
 
 /-- (D22 S-d1) `unstable.stableSnapTo(i)`: on a hit the snapshot is dropped and no longer in
 progress; otherwise nothing changes. -/
-def unstableSnapTo [FfiSyntax] (us : UnstableSt) (i : w64) : UnstableSt :=
+def unstableSnapTo [GooseExts] (us : UnstableSt) (i : w64) : UnstableSt :=
   if snapHit us.snap i then { us with snap := none, sip := false } else us
 
 /-- The state at which a `raftLog` at struct value `lv` and state `ls` hands its
@@ -177,12 +177,12 @@ record rather than a literal (since 2026-10-09; until then each call wrote
 that the reducible `rfl`/`assumption` of `reseal_raftLog` see through it to the log's
 fields; `omega` does not, and a proof hands it projections rewritten by `simp only
 [unstableOf]` (or uses `word`, which rewrites them with the projection lemmas). -/
-abbrev unstableOf [FfiSyntax] (lv : raftLog) (ls : LogState) : UnstableSt :=
+abbrev unstableOf [GooseExts] (lv : raftLog) (ls : LogState) : UnstableSt :=
   { ents := ls.uents, offset := lv.unstable'.offset', inprogress := ls.inprogress,
     snap := ls.snap, ksn := ls.ksn, sip := ls.sip }
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
@@ -1737,7 +1737,7 @@ macro "take_storage" h:ident : tactic =>
     ihave HStorage := Perennial.EtcdGrove.lentStor_open Hlnt _ _ $$ HStorage))
 
 section setCommitted
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
@@ -1825,7 +1825,7 @@ macro "reopen_unstable" : tactic =>
       with ⟨%uv', Hl, Huents_cap, Huents, #Husnap, #Hpksn, #Hu_logger, %Huoff, %Hip, %Hsip⟩))
 
 section snpok
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- (D22 S-d4 item 3, 2026-10-21) What the log keeps of the snapshot the last `Ready` handed out
 (`NGhost.snp`) once the storage is back (`lent = false`, inside `RawNode.Advance`): with a snapshot

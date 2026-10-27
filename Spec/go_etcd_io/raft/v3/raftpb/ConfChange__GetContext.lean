@@ -16,7 +16,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.raft.v3
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -25,10 +25,10 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- `x.GetContext()` of a `*ConfChange` holding `m` is its `Context` slice, whose bytes `m.context`
 are read-only; of a nil `*ConfChange`, the nil slice. -/
 abbrev raftpb.ConfChange.GetContext.spec : Prop :=
-  (∀ (p : Loc) (dq : DFrac) (m : CCV1M),
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ ownCCV1 p dq m }}
+  (∀ (p : Loc) (dq : DFrac) (m : ConfChangeM),
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ ownConfChange p dq m }}
       (App (Val (p @!! go.GoType.PointerType raftpb.ConfChange.ty @!! go!"GetContext")) (Val #()))
-    {{ (cs : GoSlice), RET #cs; cs ↦*□ m.context ∗ ownCCV1 p dq m }}) ∧
+    {{ (cs : GoSlice), RET #cs; cs ↦*□ m.context ∗ ownConfChange p dq m }}) ∧
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb }}
     (App (Val ((null : Loc) @!! go.GoType.PointerType raftpb.ConfChange.ty @!! go!"GetContext"))
       (Val #()))

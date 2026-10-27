@@ -24,7 +24,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -47,11 +47,11 @@ theorem membership.errVar_cell (X msg : GoString)
   iexact Hx
 
 /-- A conf change's `Context` field, borrowed (its slice read-only). -/
-theorem ownCCV1_context_acc (p : Loc) (dq : DFrac) (m : CCV1M) :
-    ownCCV1 (GF := GF) p dq m ⊢ ∃ cs : GoSlice,
+theorem ownConfChange_context_acc (p : Loc) (dq : DFrac) (m : ConfChangeM) :
+    ownConfChange (GF := GF) p dq m ⊢ ∃ cs : GoSlice,
       p.[raftpb.ConfChange, go!"Context"] ↦{dq} cs ∗ cs ↦*□ m.context ∗
-      (p.[raftpb.ConfChange, go!"Context"] ↦{dq} cs -∗ ownCCV1 p dq m) := by
-  unfold ownCCV1
+      (p.[raftpb.ConfChange, go!"Context"] ↦{dq} cs -∗ ownConfChange p dq m) := by
+  unfold ownConfChange
   iintro H
   iNamed H
   iexists cs
@@ -122,7 +122,7 @@ theorem membership.RaftCluster.ValidateConfigurationChange.wp_proof
   · rw [h0]
     (try wp_auto)
     obtain ⟨i, Hci⟩ := Hctx h0
-    icases ownCCV1_context_acc cc dq m $$ Hcc with ⟨%cs, HC, #Hcs, Hcc⟩
+    icases ownConfChange_context_acc cc dq m $$ Hcc with ⟨%cs, HC, #Hcs, Hcc⟩
     (try wp_auto)
     -- `json.Unmarshal(cc.Context, confChangeContext)`: the context's member, not a promotion
     irename «$r0» => Hcv

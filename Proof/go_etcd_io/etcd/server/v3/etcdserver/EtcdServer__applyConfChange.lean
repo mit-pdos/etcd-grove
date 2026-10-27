@@ -37,18 +37,18 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io
   go_etcd_io.etcd.server.v3.etcdserver.cindex
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- A conf change's `Context` field, borrowed (as `ValidateConfigurationChange`'s proof's). -/
-theorem ownCCV1_context_acc' (p : Loc) (dq : DFrac) (m : CCV1M) :
-    ownCCV1 (GF := GF) p dq m ⊢ ∃ cs : GoSlice,
+theorem ownConfChange_context_acc' (p : Loc) (dq : DFrac) (m : ConfChangeM) :
+    ownConfChange (GF := GF) p dq m ⊢ ∃ cs : GoSlice,
       p.[raftpb.ConfChange, go!"Context"] ↦{dq} cs ∗ cs ↦*□ m.context ∗
-      (p.[raftpb.ConfChange, go!"Context"] ↦{dq} cs -∗ ownCCV1 p dq m) := by
-  unfold ownCCV1
+      (p.[raftpb.ConfChange, go!"Context"] ↦{dq} cs -∗ ownConfChange p dq m) := by
+  unfold ownConfChange
   iintro H
   iNamed H
   iexists cs
@@ -116,12 +116,12 @@ local macro "nov3_post" : tactic => `(tactic| (
   ipureintro; exact Hcl))
 
 /-- A conf change's `NodeId` field, replaced (`cc.NodeId = new(raft.None)`). -/
-theorem ownCCV1_nodeId_acc (p : Loc) (m : CCV1M) :
-    ownCCV1 (GF := GF) p (DFrac.own 1) m ⊢ ∃ pn : Loc,
+theorem ownConfChange_nodeId_acc (p : Loc) (m : ConfChangeM) :
+    ownConfChange (GF := GF) p (DFrac.own 1) m ⊢ ∃ pn : Loc,
       p.[raftpb.ConfChange, go!"NodeId"] ↦ pn ∗
       (∀ (pn' : Loc) (v : w64), p.[raftpb.ConfChange, go!"NodeId"] ↦ pn' -∗ cellRO pn' v -∗
-        ownCCV1 p (DFrac.own 1) { m with nodeId := v }) := by
-  unfold ownCCV1
+        ownConfChange p (DFrac.own 1) { m with nodeId := v }) := by
+  unfold ownConfChange
   iintro H
   iNamed H
   iexists pn
@@ -156,7 +156,7 @@ local macro "raft_cc " cm:term:max " with " hraft:term:max hdynp:term:max " then
     wp_apply HACC $$ %(interface.mkOk (go.GoType.PointerType raftpb.ConfChange.ty) #cc) %$cm
         %(($hraft hdvc).1) %(($hraft hdvc).2) []
       as %csp Hcsp
-    · simp only [ownCCI]; iexists cc; iframe Hcc; ipureintro; rfl
+    · simp only [ownConfChangeI]; iexists cc; iframe Hcc; ipureintro; rfl
     ihave Hdvq : dvCCPost (GF := GF) none k cs' $$ []
     · iunfold dvCCPost; itrivial
     clear hdvc $hraft $hdynp Hdv Hdyn
@@ -174,7 +174,7 @@ local macro "raft_cc " cm:term:max " with " hraft:term:max hdynp:term:max " then
     wp_apply HACC $$ %(interface.mkOk (go.GoType.PointerType raftpb.ConfChange.ty) #cc) %$cm %ds %ca
         %cfg %k %e %cs' %($hdynp γn hdvc) [Hnc]
       as %csp ⟨Hcsp, Hdvq⟩
-    · iframe Hnc Hdl; simp only [ownCCI]; iexists cc; iframe Hcc; ipureintro; rfl
+    · iframe Hnc Hdl; simp only [ownConfChangeI]; iexists cc; iframe Hcc; ipureintro; rfl
     ihave Hdvq : dvCCPost (GF := GF) (some γn) k cs' $$ [Hdvq]
     · iunfold dvCCPost; iexact Hdvq
     clear hdvc $hraft $hdynp Hdv Hdyn
@@ -247,7 +247,7 @@ local macro "succ_tail" : tactic => `(tactic| (
       · exact h
       · rw [hty0] at h1; exact absurd h1 (by simp)
     wsteps
-    icases ownCCV1_context_acc' cc _ m $$ Hcc with ⟨%csl, HC, #Hcsl, Hcc'⟩
+    icases ownConfChange_context_acc' cc _ m $$ Hcc with ⟨%csl, HC, #Hcsl, Hcc'⟩
     wsteps
     irename «$r0» => Hcv
     wp_apply (hUnmarshal csl m.context DFrac.discard _ _ m.nodeId false hctx) $$ [Hcv]
@@ -785,7 +785,7 @@ theorem EtcdServer.applyConfChange.wp_proof
       · exact h
       · rw [hst] at h; cases h
     wp_auto
-    icases ownCCV1_context_acc' cc _ m $$ Hcc with ⟨%csl, HC, #Hcsl, Hcc⟩
+    icases ownConfChange_context_acc' cc _ m $$ Hcc with ⟨%csl, HC, #Hcsl, Hcc⟩
     wp_auto
     irename «$r0» => Hcv
     wp_apply (hUnmarshal csl m.context DFrac.discard _ _ m.nodeId false hctx) $$ [Hcv]
@@ -802,7 +802,7 @@ theorem EtcdServer.applyConfChange.wp_proof
     iStructNamed Attributes
     wp_apply (hGetNodeId.1 cc _ m) $$ [Hcc] as Hcc
     · iframe #; iframe
-    imod ownCCV1_persist _ _ _ $$ Hcc with #Hcc
+    imod ownConfChange_persist _ _ _ $$ Hcc with #Hcc
     rw [Hvid]
     simp only [_root_.decide_true, Bool.not_true]
     wp_auto
@@ -880,7 +880,7 @@ theorem EtcdServer.applyConfChange.wp_proof
       clear Herr Herr'
       wp_pures
       wp_auto
-      imod ownCCV1_persist _ _ _ $$ Hcc with #Hcc
+      imod ownConfChange_persist _ _ _ $$ Hcc with #Hcc
       iunfold epConfState at Hcs
       icases Hcs with ⟨Hcsf, #Hcsok0⟩
       have hraftS : dv = none → γs.raft.reDyn = none ∧ ccRaftOk γs.raft.reCfg m := by
@@ -910,13 +910,13 @@ theorem EtcdServer.applyConfChange.wp_proof
         wp_auto
         wp_apply hError $$ []
         · ipureintro; exact Hlgnn
-        icases ownCCV1_nodeId_acc cc m $$ Hcc with ⟨%pn, HN, Hcc⟩
+        icases ownConfChange_nodeId_acc cc m $$ Hcc with ⟨%pn, HN, Hcc⟩
         simp only [go_etcd_io.raft.v3.None']
         wp_auto
         ipersist «$r0»
         ihave Hcc := Hcc $$ %«$r0_ptr» %(W64 0) HN []
         · iunfold cellRO; iright; iexact «$r0»
-        imod ownCCV1_persist _ _ _ $$ Hcc with #Hcc
+        imod ownConfChange_persist _ _ _ $$ Hcc with #Hcc
         have hraft0 : dv = none → γs.raft.reDyn = none ∧
             ccRaftOk γs.raft.reCfg { m with nodeId := W64 0 } := by
           intro h

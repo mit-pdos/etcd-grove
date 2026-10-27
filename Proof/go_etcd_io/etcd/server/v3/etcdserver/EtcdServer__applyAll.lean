@@ -26,7 +26,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -67,7 +67,8 @@ theorem EtcdServer.applyAll.wp_proof
   (try wp_auto)
   -- `s.applyEntries(ep, apply)`, lending it `forceDiskSnapshot` (D14i)
   iunfold srvSnapState at Hss
-  icases Hss with ⟨%sd0, %sm0, %sf0, Hsd0, Hsm0, Hsf0, %Hdm0, #Hmst, %σ0, Htok, %Hσ0⟩
+  icases Hss with ⟨%sd0, %sm0, %sf0, Hsd0, Hsm0, Hsf0, %Hdm0, #Hmst, #Hro0, Hak0, %γss0, #Htinv0,
+    #Hslb0⟩
   ihave Hfs : srvFS s $$ [Hsf0]
   · iunfold srvFS; iexists _; iexact Hsf0
   wp_apply hAE s γ ci TM E ρ b ep ap es ents ms f0 rac st ai at0 a t cs x γr A γp dv w Hms Hai1 Hok
@@ -80,11 +81,11 @@ theorem EtcdServer.applyAll.wp_proof
   icases Hfs with ⟨%sf1, Hsf1⟩
   obtain ⟨hok', hai', hlen', hci', hat'⟩ := Hpost
   have Hai' : uint.Z ai ≤ uint.Z ai' := by rw [hai']; exact Int.le_max_left _ _
-  ihave Hss : srvSnapState s ep mst γs ai' (W64 0) $$ [Hsd0 Hsm0 Hsf1 Htok]
-  · iunfold srvSnapState; iexists _, _, _; iframe Hsd0 Hsm0 Hsf1 Hmst
+  ihave Hss : srvSnapState s ep mst γs ai' (W64 0) $$ [Hsd0 Hsm0 Hsf1 Hak0]
+  · iunfold srvSnapState; iexists _, _, _; iframe Hsd0 Hsm0 Hsf1 Hmst Hro0 Hak0
     isplitr
     · ipureintro; exact ⟨by have := Hdm0.1; omega, by have := Hdm0.2; omega⟩
-    iexists σ0; iframe Htok; ipureintro; exact ⟨by have := Hσ0.1; omega, by word⟩
+    iexists γss0; iframe Htinv0 Hslb0
   (try wp_auto)
   -- `backend.VerifyBackendConsistency(s.Backend(), s.Logger(), true, schema.AllBuckets...)`
   wp_apply hBk s E.γbe $$ [Hbr] as %be ⟨Hbr, -⟩
@@ -265,7 +266,8 @@ theorem EtcdServer.applyAll.wp_proofOn
   (try wp_auto)
   -- `s.applyEntries(ep, apply)`, lending it `forceDiskSnapshot` (D14i)
   iunfold srvSnapState at Hss
-  icases Hss with ⟨%sd0, %sm0, %sf0, Hsd0, Hsm0, Hsf0, %Hdm0, #Hmst, %σ0, Htok, %Hσ0⟩
+  icases Hss with ⟨%sd0, %sm0, %sf0, Hsd0, Hsm0, Hsf0, %Hdm0, #Hmst, #Hro0, Hak0, %γss0, #Htinv0,
+    #Hslb0⟩
   ihave Hfs : srvFS s $$ [Hsf0]
   · iunfold srvFS; iexists _; iexact Hsf0
   wp_apply hAE s γ ci TM E ρ b ep ap es ents ms f0 rac st ai at0 a t cs x γr A γp dv w γa sa hM hRB
@@ -278,11 +280,11 @@ theorem EtcdServer.applyAll.wp_proofOn
   icases Hfs with ⟨%sf1, Hsf1⟩
   obtain ⟨hok', hai', hlen', hci', hat'⟩ := Hpost
   have Hai' : uint.Z ai ≤ uint.Z ai' := by rw [hai']; exact Int.le_max_left _ _
-  ihave Hss : srvSnapState s ep mst γs ai' (W64 0) $$ [Hsd0 Hsm0 Hsf1 Htok]
-  · iunfold srvSnapState; iexists _, _, _; iframe Hsd0 Hsm0 Hsf1 Hmst
+  ihave Hss : srvSnapState s ep mst γs ai' (W64 0) $$ [Hsd0 Hsm0 Hsf1 Hak0]
+  · iunfold srvSnapState; iexists _, _, _; iframe Hsd0 Hsm0 Hsf1 Hmst Hro0 Hak0
     isplitr
     · ipureintro; exact ⟨by have := Hdm0.1; omega, by have := Hdm0.2; omega⟩
-    iexists σ0; iframe Htok; ipureintro; exact ⟨by have := Hσ0.1; omega, by word⟩
+    iexists γss0; iframe Htinv0 Hslb0
   (try wp_auto)
   -- `backend.VerifyBackendConsistency(s.Backend(), s.Logger(), true, schema.AllBuckets...)`
   wp_apply hBk s E.γbe $$ [Hbr] as %be ⟨Hbr, -⟩

@@ -23,28 +23,28 @@ end pkg_id
 
 namespace go_etcd_io.etcd.pkg.v3.idutil
 
-noncomputable def Generator.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Generator.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/pkg/v3/idutil.Generator" [])
 
 attribute [irreducible] Generator.ty
 
-@[reducible] noncomputable def tsLen [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def tsLen [GooseExts] [GoGlobalContext] : val :=
   #(40 : Int)
 
-@[reducible] noncomputable def cntLen [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def cntLen [GooseExts] [GoGlobalContext] : val :=
   #(8 : Int)
 
-@[reducible] noncomputable def suffixLen [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def suffixLen [GooseExts] [GoGlobalContext] : val :=
   #(48 : Int)
 
-noncomputable def NewGenerator [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewGenerator [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/pkg/v3/idutil.NewGenerator"
 
-noncomputable def lowbit [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def lowbit [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/pkg/v3/idutil.lowbit"
 
 /-- go: id.go:56:6 -/
-noncomputable def NewGenerator.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def NewGenerator.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "memberID"
   (Lam "now"
   (App (Val exceptionDo)
@@ -75,7 +75,7 @@ noncomputable def NewGenerator.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- Next generates a id that is unique.
 
     go: id.go:67:21 -/
-noncomputable def Generator.Next.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Generator.Next.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "g"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -98,7 +98,7 @@ noncomputable def Generator.Next.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "suffix") (Var "$r0")))))))))))
 
 /-- go: id.go:73:6 -/
-noncomputable def lowbit.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def lowbit.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "n"
   (App (Val exceptionDo)
@@ -110,9 +110,9 @@ noncomputable def lowbit.impl [FfiSyntax] [GoGlobalContext] : val :=
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.pkg.v3.idutil where
   pkgImportedPkgs := [pkg_id.math, pkg_id.sync.atomic, pkg_id.time]
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.pkg.v3.idutil)) (Lam BAnon
   (App (Val exceptionDo)
@@ -125,35 +125,37 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.time.initialize') (Val #()))))))))
 
-structure Generator [FfiSyntax] where
+structure Generator [GooseExts] where
   mk ::
   prefix' : w64
   suffix' : w64
 
-noncomputable instance Generator.zero_val [FfiSyntax] : ZeroVal Generator :=
+noncomputable instance Generator.zero_val [GooseExts] : ZeroVal Generator :=
   ⟨Generator.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Generator.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Generator.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"prefix" go.uint64),
 (go.field_decl.FieldDecl go!"suffix" go.uint64)]
 
-@[irreducible] noncomputable def Generator.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Generator.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Generator.fieldsUnsealed
 
-noncomputable instance equals_unfold_Generator [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Generator [GooseExts] [GoGlobalContext] :
     EqualsUnfold Generator.fields Generator.fieldsUnsealed :=
   ⟨by unfold Generator.fields; rfl⟩
 
-@[reducible] noncomputable def Generator.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Generator.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Generator.fields)
 
-class Generator.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Generator.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Generator.underlying Generator
   underlying : go.UnderlyingDirectedEq Generator.ty Generator.underlying
   get_prefix : ∀ (x : Generator), go.IsGoStepPureDetTagged under (StructFieldGet Generator.underlying go!"prefix") #x (Val #(x.prefix'))
   set_prefix : ∀ (x : Generator) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Generator.underlying go!"prefix") (PairV #x #y) (Val #(({ x with prefix' := y } : Generator)))
   get_suffix : ∀ (x : Generator), go.IsGoStepPureDetTagged under (StructFieldGet Generator.underlying go!"suffix") #x (Val #(x.suffix'))
   set_suffix : ∀ (x : Generator) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Generator.underlying go!"suffix") (PairV #x #y) (Val #(({ x with suffix' := y } : Generator)))
+  method_set : go.MethodSetIs Generator.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Generator.ty) [(go!"Next", (some (go.signature.Signature [] false [go.uint64])))]
   ptr_Next_unfold : MethodUnfold (go.GoType.PointerType Generator.ty) go!"Next" Generator.Next.impl
 
 attribute [instance] Generator.TypeAssumptions.type_repr
@@ -162,9 +164,11 @@ attribute [instance] Generator.TypeAssumptions.type_repr
   Generator.TypeAssumptions.set_prefix
   Generator.TypeAssumptions.get_suffix
   Generator.TypeAssumptions.set_suffix
+  Generator.TypeAssumptions.method_set
+  Generator.TypeAssumptions.ptr_method_set
   Generator.TypeAssumptions.ptr_Next_unfold
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Generator_instance : Generator.TypeAssumptions
   NewGenerator_unfold : FuncUnfold NewGenerator [] NewGenerator.impl
   lowbit_unfold : FuncUnfold lowbit [] lowbit.impl

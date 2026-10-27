@@ -23,7 +23,7 @@ namespace mvcc
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.storage.mvcc
 
 section generic
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -888,7 +888,7 @@ theorem WsOk.victimOf_of_mem {σ : WsState} (h : WsOk σ) {i : Nat} {B : GMap Lo
     h.v_one j i B' B w hj hi hw' (by rw [hw]; rfl))
 
 section reprs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

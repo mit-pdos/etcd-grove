@@ -21,37 +21,37 @@ end pkg_id
 
 namespace container.heap
 
-noncomputable def Interface.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Interface.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"container/heap.Interface" [])
 
 attribute [irreducible] Interface.ty
 
-noncomputable def Init [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Init [GooseExts] [GoGlobalContext] : GoString :=
   go!"container/heap.Init"
 
-noncomputable def Push [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Push [GooseExts] [GoGlobalContext] : GoString :=
   go!"container/heap.Push"
 
-noncomputable def Pop [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Pop [GooseExts] [GoGlobalContext] : GoString :=
   go!"container/heap.Pop"
 
-noncomputable def Remove [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Remove [GooseExts] [GoGlobalContext] : GoString :=
   go!"container/heap.Remove"
 
-noncomputable def Fix [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Fix [GooseExts] [GoGlobalContext] : GoString :=
   go!"container/heap.Fix"
 
-noncomputable def up [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def up [GooseExts] [GoGlobalContext] : GoString :=
   go!"container/heap.up"
 
-noncomputable def down [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def down [GooseExts] [GoGlobalContext] : GoString :=
   go!"container/heap.down"
 
 /-- Push pushes the element x onto the heap.
     The complexity is O(log n) where n = h.Len().
 
     go: heap.go:51:6 -/
-noncomputable def Push.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Push.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "h"
   (Lam "x"
   (App (Val exceptionDo)
@@ -75,7 +75,7 @@ noncomputable def Push.impl [FfiSyntax] [GoGlobalContext] : val :=
     The complexity is O(log n) where n = h.Len().
 
     go: heap.go:83:6 -/
-noncomputable def Fix.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Fix.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "h"
   (Lam "i"
   (App (Val exceptionDo)
@@ -96,7 +96,7 @@ noncomputable def Fix.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #())))))))))
 
 /-- go: heap.go:89:6 -/
-noncomputable def up.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def up.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "h"
   (Lam "j"
   (App (Val exceptionDo)
@@ -131,7 +131,7 @@ noncomputable def up.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #())))))))))
 
 /-- go: heap.go:100:6 -/
-noncomputable def down.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def down.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "h"
   (Lam "i0"
   (Lam "n"
@@ -199,26 +199,30 @@ noncomputable def down.impl [FfiSyntax] [GoGlobalContext] : val :=
 noncomputable instance info' : PkgInfo pkg_id.container.heap where
   pkgImportedPkgs := [pkg_id.sort]
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.container.heap)) (Lam BAnon
   (App (Val exceptionDo)
   (App (Val doExecute)
   (App (Val _root_.Perennial.sort.initialize') (Val #())))))))
 
-abbrev Interface [FfiSyntax] : Type := GoInterface
+abbrev Interface [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def Interface.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Pop" (go.signature.Signature [] false [go.any])), (go.InterfaceElem.MethodElem go!"Push" (go.signature.Signature [go.any] false [])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm _root_.Perennial.sort.Interface.ty)])])
+@[reducible] noncomputable def Interface.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Len" (go.signature.Signature [] false [go.int])), (go.InterfaceElem.MethodElem go!"Less" (go.signature.Signature [go.int, go.int] false [go.bool])), (go.InterfaceElem.MethodElem go!"Pop" (go.signature.Signature [] false [go.any])), (go.InterfaceElem.MethodElem go!"Push" (go.signature.Signature [go.any] false [])), (go.InterfaceElem.MethodElem go!"Swap" (go.signature.Signature [go.int, go.int] false []))])
 
-class Interface.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Interface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Interface.ty Interface.underlying
+  method_set : go.MethodSetIs Interface.ty [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Pop", (some (go.signature.Signature [] false [go.any]))), (go!"Push", (some (go.signature.Signature [go.any] false []))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Interface.ty) []
 
 attribute [instance] Interface.TypeAssumptions.underlying
+  Interface.TypeAssumptions.method_set
+  Interface.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Interface_instance : Interface.TypeAssumptions
   Push_unfold : FuncUnfold Push [] Push.impl
   Fix_unfold : FuncUnfold Fix [] Fix.impl

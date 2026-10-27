@@ -34,11 +34,11 @@ namespace bridge
 open Iris Iris.BI github_com.mit_pdos.etcd_grove.third_party
 
 /-- **`b` is a bridge to `addr`, blackholed if `h`** (exclusive; see the file header). -/
-axiom bridgeAt {GF : BundledGFunctors} [FfiSyntax] (b : Loc) (addr : GoString) (h : Bool) :
+axiom bridgeAt {GF : BundledGFunctors} [GooseExts] (b : Loc) (addr : GoString) (h : Bool) :
   IProp GF
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

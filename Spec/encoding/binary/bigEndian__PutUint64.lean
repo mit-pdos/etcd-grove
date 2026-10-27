@@ -17,7 +17,7 @@ namespace EtcdGrove
 open Iris Iris.BI
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -27,7 +27,7 @@ variable [package_sem : encoding.binary.Assumptions]
 of `b`. -/
 abbrev binary.bigEndian.PutUint64.spec : Prop :=
   ∀ (b : GoSlice) (space rem : List w8) (v : w64), space.length = 8 →
-  {{ (b ↦* (space ++ rem) : IProp GF) }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.encoding.binary ∗ b ↦* (space ++ rem) }}
     (App (App (Val (globalAddr encoding.binary.BigEndian @!!
       go.GoType.PointerType encoding.binary.bigEndian.ty @!! go!"PutUint64")) (Val #b)) (Val #v))
   {{ RET #(); b ↦* (u64Be v ++ rem) }}
@@ -35,7 +35,7 @@ abbrev binary.bigEndian.PutUint64.spec : Prop :=
 /-- Encoding into exactly 8 bytes (from the spec). -/
 theorem wp_bePutUint64 (h : binary.bigEndian.PutUint64.spec (GF := GF) (hG := hG))
     (b : GoSlice) (space : List w8) (v : w64) (hl : space.length = 8) :
-    {{ (b ↦* space : IProp GF) }}
+    {{ isPkgInit (PROP := IProp GF) pkg_id.encoding.binary ∗ b ↦* space }}
       (App (App (Val (globalAddr encoding.binary.BigEndian @!!
         go.GoType.PointerType encoding.binary.bigEndian.ty @!! go!"PutUint64")) (Val #b)) (Val #v))
     {{ RET #(); b ↦* u64Be v }} := by

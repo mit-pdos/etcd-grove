@@ -50,7 +50,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.apply go_e
 /-! ## The verdicts (pure) -/
 
 section pure
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- **The admin check passed at the latest state** of `hs` (when the request needs it): the latest
 state admits the request's principal (`auth.adminOk`). -/
@@ -93,7 +93,7 @@ end pure
 /-! ## The contracts -/
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -214,7 +214,7 @@ abbrev apply.uberApplier.Apply.adminSpecL : Prop :=
 end defs
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

@@ -30,7 +30,7 @@ namespace kubernetes
 open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver mvcc
 
 section pure
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- `Get`'s range on the wire: `OpGet(key, WithRev(0), WithLimit(1))`. -/
 abbrev getKey1Op (key : GoString) : OpFull :=
@@ -139,7 +139,7 @@ theorem failure_resps (s : List EtcdKv) (r : w64) (cs : List (linkv.MCmp GoStrin
 end pure
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

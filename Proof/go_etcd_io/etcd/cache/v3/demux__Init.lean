@@ -24,7 +24,7 @@ theorem demuxInit_inv_reset {cap : Nat} {c : DemuxCore} (Hinv : DemuxInv cap c) 
     first | omega | exact Hinv.cap_pos | exact Hinv.cap_le | exact ⟨by simp, by simp [RevSorted], by simp⟩ | word
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

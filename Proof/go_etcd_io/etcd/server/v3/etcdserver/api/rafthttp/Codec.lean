@@ -40,7 +40,7 @@ namespace EtcdGrove
 open Iris Iris.BI
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -109,7 +109,7 @@ def msgFrame (bs : List w8) : List w8 := u64Be (W64 bs.length) ++ bs
 end defs
 
 section lemmas
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -117,7 +117,7 @@ open Iris.ProofMode
 
 /-- An `errors.New` error's `Error()` returns (`errorsNewVar`'s method fact), and it is a leaf of
 an error tree (`ErrorStringLeaf`). -/
-theorem errorString_errStrOk [ErrorStringLeaf] [_root_.Perennial.errors.Assumptions] (x : Loc) (msg : GoString) :
+theorem errorString_errStrOk [_root_.Perennial.errors.Assumptions] (x : Loc) (msg : GoString) :
     ⊢ (□ ∀ Φ : val → IProp GF, ▷ Φ #msg -∗
         WP (App (Val #(methods (go.GoType.PointerType _root_.Perennial.errors.errorString.ty)
           go!"Error" #x)) (Val #())) {{ Φ }}) -∗

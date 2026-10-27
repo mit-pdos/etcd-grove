@@ -83,7 +83,7 @@ namespace k8setcd3
 open Iris Iris.BI github_com.mit_pdos.etcd_grove.examples.k8setcd3 github_com.mit_pdos.etcd_grove.examples.lintest github_com.anishathalye.porcupine
 
 section links
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -179,7 +179,7 @@ end links
 /-! The specs stated at `HeapGS HasLC.hasLC GF`: those using channels, `sync.Once` or
 `context` (Perennial states them there: their invariants need later credits). -/
 section links_hasLC
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -334,7 +334,7 @@ theorem wp_newObj :
     EtcdGrove.k8setcd3.newObj.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8setcd3.newObj.wp_proof
 
-theorem wp_Main [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [EtcdGrove.ErrorStringLeaf] :
+theorem wp_Main [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.k8setcd3.Main.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8setcd3.Main.wp_proof zap.wp_NewNop common.wp_StartServer common.wp_Serve kubernetes.wp_New wp_seed k8s.wp_New k8s.wp_NewDefaultLeaseManagerConfig wp_newObj runtime.wp_Encode codec.wp_Encode versioner.wp_UpdateObject versioner.wp_PrepareObjectForStorage versioner.wp_ObjectResourceVersion versioner.wp_ParseResourceVersion identity.wp_TransformFromStorage identity.wp_TransformToStorage decoder.wp_Decode runtime.wp_SetZeroValue wp_Check
 

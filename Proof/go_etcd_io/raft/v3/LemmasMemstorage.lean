@@ -19,14 +19,14 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 /-- A conf state whose lists and `AutoLeave` are the storage's is `storCS σ`. -/
-theorem confState_eq_storCS [FfiSyntax] (c : ConfStateM) (σ : StorState) (h1 : c.lists = σ.scs)
+theorem confState_eq_storCS [GooseExts] (c : ConfStateM) (σ : StorState) (h1 : c.lists = σ.scs)
     (h2 : c.AutoLeave' = σ.sal) : c = storCS σ := by
   unfold storCS
   rw [← h1, ← h2]
   rfl
 
 section lemmas
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -93,7 +93,7 @@ theorem ownSnapM_not_null (p : Loc) (dq : DFrac) (sv : SnapshotM) :
 end lemmas
 
 section wps
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [GoSemanticsFunctions] [preSem : go.PreSemantics]

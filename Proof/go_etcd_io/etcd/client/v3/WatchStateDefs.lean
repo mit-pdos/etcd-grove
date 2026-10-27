@@ -43,7 +43,7 @@ open Iris Iris.BI go_etcd_io.etcd.api.v3 go_etcd_io.etcd.cache.v3 go_etcd_io.etc
 /-! ## The events of the state (pure) -/
 
 section pure
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- **Revision `r`'s events in the state `σ`**: one per change of the revision, in order, each the
 key-value the change wrote at `r` (a put's, from the store before the revision and the changes up
@@ -91,7 +91,7 @@ end pure
 /-! ## A response, as a read of the state -/
 
 section resp
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -200,7 +200,7 @@ namespace client
 /-! ## The same, at the server's level (the pipeline's, before the update fires) -/
 
 section raw
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

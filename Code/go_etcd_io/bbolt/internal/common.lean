@@ -22,189 +22,189 @@ end pkg_id
 
 namespace go_etcd_io.bbolt.internal.common
 
-noncomputable def InBucket.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def InBucket.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.InBucket" [])
 
 attribute [irreducible] InBucket.ty
 
-noncomputable def Inode.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Inode.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Inode" [])
 
 attribute [irreducible] Inode.ty
 
-noncomputable def Inodes.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Inodes.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Inodes" [])
 
 attribute [irreducible] Inodes.ty
 
-noncomputable def Meta.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Meta.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Meta" [])
 
 attribute [irreducible] Meta.ty
 
-noncomputable def Pgid.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Pgid.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgid" [])
 
 attribute [irreducible] Pgid.ty
 
-noncomputable def Page.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Page.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Page" [])
 
 attribute [irreducible] Page.ty
 
-noncomputable def Pages.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Pages.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pages" [])
 
 attribute [irreducible] Pages.ty
 
-noncomputable def branchPageElement.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def branchPageElement.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.branchPageElement" [])
 
 attribute [irreducible] branchPageElement.ty
 
-noncomputable def leafPageElement.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def leafPageElement.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.leafPageElement" [])
 
 attribute [irreducible] leafPageElement.ty
 
-noncomputable def PageInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PageInfo.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.PageInfo" [])
 
 attribute [irreducible] PageInfo.ty
 
-noncomputable def Pgids.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Pgids.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Pgids" [])
 
 attribute [irreducible] Pgids.ty
 
-noncomputable def Txid.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Txid.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.Txid" [])
 
 attribute [irreducible] Txid.ty
 
-noncomputable def VerificationType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def VerificationType.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/bbolt/internal/common.VerificationType" [])
 
 attribute [irreducible] VerificationType.ty
 
-axiom MaxMapSize [FfiSyntax] [GoGlobalContext] : val
+axiom MaxMapSize [GooseExts] [GoGlobalContext] : val
 
-axiom MaxAllocSize [FfiSyntax] [GoGlobalContext] : val
+axiom MaxAllocSize [GooseExts] [GoGlobalContext] : val
 
-axiom BucketHeaderSize [FfiSyntax] [GoGlobalContext] : val
+axiom BucketHeaderSize [GooseExts] [GoGlobalContext] : val
 
-axiom PageHeaderSize [FfiSyntax] [GoGlobalContext] : val
+axiom PageHeaderSize [GooseExts] [GoGlobalContext] : val
 
-axiom MinKeysPerPage [FfiSyntax] [GoGlobalContext] : val
+axiom MinKeysPerPage [GooseExts] [GoGlobalContext] : val
 
-axiom BranchPageElementSize [FfiSyntax] [GoGlobalContext] : val
+axiom BranchPageElementSize [GooseExts] [GoGlobalContext] : val
 
-axiom LeafPageElementSize [FfiSyntax] [GoGlobalContext] : val
+axiom LeafPageElementSize [GooseExts] [GoGlobalContext] : val
 
-axiom pgidSize [FfiSyntax] [GoGlobalContext] : val
+axiom pgidSize [GooseExts] [GoGlobalContext] : val
 
-axiom BranchPageFlag [FfiSyntax] [GoGlobalContext] : val
+axiom BranchPageFlag [GooseExts] [GoGlobalContext] : val
 
-axiom LeafPageFlag [FfiSyntax] [GoGlobalContext] : val
+axiom LeafPageFlag [GooseExts] [GoGlobalContext] : val
 
-axiom MetaPageFlag [FfiSyntax] [GoGlobalContext] : val
+axiom MetaPageFlag [GooseExts] [GoGlobalContext] : val
 
-axiom FreelistPageFlag [FfiSyntax] [GoGlobalContext] : val
+axiom FreelistPageFlag [GooseExts] [GoGlobalContext] : val
 
-axiom BucketLeafFlag [FfiSyntax] [GoGlobalContext] : val
+axiom BucketLeafFlag [GooseExts] [GoGlobalContext] : val
 
-axiom MaxMmapStep [FfiSyntax] [GoGlobalContext] : val
+axiom MaxMmapStep [GooseExts] [GoGlobalContext] : val
 
-axiom Version [FfiSyntax] [GoGlobalContext] : val
+axiom Version [GooseExts] [GoGlobalContext] : val
 
-axiom Magic [FfiSyntax] [GoGlobalContext] : val
+axiom Magic [GooseExts] [GoGlobalContext] : val
 
-axiom PgidNoFreelist [FfiSyntax] [GoGlobalContext] : val
+axiom PgidNoFreelist [GooseExts] [GoGlobalContext] : val
 
-axiom IgnoreNoSync [FfiSyntax] [GoGlobalContext] : val
+axiom IgnoreNoSync [GooseExts] [GoGlobalContext] : val
 
-axiom DefaultMaxBatchSize [FfiSyntax] [GoGlobalContext] : val
+axiom DefaultMaxBatchSize [GooseExts] [GoGlobalContext] : val
 
-axiom DefaultMaxBatchDelay [FfiSyntax] [GoGlobalContext] : val
+axiom DefaultMaxBatchDelay [GooseExts] [GoGlobalContext] : val
 
-axiom DefaultAllocSize [FfiSyntax] [GoGlobalContext] : val
+axiom DefaultAllocSize [GooseExts] [GoGlobalContext] : val
 
-axiom ENV_VERIFY [FfiSyntax] [GoGlobalContext] : val
+axiom ENV_VERIFY [GooseExts] [GoGlobalContext] : val
 
-axiom ENV_VERIFY_VALUE_ALL [FfiSyntax] [GoGlobalContext] : val
+axiom ENV_VERIFY_VALUE_ALL [GooseExts] [GoGlobalContext] : val
 
-axiom ENV_VERIFY_VALUE_ASSERT [FfiSyntax] [GoGlobalContext] : val
+axiom ENV_VERIFY_VALUE_ASSERT [GooseExts] [GoGlobalContext] : val
 
-noncomputable def DefaultPageSize [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def DefaultPageSize [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/bbolt/internal/common.DefaultPageSize"
 
-axiom DefaultPageSize.init [FfiSyntax] [GoGlobalContext] : val
+axiom DefaultPageSize.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def NewInBucket [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewInBucket [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/bbolt/internal/common.NewInBucket"
 
-noncomputable def ReadInodeFromPage [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ReadInodeFromPage [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/bbolt/internal/common.ReadInodeFromPage"
 
-noncomputable def WriteInodeToPage [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WriteInodeToPage [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/bbolt/internal/common.WriteInodeToPage"
 
-noncomputable def UsedSpaceInPage [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def UsedSpaceInPage [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/bbolt/internal/common.UsedSpaceInPage"
 
-noncomputable def NewPage [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewPage [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/bbolt/internal/common.NewPage"
 
-noncomputable def NewLeafPageElement [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewLeafPageElement [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/bbolt/internal/common.NewLeafPageElement"
 
-noncomputable def Mergepgids [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Mergepgids [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/bbolt/internal/common.Mergepgids"
 
-noncomputable def UnsafeAdd [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def UnsafeAdd [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/bbolt/internal/common.UnsafeAdd"
 
-noncomputable def UnsafeIndex [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def UnsafeIndex [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/bbolt/internal/common.UnsafeIndex"
 
-noncomputable def UnsafeByteSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def UnsafeByteSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/bbolt/internal/common.UnsafeByteSlice"
 
-noncomputable def LoadBucket [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def LoadBucket [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/bbolt/internal/common.LoadBucket"
 
-noncomputable def LoadPage [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def LoadPage [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/bbolt/internal/common.LoadPage"
 
-noncomputable def LoadPageMeta [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def LoadPageMeta [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/bbolt/internal/common.LoadPageMeta"
 
-noncomputable def CopyFile [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def CopyFile [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/bbolt/internal/common.CopyFile"
 
-noncomputable def getEnvVerify [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def getEnvVerify [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/bbolt/internal/common.getEnvVerify"
 
-noncomputable def IsVerificationEnabled [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsVerificationEnabled [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/bbolt/internal/common.IsVerificationEnabled"
 
-noncomputable def EnableVerifications [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def EnableVerifications [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/bbolt/internal/common.EnableVerifications"
 
-noncomputable def EnableAllVerifications [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def EnableAllVerifications [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/bbolt/internal/common.EnableAllVerifications"
 
-noncomputable def DisableVerifications [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def DisableVerifications [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/bbolt/internal/common.DisableVerifications"
 
-noncomputable def Verify [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Verify [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/bbolt/internal/common.Verify"
 
-noncomputable def Assert [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Assert [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/bbolt/internal/common.Assert"
 
 /-- go: page.go:345:16 -/
-noncomputable def Pgids.Len.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Pgids.Len.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -214,7 +214,7 @@ noncomputable def Pgids.Len.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (FuncResolve go.len [Pgids.ty]))) (Val #())) (Var "$a0"))))))))
 
 /-- go: page.go:346:16 -/
-noncomputable def Pgids.Swap.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Pgids.Swap.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "i"
   (Lam "j"
@@ -236,7 +236,7 @@ noncomputable def Pgids.Swap.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore Pgid.ty))) (Pair (Var "$l0") (Var "$r0")))))))))))))))))
 
 /-- go: page.go:347:16 -/
-noncomputable def Pgids.Less.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Pgids.Less.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "i"
   (Lam "j"
@@ -250,7 +250,7 @@ noncomputable def Pgids.Less.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- Merge returns the sorted union of a and b.
 
     go: page.go:350:16 -/
-noncomputable def Pgids.Merge.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Pgids.Merge.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "b"
   (App (Val exceptionDo)
@@ -290,7 +290,7 @@ noncomputable def Pgids.Merge.impl [FfiSyntax] [GoGlobalContext] : val :=
     If dst is too small, it panics.
 
     go: page.go:365:6 -/
-noncomputable def Mergepgids.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Mergepgids.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "dst"
   (Lam "a"
   (Lam "b"
@@ -418,9 +418,9 @@ noncomputable def Mergepgids.impl [FfiSyntax] [GoGlobalContext] : val :=
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.bbolt.internal.common where
   pkgImportedPkgs := [pkg_id.fmt, pkg_id.sort]
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.bbolt.internal.common)) (Lam BAnon
   (App (Val exceptionDo)
@@ -433,45 +433,51 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.sort.initialize') (Val #()))))))))
 
-abbrev Pgid [FfiSyntax] : Type := w64
+abbrev Pgid [GooseExts] : Type := w64
 
-@[reducible] noncomputable def Pgid.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Pgid.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.uint64
 
-class Pgid.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Pgid.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Pgid.ty Pgid.underlying
+  method_set : go.MethodSetIs Pgid.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Pgid.ty) []
 
 attribute [instance] Pgid.TypeAssumptions.underlying
+  Pgid.TypeAssumptions.method_set
+  Pgid.TypeAssumptions.ptr_method_set
 
-structure InBucket [FfiSyntax] where
+structure InBucket [GooseExts] where
   mk ::
   root' : Pgid
   sequence' : w64
 
-noncomputable instance InBucket.zero_val [FfiSyntax] : ZeroVal InBucket :=
+noncomputable instance InBucket.zero_val [GooseExts] : ZeroVal InBucket :=
   ⟨InBucket.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def InBucket.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def InBucket.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"root" Pgid.ty),
 (go.field_decl.FieldDecl go!"sequence" go.uint64)]
 
-@[irreducible] noncomputable def InBucket.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def InBucket.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   InBucket.fieldsUnsealed
 
-noncomputable instance equals_unfold_InBucket [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_InBucket [GooseExts] [GoGlobalContext] :
     EqualsUnfold InBucket.fields InBucket.fieldsUnsealed :=
   ⟨by unfold InBucket.fields; rfl⟩
 
-@[reducible] noncomputable def InBucket.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def InBucket.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType InBucket.fields)
 
-class InBucket.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class InBucket.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying InBucket.underlying InBucket
   underlying : go.UnderlyingDirectedEq InBucket.ty InBucket.underlying
   get_root : ∀ (x : InBucket), go.IsGoStepPureDetTagged under (StructFieldGet InBucket.underlying go!"root") #x (Val #(x.root'))
   set_root : ∀ (x : InBucket) (y : Pgid), go.IsGoStepPureDetTagged under (StructFieldSet InBucket.underlying go!"root") (PairV #x #y) (Val #(({ x with root' := y } : InBucket)))
   get_sequence : ∀ (x : InBucket), go.IsGoStepPureDetTagged under (StructFieldGet InBucket.underlying go!"sequence") #x (Val #(x.sequence'))
   set_sequence : ∀ (x : InBucket) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet InBucket.underlying go!"sequence") (PairV #x #y) (Val #(({ x with sequence' := y } : InBucket)))
+  method_set : go.MethodSetIs InBucket.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType InBucket.ty) [(go!"InSequence", (some (go.signature.Signature [] false [go.uint64]))), (go!"IncSequence", (some (go.signature.Signature [] false []))), (go!"InlinePage", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.PointerType Page.ty)]))), (go!"RootPage", (some (go.signature.Signature [] false [Pgid.ty]))), (go!"SetInSequence", (some (go.signature.Signature [go.uint64] false []))), (go!"SetRootPage", (some (go.signature.Signature [Pgid.ty] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] InBucket.TypeAssumptions.type_repr
   InBucket.TypeAssumptions.underlying
@@ -479,34 +485,36 @@ attribute [instance] InBucket.TypeAssumptions.type_repr
   InBucket.TypeAssumptions.set_root
   InBucket.TypeAssumptions.get_sequence
   InBucket.TypeAssumptions.set_sequence
+  InBucket.TypeAssumptions.method_set
+  InBucket.TypeAssumptions.ptr_method_set
 
-structure Inode [FfiSyntax] where
+structure Inode [GooseExts] where
   mk ::
   flags' : w32
   pgid' : Pgid
   key' : GoSlice
   value' : GoSlice
 
-noncomputable instance Inode.zero_val [FfiSyntax] : ZeroVal Inode :=
+noncomputable instance Inode.zero_val [GooseExts] : ZeroVal Inode :=
   ⟨Inode.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Inode.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Inode.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"flags" go.uint32),
 (go.field_decl.FieldDecl go!"pgid" Pgid.ty),
 (go.field_decl.FieldDecl go!"key" (go.GoType.SliceType go.byte)),
 (go.field_decl.FieldDecl go!"value" (go.GoType.SliceType go.byte))]
 
-@[irreducible] noncomputable def Inode.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Inode.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Inode.fieldsUnsealed
 
-noncomputable instance equals_unfold_Inode [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Inode [GooseExts] [GoGlobalContext] :
     EqualsUnfold Inode.fields Inode.fieldsUnsealed :=
   ⟨by unfold Inode.fields; rfl⟩
 
-@[reducible] noncomputable def Inode.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Inode.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Inode.fields)
 
-class Inode.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Inode.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Inode.underlying Inode
   underlying : go.UnderlyingDirectedEq Inode.ty Inode.underlying
   get_flags : ∀ (x : Inode), go.IsGoStepPureDetTagged under (StructFieldGet Inode.underlying go!"flags") #x (Val #(x.flags'))
@@ -517,6 +525,8 @@ class Inode.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSe
   set_key : ∀ (x : Inode) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Inode.underlying go!"key") (PairV #x #y) (Val #(({ x with key' := y } : Inode)))
   get_value : ∀ (x : Inode), go.IsGoStepPureDetTagged under (StructFieldGet Inode.underlying go!"value") #x (Val #(x.value'))
   set_value : ∀ (x : Inode) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Inode.underlying go!"value") (PairV #x #y) (Val #(({ x with value' := y } : Inode)))
+  method_set : go.MethodSetIs Inode.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Inode.ty) [(go!"Flags", (some (go.signature.Signature [] false [go.uint32]))), (go!"Key", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"Pgid", (some (go.signature.Signature [] false [Pgid.ty]))), (go!"SetFlags", (some (go.signature.Signature [go.uint32] false []))), (go!"SetKey", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false []))), (go!"SetPgid", (some (go.signature.Signature [Pgid.ty] false []))), (go!"SetValue", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false []))), (go!"Value", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)])))]
 
 attribute [instance] Inode.TypeAssumptions.type_repr
   Inode.TypeAssumptions.underlying
@@ -528,28 +538,38 @@ attribute [instance] Inode.TypeAssumptions.type_repr
   Inode.TypeAssumptions.set_key
   Inode.TypeAssumptions.get_value
   Inode.TypeAssumptions.set_value
+  Inode.TypeAssumptions.method_set
+  Inode.TypeAssumptions.ptr_method_set
 
-abbrev Inodes [FfiSyntax] : Type := GoSlice
+abbrev Inodes [GooseExts] : Type := GoSlice
 
-@[reducible] noncomputable def Inodes.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Inodes.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.SliceType Inode.ty)
 
-class Inodes.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Inodes.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Inodes.ty Inodes.underlying
+  method_set : go.MethodSetIs Inodes.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Inodes.ty) []
 
 attribute [instance] Inodes.TypeAssumptions.underlying
+  Inodes.TypeAssumptions.method_set
+  Inodes.TypeAssumptions.ptr_method_set
 
-abbrev Txid [FfiSyntax] : Type := w64
+abbrev Txid [GooseExts] : Type := w64
 
-@[reducible] noncomputable def Txid.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Txid.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.uint64
 
-class Txid.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Txid.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Txid.ty Txid.underlying
+  method_set : go.MethodSetIs Txid.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Txid.ty) []
 
 attribute [instance] Txid.TypeAssumptions.underlying
+  Txid.TypeAssumptions.method_set
+  Txid.TypeAssumptions.ptr_method_set
 
-structure Meta [FfiSyntax] where
+structure Meta [GooseExts] where
   mk ::
   magic' : w32
   version' : w32
@@ -561,10 +581,10 @@ structure Meta [FfiSyntax] where
   txid' : Txid
   checksum' : w64
 
-noncomputable instance Meta.zero_val [FfiSyntax] : ZeroVal Meta :=
+noncomputable instance Meta.zero_val [GooseExts] : ZeroVal Meta :=
   ⟨Meta.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Meta.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Meta.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"magic" go.uint32),
 (go.field_decl.FieldDecl go!"version" go.uint32),
 (go.field_decl.FieldDecl go!"pageSize" go.uint32),
@@ -575,17 +595,17 @@ noncomputable instance Meta.zero_val [FfiSyntax] : ZeroVal Meta :=
 (go.field_decl.FieldDecl go!"txid" Txid.ty),
 (go.field_decl.FieldDecl go!"checksum" go.uint64)]
 
-@[irreducible] noncomputable def Meta.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Meta.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Meta.fieldsUnsealed
 
-noncomputable instance equals_unfold_Meta [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Meta [GooseExts] [GoGlobalContext] :
     EqualsUnfold Meta.fields Meta.fieldsUnsealed :=
   ⟨by unfold Meta.fields; rfl⟩
 
-@[reducible] noncomputable def Meta.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Meta.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Meta.fields)
 
-class Meta.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Meta.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Meta.underlying Meta
   underlying : go.UnderlyingDirectedEq Meta.ty Meta.underlying
   get_magic : ∀ (x : Meta), go.IsGoStepPureDetTagged under (StructFieldGet Meta.underlying go!"magic") #x (Val #(x.magic'))
@@ -606,6 +626,8 @@ class Meta.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSem
   set_txid : ∀ (x : Meta) (y : Txid), go.IsGoStepPureDetTagged under (StructFieldSet Meta.underlying go!"txid") (PairV #x #y) (Val #(({ x with txid' := y } : Meta)))
   get_checksum : ∀ (x : Meta), go.IsGoStepPureDetTagged under (StructFieldGet Meta.underlying go!"checksum") #x (Val #(x.checksum'))
   set_checksum : ∀ (x : Meta) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Meta.underlying go!"checksum") (PairV #x #y) (Val #(({ x with checksum' := y } : Meta)))
+  method_set : go.MethodSetIs Meta.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Meta.ty) [(go!"Checksum", (some (go.signature.Signature [] false [go.uint64]))), (go!"Copy", (some (go.signature.Signature [(go.GoType.PointerType Meta.ty)] false []))), (go!"DecTxid", (some (go.signature.Signature [] false []))), (go!"Flags", (some (go.signature.Signature [] false [go.uint32]))), (go!"Freelist", (some (go.signature.Signature [] false [Pgid.ty]))), (go!"IncTxid", (some (go.signature.Signature [] false []))), (go!"IsFreelistPersisted", (some (go.signature.Signature [] false [go.bool]))), (go!"Magic", (some (go.signature.Signature [] false [go.uint32]))), (go!"PageSize", (some (go.signature.Signature [] false [go.uint32]))), (go!"Pgid", (some (go.signature.Signature [] false [Pgid.ty]))), (go!"Print", (some (go.signature.Signature [(go.GoType.Named go!"io.Writer" [])] false []))), (go!"RootBucket", (some (go.signature.Signature [] false [(go.GoType.PointerType InBucket.ty)]))), (go!"SetChecksum", (some (go.signature.Signature [go.uint64] false []))), (go!"SetFlags", (some (go.signature.Signature [go.uint32] false []))), (go!"SetFreelist", (some (go.signature.Signature [Pgid.ty] false []))), (go!"SetMagic", (some (go.signature.Signature [go.uint32] false []))), (go!"SetPageSize", (some (go.signature.Signature [go.uint32] false []))), (go!"SetPgid", (some (go.signature.Signature [Pgid.ty] false []))), (go!"SetRootBucket", (some (go.signature.Signature [InBucket.ty] false []))), (go!"SetTxid", (some (go.signature.Signature [Txid.ty] false []))), (go!"SetVersion", (some (go.signature.Signature [go.uint32] false []))), (go!"Sum64", (some (go.signature.Signature [] false [go.uint64]))), (go!"Txid", (some (go.signature.Signature [] false [Txid.ty]))), (go!"Validate", (some (go.signature.Signature [] false [go.error]))), (go!"Version", (some (go.signature.Signature [] false [go.uint32]))), (go!"Write", (some (go.signature.Signature [(go.GoType.PointerType Page.ty)] false [])))]
 
 attribute [instance] Meta.TypeAssumptions.type_repr
   Meta.TypeAssumptions.underlying
@@ -627,34 +649,36 @@ attribute [instance] Meta.TypeAssumptions.type_repr
   Meta.TypeAssumptions.set_txid
   Meta.TypeAssumptions.get_checksum
   Meta.TypeAssumptions.set_checksum
+  Meta.TypeAssumptions.method_set
+  Meta.TypeAssumptions.ptr_method_set
 
-structure Page [FfiSyntax] where
+structure Page [GooseExts] where
   mk ::
   id' : Pgid
   flags' : w16
   count' : w16
   overflow' : w32
 
-noncomputable instance Page.zero_val [FfiSyntax] : ZeroVal Page :=
+noncomputable instance Page.zero_val [GooseExts] : ZeroVal Page :=
   ⟨Page.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Page.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Page.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"id" Pgid.ty),
 (go.field_decl.FieldDecl go!"flags" go.uint16),
 (go.field_decl.FieldDecl go!"count" go.uint16),
 (go.field_decl.FieldDecl go!"overflow" go.uint32)]
 
-@[irreducible] noncomputable def Page.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Page.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Page.fieldsUnsealed
 
-noncomputable instance equals_unfold_Page [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Page [GooseExts] [GoGlobalContext] :
     EqualsUnfold Page.fields Page.fieldsUnsealed :=
   ⟨by unfold Page.fields; rfl⟩
 
-@[reducible] noncomputable def Page.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Page.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Page.fields)
 
-class Page.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Page.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Page.underlying Page
   underlying : go.UnderlyingDirectedEq Page.ty Page.underlying
   get_id : ∀ (x : Page), go.IsGoStepPureDetTagged under (StructFieldGet Page.underlying go!"id") #x (Val #(x.id'))
@@ -665,6 +689,8 @@ class Page.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSem
   set_count : ∀ (x : Page) (y : w16), go.IsGoStepPureDetTagged under (StructFieldSet Page.underlying go!"count") (PairV #x #y) (Val #(({ x with count' := y } : Page)))
   get_overflow : ∀ (x : Page), go.IsGoStepPureDetTagged under (StructFieldGet Page.underlying go!"overflow") #x (Val #(x.overflow'))
   set_overflow : ∀ (x : Page) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet Page.underlying go!"overflow") (PairV #x #y) (Val #(({ x with overflow' := y } : Page)))
+  method_set : go.MethodSetIs Page.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Page.ty) [(go!"BranchPageElement", (some (go.signature.Signature [go.uint16] false [(go.GoType.PointerType branchPageElement.ty)]))), (go!"BranchPageElements", (some (go.signature.Signature [] false [(go.GoType.SliceType branchPageElement.ty)]))), (go!"Count", (some (go.signature.Signature [] false [go.uint16]))), (go!"FastCheck", (some (go.signature.Signature [Pgid.ty] false []))), (go!"Flags", (some (go.signature.Signature [] false [go.uint16]))), (go!"FreelistPageCount", (some (go.signature.Signature [] false [go.int, go.int]))), (go!"FreelistPageIds", (some (go.signature.Signature [] false [(go.GoType.SliceType Pgid.ty)]))), (go!"Id", (some (go.signature.Signature [] false [Pgid.ty]))), (go!"IsBranchPage", (some (go.signature.Signature [] false [go.bool]))), (go!"IsFreelistPage", (some (go.signature.Signature [] false [go.bool]))), (go!"IsLeafPage", (some (go.signature.Signature [] false [go.bool]))), (go!"IsMetaPage", (some (go.signature.Signature [] false [go.bool]))), (go!"IsValidPage", (some (go.signature.Signature [] false [go.bool]))), (go!"LeafPageElement", (some (go.signature.Signature [go.uint16] false [(go.GoType.PointerType leafPageElement.ty)]))), (go!"LeafPageElements", (some (go.signature.Signature [] false [(go.GoType.SliceType leafPageElement.ty)]))), (go!"Meta", (some (go.signature.Signature [] false [(go.GoType.PointerType Meta.ty)]))), (go!"Overflow", (some (go.signature.Signature [] false [go.uint32]))), (go!"PageElementSize", (some (go.signature.Signature [] false [go.uintptr]))), (go!"SetCount", (some (go.signature.Signature [go.uint16] false []))), (go!"SetFlags", (some (go.signature.Signature [go.uint16] false []))), (go!"SetId", (some (go.signature.Signature [Pgid.ty] false []))), (go!"SetOverflow", (some (go.signature.Signature [go.uint32] false []))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Typ", (some (go.signature.Signature [] false [go.string]))), (go!"go.etcd.io/bbolt/internal/common.hexdump", (some (go.signature.Signature [go.int] false [])))]
 
 attribute [instance] Page.TypeAssumptions.type_repr
   Page.TypeAssumptions.underlying
@@ -676,42 +702,48 @@ attribute [instance] Page.TypeAssumptions.type_repr
   Page.TypeAssumptions.set_count
   Page.TypeAssumptions.get_overflow
   Page.TypeAssumptions.set_overflow
+  Page.TypeAssumptions.method_set
+  Page.TypeAssumptions.ptr_method_set
 
-abbrev Pages [FfiSyntax] : Type := GoSlice
+abbrev Pages [GooseExts] : Type := GoSlice
 
-@[reducible] noncomputable def Pages.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Pages.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.SliceType (go.GoType.PointerType Page.ty))
 
-class Pages.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Pages.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Pages.ty Pages.underlying
+  method_set : go.MethodSetIs Pages.ty [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Pages.ty) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
 
 attribute [instance] Pages.TypeAssumptions.underlying
+  Pages.TypeAssumptions.method_set
+  Pages.TypeAssumptions.ptr_method_set
 
-structure branchPageElement [FfiSyntax] where
+structure branchPageElement [GooseExts] where
   mk ::
   pos' : w32
   ksize' : w32
   pgid' : Pgid
 
-noncomputable instance branchPageElement.zero_val [FfiSyntax] : ZeroVal branchPageElement :=
+noncomputable instance branchPageElement.zero_val [GooseExts] : ZeroVal branchPageElement :=
   ⟨branchPageElement.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def branchPageElement.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def branchPageElement.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"pos" go.uint32),
 (go.field_decl.FieldDecl go!"ksize" go.uint32),
 (go.field_decl.FieldDecl go!"pgid" Pgid.ty)]
 
-@[irreducible] noncomputable def branchPageElement.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def branchPageElement.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   branchPageElement.fieldsUnsealed
 
-noncomputable instance equals_unfold_branchPageElement [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_branchPageElement [GooseExts] [GoGlobalContext] :
     EqualsUnfold branchPageElement.fields branchPageElement.fieldsUnsealed :=
   ⟨by unfold branchPageElement.fields; rfl⟩
 
-@[reducible] noncomputable def branchPageElement.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def branchPageElement.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType branchPageElement.fields)
 
-class branchPageElement.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class branchPageElement.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying branchPageElement.underlying branchPageElement
   underlying : go.UnderlyingDirectedEq branchPageElement.ty branchPageElement.underlying
   get_pos : ∀ (x : branchPageElement), go.IsGoStepPureDetTagged under (StructFieldGet branchPageElement.underlying go!"pos") #x (Val #(x.pos'))
@@ -720,6 +752,8 @@ class branchPageElement.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCo
   set_ksize : ∀ (x : branchPageElement) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet branchPageElement.underlying go!"ksize") (PairV #x #y) (Val #(({ x with ksize' := y } : branchPageElement)))
   get_pgid : ∀ (x : branchPageElement), go.IsGoStepPureDetTagged under (StructFieldGet branchPageElement.underlying go!"pgid") #x (Val #(x.pgid'))
   set_pgid : ∀ (x : branchPageElement) (y : Pgid), go.IsGoStepPureDetTagged under (StructFieldSet branchPageElement.underlying go!"pgid") (PairV #x #y) (Val #(({ x with pgid' := y } : branchPageElement)))
+  method_set : go.MethodSetIs branchPageElement.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType branchPageElement.ty) [(go!"Key", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"Ksize", (some (go.signature.Signature [] false [go.uint32]))), (go!"Pgid", (some (go.signature.Signature [] false [Pgid.ty]))), (go!"Pos", (some (go.signature.Signature [] false [go.uint32]))), (go!"SetKsize", (some (go.signature.Signature [go.uint32] false []))), (go!"SetPgid", (some (go.signature.Signature [Pgid.ty] false []))), (go!"SetPos", (some (go.signature.Signature [go.uint32] false [])))]
 
 attribute [instance] branchPageElement.TypeAssumptions.type_repr
   branchPageElement.TypeAssumptions.underlying
@@ -729,34 +763,36 @@ attribute [instance] branchPageElement.TypeAssumptions.type_repr
   branchPageElement.TypeAssumptions.set_ksize
   branchPageElement.TypeAssumptions.get_pgid
   branchPageElement.TypeAssumptions.set_pgid
+  branchPageElement.TypeAssumptions.method_set
+  branchPageElement.TypeAssumptions.ptr_method_set
 
-structure leafPageElement [FfiSyntax] where
+structure leafPageElement [GooseExts] where
   mk ::
   flags' : w32
   pos' : w32
   ksize' : w32
   vsize' : w32
 
-noncomputable instance leafPageElement.zero_val [FfiSyntax] : ZeroVal leafPageElement :=
+noncomputable instance leafPageElement.zero_val [GooseExts] : ZeroVal leafPageElement :=
   ⟨leafPageElement.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def leafPageElement.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def leafPageElement.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"flags" go.uint32),
 (go.field_decl.FieldDecl go!"pos" go.uint32),
 (go.field_decl.FieldDecl go!"ksize" go.uint32),
 (go.field_decl.FieldDecl go!"vsize" go.uint32)]
 
-@[irreducible] noncomputable def leafPageElement.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def leafPageElement.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   leafPageElement.fieldsUnsealed
 
-noncomputable instance equals_unfold_leafPageElement [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_leafPageElement [GooseExts] [GoGlobalContext] :
     EqualsUnfold leafPageElement.fields leafPageElement.fieldsUnsealed :=
   ⟨by unfold leafPageElement.fields; rfl⟩
 
-@[reducible] noncomputable def leafPageElement.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def leafPageElement.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType leafPageElement.fields)
 
-class leafPageElement.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class leafPageElement.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying leafPageElement.underlying leafPageElement
   underlying : go.UnderlyingDirectedEq leafPageElement.ty leafPageElement.underlying
   get_flags : ∀ (x : leafPageElement), go.IsGoStepPureDetTagged under (StructFieldGet leafPageElement.underlying go!"flags") #x (Val #(x.flags'))
@@ -767,6 +803,8 @@ class leafPageElement.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalCont
   set_ksize : ∀ (x : leafPageElement) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet leafPageElement.underlying go!"ksize") (PairV #x #y) (Val #(({ x with ksize' := y } : leafPageElement)))
   get_vsize : ∀ (x : leafPageElement), go.IsGoStepPureDetTagged under (StructFieldGet leafPageElement.underlying go!"vsize") #x (Val #(x.vsize'))
   set_vsize : ∀ (x : leafPageElement) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet leafPageElement.underlying go!"vsize") (PairV #x #y) (Val #(({ x with vsize' := y } : leafPageElement)))
+  method_set : go.MethodSetIs leafPageElement.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType leafPageElement.ty) [(go!"Bucket", (some (go.signature.Signature [] false [(go.GoType.PointerType InBucket.ty)]))), (go!"Flags", (some (go.signature.Signature [] false [go.uint32]))), (go!"IsBucketEntry", (some (go.signature.Signature [] false [go.bool]))), (go!"Key", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"Ksize", (some (go.signature.Signature [] false [go.uint32]))), (go!"Pos", (some (go.signature.Signature [] false [go.uint32]))), (go!"SetFlags", (some (go.signature.Signature [go.uint32] false []))), (go!"SetKsize", (some (go.signature.Signature [go.uint32] false []))), (go!"SetPos", (some (go.signature.Signature [go.uint32] false []))), (go!"SetVsize", (some (go.signature.Signature [go.uint32] false []))), (go!"Value", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"Vsize", (some (go.signature.Signature [] false [go.uint32])))]
 
 attribute [instance] leafPageElement.TypeAssumptions.type_repr
   leafPageElement.TypeAssumptions.underlying
@@ -778,34 +816,36 @@ attribute [instance] leafPageElement.TypeAssumptions.type_repr
   leafPageElement.TypeAssumptions.set_ksize
   leafPageElement.TypeAssumptions.get_vsize
   leafPageElement.TypeAssumptions.set_vsize
+  leafPageElement.TypeAssumptions.method_set
+  leafPageElement.TypeAssumptions.ptr_method_set
 
-structure PageInfo [FfiSyntax] where
+structure PageInfo [GooseExts] where
   mk ::
   ID' : w64
   Type' : GoString
   Count' : w64
   OverflowCount' : w64
 
-noncomputable instance PageInfo.zero_val [FfiSyntax] : ZeroVal PageInfo :=
+noncomputable instance PageInfo.zero_val [GooseExts] : ZeroVal PageInfo :=
   ⟨PageInfo.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def PageInfo.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def PageInfo.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"ID" go.int),
 (go.field_decl.FieldDecl go!"Type" go.string),
 (go.field_decl.FieldDecl go!"Count" go.int),
 (go.field_decl.FieldDecl go!"OverflowCount" go.int)]
 
-@[irreducible] noncomputable def PageInfo.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def PageInfo.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   PageInfo.fieldsUnsealed
 
-noncomputable instance equals_unfold_PageInfo [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_PageInfo [GooseExts] [GoGlobalContext] :
     EqualsUnfold PageInfo.fields PageInfo.fieldsUnsealed :=
   ⟨by unfold PageInfo.fields; rfl⟩
 
-@[reducible] noncomputable def PageInfo.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PageInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType PageInfo.fields)
 
-class PageInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class PageInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PageInfo.underlying PageInfo
   underlying : go.UnderlyingDirectedEq PageInfo.ty PageInfo.underlying
   get_ID : ∀ (x : PageInfo), go.IsGoStepPureDetTagged under (StructFieldGet PageInfo.underlying go!"ID") #x (Val #(x.ID'))
@@ -816,6 +856,8 @@ class PageInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [G
   set_Count : ∀ (x : PageInfo) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet PageInfo.underlying go!"Count") (PairV #x #y) (Val #(({ x with Count' := y } : PageInfo)))
   get_OverflowCount : ∀ (x : PageInfo), go.IsGoStepPureDetTagged under (StructFieldGet PageInfo.underlying go!"OverflowCount") #x (Val #(x.OverflowCount'))
   set_OverflowCount : ∀ (x : PageInfo) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet PageInfo.underlying go!"OverflowCount") (PairV #x #y) (Val #(({ x with OverflowCount' := y } : PageInfo)))
+  method_set : go.MethodSetIs PageInfo.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PageInfo.ty) []
 
 attribute [instance] PageInfo.TypeAssumptions.type_repr
   PageInfo.TypeAssumptions.underlying
@@ -827,14 +869,18 @@ attribute [instance] PageInfo.TypeAssumptions.type_repr
   PageInfo.TypeAssumptions.set_Count
   PageInfo.TypeAssumptions.get_OverflowCount
   PageInfo.TypeAssumptions.set_OverflowCount
+  PageInfo.TypeAssumptions.method_set
+  PageInfo.TypeAssumptions.ptr_method_set
 
-abbrev Pgids [FfiSyntax] : Type := GoSlice
+abbrev Pgids [GooseExts] : Type := GoSlice
 
-@[reducible] noncomputable def Pgids.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Pgids.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.SliceType Pgid.ty)
 
-class Pgids.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Pgids.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Pgids.ty Pgids.underlying
+  method_set : go.MethodSetIs Pgids.ty [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Merge", (some (go.signature.Signature [Pgids.ty] false [Pgids.ty]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Pgids.ty) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Merge", (some (go.signature.Signature [Pgids.ty] false [Pgids.ty]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
   Len_unfold : MethodUnfold Pgids.ty go!"Len" Pgids.Len.impl
   Less_unfold : MethodUnfold Pgids.ty go!"Less" Pgids.Less.impl
   Merge_unfold : MethodUnfold Pgids.ty go!"Merge" Pgids.Merge.impl
@@ -849,6 +895,8 @@ class Pgids.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSe
 (App (Val (GoInstruction (MethodResolve Pgids.ty go!"Swap"))) (App (Val (GoInstruction (GoLoad Pgids.ty))) (Var "$r"))))
 
 attribute [instance] Pgids.TypeAssumptions.underlying
+  Pgids.TypeAssumptions.method_set
+  Pgids.TypeAssumptions.ptr_method_set
   Pgids.TypeAssumptions.Len_unfold
   Pgids.TypeAssumptions.Less_unfold
   Pgids.TypeAssumptions.Merge_unfold
@@ -858,17 +906,21 @@ attribute [instance] Pgids.TypeAssumptions.underlying
   Pgids.TypeAssumptions.ptr_Merge_unfold
   Pgids.TypeAssumptions.ptr_Swap_unfold
 
-abbrev VerificationType [FfiSyntax] : Type := GoString
+abbrev VerificationType [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def VerificationType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def VerificationType.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-class VerificationType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class VerificationType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq VerificationType.ty VerificationType.underlying
+  method_set : go.MethodSetIs VerificationType.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType VerificationType.ty) []
 
 attribute [instance] VerificationType.TypeAssumptions.underlying
+  VerificationType.TypeAssumptions.method_set
+  VerificationType.TypeAssumptions.ptr_method_set
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   InBucket_instance : InBucket.TypeAssumptions
   Inode_instance : Inode.TypeAssumptions
   Inodes_instance : Inodes.TypeAssumptions

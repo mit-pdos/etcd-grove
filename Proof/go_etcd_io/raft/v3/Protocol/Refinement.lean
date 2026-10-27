@@ -93,7 +93,7 @@ local macro "rd_mono" : tactic => `(tactic| (
     | word))
 
 section ghost
-variable [FfiSyntax]
+variable [GooseExts]
 variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 variable {md : Bool}
 

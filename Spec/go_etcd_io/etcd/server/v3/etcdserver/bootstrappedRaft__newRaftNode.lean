@@ -50,7 +50,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.raft.v3
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
@@ -143,6 +143,8 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
         nodeCfg γn 0 (cfgState (GMap.listToSet ps) ∅) ∗
         -- the wrapper, over the config built here
         isRNIDRemoved f ∗ isRNWal st ∗
+        -- (D22 J1a, 2026-10-26) a `*storage` over the snapshotter `ss` (`rnNewStorageOk`'s)
+        ⌜rnStorageOf st ss⌝ ∗
         rnBuilt E γw r
           (raftNodeConfig.mk bv.lg' f (interface.mkOk (go.GoType.PointerType node.ty) #n)
             bv.storage' st bv.heartbeat' GoInterface.nil) ∗

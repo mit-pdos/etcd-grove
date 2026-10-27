@@ -44,7 +44,7 @@ namespace putget
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3 go_etcd_io.etcd.server.v3.etcdserver
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -60,7 +60,7 @@ theorem Main.wp_proof
     (hWT : context.WithTimeoutBackground.spec (GF := GF) (hG := hG))
     (wp_ErrAny : context.ErrAny.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS ESL ESE CRE CEC N id bootLog Hbf Htb Hrb48 HrbN Hck Haf Hbuq Hdbo Hms hAs
+  intro CS CRE CEC N id bootLog Hbf Htb Hrb48 HrbN Hck Haf Hbuq Hdbo Hms hAs
   wp_start as ⟨Haddr, Htok, #Hprem⟩
   iunfold premises at Hprem
   icases Hprem with ⟨#Hboot, #Hzap, #Hsetlg, #Htd, #Hns, #Htk, #Hstop, #Hnrl⟩

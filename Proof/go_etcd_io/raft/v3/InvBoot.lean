@@ -12,7 +12,7 @@ The predicates of a new cluster's start (raft v3.7 retarget, stage R8b, D12: `no
   static mode, its configuration with the node among the voters): `RestartNode` closes it with
   the ghost state; `Bootstrap` installs the peers first.
 * `peersCtx pv ctxs`: the `Context` bytes of the `Peer` values, read-only (the `ConfChange`
-  literal shares the slice, and `ownCCV1` holds the bytes at `□`).
+  literal shares the slice, and `ownConfChange` holds the bytes at `□`).
 * `bootMarshal ps ctxs bootLog`: `proto.Marshal` of the `k`-th peer's `ConfChange`
   (`{Type: AddNode, NodeId: ps[k], Context: ctxs[k]}`, `Id` unset) returns the bytes of
   `bootLog[k]` -- the premise of `Bootstrap`/`StartNode` that ties the bytes the Go code
@@ -41,7 +41,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.raft.v3
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
@@ -157,7 +157,7 @@ end defs
 /-! ## The pure side of `Bootstrap` (2026-10-16, stage R8b) -/
 
 section pure
-variable [ext : FfiSyntax] [go_gctx : GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [go_gctx : GoGlobalContext] [GoSemanticsFunctions]
 
 /-- `Bootstrap`'s change of the peer `p` (`AddNode p` as `(&pb.ConfChange{...}).AsV2()` renders
 it) at the voters `V`, `p` not a voter yet: `p` joins the voters, no learner. -/

@@ -24,7 +24,7 @@ namespace metadata
 
 /-- **The incoming metadata of the context `ctx`** (opaque, see the file header): `none` if it
 has none, else each key's values. -/
-opaque incomingOf [FfiSyntax] : GoInterface → Option (GoString → Option (List GoString))
+opaque incomingOf [GooseExts] : GoInterface → Option (GoString → Option (List GoString))
 
 end metadata
 end EtcdGrove

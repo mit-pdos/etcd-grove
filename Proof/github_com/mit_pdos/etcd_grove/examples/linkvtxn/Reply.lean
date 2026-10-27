@@ -29,7 +29,7 @@ open github_com.mit_pdos.etcd_grove.examples.linkvtxn
 open mvcc
 
 section reply
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- A key-value's `VR`, as `vrOf` builds it. -/
 def kvVR (kv : EtcdKv) : VR := ⟨kv.value, kv.modRev, kv.version⟩

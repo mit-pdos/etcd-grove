@@ -124,8 +124,8 @@ theorem SentMsgOk.ne_transferLeader {st : MsgSt} (H : SentMsgOk st) : st.msg.Typ
 def bootMarshal (ps : List w64) (ctxs : List (List w8)) (bootLog : List EntryM) : IProp GF :=
   iprop(□
       ∀ k p dq m e x Φ,
-        ownCCV1 p dq m -∗
-          (∀ d, ownCCV1 p dq m -∗ ownSlice d e.Data' (DFrac.own 1) -∗ Φ (intoVal d, intoVal GoInterface.nil)) -∗
+        ownConfChange p dq m -∗
+          (∀ d, ownConfChange p dq m -∗ ownSlice d e.Data' (DFrac.own 1) -∗ Φ (intoVal d, intoVal GoInterface.nil)) -∗
             WP
               ((intoVal (functions google_golang_org.protobuf.proto.Marshal []))
                 (intoVal (interface.mkOk raftpb.ConfChange.ty.PointerType (intoVal p))))
@@ -196,8 +196,8 @@ def peersCtx (pv : List Peer) (ctxs : List (List w8)) : IProp GF :=
 def readyDq (st : MsgSt) : DFrac :=
   if RespType st.msg.Type' then DFrac.own (Qp.half 1) else DFrac.own 1
 
-def CCAllowed (γ : RaftNames) (o : CCMsg) : Prop :=
-  ∀ (bs : List w8), CCData (some o) bs → γ.reCCOk (ccEntryType (some o)) bs
+def CCAllowed (γ : RaftNames) (o : ConfChangeIM) : Prop :=
+  ∀ (bs : List w8), MarshalsConfChange (some o) bs → γ.reCCOk (confChangeEntryType (some o)) bs
 
 theorem msgDat_pers (γ : RaftNames) (st : MsgSt) : Persistent (msgDat γ st)
 

@@ -49,7 +49,7 @@ theorem slice_len_eq_zero {s : GoSlice} {bs : GoString}
     word
 
 section defs
-variable [ext : FfiSyntax] [GoGlobalContext]
+variable [GooseExts] [GoGlobalContext]
 
 /-- The bytes-affine interval value `[b, e)` (slices `b`, `e`) as the Go `Interval`. -/
 def bytesIvl (b e : GoSlice) : Interval :=
@@ -64,7 +64,7 @@ def bytesIvl (b e : GoSlice) : Interval :=
 end defs
 
 section reprs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

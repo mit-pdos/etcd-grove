@@ -111,7 +111,7 @@ The converses of `InvPb.lean`'s `*_split` lemmas, for the halves of the response
 hands out (`ownRaftPhysReady`, the way back). -/
 
 section combine
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -252,7 +252,7 @@ theorem msgOwn_combine (l : Loc) (dq1 dq2 : DFrac) (ms : MsgSt) :
 end combine
 
 section pure
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- What `acceptReady` needs of the committed entries `ce` a `Ready` hands out
 (2026-10-10): they are the next ones after `applying`, up to at most `committed` -- its
@@ -329,7 +329,7 @@ def SnapRdy (rs : RNState) (ce : List EntryM) (l : SnapLoan) (s : NState) : Prop
 end pure
 
 section rawnodeReady
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
@@ -814,18 +814,18 @@ theorem ownRaftPhysReady_lt0 (c : CfgM) (r : Loc) (id : w64) (s : NState) (msl :
 def rdCountM (ms : List MsgSt) : Nat :=
   ms.countP (fun m => decide (m.msg.Type' = MsgReadIndex))
 
-omit [FfiInterp ffi] [FfiSemantics ext ffi] go_gctx in
+omit [GooseInterp] [GooseSemantics] go_gctx in
 theorem rdCountM_cons (m : MsgSt) (ms : List MsgSt) :
     rdCountM (m :: ms) = (if m.msg.Type' = MsgReadIndex then 1 else 0) + rdCountM ms := by
   unfold rdCountM
   rw [List.countP_cons]
   by_cases h : m.msg.Type' = MsgReadIndex <;> simp [h, Nat.add_comm]
 
-omit [FfiInterp ffi] [FfiSemantics ext ffi] go_gctx in
+omit [GooseInterp] [GooseSemantics] go_gctx in
 theorem rdCountM_append (a b : List MsgSt) : rdCountM (a ++ b) = rdCountM a + rdCountM b := by
   unfold rdCountM; exact List.countP_append
 
-omit [FfiInterp ffi] [FfiSemantics ext ffi] go_gctx in
+omit [GooseInterp] [GooseSemantics] go_gctx in
 theorem rdCountM_filter_le (l : List QMsg) (f : QMsg → Bool) :
     rdCountM ((l.filter f).map QMsg.st) ≤ rdCountM (l.map QMsg.st) := by
   unfold rdCountM
@@ -834,7 +834,7 @@ theorem rdCountM_filter_le (l : List QMsg) (f : QMsg → Bool) :
 
 -- (2026-10-26, raft's signature, stage 1) `mtypeOf_MsgReadIndex` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
 
-omit [FfiInterp ffi] [FfiSemantics ext ffi] go_gctx in
+omit [GooseInterp] [GooseSemantics] go_gctx in
 /-- Only `MsgReadIndex` is abstracted as a `readIndex`. -/
 theorem mtypeOf_readIndex (t : w32) (H : mtypeOf t = some .readIndex) : t = MsgReadIndex := by
   unfold mtypeOf at H
@@ -842,7 +842,7 @@ theorem mtypeOf_readIndex (t : w32) (H : mtypeOf t = some .readIndex) : t = MsgR
   rename_i h
   exact uint_Z_inj.1 (by rw [h]; rfl)
 
-omit [FfiInterp ffi] [FfiSemantics ext ffi] go_gctx in
+omit [GooseInterp] [GooseSemantics] go_gctx in
 /-- A queued message contributes a read-index request to the abstract outbox iff it is a
 `MsgReadIndex`. (2026-10-16, stage R5: pure.) -/
 theorem msgAbs_rdCount (m : MsgSt) (a : Option Msg) (H : msgAbs m a) :
@@ -867,7 +867,7 @@ theorem msgAbs_rdCount (m : MsgSt) (a : Option Msg) (H : msgAbs m a) :
       cases H1
     simp [rdCount, absSnap, absSnapFrom, Hne]
 
-omit [FfiInterp ffi] [FfiSemantics ext ffi] go_gctx in
+omit [GooseInterp] [GooseSemantics] go_gctx in
 theorem msgsAbs_rdCount (ms : List QMsg) (as_ : List (Option Msg))
     (H : List.Forall₂ (fun q a => msgAbs q.st a) ms as_) :
     rdCountM (ms.map QMsg.st) = rdCount (absList as_) := by
@@ -877,7 +877,7 @@ theorem msgsAbs_rdCount (ms : List QMsg) (as_ : List (Option Msg))
     have Hab : absList (a :: as') = a.toList ++ absList as' := by cases a <;> rfl
     rw [List.map_cons, Hab, rdCount_append, msgAbs_rdCount _ _ Ha, ← ih, rdCountM_cons]
 
-omit [FfiInterp ffi] [FfiSemantics ext ffi] go_gctx in
+omit [GooseInterp] [GooseSemantics] go_gctx in
 /-- The messages a `Ready` hands out (those of `r.msgs` and those of `msgsAfterAppend` to
 others) hold at most as many `MsgReadIndex`s as the outbox has requests (2026-10-16). -/
 theorem outboxRelP_rdCount (o : List Msg) (ms1 ms2 : List QMsg) (f : QMsg → Bool)
@@ -898,7 +898,7 @@ A queued `MsgProp` carries its entries' tickets (`entTk`); the abstract outbox k
 
 -- (2026-10-26, raft's signature, stage 1) `stTks` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
 
-omit [FfiInterp ffi] [FfiSemantics ext ffi] go_gctx in
+omit [GooseInterp] [GooseSemantics] go_gctx in
 /-- Only `MsgProp` is abstracted as a `propose`. -/
 theorem mtypeOf_propose (t : w32) (H : mtypeOf t = some .propose) : t = MsgProp := by
   unfold mtypeOf at H
@@ -910,7 +910,7 @@ theorem mtypeOf_propose (t : w32) (H : mtypeOf t = some .propose) : t = MsgProp 
 def qProp (st : MsgSt) : Option Msg :=
   if st.msg.Type' = MsgProp then some (absMsg .propose st.msg st.ents st.ctx) else none
 
-omit [FfiInterp ffi] [FfiSemantics ext ffi] go_gctx in
+omit [GooseInterp] [GooseSemantics] go_gctx in
 theorem msgAbs_props (m : MsgSt) (a : Option Msg) (H : msgAbs m a) :
     propsOf a.toList = (qProp m).toList := by
   unfold qProp
@@ -929,7 +929,7 @@ theorem msgAbs_props (m : MsgSt) (a : Option Msg) (H : msgAbs m a) :
       intro h; rw [h, mtypeOf_MsgProp] at H1; cases H1
     simp [Hne, propsOf_cons, absSnap, absSnapFrom]
 
-omit [FfiInterp ffi] [FfiSemantics ext ffi] go_gctx in
+omit [GooseInterp] [GooseSemantics] go_gctx in
 theorem msgsAbs_props (ms : List QMsg) (as_ : List (Option Msg))
     (H : List.Forall₂ (fun q a => msgAbs q.st a) ms as_) :
     propsOf (absList as_) = ms.filterMap (fun q => qProp q.st) := by
@@ -940,7 +940,7 @@ theorem msgsAbs_props (ms : List QMsg) (as_ : List (Option Msg))
     rw [Hab, propsOf_append, msgAbs_props _ _ Ha, ih, List.filterMap_cons]
     cases qProp q.st <;> rfl
 
-omit [FfiInterp ffi] [FfiSemantics ext ffi] go_gctx in
+omit [GooseInterp] [GooseSemantics] go_gctx in
 /-- The proposals a `Ready` hands out are among the outbox's. -/
 theorem outboxRelP_props (o : List Msg) (ms1 ms2 : List QMsg) (f : QMsg → Bool)
     (Hp : outboxRelP o ms1 ms2) :
@@ -1277,7 +1277,7 @@ theorem ownRawNodeReady_abandon (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
 
 -- (2026-10-26, raft's signature, stage 1) `readyIdx_persistent` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
 
-omit [FfiInterp ffi] [FfiSemantics ext ffi] go_gctx in
+omit [GooseInterp] [GooseSemantics] go_gctx in
 /-- The indices a `Ready` hands out are within the log (2026-10-18, D19b stage 5, `readyIdx`):
 the unstable entries not yet handed out end at the last index, the committed log handed out
 (`applying` long, then `ce`) is at most `committed` long. -/
@@ -1740,6 +1740,69 @@ theorem ownRaftGhost_readStates (γ : RaftNames) (id : w64) (ps : PState) {md : 
 /-- The physical `ReadState`s are the protocol state's. -/
 theorem toPState_rd_states (s : NState) : (toPState s).rd.states = s.rd.states := by
   by_cases h : s.role = .leader <;> simp [toPState, h, rdNL]
+
+/-- (2026-10-26, D22 J6a; J7b's raft part) **A lent snapshot's id is the last of its committed
+log**: the committed log up to the snapshot a `Ready` hands out (`l.dlv`) ends at the snapshot's id
+(`plogLast base0 l.dlv = snapId l.snap`, so its last entry has the snapshot's term). The node's log
+is at the pending snapshot (`LogStoreOk`: its base is the snapshot's id), its full prefix ends at
+its base (`FullOk`) and is committed up to the commit index, at least the base's; the loan's
+committed log has the snapshot's length, so it is that full prefix (`isCommitted_agree`). -/
+theorem ownRawNodeReady_loanLast (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
+    (rd : Ready) (ce es : List EntryM) (ms : List QMsg) (h : Bool) (l : SnapLoan) :
+    ownRawNodeReady (GF := GF) γ rn id rs rd ce es ms h (some l) ⊢
+      ⌜plogLast base0 l.dlv = snapId l.snap⌝ ∗ ownRawNodeReady γ rn id rs rd ce es ms h (some l) := by
+  iintro H
+  ihave %Hx : ⌜plogLast base0 l.dlv = snapId l.snap⌝ $$ [H]
+  · iunfold ownRawNodeReady at H
+    icases H with ⟨%s, %cf, %fp, %rnv, %sv, %hprev, H⟩
+    iNamed H
+    unfold rdSnapRel
+    icases Hrdz with ⟨-, #Hcl, %Hr⟩
+    obtain ⟨-, hsr⟩ := Hr
+    have hsn : s.logst.snap = some (snapId l.snap) := hsr.1
+    have hdl : l.dlv.length = (uint.Z l.snap.Metadata'.Index').toNat := hsr.2.2.2.2.2.2.2.1
+    iunfold ownRaftPhysReady at Hphys
+    iNamed Hphys
+    icases ownRaftLog_pure s.log (rdyLog h (some l).isSome s.logst)
+      (s.logst.prev = snapId l.snap ∧ uint.Z s.logst.prev.index' ≤ uint.Z s.logst.committed)
+      (fun lv σ _ _ Hst _ Happ _ _ _ _ => by
+        have e1 : (rdyLog h (some l).isSome s.logst).snap = s.logst.snap := by
+          unfold rdyLog logHanded; split <;> simp
+        have e2 : (rdyLog h (some l).isSome s.logst).prev = s.logst.prev := by
+          unfold rdyLog logHanded; split <;> simp
+        have e3 : (rdyLog h (some l).isSome s.logst).committed = s.logst.committed := by
+          unfold rdyLog logHanded; split <;> simp
+        rw [e1, hsn, e2] at Hst
+        rw [e2, e3] at Happ
+        exact ⟨Hst.1, Happ.1⟩) $$ Hlog with ⟨%Hpv, -⟩
+    iunfold ownStepGhost at Hghost
+    icases Hghost with ⟨Hg, -⟩
+    icases ownRaftGhost_cmt γ id _ $$ Hg with ⟨%fp', %Hf', -, #Hc⟩
+    have hb : (toPState (if h then { s with outbox := [] } else s)).base = snapId l.snap := by
+      rw [← Hpv.1]; cases h <;> rfl
+    have hcm : (toPState (if h then { s with outbox := [] } else s)).commit = s.logst.committed := by
+      cases h <;> rfl
+    rw [hb] at Hf'
+    icases isCommitted_agree γ _ _ $$ Hcl Hc with %Hag
+    ipureintro
+    obtain ⟨Hfl, -, Hfl2⟩ := Hf'
+    have hlen : (fp'.length : Int) = (l.dlv.length : Int) := by
+      rw [Hfl, hdl]; simp only [snapId]
+      have := uint_Z_nonneg l.snap.Metadata'.Index'; omega
+    have hfp : fp' <+: cprefix fp' (toPState (if h then { s with outbox := [] } else s)) := by
+      unfold cprefix
+      rw [hcm, List.take_append, List.take_of_length_le]
+      · exact List.prefix_append _ _
+      · have := Hpv.2; rw [Hpv.1] at this
+        simp only [snapId] at Hfl this
+        omega
+    have heq : fp' = l.dlv := by
+      rcases Hag with h1 | h1
+      · exact (List.prefix_of_prefix_length_le hfp h1 (by omega)).eq_of_length (by omega)
+      · exact (hfp.trans h1).eq_of_length (by omega)
+    rw [← heq]; exact Hfl2
+  iframe H
+  ipureintro; exact Hx
 
 end rawnodeReady
 

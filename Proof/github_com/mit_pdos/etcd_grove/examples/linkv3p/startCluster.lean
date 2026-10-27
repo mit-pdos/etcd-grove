@@ -39,7 +39,7 @@ open putget3 (httpURL ccOk commonPremises)
 open common (memberBoot)
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -52,7 +52,7 @@ theorem startCluster.wp_proof
     (wp_startBridge : startBridge.spec (GF := GF) (hG := hG))
     (wp_NewClients : common.NewClients.spec (GF := GF) (hG := hG)) :
     startCluster.spec (GF := GF) (hG := hG) := by
-  intro CS ESL ESE N id₁ id₂ id₃ bootLog lg pfx Hbf Hlg Htb Hrb48 HrbN Hck Haf Hbuq Hdbo Hms
+  intro CS N id₁ id₂ id₃ bootLog lg pfx Hbf Hlg Htb Hrb48 HrbN Hck Haf Hbuq Hdbo Hms
   wp_start as ⟨Ha₁, Ha₂, Ha₃, Hc₁, Hc₂, Hc₃, Hba₁, Hba₂, Hba₃, Hf₁, Hf₂, Hf₃, Htok, #Hprem⟩
   iunfold premises at Hprem
   icases Hprem with ⟨#Hb₁, #Hb₂, #Hb₃, #Hcom⟩

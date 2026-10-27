@@ -24,7 +24,7 @@ namespace github_com.anishathalye.porcupine
 namespace entry
 section def_
 
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.anishathalye.porcupine.Assumptions]
@@ -149,7 +149,7 @@ end entry
 namespace LinearizationInfo
 section def_
 
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.anishathalye.porcupine.Assumptions]
@@ -223,7 +223,7 @@ end LinearizationInfo
 namespace node
 section def_
 
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.anishathalye.porcupine.Assumptions]
@@ -331,7 +331,7 @@ end node
 namespace cacheEntry
 section def_
 
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.anishathalye.porcupine.Assumptions]
@@ -388,7 +388,7 @@ end cacheEntry
 namespace callsEntry
 section def_
 
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.anishathalye.porcupine.Assumptions]
@@ -445,7 +445,7 @@ end callsEntry
 namespace Operation
 section def_
 
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.anishathalye.porcupine.Assumptions]
@@ -459,7 +459,7 @@ noncomputable instance Operation_typed_pointsto :
     "Output" ∷ typedPointsto (structFieldRef github_com.anishathalye.porcupine.Operation go!"Output" l) v.Output' dq ∗
     "Return" ∷ typedPointsto (structFieldRef github_com.anishathalye.porcupine.Operation go!"Return" l) v.Return' dq ∗
     "Metadata" ∷ typedPointsto (structFieldRef github_com.anishathalye.porcupine.Operation go!"Metadata" l) v.Metadata' dq ∗
-    "_6" ∷ typedPointsto (structFieldRef github_com.anishathalye.porcupine.Operation go!"_6" l) v._6' dq ∗
+    "«_#6»" ∷ typedPointsto (structFieldRef github_com.anishathalye.porcupine.Operation go!"_#6" l) v.«_#6'» dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
@@ -565,19 +565,19 @@ noncomputable instance Operation_access_store_Metadata (l : Loc) (v : github_com
  by
   solve_pointsto_access_struct
 
-noncomputable instance Operation_access_load__6 (l : Loc) (v : github_com.anishathalye.porcupine.Operation) (dq : DFrac) :
+noncomputable instance «Operation_access_load__#6» (l : Loc) (v : github_com.anishathalye.porcupine.Operation) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Operation go!"_6" l) v._6' dq)
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Operation go!"_6" l) v._6' dq)
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Operation go!"_#6" l) v.«_#6'» dq)
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Operation go!"_#6" l) v.«_#6'» dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance Operation_access_store__6 (l : Loc) (v : github_com.anishathalye.porcupine.Operation) (_6' : Unit) :
+noncomputable instance «Operation_access_store__#6» (l : Loc) (v : github_com.anishathalye.porcupine.Operation) («_#6'» : Unit) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Operation go!"_6" l) v._6' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Operation go!"_6" l) _6' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with _6' := _6' } : github_com.anishathalye.porcupine.Operation) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Operation go!"_#6" l) v.«_#6'» (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Operation go!"_#6" l) «_#6'» (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with «_#6'» := «_#6'» } : github_com.anishathalye.porcupine.Operation) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -587,7 +587,7 @@ end Operation
 namespace Event
 section def_
 
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.anishathalye.porcupine.Assumptions]
@@ -600,7 +600,7 @@ noncomputable instance Event_typed_pointsto :
     "Value" ∷ typedPointsto (structFieldRef github_com.anishathalye.porcupine.Event go!"Value" l) v.Value' dq ∗
     "Id" ∷ typedPointsto (structFieldRef github_com.anishathalye.porcupine.Event go!"Id" l) v.Id' dq ∗
     "Metadata" ∷ typedPointsto (structFieldRef github_com.anishathalye.porcupine.Event go!"Metadata" l) v.Metadata' dq ∗
-    "_5" ∷ typedPointsto (structFieldRef github_com.anishathalye.porcupine.Event go!"_5" l) v._5' dq ∗
+    "«_#5»" ∷ typedPointsto (structFieldRef github_com.anishathalye.porcupine.Event go!"_#5" l) v.«_#5'» dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
@@ -690,19 +690,19 @@ noncomputable instance Event_access_store_Metadata (l : Loc) (v : github_com.ani
  by
   solve_pointsto_access_struct
 
-noncomputable instance Event_access_load__5 (l : Loc) (v : github_com.anishathalye.porcupine.Event) (dq : DFrac) :
+noncomputable instance «Event_access_load__#5» (l : Loc) (v : github_com.anishathalye.porcupine.Event) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Event go!"_5" l) v._5' dq)
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Event go!"_5" l) v._5' dq)
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Event go!"_#5" l) v.«_#5'» dq)
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Event go!"_#5" l) v.«_#5'» dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance Event_access_store__5 (l : Loc) (v : github_com.anishathalye.porcupine.Event) (_5' : Unit) :
+noncomputable instance «Event_access_store__#5» (l : Loc) (v : github_com.anishathalye.porcupine.Event) («_#5'» : Unit) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Event go!"_5" l) v._5' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Event go!"_5" l) _5' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with _5' := _5' } : github_com.anishathalye.porcupine.Event) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Event go!"_#5" l) v.«_#5'» (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Event go!"_#5" l) «_#5'» (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with «_#5'» := «_#5'» } : github_com.anishathalye.porcupine.Event) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -712,7 +712,7 @@ end Event
 namespace Model
 section def_
 
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.anishathalye.porcupine.Assumptions]
@@ -730,7 +730,7 @@ noncomputable instance Model_typed_pointsto :
     "DescribeOperation" ∷ typedPointsto (structFieldRef github_com.anishathalye.porcupine.Model go!"DescribeOperation" l) v.DescribeOperation' dq ∗
     "DescribeState" ∷ typedPointsto (structFieldRef github_com.anishathalye.porcupine.Model go!"DescribeState" l) v.DescribeState' dq ∗
     "DescribeOperationMetadata" ∷ typedPointsto (structFieldRef github_com.anishathalye.porcupine.Model go!"DescribeOperationMetadata" l) v.DescribeOperationMetadata' dq ∗
-    "_10" ∷ typedPointsto (structFieldRef github_com.anishathalye.porcupine.Model go!"_10" l) v._10' dq ∗
+    "«_#10»" ∷ typedPointsto (structFieldRef github_com.anishathalye.porcupine.Model go!"_#10" l) v.«_#10'» dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
@@ -900,19 +900,19 @@ noncomputable instance Model_access_store_DescribeOperationMetadata (l : Loc) (v
  by
   solve_pointsto_access_struct
 
-noncomputable instance Model_access_load__10 (l : Loc) (v : github_com.anishathalye.porcupine.Model) (dq : DFrac) :
+noncomputable instance «Model_access_load__#10» (l : Loc) (v : github_com.anishathalye.porcupine.Model) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Model go!"_10" l) v._10' dq)
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Model go!"_10" l) v._10' dq)
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Model go!"_#10" l) v.«_#10'» dq)
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Model go!"_#10" l) v.«_#10'» dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance Model_access_store__10 (l : Loc) (v : github_com.anishathalye.porcupine.Model) (_10' : Unit) :
+noncomputable instance «Model_access_store__#10» (l : Loc) (v : github_com.anishathalye.porcupine.Model) («_#10'» : Unit) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Model go!"_10" l) v._10' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Model go!"_10" l) _10' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with _10' := _10' } : github_com.anishathalye.porcupine.Model) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Model go!"_#10" l) v.«_#10'» (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Model go!"_#10" l) «_#10'» (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with «_#10'» := «_#10'» } : github_com.anishathalye.porcupine.Model) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -922,7 +922,7 @@ end Model
 namespace NondeterministicModel
 section def_
 
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.anishathalye.porcupine.Assumptions]
@@ -940,7 +940,7 @@ noncomputable instance NondeterministicModel_typed_pointsto :
     "DescribeOperation" ∷ typedPointsto (structFieldRef github_com.anishathalye.porcupine.NondeterministicModel go!"DescribeOperation" l) v.DescribeOperation' dq ∗
     "DescribeState" ∷ typedPointsto (structFieldRef github_com.anishathalye.porcupine.NondeterministicModel go!"DescribeState" l) v.DescribeState' dq ∗
     "DescribeOperationMetadata" ∷ typedPointsto (structFieldRef github_com.anishathalye.porcupine.NondeterministicModel go!"DescribeOperationMetadata" l) v.DescribeOperationMetadata' dq ∗
-    "_10" ∷ typedPointsto (structFieldRef github_com.anishathalye.porcupine.NondeterministicModel go!"_10" l) v._10' dq ∗
+    "«_#10»" ∷ typedPointsto (structFieldRef github_com.anishathalye.porcupine.NondeterministicModel go!"_#10" l) v.«_#10'» dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
@@ -1110,19 +1110,19 @@ noncomputable instance NondeterministicModel_access_store_DescribeOperationMetad
  by
   solve_pointsto_access_struct
 
-noncomputable instance NondeterministicModel_access_load__10 (l : Loc) (v : github_com.anishathalye.porcupine.NondeterministicModel) (dq : DFrac) :
+noncomputable instance «NondeterministicModel_access_load__#10» (l : Loc) (v : github_com.anishathalye.porcupine.NondeterministicModel) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.NondeterministicModel go!"_10" l) v._10' dq)
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.NondeterministicModel go!"_10" l) v._10' dq)
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.NondeterministicModel go!"_#10" l) v.«_#10'» dq)
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.NondeterministicModel go!"_#10" l) v.«_#10'» dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance NondeterministicModel_access_store__10 (l : Loc) (v : github_com.anishathalye.porcupine.NondeterministicModel) (_10' : Unit) :
+noncomputable instance «NondeterministicModel_access_store__#10» (l : Loc) (v : github_com.anishathalye.porcupine.NondeterministicModel) («_#10'» : Unit) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.NondeterministicModel go!"_10" l) v._10' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.NondeterministicModel go!"_10" l) _10' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with _10' := _10' } : github_com.anishathalye.porcupine.NondeterministicModel) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.NondeterministicModel go!"_#10" l) v.«_#10'» (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.NondeterministicModel go!"_#10" l) «_#10'» (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with «_#10'» := «_#10'» } : github_com.anishathalye.porcupine.NondeterministicModel) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 
@@ -1132,7 +1132,7 @@ end NondeterministicModel
 namespace historyElement
 section def_
 
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.anishathalye.porcupine.Assumptions]
@@ -1274,7 +1274,7 @@ end historyElement
 namespace annotation
 section def_
 
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.anishathalye.porcupine.Assumptions]
@@ -1450,7 +1450,7 @@ end annotation
 namespace linearizationStep
 section def_
 
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.anishathalye.porcupine.Assumptions]
@@ -1507,7 +1507,7 @@ end linearizationStep
 namespace partitionVisualizationData
 section def_
 
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.anishathalye.porcupine.Assumptions]
@@ -1581,7 +1581,7 @@ end partitionVisualizationData
 namespace visualizationData
 section def_
 
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.anishathalye.porcupine.Assumptions]
@@ -1638,7 +1638,7 @@ end visualizationData
 namespace Annotation
 section def_
 
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
+variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem' : github_com.anishathalye.porcupine.Assumptions]
@@ -1654,7 +1654,7 @@ noncomputable instance Annotation_typed_pointsto :
     "Details" ∷ typedPointsto (structFieldRef github_com.anishathalye.porcupine.Annotation go!"Details" l) v.Details' dq ∗
     "TextColor" ∷ typedPointsto (structFieldRef github_com.anishathalye.porcupine.Annotation go!"TextColor" l) v.TextColor' dq ∗
     "BackgroundColor" ∷ typedPointsto (structFieldRef github_com.anishathalye.porcupine.Annotation go!"BackgroundColor" l) v.BackgroundColor' dq ∗
-    "_8" ∷ typedPointsto (structFieldRef github_com.anishathalye.porcupine.Annotation go!"_8" l) v._8' dq ∗
+    "«_#8»" ∷ typedPointsto (structFieldRef github_com.anishathalye.porcupine.Annotation go!"_#8" l) v.«_#8'» dq ∗
     "_" ∷ True)
   typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
   typedPointstoDef_timeless := by solve_typed_pointsto_timeless
@@ -1792,19 +1792,19 @@ noncomputable instance Annotation_access_store_BackgroundColor (l : Loc) (v : gi
  by
   solve_pointsto_access_struct
 
-noncomputable instance Annotation_access_load__8 (l : Loc) (v : github_com.anishathalye.porcupine.Annotation) (dq : DFrac) :
+noncomputable instance «Annotation_access_load__#8» (l : Loc) (v : github_com.anishathalye.porcupine.Annotation) (dq : DFrac) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Annotation go!"_8" l) v._8' dq)
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Annotation go!"_8" l) v._8' dq)
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Annotation go!"_#8" l) v.«_#8'» dq)
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Annotation go!"_#8" l) v.«_#8'» dq)
       (typedPointsto l v dq) (typedPointsto l v dq) :=
  by
   solve_pointsto_access_struct
 
-noncomputable instance Annotation_access_store__8 (l : Loc) (v : github_com.anishathalye.porcupine.Annotation) (_8' : Unit) :
+noncomputable instance «Annotation_access_store__#8» (l : Loc) (v : github_com.anishathalye.porcupine.Annotation) («_#8'» : Unit) :
     AccessStrict (PROP := IProp GF)
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Annotation go!"_8" l) v._8' (DFrac.own 1))
-      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Annotation go!"_8" l) _8' (DFrac.own 1))
-      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with _8' := _8' } : github_com.anishathalye.porcupine.Annotation) (DFrac.own 1)) :=
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Annotation go!"_#8" l) v.«_#8'» (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.anishathalye.porcupine.Annotation go!"_#8" l) «_#8'» (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with «_#8'» := «_#8'» } : github_com.anishathalye.porcupine.Annotation) (DFrac.own 1)) :=
  by
   solve_pointsto_access_struct
 

@@ -28,7 +28,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.api.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -142,7 +142,7 @@ theorem Client.dialSetupOpts.wp_proof
   wp_join iprop(c_ptr ↦ c ∗ ∃ j : w64, backoffJitterFraction_ptr ↦ j) at next
     with [c backoffJitterFraction] as ⟨c, %jf, backoffJitterFraction⟩
   · generalize (float64Leb (W64 0) cfg.BackoffJitterFraction' &&
-      !decide (cfg.BackoffJitterFraction' = W64 0)) = b
+      !float64Eq cfg.BackoffJitterFraction' (W64 0)) = b
     cases b
     all_goals wp_auto
     all_goals wp_join_done

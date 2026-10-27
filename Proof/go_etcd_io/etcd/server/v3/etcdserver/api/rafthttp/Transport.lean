@@ -11,6 +11,7 @@
 -/
 module
 
+public import Perennial.Golang.Theory.TypeSet
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Snapshot
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Peer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Handle
@@ -32,12 +33,16 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.api go_etc
 /-- **A method-set premise** (as `ErrorStringLeaf`; stage 6c): `*peer` implements `Pausable` (it
 has `Pause` and `Resume`, `peer.go`): what `CutPeer`'s and `MendPeer`'s `p.(Pausable)` reads.
 `methodSet` is uninterpreted in the model, so the results that reach it take it as a premise. -/
-class PeerPausable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions] : Prop where
+class PeerPausable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions] : Prop where
   pausable : go.typeSetContains (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peer.ty)
     go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Pausable.ty = true
 
+/-- `PeerPausable` holds, from the method sets goose emits. -/
+instance peerPausable_inst [GooseExts] [GoGlobalContext] [GoLocalContext] [sem : go.Semantics]
+    [go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Assumptions] : PeerPausable := ⟨by go_type_set⟩
+
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -157,7 +162,7 @@ def sendMsg (Rh : RaftHttp GF) (lid : w64) (ml : Loc) : IProp GF :=
 end defs
 
 section lemmas
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

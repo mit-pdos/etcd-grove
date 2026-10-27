@@ -249,8 +249,7 @@ def Perennial.go_etcd_io.raft.v3.isInitialized : IProp GF :=
                                                         go!"raft proposal dropped" ∗
                                                     "#ErrCompactedNew" ∷
                                                         errorsNewVar ErrCompacted
-                                                          [114#8, 101#8, 113#8, 117#8, 101#8, 115#8, 116#8, 101#8, 100#8,
-                                                            32#8, 105#8, 110#8, 100#8, 101#8, 120#8, ⋯] ∗
+                                                          go!"requested index is unavailable due to compaction" ∗
                                                       "#ErrSnapOOD" ∷
                                                         ∃ e, typedPointsto (globalAddr ErrSnapOutOfDate) e DFrac.discard)
 

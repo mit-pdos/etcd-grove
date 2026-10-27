@@ -44,7 +44,7 @@ open Iris Iris.BI go_etcd_io.etcd.client.v3.concurrency
 /-! ## Options -/
 
 section model
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- `sessionOptions`: the lease's TTL (seconds), an existing lease (`0`: none), the context. -/
 structure SessionOpts where
@@ -93,7 +93,7 @@ structure SessionNames where
   done : ChanNames
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [EM : EtcdModel GF]

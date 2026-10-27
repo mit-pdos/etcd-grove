@@ -38,7 +38,7 @@ namespace EtcdGrove
 open Iris Iris.BI GMap go_etcd_io.raft.v3
 
 section ghost
-variable [FfiSyntax]
+variable [GooseExts]
 variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 
 /-! ### Protocol facts the code needs
@@ -926,7 +926,7 @@ private theorem alloc_nodes (γ : RaftNames) (ids : GSet w64) (t : w64) (L : Lis
 tokens and of the fresh read-context tokens, and the empty log's
 commit fact; it gives back the standing update `noopAu γ` (which may mention its own
 invariants, so it is built once `γ` is known) and keeps `C γ`. -/
-def allocClient (E : CoPset) (cfg : GSet w64) (dyn : Option ((e : FfiSyntax) → @DynCfg e))
+def allocClient (E : CoPset) (cfg : GSet w64) (dyn : Option ((e : GooseExts) → @DynCfg e))
     (C : RaftNames → IProp GF) : IProp GF :=
   iprop(∀ γ : RaftNames, ⌜γ.reCfg = cfg ∧ γ.reDyn = dyn⌝ -∗ isCommitted γ [] -∗ rLog γ [] -∗
     ghostMapAuth γ.reFresh 1 (∅ : GMap (List w8) Unit) -∗
@@ -937,14 +937,14 @@ bootstrap log; `[]` for `allocClient`, `allocClientBoot` is the static instance)
 2026-10-18 (item 9, point 7) the continuation also learns the conf-change policy `ccOk`
 (`γ.reCCOk = ccOk`): a client whose standing update admits raft's conf-change entries by the
 policy (the server's, `srvCCPolicy`) needs it before the allocation returns. -/
-def allocClientGen (E : CoPset) (cfg : GSet w64) (dyn : Option ((e : FfiSyntax) → @DynCfg e))
+def allocClientGen (E : CoPset) (cfg : GSet w64) (dyn : Option ((e : GooseExts) → @DynCfg e))
     (ccOk : w32 → List w8 → Prop) (L : List EntryM) (C : RaftNames → IProp GF) : IProp GF :=
   iprop(∀ γ : RaftNames, ⌜γ.reCfg = cfg ∧ γ.reDyn = dyn ∧ γ.reCCOk = ccOk ∧ γ.reBoot = L⌝ -∗
     isCommitted γ L -∗ rLog γ L -∗
     ghostMapAuth γ.reFresh 1 (∅ : GMap (List w8) Unit) -∗
     ghostMapAuth γ.reRdFresh 1 (∅ : GMap (List w8) Unit) ={E}=∗ noopAu γ ∗ C γ)
 
-theorem allocClient_gen (E : CoPset) (cfg : GSet w64) (dyn : Option ((e : FfiSyntax) → @DynCfg e))
+theorem allocClient_gen (E : CoPset) (cfg : GSet w64) (dyn : Option ((e : GooseExts) → @DynCfg e))
     (ccOk : w32 → List w8 → Prop) (C : RaftNames → IProp GF) :
     allocClient (GF := GF) E cfg dyn C ⊢ allocClientGen E cfg dyn ccOk [] C := by
   unfold allocClient allocClientGen
@@ -1018,7 +1018,7 @@ start (`γ.reBoot = L`, `BootWf`: the bootstrap log, or `[]`), in either mode (`
 `ownRaftGhost_alloc_gen` (`[]`, either mode), `ownRaftGhost_alloc_boot` (the bootstrap log,
 static). -/
 theorem ownRaftGhost_alloc_core (E : CoPset) (cfg ids : GSet w64)
-    (dyn : Option ((e : FfiSyntax) → @DynCfg e))
+    (dyn : Option ((e : GooseExts) → @DynCfg e))
     -- (2026-10-15, stage N) the conf-change bytes the cluster admits
     (ccOk : w32 → List w8 → Prop)
     -- (2026-10-16, stage R8b) the log the cluster starts with, committed, and the term
@@ -1209,7 +1209,7 @@ theorem ownRaftGhost_alloc_core (E : CoPset) (cfg ids : GSet w64)
 a continuation (`allocClient`), which builds the standing update `noopAu` the commit invariant
 holds. Since 2026-10-16 (stage R8b) an instance of `ownRaftGhost_alloc_core` at the empty log. -/
 theorem ownRaftGhost_alloc_gen (E : CoPset) (cfg ids : GSet w64)
-    (dyn : Option ((e : FfiSyntax) → @DynCfg e))
+    (dyn : Option ((e : GooseExts) → @DynCfg e))
     -- (2026-10-15, stage N) the conf-change bytes the cluster admits
     (ccOk : w32 → List w8 → Prop) (C : RaftNames → IProp GF) :
     -- (2026-10-14, reconfiguration stage B2) the voters are not empty: `RaftNames.reCfg_ne`
@@ -1286,7 +1286,7 @@ def BootLogOk (ccOk : w32 → List w8 → Prop) (ps : List w64) (bootLog : List 
   bootLog.length = ps.length ∧ (bootLog.length : Int) < 2 ^ 61 ∧
   ∀ (k : Nat) (e : EntryM), bootLog[k]? = some e →
     e.Term' = W64 1 ∧ uint.Z e.Index' = (k : Int) + 1 ∧ e.Type' = W32 1 ∧
-    (∃ m : CCV1M, ccDecodeV1 e.Data' = some m ∧ m.type = W32 0 ∧ ps[k]? = some m.nodeId) ∧
+    (∃ m : ConfChangeM, ccDecodeV1 e.Data' = some m ∧ m.type = W32 0 ∧ ps[k]? = some m.nodeId) ∧
     ccOk (W32 1) e.Data'
 
 theorem bootPState_eq (bootLog : List EntryM) : bootPState bootLog = initPStateAt (W64 1) bootLog :=
@@ -1371,7 +1371,7 @@ end ghost
 /-! ## Derived conveniences used by `Link.lean` -/
 
 section lemmas
-variable [FfiSyntax]
+variable [GooseExts]
 variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 
 /-- No read credit (2026-10-13). -/

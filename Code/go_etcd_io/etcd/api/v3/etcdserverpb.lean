@@ -5,6 +5,7 @@ public import Code.go_etcd_io.etcd.api.v3.etcdserverpb.chunk0
 public import Code.go_etcd_io.etcd.api.v3.etcdserverpb.chunk1
 public import Code.go_etcd_io.etcd.api.v3.etcdserverpb.chunk2
 public import Code.go_etcd_io.etcd.api.v3.etcdserverpb.chunk3
+public import Code.go_etcd_io.etcd.api.v3.etcdserverpb.chunk4
 
 @[expose] public section
 
@@ -19,7 +20,7 @@ noncomputable section
 
 namespace go_etcd_io.etcd.api.v3.etcdserverpb
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Metadata_instance : Metadata.TypeAssumptions
   RequestHeader_instance : RequestHeader.TypeAssumptions
   InternalRaftRequest_instance : InternalRaftRequest.TypeAssumptions

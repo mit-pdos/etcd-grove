@@ -45,7 +45,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 /-! ## Codecs and chains (pure) -/
 
 section pure
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 
 /-- **A stream's codec** (pure): its state, initial state, and frames (`F s w bs s'`: from `s`, the
@@ -222,7 +222,7 @@ end pure
 /-! ## The registry, the deposits, the protocol -/
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -462,7 +462,7 @@ end defs
 /-! ## Lemmas -/
 
 section lemmas
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
