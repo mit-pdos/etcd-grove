@@ -168,6 +168,12 @@ theorem readStateOk_ctx (γ : Cluster) (N : Namespace) (c : List w8) (idx : w64)
     readStateOk (GF := GF) γ N c idx ∗ isReadCtx γ N c Q ⊢
     ∃ l, ⌜l.length = uint.nat idx⌝ ∗ isCommittedLogLb γ l ∗ ▷ □ Q (opsOf l) := sorry
 
+/-- **A read state's context was committed** (`readCtx_commit`): a read is requested only with a
+committed context (`node.ReadIndex`). (2026-10-27, for kv: the applier tells its own reader's
+context from another's by it.) -/
+theorem readStateOk_used (γ : Cluster) (N : Namespace) (c : List w8) (idx : w64) (U : GSet (List w8)) :
+    readStateOk (GF := GF) γ N c idx ∗ ownReadCtxs γ U ⊢ ⌜c ∈ U⌝ := sorry
+
 /-- **A new cluster** of the peers `ps`, in the caller's namespace `N`: the client's committed
 requested entries at the bootstrap entries (one `ConfChangeAddNode` per peer, at term 1: `BootLog`;
 none is a filler), the read contexts with none used, and one boot

@@ -439,6 +439,75 @@ theorem kv_mint_read (γr : RKVNames) (id ns : w64) (key : List w8) (l0 : List D
   imodintro
   iframe Hseq Hmint Hrc
 
+/-- A read state's context with a minted key is the one minted there: it was committed
+(`Draft.readStateOk_used`), so minted. -/
+theorem kv_read_minted (γr : RKVNames) (c c0 : List w8) (i : w64) (k : w64 × w64) (E : CoPset)
+    (HE : ↑rkvN ⊆ E) (Hk : opKey c = some k) :
+    ⊢ rkvInv (GF := GF) γr -∗ Draft.readStateOk γr.cluster kvRaftN c i -∗
+      k ↪[γr.mint]□ c0 ={E}=∗ ⌜c0 = c⌝ := by
+  iintro #Hinv #Hok #Hmint
+  unfold rkvInv rkvInvBody
+  iinv Hinv with ⟨%ops, %S, %Mi, %O, %U, >Hc, Hsl⟩ Hclose
+  iunfold kvCore at Hc
+  icases Hc with ⟨Hops, Hv, HU, HS, HMi, HO, %Hok, %Hodm⟩
+  ihave %HcU := Draft.readStateOk_used γr.cluster kvRaftN c i U $$ [Hok HU]
+  · iframe Hok HU
+  obtain ⟨k', Hk', HMik⟩ := Hok.2.2 c HcU
+  rw [Hk] at Hk'; cases Hk'
+  icases ghost_map_lookup $$ HMi Hmint with %HMi0
+  rw [HMik] at HMi0
+  cases HMi0
+  imod Hclose $$ [Hops Hv HU HS HMi HO Hsl] with -
+  · inext
+    iexists ops, S, Mi, O, U
+    iframe Hsl
+    unfold kvCore
+    iframe Hops Hv HU HS HMi HO
+    ipureintro; exact ⟨Hok, Hodm⟩
+  imodintro
+  ipureintro; rfl
+
+/-- A datum of a committed entry is a datum of its requested entries (a filler has none). -/
+theorem odOf_mem_opsOf [GooseExts] (l : List Draft.LogEntry) (d : List w8)
+    (h : some d ∈ l.map odOf) : some d ∈ (Draft.opsOf l).map odOf := by
+  obtain ⟨e, he, hd⟩ := List.mem_map.1 h
+  refine List.mem_map.2 ⟨e, ?_, hd⟩
+  unfold Draft.opsOf
+  refine List.mem_filter.2 ⟨he, ?_⟩
+  simp only [Bool.not_eq_eq_eq_not, Bool.not_true, decide_eq_false_iff_not]
+  intro hf; rw [odOf_filler e hf] at hd; cases hd
+
+/-- A datum of a committed log with a minted key is the one minted there: every committed
+datum was minted (only the store's updates move the committed requested entries). -/
+theorem kv_committed_minted (γr : RKVNames) (l : List Draft.LogEntry) (d d0 : List w8)
+    (k : w64 × w64) (E : CoPset) (HE : ↑rkvN ⊆ E) (Hd : some d ∈ l.map odOf)
+    (Hk : opKey d = some k) :
+    ⊢ rkvInv (GF := GF) γr -∗ Draft.isCommittedLogLb γr.cluster l -∗
+      k ↪[γr.mint]□ d0 ={E}=∗ ⌜d0 = d⌝ := by
+  iintro #Hinv #Hl #Hmint
+  unfold rkvInv rkvInvBody
+  iinv Hinv with ⟨%ops, %S, %Mi, %O, %U, >Hc, Hsl⟩ Hclose
+  iunfold kvCore at Hc
+  icases Hc with ⟨Hops, Hv, HU, HS, HMi, HO, %Hok, %Hodm⟩
+  ihave %Hpre := Draft.ownCommittedOps_lb_prefix γr.cluster ops l $$ [Hops Hl]
+  · iframe Hops Hl
+  have Hd' : some d ∈ ops.map odOf :=
+    (Hpre.map odOf).subset (odOf_mem_opsOf l d Hd)
+  obtain ⟨k', Hk', HMik⟩ := Hodm d Hd'
+  rw [Hk] at Hk'; cases Hk'
+  icases ghost_map_lookup $$ HMi Hmint with %HMi0
+  rw [HMik] at HMi0
+  cases HMi0
+  imod Hclose $$ [Hops Hv HU HS HMi HO Hsl] with -
+  · inext
+    iexists ops, S, Mi, O, U
+    iframe Hsl
+    unfold kvCore
+    iframe Hops Hv HU HS HMi HO
+    ipureintro; exact ⟨Hok, Hodm⟩
+  imodintro
+  ipureintro; rfl
+
 /-- The history now is a lower bound, at the client's state. -/
 theorem kvLb_current (γr : RKVNames) (x : KVMap) (E : CoPset) (HE1 : ↑rkvN ⊆ E) :
     ⊢ rkvInv (GF := GF) γr -∗ rkvVal γr x ={E}=∗

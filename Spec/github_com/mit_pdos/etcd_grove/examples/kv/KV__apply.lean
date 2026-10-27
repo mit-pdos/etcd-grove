@@ -4,8 +4,9 @@
 `ap` the replica applied (`runOwn`); a waiter of the entry's operation, if this replica
 proposed it and the entry is the operation's first, gets the value after it (`waitP`).
 
-raft v3.7 (2026-10-16, stage R6b): `e` is a `*pb.Entry` holding the log entry `em` (`entRO`,
-read-only for good, D2: what `Ready.CommittedEntries` hands out), read through its getters.
+`e` is a `*pb.Entry` holding the committed log entry `le` at index `idx` (`entRO`, read-only for
+good: what `Ready.CommittedEntries` hands out, `Draft.committedEntriesAt`), read through its
+getters.
 -/
 module
 
@@ -32,12 +33,12 @@ variable [KVStor GF]
 /-- See the file header. -/
 abbrev KV.apply.spec : Prop :=
   ∀ (γr : RKVNames) (γp : RepNames) (r : Loc) (id : w64) (n st : Loc)
-    (ap : List EntryM) (e : Loc) (em : EntryM),
+    (ap : List Draft.LogEntry) (e : Loc) (le : Draft.LogEntry) (idx : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kv ∗
-      isReplica γr γp r id n st ∗ runOwn γr r ap ∗ entRO e em ∗
-      isCommitted γr.raft (ap ++ [em]) }}
+      isReplica γr γp r id n st ∗ runOwn γr r ap ∗ entRO e (le.toEntryM idx) ∗
+      Draft.isCommittedLogLb γr.cluster (ap ++ [le]) }}
     (App (Val (r @!! go.GoType.PointerType rKVTy @!! go!"apply")) (Val #e))
-  {{ RET #(); runOwn γr r (ap ++ [em]) }}
+  {{ RET #(); runOwn γr r (ap ++ [le]) }}
 
 end spec
 

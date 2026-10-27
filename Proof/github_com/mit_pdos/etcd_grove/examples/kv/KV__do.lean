@@ -1,7 +1,8 @@
 /-
 Proof of `Spec/github_com/mit_pdos/etcd_grove/examples/kv/KV__do.lean`. Lean-first (no
-Rocq counterpart). raft v3.7 (2026-10-16, stage R6b): `Node.Propose` wants the data frozen and
-non-empty (D6); an encoding is at least 25 bytes.
+Rocq counterpart). `Node.Propose` (raft's draft API, 2026-10-27) takes the data frozen and an
+update over the committed requested entries (`kv_propAu`, which needs the datum non-empty: an
+encoding is at least 25 bytes).
 -/
 module
 
@@ -29,7 +30,7 @@ variable [KVStor GF]
 
 theorem KV.do.wp_proof
     (wp_encode : kv.encode.spec (GF := GF) (hG := hG))
-    (wp_node_Propose : node.Propose.spec (GF := GF) (hG := hG)) :
+    (wp_node_Propose : Draft.node.Propose.spec (GF := GF) (hG := hG)) :
     KV.do.spec (GF := GF) (hG := hG) := by
   intro γr γp r kind key val Ψ Hkey Hval
   wp_start as ⟨#Hreg, Hau⟩
@@ -59,7 +60,7 @@ theorem KV.do.wp_proof
   ihave Hau : opAu γr (kvNext kind key val) key Ψ $$ [Hau]
   · unfold opAu; iexact Hau
   imod kv_mint γr id ns kind key val Ψ ⊤ CoPset.subseteq_top Hns (by omega) $$ Hinv Hseq Hlc1 Hau
-    with ⟨Hseq, #Hmint, Hfresh, %γo, #Hop, #Hsp, Htok⟩
+    with ⟨Hseq, #Hmint, %γo, #Hop, #Hsp, Htok⟩
   have Hdne : encodeOp id (ns + W64 1) kind key val ≠ [] := by
     intro h; have := encodeOp_length id (ns + W64 1) kind key val; rw [h] at this
     simp at this; omega
@@ -92,12 +93,10 @@ theorem KV.do.wp_proof
     unfold waiterOk
     iexists d, γh
     iframe Hmint Hho Hprod
-  -- (2026-10-21) the datum registered with raft, once; then every proposal of it, a retry of a
-  -- dropped one included, takes the registration and a new update over raft's log (2026-10-14,
-  -- stage R), which the store's invariant makes (`kv_propAu`) and raft fires at most once
-  rw [← Hraft]
-  imod node_prop_register γp.node id n d (fun _ => iprop(True)) ⊤ CoPset.subseteq_top
-    $$ HisNode Hfresh with #Hpi
+  -- every proposal of the datum, a retry of a dropped one included, takes a new update over the
+  -- committed requested entries, which the store's invariant makes (`kv_propAu`) and raft fires
+  -- at most once
+  ihave #Hpau := kv_propAu γr d γo Hdne $$ Hinv Hop
   ihave HI : iprop(True) $$ []
   · itrivial
   wp_for HI
@@ -105,15 +104,9 @@ theorem KV.do.wp_proof
   wp_apply wp_encode id (ns + W64 1) kind key val Hkey Hval as %b ⟨Hb, Hbcap⟩
   rw [Hd]
   imod ownSlice_persist b _ _ $$ Hb with #Hb
-  ihave Hpau := kv_propAu γr d γo $$ Hinv Hop
-  rw [← Hraft]
-  ihave Harg : propArg γp.node.raft d (fun _ => iprop(True)) $$ [Hpau]
-  · unfold propArg
-    iframe Hpi Hpau
   ihave #Hbg := nodeCtx_background (GF := GF) bgCd
-  wp_apply wp_node_Propose γp.node id n b d _ context.backgroundCtxVal bgCd
-    $$ [$Hraftinit $HisNode $Hbg $Hb $Harg] as %err -
-  · ipureintro; exact Hdne
+  wp_apply wp_node_Propose n γr.cluster kvRaftN id b d context.backgroundCtxVal bgCd
+    $$ [$Hraftinit $HisNode $Hbg $Hb $Hpau] as %err -
   cases err with
   | ok i =>
     -- dropped: propose again
@@ -139,13 +132,11 @@ theorem KV.do.wp_proof
     simp only [↓reduceIte]
     icases Hgot with ⟨Hw, -⟩
     iunfold waitP at Hw
-    icases Hw with ⟨%l, %ods, %m, #Hl, #Hods, %Hm⟩
+    icases Hw with ⟨%l, %ods, %m, #Hl, %Hods, %Hm⟩
     obtain ⟨Hm1, Hm2, Hv⟩ := Hm
-    -- the client's result, from the operation's slot (2026-10-14, stage R)
-    ihave #Hcinv : raftCommitInv γr.raft $$ []
-    · rw [← Hraft]; iapply isNode_commitInv $$ HisNode
-    imod kv_collect γr d γo Ψ l ods m ⊤ CoPset.subseteq_top raftN_regN Hm1 Hm2
-      $$ Hinv Hcinv Hop Hsp Htok Hl Hods with HQ
+    -- the client's result, from the operation's slot
+    imod kv_collect γr d γo Ψ l ods m ⊤ CoPset.subseteq_top Hods Hm1 Hm2
+      $$ Hinv Hop Hsp Htok Hl with HQ
     imod lc_fupd_elim_later $$ Hlc1 HQ with HQ
     imod lc_fupd_elim_later $$ Hlc2 HQ with HQ
     wp_auto
