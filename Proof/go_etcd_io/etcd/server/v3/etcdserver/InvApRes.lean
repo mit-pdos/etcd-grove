@@ -401,12 +401,12 @@ theorem srvApRes_cc (s : Loc) (γr : ReadNames) (A : List EntryModel) (m : Entry
         ⌜(cm.type = W32 0 → cm.nodeId ≠ lid → cm.nodeId ∈ prs) ∧
           (cm.type = W32 1 → cm.nodeId ≠ lid) ∧
           (cm.type = W32 0 → GMap.size (GMap.insert cm.nodeId (membership.ccMemberAt cm)
-            (restModel γr.kv.c0 γr.raft.raft.reBoot (γr.raft.pre ++ A)).mem) ≤ 2 ^ 62) ∧
+            (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)).mem) ≤ 2 ^ 62) ∧
           (γr.raft.raft.reDyn.isSome = true →
-            srvDynPol γr.raft.raft.reBoot.length lid (srvLogOf γr.raft (A ++ [m])) ∧
-            lid ∈ γr.raft.raft.reCfg)⌝ ∗
+            srvDynPol γr.raft.raft.boot.length lid (srvLogOf γr.raft (A ++ [m])) ∧
+            lid ∈ γr.raft.raft.cfg)⌝ ∗
         (∀ v3 : Bool, ccMembRes γs cl tl lid (ccPeersAfter v3 cm
-            (restModel γr.kv.c0 γr.raft.raft.reBoot (γr.raft.pre ++ A)).bk prs) -∗
+            (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)).bk prs) -∗
           srvApRes s γr (A ++ [m])) := by
   subst hγs
   iintro ⟨H, #Hlb⟩
@@ -415,8 +415,8 @@ theorem srvApRes_cc (s : Loc) (γr : ReadNames) (A : List EntryModel) (m : Entry
     %H7, #H8, Hmr, %Hp, #Hd⟩
   -- the positional policy, in the dynamic mode
   ihave %Hdyn : ⌜γr.raft.raft.reDyn.isSome = true →
-      srvDynPol γr.raft.raft.reBoot.length lid (srvLogOf γr.raft (A ++ [m])) ∧
-      lid ∈ γr.raft.raft.reCfg⌝ $$ []
+      srvDynPol γr.raft.raft.boot.length lid (srvLogOf γr.raft (A ++ [m])) ∧
+      lid ∈ γr.raft.raft.cfg⌝ $$ []
   · cases hrd : γr.raft.raft.reDyn with
     | none => ipureintro; intro h; cases h
     | some f =>
@@ -427,8 +427,8 @@ theorem srvApRes_cc (s : Loc) (γr : ReadNames) (A : List EntryModel) (m : Entry
       ipureintro; intro _
       exact ⟨Hd', Hl⟩
   have Hpos : γr.raft.raft.reDyn ≠ none → (cm.type = W32 0 →
-      uint.Z m.index ≤ γr.raft.raft.reBoot.length) ∧
-      (cm.type = W32 1 → γr.raft.raft.reBoot.length < uint.Z m.index ∧ cm.nodeId ≠ lid) := by
+      uint.Z m.index ≤ γr.raft.raft.boot.length) ∧
+      (cm.type = W32 1 → γr.raft.raft.boot.length < uint.Z m.index ∧ cm.nodeId ≠ lid) := by
     intro hn
     have hs : γr.raft.raft.reDyn.isSome = true := by
       cases h : γr.raft.raft.reDyn with
@@ -440,7 +440,7 @@ theorem srvApRes_cc (s : Loc) (γr : ReadNames) (A : List EntryModel) (m : Entry
     refine ⟨fun h => ?_, fun h => ?_⟩
     · have := this.1 h; omega
     · have := this.2 h; exact ⟨by omega, this.2⟩
-  have hin : cm.nodeId ∈ γr.raft.raft.reCfg := by
+  have hin : cm.nodeId ∈ γr.raft.raft.cfg := by
     rcases hok with ⟨-, h, -⟩ | ⟨-, -, h⟩ <;> exact h
   have hstat1 : cm.type = W32 1 → γr.raft.raft.reDyn ≠ none := by
     intro h1 hn
@@ -462,7 +462,7 @@ theorem srvApRes_cc (s : Loc) (γr : ReadNames) (A : List EntryModel) (m : Entry
     · intro h1; exact ((Hpos (hstat1 h1)).2 h1).2
     · intro _
       calc GMap.size (GMap.insert cm.nodeId (membership.ccMemberAt cm) _)
-          ≤ GMap.size γr.raft.raft.reCfg := size_le_of_keys _ _ (by
+          ≤ GMap.size γr.raft.raft.cfg := size_le_of_keys _ _ (by
             intro k hk
             by_cases hkk : cm.nodeId = k
             · subst hkk; exact hin

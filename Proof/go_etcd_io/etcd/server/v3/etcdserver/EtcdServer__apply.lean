@@ -541,7 +541,7 @@ theorem EtcdServer.apply.wp_proof
             exact ⟨by rw [← hρr]; exact Hcb cm Hdec, Hdynp hs⟩) $$ [Hdv] with
           ⟨%ca, %cfg, %cs'', Hdvp, %Hdvf, Hdvc⟩
         · iframe Hdv Hdvr'
-        have hmm := restModel_members γr.kv.c0 γr.raft.raft.reBoot (γr.raft.pre ++ (A ++ ms.take (sint.nat j)))
+        have hmm := restModel_members γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ (A ++ ms.take (sint.nat j)))
         wp_apply (hACC s cc_ptr ep cm csl true ci ua E ρ.raft
           iprop(applyThread γ (stLoaded γ st') ∗ ciApplying ci m.index m.term ∗
             applyBackend γ ci b ∗
@@ -789,7 +789,7 @@ theorem EtcdServer.apply.wp_proof
         ihave %Hcleq := typedPointsto_agree_wand _ _ _ _ _ $$ Hcl' Hcl
         subst Hcleq
         obtain ⟨Hpeer, Hloc, Hsz, -⟩ := Hprem
-        have hmm := restModel_members γr.kv.c0 γr.raft.raft.reBoot (γr.raft.pre ++ (A ++ ms.take (sint.nat j)))
+        have hmm := restModel_members γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ (A ++ ms.take (sint.nat j)))
         wp_apply (hACC s cc_ptr ep cm csl false ci ua E ρ.raft
           iprop(True) iprop(True) iprop(True) iprop(True) m.index m.term γB sv.cluster _ dB alB stB lpB
           none [] 0 0 (cfgState ∅ ∅) (cfgState ∅ ∅) m.toM sv.lg bh ix lgh tl lid prs lgc cid

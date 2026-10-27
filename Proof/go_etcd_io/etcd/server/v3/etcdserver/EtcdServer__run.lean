@@ -62,7 +62,7 @@ theorem run_job_body (hAA : EtcdServer.applyAll.spec (GF := GF) (hG := hG))
     (hdvn : dv = none → C.ρ.raft.raft.reDyn = none ∨ ∀ m, m ∈ ce → m.typ ≠ W32 1)
     (hdvs : ∀ γn, dv = some γn → uint.Z C.c₀ ≤ uint.Z C.ai₀ ∧ γn.raft = C.ρ.raft.raft ∧
       C.ρ.raft.raft.reDyn.isSome = true ∧
-      ∃ c0 h0 h1, γn.mode = .dyn (srvDec C.γr.kv.c0 C.ρ.raft.raft.reBoot) c0 h0 h1) :
+      ∃ c0 h0 h1, γn.mode = .dyn (srvDec C.γr.kv.c0 C.ρ.raft.raft.boot) c0 h0 h1) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerApplyAll C.s C.γr ∗ batchWaitOk C.ρ C.E (A ++ ce) ∗
         taEntriesAddr apL ↦□ es ∗ taRaftAdvancedCAddr apL ↦□ rac ∗
@@ -619,7 +619,7 @@ theorem EtcdServer.run.wp_proof
         simp [hty] at this
     have hdvs : ∀ γn', rnDv γn ce = some γn' → uint.Z c₀ ≤ uint.Z ai₀ ∧
         γn'.raft = ρ.raft.raft ∧ ρ.raft.raft.reDyn.isSome = true ∧
-        ∃ c0 h0 h1, γn'.mode = .dyn (srvDec γr.kv.c0 ρ.raft.raft.reBoot) c0 h0 h1 := by
+        ∃ c0 h0 h1, γn'.mode = .dyn (srvDec γr.kv.c0 ρ.raft.raft.boot) c0 h0 h1 := by
       intro γn' h
       unfold rnDv at h
       by_cases hh : rnHands γn ce

@@ -311,7 +311,7 @@ def rnEnvOk (E : RNEnv GF) (γ : RNNames) : IProp GF :=
     -- static only), and in the dynamic mode at the server's decoder
     ⌜(γ.node.mode = RNMode.static ↔ γ.node.raft.reDyn = none) ∧
       (∀ dec c0 h0 h1, γ.node.mode = .dyn dec c0 h0 h1 →
-        dec = srvDec E.γr.kv.c0 E.γr.raft.raft.reBoot) ∧
+        dec = srvDec E.γr.kv.c0 E.γr.raft.raft.boot) ∧
       γ.node.stor = memStorIface γ.ms ∧ γ.node.raft.reNoSnap = true⌝ ∗
     -- (2026-10-19, D21 M3) the storage's cap at least `1` (`compactRaftLog`'s compaction at `1`)
     ⌜1 ≤ γ.γs.cap⌝ ∗

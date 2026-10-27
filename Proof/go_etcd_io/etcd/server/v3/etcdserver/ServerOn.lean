@@ -582,7 +582,7 @@ theorem rnEnvOk_of_clusterOn (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w
     (hai : uint.Z ρ.raft.ai0 = γw.pre.length) (hai0 : ρ.raft.ai0 = ai₀)
     (hmode : γw.node.mode = RNMode.static ↔ γw.node.raft.reDyn = none)
     (hdec : ∀ dec c0 h0 h1, γw.node.mode = .dyn dec c0 h0 h1 →
-      dec = srvDec ρ.rd.kv.c0 ρ.rd.raft.raft.reBoot)
+      dec = srvDec ρ.rd.kv.c0 ρ.rd.raft.raft.boot)
     (hstor : γw.node.stor = memStorIface γw.ms)
     (hbud : γw.node.bud = bud)
     (hns : ρ.raft.raft.reNoSnap = true)
@@ -648,7 +648,7 @@ theorem rnEnvOk_of_clusterM (on : Bool) (ρ : ReqNames) (E : apply.AEnv GF) (ai�
     (hai : uint.Z ρ.raft.ai0 = γw.pre.length) (hai0 : ρ.raft.ai0 = ai₀)
     (hmode : γw.node.mode = RNMode.static ↔ γw.node.raft.reDyn = none)
     (hdec : ∀ dec c0 h0 h1, γw.node.mode = .dyn dec c0 h0 h1 →
-      dec = srvDec ρ.rd.kv.c0 ρ.rd.raft.raft.reBoot)
+      dec = srvDec ρ.rd.kv.c0 ρ.rd.raft.raft.boot)
     (hstor : γw.node.stor = memStorIface γw.ms)
     (hbud : γw.node.bud = bud)
     (hns : ρ.raft.raft.reNoSnap = true)

@@ -77,6 +77,9 @@ structure SrvRaft [GooseExts] where
   vs : List w64
   dyn : Bool
   dec : Draft.ConfChangeDecoder
+  /-- the bootstrap log, as raft's records (raft's `reBoot` until 2026-10-27): the members'
+  `ConfChange`s the cluster started with, which the server's membership model folds -/
+  boot : List EntryM
   log : GName
   fresh : GName
   props : GName
@@ -390,10 +393,11 @@ instance srvDeposited_persistent (γ : ServerRaftNames) (d : List w8) :
   unfold srvDeposited; infer_instance
 
 /-- **A result predicate the server's two logs agree on** (persistent): it holds of a log as of
-any log with the same requested entries (`srvEqv`), a step later. The server's results are of the
+any log with the same requested entries (`srvEqv`), a step later (an update at `⊤`: a server
+result's invariance reads the KV invariant's facts). The server's results are of the
 KV model of the log, which the requested entries determine (`kvModel_eqv`). -/
 def srvQInv (γ : ServerRaftNames) (Q : List EntryModel → IProp GF) : IProp GF :=
-  iprop(□ ∀ (A B : List EntryModel), ⌜srvEqv γ A B⌝ -∗ □ Q A -∗ ▷ □ Q B)
+  iprop(□ ∀ (A B : List EntryModel), ⌜srvEqv γ A B⌝ -∗ □ Q A ={⊤}=∗ ▷ □ Q B)
 
 instance srvQInv_persistent (γ : ServerRaftNames) (Q : List EntryModel → IProp GF) :
     Persistent (srvQInv (GF := GF) γ Q) := by
@@ -405,7 +409,7 @@ theorem srvQInv_of_eq (γ : ServerRaftNames) (Q : List EntryModel → IProp GF)
   unfold srvQInv
   iintro !> %A %B %Hab #HA
   rw [← h A B Hab]
-  inext; iexact HA
+  imodintro; inext; iexact HA
 
 /-- **The proposer's handle on its proposal**, with result `Q` (persistent): `d` registered with
 the result predicate `Q`, one the logs agree on. -/
@@ -1010,7 +1014,7 @@ theorem srvPropWits_of (γ : ServerRaftNames) : ⊢ srvRaftLogInv (GF := GF) γ 
     iapply Hto $$ HQL'
   imod lc_fupd_elim_later $$ Hlc2 HQL with #HQL
   iunfold srvQInv at HQinv
-  ihave HQm := HQinv $$ %(Lf.take j) %(L.take m) [] HQL
+  imod HQinv $$ %(Lf.take j) %(L.take m) [] HQL with HQm
   · ipureintro
     refine ⟨srvIdxOkW_prefix γ.ai0 _ Lf Hidx (List.take_prefix _ _),
       srvIdxOkW_prefix γ.ai0 _ L HLi (List.take_prefix _ _), ?_⟩
@@ -1199,7 +1203,6 @@ theorem srvReadWit_of (γ : ServerRaftNames) (c : List w8) (Qr : List EntryModel
       exact Hnf y (List.mem_of_mem_take hy))]
     rw [List.map_take]
     exact (List.prefix_iff_eq_take.1 HLops).symm
-  ihave HQL' := HQinv $$ %_ %L %Heqv HQL
   ihave #Hsag := saved_pred_agree γQ DFrac.discard DFrac.discard Qr' Qr L $$ HQs' HQs
   imod Hclose $$ [Hown Hlog HP HF HR Hfrs HFr HRr] with -
   · inext
@@ -1208,6 +1211,7 @@ theorem srvReadWit_of (γ : ServerRaftNames) (c : List w8) (Qr : List EntryModel
     iunfold srvLogRegs
     iframe Hown Hlog HP HF HR Hfrs HFr HRr
     ipureintro; exact ⟨Hidx, Hnf, Hfired, HRle⟩
+  imod HQinv $$ %_ %L %Heqv HQL with HQL'
   ihave HQr : iprop(▷ □ Qr L) $$ [HQL']
   · inext
     ihave #HQL' := HQL'
@@ -1607,11 +1611,11 @@ filler, no normal entry), the server's start at index `0`: the server's names (t
 as given), the log invariant, the KV invariant's half of `Lf0`, and the authorities of the
 proposals' and the read contexts' fresh tokens (for the mints). -/
 theorem srvLogInv_alloc (cl : Draft.Cluster) (vs : List w64) (dyn : Bool)
-    (dec : Draft.ConfChangeDecoder) (Lf0 : List EntryModel) (E : CoPset)
+    (dec : Draft.ConfChangeDecoder) (boot : List EntryM) (Lf0 : List EntryModel) (E : CoPset)
     (hidx : srvIdxOkW (W64 0) Lf0) (hnf : ∀ m ∈ Lf0, ¬ m.toLE.isFiller)
     (hnn : ∀ m ∈ Lf0, m.typ ≠ W32 0) :
     ⊢ Draft.ownCommittedOps (GF := GF) cl (Lf0.map EntryModel.toLE) ={E}=∗
-      ∃ γr : SrvRaft, ⌜γr.cl = cl ∧ γr.vs = vs ∧ γr.dyn = dyn ∧ γr.dec = dec⌝ ∗
+      ∃ γr : SrvRaft, ⌜γr.cl = cl ∧ γr.vs = vs ∧ γr.dyn = dyn ∧ γr.dec = dec ∧ γr.boot = boot⌝ ∗
         srvLogInv (⟨γr, [], W64 0⟩ : ServerRaftNames) ∗ srvRLog ⟨γr, [], W64 0⟩ Lf0 ∗
         srvRLogLb (⟨γr, [], W64 0⟩ : ServerRaftNames) [] ∗
         ghostMapAuth γr.fresh 1 (∅ : GMap (List w8) Unit) ∗
@@ -1624,7 +1628,7 @@ theorem srvLogInv_alloc (cl : Draft.Cluster) (vs : List w64) (dyn : Bool)
   imod ghost_map_alloc_empty (GF := GF) (K := List w8) (V := List EntryModel) with ⟨%γfired, HF⟩
   imod ghost_map_alloc_empty (GF := GF) (K := List w8) (V := Unit) with ⟨%γrd, Hrd⟩
   imod mono_list_own_alloc (GF := GF) ([] : List (GName × Nat)) with ⟨%γpend, HR, -⟩
-  let γr : SrvRaft := ⟨cl, vs, dyn, dec, γlog, γfresh, γprops, γfired, γrd, γpend⟩
+  let γr : SrvRaft := ⟨cl, vs, dyn, dec, boot, γlog, γfresh, γprops, γfired, γrd, γpend⟩
   icases ((monoListAuthOwn_fractional (GF := GF) γlog Lf0).fractional
       (1 : Qp).half (1 : Qp).half).1 $$ [Hlog] with ⟨Hlog, HL⟩
   · rw [Qp.half_add_half]; iexact Hlog
@@ -1659,7 +1663,7 @@ theorem srvLogInv_alloc (cl : Draft.Cluster) (vs : List w64) (dyn : Bool)
   imodintro
   iexists γr
   isplitr
-  · ipureintro; exact ⟨rfl, rfl, rfl, rfl⟩
+  · ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl⟩
   iunfold srvLogInv
   iframe Hli Hfresh Hrd
   iunfold srvRLog

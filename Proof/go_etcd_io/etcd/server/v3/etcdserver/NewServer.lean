@@ -1466,7 +1466,7 @@ theorem NewServer.wp_proofM (on : Bool)
     · -- (D22, 2026-10-23) the rest buckets and the members at the start: the boot state
       unfold srvRest
       have hpre : ρ.rd.raft.pre = [] := by simp [HρRaft]
-      have hboot : ρ.rd.raft.raft.reBoot = bootLog := by rw [HρRaft]; exact Hrboot
+      have hboot : ρ.rd.raft.raft.boot = bootLog := by rw [HρRaft]; exact Hrboot
       rw [hpre, hboot, List.append_nil, restModel_nil]
       dsimp only
       isplitl [Hrbo Hmem HalOn HauthOn HleOn HclBe]

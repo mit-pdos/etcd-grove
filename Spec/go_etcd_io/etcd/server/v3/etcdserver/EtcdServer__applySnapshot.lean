@@ -92,9 +92,9 @@ abbrev EtcdServer.applySnapshot.specSnap : Prop :=
     -- image's rest buckets (with the lessor's and the alarm store's emptied by their `Recover`)
     -- and the decoded members
     (A' : List EntryModel)
-    (hA' : (restModel γr.kv.c0 γr.raft.raft.reBoot (γr.raft.pre ++ A')).bk =
+    (hA' : (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A')).bk =
         <[go!"alarm" := ∅]> (<[go!"lease" := ∅]> (backend.rbData d.P D)) ∧
-      (restModel γr.kv.c0 γr.raft.raft.reBoot (γr.raft.pre ++ A')).mem = memI)
+      (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A')).mem = memI)
     -- (S8d's named premise, S-j1's: `NewServer`'s environment, kept by `beSucc`) the auth store's
     -- contract mode is `.off`, the mode `authApplyOk` gives the store's contract in
     (hoff : E.authMode = auth.AuthMode.off),

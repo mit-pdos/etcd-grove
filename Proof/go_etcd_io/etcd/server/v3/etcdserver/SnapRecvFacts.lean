@@ -261,9 +261,9 @@ structure SnapImageFacts [GooseExts] (γr : ReadNames) (d : mvcc.KBReal) (D : ba
     ((backend.rbData d.P D).lookup go!"members_removed").isSome ∧
     ((backend.rbData d.P D).lookup go!"cluster").isSome
   himg : membership.clusterImageOk cl (backend.rbData d.P D) memI
-  hA' : (restModel γr.kv.c0 γr.raft.raft.reBoot (γr.raft.pre ++ A')).bk =
+  hA' : (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A')).bk =
       <[go!"alarm" := ∅]> (<[go!"lease" := ∅]> (backend.rbData d.P D)) ∧
-    (restModel γr.kv.c0 γr.raft.raft.reBoot (γr.raft.pre ++ A')).mem = memI
+    (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A')).mem = memI
 
 section lemmas
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -328,7 +328,7 @@ theorem snapRecv_image (γ : RaftNames) (γr : ReadNames) (E : apply.AEnv GF) (i
       kvApplied γr.raft γr.kv A x ∗ srvRest E γr A ∗
       ∃ (A' : List EntryModel) (R : mvcc.Log), srvRLogLb γr.raft A' ∗
         ⌜SnapImageFacts γr d D cl i A A' x R
-          (restModel γr.kv.c0 γr.raft.raft.reBoot (γr.raft.pre ++ A')).mem⌝ := by
+          (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A')).mem⌝ := by
   have hpre0 : γr.raft.pre = [] := by rw [hraft]
   have hai0 : γr.raft.ai0 = W64 0 := by rw [hraft]
   have hrr : γr.raft.raft = γ := by rw [hraft]
@@ -365,9 +365,9 @@ theorem snapRecv_image (γ : RaftNames) (γr : ReadNames) (E : apply.AEnv GF) (i
   ihave #HA'' : srvRLogLb γr.raft (γr.raft.pre ++ A') $$ []
   · rw [hpre0, List.nil_append]; iexact HA'
   have hLL : γr.raft.pre ++ A <+: γr.raft.pre ++ A' := (List.prefix_append_right_inj _).2 hAA'
-  have hbl : γr.raft.raft.reBoot.length ≤ (γr.raft.pre ++ A').length := by
+  have hbl : γr.raft.raft.boot.length ≤ (γr.raft.pre ++ A').length := by
     rw [hpre0, hrr, List.nil_append]; omega
-  have hcc' : ∀ m ∈ γr.raft.pre ++ A', m.typ ≠ W32 0 → ccBootOk γr.raft.raft.reCfg m.data := by
+  have hcc' : ∀ m ∈ γr.raft.pre ++ A', m.typ ≠ W32 0 → ccBootOk γr.raft.raft.cfg m.data := by
     rw [hpre0, List.nil_append]
     intro m hm ht
     exact ccPolOk_static _ _ (by rw [hrr]; exact hstat) (Hcc m hm ht)

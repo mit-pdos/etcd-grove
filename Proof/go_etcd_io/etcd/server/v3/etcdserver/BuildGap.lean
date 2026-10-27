@@ -126,7 +126,7 @@ theorem rnEnvOk_of_cluster (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64
     -- mode at the server's decoder
     (hmode : γw.node.mode = RNMode.static ↔ γw.node.raft.reDyn = none)
     (hdec : ∀ dec c0 h0 h1, γw.node.mode = .dyn dec c0 h0 h1 →
-      dec = srvDec ρ.rd.kv.c0 ρ.rd.raft.raft.reBoot)
+      dec = srvDec ρ.rd.kv.c0 ρ.rd.raft.raft.boot)
     (hstor : γw.node.stor = memStorIface γw.ms)
     (hbud : γw.node.bud = bud)
     -- (D21 M3, 2026-10-19; until then, D19p, a one-member cluster) raft's no-snapshot mode
