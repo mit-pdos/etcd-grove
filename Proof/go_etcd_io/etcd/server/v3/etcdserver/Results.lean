@@ -95,6 +95,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NoSpaceDeadOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NoSpaceDeadAdminOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AppliedOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.UberOn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AdminEntryOn
 
 @[expose] public section
 
@@ -1732,6 +1733,12 @@ theorem apply_apply_admin_latest :
     Perennial.EtcdGrove.apply.zap.wp_Stringer Perennial.EtcdGrove.apply.zap.Logger.wp_Debug
     Perennial.EtcdGrove.apply.wp_noSideEffect apply_uber_apply_admin_latest
 
+/-- **An admin entry's application by the apply thread, with auth on** (the auth plan's E3n,
+`AdminEntryOn.lean`), every callee linked: the store's half of `be` borrowed from the rest, the
+outcome the model's admin step, the row back at the history after it. -/
+theorem server_admin_entry_on : adminEntryOn.spec (GF := GF) (hG := hG) :=
+  apply_admin_entry_on apply_apply_admin_latest
+
 end adminLatest
 
 /-- **A refused admin check keeps the model's auth state; a passed one admits the principal** (the
@@ -1759,6 +1766,7 @@ theorem admin_state_auth_enable [ext : FfiSyntax] (γa : auth.AuthNames) (rq : E
 #print axioms Perennial.EtcdGrove.apply_dispatch_admin
 #print axioms Perennial.EtcdGrove.apply_uber_apply_admin_latest
 #print axioms Perennial.EtcdGrove.apply_apply_admin_latest
+#print axioms Perennial.EtcdGrove.server_admin_entry_on
 #print axioms Perennial.EtcdGrove.admin_state_of_latest
 
 section userAddHandler
