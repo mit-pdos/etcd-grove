@@ -80,6 +80,9 @@ structure SrvRaft [GooseExts] where
   /-- the bootstrap log, as raft's records (raft's `reBoot` until 2026-10-27): the members'
   `ConfChange`s the cluster started with, which the server's membership model folds -/
   boot : List EntryM
+  /-- the `MemoryStorage` registry's ghost name (raft's storage API, `MemStorReg`): the storage
+  model the node API's node predicates are stated at (`srvStor`) -/
+  reg : GName
   log : GName
   fresh : GName
   props : GName
@@ -275,6 +278,12 @@ instance srvRLogLb_timeless (γ : ServerRaftNames) (L : List EntryModel) :
 theorem srvRLogLb_idx (γ : ServerRaftNames) (L : List EntryModel) :
     srvRLogLb (GF := GF) γ L ⊢ ⌜srvIdxOkW γ.ai0 L⌝ := by
   unfold srvRLogLb; iintro ⟨-, %H⟩; ipureintro; exact H
+
+/-- **The cluster's storage model** (raft's storage API at the `MemoryStorage` registry `reg`):
+the instance the node API's node predicates are stated at, for the server. -/
+abbrev srvStor (γ : SrvRaft) : StorageModel GF :=
+  letI : MemStorReg GF := ⟨γ.reg⟩
+  inferInstance
 
 /-- Any storage model (the node API's laws take one, unused). -/
 abbrev srvAnyStor : StorageModel GF :=
@@ -1610,11 +1619,11 @@ filler, no normal entry), the server's start at index `0`: the server's names (t
 as given), the log invariant, the KV invariant's half of `Lf0`, and the authorities of the
 proposals' and the read contexts' fresh tokens (for the mints). -/
 theorem srvLogInv_alloc (cl : Draft.Cluster) (vs : List w64) (dyn : Bool)
-    (dec : Draft.ConfChangeDecoder) (boot : List EntryM) (Lf0 : List EntryModel) (E : CoPset)
+    (dec : Draft.ConfChangeDecoder) (boot : List EntryM) (reg : GName) (Lf0 : List EntryModel) (E : CoPset)
     (hidx : srvIdxOkW (W64 0) Lf0) (hnf : ∀ m ∈ Lf0, ¬ m.toLE.isFiller)
     (hnn : ∀ m ∈ Lf0, m.typ ≠ W32 0) :
     ⊢ Draft.ownCommittedOps (GF := GF) cl (Lf0.map EntryModel.toLE) ={E}=∗
-      ∃ γr : SrvRaft, ⌜γr.cl = cl ∧ γr.vs = vs ∧ γr.dyn = dyn ∧ γr.dec = dec ∧ γr.boot = boot⌝ ∗
+      ∃ γr : SrvRaft, ⌜γr.cl = cl ∧ γr.vs = vs ∧ γr.dyn = dyn ∧ γr.dec = dec ∧ γr.boot = boot ∧ γr.reg = reg⌝ ∗
         srvLogInv (⟨γr, [], W64 0⟩ : ServerRaftNames) ∗ srvRLog ⟨γr, [], W64 0⟩ Lf0 ∗
         srvRLogLb (⟨γr, [], W64 0⟩ : ServerRaftNames) [] ∗
         ghostMapAuth γr.fresh 1 (∅ : GMap (List w8) Unit) ∗
@@ -1627,7 +1636,7 @@ theorem srvLogInv_alloc (cl : Draft.Cluster) (vs : List w64) (dyn : Bool)
   imod ghost_map_alloc_empty (GF := GF) (K := List w8) (V := List EntryModel) with ⟨%γfired, HF⟩
   imod ghost_map_alloc_empty (GF := GF) (K := List w8) (V := Unit) with ⟨%γrd, Hrd⟩
   imod mono_list_own_alloc (GF := GF) ([] : List (GName × Nat)) with ⟨%γpend, HR, -⟩
-  let γr : SrvRaft := ⟨cl, vs, dyn, dec, boot, γlog, γfresh, γprops, γfired, γrd, γpend⟩
+  let γr : SrvRaft := ⟨cl, vs, dyn, dec, boot, reg, γlog, γfresh, γprops, γfired, γrd, γpend⟩
   icases ((monoListAuthOwn_fractional (GF := GF) γlog Lf0).fractional
       (1 : Qp).half (1 : Qp).half).1 $$ [Hlog] with ⟨Hlog, HL⟩
   · rw [Qp.half_add_half]; iexact Hlog
@@ -1662,7 +1671,7 @@ theorem srvLogInv_alloc (cl : Draft.Cluster) (vs : List w64) (dyn : Bool)
   imodintro
   iexists γr
   isplitr
-  · ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl⟩
+  · ipureintro; exact ⟨rfl, rfl, rfl, rfl, rfl, rfl⟩
   iunfold srvLogInv
   iframe Hli Hfresh Hrd
   iunfold srvRLog

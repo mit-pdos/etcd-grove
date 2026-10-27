@@ -869,6 +869,38 @@ theorem ownCommittedOps_lb_prefix' (γ : Cluster) (ops l : List LogEntry) :
   icases mono_list_auth_lb_valid $$ Ha Hlb with %H
   ipureintro; exact H.2
 
+/-- (2026-10-27, the server port's addition; proved: the server's `ccShrink_of_raftOk`, moved
+here) **An `AddNode` of a voter, or of the node `0`, keeps a static cluster's voters**
+(`CCShrink`, `node.ApplyConfChange.spec`'s premise): what etcd's server hands raft in a static
+cluster (the bootstrap entries again, or a refused change with `NodeId` `0`). -/
+theorem ccShrink_addVoter (cfg : GSet w64) (cm : ConfChangeM) (ht : cm.type = W32 0)
+    (hk' : ∃ k, k ∈ cfg ∧ (cm.nodeId = k ∨ cm.nodeId = W64 0)) :
+    CCShrink cfg (ccV2Of (.v1 cm)).1 (ccV2Of (.v1 cm)).2 := by
+  obtain ⟨k, hk, hid⟩ := hk'
+  have hne : cfg ≠ ∅ := by
+    intro he
+    rw [he] at hk
+    have := (GMap.elem_of_gset _ _).1 hk
+    simp at this
+  rcases hid with hid | hid0
+  · by_cases h0 : cm.nodeId = W64 0
+    · exact CCNoop.shrink (ccApplyM_v1_noop cfg cm h0 hne)
+    · intro lrn Hd
+      refine ⟨lrn, GMap.subseteq_refl _, ?_⟩
+      have hin : cm.nodeId ∈ cfg := by rw [hid]; exact hk
+      have hL : cm.nodeId ∉ lrn := fun h' => Hd _ h' hin
+      have hc : ({ Type' := cm.type, NodeId' := cm.nodeId } : ConfChangeSingleM) =
+          addNodeCC cm.nodeId := by rw [ht]
+      show ccApplyM (W32 0) [{ Type' := cm.type, NodeId' := cm.nodeId }] (cfgState cfg lrn) =
+        some (cfgState cfg lrn)
+      apply ccApplyM_single
+      rw [hc]
+      have := simpleM_cfgState_addNode cfg lrn cm.nodeId h0 hL Hd
+      rw [GMap.insert_id _ _ _ ((GMap.elem_of_gset _ _).1 hin)] at this
+      exact this
+  · exact CCNoop.shrink (ccApplyM_v1_noop cfg cm hid0 hne)
+
+
 end lawsPure
 
 section lawsPure2
