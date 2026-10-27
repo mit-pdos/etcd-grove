@@ -233,6 +233,10 @@ removed, ..., adequacy coverage" below.
     raft's names (`snapDirs_alloc`), `NewServer.spec` taking `γd` with `snapDir_init`. `Process`
     unchanged (MsgSnap refuted in the no-snapshot mode; L3 adds `γd` to `srvProcOk`). No axiom.
     `notes/decisions.md`, "D22 J2".
+  - **Integration 2 (2026-10-27)**: J1a, J6a, J4a and J7b merged with `lean` and landed (the
+    resolutions joined both sides; `KVModelRestore` over lean's lease table, J6a's `rn_ready_recvL`
+    through raft's sealed `readyP_take`). Trust base unchanged (724 axioms, 5 `sorry`s).
+    `notes/decisions.md`, "D22 integration 2".
   - **J6a done (2026-10-26)**: the raft node's payload with a snapshot (`rnApP = rnApN ∨
     rnApSnap`, `rnReadySnap`, `rn_ready_recvL`, `rnApplyTok_recvS`, `updateCommittedIndex` with a
     snapshot), parametric in raft's mode; and J7b's raft part: `readySnapData` states the snapshot's

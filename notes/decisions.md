@@ -23376,3 +23376,34 @@ snapshot's term to its last entry's). Parametric in raft's mode: every new case 
 Statement changes: `readySnapData` (raft's `Ready` payload, more facts; consumers only), the internal
 `rnApP`, `rnApplyTok_recv` (a premise), `updateCommittedIndex.spec` (more general). No closed
 theorem's statement changes. No axiom, no `sorry`.
+
+## D22 integration 2: J1a, J6a, J4a, J7b and `lean` joined (2026-10-27 · decided by the orchestrator while the user was away (integration 2))
+
+Merged into `snapshot-j7b`, in order: `snapshot-j1a` (`e036a153f3`), `snapshot-j6a` (`b4d795e9eb`,
+off J1a), `snapshot-j4` (`400a81fbcf`), `lean`. Every conflict was a union of the two sides; no
+statement was weakened, none was dropped.
+
+- `SnapApplyWalk.lean` (J1a × J7b): J1a's rename `srvAuthRecoverOk` → `authRecoverOk` on J7b's
+  generalized premise (`tI`, the meta-backend at `(Index, tI)`).
+- `AuthSrv.lean`'s `authStoreKit` (J1a × lean's auth E3l): lean's `authStoreLatestM` and
+  `authApplyResB … d.be` (replacing `authApplyResAt`), then J1a's `□ (⌜M = off⌝ → authRecoverOk
+  stl)`; `authStoreKit_off`/`_on` prove all three.
+- `ServerOn.lean`'s `srvBuiltG`/`StartOn.lean` (J1a × lean): lean's `"Hua" ∷ srvUberRowM on s E x₀`
+  with J1a's `"Hsnapb" ∷ srvSnapBoot s ci E γr`.
+- `NewServer.lean` (J1a × lean): J1a's `keySized` derived from the every-backend `Hsz`, with lean's
+  `Hro` and extra binder of `server_kv_watchable_of`; `NewAuthStore`'s post with lean's `HstL` and
+  J1a's `HauR`; the transport's `Start` at J1a's `Rm := srvSnapRm γt ρ.rd` (lean had `True`)
+  with lean's (D43 M5c) `L = []` and `Hlsf`.
+- `EtcdServer__applySnapshot.lean` (J7b × lean): the walk's arguments with J7b's `tI` and lean's
+  `hDel`. `EtcdServer__run.lean` (J4 × lean): `applyRes` from lean's `HAR` and J4's `Hak0` (the
+  application's key, J4 replacing the whole token `Htok0`). `InvApplyAll.lean`: both imports.
+- Notes: every side's sections kept.
+- After the merge, against lean's changes (statements unchanged): `KVModelRestore.lean` (J7b) over
+  lean's leases T3/L3a, which fold a lease table beside the log (`backendLog lt`, `kvRaftOf` through
+  `kvRaftSt`): the growth lemmas take any table (the put's lease-missing branch and the revoke
+  branch, the latter excluded by `plainCover`), `kvRaftOf_restorable` the instance of a new
+  `kvRaftSt_restorable`; `InvRaftNode.lean` (J6a) against raft's signature, stage 1 (`readyP`,
+  `nodeDriver`, `nodeDriverBusy` sealed): `rn_ready_recvL` takes the payload by `readyP_take`, its
+  no-snapshot case by `rn_ready_recv_of` (new: `rn_ready_recv`'s body after the take, which
+  `rn_ready_recv` now calls); `updateCommittedIndex.lean` imports `SnapshotMetadata.GetIndex`'s spec.
+- No axiom or `sorry` added or removed (724, 5); every collection matches its baseline.
