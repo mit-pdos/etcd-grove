@@ -264,7 +264,9 @@ def isServerBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp 
     "HWB" ∷ srvWTStock E N ∗
     -- (linkv-txn stage B1, 2026-10-20) the member's entry of the cluster's registries' map, which
     -- `start` sets to the wait it makes
-    "Hwtok" ∷ idWaitTok ρ.ids)
+    "Hwtok" ∷ idWaitTok ρ.ids ∗
+    -- (2026-10-26, D22 J1a) what the snapshot path takes of the construction, for `run`
+    "Hsnapb" ∷ srvSnapBoot s ci E γr)
 
 /-- **What `start` hands to `Start`'s goroutines** (not persistent): a reader slot of `wgMu` (for
 `Start`'s `GoAttach`es), the read loop's precondition with its resources (`srvReadLR`), and the

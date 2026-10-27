@@ -2948,6 +2948,8 @@ class Cmp.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSema
   set_Val : ∀ (x : Cmp) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Cmp.underlying go!"Val") (PairV #x #y) (Val #(({ x with Val' := y } : Cmp)))
   get_Num : ∀ (x : Cmp), go.IsGoStepPureDetTagged under (StructFieldGet Cmp.underlying go!"Num") #x (Val #(x.Num'))
   set_Num : ∀ (x : Cmp) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Cmp.underlying go!"Num") (PairV #x #y) (Val #(({ x with Num' := y } : Cmp)))
+  method_set : go.MethodSetIs Cmp.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Cmp.ty) []
 
 attribute [instance] Cmp.TypeAssumptions.type_repr
   Cmp.TypeAssumptions.underlying
@@ -2959,6 +2961,8 @@ attribute [instance] Cmp.TypeAssumptions.type_repr
   Cmp.TypeAssumptions.set_Val
   Cmp.TypeAssumptions.get_Num
   Cmp.TypeAssumptions.set_Num
+  Cmp.TypeAssumptions.method_set
+  Cmp.TypeAssumptions.ptr_method_set
 
 structure TOp [GooseExts] where
   mk ::
@@ -2993,6 +2997,8 @@ class TOp.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSema
   set_Key : ∀ (x : TOp) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet TOp.underlying go!"Key") (PairV #x #y) (Val #(({ x with Key' := y } : TOp)))
   get_Val : ∀ (x : TOp), go.IsGoStepPureDetTagged under (StructFieldGet TOp.underlying go!"Val") #x (Val #(x.Val'))
   set_Val : ∀ (x : TOp) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet TOp.underlying go!"Val") (PairV #x #y) (Val #(({ x with Val' := y } : TOp)))
+  method_set : go.MethodSetIs TOp.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TOp.ty) []
 
 attribute [instance] TOp.TypeAssumptions.type_repr
   TOp.TypeAssumptions.underlying
@@ -3002,6 +3008,8 @@ attribute [instance] TOp.TypeAssumptions.type_repr
   TOp.TypeAssumptions.set_Key
   TOp.TypeAssumptions.get_Val
   TOp.TypeAssumptions.set_Val
+  TOp.TypeAssumptions.method_set
+  TOp.TypeAssumptions.ptr_method_set
 
 structure Input [GooseExts] where
   mk ::
@@ -3068,6 +3076,8 @@ class Input.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSe
   set_NElse : ∀ (x : Input) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Input.underlying go!"NElse") (PairV #x #y) (Val #(({ x with NElse' := y } : Input)))
   get_Else0 : ∀ (x : Input), go.IsGoStepPureDetTagged under (StructFieldGet Input.underlying go!"Else0") #x (Val #(x.Else0'))
   set_Else0 : ∀ (x : Input) (y : TOp), go.IsGoStepPureDetTagged under (StructFieldSet Input.underlying go!"Else0") (PairV #x #y) (Val #(({ x with Else0' := y } : Input)))
+  method_set : go.MethodSetIs Input.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Input.ty) []
 
 attribute [instance] Input.TypeAssumptions.type_repr
   Input.TypeAssumptions.underlying
@@ -3093,6 +3103,8 @@ attribute [instance] Input.TypeAssumptions.type_repr
   Input.TypeAssumptions.set_NElse
   Input.TypeAssumptions.get_Else0
   Input.TypeAssumptions.set_Else0
+  Input.TypeAssumptions.method_set
+  Input.TypeAssumptions.ptr_method_set
 
 structure VR [GooseExts] where
   mk ::
@@ -3127,6 +3139,8 @@ class VR.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSeman
   set_Mod : ∀ (x : VR) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet VR.underlying go!"Mod") (PairV #x #y) (Val #(({ x with Mod' := y } : VR)))
   get_Ver : ∀ (x : VR), go.IsGoStepPureDetTagged under (StructFieldGet VR.underlying go!"Ver") #x (Val #(x.Ver'))
   set_Ver : ∀ (x : VR) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet VR.underlying go!"Ver") (PairV #x #y) (Val #(({ x with Ver' := y } : VR)))
+  method_set : go.MethodSetIs VR.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType VR.ty) []
 
 attribute [instance] VR.TypeAssumptions.type_repr
   VR.TypeAssumptions.underlying
@@ -3136,6 +3150,8 @@ attribute [instance] VR.TypeAssumptions.type_repr
   VR.TypeAssumptions.set_Mod
   VR.TypeAssumptions.get_Ver
   VR.TypeAssumptions.set_Ver
+  VR.TypeAssumptions.method_set
+  VR.TypeAssumptions.ptr_method_set
 
 structure KV [GooseExts] where
   mk ::
@@ -3166,6 +3182,8 @@ class KV.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSeman
   set_Key : ∀ (x : KV) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet KV.underlying go!"Key") (PairV #x #y) (Val #(({ x with Key' := y } : KV)))
   get_R : ∀ (x : KV), go.IsGoStepPureDetTagged under (StructFieldGet KV.underlying go!"R") #x (Val #(x.R'))
   set_R : ∀ (x : KV) (y : VR), go.IsGoStepPureDetTagged under (StructFieldSet KV.underlying go!"R") (PairV #x #y) (Val #(({ x with R' := y } : KV)))
+  method_set : go.MethodSetIs KV.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType KV.ty) []
 
 attribute [instance] KV.TypeAssumptions.type_repr
   KV.TypeAssumptions.underlying
@@ -3173,6 +3191,8 @@ attribute [instance] KV.TypeAssumptions.type_repr
   KV.TypeAssumptions.set_Key
   KV.TypeAssumptions.get_R
   KV.TypeAssumptions.set_R
+  KV.TypeAssumptions.method_set
+  KV.TypeAssumptions.ptr_method_set
 
 structure TRes [GooseExts] where
   mk ::
@@ -3211,6 +3231,8 @@ class TRes.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSem
   set_R : ∀ (x : TRes) (y : VR), go.IsGoStepPureDetTagged under (StructFieldSet TRes.underlying go!"R") (PairV #x #y) (Val #(({ x with R' := y } : TRes)))
   get_N : ∀ (x : TRes), go.IsGoStepPureDetTagged under (StructFieldGet TRes.underlying go!"N") #x (Val #(x.N'))
   set_N : ∀ (x : TRes) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet TRes.underlying go!"N") (PairV #x #y) (Val #(({ x with N' := y } : TRes)))
+  method_set : go.MethodSetIs TRes.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TRes.ty) []
 
 attribute [instance] TRes.TypeAssumptions.type_repr
   TRes.TypeAssumptions.underlying
@@ -3222,6 +3244,8 @@ attribute [instance] TRes.TypeAssumptions.type_repr
   TRes.TypeAssumptions.set_R
   TRes.TypeAssumptions.get_N
   TRes.TypeAssumptions.set_N
+  TRes.TypeAssumptions.method_set
+  TRes.TypeAssumptions.ptr_method_set
 
 structure Output [GooseExts] where
   mk ::
@@ -3300,6 +3324,8 @@ class Output.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   set_KV1 : ∀ (x : Output) (y : KV), go.IsGoStepPureDetTagged under (StructFieldSet Output.underlying go!"KV1") (PairV #x #y) (Val #(({ x with KV1' := y } : Output)))
   get_KV2 : ∀ (x : Output), go.IsGoStepPureDetTagged under (StructFieldGet Output.underlying go!"KV2") #x (Val #(x.KV2'))
   set_KV2 : ∀ (x : Output) (y : KV), go.IsGoStepPureDetTagged under (StructFieldSet Output.underlying go!"KV2") (PairV #x #y) (Val #(({ x with KV2' := y } : Output)))
+  method_set : go.MethodSetIs Output.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Output.ty) []
 
 attribute [instance] Output.TypeAssumptions.type_repr
   Output.TypeAssumptions.underlying
@@ -3331,6 +3357,8 @@ attribute [instance] Output.TypeAssumptions.type_repr
   Output.TypeAssumptions.set_KV1
   Output.TypeAssumptions.get_KV2
   Output.TypeAssumptions.set_KV2
+  Output.TypeAssumptions.method_set
+  Output.TypeAssumptions.ptr_method_set
 
 structure entry [GooseExts] where
   mk ::
@@ -3361,6 +3389,8 @@ class entry.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSe
   set_key : ∀ (x : entry) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet entry.underlying go!"key") (PairV #x #y) (Val #(({ x with key' := y } : entry)))
   get_r : ∀ (x : entry), go.IsGoStepPureDetTagged under (StructFieldGet entry.underlying go!"r") #x (Val #(x.r'))
   set_r : ∀ (x : entry) (y : VR), go.IsGoStepPureDetTagged under (StructFieldSet entry.underlying go!"r") (PairV #x #y) (Val #(({ x with r' := y } : entry)))
+  method_set : go.MethodSetIs entry.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType entry.ty) []
 
 attribute [instance] entry.TypeAssumptions.type_repr
   entry.TypeAssumptions.underlying
@@ -3368,6 +3398,8 @@ attribute [instance] entry.TypeAssumptions.type_repr
   entry.TypeAssumptions.set_key
   entry.TypeAssumptions.get_r
   entry.TypeAssumptions.set_r
+  entry.TypeAssumptions.method_set
+  entry.TypeAssumptions.ptr_method_set
 
 structure store [GooseExts] where
   mk ::
@@ -3398,6 +3430,8 @@ class store.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSe
   set_kvs : ∀ (x : store) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet store.underlying go!"kvs") (PairV #x #y) (Val #(({ x with kvs' := y } : store)))
   get_rev : ∀ (x : store), go.IsGoStepPureDetTagged under (StructFieldGet store.underlying go!"rev") #x (Val #(x.rev'))
   set_rev : ∀ (x : store) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet store.underlying go!"rev") (PairV #x #y) (Val #(({ x with rev' := y } : store)))
+  method_set : go.MethodSetIs store.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType store.ty) []
 
 attribute [instance] store.TypeAssumptions.type_repr
   store.TypeAssumptions.underlying
@@ -3405,6 +3439,8 @@ attribute [instance] store.TypeAssumptions.type_repr
   store.TypeAssumptions.set_kvs
   store.TypeAssumptions.get_rev
   store.TypeAssumptions.set_rev
+  store.TypeAssumptions.method_set
+  store.TypeAssumptions.ptr_method_set
 
 structure mcfg [GooseExts] where
   mk ::
@@ -3435,6 +3471,8 @@ class mcfg.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSem
   set_st : ∀ (x : mcfg) (y : store), go.IsGoStepPureDetTagged under (StructFieldSet mcfg.underlying go!"st") (PairV #x #y) (Val #(({ x with st' := y } : mcfg)))
   get_pend : ∀ (x : mcfg), go.IsGoStepPureDetTagged under (StructFieldGet mcfg.underlying go!"pend") #x (Val #(x.pend'))
   set_pend : ∀ (x : mcfg) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet mcfg.underlying go!"pend") (PairV #x #y) (Val #(({ x with pend' := y } : mcfg)))
+  method_set : go.MethodSetIs mcfg.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType mcfg.ty) []
 
 attribute [instance] mcfg.TypeAssumptions.type_repr
   mcfg.TypeAssumptions.underlying
@@ -3442,6 +3480,8 @@ attribute [instance] mcfg.TypeAssumptions.type_repr
   mcfg.TypeAssumptions.set_st
   mcfg.TypeAssumptions.get_pend
   mcfg.TypeAssumptions.set_pend
+  mcfg.TypeAssumptions.method_set
+  mcfg.TypeAssumptions.ptr_method_set
 
 abbrev state [GooseExts] : Type := GoSlice
 
@@ -3450,8 +3490,12 @@ abbrev state [GooseExts] : Type := GoSlice
 
 class state.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq state.ty state.underlying
+  method_set : go.MethodSetIs state.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType state.ty) []
 
 attribute [instance] state.TypeAssumptions.underlying
+  state.TypeAssumptions.method_set
+  state.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Cmp_instance : Cmp.TypeAssumptions

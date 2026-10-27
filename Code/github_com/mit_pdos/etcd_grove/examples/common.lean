@@ -917,6 +917,8 @@ class KV.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSeman
   set_Key : ∀ (x : KV) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet KV.underlying go!"Key") (PairV #x #y) (Val #(({ x with Key' := y } : KV)))
   get_Val : ∀ (x : KV), go.IsGoStepPureDetTagged under (StructFieldGet KV.underlying go!"Val") #x (Val #(x.Val'))
   set_Val : ∀ (x : KV) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet KV.underlying go!"Val") (PairV #x #y) (Val #(({ x with Val' := y } : KV)))
+  method_set : go.MethodSetIs KV.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType KV.ty) []
 
 attribute [instance] KV.TypeAssumptions.type_repr
   KV.TypeAssumptions.underlying
@@ -924,6 +926,8 @@ attribute [instance] KV.TypeAssumptions.type_repr
   KV.TypeAssumptions.set_Key
   KV.TypeAssumptions.get_Val
   KV.TypeAssumptions.set_Val
+  KV.TypeAssumptions.method_set
+  KV.TypeAssumptions.ptr_method_set
 
 structure PutRec [GooseExts] where
   mk ::
@@ -958,6 +962,8 @@ class PutRec.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   set_Key : ∀ (x : PutRec) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet PutRec.underlying go!"Key") (PairV #x #y) (Val #(({ x with Key' := y } : PutRec)))
   get_Val : ∀ (x : PutRec), go.IsGoStepPureDetTagged under (StructFieldGet PutRec.underlying go!"Val") #x (Val #(x.Val'))
   set_Val : ∀ (x : PutRec) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet PutRec.underlying go!"Val") (PairV #x #y) (Val #(({ x with Val' := y } : PutRec)))
+  method_set : go.MethodSetIs PutRec.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PutRec.ty) []
 
 attribute [instance] PutRec.TypeAssumptions.type_repr
   PutRec.TypeAssumptions.underlying
@@ -967,6 +973,8 @@ attribute [instance] PutRec.TypeAssumptions.type_repr
   PutRec.TypeAssumptions.set_Key
   PutRec.TypeAssumptions.get_Val
   PutRec.TypeAssumptions.set_Val
+  PutRec.TypeAssumptions.method_set
+  PutRec.TypeAssumptions.ptr_method_set
 
 structure Event [GooseExts] where
   mk ::
@@ -1005,6 +1013,8 @@ class Event.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSe
   set_Val : ∀ (x : Event) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Event.underlying go!"Val") (PairV #x #y) (Val #(({ x with Val' := y } : Event)))
   get_Put : ∀ (x : Event), go.IsGoStepPureDetTagged under (StructFieldGet Event.underlying go!"Put") #x (Val #(x.Put'))
   set_Put : ∀ (x : Event) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Event.underlying go!"Put") (PairV #x #y) (Val #(({ x with Put' := y } : Event)))
+  method_set : go.MethodSetIs Event.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Event.ty) []
 
 attribute [instance] Event.TypeAssumptions.type_repr
   Event.TypeAssumptions.underlying
@@ -1016,6 +1026,8 @@ attribute [instance] Event.TypeAssumptions.type_repr
   Event.TypeAssumptions.set_Val
   Event.TypeAssumptions.get_Put
   Event.TypeAssumptions.set_Put
+  Event.TypeAssumptions.method_set
+  Event.TypeAssumptions.ptr_method_set
 
 structure Writes [GooseExts] where
   mk ::
@@ -1046,6 +1058,8 @@ class Writes.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   set_Mu : ∀ (x : Writes) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet Writes.underlying go!"Mu") (PairV #x #y) (Val #(({ x with Mu' := y } : Writes)))
   get_Ok : ∀ (x : Writes), go.IsGoStepPureDetTagged under (StructFieldGet Writes.underlying go!"Ok") #x (Val #(x.Ok'))
   set_Ok : ∀ (x : Writes) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Writes.underlying go!"Ok") (PairV #x #y) (Val #(({ x with Ok' := y } : Writes)))
+  method_set : go.MethodSetIs Writes.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Writes.ty) []
 
 attribute [instance] Writes.TypeAssumptions.type_repr
   Writes.TypeAssumptions.underlying
@@ -1053,6 +1067,8 @@ attribute [instance] Writes.TypeAssumptions.type_repr
   Writes.TypeAssumptions.set_Mu
   Writes.TypeAssumptions.get_Ok
   Writes.TypeAssumptions.set_Ok
+  Writes.TypeAssumptions.method_set
+  Writes.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   KV_instance : KV.TypeAssumptions

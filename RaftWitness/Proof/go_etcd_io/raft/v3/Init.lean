@@ -29,9 +29,6 @@ Three things are not facts of the model, and are premises:
   class `log.NewModel` says that the name `log.New` stands for `log.New.model`, a function
   that returns a new `*Logger` (what raft needs of it; the Go function allocates and
   initializes a `Logger`, without failing).
-* `context`'s initializer needs `context.ErrorStringIsError` and
-  `context.DeadlineExceededIsError`, method-set facts
-  (`Perennial/Proof/context_proof/context_init.lean`).
 -/
 module
 
@@ -400,7 +397,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-variable [context.ErrorStringIsError] [context.DeadlineExceededIsError] [log.NewModel]
+variable [log.NewModel]
 
 /-- What `errors.wp_New_ptr` says of its error is what `IsNewError` asks. -/
 theorem isNewError_of_ptr {ii : GoInterfaceOk} (h : errors.IsPointerError ii) :

@@ -226,10 +226,14 @@ class ClientMetrics.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContex
   type_repr : go.TypeReprUnderlying ClientMetrics.underlying ClientMetrics
   underlying : go.UnderlyingDirectedEq ClientMetrics.ty ClientMetrics.underlying
   isUnderlying : go.IsUnderlying ClientMetrics.underlying ClientMetrics.underlying
+  method_set : go.MethodSetIs ClientMetrics.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ClientMetrics.ty) [(go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []))] false []))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Desc" [])))] false []))), (go!"StreamClientInterceptor", (some (go.signature.Signature [(go.GoType.SliceType Option.ty)] true [_root_.Perennial.google_golang_org.grpc.StreamClientInterceptor.ty]))), (go!"UnaryClientInterceptor", (some (go.signature.Signature [(go.GoType.SliceType Option.ty)] true [_root_.Perennial.google_golang_org.grpc.UnaryClientInterceptor.ty])))]
 
 attribute [instance] ClientMetrics.TypeAssumptions.type_repr
   ClientMetrics.TypeAssumptions.underlying
   ClientMetrics.TypeAssumptions.isUnderlying
+  ClientMetrics.TypeAssumptions.method_set
+  ClientMetrics.TypeAssumptions.ptr_method_set
 
 axiom clientMetricsConfig : Type
 axiom clientMetricsConfig.zero_val : ZeroVal clientMetricsConfig
@@ -239,10 +243,14 @@ class clientMetricsConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocal
   type_repr : go.TypeReprUnderlying clientMetricsConfig.underlying clientMetricsConfig
   underlying : go.UnderlyingDirectedEq clientMetricsConfig.ty clientMetricsConfig.underlying
   isUnderlying : go.IsUnderlying clientMetricsConfig.underlying clientMetricsConfig.underlying
+  method_set : go.MethodSetIs clientMetricsConfig.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType clientMetricsConfig.ty) [(go!"github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus.apply", (some (go.signature.Signature [(go.GoType.SliceType ClientMetricsOption.ty)] false [])))]
 
 attribute [instance] clientMetricsConfig.TypeAssumptions.type_repr
   clientMetricsConfig.TypeAssumptions.underlying
   clientMetricsConfig.TypeAssumptions.isUnderlying
+  clientMetricsConfig.TypeAssumptions.method_set
+  clientMetricsConfig.TypeAssumptions.ptr_method_set
 
 abbrev ClientMetricsOption [GooseExts] : Type := GoFunc
 
@@ -251,8 +259,12 @@ abbrev ClientMetricsOption [GooseExts] : Type := GoFunc
 
 class ClientMetricsOption.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ClientMetricsOption.ty ClientMetricsOption.underlying
+  method_set : go.MethodSetIs ClientMetricsOption.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ClientMetricsOption.ty) []
 
 attribute [instance] ClientMetricsOption.TypeAssumptions.underlying
+  ClientMetricsOption.TypeAssumptions.method_set
+  ClientMetricsOption.TypeAssumptions.ptr_method_set
 
 abbrev grpcType [GooseExts] : Type := GoString
 
@@ -261,8 +273,12 @@ abbrev grpcType [GooseExts] : Type := GoString
 
 class grpcType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq grpcType.ty grpcType.underlying
+  method_set : go.MethodSetIs grpcType.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType grpcType.ty) []
 
 attribute [instance] grpcType.TypeAssumptions.underlying
+  grpcType.TypeAssumptions.method_set
+  grpcType.TypeAssumptions.ptr_method_set
 
 abbrev Kind [GooseExts] : Type := GoString
 
@@ -271,8 +287,12 @@ abbrev Kind [GooseExts] : Type := GoString
 
 class Kind.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Kind.ty Kind.underlying
+  method_set : go.MethodSetIs Kind.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Kind.ty) []
 
 attribute [instance] Kind.TypeAssumptions.underlying
+  Kind.TypeAssumptions.method_set
+  Kind.TypeAssumptions.ptr_method_set
 
 axiom CounterOption : Type
 axiom CounterOption.zero_val : ZeroVal CounterOption
@@ -282,10 +302,14 @@ class CounterOption.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContex
   type_repr : go.TypeReprUnderlying CounterOption.underlying CounterOption
   underlying : go.UnderlyingDirectedEq CounterOption.ty CounterOption.underlying
   isUnderlying : go.IsUnderlying CounterOption.underlying CounterOption.underlying
+  method_set : go.MethodSetIs CounterOption.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CounterOption.ty) []
 
 attribute [instance] CounterOption.TypeAssumptions.type_repr
   CounterOption.TypeAssumptions.underlying
   CounterOption.TypeAssumptions.isUnderlying
+  CounterOption.TypeAssumptions.method_set
+  CounterOption.TypeAssumptions.ptr_method_set
 
 abbrev counterOptions [GooseExts] : Type := GoSlice
 
@@ -294,8 +318,12 @@ abbrev counterOptions [GooseExts] : Type := GoSlice
 
 class counterOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq counterOptions.ty counterOptions.underlying
+  method_set : go.MethodSetIs counterOptions.ty [(go!"github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus.apply", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.CounterOpts" [])] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.CounterOpts" [])])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType counterOptions.ty) [(go!"github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus.apply", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.CounterOpts" [])] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.CounterOpts" [])])))]
 
 attribute [instance] counterOptions.TypeAssumptions.underlying
+  counterOptions.TypeAssumptions.method_set
+  counterOptions.TypeAssumptions.ptr_method_set
 
 axiom HistogramOption : Type
 axiom HistogramOption.zero_val : ZeroVal HistogramOption
@@ -305,10 +333,14 @@ class HistogramOption.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCont
   type_repr : go.TypeReprUnderlying HistogramOption.underlying HistogramOption
   underlying : go.UnderlyingDirectedEq HistogramOption.ty HistogramOption.underlying
   isUnderlying : go.IsUnderlying HistogramOption.underlying HistogramOption.underlying
+  method_set : go.MethodSetIs HistogramOption.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType HistogramOption.ty) []
 
 attribute [instance] HistogramOption.TypeAssumptions.type_repr
   HistogramOption.TypeAssumptions.underlying
   HistogramOption.TypeAssumptions.isUnderlying
+  HistogramOption.TypeAssumptions.method_set
+  HistogramOption.TypeAssumptions.ptr_method_set
 
 abbrev histogramOptions [GooseExts] : Type := GoSlice
 
@@ -317,8 +349,12 @@ abbrev histogramOptions [GooseExts] : Type := GoSlice
 
 class histogramOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq histogramOptions.ty histogramOptions.underlying
+  method_set : go.MethodSetIs histogramOptions.ty [(go!"github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus.apply", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.HistogramOpts" [])] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.HistogramOpts" [])])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType histogramOptions.ty) [(go!"github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus.apply", (some (go.signature.Signature [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.HistogramOpts" [])] false [(go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.HistogramOpts" [])])))]
 
 attribute [instance] histogramOptions.TypeAssumptions.underlying
+  histogramOptions.TypeAssumptions.method_set
+  histogramOptions.TypeAssumptions.ptr_method_set
 
 abbrev Option [GooseExts] : Type := GoFunc
 
@@ -327,8 +363,12 @@ abbrev Option [GooseExts] : Type := GoFunc
 
 class Option.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Option.ty Option.underlying
+  method_set : go.MethodSetIs Option.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Option.ty) []
 
 attribute [instance] Option.TypeAssumptions.underlying
+  Option.TypeAssumptions.method_set
+  Option.TypeAssumptions.ptr_method_set
 
 axiom exemplarFromCtxFn : Type
 axiom exemplarFromCtxFn.zero_val : ZeroVal exemplarFromCtxFn
@@ -338,10 +378,14 @@ class exemplarFromCtxFn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCo
   type_repr : go.TypeReprUnderlying exemplarFromCtxFn.underlying exemplarFromCtxFn
   underlying : go.UnderlyingDirectedEq exemplarFromCtxFn.ty exemplarFromCtxFn.underlying
   isUnderlying : go.IsUnderlying exemplarFromCtxFn.underlying exemplarFromCtxFn.underlying
+  method_set : go.MethodSetIs exemplarFromCtxFn.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType exemplarFromCtxFn.ty) []
 
 attribute [instance] exemplarFromCtxFn.TypeAssumptions.type_repr
   exemplarFromCtxFn.TypeAssumptions.underlying
   exemplarFromCtxFn.TypeAssumptions.isUnderlying
+  exemplarFromCtxFn.TypeAssumptions.method_set
+  exemplarFromCtxFn.TypeAssumptions.ptr_method_set
 
 axiom labelsFromCtxFn : Type
 axiom labelsFromCtxFn.zero_val : ZeroVal labelsFromCtxFn
@@ -351,10 +395,14 @@ class labelsFromCtxFn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCont
   type_repr : go.TypeReprUnderlying labelsFromCtxFn.underlying labelsFromCtxFn
   underlying : go.UnderlyingDirectedEq labelsFromCtxFn.ty labelsFromCtxFn.underlying
   isUnderlying : go.IsUnderlying labelsFromCtxFn.underlying labelsFromCtxFn.underlying
+  method_set : go.MethodSetIs labelsFromCtxFn.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType labelsFromCtxFn.ty) []
 
 attribute [instance] labelsFromCtxFn.TypeAssumptions.type_repr
   labelsFromCtxFn.TypeAssumptions.underlying
   labelsFromCtxFn.TypeAssumptions.isUnderlying
+  labelsFromCtxFn.TypeAssumptions.method_set
+  labelsFromCtxFn.TypeAssumptions.ptr_method_set
 
 structure config [GooseExts] where
   mk ::
@@ -385,6 +433,8 @@ class config.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   set_exemplarFn : ∀ (x : config) (y : exemplarFromCtxFn), go.IsGoStepPureDetTagged under (StructFieldSet config.underlying go!"exemplarFn") (PairV #x #y) (Val #(({ x with exemplarFn' := y } : config)))
   get_labelsFn : ∀ (x : config), go.IsGoStepPureDetTagged under (StructFieldGet config.underlying go!"labelsFn") #x (Val #(x.labelsFn'))
   set_labelsFn : ∀ (x : config) (y : labelsFromCtxFn), go.IsGoStepPureDetTagged under (StructFieldSet config.underlying go!"labelsFn") (PairV #x #y) (Val #(({ x with labelsFn' := y } : config)))
+  method_set : go.MethodSetIs config.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType config.ty) [(go!"github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus.apply", (some (go.signature.Signature [(go.GoType.SliceType Option.ty)] false [])))]
 
 attribute [instance] config.TypeAssumptions.type_repr
   config.TypeAssumptions.underlying
@@ -392,6 +442,8 @@ attribute [instance] config.TypeAssumptions.type_repr
   config.TypeAssumptions.set_exemplarFn
   config.TypeAssumptions.get_labelsFn
   config.TypeAssumptions.set_labelsFn
+  config.TypeAssumptions.method_set
+  config.TypeAssumptions.ptr_method_set
 
 axiom reporter : Type
 axiom reporter.zero_val : ZeroVal reporter
@@ -401,10 +453,14 @@ class reporter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [G
   type_repr : go.TypeReprUnderlying reporter.underlying reporter
   underlying : go.UnderlyingDirectedEq reporter.ty reporter.underlying
   isUnderlying : go.IsUnderlying reporter.underlying reporter.underlying
+  method_set : go.MethodSetIs reporter.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType reporter.ty) [(go!"PostCall", (some (go.signature.Signature [go.error, (go.GoType.Named go!"time.Duration" [])] false []))), (go!"PostMsgReceive", (some (go.signature.Signature [go.any, go.error, (go.GoType.Named go!"time.Duration" [])] false []))), (go!"PostMsgSend", (some (go.signature.Signature [go.any, go.error, (go.GoType.Named go!"time.Duration" [])] false []))), (go!"github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus.incrementWithExemplar", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.CounterVec" [])), (go.GoType.SliceType go.string)] true []))), (go!"github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus.observeWithExemplar", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.HistogramVec" [])), go.float64, (go.GoType.SliceType go.string)] true [])))]
 
 attribute [instance] reporter.TypeAssumptions.type_repr
   reporter.TypeAssumptions.underlying
   reporter.TypeAssumptions.isUnderlying
+  reporter.TypeAssumptions.method_set
+  reporter.TypeAssumptions.ptr_method_set
 
 structure reportable [GooseExts] where
   mk ::
@@ -439,6 +495,8 @@ class reportable.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] 
   set_serverMetrics : ∀ (x : reportable) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet reportable.underlying go!"serverMetrics") (PairV #x #y) (Val #(({ x with serverMetrics' := y } : reportable)))
   get_opts : ∀ (x : reportable), go.IsGoStepPureDetTagged under (StructFieldGet reportable.underlying go!"opts") #x (Val #(x.opts'))
   set_opts : ∀ (x : reportable) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet reportable.underlying go!"opts") (PairV #x #y) (Val #(({ x with opts' := y } : reportable)))
+  method_set : go.MethodSetIs reportable.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType reportable.ty) [(go!"ClientReporter", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors.CallMeta" [])] false [(go.GoType.Named go!"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors.Reporter" []), (go.GoType.Named go!"context.Context" [])]))), (go!"ServerReporter", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors.CallMeta" [])] false [(go.GoType.Named go!"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors.Reporter" []), (go.GoType.Named go!"context.Context" [])]))), (go!"github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus.reporter", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType ServerMetrics.ty), (go.GoType.PointerType ClientMetrics.ty), (go.GoType.Named go!"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors.CallMeta" []), Kind.ty] false [(go.GoType.Named go!"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors.Reporter" []), (go.GoType.Named go!"context.Context" [])])))]
 
 attribute [instance] reportable.TypeAssumptions.type_repr
   reportable.TypeAssumptions.underlying
@@ -448,6 +506,8 @@ attribute [instance] reportable.TypeAssumptions.type_repr
   reportable.TypeAssumptions.set_serverMetrics
   reportable.TypeAssumptions.get_opts
   reportable.TypeAssumptions.set_opts
+  reportable.TypeAssumptions.method_set
+  reportable.TypeAssumptions.ptr_method_set
 
 axiom ServerMetrics : Type
 axiom ServerMetrics.zero_val : ZeroVal ServerMetrics
@@ -457,10 +517,14 @@ class ServerMetrics.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContex
   type_repr : go.TypeReprUnderlying ServerMetrics.underlying ServerMetrics
   underlying : go.UnderlyingDirectedEq ServerMetrics.ty ServerMetrics.underlying
   isUnderlying : go.IsUnderlying ServerMetrics.underlying ServerMetrics.underlying
+  method_set : go.MethodSetIs ServerMetrics.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ServerMetrics.ty) [(go!"Collect", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Metric" []))] false []))), (go!"Describe", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.sendonly (go.GoType.PointerType (go.GoType.Named go!"github.com/prometheus/client_golang/prometheus.Desc" [])))] false []))), (go!"InitializeMetrics", (some (go.signature.Signature [_root_.Perennial.google_golang_org.grpc.reflection.ServiceInfoProvider.ty] false []))), (go!"StreamServerInterceptor", (some (go.signature.Signature [(go.GoType.SliceType Option.ty)] true [_root_.Perennial.google_golang_org.grpc.StreamServerInterceptor.ty]))), (go!"UnaryServerInterceptor", (some (go.signature.Signature [(go.GoType.SliceType Option.ty)] true [_root_.Perennial.google_golang_org.grpc.UnaryServerInterceptor.ty]))), (go!"github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus.preRegisterMethod", (some (go.signature.Signature [go.string, (go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.MethodInfo.ty)] false [])))]
 
 attribute [instance] ServerMetrics.TypeAssumptions.type_repr
   ServerMetrics.TypeAssumptions.underlying
   ServerMetrics.TypeAssumptions.isUnderlying
+  ServerMetrics.TypeAssumptions.method_set
+  ServerMetrics.TypeAssumptions.ptr_method_set
 
 structure serverMetricsConfig [GooseExts] where
   mk ::
@@ -499,6 +563,8 @@ class serverMetricsConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocal
   set_enableHistogram : ∀ (x : serverMetricsConfig) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet serverMetricsConfig.underlying go!"enableHistogram") (PairV #x #y) (Val #(({ x with enableHistogram' := y } : serverMetricsConfig)))
   get_contextLabels : ∀ (x : serverMetricsConfig), go.IsGoStepPureDetTagged under (StructFieldGet serverMetricsConfig.underlying go!"contextLabels") #x (Val #(x.contextLabels'))
   set_contextLabels : ∀ (x : serverMetricsConfig) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet serverMetricsConfig.underlying go!"contextLabels") (PairV #x #y) (Val #(({ x with contextLabels' := y } : serverMetricsConfig)))
+  method_set : go.MethodSetIs serverMetricsConfig.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType serverMetricsConfig.ty) [(go!"github.com/grpc-ecosystem/go-grpc-middleware/providers/prometheus.apply", (some (go.signature.Signature [(go.GoType.SliceType ServerMetricsOption.ty)] false [])))]
 
 attribute [instance] serverMetricsConfig.TypeAssumptions.type_repr
   serverMetricsConfig.TypeAssumptions.underlying
@@ -510,6 +576,8 @@ attribute [instance] serverMetricsConfig.TypeAssumptions.type_repr
   serverMetricsConfig.TypeAssumptions.set_enableHistogram
   serverMetricsConfig.TypeAssumptions.get_contextLabels
   serverMetricsConfig.TypeAssumptions.set_contextLabels
+  serverMetricsConfig.TypeAssumptions.method_set
+  serverMetricsConfig.TypeAssumptions.ptr_method_set
 
 abbrev ServerMetricsOption [GooseExts] : Type := GoFunc
 
@@ -518,8 +586,12 @@ abbrev ServerMetricsOption [GooseExts] : Type := GoFunc
 
 class ServerMetricsOption.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ServerMetricsOption.ty ServerMetricsOption.underlying
+  method_set : go.MethodSetIs ServerMetricsOption.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ServerMetricsOption.ty) []
 
 attribute [instance] ServerMetricsOption.TypeAssumptions.underlying
+  ServerMetricsOption.TypeAssumptions.method_set
+  ServerMetricsOption.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   ClientMetrics_instance : ClientMetrics.TypeAssumptions

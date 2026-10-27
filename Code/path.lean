@@ -518,6 +518,8 @@ class lazybuf.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   set_buf : ∀ (x : lazybuf) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet lazybuf.underlying go!"buf") (PairV #x #y) (Val #(({ x with buf' := y } : lazybuf)))
   get_w : ∀ (x : lazybuf), go.IsGoStepPureDetTagged under (StructFieldGet lazybuf.underlying go!"w") #x (Val #(x.w'))
   set_w : ∀ (x : lazybuf) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet lazybuf.underlying go!"w") (PairV #x #y) (Val #(({ x with w' := y } : lazybuf)))
+  method_set : go.MethodSetIs lazybuf.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType lazybuf.ty) [(go!"path.append", (some (go.signature.Signature [go.byte] false []))), (go!"path.index", (some (go.signature.Signature [go.int] false [go.byte]))), (go!"path.string", (some (go.signature.Signature [] false [go.string])))]
   ptr_append_unfold : MethodUnfold (go.GoType.PointerType lazybuf.ty) go!"append" lazybuf.append.impl
   ptr_index_unfold : MethodUnfold (go.GoType.PointerType lazybuf.ty) go!"index" lazybuf.index.impl
   ptr_string_unfold : MethodUnfold (go.GoType.PointerType lazybuf.ty) go!"string" lazybuf.string.impl
@@ -530,6 +532,8 @@ attribute [instance] lazybuf.TypeAssumptions.type_repr
   lazybuf.TypeAssumptions.set_buf
   lazybuf.TypeAssumptions.get_w
   lazybuf.TypeAssumptions.set_w
+  lazybuf.TypeAssumptions.method_set
+  lazybuf.TypeAssumptions.ptr_method_set
   lazybuf.TypeAssumptions.ptr_append_unfold
   lazybuf.TypeAssumptions.ptr_index_unfold
   lazybuf.TypeAssumptions.ptr_string_unfold

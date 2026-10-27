@@ -78,10 +78,14 @@ class Status.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   type_repr : go.TypeReprUnderlying Status.underlying Status
   underlying : go.UnderlyingDirectedEq Status.ty Status.underlying
   isUnderlying : go.IsUnderlying Status.underlying Status.underlying
+  method_set : go.MethodSetIs Status.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Status.ty) [(go!"Code", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/grpc/codes.Code" [])]))), (go!"Details", (some (go.signature.Signature [] false [(go.GoType.SliceType go.any)]))), (go!"Err", (some (go.signature.Signature [] false [go.error]))), (go!"Message", (some (go.signature.Signature [] false [go.string]))), (go!"Proto", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"google.golang.org/genproto/googleapis/rpc/status.Status" []))]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"WithDetails", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.Named go!"google.golang.org/protobuf/runtime/protoiface.MessageV1" []))] true [(go.GoType.PointerType Status.ty), go.error])))]
 
 attribute [instance] Status.TypeAssumptions.type_repr
   Status.TypeAssumptions.underlying
   Status.TypeAssumptions.isUnderlying
+  Status.TypeAssumptions.method_set
+  Status.TypeAssumptions.ptr_method_set
 
 axiom Error : Type
 axiom Error.zero_val : ZeroVal Error
@@ -91,10 +95,14 @@ class Error.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSe
   type_repr : go.TypeReprUnderlying Error.underlying Error
   underlying : go.UnderlyingDirectedEq Error.ty Error.underlying
   isUnderlying : go.IsUnderlying Error.underlying Error.underlying
+  method_set : go.MethodSetIs Error.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Error.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"GRPCStatus", (some (go.signature.Signature [] false [(go.GoType.PointerType Status.ty)]))), (go!"Is", (some (go.signature.Signature [go.error] false [go.bool])))]
 
 attribute [instance] Error.TypeAssumptions.type_repr
   Error.TypeAssumptions.underlying
   Error.TypeAssumptions.isUnderlying
+  Error.TypeAssumptions.method_set
+  Error.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Status_instance : Status.TypeAssumptions

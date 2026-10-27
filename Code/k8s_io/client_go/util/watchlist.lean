@@ -61,8 +61,12 @@ abbrev unSupportedWatchListSemantics [GooseExts] : Type := GoInterface
 
 class unSupportedWatchListSemantics.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq unSupportedWatchListSemantics.ty unSupportedWatchListSemantics.underlying
+  method_set : go.MethodSetIs unSupportedWatchListSemantics.ty [(go!"IsWatchListSemanticsUnSupported", (some (go.signature.Signature [] false [go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType unSupportedWatchListSemantics.ty) []
 
 attribute [instance] unSupportedWatchListSemantics.TypeAssumptions.underlying
+  unSupportedWatchListSemantics.TypeAssumptions.method_set
+  unSupportedWatchListSemantics.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   unSupportedWatchListSemantics_instance : unSupportedWatchListSemantics.TypeAssumptions

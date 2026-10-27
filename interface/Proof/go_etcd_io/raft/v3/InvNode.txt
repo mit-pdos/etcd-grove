@@ -251,16 +251,17 @@ def readySnapData (γ : NodeNames) (rd : Ready) (d ce es : List EntryM) (ms : Li
                               ownSnapS l.ptr (DFrac.own (Qp.half 1)) l.snap ∗
                                 isCommitted γ.raft l.dlv ∗
                                   snapLocal γ.raft γ.id l.snap.Metadata'.Index' ∗
-                                    ⌜l.ptr = rd.Snapshot' ∧
-                                          ce = [] ∧
-                                            d <+: l.dlv ∧
-                                              d.length < l.dlv.length ∧
-                                                l.dlv.length = (uint.Z l.snap.Metadata'.Index').toNat ∧
-                                                  0 < uint.Z l.snap.Metadata'.Index' ∧
-                                                    uint.Z l.snap.Metadata'.Index' < 2 ^ 61 ∧
-                                                      uint.Z l.fl ≤ uint.Z l.snap.Metadata'.Index' ∧
-                                                        LogIndicesOk (snapId l.snap) es⌝ ∗
-                                      readyOut γ.stor es (some l))
+                                    ⌜plogLast base0 l.dlv = snapId l.snap⌝ ∗
+                                      ⌜l.ptr = rd.Snapshot' ∧
+                                            ce = [] ∧
+                                              d <+: l.dlv ∧
+                                                d.length < l.dlv.length ∧
+                                                  l.dlv.length = (uint.Z l.snap.Metadata'.Index').toNat ∧
+                                                    0 < uint.Z l.snap.Metadata'.Index' ∧
+                                                      uint.Z l.snap.Metadata'.Index' < 2 ^ 61 ∧
+                                                        uint.Z l.fl ≤ uint.Z l.snap.Metadata'.Index' ∧
+                                                          LogIndicesOk (snapId l.snap) es⌝ ∗
+                                        readyOut γ.stor es (some l))
 
 theorem readyP_none [package_sem : Assumptions] (γ : NodeNames) (rd : Ready) (H : γ.raft.reNoSnap =
     true ∨ γ.mode.isDyn = true ∨ γ.snapIn = false) : readyP γ rd ⊢ ∃ d ce es ms p p', dghostVar

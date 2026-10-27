@@ -150,7 +150,7 @@ theorem rafthttp.Transport.AddRemote_full
 
 /-- **`t.CutPeer(id)`** on a started transport with a reader's token, `id` never a remote (not
 among the pool's ids `c.L`). -/
-theorem rafthttp.Transport.CutPeer_full [PeerPausable] (hM : rafthttp.peer.Pause.spec (GF := GF) (hG := hG))
+theorem rafthttp.Transport.CutPeer_full (hM : rafthttp.peer.Pause.spec (GF := GF) (hG := hG))
     (γn : NetNames GF) (t : Loc) (c : TrN GF) (id : w64) (Hid : id ∉ c.L) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
         trState γn t c ∗ trTok γn t c }}
@@ -167,7 +167,7 @@ theorem rafthttp.Transport.CutPeer_full [PeerPausable] (hM : rafthttp.peer.Pause
   iexact Htok
 
 /-- **`t.MendPeer(id)`**, as `CutPeer`. -/
-theorem rafthttp.Transport.MendPeer_full [PeerPausable] (hM : rafthttp.peer.Resume.spec (GF := GF) (hG := hG))
+theorem rafthttp.Transport.MendPeer_full (hM : rafthttp.peer.Resume.spec (GF := GF) (hG := hG))
     (γn : NetNames GF) (t : Loc) (c : TrN GF) (id : w64) (Hid : id ∉ c.L) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
         trState γn t c ∗ trTok γn t c }}

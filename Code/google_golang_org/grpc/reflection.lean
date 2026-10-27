@@ -99,10 +99,14 @@ class v1AlphaServerImpl.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCo
   type_repr : go.TypeReprUnderlying v1AlphaServerImpl.underlying v1AlphaServerImpl
   underlying : go.UnderlyingDirectedEq v1AlphaServerImpl.ty v1AlphaServerImpl.underlying
   isUnderlying : go.IsUnderlying v1AlphaServerImpl.underlying v1AlphaServerImpl.underlying
+  method_set : go.MethodSetIs v1AlphaServerImpl.ty [(go!"ServerReflectionInfo", (some (go.signature.Signature [(_root_.Perennial.google_golang_org.grpc.BidiStreamingServer.ty (go.GoType.Named go!"google.golang.org/grpc/reflection/grpc_reflection_v1alpha.ServerReflectionRequest" []) (go.GoType.Named go!"google.golang.org/grpc/reflection/grpc_reflection_v1alpha.ServerReflectionResponse" []))] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType v1AlphaServerImpl.ty) [(go!"ServerReflectionInfo", (some (go.signature.Signature [(_root_.Perennial.google_golang_org.grpc.BidiStreamingServer.ty (go.GoType.Named go!"google.golang.org/grpc/reflection/grpc_reflection_v1alpha.ServerReflectionRequest" []) (go.GoType.Named go!"google.golang.org/grpc/reflection/grpc_reflection_v1alpha.ServerReflectionResponse" []))] false [go.error])))]
 
 attribute [instance] v1AlphaServerImpl.TypeAssumptions.type_repr
   v1AlphaServerImpl.TypeAssumptions.underlying
   v1AlphaServerImpl.TypeAssumptions.isUnderlying
+  v1AlphaServerImpl.TypeAssumptions.method_set
+  v1AlphaServerImpl.TypeAssumptions.ptr_method_set
 
 axiom v1AlphaServerStreamAdapter : Type
 axiom v1AlphaServerStreamAdapter.zero_val : ZeroVal v1AlphaServerStreamAdapter
@@ -112,10 +116,14 @@ class v1AlphaServerStreamAdapter.TypeAssumptions [GooseExts] [GoGlobalContext] [
   type_repr : go.TypeReprUnderlying v1AlphaServerStreamAdapter.underlying v1AlphaServerStreamAdapter
   underlying : go.UnderlyingDirectedEq v1AlphaServerStreamAdapter.ty v1AlphaServerStreamAdapter.underlying
   isUnderlying : go.IsUnderlying v1AlphaServerStreamAdapter.underlying v1AlphaServerStreamAdapter.underlying
+  method_set : go.MethodSetIs v1AlphaServerStreamAdapter.ty [(go!"Context", (some (go.signature.Signature [] false [(go.GoType.Named go!"context.Context" [])]))), (go!"Recv", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc/reflection/grpc_reflection_v1.ServerReflectionRequest" [])), go.error]))), (go!"RecvMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"Send", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc/reflection/grpc_reflection_v1.ServerReflectionResponse" []))] false [go.error]))), (go!"SendHeader", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/metadata.MD" [])] false [go.error]))), (go!"SendMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"SetHeader", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/metadata.MD" [])] false [go.error]))), (go!"SetTrailer", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/metadata.MD" [])] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType v1AlphaServerStreamAdapter.ty) [(go!"Context", (some (go.signature.Signature [] false [(go.GoType.Named go!"context.Context" [])]))), (go!"Recv", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc/reflection/grpc_reflection_v1.ServerReflectionRequest" [])), go.error]))), (go!"RecvMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"Send", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc/reflection/grpc_reflection_v1.ServerReflectionResponse" []))] false [go.error]))), (go!"SendHeader", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/metadata.MD" [])] false [go.error]))), (go!"SendMsg", (some (go.signature.Signature [go.any] false [go.error]))), (go!"SetHeader", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/metadata.MD" [])] false [go.error]))), (go!"SetTrailer", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/metadata.MD" [])] false [])))]
 
 attribute [instance] v1AlphaServerStreamAdapter.TypeAssumptions.type_repr
   v1AlphaServerStreamAdapter.TypeAssumptions.underlying
   v1AlphaServerStreamAdapter.TypeAssumptions.isUnderlying
+  v1AlphaServerStreamAdapter.TypeAssumptions.method_set
+  v1AlphaServerStreamAdapter.TypeAssumptions.ptr_method_set
 
 axiom GRPCServer : Type
 axiom GRPCServer.zero_val : ZeroVal GRPCServer
@@ -125,10 +133,14 @@ class GRPCServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] 
   type_repr : go.TypeReprUnderlying GRPCServer.underlying GRPCServer
   underlying : go.UnderlyingDirectedEq GRPCServer.ty GRPCServer.underlying
   isUnderlying : go.IsUnderlying GRPCServer.underlying GRPCServer.underlying
+  method_set : go.MethodSetIs GRPCServer.ty [(go!"GetServiceInfo", (some (go.signature.Signature [] false [(go.GoType.MapType go.string _root_.Perennial.google_golang_org.grpc.ServiceInfo.ty)]))), (go!"RegisterService", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.google_golang_org.grpc.ServiceDesc.ty), go.any] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType GRPCServer.ty) []
 
 attribute [instance] GRPCServer.TypeAssumptions.type_repr
   GRPCServer.TypeAssumptions.underlying
   GRPCServer.TypeAssumptions.isUnderlying
+  GRPCServer.TypeAssumptions.method_set
+  GRPCServer.TypeAssumptions.ptr_method_set
 
 abbrev ServiceInfoProvider [GooseExts] : Type := GoInterface
 
@@ -137,8 +149,12 @@ abbrev ServiceInfoProvider [GooseExts] : Type := GoInterface
 
 class ServiceInfoProvider.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ServiceInfoProvider.ty ServiceInfoProvider.underlying
+  method_set : go.MethodSetIs ServiceInfoProvider.ty [(go!"GetServiceInfo", (some (go.signature.Signature [] false [(go.GoType.MapType go.string _root_.Perennial.google_golang_org.grpc.ServiceInfo.ty)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ServiceInfoProvider.ty) []
 
 attribute [instance] ServiceInfoProvider.TypeAssumptions.underlying
+  ServiceInfoProvider.TypeAssumptions.method_set
+  ServiceInfoProvider.TypeAssumptions.ptr_method_set
 
 axiom ExtensionResolver : Type
 axiom ExtensionResolver.zero_val : ZeroVal ExtensionResolver
@@ -148,10 +164,14 @@ class ExtensionResolver.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCo
   type_repr : go.TypeReprUnderlying ExtensionResolver.underlying ExtensionResolver
   underlying : go.UnderlyingDirectedEq ExtensionResolver.ty ExtensionResolver.underlying
   isUnderlying : go.IsUnderlying ExtensionResolver.underlying ExtensionResolver.underlying
+  method_set : go.MethodSetIs ExtensionResolver.ty [(go!"FindExtensionByName", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.FullName" [])] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.ExtensionType" []), go.error]))), (go!"FindExtensionByNumber", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.FullName" []), (go.GoType.Named go!"google.golang.org/protobuf/encoding/protowire.Number" [])] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.ExtensionType" []), go.error]))), (go!"RangeExtensionsByMessage", (some (go.signature.Signature [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.FullName" []), (go.GoType.FunctionType (go.signature.Signature [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.ExtensionType" [])] false [go.bool]))] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ExtensionResolver.ty) []
 
 attribute [instance] ExtensionResolver.TypeAssumptions.type_repr
   ExtensionResolver.TypeAssumptions.underlying
   ExtensionResolver.TypeAssumptions.isUnderlying
+  ExtensionResolver.TypeAssumptions.method_set
+  ExtensionResolver.TypeAssumptions.ptr_method_set
 
 axiom ServerOptions : Type
 axiom ServerOptions.zero_val : ZeroVal ServerOptions
@@ -161,10 +181,14 @@ class ServerOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContex
   type_repr : go.TypeReprUnderlying ServerOptions.underlying ServerOptions
   underlying : go.UnderlyingDirectedEq ServerOptions.ty ServerOptions.underlying
   isUnderlying : go.IsUnderlying ServerOptions.underlying ServerOptions.underlying
+  method_set : go.MethodSetIs ServerOptions.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ServerOptions.ty) []
 
 attribute [instance] ServerOptions.TypeAssumptions.type_repr
   ServerOptions.TypeAssumptions.underlying
   ServerOptions.TypeAssumptions.isUnderlying
+  ServerOptions.TypeAssumptions.method_set
+  ServerOptions.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   v1AlphaServerImpl_instance : v1AlphaServerImpl.TypeAssumptions

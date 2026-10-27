@@ -120,10 +120,14 @@ class ErrorHandler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext
   type_repr : go.TypeReprUnderlying ErrorHandler.underlying ErrorHandler
   underlying : go.UnderlyingDirectedEq ErrorHandler.ty ErrorHandler.underlying
   isUnderlying : go.IsUnderlying ErrorHandler.underlying ErrorHandler.underlying
+  method_set : go.MethodSetIs ErrorHandler.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ErrorHandler.ty) []
 
 attribute [instance] ErrorHandler.TypeAssumptions.type_repr
   ErrorHandler.TypeAssumptions.underlying
   ErrorHandler.TypeAssumptions.isUnderlying
+  ErrorHandler.TypeAssumptions.method_set
+  ErrorHandler.TypeAssumptions.ptr_method_set
 
 axiom rudimentaryErrorBackoff : Type
 axiom rudimentaryErrorBackoff.zero_val : ZeroVal rudimentaryErrorBackoff
@@ -133,10 +137,14 @@ class rudimentaryErrorBackoff.TypeAssumptions [GooseExts] [GoGlobalContext] [GoL
   type_repr : go.TypeReprUnderlying rudimentaryErrorBackoff.underlying rudimentaryErrorBackoff
   underlying : go.UnderlyingDirectedEq rudimentaryErrorBackoff.ty rudimentaryErrorBackoff.underlying
   isUnderlying : go.IsUnderlying rudimentaryErrorBackoff.underlying rudimentaryErrorBackoff.underlying
+  method_set : go.MethodSetIs rudimentaryErrorBackoff.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType rudimentaryErrorBackoff.ty) [(go!"OnError", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] rudimentaryErrorBackoff.TypeAssumptions.type_repr
   rudimentaryErrorBackoff.TypeAssumptions.underlying
   rudimentaryErrorBackoff.TypeAssumptions.isUnderlying
+  rudimentaryErrorBackoff.TypeAssumptions.method_set
+  rudimentaryErrorBackoff.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   ErrorHandler_instance : ErrorHandler.TypeAssumptions

@@ -421,8 +421,12 @@ abbrev Wait [GooseExts] : Type := GoInterface
 
 class Wait.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Wait.ty Wait.underlying
+  method_set : go.MethodSetIs Wait.ty [(go!"IsRegistered", (some (go.signature.Signature [go.uint64] false [go.bool]))), (go!"Register", (some (go.signature.Signature [go.uint64] false [(go.GoType.ChannelType go.ChanDir.recvonly go.any)]))), (go!"Trigger", (some (go.signature.Signature [go.uint64, go.any] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Wait.ty) []
 
 attribute [instance] Wait.TypeAssumptions.underlying
+  Wait.TypeAssumptions.method_set
+  Wait.TypeAssumptions.ptr_method_set
 
 structure list' [GooseExts] where
   mk ::
@@ -449,6 +453,8 @@ class list.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSem
   underlying : go.UnderlyingDirectedEq list'.ty list'.underlying
   get_e : ∀ (x : list'), go.IsGoStepPureDetTagged under (StructFieldGet list'.underlying go!"e") #x (Val #(x.e'))
   set_e : ∀ (x : list') (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet list'.underlying go!"e") (PairV #x #y) (Val #(({ x with e' := y } : list')))
+  method_set : go.MethodSetIs list'.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType list'.ty) [(go!"IsRegistered", (some (go.signature.Signature [go.uint64] false [go.bool]))), (go!"Register", (some (go.signature.Signature [go.uint64] false [(go.GoType.ChannelType go.ChanDir.recvonly go.any)]))), (go!"Trigger", (some (go.signature.Signature [go.uint64, go.any] false [])))]
   ptr_IsRegistered_unfold : MethodUnfold (go.GoType.PointerType list'.ty) go!"IsRegistered" list.IsRegistered.impl
   ptr_Register_unfold : MethodUnfold (go.GoType.PointerType list'.ty) go!"Register" list.Register.impl
   ptr_Trigger_unfold : MethodUnfold (go.GoType.PointerType list'.ty) go!"Trigger" list.Trigger.impl
@@ -457,6 +463,8 @@ attribute [instance] list.TypeAssumptions.type_repr
   list.TypeAssumptions.underlying
   list.TypeAssumptions.get_e
   list.TypeAssumptions.set_e
+  list.TypeAssumptions.method_set
+  list.TypeAssumptions.ptr_method_set
   list.TypeAssumptions.ptr_IsRegistered_unfold
   list.TypeAssumptions.ptr_Register_unfold
   list.TypeAssumptions.ptr_Trigger_unfold
@@ -490,6 +498,8 @@ class listElement.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   set_l : ∀ (x : listElement) (y : _root_.Perennial.sync.RWMutex), go.IsGoStepPureDetTagged under (StructFieldSet listElement.underlying go!"l") (PairV #x #y) (Val #(({ x with l' := y } : listElement)))
   get_m : ∀ (x : listElement), go.IsGoStepPureDetTagged under (StructFieldGet listElement.underlying go!"m") #x (Val #(x.m'))
   set_m : ∀ (x : listElement) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet listElement.underlying go!"m") (PairV #x #y) (Val #(({ x with m' := y } : listElement)))
+  method_set : go.MethodSetIs listElement.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType listElement.ty) []
 
 attribute [instance] listElement.TypeAssumptions.type_repr
   listElement.TypeAssumptions.underlying
@@ -497,6 +507,8 @@ attribute [instance] listElement.TypeAssumptions.type_repr
   listElement.TypeAssumptions.set_l
   listElement.TypeAssumptions.get_m
   listElement.TypeAssumptions.set_m
+  listElement.TypeAssumptions.method_set
+  listElement.TypeAssumptions.ptr_method_set
 
 structure waitWithResponse [GooseExts] where
   mk ::
@@ -523,6 +535,8 @@ class waitWithResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCon
   underlying : go.UnderlyingDirectedEq waitWithResponse.ty waitWithResponse.underlying
   get_ch : ∀ (x : waitWithResponse), go.IsGoStepPureDetTagged under (StructFieldGet waitWithResponse.underlying go!"ch") #x (Val #(x.ch'))
   set_ch : ∀ (x : waitWithResponse) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet waitWithResponse.underlying go!"ch") (PairV #x #y) (Val #(({ x with ch' := y } : waitWithResponse)))
+  method_set : go.MethodSetIs waitWithResponse.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType waitWithResponse.ty) [(go!"IsRegistered", (some (go.signature.Signature [go.uint64] false [go.bool]))), (go!"Register", (some (go.signature.Signature [go.uint64] false [(go.GoType.ChannelType go.ChanDir.recvonly go.any)]))), (go!"Trigger", (some (go.signature.Signature [go.uint64, go.any] false [])))]
   ptr_IsRegistered_unfold : MethodUnfold (go.GoType.PointerType waitWithResponse.ty) go!"IsRegistered" waitWithResponse.IsRegistered.impl
   ptr_Register_unfold : MethodUnfold (go.GoType.PointerType waitWithResponse.ty) go!"Register" waitWithResponse.Register.impl
   ptr_Trigger_unfold : MethodUnfold (go.GoType.PointerType waitWithResponse.ty) go!"Trigger" waitWithResponse.Trigger.impl
@@ -531,6 +545,8 @@ attribute [instance] waitWithResponse.TypeAssumptions.type_repr
   waitWithResponse.TypeAssumptions.underlying
   waitWithResponse.TypeAssumptions.get_ch
   waitWithResponse.TypeAssumptions.set_ch
+  waitWithResponse.TypeAssumptions.method_set
+  waitWithResponse.TypeAssumptions.ptr_method_set
   waitWithResponse.TypeAssumptions.ptr_IsRegistered_unfold
   waitWithResponse.TypeAssumptions.ptr_Register_unfold
   waitWithResponse.TypeAssumptions.ptr_Trigger_unfold
@@ -542,8 +558,12 @@ abbrev WaitTime [GooseExts] : Type := GoInterface
 
 class WaitTime.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq WaitTime.ty WaitTime.underlying
+  method_set : go.MethodSetIs WaitTime.ty [(go!"Trigger", (some (go.signature.Signature [go.uint64] false []))), (go!"Wait", (some (go.signature.Signature [go.uint64] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType WaitTime.ty) []
 
 attribute [instance] WaitTime.TypeAssumptions.underlying
+  WaitTime.TypeAssumptions.method_set
+  WaitTime.TypeAssumptions.ptr_method_set
 
 structure timeList [GooseExts] where
   mk ::
@@ -578,6 +598,8 @@ class timeList.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [G
   set_lastTriggerDeadline : ∀ (x : timeList) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet timeList.underlying go!"lastTriggerDeadline") (PairV #x #y) (Val #(({ x with lastTriggerDeadline' := y } : timeList)))
   get_m : ∀ (x : timeList), go.IsGoStepPureDetTagged under (StructFieldGet timeList.underlying go!"m") #x (Val #(x.m'))
   set_m : ∀ (x : timeList) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet timeList.underlying go!"m") (PairV #x #y) (Val #(({ x with m' := y } : timeList)))
+  method_set : go.MethodSetIs timeList.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType timeList.ty) [(go!"Trigger", (some (go.signature.Signature [go.uint64] false []))), (go!"Wait", (some (go.signature.Signature [go.uint64] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))])))]
   ptr_Trigger_unfold : MethodUnfold (go.GoType.PointerType timeList.ty) go!"Trigger" timeList.Trigger.impl
   ptr_Wait_unfold : MethodUnfold (go.GoType.PointerType timeList.ty) go!"Wait" timeList.Wait.impl
 
@@ -589,6 +611,8 @@ attribute [instance] timeList.TypeAssumptions.type_repr
   timeList.TypeAssumptions.set_lastTriggerDeadline
   timeList.TypeAssumptions.get_m
   timeList.TypeAssumptions.set_m
+  timeList.TypeAssumptions.method_set
+  timeList.TypeAssumptions.ptr_method_set
   timeList.TypeAssumptions.ptr_Trigger_unfold
   timeList.TypeAssumptions.ptr_Wait_unfold
 

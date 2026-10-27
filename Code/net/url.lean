@@ -199,8 +199,12 @@ abbrev encoding [GooseExts] : Type := w8
 
 class encoding.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq encoding.ty encoding.underlying
+  method_set : go.MethodSetIs encoding.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType encoding.ty) []
 
 attribute [instance] encoding.TypeAssumptions.underlying
+  encoding.TypeAssumptions.method_set
+  encoding.TypeAssumptions.ptr_method_set
 
 structure Error [GooseExts] where
   mk ::
@@ -235,6 +239,8 @@ class Error.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSe
   set_URL : ∀ (x : Error) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Error.underlying go!"URL") (PairV #x #y) (Val #(({ x with URL' := y } : Error)))
   get_Err : ∀ (x : Error), go.IsGoStepPureDetTagged under (StructFieldGet Error.underlying go!"Err") #x (Val #(x.Err'))
   set_Err : ∀ (x : Error) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet Error.underlying go!"Err") (PairV #x #y) (Val #(({ x with Err' := y } : Error)))
+  method_set : go.MethodSetIs Error.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Error.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Temporary", (some (go.signature.Signature [] false [go.bool]))), (go!"Timeout", (some (go.signature.Signature [] false [go.bool]))), (go!"Unwrap", (some (go.signature.Signature [] false [go.error])))]
 
 attribute [instance] Error.TypeAssumptions.type_repr
   Error.TypeAssumptions.underlying
@@ -244,6 +250,8 @@ attribute [instance] Error.TypeAssumptions.type_repr
   Error.TypeAssumptions.set_URL
   Error.TypeAssumptions.get_Err
   Error.TypeAssumptions.set_Err
+  Error.TypeAssumptions.method_set
+  Error.TypeAssumptions.ptr_method_set
 
 abbrev EscapeError [GooseExts] : Type := GoString
 
@@ -252,8 +260,12 @@ abbrev EscapeError [GooseExts] : Type := GoString
 
 class EscapeError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq EscapeError.ty EscapeError.underlying
+  method_set : go.MethodSetIs EscapeError.ty [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType EscapeError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] EscapeError.TypeAssumptions.underlying
+  EscapeError.TypeAssumptions.method_set
+  EscapeError.TypeAssumptions.ptr_method_set
 
 abbrev InvalidHostError [GooseExts] : Type := GoString
 
@@ -262,8 +274,12 @@ abbrev InvalidHostError [GooseExts] : Type := GoString
 
 class InvalidHostError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq InvalidHostError.ty InvalidHostError.underlying
+  method_set : go.MethodSetIs InvalidHostError.ty [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType InvalidHostError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] InvalidHostError.TypeAssumptions.underlying
+  InvalidHostError.TypeAssumptions.method_set
+  InvalidHostError.TypeAssumptions.ptr_method_set
 
 structure URL [GooseExts] where
   mk ::
@@ -330,6 +346,8 @@ class URL.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSema
   set_ForceQuery : ∀ (x : URL) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet URL.underlying go!"ForceQuery") (PairV #x #y) (Val #(({ x with ForceQuery' := y } : URL)))
   get_OmitHost : ∀ (x : URL), go.IsGoStepPureDetTagged under (StructFieldGet URL.underlying go!"OmitHost") #x (Val #(x.OmitHost'))
   set_OmitHost : ∀ (x : URL) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet URL.underlying go!"OmitHost") (PairV #x #y) (Val #(({ x with OmitHost' := y } : URL)))
+  method_set : go.MethodSetIs URL.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType URL.ty) [(go!"AppendBinary", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte), go.error]))), (go!"Clone", (some (go.signature.Signature [] false [(go.GoType.PointerType URL.ty)]))), (go!"EscapedFragment", (some (go.signature.Signature [] false [go.string]))), (go!"EscapedPath", (some (go.signature.Signature [] false [go.string]))), (go!"Hostname", (some (go.signature.Signature [] false [go.string]))), (go!"IsAbs", (some (go.signature.Signature [] false [go.bool]))), (go!"JoinPath", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [(go.GoType.PointerType URL.ty)]))), (go!"MarshalBinary", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"Parse", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType URL.ty), go.error]))), (go!"Port", (some (go.signature.Signature [] false [go.string]))), (go!"Query", (some (go.signature.Signature [] false [Values.ty]))), (go!"Redacted", (some (go.signature.Signature [] false [go.string]))), (go!"RequestURI", (some (go.signature.Signature [] false [go.string]))), (go!"ResolveReference", (some (go.signature.Signature [(go.GoType.PointerType URL.ty)] false [(go.GoType.PointerType URL.ty)]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"UnmarshalBinary", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"net/url.joinPath", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [(go.GoType.PointerType URL.ty), go.error]))), (go!"net/url.setFragment", (some (go.signature.Signature [go.string] false [go.error]))), (go!"net/url.setPath", (some (go.signature.Signature [go.string] false [go.error])))]
 
 attribute [instance] URL.TypeAssumptions.type_repr
   URL.TypeAssumptions.underlying
@@ -355,6 +373,8 @@ attribute [instance] URL.TypeAssumptions.type_repr
   URL.TypeAssumptions.set_ForceQuery
   URL.TypeAssumptions.get_OmitHost
   URL.TypeAssumptions.set_OmitHost
+  URL.TypeAssumptions.method_set
+  URL.TypeAssumptions.ptr_method_set
 
 structure Userinfo [GooseExts] where
   mk ::
@@ -389,6 +409,8 @@ class Userinfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [G
   set_password : ∀ (x : Userinfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Userinfo.underlying go!"password") (PairV #x #y) (Val #(({ x with password' := y } : Userinfo)))
   get_passwordSet : ∀ (x : Userinfo), go.IsGoStepPureDetTagged under (StructFieldGet Userinfo.underlying go!"passwordSet") #x (Val #(x.passwordSet'))
   set_passwordSet : ∀ (x : Userinfo) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Userinfo.underlying go!"passwordSet") (PairV #x #y) (Val #(({ x with passwordSet' := y } : Userinfo)))
+  method_set : go.MethodSetIs Userinfo.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Userinfo.ty) [(go!"Password", (some (go.signature.Signature [] false [go.string, go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Username", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] Userinfo.TypeAssumptions.type_repr
   Userinfo.TypeAssumptions.underlying
@@ -398,6 +420,8 @@ attribute [instance] Userinfo.TypeAssumptions.type_repr
   Userinfo.TypeAssumptions.set_password
   Userinfo.TypeAssumptions.get_passwordSet
   Userinfo.TypeAssumptions.set_passwordSet
+  Userinfo.TypeAssumptions.method_set
+  Userinfo.TypeAssumptions.ptr_method_set
 
 abbrev Values [GooseExts] : Type := GoMap
 
@@ -406,8 +430,12 @@ abbrev Values [GooseExts] : Type := GoMap
 
 class Values.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Values.ty Values.underlying
+  method_set : go.MethodSetIs Values.ty [(go!"Add", (some (go.signature.Signature [go.string, go.string] false []))), (go!"Clone", (some (go.signature.Signature [] false [Values.ty]))), (go!"Del", (some (go.signature.Signature [go.string] false []))), (go!"Encode", (some (go.signature.Signature [] false [go.string]))), (go!"Get", (some (go.signature.Signature [go.string] false [go.string]))), (go!"Has", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"Set", (some (go.signature.Signature [go.string, go.string] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Values.ty) [(go!"Add", (some (go.signature.Signature [go.string, go.string] false []))), (go!"Clone", (some (go.signature.Signature [] false [Values.ty]))), (go!"Del", (some (go.signature.Signature [go.string] false []))), (go!"Encode", (some (go.signature.Signature [] false [go.string]))), (go!"Get", (some (go.signature.Signature [go.string] false [go.string]))), (go!"Has", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"Set", (some (go.signature.Signature [go.string, go.string] false [])))]
 
 attribute [instance] Values.TypeAssumptions.underlying
+  Values.TypeAssumptions.method_set
+  Values.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   encoding_instance : encoding.TypeAssumptions

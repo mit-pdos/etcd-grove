@@ -286,8 +286,12 @@ abbrev DispatchPoint [GooseExts] : Type := w64
 
 class DispatchPoint.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq DispatchPoint.ty DispatchPoint.underlying
+  method_set : go.MethodSetIs DispatchPoint.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DispatchPoint.ty) []
 
 attribute [instance] DispatchPoint.TypeAssumptions.underlying
+  DispatchPoint.TypeAssumptions.method_set
+  DispatchPoint.TypeAssumptions.ptr_method_set
 
 axiom DispatchTimeline : Type
 axiom DispatchTimeline.zero_val : ZeroVal DispatchTimeline
@@ -297,10 +301,14 @@ class DispatchTimeline.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCon
   type_repr : go.TypeReprUnderlying DispatchTimeline.underlying DispatchTimeline
   underlying : go.UnderlyingDirectedEq DispatchTimeline.ty DispatchTimeline.underlying
   isUnderlying : go.IsUnderlying DispatchTimeline.underlying DispatchTimeline.underlying
+  method_set : go.MethodSetIs DispatchTimeline.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DispatchTimeline.ty) [(go!"MarkAt", (some (go.signature.Signature [DispatchPoint.ty, (go.GoType.Named go!"time.Time" [])] false [])))]
 
 attribute [instance] DispatchTimeline.TypeAssumptions.type_repr
   DispatchTimeline.TypeAssumptions.underlying
   DispatchTimeline.TypeAssumptions.isUnderlying
+  DispatchTimeline.TypeAssumptions.method_set
+  DispatchTimeline.TypeAssumptions.ptr_method_set
 
 structure WatcherMetricsObservers [GooseExts] where
   mk ::
@@ -327,11 +335,15 @@ class WatcherMetricsObservers.TypeAssumptions [GooseExts] [GoGlobalContext] [GoL
   underlying : go.UnderlyingDirectedEq WatcherMetricsObservers.ty WatcherMetricsObservers.underlying
   get_stageDurations : ∀ (x : WatcherMetricsObservers), go.IsGoStepPureDetTagged under (StructFieldGet WatcherMetricsObservers.underlying go!"stageDurations") #x (Val #(x.stageDurations'))
   set_stageDurations : ∀ (x : WatcherMetricsObservers) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet WatcherMetricsObservers.underlying go!"stageDurations") (PairV #x #y) (Val #(({ x with stageDurations' := y } : WatcherMetricsObservers)))
+  method_set : go.MethodSetIs WatcherMetricsObservers.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType WatcherMetricsObservers.ty) [(go!"ObserveTimeline", (some (go.signature.Signature [(go.GoType.PointerType DispatchTimeline.ty)] false [])))]
 
 attribute [instance] WatcherMetricsObservers.TypeAssumptions.type_repr
   WatcherMetricsObservers.TypeAssumptions.underlying
   WatcherMetricsObservers.TypeAssumptions.get_stageDurations
   WatcherMetricsObservers.TypeAssumptions.set_stageDurations
+  WatcherMetricsObservers.TypeAssumptions.method_set
+  WatcherMetricsObservers.TypeAssumptions.ptr_method_set
 
 structure noopObserver [GooseExts] where
   mk ::
@@ -355,9 +367,13 @@ noncomputable instance equals_unfold_noopObserver [GooseExts] [GoGlobalContext] 
 class noopObserver.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying noopObserver.underlying noopObserver
   underlying : go.UnderlyingDirectedEq noopObserver.ty noopObserver.underlying
+  method_set : go.MethodSetIs noopObserver.ty [(go!"Observe", (some (go.signature.Signature [go.float64] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType noopObserver.ty) [(go!"Observe", (some (go.signature.Signature [go.float64] false [])))]
 
 attribute [instance] noopObserver.TypeAssumptions.type_repr
   noopObserver.TypeAssumptions.underlying
+  noopObserver.TypeAssumptions.method_set
+  noopObserver.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   DispatchPoint_instance : DispatchPoint.TypeAssumptions

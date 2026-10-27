@@ -1042,11 +1042,15 @@ class Allocator.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   underlying : go.UnderlyingDirectedEq Allocator.ty Allocator.underlying
   get_buf : ∀ (x : Allocator), go.IsGoStepPureDetTagged under (StructFieldGet Allocator.underlying go!"buf") #x (Val #(x.buf'))
   set_buf : ∀ (x : Allocator) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Allocator.underlying go!"buf") (PairV #x #y) (Val #(({ x with buf' := y } : Allocator)))
+  method_set : go.MethodSetIs Allocator.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Allocator.ty) [(go!"Allocate", (some (go.signature.Signature [go.uint64] false [(go.GoType.SliceType go.byte)]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] Allocator.TypeAssumptions.type_repr
   Allocator.TypeAssumptions.underlying
   Allocator.TypeAssumptions.get_buf
   Allocator.TypeAssumptions.set_buf
+  Allocator.TypeAssumptions.method_set
+  Allocator.TypeAssumptions.ptr_method_set
 
 structure SimpleAllocator [GooseExts] where
   mk ::
@@ -1070,9 +1074,13 @@ noncomputable instance equals_unfold_SimpleAllocator [GooseExts] [GoGlobalContex
 class SimpleAllocator.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying SimpleAllocator.underlying SimpleAllocator
   underlying : go.UnderlyingDirectedEq SimpleAllocator.ty SimpleAllocator.underlying
+  method_set : go.MethodSetIs SimpleAllocator.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SimpleAllocator.ty) [(go!"Allocate", (some (go.signature.Signature [go.uint64] false [(go.GoType.SliceType go.byte)]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] SimpleAllocator.TypeAssumptions.type_repr
   SimpleAllocator.TypeAssumptions.underlying
+  SimpleAllocator.TypeAssumptions.method_set
+  SimpleAllocator.TypeAssumptions.ptr_method_set
 
 abbrev Encoder [GooseExts] : Type := GoInterface
 
@@ -1081,8 +1089,12 @@ abbrev Encoder [GooseExts] : Type := GoInterface
 
 class Encoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Encoder.ty Encoder.underlying
+  method_set : go.MethodSetIs Encoder.ty [(go!"Encode", (some (go.signature.Signature [Object.ty, _root_.Perennial.io.Writer.ty] false [go.error]))), (go!"Identifier", (some (go.signature.Signature [] false [Identifier.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Encoder.ty) []
 
 attribute [instance] Encoder.TypeAssumptions.underlying
+  Encoder.TypeAssumptions.method_set
+  Encoder.TypeAssumptions.ptr_method_set
 
 abbrev Decoder [GooseExts] : Type := GoInterface
 
@@ -1091,8 +1103,12 @@ abbrev Decoder [GooseExts] : Type := GoInterface
 
 class Decoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Decoder.ty Decoder.underlying
+  method_set : go.MethodSetIs Decoder.ty [(go!"Decode", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty), Object.ty] false [Object.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Decoder.ty) []
 
 attribute [instance] Decoder.TypeAssumptions.underlying
+  Decoder.TypeAssumptions.method_set
+  Decoder.TypeAssumptions.ptr_method_set
 
 structure codec [GooseExts] where
   mk ::
@@ -1123,6 +1139,8 @@ class codec.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSe
   set_Encoder : ∀ (x : codec) (y : Encoder), go.IsGoStepPureDetTagged under (StructFieldSet codec.underlying go!"Encoder") (PairV #x #y) (Val #(({ x with Encoder' := y } : codec)))
   get_Decoder : ∀ (x : codec), go.IsGoStepPureDetTagged under (StructFieldGet codec.underlying go!"Decoder") #x (Val #(x.Decoder'))
   set_Decoder : ∀ (x : codec) (y : Decoder), go.IsGoStepPureDetTagged under (StructFieldSet codec.underlying go!"Decoder") (PairV #x #y) (Val #(({ x with Decoder' := y } : codec)))
+  method_set : go.MethodSetIs codec.ty [(go!"Decode", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty), Object.ty] false [Object.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty), go.error]))), (go!"Encode", (some (go.signature.Signature [Object.ty, _root_.Perennial.io.Writer.ty] false [go.error]))), (go!"Identifier", (some (go.signature.Signature [] false [Identifier.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType codec.ty) [(go!"Decode", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty), Object.ty] false [Object.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty), go.error]))), (go!"Encode", (some (go.signature.Signature [Object.ty, _root_.Perennial.io.Writer.ty] false [go.error]))), (go!"Identifier", (some (go.signature.Signature [] false [Identifier.ty])))]
 
 attribute [instance] codec.TypeAssumptions.type_repr
   codec.TypeAssumptions.underlying
@@ -1130,6 +1148,8 @@ attribute [instance] codec.TypeAssumptions.type_repr
   codec.TypeAssumptions.set_Encoder
   codec.TypeAssumptions.get_Decoder
   codec.TypeAssumptions.set_Decoder
+  codec.TypeAssumptions.method_set
+  codec.TypeAssumptions.ptr_method_set
 
 structure NoopEncoder [GooseExts] where
   mk ::
@@ -1156,11 +1176,15 @@ class NoopEncoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   underlying : go.UnderlyingDirectedEq NoopEncoder.ty NoopEncoder.underlying
   get_Decoder : ∀ (x : NoopEncoder), go.IsGoStepPureDetTagged under (StructFieldGet NoopEncoder.underlying go!"Decoder") #x (Val #(x.Decoder'))
   set_Decoder : ∀ (x : NoopEncoder) (y : Decoder), go.IsGoStepPureDetTagged under (StructFieldSet NoopEncoder.underlying go!"Decoder") (PairV #x #y) (Val #(({ x with Decoder' := y } : NoopEncoder)))
+  method_set : go.MethodSetIs NoopEncoder.ty [(go!"Decode", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty), Object.ty] false [Object.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty), go.error]))), (go!"Encode", (some (go.signature.Signature [Object.ty, _root_.Perennial.io.Writer.ty] false [go.error]))), (go!"Identifier", (some (go.signature.Signature [] false [Identifier.ty]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType NoopEncoder.ty) [(go!"Decode", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty), Object.ty] false [Object.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty), go.error]))), (go!"Encode", (some (go.signature.Signature [Object.ty, _root_.Perennial.io.Writer.ty] false [go.error]))), (go!"Identifier", (some (go.signature.Signature [] false [Identifier.ty]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] NoopEncoder.TypeAssumptions.type_repr
   NoopEncoder.TypeAssumptions.underlying
   NoopEncoder.TypeAssumptions.get_Decoder
   NoopEncoder.TypeAssumptions.set_Decoder
+  NoopEncoder.TypeAssumptions.method_set
+  NoopEncoder.TypeAssumptions.ptr_method_set
 
 structure NoopDecoder [GooseExts] where
   mk ::
@@ -1187,11 +1211,15 @@ class NoopDecoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   underlying : go.UnderlyingDirectedEq NoopDecoder.ty NoopDecoder.underlying
   get_Encoder : ∀ (x : NoopDecoder), go.IsGoStepPureDetTagged under (StructFieldGet NoopDecoder.underlying go!"Encoder") #x (Val #(x.Encoder'))
   set_Encoder : ∀ (x : NoopDecoder) (y : Encoder), go.IsGoStepPureDetTagged under (StructFieldSet NoopDecoder.underlying go!"Encoder") (PairV #x #y) (Val #(({ x with Encoder' := y } : NoopDecoder)))
+  method_set : go.MethodSetIs NoopDecoder.ty [(go!"Decode", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty), Object.ty] false [Object.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty), go.error]))), (go!"Encode", (some (go.signature.Signature [Object.ty, _root_.Perennial.io.Writer.ty] false [go.error]))), (go!"Identifier", (some (go.signature.Signature [] false [Identifier.ty]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType NoopDecoder.ty) [(go!"Decode", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty), Object.ty] false [Object.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty), go.error]))), (go!"Encode", (some (go.signature.Signature [Object.ty, _root_.Perennial.io.Writer.ty] false [go.error]))), (go!"Identifier", (some (go.signature.Signature [] false [Identifier.ty]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] NoopDecoder.TypeAssumptions.type_repr
   NoopDecoder.TypeAssumptions.underlying
   NoopDecoder.TypeAssumptions.get_Encoder
   NoopDecoder.TypeAssumptions.set_Encoder
+  NoopDecoder.TypeAssumptions.method_set
+  NoopDecoder.TypeAssumptions.ptr_method_set
 
 abbrev ObjectTyper [GooseExts] : Type := GoInterface
 
@@ -1200,8 +1228,12 @@ abbrev ObjectTyper [GooseExts] : Type := GoInterface
 
 class ObjectTyper.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ObjectTyper.ty ObjectTyper.underlying
+  method_set : go.MethodSetIs ObjectTyper.ty [(go!"ObjectKinds", (some (go.signature.Signature [Object.ty] false [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty), go.bool, go.error]))), (go!"Recognizes", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty] false [go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ObjectTyper.ty) []
 
 attribute [instance] ObjectTyper.TypeAssumptions.underlying
+  ObjectTyper.TypeAssumptions.method_set
+  ObjectTyper.TypeAssumptions.ptr_method_set
 
 abbrev ObjectConvertor [GooseExts] : Type := GoInterface
 
@@ -1210,8 +1242,12 @@ abbrev ObjectConvertor [GooseExts] : Type := GoInterface
 
 class ObjectConvertor.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ObjectConvertor.ty ObjectConvertor.underlying
+  method_set : go.MethodSetIs ObjectConvertor.ty [(go!"Convert", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType []), (go.GoType.InterfaceType [])] false [go.error]))), (go!"ConvertFieldLabel", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty, go.string, go.string] false [go.string, go.string, go.error]))), (go!"ConvertToVersion", (some (go.signature.Signature [Object.ty, GroupVersioner.ty] false [Object.ty, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ObjectConvertor.ty) []
 
 attribute [instance] ObjectConvertor.TypeAssumptions.underlying
+  ObjectConvertor.TypeAssumptions.method_set
+  ObjectConvertor.TypeAssumptions.ptr_method_set
 
 abbrev ObjectCreater [GooseExts] : Type := GoInterface
 
@@ -1220,8 +1256,12 @@ abbrev ObjectCreater [GooseExts] : Type := GoInterface
 
 class ObjectCreater.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ObjectCreater.ty ObjectCreater.underlying
+  method_set : go.MethodSetIs ObjectCreater.ty [(go!"New", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty] false [Object.ty, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ObjectCreater.ty) []
 
 attribute [instance] ObjectCreater.TypeAssumptions.underlying
+  ObjectCreater.TypeAssumptions.method_set
+  ObjectCreater.TypeAssumptions.ptr_method_set
 
 abbrev ObjectDefaulter [GooseExts] : Type := GoInterface
 
@@ -1230,8 +1270,12 @@ abbrev ObjectDefaulter [GooseExts] : Type := GoInterface
 
 class ObjectDefaulter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ObjectDefaulter.ty ObjectDefaulter.underlying
+  method_set : go.MethodSetIs ObjectDefaulter.ty [(go!"Default", (some (go.signature.Signature [Object.ty] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ObjectDefaulter.ty) []
 
 attribute [instance] ObjectDefaulter.TypeAssumptions.underlying
+  ObjectDefaulter.TypeAssumptions.method_set
+  ObjectDefaulter.TypeAssumptions.ptr_method_set
 
 structure parameterCodec [GooseExts] where
   mk ::
@@ -1270,6 +1314,8 @@ class parameterCodec.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalConte
   set_creator : ∀ (x : parameterCodec) (y : ObjectCreater), go.IsGoStepPureDetTagged under (StructFieldSet parameterCodec.underlying go!"creator") (PairV #x #y) (Val #(({ x with creator' := y } : parameterCodec)))
   get_defaulter : ∀ (x : parameterCodec), go.IsGoStepPureDetTagged under (StructFieldGet parameterCodec.underlying go!"defaulter") #x (Val #(x.defaulter'))
   set_defaulter : ∀ (x : parameterCodec) (y : ObjectDefaulter), go.IsGoStepPureDetTagged under (StructFieldSet parameterCodec.underlying go!"defaulter") (PairV #x #y) (Val #(({ x with defaulter' := y } : parameterCodec)))
+  method_set : go.MethodSetIs parameterCodec.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType parameterCodec.ty) [(go!"DecodeParameters", (some (go.signature.Signature [(go.GoType.Named go!"net/url.Values" []), _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersion.ty, Object.ty] false [go.error]))), (go!"EncodeParameters", (some (go.signature.Signature [Object.ty, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersion.ty] false [(go.GoType.Named go!"net/url.Values" []), go.error])))]
 
 attribute [instance] parameterCodec.TypeAssumptions.type_repr
   parameterCodec.TypeAssumptions.underlying
@@ -1281,6 +1327,8 @@ attribute [instance] parameterCodec.TypeAssumptions.type_repr
   parameterCodec.TypeAssumptions.set_creator
   parameterCodec.TypeAssumptions.get_defaulter
   parameterCodec.TypeAssumptions.set_defaulter
+  parameterCodec.TypeAssumptions.method_set
+  parameterCodec.TypeAssumptions.ptr_method_set
 
 abbrev Identifier [GooseExts] : Type := GoString
 
@@ -1289,8 +1337,12 @@ abbrev Identifier [GooseExts] : Type := GoString
 
 class Identifier.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Identifier.ty Identifier.underlying
+  method_set : go.MethodSetIs Identifier.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Identifier.ty) []
 
 attribute [instance] Identifier.TypeAssumptions.underlying
+  Identifier.TypeAssumptions.method_set
+  Identifier.TypeAssumptions.ptr_method_set
 
 structure base64Serializer [GooseExts] where
   mk ::
@@ -1325,6 +1377,8 @@ class base64Serializer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCon
   set_Decoder : ∀ (x : base64Serializer) (y : Decoder), go.IsGoStepPureDetTagged under (StructFieldSet base64Serializer.underlying go!"Decoder") (PairV #x #y) (Val #(({ x with Decoder' := y } : base64Serializer)))
   get_identifier : ∀ (x : base64Serializer), go.IsGoStepPureDetTagged under (StructFieldGet base64Serializer.underlying go!"identifier") #x (Val #(x.identifier'))
   set_identifier : ∀ (x : base64Serializer) (y : Identifier), go.IsGoStepPureDetTagged under (StructFieldSet base64Serializer.underlying go!"identifier") (PairV #x #y) (Val #(({ x with identifier' := y } : base64Serializer)))
+  method_set : go.MethodSetIs base64Serializer.ty [(go!"Decode", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty), Object.ty] false [Object.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty), go.error]))), (go!"Encode", (some (go.signature.Signature [Object.ty, _root_.Perennial.io.Writer.ty] false [go.error]))), (go!"Identifier", (some (go.signature.Signature [] false [Identifier.ty]))), (go!"k8s.io/apimachinery/pkg/runtime.doEncode", (some (go.signature.Signature [Object.ty, _root_.Perennial.io.Writer.ty] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType base64Serializer.ty) [(go!"Decode", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty), Object.ty] false [Object.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty), go.error]))), (go!"Encode", (some (go.signature.Signature [Object.ty, _root_.Perennial.io.Writer.ty] false [go.error]))), (go!"Identifier", (some (go.signature.Signature [] false [Identifier.ty]))), (go!"k8s.io/apimachinery/pkg/runtime.doEncode", (some (go.signature.Signature [Object.ty, _root_.Perennial.io.Writer.ty] false [go.error])))]
 
 attribute [instance] base64Serializer.TypeAssumptions.type_repr
   base64Serializer.TypeAssumptions.underlying
@@ -1334,6 +1388,8 @@ attribute [instance] base64Serializer.TypeAssumptions.type_repr
   base64Serializer.TypeAssumptions.set_Decoder
   base64Serializer.TypeAssumptions.get_identifier
   base64Serializer.TypeAssumptions.set_identifier
+  base64Serializer.TypeAssumptions.method_set
+  base64Serializer.TypeAssumptions.ptr_method_set
 
 structure internalGroupVersioner [GooseExts] where
   mk ::
@@ -1357,9 +1413,13 @@ noncomputable instance equals_unfold_internalGroupVersioner [GooseExts] [GoGloba
 class internalGroupVersioner.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying internalGroupVersioner.underlying internalGroupVersioner
   underlying : go.UnderlyingDirectedEq internalGroupVersioner.ty internalGroupVersioner.underlying
+  method_set : go.MethodSetIs internalGroupVersioner.ty [(go!"Identifier", (some (go.signature.Signature [] false [go.string]))), (go!"KindForGroupVersionKinds", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty)] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty, go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType internalGroupVersioner.ty) [(go!"Identifier", (some (go.signature.Signature [] false [go.string]))), (go!"KindForGroupVersionKinds", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty)] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty, go.bool])))]
 
 attribute [instance] internalGroupVersioner.TypeAssumptions.type_repr
   internalGroupVersioner.TypeAssumptions.underlying
+  internalGroupVersioner.TypeAssumptions.method_set
+  internalGroupVersioner.TypeAssumptions.ptr_method_set
 
 structure disabledGroupVersioner [GooseExts] where
   mk ::
@@ -1383,9 +1443,13 @@ noncomputable instance equals_unfold_disabledGroupVersioner [GooseExts] [GoGloba
 class disabledGroupVersioner.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying disabledGroupVersioner.underlying disabledGroupVersioner
   underlying : go.UnderlyingDirectedEq disabledGroupVersioner.ty disabledGroupVersioner.underlying
+  method_set : go.MethodSetIs disabledGroupVersioner.ty [(go!"Identifier", (some (go.signature.Signature [] false [go.string]))), (go!"KindForGroupVersionKinds", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty)] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty, go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType disabledGroupVersioner.ty) [(go!"Identifier", (some (go.signature.Signature [] false [go.string]))), (go!"KindForGroupVersionKinds", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty)] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty, go.bool])))]
 
 attribute [instance] disabledGroupVersioner.TypeAssumptions.type_repr
   disabledGroupVersioner.TypeAssumptions.underlying
+  disabledGroupVersioner.TypeAssumptions.method_set
+  disabledGroupVersioner.TypeAssumptions.ptr_method_set
 
 structure multiGroupVersioner [GooseExts] where
   mk ::
@@ -1420,6 +1484,8 @@ class multiGroupVersioner.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocal
   set_acceptedGroupKinds : ∀ (x : multiGroupVersioner) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet multiGroupVersioner.underlying go!"acceptedGroupKinds") (PairV #x #y) (Val #(({ x with acceptedGroupKinds' := y } : multiGroupVersioner)))
   get_coerce : ∀ (x : multiGroupVersioner), go.IsGoStepPureDetTagged under (StructFieldGet multiGroupVersioner.underlying go!"coerce") #x (Val #(x.coerce'))
   set_coerce : ∀ (x : multiGroupVersioner) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet multiGroupVersioner.underlying go!"coerce") (PairV #x #y) (Val #(({ x with coerce' := y } : multiGroupVersioner)))
+  method_set : go.MethodSetIs multiGroupVersioner.ty [(go!"Identifier", (some (go.signature.Signature [] false [go.string]))), (go!"KindForGroupVersionKinds", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty)] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty, go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType multiGroupVersioner.ty) [(go!"Identifier", (some (go.signature.Signature [] false [go.string]))), (go!"KindForGroupVersionKinds", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty)] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty, go.bool])))]
 
 attribute [instance] multiGroupVersioner.TypeAssumptions.type_repr
   multiGroupVersioner.TypeAssumptions.underlying
@@ -1429,6 +1495,8 @@ attribute [instance] multiGroupVersioner.TypeAssumptions.type_repr
   multiGroupVersioner.TypeAssumptions.set_acceptedGroupKinds
   multiGroupVersioner.TypeAssumptions.get_coerce
   multiGroupVersioner.TypeAssumptions.set_coerce
+  multiGroupVersioner.TypeAssumptions.method_set
+  multiGroupVersioner.TypeAssumptions.ptr_method_set
 
 abbrev UnstructuredConverter [GooseExts] : Type := GoInterface
 
@@ -1437,8 +1505,12 @@ abbrev UnstructuredConverter [GooseExts] : Type := GoInterface
 
 class UnstructuredConverter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq UnstructuredConverter.ty UnstructuredConverter.underlying
+  method_set : go.MethodSetIs UnstructuredConverter.ty [(go!"FromUnstructured", (some (go.signature.Signature [(go.GoType.MapType go.string (go.GoType.InterfaceType [])), (go.GoType.InterfaceType [])] false [go.error]))), (go!"ToUnstructured", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [(go.GoType.MapType go.string (go.GoType.InterfaceType [])), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType UnstructuredConverter.ty) []
 
 attribute [instance] UnstructuredConverter.TypeAssumptions.underlying
+  UnstructuredConverter.TypeAssumptions.method_set
+  UnstructuredConverter.TypeAssumptions.ptr_method_set
 
 structure structField [GooseExts] where
   mk ::
@@ -1469,6 +1541,8 @@ class structField.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   set_structType : ∀ (x : structField) (y : _root_.Perennial.reflect.Type'), go.IsGoStepPureDetTagged under (StructFieldSet structField.underlying go!"structType") (PairV #x #y) (Val #(({ x with structType' := y } : structField)))
   get_field : ∀ (x : structField), go.IsGoStepPureDetTagged under (StructFieldGet structField.underlying go!"field") #x (Val #(x.field'))
   set_field : ∀ (x : structField) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet structField.underlying go!"field") (PairV #x #y) (Val #(({ x with field' := y } : structField)))
+  method_set : go.MethodSetIs structField.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType structField.ty) []
 
 attribute [instance] structField.TypeAssumptions.type_repr
   structField.TypeAssumptions.underlying
@@ -1476,6 +1550,8 @@ attribute [instance] structField.TypeAssumptions.type_repr
   structField.TypeAssumptions.set_structType
   structField.TypeAssumptions.get_field
   structField.TypeAssumptions.set_field
+  structField.TypeAssumptions.method_set
+  structField.TypeAssumptions.ptr_method_set
 
 structure fieldInfo [GooseExts] where
   mk ::
@@ -1514,6 +1590,8 @@ class fieldInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   set_omitempty : ∀ (x : fieldInfo) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet fieldInfo.underlying go!"omitempty") (PairV #x #y) (Val #(({ x with omitempty' := y } : fieldInfo)))
   get_omitzero : ∀ (x : fieldInfo), go.IsGoStepPureDetTagged under (StructFieldGet fieldInfo.underlying go!"omitzero") #x (Val #(x.omitzero'))
   set_omitzero : ∀ (x : fieldInfo) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet fieldInfo.underlying go!"omitzero") (PairV #x #y) (Val #(({ x with omitzero' := y } : fieldInfo)))
+  method_set : go.MethodSetIs fieldInfo.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType fieldInfo.ty) []
 
 attribute [instance] fieldInfo.TypeAssumptions.type_repr
   fieldInfo.TypeAssumptions.underlying
@@ -1525,6 +1603,8 @@ attribute [instance] fieldInfo.TypeAssumptions.type_repr
   fieldInfo.TypeAssumptions.set_omitempty
   fieldInfo.TypeAssumptions.get_omitzero
   fieldInfo.TypeAssumptions.set_omitzero
+  fieldInfo.TypeAssumptions.method_set
+  fieldInfo.TypeAssumptions.ptr_method_set
 
 abbrev fieldsCacheMap [GooseExts] : Type := GoMap
 
@@ -1533,8 +1613,12 @@ abbrev fieldsCacheMap [GooseExts] : Type := GoMap
 
 class fieldsCacheMap.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq fieldsCacheMap.ty fieldsCacheMap.underlying
+  method_set : go.MethodSetIs fieldsCacheMap.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType fieldsCacheMap.ty) []
 
 attribute [instance] fieldsCacheMap.TypeAssumptions.underlying
+  fieldsCacheMap.TypeAssumptions.method_set
+  fieldsCacheMap.TypeAssumptions.ptr_method_set
 
 axiom fieldsCache : Type
 axiom fieldsCache.zero_val : ZeroVal fieldsCache
@@ -1544,10 +1628,14 @@ class fieldsCache.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   type_repr : go.TypeReprUnderlying fieldsCache.underlying fieldsCache
   underlying : go.UnderlyingDirectedEq fieldsCache.ty fieldsCache.underlying
   isUnderlying : go.IsUnderlying fieldsCache.underlying fieldsCache.underlying
+  method_set : go.MethodSetIs fieldsCache.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType fieldsCache.ty) [(go!"Lock", (some (go.signature.Signature [] false []))), (go!"TryLock", (some (go.signature.Signature [] false [go.bool]))), (go!"Unlock", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] fieldsCache.TypeAssumptions.type_repr
   fieldsCache.TypeAssumptions.underlying
   fieldsCache.TypeAssumptions.isUnderlying
+  fieldsCache.TypeAssumptions.method_set
+  fieldsCache.TypeAssumptions.ptr_method_set
 
 structure unstructuredConverter [GooseExts] where
   mk ::
@@ -1578,6 +1666,8 @@ class unstructuredConverter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLoc
   set_mismatchDetection : ∀ (x : unstructuredConverter) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet unstructuredConverter.underlying go!"mismatchDetection") (PairV #x #y) (Val #(({ x with mismatchDetection' := y } : unstructuredConverter)))
   get_comparison : ∀ (x : unstructuredConverter), go.IsGoStepPureDetTagged under (StructFieldGet unstructuredConverter.underlying go!"comparison") #x (Val #(x.comparison'))
   set_comparison : ∀ (x : unstructuredConverter) (y : _root_.Perennial.k8s_io.apimachinery.pkg.conversion.Equalities), go.IsGoStepPureDetTagged under (StructFieldSet unstructuredConverter.underlying go!"comparison") (PairV #x #y) (Val #(({ x with comparison' := y } : unstructuredConverter)))
+  method_set : go.MethodSetIs unstructuredConverter.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType unstructuredConverter.ty) [(go!"FromUnstructured", (some (go.signature.Signature [(go.GoType.MapType go.string (go.GoType.InterfaceType [])), (go.GoType.InterfaceType [])] false [go.error]))), (go!"FromUnstructuredWithValidation", (some (go.signature.Signature [(go.GoType.MapType go.string (go.GoType.InterfaceType [])), (go.GoType.InterfaceType []), go.bool] false [go.error]))), (go!"ToUnstructured", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [(go.GoType.MapType go.string (go.GoType.InterfaceType [])), go.error])))]
 
 attribute [instance] unstructuredConverter.TypeAssumptions.type_repr
   unstructuredConverter.TypeAssumptions.underlying
@@ -1585,6 +1675,8 @@ attribute [instance] unstructuredConverter.TypeAssumptions.type_repr
   unstructuredConverter.TypeAssumptions.set_mismatchDetection
   unstructuredConverter.TypeAssumptions.get_comparison
   unstructuredConverter.TypeAssumptions.set_comparison
+  unstructuredConverter.TypeAssumptions.method_set
+  unstructuredConverter.TypeAssumptions.ptr_method_set
 
 structure fromUnstructuredContext [GooseExts] where
   mk ::
@@ -1627,6 +1719,8 @@ class fromUnstructuredContext.TypeAssumptions [GooseExts] [GoGlobalContext] [GoL
   set_returnUnknownFields : ∀ (x : fromUnstructuredContext) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet fromUnstructuredContext.underlying go!"returnUnknownFields") (PairV #x #y) (Val #(({ x with returnUnknownFields' := y } : fromUnstructuredContext)))
   get_unknownFieldErrors : ∀ (x : fromUnstructuredContext), go.IsGoStepPureDetTagged under (StructFieldGet fromUnstructuredContext.underlying go!"unknownFieldErrors") #x (Val #(x.unknownFieldErrors'))
   set_unknownFieldErrors : ∀ (x : fromUnstructuredContext) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet fromUnstructuredContext.underlying go!"unknownFieldErrors") (PairV #x #y) (Val #(({ x with unknownFieldErrors' := y } : fromUnstructuredContext)))
+  method_set : go.MethodSetIs fromUnstructuredContext.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType fromUnstructuredContext.ty) [(go!"k8s.io/apimachinery/pkg/runtime.popAndVerifyMatchedKeys", (some (go.signature.Signature [_root_.Perennial.reflect.Value.ty] false []))), (go!"k8s.io/apimachinery/pkg/runtime.pushIndex", (some (go.signature.Signature [go.int] false []))), (go!"k8s.io/apimachinery/pkg/runtime.pushKey", (some (go.signature.Signature [go.string] false []))), (go!"k8s.io/apimachinery/pkg/runtime.pushMatchedKeyTracker", (some (go.signature.Signature [] false []))), (go!"k8s.io/apimachinery/pkg/runtime.recordMatchedKey", (some (go.signature.Signature [go.string] false []))), (go!"k8s.io/apimachinery/pkg/runtime.recordUnknownField", (some (go.signature.Signature [go.string] false [])))]
 
 attribute [instance] fromUnstructuredContext.TypeAssumptions.type_repr
   fromUnstructuredContext.TypeAssumptions.underlying
@@ -1640,6 +1734,8 @@ attribute [instance] fromUnstructuredContext.TypeAssumptions.type_repr
   fromUnstructuredContext.TypeAssumptions.set_returnUnknownFields
   fromUnstructuredContext.TypeAssumptions.get_unknownFieldErrors
   fromUnstructuredContext.TypeAssumptions.set_unknownFieldErrors
+  fromUnstructuredContext.TypeAssumptions.method_set
+  fromUnstructuredContext.TypeAssumptions.ptr_method_set
 
 abbrev Object [GooseExts] : Type := GoInterface
 
@@ -1648,8 +1744,12 @@ abbrev Object [GooseExts] : Type := GoInterface
 
 class Object.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Object.ty Object.underlying
+  method_set : go.MethodSetIs Object.ty [(go!"DeepCopyObject", (some (go.signature.Signature [] false [Object.ty]))), (go!"GetObjectKind", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.ObjectKind.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Object.ty) []
 
 attribute [instance] Object.TypeAssumptions.underlying
+  Object.TypeAssumptions.method_set
+  Object.TypeAssumptions.ptr_method_set
 
 structure encodable [GooseExts] where
   mk ::
@@ -1684,6 +1784,8 @@ class encodable.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   set_obj : ∀ (x : encodable) (y : Object), go.IsGoStepPureDetTagged under (StructFieldSet encodable.underlying go!"obj") (PairV #x #y) (Val #(({ x with obj' := y } : encodable)))
   get_versions : ∀ (x : encodable), go.IsGoStepPureDetTagged under (StructFieldGet encodable.underlying go!"versions") #x (Val #(x.versions'))
   set_versions : ∀ (x : encodable) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet encodable.underlying go!"versions") (PairV #x #y) (Val #(({ x with versions' := y } : encodable)))
+  method_set : go.MethodSetIs encodable.ty [(go!"DeepCopyObject", (some (go.signature.Signature [] false [Object.ty]))), (go!"GetObjectKind", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.ObjectKind.ty]))), (go!"MarshalJSON", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"UnmarshalJSON", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType encodable.ty) [(go!"DeepCopyObject", (some (go.signature.Signature [] false [Object.ty]))), (go!"GetObjectKind", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.ObjectKind.ty]))), (go!"MarshalJSON", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"UnmarshalJSON", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] encodable.TypeAssumptions.type_repr
   encodable.TypeAssumptions.underlying
@@ -1693,6 +1795,8 @@ attribute [instance] encodable.TypeAssumptions.type_repr
   encodable.TypeAssumptions.set_obj
   encodable.TypeAssumptions.get_versions
   encodable.TypeAssumptions.set_versions
+  encodable.TypeAssumptions.method_set
+  encodable.TypeAssumptions.ptr_method_set
 
 abbrev GroupVersioner [GooseExts] : Type := GoInterface
 
@@ -1701,8 +1805,12 @@ abbrev GroupVersioner [GooseExts] : Type := GoInterface
 
 class GroupVersioner.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq GroupVersioner.ty GroupVersioner.underlying
+  method_set : go.MethodSetIs GroupVersioner.ty [(go!"Identifier", (some (go.signature.Signature [] false [go.string]))), (go!"KindForGroupVersionKinds", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty)] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty, go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType GroupVersioner.ty) []
 
 attribute [instance] GroupVersioner.TypeAssumptions.underlying
+  GroupVersioner.TypeAssumptions.method_set
+  GroupVersioner.TypeAssumptions.ptr_method_set
 
 structure notRegisteredErr [GooseExts] where
   mk ::
@@ -1741,6 +1849,8 @@ class notRegisteredErr.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCon
   set_target : ∀ (x : notRegisteredErr) (y : GroupVersioner), go.IsGoStepPureDetTagged under (StructFieldSet notRegisteredErr.underlying go!"target") (PairV #x #y) (Val #(({ x with target' := y } : notRegisteredErr)))
   get_t : ∀ (x : notRegisteredErr), go.IsGoStepPureDetTagged under (StructFieldGet notRegisteredErr.underlying go!"t") #x (Val #(x.t'))
   set_t : ∀ (x : notRegisteredErr) (y : _root_.Perennial.reflect.Type'), go.IsGoStepPureDetTagged under (StructFieldSet notRegisteredErr.underlying go!"t") (PairV #x #y) (Val #(({ x with t' := y } : notRegisteredErr)))
+  method_set : go.MethodSetIs notRegisteredErr.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType notRegisteredErr.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] notRegisteredErr.TypeAssumptions.type_repr
   notRegisteredErr.TypeAssumptions.underlying
@@ -1752,6 +1862,8 @@ attribute [instance] notRegisteredErr.TypeAssumptions.type_repr
   notRegisteredErr.TypeAssumptions.set_target
   notRegisteredErr.TypeAssumptions.get_t
   notRegisteredErr.TypeAssumptions.set_t
+  notRegisteredErr.TypeAssumptions.method_set
+  notRegisteredErr.TypeAssumptions.ptr_method_set
 
 structure missingKindErr [GooseExts] where
   mk ::
@@ -1778,11 +1890,15 @@ class missingKindErr.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalConte
   underlying : go.UnderlyingDirectedEq missingKindErr.ty missingKindErr.underlying
   get_data : ∀ (x : missingKindErr), go.IsGoStepPureDetTagged under (StructFieldGet missingKindErr.underlying go!"data") #x (Val #(x.data'))
   set_data : ∀ (x : missingKindErr) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet missingKindErr.underlying go!"data") (PairV #x #y) (Val #(({ x with data' := y } : missingKindErr)))
+  method_set : go.MethodSetIs missingKindErr.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType missingKindErr.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] missingKindErr.TypeAssumptions.type_repr
   missingKindErr.TypeAssumptions.underlying
   missingKindErr.TypeAssumptions.get_data
   missingKindErr.TypeAssumptions.set_data
+  missingKindErr.TypeAssumptions.method_set
+  missingKindErr.TypeAssumptions.ptr_method_set
 
 structure missingVersionErr [GooseExts] where
   mk ::
@@ -1809,11 +1925,15 @@ class missingVersionErr.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCo
   underlying : go.UnderlyingDirectedEq missingVersionErr.ty missingVersionErr.underlying
   get_data : ∀ (x : missingVersionErr), go.IsGoStepPureDetTagged under (StructFieldGet missingVersionErr.underlying go!"data") #x (Val #(x.data'))
   set_data : ∀ (x : missingVersionErr) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet missingVersionErr.underlying go!"data") (PairV #x #y) (Val #(({ x with data' := y } : missingVersionErr)))
+  method_set : go.MethodSetIs missingVersionErr.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType missingVersionErr.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] missingVersionErr.TypeAssumptions.type_repr
   missingVersionErr.TypeAssumptions.underlying
   missingVersionErr.TypeAssumptions.get_data
   missingVersionErr.TypeAssumptions.set_data
+  missingVersionErr.TypeAssumptions.method_set
+  missingVersionErr.TypeAssumptions.ptr_method_set
 
 structure strictDecodingError [GooseExts] where
   mk ::
@@ -1840,11 +1960,15 @@ class strictDecodingError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocal
   underlying : go.UnderlyingDirectedEq strictDecodingError.ty strictDecodingError.underlying
   get_errors : ∀ (x : strictDecodingError), go.IsGoStepPureDetTagged under (StructFieldGet strictDecodingError.underlying go!"errors") #x (Val #(x.errors'))
   set_errors : ∀ (x : strictDecodingError) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet strictDecodingError.underlying go!"errors") (PairV #x #y) (Val #(({ x with errors' := y } : strictDecodingError)))
+  method_set : go.MethodSetIs strictDecodingError.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType strictDecodingError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Errors", (some (go.signature.Signature [] false [(go.GoType.SliceType go.error)])))]
 
 attribute [instance] strictDecodingError.TypeAssumptions.type_repr
   strictDecodingError.TypeAssumptions.underlying
   strictDecodingError.TypeAssumptions.get_errors
   strictDecodingError.TypeAssumptions.set_errors
+  strictDecodingError.TypeAssumptions.method_set
+  strictDecodingError.TypeAssumptions.ptr_method_set
 
 structure unsafeObjectConvertor [GooseExts] where
   mk ::
@@ -1871,11 +1995,15 @@ class unsafeObjectConvertor.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLoc
   underlying : go.UnderlyingDirectedEq unsafeObjectConvertor.ty unsafeObjectConvertor.underlying
   get_Scheme : ∀ (x : unsafeObjectConvertor), go.IsGoStepPureDetTagged under (StructFieldGet unsafeObjectConvertor.underlying go!"Scheme") #x (Val #(x.Scheme'))
   set_Scheme : ∀ (x : unsafeObjectConvertor) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet unsafeObjectConvertor.underlying go!"Scheme") (PairV #x #y) (Val #(({ x with Scheme' := y } : unsafeObjectConvertor)))
+  method_set : go.MethodSetIs unsafeObjectConvertor.ty [(go!"AddConversionFunc", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType []), _root_.Perennial.k8s_io.apimachinery.pkg.conversion.ConversionFunc.ty] false [go.error]))), (go!"AddFieldLabelConversionFunc", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty, FieldLabelConversionFunc.ty] false [go.error]))), (go!"AddGeneratedConversionFunc", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType []), _root_.Perennial.k8s_io.apimachinery.pkg.conversion.ConversionFunc.ty] false [go.error]))), (go!"AddIgnoredConversionType", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType [])] false [go.error]))), (go!"AddKnownTypeWithName", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty, Object.ty] false []))), (go!"AddKnownTypes", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersion.ty, (go.GoType.SliceType Object.ty)] true []))), (go!"AddTypeDefaultingFunc", (some (go.signature.Signature [Object.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType [])] false []))] false []))), (go!"AddUnversionedTypes", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersion.ty, (go.GoType.SliceType Object.ty)] true []))), (go!"AddValidationFunc", (some (go.signature.Signature [Object.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/api/operation.Operation" []), (go.GoType.InterfaceType []), (go.GoType.InterfaceType [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/util/validation/field.ErrorList" [])]))] false []))), (go!"AllKnownTypes", (some (go.signature.Signature [] false [(go.GoType.MapType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty _root_.Perennial.reflect.Type'.ty)]))), (go!"Convert", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType []), (go.GoType.InterfaceType [])] false [go.error]))), (go!"ConvertFieldLabel", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty, go.string, go.string] false [go.string, go.string, go.error]))), (go!"ConvertToVersion", (some (go.signature.Signature [Object.ty, GroupVersioner.ty] false [Object.ty, go.error]))), (go!"Converter", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.conversion.Converter.ty)]))), (go!"Default", (some (go.signature.Signature [Object.ty] false []))), (go!"HasValidationFunc", (some (go.signature.Signature [Object.ty] false [go.bool]))), (go!"IsGroupRegistered", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"IsUnversioned", (some (go.signature.Signature [Object.ty] false [go.bool, go.bool]))), (go!"IsVersionRegistered", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersion.ty] false [go.bool]))), (go!"KnownTypes", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersion.ty] false [(go.GoType.MapType go.string _root_.Perennial.reflect.Type'.ty)]))), (go!"Name", (some (go.signature.Signature [] false [go.string]))), (go!"New", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty] false [Object.ty, go.error]))), (go!"ObjectKinds", (some (go.signature.Signature [Object.ty] false [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty), go.bool, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"PreferredVersionAllGroups", (some (go.signature.Signature [] false [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersion.ty)]))), (go!"PrioritizedVersionsAllGroups", (some (go.signature.Signature [] false [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersion.ty)]))), (go!"PrioritizedVersionsForGroup", (some (go.signature.Signature [go.string] false [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersion.ty)]))), (go!"Recognizes", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty] false [go.bool]))), (go!"SetVersionPriority", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersion.ty)] true [go.error]))), (go!"ToOpenAPIDefinitionName", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty] false [go.string, go.error]))), (go!"UnsafeConvertToVersion", (some (go.signature.Signature [Object.ty, GroupVersioner.ty] false [Object.ty, go.error]))), (go!"Validate", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.MapType go.string go.bool), Object.ty, (go.GoType.SliceType go.string)] true [(go.GoType.Named go!"k8s.io/apimachinery/pkg/util/validation/field.ErrorList" [])]))), (go!"ValidateUpdate", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.MapType go.string go.bool), Object.ty, Object.ty, (go.GoType.SliceType go.string)] true [(go.GoType.Named go!"k8s.io/apimachinery/pkg/util/validation/field.ErrorList" [])]))), (go!"VersionsForGroupKind", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupKind.ty] false [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersion.ty)]))), (go!"k8s.io/apimachinery/pkg/runtime.addObservedVersion", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersion.ty] false []))), (go!"k8s.io/apimachinery/pkg/runtime.convertToVersion", (some (go.signature.Signature [go.bool, Object.ty, GroupVersioner.ty] false [Object.ty, go.error]))), (go!"k8s.io/apimachinery/pkg/runtime.generateConvertMeta", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [(go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.conversion.Meta.ty)]))), (go!"k8s.io/apimachinery/pkg/runtime.unstructuredToTyped", (some (go.signature.Signature [Unstructured.ty] false [Object.ty, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType unsafeObjectConvertor.ty) [(go!"AddConversionFunc", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType []), _root_.Perennial.k8s_io.apimachinery.pkg.conversion.ConversionFunc.ty] false [go.error]))), (go!"AddFieldLabelConversionFunc", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty, FieldLabelConversionFunc.ty] false [go.error]))), (go!"AddGeneratedConversionFunc", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType []), _root_.Perennial.k8s_io.apimachinery.pkg.conversion.ConversionFunc.ty] false [go.error]))), (go!"AddIgnoredConversionType", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType [])] false [go.error]))), (go!"AddKnownTypeWithName", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty, Object.ty] false []))), (go!"AddKnownTypes", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersion.ty, (go.GoType.SliceType Object.ty)] true []))), (go!"AddTypeDefaultingFunc", (some (go.signature.Signature [Object.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType [])] false []))] false []))), (go!"AddUnversionedTypes", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersion.ty, (go.GoType.SliceType Object.ty)] true []))), (go!"AddValidationFunc", (some (go.signature.Signature [Object.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/api/operation.Operation" []), (go.GoType.InterfaceType []), (go.GoType.InterfaceType [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/util/validation/field.ErrorList" [])]))] false []))), (go!"AllKnownTypes", (some (go.signature.Signature [] false [(go.GoType.MapType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty _root_.Perennial.reflect.Type'.ty)]))), (go!"Convert", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType []), (go.GoType.InterfaceType [])] false [go.error]))), (go!"ConvertFieldLabel", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty, go.string, go.string] false [go.string, go.string, go.error]))), (go!"ConvertToVersion", (some (go.signature.Signature [Object.ty, GroupVersioner.ty] false [Object.ty, go.error]))), (go!"Converter", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.conversion.Converter.ty)]))), (go!"Default", (some (go.signature.Signature [Object.ty] false []))), (go!"HasValidationFunc", (some (go.signature.Signature [Object.ty] false [go.bool]))), (go!"IsGroupRegistered", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"IsUnversioned", (some (go.signature.Signature [Object.ty] false [go.bool, go.bool]))), (go!"IsVersionRegistered", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersion.ty] false [go.bool]))), (go!"KnownTypes", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersion.ty] false [(go.GoType.MapType go.string _root_.Perennial.reflect.Type'.ty)]))), (go!"Name", (some (go.signature.Signature [] false [go.string]))), (go!"New", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty] false [Object.ty, go.error]))), (go!"ObjectKinds", (some (go.signature.Signature [Object.ty] false [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty), go.bool, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"PreferredVersionAllGroups", (some (go.signature.Signature [] false [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersion.ty)]))), (go!"PrioritizedVersionsAllGroups", (some (go.signature.Signature [] false [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersion.ty)]))), (go!"PrioritizedVersionsForGroup", (some (go.signature.Signature [go.string] false [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersion.ty)]))), (go!"Recognizes", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty] false [go.bool]))), (go!"SetVersionPriority", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersion.ty)] true [go.error]))), (go!"ToOpenAPIDefinitionName", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty] false [go.string, go.error]))), (go!"UnsafeConvertToVersion", (some (go.signature.Signature [Object.ty, GroupVersioner.ty] false [Object.ty, go.error]))), (go!"Validate", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.MapType go.string go.bool), Object.ty, (go.GoType.SliceType go.string)] true [(go.GoType.Named go!"k8s.io/apimachinery/pkg/util/validation/field.ErrorList" [])]))), (go!"ValidateUpdate", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.MapType go.string go.bool), Object.ty, Object.ty, (go.GoType.SliceType go.string)] true [(go.GoType.Named go!"k8s.io/apimachinery/pkg/util/validation/field.ErrorList" [])]))), (go!"VersionsForGroupKind", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupKind.ty] false [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersion.ty)]))), (go!"k8s.io/apimachinery/pkg/runtime.addObservedVersion", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersion.ty] false []))), (go!"k8s.io/apimachinery/pkg/runtime.convertToVersion", (some (go.signature.Signature [go.bool, Object.ty, GroupVersioner.ty] false [Object.ty, go.error]))), (go!"k8s.io/apimachinery/pkg/runtime.generateConvertMeta", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [(go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.conversion.Meta.ty)]))), (go!"k8s.io/apimachinery/pkg/runtime.unstructuredToTyped", (some (go.signature.Signature [Unstructured.ty] false [Object.ty, go.error])))]
 
 attribute [instance] unsafeObjectConvertor.TypeAssumptions.type_repr
   unsafeObjectConvertor.TypeAssumptions.underlying
   unsafeObjectConvertor.TypeAssumptions.get_Scheme
   unsafeObjectConvertor.TypeAssumptions.set_Scheme
+  unsafeObjectConvertor.TypeAssumptions.method_set
+  unsafeObjectConvertor.TypeAssumptions.ptr_method_set
 
 abbrev MultiObjectTyper [GooseExts] : Type := GoSlice
 
@@ -1884,8 +2012,12 @@ abbrev MultiObjectTyper [GooseExts] : Type := GoSlice
 
 class MultiObjectTyper.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq MultiObjectTyper.ty MultiObjectTyper.underlying
+  method_set : go.MethodSetIs MultiObjectTyper.ty [(go!"ObjectKinds", (some (go.signature.Signature [Object.ty] false [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty), go.bool, go.error]))), (go!"Recognizes", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty] false [go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType MultiObjectTyper.ty) [(go!"ObjectKinds", (some (go.signature.Signature [Object.ty] false [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty), go.bool, go.error]))), (go!"Recognizes", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty] false [go.bool])))]
 
 attribute [instance] MultiObjectTyper.TypeAssumptions.underlying
+  MultiObjectTyper.TypeAssumptions.method_set
+  MultiObjectTyper.TypeAssumptions.ptr_method_set
 
 structure defaultFramer [GooseExts] where
   mk ::
@@ -1909,9 +2041,13 @@ noncomputable instance equals_unfold_defaultFramer [GooseExts] [GoGlobalContext]
 class defaultFramer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying defaultFramer.underlying defaultFramer
   underlying : go.UnderlyingDirectedEq defaultFramer.ty defaultFramer.underlying
+  method_set : go.MethodSetIs defaultFramer.ty [(go!"NewFrameReader", (some (go.signature.Signature [_root_.Perennial.io.ReadCloser.ty] false [_root_.Perennial.io.ReadCloser.ty]))), (go!"NewFrameWriter", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [_root_.Perennial.io.Writer.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType defaultFramer.ty) [(go!"NewFrameReader", (some (go.signature.Signature [_root_.Perennial.io.ReadCloser.ty] false [_root_.Perennial.io.ReadCloser.ty]))), (go!"NewFrameWriter", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [_root_.Perennial.io.Writer.ty])))]
 
 attribute [instance] defaultFramer.TypeAssumptions.type_repr
   defaultFramer.TypeAssumptions.underlying
+  defaultFramer.TypeAssumptions.method_set
+  defaultFramer.TypeAssumptions.ptr_method_set
 
 structure WithVersionEncoder [GooseExts] where
   mk ::
@@ -1946,6 +2082,8 @@ class WithVersionEncoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalC
   set_Encoder : ∀ (x : WithVersionEncoder) (y : Encoder), go.IsGoStepPureDetTagged under (StructFieldSet WithVersionEncoder.underlying go!"Encoder") (PairV #x #y) (Val #(({ x with Encoder' := y } : WithVersionEncoder)))
   get_ObjectTyper : ∀ (x : WithVersionEncoder), go.IsGoStepPureDetTagged under (StructFieldGet WithVersionEncoder.underlying go!"ObjectTyper") #x (Val #(x.ObjectTyper'))
   set_ObjectTyper : ∀ (x : WithVersionEncoder) (y : ObjectTyper), go.IsGoStepPureDetTagged under (StructFieldSet WithVersionEncoder.underlying go!"ObjectTyper") (PairV #x #y) (Val #(({ x with ObjectTyper' := y } : WithVersionEncoder)))
+  method_set : go.MethodSetIs WithVersionEncoder.ty [(go!"Encode", (some (go.signature.Signature [Object.ty, _root_.Perennial.io.Writer.ty] false [go.error]))), (go!"Identifier", (some (go.signature.Signature [] false [Identifier.ty]))), (go!"ObjectKinds", (some (go.signature.Signature [Object.ty] false [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty), go.bool, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Recognizes", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty] false [go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType WithVersionEncoder.ty) [(go!"Encode", (some (go.signature.Signature [Object.ty, _root_.Perennial.io.Writer.ty] false [go.error]))), (go!"Identifier", (some (go.signature.Signature [] false [Identifier.ty]))), (go!"ObjectKinds", (some (go.signature.Signature [Object.ty] false [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty), go.bool, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Recognizes", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty] false [go.bool])))]
 
 attribute [instance] WithVersionEncoder.TypeAssumptions.type_repr
   WithVersionEncoder.TypeAssumptions.underlying
@@ -1955,6 +2093,8 @@ attribute [instance] WithVersionEncoder.TypeAssumptions.type_repr
   WithVersionEncoder.TypeAssumptions.set_Encoder
   WithVersionEncoder.TypeAssumptions.get_ObjectTyper
   WithVersionEncoder.TypeAssumptions.set_ObjectTyper
+  WithVersionEncoder.TypeAssumptions.method_set
+  WithVersionEncoder.TypeAssumptions.ptr_method_set
 
 structure WithoutVersionDecoder [GooseExts] where
   mk ::
@@ -1981,21 +2121,29 @@ class WithoutVersionDecoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLoc
   underlying : go.UnderlyingDirectedEq WithoutVersionDecoder.ty WithoutVersionDecoder.underlying
   get_Decoder : ∀ (x : WithoutVersionDecoder), go.IsGoStepPureDetTagged under (StructFieldGet WithoutVersionDecoder.underlying go!"Decoder") #x (Val #(x.Decoder'))
   set_Decoder : ∀ (x : WithoutVersionDecoder) (y : Decoder), go.IsGoStepPureDetTagged under (StructFieldSet WithoutVersionDecoder.underlying go!"Decoder") (PairV #x #y) (Val #(({ x with Decoder' := y } : WithoutVersionDecoder)))
+  method_set : go.MethodSetIs WithoutVersionDecoder.ty [(go!"Decode", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty), Object.ty] false [Object.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty), go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType WithoutVersionDecoder.ty) [(go!"Decode", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty), Object.ty] false [Object.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty), go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] WithoutVersionDecoder.TypeAssumptions.type_repr
   WithoutVersionDecoder.TypeAssumptions.underlying
   WithoutVersionDecoder.TypeAssumptions.get_Decoder
   WithoutVersionDecoder.TypeAssumptions.set_Decoder
+  WithoutVersionDecoder.TypeAssumptions.method_set
+  WithoutVersionDecoder.TypeAssumptions.ptr_method_set
 
 abbrev EncoderWithAllocator [GooseExts] : Type := GoInterface
 
 @[reducible] noncomputable def EncoderWithAllocator.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"EncodeWithAllocator" (go.signature.Signature [Object.ty, _root_.Perennial.io.Writer.ty, MemoryAllocator.ty] false [go.error])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm Encoder.ty)])])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Encode" (go.signature.Signature [Object.ty, _root_.Perennial.io.Writer.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"EncodeWithAllocator" (go.signature.Signature [Object.ty, _root_.Perennial.io.Writer.ty, MemoryAllocator.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"Identifier" (go.signature.Signature [] false [Identifier.ty]))])
 
 class EncoderWithAllocator.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq EncoderWithAllocator.ty EncoderWithAllocator.underlying
+  method_set : go.MethodSetIs EncoderWithAllocator.ty [(go!"Encode", (some (go.signature.Signature [Object.ty, _root_.Perennial.io.Writer.ty] false [go.error]))), (go!"EncodeWithAllocator", (some (go.signature.Signature [Object.ty, _root_.Perennial.io.Writer.ty, MemoryAllocator.ty] false [go.error]))), (go!"Identifier", (some (go.signature.Signature [] false [Identifier.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType EncoderWithAllocator.ty) []
 
 attribute [instance] EncoderWithAllocator.TypeAssumptions.underlying
+  EncoderWithAllocator.TypeAssumptions.method_set
+  EncoderWithAllocator.TypeAssumptions.ptr_method_set
 
 abbrev MemoryAllocator [GooseExts] : Type := GoInterface
 
@@ -2004,8 +2152,12 @@ abbrev MemoryAllocator [GooseExts] : Type := GoInterface
 
 class MemoryAllocator.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq MemoryAllocator.ty MemoryAllocator.underlying
+  method_set : go.MethodSetIs MemoryAllocator.ty [(go!"Allocate", (some (go.signature.Signature [go.uint64] false [(go.GoType.SliceType go.byte)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType MemoryAllocator.ty) []
 
 attribute [instance] MemoryAllocator.TypeAssumptions.underlying
+  MemoryAllocator.TypeAssumptions.method_set
+  MemoryAllocator.TypeAssumptions.ptr_method_set
 
 structure encoderWithAllocator [GooseExts] where
   mk ::
@@ -2036,6 +2188,8 @@ class encoderWithAllocator.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLoca
   set_encoder : ∀ (x : encoderWithAllocator) (y : EncoderWithAllocator), go.IsGoStepPureDetTagged under (StructFieldSet encoderWithAllocator.underlying go!"encoder") (PairV #x #y) (Val #(({ x with encoder' := y } : encoderWithAllocator)))
   get_memAllocator : ∀ (x : encoderWithAllocator), go.IsGoStepPureDetTagged under (StructFieldGet encoderWithAllocator.underlying go!"memAllocator") #x (Val #(x.memAllocator'))
   set_memAllocator : ∀ (x : encoderWithAllocator) (y : MemoryAllocator), go.IsGoStepPureDetTagged under (StructFieldSet encoderWithAllocator.underlying go!"memAllocator") (PairV #x #y) (Val #(({ x with memAllocator' := y } : encoderWithAllocator)))
+  method_set : go.MethodSetIs encoderWithAllocator.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType encoderWithAllocator.ty) [(go!"Encode", (some (go.signature.Signature [Object.ty, _root_.Perennial.io.Writer.ty] false [go.error]))), (go!"Identifier", (some (go.signature.Signature [] false [Identifier.ty])))]
 
 attribute [instance] encoderWithAllocator.TypeAssumptions.type_repr
   encoderWithAllocator.TypeAssumptions.underlying
@@ -2043,16 +2197,22 @@ attribute [instance] encoderWithAllocator.TypeAssumptions.type_repr
   encoderWithAllocator.TypeAssumptions.set_encoder
   encoderWithAllocator.TypeAssumptions.get_memAllocator
   encoderWithAllocator.TypeAssumptions.set_memAllocator
+  encoderWithAllocator.TypeAssumptions.method_set
+  encoderWithAllocator.TypeAssumptions.ptr_method_set
 
 abbrev NondeterministicEncoder [GooseExts] : Type := GoInterface
 
 @[reducible] noncomputable def NondeterministicEncoder.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"EncodeNondeterministic" (go.signature.Signature [Object.ty, _root_.Perennial.io.Writer.ty] false [go.error])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm Encoder.ty)])])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Encode" (go.signature.Signature [Object.ty, _root_.Perennial.io.Writer.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"EncodeNondeterministic" (go.signature.Signature [Object.ty, _root_.Perennial.io.Writer.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"Identifier" (go.signature.Signature [] false [Identifier.ty]))])
 
 class NondeterministicEncoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq NondeterministicEncoder.ty NondeterministicEncoder.underlying
+  method_set : go.MethodSetIs NondeterministicEncoder.ty [(go!"Encode", (some (go.signature.Signature [Object.ty, _root_.Perennial.io.Writer.ty] false [go.error]))), (go!"EncodeNondeterministic", (some (go.signature.Signature [Object.ty, _root_.Perennial.io.Writer.ty] false [go.error]))), (go!"Identifier", (some (go.signature.Signature [] false [Identifier.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType NondeterministicEncoder.ty) []
 
 attribute [instance] NondeterministicEncoder.TypeAssumptions.underlying
+  NondeterministicEncoder.TypeAssumptions.method_set
+  NondeterministicEncoder.TypeAssumptions.ptr_method_set
 
 structure nondeterministicEncoderToEncoderAdapter [GooseExts] where
   mk ::
@@ -2083,6 +2243,8 @@ class nondeterministicEncoderToEncoderAdapter.TypeAssumptions [GooseExts] [GoGlo
   set_NondeterministicEncoder : ∀ (x : nondeterministicEncoderToEncoderAdapter) (y : NondeterministicEncoder), go.IsGoStepPureDetTagged under (StructFieldSet nondeterministicEncoderToEncoderAdapter.underlying go!"NondeterministicEncoder") (PairV #x #y) (Val #(({ x with NondeterministicEncoder' := y } : nondeterministicEncoderToEncoderAdapter)))
   get_Decoder : ∀ (x : nondeterministicEncoderToEncoderAdapter), go.IsGoStepPureDetTagged under (StructFieldGet nondeterministicEncoderToEncoderAdapter.underlying go!"Decoder") #x (Val #(x.Decoder'))
   set_Decoder : ∀ (x : nondeterministicEncoderToEncoderAdapter) (y : Decoder), go.IsGoStepPureDetTagged under (StructFieldSet nondeterministicEncoderToEncoderAdapter.underlying go!"Decoder") (PairV #x #y) (Val #(({ x with Decoder' := y } : nondeterministicEncoderToEncoderAdapter)))
+  method_set : go.MethodSetIs nondeterministicEncoderToEncoderAdapter.ty [(go!"Decode", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty), Object.ty] false [Object.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty), go.error]))), (go!"Encode", (some (go.signature.Signature [Object.ty, _root_.Perennial.io.Writer.ty] false [go.error]))), (go!"EncodeNondeterministic", (some (go.signature.Signature [Object.ty, _root_.Perennial.io.Writer.ty] false [go.error]))), (go!"Identifier", (some (go.signature.Signature [] false [Identifier.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType nondeterministicEncoderToEncoderAdapter.ty) [(go!"Decode", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty), Object.ty] false [Object.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty), go.error]))), (go!"Encode", (some (go.signature.Signature [Object.ty, _root_.Perennial.io.Writer.ty] false [go.error]))), (go!"EncodeNondeterministic", (some (go.signature.Signature [Object.ty, _root_.Perennial.io.Writer.ty] false [go.error]))), (go!"Identifier", (some (go.signature.Signature [] false [Identifier.ty])))]
 
 attribute [instance] nondeterministicEncoderToEncoderAdapter.TypeAssumptions.type_repr
   nondeterministicEncoderToEncoderAdapter.TypeAssumptions.underlying
@@ -2090,16 +2252,22 @@ attribute [instance] nondeterministicEncoderToEncoderAdapter.TypeAssumptions.typ
   nondeterministicEncoderToEncoderAdapter.TypeAssumptions.set_NondeterministicEncoder
   nondeterministicEncoderToEncoderAdapter.TypeAssumptions.get_Decoder
   nondeterministicEncoderToEncoderAdapter.TypeAssumptions.set_Decoder
+  nondeterministicEncoderToEncoderAdapter.TypeAssumptions.method_set
+  nondeterministicEncoderToEncoderAdapter.TypeAssumptions.ptr_method_set
 
 abbrev Serializer [GooseExts] : Type := GoInterface
 
 @[reducible] noncomputable def Serializer.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.TypeElem [(go.type_term.TypeTerm Encoder.ty)]), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm Decoder.ty)])])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Decode" (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty), Object.ty] false [Object.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty), go.error])), (go.InterfaceElem.MethodElem go!"Encode" (go.signature.Signature [Object.ty, _root_.Perennial.io.Writer.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"Identifier" (go.signature.Signature [] false [Identifier.ty]))])
 
 class Serializer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Serializer.ty Serializer.underlying
+  method_set : go.MethodSetIs Serializer.ty [(go!"Decode", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty), Object.ty] false [Object.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty), go.error]))), (go!"Encode", (some (go.signature.Signature [Object.ty, _root_.Perennial.io.Writer.ty] false [go.error]))), (go!"Identifier", (some (go.signature.Signature [] false [Identifier.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Serializer.ty) []
 
 attribute [instance] Serializer.TypeAssumptions.underlying
+  Serializer.TypeAssumptions.method_set
+  Serializer.TypeAssumptions.ptr_method_set
 
 abbrev Codec [GooseExts] : Type := Serializer
 
@@ -2108,8 +2276,12 @@ abbrev Codec [GooseExts] : Type := Serializer
 
 class Codec.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Codec.ty Codec.underlying
+  method_set : go.MethodSetIs Codec.ty [(go!"Decode", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty), Object.ty] false [Object.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty), go.error]))), (go!"Encode", (some (go.signature.Signature [Object.ty, _root_.Perennial.io.Writer.ty] false [go.error]))), (go!"Identifier", (some (go.signature.Signature [] false [Identifier.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Codec.ty) []
 
 attribute [instance] Codec.TypeAssumptions.underlying
+  Codec.TypeAssumptions.method_set
+  Codec.TypeAssumptions.ptr_method_set
 
 axiom ParameterCodec : Type
 axiom ParameterCodec.zero_val : ZeroVal ParameterCodec
@@ -2119,10 +2291,14 @@ class ParameterCodec.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalConte
   type_repr : go.TypeReprUnderlying ParameterCodec.underlying ParameterCodec
   underlying : go.UnderlyingDirectedEq ParameterCodec.ty ParameterCodec.underlying
   isUnderlying : go.IsUnderlying ParameterCodec.underlying ParameterCodec.underlying
+  method_set : go.MethodSetIs ParameterCodec.ty [(go!"DecodeParameters", (some (go.signature.Signature [(go.GoType.Named go!"net/url.Values" []), _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersion.ty, Object.ty] false [go.error]))), (go!"EncodeParameters", (some (go.signature.Signature [Object.ty, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersion.ty] false [(go.GoType.Named go!"net/url.Values" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ParameterCodec.ty) []
 
 attribute [instance] ParameterCodec.TypeAssumptions.type_repr
   ParameterCodec.TypeAssumptions.underlying
   ParameterCodec.TypeAssumptions.isUnderlying
+  ParameterCodec.TypeAssumptions.method_set
+  ParameterCodec.TypeAssumptions.ptr_method_set
 
 abbrev Framer [GooseExts] : Type := GoInterface
 
@@ -2131,8 +2307,12 @@ abbrev Framer [GooseExts] : Type := GoInterface
 
 class Framer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Framer.ty Framer.underlying
+  method_set : go.MethodSetIs Framer.ty [(go!"NewFrameReader", (some (go.signature.Signature [_root_.Perennial.io.ReadCloser.ty] false [_root_.Perennial.io.ReadCloser.ty]))), (go!"NewFrameWriter", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [_root_.Perennial.io.Writer.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Framer.ty) []
 
 attribute [instance] Framer.TypeAssumptions.underlying
+  Framer.TypeAssumptions.method_set
+  Framer.TypeAssumptions.ptr_method_set
 
 structure SerializerInfo [GooseExts] where
   mk ::
@@ -2187,6 +2367,8 @@ class SerializerInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalConte
   set_StrictSerializer : ∀ (x : SerializerInfo) (y : Serializer), go.IsGoStepPureDetTagged under (StructFieldSet SerializerInfo.underlying go!"StrictSerializer") (PairV #x #y) (Val #(({ x with StrictSerializer' := y } : SerializerInfo)))
   get_StreamSerializer : ∀ (x : SerializerInfo), go.IsGoStepPureDetTagged under (StructFieldGet SerializerInfo.underlying go!"StreamSerializer") #x (Val #(x.StreamSerializer'))
   set_StreamSerializer : ∀ (x : SerializerInfo) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet SerializerInfo.underlying go!"StreamSerializer") (PairV #x #y) (Val #(({ x with StreamSerializer' := y } : SerializerInfo)))
+  method_set : go.MethodSetIs SerializerInfo.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SerializerInfo.ty) [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] SerializerInfo.TypeAssumptions.type_repr
   SerializerInfo.TypeAssumptions.underlying
@@ -2206,6 +2388,8 @@ attribute [instance] SerializerInfo.TypeAssumptions.type_repr
   SerializerInfo.TypeAssumptions.set_StrictSerializer
   SerializerInfo.TypeAssumptions.get_StreamSerializer
   SerializerInfo.TypeAssumptions.set_StreamSerializer
+  SerializerInfo.TypeAssumptions.method_set
+  SerializerInfo.TypeAssumptions.ptr_method_set
 
 structure StreamSerializerInfo [GooseExts] where
   mk ::
@@ -2240,6 +2424,8 @@ class StreamSerializerInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLoca
   set_Serializer : ∀ (x : StreamSerializerInfo) (y : Serializer), go.IsGoStepPureDetTagged under (StructFieldSet StreamSerializerInfo.underlying go!"Serializer") (PairV #x #y) (Val #(({ x with Serializer' := y } : StreamSerializerInfo)))
   get_Framer : ∀ (x : StreamSerializerInfo), go.IsGoStepPureDetTagged under (StructFieldGet StreamSerializerInfo.underlying go!"Framer") #x (Val #(x.Framer'))
   set_Framer : ∀ (x : StreamSerializerInfo) (y : Framer), go.IsGoStepPureDetTagged under (StructFieldSet StreamSerializerInfo.underlying go!"Framer") (PairV #x #y) (Val #(({ x with Framer' := y } : StreamSerializerInfo)))
+  method_set : go.MethodSetIs StreamSerializerInfo.ty [(go!"Decode", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty), Object.ty] false [Object.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty), go.error]))), (go!"Encode", (some (go.signature.Signature [Object.ty, _root_.Perennial.io.Writer.ty] false [go.error]))), (go!"Identifier", (some (go.signature.Signature [] false [Identifier.ty]))), (go!"NewFrameReader", (some (go.signature.Signature [_root_.Perennial.io.ReadCloser.ty] false [_root_.Perennial.io.ReadCloser.ty]))), (go!"NewFrameWriter", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [_root_.Perennial.io.Writer.ty]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType StreamSerializerInfo.ty) [(go!"Decode", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty), Object.ty] false [Object.ty, (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty), go.error]))), (go!"Encode", (some (go.signature.Signature [Object.ty, _root_.Perennial.io.Writer.ty] false [go.error]))), (go!"Identifier", (some (go.signature.Signature [] false [Identifier.ty]))), (go!"NewFrameReader", (some (go.signature.Signature [_root_.Perennial.io.ReadCloser.ty] false [_root_.Perennial.io.ReadCloser.ty]))), (go!"NewFrameWriter", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [_root_.Perennial.io.Writer.ty]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] StreamSerializerInfo.TypeAssumptions.type_repr
   StreamSerializerInfo.TypeAssumptions.underlying
@@ -2249,6 +2435,8 @@ attribute [instance] StreamSerializerInfo.TypeAssumptions.type_repr
   StreamSerializerInfo.TypeAssumptions.set_Serializer
   StreamSerializerInfo.TypeAssumptions.get_Framer
   StreamSerializerInfo.TypeAssumptions.set_Framer
+  StreamSerializerInfo.TypeAssumptions.method_set
+  StreamSerializerInfo.TypeAssumptions.ptr_method_set
 
 abbrev NegotiatedSerializer [GooseExts] : Type := GoInterface
 
@@ -2257,8 +2445,12 @@ abbrev NegotiatedSerializer [GooseExts] : Type := GoInterface
 
 class NegotiatedSerializer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq NegotiatedSerializer.ty NegotiatedSerializer.underlying
+  method_set : go.MethodSetIs NegotiatedSerializer.ty [(go!"DecoderToVersion", (some (go.signature.Signature [Decoder.ty, GroupVersioner.ty] false [Decoder.ty]))), (go!"EncoderForVersion", (some (go.signature.Signature [Encoder.ty, GroupVersioner.ty] false [Encoder.ty]))), (go!"SupportedMediaTypes", (some (go.signature.Signature [] false [(go.GoType.SliceType SerializerInfo.ty)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType NegotiatedSerializer.ty) []
 
 attribute [instance] NegotiatedSerializer.TypeAssumptions.underlying
+  NegotiatedSerializer.TypeAssumptions.method_set
+  NegotiatedSerializer.TypeAssumptions.ptr_method_set
 
 abbrev ClientNegotiator [GooseExts] : Type := GoInterface
 
@@ -2267,8 +2459,12 @@ abbrev ClientNegotiator [GooseExts] : Type := GoInterface
 
 class ClientNegotiator.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ClientNegotiator.ty ClientNegotiator.underlying
+  method_set : go.MethodSetIs ClientNegotiator.ty [(go!"Decoder", (some (go.signature.Signature [go.string, (go.GoType.MapType go.string go.string)] false [Decoder.ty, go.error]))), (go!"Encoder", (some (go.signature.Signature [go.string, (go.GoType.MapType go.string go.string)] false [Encoder.ty, go.error]))), (go!"StreamDecoder", (some (go.signature.Signature [go.string, (go.GoType.MapType go.string go.string)] false [Decoder.ty, Serializer.ty, Framer.ty, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ClientNegotiator.ty) []
 
 attribute [instance] ClientNegotiator.TypeAssumptions.underlying
+  ClientNegotiator.TypeAssumptions.method_set
+  ClientNegotiator.TypeAssumptions.ptr_method_set
 
 abbrev StorageSerializer [GooseExts] : Type := GoInterface
 
@@ -2277,8 +2473,12 @@ abbrev StorageSerializer [GooseExts] : Type := GoInterface
 
 class StorageSerializer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq StorageSerializer.ty StorageSerializer.underlying
+  method_set : go.MethodSetIs StorageSerializer.ty [(go!"DecoderToVersion", (some (go.signature.Signature [Decoder.ty, GroupVersioner.ty] false [Decoder.ty]))), (go!"EncoderForVersion", (some (go.signature.Signature [Encoder.ty, GroupVersioner.ty] false [Encoder.ty]))), (go!"SupportedMediaTypes", (some (go.signature.Signature [] false [(go.GoType.SliceType SerializerInfo.ty)]))), (go!"UniversalDeserializer", (some (go.signature.Signature [] false [Decoder.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType StorageSerializer.ty) []
 
 attribute [instance] StorageSerializer.TypeAssumptions.underlying
+  StorageSerializer.TypeAssumptions.method_set
+  StorageSerializer.TypeAssumptions.ptr_method_set
 
 abbrev NestedObjectEncoder [GooseExts] : Type := GoInterface
 
@@ -2287,8 +2487,12 @@ abbrev NestedObjectEncoder [GooseExts] : Type := GoInterface
 
 class NestedObjectEncoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq NestedObjectEncoder.ty NestedObjectEncoder.underlying
+  method_set : go.MethodSetIs NestedObjectEncoder.ty [(go!"EncodeNestedObjects", (some (go.signature.Signature [Encoder.ty] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType NestedObjectEncoder.ty) []
 
 attribute [instance] NestedObjectEncoder.TypeAssumptions.underlying
+  NestedObjectEncoder.TypeAssumptions.method_set
+  NestedObjectEncoder.TypeAssumptions.ptr_method_set
 
 abbrev NestedObjectDecoder [GooseExts] : Type := GoInterface
 
@@ -2297,8 +2501,12 @@ abbrev NestedObjectDecoder [GooseExts] : Type := GoInterface
 
 class NestedObjectDecoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq NestedObjectDecoder.ty NestedObjectDecoder.underlying
+  method_set : go.MethodSetIs NestedObjectDecoder.ty [(go!"DecodeNestedObjects", (some (go.signature.Signature [Decoder.ty] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType NestedObjectDecoder.ty) []
 
 attribute [instance] NestedObjectDecoder.TypeAssumptions.underlying
+  NestedObjectDecoder.TypeAssumptions.method_set
+  NestedObjectDecoder.TypeAssumptions.ptr_method_set
 
 abbrev ObjectVersioner [GooseExts] : Type := GoInterface
 
@@ -2307,8 +2515,12 @@ abbrev ObjectVersioner [GooseExts] : Type := GoInterface
 
 class ObjectVersioner.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ObjectVersioner.ty ObjectVersioner.underlying
+  method_set : go.MethodSetIs ObjectVersioner.ty [(go!"ConvertToVersion", (some (go.signature.Signature [Object.ty, GroupVersioner.ty] false [Object.ty, go.error]))), (go!"PrioritizedVersionsForGroup", (some (go.signature.Signature [go.string] false [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersion.ty)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ObjectVersioner.ty) []
 
 attribute [instance] ObjectVersioner.TypeAssumptions.underlying
+  ObjectVersioner.TypeAssumptions.method_set
+  ObjectVersioner.TypeAssumptions.ptr_method_set
 
 abbrev EquivalentResourceMapper [GooseExts] : Type := GoInterface
 
@@ -2317,18 +2529,26 @@ abbrev EquivalentResourceMapper [GooseExts] : Type := GoInterface
 
 class EquivalentResourceMapper.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq EquivalentResourceMapper.ty EquivalentResourceMapper.underlying
+  method_set : go.MethodSetIs EquivalentResourceMapper.ty [(go!"EquivalentResourcesFor", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource.ty, go.string] false [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource.ty)]))), (go!"KindFor", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource.ty, go.string] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType EquivalentResourceMapper.ty) []
 
 attribute [instance] EquivalentResourceMapper.TypeAssumptions.underlying
+  EquivalentResourceMapper.TypeAssumptions.method_set
+  EquivalentResourceMapper.TypeAssumptions.ptr_method_set
 
 abbrev EquivalentResourceRegistry [GooseExts] : Type := GoInterface
 
 @[reducible] noncomputable def EquivalentResourceRegistry.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"RegisterKindFor" (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource.ty, go.string, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty] false [])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm EquivalentResourceMapper.ty)])])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"EquivalentResourcesFor" (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource.ty, go.string] false [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource.ty)])), (go.InterfaceElem.MethodElem go!"KindFor" (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource.ty, go.string] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty])), (go.InterfaceElem.MethodElem go!"RegisterKindFor" (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource.ty, go.string, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty] false []))])
 
 class EquivalentResourceRegistry.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq EquivalentResourceRegistry.ty EquivalentResourceRegistry.underlying
+  method_set : go.MethodSetIs EquivalentResourceRegistry.ty [(go!"EquivalentResourcesFor", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource.ty, go.string] false [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource.ty)]))), (go!"KindFor", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource.ty, go.string] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty]))), (go!"RegisterKindFor", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource.ty, go.string, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType EquivalentResourceRegistry.ty) []
 
 attribute [instance] EquivalentResourceRegistry.TypeAssumptions.underlying
+  EquivalentResourceRegistry.TypeAssumptions.method_set
+  EquivalentResourceRegistry.TypeAssumptions.ptr_method_set
 
 abbrev ResourceVersioner [GooseExts] : Type := GoInterface
 
@@ -2337,8 +2557,12 @@ abbrev ResourceVersioner [GooseExts] : Type := GoInterface
 
 class ResourceVersioner.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ResourceVersioner.ty ResourceVersioner.underlying
+  method_set : go.MethodSetIs ResourceVersioner.ty [(go!"ResourceVersion", (some (go.signature.Signature [Object.ty] false [go.string, go.error]))), (go!"SetResourceVersion", (some (go.signature.Signature [Object.ty, go.string] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ResourceVersioner.ty) []
 
 attribute [instance] ResourceVersioner.TypeAssumptions.underlying
+  ResourceVersioner.TypeAssumptions.method_set
+  ResourceVersioner.TypeAssumptions.ptr_method_set
 
 abbrev Namer [GooseExts] : Type := GoInterface
 
@@ -2347,8 +2571,12 @@ abbrev Namer [GooseExts] : Type := GoInterface
 
 class Namer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Namer.ty Namer.underlying
+  method_set : go.MethodSetIs Namer.ty [(go!"Name", (some (go.signature.Signature [Object.ty] false [go.string, go.error]))), (go!"Namespace", (some (go.signature.Signature [Object.ty] false [go.string, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Namer.ty) []
 
 attribute [instance] Namer.TypeAssumptions.underlying
+  Namer.TypeAssumptions.method_set
+  Namer.TypeAssumptions.ptr_method_set
 
 abbrev CacheableObject [GooseExts] : Type := GoInterface
 
@@ -2357,18 +2585,26 @@ abbrev CacheableObject [GooseExts] : Type := GoInterface
 
 class CacheableObject.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq CacheableObject.ty CacheableObject.underlying
+  method_set : go.MethodSetIs CacheableObject.ty [(go!"CacheEncode", (some (go.signature.Signature [Identifier.ty, (go.GoType.FunctionType (go.signature.Signature [Object.ty, _root_.Perennial.io.Writer.ty] false [go.error])), _root_.Perennial.io.Writer.ty] false [go.error]))), (go!"GetObject", (some (go.signature.Signature [] false [Object.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CacheableObject.ty) []
 
 attribute [instance] CacheableObject.TypeAssumptions.underlying
+  CacheableObject.TypeAssumptions.method_set
+  CacheableObject.TypeAssumptions.ptr_method_set
 
 abbrev Unstructured [GooseExts] : Type := GoInterface
 
 @[reducible] noncomputable def Unstructured.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"EachListItem" (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [Object.ty] false [go.error]))] false [go.error])), (go.InterfaceElem.MethodElem go!"EachListItemWithAlloc" (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [Object.ty] false [go.error]))] false [go.error])), (go.InterfaceElem.MethodElem go!"IsList" (go.signature.Signature [] false [go.bool])), (go.InterfaceElem.MethodElem go!"NewEmptyInstance" (go.signature.Signature [] false [Unstructured.ty])), (go.InterfaceElem.MethodElem go!"SetUnstructuredContent" (go.signature.Signature [(go.GoType.MapType go.string (go.GoType.InterfaceType []))] false [])), (go.InterfaceElem.MethodElem go!"UnstructuredContent" (go.signature.Signature [] false [(go.GoType.MapType go.string (go.GoType.InterfaceType []))])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm Object.ty)])])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"DeepCopyObject" (go.signature.Signature [] false [Object.ty])), (go.InterfaceElem.MethodElem go!"EachListItem" (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [Object.ty] false [go.error]))] false [go.error])), (go.InterfaceElem.MethodElem go!"EachListItemWithAlloc" (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [Object.ty] false [go.error]))] false [go.error])), (go.InterfaceElem.MethodElem go!"GetObjectKind" (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.ObjectKind.ty])), (go.InterfaceElem.MethodElem go!"IsList" (go.signature.Signature [] false [go.bool])), (go.InterfaceElem.MethodElem go!"NewEmptyInstance" (go.signature.Signature [] false [Unstructured.ty])), (go.InterfaceElem.MethodElem go!"SetUnstructuredContent" (go.signature.Signature [(go.GoType.MapType go.string (go.GoType.InterfaceType []))] false [])), (go.InterfaceElem.MethodElem go!"UnstructuredContent" (go.signature.Signature [] false [(go.GoType.MapType go.string (go.GoType.InterfaceType []))]))])
 
 class Unstructured.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Unstructured.ty Unstructured.underlying
+  method_set : go.MethodSetIs Unstructured.ty [(go!"DeepCopyObject", (some (go.signature.Signature [] false [Object.ty]))), (go!"EachListItem", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [Object.ty] false [go.error]))] false [go.error]))), (go!"EachListItemWithAlloc", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [Object.ty] false [go.error]))] false [go.error]))), (go!"GetObjectKind", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.ObjectKind.ty]))), (go!"IsList", (some (go.signature.Signature [] false [go.bool]))), (go!"NewEmptyInstance", (some (go.signature.Signature [] false [Unstructured.ty]))), (go!"SetUnstructuredContent", (some (go.signature.Signature [(go.GoType.MapType go.string (go.GoType.InterfaceType []))] false []))), (go!"UnstructuredContent", (some (go.signature.Signature [] false [(go.GoType.MapType go.string (go.GoType.InterfaceType []))])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Unstructured.ty) []
 
 attribute [instance] Unstructured.TypeAssumptions.underlying
+  Unstructured.TypeAssumptions.method_set
+  Unstructured.TypeAssumptions.ptr_method_set
 
 abbrev ApplyConfiguration [GooseExts] : Type := GoInterface
 
@@ -2377,8 +2613,12 @@ abbrev ApplyConfiguration [GooseExts] : Type := GoInterface
 
 class ApplyConfiguration.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ApplyConfiguration.ty ApplyConfiguration.underlying
+  method_set : go.MethodSetIs ApplyConfiguration.ty [(go!"IsApplyConfiguration", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ApplyConfiguration.ty) []
 
 attribute [instance] ApplyConfiguration.TypeAssumptions.underlying
+  ApplyConfiguration.TypeAssumptions.method_set
+  ApplyConfiguration.TypeAssumptions.ptr_method_set
 
 axiom equivalentResourceRegistry : Type
 axiom equivalentResourceRegistry.zero_val : ZeroVal equivalentResourceRegistry
@@ -2388,10 +2628,14 @@ class equivalentResourceRegistry.TypeAssumptions [GooseExts] [GoGlobalContext] [
   type_repr : go.TypeReprUnderlying equivalentResourceRegistry.underlying equivalentResourceRegistry
   underlying : go.UnderlyingDirectedEq equivalentResourceRegistry.ty equivalentResourceRegistry.underlying
   isUnderlying : go.IsUnderlying equivalentResourceRegistry.underlying equivalentResourceRegistry.underlying
+  method_set : go.MethodSetIs equivalentResourceRegistry.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType equivalentResourceRegistry.ty) [(go!"EquivalentResourcesFor", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource.ty, go.string] false [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource.ty)]))), (go!"KindFor", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource.ty, go.string] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty]))), (go!"RegisterKindFor", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource.ty, go.string, _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty] false [])))]
 
 attribute [instance] equivalentResourceRegistry.TypeAssumptions.type_repr
   equivalentResourceRegistry.TypeAssumptions.underlying
   equivalentResourceRegistry.TypeAssumptions.isUnderlying
+  equivalentResourceRegistry.TypeAssumptions.method_set
+  equivalentResourceRegistry.TypeAssumptions.ptr_method_set
 
 structure NegotiateError [GooseExts] where
   mk ::
@@ -2422,6 +2666,8 @@ class NegotiateError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalConte
   set_ContentType : ∀ (x : NegotiateError) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet NegotiateError.underlying go!"ContentType") (PairV #x #y) (Val #(({ x with ContentType' := y } : NegotiateError)))
   get_Stream : ∀ (x : NegotiateError), go.IsGoStepPureDetTagged under (StructFieldGet NegotiateError.underlying go!"Stream") #x (Val #(x.Stream'))
   set_Stream : ∀ (x : NegotiateError) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet NegotiateError.underlying go!"Stream") (PairV #x #y) (Val #(({ x with Stream' := y } : NegotiateError)))
+  method_set : go.MethodSetIs NegotiateError.ty [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType NegotiateError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] NegotiateError.TypeAssumptions.type_repr
   NegotiateError.TypeAssumptions.underlying
@@ -2429,6 +2675,8 @@ attribute [instance] NegotiateError.TypeAssumptions.type_repr
   NegotiateError.TypeAssumptions.set_ContentType
   NegotiateError.TypeAssumptions.get_Stream
   NegotiateError.TypeAssumptions.set_Stream
+  NegotiateError.TypeAssumptions.method_set
+  NegotiateError.TypeAssumptions.ptr_method_set
 
 structure clientNegotiator [GooseExts] where
   mk ::
@@ -2463,6 +2711,8 @@ class clientNegotiator.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCon
   set_encode : ∀ (x : clientNegotiator) (y : GroupVersioner), go.IsGoStepPureDetTagged under (StructFieldSet clientNegotiator.underlying go!"encode") (PairV #x #y) (Val #(({ x with encode' := y } : clientNegotiator)))
   get_decode : ∀ (x : clientNegotiator), go.IsGoStepPureDetTagged under (StructFieldGet clientNegotiator.underlying go!"decode") #x (Val #(x.decode'))
   set_decode : ∀ (x : clientNegotiator) (y : GroupVersioner), go.IsGoStepPureDetTagged under (StructFieldSet clientNegotiator.underlying go!"decode") (PairV #x #y) (Val #(({ x with decode' := y } : clientNegotiator)))
+  method_set : go.MethodSetIs clientNegotiator.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType clientNegotiator.ty) [(go!"Decoder", (some (go.signature.Signature [go.string, (go.GoType.MapType go.string go.string)] false [Decoder.ty, go.error]))), (go!"Encoder", (some (go.signature.Signature [go.string, (go.GoType.MapType go.string go.string)] false [Encoder.ty, go.error]))), (go!"StreamDecoder", (some (go.signature.Signature [go.string, (go.GoType.MapType go.string go.string)] false [Decoder.ty, Serializer.ty, Framer.ty, go.error])))]
 
 attribute [instance] clientNegotiator.TypeAssumptions.type_repr
   clientNegotiator.TypeAssumptions.underlying
@@ -2472,6 +2722,8 @@ attribute [instance] clientNegotiator.TypeAssumptions.type_repr
   clientNegotiator.TypeAssumptions.set_encode
   clientNegotiator.TypeAssumptions.get_decode
   clientNegotiator.TypeAssumptions.set_decode
+  clientNegotiator.TypeAssumptions.method_set
+  clientNegotiator.TypeAssumptions.ptr_method_set
 
 structure simpleNegotiatedSerializer [GooseExts] where
   mk ::
@@ -2498,11 +2750,15 @@ class simpleNegotiatedSerializer.TypeAssumptions [GooseExts] [GoGlobalContext] [
   underlying : go.UnderlyingDirectedEq simpleNegotiatedSerializer.ty simpleNegotiatedSerializer.underlying
   get_info : ∀ (x : simpleNegotiatedSerializer), go.IsGoStepPureDetTagged under (StructFieldGet simpleNegotiatedSerializer.underlying go!"info") #x (Val #(x.info'))
   set_info : ∀ (x : simpleNegotiatedSerializer) (y : SerializerInfo), go.IsGoStepPureDetTagged under (StructFieldSet simpleNegotiatedSerializer.underlying go!"info") (PairV #x #y) (Val #(({ x with info' := y } : simpleNegotiatedSerializer)))
+  method_set : go.MethodSetIs simpleNegotiatedSerializer.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType simpleNegotiatedSerializer.ty) [(go!"DecoderToVersion", (some (go.signature.Signature [Decoder.ty, GroupVersioner.ty] false [Decoder.ty]))), (go!"EncoderForVersion", (some (go.signature.Signature [Encoder.ty, GroupVersioner.ty] false [Encoder.ty]))), (go!"SupportedMediaTypes", (some (go.signature.Signature [] false [(go.GoType.SliceType SerializerInfo.ty)])))]
 
 attribute [instance] simpleNegotiatedSerializer.TypeAssumptions.type_repr
   simpleNegotiatedSerializer.TypeAssumptions.underlying
   simpleNegotiatedSerializer.TypeAssumptions.get_info
   simpleNegotiatedSerializer.TypeAssumptions.set_info
+  simpleNegotiatedSerializer.TypeAssumptions.method_set
+  simpleNegotiatedSerializer.TypeAssumptions.ptr_method_set
 
 axiom Scheme : Type
 axiom Scheme.zero_val : ZeroVal Scheme
@@ -2512,10 +2768,14 @@ class Scheme.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   type_repr : go.TypeReprUnderlying Scheme.underlying Scheme
   underlying : go.UnderlyingDirectedEq Scheme.ty Scheme.underlying
   isUnderlying : go.IsUnderlying Scheme.underlying Scheme.underlying
+  method_set : go.MethodSetIs Scheme.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Scheme.ty) [(go!"AddConversionFunc", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType []), _root_.Perennial.k8s_io.apimachinery.pkg.conversion.ConversionFunc.ty] false [go.error]))), (go!"AddFieldLabelConversionFunc", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty, FieldLabelConversionFunc.ty] false [go.error]))), (go!"AddGeneratedConversionFunc", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType []), _root_.Perennial.k8s_io.apimachinery.pkg.conversion.ConversionFunc.ty] false [go.error]))), (go!"AddIgnoredConversionType", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType [])] false [go.error]))), (go!"AddKnownTypeWithName", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty, Object.ty] false []))), (go!"AddKnownTypes", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersion.ty, (go.GoType.SliceType Object.ty)] true []))), (go!"AddTypeDefaultingFunc", (some (go.signature.Signature [Object.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType [])] false []))] false []))), (go!"AddUnversionedTypes", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersion.ty, (go.GoType.SliceType Object.ty)] true []))), (go!"AddValidationFunc", (some (go.signature.Signature [Object.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/api/operation.Operation" []), (go.GoType.InterfaceType []), (go.GoType.InterfaceType [])] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/util/validation/field.ErrorList" [])]))] false []))), (go!"AllKnownTypes", (some (go.signature.Signature [] false [(go.GoType.MapType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty _root_.Perennial.reflect.Type'.ty)]))), (go!"Convert", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType []), (go.GoType.InterfaceType [])] false [go.error]))), (go!"ConvertFieldLabel", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty, go.string, go.string] false [go.string, go.string, go.error]))), (go!"ConvertToVersion", (some (go.signature.Signature [Object.ty, GroupVersioner.ty] false [Object.ty, go.error]))), (go!"Converter", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.conversion.Converter.ty)]))), (go!"Default", (some (go.signature.Signature [Object.ty] false []))), (go!"HasValidationFunc", (some (go.signature.Signature [Object.ty] false [go.bool]))), (go!"IsGroupRegistered", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"IsUnversioned", (some (go.signature.Signature [Object.ty] false [go.bool, go.bool]))), (go!"IsVersionRegistered", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersion.ty] false [go.bool]))), (go!"KnownTypes", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersion.ty] false [(go.GoType.MapType go.string _root_.Perennial.reflect.Type'.ty)]))), (go!"Name", (some (go.signature.Signature [] false [go.string]))), (go!"New", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty] false [Object.ty, go.error]))), (go!"ObjectKinds", (some (go.signature.Signature [Object.ty] false [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty), go.bool, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"PreferredVersionAllGroups", (some (go.signature.Signature [] false [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersion.ty)]))), (go!"PrioritizedVersionsAllGroups", (some (go.signature.Signature [] false [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersion.ty)]))), (go!"PrioritizedVersionsForGroup", (some (go.signature.Signature [go.string] false [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersion.ty)]))), (go!"Recognizes", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty] false [go.bool]))), (go!"SetVersionPriority", (some (go.signature.Signature [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersion.ty)] true [go.error]))), (go!"ToOpenAPIDefinitionName", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty] false [go.string, go.error]))), (go!"UnsafeConvertToVersion", (some (go.signature.Signature [Object.ty, GroupVersioner.ty] false [Object.ty, go.error]))), (go!"Validate", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.MapType go.string go.bool), Object.ty, (go.GoType.SliceType go.string)] true [(go.GoType.Named go!"k8s.io/apimachinery/pkg/util/validation/field.ErrorList" [])]))), (go!"ValidateUpdate", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.MapType go.string go.bool), Object.ty, Object.ty, (go.GoType.SliceType go.string)] true [(go.GoType.Named go!"k8s.io/apimachinery/pkg/util/validation/field.ErrorList" [])]))), (go!"VersionsForGroupKind", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupKind.ty] false [(go.GoType.SliceType _root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersion.ty)]))), (go!"k8s.io/apimachinery/pkg/runtime.addObservedVersion", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersion.ty] false []))), (go!"k8s.io/apimachinery/pkg/runtime.convertToVersion", (some (go.signature.Signature [go.bool, Object.ty, GroupVersioner.ty] false [Object.ty, go.error]))), (go!"k8s.io/apimachinery/pkg/runtime.generateConvertMeta", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [(go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.conversion.Meta.ty)]))), (go!"k8s.io/apimachinery/pkg/runtime.unstructuredToTyped", (some (go.signature.Signature [Unstructured.ty] false [Object.ty, go.error])))]
 
 attribute [instance] Scheme.TypeAssumptions.type_repr
   Scheme.TypeAssumptions.underlying
   Scheme.TypeAssumptions.isUnderlying
+  Scheme.TypeAssumptions.method_set
+  Scheme.TypeAssumptions.ptr_method_set
 
 abbrev FieldLabelConversionFunc [GooseExts] : Type := GoFunc
 
@@ -2524,8 +2784,12 @@ abbrev FieldLabelConversionFunc [GooseExts] : Type := GoFunc
 
 class FieldLabelConversionFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq FieldLabelConversionFunc.ty FieldLabelConversionFunc.underlying
+  method_set : go.MethodSetIs FieldLabelConversionFunc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType FieldLabelConversionFunc.ty) []
 
 attribute [instance] FieldLabelConversionFunc.TypeAssumptions.underlying
+  FieldLabelConversionFunc.TypeAssumptions.method_set
+  FieldLabelConversionFunc.TypeAssumptions.ptr_method_set
 
 abbrev OpenAPIModelNamer [GooseExts] : Type := GoInterface
 
@@ -2534,8 +2798,12 @@ abbrev OpenAPIModelNamer [GooseExts] : Type := GoInterface
 
 class OpenAPIModelNamer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq OpenAPIModelNamer.ty OpenAPIModelNamer.underlying
+  method_set : go.MethodSetIs OpenAPIModelNamer.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType OpenAPIModelNamer.ty) []
 
 attribute [instance] OpenAPIModelNamer.TypeAssumptions.underlying
+  OpenAPIModelNamer.TypeAssumptions.method_set
+  OpenAPIModelNamer.TypeAssumptions.ptr_method_set
 
 abbrev SchemeBuilder [GooseExts] : Type := GoSlice
 
@@ -2544,18 +2812,26 @@ abbrev SchemeBuilder [GooseExts] : Type := GoSlice
 
 class SchemeBuilder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq SchemeBuilder.ty SchemeBuilder.underlying
+  method_set : go.MethodSetIs SchemeBuilder.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SchemeBuilder.ty) [(go!"AddToScheme", (some (go.signature.Signature [(go.GoType.PointerType Scheme.ty)] false [go.error]))), (go!"Register", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType Scheme.ty)] false [go.error])))] true [])))]
 
 attribute [instance] SchemeBuilder.TypeAssumptions.underlying
+  SchemeBuilder.TypeAssumptions.method_set
+  SchemeBuilder.TypeAssumptions.ptr_method_set
 
 abbrev Splice [GooseExts] : Type := GoInterface
 
 @[reducible] noncomputable def Splice.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Bytes" (go.signature.Signature [] false [(go.GoType.SliceType go.byte)])), (go.InterfaceElem.MethodElem go!"Reset" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"Splice" (go.signature.Signature [(go.GoType.SliceType go.byte)] false [])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm _root_.Perennial.io.Writer.ty)])])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Bytes" (go.signature.Signature [] false [(go.GoType.SliceType go.byte)])), (go.InterfaceElem.MethodElem go!"Reset" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"Splice" (go.signature.Signature [(go.GoType.SliceType go.byte)] false [])), (go.InterfaceElem.MethodElem go!"Write" (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))])
 
 class Splice.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Splice.ty Splice.underlying
+  method_set : go.MethodSetIs Splice.ty [(go!"Bytes", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Splice", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false []))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Splice.ty) []
 
 attribute [instance] Splice.TypeAssumptions.underlying
+  Splice.TypeAssumptions.method_set
+  Splice.TypeAssumptions.ptr_method_set
 
 structure spliceBuffer [GooseExts] where
   mk ::
@@ -2586,6 +2862,8 @@ class spliceBuffer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext
   set_raw : ∀ (x : spliceBuffer) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet spliceBuffer.underlying go!"raw") (PairV #x #y) (Val #(({ x with raw' := y } : spliceBuffer)))
   get_buf : ∀ (x : spliceBuffer), go.IsGoStepPureDetTagged under (StructFieldGet spliceBuffer.underlying go!"buf") #x (Val #(x.buf'))
   set_buf : ∀ (x : spliceBuffer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet spliceBuffer.underlying go!"buf") (PairV #x #y) (Val #(({ x with buf' := y } : spliceBuffer)))
+  method_set : go.MethodSetIs spliceBuffer.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType spliceBuffer.ty) [(go!"Bytes", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Splice", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false []))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
 
 attribute [instance] spliceBuffer.TypeAssumptions.type_repr
   spliceBuffer.TypeAssumptions.underlying
@@ -2593,6 +2871,8 @@ attribute [instance] spliceBuffer.TypeAssumptions.type_repr
   spliceBuffer.TypeAssumptions.set_raw
   spliceBuffer.TypeAssumptions.get_buf
   spliceBuffer.TypeAssumptions.set_buf
+  spliceBuffer.TypeAssumptions.method_set
+  spliceBuffer.TypeAssumptions.ptr_method_set
 
 structure Pair' [GooseExts] where
   mk ::
@@ -2623,6 +2903,8 @@ class Pair.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSem
   set_Name : ∀ (x : Pair') (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Pair'.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : Pair')))
   get_Doc : ∀ (x : Pair'), go.IsGoStepPureDetTagged under (StructFieldGet Pair'.underlying go!"Doc") #x (Val #(x.Doc'))
   set_Doc : ∀ (x : Pair') (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Pair'.underlying go!"Doc") (PairV #x #y) (Val #(({ x with Doc' := y } : Pair')))
+  method_set : go.MethodSetIs Pair'.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Pair'.ty) [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] Pair.TypeAssumptions.type_repr
   Pair.TypeAssumptions.underlying
@@ -2630,6 +2912,8 @@ attribute [instance] Pair.TypeAssumptions.type_repr
   Pair.TypeAssumptions.set_Name
   Pair.TypeAssumptions.get_Doc
   Pair.TypeAssumptions.set_Doc
+  Pair.TypeAssumptions.method_set
+  Pair.TypeAssumptions.ptr_method_set
 
 abbrev KubeTypes [GooseExts] : Type := GoSlice
 
@@ -2638,8 +2922,12 @@ abbrev KubeTypes [GooseExts] : Type := GoSlice
 
 class KubeTypes.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq KubeTypes.ty KubeTypes.underlying
+  method_set : go.MethodSetIs KubeTypes.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType KubeTypes.ty) []
 
 attribute [instance] KubeTypes.TypeAssumptions.underlying
+  KubeTypes.TypeAssumptions.method_set
+  KubeTypes.TypeAssumptions.ptr_method_set
 
 structure bufferedLine [GooseExts] where
   mk ::
@@ -2670,6 +2958,8 @@ class bufferedLine.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext
   set_line : ∀ (x : bufferedLine) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet bufferedLine.underlying go!"line") (PairV #x #y) (Val #(({ x with line' := y } : bufferedLine)))
   get_indentation : ∀ (x : bufferedLine), go.IsGoStepPureDetTagged under (StructFieldGet bufferedLine.underlying go!"indentation") #x (Val #(x.indentation'))
   set_indentation : ∀ (x : bufferedLine) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet bufferedLine.underlying go!"indentation") (PairV #x #y) (Val #(({ x with indentation' := y } : bufferedLine)))
+  method_set : go.MethodSetIs bufferedLine.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType bufferedLine.ty) []
 
 attribute [instance] bufferedLine.TypeAssumptions.type_repr
   bufferedLine.TypeAssumptions.underlying
@@ -2677,6 +2967,8 @@ attribute [instance] bufferedLine.TypeAssumptions.type_repr
   bufferedLine.TypeAssumptions.set_line
   bufferedLine.TypeAssumptions.get_indentation
   bufferedLine.TypeAssumptions.set_indentation
+  bufferedLine.TypeAssumptions.method_set
+  bufferedLine.TypeAssumptions.ptr_method_set
 
 structure buffer [GooseExts] where
   mk ::
@@ -2703,11 +2995,15 @@ class buffer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   underlying : go.UnderlyingDirectedEq buffer.ty buffer.underlying
   get_lines : ∀ (x : buffer), go.IsGoStepPureDetTagged under (StructFieldGet buffer.underlying go!"lines") #x (Val #(x.lines'))
   set_lines : ∀ (x : buffer) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet buffer.underlying go!"lines") (PairV #x #y) (Val #(({ x with lines' := y } : buffer)))
+  method_set : go.MethodSetIs buffer.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType buffer.ty) [(go!"k8s.io/apimachinery/pkg/runtime.addLine", (some (go.signature.Signature [go.string, go.int] false []))), (go!"k8s.io/apimachinery/pkg/runtime.flushLines", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.error])))]
 
 attribute [instance] buffer.TypeAssumptions.type_repr
   buffer.TypeAssumptions.underlying
   buffer.TypeAssumptions.get_lines
   buffer.TypeAssumptions.set_lines
+  buffer.TypeAssumptions.method_set
+  buffer.TypeAssumptions.ptr_method_set
 
 structure TypeMeta [GooseExts] where
   mk ::
@@ -2738,6 +3034,8 @@ class TypeMeta.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [G
   set_APIVersion : ∀ (x : TypeMeta) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet TypeMeta.underlying go!"APIVersion") (PairV #x #y) (Val #(({ x with APIVersion' := y } : TypeMeta)))
   get_Kind : ∀ (x : TypeMeta), go.IsGoStepPureDetTagged under (StructFieldGet TypeMeta.underlying go!"Kind") #x (Val #(x.Kind'))
   set_Kind : ∀ (x : TypeMeta) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet TypeMeta.underlying go!"Kind") (PairV #x #y) (Val #(({ x with Kind' := y } : TypeMeta)))
+  method_set : go.MethodSetIs TypeMeta.ty [(go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TypeMeta.ty) [(go!"GetObjectKind", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.ObjectKind.ty]))), (go!"GroupVersionKind", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty]))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"SetGroupVersionKind", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] TypeMeta.TypeAssumptions.type_repr
   TypeMeta.TypeAssumptions.underlying
@@ -2745,6 +3043,8 @@ attribute [instance] TypeMeta.TypeAssumptions.type_repr
   TypeMeta.TypeAssumptions.set_APIVersion
   TypeMeta.TypeAssumptions.get_Kind
   TypeMeta.TypeAssumptions.set_Kind
+  TypeMeta.TypeAssumptions.method_set
+  TypeMeta.TypeAssumptions.ptr_method_set
 
 structure RawExtension [GooseExts] where
   mk ::
@@ -2775,6 +3075,8 @@ class RawExtension.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext
   set_Raw : ∀ (x : RawExtension) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet RawExtension.underlying go!"Raw") (PairV #x #y) (Val #(({ x with Raw' := y } : RawExtension)))
   get_Object : ∀ (x : RawExtension), go.IsGoStepPureDetTagged under (StructFieldGet RawExtension.underlying go!"Object") #x (Val #(x.Object'))
   set_Object : ∀ (x : RawExtension) (y : Object), go.IsGoStepPureDetTagged under (StructFieldSet RawExtension.underlying go!"Object") (PairV #x #y) (Val #(({ x with Object' := y } : RawExtension)))
+  method_set : go.MethodSetIs RawExtension.ty [(go!"MarshalCBOR", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalJSON", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"k8s.io/apimachinery/pkg/runtime.guessContentType", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RawExtension.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType RawExtension.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType RawExtension.ty)] false []))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalCBOR", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalJSON", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"UnmarshalCBOR", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"UnmarshalJSON", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"k8s.io/apimachinery/pkg/runtime.guessContentType", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] RawExtension.TypeAssumptions.type_repr
   RawExtension.TypeAssumptions.underlying
@@ -2782,6 +3084,8 @@ attribute [instance] RawExtension.TypeAssumptions.type_repr
   RawExtension.TypeAssumptions.set_Raw
   RawExtension.TypeAssumptions.get_Object
   RawExtension.TypeAssumptions.set_Object
+  RawExtension.TypeAssumptions.method_set
+  RawExtension.TypeAssumptions.ptr_method_set
 
 structure Unknown [GooseExts] where
   mk ::
@@ -2820,6 +3124,8 @@ class Unknown.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   set_ContentEncoding : ∀ (x : Unknown) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Unknown.underlying go!"ContentEncoding") (PairV #x #y) (Val #(({ x with ContentEncoding' := y } : Unknown)))
   get_ContentType : ∀ (x : Unknown), go.IsGoStepPureDetTagged under (StructFieldGet Unknown.underlying go!"ContentType") #x (Val #(x.ContentType'))
   set_ContentType : ∀ (x : Unknown) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Unknown.underlying go!"ContentType") (PairV #x #y) (Val #(({ x with ContentType' := y } : Unknown)))
+  method_set : go.MethodSetIs Unknown.ty [(go!"MarshalJSON", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Unknown.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType Unknown.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType Unknown.ty)] false []))), (go!"DeepCopyObject", (some (go.signature.Signature [] false [Object.ty]))), (go!"GetObjectKind", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.ObjectKind.ty]))), (go!"GroupVersionKind", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty]))), (go!"Marshal", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalJSON", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"MarshalToWriter", (some (go.signature.Signature [_root_.Perennial.io.Writer.ty, go.int, (go.GoType.FunctionType (go.signature.Signature [_root_.Perennial.io.Writer.ty] false [go.int, go.error]))] false [go.int, go.error]))), (go!"NestedMarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte), ProtobufMarshaller.ty, go.uint64] false [go.int, go.error]))), (go!"OpenAPIModelName", (some (go.signature.Signature [] false [go.string]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"SetGroupVersionKind", (some (go.signature.Signature [_root_.Perennial.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionKind.ty] false []))), (go!"Size", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Unmarshal", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"UnmarshalJSON", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] Unknown.TypeAssumptions.type_repr
   Unknown.TypeAssumptions.underlying
@@ -2831,6 +3137,8 @@ attribute [instance] Unknown.TypeAssumptions.type_repr
   Unknown.TypeAssumptions.set_ContentEncoding
   Unknown.TypeAssumptions.get_ContentType
   Unknown.TypeAssumptions.set_ContentType
+  Unknown.TypeAssumptions.method_set
+  Unknown.TypeAssumptions.ptr_method_set
 
 abbrev ProtobufMarshaller [GooseExts] : Type := GoInterface
 
@@ -2839,8 +3147,12 @@ abbrev ProtobufMarshaller [GooseExts] : Type := GoInterface
 
 class ProtobufMarshaller.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ProtobufMarshaller.ty ProtobufMarshaller.underlying
+  method_set : go.MethodSetIs ProtobufMarshaller.ty [(go!"MarshalTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"Size", (some (go.signature.Signature [] false [go.int])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ProtobufMarshaller.ty) []
 
 attribute [instance] ProtobufMarshaller.TypeAssumptions.underlying
+  ProtobufMarshaller.TypeAssumptions.method_set
+  ProtobufMarshaller.TypeAssumptions.ptr_method_set
 
 abbrev ProtobufReverseMarshaller [GooseExts] : Type := GoInterface
 
@@ -2849,8 +3161,12 @@ abbrev ProtobufReverseMarshaller [GooseExts] : Type := GoInterface
 
 class ProtobufReverseMarshaller.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ProtobufReverseMarshaller.ty ProtobufReverseMarshaller.underlying
+  method_set : go.MethodSetIs ProtobufReverseMarshaller.ty [(go!"MarshalToSizedBuffer", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"Size", (some (go.signature.Signature [] false [go.int])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ProtobufReverseMarshaller.ty) []
 
 attribute [instance] ProtobufReverseMarshaller.TypeAssumptions.underlying
+  ProtobufReverseMarshaller.TypeAssumptions.method_set
+  ProtobufReverseMarshaller.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Allocator_instance : Allocator.TypeAssumptions

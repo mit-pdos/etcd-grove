@@ -150,7 +150,9 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   body that returns `false` on `break`, and records a `return` (with its values) or a labelled
   `break`/`continue` in flags checked after the call; plus the runtime check that `yield` is not
   called after it returned `false` (Go panics).
-- **Status.** Not started. The largest item here.
+- **Status.** On Perennial's `lean` since `caa9d07ee` (2026-10-26), after uniform function results
+  (`2b17d5f09`), which the pin `6b58510f9` stops short of (`notes/decisions.md`, "Method-set facts
+  are theorems of goose's method sets"): reached when the pin moves past them.
 
 ### Goose: field selection through a type alias of a struct
 
@@ -328,22 +330,6 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   `unfold_to_underlying_eq`, terminating since `<u` is directed), or the docstring corrected.
 - **Status.** Not started.
 
-### The type set of an interface with an embedded interface
-
-- **Limitation.** `typeSetTermContains t (TypeTerm t')` is `t = t'`
-  (`Golang/Defn/Interface.lean`), and Goose translates an embedded interface (`type Serializer
-  interface { Encoder; Decoder }`) as `TypeElem [TypeTerm Encoder.ty]`. Go's type set of a term
-  that is an interface is that interface's type set, so in the model no concrete type is in
-  `Serializer`'s (or `Codec`'s) type set: a type assertion to such an interface panics where Go
-  succeeds (the model is less defined, so proofs stay sound, but such an assertion cannot be
-  verified).
-- **Needed by.** Nothing yet (found 2026-10-23 while converting the driver's codec to
-  `runtime.Codec`; conversions and method calls do not consult type sets).
-- **Proposed fix.** In `typeSetTermContains`, a term whose underlying type is an interface
-  contributes that interface's type set (`typeSetContains t t'`); a semantics change, through
-  Perennial's `fix-semantics` workflow.
-- **Status.** Not started.
-
 ### `os.Getenv`, `strconv.ParseBool` have no specs
 
 - **Limitation.** Both are names-only in Perennial (no body, no spec).
@@ -465,6 +451,10 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 - **Proposed change.** `"#HCanceled"` with the cell (`x.[errorString, "s"] ↦□ "context
   canceled"`, as this repository's `errStrCell`), and `"#HDeadlineExceeded"` with its dynamic type
   (`deadlineExceededError`); then `ErrAny` drops the two facts.
+- **Also needed by** (2026-10-27). Now that method sets are known (pin `6b58510f9`), this is all the
+  premises `EtcdGrove.ContextReadErrs` and `ContextErrsClient` of the server examples' closed
+  theorems still need: the dynamic types of the two values (then their method-set parts follow by
+  `go_type_set`).
 - **Status.** Not started (found 2026-10-23).
 
 ### `encoding/base64` (the auth plan's E2u, 2026-10-26; E2x)
@@ -489,6 +479,24 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   serve the k8s etcd3 store's continue tokens.
 
 ## Landed
+
+### The type set of an interface with an embedded interface
+
+- **Limitation.** `typeSetTermContains t (TypeTerm t')` is `t = t'`
+  (`Golang/Defn/Interface.lean`), and Goose translates an embedded interface (`type Serializer
+  interface { Encoder; Decoder }`) as `TypeElem [TypeTerm Encoder.ty]`. Go's type set of a term
+  that is an interface is that interface's type set, so in the model no concrete type is in
+  `Serializer`'s (or `Codec`'s) type set: a type assertion to such an interface panics where Go
+  succeeds (the model is less defined, so proofs stay sound, but such an assertion cannot be
+  verified).
+- **Needed by.** Nothing yet (found 2026-10-23 while converting the driver's codec to
+  `runtime.Codec`; conversions and method calls do not consult type sets).
+- **Proposed fix.** In `typeSetTermContains`, a term whose underlying type is an interface
+  contributes that interface's type set (`typeSetContains t t'`); a semantics change, through
+  Perennial's `fix-semantics` workflow.
+- **Landed.** Perennial `8ef540a62` (pin `6b58510f9`, 2026-10-27): goose writes an interface type as all
+  its methods, embedded interfaces included, and emits every named type's method sets, so
+  `go_type_set` decides such memberships (k8setcd3's `objTyOk` with `runtime.Unstructured`).
 
 ### Translation: `strconv.ParseUint`, `time.Ticker` and `Time.After`
 

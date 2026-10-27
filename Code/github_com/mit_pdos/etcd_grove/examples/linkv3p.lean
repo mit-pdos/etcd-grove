@@ -1185,6 +1185,8 @@ class Step.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSem
   set_A : ∀ (x : Step) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Step.underlying go!"A") (PairV #x #y) (Val #(({ x with A' := y } : Step)))
   get_B : ∀ (x : Step), go.IsGoStepPureDetTagged under (StructFieldGet Step.underlying go!"B") #x (Val #(x.B'))
   set_B : ∀ (x : Step) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Step.underlying go!"B") (PairV #x #y) (Val #(({ x with B' := y } : Step)))
+  method_set : go.MethodSetIs Step.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Step.ty) []
 
 attribute [instance] Step.TypeAssumptions.type_repr
   Step.TypeAssumptions.underlying
@@ -1196,6 +1198,8 @@ attribute [instance] Step.TypeAssumptions.type_repr
   Step.TypeAssumptions.set_A
   Step.TypeAssumptions.get_B
   Step.TypeAssumptions.set_B
+  Step.TypeAssumptions.method_set
+  Step.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Step_instance : Step.TypeAssumptions

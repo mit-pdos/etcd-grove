@@ -149,6 +149,8 @@ class Message.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   set_TotalSize : ∀ (x : Message) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Message.underlying go!"TotalSize") (PairV #x #y) (Val #(({ x with TotalSize' := y } : Message)))
   get_closeC : ∀ (x : Message), go.IsGoStepPureDetTagged under (StructFieldGet Message.underlying go!"closeC") #x (Val #(x.closeC'))
   set_closeC : ∀ (x : Message) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet Message.underlying go!"closeC") (PairV #x #y) (Val #(({ x with closeC' := y } : Message)))
+  method_set : go.MethodSetIs Message.ty [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetCommit", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetContext", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"GetEntries", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))]))), (go!"GetFrom", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetLogTerm", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetReject", (some (go.signature.Signature [] false [go.bool]))), (go!"GetRejectHint", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetResponses", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))]))), (go!"GetSnapshot", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)]))), (go!"GetTerm", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetTo", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetType", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty]))), (go!"GetVote", (some (go.signature.Signature [] false [go.uint64]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Message" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Message.ty) [(go!"CloseNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly go.bool)]))), (go!"CloseWithError", (some (go.signature.Signature [go.error] false []))), (go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetCommit", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetContext", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"GetEntries", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Entry.ty))]))), (go!"GetFrom", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetLogTerm", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetReject", (some (go.signature.Signature [] false [go.bool]))), (go!"GetRejectHint", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetResponses", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty))]))), (go!"GetSnapshot", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)]))), (go!"GetTerm", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetTo", (some (go.signature.Signature [] false [go.uint64]))), (go!"GetType", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.raft.v3.raftpb.MessageType.ty]))), (go!"GetVote", (some (go.signature.Signature [] false [go.uint64]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Message" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
   GetTo_unfold : MethodUnfold Message.ty go!"GetTo" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty) go!"GetTo"))) (App (Val (GoInstruction (StructFieldGet Message.ty go!"Message"))) (Var "$r"))))
   ptr_GetTo_unfold : MethodUnfold (go.GoType.PointerType Message.ty) go!"GetTo" (LamV "$r"
@@ -164,6 +166,8 @@ attribute [instance] Message.TypeAssumptions.type_repr
   Message.TypeAssumptions.set_TotalSize
   Message.TypeAssumptions.get_closeC
   Message.TypeAssumptions.set_closeC
+  Message.TypeAssumptions.method_set
+  Message.TypeAssumptions.ptr_method_set
   Message.TypeAssumptions.GetTo_unfold
   Message.TypeAssumptions.ptr_GetTo_unfold
 
@@ -175,10 +179,14 @@ class Snapshotter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   type_repr : go.TypeReprUnderlying Snapshotter.underlying Snapshotter
   underlying : go.UnderlyingDirectedEq Snapshotter.ty Snapshotter.underlying
   isUnderlying : go.IsUnderlying Snapshotter.underlying Snapshotter.underlying
+  method_set : go.MethodSetIs Snapshotter.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Snapshotter.ty) [(go!"DBFilePath", (some (go.signature.Signature [go.uint64] false [go.string, go.error]))), (go!"ReleaseSnapDBs", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Snapshot.ty)] false [go.error]))), (go!"SaveDBFrom", (some (go.signature.Signature [_root_.Perennial.io.Reader.ty, go.uint64] false [go.int64, go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/snap.dbFilePath", (some (go.signature.Signature [go.uint64] false [go.string])))]
 
 attribute [instance] Snapshotter.TypeAssumptions.type_repr
   Snapshotter.TypeAssumptions.underlying
   Snapshotter.TypeAssumptions.isUnderlying
+  Snapshotter.TypeAssumptions.method_set
+  Snapshotter.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Message_instance : Message.TypeAssumptions

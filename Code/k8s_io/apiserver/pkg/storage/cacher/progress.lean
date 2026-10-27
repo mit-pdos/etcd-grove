@@ -145,8 +145,12 @@ abbrev WatchProgressRequester [GooseExts] : Type := GoFunc
 
 class WatchProgressRequester.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq WatchProgressRequester.ty WatchProgressRequester.underlying
+  method_set : go.MethodSetIs WatchProgressRequester.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType WatchProgressRequester.ty) []
 
 attribute [instance] WatchProgressRequester.TypeAssumptions.underlying
+  WatchProgressRequester.TypeAssumptions.method_set
+  WatchProgressRequester.TypeAssumptions.ptr_method_set
 
 abbrev TickerFactory [GooseExts] : Type := GoInterface
 
@@ -155,8 +159,12 @@ abbrev TickerFactory [GooseExts] : Type := GoInterface
 
 class TickerFactory.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq TickerFactory.ty TickerFactory.underlying
+  method_set : go.MethodSetIs TickerFactory.ty [(go!"NewTimer", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [_root_.Perennial.k8s_io.utils.clock.Timer.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TickerFactory.ty) []
 
 attribute [instance] TickerFactory.TypeAssumptions.underlying
+  TickerFactory.TypeAssumptions.method_set
+  TickerFactory.TypeAssumptions.ptr_method_set
 
 structure ConditionalProgressRequester [GooseExts] where
   mk ::
@@ -207,6 +215,8 @@ class ConditionalProgressRequester.TypeAssumptions [GooseExts] [GoGlobalContext]
   set_waiting : ∀ (x : ConditionalProgressRequester) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ConditionalProgressRequester.underlying go!"waiting") (PairV #x #y) (Val #(({ x with waiting' := y } : ConditionalProgressRequester)))
   get_stopped : ∀ (x : ConditionalProgressRequester), go.IsGoStepPureDetTagged under (StructFieldGet ConditionalProgressRequester.underlying go!"stopped") #x (Val #(x.stopped'))
   set_stopped : ∀ (x : ConditionalProgressRequester) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ConditionalProgressRequester.underlying go!"stopped") (PairV #x #y) (Val #(({ x with stopped' := y } : ConditionalProgressRequester)))
+  method_set : go.MethodSetIs ConditionalProgressRequester.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ConditionalProgressRequester.ty) [(go!"Add", (some (go.signature.Signature [] false []))), (go!"Remove", (some (go.signature.Signature [] false []))), (go!"Run", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false [])))]
   ptr_Add_unfold : MethodUnfold (go.GoType.PointerType ConditionalProgressRequester.ty) go!"Add" ConditionalProgressRequester.Add.impl
   ptr_Remove_unfold : MethodUnfold (go.GoType.PointerType ConditionalProgressRequester.ty) go!"Remove" ConditionalProgressRequester.Remove.impl
 
@@ -226,6 +236,8 @@ attribute [instance] ConditionalProgressRequester.TypeAssumptions.type_repr
   ConditionalProgressRequester.TypeAssumptions.set_waiting
   ConditionalProgressRequester.TypeAssumptions.get_stopped
   ConditionalProgressRequester.TypeAssumptions.set_stopped
+  ConditionalProgressRequester.TypeAssumptions.method_set
+  ConditionalProgressRequester.TypeAssumptions.ptr_method_set
   ConditionalProgressRequester.TypeAssumptions.ptr_Add_unfold
   ConditionalProgressRequester.TypeAssumptions.ptr_Remove_unfold
 

@@ -11,20 +11,21 @@ spec/proof discipline (no code). Lean-first (no Rocq counterpart).
   `uint.Z i = |A'|` and the restored log's tail `R` (`[[], []] ++ R = kvModel γr.kv A'`), with
   `SnapImageFacts`: `specSnap`'s `hpre`, `hkI`, `hlease`, `halarm`, `hauthb`, `hmemb`, `himg`
   (through the trust-boundary axiom `membership.clusterImageOk_restModel`) and `hA'` at
-  `memI := (restModel …).mem`, and the image's stored index (`∃ t, metaIs D (i, t)`).
+  `memI := (restModel …).mem`, the image's stored index (`∃ t, metaIs D (i, t)`: `hmeta` at
+  `tI := t`) and (D22 J7b) `hRok` and the KV jump's length bound `hlen`.
 * `snapRecv_kv_jump`: the apply thread's KV ghost state moved to `A'` (`kv_cert_jump`), and the
   restored log's certificate `certOk E.γ (kvModel γr.kv A')`; `kvApplied_of_jump` re-forms
   `kvApplied` at `A'` for the restored state (chain the start's, `alarmChain false false false`).
 * `srvRLogLb_dlv`: the image's committed log is raft's delivered log of the same length (the
   `Ready`'s `isCommitted l.dlv`).
 
-**Not derivable from the image's certificate** (J8a must get them elsewhere; see
-`notes/snapshot-sj-plan.md`, J7's result): `specSnap`'s `hmeta` at the snapshot's term (the image
-says only that its stored term is *some* term: `imageAt`'s `∃ t`; the snapshot's
-`Metadata.Term` is not tied to it), and `hRok` (`restoreLogOk R`: the image's KV log well formed,
-its revisions non-empty and fewer than `2 ^ 63`; the sender's store knows it of its sealed log,
-the image's certificate does not carry it), which `kv_cert_jump`'s length bound also needs
-(`kvModel_len_of_rok`).
+(D22 J7b, 2026-10-26; `notes/decisions.md`, "D22 J7b") The two premises J7 left: `hRok`
+(`restoreLogOk R`) is `SnapImageFacts.hRok`, from the image's `IdxWf` of its KV model (the sender's
+store's, `imageAt`) and the committed log plain (`kv_log_plain`: revisions non-empty, no lease,
+`restoreLogOk_kvRaftOf`), and `kv_cert_jump`'s bound is `SnapImageFacts.hlen`
+(`kvModel_len_of_rok`). `hmeta` is `hmetaI` at its term `t`: `specSnap` takes the image's stored
+term (`tI`), whatever it is, since the consistent index's protocol does not track the term and
+restore reads none (`imageAt`'s header).
 -/
 module
 
@@ -32,6 +33,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvImage
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVApply
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapApply
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.clusterImageOk_restModel
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVModelRestore
 
 @[expose] public section
 
@@ -243,9 +245,13 @@ structure SnapImageFacts [GooseExts] (γr : ReadNames) (d : mvcc.KBReal) (D : ba
   log : [[], []] ++ R = kvModel γr.kv A'
   hpre : x.log <+: [[], []] ++ R
   hkI : mvcc.keyImage ([[], []] ++ R) D
-  /-- the image's stored index is `i`, its stored term some term (`specSnap`'s `hmeta` needs it
-  to be the snapshot's: not known, see the file header) -/
+  /-- the image's stored index is `i`, its stored term some term (`specSnap`'s `hmeta` at
+  `tI := t`, D22 J7b) -/
   hmetaI : ∃ t : w64, metaIs D (i, t)
+  /-- (D22 J7b) the restored log's tail restorable (`specSnap`'s `hRok`) -/
+  hRok : mvcc.restoreLogOk R
+  /-- (D22 J7b) the image's KV model short enough (`snapRecv_kv_jump`'s `hlen`) -/
+  hlen : (kvModel γr.kv A').length < 2 ^ 63
   hlease : ((backend.rbData d.P D).lookup go!"lease").getD ∅ = ∅
   halarm : ((backend.rbData d.P D).lookup go!"alarm").getD ∅ = ∅
   hauthb : ((backend.rbData d.P D).lookup go!"auth").getD ∅ = authBoot ∧
@@ -347,6 +353,8 @@ theorem snapRecv_image (γ : RaftNames) (γr : ReadNames) (E : apply.AEnv GF) (i
     · exact h
     · have := h.length_le; omega
   imod kv_log_ccOk γr.raft γr.kv A' $$ HkI HrI HA' with %Hcc
+  imod kv_log_plain γr.raft γr.kv A' $$ HkI HrI HA' with %Hpl0
+  have Hpl := Hpl0.1
   -- the cluster's in-memory members, from the rest resource
   iunfold srvRest at Hrest
   rw [hRO]
@@ -383,8 +391,12 @@ theorem snapRecv_image (γ : RaftNames) (γr : ReadNames) (E : apply.AEnv GF) (i
   iframe HA'
   ipureintro
   have hsplit := kvModel_split γr.kv A' hlog0
-  obtain ⟨hkI, hci, htm, hrest⟩ := himA
+  obtain ⟨hkI, hci, htm, hrest, hwf⟩ := himA
   have hb := image_bootBuckets d hrest
+  have hrok : mvcc.restoreLogOk ((kvModel γr.kv A').drop 2) := by
+    unfold kvModel at hwf ⊢
+    rw [hlog0] at hwf ⊢
+    exact restoreLogOk_kvRaftOf _ _ A' Hpl hwf
   exact {
     pre := hAA'
     len := by omega
@@ -392,6 +404,8 @@ theorem snapRecv_image (γ : RaftNames) (γr : ReadNames) (E : apply.AEnv GF) (i
     hpre := by rw [Hl, hsplit]; exact kvRaftOf_prefix _ _ _ _ _ hAA'
     hkI := by rw [hsplit]; exact hkI
     hmetaI := by obtain ⟨t, ht⟩ := htm; exact ⟨t, hci, ht⟩
+    hRok := hrok
+    hlen := kvModel_len_of_rok γr.kv A' _ hsplit hrok
     hlease := hb.1
     halarm := hb.2.1
     hauthb := hb.2.2

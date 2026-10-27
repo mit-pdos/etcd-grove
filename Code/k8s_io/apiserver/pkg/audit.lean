@@ -222,8 +222,12 @@ abbrev key [GooseExts] : Type := w64
 
 class key.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq key.ty key.underlying
+  method_set : go.MethodSetIs key.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType key.ty) []
 
 attribute [instance] key.TypeAssumptions.underlying
+  key.TypeAssumptions.method_set
+  key.TypeAssumptions.ptr_method_set
 
 axiom AuditContext : Type
 axiom AuditContext.zero_val : ZeroVal AuditContext
@@ -233,10 +237,14 @@ class AuditContext.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext
   type_repr : go.TypeReprUnderlying AuditContext.underlying AuditContext
   underlying : go.UnderlyingDirectedEq AuditContext.ty AuditContext.underlying
   isUnderlying : go.IsUnderlying AuditContext.underlying AuditContext.underlying
+  method_set : go.MethodSetIs AuditContext.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType AuditContext.ty) [(go!"AuditID", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/types.UID" [])]))), (go!"Enabled", (some (go.signature.Signature [] false [go.bool]))), (go!"GetEventAnnotation", (some (go.signature.Signature [go.string] false [go.string, go.bool]))), (go!"GetEventAnnotations", (some (go.signature.Signature [] false [(go.GoType.MapType go.string go.string)]))), (go!"GetEventImpersonatedUser", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/authentication/v1.UserInfo" []))]))), (go!"GetEventLevel", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apiserver/pkg/apis/audit.Level" [])]))), (go!"GetEventRequestReceivedTimestamp", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.MicroTime" [])]))), (go!"GetEventResponseStatus", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.Status" []))]))), (go!"GetEventStage", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apiserver/pkg/apis/audit.Stage" [])]))), (go!"GetEventStageTimestamp", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.MicroTime" [])]))), (go!"GetEventUser", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/api/authentication/v1.UserInfo" [])]))), (go!"Init", (some (go.signature.Signature [RequestAuditConfig.ty, Sink.ty] false [go.error]))), (go!"LogImpersonatedUser", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apiserver/pkg/authentication/user.Info" []), go.string] false []))), (go!"LogRequestPatch", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false []))), (go!"LogResponseObject", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.Status" [])), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Unknown" []))] false []))), (go!"ProcessEventStage", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"k8s.io/apiserver/pkg/apis/audit.Stage" [])] false [go.bool]))), (go!"SetEventResponseStatus", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.Status" []))] false []))), (go!"SetEventResponseStatusCode", (some (go.signature.Signature [go.int32] false []))), (go!"SetEventStage", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apiserver/pkg/apis/audit.Stage" [])] false []))), (go!"SetEventStageTimestamp", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.MicroTime" [])] false []))), (go!"k8s.io/apiserver/pkg/audit.visitEvent", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apiserver/pkg/apis/audit.Event" []))] false []))] false [])))]
 
 attribute [instance] AuditContext.TypeAssumptions.type_repr
   AuditContext.TypeAssumptions.underlying
   AuditContext.TypeAssumptions.isUnderlying
+  AuditContext.TypeAssumptions.method_set
+  AuditContext.TypeAssumptions.ptr_method_set
 
 axiom RequestAuditConfig : Type
 axiom RequestAuditConfig.zero_val : ZeroVal RequestAuditConfig
@@ -246,10 +254,14 @@ class RequestAuditConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalC
   type_repr : go.TypeReprUnderlying RequestAuditConfig.underlying RequestAuditConfig
   underlying : go.UnderlyingDirectedEq RequestAuditConfig.ty RequestAuditConfig.underlying
   isUnderlying : go.IsUnderlying RequestAuditConfig.underlying RequestAuditConfig.underlying
+  method_set : go.MethodSetIs RequestAuditConfig.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RequestAuditConfig.ty) []
 
 attribute [instance] RequestAuditConfig.TypeAssumptions.type_repr
   RequestAuditConfig.TypeAssumptions.underlying
   RequestAuditConfig.TypeAssumptions.isUnderlying
+  RequestAuditConfig.TypeAssumptions.method_set
+  RequestAuditConfig.TypeAssumptions.ptr_method_set
 
 axiom PolicyRuleEvaluator : Type
 axiom PolicyRuleEvaluator.zero_val : ZeroVal PolicyRuleEvaluator
@@ -259,10 +271,14 @@ class PolicyRuleEvaluator.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocal
   type_repr : go.TypeReprUnderlying PolicyRuleEvaluator.underlying PolicyRuleEvaluator
   underlying : go.UnderlyingDirectedEq PolicyRuleEvaluator.ty PolicyRuleEvaluator.underlying
   isUnderlying : go.IsUnderlying PolicyRuleEvaluator.underlying PolicyRuleEvaluator.underlying
+  method_set : go.MethodSetIs PolicyRuleEvaluator.ty [(go!"EvaluatePolicyRule", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apiserver/pkg/authorization/authorizer.Attributes" [])] false [RequestAuditConfig.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PolicyRuleEvaluator.ty) []
 
 attribute [instance] PolicyRuleEvaluator.TypeAssumptions.type_repr
   PolicyRuleEvaluator.TypeAssumptions.underlying
   PolicyRuleEvaluator.TypeAssumptions.isUnderlying
+  PolicyRuleEvaluator.TypeAssumptions.method_set
+  PolicyRuleEvaluator.TypeAssumptions.ptr_method_set
 
 axiom Sink : Type
 axiom Sink.zero_val : ZeroVal Sink
@@ -272,20 +288,28 @@ class Sink.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSem
   type_repr : go.TypeReprUnderlying Sink.underlying Sink
   underlying : go.UnderlyingDirectedEq Sink.ty Sink.underlying
   isUnderlying : go.IsUnderlying Sink.underlying Sink.underlying
+  method_set : go.MethodSetIs Sink.ty [(go!"ProcessEvents", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apiserver/pkg/apis/audit.Event" [])))] true [go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Sink.ty) []
 
 attribute [instance] Sink.TypeAssumptions.type_repr
   Sink.TypeAssumptions.underlying
   Sink.TypeAssumptions.isUnderlying
+  Sink.TypeAssumptions.method_set
+  Sink.TypeAssumptions.ptr_method_set
 
 abbrev Backend [GooseExts] : Type := GoInterface
 
 @[reducible] noncomputable def Backend.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Run" (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false [go.error])), (go.InterfaceElem.MethodElem go!"Shutdown" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"String" (go.signature.Signature [] false [go.string])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm Sink.ty)])])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"ProcessEvents" (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apiserver/pkg/apis/audit.Event" [])))] true [go.bool])), (go.InterfaceElem.MethodElem go!"Run" (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false [go.error])), (go.InterfaceElem.MethodElem go!"Shutdown" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"String" (go.signature.Signature [] false [go.string]))])
 
 class Backend.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Backend.ty Backend.underlying
+  method_set : go.MethodSetIs Backend.ty [(go!"ProcessEvents", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apiserver/pkg/apis/audit.Event" [])))] true [go.bool]))), (go!"Run", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false [go.error]))), (go!"Shutdown", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Backend.ty) []
 
 attribute [instance] Backend.TypeAssumptions.underlying
+  Backend.TypeAssumptions.method_set
+  Backend.TypeAssumptions.ptr_method_set
 
 structure union [GooseExts] where
   mk ::
@@ -312,11 +336,15 @@ class union.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSe
   underlying : go.UnderlyingDirectedEq union.ty union.underlying
   get_backends : ∀ (x : union), go.IsGoStepPureDetTagged under (StructFieldGet union.underlying go!"backends") #x (Val #(x.backends'))
   set_backends : ∀ (x : union) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet union.underlying go!"backends") (PairV #x #y) (Val #(({ x with backends' := y } : union)))
+  method_set : go.MethodSetIs union.ty [(go!"ProcessEvents", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apiserver/pkg/apis/audit.Event" [])))] true [go.bool]))), (go!"Run", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false [go.error]))), (go!"Shutdown", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType union.ty) [(go!"ProcessEvents", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/apiserver/pkg/apis/audit.Event" [])))] true [go.bool]))), (go!"Run", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false [go.error]))), (go!"Shutdown", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] union.TypeAssumptions.type_repr
   union.TypeAssumptions.underlying
   union.TypeAssumptions.get_backends
   union.TypeAssumptions.set_backends
+  union.TypeAssumptions.method_set
+  union.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   key_instance : key.TypeAssumptions

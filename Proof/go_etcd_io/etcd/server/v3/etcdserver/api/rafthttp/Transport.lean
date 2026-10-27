@@ -11,6 +11,7 @@
 -/
 module
 
+public import Perennial.Golang.Theory.TypeSet
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Snapshot
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Peer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Handle
@@ -35,6 +36,10 @@ has `Pause` and `Resume`, `peer.go`): what `CutPeer`'s and `MendPeer`'s `p.(Paus
 class PeerPausable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions] : Prop where
   pausable : go.typeSetContains (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.peer.ty)
     go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Pausable.ty = true
+
+/-- `PeerPausable` holds, from the method sets goose emits. -/
+instance peerPausable_inst [GooseExts] [GoGlobalContext] [GoLocalContext] [sem : go.Semantics]
+    [go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Assumptions] : PeerPausable := ⟨by go_type_set⟩
 
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]

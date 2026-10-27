@@ -641,6 +641,8 @@ class acceptRange.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   set_lo : ∀ (x : acceptRange) (y : w8), go.IsGoStepPureDetTagged under (StructFieldSet acceptRange.underlying go!"lo") (PairV #x #y) (Val #(({ x with lo' := y } : acceptRange)))
   get_hi : ∀ (x : acceptRange), go.IsGoStepPureDetTagged under (StructFieldGet acceptRange.underlying go!"hi") #x (Val #(x.hi'))
   set_hi : ∀ (x : acceptRange) (y : w8), go.IsGoStepPureDetTagged under (StructFieldSet acceptRange.underlying go!"hi") (PairV #x #y) (Val #(({ x with hi' := y } : acceptRange)))
+  method_set : go.MethodSetIs acceptRange.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType acceptRange.ty) []
 
 attribute [instance] acceptRange.TypeAssumptions.type_repr
   acceptRange.TypeAssumptions.underlying
@@ -648,6 +650,8 @@ attribute [instance] acceptRange.TypeAssumptions.type_repr
   acceptRange.TypeAssumptions.set_lo
   acceptRange.TypeAssumptions.get_hi
   acceptRange.TypeAssumptions.set_hi
+  acceptRange.TypeAssumptions.method_set
+  acceptRange.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   acceptRange_instance : acceptRange.TypeAssumptions

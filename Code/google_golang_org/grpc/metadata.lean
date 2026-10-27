@@ -106,8 +106,12 @@ abbrev MD [GooseExts] : Type := GoMap
 
 class MD.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq MD.ty MD.underlying
+  method_set : go.MethodSetIs MD.ty [(go!"Append", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.string)] true []))), (go!"Copy", (some (go.signature.Signature [] false [MD.ty]))), (go!"Delete", (some (go.signature.Signature [go.string] false []))), (go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.SliceType go.string)]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Set", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.string)] true []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType MD.ty) [(go!"Append", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.string)] true []))), (go!"Copy", (some (go.signature.Signature [] false [MD.ty]))), (go!"Delete", (some (go.signature.Signature [go.string] false []))), (go!"Get", (some (go.signature.Signature [go.string] false [(go.GoType.SliceType go.string)]))), (go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Set", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.string)] true []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] MD.TypeAssumptions.underlying
+  MD.TypeAssumptions.method_set
+  MD.TypeAssumptions.ptr_method_set
 
 structure mdIncomingKey [GooseExts] where
   mk ::
@@ -131,9 +135,13 @@ noncomputable instance equals_unfold_mdIncomingKey [GooseExts] [GoGlobalContext]
 class mdIncomingKey.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying mdIncomingKey.underlying mdIncomingKey
   underlying : go.UnderlyingDirectedEq mdIncomingKey.ty mdIncomingKey.underlying
+  method_set : go.MethodSetIs mdIncomingKey.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType mdIncomingKey.ty) []
 
 attribute [instance] mdIncomingKey.TypeAssumptions.type_repr
   mdIncomingKey.TypeAssumptions.underlying
+  mdIncomingKey.TypeAssumptions.method_set
+  mdIncomingKey.TypeAssumptions.ptr_method_set
 
 structure mdOutgoingKey [GooseExts] where
   mk ::
@@ -157,9 +165,13 @@ noncomputable instance equals_unfold_mdOutgoingKey [GooseExts] [GoGlobalContext]
 class mdOutgoingKey.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying mdOutgoingKey.underlying mdOutgoingKey
   underlying : go.UnderlyingDirectedEq mdOutgoingKey.ty mdOutgoingKey.underlying
+  method_set : go.MethodSetIs mdOutgoingKey.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType mdOutgoingKey.ty) []
 
 attribute [instance] mdOutgoingKey.TypeAssumptions.type_repr
   mdOutgoingKey.TypeAssumptions.underlying
+  mdOutgoingKey.TypeAssumptions.method_set
+  mdOutgoingKey.TypeAssumptions.ptr_method_set
 
 structure rawMD [GooseExts] where
   mk ::
@@ -190,6 +202,8 @@ class rawMD.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSe
   set_md : ∀ (x : rawMD) (y : MD), go.IsGoStepPureDetTagged under (StructFieldSet rawMD.underlying go!"md") (PairV #x #y) (Val #(({ x with md' := y } : rawMD)))
   get_added : ∀ (x : rawMD), go.IsGoStepPureDetTagged under (StructFieldGet rawMD.underlying go!"added") #x (Val #(x.added'))
   set_added : ∀ (x : rawMD) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet rawMD.underlying go!"added") (PairV #x #y) (Val #(({ x with added' := y } : rawMD)))
+  method_set : go.MethodSetIs rawMD.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType rawMD.ty) []
 
 attribute [instance] rawMD.TypeAssumptions.type_repr
   rawMD.TypeAssumptions.underlying
@@ -197,6 +211,8 @@ attribute [instance] rawMD.TypeAssumptions.type_repr
   rawMD.TypeAssumptions.set_md
   rawMD.TypeAssumptions.get_added
   rawMD.TypeAssumptions.set_added
+  rawMD.TypeAssumptions.method_set
+  rawMD.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   MD_instance : MD.TypeAssumptions

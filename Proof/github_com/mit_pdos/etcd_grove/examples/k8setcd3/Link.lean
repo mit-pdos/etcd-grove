@@ -334,7 +334,7 @@ theorem wp_newObj :
     EtcdGrove.k8setcd3.newObj.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8setcd3.newObj.wp_proof
 
-theorem wp_Main [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [EtcdGrove.ErrorStringLeaf] :
+theorem wp_Main [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.k8setcd3.Main.spec (GF := GF) (hG := hG) :=
   EtcdGrove.k8setcd3.Main.wp_proof zap.wp_NewNop common.wp_StartServer common.wp_Serve kubernetes.wp_New wp_seed k8s.wp_New k8s.wp_NewDefaultLeaseManagerConfig wp_newObj runtime.wp_Encode codec.wp_Encode versioner.wp_UpdateObject versioner.wp_PrepareObjectForStorage versioner.wp_ObjectResourceVersion versioner.wp_ParseResourceVersion identity.wp_TransformFromStorage identity.wp_TransformToStorage decoder.wp_Decode runtime.wp_SetZeroValue wp_Check
 

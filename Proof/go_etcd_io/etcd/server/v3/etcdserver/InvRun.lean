@@ -29,6 +29,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApplyAll
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvGoAttach
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftLoop
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapRO
 public import Perennial.Proof.context
 public import Perennial.Ghost.Token
 
@@ -300,9 +301,10 @@ def rnSnapOnce (ms : Loc) (γs : MemStorNames) (ai₀ at₀ : w64) : IProp GF :=
       sn.[go_etcd_io.raft.v3.raftpb.Snapshot, go!"Metadata"] ↦□ pm -∗
       pm.[go_etcd_io.raft.v3.raftpb.SnapshotMetadata, go!"ConfState"] ↦□ cs -∗
       -- (D19i part 1) the conf state read-only for good (`ep.confState`'s first value), and the
-      -- application's snapshot token back, the storage's boundary at most `ai₀`
+      -- application's snapshot token back; (D22 J4) its boundary at most its snapshot (what the
+      -- shared token's invariant keeps; until J4 at most `ai₀`)
       epCsOk cs -∗
-      (∃ σ : StorState, memSnapTok ms γs σ ∗ ⌜uint.Z σ.prev.index' ≤ uint.Z ai₀⌝) -∗
+      (∃ σ : StorState, memSnapTok ms γs σ ∗ ⌜uint.Z σ.prev.index' ≤ uint.Z σ.ss.index'⌝) -∗
       Φ (PairV #sn #(GoInterface.nil))) -∗
     WP (App (Val (ms @!! go.GoType.PointerType go_etcd_io.raft.v3.MemoryStorage.ty @!! go!"Snapshot"))
       (Val #())) {{ Φ }})
@@ -392,7 +394,10 @@ def isServerRun (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF
     "Hstart" ∷ applyStart s γ ci b E γr ai₀ c₀ x₀ ρ.wait ∗
     "Hlr" ∷ srvLgReader s ∗
     -- (2026-10-19, D21 M3) with its counter, the apply thread's tokens taken through `ai₀`
-    "#HWB" ∷ (∃ γp : GName, srvWTPool E γp ∗ srvWTAt γp ai₀))
+    "#HWB" ∷ (∃ γp : GName, srvWTPool E γp ∗ srvWTAt γp ai₀) ∗
+    -- (2026-10-26, D22 J1a) what the snapshot path takes of the construction (`SnapRO.lean`):
+    -- its persistent bundle, the snapshot-taken counter's authority, the reader-slot stocks
+    "Hsnapb" ∷ srvSnapBoot s ci E γr)
 
 end defs
 

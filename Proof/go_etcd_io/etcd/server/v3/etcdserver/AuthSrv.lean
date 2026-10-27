@@ -79,7 +79,10 @@ def authStoreKit (M : auth.AuthMode) (tp : GoInterface) : IProp GF :=
         ∃ (RD : IProp GF) (stl : Loc), ⌜st = auth.authIface stl⌝ ∗ authBeOn stl d.be ∗
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), RD) ∗
         isReqAuth st RD ∗ authApplyOkM M stl RD ∗ authStoreLatestM M st RD stl ∗
-        authApplyResB M stl (auth.bump auth.bootState) d.be }})
+        authApplyResB M stl (auth.bump auth.bootState) d.be ∗
+        -- (D22 J1a, 2026-10-26) in the mode `off`, the store's `Recover` on a new backend
+        -- (`NewAuthStore`'s axiom's `authRecoverOk`)
+        □ (⌜M = auth.AuthMode.off⌝ → authRecoverOk stl) }})
 
 /-- **`NewTokenProvider` at the server, with auth on or off** (see the file header): with auth on
 (`on = true`) its options `"simple"` and its TTL positive; with no error, a mode `M` with
@@ -156,7 +159,7 @@ theorem authStoreKit_off (h30 : auth.NewAuthStore.spec (GF := GF) (hG := hG)) (t
   · itrivial
   iintro !> %lg %ab %abl %d %W %Pk %qo %r %cost %Φ !> ⟨-, Hpre⟩ HΦ
   iapply (h30 lg ab tp cost abl d W Pk qo r) $$ Hpre
-  iintro !> %st ⟨Ho, Hh, Hr, %RD, %stl, %Hst, Hbe, Hsl, #Hreq, #Hok⟩
+  iintro !> %st ⟨Ho, Hh, Hr, %RD, %stl, %Hst, Hbe, Hsl, #Hreq, #Hok, #HauR⟩
   iapply HΦ
   iframe Ho Hh Hr
   iexists RD, stl
@@ -167,8 +170,11 @@ theorem authStoreKit_off (h30 : auth.NewAuthStore.spec (GF := GF) (hG := hG)) (t
   · iExactEq Hok; rfl
   isplitr
   · unfold authStoreLatestM; itrivial
-  unfold authApplyResB
-  itrivial
+  isplitr
+  · unfold authApplyResB
+    itrivial
+  iintro !> -
+  iexact HauR
 
 /-- **`authSrvTP false`**, of `NewTokenProvider`'s proof and `NewAuthStore`'s axiom. -/
 theorem authSrvTP_off (h25 : auth.NewTokenProvider.spec (GF := GF) (hG := hG))
@@ -303,10 +309,14 @@ theorem authStoreKit_on
     iexists abl, lg
     iframe Hbe Habbe Hablg
     ipureintro; exact Hlg
-  ihave Hsl := BigSepL.bigSepL_sep_eqv.2 $$ [Hslots HRs]
-  · iframe Hslots HRs
-  iapply (replicate_mono _ (auth.authRd stp R (.on γa)) _
-    (by iintro ⟨⟨He, Hc, Hb⟩, HR⟩; unfold auth.authRd; iframe He Hc Hb HR)) $$ Hsl
+  isplitl [Hslots HRs]
+  · ihave Hsl := BigSepL.bigSepL_sep_eqv.2 $$ [Hslots HRs]
+    · iframe Hslots HRs
+    iapply (replicate_mono _ (auth.authRd stp R (.on γa)) _
+      (by iintro ⟨⟨He, Hc, Hb⟩, HR⟩; unfold auth.authRd; iframe He Hc Hb HR)) $$ Hsl
+  -- (D22 J1a) the mode is `on`: no `Recover` clause
+  iintro !> %Hm
+  exfalso; cases Hm
 
 /-- **`authSrvTP true`** (see the file header): the simple provider, its names the auth names'
 token names, the auth names allocated over the boot state, the kit in the mode `on`. -/

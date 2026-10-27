@@ -110,10 +110,14 @@ class producerBuilder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCont
   type_repr : go.TypeReprUnderlying producerBuilder.underlying producerBuilder
   underlying : go.UnderlyingDirectedEq producerBuilder.ty producerBuilder.underlying
   isUnderlying : go.IsUnderlying producerBuilder.underlying producerBuilder.underlying
+  method_set : go.MethodSetIs producerBuilder.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType producerBuilder.ty) [(go!"Build", (some (go.signature.Signature [go.any] false [(go.GoType.Named go!"google.golang.org/grpc/balancer.Producer" []), (go.GoType.FunctionType (go.signature.Signature [] false []))])))]
 
 attribute [instance] producerBuilder.TypeAssumptions.type_repr
   producerBuilder.TypeAssumptions.underlying
   producerBuilder.TypeAssumptions.isUnderlying
+  producerBuilder.TypeAssumptions.method_set
+  producerBuilder.TypeAssumptions.ptr_method_set
 
 axiom healthServiceProducer : Type
 axiom healthServiceProducer.zero_val : ZeroVal healthServiceProducer
@@ -123,10 +127,14 @@ class healthServiceProducer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLoc
   type_repr : go.TypeReprUnderlying healthServiceProducer.underlying healthServiceProducer
   underlying : go.UnderlyingDirectedEq healthServiceProducer.ty healthServiceProducer.underlying
   isUnderlying : go.IsUnderlying healthServiceProducer.underlying healthServiceProducer.underlying
+  method_set : go.MethodSetIs healthServiceProducer.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType healthServiceProducer.ty) [(go!"google.golang.org/grpc/health.startHealthCheck", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"google.golang.org/grpc/balancer.SubConn" []), go.string, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.Named go!"google.golang.org/grpc/balancer.SubConnState" [])] false []))] false [])))]
 
 attribute [instance] healthServiceProducer.TypeAssumptions.type_repr
   healthServiceProducer.TypeAssumptions.underlying
   healthServiceProducer.TypeAssumptions.isUnderlying
+  healthServiceProducer.TypeAssumptions.method_set
+  healthServiceProducer.TypeAssumptions.ptr_method_set
 
 axiom Server : Type
 axiom Server.zero_val : ZeroVal Server
@@ -136,10 +144,14 @@ class Server.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   type_repr : go.TypeReprUnderlying Server.underlying Server
   underlying : go.UnderlyingDirectedEq Server.ty Server.underlying
   isUnderlying : go.IsUnderlying Server.underlying Server.underlying
+  method_set : go.MethodSetIs Server.ty [(go!"google.golang.org/grpc/health/grpc_health_v1.testEmbeddedByValue", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Server.ty) [(go!"Check", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc/health/grpc_health_v1.HealthCheckRequest" []))] false [(go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc/health/grpc_health_v1.HealthCheckResponse" [])), go.error]))), (go!"List", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc/health/grpc_health_v1.HealthListRequest" []))] false [(go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc/health/grpc_health_v1.HealthListResponse" [])), go.error]))), (go!"Resume", (some (go.signature.Signature [] false []))), (go!"SetServingStatus", (some (go.signature.Signature [go.string, (go.GoType.Named go!"google.golang.org/grpc/health/grpc_health_v1.HealthCheckResponse_ServingStatus" [])] false []))), (go!"Shutdown", (some (go.signature.Signature [] false []))), (go!"Watch", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc/health/grpc_health_v1.HealthCheckRequest" [])), (go.GoType.Named go!"google.golang.org/grpc.ServerStreamingServer" [(go.GoType.Named go!"google.golang.org/grpc/health/grpc_health_v1.HealthCheckResponse" [])])] false [go.error]))), (go!"google.golang.org/grpc/health.setServingStatusLocked", (some (go.signature.Signature [go.string, (go.GoType.Named go!"google.golang.org/grpc/health/grpc_health_v1.HealthCheckResponse_ServingStatus" [])] false []))), (go!"google.golang.org/grpc/health/grpc_health_v1.testEmbeddedByValue", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] Server.TypeAssumptions.type_repr
   Server.TypeAssumptions.underlying
   Server.TypeAssumptions.isUnderlying
+  Server.TypeAssumptions.method_set
+  Server.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   producerBuilder_instance : producerBuilder.TypeAssumptions

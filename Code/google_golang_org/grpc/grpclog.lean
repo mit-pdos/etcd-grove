@@ -172,11 +172,15 @@ class componentData.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContex
   underlying : go.UnderlyingDirectedEq componentData.ty componentData.underlying
   get_name : ∀ (x : componentData), go.IsGoStepPureDetTagged under (StructFieldGet componentData.underlying go!"name") #x (Val #(x.name'))
   set_name : ∀ (x : componentData) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet componentData.underlying go!"name") (PairV #x #y) (Val #(({ x with name' := y } : componentData)))
+  method_set : go.MethodSetIs componentData.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType componentData.ty) [(go!"Error", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"ErrorDepth", (some (go.signature.Signature [go.int, (go.GoType.SliceType go.any)] true []))), (go!"Errorf", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true []))), (go!"Errorln", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"Fatal", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"FatalDepth", (some (go.signature.Signature [go.int, (go.GoType.SliceType go.any)] true []))), (go!"Fatalf", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true []))), (go!"Fatalln", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"Info", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"InfoDepth", (some (go.signature.Signature [go.int, (go.GoType.SliceType go.any)] true []))), (go!"Infof", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true []))), (go!"Infoln", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"V", (some (go.signature.Signature [go.int] false [go.bool]))), (go!"Warning", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"WarningDepth", (some (go.signature.Signature [go.int, (go.GoType.SliceType go.any)] true []))), (go!"Warningf", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true []))), (go!"Warningln", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true [])))]
 
 attribute [instance] componentData.TypeAssumptions.type_repr
   componentData.TypeAssumptions.underlying
   componentData.TypeAssumptions.get_name
   componentData.TypeAssumptions.set_name
+  componentData.TypeAssumptions.method_set
+  componentData.TypeAssumptions.ptr_method_set
 
 axiom Logger : Type
 axiom Logger.zero_val : ZeroVal Logger
@@ -186,10 +190,14 @@ class Logger.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   type_repr : go.TypeReprUnderlying Logger.underlying Logger
   underlying : go.UnderlyingDirectedEq Logger.ty Logger.underlying
   isUnderlying : go.IsUnderlying Logger.underlying Logger.underlying
+  method_set : go.MethodSetIs Logger.ty [(go!"Fatal", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"Fatalf", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true []))), (go!"Fatalln", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"Print", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"Printf", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true []))), (go!"Println", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Logger.ty) []
 
 attribute [instance] Logger.TypeAssumptions.type_repr
   Logger.TypeAssumptions.underlying
   Logger.TypeAssumptions.isUnderlying
+  Logger.TypeAssumptions.method_set
+  Logger.TypeAssumptions.ptr_method_set
 
 axiom LoggerV2 : Type
 axiom LoggerV2.zero_val : ZeroVal LoggerV2
@@ -199,10 +207,14 @@ class LoggerV2.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [G
   type_repr : go.TypeReprUnderlying LoggerV2.underlying LoggerV2
   underlying : go.UnderlyingDirectedEq LoggerV2.ty LoggerV2.underlying
   isUnderlying : go.IsUnderlying LoggerV2.underlying LoggerV2.underlying
+  method_set : go.MethodSetIs LoggerV2.ty [(go!"Error", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"Errorf", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true []))), (go!"Errorln", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"Fatal", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"Fatalf", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true []))), (go!"Fatalln", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"Info", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"Infof", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true []))), (go!"Infoln", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"V", (some (go.signature.Signature [go.int] false [go.bool]))), (go!"Warning", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"Warningf", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true []))), (go!"Warningln", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType LoggerV2.ty) []
 
 attribute [instance] LoggerV2.TypeAssumptions.type_repr
   LoggerV2.TypeAssumptions.underlying
   LoggerV2.TypeAssumptions.isUnderlying
+  LoggerV2.TypeAssumptions.method_set
+  LoggerV2.TypeAssumptions.ptr_method_set
 
 axiom DepthLoggerV2 : Type
 axiom DepthLoggerV2.zero_val : ZeroVal DepthLoggerV2
@@ -212,10 +224,14 @@ class DepthLoggerV2.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContex
   type_repr : go.TypeReprUnderlying DepthLoggerV2.underlying DepthLoggerV2
   underlying : go.UnderlyingDirectedEq DepthLoggerV2.ty DepthLoggerV2.underlying
   isUnderlying : go.IsUnderlying DepthLoggerV2.underlying DepthLoggerV2.underlying
+  method_set : go.MethodSetIs DepthLoggerV2.ty [(go!"Error", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"ErrorDepth", (some (go.signature.Signature [go.int, (go.GoType.SliceType go.any)] true []))), (go!"Errorf", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true []))), (go!"Errorln", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"Fatal", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"FatalDepth", (some (go.signature.Signature [go.int, (go.GoType.SliceType go.any)] true []))), (go!"Fatalf", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true []))), (go!"Fatalln", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"Info", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"InfoDepth", (some (go.signature.Signature [go.int, (go.GoType.SliceType go.any)] true []))), (go!"Infof", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true []))), (go!"Infoln", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"V", (some (go.signature.Signature [go.int] false [go.bool]))), (go!"Warning", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true []))), (go!"WarningDepth", (some (go.signature.Signature [go.int, (go.GoType.SliceType go.any)] true []))), (go!"Warningf", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true []))), (go!"Warningln", (some (go.signature.Signature [(go.GoType.SliceType go.any)] true [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DepthLoggerV2.ty) []
 
 attribute [instance] DepthLoggerV2.TypeAssumptions.type_repr
   DepthLoggerV2.TypeAssumptions.underlying
   DepthLoggerV2.TypeAssumptions.isUnderlying
+  DepthLoggerV2.TypeAssumptions.method_set
+  DepthLoggerV2.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   componentData_instance : componentData.TypeAssumptions

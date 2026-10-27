@@ -2447,10 +2447,14 @@ class ipAttr.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   type_repr : go.TypeReprUnderlying ipAttr.underlying ipAttr
   underlying : go.UnderlyingDirectedEq ipAttr.ty ipAttr.underlying
   isUnderlying : go.IsUnderlying ipAttr.underlying ipAttr.underlying
+  method_set : go.MethodSetIs ipAttr.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ipAttr.ty) []
 
 attribute [instance] ipAttr.TypeAssumptions.type_repr
   ipAttr.TypeAssumptions.underlying
   ipAttr.TypeAssumptions.isUnderlying
+  ipAttr.TypeAssumptions.method_set
+  ipAttr.TypeAssumptions.ptr_method_set
 
 axiom byRFC6724Info : Type
 axiom byRFC6724Info.zero_val : ZeroVal byRFC6724Info
@@ -2460,10 +2464,14 @@ class byRFC6724Info.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContex
   type_repr : go.TypeReprUnderlying byRFC6724Info.underlying byRFC6724Info
   underlying : go.UnderlyingDirectedEq byRFC6724Info.ty byRFC6724Info.underlying
   isUnderlying : go.IsUnderlying byRFC6724Info.underlying byRFC6724Info.underlying
+  method_set : go.MethodSetIs byRFC6724Info.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType byRFC6724Info.ty) []
 
 attribute [instance] byRFC6724Info.TypeAssumptions.type_repr
   byRFC6724Info.TypeAssumptions.underlying
   byRFC6724Info.TypeAssumptions.isUnderlying
+  byRFC6724Info.TypeAssumptions.method_set
+  byRFC6724Info.TypeAssumptions.ptr_method_set
 
 axiom policyTableEntry : Type
 axiom policyTableEntry.zero_val : ZeroVal policyTableEntry
@@ -2473,10 +2481,14 @@ class policyTableEntry.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCon
   type_repr : go.TypeReprUnderlying policyTableEntry.underlying policyTableEntry
   underlying : go.UnderlyingDirectedEq policyTableEntry.ty policyTableEntry.underlying
   isUnderlying : go.IsUnderlying policyTableEntry.underlying policyTableEntry.underlying
+  method_set : go.MethodSetIs policyTableEntry.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType policyTableEntry.ty) []
 
 attribute [instance] policyTableEntry.TypeAssumptions.type_repr
   policyTableEntry.TypeAssumptions.underlying
   policyTableEntry.TypeAssumptions.isUnderlying
+  policyTableEntry.TypeAssumptions.method_set
+  policyTableEntry.TypeAssumptions.ptr_method_set
 
 axiom policyTable : Type
 axiom policyTable.zero_val : ZeroVal policyTable
@@ -2486,10 +2498,14 @@ class policyTable.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   type_repr : go.TypeReprUnderlying policyTable.underlying policyTable
   underlying : go.UnderlyingDirectedEq policyTable.ty policyTable.underlying
   isUnderlying : go.IsUnderlying policyTable.underlying policyTable.underlying
+  method_set : go.MethodSetIs policyTable.ty [(go!"Classify", (some (go.signature.Signature [(go.GoType.Named go!"net/netip.Addr" [])] false [policyTableEntry.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType policyTable.ty) [(go!"Classify", (some (go.signature.Signature [(go.GoType.Named go!"net/netip.Addr" [])] false [policyTableEntry.ty])))]
 
 attribute [instance] policyTable.TypeAssumptions.type_repr
   policyTable.TypeAssumptions.underlying
   policyTable.TypeAssumptions.isUnderlying
+  policyTable.TypeAssumptions.method_set
+  policyTable.TypeAssumptions.ptr_method_set
 
 axiom scope : Type
 axiom scope.zero_val : ZeroVal scope
@@ -2499,10 +2515,14 @@ class scope.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSe
   type_repr : go.TypeReprUnderlying scope.underlying scope
   underlying : go.UnderlyingDirectedEq scope.ty scope.underlying
   isUnderlying : go.IsUnderlying scope.underlying scope.underlying
+  method_set : go.MethodSetIs scope.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType scope.ty) []
 
 attribute [instance] scope.TypeAssumptions.type_repr
   scope.TypeAssumptions.underlying
   scope.TypeAssumptions.isUnderlying
+  scope.TypeAssumptions.method_set
+  scope.TypeAssumptions.ptr_method_set
 
 axiom addrinfoErrno : Type
 axiom addrinfoErrno.zero_val : ZeroVal addrinfoErrno
@@ -2512,10 +2532,14 @@ class addrinfoErrno.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContex
   type_repr : go.TypeReprUnderlying addrinfoErrno.underlying addrinfoErrno
   underlying : go.UnderlyingDirectedEq addrinfoErrno.ty addrinfoErrno.underlying
   isUnderlying : go.IsUnderlying addrinfoErrno.underlying addrinfoErrno.underlying
+  method_set : go.MethodSetIs addrinfoErrno.ty [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Temporary", (some (go.signature.Signature [] false [go.bool]))), (go!"Timeout", (some (go.signature.Signature [] false [go.bool]))), (go!"net.isAddrinfoErrno", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType addrinfoErrno.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Temporary", (some (go.signature.Signature [] false [go.bool]))), (go!"Timeout", (some (go.signature.Signature [] false [go.bool]))), (go!"net.isAddrinfoErrno", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] addrinfoErrno.TypeAssumptions.type_repr
   addrinfoErrno.TypeAssumptions.underlying
   addrinfoErrno.TypeAssumptions.isUnderlying
+  addrinfoErrno.TypeAssumptions.method_set
+  addrinfoErrno.TypeAssumptions.ptr_method_set
 
 axiom conf : Type
 axiom conf.zero_val : ZeroVal conf
@@ -2525,10 +2549,14 @@ class conf.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSem
   type_repr : go.TypeReprUnderlying conf.underlying conf
   underlying : go.UnderlyingDirectedEq conf.ty conf.underlying
   isUnderlying : go.IsUnderlying conf.underlying conf.underlying
+  method_set : go.MethodSetIs conf.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType conf.ty) [(go!"net.addrLookupOrder", (some (go.signature.Signature [(go.GoType.PointerType Resolver.ty), go.string] false [hostLookupOrder.ty, (go.GoType.PointerType dnsConfig.ty)]))), (go!"net.hostLookupOrder", (some (go.signature.Signature [(go.GoType.PointerType Resolver.ty), go.string] false [hostLookupOrder.ty, (go.GoType.PointerType dnsConfig.ty)]))), (go!"net.lookupOrder", (some (go.signature.Signature [(go.GoType.PointerType Resolver.ty), go.string] false [hostLookupOrder.ty, (go.GoType.PointerType dnsConfig.ty)]))), (go!"net.mustUseGoResolver", (some (go.signature.Signature [(go.GoType.PointerType Resolver.ty)] false [go.bool])))]
 
 attribute [instance] conf.TypeAssumptions.type_repr
   conf.TypeAssumptions.underlying
   conf.TypeAssumptions.isUnderlying
+  conf.TypeAssumptions.method_set
+  conf.TypeAssumptions.ptr_method_set
 
 axiom mdnsTest : Type
 axiom mdnsTest.zero_val : ZeroVal mdnsTest
@@ -2538,10 +2566,14 @@ class mdnsTest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [G
   type_repr : go.TypeReprUnderlying mdnsTest.underlying mdnsTest
   underlying : go.UnderlyingDirectedEq mdnsTest.ty mdnsTest.underlying
   isUnderlying : go.IsUnderlying mdnsTest.underlying mdnsTest.underlying
+  method_set : go.MethodSetIs mdnsTest.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType mdnsTest.ty) []
 
 attribute [instance] mdnsTest.TypeAssumptions.type_repr
   mdnsTest.TypeAssumptions.underlying
   mdnsTest.TypeAssumptions.isUnderlying
+  mdnsTest.TypeAssumptions.method_set
+  mdnsTest.TypeAssumptions.ptr_method_set
 
 axiom mptcpStatusDial : Type
 axiom mptcpStatusDial.zero_val : ZeroVal mptcpStatusDial
@@ -2551,10 +2583,14 @@ class mptcpStatusDial.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCont
   type_repr : go.TypeReprUnderlying mptcpStatusDial.underlying mptcpStatusDial
   underlying : go.UnderlyingDirectedEq mptcpStatusDial.ty mptcpStatusDial.underlying
   isUnderlying : go.IsUnderlying mptcpStatusDial.underlying mptcpStatusDial.underlying
+  method_set : go.MethodSetIs mptcpStatusDial.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType mptcpStatusDial.ty) [(go!"net.get", (some (go.signature.Signature [] false [go.bool]))), (go!"net.set", (some (go.signature.Signature [go.bool] false [])))]
 
 attribute [instance] mptcpStatusDial.TypeAssumptions.type_repr
   mptcpStatusDial.TypeAssumptions.underlying
   mptcpStatusDial.TypeAssumptions.isUnderlying
+  mptcpStatusDial.TypeAssumptions.method_set
+  mptcpStatusDial.TypeAssumptions.ptr_method_set
 
 axiom mptcpStatusListen : Type
 axiom mptcpStatusListen.zero_val : ZeroVal mptcpStatusListen
@@ -2564,10 +2600,14 @@ class mptcpStatusListen.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCo
   type_repr : go.TypeReprUnderlying mptcpStatusListen.underlying mptcpStatusListen
   underlying : go.UnderlyingDirectedEq mptcpStatusListen.ty mptcpStatusListen.underlying
   isUnderlying : go.IsUnderlying mptcpStatusListen.underlying mptcpStatusListen.underlying
+  method_set : go.MethodSetIs mptcpStatusListen.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType mptcpStatusListen.ty) [(go!"net.get", (some (go.signature.Signature [] false [go.bool]))), (go!"net.set", (some (go.signature.Signature [go.bool] false [])))]
 
 attribute [instance] mptcpStatusListen.TypeAssumptions.type_repr
   mptcpStatusListen.TypeAssumptions.underlying
   mptcpStatusListen.TypeAssumptions.isUnderlying
+  mptcpStatusListen.TypeAssumptions.method_set
+  mptcpStatusListen.TypeAssumptions.ptr_method_set
 
 axiom Dialer : Type
 axiom Dialer.zero_val : ZeroVal Dialer
@@ -2577,10 +2617,14 @@ class Dialer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   type_repr : go.TypeReprUnderlying Dialer.underlying Dialer
   underlying : go.UnderlyingDirectedEq Dialer.ty Dialer.underlying
   isUnderlying : go.IsUnderlying Dialer.underlying Dialer.underlying
+  method_set : go.MethodSetIs Dialer.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Dialer.ty) [(go!"Dial", (some (go.signature.Signature [go.string, go.string] false [Conn.ty, go.error]))), (go!"DialContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, go.string] false [Conn.ty, go.error]))), (go!"DialIP", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"net/netip.Addr" []), (go.GoType.Named go!"net/netip.Addr" [])] false [(go.GoType.PointerType IPConn.ty), go.error]))), (go!"DialTCP", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"net/netip.AddrPort" []), (go.GoType.Named go!"net/netip.AddrPort" [])] false [(go.GoType.PointerType TCPConn.ty), go.error]))), (go!"DialUDP", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"net/netip.AddrPort" []), (go.GoType.Named go!"net/netip.AddrPort" [])] false [(go.GoType.PointerType UDPConn.ty), go.error]))), (go!"DialUnix", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.PointerType UnixAddr.ty), (go.GoType.PointerType UnixAddr.ty)] false [(go.GoType.PointerType UnixConn.ty), go.error]))), (go!"MultipathTCP", (some (go.signature.Signature [] false [go.bool]))), (go!"SetMultipathTCP", (some (go.signature.Signature [go.bool] false []))), (go!"net.deadline", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"time.Time" [])] false [(go.GoType.Named go!"time.Time" [])]))), (go!"net.dialCtx", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"context.CancelFunc" [])]))), (go!"net.dualStack", (some (go.signature.Signature [] false [go.bool]))), (go!"net.fallbackDelay", (some (go.signature.Signature [] false [(go.GoType.Named go!"time.Duration" [])]))), (go!"net.resolver", (some (go.signature.Signature [] false [(go.GoType.PointerType Resolver.ty)])))]
 
 attribute [instance] Dialer.TypeAssumptions.type_repr
   Dialer.TypeAssumptions.underlying
   Dialer.TypeAssumptions.isUnderlying
+  Dialer.TypeAssumptions.method_set
+  Dialer.TypeAssumptions.ptr_method_set
 
 axiom sysDialer : Type
 axiom sysDialer.zero_val : ZeroVal sysDialer
@@ -2590,10 +2634,14 @@ class sysDialer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   type_repr : go.TypeReprUnderlying sysDialer.underlying sysDialer
   underlying : go.UnderlyingDirectedEq sysDialer.ty sysDialer.underlying
   isUnderlying : go.IsUnderlying sysDialer.underlying sysDialer.underlying
+  method_set : go.MethodSetIs sysDialer.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType sysDialer.ty) [(go!"Dial", (some (go.signature.Signature [go.string, go.string] false [Conn.ty, go.error]))), (go!"DialContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, go.string] false [Conn.ty, go.error]))), (go!"DialIP", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"net/netip.Addr" []), (go.GoType.Named go!"net/netip.Addr" [])] false [(go.GoType.PointerType IPConn.ty), go.error]))), (go!"DialTCP", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"net/netip.AddrPort" []), (go.GoType.Named go!"net/netip.AddrPort" [])] false [(go.GoType.PointerType TCPConn.ty), go.error]))), (go!"DialUDP", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"net/netip.AddrPort" []), (go.GoType.Named go!"net/netip.AddrPort" [])] false [(go.GoType.PointerType UDPConn.ty), go.error]))), (go!"DialUnix", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.PointerType UnixAddr.ty), (go.GoType.PointerType UnixAddr.ty)] false [(go.GoType.PointerType UnixConn.ty), go.error]))), (go!"MultipathTCP", (some (go.signature.Signature [] false [go.bool]))), (go!"SetMultipathTCP", (some (go.signature.Signature [go.bool] false []))), (go!"net.deadline", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"time.Time" [])] false [(go.GoType.Named go!"time.Time" [])]))), (go!"net.dialCtx", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"context.CancelFunc" [])]))), (go!"net.dialIP", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType IPAddr.ty), (go.GoType.PointerType IPAddr.ty)] false [(go.GoType.PointerType IPConn.ty), go.error]))), (go!"net.dialMPTCP", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType TCPAddr.ty), (go.GoType.PointerType TCPAddr.ty)] false [(go.GoType.PointerType TCPConn.ty), go.error]))), (go!"net.dialParallel", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), addrList.ty, addrList.ty] false [Conn.ty, go.error]))), (go!"net.dialSerial", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), addrList.ty] false [Conn.ty, go.error]))), (go!"net.dialSingle", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), Addr.ty] false [Conn.ty, go.error]))), (go!"net.dialTCP", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType TCPAddr.ty), (go.GoType.PointerType TCPAddr.ty)] false [(go.GoType.PointerType TCPConn.ty), go.error]))), (go!"net.dialUDP", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType UDPAddr.ty), (go.GoType.PointerType UDPAddr.ty)] false [(go.GoType.PointerType UDPConn.ty), go.error]))), (go!"net.dialUnix", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType UnixAddr.ty), (go.GoType.PointerType UnixAddr.ty)] false [(go.GoType.PointerType UnixConn.ty), go.error]))), (go!"net.doDialTCP", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType TCPAddr.ty), (go.GoType.PointerType TCPAddr.ty)] false [(go.GoType.PointerType TCPConn.ty), go.error]))), (go!"net.doDialTCPProto", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType TCPAddr.ty), (go.GoType.PointerType TCPAddr.ty), go.int] false [(go.GoType.PointerType TCPConn.ty), go.error]))), (go!"net.dualStack", (some (go.signature.Signature [] false [go.bool]))), (go!"net.fallbackDelay", (some (go.signature.Signature [] false [(go.GoType.Named go!"time.Duration" [])]))), (go!"net.resolver", (some (go.signature.Signature [] false [(go.GoType.PointerType Resolver.ty)])))]
 
 attribute [instance] sysDialer.TypeAssumptions.type_repr
   sysDialer.TypeAssumptions.underlying
   sysDialer.TypeAssumptions.isUnderlying
+  sysDialer.TypeAssumptions.method_set
+  sysDialer.TypeAssumptions.ptr_method_set
 
 axiom ListenConfig : Type
 axiom ListenConfig.zero_val : ZeroVal ListenConfig
@@ -2603,10 +2651,14 @@ class ListenConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext
   type_repr : go.TypeReprUnderlying ListenConfig.underlying ListenConfig
   underlying : go.UnderlyingDirectedEq ListenConfig.ty ListenConfig.underlying
   isUnderlying : go.IsUnderlying ListenConfig.underlying ListenConfig.underlying
+  method_set : go.MethodSetIs ListenConfig.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ListenConfig.ty) [(go!"Listen", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, go.string] false [Listener.ty, go.error]))), (go!"ListenPacket", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, go.string] false [PacketConn.ty, go.error]))), (go!"MultipathTCP", (some (go.signature.Signature [] false [go.bool]))), (go!"SetMultipathTCP", (some (go.signature.Signature [go.bool] false [])))]
 
 attribute [instance] ListenConfig.TypeAssumptions.type_repr
   ListenConfig.TypeAssumptions.underlying
   ListenConfig.TypeAssumptions.isUnderlying
+  ListenConfig.TypeAssumptions.method_set
+  ListenConfig.TypeAssumptions.ptr_method_set
 
 axiom sysListener : Type
 axiom sysListener.zero_val : ZeroVal sysListener
@@ -2616,10 +2668,14 @@ class sysListener.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   type_repr : go.TypeReprUnderlying sysListener.underlying sysListener
   underlying : go.UnderlyingDirectedEq sysListener.ty sysListener.underlying
   isUnderlying : go.IsUnderlying sysListener.underlying sysListener.underlying
+  method_set : go.MethodSetIs sysListener.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType sysListener.ty) [(go!"Listen", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, go.string] false [Listener.ty, go.error]))), (go!"ListenPacket", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, go.string] false [PacketConn.ty, go.error]))), (go!"MultipathTCP", (some (go.signature.Signature [] false [go.bool]))), (go!"SetMultipathTCP", (some (go.signature.Signature [go.bool] false []))), (go!"net.listenIP", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType IPAddr.ty)] false [(go.GoType.PointerType IPConn.ty), go.error]))), (go!"net.listenMPTCP", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType TCPAddr.ty)] false [(go.GoType.PointerType TCPListener.ty), go.error]))), (go!"net.listenMulticastUDP", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType Interface.ty), (go.GoType.PointerType UDPAddr.ty)] false [(go.GoType.PointerType UDPConn.ty), go.error]))), (go!"net.listenTCP", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType TCPAddr.ty)] false [(go.GoType.PointerType TCPListener.ty), go.error]))), (go!"net.listenTCPProto", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType TCPAddr.ty), go.int] false [(go.GoType.PointerType TCPListener.ty), go.error]))), (go!"net.listenUDP", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType UDPAddr.ty)] false [(go.GoType.PointerType UDPConn.ty), go.error]))), (go!"net.listenUnix", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType UnixAddr.ty)] false [(go.GoType.PointerType UnixListener.ty), go.error]))), (go!"net.listenUnixgram", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType UnixAddr.ty)] false [(go.GoType.PointerType UnixConn.ty), go.error])))]
 
 attribute [instance] sysListener.TypeAssumptions.type_repr
   sysListener.TypeAssumptions.underlying
   sysListener.TypeAssumptions.isUnderlying
+  sysListener.TypeAssumptions.method_set
+  sysListener.TypeAssumptions.ptr_method_set
 
 axiom SRV : Type
 axiom SRV.zero_val : ZeroVal SRV
@@ -2629,10 +2685,14 @@ class SRV.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSema
   type_repr : go.TypeReprUnderlying SRV.underlying SRV
   underlying : go.UnderlyingDirectedEq SRV.ty SRV.underlying
   isUnderlying : go.IsUnderlying SRV.underlying SRV.underlying
+  method_set : go.MethodSetIs SRV.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SRV.ty) []
 
 attribute [instance] SRV.TypeAssumptions.type_repr
   SRV.TypeAssumptions.underlying
   SRV.TypeAssumptions.isUnderlying
+  SRV.TypeAssumptions.method_set
+  SRV.TypeAssumptions.ptr_method_set
 
 axiom byPriorityWeight : Type
 axiom byPriorityWeight.zero_val : ZeroVal byPriorityWeight
@@ -2642,10 +2702,14 @@ class byPriorityWeight.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCon
   type_repr : go.TypeReprUnderlying byPriorityWeight.underlying byPriorityWeight
   underlying : go.UnderlyingDirectedEq byPriorityWeight.ty byPriorityWeight.underlying
   isUnderlying : go.IsUnderlying byPriorityWeight.underlying byPriorityWeight.underlying
+  method_set : go.MethodSetIs byPriorityWeight.ty [(go!"net.shuffleByWeight", (some (go.signature.Signature [] false []))), (go!"net.sort", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType byPriorityWeight.ty) [(go!"net.shuffleByWeight", (some (go.signature.Signature [] false []))), (go!"net.sort", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] byPriorityWeight.TypeAssumptions.type_repr
   byPriorityWeight.TypeAssumptions.underlying
   byPriorityWeight.TypeAssumptions.isUnderlying
+  byPriorityWeight.TypeAssumptions.method_set
+  byPriorityWeight.TypeAssumptions.ptr_method_set
 
 axiom MX : Type
 axiom MX.zero_val : ZeroVal MX
@@ -2655,10 +2719,14 @@ class MX.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSeman
   type_repr : go.TypeReprUnderlying MX.underlying MX
   underlying : go.UnderlyingDirectedEq MX.ty MX.underlying
   isUnderlying : go.IsUnderlying MX.underlying MX.underlying
+  method_set : go.MethodSetIs MX.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType MX.ty) []
 
 attribute [instance] MX.TypeAssumptions.type_repr
   MX.TypeAssumptions.underlying
   MX.TypeAssumptions.isUnderlying
+  MX.TypeAssumptions.method_set
+  MX.TypeAssumptions.ptr_method_set
 
 axiom byPref : Type
 axiom byPref.zero_val : ZeroVal byPref
@@ -2668,10 +2736,14 @@ class byPref.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   type_repr : go.TypeReprUnderlying byPref.underlying byPref
   underlying : go.UnderlyingDirectedEq byPref.ty byPref.underlying
   isUnderlying : go.IsUnderlying byPref.underlying byPref.underlying
+  method_set : go.MethodSetIs byPref.ty [(go!"net.sort", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType byPref.ty) [(go!"net.sort", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] byPref.TypeAssumptions.type_repr
   byPref.TypeAssumptions.underlying
   byPref.TypeAssumptions.isUnderlying
+  byPref.TypeAssumptions.method_set
+  byPref.TypeAssumptions.ptr_method_set
 
 axiom NS : Type
 axiom NS.zero_val : ZeroVal NS
@@ -2681,10 +2753,14 @@ class NS.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSeman
   type_repr : go.TypeReprUnderlying NS.underlying NS
   underlying : go.UnderlyingDirectedEq NS.ty NS.underlying
   isUnderlying : go.IsUnderlying NS.underlying NS.underlying
+  method_set : go.MethodSetIs NS.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType NS.ty) []
 
 attribute [instance] NS.TypeAssumptions.type_repr
   NS.TypeAssumptions.underlying
   NS.TypeAssumptions.isUnderlying
+  NS.TypeAssumptions.method_set
+  NS.TypeAssumptions.ptr_method_set
 
 axiom resolverConfig : Type
 axiom resolverConfig.zero_val : ZeroVal resolverConfig
@@ -2694,10 +2770,14 @@ class resolverConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalConte
   type_repr : go.TypeReprUnderlying resolverConfig.underlying resolverConfig
   underlying : go.UnderlyingDirectedEq resolverConfig.ty resolverConfig.underlying
   isUnderlying : go.IsUnderlying resolverConfig.underlying resolverConfig.underlying
+  method_set : go.MethodSetIs resolverConfig.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType resolverConfig.ty) [(go!"net.init", (some (go.signature.Signature [] false []))), (go!"net.releaseSema", (some (go.signature.Signature [] false []))), (go!"net.tryAcquireSema", (some (go.signature.Signature [] false [go.bool]))), (go!"net.tryUpdate", (some (go.signature.Signature [go.string] false [])))]
 
 attribute [instance] resolverConfig.TypeAssumptions.type_repr
   resolverConfig.TypeAssumptions.underlying
   resolverConfig.TypeAssumptions.isUnderlying
+  resolverConfig.TypeAssumptions.method_set
+  resolverConfig.TypeAssumptions.ptr_method_set
 
 axiom hostLookupOrder : Type
 axiom hostLookupOrder.zero_val : ZeroVal hostLookupOrder
@@ -2707,10 +2787,14 @@ class hostLookupOrder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCont
   type_repr : go.TypeReprUnderlying hostLookupOrder.underlying hostLookupOrder
   underlying : go.UnderlyingDirectedEq hostLookupOrder.ty hostLookupOrder.underlying
   isUnderlying : go.IsUnderlying hostLookupOrder.underlying hostLookupOrder.underlying
+  method_set : go.MethodSetIs hostLookupOrder.ty [(go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType hostLookupOrder.ty) [(go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] hostLookupOrder.TypeAssumptions.type_repr
   hostLookupOrder.TypeAssumptions.underlying
   hostLookupOrder.TypeAssumptions.isUnderlying
+  hostLookupOrder.TypeAssumptions.method_set
+  hostLookupOrder.TypeAssumptions.ptr_method_set
 
 axiom dnsConfig : Type
 axiom dnsConfig.zero_val : ZeroVal dnsConfig
@@ -2720,10 +2804,14 @@ class dnsConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   type_repr : go.TypeReprUnderlying dnsConfig.underlying dnsConfig
   underlying : go.UnderlyingDirectedEq dnsConfig.ty dnsConfig.underlying
   isUnderlying : go.IsUnderlying dnsConfig.underlying dnsConfig.underlying
+  method_set : go.MethodSetIs dnsConfig.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType dnsConfig.ty) [(go!"net.isDefaultNS", (some (go.signature.Signature [] false [go.bool]))), (go!"net.nameList", (some (go.signature.Signature [go.string] false [(go.GoType.SliceType go.string)]))), (go!"net.serverOffset", (some (go.signature.Signature [] false [go.uint32])))]
 
 attribute [instance] dnsConfig.TypeAssumptions.type_repr
   dnsConfig.TypeAssumptions.underlying
   dnsConfig.TypeAssumptions.isUnderlying
+  dnsConfig.TypeAssumptions.method_set
+  dnsConfig.TypeAssumptions.ptr_method_set
 
 axiom netFD : Type
 axiom netFD.zero_val : ZeroVal netFD
@@ -2733,10 +2821,14 @@ class netFD.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSe
   type_repr : go.TypeReprUnderlying netFD.underlying netFD
   underlying : go.UnderlyingDirectedEq netFD.ty netFD.underlying
   isUnderlying : go.IsUnderlying netFD.underlying netFD.underlying
+  method_set : go.MethodSetIs netFD.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType netFD.ty) [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"SetDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SetReadDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SetWriteDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"net.accept", (some (go.signature.Signature [] false [(go.GoType.PointerType netFD.ty), go.error]))), (go!"net.addrFunc", (some (go.signature.Signature [] false [(go.GoType.FunctionType (go.signature.Signature [(go.GoType.Named go!"syscall.Sockaddr" [])] false [Addr.ty]))]))), (go!"net.closeRead", (some (go.signature.Signature [] false [go.error]))), (go!"net.closeWrite", (some (go.signature.Signature [] false [go.error]))), (go!"net.connect", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"syscall.Sockaddr" []), (go.GoType.Named go!"syscall.Sockaddr" [])] false [(go.GoType.Named go!"syscall.Sockaddr" []), go.error]))), (go!"net.ctrlNetwork", (some (go.signature.Signature [] false [go.string]))), (go!"net.dial", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), sockaddr.ty, sockaddr.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, go.string, (go.GoType.Named go!"syscall.RawConn" [])] false [go.error]))] false [go.error]))), (go!"net.dup", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"os.File" [])), go.error]))), (go!"net.init", (some (go.signature.Signature [] false [go.error]))), (go!"net.listenDatagram", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), sockaddr.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, go.string, (go.GoType.Named go!"syscall.RawConn" [])] false [go.error]))] false [go.error]))), (go!"net.listenStream", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), sockaddr.ty, go.int, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, go.string, (go.GoType.Named go!"syscall.RawConn" [])] false [go.error]))] false [go.error]))), (go!"net.name", (some (go.signature.Signature [] false [go.string]))), (go!"net.readFrom", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, (go.GoType.Named go!"syscall.Sockaddr" []), go.error]))), (go!"net.readFromInet4", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.PointerType (go.GoType.Named go!"syscall.SockaddrInet4" []))] false [go.int, go.error]))), (go!"net.readFromInet6", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.PointerType (go.GoType.Named go!"syscall.SockaddrInet6" []))] false [go.int, go.error]))), (go!"net.readMsg", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), go.int] false [go.int, go.int, go.int, (go.GoType.Named go!"syscall.Sockaddr" []), go.error]))), (go!"net.readMsgInet4", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), go.int, (go.GoType.PointerType (go.GoType.Named go!"syscall.SockaddrInet4" []))] false [go.int, go.int, go.int, go.error]))), (go!"net.readMsgInet6", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), go.int, (go.GoType.PointerType (go.GoType.Named go!"syscall.SockaddrInet6" []))] false [go.int, go.int, go.int, go.error]))), (go!"net.setAddr", (some (go.signature.Signature [Addr.ty, Addr.ty] false []))), (go!"net.shutdown", (some (go.signature.Signature [go.int] false [go.error]))), (go!"net.writeBuffers", (some (go.signature.Signature [(go.GoType.PointerType Buffers.ty)] false [go.int64, go.error]))), (go!"net.writeMsg", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), (go.GoType.Named go!"syscall.Sockaddr" [])] false [go.int, go.int, go.error]))), (go!"net.writeMsgInet4", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), (go.GoType.PointerType (go.GoType.Named go!"syscall.SockaddrInet4" []))] false [go.int, go.int, go.error]))), (go!"net.writeMsgInet6", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), (go.GoType.PointerType (go.GoType.Named go!"syscall.SockaddrInet6" []))] false [go.int, go.int, go.error]))), (go!"net.writeTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.Named go!"syscall.Sockaddr" [])] false [go.int, go.error]))), (go!"net.writeToInet4", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.PointerType (go.GoType.Named go!"syscall.SockaddrInet4" []))] false [go.int, go.error]))), (go!"net.writeToInet6", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.PointerType (go.GoType.Named go!"syscall.SockaddrInet6" []))] false [go.int, go.error])))]
 
 attribute [instance] netFD.TypeAssumptions.type_repr
   netFD.TypeAssumptions.underlying
   netFD.TypeAssumptions.isUnderlying
+  netFD.TypeAssumptions.method_set
+  netFD.TypeAssumptions.ptr_method_set
 
 axiom fileAddr : Type
 axiom fileAddr.zero_val : ZeroVal fileAddr
@@ -2746,10 +2838,14 @@ class fileAddr.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [G
   type_repr : go.TypeReprUnderlying fileAddr.underlying fileAddr
   underlying : go.UnderlyingDirectedEq fileAddr.ty fileAddr.underlying
   isUnderlying : go.IsUnderlying fileAddr.underlying fileAddr.underlying
+  method_set : go.MethodSetIs fileAddr.ty [(go!"Network", (some (go.signature.Signature [] false [go.string]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType fileAddr.ty) [(go!"Network", (some (go.signature.Signature [] false [go.string]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] fileAddr.TypeAssumptions.type_repr
   fileAddr.TypeAssumptions.underlying
   fileAddr.TypeAssumptions.isUnderlying
+  fileAddr.TypeAssumptions.method_set
+  fileAddr.TypeAssumptions.ptr_method_set
 
 axiom byName : Type
 axiom byName.zero_val : ZeroVal byName
@@ -2759,10 +2855,14 @@ class byName.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   type_repr : go.TypeReprUnderlying byName.underlying byName
   underlying : go.UnderlyingDirectedEq byName.ty byName.underlying
   isUnderlying : go.IsUnderlying byName.underlying byName.underlying
+  method_set : go.MethodSetIs byName.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType byName.ty) []
 
 attribute [instance] byName.TypeAssumptions.type_repr
   byName.TypeAssumptions.underlying
   byName.TypeAssumptions.isUnderlying
+  byName.TypeAssumptions.method_set
+  byName.TypeAssumptions.ptr_method_set
 
 axiom Interface : Type
 axiom Interface.zero_val : ZeroVal Interface
@@ -2772,10 +2872,14 @@ class Interface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   type_repr : go.TypeReprUnderlying Interface.underlying Interface
   underlying : go.UnderlyingDirectedEq Interface.ty Interface.underlying
   isUnderlying : go.IsUnderlying Interface.underlying Interface.underlying
+  method_set : go.MethodSetIs Interface.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Interface.ty) [(go!"Addrs", (some (go.signature.Signature [] false [(go.GoType.SliceType Addr.ty), go.error]))), (go!"MulticastAddrs", (some (go.signature.Signature [] false [(go.GoType.SliceType Addr.ty), go.error])))]
 
 attribute [instance] Interface.TypeAssumptions.type_repr
   Interface.TypeAssumptions.underlying
   Interface.TypeAssumptions.isUnderlying
+  Interface.TypeAssumptions.method_set
+  Interface.TypeAssumptions.ptr_method_set
 
 axiom Flags : Type
 axiom Flags.zero_val : ZeroVal Flags
@@ -2785,10 +2889,14 @@ class Flags.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSe
   type_repr : go.TypeReprUnderlying Flags.underlying Flags
   underlying : go.UnderlyingDirectedEq Flags.ty Flags.underlying
   isUnderlying : go.IsUnderlying Flags.underlying Flags.underlying
+  method_set : go.MethodSetIs Flags.ty [(go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Flags.ty) [(go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] Flags.TypeAssumptions.type_repr
   Flags.TypeAssumptions.underlying
   Flags.TypeAssumptions.isUnderlying
+  Flags.TypeAssumptions.method_set
+  Flags.TypeAssumptions.ptr_method_set
 
 axiom ipv6ZoneCache : Type
 axiom ipv6ZoneCache.zero_val : ZeroVal ipv6ZoneCache
@@ -2798,10 +2906,14 @@ class ipv6ZoneCache.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContex
   type_repr : go.TypeReprUnderlying ipv6ZoneCache.underlying ipv6ZoneCache
   underlying : go.UnderlyingDirectedEq ipv6ZoneCache.ty ipv6ZoneCache.underlying
   isUnderlying : go.IsUnderlying ipv6ZoneCache.underlying ipv6ZoneCache.underlying
+  method_set : go.MethodSetIs ipv6ZoneCache.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ipv6ZoneCache.ty) [(go!"Lock", (some (go.signature.Signature [] false []))), (go!"RLock", (some (go.signature.Signature [] false []))), (go!"RLocker", (some (go.signature.Signature [] false [(go.GoType.Named go!"sync.Locker" [])]))), (go!"RUnlock", (some (go.signature.Signature [] false []))), (go!"TryLock", (some (go.signature.Signature [] false [go.bool]))), (go!"TryRLock", (some (go.signature.Signature [] false [go.bool]))), (go!"Unlock", (some (go.signature.Signature [] false []))), (go!"net.index", (some (go.signature.Signature [go.string] false [go.int]))), (go!"net.name", (some (go.signature.Signature [go.int] false [go.string]))), (go!"net.update", (some (go.signature.Signature [(go.GoType.SliceType Interface.ty), go.bool] false [go.bool]))), (go!"sync.rUnlockSlow", (some (go.signature.Signature [go.int32] false [])))]
 
 attribute [instance] ipv6ZoneCache.TypeAssumptions.type_repr
   ipv6ZoneCache.TypeAssumptions.underlying
   ipv6ZoneCache.TypeAssumptions.isUnderlying
+  ipv6ZoneCache.TypeAssumptions.method_set
+  ipv6ZoneCache.TypeAssumptions.ptr_method_set
 
 axiom IP : Type
 axiom IP.zero_val : ZeroVal IP
@@ -2811,10 +2923,14 @@ class IP.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSeman
   type_repr : go.TypeReprUnderlying IP.underlying IP
   underlying : go.UnderlyingDirectedEq IP.ty IP.underlying
   isUnderlying : go.IsUnderlying IP.underlying IP.underlying
+  method_set : go.MethodSetIs IP.ty [(go!"AppendText", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte), go.error]))), (go!"DefaultMask", (some (go.signature.Signature [] false [IPMask.ty]))), (go!"Equal", (some (go.signature.Signature [IP.ty] false [go.bool]))), (go!"IsGlobalUnicast", (some (go.signature.Signature [] false [go.bool]))), (go!"IsInterfaceLocalMulticast", (some (go.signature.Signature [] false [go.bool]))), (go!"IsLinkLocalMulticast", (some (go.signature.Signature [] false [go.bool]))), (go!"IsLinkLocalUnicast", (some (go.signature.Signature [] false [go.bool]))), (go!"IsLoopback", (some (go.signature.Signature [] false [go.bool]))), (go!"IsMulticast", (some (go.signature.Signature [] false [go.bool]))), (go!"IsPrivate", (some (go.signature.Signature [] false [go.bool]))), (go!"IsUnspecified", (some (go.signature.Signature [] false [go.bool]))), (go!"MarshalText", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"Mask", (some (go.signature.Signature [IPMask.ty] false [IP.ty]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"To16", (some (go.signature.Signature [] false [IP.ty]))), (go!"To4", (some (go.signature.Signature [] false [IP.ty]))), (go!"net.appendTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte)]))), (go!"net.matchAddrFamily", (some (go.signature.Signature [IP.ty] false [go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType IP.ty) [(go!"AppendText", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte), go.error]))), (go!"DefaultMask", (some (go.signature.Signature [] false [IPMask.ty]))), (go!"Equal", (some (go.signature.Signature [IP.ty] false [go.bool]))), (go!"IsGlobalUnicast", (some (go.signature.Signature [] false [go.bool]))), (go!"IsInterfaceLocalMulticast", (some (go.signature.Signature [] false [go.bool]))), (go!"IsLinkLocalMulticast", (some (go.signature.Signature [] false [go.bool]))), (go!"IsLinkLocalUnicast", (some (go.signature.Signature [] false [go.bool]))), (go!"IsLoopback", (some (go.signature.Signature [] false [go.bool]))), (go!"IsMulticast", (some (go.signature.Signature [] false [go.bool]))), (go!"IsPrivate", (some (go.signature.Signature [] false [go.bool]))), (go!"IsUnspecified", (some (go.signature.Signature [] false [go.bool]))), (go!"MarshalText", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"Mask", (some (go.signature.Signature [IPMask.ty] false [IP.ty]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"To16", (some (go.signature.Signature [] false [IP.ty]))), (go!"To4", (some (go.signature.Signature [] false [IP.ty]))), (go!"UnmarshalText", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"net.appendTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte)]))), (go!"net.matchAddrFamily", (some (go.signature.Signature [IP.ty] false [go.bool])))]
 
 attribute [instance] IP.TypeAssumptions.type_repr
   IP.TypeAssumptions.underlying
   IP.TypeAssumptions.isUnderlying
+  IP.TypeAssumptions.method_set
+  IP.TypeAssumptions.ptr_method_set
 
 axiom IPMask : Type
 axiom IPMask.zero_val : ZeroVal IPMask
@@ -2824,10 +2940,14 @@ class IPMask.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   type_repr : go.TypeReprUnderlying IPMask.underlying IPMask
   underlying : go.UnderlyingDirectedEq IPMask.ty IPMask.underlying
   isUnderlying : go.IsUnderlying IPMask.underlying IPMask.underlying
+  method_set : go.MethodSetIs IPMask.ty [(go!"Size", (some (go.signature.Signature [] false [go.int, go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType IPMask.ty) [(go!"Size", (some (go.signature.Signature [] false [go.int, go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] IPMask.TypeAssumptions.type_repr
   IPMask.TypeAssumptions.underlying
   IPMask.TypeAssumptions.isUnderlying
+  IPMask.TypeAssumptions.method_set
+  IPMask.TypeAssumptions.ptr_method_set
 
 axiom IPNet : Type
 axiom IPNet.zero_val : ZeroVal IPNet
@@ -2837,10 +2957,14 @@ class IPNet.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSe
   type_repr : go.TypeReprUnderlying IPNet.underlying IPNet
   underlying : go.UnderlyingDirectedEq IPNet.ty IPNet.underlying
   isUnderlying : go.IsUnderlying IPNet.underlying IPNet.underlying
+  method_set : go.MethodSetIs IPNet.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType IPNet.ty) [(go!"Contains", (some (go.signature.Signature [IP.ty] false [go.bool]))), (go!"Network", (some (go.signature.Signature [] false [go.string]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] IPNet.TypeAssumptions.type_repr
   IPNet.TypeAssumptions.underlying
   IPNet.TypeAssumptions.isUnderlying
+  IPNet.TypeAssumptions.method_set
+  IPNet.TypeAssumptions.ptr_method_set
 
 axiom IPAddr : Type
 axiom IPAddr.zero_val : ZeroVal IPAddr
@@ -2850,10 +2974,14 @@ class IPAddr.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   type_repr : go.TypeReprUnderlying IPAddr.underlying IPAddr
   underlying : go.UnderlyingDirectedEq IPAddr.ty IPAddr.underlying
   isUnderlying : go.IsUnderlying IPAddr.underlying IPAddr.underlying
+  method_set : go.MethodSetIs IPAddr.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType IPAddr.ty) [(go!"Network", (some (go.signature.Signature [] false [go.string]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"net.family", (some (go.signature.Signature [] false [go.int]))), (go!"net.isWildcard", (some (go.signature.Signature [] false [go.bool]))), (go!"net.opAddr", (some (go.signature.Signature [] false [Addr.ty]))), (go!"net.sockaddr", (some (go.signature.Signature [go.int] false [(go.GoType.Named go!"syscall.Sockaddr" []), go.error]))), (go!"net.toLocal", (some (go.signature.Signature [go.string] false [sockaddr.ty])))]
 
 attribute [instance] IPAddr.TypeAssumptions.type_repr
   IPAddr.TypeAssumptions.underlying
   IPAddr.TypeAssumptions.isUnderlying
+  IPAddr.TypeAssumptions.method_set
+  IPAddr.TypeAssumptions.ptr_method_set
 
 axiom IPConn : Type
 axiom IPConn.zero_val : ZeroVal IPConn
@@ -2863,10 +2991,14 @@ class IPConn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   type_repr : go.TypeReprUnderlying IPConn.underlying IPConn
   underlying : go.UnderlyingDirectedEq IPConn.ty IPConn.underlying
   isUnderlying : go.IsUnderlying IPConn.underlying IPConn.underlying
+  method_set : go.MethodSetIs IPConn.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType IPConn.ty) [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"File", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"os.File" [])), go.error]))), (go!"LocalAddr", (some (go.signature.Signature [] false [Addr.ty]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"ReadFrom", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, Addr.ty, go.error]))), (go!"ReadFromIP", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, (go.GoType.PointerType IPAddr.ty), go.error]))), (go!"ReadMsgIP", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.int, go.int, go.int, (go.GoType.PointerType IPAddr.ty), go.error]))), (go!"RemoteAddr", (some (go.signature.Signature [] false [Addr.ty]))), (go!"SetDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SetReadBuffer", (some (go.signature.Signature [go.int] false [go.error]))), (go!"SetReadDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SetWriteBuffer", (some (go.signature.Signature [go.int] false [go.error]))), (go!"SetWriteDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SyscallConn", (some (go.signature.Signature [] false [(go.GoType.Named go!"syscall.RawConn" []), go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"WriteMsgIP", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), (go.GoType.PointerType IPAddr.ty)] false [go.int, go.int, go.error]))), (go!"WriteTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte), Addr.ty] false [go.int, go.error]))), (go!"WriteToIP", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.PointerType IPAddr.ty)] false [go.int, go.error]))), (go!"net.ok", (some (go.signature.Signature [] false [go.bool]))), (go!"net.readFrom", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, (go.GoType.PointerType IPAddr.ty), go.error]))), (go!"net.readMsg", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.int, go.int, go.int, (go.GoType.PointerType IPAddr.ty), go.error]))), (go!"net.writeBuffers", (some (go.signature.Signature [(go.GoType.PointerType Buffers.ty)] false [go.int64, go.error]))), (go!"net.writeMsg", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), (go.GoType.PointerType IPAddr.ty)] false [go.int, go.int, go.error]))), (go!"net.writeTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.PointerType IPAddr.ty)] false [go.int, go.error])))]
 
 attribute [instance] IPConn.TypeAssumptions.type_repr
   IPConn.TypeAssumptions.underlying
   IPConn.TypeAssumptions.isUnderlying
+  IPConn.TypeAssumptions.method_set
+  IPConn.TypeAssumptions.ptr_method_set
 
 axiom ipStackCapabilities : Type
 axiom ipStackCapabilities.zero_val : ZeroVal ipStackCapabilities
@@ -2876,10 +3008,14 @@ class ipStackCapabilities.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocal
   type_repr : go.TypeReprUnderlying ipStackCapabilities.underlying ipStackCapabilities
   underlying : go.UnderlyingDirectedEq ipStackCapabilities.ty ipStackCapabilities.underlying
   isUnderlying : go.IsUnderlying ipStackCapabilities.underlying ipStackCapabilities.underlying
+  method_set : go.MethodSetIs ipStackCapabilities.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ipStackCapabilities.ty) [(go!"Do", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [] false []))] false []))), (go!"net.probe", (some (go.signature.Signature [] false []))), (go!"sync.doSlow", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [] false []))] false [])))]
 
 attribute [instance] ipStackCapabilities.TypeAssumptions.type_repr
   ipStackCapabilities.TypeAssumptions.underlying
   ipStackCapabilities.TypeAssumptions.isUnderlying
+  ipStackCapabilities.TypeAssumptions.method_set
+  ipStackCapabilities.TypeAssumptions.ptr_method_set
 
 axiom addrList : Type
 axiom addrList.zero_val : ZeroVal addrList
@@ -2889,10 +3025,14 @@ class addrList.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [G
   type_repr : go.TypeReprUnderlying addrList.underlying addrList
   underlying : go.UnderlyingDirectedEq addrList.ty addrList.underlying
   isUnderlying : go.IsUnderlying addrList.underlying addrList.underlying
+  method_set : go.MethodSetIs addrList.ty [(go!"net.first", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [Addr.ty] false [go.bool]))] false [Addr.ty]))), (go!"net.forResolve", (some (go.signature.Signature [go.string, go.string] false [Addr.ty]))), (go!"net.partition", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [Addr.ty] false [go.bool]))] false [addrList.ty, addrList.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType addrList.ty) [(go!"net.first", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [Addr.ty] false [go.bool]))] false [Addr.ty]))), (go!"net.forResolve", (some (go.signature.Signature [go.string, go.string] false [Addr.ty]))), (go!"net.partition", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [Addr.ty] false [go.bool]))] false [addrList.ty, addrList.ty])))]
 
 attribute [instance] addrList.TypeAssumptions.type_repr
   addrList.TypeAssumptions.underlying
   addrList.TypeAssumptions.isUnderlying
+  addrList.TypeAssumptions.method_set
+  addrList.TypeAssumptions.ptr_method_set
 
 axiom Resolver : Type
 axiom Resolver.zero_val : ZeroVal Resolver
@@ -2902,10 +3042,14 @@ class Resolver.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [G
   type_repr : go.TypeReprUnderlying Resolver.underlying Resolver
   underlying : go.UnderlyingDirectedEq Resolver.ty Resolver.underlying
   isUnderlying : go.IsUnderlying Resolver.underlying Resolver.underlying
+  method_set : go.MethodSetIs Resolver.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Resolver.ty) [(go!"LookupAddr", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string] false [(go.GoType.SliceType go.string), go.error]))), (go!"LookupCNAME", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string] false [go.string, go.error]))), (go!"LookupHost", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string] false [(go.GoType.SliceType go.string), go.error]))), (go!"LookupIP", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, go.string] false [(go.GoType.SliceType IP.ty), go.error]))), (go!"LookupIPAddr", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string] false [(go.GoType.SliceType IPAddr.ty), go.error]))), (go!"LookupMX", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string] false [(go.GoType.SliceType (go.GoType.PointerType MX.ty)), go.error]))), (go!"LookupNS", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string] false [(go.GoType.SliceType (go.GoType.PointerType NS.ty)), go.error]))), (go!"LookupNetIP", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, go.string] false [(go.GoType.SliceType (go.GoType.Named go!"net/netip.Addr" [])), go.error]))), (go!"LookupPort", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, go.string] false [go.int, go.error]))), (go!"LookupSRV", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, go.string, go.string] false [go.string, (go.GoType.SliceType (go.GoType.PointerType SRV.ty)), go.error]))), (go!"LookupTXT", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string] false [(go.GoType.SliceType go.string), go.error]))), (go!"net.dial", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, go.string] false [Conn.ty, go.error]))), (go!"net.exchange", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"vendor/golang.org/x/net/dns/dnsmessage.Question" []), (go.GoType.Named go!"time.Duration" []), go.bool, go.bool] false [(go.GoType.Named go!"vendor/golang.org/x/net/dns/dnsmessage.Parser" []), (go.GoType.Named go!"vendor/golang.org/x/net/dns/dnsmessage.Header" []), go.error]))), (go!"net.getLookupGroup", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"internal/singleflight.Group" []))]))), (go!"net.goLookupCNAME", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, hostLookupOrder.ty, (go.GoType.PointerType dnsConfig.ty)] false [go.string, go.error]))), (go!"net.goLookupHostOrder", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, hostLookupOrder.ty, (go.GoType.PointerType dnsConfig.ty)] false [(go.GoType.SliceType go.string), go.error]))), (go!"net.goLookupIP", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, go.string, hostLookupOrder.ty, (go.GoType.PointerType dnsConfig.ty)] false [(go.GoType.SliceType IPAddr.ty), go.error]))), (go!"net.goLookupIPCNAMEOrder", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, go.string, hostLookupOrder.ty, (go.GoType.PointerType dnsConfig.ty)] false [(go.GoType.SliceType IPAddr.ty), (go.GoType.Named go!"vendor/golang.org/x/net/dns/dnsmessage.Name" []), go.error]))), (go!"net.goLookupMX", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string] false [(go.GoType.SliceType (go.GoType.PointerType MX.ty)), go.error]))), (go!"net.goLookupNS", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string] false [(go.GoType.SliceType (go.GoType.PointerType NS.ty)), go.error]))), (go!"net.goLookupPTR", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, hostLookupOrder.ty, (go.GoType.PointerType dnsConfig.ty)] false [(go.GoType.SliceType go.string), go.error]))), (go!"net.goLookupSRV", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, go.string, go.string] false [go.string, (go.GoType.SliceType (go.GoType.PointerType SRV.ty)), go.error]))), (go!"net.goLookupTXT", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string] false [(go.GoType.SliceType go.string), go.error]))), (go!"net.internetAddrList", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, go.string] false [addrList.ty, go.error]))), (go!"net.lookup", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"vendor/golang.org/x/net/dns/dnsmessage.Type" []), (go.GoType.PointerType dnsConfig.ty)] false [(go.GoType.Named go!"vendor/golang.org/x/net/dns/dnsmessage.Parser" []), go.string, go.error]))), (go!"net.lookupAddr", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string] false [(go.GoType.SliceType go.string), go.error]))), (go!"net.lookupCNAME", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string] false [go.string, go.error]))), (go!"net.lookupHost", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string] false [(go.GoType.SliceType go.string), go.error]))), (go!"net.lookupIP", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, go.string] false [(go.GoType.SliceType IPAddr.ty), go.error]))), (go!"net.lookupIPAddr", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, go.string] false [(go.GoType.SliceType IPAddr.ty), go.error]))), (go!"net.lookupMX", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string] false [(go.GoType.SliceType (go.GoType.PointerType MX.ty)), go.error]))), (go!"net.lookupNS", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string] false [(go.GoType.SliceType (go.GoType.PointerType NS.ty)), go.error]))), (go!"net.lookupPort", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, go.string] false [go.int, go.error]))), (go!"net.lookupSRV", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, go.string, go.string] false [go.string, (go.GoType.SliceType (go.GoType.PointerType SRV.ty)), go.error]))), (go!"net.lookupTXT", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string] false [(go.GoType.SliceType go.string), go.error]))), (go!"net.preferGo", (some (go.signature.Signature [] false [go.bool]))), (go!"net.resolveAddrList", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, go.string, go.string, Addr.ty] false [addrList.ty, go.error]))), (go!"net.strictErrors", (some (go.signature.Signature [] false [go.bool]))), (go!"net.tryOneName", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType dnsConfig.ty), go.string, (go.GoType.Named go!"vendor/golang.org/x/net/dns/dnsmessage.Type" [])] false [(go.GoType.Named go!"vendor/golang.org/x/net/dns/dnsmessage.Parser" []), go.string, go.error])))]
 
 attribute [instance] Resolver.TypeAssumptions.type_repr
   Resolver.TypeAssumptions.underlying
   Resolver.TypeAssumptions.isUnderlying
+  Resolver.TypeAssumptions.method_set
+  Resolver.TypeAssumptions.ptr_method_set
 
 axiom onlyValuesCtx : Type
 axiom onlyValuesCtx.zero_val : ZeroVal onlyValuesCtx
@@ -2915,10 +3059,14 @@ class onlyValuesCtx.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContex
   type_repr : go.TypeReprUnderlying onlyValuesCtx.underlying onlyValuesCtx
   underlying : go.UnderlyingDirectedEq onlyValuesCtx.ty onlyValuesCtx.underlying
   isUnderlying : go.IsUnderlying onlyValuesCtx.underlying onlyValuesCtx.underlying
+  method_set : go.MethodSetIs onlyValuesCtx.ty [(go!"Deadline", (some (go.signature.Signature [] false [(go.GoType.Named go!"time.Time" []), go.bool]))), (go!"Done", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"Err", (some (go.signature.Signature [] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType onlyValuesCtx.ty) [(go!"Deadline", (some (go.signature.Signature [] false [(go.GoType.Named go!"time.Time" []), go.bool]))), (go!"Done", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"Err", (some (go.signature.Signature [] false [go.error]))), (go!"Value", (some (go.signature.Signature [go.any] false [go.any])))]
 
 attribute [instance] onlyValuesCtx.TypeAssumptions.type_repr
   onlyValuesCtx.TypeAssumptions.underlying
   onlyValuesCtx.TypeAssumptions.isUnderlying
+  onlyValuesCtx.TypeAssumptions.method_set
+  onlyValuesCtx.TypeAssumptions.ptr_method_set
 
 axiom HardwareAddr : Type
 axiom HardwareAddr.zero_val : ZeroVal HardwareAddr
@@ -2928,10 +3076,14 @@ class HardwareAddr.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext
   type_repr : go.TypeReprUnderlying HardwareAddr.underlying HardwareAddr
   underlying : go.UnderlyingDirectedEq HardwareAddr.ty HardwareAddr.underlying
   isUnderlying : go.IsUnderlying HardwareAddr.underlying HardwareAddr.underlying
+  method_set : go.MethodSetIs HardwareAddr.ty [(go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType HardwareAddr.ty) [(go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] HardwareAddr.TypeAssumptions.type_repr
   HardwareAddr.TypeAssumptions.underlying
   HardwareAddr.TypeAssumptions.isUnderlying
+  HardwareAddr.TypeAssumptions.method_set
+  HardwareAddr.TypeAssumptions.ptr_method_set
 
 abbrev Addr [GooseExts] : Type := GoInterface
 
@@ -2940,8 +3092,12 @@ abbrev Addr [GooseExts] : Type := GoInterface
 
 class Addr.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Addr.ty Addr.underlying
+  method_set : go.MethodSetIs Addr.ty [(go!"Network", (some (go.signature.Signature [] false [go.string]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Addr.ty) []
 
 attribute [instance] Addr.TypeAssumptions.underlying
+  Addr.TypeAssumptions.method_set
+  Addr.TypeAssumptions.ptr_method_set
 
 axiom Conn : Type
 axiom Conn.zero_val : ZeroVal Conn
@@ -2951,10 +3107,14 @@ class Conn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSem
   type_repr : go.TypeReprUnderlying Conn.underlying Conn
   underlying : go.UnderlyingDirectedEq Conn.ty Conn.underlying
   isUnderlying : go.IsUnderlying Conn.underlying Conn.underlying
+  method_set : go.MethodSetIs Conn.ty [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"LocalAddr", (some (go.signature.Signature [] false [Addr.ty]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"RemoteAddr", (some (go.signature.Signature [] false [Addr.ty]))), (go!"SetDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SetReadDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SetWriteDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Conn.ty) []
 
 attribute [instance] Conn.TypeAssumptions.type_repr
   Conn.TypeAssumptions.underlying
   Conn.TypeAssumptions.isUnderlying
+  Conn.TypeAssumptions.method_set
+  Conn.TypeAssumptions.ptr_method_set
 
 axiom conn : Type
 axiom conn.zero_val : ZeroVal conn
@@ -2964,10 +3124,14 @@ class conn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSem
   type_repr : go.TypeReprUnderlying conn.underlying conn
   underlying : go.UnderlyingDirectedEq conn.ty conn.underlying
   isUnderlying : go.IsUnderlying conn.underlying conn.underlying
+  method_set : go.MethodSetIs conn.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType conn.ty) [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"File", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"os.File" [])), go.error]))), (go!"LocalAddr", (some (go.signature.Signature [] false [Addr.ty]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"RemoteAddr", (some (go.signature.Signature [] false [Addr.ty]))), (go!"SetDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SetReadBuffer", (some (go.signature.Signature [go.int] false [go.error]))), (go!"SetReadDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SetWriteBuffer", (some (go.signature.Signature [go.int] false [go.error]))), (go!"SetWriteDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"net.ok", (some (go.signature.Signature [] false [go.bool]))), (go!"net.writeBuffers", (some (go.signature.Signature [(go.GoType.PointerType Buffers.ty)] false [go.int64, go.error])))]
 
 attribute [instance] conn.TypeAssumptions.type_repr
   conn.TypeAssumptions.underlying
   conn.TypeAssumptions.isUnderlying
+  conn.TypeAssumptions.method_set
+  conn.TypeAssumptions.ptr_method_set
 
 axiom PacketConn : Type
 axiom PacketConn.zero_val : ZeroVal PacketConn
@@ -2977,10 +3141,14 @@ class PacketConn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] 
   type_repr : go.TypeReprUnderlying PacketConn.underlying PacketConn
   underlying : go.UnderlyingDirectedEq PacketConn.ty PacketConn.underlying
   isUnderlying : go.IsUnderlying PacketConn.underlying PacketConn.underlying
+  method_set : go.MethodSetIs PacketConn.ty [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"LocalAddr", (some (go.signature.Signature [] false [Addr.ty]))), (go!"ReadFrom", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, Addr.ty, go.error]))), (go!"SetDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SetReadDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SetWriteDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"WriteTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte), Addr.ty] false [go.int, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PacketConn.ty) []
 
 attribute [instance] PacketConn.TypeAssumptions.type_repr
   PacketConn.TypeAssumptions.underlying
   PacketConn.TypeAssumptions.isUnderlying
+  PacketConn.TypeAssumptions.method_set
+  PacketConn.TypeAssumptions.ptr_method_set
 
 abbrev Listener [GooseExts] : Type := GoInterface
 
@@ -2989,8 +3157,12 @@ abbrev Listener [GooseExts] : Type := GoInterface
 
 class Listener.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Listener.ty Listener.underlying
+  method_set : go.MethodSetIs Listener.ty [(go!"Accept", (some (go.signature.Signature [] false [Conn.ty, go.error]))), (go!"Addr", (some (go.signature.Signature [] false [Addr.ty]))), (go!"Close", (some (go.signature.Signature [] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Listener.ty) []
 
 attribute [instance] Listener.TypeAssumptions.underlying
+  Listener.TypeAssumptions.method_set
+  Listener.TypeAssumptions.ptr_method_set
 
 axiom Error : Type
 axiom Error.zero_val : ZeroVal Error
@@ -3000,10 +3172,14 @@ class Error.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSe
   type_repr : go.TypeReprUnderlying Error.underlying Error
   underlying : go.UnderlyingDirectedEq Error.ty Error.underlying
   isUnderlying : go.IsUnderlying Error.underlying Error.underlying
+  method_set : go.MethodSetIs Error.ty [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Temporary", (some (go.signature.Signature [] false [go.bool]))), (go!"Timeout", (some (go.signature.Signature [] false [go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Error.ty) []
 
 attribute [instance] Error.TypeAssumptions.type_repr
   Error.TypeAssumptions.underlying
   Error.TypeAssumptions.isUnderlying
+  Error.TypeAssumptions.method_set
+  Error.TypeAssumptions.ptr_method_set
 
 axiom canceledError : Type
 axiom canceledError.zero_val : ZeroVal canceledError
@@ -3013,10 +3189,14 @@ class canceledError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContex
   type_repr : go.TypeReprUnderlying canceledError.underlying canceledError
   underlying : go.UnderlyingDirectedEq canceledError.ty canceledError.underlying
   isUnderlying : go.IsUnderlying canceledError.underlying canceledError.underlying
+  method_set : go.MethodSetIs canceledError.ty [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Is", (some (go.signature.Signature [go.error] false [go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType canceledError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Is", (some (go.signature.Signature [go.error] false [go.bool])))]
 
 attribute [instance] canceledError.TypeAssumptions.type_repr
   canceledError.TypeAssumptions.underlying
   canceledError.TypeAssumptions.isUnderlying
+  canceledError.TypeAssumptions.method_set
+  canceledError.TypeAssumptions.ptr_method_set
 
 axiom OpError : Type
 axiom OpError.zero_val : ZeroVal OpError
@@ -3026,10 +3206,14 @@ class OpError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   type_repr : go.TypeReprUnderlying OpError.underlying OpError
   underlying : go.UnderlyingDirectedEq OpError.ty OpError.underlying
   isUnderlying : go.IsUnderlying OpError.underlying OpError.underlying
+  method_set : go.MethodSetIs OpError.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType OpError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Temporary", (some (go.signature.Signature [] false [go.bool]))), (go!"Timeout", (some (go.signature.Signature [] false [go.bool]))), (go!"Unwrap", (some (go.signature.Signature [] false [go.error])))]
 
 attribute [instance] OpError.TypeAssumptions.type_repr
   OpError.TypeAssumptions.underlying
   OpError.TypeAssumptions.isUnderlying
+  OpError.TypeAssumptions.method_set
+  OpError.TypeAssumptions.ptr_method_set
 
 axiom timeout : Type
 axiom timeout.zero_val : ZeroVal timeout
@@ -3039,10 +3223,14 @@ class timeout.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   type_repr : go.TypeReprUnderlying timeout.underlying timeout
   underlying : go.UnderlyingDirectedEq timeout.ty timeout.underlying
   isUnderlying : go.IsUnderlying timeout.underlying timeout.underlying
+  method_set : go.MethodSetIs timeout.ty [(go!"Timeout", (some (go.signature.Signature [] false [go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType timeout.ty) []
 
 attribute [instance] timeout.TypeAssumptions.type_repr
   timeout.TypeAssumptions.underlying
   timeout.TypeAssumptions.isUnderlying
+  timeout.TypeAssumptions.method_set
+  timeout.TypeAssumptions.ptr_method_set
 
 axiom temporary : Type
 axiom temporary.zero_val : ZeroVal temporary
@@ -3052,10 +3240,14 @@ class temporary.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   type_repr : go.TypeReprUnderlying temporary.underlying temporary
   underlying : go.UnderlyingDirectedEq temporary.ty temporary.underlying
   isUnderlying : go.IsUnderlying temporary.underlying temporary.underlying
+  method_set : go.MethodSetIs temporary.ty [(go!"Temporary", (some (go.signature.Signature [] false [go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType temporary.ty) []
 
 attribute [instance] temporary.TypeAssumptions.type_repr
   temporary.TypeAssumptions.underlying
   temporary.TypeAssumptions.isUnderlying
+  temporary.TypeAssumptions.method_set
+  temporary.TypeAssumptions.ptr_method_set
 
 axiom ParseError : Type
 axiom ParseError.zero_val : ZeroVal ParseError
@@ -3065,10 +3257,14 @@ class ParseError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] 
   type_repr : go.TypeReprUnderlying ParseError.underlying ParseError
   underlying : go.UnderlyingDirectedEq ParseError.ty ParseError.underlying
   isUnderlying : go.IsUnderlying ParseError.underlying ParseError.underlying
+  method_set : go.MethodSetIs ParseError.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ParseError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Temporary", (some (go.signature.Signature [] false [go.bool]))), (go!"Timeout", (some (go.signature.Signature [] false [go.bool])))]
 
 attribute [instance] ParseError.TypeAssumptions.type_repr
   ParseError.TypeAssumptions.underlying
   ParseError.TypeAssumptions.isUnderlying
+  ParseError.TypeAssumptions.method_set
+  ParseError.TypeAssumptions.ptr_method_set
 
 axiom AddrError : Type
 axiom AddrError.zero_val : ZeroVal AddrError
@@ -3078,10 +3274,14 @@ class AddrError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   type_repr : go.TypeReprUnderlying AddrError.underlying AddrError
   underlying : go.UnderlyingDirectedEq AddrError.ty AddrError.underlying
   isUnderlying : go.IsUnderlying AddrError.underlying AddrError.underlying
+  method_set : go.MethodSetIs AddrError.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType AddrError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Temporary", (some (go.signature.Signature [] false [go.bool]))), (go!"Timeout", (some (go.signature.Signature [] false [go.bool])))]
 
 attribute [instance] AddrError.TypeAssumptions.type_repr
   AddrError.TypeAssumptions.underlying
   AddrError.TypeAssumptions.isUnderlying
+  AddrError.TypeAssumptions.method_set
+  AddrError.TypeAssumptions.ptr_method_set
 
 axiom UnknownNetworkError : Type
 axiom UnknownNetworkError.zero_val : ZeroVal UnknownNetworkError
@@ -3091,10 +3291,14 @@ class UnknownNetworkError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocal
   type_repr : go.TypeReprUnderlying UnknownNetworkError.underlying UnknownNetworkError
   underlying : go.UnderlyingDirectedEq UnknownNetworkError.ty UnknownNetworkError.underlying
   isUnderlying : go.IsUnderlying UnknownNetworkError.underlying UnknownNetworkError.underlying
+  method_set : go.MethodSetIs UnknownNetworkError.ty [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Temporary", (some (go.signature.Signature [] false [go.bool]))), (go!"Timeout", (some (go.signature.Signature [] false [go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType UnknownNetworkError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Temporary", (some (go.signature.Signature [] false [go.bool]))), (go!"Timeout", (some (go.signature.Signature [] false [go.bool])))]
 
 attribute [instance] UnknownNetworkError.TypeAssumptions.type_repr
   UnknownNetworkError.TypeAssumptions.underlying
   UnknownNetworkError.TypeAssumptions.isUnderlying
+  UnknownNetworkError.TypeAssumptions.method_set
+  UnknownNetworkError.TypeAssumptions.ptr_method_set
 
 axiom InvalidAddrError : Type
 axiom InvalidAddrError.zero_val : ZeroVal InvalidAddrError
@@ -3104,10 +3308,14 @@ class InvalidAddrError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCon
   type_repr : go.TypeReprUnderlying InvalidAddrError.underlying InvalidAddrError
   underlying : go.UnderlyingDirectedEq InvalidAddrError.ty InvalidAddrError.underlying
   isUnderlying : go.IsUnderlying InvalidAddrError.underlying InvalidAddrError.underlying
+  method_set : go.MethodSetIs InvalidAddrError.ty [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Temporary", (some (go.signature.Signature [] false [go.bool]))), (go!"Timeout", (some (go.signature.Signature [] false [go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType InvalidAddrError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Temporary", (some (go.signature.Signature [] false [go.bool]))), (go!"Timeout", (some (go.signature.Signature [] false [go.bool])))]
 
 attribute [instance] InvalidAddrError.TypeAssumptions.type_repr
   InvalidAddrError.TypeAssumptions.underlying
   InvalidAddrError.TypeAssumptions.isUnderlying
+  InvalidAddrError.TypeAssumptions.method_set
+  InvalidAddrError.TypeAssumptions.ptr_method_set
 
 axiom timeoutError : Type
 axiom timeoutError.zero_val : ZeroVal timeoutError
@@ -3117,10 +3325,14 @@ class timeoutError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext
   type_repr : go.TypeReprUnderlying timeoutError.underlying timeoutError
   underlying : go.UnderlyingDirectedEq timeoutError.ty timeoutError.underlying
   isUnderlying : go.IsUnderlying timeoutError.underlying timeoutError.underlying
+  method_set : go.MethodSetIs timeoutError.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType timeoutError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Is", (some (go.signature.Signature [go.error] false [go.bool]))), (go!"Temporary", (some (go.signature.Signature [] false [go.bool]))), (go!"Timeout", (some (go.signature.Signature [] false [go.bool])))]
 
 attribute [instance] timeoutError.TypeAssumptions.type_repr
   timeoutError.TypeAssumptions.underlying
   timeoutError.TypeAssumptions.isUnderlying
+  timeoutError.TypeAssumptions.method_set
+  timeoutError.TypeAssumptions.ptr_method_set
 
 axiom DNSConfigError : Type
 axiom DNSConfigError.zero_val : ZeroVal DNSConfigError
@@ -3130,10 +3342,14 @@ class DNSConfigError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalConte
   type_repr : go.TypeReprUnderlying DNSConfigError.underlying DNSConfigError
   underlying : go.UnderlyingDirectedEq DNSConfigError.ty DNSConfigError.underlying
   isUnderlying : go.IsUnderlying DNSConfigError.underlying DNSConfigError.underlying
+  method_set : go.MethodSetIs DNSConfigError.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DNSConfigError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Temporary", (some (go.signature.Signature [] false [go.bool]))), (go!"Timeout", (some (go.signature.Signature [] false [go.bool]))), (go!"Unwrap", (some (go.signature.Signature [] false [go.error])))]
 
 attribute [instance] DNSConfigError.TypeAssumptions.type_repr
   DNSConfigError.TypeAssumptions.underlying
   DNSConfigError.TypeAssumptions.isUnderlying
+  DNSConfigError.TypeAssumptions.method_set
+  DNSConfigError.TypeAssumptions.ptr_method_set
 
 axiom notFoundError : Type
 axiom notFoundError.zero_val : ZeroVal notFoundError
@@ -3143,10 +3359,14 @@ class notFoundError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContex
   type_repr : go.TypeReprUnderlying notFoundError.underlying notFoundError
   underlying : go.UnderlyingDirectedEq notFoundError.ty notFoundError.underlying
   isUnderlying : go.IsUnderlying notFoundError.underlying notFoundError.underlying
+  method_set : go.MethodSetIs notFoundError.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType notFoundError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] notFoundError.TypeAssumptions.type_repr
   notFoundError.TypeAssumptions.underlying
   notFoundError.TypeAssumptions.isUnderlying
+  notFoundError.TypeAssumptions.method_set
+  notFoundError.TypeAssumptions.ptr_method_set
 
 axiom temporaryError : Type
 axiom temporaryError.zero_val : ZeroVal temporaryError
@@ -3156,10 +3376,14 @@ class temporaryError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalConte
   type_repr : go.TypeReprUnderlying temporaryError.underlying temporaryError
   underlying : go.UnderlyingDirectedEq temporaryError.ty temporaryError.underlying
   isUnderlying : go.IsUnderlying temporaryError.underlying temporaryError.underlying
+  method_set : go.MethodSetIs temporaryError.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType temporaryError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Temporary", (some (go.signature.Signature [] false [go.bool]))), (go!"Timeout", (some (go.signature.Signature [] false [go.bool])))]
 
 attribute [instance] temporaryError.TypeAssumptions.type_repr
   temporaryError.TypeAssumptions.underlying
   temporaryError.TypeAssumptions.isUnderlying
+  temporaryError.TypeAssumptions.method_set
+  temporaryError.TypeAssumptions.ptr_method_set
 
 axiom DNSError : Type
 axiom DNSError.zero_val : ZeroVal DNSError
@@ -3169,10 +3393,14 @@ class DNSError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [G
   type_repr : go.TypeReprUnderlying DNSError.underlying DNSError
   underlying : go.UnderlyingDirectedEq DNSError.ty DNSError.underlying
   isUnderlying : go.IsUnderlying DNSError.underlying DNSError.underlying
+  method_set : go.MethodSetIs DNSError.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DNSError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Temporary", (some (go.signature.Signature [] false [go.bool]))), (go!"Timeout", (some (go.signature.Signature [] false [go.bool]))), (go!"Unwrap", (some (go.signature.Signature [] false [go.error])))]
 
 attribute [instance] DNSError.TypeAssumptions.type_repr
   DNSError.TypeAssumptions.underlying
   DNSError.TypeAssumptions.isUnderlying
+  DNSError.TypeAssumptions.method_set
+  DNSError.TypeAssumptions.ptr_method_set
 
 axiom noReadFrom : Type
 axiom noReadFrom.zero_val : ZeroVal noReadFrom
@@ -3182,10 +3410,14 @@ class noReadFrom.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] 
   type_repr : go.TypeReprUnderlying noReadFrom.underlying noReadFrom
   underlying : go.UnderlyingDirectedEq noReadFrom.ty noReadFrom.underlying
   isUnderlying : go.IsUnderlying noReadFrom.underlying noReadFrom.underlying
+  method_set : go.MethodSetIs noReadFrom.ty [(go!"ReadFrom", (some (go.signature.Signature [(go.GoType.Named go!"io.Reader" [])] false [go.int64, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType noReadFrom.ty) [(go!"ReadFrom", (some (go.signature.Signature [(go.GoType.Named go!"io.Reader" [])] false [go.int64, go.error])))]
 
 attribute [instance] noReadFrom.TypeAssumptions.type_repr
   noReadFrom.TypeAssumptions.underlying
   noReadFrom.TypeAssumptions.isUnderlying
+  noReadFrom.TypeAssumptions.method_set
+  noReadFrom.TypeAssumptions.ptr_method_set
 
 axiom tcpConnWithoutReadFrom : Type
 axiom tcpConnWithoutReadFrom.zero_val : ZeroVal tcpConnWithoutReadFrom
@@ -3195,10 +3427,14 @@ class tcpConnWithoutReadFrom.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLo
   type_repr : go.TypeReprUnderlying tcpConnWithoutReadFrom.underlying tcpConnWithoutReadFrom
   underlying : go.UnderlyingDirectedEq tcpConnWithoutReadFrom.ty tcpConnWithoutReadFrom.underlying
   isUnderlying : go.IsUnderlying tcpConnWithoutReadFrom.underlying tcpConnWithoutReadFrom.underlying
+  method_set : go.MethodSetIs tcpConnWithoutReadFrom.ty [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"CloseRead", (some (go.signature.Signature [] false [go.error]))), (go!"CloseWrite", (some (go.signature.Signature [] false [go.error]))), (go!"File", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"os.File" [])), go.error]))), (go!"LocalAddr", (some (go.signature.Signature [] false [Addr.ty]))), (go!"MultipathTCP", (some (go.signature.Signature [] false [go.bool, go.error]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"RemoteAddr", (some (go.signature.Signature [] false [Addr.ty]))), (go!"SetDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SetKeepAlive", (some (go.signature.Signature [go.bool] false [go.error]))), (go!"SetKeepAliveConfig", (some (go.signature.Signature [KeepAliveConfig.ty] false [go.error]))), (go!"SetKeepAlivePeriod", (some (go.signature.Signature [(go.GoType.Named go!"time.Duration" [])] false [go.error]))), (go!"SetLinger", (some (go.signature.Signature [go.int] false [go.error]))), (go!"SetNoDelay", (some (go.signature.Signature [go.bool] false [go.error]))), (go!"SetReadBuffer", (some (go.signature.Signature [go.int] false [go.error]))), (go!"SetReadDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SetWriteBuffer", (some (go.signature.Signature [go.int] false [go.error]))), (go!"SetWriteDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SyscallConn", (some (go.signature.Signature [] false [(go.GoType.Named go!"syscall.RawConn" []), go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"WriteTo", (some (go.signature.Signature [(go.GoType.Named go!"io.Writer" [])] false [go.int64, go.error]))), (go!"net.ok", (some (go.signature.Signature [] false [go.bool]))), (go!"net.readFrom", (some (go.signature.Signature [(go.GoType.Named go!"io.Reader" [])] false [go.int64, go.error]))), (go!"net.writeBuffers", (some (go.signature.Signature [(go.GoType.PointerType Buffers.ty)] false [go.int64, go.error]))), (go!"net.writeTo", (some (go.signature.Signature [(go.GoType.Named go!"io.Writer" [])] false [go.int64, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType tcpConnWithoutReadFrom.ty) [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"CloseRead", (some (go.signature.Signature [] false [go.error]))), (go!"CloseWrite", (some (go.signature.Signature [] false [go.error]))), (go!"File", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"os.File" [])), go.error]))), (go!"LocalAddr", (some (go.signature.Signature [] false [Addr.ty]))), (go!"MultipathTCP", (some (go.signature.Signature [] false [go.bool, go.error]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"RemoteAddr", (some (go.signature.Signature [] false [Addr.ty]))), (go!"SetDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SetKeepAlive", (some (go.signature.Signature [go.bool] false [go.error]))), (go!"SetKeepAliveConfig", (some (go.signature.Signature [KeepAliveConfig.ty] false [go.error]))), (go!"SetKeepAlivePeriod", (some (go.signature.Signature [(go.GoType.Named go!"time.Duration" [])] false [go.error]))), (go!"SetLinger", (some (go.signature.Signature [go.int] false [go.error]))), (go!"SetNoDelay", (some (go.signature.Signature [go.bool] false [go.error]))), (go!"SetReadBuffer", (some (go.signature.Signature [go.int] false [go.error]))), (go!"SetReadDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SetWriteBuffer", (some (go.signature.Signature [go.int] false [go.error]))), (go!"SetWriteDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SyscallConn", (some (go.signature.Signature [] false [(go.GoType.Named go!"syscall.RawConn" []), go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"WriteTo", (some (go.signature.Signature [(go.GoType.Named go!"io.Writer" [])] false [go.int64, go.error]))), (go!"net.ok", (some (go.signature.Signature [] false [go.bool]))), (go!"net.readFrom", (some (go.signature.Signature [(go.GoType.Named go!"io.Reader" [])] false [go.int64, go.error]))), (go!"net.writeBuffers", (some (go.signature.Signature [(go.GoType.PointerType Buffers.ty)] false [go.int64, go.error]))), (go!"net.writeTo", (some (go.signature.Signature [(go.GoType.Named go!"io.Writer" [])] false [go.int64, go.error])))]
 
 attribute [instance] tcpConnWithoutReadFrom.TypeAssumptions.type_repr
   tcpConnWithoutReadFrom.TypeAssumptions.underlying
   tcpConnWithoutReadFrom.TypeAssumptions.isUnderlying
+  tcpConnWithoutReadFrom.TypeAssumptions.method_set
+  tcpConnWithoutReadFrom.TypeAssumptions.ptr_method_set
 
 axiom noWriteTo : Type
 axiom noWriteTo.zero_val : ZeroVal noWriteTo
@@ -3208,10 +3444,14 @@ class noWriteTo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   type_repr : go.TypeReprUnderlying noWriteTo.underlying noWriteTo
   underlying : go.UnderlyingDirectedEq noWriteTo.ty noWriteTo.underlying
   isUnderlying : go.IsUnderlying noWriteTo.underlying noWriteTo.underlying
+  method_set : go.MethodSetIs noWriteTo.ty [(go!"WriteTo", (some (go.signature.Signature [(go.GoType.Named go!"io.Writer" [])] false [go.int64, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType noWriteTo.ty) [(go!"WriteTo", (some (go.signature.Signature [(go.GoType.Named go!"io.Writer" [])] false [go.int64, go.error])))]
 
 attribute [instance] noWriteTo.TypeAssumptions.type_repr
   noWriteTo.TypeAssumptions.underlying
   noWriteTo.TypeAssumptions.isUnderlying
+  noWriteTo.TypeAssumptions.method_set
+  noWriteTo.TypeAssumptions.ptr_method_set
 
 axiom tcpConnWithoutWriteTo : Type
 axiom tcpConnWithoutWriteTo.zero_val : ZeroVal tcpConnWithoutWriteTo
@@ -3221,10 +3461,14 @@ class tcpConnWithoutWriteTo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLoc
   type_repr : go.TypeReprUnderlying tcpConnWithoutWriteTo.underlying tcpConnWithoutWriteTo
   underlying : go.UnderlyingDirectedEq tcpConnWithoutWriteTo.ty tcpConnWithoutWriteTo.underlying
   isUnderlying : go.IsUnderlying tcpConnWithoutWriteTo.underlying tcpConnWithoutWriteTo.underlying
+  method_set : go.MethodSetIs tcpConnWithoutWriteTo.ty [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"CloseRead", (some (go.signature.Signature [] false [go.error]))), (go!"CloseWrite", (some (go.signature.Signature [] false [go.error]))), (go!"File", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"os.File" [])), go.error]))), (go!"LocalAddr", (some (go.signature.Signature [] false [Addr.ty]))), (go!"MultipathTCP", (some (go.signature.Signature [] false [go.bool, go.error]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"ReadFrom", (some (go.signature.Signature [(go.GoType.Named go!"io.Reader" [])] false [go.int64, go.error]))), (go!"RemoteAddr", (some (go.signature.Signature [] false [Addr.ty]))), (go!"SetDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SetKeepAlive", (some (go.signature.Signature [go.bool] false [go.error]))), (go!"SetKeepAliveConfig", (some (go.signature.Signature [KeepAliveConfig.ty] false [go.error]))), (go!"SetKeepAlivePeriod", (some (go.signature.Signature [(go.GoType.Named go!"time.Duration" [])] false [go.error]))), (go!"SetLinger", (some (go.signature.Signature [go.int] false [go.error]))), (go!"SetNoDelay", (some (go.signature.Signature [go.bool] false [go.error]))), (go!"SetReadBuffer", (some (go.signature.Signature [go.int] false [go.error]))), (go!"SetReadDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SetWriteBuffer", (some (go.signature.Signature [go.int] false [go.error]))), (go!"SetWriteDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SyscallConn", (some (go.signature.Signature [] false [(go.GoType.Named go!"syscall.RawConn" []), go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"net.ok", (some (go.signature.Signature [] false [go.bool]))), (go!"net.readFrom", (some (go.signature.Signature [(go.GoType.Named go!"io.Reader" [])] false [go.int64, go.error]))), (go!"net.writeBuffers", (some (go.signature.Signature [(go.GoType.PointerType Buffers.ty)] false [go.int64, go.error]))), (go!"net.writeTo", (some (go.signature.Signature [(go.GoType.Named go!"io.Writer" [])] false [go.int64, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType tcpConnWithoutWriteTo.ty) [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"CloseRead", (some (go.signature.Signature [] false [go.error]))), (go!"CloseWrite", (some (go.signature.Signature [] false [go.error]))), (go!"File", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"os.File" [])), go.error]))), (go!"LocalAddr", (some (go.signature.Signature [] false [Addr.ty]))), (go!"MultipathTCP", (some (go.signature.Signature [] false [go.bool, go.error]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"ReadFrom", (some (go.signature.Signature [(go.GoType.Named go!"io.Reader" [])] false [go.int64, go.error]))), (go!"RemoteAddr", (some (go.signature.Signature [] false [Addr.ty]))), (go!"SetDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SetKeepAlive", (some (go.signature.Signature [go.bool] false [go.error]))), (go!"SetKeepAliveConfig", (some (go.signature.Signature [KeepAliveConfig.ty] false [go.error]))), (go!"SetKeepAlivePeriod", (some (go.signature.Signature [(go.GoType.Named go!"time.Duration" [])] false [go.error]))), (go!"SetLinger", (some (go.signature.Signature [go.int] false [go.error]))), (go!"SetNoDelay", (some (go.signature.Signature [go.bool] false [go.error]))), (go!"SetReadBuffer", (some (go.signature.Signature [go.int] false [go.error]))), (go!"SetReadDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SetWriteBuffer", (some (go.signature.Signature [go.int] false [go.error]))), (go!"SetWriteDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SyscallConn", (some (go.signature.Signature [] false [(go.GoType.Named go!"syscall.RawConn" []), go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"net.ok", (some (go.signature.Signature [] false [go.bool]))), (go!"net.readFrom", (some (go.signature.Signature [(go.GoType.Named go!"io.Reader" [])] false [go.int64, go.error]))), (go!"net.writeBuffers", (some (go.signature.Signature [(go.GoType.PointerType Buffers.ty)] false [go.int64, go.error]))), (go!"net.writeTo", (some (go.signature.Signature [(go.GoType.Named go!"io.Writer" [])] false [go.int64, go.error])))]
 
 attribute [instance] tcpConnWithoutWriteTo.TypeAssumptions.type_repr
   tcpConnWithoutWriteTo.TypeAssumptions.underlying
   tcpConnWithoutWriteTo.TypeAssumptions.isUnderlying
+  tcpConnWithoutWriteTo.TypeAssumptions.method_set
+  tcpConnWithoutWriteTo.TypeAssumptions.ptr_method_set
 
 axiom buffersWriter : Type
 axiom buffersWriter.zero_val : ZeroVal buffersWriter
@@ -3234,10 +3478,14 @@ class buffersWriter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContex
   type_repr : go.TypeReprUnderlying buffersWriter.underlying buffersWriter
   underlying : go.UnderlyingDirectedEq buffersWriter.ty buffersWriter.underlying
   isUnderlying : go.IsUnderlying buffersWriter.underlying buffersWriter.underlying
+  method_set : go.MethodSetIs buffersWriter.ty [(go!"net.writeBuffers", (some (go.signature.Signature [(go.GoType.PointerType Buffers.ty)] false [go.int64, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType buffersWriter.ty) []
 
 attribute [instance] buffersWriter.TypeAssumptions.type_repr
   buffersWriter.TypeAssumptions.underlying
   buffersWriter.TypeAssumptions.isUnderlying
+  buffersWriter.TypeAssumptions.method_set
+  buffersWriter.TypeAssumptions.ptr_method_set
 
 axiom Buffers : Type
 axiom Buffers.zero_val : ZeroVal Buffers
@@ -3247,10 +3495,14 @@ class Buffers.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   type_repr : go.TypeReprUnderlying Buffers.underlying Buffers
   underlying : go.UnderlyingDirectedEq Buffers.ty Buffers.underlying
   isUnderlying : go.IsUnderlying Buffers.underlying Buffers.underlying
+  method_set : go.MethodSetIs Buffers.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Buffers.ty) [(go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"WriteTo", (some (go.signature.Signature [(go.GoType.Named go!"io.Writer" [])] false [go.int64, go.error]))), (go!"net.consume", (some (go.signature.Signature [go.int64] false [])))]
 
 attribute [instance] Buffers.TypeAssumptions.type_repr
   Buffers.TypeAssumptions.underlying
   Buffers.TypeAssumptions.isUnderlying
+  Buffers.TypeAssumptions.method_set
+  Buffers.TypeAssumptions.ptr_method_set
 
 axiom nsswitchConfig : Type
 axiom nsswitchConfig.zero_val : ZeroVal nsswitchConfig
@@ -3260,10 +3512,14 @@ class nsswitchConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalConte
   type_repr : go.TypeReprUnderlying nsswitchConfig.underlying nsswitchConfig
   underlying : go.UnderlyingDirectedEq nsswitchConfig.ty nsswitchConfig.underlying
   isUnderlying : go.IsUnderlying nsswitchConfig.underlying nsswitchConfig.underlying
+  method_set : go.MethodSetIs nsswitchConfig.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType nsswitchConfig.ty) [(go!"net.acquireSema", (some (go.signature.Signature [] false []))), (go!"net.init", (some (go.signature.Signature [] false []))), (go!"net.releaseSema", (some (go.signature.Signature [] false []))), (go!"net.tryAcquireSema", (some (go.signature.Signature [] false [go.bool]))), (go!"net.tryUpdate", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] nsswitchConfig.TypeAssumptions.type_repr
   nsswitchConfig.TypeAssumptions.underlying
   nsswitchConfig.TypeAssumptions.isUnderlying
+  nsswitchConfig.TypeAssumptions.method_set
+  nsswitchConfig.TypeAssumptions.ptr_method_set
 
 axiom nssConf : Type
 axiom nssConf.zero_val : ZeroVal nssConf
@@ -3273,10 +3529,14 @@ class nssConf.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   type_repr : go.TypeReprUnderlying nssConf.underlying nssConf
   underlying : go.UnderlyingDirectedEq nssConf.ty nssConf.underlying
   isUnderlying : go.IsUnderlying nssConf.underlying nssConf.underlying
+  method_set : go.MethodSetIs nssConf.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType nssConf.ty) []
 
 attribute [instance] nssConf.TypeAssumptions.type_repr
   nssConf.TypeAssumptions.underlying
   nssConf.TypeAssumptions.isUnderlying
+  nssConf.TypeAssumptions.method_set
+  nssConf.TypeAssumptions.ptr_method_set
 
 axiom nssSource : Type
 axiom nssSource.zero_val : ZeroVal nssSource
@@ -3286,10 +3546,14 @@ class nssSource.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   type_repr : go.TypeReprUnderlying nssSource.underlying nssSource
   underlying : go.UnderlyingDirectedEq nssSource.ty nssSource.underlying
   isUnderlying : go.IsUnderlying nssSource.underlying nssSource.underlying
+  method_set : go.MethodSetIs nssSource.ty [(go!"net.standardCriteria", (some (go.signature.Signature [] false [go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType nssSource.ty) [(go!"net.standardCriteria", (some (go.signature.Signature [] false [go.bool])))]
 
 attribute [instance] nssSource.TypeAssumptions.type_repr
   nssSource.TypeAssumptions.underlying
   nssSource.TypeAssumptions.isUnderlying
+  nssSource.TypeAssumptions.method_set
+  nssSource.TypeAssumptions.ptr_method_set
 
 axiom nssCriterion : Type
 axiom nssCriterion.zero_val : ZeroVal nssCriterion
@@ -3299,10 +3563,14 @@ class nssCriterion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext
   type_repr : go.TypeReprUnderlying nssCriterion.underlying nssCriterion
   underlying : go.UnderlyingDirectedEq nssCriterion.ty nssCriterion.underlying
   isUnderlying : go.IsUnderlying nssCriterion.underlying nssCriterion.underlying
+  method_set : go.MethodSetIs nssCriterion.ty [(go!"net.standardStatusAction", (some (go.signature.Signature [go.bool] false [go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType nssCriterion.ty) [(go!"net.standardStatusAction", (some (go.signature.Signature [go.bool] false [go.bool])))]
 
 attribute [instance] nssCriterion.TypeAssumptions.type_repr
   nssCriterion.TypeAssumptions.underlying
   nssCriterion.TypeAssumptions.isUnderlying
+  nssCriterion.TypeAssumptions.method_set
+  nssCriterion.TypeAssumptions.ptr_method_set
 
 axiom file : Type
 axiom file.zero_val : ZeroVal file
@@ -3312,10 +3580,14 @@ class file.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSem
   type_repr : go.TypeReprUnderlying file.underlying file
   underlying : go.UnderlyingDirectedEq file.ty file.underlying
   isUnderlying : go.IsUnderlying file.underlying file.underlying
+  method_set : go.MethodSetIs file.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType file.ty) [(go!"net.close", (some (go.signature.Signature [] false []))), (go!"net.getLineFromData", (some (go.signature.Signature [] false [go.string, go.bool]))), (go!"net.readLine", (some (go.signature.Signature [] false [go.string, go.bool]))), (go!"net.stat", (some (go.signature.Signature [] false [(go.GoType.Named go!"time.Time" []), go.int64, go.error])))]
 
 attribute [instance] file.TypeAssumptions.type_repr
   file.TypeAssumptions.underlying
   file.TypeAssumptions.isUnderlying
+  file.TypeAssumptions.method_set
+  file.TypeAssumptions.ptr_method_set
 
 axiom pipeDeadline : Type
 axiom pipeDeadline.zero_val : ZeroVal pipeDeadline
@@ -3325,10 +3597,14 @@ class pipeDeadline.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext
   type_repr : go.TypeReprUnderlying pipeDeadline.underlying pipeDeadline
   underlying : go.UnderlyingDirectedEq pipeDeadline.ty pipeDeadline.underlying
   isUnderlying : go.IsUnderlying pipeDeadline.underlying pipeDeadline.underlying
+  method_set : go.MethodSetIs pipeDeadline.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType pipeDeadline.ty) [(go!"net.set", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false []))), (go!"net.wait", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))])))]
 
 attribute [instance] pipeDeadline.TypeAssumptions.type_repr
   pipeDeadline.TypeAssumptions.underlying
   pipeDeadline.TypeAssumptions.isUnderlying
+  pipeDeadline.TypeAssumptions.method_set
+  pipeDeadline.TypeAssumptions.ptr_method_set
 
 axiom pipeAddr : Type
 axiom pipeAddr.zero_val : ZeroVal pipeAddr
@@ -3338,10 +3614,14 @@ class pipeAddr.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [G
   type_repr : go.TypeReprUnderlying pipeAddr.underlying pipeAddr
   underlying : go.UnderlyingDirectedEq pipeAddr.ty pipeAddr.underlying
   isUnderlying : go.IsUnderlying pipeAddr.underlying pipeAddr.underlying
+  method_set : go.MethodSetIs pipeAddr.ty [(go!"Network", (some (go.signature.Signature [] false [go.string]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType pipeAddr.ty) [(go!"Network", (some (go.signature.Signature [] false [go.string]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] pipeAddr.TypeAssumptions.type_repr
   pipeAddr.TypeAssumptions.underlying
   pipeAddr.TypeAssumptions.isUnderlying
+  pipeAddr.TypeAssumptions.method_set
+  pipeAddr.TypeAssumptions.ptr_method_set
 
 axiom pipe : Type
 axiom pipe.zero_val : ZeroVal pipe
@@ -3351,10 +3631,14 @@ class pipe.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSem
   type_repr : go.TypeReprUnderlying pipe.underlying pipe
   underlying : go.UnderlyingDirectedEq pipe.ty pipe.underlying
   isUnderlying : go.IsUnderlying pipe.underlying pipe.underlying
+  method_set : go.MethodSetIs pipe.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType pipe.ty) [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"LocalAddr", (some (go.signature.Signature [] false [Addr.ty]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"RemoteAddr", (some (go.signature.Signature [] false [Addr.ty]))), (go!"SetDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SetReadDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SetWriteDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"net.read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"net.write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
 
 attribute [instance] pipe.TypeAssumptions.type_repr
   pipe.TypeAssumptions.underlying
   pipe.TypeAssumptions.isUnderlying
+  pipe.TypeAssumptions.method_set
+  pipe.TypeAssumptions.ptr_method_set
 
 axiom rawConn : Type
 axiom rawConn.zero_val : ZeroVal rawConn
@@ -3364,10 +3648,14 @@ class rawConn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   type_repr : go.TypeReprUnderlying rawConn.underlying rawConn
   underlying : go.UnderlyingDirectedEq rawConn.ty rawConn.underlying
   isUnderlying : go.IsUnderlying rawConn.underlying rawConn.underlying
+  method_set : go.MethodSetIs rawConn.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType rawConn.ty) [(go!"Control", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [go.uintptr] false []))] false [go.error]))), (go!"Network", (some (go.signature.Signature [] false [(go.GoType.Named go!"internal/poll.String" [])]))), (go!"PollFD", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"internal/poll.FD" []))]))), (go!"Read", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [go.uintptr] false [go.bool]))] false [go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [go.uintptr] false [go.bool]))] false [go.error]))), (go!"net.ok", (some (go.signature.Signature [] false [go.bool])))]
 
 attribute [instance] rawConn.TypeAssumptions.type_repr
   rawConn.TypeAssumptions.underlying
   rawConn.TypeAssumptions.isUnderlying
+  rawConn.TypeAssumptions.method_set
+  rawConn.TypeAssumptions.ptr_method_set
 
 axiom rawListener : Type
 axiom rawListener.zero_val : ZeroVal rawListener
@@ -3377,10 +3665,14 @@ class rawListener.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   type_repr : go.TypeReprUnderlying rawListener.underlying rawListener
   underlying : go.UnderlyingDirectedEq rawListener.ty rawListener.underlying
   isUnderlying : go.IsUnderlying rawListener.underlying rawListener.underlying
+  method_set : go.MethodSetIs rawListener.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType rawListener.ty) [(go!"Control", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [go.uintptr] false []))] false [go.error]))), (go!"Network", (some (go.signature.Signature [] false [(go.GoType.Named go!"internal/poll.String" [])]))), (go!"PollFD", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"internal/poll.FD" []))]))), (go!"Read", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [go.uintptr] false [go.bool]))] false [go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [go.uintptr] false [go.bool]))] false [go.error]))), (go!"net.ok", (some (go.signature.Signature [] false [go.bool])))]
 
 attribute [instance] rawListener.TypeAssumptions.type_repr
   rawListener.TypeAssumptions.underlying
   rawListener.TypeAssumptions.isUnderlying
+  rawListener.TypeAssumptions.method_set
+  rawListener.TypeAssumptions.ptr_method_set
 
 axiom sockaddr : Type
 axiom sockaddr.zero_val : ZeroVal sockaddr
@@ -3390,10 +3682,14 @@ class sockaddr.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [G
   type_repr : go.TypeReprUnderlying sockaddr.underlying sockaddr
   underlying : go.UnderlyingDirectedEq sockaddr.ty sockaddr.underlying
   isUnderlying : go.IsUnderlying sockaddr.underlying sockaddr.underlying
+  method_set : go.MethodSetIs sockaddr.ty [(go!"Network", (some (go.signature.Signature [] false [go.string]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"net.family", (some (go.signature.Signature [] false [go.int]))), (go!"net.isWildcard", (some (go.signature.Signature [] false [go.bool]))), (go!"net.sockaddr", (some (go.signature.Signature [go.int] false [(go.GoType.Named go!"syscall.Sockaddr" []), go.error]))), (go!"net.toLocal", (some (go.signature.Signature [go.string] false [sockaddr.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType sockaddr.ty) []
 
 attribute [instance] sockaddr.TypeAssumptions.type_repr
   sockaddr.TypeAssumptions.underlying
   sockaddr.TypeAssumptions.isUnderlying
+  sockaddr.TypeAssumptions.method_set
+  sockaddr.TypeAssumptions.ptr_method_set
 
 axiom TCPAddr : Type
 axiom TCPAddr.zero_val : ZeroVal TCPAddr
@@ -3403,10 +3699,14 @@ class TCPAddr.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   type_repr : go.TypeReprUnderlying TCPAddr.underlying TCPAddr
   underlying : go.UnderlyingDirectedEq TCPAddr.ty TCPAddr.underlying
   isUnderlying : go.IsUnderlying TCPAddr.underlying TCPAddr.underlying
+  method_set : go.MethodSetIs TCPAddr.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TCPAddr.ty) [(go!"AddrPort", (some (go.signature.Signature [] false [(go.GoType.Named go!"net/netip.AddrPort" [])]))), (go!"Network", (some (go.signature.Signature [] false [go.string]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"net.family", (some (go.signature.Signature [] false [go.int]))), (go!"net.isWildcard", (some (go.signature.Signature [] false [go.bool]))), (go!"net.opAddr", (some (go.signature.Signature [] false [Addr.ty]))), (go!"net.sockaddr", (some (go.signature.Signature [go.int] false [(go.GoType.Named go!"syscall.Sockaddr" []), go.error]))), (go!"net.toLocal", (some (go.signature.Signature [go.string] false [sockaddr.ty])))]
 
 attribute [instance] TCPAddr.TypeAssumptions.type_repr
   TCPAddr.TypeAssumptions.underlying
   TCPAddr.TypeAssumptions.isUnderlying
+  TCPAddr.TypeAssumptions.method_set
+  TCPAddr.TypeAssumptions.ptr_method_set
 
 axiom TCPConn : Type
 axiom TCPConn.zero_val : ZeroVal TCPConn
@@ -3416,10 +3716,14 @@ class TCPConn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   type_repr : go.TypeReprUnderlying TCPConn.underlying TCPConn
   underlying : go.UnderlyingDirectedEq TCPConn.ty TCPConn.underlying
   isUnderlying : go.IsUnderlying TCPConn.underlying TCPConn.underlying
+  method_set : go.MethodSetIs TCPConn.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TCPConn.ty) [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"CloseRead", (some (go.signature.Signature [] false [go.error]))), (go!"CloseWrite", (some (go.signature.Signature [] false [go.error]))), (go!"File", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"os.File" [])), go.error]))), (go!"LocalAddr", (some (go.signature.Signature [] false [Addr.ty]))), (go!"MultipathTCP", (some (go.signature.Signature [] false [go.bool, go.error]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"ReadFrom", (some (go.signature.Signature [(go.GoType.Named go!"io.Reader" [])] false [go.int64, go.error]))), (go!"RemoteAddr", (some (go.signature.Signature [] false [Addr.ty]))), (go!"SetDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SetKeepAlive", (some (go.signature.Signature [go.bool] false [go.error]))), (go!"SetKeepAliveConfig", (some (go.signature.Signature [KeepAliveConfig.ty] false [go.error]))), (go!"SetKeepAlivePeriod", (some (go.signature.Signature [(go.GoType.Named go!"time.Duration" [])] false [go.error]))), (go!"SetLinger", (some (go.signature.Signature [go.int] false [go.error]))), (go!"SetNoDelay", (some (go.signature.Signature [go.bool] false [go.error]))), (go!"SetReadBuffer", (some (go.signature.Signature [go.int] false [go.error]))), (go!"SetReadDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SetWriteBuffer", (some (go.signature.Signature [go.int] false [go.error]))), (go!"SetWriteDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SyscallConn", (some (go.signature.Signature [] false [(go.GoType.Named go!"syscall.RawConn" []), go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"WriteTo", (some (go.signature.Signature [(go.GoType.Named go!"io.Writer" [])] false [go.int64, go.error]))), (go!"net.ok", (some (go.signature.Signature [] false [go.bool]))), (go!"net.readFrom", (some (go.signature.Signature [(go.GoType.Named go!"io.Reader" [])] false [go.int64, go.error]))), (go!"net.writeBuffers", (some (go.signature.Signature [(go.GoType.PointerType Buffers.ty)] false [go.int64, go.error]))), (go!"net.writeTo", (some (go.signature.Signature [(go.GoType.Named go!"io.Writer" [])] false [go.int64, go.error])))]
 
 attribute [instance] TCPConn.TypeAssumptions.type_repr
   TCPConn.TypeAssumptions.underlying
   TCPConn.TypeAssumptions.isUnderlying
+  TCPConn.TypeAssumptions.method_set
+  TCPConn.TypeAssumptions.ptr_method_set
 
 axiom KeepAliveConfig : Type
 axiom KeepAliveConfig.zero_val : ZeroVal KeepAliveConfig
@@ -3429,10 +3733,14 @@ class KeepAliveConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCont
   type_repr : go.TypeReprUnderlying KeepAliveConfig.underlying KeepAliveConfig
   underlying : go.UnderlyingDirectedEq KeepAliveConfig.ty KeepAliveConfig.underlying
   isUnderlying : go.IsUnderlying KeepAliveConfig.underlying KeepAliveConfig.underlying
+  method_set : go.MethodSetIs KeepAliveConfig.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType KeepAliveConfig.ty) []
 
 attribute [instance] KeepAliveConfig.TypeAssumptions.type_repr
   KeepAliveConfig.TypeAssumptions.underlying
   KeepAliveConfig.TypeAssumptions.isUnderlying
+  KeepAliveConfig.TypeAssumptions.method_set
+  KeepAliveConfig.TypeAssumptions.ptr_method_set
 
 axiom TCPListener : Type
 axiom TCPListener.zero_val : ZeroVal TCPListener
@@ -3442,10 +3750,14 @@ class TCPListener.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   type_repr : go.TypeReprUnderlying TCPListener.underlying TCPListener
   underlying : go.UnderlyingDirectedEq TCPListener.ty TCPListener.underlying
   isUnderlying : go.IsUnderlying TCPListener.underlying TCPListener.underlying
+  method_set : go.MethodSetIs TCPListener.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TCPListener.ty) [(go!"Accept", (some (go.signature.Signature [] false [Conn.ty, go.error]))), (go!"AcceptTCP", (some (go.signature.Signature [] false [(go.GoType.PointerType TCPConn.ty), go.error]))), (go!"Addr", (some (go.signature.Signature [] false [Addr.ty]))), (go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"File", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"os.File" [])), go.error]))), (go!"SetDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SyscallConn", (some (go.signature.Signature [] false [(go.GoType.Named go!"syscall.RawConn" []), go.error]))), (go!"net.accept", (some (go.signature.Signature [] false [(go.GoType.PointerType TCPConn.ty), go.error]))), (go!"net.close", (some (go.signature.Signature [] false [go.error]))), (go!"net.file", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"os.File" [])), go.error]))), (go!"net.ok", (some (go.signature.Signature [] false [go.bool])))]
 
 attribute [instance] TCPListener.TypeAssumptions.type_repr
   TCPListener.TypeAssumptions.underlying
   TCPListener.TypeAssumptions.isUnderlying
+  TCPListener.TypeAssumptions.method_set
+  TCPListener.TypeAssumptions.ptr_method_set
 
 axiom UDPAddr : Type
 axiom UDPAddr.zero_val : ZeroVal UDPAddr
@@ -3455,10 +3767,14 @@ class UDPAddr.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   type_repr : go.TypeReprUnderlying UDPAddr.underlying UDPAddr
   underlying : go.UnderlyingDirectedEq UDPAddr.ty UDPAddr.underlying
   isUnderlying : go.IsUnderlying UDPAddr.underlying UDPAddr.underlying
+  method_set : go.MethodSetIs UDPAddr.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType UDPAddr.ty) [(go!"AddrPort", (some (go.signature.Signature [] false [(go.GoType.Named go!"net/netip.AddrPort" [])]))), (go!"Network", (some (go.signature.Signature [] false [go.string]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"net.family", (some (go.signature.Signature [] false [go.int]))), (go!"net.isWildcard", (some (go.signature.Signature [] false [go.bool]))), (go!"net.opAddr", (some (go.signature.Signature [] false [Addr.ty]))), (go!"net.sockaddr", (some (go.signature.Signature [go.int] false [(go.GoType.Named go!"syscall.Sockaddr" []), go.error]))), (go!"net.toLocal", (some (go.signature.Signature [go.string] false [sockaddr.ty])))]
 
 attribute [instance] UDPAddr.TypeAssumptions.type_repr
   UDPAddr.TypeAssumptions.underlying
   UDPAddr.TypeAssumptions.isUnderlying
+  UDPAddr.TypeAssumptions.method_set
+  UDPAddr.TypeAssumptions.ptr_method_set
 
 axiom addrPortUDPAddr : Type
 axiom addrPortUDPAddr.zero_val : ZeroVal addrPortUDPAddr
@@ -3468,10 +3784,14 @@ class addrPortUDPAddr.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCont
   type_repr : go.TypeReprUnderlying addrPortUDPAddr.underlying addrPortUDPAddr
   underlying : go.UnderlyingDirectedEq addrPortUDPAddr.ty addrPortUDPAddr.underlying
   isUnderlying : go.IsUnderlying addrPortUDPAddr.underlying addrPortUDPAddr.underlying
+  method_set : go.MethodSetIs addrPortUDPAddr.ty [(go!"Addr", (some (go.signature.Signature [] false [(go.GoType.Named go!"net/netip.Addr" [])]))), (go!"AppendBinary", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte), go.error]))), (go!"AppendText", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte), go.error]))), (go!"AppendTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte)]))), (go!"Compare", (some (go.signature.Signature [(go.GoType.Named go!"net/netip.AddrPort" [])] false [go.int]))), (go!"IsValid", (some (go.signature.Signature [] false [go.bool]))), (go!"MarshalBinary", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalText", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"Network", (some (go.signature.Signature [] false [go.string]))), (go!"Port", (some (go.signature.Signature [] false [go.uint16]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType addrPortUDPAddr.ty) [(go!"Addr", (some (go.signature.Signature [] false [(go.GoType.Named go!"net/netip.Addr" [])]))), (go!"AppendBinary", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte), go.error]))), (go!"AppendText", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte), go.error]))), (go!"AppendTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte)]))), (go!"Compare", (some (go.signature.Signature [(go.GoType.Named go!"net/netip.AddrPort" [])] false [go.int]))), (go!"IsValid", (some (go.signature.Signature [] false [go.bool]))), (go!"MarshalBinary", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"MarshalText", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"Network", (some (go.signature.Signature [] false [go.string]))), (go!"Port", (some (go.signature.Signature [] false [go.uint16]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"UnmarshalBinary", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"UnmarshalText", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] addrPortUDPAddr.TypeAssumptions.type_repr
   addrPortUDPAddr.TypeAssumptions.underlying
   addrPortUDPAddr.TypeAssumptions.isUnderlying
+  addrPortUDPAddr.TypeAssumptions.method_set
+  addrPortUDPAddr.TypeAssumptions.ptr_method_set
 
 axiom UDPConn : Type
 axiom UDPConn.zero_val : ZeroVal UDPConn
@@ -3481,10 +3801,14 @@ class UDPConn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   type_repr : go.TypeReprUnderlying UDPConn.underlying UDPConn
   underlying : go.UnderlyingDirectedEq UDPConn.ty UDPConn.underlying
   isUnderlying : go.IsUnderlying UDPConn.underlying UDPConn.underlying
+  method_set : go.MethodSetIs UDPConn.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType UDPConn.ty) [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"File", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"os.File" [])), go.error]))), (go!"LocalAddr", (some (go.signature.Signature [] false [Addr.ty]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"ReadFrom", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, Addr.ty, go.error]))), (go!"ReadFromUDP", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, (go.GoType.PointerType UDPAddr.ty), go.error]))), (go!"ReadFromUDPAddrPort", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, (go.GoType.Named go!"net/netip.AddrPort" []), go.error]))), (go!"ReadMsgUDP", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.int, go.int, go.int, (go.GoType.PointerType UDPAddr.ty), go.error]))), (go!"ReadMsgUDPAddrPort", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.int, go.int, go.int, (go.GoType.Named go!"net/netip.AddrPort" []), go.error]))), (go!"RemoteAddr", (some (go.signature.Signature [] false [Addr.ty]))), (go!"SetDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SetReadBuffer", (some (go.signature.Signature [go.int] false [go.error]))), (go!"SetReadDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SetWriteBuffer", (some (go.signature.Signature [go.int] false [go.error]))), (go!"SetWriteDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SyscallConn", (some (go.signature.Signature [] false [(go.GoType.Named go!"syscall.RawConn" []), go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"WriteMsgUDP", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), (go.GoType.PointerType UDPAddr.ty)] false [go.int, go.int, go.error]))), (go!"WriteMsgUDPAddrPort", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), (go.GoType.Named go!"net/netip.AddrPort" [])] false [go.int, go.int, go.error]))), (go!"WriteTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte), Addr.ty] false [go.int, go.error]))), (go!"WriteToUDP", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.PointerType UDPAddr.ty)] false [go.int, go.error]))), (go!"WriteToUDPAddrPort", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.Named go!"net/netip.AddrPort" [])] false [go.int, go.error]))), (go!"net.ok", (some (go.signature.Signature [] false [go.bool]))), (go!"net.readFrom", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.PointerType UDPAddr.ty)] false [go.int, (go.GoType.PointerType UDPAddr.ty), go.error]))), (go!"net.readFromAddrPort", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, (go.GoType.Named go!"net/netip.AddrPort" []), go.error]))), (go!"net.readFromUDP", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.PointerType UDPAddr.ty)] false [go.int, (go.GoType.PointerType UDPAddr.ty), go.error]))), (go!"net.readMsg", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.int, go.int, go.int, (go.GoType.Named go!"net/netip.AddrPort" []), go.error]))), (go!"net.writeBuffers", (some (go.signature.Signature [(go.GoType.PointerType Buffers.ty)] false [go.int64, go.error]))), (go!"net.writeMsg", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), (go.GoType.PointerType UDPAddr.ty)] false [go.int, go.int, go.error]))), (go!"net.writeMsgAddrPort", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), (go.GoType.Named go!"net/netip.AddrPort" [])] false [go.int, go.int, go.error]))), (go!"net.writeTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.PointerType UDPAddr.ty)] false [go.int, go.error]))), (go!"net.writeToAddrPort", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.Named go!"net/netip.AddrPort" [])] false [go.int, go.error])))]
 
 attribute [instance] UDPConn.TypeAssumptions.type_repr
   UDPConn.TypeAssumptions.underlying
   UDPConn.TypeAssumptions.isUnderlying
+  UDPConn.TypeAssumptions.method_set
+  UDPConn.TypeAssumptions.ptr_method_set
 
 axiom UnixAddr : Type
 axiom UnixAddr.zero_val : ZeroVal UnixAddr
@@ -3494,10 +3818,14 @@ class UnixAddr.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [G
   type_repr : go.TypeReprUnderlying UnixAddr.underlying UnixAddr
   underlying : go.UnderlyingDirectedEq UnixAddr.ty UnixAddr.underlying
   isUnderlying : go.IsUnderlying UnixAddr.underlying UnixAddr.underlying
+  method_set : go.MethodSetIs UnixAddr.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType UnixAddr.ty) [(go!"Network", (some (go.signature.Signature [] false [go.string]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"net.family", (some (go.signature.Signature [] false [go.int]))), (go!"net.isWildcard", (some (go.signature.Signature [] false [go.bool]))), (go!"net.opAddr", (some (go.signature.Signature [] false [Addr.ty]))), (go!"net.sockaddr", (some (go.signature.Signature [go.int] false [(go.GoType.Named go!"syscall.Sockaddr" []), go.error]))), (go!"net.toLocal", (some (go.signature.Signature [go.string] false [sockaddr.ty])))]
 
 attribute [instance] UnixAddr.TypeAssumptions.type_repr
   UnixAddr.TypeAssumptions.underlying
   UnixAddr.TypeAssumptions.isUnderlying
+  UnixAddr.TypeAssumptions.method_set
+  UnixAddr.TypeAssumptions.ptr_method_set
 
 axiom UnixConn : Type
 axiom UnixConn.zero_val : ZeroVal UnixConn
@@ -3507,10 +3835,14 @@ class UnixConn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [G
   type_repr : go.TypeReprUnderlying UnixConn.underlying UnixConn
   underlying : go.UnderlyingDirectedEq UnixConn.ty UnixConn.underlying
   isUnderlying : go.IsUnderlying UnixConn.underlying UnixConn.underlying
+  method_set : go.MethodSetIs UnixConn.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType UnixConn.ty) [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"CloseRead", (some (go.signature.Signature [] false [go.error]))), (go!"CloseWrite", (some (go.signature.Signature [] false [go.error]))), (go!"File", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"os.File" [])), go.error]))), (go!"LocalAddr", (some (go.signature.Signature [] false [Addr.ty]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"ReadFrom", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, Addr.ty, go.error]))), (go!"ReadFromUnix", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, (go.GoType.PointerType UnixAddr.ty), go.error]))), (go!"ReadMsgUnix", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.int, go.int, go.int, (go.GoType.PointerType UnixAddr.ty), go.error]))), (go!"RemoteAddr", (some (go.signature.Signature [] false [Addr.ty]))), (go!"SetDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SetReadBuffer", (some (go.signature.Signature [go.int] false [go.error]))), (go!"SetReadDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SetWriteBuffer", (some (go.signature.Signature [go.int] false [go.error]))), (go!"SetWriteDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SyscallConn", (some (go.signature.Signature [] false [(go.GoType.Named go!"syscall.RawConn" []), go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"WriteMsgUnix", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), (go.GoType.PointerType UnixAddr.ty)] false [go.int, go.int, go.error]))), (go!"WriteTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte), Addr.ty] false [go.int, go.error]))), (go!"WriteToUnix", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.PointerType UnixAddr.ty)] false [go.int, go.error]))), (go!"net.ok", (some (go.signature.Signature [] false [go.bool]))), (go!"net.readFrom", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, (go.GoType.PointerType UnixAddr.ty), go.error]))), (go!"net.readMsg", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte)] false [go.int, go.int, go.int, (go.GoType.PointerType UnixAddr.ty), go.error]))), (go!"net.writeBuffers", (some (go.signature.Signature [(go.GoType.PointerType Buffers.ty)] false [go.int64, go.error]))), (go!"net.writeMsg", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.byte), (go.GoType.PointerType UnixAddr.ty)] false [go.int, go.int, go.error]))), (go!"net.writeTo", (some (go.signature.Signature [(go.GoType.SliceType go.byte), (go.GoType.PointerType UnixAddr.ty)] false [go.int, go.error])))]
 
 attribute [instance] UnixConn.TypeAssumptions.type_repr
   UnixConn.TypeAssumptions.underlying
   UnixConn.TypeAssumptions.isUnderlying
+  UnixConn.TypeAssumptions.method_set
+  UnixConn.TypeAssumptions.ptr_method_set
 
 axiom UnixListener : Type
 axiom UnixListener.zero_val : ZeroVal UnixListener
@@ -3520,10 +3852,14 @@ class UnixListener.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext
   type_repr : go.TypeReprUnderlying UnixListener.underlying UnixListener
   underlying : go.UnderlyingDirectedEq UnixListener.ty UnixListener.underlying
   isUnderlying : go.IsUnderlying UnixListener.underlying UnixListener.underlying
+  method_set : go.MethodSetIs UnixListener.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType UnixListener.ty) [(go!"Accept", (some (go.signature.Signature [] false [Conn.ty, go.error]))), (go!"AcceptUnix", (some (go.signature.Signature [] false [(go.GoType.PointerType UnixConn.ty), go.error]))), (go!"Addr", (some (go.signature.Signature [] false [Addr.ty]))), (go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"File", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"os.File" [])), go.error]))), (go!"SetDeadline", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.error]))), (go!"SetUnlinkOnClose", (some (go.signature.Signature [go.bool] false []))), (go!"SyscallConn", (some (go.signature.Signature [] false [(go.GoType.Named go!"syscall.RawConn" []), go.error]))), (go!"net.accept", (some (go.signature.Signature [] false [(go.GoType.PointerType UnixConn.ty), go.error]))), (go!"net.close", (some (go.signature.Signature [] false [go.error]))), (go!"net.file", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"os.File" [])), go.error]))), (go!"net.ok", (some (go.signature.Signature [] false [go.bool])))]
 
 attribute [instance] UnixListener.TypeAssumptions.type_repr
   UnixListener.TypeAssumptions.underlying
   UnixListener.TypeAssumptions.isUnderlying
+  UnixListener.TypeAssumptions.method_set
+  UnixListener.TypeAssumptions.ptr_method_set
 
 axiom «_» : Type
 axiom «_».zero_val : ZeroVal «_»
@@ -3533,10 +3869,14 @@ class «_».TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSe
   type_repr : go.TypeReprUnderlying «_».underlying «_»
   underlying : go.UnderlyingDirectedEq «_».ty «_».underlying
   isUnderlying : go.IsUnderlying «_».underlying «_».underlying
+  method_set : go.MethodSetIs «_».ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType «_».ty) []
 
 attribute [instance] «_».TypeAssumptions.type_repr
   «_».TypeAssumptions.underlying
   «_».TypeAssumptions.isUnderlying
+  «_».TypeAssumptions.method_set
+  «_».TypeAssumptions.ptr_method_set
 
 axiom _Ctype__GoString_ : Type
 axiom _Ctype__GoString_.zero_val : ZeroVal _Ctype__GoString_
@@ -3546,10 +3886,14 @@ class _Ctype__GoString_.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCo
   type_repr : go.TypeReprUnderlying _Ctype__GoString_.underlying _Ctype__GoString_
   underlying : go.UnderlyingDirectedEq _Ctype__GoString_.ty _Ctype__GoString_.underlying
   isUnderlying : go.IsUnderlying _Ctype__GoString_.underlying _Ctype__GoString_.underlying
+  method_set : go.MethodSetIs _Ctype__GoString_.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType _Ctype__GoString_.ty) []
 
 attribute [instance] _Ctype__GoString_.TypeAssumptions.type_repr
   _Ctype__GoString_.TypeAssumptions.underlying
   _Ctype__GoString_.TypeAssumptions.isUnderlying
+  _Ctype__GoString_.TypeAssumptions.method_set
+  _Ctype__GoString_.TypeAssumptions.ptr_method_set
 
 axiom _Ctype_char : Type
 axiom _Ctype_char.zero_val : ZeroVal _Ctype_char
@@ -3559,10 +3903,14 @@ class _Ctype_char.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   type_repr : go.TypeReprUnderlying _Ctype_char.underlying _Ctype_char
   underlying : go.UnderlyingDirectedEq _Ctype_char.ty _Ctype_char.underlying
   isUnderlying : go.IsUnderlying _Ctype_char.underlying _Ctype_char.underlying
+  method_set : go.MethodSetIs _Ctype_char.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType _Ctype_char.ty) []
 
 attribute [instance] _Ctype_char.TypeAssumptions.type_repr
   _Ctype_char.TypeAssumptions.underlying
   _Ctype_char.TypeAssumptions.isUnderlying
+  _Ctype_char.TypeAssumptions.method_set
+  _Ctype_char.TypeAssumptions.ptr_method_set
 
 axiom _Ctype_int : Type
 axiom _Ctype_int.zero_val : ZeroVal _Ctype_int
@@ -3572,10 +3920,14 @@ class _Ctype_int.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] 
   type_repr : go.TypeReprUnderlying _Ctype_int.underlying _Ctype_int
   underlying : go.UnderlyingDirectedEq _Ctype_int.ty _Ctype_int.underlying
   isUnderlying : go.IsUnderlying _Ctype_int.underlying _Ctype_int.underlying
+  method_set : go.MethodSetIs _Ctype_int.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType _Ctype_int.ty) []
 
 attribute [instance] _Ctype_int.TypeAssumptions.type_repr
   _Ctype_int.TypeAssumptions.underlying
   _Ctype_int.TypeAssumptions.isUnderlying
+  _Ctype_int.TypeAssumptions.method_set
+  _Ctype_int.TypeAssumptions.ptr_method_set
 
 axiom _Ctype_long : Type
 axiom _Ctype_long.zero_val : ZeroVal _Ctype_long
@@ -3585,10 +3937,14 @@ class _Ctype_long.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   type_repr : go.TypeReprUnderlying _Ctype_long.underlying _Ctype_long
   underlying : go.UnderlyingDirectedEq _Ctype_long.ty _Ctype_long.underlying
   isUnderlying : go.IsUnderlying _Ctype_long.underlying _Ctype_long.underlying
+  method_set : go.MethodSetIs _Ctype_long.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType _Ctype_long.ty) []
 
 attribute [instance] _Ctype_long.TypeAssumptions.type_repr
   _Ctype_long.TypeAssumptions.underlying
   _Ctype_long.TypeAssumptions.isUnderlying
+  _Ctype_long.TypeAssumptions.method_set
+  _Ctype_long.TypeAssumptions.ptr_method_set
 
 axiom _Ctype_struct_addrinfo : Type
 axiom _Ctype_struct_addrinfo.zero_val : ZeroVal _Ctype_struct_addrinfo
@@ -3598,10 +3954,14 @@ class _Ctype_struct_addrinfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLo
   type_repr : go.TypeReprUnderlying _Ctype_struct_addrinfo.underlying _Ctype_struct_addrinfo
   underlying : go.UnderlyingDirectedEq _Ctype_struct_addrinfo.ty _Ctype_struct_addrinfo.underlying
   isUnderlying : go.IsUnderlying _Ctype_struct_addrinfo.underlying _Ctype_struct_addrinfo.underlying
+  method_set : go.MethodSetIs _Ctype_struct_addrinfo.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType _Ctype_struct_addrinfo.ty) []
 
 attribute [instance] _Ctype_struct_addrinfo.TypeAssumptions.type_repr
   _Ctype_struct_addrinfo.TypeAssumptions.underlying
   _Ctype_struct_addrinfo.TypeAssumptions.isUnderlying
+  _Ctype_struct_addrinfo.TypeAssumptions.method_set
+  _Ctype_struct_addrinfo.TypeAssumptions.ptr_method_set
 
 axiom _Ctype_struct_sockaddr : Type
 axiom _Ctype_struct_sockaddr.zero_val : ZeroVal _Ctype_struct_sockaddr
@@ -3611,10 +3971,14 @@ class _Ctype_struct_sockaddr.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLo
   type_repr : go.TypeReprUnderlying _Ctype_struct_sockaddr.underlying _Ctype_struct_sockaddr
   underlying : go.UnderlyingDirectedEq _Ctype_struct_sockaddr.ty _Ctype_struct_sockaddr.underlying
   isUnderlying : go.IsUnderlying _Ctype_struct_sockaddr.underlying _Ctype_struct_sockaddr.underlying
+  method_set : go.MethodSetIs _Ctype_struct_sockaddr.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType _Ctype_struct_sockaddr.ty) []
 
 attribute [instance] _Ctype_struct_sockaddr.TypeAssumptions.type_repr
   _Ctype_struct_sockaddr.TypeAssumptions.underlying
   _Ctype_struct_sockaddr.TypeAssumptions.isUnderlying
+  _Ctype_struct_sockaddr.TypeAssumptions.method_set
+  _Ctype_struct_sockaddr.TypeAssumptions.ptr_method_set
 
 axiom _Ctype_uchar : Type
 axiom _Ctype_uchar.zero_val : ZeroVal _Ctype_uchar
@@ -3624,10 +3988,14 @@ class _Ctype_uchar.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext
   type_repr : go.TypeReprUnderlying _Ctype_uchar.underlying _Ctype_uchar
   underlying : go.UnderlyingDirectedEq _Ctype_uchar.ty _Ctype_uchar.underlying
   isUnderlying : go.IsUnderlying _Ctype_uchar.underlying _Ctype_uchar.underlying
+  method_set : go.MethodSetIs _Ctype_uchar.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType _Ctype_uchar.ty) []
 
 attribute [instance] _Ctype_uchar.TypeAssumptions.type_repr
   _Ctype_uchar.TypeAssumptions.underlying
   _Ctype_uchar.TypeAssumptions.isUnderlying
+  _Ctype_uchar.TypeAssumptions.method_set
+  _Ctype_uchar.TypeAssumptions.ptr_method_set
 
 axiom _Ctype_uint : Type
 axiom _Ctype_uint.zero_val : ZeroVal _Ctype_uint
@@ -3637,10 +4005,14 @@ class _Ctype_uint.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   type_repr : go.TypeReprUnderlying _Ctype_uint.underlying _Ctype_uint
   underlying : go.UnderlyingDirectedEq _Ctype_uint.ty _Ctype_uint.underlying
   isUnderlying : go.IsUnderlying _Ctype_uint.underlying _Ctype_uint.underlying
+  method_set : go.MethodSetIs _Ctype_uint.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType _Ctype_uint.ty) []
 
 attribute [instance] _Ctype_uint.TypeAssumptions.type_repr
   _Ctype_uint.TypeAssumptions.underlying
   _Ctype_uint.TypeAssumptions.isUnderlying
+  _Ctype_uint.TypeAssumptions.method_set
+  _Ctype_uint.TypeAssumptions.ptr_method_set
 
 axiom _Ctype_ulong : Type
 axiom _Ctype_ulong.zero_val : ZeroVal _Ctype_ulong
@@ -3650,10 +4022,14 @@ class _Ctype_ulong.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext
   type_repr : go.TypeReprUnderlying _Ctype_ulong.underlying _Ctype_ulong
   underlying : go.UnderlyingDirectedEq _Ctype_ulong.ty _Ctype_ulong.underlying
   isUnderlying : go.IsUnderlying _Ctype_ulong.underlying _Ctype_ulong.underlying
+  method_set : go.MethodSetIs _Ctype_ulong.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType _Ctype_ulong.ty) []
 
 attribute [instance] _Ctype_ulong.TypeAssumptions.type_repr
   _Ctype_ulong.TypeAssumptions.underlying
   _Ctype_ulong.TypeAssumptions.isUnderlying
+  _Ctype_ulong.TypeAssumptions.method_set
+  _Ctype_ulong.TypeAssumptions.ptr_method_set
 
 axiom _Ctype_ushort : Type
 axiom _Ctype_ushort.zero_val : ZeroVal _Ctype_ushort
@@ -3663,10 +4039,14 @@ class _Ctype_ushort.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContex
   type_repr : go.TypeReprUnderlying _Ctype_ushort.underlying _Ctype_ushort
   underlying : go.UnderlyingDirectedEq _Ctype_ushort.ty _Ctype_ushort.underlying
   isUnderlying : go.IsUnderlying _Ctype_ushort.underlying _Ctype_ushort.underlying
+  method_set : go.MethodSetIs _Ctype_ushort.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType _Ctype_ushort.ty) []
 
 attribute [instance] _Ctype_ushort.TypeAssumptions.type_repr
   _Ctype_ushort.TypeAssumptions.underlying
   _Ctype_ushort.TypeAssumptions.isUnderlying
+  _Ctype_ushort.TypeAssumptions.method_set
+  _Ctype_ushort.TypeAssumptions.ptr_method_set
 
 axiom _Ctype_void : Type
 axiom _Ctype_void.zero_val : ZeroVal _Ctype_void
@@ -3676,10 +4056,14 @@ class _Ctype_void.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   type_repr : go.TypeReprUnderlying _Ctype_void.underlying _Ctype_void
   underlying : go.UnderlyingDirectedEq _Ctype_void.ty _Ctype_void.underlying
   isUnderlying : go.IsUnderlying _Ctype_void.underlying _Ctype_void.underlying
+  method_set : go.MethodSetIs _Ctype_void.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType _Ctype_void.ty) []
 
 attribute [instance] _Ctype_void.TypeAssumptions.type_repr
   _Ctype_void.TypeAssumptions.underlying
   _Ctype_void.TypeAssumptions.isUnderlying
+  _Ctype_void.TypeAssumptions.method_set
+  _Ctype_void.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   ipAttr_instance : ipAttr.TypeAssumptions

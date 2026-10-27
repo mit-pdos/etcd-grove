@@ -51,7 +51,6 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.authkv.Assumptio
 abbrev Main.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [_root_.Perennial.errors.Assumptions]
     [_root_.Perennial.fmt.Assumptions] [go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
-    [ErrorStringLeaf] [ErrorStringNoGRPCStatus] [context.ErrorStringIsError]
     [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)] [ContextErrsClient (GF := GF) (hG := hG)]
     (N : Nat) (id : w64) (bootLog : List EntryM),
   putget.BootFacts id bootLog →

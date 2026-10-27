@@ -154,8 +154,12 @@ abbrev HashVersionTooNewError [GooseExts] : Type := w8
 
 class HashVersionTooNewError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq HashVersionTooNewError.ty HashVersionTooNewError.underlying
+  method_set : go.MethodSetIs HashVersionTooNewError.ty [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType HashVersionTooNewError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] HashVersionTooNewError.TypeAssumptions.underlying
+  HashVersionTooNewError.TypeAssumptions.method_set
+  HashVersionTooNewError.TypeAssumptions.ptr_method_set
 
 abbrev InvalidHashPrefixError [GooseExts] : Type := w8
 
@@ -164,8 +168,12 @@ abbrev InvalidHashPrefixError [GooseExts] : Type := w8
 
 class InvalidHashPrefixError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq InvalidHashPrefixError.ty InvalidHashPrefixError.underlying
+  method_set : go.MethodSetIs InvalidHashPrefixError.ty [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType InvalidHashPrefixError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] InvalidHashPrefixError.TypeAssumptions.underlying
+  InvalidHashPrefixError.TypeAssumptions.method_set
+  InvalidHashPrefixError.TypeAssumptions.ptr_method_set
 
 abbrev InvalidCostError [GooseExts] : Type := w64
 
@@ -174,8 +182,12 @@ abbrev InvalidCostError [GooseExts] : Type := w64
 
 class InvalidCostError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq InvalidCostError.ty InvalidCostError.underlying
+  method_set : go.MethodSetIs InvalidCostError.ty [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType InvalidCostError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] InvalidCostError.TypeAssumptions.underlying
+  InvalidCostError.TypeAssumptions.method_set
+  InvalidCostError.TypeAssumptions.ptr_method_set
 
 structure hashed [GooseExts] where
   mk ::
@@ -218,6 +230,8 @@ class hashed.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   set_major : ∀ (x : hashed) (y : w8), go.IsGoStepPureDetTagged under (StructFieldSet hashed.underlying go!"major") (PairV #x #y) (Val #(({ x with major' := y } : hashed)))
   get_minor : ∀ (x : hashed), go.IsGoStepPureDetTagged under (StructFieldGet hashed.underlying go!"minor") #x (Val #(x.minor'))
   set_minor : ∀ (x : hashed) (y : w8), go.IsGoStepPureDetTagged under (StructFieldSet hashed.underlying go!"minor") (PairV #x #y) (Val #(({ x with minor' := y } : hashed)))
+  method_set : go.MethodSetIs hashed.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType hashed.ty) [(go!"Hash", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"golang.org/x/crypto/bcrypt.decodeCost", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"golang.org/x/crypto/bcrypt.decodeVersion", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
 
 attribute [instance] hashed.TypeAssumptions.type_repr
   hashed.TypeAssumptions.underlying
@@ -231,6 +245,8 @@ attribute [instance] hashed.TypeAssumptions.type_repr
   hashed.TypeAssumptions.set_major
   hashed.TypeAssumptions.get_minor
   hashed.TypeAssumptions.set_minor
+  hashed.TypeAssumptions.method_set
+  hashed.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   HashVersionTooNewError_instance : HashVersionTooNewError.TypeAssumptions

@@ -154,6 +154,8 @@ class Generator.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   set_prefix : ∀ (x : Generator) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Generator.underlying go!"prefix") (PairV #x #y) (Val #(({ x with prefix' := y } : Generator)))
   get_suffix : ∀ (x : Generator), go.IsGoStepPureDetTagged under (StructFieldGet Generator.underlying go!"suffix") #x (Val #(x.suffix'))
   set_suffix : ∀ (x : Generator) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Generator.underlying go!"suffix") (PairV #x #y) (Val #(({ x with suffix' := y } : Generator)))
+  method_set : go.MethodSetIs Generator.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Generator.ty) [(go!"Next", (some (go.signature.Signature [] false [go.uint64])))]
   ptr_Next_unfold : MethodUnfold (go.GoType.PointerType Generator.ty) go!"Next" Generator.Next.impl
 
 attribute [instance] Generator.TypeAssumptions.type_repr
@@ -162,6 +164,8 @@ attribute [instance] Generator.TypeAssumptions.type_repr
   Generator.TypeAssumptions.set_prefix
   Generator.TypeAssumptions.get_suffix
   Generator.TypeAssumptions.set_suffix
+  Generator.TypeAssumptions.method_set
+  Generator.TypeAssumptions.ptr_method_set
   Generator.TypeAssumptions.ptr_Next_unfold
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

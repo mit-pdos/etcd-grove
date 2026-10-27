@@ -364,10 +364,14 @@ class Decoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   type_repr : go.TypeReprUnderlying Decoder.underlying Decoder
   underlying : go.UnderlyingDirectedEq Decoder.ty Decoder.underlying
   isUnderlying : go.IsUnderlying Decoder.underlying Decoder.underlying
+  method_set : go.MethodSetIs Decoder.ty [(go!"Decode", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/wal/walpb.Record" []))] false [go.error]))), (go!"LastCRC", (some (go.signature.Signature [] false [go.uint32]))), (go!"LastOffset", (some (go.signature.Signature [] false [go.int64]))), (go!"UpdateCRC", (some (go.signature.Signature [go.uint32] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Decoder.ty) []
 
 attribute [instance] Decoder.TypeAssumptions.type_repr
   Decoder.TypeAssumptions.underlying
   Decoder.TypeAssumptions.isUnderlying
+  Decoder.TypeAssumptions.method_set
+  Decoder.TypeAssumptions.ptr_method_set
 
 axiom decoder : Type
 axiom decoder.zero_val : ZeroVal decoder
@@ -377,10 +381,14 @@ class decoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   type_repr : go.TypeReprUnderlying decoder.underlying decoder
   underlying : go.UnderlyingDirectedEq decoder.ty decoder.underlying
   isUnderlying : go.IsUnderlying decoder.underlying decoder.underlying
+  method_set : go.MethodSetIs decoder.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType decoder.ty) [(go!"Decode", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/wal/walpb.Record" []))] false [go.error]))), (go!"LastCRC", (some (go.signature.Signature [] false [go.uint32]))), (go!"LastOffset", (some (go.signature.Signature [] false [go.int64]))), (go!"UpdateCRC", (some (go.signature.Signature [go.uint32] false []))), (go!"go.etcd.io/etcd/server/v3/storage/wal.decodeRecord", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/wal/walpb.Record" []))] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/wal.isTornEntry", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.bool])))]
 
 attribute [instance] decoder.TypeAssumptions.type_repr
   decoder.TypeAssumptions.underlying
   decoder.TypeAssumptions.isUnderlying
+  decoder.TypeAssumptions.method_set
+  decoder.TypeAssumptions.ptr_method_set
 
 axiom encoder : Type
 axiom encoder.zero_val : ZeroVal encoder
@@ -390,10 +398,14 @@ class encoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   type_repr : go.TypeReprUnderlying encoder.underlying encoder
   underlying : go.UnderlyingDirectedEq encoder.ty encoder.underlying
   isUnderlying : go.IsUnderlying encoder.underlying encoder.underlying
+  method_set : go.MethodSetIs encoder.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType encoder.ty) [(go!"go.etcd.io/etcd/server/v3/storage/wal.encode", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/wal/walpb.Record" []))] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/wal.flush", (some (go.signature.Signature [] false [go.error])))]
 
 attribute [instance] encoder.TypeAssumptions.type_repr
   encoder.TypeAssumptions.underlying
   encoder.TypeAssumptions.isUnderlying
+  encoder.TypeAssumptions.method_set
+  encoder.TypeAssumptions.ptr_method_set
 
 axiom filePipeline : Type
 axiom filePipeline.zero_val : ZeroVal filePipeline
@@ -403,10 +415,14 @@ class filePipeline.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext
   type_repr : go.TypeReprUnderlying filePipeline.underlying filePipeline
   underlying : go.UnderlyingDirectedEq filePipeline.ty filePipeline.underlying
   isUnderlying : go.IsUnderlying filePipeline.underlying filePipeline.underlying
+  method_set : go.MethodSetIs filePipeline.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType filePipeline.ty) [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Open", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/etcd/client/pkg/v3/fileutil.LockedFile" [])), go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/wal.alloc", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/etcd/client/pkg/v3/fileutil.LockedFile" [])), go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/wal.run", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] filePipeline.TypeAssumptions.type_repr
   filePipeline.TypeAssumptions.underlying
   filePipeline.TypeAssumptions.isUnderlying
+  filePipeline.TypeAssumptions.method_set
+  filePipeline.TypeAssumptions.ptr_method_set
 
 axiom Version : Type
 axiom Version.zero_val : ZeroVal Version
@@ -416,10 +432,14 @@ class Version.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   type_repr : go.TypeReprUnderlying Version.underlying Version
   underlying : go.UnderlyingDirectedEq Version.ty Version.underlying
   isUnderlying : go.IsUnderlying Version.underlying Version.underlying
+  method_set : go.MethodSetIs Version.ty [(go!"MinimalEtcdVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/Masterminds/semver/v3.Version" []))])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Version.ty) []
 
 attribute [instance] Version.TypeAssumptions.type_repr
   Version.TypeAssumptions.underlying
   Version.TypeAssumptions.isUnderlying
+  Version.TypeAssumptions.method_set
+  Version.TypeAssumptions.ptr_method_set
 
 axiom walVersion : Type
 axiom walVersion.zero_val : ZeroVal walVersion
@@ -429,10 +449,14 @@ class walVersion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] 
   type_repr : go.TypeReprUnderlying walVersion.underlying walVersion
   underlying : go.UnderlyingDirectedEq walVersion.ty walVersion.underlying
   isUnderlying : go.IsUnderlying walVersion.underlying walVersion.underlying
+  method_set : go.MethodSetIs walVersion.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType walVersion.ty) [(go!"MinimalEtcdVersion", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/Masterminds/semver/v3.Version" []))])))]
 
 attribute [instance] walVersion.TypeAssumptions.type_repr
   walVersion.TypeAssumptions.underlying
   walVersion.TypeAssumptions.isUnderlying
+  walVersion.TypeAssumptions.method_set
+  walVersion.TypeAssumptions.ptr_method_set
 
 axiom Visitor : Type
 axiom Visitor.zero_val : ZeroVal Visitor
@@ -442,10 +466,14 @@ class Visitor.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   type_repr : go.TypeReprUnderlying Visitor.underlying Visitor
   underlying : go.UnderlyingDirectedEq Visitor.ty Visitor.underlying
   isUnderlying : go.IsUnderlying Visitor.underlying Visitor.underlying
+  method_set : go.MethodSetIs Visitor.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Visitor.ty) []
 
 attribute [instance] Visitor.TypeAssumptions.type_repr
   Visitor.TypeAssumptions.underlying
   Visitor.TypeAssumptions.isUnderlying
+  Visitor.TypeAssumptions.method_set
+  Visitor.TypeAssumptions.ptr_method_set
 
 axiom WAL : Type
 axiom WAL.zero_val : ZeroVal WAL
@@ -455,10 +483,14 @@ class WAL.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSema
   type_repr : go.TypeReprUnderlying WAL.underlying WAL
   underlying : go.UnderlyingDirectedEq WAL.ty WAL.underlying
   isUnderlying : go.IsUnderlying WAL.underlying WAL.underlying
+  method_set : go.MethodSetIs WAL.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType WAL.ty) [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"LatestSnapshotEntry", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/wal/walpb.Snapshot" [])), go.error]))), (go!"ReadAll", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/raft/v3/raftpb.HardState" [])), (go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/raft/v3/raftpb.Entry" []))), go.error]))), (go!"ReleaseLockTo", (some (go.signature.Signature [go.uint64] false [go.error]))), (go!"Reopen", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"go.uber.org/zap.Logger" [])), (go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/wal/walpb.Snapshot" []))] false [(go.GoType.PointerType WAL.ty), go.error]))), (go!"Save", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/raft/v3/raftpb.HardState" [])), (go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/raft/v3/raftpb.Entry" [])))] false [go.error]))), (go!"SaveSnapshot", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/etcd/server/v3/storage/wal/walpb.Snapshot" []))] false [go.error]))), (go!"SetUnsafeNoFsync", (some (go.signature.Signature [] false []))), (go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/wal.cleanupWAL", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"go.uber.org/zap.Logger" []))] false []))), (go!"go.etcd.io/etcd/server/v3/storage/wal.cut", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/wal.renameWAL", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType WAL.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/wal.renameWALUnlock", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType WAL.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/wal.saveCrc", (some (go.signature.Signature [go.uint32] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/wal.saveEntry", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/raft/v3/raftpb.Entry" []))] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/wal.saveState", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/raft/v3/raftpb.HardState" []))] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/wal.seq", (some (go.signature.Signature [] false [go.uint64]))), (go!"go.etcd.io/etcd/server/v3/storage/wal.sync", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/wal.tail", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/etcd/client/pkg/v3/fileutil.LockedFile" []))])))]
 
 attribute [instance] WAL.TypeAssumptions.type_repr
   WAL.TypeAssumptions.underlying
   WAL.TypeAssumptions.isUnderlying
+  WAL.TypeAssumptions.method_set
+  WAL.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Decoder_instance : Decoder.TypeAssumptions

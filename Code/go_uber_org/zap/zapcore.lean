@@ -710,10 +710,14 @@ class BufferedWriteSyncer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocal
   type_repr : go.TypeReprUnderlying BufferedWriteSyncer.underlying BufferedWriteSyncer
   underlying : go.UnderlyingDirectedEq BufferedWriteSyncer.ty BufferedWriteSyncer.underlying
   isUnderlying : go.IsUnderlying BufferedWriteSyncer.underlying BufferedWriteSyncer.underlying
+  method_set : go.MethodSetIs BufferedWriteSyncer.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType BufferedWriteSyncer.ty) [(go!"Stop", (some (go.signature.Signature [] false [go.error]))), (go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"go.uber.org/zap/zapcore.flushLoop", (some (go.signature.Signature [] false []))), (go!"go.uber.org/zap/zapcore.initialize", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] BufferedWriteSyncer.TypeAssumptions.type_repr
   BufferedWriteSyncer.TypeAssumptions.underlying
   BufferedWriteSyncer.TypeAssumptions.isUnderlying
+  BufferedWriteSyncer.TypeAssumptions.method_set
+  BufferedWriteSyncer.TypeAssumptions.ptr_method_set
 
 abbrev Clock [GooseExts] : Type := GoInterface
 
@@ -722,8 +726,12 @@ abbrev Clock [GooseExts] : Type := GoInterface
 
 class Clock.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Clock.ty Clock.underlying
+  method_set : go.MethodSetIs Clock.ty [(go!"NewTicker", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [(go.GoType.PointerType _root_.Perennial.time.Ticker.ty)]))), (go!"Now", (some (go.signature.Signature [] false [_root_.Perennial.time.Time.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Clock.ty) []
 
 attribute [instance] Clock.TypeAssumptions.underlying
+  Clock.TypeAssumptions.method_set
+  Clock.TypeAssumptions.ptr_method_set
 
 structure systemClock [GooseExts] where
   mk ::
@@ -747,9 +755,13 @@ noncomputable instance equals_unfold_systemClock [GooseExts] [GoGlobalContext] :
 class systemClock.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying systemClock.underlying systemClock
   underlying : go.UnderlyingDirectedEq systemClock.ty systemClock.underlying
+  method_set : go.MethodSetIs systemClock.ty [(go!"NewTicker", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [(go.GoType.PointerType _root_.Perennial.time.Ticker.ty)]))), (go!"Now", (some (go.signature.Signature [] false [_root_.Perennial.time.Time.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType systemClock.ty) [(go!"NewTicker", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [(go.GoType.PointerType _root_.Perennial.time.Ticker.ty)]))), (go!"Now", (some (go.signature.Signature [] false [_root_.Perennial.time.Time.ty])))]
 
 attribute [instance] systemClock.TypeAssumptions.type_repr
   systemClock.TypeAssumptions.underlying
+  systemClock.TypeAssumptions.method_set
+  systemClock.TypeAssumptions.ptr_method_set
 
 structure consoleEncoder [GooseExts] where
   mk ::
@@ -776,21 +788,29 @@ class consoleEncoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalConte
   underlying : go.UnderlyingDirectedEq consoleEncoder.ty consoleEncoder.underlying
   get_jsonEncoder : ∀ (x : consoleEncoder), go.IsGoStepPureDetTagged under (StructFieldGet consoleEncoder.underlying go!"jsonEncoder") #x (Val #(x.jsonEncoder'))
   set_jsonEncoder : ∀ (x : consoleEncoder) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet consoleEncoder.underlying go!"jsonEncoder") (PairV #x #y) (Val #(({ x with jsonEncoder' := y } : consoleEncoder)))
+  method_set : go.MethodSetIs consoleEncoder.ty [(go!"AddArray", (some (go.signature.Signature [go.string, ArrayMarshaler.ty] false [go.error]))), (go!"AddBinary", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.byte)] false []))), (go!"AddBool", (some (go.signature.Signature [go.string, go.bool] false []))), (go!"AddByteString", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.byte)] false []))), (go!"AddComplex128", (some (go.signature.Signature [go.string, go.complex128] false []))), (go!"AddComplex64", (some (go.signature.Signature [go.string, go.complex64] false []))), (go!"AddDuration", (some (go.signature.Signature [go.string, _root_.Perennial.time.Duration.ty] false []))), (go!"AddFloat32", (some (go.signature.Signature [go.string, go.float32] false []))), (go!"AddFloat64", (some (go.signature.Signature [go.string, go.float64] false []))), (go!"AddInt", (some (go.signature.Signature [go.string, go.int] false []))), (go!"AddInt16", (some (go.signature.Signature [go.string, go.int16] false []))), (go!"AddInt32", (some (go.signature.Signature [go.string, go.int32] false []))), (go!"AddInt64", (some (go.signature.Signature [go.string, go.int64] false []))), (go!"AddInt8", (some (go.signature.Signature [go.string, go.int8] false []))), (go!"AddObject", (some (go.signature.Signature [go.string, ObjectMarshaler.ty] false [go.error]))), (go!"AddReflected", (some (go.signature.Signature [go.string, (go.GoType.InterfaceType [])] false [go.error]))), (go!"AddString", (some (go.signature.Signature [go.string, go.string] false []))), (go!"AddTime", (some (go.signature.Signature [go.string, _root_.Perennial.time.Time.ty] false []))), (go!"AddUint", (some (go.signature.Signature [go.string, go.uint] false []))), (go!"AddUint16", (some (go.signature.Signature [go.string, go.uint16] false []))), (go!"AddUint32", (some (go.signature.Signature [go.string, go.uint32] false []))), (go!"AddUint64", (some (go.signature.Signature [go.string, go.uint64] false []))), (go!"AddUint8", (some (go.signature.Signature [go.string, go.uint8] false []))), (go!"AddUintptr", (some (go.signature.Signature [go.string, go.uintptr] false []))), (go!"AppendArray", (some (go.signature.Signature [ArrayMarshaler.ty] false [go.error]))), (go!"AppendBool", (some (go.signature.Signature [go.bool] false []))), (go!"AppendByteString", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false []))), (go!"AppendComplex128", (some (go.signature.Signature [go.complex128] false []))), (go!"AppendComplex64", (some (go.signature.Signature [go.complex64] false []))), (go!"AppendDuration", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false []))), (go!"AppendFloat32", (some (go.signature.Signature [go.float32] false []))), (go!"AppendFloat64", (some (go.signature.Signature [go.float64] false []))), (go!"AppendInt", (some (go.signature.Signature [go.int] false []))), (go!"AppendInt16", (some (go.signature.Signature [go.int16] false []))), (go!"AppendInt32", (some (go.signature.Signature [go.int32] false []))), (go!"AppendInt64", (some (go.signature.Signature [go.int64] false []))), (go!"AppendInt8", (some (go.signature.Signature [go.int8] false []))), (go!"AppendObject", (some (go.signature.Signature [ObjectMarshaler.ty] false [go.error]))), (go!"AppendReflected", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"AppendString", (some (go.signature.Signature [go.string] false []))), (go!"AppendTime", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false []))), (go!"AppendTimeLayout", (some (go.signature.Signature [_root_.Perennial.time.Time.ty, go.string] false []))), (go!"AppendUint", (some (go.signature.Signature [go.uint] false []))), (go!"AppendUint16", (some (go.signature.Signature [go.uint16] false []))), (go!"AppendUint32", (some (go.signature.Signature [go.uint32] false []))), (go!"AppendUint64", (some (go.signature.Signature [go.uint64] false []))), (go!"AppendUint8", (some (go.signature.Signature [go.uint8] false []))), (go!"AppendUintptr", (some (go.signature.Signature [go.uintptr] false []))), (go!"Clone", (some (go.signature.Signature [] false [Encoder.ty]))), (go!"EncodeEntry", (some (go.signature.Signature [Entry.ty, (go.GoType.SliceType Field.ty)] false [(go.GoType.PointerType (go.GoType.Named go!"go.uber.org/zap/buffer.Buffer" [])), go.error]))), (go!"OpenNamespace", (some (go.signature.Signature [go.string] false []))), (go!"go.uber.org/zap/zapcore.addElementSeparator", (some (go.signature.Signature [] false []))), (go!"go.uber.org/zap/zapcore.addKey", (some (go.signature.Signature [go.string] false []))), (go!"go.uber.org/zap/zapcore.addSeparatorIfNecessary", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"go.uber.org/zap/buffer.Buffer" []))] false []))), (go!"go.uber.org/zap/zapcore.appendComplex", (some (go.signature.Signature [go.complex128, go.int] false []))), (go!"go.uber.org/zap/zapcore.appendFloat", (some (go.signature.Signature [go.float64, go.int] false []))), (go!"go.uber.org/zap/zapcore.clone", (some (go.signature.Signature [] false [(go.GoType.PointerType jsonEncoder.ty)]))), (go!"go.uber.org/zap/zapcore.closeOpenNamespaces", (some (go.signature.Signature [] false []))), (go!"go.uber.org/zap/zapcore.encodeReflected", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [(go.GoType.SliceType go.byte), go.error]))), (go!"go.uber.org/zap/zapcore.resetReflectBuf", (some (go.signature.Signature [] false []))), (go!"go.uber.org/zap/zapcore.safeAddByteString", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false []))), (go!"go.uber.org/zap/zapcore.safeAddString", (some (go.signature.Signature [go.string] false []))), (go!"go.uber.org/zap/zapcore.truncate", (some (go.signature.Signature [] false []))), (go!"go.uber.org/zap/zapcore.writeContext", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"go.uber.org/zap/buffer.Buffer" [])), (go.GoType.SliceType Field.ty)] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType consoleEncoder.ty) [(go!"AddArray", (some (go.signature.Signature [go.string, ArrayMarshaler.ty] false [go.error]))), (go!"AddBinary", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.byte)] false []))), (go!"AddBool", (some (go.signature.Signature [go.string, go.bool] false []))), (go!"AddByteString", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.byte)] false []))), (go!"AddComplex128", (some (go.signature.Signature [go.string, go.complex128] false []))), (go!"AddComplex64", (some (go.signature.Signature [go.string, go.complex64] false []))), (go!"AddDuration", (some (go.signature.Signature [go.string, _root_.Perennial.time.Duration.ty] false []))), (go!"AddFloat32", (some (go.signature.Signature [go.string, go.float32] false []))), (go!"AddFloat64", (some (go.signature.Signature [go.string, go.float64] false []))), (go!"AddInt", (some (go.signature.Signature [go.string, go.int] false []))), (go!"AddInt16", (some (go.signature.Signature [go.string, go.int16] false []))), (go!"AddInt32", (some (go.signature.Signature [go.string, go.int32] false []))), (go!"AddInt64", (some (go.signature.Signature [go.string, go.int64] false []))), (go!"AddInt8", (some (go.signature.Signature [go.string, go.int8] false []))), (go!"AddObject", (some (go.signature.Signature [go.string, ObjectMarshaler.ty] false [go.error]))), (go!"AddReflected", (some (go.signature.Signature [go.string, (go.GoType.InterfaceType [])] false [go.error]))), (go!"AddString", (some (go.signature.Signature [go.string, go.string] false []))), (go!"AddTime", (some (go.signature.Signature [go.string, _root_.Perennial.time.Time.ty] false []))), (go!"AddUint", (some (go.signature.Signature [go.string, go.uint] false []))), (go!"AddUint16", (some (go.signature.Signature [go.string, go.uint16] false []))), (go!"AddUint32", (some (go.signature.Signature [go.string, go.uint32] false []))), (go!"AddUint64", (some (go.signature.Signature [go.string, go.uint64] false []))), (go!"AddUint8", (some (go.signature.Signature [go.string, go.uint8] false []))), (go!"AddUintptr", (some (go.signature.Signature [go.string, go.uintptr] false []))), (go!"AppendArray", (some (go.signature.Signature [ArrayMarshaler.ty] false [go.error]))), (go!"AppendBool", (some (go.signature.Signature [go.bool] false []))), (go!"AppendByteString", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false []))), (go!"AppendComplex128", (some (go.signature.Signature [go.complex128] false []))), (go!"AppendComplex64", (some (go.signature.Signature [go.complex64] false []))), (go!"AppendDuration", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false []))), (go!"AppendFloat32", (some (go.signature.Signature [go.float32] false []))), (go!"AppendFloat64", (some (go.signature.Signature [go.float64] false []))), (go!"AppendInt", (some (go.signature.Signature [go.int] false []))), (go!"AppendInt16", (some (go.signature.Signature [go.int16] false []))), (go!"AppendInt32", (some (go.signature.Signature [go.int32] false []))), (go!"AppendInt64", (some (go.signature.Signature [go.int64] false []))), (go!"AppendInt8", (some (go.signature.Signature [go.int8] false []))), (go!"AppendObject", (some (go.signature.Signature [ObjectMarshaler.ty] false [go.error]))), (go!"AppendReflected", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"AppendString", (some (go.signature.Signature [go.string] false []))), (go!"AppendTime", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false []))), (go!"AppendTimeLayout", (some (go.signature.Signature [_root_.Perennial.time.Time.ty, go.string] false []))), (go!"AppendUint", (some (go.signature.Signature [go.uint] false []))), (go!"AppendUint16", (some (go.signature.Signature [go.uint16] false []))), (go!"AppendUint32", (some (go.signature.Signature [go.uint32] false []))), (go!"AppendUint64", (some (go.signature.Signature [go.uint64] false []))), (go!"AppendUint8", (some (go.signature.Signature [go.uint8] false []))), (go!"AppendUintptr", (some (go.signature.Signature [go.uintptr] false []))), (go!"Clone", (some (go.signature.Signature [] false [Encoder.ty]))), (go!"EncodeEntry", (some (go.signature.Signature [Entry.ty, (go.GoType.SliceType Field.ty)] false [(go.GoType.PointerType (go.GoType.Named go!"go.uber.org/zap/buffer.Buffer" [])), go.error]))), (go!"OpenNamespace", (some (go.signature.Signature [go.string] false []))), (go!"go.uber.org/zap/zapcore.addElementSeparator", (some (go.signature.Signature [] false []))), (go!"go.uber.org/zap/zapcore.addKey", (some (go.signature.Signature [go.string] false []))), (go!"go.uber.org/zap/zapcore.addSeparatorIfNecessary", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"go.uber.org/zap/buffer.Buffer" []))] false []))), (go!"go.uber.org/zap/zapcore.appendComplex", (some (go.signature.Signature [go.complex128, go.int] false []))), (go!"go.uber.org/zap/zapcore.appendFloat", (some (go.signature.Signature [go.float64, go.int] false []))), (go!"go.uber.org/zap/zapcore.clone", (some (go.signature.Signature [] false [(go.GoType.PointerType jsonEncoder.ty)]))), (go!"go.uber.org/zap/zapcore.closeOpenNamespaces", (some (go.signature.Signature [] false []))), (go!"go.uber.org/zap/zapcore.encodeReflected", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [(go.GoType.SliceType go.byte), go.error]))), (go!"go.uber.org/zap/zapcore.resetReflectBuf", (some (go.signature.Signature [] false []))), (go!"go.uber.org/zap/zapcore.safeAddByteString", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false []))), (go!"go.uber.org/zap/zapcore.safeAddString", (some (go.signature.Signature [go.string] false []))), (go!"go.uber.org/zap/zapcore.truncate", (some (go.signature.Signature [] false []))), (go!"go.uber.org/zap/zapcore.writeContext", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"go.uber.org/zap/buffer.Buffer" [])), (go.GoType.SliceType Field.ty)] false [])))]
 
 attribute [instance] consoleEncoder.TypeAssumptions.type_repr
   consoleEncoder.TypeAssumptions.underlying
   consoleEncoder.TypeAssumptions.get_jsonEncoder
   consoleEncoder.TypeAssumptions.set_jsonEncoder
+  consoleEncoder.TypeAssumptions.method_set
+  consoleEncoder.TypeAssumptions.ptr_method_set
 
 abbrev Core [GooseExts] : Type := GoInterface
 
 @[reducible] noncomputable def Core.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Check" (go.signature.Signature [Entry.ty, (go.GoType.PointerType CheckedEntry.ty)] false [(go.GoType.PointerType CheckedEntry.ty)])), (go.InterfaceElem.MethodElem go!"Sync" (go.signature.Signature [] false [go.error])), (go.InterfaceElem.MethodElem go!"With" (go.signature.Signature [(go.GoType.SliceType Field.ty)] false [Core.ty])), (go.InterfaceElem.MethodElem go!"Write" (go.signature.Signature [Entry.ty, (go.GoType.SliceType Field.ty)] false [go.error])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm LevelEnabler.ty)])])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Check" (go.signature.Signature [Entry.ty, (go.GoType.PointerType CheckedEntry.ty)] false [(go.GoType.PointerType CheckedEntry.ty)])), (go.InterfaceElem.MethodElem go!"Enabled" (go.signature.Signature [Level.ty] false [go.bool])), (go.InterfaceElem.MethodElem go!"Sync" (go.signature.Signature [] false [go.error])), (go.InterfaceElem.MethodElem go!"With" (go.signature.Signature [(go.GoType.SliceType Field.ty)] false [Core.ty])), (go.InterfaceElem.MethodElem go!"Write" (go.signature.Signature [Entry.ty, (go.GoType.SliceType Field.ty)] false [go.error]))])
 
 class Core.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Core.ty Core.underlying
+  method_set : go.MethodSetIs Core.ty [(go!"Check", (some (go.signature.Signature [Entry.ty, (go.GoType.PointerType CheckedEntry.ty)] false [(go.GoType.PointerType CheckedEntry.ty)]))), (go!"Enabled", (some (go.signature.Signature [Level.ty] false [go.bool]))), (go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"With", (some (go.signature.Signature [(go.GoType.SliceType Field.ty)] false [Core.ty]))), (go!"Write", (some (go.signature.Signature [Entry.ty, (go.GoType.SliceType Field.ty)] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Core.ty) []
 
 attribute [instance] Core.TypeAssumptions.underlying
+  Core.TypeAssumptions.method_set
+  Core.TypeAssumptions.ptr_method_set
 
 structure nopCore [GooseExts] where
   mk ::
@@ -814,9 +834,13 @@ noncomputable instance equals_unfold_nopCore [GooseExts] [GoGlobalContext] :
 class nopCore.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying nopCore.underlying nopCore
   underlying : go.UnderlyingDirectedEq nopCore.ty nopCore.underlying
+  method_set : go.MethodSetIs nopCore.ty [(go!"Check", (some (go.signature.Signature [Entry.ty, (go.GoType.PointerType CheckedEntry.ty)] false [(go.GoType.PointerType CheckedEntry.ty)]))), (go!"Enabled", (some (go.signature.Signature [Level.ty] false [go.bool]))), (go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"With", (some (go.signature.Signature [(go.GoType.SliceType Field.ty)] false [Core.ty]))), (go!"Write", (some (go.signature.Signature [Entry.ty, (go.GoType.SliceType Field.ty)] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType nopCore.ty) [(go!"Check", (some (go.signature.Signature [Entry.ty, (go.GoType.PointerType CheckedEntry.ty)] false [(go.GoType.PointerType CheckedEntry.ty)]))), (go!"Enabled", (some (go.signature.Signature [Level.ty] false [go.bool]))), (go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"With", (some (go.signature.Signature [(go.GoType.SliceType Field.ty)] false [Core.ty]))), (go!"Write", (some (go.signature.Signature [Entry.ty, (go.GoType.SliceType Field.ty)] false [go.error])))]
 
 attribute [instance] nopCore.TypeAssumptions.type_repr
   nopCore.TypeAssumptions.underlying
+  nopCore.TypeAssumptions.method_set
+  nopCore.TypeAssumptions.ptr_method_set
 
 abbrev LevelEnabler [GooseExts] : Type := GoInterface
 
@@ -825,8 +849,12 @@ abbrev LevelEnabler [GooseExts] : Type := GoInterface
 
 class LevelEnabler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq LevelEnabler.ty LevelEnabler.underlying
+  method_set : go.MethodSetIs LevelEnabler.ty [(go!"Enabled", (some (go.signature.Signature [Level.ty] false [go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType LevelEnabler.ty) []
 
 attribute [instance] LevelEnabler.TypeAssumptions.underlying
+  LevelEnabler.TypeAssumptions.method_set
+  LevelEnabler.TypeAssumptions.ptr_method_set
 
 axiom Encoder : Type
 axiom Encoder.zero_val : ZeroVal Encoder
@@ -836,20 +864,28 @@ class Encoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   type_repr : go.TypeReprUnderlying Encoder.underlying Encoder
   underlying : go.UnderlyingDirectedEq Encoder.ty Encoder.underlying
   isUnderlying : go.IsUnderlying Encoder.underlying Encoder.underlying
+  method_set : go.MethodSetIs Encoder.ty [(go!"AddArray", (some (go.signature.Signature [go.string, ArrayMarshaler.ty] false [go.error]))), (go!"AddBinary", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.byte)] false []))), (go!"AddBool", (some (go.signature.Signature [go.string, go.bool] false []))), (go!"AddByteString", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.byte)] false []))), (go!"AddComplex128", (some (go.signature.Signature [go.string, go.complex128] false []))), (go!"AddComplex64", (some (go.signature.Signature [go.string, go.complex64] false []))), (go!"AddDuration", (some (go.signature.Signature [go.string, _root_.Perennial.time.Duration.ty] false []))), (go!"AddFloat32", (some (go.signature.Signature [go.string, go.float32] false []))), (go!"AddFloat64", (some (go.signature.Signature [go.string, go.float64] false []))), (go!"AddInt", (some (go.signature.Signature [go.string, go.int] false []))), (go!"AddInt16", (some (go.signature.Signature [go.string, go.int16] false []))), (go!"AddInt32", (some (go.signature.Signature [go.string, go.int32] false []))), (go!"AddInt64", (some (go.signature.Signature [go.string, go.int64] false []))), (go!"AddInt8", (some (go.signature.Signature [go.string, go.int8] false []))), (go!"AddObject", (some (go.signature.Signature [go.string, ObjectMarshaler.ty] false [go.error]))), (go!"AddReflected", (some (go.signature.Signature [go.string, (go.GoType.InterfaceType [])] false [go.error]))), (go!"AddString", (some (go.signature.Signature [go.string, go.string] false []))), (go!"AddTime", (some (go.signature.Signature [go.string, _root_.Perennial.time.Time.ty] false []))), (go!"AddUint", (some (go.signature.Signature [go.string, go.uint] false []))), (go!"AddUint16", (some (go.signature.Signature [go.string, go.uint16] false []))), (go!"AddUint32", (some (go.signature.Signature [go.string, go.uint32] false []))), (go!"AddUint64", (some (go.signature.Signature [go.string, go.uint64] false []))), (go!"AddUint8", (some (go.signature.Signature [go.string, go.uint8] false []))), (go!"AddUintptr", (some (go.signature.Signature [go.string, go.uintptr] false []))), (go!"Clone", (some (go.signature.Signature [] false [Encoder.ty]))), (go!"EncodeEntry", (some (go.signature.Signature [Entry.ty, (go.GoType.SliceType Field.ty)] false [(go.GoType.PointerType (go.GoType.Named go!"go.uber.org/zap/buffer.Buffer" [])), go.error]))), (go!"OpenNamespace", (some (go.signature.Signature [go.string] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Encoder.ty) []
 
 attribute [instance] Encoder.TypeAssumptions.type_repr
   Encoder.TypeAssumptions.underlying
   Encoder.TypeAssumptions.isUnderlying
+  Encoder.TypeAssumptions.method_set
+  Encoder.TypeAssumptions.ptr_method_set
 
 abbrev WriteSyncer [GooseExts] : Type := GoInterface
 
 @[reducible] noncomputable def WriteSyncer.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Sync" (go.signature.Signature [] false [go.error])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm _root_.Perennial.io.Writer.ty)])])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Sync" (go.signature.Signature [] false [go.error])), (go.InterfaceElem.MethodElem go!"Write" (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))])
 
 class WriteSyncer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq WriteSyncer.ty WriteSyncer.underlying
+  method_set : go.MethodSetIs WriteSyncer.ty [(go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType WriteSyncer.ty) []
 
 attribute [instance] WriteSyncer.TypeAssumptions.underlying
+  WriteSyncer.TypeAssumptions.method_set
+  WriteSyncer.TypeAssumptions.ptr_method_set
 
 structure ioCore [GooseExts] where
   mk ::
@@ -884,6 +920,8 @@ class ioCore.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   set_enc : ∀ (x : ioCore) (y : Encoder), go.IsGoStepPureDetTagged under (StructFieldSet ioCore.underlying go!"enc") (PairV #x #y) (Val #(({ x with enc' := y } : ioCore)))
   get_out : ∀ (x : ioCore), go.IsGoStepPureDetTagged under (StructFieldGet ioCore.underlying go!"out") #x (Val #(x.out'))
   set_out : ∀ (x : ioCore) (y : WriteSyncer), go.IsGoStepPureDetTagged under (StructFieldSet ioCore.underlying go!"out") (PairV #x #y) (Val #(({ x with out' := y } : ioCore)))
+  method_set : go.MethodSetIs ioCore.ty [(go!"Enabled", (some (go.signature.Signature [Level.ty] false [go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ioCore.ty) [(go!"Check", (some (go.signature.Signature [Entry.ty, (go.GoType.PointerType CheckedEntry.ty)] false [(go.GoType.PointerType CheckedEntry.ty)]))), (go!"Enabled", (some (go.signature.Signature [Level.ty] false [go.bool]))), (go!"Level", (some (go.signature.Signature [] false [Level.ty]))), (go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"With", (some (go.signature.Signature [(go.GoType.SliceType Field.ty)] false [Core.ty]))), (go!"Write", (some (go.signature.Signature [Entry.ty, (go.GoType.SliceType Field.ty)] false [go.error]))), (go!"go.uber.org/zap/zapcore.clone", (some (go.signature.Signature [] false [(go.GoType.PointerType ioCore.ty)])))]
 
 attribute [instance] ioCore.TypeAssumptions.type_repr
   ioCore.TypeAssumptions.underlying
@@ -893,6 +931,8 @@ attribute [instance] ioCore.TypeAssumptions.type_repr
   ioCore.TypeAssumptions.set_enc
   ioCore.TypeAssumptions.get_out
   ioCore.TypeAssumptions.set_out
+  ioCore.TypeAssumptions.method_set
+  ioCore.TypeAssumptions.ptr_method_set
 
 abbrev LevelEncoder [GooseExts] : Type := GoFunc
 
@@ -901,8 +941,12 @@ abbrev LevelEncoder [GooseExts] : Type := GoFunc
 
 class LevelEncoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq LevelEncoder.ty LevelEncoder.underlying
+  method_set : go.MethodSetIs LevelEncoder.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType LevelEncoder.ty) [(go!"UnmarshalText", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] LevelEncoder.TypeAssumptions.underlying
+  LevelEncoder.TypeAssumptions.method_set
+  LevelEncoder.TypeAssumptions.ptr_method_set
 
 abbrev TimeEncoder [GooseExts] : Type := GoFunc
 
@@ -911,8 +955,12 @@ abbrev TimeEncoder [GooseExts] : Type := GoFunc
 
 class TimeEncoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq TimeEncoder.ty TimeEncoder.underlying
+  method_set : go.MethodSetIs TimeEncoder.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TimeEncoder.ty) [(go!"UnmarshalJSON", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"UnmarshalText", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"UnmarshalYAML", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))] false [go.error])))]
 
 attribute [instance] TimeEncoder.TypeAssumptions.underlying
+  TimeEncoder.TypeAssumptions.method_set
+  TimeEncoder.TypeAssumptions.ptr_method_set
 
 abbrev DurationEncoder [GooseExts] : Type := GoFunc
 
@@ -921,8 +969,12 @@ abbrev DurationEncoder [GooseExts] : Type := GoFunc
 
 class DurationEncoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq DurationEncoder.ty DurationEncoder.underlying
+  method_set : go.MethodSetIs DurationEncoder.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DurationEncoder.ty) [(go!"UnmarshalText", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] DurationEncoder.TypeAssumptions.underlying
+  DurationEncoder.TypeAssumptions.method_set
+  DurationEncoder.TypeAssumptions.ptr_method_set
 
 abbrev CallerEncoder [GooseExts] : Type := GoFunc
 
@@ -931,8 +983,12 @@ abbrev CallerEncoder [GooseExts] : Type := GoFunc
 
 class CallerEncoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq CallerEncoder.ty CallerEncoder.underlying
+  method_set : go.MethodSetIs CallerEncoder.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CallerEncoder.ty) [(go!"UnmarshalText", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] CallerEncoder.TypeAssumptions.underlying
+  CallerEncoder.TypeAssumptions.method_set
+  CallerEncoder.TypeAssumptions.ptr_method_set
 
 abbrev NameEncoder [GooseExts] : Type := GoFunc
 
@@ -941,8 +997,12 @@ abbrev NameEncoder [GooseExts] : Type := GoFunc
 
 class NameEncoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq NameEncoder.ty NameEncoder.underlying
+  method_set : go.MethodSetIs NameEncoder.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType NameEncoder.ty) [(go!"UnmarshalText", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error])))]
 
 attribute [instance] NameEncoder.TypeAssumptions.underlying
+  NameEncoder.TypeAssumptions.method_set
+  NameEncoder.TypeAssumptions.ptr_method_set
 
 structure EncoderConfig [GooseExts] where
   mk ::
@@ -1029,6 +1089,8 @@ class EncoderConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContex
   set_NewReflectedEncoder : ∀ (x : EncoderConfig) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet EncoderConfig.underlying go!"NewReflectedEncoder") (PairV #x #y) (Val #(({ x with NewReflectedEncoder' := y } : EncoderConfig)))
   get_ConsoleSeparator : ∀ (x : EncoderConfig), go.IsGoStepPureDetTagged under (StructFieldGet EncoderConfig.underlying go!"ConsoleSeparator") #x (Val #(x.ConsoleSeparator'))
   set_ConsoleSeparator : ∀ (x : EncoderConfig) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet EncoderConfig.underlying go!"ConsoleSeparator") (PairV #x #y) (Val #(({ x with ConsoleSeparator' := y } : EncoderConfig)))
+  method_set : go.MethodSetIs EncoderConfig.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType EncoderConfig.ty) []
 
 attribute [instance] EncoderConfig.TypeAssumptions.type_repr
   EncoderConfig.TypeAssumptions.underlying
@@ -1064,6 +1126,8 @@ attribute [instance] EncoderConfig.TypeAssumptions.type_repr
   EncoderConfig.TypeAssumptions.set_NewReflectedEncoder
   EncoderConfig.TypeAssumptions.get_ConsoleSeparator
   EncoderConfig.TypeAssumptions.set_ConsoleSeparator
+  EncoderConfig.TypeAssumptions.method_set
+  EncoderConfig.TypeAssumptions.ptr_method_set
 
 abbrev ObjectEncoder [GooseExts] : Type := GoInterface
 
@@ -1072,18 +1136,26 @@ abbrev ObjectEncoder [GooseExts] : Type := GoInterface
 
 class ObjectEncoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ObjectEncoder.ty ObjectEncoder.underlying
+  method_set : go.MethodSetIs ObjectEncoder.ty [(go!"AddArray", (some (go.signature.Signature [go.string, ArrayMarshaler.ty] false [go.error]))), (go!"AddBinary", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.byte)] false []))), (go!"AddBool", (some (go.signature.Signature [go.string, go.bool] false []))), (go!"AddByteString", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.byte)] false []))), (go!"AddComplex128", (some (go.signature.Signature [go.string, go.complex128] false []))), (go!"AddComplex64", (some (go.signature.Signature [go.string, go.complex64] false []))), (go!"AddDuration", (some (go.signature.Signature [go.string, _root_.Perennial.time.Duration.ty] false []))), (go!"AddFloat32", (some (go.signature.Signature [go.string, go.float32] false []))), (go!"AddFloat64", (some (go.signature.Signature [go.string, go.float64] false []))), (go!"AddInt", (some (go.signature.Signature [go.string, go.int] false []))), (go!"AddInt16", (some (go.signature.Signature [go.string, go.int16] false []))), (go!"AddInt32", (some (go.signature.Signature [go.string, go.int32] false []))), (go!"AddInt64", (some (go.signature.Signature [go.string, go.int64] false []))), (go!"AddInt8", (some (go.signature.Signature [go.string, go.int8] false []))), (go!"AddObject", (some (go.signature.Signature [go.string, ObjectMarshaler.ty] false [go.error]))), (go!"AddReflected", (some (go.signature.Signature [go.string, (go.GoType.InterfaceType [])] false [go.error]))), (go!"AddString", (some (go.signature.Signature [go.string, go.string] false []))), (go!"AddTime", (some (go.signature.Signature [go.string, _root_.Perennial.time.Time.ty] false []))), (go!"AddUint", (some (go.signature.Signature [go.string, go.uint] false []))), (go!"AddUint16", (some (go.signature.Signature [go.string, go.uint16] false []))), (go!"AddUint32", (some (go.signature.Signature [go.string, go.uint32] false []))), (go!"AddUint64", (some (go.signature.Signature [go.string, go.uint64] false []))), (go!"AddUint8", (some (go.signature.Signature [go.string, go.uint8] false []))), (go!"AddUintptr", (some (go.signature.Signature [go.string, go.uintptr] false []))), (go!"OpenNamespace", (some (go.signature.Signature [go.string] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ObjectEncoder.ty) []
 
 attribute [instance] ObjectEncoder.TypeAssumptions.underlying
+  ObjectEncoder.TypeAssumptions.method_set
+  ObjectEncoder.TypeAssumptions.ptr_method_set
 
 abbrev ArrayEncoder [GooseExts] : Type := GoInterface
 
 @[reducible] noncomputable def ArrayEncoder.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"AppendArray" (go.signature.Signature [ArrayMarshaler.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"AppendDuration" (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [])), (go.InterfaceElem.MethodElem go!"AppendObject" (go.signature.Signature [ObjectMarshaler.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"AppendReflected" (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error])), (go.InterfaceElem.MethodElem go!"AppendTime" (go.signature.Signature [_root_.Perennial.time.Time.ty] false [])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm PrimitiveArrayEncoder.ty)])])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"AppendArray" (go.signature.Signature [ArrayMarshaler.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"AppendBool" (go.signature.Signature [go.bool] false [])), (go.InterfaceElem.MethodElem go!"AppendByteString" (go.signature.Signature [(go.GoType.SliceType go.byte)] false [])), (go.InterfaceElem.MethodElem go!"AppendComplex128" (go.signature.Signature [go.complex128] false [])), (go.InterfaceElem.MethodElem go!"AppendComplex64" (go.signature.Signature [go.complex64] false [])), (go.InterfaceElem.MethodElem go!"AppendDuration" (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [])), (go.InterfaceElem.MethodElem go!"AppendFloat32" (go.signature.Signature [go.float32] false [])), (go.InterfaceElem.MethodElem go!"AppendFloat64" (go.signature.Signature [go.float64] false [])), (go.InterfaceElem.MethodElem go!"AppendInt" (go.signature.Signature [go.int] false [])), (go.InterfaceElem.MethodElem go!"AppendInt16" (go.signature.Signature [go.int16] false [])), (go.InterfaceElem.MethodElem go!"AppendInt32" (go.signature.Signature [go.int32] false [])), (go.InterfaceElem.MethodElem go!"AppendInt64" (go.signature.Signature [go.int64] false [])), (go.InterfaceElem.MethodElem go!"AppendInt8" (go.signature.Signature [go.int8] false [])), (go.InterfaceElem.MethodElem go!"AppendObject" (go.signature.Signature [ObjectMarshaler.ty] false [go.error])), (go.InterfaceElem.MethodElem go!"AppendReflected" (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error])), (go.InterfaceElem.MethodElem go!"AppendString" (go.signature.Signature [go.string] false [])), (go.InterfaceElem.MethodElem go!"AppendTime" (go.signature.Signature [_root_.Perennial.time.Time.ty] false [])), (go.InterfaceElem.MethodElem go!"AppendUint" (go.signature.Signature [go.uint] false [])), (go.InterfaceElem.MethodElem go!"AppendUint16" (go.signature.Signature [go.uint16] false [])), (go.InterfaceElem.MethodElem go!"AppendUint32" (go.signature.Signature [go.uint32] false [])), (go.InterfaceElem.MethodElem go!"AppendUint64" (go.signature.Signature [go.uint64] false [])), (go.InterfaceElem.MethodElem go!"AppendUint8" (go.signature.Signature [go.uint8] false [])), (go.InterfaceElem.MethodElem go!"AppendUintptr" (go.signature.Signature [go.uintptr] false []))])
 
 class ArrayEncoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ArrayEncoder.ty ArrayEncoder.underlying
+  method_set : go.MethodSetIs ArrayEncoder.ty [(go!"AppendArray", (some (go.signature.Signature [ArrayMarshaler.ty] false [go.error]))), (go!"AppendBool", (some (go.signature.Signature [go.bool] false []))), (go!"AppendByteString", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false []))), (go!"AppendComplex128", (some (go.signature.Signature [go.complex128] false []))), (go!"AppendComplex64", (some (go.signature.Signature [go.complex64] false []))), (go!"AppendDuration", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false []))), (go!"AppendFloat32", (some (go.signature.Signature [go.float32] false []))), (go!"AppendFloat64", (some (go.signature.Signature [go.float64] false []))), (go!"AppendInt", (some (go.signature.Signature [go.int] false []))), (go!"AppendInt16", (some (go.signature.Signature [go.int16] false []))), (go!"AppendInt32", (some (go.signature.Signature [go.int32] false []))), (go!"AppendInt64", (some (go.signature.Signature [go.int64] false []))), (go!"AppendInt8", (some (go.signature.Signature [go.int8] false []))), (go!"AppendObject", (some (go.signature.Signature [ObjectMarshaler.ty] false [go.error]))), (go!"AppendReflected", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"AppendString", (some (go.signature.Signature [go.string] false []))), (go!"AppendTime", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false []))), (go!"AppendUint", (some (go.signature.Signature [go.uint] false []))), (go!"AppendUint16", (some (go.signature.Signature [go.uint16] false []))), (go!"AppendUint32", (some (go.signature.Signature [go.uint32] false []))), (go!"AppendUint64", (some (go.signature.Signature [go.uint64] false []))), (go!"AppendUint8", (some (go.signature.Signature [go.uint8] false []))), (go!"AppendUintptr", (some (go.signature.Signature [go.uintptr] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ArrayEncoder.ty) []
 
 attribute [instance] ArrayEncoder.TypeAssumptions.underlying
+  ArrayEncoder.TypeAssumptions.method_set
+  ArrayEncoder.TypeAssumptions.ptr_method_set
 
 abbrev PrimitiveArrayEncoder [GooseExts] : Type := GoInterface
 
@@ -1092,8 +1164,12 @@ abbrev PrimitiveArrayEncoder [GooseExts] : Type := GoInterface
 
 class PrimitiveArrayEncoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq PrimitiveArrayEncoder.ty PrimitiveArrayEncoder.underlying
+  method_set : go.MethodSetIs PrimitiveArrayEncoder.ty [(go!"AppendBool", (some (go.signature.Signature [go.bool] false []))), (go!"AppendByteString", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false []))), (go!"AppendComplex128", (some (go.signature.Signature [go.complex128] false []))), (go!"AppendComplex64", (some (go.signature.Signature [go.complex64] false []))), (go!"AppendFloat32", (some (go.signature.Signature [go.float32] false []))), (go!"AppendFloat64", (some (go.signature.Signature [go.float64] false []))), (go!"AppendInt", (some (go.signature.Signature [go.int] false []))), (go!"AppendInt16", (some (go.signature.Signature [go.int16] false []))), (go!"AppendInt32", (some (go.signature.Signature [go.int32] false []))), (go!"AppendInt64", (some (go.signature.Signature [go.int64] false []))), (go!"AppendInt8", (some (go.signature.Signature [go.int8] false []))), (go!"AppendString", (some (go.signature.Signature [go.string] false []))), (go!"AppendUint", (some (go.signature.Signature [go.uint] false []))), (go!"AppendUint16", (some (go.signature.Signature [go.uint16] false []))), (go!"AppendUint32", (some (go.signature.Signature [go.uint32] false []))), (go!"AppendUint64", (some (go.signature.Signature [go.uint64] false []))), (go!"AppendUint8", (some (go.signature.Signature [go.uint8] false []))), (go!"AppendUintptr", (some (go.signature.Signature [go.uintptr] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PrimitiveArrayEncoder.ty) []
 
 attribute [instance] PrimitiveArrayEncoder.TypeAssumptions.underlying
+  PrimitiveArrayEncoder.TypeAssumptions.method_set
+  PrimitiveArrayEncoder.TypeAssumptions.ptr_method_set
 
 structure EntryCaller [GooseExts] where
   mk ::
@@ -1136,6 +1212,8 @@ class EntryCaller.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   set_Line : ∀ (x : EntryCaller) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet EntryCaller.underlying go!"Line") (PairV #x #y) (Val #(({ x with Line' := y } : EntryCaller)))
   get_Function : ∀ (x : EntryCaller), go.IsGoStepPureDetTagged under (StructFieldGet EntryCaller.underlying go!"Function") #x (Val #(x.Function'))
   set_Function : ∀ (x : EntryCaller) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet EntryCaller.underlying go!"Function") (PairV #x #y) (Val #(({ x with Function' := y } : EntryCaller)))
+  method_set : go.MethodSetIs EntryCaller.ty [(go!"FullPath", (some (go.signature.Signature [] false [go.string]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"TrimmedPath", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType EntryCaller.ty) [(go!"FullPath", (some (go.signature.Signature [] false [go.string]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"TrimmedPath", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] EntryCaller.TypeAssumptions.type_repr
   EntryCaller.TypeAssumptions.underlying
@@ -1149,6 +1227,8 @@ attribute [instance] EntryCaller.TypeAssumptions.type_repr
   EntryCaller.TypeAssumptions.set_Line
   EntryCaller.TypeAssumptions.get_Function
   EntryCaller.TypeAssumptions.set_Function
+  EntryCaller.TypeAssumptions.method_set
+  EntryCaller.TypeAssumptions.ptr_method_set
 
 abbrev Level [GooseExts] : Type := w8
 
@@ -1157,8 +1237,12 @@ abbrev Level [GooseExts] : Type := w8
 
 class Level.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Level.ty Level.underlying
+  method_set : go.MethodSetIs Level.ty [(go!"CapitalString", (some (go.signature.Signature [] false [go.string]))), (go!"Enabled", (some (go.signature.Signature [Level.ty] false [go.bool]))), (go!"MarshalText", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Level.ty) [(go!"CapitalString", (some (go.signature.Signature [] false [go.string]))), (go!"Enabled", (some (go.signature.Signature [Level.ty] false [go.bool]))), (go!"Get", (some (go.signature.Signature [] false [(go.GoType.InterfaceType [])]))), (go!"MarshalText", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"Set", (some (go.signature.Signature [go.string] false [go.error]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"UnmarshalText", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"go.uber.org/zap/zapcore.unmarshalText", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.bool])))]
 
 attribute [instance] Level.TypeAssumptions.underlying
+  Level.TypeAssumptions.method_set
+  Level.TypeAssumptions.ptr_method_set
 
 structure Entry [GooseExts] where
   mk ::
@@ -1205,6 +1289,8 @@ class Entry.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSe
   set_Caller : ∀ (x : Entry) (y : EntryCaller), go.IsGoStepPureDetTagged under (StructFieldSet Entry.underlying go!"Caller") (PairV #x #y) (Val #(({ x with Caller' := y } : Entry)))
   get_Stack : ∀ (x : Entry), go.IsGoStepPureDetTagged under (StructFieldGet Entry.underlying go!"Stack") #x (Val #(x.Stack'))
   set_Stack : ∀ (x : Entry) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Entry.underlying go!"Stack") (PairV #x #y) (Val #(({ x with Stack' := y } : Entry)))
+  method_set : go.MethodSetIs Entry.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Entry.ty) []
 
 attribute [instance] Entry.TypeAssumptions.type_repr
   Entry.TypeAssumptions.underlying
@@ -1220,6 +1306,8 @@ attribute [instance] Entry.TypeAssumptions.type_repr
   Entry.TypeAssumptions.set_Caller
   Entry.TypeAssumptions.get_Stack
   Entry.TypeAssumptions.set_Stack
+  Entry.TypeAssumptions.method_set
+  Entry.TypeAssumptions.ptr_method_set
 
 abbrev CheckWriteHook [GooseExts] : Type := GoInterface
 
@@ -1228,8 +1316,12 @@ abbrev CheckWriteHook [GooseExts] : Type := GoInterface
 
 class CheckWriteHook.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq CheckWriteHook.ty CheckWriteHook.underlying
+  method_set : go.MethodSetIs CheckWriteHook.ty [(go!"OnWrite", (some (go.signature.Signature [(go.GoType.PointerType CheckedEntry.ty), (go.GoType.SliceType Field.ty)] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CheckWriteHook.ty) []
 
 attribute [instance] CheckWriteHook.TypeAssumptions.underlying
+  CheckWriteHook.TypeAssumptions.method_set
+  CheckWriteHook.TypeAssumptions.ptr_method_set
 
 abbrev CheckWriteAction [GooseExts] : Type := w8
 
@@ -1238,8 +1330,12 @@ abbrev CheckWriteAction [GooseExts] : Type := w8
 
 class CheckWriteAction.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq CheckWriteAction.ty CheckWriteAction.underlying
+  method_set : go.MethodSetIs CheckWriteAction.ty [(go!"OnWrite", (some (go.signature.Signature [(go.GoType.PointerType CheckedEntry.ty), (go.GoType.SliceType Field.ty)] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CheckWriteAction.ty) [(go!"OnWrite", (some (go.signature.Signature [(go.GoType.PointerType CheckedEntry.ty), (go.GoType.SliceType Field.ty)] false [])))]
 
 attribute [instance] CheckWriteAction.TypeAssumptions.underlying
+  CheckWriteAction.TypeAssumptions.method_set
+  CheckWriteAction.TypeAssumptions.ptr_method_set
 
 abbrev CheckPreWriteHook [GooseExts] : Type := GoFunc
 
@@ -1248,8 +1344,12 @@ abbrev CheckPreWriteHook [GooseExts] : Type := GoFunc
 
 class CheckPreWriteHook.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq CheckPreWriteHook.ty CheckPreWriteHook.underlying
+  method_set : go.MethodSetIs CheckPreWriteHook.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CheckPreWriteHook.ty) []
 
 attribute [instance] CheckPreWriteHook.TypeAssumptions.underlying
+  CheckPreWriteHook.TypeAssumptions.method_set
+  CheckPreWriteHook.TypeAssumptions.ptr_method_set
 
 structure CheckedEntry [GooseExts] where
   mk ::
@@ -1296,6 +1396,8 @@ class CheckedEntry.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext
   set_cores : ∀ (x : CheckedEntry) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet CheckedEntry.underlying go!"cores") (PairV #x #y) (Val #(({ x with cores' := y } : CheckedEntry)))
   get_before : ∀ (x : CheckedEntry), go.IsGoStepPureDetTagged under (StructFieldGet CheckedEntry.underlying go!"before") #x (Val #(x.before'))
   set_before : ∀ (x : CheckedEntry) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet CheckedEntry.underlying go!"before") (PairV #x #y) (Val #(({ x with before' := y } : CheckedEntry)))
+  method_set : go.MethodSetIs CheckedEntry.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CheckedEntry.ty) [(go!"AddCore", (some (go.signature.Signature [Entry.ty, Core.ty] false [(go.GoType.PointerType CheckedEntry.ty)]))), (go!"After", (some (go.signature.Signature [Entry.ty, CheckWriteHook.ty] false [(go.GoType.PointerType CheckedEntry.ty)]))), (go!"Before", (some (go.signature.Signature [Entry.ty, CheckPreWriteHook.ty] false [(go.GoType.PointerType CheckedEntry.ty)]))), (go!"Should", (some (go.signature.Signature [Entry.ty, CheckWriteAction.ty] false [(go.GoType.PointerType CheckedEntry.ty)]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType Field.ty)] true []))), (go!"go.uber.org/zap/zapcore.reset", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] CheckedEntry.TypeAssumptions.type_repr
   CheckedEntry.TypeAssumptions.underlying
@@ -1311,6 +1413,8 @@ attribute [instance] CheckedEntry.TypeAssumptions.type_repr
   CheckedEntry.TypeAssumptions.set_cores
   CheckedEntry.TypeAssumptions.get_before
   CheckedEntry.TypeAssumptions.set_before
+  CheckedEntry.TypeAssumptions.method_set
+  CheckedEntry.TypeAssumptions.ptr_method_set
 
 abbrev errorGroup [GooseExts] : Type := GoInterface
 
@@ -1319,8 +1423,12 @@ abbrev errorGroup [GooseExts] : Type := GoInterface
 
 class errorGroup.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq errorGroup.ty errorGroup.underlying
+  method_set : go.MethodSetIs errorGroup.ty [(go!"Errors", (some (go.signature.Signature [] false [(go.GoType.SliceType go.error)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType errorGroup.ty) []
 
 attribute [instance] errorGroup.TypeAssumptions.underlying
+  errorGroup.TypeAssumptions.method_set
+  errorGroup.TypeAssumptions.ptr_method_set
 
 abbrev errArray [GooseExts] : Type := GoSlice
 
@@ -1329,8 +1437,12 @@ abbrev errArray [GooseExts] : Type := GoSlice
 
 class errArray.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq errArray.ty errArray.underlying
+  method_set : go.MethodSetIs errArray.ty [(go!"MarshalLogArray", (some (go.signature.Signature [ArrayEncoder.ty] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType errArray.ty) [(go!"MarshalLogArray", (some (go.signature.Signature [ArrayEncoder.ty] false [go.error])))]
 
 attribute [instance] errArray.TypeAssumptions.underlying
+  errArray.TypeAssumptions.method_set
+  errArray.TypeAssumptions.ptr_method_set
 
 structure errArrayElem [GooseExts] where
   mk ::
@@ -1357,11 +1469,15 @@ class errArrayElem.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext
   underlying : go.UnderlyingDirectedEq errArrayElem.ty errArrayElem.underlying
   get_err : ∀ (x : errArrayElem), go.IsGoStepPureDetTagged under (StructFieldGet errArrayElem.underlying go!"err") #x (Val #(x.err'))
   set_err : ∀ (x : errArrayElem) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet errArrayElem.underlying go!"err") (PairV #x #y) (Val #(({ x with err' := y } : errArrayElem)))
+  method_set : go.MethodSetIs errArrayElem.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType errArrayElem.ty) [(go!"Free", (some (go.signature.Signature [] false []))), (go!"MarshalLogArray", (some (go.signature.Signature [ArrayEncoder.ty] false [go.error]))), (go!"MarshalLogObject", (some (go.signature.Signature [ObjectEncoder.ty] false [go.error])))]
 
 attribute [instance] errArrayElem.TypeAssumptions.type_repr
   errArrayElem.TypeAssumptions.underlying
   errArrayElem.TypeAssumptions.get_err
   errArrayElem.TypeAssumptions.set_err
+  errArrayElem.TypeAssumptions.method_set
+  errArrayElem.TypeAssumptions.ptr_method_set
 
 abbrev FieldType [GooseExts] : Type := w8
 
@@ -1370,8 +1486,12 @@ abbrev FieldType [GooseExts] : Type := w8
 
 class FieldType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq FieldType.ty FieldType.underlying
+  method_set : go.MethodSetIs FieldType.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType FieldType.ty) []
 
 attribute [instance] FieldType.TypeAssumptions.underlying
+  FieldType.TypeAssumptions.method_set
+  FieldType.TypeAssumptions.ptr_method_set
 
 structure Field [GooseExts] where
   mk ::
@@ -1414,6 +1534,8 @@ class Field.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSe
   set_String : ∀ (x : Field) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Field.underlying go!"String") (PairV #x #y) (Val #(({ x with String' := y } : Field)))
   get_Interface : ∀ (x : Field), go.IsGoStepPureDetTagged under (StructFieldGet Field.underlying go!"Interface") #x (Val #(x.Interface'))
   set_Interface : ∀ (x : Field) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet Field.underlying go!"Interface") (PairV #x #y) (Val #(({ x with Interface' := y } : Field)))
+  method_set : go.MethodSetIs Field.ty [(go!"AddTo", (some (go.signature.Signature [ObjectEncoder.ty] false []))), (go!"Equals", (some (go.signature.Signature [Field.ty] false [go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Field.ty) [(go!"AddTo", (some (go.signature.Signature [ObjectEncoder.ty] false []))), (go!"Equals", (some (go.signature.Signature [Field.ty] false [go.bool])))]
 
 attribute [instance] Field.TypeAssumptions.type_repr
   Field.TypeAssumptions.underlying
@@ -1427,6 +1549,8 @@ attribute [instance] Field.TypeAssumptions.type_repr
   Field.TypeAssumptions.set_String
   Field.TypeAssumptions.get_Interface
   Field.TypeAssumptions.set_Interface
+  Field.TypeAssumptions.method_set
+  Field.TypeAssumptions.ptr_method_set
 
 structure hooked [GooseExts] where
   mk ::
@@ -1457,6 +1581,8 @@ class hooked.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   set_Core : ∀ (x : hooked) (y : Core), go.IsGoStepPureDetTagged under (StructFieldSet hooked.underlying go!"Core") (PairV #x #y) (Val #(({ x with Core' := y } : hooked)))
   get_funcs : ∀ (x : hooked), go.IsGoStepPureDetTagged under (StructFieldGet hooked.underlying go!"funcs") #x (Val #(x.funcs'))
   set_funcs : ∀ (x : hooked) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet hooked.underlying go!"funcs") (PairV #x #y) (Val #(({ x with funcs' := y } : hooked)))
+  method_set : go.MethodSetIs hooked.ty [(go!"Enabled", (some (go.signature.Signature [Level.ty] false [go.bool]))), (go!"Sync", (some (go.signature.Signature [] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType hooked.ty) [(go!"Check", (some (go.signature.Signature [Entry.ty, (go.GoType.PointerType CheckedEntry.ty)] false [(go.GoType.PointerType CheckedEntry.ty)]))), (go!"Enabled", (some (go.signature.Signature [Level.ty] false [go.bool]))), (go!"Level", (some (go.signature.Signature [] false [Level.ty]))), (go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"With", (some (go.signature.Signature [(go.GoType.SliceType Field.ty)] false [Core.ty]))), (go!"Write", (some (go.signature.Signature [Entry.ty, (go.GoType.SliceType Field.ty)] false [go.error])))]
 
 attribute [instance] hooked.TypeAssumptions.type_repr
   hooked.TypeAssumptions.underlying
@@ -1464,6 +1590,8 @@ attribute [instance] hooked.TypeAssumptions.type_repr
   hooked.TypeAssumptions.set_Core
   hooked.TypeAssumptions.get_funcs
   hooked.TypeAssumptions.set_funcs
+  hooked.TypeAssumptions.method_set
+  hooked.TypeAssumptions.ptr_method_set
 
 structure levelFilterCore [GooseExts] where
   mk ::
@@ -1494,6 +1622,8 @@ class levelFilterCore.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCont
   set_core : ∀ (x : levelFilterCore) (y : Core), go.IsGoStepPureDetTagged under (StructFieldSet levelFilterCore.underlying go!"core") (PairV #x #y) (Val #(({ x with core' := y } : levelFilterCore)))
   get_level : ∀ (x : levelFilterCore), go.IsGoStepPureDetTagged under (StructFieldGet levelFilterCore.underlying go!"level") #x (Val #(x.level'))
   set_level : ∀ (x : levelFilterCore) (y : LevelEnabler), go.IsGoStepPureDetTagged under (StructFieldSet levelFilterCore.underlying go!"level") (PairV #x #y) (Val #(({ x with level' := y } : levelFilterCore)))
+  method_set : go.MethodSetIs levelFilterCore.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType levelFilterCore.ty) [(go!"Check", (some (go.signature.Signature [Entry.ty, (go.GoType.PointerType CheckedEntry.ty)] false [(go.GoType.PointerType CheckedEntry.ty)]))), (go!"Enabled", (some (go.signature.Signature [Level.ty] false [go.bool]))), (go!"Level", (some (go.signature.Signature [] false [Level.ty]))), (go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"With", (some (go.signature.Signature [(go.GoType.SliceType Field.ty)] false [Core.ty]))), (go!"Write", (some (go.signature.Signature [Entry.ty, (go.GoType.SliceType Field.ty)] false [go.error])))]
 
 attribute [instance] levelFilterCore.TypeAssumptions.type_repr
   levelFilterCore.TypeAssumptions.underlying
@@ -1501,6 +1631,8 @@ attribute [instance] levelFilterCore.TypeAssumptions.type_repr
   levelFilterCore.TypeAssumptions.set_core
   levelFilterCore.TypeAssumptions.get_level
   levelFilterCore.TypeAssumptions.set_level
+  levelFilterCore.TypeAssumptions.method_set
+  levelFilterCore.TypeAssumptions.ptr_method_set
 
 axiom jsonEncoder : Type
 axiom jsonEncoder.zero_val : ZeroVal jsonEncoder
@@ -1510,10 +1642,14 @@ class jsonEncoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   type_repr : go.TypeReprUnderlying jsonEncoder.underlying jsonEncoder
   underlying : go.UnderlyingDirectedEq jsonEncoder.ty jsonEncoder.underlying
   isUnderlying : go.IsUnderlying jsonEncoder.underlying jsonEncoder.underlying
+  method_set : go.MethodSetIs jsonEncoder.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType jsonEncoder.ty) [(go!"AddArray", (some (go.signature.Signature [go.string, ArrayMarshaler.ty] false [go.error]))), (go!"AddBinary", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.byte)] false []))), (go!"AddBool", (some (go.signature.Signature [go.string, go.bool] false []))), (go!"AddByteString", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.byte)] false []))), (go!"AddComplex128", (some (go.signature.Signature [go.string, go.complex128] false []))), (go!"AddComplex64", (some (go.signature.Signature [go.string, go.complex64] false []))), (go!"AddDuration", (some (go.signature.Signature [go.string, _root_.Perennial.time.Duration.ty] false []))), (go!"AddFloat32", (some (go.signature.Signature [go.string, go.float32] false []))), (go!"AddFloat64", (some (go.signature.Signature [go.string, go.float64] false []))), (go!"AddInt", (some (go.signature.Signature [go.string, go.int] false []))), (go!"AddInt16", (some (go.signature.Signature [go.string, go.int16] false []))), (go!"AddInt32", (some (go.signature.Signature [go.string, go.int32] false []))), (go!"AddInt64", (some (go.signature.Signature [go.string, go.int64] false []))), (go!"AddInt8", (some (go.signature.Signature [go.string, go.int8] false []))), (go!"AddObject", (some (go.signature.Signature [go.string, ObjectMarshaler.ty] false [go.error]))), (go!"AddReflected", (some (go.signature.Signature [go.string, (go.GoType.InterfaceType [])] false [go.error]))), (go!"AddString", (some (go.signature.Signature [go.string, go.string] false []))), (go!"AddTime", (some (go.signature.Signature [go.string, _root_.Perennial.time.Time.ty] false []))), (go!"AddUint", (some (go.signature.Signature [go.string, go.uint] false []))), (go!"AddUint16", (some (go.signature.Signature [go.string, go.uint16] false []))), (go!"AddUint32", (some (go.signature.Signature [go.string, go.uint32] false []))), (go!"AddUint64", (some (go.signature.Signature [go.string, go.uint64] false []))), (go!"AddUint8", (some (go.signature.Signature [go.string, go.uint8] false []))), (go!"AddUintptr", (some (go.signature.Signature [go.string, go.uintptr] false []))), (go!"AppendArray", (some (go.signature.Signature [ArrayMarshaler.ty] false [go.error]))), (go!"AppendBool", (some (go.signature.Signature [go.bool] false []))), (go!"AppendByteString", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false []))), (go!"AppendComplex128", (some (go.signature.Signature [go.complex128] false []))), (go!"AppendComplex64", (some (go.signature.Signature [go.complex64] false []))), (go!"AppendDuration", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false []))), (go!"AppendFloat32", (some (go.signature.Signature [go.float32] false []))), (go!"AppendFloat64", (some (go.signature.Signature [go.float64] false []))), (go!"AppendInt", (some (go.signature.Signature [go.int] false []))), (go!"AppendInt16", (some (go.signature.Signature [go.int16] false []))), (go!"AppendInt32", (some (go.signature.Signature [go.int32] false []))), (go!"AppendInt64", (some (go.signature.Signature [go.int64] false []))), (go!"AppendInt8", (some (go.signature.Signature [go.int8] false []))), (go!"AppendObject", (some (go.signature.Signature [ObjectMarshaler.ty] false [go.error]))), (go!"AppendReflected", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"AppendString", (some (go.signature.Signature [go.string] false []))), (go!"AppendTime", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false []))), (go!"AppendTimeLayout", (some (go.signature.Signature [_root_.Perennial.time.Time.ty, go.string] false []))), (go!"AppendUint", (some (go.signature.Signature [go.uint] false []))), (go!"AppendUint16", (some (go.signature.Signature [go.uint16] false []))), (go!"AppendUint32", (some (go.signature.Signature [go.uint32] false []))), (go!"AppendUint64", (some (go.signature.Signature [go.uint64] false []))), (go!"AppendUint8", (some (go.signature.Signature [go.uint8] false []))), (go!"AppendUintptr", (some (go.signature.Signature [go.uintptr] false []))), (go!"Clone", (some (go.signature.Signature [] false [Encoder.ty]))), (go!"EncodeEntry", (some (go.signature.Signature [Entry.ty, (go.GoType.SliceType Field.ty)] false [(go.GoType.PointerType (go.GoType.Named go!"go.uber.org/zap/buffer.Buffer" [])), go.error]))), (go!"OpenNamespace", (some (go.signature.Signature [go.string] false []))), (go!"go.uber.org/zap/zapcore.addElementSeparator", (some (go.signature.Signature [] false []))), (go!"go.uber.org/zap/zapcore.addKey", (some (go.signature.Signature [go.string] false []))), (go!"go.uber.org/zap/zapcore.appendComplex", (some (go.signature.Signature [go.complex128, go.int] false []))), (go!"go.uber.org/zap/zapcore.appendFloat", (some (go.signature.Signature [go.float64, go.int] false []))), (go!"go.uber.org/zap/zapcore.clone", (some (go.signature.Signature [] false [(go.GoType.PointerType jsonEncoder.ty)]))), (go!"go.uber.org/zap/zapcore.closeOpenNamespaces", (some (go.signature.Signature [] false []))), (go!"go.uber.org/zap/zapcore.encodeReflected", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [(go.GoType.SliceType go.byte), go.error]))), (go!"go.uber.org/zap/zapcore.resetReflectBuf", (some (go.signature.Signature [] false []))), (go!"go.uber.org/zap/zapcore.safeAddByteString", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false []))), (go!"go.uber.org/zap/zapcore.safeAddString", (some (go.signature.Signature [go.string] false []))), (go!"go.uber.org/zap/zapcore.truncate", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] jsonEncoder.TypeAssumptions.type_repr
   jsonEncoder.TypeAssumptions.underlying
   jsonEncoder.TypeAssumptions.isUnderlying
+  jsonEncoder.TypeAssumptions.method_set
+  jsonEncoder.TypeAssumptions.ptr_method_set
 
 axiom lazyWithCore : Type
 axiom lazyWithCore.zero_val : ZeroVal lazyWithCore
@@ -1523,20 +1659,28 @@ class lazyWithCore.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext
   type_repr : go.TypeReprUnderlying lazyWithCore.underlying lazyWithCore
   underlying : go.UnderlyingDirectedEq lazyWithCore.ty lazyWithCore.underlying
   isUnderlying : go.IsUnderlying lazyWithCore.underlying lazyWithCore.underlying
+  method_set : go.MethodSetIs lazyWithCore.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType lazyWithCore.ty) [(go!"Check", (some (go.signature.Signature [Entry.ty, (go.GoType.PointerType CheckedEntry.ty)] false [(go.GoType.PointerType CheckedEntry.ty)]))), (go!"Do", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [] false []))] false []))), (go!"Enabled", (some (go.signature.Signature [Level.ty] false [go.bool]))), (go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"With", (some (go.signature.Signature [(go.GoType.SliceType Field.ty)] false [Core.ty]))), (go!"Write", (some (go.signature.Signature [Entry.ty, (go.GoType.SliceType Field.ty)] false [go.error]))), (go!"go.uber.org/zap/zapcore.initOnce", (some (go.signature.Signature [] false []))), (go!"sync.doSlow", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [] false []))] false [])))]
 
 attribute [instance] lazyWithCore.TypeAssumptions.type_repr
   lazyWithCore.TypeAssumptions.underlying
   lazyWithCore.TypeAssumptions.isUnderlying
+  lazyWithCore.TypeAssumptions.method_set
+  lazyWithCore.TypeAssumptions.ptr_method_set
 
 abbrev leveledEnabler [GooseExts] : Type := GoInterface
 
 @[reducible] noncomputable def leveledEnabler.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Level" (go.signature.Signature [] false [Level.ty])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm LevelEnabler.ty)])])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Enabled" (go.signature.Signature [Level.ty] false [go.bool])), (go.InterfaceElem.MethodElem go!"Level" (go.signature.Signature [] false [Level.ty]))])
 
 class leveledEnabler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq leveledEnabler.ty leveledEnabler.underlying
+  method_set : go.MethodSetIs leveledEnabler.ty [(go!"Enabled", (some (go.signature.Signature [Level.ty] false [go.bool]))), (go!"Level", (some (go.signature.Signature [] false [Level.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType leveledEnabler.ty) []
 
 attribute [instance] leveledEnabler.TypeAssumptions.underlying
+  leveledEnabler.TypeAssumptions.method_set
+  leveledEnabler.TypeAssumptions.ptr_method_set
 
 abbrev ObjectMarshaler [GooseExts] : Type := GoInterface
 
@@ -1545,8 +1689,12 @@ abbrev ObjectMarshaler [GooseExts] : Type := GoInterface
 
 class ObjectMarshaler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ObjectMarshaler.ty ObjectMarshaler.underlying
+  method_set : go.MethodSetIs ObjectMarshaler.ty [(go!"MarshalLogObject", (some (go.signature.Signature [ObjectEncoder.ty] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ObjectMarshaler.ty) []
 
 attribute [instance] ObjectMarshaler.TypeAssumptions.underlying
+  ObjectMarshaler.TypeAssumptions.method_set
+  ObjectMarshaler.TypeAssumptions.ptr_method_set
 
 abbrev ObjectMarshalerFunc [GooseExts] : Type := GoFunc
 
@@ -1555,8 +1703,12 @@ abbrev ObjectMarshalerFunc [GooseExts] : Type := GoFunc
 
 class ObjectMarshalerFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ObjectMarshalerFunc.ty ObjectMarshalerFunc.underlying
+  method_set : go.MethodSetIs ObjectMarshalerFunc.ty [(go!"MarshalLogObject", (some (go.signature.Signature [ObjectEncoder.ty] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ObjectMarshalerFunc.ty) [(go!"MarshalLogObject", (some (go.signature.Signature [ObjectEncoder.ty] false [go.error])))]
 
 attribute [instance] ObjectMarshalerFunc.TypeAssumptions.underlying
+  ObjectMarshalerFunc.TypeAssumptions.method_set
+  ObjectMarshalerFunc.TypeAssumptions.ptr_method_set
 
 abbrev ArrayMarshaler [GooseExts] : Type := GoInterface
 
@@ -1565,8 +1717,12 @@ abbrev ArrayMarshaler [GooseExts] : Type := GoInterface
 
 class ArrayMarshaler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ArrayMarshaler.ty ArrayMarshaler.underlying
+  method_set : go.MethodSetIs ArrayMarshaler.ty [(go!"MarshalLogArray", (some (go.signature.Signature [ArrayEncoder.ty] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ArrayMarshaler.ty) []
 
 attribute [instance] ArrayMarshaler.TypeAssumptions.underlying
+  ArrayMarshaler.TypeAssumptions.method_set
+  ArrayMarshaler.TypeAssumptions.ptr_method_set
 
 abbrev ArrayMarshalerFunc [GooseExts] : Type := GoFunc
 
@@ -1575,8 +1731,12 @@ abbrev ArrayMarshalerFunc [GooseExts] : Type := GoFunc
 
 class ArrayMarshalerFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ArrayMarshalerFunc.ty ArrayMarshalerFunc.underlying
+  method_set : go.MethodSetIs ArrayMarshalerFunc.ty [(go!"MarshalLogArray", (some (go.signature.Signature [ArrayEncoder.ty] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ArrayMarshalerFunc.ty) [(go!"MarshalLogArray", (some (go.signature.Signature [ArrayEncoder.ty] false [go.error])))]
 
 attribute [instance] ArrayMarshalerFunc.TypeAssumptions.underlying
+  ArrayMarshalerFunc.TypeAssumptions.method_set
+  ArrayMarshalerFunc.TypeAssumptions.ptr_method_set
 
 structure MapObjectEncoder [GooseExts] where
   mk ::
@@ -1607,6 +1767,8 @@ class MapObjectEncoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCon
   set_Fields : ∀ (x : MapObjectEncoder) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet MapObjectEncoder.underlying go!"Fields") (PairV #x #y) (Val #(({ x with Fields' := y } : MapObjectEncoder)))
   get_cur : ∀ (x : MapObjectEncoder), go.IsGoStepPureDetTagged under (StructFieldGet MapObjectEncoder.underlying go!"cur") #x (Val #(x.cur'))
   set_cur : ∀ (x : MapObjectEncoder) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet MapObjectEncoder.underlying go!"cur") (PairV #x #y) (Val #(({ x with cur' := y } : MapObjectEncoder)))
+  method_set : go.MethodSetIs MapObjectEncoder.ty [(go!"AddDuration", (some (go.signature.Signature [go.string, _root_.Perennial.time.Duration.ty] false []))), (go!"AddTime", (some (go.signature.Signature [go.string, _root_.Perennial.time.Time.ty] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType MapObjectEncoder.ty) [(go!"AddArray", (some (go.signature.Signature [go.string, ArrayMarshaler.ty] false [go.error]))), (go!"AddBinary", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.byte)] false []))), (go!"AddBool", (some (go.signature.Signature [go.string, go.bool] false []))), (go!"AddByteString", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.byte)] false []))), (go!"AddComplex128", (some (go.signature.Signature [go.string, go.complex128] false []))), (go!"AddComplex64", (some (go.signature.Signature [go.string, go.complex64] false []))), (go!"AddDuration", (some (go.signature.Signature [go.string, _root_.Perennial.time.Duration.ty] false []))), (go!"AddFloat32", (some (go.signature.Signature [go.string, go.float32] false []))), (go!"AddFloat64", (some (go.signature.Signature [go.string, go.float64] false []))), (go!"AddInt", (some (go.signature.Signature [go.string, go.int] false []))), (go!"AddInt16", (some (go.signature.Signature [go.string, go.int16] false []))), (go!"AddInt32", (some (go.signature.Signature [go.string, go.int32] false []))), (go!"AddInt64", (some (go.signature.Signature [go.string, go.int64] false []))), (go!"AddInt8", (some (go.signature.Signature [go.string, go.int8] false []))), (go!"AddObject", (some (go.signature.Signature [go.string, ObjectMarshaler.ty] false [go.error]))), (go!"AddReflected", (some (go.signature.Signature [go.string, (go.GoType.InterfaceType [])] false [go.error]))), (go!"AddString", (some (go.signature.Signature [go.string, go.string] false []))), (go!"AddTime", (some (go.signature.Signature [go.string, _root_.Perennial.time.Time.ty] false []))), (go!"AddUint", (some (go.signature.Signature [go.string, go.uint] false []))), (go!"AddUint16", (some (go.signature.Signature [go.string, go.uint16] false []))), (go!"AddUint32", (some (go.signature.Signature [go.string, go.uint32] false []))), (go!"AddUint64", (some (go.signature.Signature [go.string, go.uint64] false []))), (go!"AddUint8", (some (go.signature.Signature [go.string, go.uint8] false []))), (go!"AddUintptr", (some (go.signature.Signature [go.string, go.uintptr] false []))), (go!"OpenNamespace", (some (go.signature.Signature [go.string] false [])))]
 
 attribute [instance] MapObjectEncoder.TypeAssumptions.type_repr
   MapObjectEncoder.TypeAssumptions.underlying
@@ -1614,6 +1776,8 @@ attribute [instance] MapObjectEncoder.TypeAssumptions.type_repr
   MapObjectEncoder.TypeAssumptions.set_Fields
   MapObjectEncoder.TypeAssumptions.get_cur
   MapObjectEncoder.TypeAssumptions.set_cur
+  MapObjectEncoder.TypeAssumptions.method_set
+  MapObjectEncoder.TypeAssumptions.ptr_method_set
 
 structure sliceArrayEncoder [GooseExts] where
   mk ::
@@ -1640,11 +1804,15 @@ class sliceArrayEncoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCo
   underlying : go.UnderlyingDirectedEq sliceArrayEncoder.ty sliceArrayEncoder.underlying
   get_elems : ∀ (x : sliceArrayEncoder), go.IsGoStepPureDetTagged under (StructFieldGet sliceArrayEncoder.underlying go!"elems") #x (Val #(x.elems'))
   set_elems : ∀ (x : sliceArrayEncoder) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet sliceArrayEncoder.underlying go!"elems") (PairV #x #y) (Val #(({ x with elems' := y } : sliceArrayEncoder)))
+  method_set : go.MethodSetIs sliceArrayEncoder.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType sliceArrayEncoder.ty) [(go!"AppendArray", (some (go.signature.Signature [ArrayMarshaler.ty] false [go.error]))), (go!"AppendBool", (some (go.signature.Signature [go.bool] false []))), (go!"AppendByteString", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false []))), (go!"AppendComplex128", (some (go.signature.Signature [go.complex128] false []))), (go!"AppendComplex64", (some (go.signature.Signature [go.complex64] false []))), (go!"AppendDuration", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty] false []))), (go!"AppendFloat32", (some (go.signature.Signature [go.float32] false []))), (go!"AppendFloat64", (some (go.signature.Signature [go.float64] false []))), (go!"AppendInt", (some (go.signature.Signature [go.int] false []))), (go!"AppendInt16", (some (go.signature.Signature [go.int16] false []))), (go!"AppendInt32", (some (go.signature.Signature [go.int32] false []))), (go!"AppendInt64", (some (go.signature.Signature [go.int64] false []))), (go!"AppendInt8", (some (go.signature.Signature [go.int8] false []))), (go!"AppendObject", (some (go.signature.Signature [ObjectMarshaler.ty] false [go.error]))), (go!"AppendReflected", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"AppendString", (some (go.signature.Signature [go.string] false []))), (go!"AppendTime", (some (go.signature.Signature [_root_.Perennial.time.Time.ty] false []))), (go!"AppendUint", (some (go.signature.Signature [go.uint] false []))), (go!"AppendUint16", (some (go.signature.Signature [go.uint16] false []))), (go!"AppendUint32", (some (go.signature.Signature [go.uint32] false []))), (go!"AppendUint64", (some (go.signature.Signature [go.uint64] false []))), (go!"AppendUint8", (some (go.signature.Signature [go.uint8] false []))), (go!"AppendUintptr", (some (go.signature.Signature [go.uintptr] false [])))]
 
 attribute [instance] sliceArrayEncoder.TypeAssumptions.type_repr
   sliceArrayEncoder.TypeAssumptions.underlying
   sliceArrayEncoder.TypeAssumptions.get_elems
   sliceArrayEncoder.TypeAssumptions.set_elems
+  sliceArrayEncoder.TypeAssumptions.method_set
+  sliceArrayEncoder.TypeAssumptions.ptr_method_set
 
 abbrev ReflectedEncoder [GooseExts] : Type := GoInterface
 
@@ -1653,8 +1821,12 @@ abbrev ReflectedEncoder [GooseExts] : Type := GoInterface
 
 class ReflectedEncoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ReflectedEncoder.ty ReflectedEncoder.underlying
+  method_set : go.MethodSetIs ReflectedEncoder.ty [(go!"Encode", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ReflectedEncoder.ty) []
 
 attribute [instance] ReflectedEncoder.TypeAssumptions.underlying
+  ReflectedEncoder.TypeAssumptions.method_set
+  ReflectedEncoder.TypeAssumptions.ptr_method_set
 
 axiom counter : Type
 axiom counter.zero_val : ZeroVal counter
@@ -1664,10 +1836,14 @@ class counter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   type_repr : go.TypeReprUnderlying counter.underlying counter
   underlying : go.UnderlyingDirectedEq counter.ty counter.underlying
   isUnderlying : go.IsUnderlying counter.underlying counter.underlying
+  method_set : go.MethodSetIs counter.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType counter.ty) [(go!"IncCheckReset", (some (go.signature.Signature [_root_.Perennial.time.Time.ty, _root_.Perennial.time.Duration.ty] false [go.uint64])))]
 
 attribute [instance] counter.TypeAssumptions.type_repr
   counter.TypeAssumptions.underlying
   counter.TypeAssumptions.isUnderlying
+  counter.TypeAssumptions.method_set
+  counter.TypeAssumptions.ptr_method_set
 
 abbrev counters [GooseExts] : Type := (GoArray (GoArray counter 4096) 7)
 
@@ -1676,8 +1852,12 @@ abbrev counters [GooseExts] : Type := (GoArray (GoArray counter 4096) 7)
 
 class counters.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq counters.ty counters.underlying
+  method_set : go.MethodSetIs counters.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType counters.ty) [(go!"go.uber.org/zap/zapcore.get", (some (go.signature.Signature [Level.ty, go.string] false [(go.GoType.PointerType counter.ty)])))]
 
 attribute [instance] counters.TypeAssumptions.underlying
+  counters.TypeAssumptions.method_set
+  counters.TypeAssumptions.ptr_method_set
 
 abbrev SamplingDecision [GooseExts] : Type := w32
 
@@ -1686,8 +1866,12 @@ abbrev SamplingDecision [GooseExts] : Type := w32
 
 class SamplingDecision.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq SamplingDecision.ty SamplingDecision.underlying
+  method_set : go.MethodSetIs SamplingDecision.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SamplingDecision.ty) []
 
 attribute [instance] SamplingDecision.TypeAssumptions.underlying
+  SamplingDecision.TypeAssumptions.method_set
+  SamplingDecision.TypeAssumptions.ptr_method_set
 
 abbrev optionFunc [GooseExts] : Type := GoFunc
 
@@ -1696,18 +1880,26 @@ abbrev optionFunc [GooseExts] : Type := GoFunc
 
 class optionFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq optionFunc.ty optionFunc.underlying
+  method_set : go.MethodSetIs optionFunc.ty [(go!"go.uber.org/zap/zapcore.apply", (some (go.signature.Signature [(go.GoType.PointerType sampler.ty)] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType optionFunc.ty) [(go!"go.uber.org/zap/zapcore.apply", (some (go.signature.Signature [(go.GoType.PointerType sampler.ty)] false [])))]
 
 attribute [instance] optionFunc.TypeAssumptions.underlying
+  optionFunc.TypeAssumptions.method_set
+  optionFunc.TypeAssumptions.ptr_method_set
 
 abbrev SamplerOption [GooseExts] : Type := GoInterface
 
 @[reducible] noncomputable def SamplerOption.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"apply" (go.signature.Signature [(go.GoType.PointerType sampler.ty)] false []))])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"go.uber.org/zap/zapcore.apply" (go.signature.Signature [(go.GoType.PointerType sampler.ty)] false []))])
 
 class SamplerOption.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq SamplerOption.ty SamplerOption.underlying
+  method_set : go.MethodSetIs SamplerOption.ty [(go!"go.uber.org/zap/zapcore.apply", (some (go.signature.Signature [(go.GoType.PointerType sampler.ty)] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SamplerOption.ty) []
 
 attribute [instance] SamplerOption.TypeAssumptions.underlying
+  SamplerOption.TypeAssumptions.method_set
+  SamplerOption.TypeAssumptions.ptr_method_set
 
 structure sampler [GooseExts] where
   mk ::
@@ -1754,6 +1946,8 @@ class sampler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   set_thereafter : ∀ (x : sampler) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet sampler.underlying go!"thereafter") (PairV #x #y) (Val #(({ x with thereafter' := y } : sampler)))
   get_hook : ∀ (x : sampler), go.IsGoStepPureDetTagged under (StructFieldGet sampler.underlying go!"hook") #x (Val #(x.hook'))
   set_hook : ∀ (x : sampler) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet sampler.underlying go!"hook") (PairV #x #y) (Val #(({ x with hook' := y } : sampler)))
+  method_set : go.MethodSetIs sampler.ty [(go!"Enabled", (some (go.signature.Signature [Level.ty] false [go.bool]))), (go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"Write", (some (go.signature.Signature [Entry.ty, (go.GoType.SliceType Field.ty)] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType sampler.ty) [(go!"Check", (some (go.signature.Signature [Entry.ty, (go.GoType.PointerType CheckedEntry.ty)] false [(go.GoType.PointerType CheckedEntry.ty)]))), (go!"Enabled", (some (go.signature.Signature [Level.ty] false [go.bool]))), (go!"Level", (some (go.signature.Signature [] false [Level.ty]))), (go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"With", (some (go.signature.Signature [(go.GoType.SliceType Field.ty)] false [Core.ty]))), (go!"Write", (some (go.signature.Signature [Entry.ty, (go.GoType.SliceType Field.ty)] false [go.error])))]
 
 attribute [instance] sampler.TypeAssumptions.type_repr
   sampler.TypeAssumptions.underlying
@@ -1769,6 +1963,8 @@ attribute [instance] sampler.TypeAssumptions.type_repr
   sampler.TypeAssumptions.set_thereafter
   sampler.TypeAssumptions.get_hook
   sampler.TypeAssumptions.set_hook
+  sampler.TypeAssumptions.method_set
+  sampler.TypeAssumptions.ptr_method_set
 
 abbrev multiCore [GooseExts] : Type := GoSlice
 
@@ -1777,8 +1973,12 @@ abbrev multiCore [GooseExts] : Type := GoSlice
 
 class multiCore.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq multiCore.ty multiCore.underlying
+  method_set : go.MethodSetIs multiCore.ty [(go!"Check", (some (go.signature.Signature [Entry.ty, (go.GoType.PointerType CheckedEntry.ty)] false [(go.GoType.PointerType CheckedEntry.ty)]))), (go!"Enabled", (some (go.signature.Signature [Level.ty] false [go.bool]))), (go!"Level", (some (go.signature.Signature [] false [Level.ty]))), (go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"With", (some (go.signature.Signature [(go.GoType.SliceType Field.ty)] false [Core.ty]))), (go!"Write", (some (go.signature.Signature [Entry.ty, (go.GoType.SliceType Field.ty)] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType multiCore.ty) [(go!"Check", (some (go.signature.Signature [Entry.ty, (go.GoType.PointerType CheckedEntry.ty)] false [(go.GoType.PointerType CheckedEntry.ty)]))), (go!"Enabled", (some (go.signature.Signature [Level.ty] false [go.bool]))), (go!"Level", (some (go.signature.Signature [] false [Level.ty]))), (go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"With", (some (go.signature.Signature [(go.GoType.SliceType Field.ty)] false [Core.ty]))), (go!"Write", (some (go.signature.Signature [Entry.ty, (go.GoType.SliceType Field.ty)] false [go.error])))]
 
 attribute [instance] multiCore.TypeAssumptions.underlying
+  multiCore.TypeAssumptions.method_set
+  multiCore.TypeAssumptions.ptr_method_set
 
 axiom lockedWriteSyncer : Type
 axiom lockedWriteSyncer.zero_val : ZeroVal lockedWriteSyncer
@@ -1788,10 +1988,14 @@ class lockedWriteSyncer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCo
   type_repr : go.TypeReprUnderlying lockedWriteSyncer.underlying lockedWriteSyncer
   underlying : go.UnderlyingDirectedEq lockedWriteSyncer.ty lockedWriteSyncer.underlying
   isUnderlying : go.IsUnderlying lockedWriteSyncer.underlying lockedWriteSyncer.underlying
+  method_set : go.MethodSetIs lockedWriteSyncer.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType lockedWriteSyncer.ty) [(go!"Lock", (some (go.signature.Signature [] false []))), (go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"TryLock", (some (go.signature.Signature [] false [go.bool]))), (go!"Unlock", (some (go.signature.Signature [] false []))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
 
 attribute [instance] lockedWriteSyncer.TypeAssumptions.type_repr
   lockedWriteSyncer.TypeAssumptions.underlying
   lockedWriteSyncer.TypeAssumptions.isUnderlying
+  lockedWriteSyncer.TypeAssumptions.method_set
+  lockedWriteSyncer.TypeAssumptions.ptr_method_set
 
 structure writerWrapper [GooseExts] where
   mk ::
@@ -1818,11 +2022,15 @@ class writerWrapper.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContex
   underlying : go.UnderlyingDirectedEq writerWrapper.ty writerWrapper.underlying
   get_Writer : ∀ (x : writerWrapper), go.IsGoStepPureDetTagged under (StructFieldGet writerWrapper.underlying go!"Writer") #x (Val #(x.Writer'))
   set_Writer : ∀ (x : writerWrapper) (y : _root_.Perennial.io.Writer), go.IsGoStepPureDetTagged under (StructFieldSet writerWrapper.underlying go!"Writer") (PairV #x #y) (Val #(({ x with Writer' := y } : writerWrapper)))
+  method_set : go.MethodSetIs writerWrapper.ty [(go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType writerWrapper.ty) [(go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
 
 attribute [instance] writerWrapper.TypeAssumptions.type_repr
   writerWrapper.TypeAssumptions.underlying
   writerWrapper.TypeAssumptions.get_Writer
   writerWrapper.TypeAssumptions.set_Writer
+  writerWrapper.TypeAssumptions.method_set
+  writerWrapper.TypeAssumptions.ptr_method_set
 
 abbrev multiWriteSyncer [GooseExts] : Type := GoSlice
 
@@ -1831,8 +2039,12 @@ abbrev multiWriteSyncer [GooseExts] : Type := GoSlice
 
 class multiWriteSyncer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq multiWriteSyncer.ty multiWriteSyncer.underlying
+  method_set : go.MethodSetIs multiWriteSyncer.ty [(go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType multiWriteSyncer.ty) [(go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
 
 attribute [instance] multiWriteSyncer.TypeAssumptions.underlying
+  multiWriteSyncer.TypeAssumptions.method_set
+  multiWriteSyncer.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   BufferedWriteSyncer_instance : BufferedWriteSyncer.TypeAssumptions

@@ -24,10 +24,10 @@ trivial extension (`common/TrivialExt.lean`; the proofs are generic over the ext
   time-receipt bounds; `n + 7 ≤ backend.wbInit`: the backend's write-back budget `bootstrap`'s
   contract gives);
 * the semantics: `go.Semantics`, the package assumptions (`putget`'s, the cache's), and the
-  method-set and model classes the proofs take (`v3rpc.ServerMethodSets`, `errors.AsTarget` of
-  `rpctypes.EtcdError`, `Float64ToInt64Semantics`, `DialWithBalancerBody`, `ErrorStringLeaf`,
-  `RpctypesEtcdErrorMethods`, `context.ErrorStringIsError`, `context.DeadlineExceededIsError`,
-  `log.NewModel`), and `ContextReadErrs` (`context.Canceled`'s and `DeadlineExceeded`'s method
+  model classes the proofs take (`Float64ToInt64Semantics`, `DialWithBalancerBody`,
+  `log.NewModel`; the method-set facts, `v3rpc.ServerMethodSets`, `errors.AsTarget` of
+  `rpctypes.EtcdError`, `ErrorStringLeaf`, `RpctypesEtcdErrorMethods`, are theorems of the
+  package assumptions), and `ContextReadErrs` (`context.Canceled`'s and `DeadlineExceeded`'s method
   facts from `context`'s package fact: the read package's initializer's premise class, item 8);
 * triples of functions the program calls, with fresh resources (`putget.premises`: `bootstrap`'s
   contract, the raft wrapper's names-only contracts, `Stop` of a started node,
@@ -115,12 +115,9 @@ theorem putget_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.putget.Assumptions]
     [cache_sem : go_etcd_io.etcd.cache.v3.Assumptions]
     [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
-    [ErrorStringLeaf] [RpctypesEtcdErrorMethods] [context.ErrorStringIsError]
-    [context.DeadlineExceededIsError] [log.NewModel]
+    [log.NewModel]
     (Hctx : ∀ hG : HeapGS .hasLC putgetGF, ContextReadErrs (GF := putgetGF) (hG := heapAt hG lctx))
     (Hcec : ∀ hG : HeapGS .hasLC putgetGF, ContextErrsClient (GF := putgetGF) (hG := heapAt hG lctx))
-    (Hms : v3rpc.ServerMethodSets)
-    (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty)
     (id : w64) (bootLog : List EntryM) (Hbf : putget.BootFacts id bootLog)
     (Hck : ckptEffectsOk) (Haf : authRecordsFit)
     (Hbuq : apply.backendUnderQuota) (Hdbo : storage.dbOpensOk)
@@ -150,7 +147,7 @@ theorem putget_adequate [lctx : GoLocalContext] [sem : go.Semantics]
   iintro #Hinit Htok ⟨Has, -⟩
   icases BigSepL.bigSepL_cons.1 $$ Has with ⟨Haddr, -⟩
   have hM := putget.wp_Main (GF := putgetGF) n id bootLog Hbf (by rw [HT]; omega)
-    (by rw [HN]; omega) (by rw [HN]; omega) Hck Haf Hbuq Hdbo Hms hAs
+    (by rw [HN]; omega) (by rw [HN]; omega) Hck Haf Hbuq Hdbo inferInstance EtcdGrove.rpctypesEtcdError_asTarget
   wp_apply hM $$ [Haddr Htok]
   · iframe; iframe #
   ipureintro

@@ -10,6 +10,7 @@ empty object (`newObj`, by `reflNew_pointsto` at `Obj`'s Lean type).
 -/
 module
 
+public import Perennial.Golang.Theory.TypeSet
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8setcd3.Codec
 public import GeneratedProof.github_com.mit_pdos.etcd_grove.examples.k8setcd3
 
@@ -48,6 +49,23 @@ def storageErrTyOk : Prop :=
     some (go.Signature [] false [go.error])
 
 end tyOk
+
+section tyOkHolds
+variable [GooseExts] [go_gctx : GoGlobalContext] [GoLocalContext] [sem : go.Semantics]
+
+/-- `objTyOk` holds, from the method sets goose emits (`Obj`'s, and `runtime`'s interfaces). -/
+theorem objTyOk_holds [github_com.mit_pdos.etcd_grove.examples.k8setcd3.Assumptions]
+    [k8s_io.apimachinery.pkg.runtime.Assumptions] : objTyOk := by
+  unfold objTyOk; constructor <;> go_type_set
+
+/-- `storageErrTyOk` holds, from the method set goose emits for `*storage.StorageError`. -/
+theorem storageErrTyOk_holds [k8s_io.apiserver.pkg.storage.Assumptions] : storageErrTyOk := by
+  have h := go.method_set_is
+    (t := go.GoType.PointerType k8s_io.apiserver.pkg.storage.StorageError.ty) go!"Unwrap"
+  simp only [go.methodSetLookup_cons, go.methodSetLookup_nil, gooseReduceIteDecide] at h
+  exact h
+
+end tyOkHolds
 
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]

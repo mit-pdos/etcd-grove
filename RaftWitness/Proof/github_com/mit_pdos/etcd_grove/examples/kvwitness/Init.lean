@@ -15,8 +15,7 @@ Perennial `init-facts`; it is the ordinary form now. The package is in the paral
 `RaftWitness/`, which `etc/gen-init.py` does not generate, so the file is hand-written in the
 generated files' form, without their `_lb` part: no package imports this one.)
 
-The premises are raft's (`RaftWitness/Proof/go_etcd_io/raft/v3/Init.lean`): the method-set facts
-`context.ErrorStringIsError`, `context.DeadlineExceededIsError` and the model of `log.New`,
+The premise is raft's (`RaftWitness/Proof/go_etcd_io/raft/v3/Init.lean`): the model of `log.New`,
 `log.NewModel`.
 -/
 module
@@ -45,7 +44,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kvwitness.Assumptions]
-variable [context.ErrorStringIsError] [context.DeadlineExceededIsError] [log.NewModel]
+variable [log.NewModel]
 
 /-- The store's initialization (see the file header). -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)

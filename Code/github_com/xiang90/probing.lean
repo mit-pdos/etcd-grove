@@ -104,8 +104,12 @@ abbrev Prober [GooseExts] : Type := GoInterface
 
 class Prober.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Prober.ty Prober.underlying
+  method_set : go.MethodSetIs Prober.ty [(go!"AddHTTP", (some (go.signature.Signature [go.string, _root_.Perennial.time.Duration.ty, (go.GoType.SliceType go.string)] false [go.error]))), (go!"Remove", (some (go.signature.Signature [go.string] false [go.error]))), (go!"RemoveAll", (some (go.signature.Signature [] false []))), (go!"Reset", (some (go.signature.Signature [go.string] false [go.error]))), (go!"Status", (some (go.signature.Signature [go.string] false [Status.ty, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Prober.ty) []
 
 attribute [instance] Prober.TypeAssumptions.underlying
+  Prober.TypeAssumptions.method_set
+  Prober.TypeAssumptions.ptr_method_set
 
 axiom prober : Type
 axiom prober.zero_val : ZeroVal prober
@@ -115,10 +119,14 @@ class prober.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   type_repr : go.TypeReprUnderlying prober.underlying prober
   underlying : go.UnderlyingDirectedEq prober.ty prober.underlying
   isUnderlying : go.IsUnderlying prober.underlying prober.underlying
+  method_set : go.MethodSetIs prober.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType prober.ty) [(go!"AddHTTP", (some (go.signature.Signature [go.string, _root_.Perennial.time.Duration.ty, (go.GoType.SliceType go.string)] false [go.error]))), (go!"Remove", (some (go.signature.Signature [go.string] false [go.error]))), (go!"RemoveAll", (some (go.signature.Signature [] false []))), (go!"Reset", (some (go.signature.Signature [go.string] false [go.error]))), (go!"Status", (some (go.signature.Signature [go.string] false [Status.ty, go.error])))]
 
 attribute [instance] prober.TypeAssumptions.type_repr
   prober.TypeAssumptions.underlying
   prober.TypeAssumptions.isUnderlying
+  prober.TypeAssumptions.method_set
+  prober.TypeAssumptions.ptr_method_set
 
 structure httpHealth [GooseExts] where
   mk ::
@@ -142,9 +150,13 @@ noncomputable instance equals_unfold_httpHealth [GooseExts] [GoGlobalContext] :
 class httpHealth.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying httpHealth.underlying httpHealth
   underlying : go.UnderlyingDirectedEq httpHealth.ty httpHealth.underlying
+  method_set : go.MethodSetIs httpHealth.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType httpHealth.ty) [(go!"ServeHTTP", (some (go.signature.Signature [(go.GoType.Named go!"net/http.ResponseWriter" []), (go.GoType.PointerType (go.GoType.Named go!"net/http.Request" []))] false [])))]
 
 attribute [instance] httpHealth.TypeAssumptions.type_repr
   httpHealth.TypeAssumptions.underlying
+  httpHealth.TypeAssumptions.method_set
+  httpHealth.TypeAssumptions.ptr_method_set
 
 structure Health [GooseExts] where
   mk ::
@@ -175,6 +187,8 @@ class Health.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   set_OK : ∀ (x : Health) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Health.underlying go!"OK") (PairV #x #y) (Val #(({ x with OK' := y } : Health)))
   get_Now : ∀ (x : Health), go.IsGoStepPureDetTagged under (StructFieldGet Health.underlying go!"Now") #x (Val #(x.Now'))
   set_Now : ∀ (x : Health) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet Health.underlying go!"Now") (PairV #x #y) (Val #(({ x with Now' := y } : Health)))
+  method_set : go.MethodSetIs Health.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Health.ty) []
 
 attribute [instance] Health.TypeAssumptions.type_repr
   Health.TypeAssumptions.underlying
@@ -182,6 +196,8 @@ attribute [instance] Health.TypeAssumptions.type_repr
   Health.TypeAssumptions.set_OK
   Health.TypeAssumptions.get_Now
   Health.TypeAssumptions.set_Now
+  Health.TypeAssumptions.method_set
+  Health.TypeAssumptions.ptr_method_set
 
 abbrev Status [GooseExts] : Type := GoInterface
 
@@ -190,8 +206,12 @@ abbrev Status [GooseExts] : Type := GoInterface
 
 class Status.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Status.ty Status.underlying
+  method_set : go.MethodSetIs Status.ty [(go!"ClockDiff", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))), (go!"Err", (some (go.signature.Signature [] false [go.error]))), (go!"Health", (some (go.signature.Signature [] false [go.bool]))), (go!"Loss", (some (go.signature.Signature [] false [go.int64]))), (go!"SRTT", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))), (go!"StopNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"Total", (some (go.signature.Signature [] false [go.int64])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Status.ty) []
 
 attribute [instance] Status.TypeAssumptions.underlying
+  Status.TypeAssumptions.method_set
+  Status.TypeAssumptions.ptr_method_set
 
 axiom status : Type
 axiom status.zero_val : ZeroVal status
@@ -201,10 +221,14 @@ class status.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   type_repr : go.TypeReprUnderlying status.underlying status
   underlying : go.UnderlyingDirectedEq status.ty status.underlying
   isUnderlying : go.IsUnderlying status.underlying status.underlying
+  method_set : go.MethodSetIs status.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType status.ty) [(go!"ClockDiff", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))), (go!"Err", (some (go.signature.Signature [] false [go.error]))), (go!"Health", (some (go.signature.Signature [] false [go.bool]))), (go!"Loss", (some (go.signature.Signature [] false [go.int64]))), (go!"SRTT", (some (go.signature.Signature [] false [_root_.Perennial.time.Duration.ty]))), (go!"StopNotify", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"Total", (some (go.signature.Signature [] false [go.int64]))), (go!"github.com/xiang90/probing.record", (some (go.signature.Signature [_root_.Perennial.time.Duration.ty, _root_.Perennial.time.Time.ty] false []))), (go!"github.com/xiang90/probing.recordFailure", (some (go.signature.Signature [go.error] false []))), (go!"github.com/xiang90/probing.reset", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] status.TypeAssumptions.type_repr
   status.TypeAssumptions.underlying
   status.TypeAssumptions.isUnderlying
+  status.TypeAssumptions.method_set
+  status.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Prober_instance : Prober.TypeAssumptions

@@ -15,9 +15,10 @@ logic's thread bound and the time-receipt bounds (the adequacy theorem's choices
 2 ^ 31`, `receiptBound GF ≤ 2 ^ 48` and `≤ N + 1`); the named workload and effect premises of the
 server's construction (`ckptEffectsOk`, `authRecordsFit`,
 `apply.backendUnderQuota`, `storage.dbOpensOk`); Go's method sets of the gRPC service values
-(`v3rpc.ServerMethodSets`) and that `errors.As` takes `*rpctypes.EtcdError` as a target.
-The method-set classes `ErrorStringLeaf` and `context.ErrorStringIsError`, which make `io.EOF`'s
-package fact the server's `eofVar` (`v3rpc.eofVar_of_init`; until 2026-10-20, when Perennial's `io`
+(`v3rpc.ServerMethodSets`) and that `errors.As` takes `*rpctypes.EtcdError` as a target (both
+discharged by the adequacy theorem, from the package assumptions).
+The method-set facts of `*errorString` (`ErrorStringLeaf`, theorems of the package assumptions),
+which make `io.EOF`'s package fact the server's `eofVar` (`v3rpc.eofVar_of_init`; until 2026-10-20, when Perennial's `io`
 and `context` facts did not keep `EOF`'s value and `closedchan`'s invariant, the two named Props
 `EofFromIoInit` and `ClosedchanFromContextInit` stood here). The proof
 allocates the storage registry (D19r (B)); it is stated under the cache package's assumptions,
@@ -48,7 +49,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.putget.Assumptio
 
 /-- See the file header. -/
 abbrev Main.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [ErrorStringLeaf] [context.ErrorStringIsError]
+  ∀ [go_etcd_io.etcd.cache.v3.Assumptions]
     [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
     [ContextErrsClient (GF := GF) (hG := hG)]
     (N : Nat) (id : w64) (bootLog : List EntryM),

@@ -255,10 +255,14 @@ class UnmarshalTypeError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalC
   type_repr : go.TypeReprUnderlying UnmarshalTypeError.underlying UnmarshalTypeError
   underlying : go.UnderlyingDirectedEq UnmarshalTypeError.ty UnmarshalTypeError.underlying
   isUnderlying : go.IsUnderlying UnmarshalTypeError.underlying UnmarshalTypeError.underlying
+  method_set : go.MethodSetIs UnmarshalTypeError.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType UnmarshalTypeError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Unwrap", (some (go.signature.Signature [] false [go.error])))]
 
 attribute [instance] UnmarshalTypeError.TypeAssumptions.type_repr
   UnmarshalTypeError.TypeAssumptions.underlying
   UnmarshalTypeError.TypeAssumptions.isUnderlying
+  UnmarshalTypeError.TypeAssumptions.method_set
+  UnmarshalTypeError.TypeAssumptions.ptr_method_set
 
 axiom UnmarshalFieldError : Type
 axiom UnmarshalFieldError.zero_val : ZeroVal UnmarshalFieldError
@@ -268,10 +272,14 @@ class UnmarshalFieldError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocal
   type_repr : go.TypeReprUnderlying UnmarshalFieldError.underlying UnmarshalFieldError
   underlying : go.UnderlyingDirectedEq UnmarshalFieldError.ty UnmarshalFieldError.underlying
   isUnderlying : go.IsUnderlying UnmarshalFieldError.underlying UnmarshalFieldError.underlying
+  method_set : go.MethodSetIs UnmarshalFieldError.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType UnmarshalFieldError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] UnmarshalFieldError.TypeAssumptions.type_repr
   UnmarshalFieldError.TypeAssumptions.underlying
   UnmarshalFieldError.TypeAssumptions.isUnderlying
+  UnmarshalFieldError.TypeAssumptions.method_set
+  UnmarshalFieldError.TypeAssumptions.ptr_method_set
 
 axiom InvalidUnmarshalError : Type
 axiom InvalidUnmarshalError.zero_val : ZeroVal InvalidUnmarshalError
@@ -281,10 +289,14 @@ class InvalidUnmarshalError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLoc
   type_repr : go.TypeReprUnderlying InvalidUnmarshalError.underlying InvalidUnmarshalError
   underlying : go.UnderlyingDirectedEq InvalidUnmarshalError.ty InvalidUnmarshalError.underlying
   isUnderlying : go.IsUnderlying InvalidUnmarshalError.underlying InvalidUnmarshalError.underlying
+  method_set : go.MethodSetIs InvalidUnmarshalError.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType InvalidUnmarshalError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] InvalidUnmarshalError.TypeAssumptions.type_repr
   InvalidUnmarshalError.TypeAssumptions.underlying
   InvalidUnmarshalError.TypeAssumptions.isUnderlying
+  InvalidUnmarshalError.TypeAssumptions.method_set
+  InvalidUnmarshalError.TypeAssumptions.ptr_method_set
 
 abbrev Number [GooseExts] : Type := GoString
 
@@ -293,8 +305,12 @@ abbrev Number [GooseExts] : Type := GoString
 
 class Number.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Number.ty Number.underlying
+  method_set : go.MethodSetIs Number.ty [(go!"Float64", (some (go.signature.Signature [] false [go.float64, go.error]))), (go!"Int64", (some (go.signature.Signature [] false [go.int64, go.error]))), (go!"MarshalJSONTo", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"encoding/json/jsontext.Encoder" []))] false [go.error]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Number.ty) [(go!"Float64", (some (go.signature.Signature [] false [go.float64, go.error]))), (go!"Int64", (some (go.signature.Signature [] false [go.int64, go.error]))), (go!"MarshalJSONTo", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"encoding/json/jsontext.Encoder" []))] false [go.error]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"UnmarshalJSONFrom", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"encoding/json/jsontext.Decoder" []))] false [go.error])))]
 
 attribute [instance] Number.TypeAssumptions.underlying
+  Number.TypeAssumptions.method_set
+  Number.TypeAssumptions.ptr_method_set
 
 axiom UnsupportedTypeError : Type
 axiom UnsupportedTypeError.zero_val : ZeroVal UnsupportedTypeError
@@ -304,10 +320,14 @@ class UnsupportedTypeError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLoca
   type_repr : go.TypeReprUnderlying UnsupportedTypeError.underlying UnsupportedTypeError
   underlying : go.UnderlyingDirectedEq UnsupportedTypeError.ty UnsupportedTypeError.underlying
   isUnderlying : go.IsUnderlying UnsupportedTypeError.underlying UnsupportedTypeError.underlying
+  method_set : go.MethodSetIs UnsupportedTypeError.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType UnsupportedTypeError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] UnsupportedTypeError.TypeAssumptions.type_repr
   UnsupportedTypeError.TypeAssumptions.underlying
   UnsupportedTypeError.TypeAssumptions.isUnderlying
+  UnsupportedTypeError.TypeAssumptions.method_set
+  UnsupportedTypeError.TypeAssumptions.ptr_method_set
 
 axiom UnsupportedValueError : Type
 axiom UnsupportedValueError.zero_val : ZeroVal UnsupportedValueError
@@ -317,10 +337,14 @@ class UnsupportedValueError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLoc
   type_repr : go.TypeReprUnderlying UnsupportedValueError.underlying UnsupportedValueError
   underlying : go.UnderlyingDirectedEq UnsupportedValueError.ty UnsupportedValueError.underlying
   isUnderlying : go.IsUnderlying UnsupportedValueError.underlying UnsupportedValueError.underlying
+  method_set : go.MethodSetIs UnsupportedValueError.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType UnsupportedValueError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] UnsupportedValueError.TypeAssumptions.type_repr
   UnsupportedValueError.TypeAssumptions.underlying
   UnsupportedValueError.TypeAssumptions.isUnderlying
+  UnsupportedValueError.TypeAssumptions.method_set
+  UnsupportedValueError.TypeAssumptions.ptr_method_set
 
 structure InvalidUTF8Error [GooseExts] where
   mk ::
@@ -347,11 +371,15 @@ class InvalidUTF8Error.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCon
   underlying : go.UnderlyingDirectedEq InvalidUTF8Error.ty InvalidUTF8Error.underlying
   get_S : ∀ (x : InvalidUTF8Error), go.IsGoStepPureDetTagged under (StructFieldGet InvalidUTF8Error.underlying go!"S") #x (Val #(x.S'))
   set_S : ∀ (x : InvalidUTF8Error) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet InvalidUTF8Error.underlying go!"S") (PairV #x #y) (Val #(({ x with S' := y } : InvalidUTF8Error)))
+  method_set : go.MethodSetIs InvalidUTF8Error.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType InvalidUTF8Error.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] InvalidUTF8Error.TypeAssumptions.type_repr
   InvalidUTF8Error.TypeAssumptions.underlying
   InvalidUTF8Error.TypeAssumptions.get_S
   InvalidUTF8Error.TypeAssumptions.set_S
+  InvalidUTF8Error.TypeAssumptions.method_set
+  InvalidUTF8Error.TypeAssumptions.ptr_method_set
 
 axiom MarshalerError : Type
 axiom MarshalerError.zero_val : ZeroVal MarshalerError
@@ -361,10 +389,14 @@ class MarshalerError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalConte
   type_repr : go.TypeReprUnderlying MarshalerError.underlying MarshalerError
   underlying : go.UnderlyingDirectedEq MarshalerError.ty MarshalerError.underlying
   isUnderlying : go.IsUnderlying MarshalerError.underlying MarshalerError.underlying
+  method_set : go.MethodSetIs MarshalerError.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType MarshalerError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Unwrap", (some (go.signature.Signature [] false [go.error])))]
 
 attribute [instance] MarshalerError.TypeAssumptions.type_repr
   MarshalerError.TypeAssumptions.underlying
   MarshalerError.TypeAssumptions.isUnderlying
+  MarshalerError.TypeAssumptions.method_set
+  MarshalerError.TypeAssumptions.ptr_method_set
 
 structure SyntaxError [GooseExts] where
   mk ::
@@ -395,6 +427,8 @@ class SyntaxError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   set_msg : ∀ (x : SyntaxError) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet SyntaxError.underlying go!"msg") (PairV #x #y) (Val #(({ x with msg' := y } : SyntaxError)))
   get_Offset : ∀ (x : SyntaxError), go.IsGoStepPureDetTagged under (StructFieldGet SyntaxError.underlying go!"Offset") #x (Val #(x.Offset'))
   set_Offset : ∀ (x : SyntaxError) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet SyntaxError.underlying go!"Offset") (PairV #x #y) (Val #(({ x with Offset' := y } : SyntaxError)))
+  method_set : go.MethodSetIs SyntaxError.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SyntaxError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] SyntaxError.TypeAssumptions.type_repr
   SyntaxError.TypeAssumptions.underlying
@@ -402,6 +436,8 @@ attribute [instance] SyntaxError.TypeAssumptions.type_repr
   SyntaxError.TypeAssumptions.set_msg
   SyntaxError.TypeAssumptions.get_Offset
   SyntaxError.TypeAssumptions.set_Offset
+  SyntaxError.TypeAssumptions.method_set
+  SyntaxError.TypeAssumptions.ptr_method_set
 
 axiom Decoder : Type
 axiom Decoder.zero_val : ZeroVal Decoder
@@ -411,10 +447,14 @@ class Decoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   type_repr : go.TypeReprUnderlying Decoder.underlying Decoder
   underlying : go.UnderlyingDirectedEq Decoder.ty Decoder.underlying
   isUnderlying : go.IsUnderlying Decoder.underlying Decoder.underlying
+  method_set : go.MethodSetIs Decoder.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Decoder.ty) [(go!"Buffered", (some (go.signature.Signature [] false [(go.GoType.Named go!"io.Reader" [])]))), (go!"Decode", (some (go.signature.Signature [go.any] false [go.error]))), (go!"DisallowUnknownFields", (some (go.signature.Signature [] false []))), (go!"InputOffset", (some (go.signature.Signature [] false [go.int64]))), (go!"More", (some (go.signature.Signature [] false [go.bool]))), (go!"Token", (some (go.signature.Signature [] false [Token.ty, go.error]))), (go!"UseNumber", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] Decoder.TypeAssumptions.type_repr
   Decoder.TypeAssumptions.underlying
   Decoder.TypeAssumptions.isUnderlying
+  Decoder.TypeAssumptions.method_set
+  Decoder.TypeAssumptions.ptr_method_set
 
 axiom Encoder : Type
 axiom Encoder.zero_val : ZeroVal Encoder
@@ -424,10 +464,14 @@ class Encoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   type_repr : go.TypeReprUnderlying Encoder.underlying Encoder
   underlying : go.UnderlyingDirectedEq Encoder.ty Encoder.underlying
   isUnderlying : go.IsUnderlying Encoder.underlying Encoder.underlying
+  method_set : go.MethodSetIs Encoder.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Encoder.ty) [(go!"Encode", (some (go.signature.Signature [go.any] false [go.error]))), (go!"SetEscapeHTML", (some (go.signature.Signature [go.bool] false []))), (go!"SetIndent", (some (go.signature.Signature [go.string, go.string] false [])))]
 
 attribute [instance] Encoder.TypeAssumptions.type_repr
   Encoder.TypeAssumptions.underlying
   Encoder.TypeAssumptions.isUnderlying
+  Encoder.TypeAssumptions.method_set
+  Encoder.TypeAssumptions.ptr_method_set
 
 abbrev Token [GooseExts] : Type := GoInterface
 
@@ -436,8 +480,12 @@ abbrev Token [GooseExts] : Type := GoInterface
 
 class Token.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Token.ty Token.underlying
+  method_set : go.MethodSetIs Token.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Token.ty) []
 
 attribute [instance] Token.TypeAssumptions.underlying
+  Token.TypeAssumptions.method_set
+  Token.TypeAssumptions.ptr_method_set
 
 axiom Delim : Type
 axiom Delim.zero_val : ZeroVal Delim
@@ -447,10 +495,14 @@ class Delim.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSe
   type_repr : go.TypeReprUnderlying Delim.underlying Delim
   underlying : go.UnderlyingDirectedEq Delim.ty Delim.underlying
   isUnderlying : go.IsUnderlying Delim.underlying Delim.underlying
+  method_set : go.MethodSetIs Delim.ty [(go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Delim.ty) [(go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] Delim.TypeAssumptions.type_repr
   Delim.TypeAssumptions.underlying
   Delim.TypeAssumptions.isUnderlying
+  Delim.TypeAssumptions.method_set
+  Delim.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   UnmarshalTypeError_instance : UnmarshalTypeError.TypeAssumptions

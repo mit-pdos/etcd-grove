@@ -2025,6 +2025,8 @@ class inflight.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [G
   set_index : ∀ (x : inflight) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet inflight.underlying go!"index") (PairV #x #y) (Val #(({ x with index' := y } : inflight)))
   get_bytes : ∀ (x : inflight), go.IsGoStepPureDetTagged under (StructFieldGet inflight.underlying go!"bytes") #x (Val #(x.bytes'))
   set_bytes : ∀ (x : inflight) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet inflight.underlying go!"bytes") (PairV #x #y) (Val #(({ x with bytes' := y } : inflight)))
+  method_set : go.MethodSetIs inflight.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType inflight.ty) []
 
 attribute [instance] inflight.TypeAssumptions.type_repr
   inflight.TypeAssumptions.underlying
@@ -2032,6 +2034,8 @@ attribute [instance] inflight.TypeAssumptions.type_repr
   inflight.TypeAssumptions.set_index
   inflight.TypeAssumptions.get_bytes
   inflight.TypeAssumptions.set_bytes
+  inflight.TypeAssumptions.method_set
+  inflight.TypeAssumptions.ptr_method_set
 
 structure Inflights [GooseExts] where
   mk ::
@@ -2078,6 +2082,8 @@ class Inflights.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   set_maxBytes : ∀ (x : Inflights) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Inflights.underlying go!"maxBytes") (PairV #x #y) (Val #(({ x with maxBytes' := y } : Inflights)))
   get_buffer : ∀ (x : Inflights), go.IsGoStepPureDetTagged under (StructFieldGet Inflights.underlying go!"buffer") #x (Val #(x.buffer'))
   set_buffer : ∀ (x : Inflights) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Inflights.underlying go!"buffer") (PairV #x #y) (Val #(({ x with buffer' := y } : Inflights)))
+  method_set : go.MethodSetIs Inflights.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Inflights.ty) [(go!"Add", (some (go.signature.Signature [go.uint64, go.uint64] false []))), (go!"Clone", (some (go.signature.Signature [] false [(go.GoType.PointerType Inflights.ty)]))), (go!"Count", (some (go.signature.Signature [] false [go.int]))), (go!"FreeLE", (some (go.signature.Signature [go.uint64] false []))), (go!"Full", (some (go.signature.Signature [] false [go.bool]))), (go!"go.etcd.io/raft/v3/tracker.grow", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/raft/v3/tracker.reset", (some (go.signature.Signature [] false [])))]
   ptr_Add_unfold : MethodUnfold (go.GoType.PointerType Inflights.ty) go!"Add" Inflights.Add.impl
   ptr_Clone_unfold : MethodUnfold (go.GoType.PointerType Inflights.ty) go!"Clone" Inflights.Clone.impl
   ptr_Count_unfold : MethodUnfold (go.GoType.PointerType Inflights.ty) go!"Count" Inflights.Count.impl
@@ -2100,6 +2106,8 @@ attribute [instance] Inflights.TypeAssumptions.type_repr
   Inflights.TypeAssumptions.set_maxBytes
   Inflights.TypeAssumptions.get_buffer
   Inflights.TypeAssumptions.set_buffer
+  Inflights.TypeAssumptions.method_set
+  Inflights.TypeAssumptions.ptr_method_set
   Inflights.TypeAssumptions.ptr_Add_unfold
   Inflights.TypeAssumptions.ptr_Clone_unfold
   Inflights.TypeAssumptions.ptr_Count_unfold
@@ -2115,11 +2123,15 @@ abbrev StateType [GooseExts] : Type := w64
 
 class StateType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq StateType.ty StateType.underlying
+  method_set : go.MethodSetIs StateType.ty [(go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType StateType.ty) [(go!"String", (some (go.signature.Signature [] false [go.string])))]
   String_unfold : MethodUnfold StateType.ty go!"String" StateType.String.impl
   ptr_String_unfold : MethodUnfold (go.GoType.PointerType StateType.ty) go!"String" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve StateType.ty go!"String"))) (App (Val (GoInstruction (GoLoad StateType.ty))) (Var "$r"))))
 
 attribute [instance] StateType.TypeAssumptions.underlying
+  StateType.TypeAssumptions.method_set
+  StateType.TypeAssumptions.ptr_method_set
   StateType.TypeAssumptions.String_unfold
   StateType.TypeAssumptions.ptr_String_unfold
 
@@ -2184,6 +2196,8 @@ class Progress.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [G
   set_IsLearner : ∀ (x : Progress) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Progress.underlying go!"IsLearner") (PairV #x #y) (Val #(({ x with IsLearner' := y } : Progress)))
   get_IsWitness : ∀ (x : Progress), go.IsGoStepPureDetTagged under (StructFieldGet Progress.underlying go!"IsWitness") #x (Val #(x.IsWitness'))
   set_IsWitness : ∀ (x : Progress) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Progress.underlying go!"IsWitness") (PairV #x #y) (Val #(({ x with IsWitness' := y } : Progress)))
+  method_set : go.MethodSetIs Progress.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Progress.ty) [(go!"BecomeProbe", (some (go.signature.Signature [] false []))), (go!"BecomeReplicate", (some (go.signature.Signature [] false []))), (go!"BecomeSnapshot", (some (go.signature.Signature [go.uint64] false []))), (go!"CanBumpCommit", (some (go.signature.Signature [go.uint64] false [go.bool]))), (go!"IsPaused", (some (go.signature.Signature [] false [go.bool]))), (go!"MaybeDecrTo", (some (go.signature.Signature [go.uint64, go.uint64] false [go.bool]))), (go!"MaybeUpdate", (some (go.signature.Signature [go.uint64] false [go.bool]))), (go!"ResetState", (some (go.signature.Signature [StateType.ty] false []))), (go!"SentCommit", (some (go.signature.Signature [go.uint64] false []))), (go!"SentEntries", (some (go.signature.Signature [go.int, go.uint64] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
   ptr_BecomeProbe_unfold : MethodUnfold (go.GoType.PointerType Progress.ty) go!"BecomeProbe" Progress.BecomeProbe.impl
   ptr_BecomeReplicate_unfold : MethodUnfold (go.GoType.PointerType Progress.ty) go!"BecomeReplicate" Progress.BecomeReplicate.impl
   ptr_BecomeSnapshot_unfold : MethodUnfold (go.GoType.PointerType Progress.ty) go!"BecomeSnapshot" Progress.BecomeSnapshot.impl
@@ -2218,6 +2232,8 @@ attribute [instance] Progress.TypeAssumptions.type_repr
   Progress.TypeAssumptions.set_IsLearner
   Progress.TypeAssumptions.get_IsWitness
   Progress.TypeAssumptions.set_IsWitness
+  Progress.TypeAssumptions.method_set
+  Progress.TypeAssumptions.ptr_method_set
   Progress.TypeAssumptions.ptr_BecomeProbe_unfold
   Progress.TypeAssumptions.ptr_BecomeReplicate_unfold
   Progress.TypeAssumptions.ptr_BecomeSnapshot_unfold
@@ -2237,11 +2253,15 @@ abbrev ProgressMap [GooseExts] : Type := GoMap
 
 class ProgressMap.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ProgressMap.ty ProgressMap.underlying
+  method_set : go.MethodSetIs ProgressMap.ty [(go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ProgressMap.ty) [(go!"String", (some (go.signature.Signature [] false [go.string])))]
   String_unfold : MethodUnfold ProgressMap.ty go!"String" ProgressMap.String.impl
   ptr_String_unfold : MethodUnfold (go.GoType.PointerType ProgressMap.ty) go!"String" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve ProgressMap.ty go!"String"))) (App (Val (GoInstruction (GoLoad ProgressMap.ty))) (Var "$r"))))
 
 attribute [instance] ProgressMap.TypeAssumptions.underlying
+  ProgressMap.TypeAssumptions.method_set
+  ProgressMap.TypeAssumptions.ptr_method_set
   ProgressMap.TypeAssumptions.String_unfold
   ProgressMap.TypeAssumptions.ptr_String_unfold
 
@@ -2286,6 +2306,8 @@ class Config.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   set_LearnersNext : ∀ (x : Config) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"LearnersNext") (PairV #x #y) (Val #(({ x with LearnersNext' := y } : Config)))
   get_Witnesses : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"Witnesses") #x (Val #(x.Witnesses'))
   set_Witnesses : ∀ (x : Config) (y : (GoArray w64 2)), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"Witnesses") (PairV #x #y) (Val #(({ x with Witnesses' := y } : Config)))
+  method_set : go.MethodSetIs Config.ty [(go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Config.ty) [(go!"Clone", (some (go.signature.Signature [] false [Config.ty]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
   String_unfold : MethodUnfold Config.ty go!"String" Config.String.impl
   ptr_Clone_unfold : MethodUnfold (go.GoType.PointerType Config.ty) go!"Clone" Config.Clone.impl
   ptr_String_unfold : MethodUnfold (go.GoType.PointerType Config.ty) go!"String" (LamV "$r"
@@ -2303,6 +2325,8 @@ attribute [instance] Config.TypeAssumptions.type_repr
   Config.TypeAssumptions.set_LearnersNext
   Config.TypeAssumptions.get_Witnesses
   Config.TypeAssumptions.set_Witnesses
+  Config.TypeAssumptions.method_set
+  Config.TypeAssumptions.ptr_method_set
   Config.TypeAssumptions.String_unfold
   Config.TypeAssumptions.ptr_Clone_unfold
   Config.TypeAssumptions.ptr_String_unfold
@@ -2340,6 +2364,8 @@ class ReplicationSet.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalConte
   set_Excluded : ∀ (x : ReplicationSet) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ReplicationSet.underlying go!"Excluded") (PairV #x #y) (Val #(({ x with Excluded' := y } : ReplicationSet)))
   get_NonWitnessVoters : ∀ (x : ReplicationSet), go.IsGoStepPureDetTagged under (StructFieldGet ReplicationSet.underlying go!"NonWitnessVoters") #x (Val #(x.NonWitnessVoters'))
   set_NonWitnessVoters : ∀ (x : ReplicationSet) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet ReplicationSet.underlying go!"NonWitnessVoters") (PairV #x #y) (Val #(({ x with NonWitnessVoters' := y } : ReplicationSet)))
+  method_set : go.MethodSetIs ReplicationSet.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ReplicationSet.ty) [(go!"Clone", (some (go.signature.Signature [] false [ReplicationSet.ty]))), (go!"GetNonWitnessVoterSlice", (some (go.signature.Signature [] false [(go.GoType.SliceType go.uint64)]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
   ptr_Clone_unfold : MethodUnfold (go.GoType.PointerType ReplicationSet.ty) go!"Clone" ReplicationSet.Clone.impl
   ptr_GetNonWitnessVoterSlice_unfold : MethodUnfold (go.GoType.PointerType ReplicationSet.ty) go!"GetNonWitnessVoterSlice" ReplicationSet.GetNonWitnessVoterSlice.impl
   ptr_String_unfold : MethodUnfold (go.GoType.PointerType ReplicationSet.ty) go!"String" ReplicationSet.String.impl
@@ -2352,6 +2378,8 @@ attribute [instance] ReplicationSet.TypeAssumptions.type_repr
   ReplicationSet.TypeAssumptions.set_Excluded
   ReplicationSet.TypeAssumptions.get_NonWitnessVoters
   ReplicationSet.TypeAssumptions.set_NonWitnessVoters
+  ReplicationSet.TypeAssumptions.method_set
+  ReplicationSet.TypeAssumptions.ptr_method_set
   ReplicationSet.TypeAssumptions.ptr_Clone_unfold
   ReplicationSet.TypeAssumptions.ptr_GetNonWitnessVoterSlice_unfold
   ReplicationSet.TypeAssumptions.ptr_String_unfold
@@ -2385,6 +2413,8 @@ class Epoch.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSe
   set_Subterm : ∀ (x : Epoch) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Epoch.underlying go!"Subterm") (PairV #x #y) (Val #(({ x with Subterm' := y } : Epoch)))
   get_ReplicationSet : ∀ (x : Epoch), go.IsGoStepPureDetTagged under (StructFieldGet Epoch.underlying go!"ReplicationSet") #x (Val #(x.ReplicationSet'))
   set_ReplicationSet : ∀ (x : Epoch) (y : (GoArray ReplicationSet 2)), go.IsGoStepPureDetTagged under (StructFieldSet Epoch.underlying go!"ReplicationSet") (PairV #x #y) (Val #(({ x with ReplicationSet' := y } : Epoch)))
+  method_set : go.MethodSetIs Epoch.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Epoch.ty) [(go!"HasWitness", (some (go.signature.Signature [] false [go.bool]))), (go!"ReplicateToWitness", (some (go.signature.Signature [] false [go.bool, go.bool])))]
   ptr_HasWitness_unfold : MethodUnfold (go.GoType.PointerType Epoch.ty) go!"HasWitness" Epoch.HasWitness.impl
   ptr_ReplicateToWitness_unfold : MethodUnfold (go.GoType.PointerType Epoch.ty) go!"ReplicateToWitness" Epoch.ReplicateToWitness.impl
 
@@ -2394,6 +2424,8 @@ attribute [instance] Epoch.TypeAssumptions.type_repr
   Epoch.TypeAssumptions.set_Subterm
   Epoch.TypeAssumptions.get_ReplicationSet
   Epoch.TypeAssumptions.set_ReplicationSet
+  Epoch.TypeAssumptions.method_set
+  Epoch.TypeAssumptions.ptr_method_set
   Epoch.TypeAssumptions.ptr_HasWitness_unfold
   Epoch.TypeAssumptions.ptr_ReplicateToWitness_unfold
 
@@ -2442,6 +2474,8 @@ class ProgressTracker.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCont
   set_MaxInflightBytes : ∀ (x : ProgressTracker) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet ProgressTracker.underlying go!"MaxInflightBytes") (PairV #x #y) (Val #(({ x with MaxInflightBytes' := y } : ProgressTracker)))
   get_Epoch : ∀ (x : ProgressTracker), go.IsGoStepPureDetTagged under (StructFieldGet ProgressTracker.underlying go!"Epoch") #x (Val #(x.Epoch'))
   set_Epoch : ∀ (x : ProgressTracker) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet ProgressTracker.underlying go!"Epoch") (PairV #x #y) (Val #(({ x with Epoch' := y } : ProgressTracker)))
+  method_set : go.MethodSetIs ProgressTracker.ty [(go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ProgressTracker.ty) [(go!"ChangeReplicationSet", (some (go.signature.Signature [] false [go.bool]))), (go!"Clone", (some (go.signature.Signature [] false [Config.ty]))), (go!"Committed", (some (go.signature.Signature [] false [go.uint64]))), (go!"ConfState", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfState.ty)]))), (go!"IsSingleton", (some (go.signature.Signature [] false [go.bool]))), (go!"LearnerNodes", (some (go.signature.Signature [] false [(go.GoType.SliceType go.uint64)]))), (go!"OneLessThanQuorumInReplicationSet", (some (go.signature.Signature [] false [(go.GoType.MapType go.uint64 _root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty)]))), (go!"QuorumActive", (some (go.signature.Signature [] false [go.bool]))), (go!"RecordVote", (some (go.signature.Signature [go.uint64, go.bool] false []))), (go!"ResetReplicationSet", (some (go.signature.Signature [go.bool] false []))), (go!"ResetVotes", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"TallyVotes", (some (go.signature.Signature [] false [go.int, go.int, _root_.Perennial.go_etcd_io.raft.v3.quorum.VoteResult.ty]))), (go!"TallyVotesWithDifference", (some (go.signature.Signature [] false [go.int, go.int, _root_.Perennial.go_etcd_io.raft.v3.quorum.VoteResult.ty, (go.GoType.ArrayType 2 go.int)]))), (go!"Visit", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [go.uint64, (go.GoType.PointerType Progress.ty)] false []))] false []))), (go!"VoterNodes", (some (go.signature.Signature [] false [(go.GoType.SliceType go.uint64)])))]
   String_unfold : MethodUnfold ProgressTracker.ty go!"String" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve Config.ty go!"String"))) (App (Val (GoInstruction (StructFieldGet ProgressTracker.ty go!"Config"))) (Var "$r"))))
   ptr_ChangeReplicationSet_unfold : MethodUnfold (go.GoType.PointerType ProgressTracker.ty) go!"ChangeReplicationSet" ProgressTracker.ChangeReplicationSet.impl
@@ -2477,6 +2511,8 @@ attribute [instance] ProgressTracker.TypeAssumptions.type_repr
   ProgressTracker.TypeAssumptions.set_MaxInflightBytes
   ProgressTracker.TypeAssumptions.get_Epoch
   ProgressTracker.TypeAssumptions.set_Epoch
+  ProgressTracker.TypeAssumptions.method_set
+  ProgressTracker.TypeAssumptions.ptr_method_set
   ProgressTracker.TypeAssumptions.String_unfold
   ProgressTracker.TypeAssumptions.ptr_ChangeReplicationSet_unfold
   ProgressTracker.TypeAssumptions.ptr_Clone_unfold
@@ -2502,11 +2538,15 @@ abbrev matchAckIndexer [GooseExts] : Type := GoMap
 
 class matchAckIndexer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq matchAckIndexer.ty matchAckIndexer.underlying
+  method_set : go.MethodSetIs matchAckIndexer.ty [(go!"AckedIndex", (some (go.signature.Signature [go.uint64] false [_root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty, go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType matchAckIndexer.ty) [(go!"AckedIndex", (some (go.signature.Signature [go.uint64] false [_root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty, go.bool])))]
   AckedIndex_unfold : MethodUnfold matchAckIndexer.ty go!"AckedIndex" matchAckIndexer.AckedIndex.impl
   ptr_AckedIndex_unfold : MethodUnfold (go.GoType.PointerType matchAckIndexer.ty) go!"AckedIndex" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve matchAckIndexer.ty go!"AckedIndex"))) (App (Val (GoInstruction (GoLoad matchAckIndexer.ty))) (Var "$r"))))
 
 attribute [instance] matchAckIndexer.TypeAssumptions.underlying
+  matchAckIndexer.TypeAssumptions.method_set
+  matchAckIndexer.TypeAssumptions.ptr_method_set
   matchAckIndexer.TypeAssumptions.AckedIndex_unfold
   matchAckIndexer.TypeAssumptions.ptr_AckedIndex_unfold
 
@@ -2539,6 +2579,8 @@ class scopedAckIndexer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCon
   set_indexer : ∀ (x : scopedAckIndexer) (y : _root_.Perennial.go_etcd_io.raft.v3.quorum.AckedIndexer), go.IsGoStepPureDetTagged under (StructFieldSet scopedAckIndexer.underlying go!"indexer") (PairV #x #y) (Val #(({ x with indexer' := y } : scopedAckIndexer)))
   get_scope : ∀ (x : scopedAckIndexer), go.IsGoStepPureDetTagged under (StructFieldGet scopedAckIndexer.underlying go!"scope") #x (Val #(x.scope'))
   set_scope : ∀ (x : scopedAckIndexer) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet scopedAckIndexer.underlying go!"scope") (PairV #x #y) (Val #(({ x with scope' := y } : scopedAckIndexer)))
+  method_set : go.MethodSetIs scopedAckIndexer.ty [(go!"AckedIndex", (some (go.signature.Signature [go.uint64] false [_root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty, go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType scopedAckIndexer.ty) [(go!"AckedIndex", (some (go.signature.Signature [go.uint64] false [_root_.Perennial.go_etcd_io.raft.v3.quorum.Index'.ty, go.bool])))]
   AckedIndex_unfold : MethodUnfold scopedAckIndexer.ty go!"AckedIndex" scopedAckIndexer.AckedIndex.impl
   ptr_AckedIndex_unfold : MethodUnfold (go.GoType.PointerType scopedAckIndexer.ty) go!"AckedIndex" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve scopedAckIndexer.ty go!"AckedIndex"))) (App (Val (GoInstruction (GoLoad scopedAckIndexer.ty))) (Var "$r"))))
@@ -2549,6 +2591,8 @@ attribute [instance] scopedAckIndexer.TypeAssumptions.type_repr
   scopedAckIndexer.TypeAssumptions.set_indexer
   scopedAckIndexer.TypeAssumptions.get_scope
   scopedAckIndexer.TypeAssumptions.set_scope
+  scopedAckIndexer.TypeAssumptions.method_set
+  scopedAckIndexer.TypeAssumptions.ptr_method_set
   scopedAckIndexer.TypeAssumptions.AckedIndex_unfold
   scopedAckIndexer.TypeAssumptions.ptr_AckedIndex_unfold
 

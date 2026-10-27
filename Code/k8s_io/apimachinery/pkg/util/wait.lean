@@ -324,10 +324,14 @@ class Backoff.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   type_repr : go.TypeReprUnderlying Backoff.underlying Backoff
   underlying : go.UnderlyingDirectedEq Backoff.ty Backoff.underlying
   isUnderlying : go.IsUnderlying Backoff.underlying Backoff.underlying
+  method_set : go.MethodSetIs Backoff.ty [(go!"DelayFunc", (some (go.signature.Signature [] false [DelayFunc.ty]))), (go!"DelayWithReset", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/utils/clock.Clock" []), (go.GoType.Named go!"time.Duration" [])] false [DelayFunc.ty]))), (go!"Timer", (some (go.signature.Signature [] false [Timer.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Backoff.ty) [(go!"DelayFunc", (some (go.signature.Signature [] false [DelayFunc.ty]))), (go!"DelayWithReset", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/utils/clock.Clock" []), (go.GoType.Named go!"time.Duration" [])] false [DelayFunc.ty]))), (go!"Step", (some (go.signature.Signature [] false [(go.GoType.Named go!"time.Duration" [])]))), (go!"Timer", (some (go.signature.Signature [] false [Timer.ty])))]
 
 attribute [instance] Backoff.TypeAssumptions.type_repr
   Backoff.TypeAssumptions.underlying
   Backoff.TypeAssumptions.isUnderlying
+  Backoff.TypeAssumptions.method_set
+  Backoff.TypeAssumptions.ptr_method_set
 
 axiom backoffManager : Type
 axiom backoffManager.zero_val : ZeroVal backoffManager
@@ -337,10 +341,14 @@ class backoffManager.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalConte
   type_repr : go.TypeReprUnderlying backoffManager.underlying backoffManager
   underlying : go.UnderlyingDirectedEq backoffManager.ty backoffManager.underlying
   isUnderlying : go.IsUnderlying backoffManager.underlying backoffManager.underlying
+  method_set : go.MethodSetIs backoffManager.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType backoffManager.ty) [(go!"Backoff", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/utils/clock.Timer" [])]))), (go!"Step", (some (go.signature.Signature [] false [(go.GoType.Named go!"time.Duration" [])]))), (go!"Timer", (some (go.signature.Signature [] false [Timer.ty])))]
 
 attribute [instance] backoffManager.TypeAssumptions.type_repr
   backoffManager.TypeAssumptions.underlying
   backoffManager.TypeAssumptions.isUnderlying
+  backoffManager.TypeAssumptions.method_set
+  backoffManager.TypeAssumptions.ptr_method_set
 
 axiom BackoffManager : Type
 axiom BackoffManager.zero_val : ZeroVal BackoffManager
@@ -350,10 +358,14 @@ class BackoffManager.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalConte
   type_repr : go.TypeReprUnderlying BackoffManager.underlying BackoffManager
   underlying : go.UnderlyingDirectedEq BackoffManager.ty BackoffManager.underlying
   isUnderlying : go.IsUnderlying BackoffManager.underlying BackoffManager.underlying
+  method_set : go.MethodSetIs BackoffManager.ty [(go!"Backoff", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/utils/clock.Timer" [])])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType BackoffManager.ty) []
 
 attribute [instance] BackoffManager.TypeAssumptions.type_repr
   BackoffManager.TypeAssumptions.underlying
   BackoffManager.TypeAssumptions.isUnderlying
+  BackoffManager.TypeAssumptions.method_set
+  BackoffManager.TypeAssumptions.ptr_method_set
 
 axiom exponentialBackoffManagerImpl : Type
 axiom exponentialBackoffManagerImpl.zero_val : ZeroVal exponentialBackoffManagerImpl
@@ -363,10 +375,14 @@ class exponentialBackoffManagerImpl.TypeAssumptions [GooseExts] [GoGlobalContext
   type_repr : go.TypeReprUnderlying exponentialBackoffManagerImpl.underlying exponentialBackoffManagerImpl
   underlying : go.UnderlyingDirectedEq exponentialBackoffManagerImpl.ty exponentialBackoffManagerImpl.underlying
   isUnderlying : go.IsUnderlying exponentialBackoffManagerImpl.underlying exponentialBackoffManagerImpl.underlying
+  method_set : go.MethodSetIs exponentialBackoffManagerImpl.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType exponentialBackoffManagerImpl.ty) [(go!"Backoff", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/utils/clock.Timer" [])]))), (go!"k8s.io/apimachinery/pkg/util/wait.getNextBackoff", (some (go.signature.Signature [] false [(go.GoType.Named go!"time.Duration" [])])))]
 
 attribute [instance] exponentialBackoffManagerImpl.TypeAssumptions.type_repr
   exponentialBackoffManagerImpl.TypeAssumptions.underlying
   exponentialBackoffManagerImpl.TypeAssumptions.isUnderlying
+  exponentialBackoffManagerImpl.TypeAssumptions.method_set
+  exponentialBackoffManagerImpl.TypeAssumptions.ptr_method_set
 
 axiom jitteredBackoffManagerImpl : Type
 axiom jitteredBackoffManagerImpl.zero_val : ZeroVal jitteredBackoffManagerImpl
@@ -376,10 +392,14 @@ class jitteredBackoffManagerImpl.TypeAssumptions [GooseExts] [GoGlobalContext] [
   type_repr : go.TypeReprUnderlying jitteredBackoffManagerImpl.underlying jitteredBackoffManagerImpl
   underlying : go.UnderlyingDirectedEq jitteredBackoffManagerImpl.ty jitteredBackoffManagerImpl.underlying
   isUnderlying : go.IsUnderlying jitteredBackoffManagerImpl.underlying jitteredBackoffManagerImpl.underlying
+  method_set : go.MethodSetIs jitteredBackoffManagerImpl.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType jitteredBackoffManagerImpl.ty) [(go!"Backoff", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/utils/clock.Timer" [])]))), (go!"k8s.io/apimachinery/pkg/util/wait.getNextBackoff", (some (go.signature.Signature [] false [(go.GoType.Named go!"time.Duration" [])])))]
 
 attribute [instance] jitteredBackoffManagerImpl.TypeAssumptions.type_repr
   jitteredBackoffManagerImpl.TypeAssumptions.underlying
   jitteredBackoffManagerImpl.TypeAssumptions.isUnderlying
+  jitteredBackoffManagerImpl.TypeAssumptions.method_set
+  jitteredBackoffManagerImpl.TypeAssumptions.ptr_method_set
 
 axiom DelayFunc : Type
 axiom DelayFunc.zero_val : ZeroVal DelayFunc
@@ -389,10 +409,14 @@ class DelayFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   type_repr : go.TypeReprUnderlying DelayFunc.underlying DelayFunc
   underlying : go.UnderlyingDirectedEq DelayFunc.ty DelayFunc.underlying
   isUnderlying : go.IsUnderlying DelayFunc.underlying DelayFunc.underlying
+  method_set : go.MethodSetIs DelayFunc.ty [(go!"Concurrent", (some (go.signature.Signature [] false [DelayFunc.ty]))), (go!"Timer", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/utils/clock.Clock" [])] false [Timer.ty]))), (go!"Until", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.bool, go.bool, ConditionWithContextFunc.ty] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DelayFunc.ty) [(go!"Concurrent", (some (go.signature.Signature [] false [DelayFunc.ty]))), (go!"Timer", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/utils/clock.Clock" [])] false [Timer.ty]))), (go!"Until", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.bool, go.bool, ConditionWithContextFunc.ty] false [go.error])))]
 
 attribute [instance] DelayFunc.TypeAssumptions.type_repr
   DelayFunc.TypeAssumptions.underlying
   DelayFunc.TypeAssumptions.isUnderlying
+  DelayFunc.TypeAssumptions.method_set
+  DelayFunc.TypeAssumptions.ptr_method_set
 
 structure errInterrupted [GooseExts] where
   mk ::
@@ -419,11 +443,15 @@ class errInterrupted.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalConte
   underlying : go.UnderlyingDirectedEq errInterrupted.ty errInterrupted.underlying
   get_cause : ∀ (x : errInterrupted), go.IsGoStepPureDetTagged under (StructFieldGet errInterrupted.underlying go!"cause") #x (Val #(x.cause'))
   set_cause : ∀ (x : errInterrupted) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet errInterrupted.underlying go!"cause") (PairV #x #y) (Val #(({ x with cause' := y } : errInterrupted)))
+  method_set : go.MethodSetIs errInterrupted.ty [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Is", (some (go.signature.Signature [go.error] false [go.bool]))), (go!"Unwrap", (some (go.signature.Signature [] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType errInterrupted.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Is", (some (go.signature.Signature [go.error] false [go.bool]))), (go!"Unwrap", (some (go.signature.Signature [] false [go.error])))]
 
 attribute [instance] errInterrupted.TypeAssumptions.type_repr
   errInterrupted.TypeAssumptions.underlying
   errInterrupted.TypeAssumptions.get_cause
   errInterrupted.TypeAssumptions.set_cause
+  errInterrupted.TypeAssumptions.method_set
+  errInterrupted.TypeAssumptions.ptr_method_set
 
 axiom Timer : Type
 axiom Timer.zero_val : ZeroVal Timer
@@ -433,10 +461,14 @@ class Timer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSe
   type_repr : go.TypeReprUnderlying Timer.underlying Timer
   underlying : go.UnderlyingDirectedEq Timer.ty Timer.underlying
   isUnderlying : go.IsUnderlying Timer.underlying Timer.underlying
+  method_set : go.MethodSetIs Timer.ty [(go!"C", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.Named go!"time.Time" []))]))), (go!"Next", (some (go.signature.Signature [] false []))), (go!"Stop", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Timer.ty) []
 
 attribute [instance] Timer.TypeAssumptions.type_repr
   Timer.TypeAssumptions.underlying
   Timer.TypeAssumptions.isUnderlying
+  Timer.TypeAssumptions.method_set
+  Timer.TypeAssumptions.ptr_method_set
 
 axiom noopTimer : Type
 axiom noopTimer.zero_val : ZeroVal noopTimer
@@ -446,10 +478,14 @@ class noopTimer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   type_repr : go.TypeReprUnderlying noopTimer.underlying noopTimer
   underlying : go.UnderlyingDirectedEq noopTimer.ty noopTimer.underlying
   isUnderlying : go.IsUnderlying noopTimer.underlying noopTimer.underlying
+  method_set : go.MethodSetIs noopTimer.ty [(go!"C", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.Named go!"time.Time" []))]))), (go!"Next", (some (go.signature.Signature [] false []))), (go!"Stop", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType noopTimer.ty) [(go!"C", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.Named go!"time.Time" []))]))), (go!"Next", (some (go.signature.Signature [] false []))), (go!"Stop", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] noopTimer.TypeAssumptions.type_repr
   noopTimer.TypeAssumptions.underlying
   noopTimer.TypeAssumptions.isUnderlying
+  noopTimer.TypeAssumptions.method_set
+  noopTimer.TypeAssumptions.ptr_method_set
 
 axiom variableTimer : Type
 axiom variableTimer.zero_val : ZeroVal variableTimer
@@ -459,10 +495,14 @@ class variableTimer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContex
   type_repr : go.TypeReprUnderlying variableTimer.underlying variableTimer
   underlying : go.UnderlyingDirectedEq variableTimer.ty variableTimer.underlying
   isUnderlying : go.IsUnderlying variableTimer.underlying variableTimer.underlying
+  method_set : go.MethodSetIs variableTimer.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType variableTimer.ty) [(go!"C", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.Named go!"time.Time" []))]))), (go!"Next", (some (go.signature.Signature [] false []))), (go!"Stop", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] variableTimer.TypeAssumptions.type_repr
   variableTimer.TypeAssumptions.underlying
   variableTimer.TypeAssumptions.isUnderlying
+  variableTimer.TypeAssumptions.method_set
+  variableTimer.TypeAssumptions.ptr_method_set
 
 axiom fixedTimer : Type
 axiom fixedTimer.zero_val : ZeroVal fixedTimer
@@ -472,10 +512,14 @@ class fixedTimer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] 
   type_repr : go.TypeReprUnderlying fixedTimer.underlying fixedTimer
   underlying : go.UnderlyingDirectedEq fixedTimer.ty fixedTimer.underlying
   isUnderlying : go.IsUnderlying fixedTimer.underlying fixedTimer.underlying
+  method_set : go.MethodSetIs fixedTimer.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType fixedTimer.ty) [(go!"C", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.Named go!"time.Time" []))]))), (go!"Next", (some (go.signature.Signature [] false []))), (go!"Stop", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] fixedTimer.TypeAssumptions.type_repr
   fixedTimer.TypeAssumptions.underlying
   fixedTimer.TypeAssumptions.isUnderlying
+  fixedTimer.TypeAssumptions.method_set
+  fixedTimer.TypeAssumptions.ptr_method_set
 
 axiom Group : Type
 axiom Group.zero_val : ZeroVal Group
@@ -485,10 +529,14 @@ class Group.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSe
   type_repr : go.TypeReprUnderlying Group.underlying Group
   underlying : go.UnderlyingDirectedEq Group.ty Group.underlying
   isUnderlying : go.IsUnderlying Group.underlying Group.underlying
+  method_set : go.MethodSetIs Group.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Group.ty) [(go!"Start", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [] false []))] false []))), (go!"StartWithChannel", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType [])), (go.GoType.FunctionType (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false []))] false []))), (go!"StartWithContext", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.FunctionType (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false []))] false []))), (go!"Wait", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] Group.TypeAssumptions.type_repr
   Group.TypeAssumptions.underlying
   Group.TypeAssumptions.isUnderlying
+  Group.TypeAssumptions.method_set
+  Group.TypeAssumptions.ptr_method_set
 
 abbrev ConditionFunc [GooseExts] : Type := GoFunc
 
@@ -497,8 +545,12 @@ abbrev ConditionFunc [GooseExts] : Type := GoFunc
 
 class ConditionFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ConditionFunc.ty ConditionFunc.underlying
+  method_set : go.MethodSetIs ConditionFunc.ty [(go!"WithContext", (some (go.signature.Signature [] false [ConditionWithContextFunc.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ConditionFunc.ty) [(go!"WithContext", (some (go.signature.Signature [] false [ConditionWithContextFunc.ty])))]
 
 attribute [instance] ConditionFunc.TypeAssumptions.underlying
+  ConditionFunc.TypeAssumptions.method_set
+  ConditionFunc.TypeAssumptions.ptr_method_set
 
 axiom ConditionWithContextFunc : Type
 axiom ConditionWithContextFunc.zero_val : ZeroVal ConditionWithContextFunc
@@ -508,10 +560,14 @@ class ConditionWithContextFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [Go
   type_repr : go.TypeReprUnderlying ConditionWithContextFunc.underlying ConditionWithContextFunc
   underlying : go.UnderlyingDirectedEq ConditionWithContextFunc.ty ConditionWithContextFunc.underlying
   isUnderlying : go.IsUnderlying ConditionWithContextFunc.underlying ConditionWithContextFunc.underlying
+  method_set : go.MethodSetIs ConditionWithContextFunc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ConditionWithContextFunc.ty) []
 
 attribute [instance] ConditionWithContextFunc.TypeAssumptions.type_repr
   ConditionWithContextFunc.TypeAssumptions.underlying
   ConditionWithContextFunc.TypeAssumptions.isUnderlying
+  ConditionWithContextFunc.TypeAssumptions.method_set
+  ConditionWithContextFunc.TypeAssumptions.ptr_method_set
 
 structure channelContext [GooseExts] where
   mk ::
@@ -538,11 +594,15 @@ class channelContext.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalConte
   underlying : go.UnderlyingDirectedEq channelContext.ty channelContext.underlying
   get_stopCh : ∀ (x : channelContext), go.IsGoStepPureDetTagged under (StructFieldGet channelContext.underlying go!"stopCh") #x (Val #(x.stopCh'))
   set_stopCh : ∀ (x : channelContext) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet channelContext.underlying go!"stopCh") (PairV #x #y) (Val #(({ x with stopCh' := y } : channelContext)))
+  method_set : go.MethodSetIs channelContext.ty [(go!"Deadline", (some (go.signature.Signature [] false [(go.GoType.Named go!"time.Time" []), go.bool]))), (go!"Done", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"Err", (some (go.signature.Signature [] false [go.error]))), (go!"Value", (some (go.signature.Signature [go.any] false [go.any])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType channelContext.ty) [(go!"Deadline", (some (go.signature.Signature [] false [(go.GoType.Named go!"time.Time" []), go.bool]))), (go!"Done", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"Err", (some (go.signature.Signature [] false [go.error]))), (go!"Value", (some (go.signature.Signature [go.any] false [go.any])))]
 
 attribute [instance] channelContext.TypeAssumptions.type_repr
   channelContext.TypeAssumptions.underlying
   channelContext.TypeAssumptions.get_stopCh
   channelContext.TypeAssumptions.set_stopCh
+  channelContext.TypeAssumptions.method_set
+  channelContext.TypeAssumptions.ptr_method_set
 
 abbrev waitFunc [GooseExts] : Type := GoFunc
 
@@ -551,8 +611,12 @@ abbrev waitFunc [GooseExts] : Type := GoFunc
 
 class waitFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq waitFunc.ty waitFunc.underlying
+  method_set : go.MethodSetIs waitFunc.ty [(go!"WithContext", (some (go.signature.Signature [] false [waitWithContextFunc.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType waitFunc.ty) [(go!"WithContext", (some (go.signature.Signature [] false [waitWithContextFunc.ty])))]
 
 attribute [instance] waitFunc.TypeAssumptions.underlying
+  waitFunc.TypeAssumptions.method_set
+  waitFunc.TypeAssumptions.ptr_method_set
 
 axiom waitWithContextFunc : Type
 axiom waitWithContextFunc.zero_val : ZeroVal waitWithContextFunc
@@ -562,10 +626,14 @@ class waitWithContextFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocal
   type_repr : go.TypeReprUnderlying waitWithContextFunc.underlying waitWithContextFunc
   underlying : go.UnderlyingDirectedEq waitWithContextFunc.ty waitWithContextFunc.underlying
   isUnderlying : go.IsUnderlying waitWithContextFunc.underlying waitWithContextFunc.underlying
+  method_set : go.MethodSetIs waitWithContextFunc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType waitWithContextFunc.ty) []
 
 attribute [instance] waitWithContextFunc.TypeAssumptions.type_repr
   waitWithContextFunc.TypeAssumptions.underlying
   waitWithContextFunc.TypeAssumptions.isUnderlying
+  waitWithContextFunc.TypeAssumptions.method_set
+  waitWithContextFunc.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Backoff_instance : Backoff.TypeAssumptions

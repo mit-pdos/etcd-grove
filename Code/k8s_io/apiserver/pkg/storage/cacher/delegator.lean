@@ -63,8 +63,12 @@ abbrev Helper [GooseExts] : Type := GoInterface
 
 class Helper.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Helper.ty Helper.underlying
+  method_set : go.MethodSetIs Helper.ty [(go!"ShouldDelegateConsistentRead", (some (go.signature.Signature [] false [Result.ty, go.error]))), (go!"ShouldDelegateContinue", (some (go.signature.Signature [go.string, go.bool] false [Result.ty, go.error]))), (go!"ShouldDelegateExactRV", (some (go.signature.Signature [go.string, go.bool] false [Result.ty, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Helper.ty) []
 
 attribute [instance] Helper.TypeAssumptions.underlying
+  Helper.TypeAssumptions.method_set
+  Helper.TypeAssumptions.ptr_method_set
 
 structure Result [GooseExts] where
   mk ::
@@ -95,6 +99,8 @@ class Result.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   set_ShouldDelegate : ∀ (x : Result) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Result.underlying go!"ShouldDelegate") (PairV #x #y) (Val #(({ x with ShouldDelegate' := y } : Result)))
   get_ConsistentRead : ∀ (x : Result), go.IsGoStepPureDetTagged under (StructFieldGet Result.underlying go!"ConsistentRead") #x (Val #(x.ConsistentRead'))
   set_ConsistentRead : ∀ (x : Result) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Result.underlying go!"ConsistentRead") (PairV #x #y) (Val #(({ x with ConsistentRead' := y } : Result)))
+  method_set : go.MethodSetIs Result.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Result.ty) []
 
 attribute [instance] Result.TypeAssumptions.type_repr
   Result.TypeAssumptions.underlying
@@ -102,6 +108,8 @@ attribute [instance] Result.TypeAssumptions.type_repr
   Result.TypeAssumptions.set_ShouldDelegate
   Result.TypeAssumptions.get_ConsistentRead
   Result.TypeAssumptions.set_ConsistentRead
+  Result.TypeAssumptions.method_set
+  Result.TypeAssumptions.ptr_method_set
 
 structure CacheWithoutSnapshots [GooseExts] where
   mk ::
@@ -125,9 +133,13 @@ noncomputable instance equals_unfold_CacheWithoutSnapshots [GooseExts] [GoGlobal
 class CacheWithoutSnapshots.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying CacheWithoutSnapshots.underlying CacheWithoutSnapshots
   underlying : go.UnderlyingDirectedEq CacheWithoutSnapshots.ty CacheWithoutSnapshots.underlying
+  method_set : go.MethodSetIs CacheWithoutSnapshots.ty [(go!"ShouldDelegateConsistentRead", (some (go.signature.Signature [] false [Result.ty, go.error]))), (go!"ShouldDelegateContinue", (some (go.signature.Signature [go.string, go.bool] false [Result.ty, go.error]))), (go!"ShouldDelegateExactRV", (some (go.signature.Signature [go.string, go.bool] false [Result.ty, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CacheWithoutSnapshots.ty) [(go!"ShouldDelegateConsistentRead", (some (go.signature.Signature [] false [Result.ty, go.error]))), (go!"ShouldDelegateContinue", (some (go.signature.Signature [go.string, go.bool] false [Result.ty, go.error]))), (go!"ShouldDelegateExactRV", (some (go.signature.Signature [go.string, go.bool] false [Result.ty, go.error])))]
 
 attribute [instance] CacheWithoutSnapshots.TypeAssumptions.type_repr
   CacheWithoutSnapshots.TypeAssumptions.underlying
+  CacheWithoutSnapshots.TypeAssumptions.method_set
+  CacheWithoutSnapshots.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Helper_instance : Helper.TypeAssumptions

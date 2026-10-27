@@ -23,7 +23,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Assumptions]
-variable [ErrorStringLeaf]
 
 theorem rafthttp.messageDecoder.decodeLimit.wp_proof
     (wp_ReadUint64 : binary.ReadUint64.spec (GF := GF) (hG := hG))

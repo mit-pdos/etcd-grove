@@ -104,9 +104,9 @@ instance eofVar_persistent : Persistent (eofVar (GF := GF)) := by
 
 /-- **`io.EOF` from `io`'s package fact**: `io.isInit` keeps `EOF`'s value, an `errors.New("EOF")`
 error (a fixed `*errorString` whose `Error()` returns, `io.eof_of_init`); the method-set facts of
-`*errorString` (`ErrorStringLeaf`, `context.ErrorStringIsError`) make it `eofVar`'s. -/
-theorem eofVar_of_init [_root_.Perennial.io.Assumptions] [ErrorStringLeaf]
-    [hErr : _root_.Perennial.context.ErrorStringIsError] :
+`*errorString` (`ErrorStringLeaf`, and that it implements `error`) make it `eofVar`'s. -/
+theorem eofVar_of_init [_root_.Perennial.io.Assumptions]
+    :
     isPkgInit (PROP := IProp GF) pkg_id.io ⊢ eofVar := by
   iintro #Hpkg
   ihave #Hv := _root_.Perennial.io.eof_of_init $$ Hpkg
@@ -117,7 +117,7 @@ theorem eofVar_of_init [_root_.Perennial.io.Assumptions] [ErrorStringLeaf]
   iframe Hpt
   isplitr
   · ipureintro
-    exact ⟨errorString_leaf x, hErr.is_error⟩
+    exact ⟨errorString_leaf x, by simp only [context.isTypedErr]; go_type_set⟩
   iunfold errMsgOk
   iapply (errorMsg_triple (GF := GF)) $$ Hmsg
 

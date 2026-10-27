@@ -383,8 +383,12 @@ abbrev priorityAndFairnessKeyType [GooseExts] : Type := w64
 
 class priorityAndFairnessKeyType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq priorityAndFairnessKeyType.ty priorityAndFairnessKeyType.underlying
+  method_set : go.MethodSetIs priorityAndFairnessKeyType.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType priorityAndFairnessKeyType.ty) []
 
 attribute [instance] priorityAndFairnessKeyType.TypeAssumptions.underlying
+  priorityAndFairnessKeyType.TypeAssumptions.method_set
+  priorityAndFairnessKeyType.TypeAssumptions.ptr_method_set
 
 abbrev InitializationSignal [GooseExts] : Type := GoInterface
 
@@ -393,8 +397,12 @@ abbrev InitializationSignal [GooseExts] : Type := GoInterface
 
 class InitializationSignal.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq InitializationSignal.ty InitializationSignal.underlying
+  method_set : go.MethodSetIs InitializationSignal.ty [(go!"Signal", (some (go.signature.Signature [] false []))), (go!"Wait", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType InitializationSignal.ty) []
 
 attribute [instance] InitializationSignal.TypeAssumptions.underlying
+  InitializationSignal.TypeAssumptions.method_set
+  InitializationSignal.TypeAssumptions.ptr_method_set
 
 axiom initializationSignal : Type
 axiom initializationSignal.zero_val : ZeroVal initializationSignal
@@ -404,10 +412,14 @@ class initializationSignal.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLoca
   type_repr : go.TypeReprUnderlying initializationSignal.underlying initializationSignal
   underlying : go.UnderlyingDirectedEq initializationSignal.ty initializationSignal.underlying
   isUnderlying : go.IsUnderlying initializationSignal.underlying initializationSignal.underlying
+  method_set : go.MethodSetIs initializationSignal.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType initializationSignal.ty) [(go!"Signal", (some (go.signature.Signature [] false []))), (go!"Wait", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] initializationSignal.TypeAssumptions.type_repr
   initializationSignal.TypeAssumptions.underlying
   initializationSignal.TypeAssumptions.isUnderlying
+  initializationSignal.TypeAssumptions.method_set
+  initializationSignal.TypeAssumptions.ptr_method_set
 
 axiom StartFunction : Type
 axiom StartFunction.zero_val : ZeroVal StartFunction
@@ -417,10 +429,14 @@ class StartFunction.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContex
   type_repr : go.TypeReprUnderlying StartFunction.underlying StartFunction
   underlying : go.UnderlyingDirectedEq StartFunction.ty StartFunction.underlying
   isUnderlying : go.IsUnderlying StartFunction.underlying StartFunction.underlying
+  method_set : go.MethodSetIs StartFunction.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType StartFunction.ty) []
 
 attribute [instance] StartFunction.TypeAssumptions.type_repr
   StartFunction.TypeAssumptions.underlying
   StartFunction.TypeAssumptions.isUnderlying
+  StartFunction.TypeAssumptions.method_set
+  StartFunction.TypeAssumptions.ptr_method_set
 
 axiom RequestDigest : Type
 axiom RequestDigest.zero_val : ZeroVal RequestDigest
@@ -430,10 +446,14 @@ class RequestDigest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContex
   type_repr : go.TypeReprUnderlying RequestDigest.underlying RequestDigest
   underlying : go.UnderlyingDirectedEq RequestDigest.ty RequestDigest.underlying
   isUnderlying : go.IsUnderlying RequestDigest.underlying RequestDigest.underlying
+  method_set : go.MethodSetIs RequestDigest.ty [(go!"GoString", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RequestDigest.ty) [(go!"GoString", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] RequestDigest.TypeAssumptions.type_repr
   RequestDigest.TypeAssumptions.underlying
   RequestDigest.TypeAssumptions.isUnderlying
+  RequestDigest.TypeAssumptions.method_set
+  RequestDigest.TypeAssumptions.ptr_method_set
 
 axiom configController : Type
 axiom configController.zero_val : ZeroVal configController
@@ -443,10 +463,14 @@ class configController.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCon
   type_repr : go.TypeReprUnderlying configController.underlying configController
   underlying : go.UnderlyingDirectedEq configController.ty configController.underlying
   isUnderlying : go.IsUnderlying configController.underlying configController.underlying
+  method_set : go.MethodSetIs configController.ty [(go!"ForgetPriorityLevel", (some (go.signature.Signature [go.string] false []))), (go!"GetInterestedWatchCount", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apiserver/pkg/endpoints/request.RequestInfo" []))] false [go.int]))), (go!"GetMaxSeats", (some (go.signature.Signature [go.string] false [go.uint64]))), (go!"RegisterWatch", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"net/http.Request" []))] false [ForgetWatchFunc.ty]))), (go!"SetMaxSeats", (some (go.signature.Signature [go.string, go.uint64] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType configController.ty) [(go!"ForgetPriorityLevel", (some (go.signature.Signature [go.string] false []))), (go!"GetInterestedWatchCount", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apiserver/pkg/endpoints/request.RequestInfo" []))] false [go.int]))), (go!"GetMaxSeats", (some (go.signature.Signature [go.string] false [go.uint64]))), (go!"Handle", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), RequestDigest.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1.FlowSchema" [])), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1.PriorityLevelConfiguration" [])), go.string] false [])), (go.GoType.FunctionType (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apiserver/pkg/util/flowcontrol/request.WorkEstimate" [])])), (go.GoType.Named go!"k8s.io/apiserver/pkg/util/flowcontrol/fairqueuing.QueueNoteFn" []), (go.GoType.FunctionType (go.signature.Signature [] false []))] false []))), (go!"Install", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apiserver/pkg/server/mux.PathRecorderMux" []))] false []))), (go!"RegisterWatch", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"net/http.Request" []))] false [ForgetWatchFunc.ty]))), (go!"Run", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false [go.error]))), (go!"SetMaxSeats", (some (go.signature.Signature [go.string, go.uint64] false []))), (go!"k8s.io/apiserver/pkg/util/flowcontrol.addUpdateResult", (some (go.signature.Signature [updateAttempt.ty] false []))), (go!"k8s.io/apiserver/pkg/util/flowcontrol.digestConfigObjects", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1.PriorityLevelConfiguration" []))), (go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1.FlowSchema" [])))] false [(go.GoType.Named go!"time.Duration" []), go.error]))), (go!"k8s.io/apiserver/pkg/util/flowcontrol.dumpPriorityLevels", (some (go.signature.Signature [(go.GoType.Named go!"net/http.ResponseWriter" []), (go.GoType.PointerType (go.GoType.Named go!"net/http.Request" []))] false []))), (go!"k8s.io/apiserver/pkg/util/flowcontrol.dumpQueues", (some (go.signature.Signature [(go.GoType.Named go!"net/http.ResponseWriter" []), (go.GoType.PointerType (go.GoType.Named go!"net/http.Request" []))] false []))), (go!"k8s.io/apiserver/pkg/util/flowcontrol.dumpRequests", (some (go.signature.Signature [(go.GoType.Named go!"net/http.ResponseWriter" []), (go.GoType.PointerType (go.GoType.Named go!"net/http.Request" []))] false []))), (go!"k8s.io/apiserver/pkg/util/flowcontrol.lockAndDigestConfigObjects", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1.PriorityLevelConfiguration" []))), (go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1.FlowSchema" [])))] false [(go.GoType.SliceType fsStatusUpdate.ty)]))), (go!"k8s.io/apiserver/pkg/util/flowcontrol.maybeReap", (some (go.signature.Signature [go.string] false []))), (go!"k8s.io/apiserver/pkg/util/flowcontrol.maybeReapReadLocked", (some (go.signature.Signature [go.string, (go.GoType.PointerType priorityLevelState.ty)] false []))), (go!"k8s.io/apiserver/pkg/util/flowcontrol.processNextWorkItem", (some (go.signature.Signature [] false [go.bool]))), (go!"k8s.io/apiserver/pkg/util/flowcontrol.runWorker", (some (go.signature.Signature [] false []))), (go!"k8s.io/apiserver/pkg/util/flowcontrol.shouldDelayUpdate", (some (go.signature.Signature [go.string] false [go.bool]))), (go!"k8s.io/apiserver/pkg/util/flowcontrol.startRequest", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), RequestDigest.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1.FlowSchema" [])), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1.PriorityLevelConfiguration" [])), go.string] false [])), (go.GoType.FunctionType (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apiserver/pkg/util/flowcontrol/request.WorkEstimate" [])])), (go.GoType.Named go!"k8s.io/apiserver/pkg/util/flowcontrol/fairqueuing.QueueNoteFn" [])] false [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1.FlowSchema" [])), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1.PriorityLevelConfiguration" [])), go.bool, (go.GoType.Named go!"k8s.io/apiserver/pkg/util/flowcontrol/fairqueuing.Request" []), (go.GoType.Named go!"time.Time" [])]))), (go!"k8s.io/apiserver/pkg/util/flowcontrol.syncOne", (some (go.signature.Signature [] false [(go.GoType.Named go!"time.Duration" []), go.error]))), (go!"k8s.io/apiserver/pkg/util/flowcontrol.updateBorrowing", (some (go.signature.Signature [] false []))), (go!"k8s.io/apiserver/pkg/util/flowcontrol.updateBorrowingLocked", (some (go.signature.Signature [go.bool, (go.GoType.MapType go.string (go.GoType.PointerType priorityLevelState.ty))] false [])))]
 
 attribute [instance] configController.TypeAssumptions.type_repr
   configController.TypeAssumptions.underlying
   configController.TypeAssumptions.isUnderlying
+  configController.TypeAssumptions.method_set
+  configController.TypeAssumptions.ptr_method_set
 
 axiom updateAttempt : Type
 axiom updateAttempt.zero_val : ZeroVal updateAttempt
@@ -456,10 +480,14 @@ class updateAttempt.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContex
   type_repr : go.TypeReprUnderlying updateAttempt.underlying updateAttempt
   underlying : go.UnderlyingDirectedEq updateAttempt.ty updateAttempt.underlying
   isUnderlying : go.IsUnderlying updateAttempt.underlying updateAttempt.underlying
+  method_set : go.MethodSetIs updateAttempt.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType updateAttempt.ty) []
 
 attribute [instance] updateAttempt.TypeAssumptions.type_repr
   updateAttempt.TypeAssumptions.underlying
   updateAttempt.TypeAssumptions.isUnderlying
+  updateAttempt.TypeAssumptions.method_set
+  updateAttempt.TypeAssumptions.ptr_method_set
 
 axiom priorityLevelState : Type
 axiom priorityLevelState.zero_val : ZeroVal priorityLevelState
@@ -469,10 +497,14 @@ class priorityLevelState.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalC
   type_repr : go.TypeReprUnderlying priorityLevelState.underlying priorityLevelState
   underlying : go.UnderlyingDirectedEq priorityLevelState.ty priorityLevelState.underlying
   isUnderlying : go.IsUnderlying priorityLevelState.underlying priorityLevelState.underlying
+  method_set : go.MethodSetIs priorityLevelState.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType priorityLevelState.ty) [(go!"GoString", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] priorityLevelState.TypeAssumptions.type_repr
   priorityLevelState.TypeAssumptions.underlying
   priorityLevelState.TypeAssumptions.isUnderlying
+  priorityLevelState.TypeAssumptions.method_set
+  priorityLevelState.TypeAssumptions.ptr_method_set
 
 structure seatDemandStats [GooseExts] where
   mk ::
@@ -511,6 +543,8 @@ class seatDemandStats.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCont
   set_highWatermark : ∀ (x : seatDemandStats) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet seatDemandStats.underlying go!"highWatermark") (PairV #x #y) (Val #(({ x with highWatermark' := y } : seatDemandStats)))
   get_smoothed : ∀ (x : seatDemandStats), go.IsGoStepPureDetTagged under (StructFieldGet seatDemandStats.underlying go!"smoothed") #x (Val #(x.smoothed'))
   set_smoothed : ∀ (x : seatDemandStats) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet seatDemandStats.underlying go!"smoothed") (PairV #x #y) (Val #(({ x with smoothed' := y } : seatDemandStats)))
+  method_set : go.MethodSetIs seatDemandStats.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType seatDemandStats.ty) [(go!"k8s.io/apiserver/pkg/util/flowcontrol.update", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apiserver/pkg/util/flowcontrol/fairqueuing.IntegratorResults" [])] false [])))]
 
 attribute [instance] seatDemandStats.TypeAssumptions.type_repr
   seatDemandStats.TypeAssumptions.underlying
@@ -522,6 +556,8 @@ attribute [instance] seatDemandStats.TypeAssumptions.type_repr
   seatDemandStats.TypeAssumptions.set_highWatermark
   seatDemandStats.TypeAssumptions.get_smoothed
   seatDemandStats.TypeAssumptions.set_smoothed
+  seatDemandStats.TypeAssumptions.method_set
+  seatDemandStats.TypeAssumptions.ptr_method_set
 
 structure cfgMeal [GooseExts] where
   mk ::
@@ -576,6 +612,8 @@ class cfgMeal.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   set_maxWaitingRequests : ∀ (x : cfgMeal) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet cfgMeal.underlying go!"maxWaitingRequests") (PairV #x #y) (Val #(({ x with maxWaitingRequests' := y } : cfgMeal)))
   get_maxExecutingRequests : ∀ (x : cfgMeal), go.IsGoStepPureDetTagged under (StructFieldGet cfgMeal.underlying go!"maxExecutingRequests") #x (Val #(x.maxExecutingRequests'))
   set_maxExecutingRequests : ∀ (x : cfgMeal) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet cfgMeal.underlying go!"maxExecutingRequests") (PairV #x #y) (Val #(({ x with maxExecutingRequests' := y } : cfgMeal)))
+  method_set : go.MethodSetIs cfgMeal.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType cfgMeal.ty) [(go!"k8s.io/apiserver/pkg/util/flowcontrol.digestFlowSchemasLocked", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1.FlowSchema" [])))] false []))), (go!"k8s.io/apiserver/pkg/util/flowcontrol.digestNewPLsLocked", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1.PriorityLevelConfiguration" [])))] false []))), (go!"k8s.io/apiserver/pkg/util/flowcontrol.finishQueueSetReconfigsLocked", (some (go.signature.Signature [] false []))), (go!"k8s.io/apiserver/pkg/util/flowcontrol.imaginePL", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1.PriorityLevelConfiguration" []))] false []))), (go!"k8s.io/apiserver/pkg/util/flowcontrol.presyncFlowSchemaStatus", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1.FlowSchema" [])), go.bool, go.string] false []))), (go!"k8s.io/apiserver/pkg/util/flowcontrol.processOldPLsLocked", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] cfgMeal.TypeAssumptions.type_repr
   cfgMeal.TypeAssumptions.underlying
@@ -595,6 +633,8 @@ attribute [instance] cfgMeal.TypeAssumptions.type_repr
   cfgMeal.TypeAssumptions.set_maxWaitingRequests
   cfgMeal.TypeAssumptions.get_maxExecutingRequests
   cfgMeal.TypeAssumptions.set_maxExecutingRequests
+  cfgMeal.TypeAssumptions.method_set
+  cfgMeal.TypeAssumptions.ptr_method_set
 
 axiom fsStatusUpdate : Type
 axiom fsStatusUpdate.zero_val : ZeroVal fsStatusUpdate
@@ -604,10 +644,14 @@ class fsStatusUpdate.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalConte
   type_repr : go.TypeReprUnderlying fsStatusUpdate.underlying fsStatusUpdate
   underlying : go.UnderlyingDirectedEq fsStatusUpdate.ty fsStatusUpdate.underlying
   isUnderlying : go.IsUnderlying fsStatusUpdate.underlying fsStatusUpdate.underlying
+  method_set : go.MethodSetIs fsStatusUpdate.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType fsStatusUpdate.ty) []
 
 attribute [instance] fsStatusUpdate.TypeAssumptions.type_repr
   fsStatusUpdate.TypeAssumptions.underlying
   fsStatusUpdate.TypeAssumptions.isUnderlying
+  fsStatusUpdate.TypeAssumptions.method_set
+  fsStatusUpdate.TypeAssumptions.ptr_method_set
 
 axiom Interface : Type
 axiom Interface.zero_val : ZeroVal Interface
@@ -617,10 +661,14 @@ class Interface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   type_repr : go.TypeReprUnderlying Interface.underlying Interface
   underlying : go.UnderlyingDirectedEq Interface.ty Interface.underlying
   isUnderlying : go.IsUnderlying Interface.underlying Interface.underlying
+  method_set : go.MethodSetIs Interface.ty [(go!"ForgetPriorityLevel", (some (go.signature.Signature [go.string] false []))), (go!"GetInterestedWatchCount", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apiserver/pkg/endpoints/request.RequestInfo" []))] false [go.int]))), (go!"GetMaxSeats", (some (go.signature.Signature [go.string] false [go.uint64]))), (go!"Handle", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), RequestDigest.ty, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1.FlowSchema" [])), (go.GoType.PointerType (go.GoType.Named go!"k8s.io/api/flowcontrol/v1.PriorityLevelConfiguration" [])), go.string] false [])), (go.GoType.FunctionType (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apiserver/pkg/util/flowcontrol/request.WorkEstimate" [])])), (go.GoType.Named go!"k8s.io/apiserver/pkg/util/flowcontrol/fairqueuing.QueueNoteFn" []), (go.GoType.FunctionType (go.signature.Signature [] false []))] false []))), (go!"Install", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apiserver/pkg/server/mux.PathRecorderMux" []))] false []))), (go!"RegisterWatch", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"net/http.Request" []))] false [ForgetWatchFunc.ty]))), (go!"Run", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false [go.error]))), (go!"SetMaxSeats", (some (go.signature.Signature [go.string, go.uint64] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Interface.ty) []
 
 attribute [instance] Interface.TypeAssumptions.type_repr
   Interface.TypeAssumptions.underlying
   Interface.TypeAssumptions.isUnderlying
+  Interface.TypeAssumptions.method_set
+  Interface.TypeAssumptions.ptr_method_set
 
 axiom TestableConfig : Type
 axiom TestableConfig.zero_val : ZeroVal TestableConfig
@@ -630,10 +678,14 @@ class TestableConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalConte
   type_repr : go.TypeReprUnderlying TestableConfig.underlying TestableConfig
   underlying : go.UnderlyingDirectedEq TestableConfig.ty TestableConfig.underlying
   isUnderlying : go.IsUnderlying TestableConfig.underlying TestableConfig.underlying
+  method_set : go.MethodSetIs TestableConfig.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TestableConfig.ty) []
 
 attribute [instance] TestableConfig.TypeAssumptions.type_repr
   TestableConfig.TypeAssumptions.underlying
   TestableConfig.TypeAssumptions.isUnderlying
+  TestableConfig.TypeAssumptions.method_set
+  TestableConfig.TypeAssumptions.ptr_method_set
 
 structure allocProblemItem [GooseExts] where
   mk ::
@@ -668,6 +720,8 @@ class allocProblemItem.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCon
   set_lowerBound : ∀ (x : allocProblemItem) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet allocProblemItem.underlying go!"lowerBound") (PairV #x #y) (Val #(({ x with lowerBound' := y } : allocProblemItem)))
   get_upperBound : ∀ (x : allocProblemItem), go.IsGoStepPureDetTagged under (StructFieldGet allocProblemItem.underlying go!"upperBound") #x (Val #(x.upperBound'))
   set_upperBound : ∀ (x : allocProblemItem) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet allocProblemItem.underlying go!"upperBound") (PairV #x #y) (Val #(({ x with upperBound' := y } : allocProblemItem)))
+  method_set : go.MethodSetIs allocProblemItem.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType allocProblemItem.ty) []
 
 attribute [instance] allocProblemItem.TypeAssumptions.type_repr
   allocProblemItem.TypeAssumptions.underlying
@@ -677,6 +731,8 @@ attribute [instance] allocProblemItem.TypeAssumptions.type_repr
   allocProblemItem.TypeAssumptions.set_lowerBound
   allocProblemItem.TypeAssumptions.get_upperBound
   allocProblemItem.TypeAssumptions.set_upperBound
+  allocProblemItem.TypeAssumptions.method_set
+  allocProblemItem.TypeAssumptions.ptr_method_set
 
 structure relativeAllocItem [GooseExts] where
   mk ::
@@ -711,6 +767,8 @@ class relativeAllocItem.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCo
   set_relativeLowerBound : ∀ (x : relativeAllocItem) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet relativeAllocItem.underlying go!"relativeLowerBound") (PairV #x #y) (Val #(({ x with relativeLowerBound' := y } : relativeAllocItem)))
   get_relativeUpperBound : ∀ (x : relativeAllocItem), go.IsGoStepPureDetTagged under (StructFieldGet relativeAllocItem.underlying go!"relativeUpperBound") #x (Val #(x.relativeUpperBound'))
   set_relativeUpperBound : ∀ (x : relativeAllocItem) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet relativeAllocItem.underlying go!"relativeUpperBound") (PairV #x #y) (Val #(({ x with relativeUpperBound' := y } : relativeAllocItem)))
+  method_set : go.MethodSetIs relativeAllocItem.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType relativeAllocItem.ty) []
 
 attribute [instance] relativeAllocItem.TypeAssumptions.type_repr
   relativeAllocItem.TypeAssumptions.underlying
@@ -720,6 +778,8 @@ attribute [instance] relativeAllocItem.TypeAssumptions.type_repr
   relativeAllocItem.TypeAssumptions.set_relativeLowerBound
   relativeAllocItem.TypeAssumptions.get_relativeUpperBound
   relativeAllocItem.TypeAssumptions.set_relativeUpperBound
+  relativeAllocItem.TypeAssumptions.method_set
+  relativeAllocItem.TypeAssumptions.ptr_method_set
 
 structure relativeAllocProblem [GooseExts] where
   mk ::
@@ -750,6 +810,8 @@ class relativeAllocProblem.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLoca
   set_items : ∀ (x : relativeAllocProblem) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet relativeAllocProblem.underlying go!"items") (PairV #x #y) (Val #(({ x with items' := y } : relativeAllocProblem)))
   get_ascendingIndices : ∀ (x : relativeAllocProblem), go.IsGoStepPureDetTagged under (StructFieldGet relativeAllocProblem.underlying go!"ascendingIndices") #x (Val #(x.ascendingIndices'))
   set_ascendingIndices : ∀ (x : relativeAllocProblem) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet relativeAllocProblem.underlying go!"ascendingIndices") (PairV #x #y) (Val #(({ x with ascendingIndices' := y } : relativeAllocProblem)))
+  method_set : go.MethodSetIs relativeAllocProblem.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType relativeAllocProblem.ty) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false []))), (go!"k8s.io/apiserver/pkg/util/flowcontrol.decode", (some (go.signature.Signature [go.int] false [go.float64, go.int, go.bool]))), (go!"k8s.io/apiserver/pkg/util/flowcontrol.getItemIndex", (some (go.signature.Signature [go.int] false [go.int, go.bool]))), (go!"k8s.io/apiserver/pkg/util/flowcontrol.getProportion", (some (go.signature.Signature [go.int] false [go.float64]))), (go!"k8s.io/apiserver/pkg/util/flowcontrol.initIndices", (some (go.signature.Signature [] false [(go.GoType.PointerType relativeAllocProblem.ty)])))]
 
 attribute [instance] relativeAllocProblem.TypeAssumptions.type_repr
   relativeAllocProblem.TypeAssumptions.underlying
@@ -757,6 +819,8 @@ attribute [instance] relativeAllocProblem.TypeAssumptions.type_repr
   relativeAllocProblem.TypeAssumptions.set_items
   relativeAllocProblem.TypeAssumptions.get_ascendingIndices
   relativeAllocProblem.TypeAssumptions.set_ascendingIndices
+  relativeAllocProblem.TypeAssumptions.method_set
+  relativeAllocProblem.TypeAssumptions.ptr_method_set
 
 structure minMax [GooseExts] where
   mk ::
@@ -787,6 +851,8 @@ class minMax.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   set_min : ∀ (x : minMax) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet minMax.underlying go!"min") (PairV #x #y) (Val #(({ x with min' := y } : minMax)))
   get_max : ∀ (x : minMax), go.IsGoStepPureDetTagged under (StructFieldGet minMax.underlying go!"max") #x (Val #(x.max'))
   set_max : ∀ (x : minMax) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet minMax.underlying go!"max") (PairV #x #y) (Val #(({ x with max' := y } : minMax)))
+  method_set : go.MethodSetIs minMax.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType minMax.ty) [(go!"k8s.io/apiserver/pkg/util/flowcontrol.note", (some (go.signature.Signature [go.float64] false [])))]
 
 attribute [instance] minMax.TypeAssumptions.type_repr
   minMax.TypeAssumptions.underlying
@@ -794,6 +860,8 @@ attribute [instance] minMax.TypeAssumptions.type_repr
   minMax.TypeAssumptions.set_min
   minMax.TypeAssumptions.get_max
   minMax.TypeAssumptions.set_max
+  minMax.TypeAssumptions.method_set
+  minMax.TypeAssumptions.ptr_method_set
 
 abbrev DroppedRequestsTracker [GooseExts] : Type := GoInterface
 
@@ -802,8 +870,12 @@ abbrev DroppedRequestsTracker [GooseExts] : Type := GoInterface
 
 class DroppedRequestsTracker.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq DroppedRequestsTracker.ty DroppedRequestsTracker.underlying
+  method_set : go.MethodSetIs DroppedRequestsTracker.ty [(go!"GetRetryAfter", (some (go.signature.Signature [go.string] false [go.int64]))), (go!"RecordDroppedRequest", (some (go.signature.Signature [go.string] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DroppedRequestsTracker.ty) []
 
 attribute [instance] DroppedRequestsTracker.TypeAssumptions.underlying
+  DroppedRequestsTracker.TypeAssumptions.method_set
+  DroppedRequestsTracker.TypeAssumptions.ptr_method_set
 
 structure unixStat [GooseExts] where
   mk ::
@@ -834,6 +906,8 @@ class unixStat.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [G
   set_unixTime : ∀ (x : unixStat) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet unixStat.underlying go!"unixTime") (PairV #x #y) (Val #(({ x with unixTime' := y } : unixStat)))
   get_requests : ∀ (x : unixStat), go.IsGoStepPureDetTagged under (StructFieldGet unixStat.underlying go!"requests") #x (Val #(x.requests'))
   set_requests : ∀ (x : unixStat) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet unixStat.underlying go!"requests") (PairV #x #y) (Val #(({ x with requests' := y } : unixStat)))
+  method_set : go.MethodSetIs unixStat.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType unixStat.ty) []
 
 attribute [instance] unixStat.TypeAssumptions.type_repr
   unixStat.TypeAssumptions.underlying
@@ -841,6 +915,8 @@ attribute [instance] unixStat.TypeAssumptions.type_repr
   unixStat.TypeAssumptions.set_unixTime
   unixStat.TypeAssumptions.get_requests
   unixStat.TypeAssumptions.set_requests
+  unixStat.TypeAssumptions.method_set
+  unixStat.TypeAssumptions.ptr_method_set
 
 axiom droppedRequestsStats : Type
 axiom droppedRequestsStats.zero_val : ZeroVal droppedRequestsStats
@@ -850,10 +926,14 @@ class droppedRequestsStats.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLoca
   type_repr : go.TypeReprUnderlying droppedRequestsStats.underlying droppedRequestsStats
   underlying : go.UnderlyingDirectedEq droppedRequestsStats.ty droppedRequestsStats.underlying
   isUnderlying : go.IsUnderlying droppedRequestsStats.underlying droppedRequestsStats.underlying
+  method_set : go.MethodSetIs droppedRequestsStats.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType droppedRequestsStats.ty) [(go!"k8s.io/apiserver/pkg/util/flowcontrol.recordDroppedRequest", (some (go.signature.Signature [go.int64] false []))), (go!"k8s.io/apiserver/pkg/util/flowcontrol.updateHistory", (some (go.signature.Signature [go.int64, go.int64] false []))), (go!"k8s.io/apiserver/pkg/util/flowcontrol.updateRetryAfterIfNeededLocked", (some (go.signature.Signature [go.int64] false [])))]
 
 attribute [instance] droppedRequestsStats.TypeAssumptions.type_repr
   droppedRequestsStats.TypeAssumptions.underlying
   droppedRequestsStats.TypeAssumptions.isUnderlying
+  droppedRequestsStats.TypeAssumptions.method_set
+  droppedRequestsStats.TypeAssumptions.ptr_method_set
 
 axiom droppedRequestsTracker : Type
 axiom droppedRequestsTracker.zero_val : ZeroVal droppedRequestsTracker
@@ -863,10 +943,14 @@ class droppedRequestsTracker.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLo
   type_repr : go.TypeReprUnderlying droppedRequestsTracker.underlying droppedRequestsTracker
   underlying : go.UnderlyingDirectedEq droppedRequestsTracker.ty droppedRequestsTracker.underlying
   isUnderlying : go.IsUnderlying droppedRequestsTracker.underlying droppedRequestsTracker.underlying
+  method_set : go.MethodSetIs droppedRequestsTracker.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType droppedRequestsTracker.ty) [(go!"GetRetryAfter", (some (go.signature.Signature [go.string] false [go.int64]))), (go!"RecordDroppedRequest", (some (go.signature.Signature [go.string] false [])))]
 
 attribute [instance] droppedRequestsTracker.TypeAssumptions.type_repr
   droppedRequestsTracker.TypeAssumptions.underlying
   droppedRequestsTracker.TypeAssumptions.isUnderlying
+  droppedRequestsTracker.TypeAssumptions.method_set
+  droppedRequestsTracker.TypeAssumptions.ptr_method_set
 
 abbrev MaxSeatsTracker [GooseExts] : Type := GoInterface
 
@@ -875,8 +959,12 @@ abbrev MaxSeatsTracker [GooseExts] : Type := GoInterface
 
 class MaxSeatsTracker.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq MaxSeatsTracker.ty MaxSeatsTracker.underlying
+  method_set : go.MethodSetIs MaxSeatsTracker.ty [(go!"ForgetPriorityLevel", (some (go.signature.Signature [go.string] false []))), (go!"GetMaxSeats", (some (go.signature.Signature [go.string] false [go.uint64]))), (go!"SetMaxSeats", (some (go.signature.Signature [go.string, go.uint64] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType MaxSeatsTracker.ty) []
 
 attribute [instance] MaxSeatsTracker.TypeAssumptions.underlying
+  MaxSeatsTracker.TypeAssumptions.method_set
+  MaxSeatsTracker.TypeAssumptions.ptr_method_set
 
 axiom maxSeatsTracker : Type
 axiom maxSeatsTracker.zero_val : ZeroVal maxSeatsTracker
@@ -886,10 +974,14 @@ class maxSeatsTracker.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCont
   type_repr : go.TypeReprUnderlying maxSeatsTracker.underlying maxSeatsTracker
   underlying : go.UnderlyingDirectedEq maxSeatsTracker.ty maxSeatsTracker.underlying
   isUnderlying : go.IsUnderlying maxSeatsTracker.underlying maxSeatsTracker.underlying
+  method_set : go.MethodSetIs maxSeatsTracker.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType maxSeatsTracker.ty) [(go!"ForgetPriorityLevel", (some (go.signature.Signature [go.string] false []))), (go!"GetMaxSeats", (some (go.signature.Signature [go.string] false [go.uint64]))), (go!"Lock", (some (go.signature.Signature [] false []))), (go!"RLock", (some (go.signature.Signature [] false []))), (go!"RLocker", (some (go.signature.Signature [] false [(go.GoType.Named go!"sync.Locker" [])]))), (go!"RUnlock", (some (go.signature.Signature [] false []))), (go!"SetMaxSeats", (some (go.signature.Signature [go.string, go.uint64] false []))), (go!"TryLock", (some (go.signature.Signature [] false [go.bool]))), (go!"TryRLock", (some (go.signature.Signature [] false [go.bool]))), (go!"Unlock", (some (go.signature.Signature [] false []))), (go!"sync.rUnlockSlow", (some (go.signature.Signature [go.int32] false [])))]
 
 attribute [instance] maxSeatsTracker.TypeAssumptions.type_repr
   maxSeatsTracker.TypeAssumptions.underlying
   maxSeatsTracker.TypeAssumptions.isUnderlying
+  maxSeatsTracker.TypeAssumptions.method_set
+  maxSeatsTracker.TypeAssumptions.ptr_method_set
 
 structure watchIdentifier [GooseExts] where
   mk ::
@@ -928,6 +1020,8 @@ class watchIdentifier.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCont
   set_namespace : ∀ (x : watchIdentifier) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet watchIdentifier.underlying go!"namespace") (PairV #x #y) (Val #(({ x with namespace' := y } : watchIdentifier)))
   get_name : ∀ (x : watchIdentifier), go.IsGoStepPureDetTagged under (StructFieldGet watchIdentifier.underlying go!"name") #x (Val #(x.name'))
   set_name : ∀ (x : watchIdentifier) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet watchIdentifier.underlying go!"name") (PairV #x #y) (Val #(({ x with name' := y } : watchIdentifier)))
+  method_set : go.MethodSetIs watchIdentifier.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType watchIdentifier.ty) []
 
 attribute [instance] watchIdentifier.TypeAssumptions.type_repr
   watchIdentifier.TypeAssumptions.underlying
@@ -939,6 +1033,8 @@ attribute [instance] watchIdentifier.TypeAssumptions.type_repr
   watchIdentifier.TypeAssumptions.set_namespace
   watchIdentifier.TypeAssumptions.get_name
   watchIdentifier.TypeAssumptions.set_name
+  watchIdentifier.TypeAssumptions.method_set
+  watchIdentifier.TypeAssumptions.ptr_method_set
 
 abbrev ForgetWatchFunc [GooseExts] : Type := GoFunc
 
@@ -947,8 +1043,12 @@ abbrev ForgetWatchFunc [GooseExts] : Type := GoFunc
 
 class ForgetWatchFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ForgetWatchFunc.ty ForgetWatchFunc.underlying
+  method_set : go.MethodSetIs ForgetWatchFunc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ForgetWatchFunc.ty) []
 
 attribute [instance] ForgetWatchFunc.TypeAssumptions.underlying
+  ForgetWatchFunc.TypeAssumptions.method_set
+  ForgetWatchFunc.TypeAssumptions.ptr_method_set
 
 axiom WatchTracker : Type
 axiom WatchTracker.zero_val : ZeroVal WatchTracker
@@ -958,10 +1058,14 @@ class WatchTracker.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext
   type_repr : go.TypeReprUnderlying WatchTracker.underlying WatchTracker
   underlying : go.UnderlyingDirectedEq WatchTracker.ty WatchTracker.underlying
   isUnderlying : go.IsUnderlying WatchTracker.underlying WatchTracker.underlying
+  method_set : go.MethodSetIs WatchTracker.ty [(go!"GetInterestedWatchCount", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apiserver/pkg/endpoints/request.RequestInfo" []))] false [go.int]))), (go!"RegisterWatch", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"net/http.Request" []))] false [ForgetWatchFunc.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType WatchTracker.ty) []
 
 attribute [instance] WatchTracker.TypeAssumptions.type_repr
   WatchTracker.TypeAssumptions.underlying
   WatchTracker.TypeAssumptions.isUnderlying
+  WatchTracker.TypeAssumptions.method_set
+  WatchTracker.TypeAssumptions.ptr_method_set
 
 abbrev builtinIndexes [GooseExts] : Type := GoMap
 
@@ -970,8 +1074,12 @@ abbrev builtinIndexes [GooseExts] : Type := GoMap
 
 class builtinIndexes.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq builtinIndexes.ty builtinIndexes.underlying
+  method_set : go.MethodSetIs builtinIndexes.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType builtinIndexes.ty) []
 
 attribute [instance] builtinIndexes.TypeAssumptions.underlying
+  builtinIndexes.TypeAssumptions.method_set
+  builtinIndexes.TypeAssumptions.ptr_method_set
 
 axiom watchTracker : Type
 axiom watchTracker.zero_val : ZeroVal watchTracker
@@ -981,10 +1089,14 @@ class watchTracker.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext
   type_repr : go.TypeReprUnderlying watchTracker.underlying watchTracker
   underlying : go.UnderlyingDirectedEq watchTracker.ty watchTracker.underlying
   isUnderlying : go.IsUnderlying watchTracker.underlying watchTracker.underlying
+  method_set : go.MethodSetIs watchTracker.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType watchTracker.ty) [(go!"GetInterestedWatchCount", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"k8s.io/apiserver/pkg/endpoints/request.RequestInfo" []))] false [go.int]))), (go!"RegisterWatch", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"net/http.Request" []))] false [ForgetWatchFunc.ty]))), (go!"k8s.io/apiserver/pkg/util/flowcontrol.forgetWatch", (some (go.signature.Signature [(go.GoType.PointerType watchIdentifier.ty), (go.GoType.PointerType indexValue.ty)] false [ForgetWatchFunc.ty]))), (go!"k8s.io/apiserver/pkg/util/flowcontrol.updateIndexLocked", (some (go.signature.Signature [(go.GoType.PointerType watchIdentifier.ty), (go.GoType.PointerType indexValue.ty), go.int] false [])))]
 
 attribute [instance] watchTracker.TypeAssumptions.type_repr
   watchTracker.TypeAssumptions.underlying
   watchTracker.TypeAssumptions.isUnderlying
+  watchTracker.TypeAssumptions.method_set
+  watchTracker.TypeAssumptions.ptr_method_set
 
 structure indexValue [GooseExts] where
   mk ::
@@ -1015,6 +1127,8 @@ class indexValue.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] 
   set_resource : ∀ (x : indexValue) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet indexValue.underlying go!"resource") (PairV #x #y) (Val #(({ x with resource' := y } : indexValue)))
   get_value : ∀ (x : indexValue), go.IsGoStepPureDetTagged under (StructFieldGet indexValue.underlying go!"value") #x (Val #(x.value'))
   set_value : ∀ (x : indexValue) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet indexValue.underlying go!"value") (PairV #x #y) (Val #(({ x with value' := y } : indexValue)))
+  method_set : go.MethodSetIs indexValue.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType indexValue.ty) []
 
 attribute [instance] indexValue.TypeAssumptions.type_repr
   indexValue.TypeAssumptions.underlying
@@ -1022,6 +1136,8 @@ attribute [instance] indexValue.TypeAssumptions.type_repr
   indexValue.TypeAssumptions.set_resource
   indexValue.TypeAssumptions.get_value
   indexValue.TypeAssumptions.set_value
+  indexValue.TypeAssumptions.method_set
+  indexValue.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   priorityAndFairnessKeyType_instance : priorityAndFairnessKeyType.TypeAssumptions

@@ -508,6 +508,8 @@ class CampaignRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCont
   set_unknownFields : ∀ (x : CampaignRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet CampaignRequest.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : CampaignRequest)))
   get_sizeCache : ∀ (x : CampaignRequest), go.IsGoStepPureDetTagged under (StructFieldGet CampaignRequest.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
   set_sizeCache : ∀ (x : CampaignRequest) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet CampaignRequest.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : CampaignRequest)))
+  method_set : go.MethodSetIs CampaignRequest.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CampaignRequest.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetLease", (some (go.signature.Signature [] false [go.int64]))), (go!"GetName", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"GetValue", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
   ptr_GetLease_unfold : MethodUnfold (go.GoType.PointerType CampaignRequest.ty) go!"GetLease" CampaignRequest.GetLease.impl
   ptr_GetName_unfold : MethodUnfold (go.GoType.PointerType CampaignRequest.ty) go!"GetName" CampaignRequest.GetName.impl
   ptr_GetValue_unfold : MethodUnfold (go.GoType.PointerType CampaignRequest.ty) go!"GetValue" CampaignRequest.GetValue.impl
@@ -526,6 +528,8 @@ attribute [instance] CampaignRequest.TypeAssumptions.type_repr
   CampaignRequest.TypeAssumptions.set_unknownFields
   CampaignRequest.TypeAssumptions.get_sizeCache
   CampaignRequest.TypeAssumptions.set_sizeCache
+  CampaignRequest.TypeAssumptions.method_set
+  CampaignRequest.TypeAssumptions.ptr_method_set
   CampaignRequest.TypeAssumptions.ptr_GetLease_unfold
   CampaignRequest.TypeAssumptions.ptr_GetName_unfold
   CampaignRequest.TypeAssumptions.ptr_GetValue_unfold
@@ -571,6 +575,8 @@ class CampaignResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCon
   set_unknownFields : ∀ (x : CampaignResponse) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet CampaignResponse.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : CampaignResponse)))
   get_sizeCache : ∀ (x : CampaignResponse), go.IsGoStepPureDetTagged under (StructFieldGet CampaignResponse.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
   set_sizeCache : ∀ (x : CampaignResponse) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet CampaignResponse.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : CampaignResponse)))
+  method_set : go.MethodSetIs CampaignResponse.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CampaignResponse.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetHeader", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)]))), (go!"GetLeader", (some (go.signature.Signature [] false [(go.GoType.PointerType LeaderKey.ty)]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
   ptr_GetHeader_unfold : MethodUnfold (go.GoType.PointerType CampaignResponse.ty) go!"GetHeader" CampaignResponse.GetHeader.impl
   ptr_GetLeader_unfold : MethodUnfold (go.GoType.PointerType CampaignResponse.ty) go!"GetLeader" CampaignResponse.GetLeader.impl
 
@@ -586,6 +592,8 @@ attribute [instance] CampaignResponse.TypeAssumptions.type_repr
   CampaignResponse.TypeAssumptions.set_unknownFields
   CampaignResponse.TypeAssumptions.get_sizeCache
   CampaignResponse.TypeAssumptions.set_sizeCache
+  CampaignResponse.TypeAssumptions.method_set
+  CampaignResponse.TypeAssumptions.ptr_method_set
   CampaignResponse.TypeAssumptions.ptr_GetHeader_unfold
   CampaignResponse.TypeAssumptions.ptr_GetLeader_unfold
 
@@ -638,6 +646,8 @@ class LeaderKey.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   set_unknownFields : ∀ (x : LeaderKey) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet LeaderKey.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : LeaderKey)))
   get_sizeCache : ∀ (x : LeaderKey), go.IsGoStepPureDetTagged under (StructFieldGet LeaderKey.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
   set_sizeCache : ∀ (x : LeaderKey) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet LeaderKey.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : LeaderKey)))
+  method_set : go.MethodSetIs LeaderKey.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType LeaderKey.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetKey", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"GetLease", (some (go.signature.Signature [] false [go.int64]))), (go!"GetName", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"GetRev", (some (go.signature.Signature [] false [go.int64]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
   ptr_GetKey_unfold : MethodUnfold (go.GoType.PointerType LeaderKey.ty) go!"GetKey" LeaderKey.GetKey.impl
   ptr_GetLease_unfold : MethodUnfold (go.GoType.PointerType LeaderKey.ty) go!"GetLease" LeaderKey.GetLease.impl
   ptr_GetName_unfold : MethodUnfold (go.GoType.PointerType LeaderKey.ty) go!"GetName" LeaderKey.GetName.impl
@@ -659,6 +669,8 @@ attribute [instance] LeaderKey.TypeAssumptions.type_repr
   LeaderKey.TypeAssumptions.set_unknownFields
   LeaderKey.TypeAssumptions.get_sizeCache
   LeaderKey.TypeAssumptions.set_sizeCache
+  LeaderKey.TypeAssumptions.method_set
+  LeaderKey.TypeAssumptions.ptr_method_set
   LeaderKey.TypeAssumptions.ptr_GetKey_unfold
   LeaderKey.TypeAssumptions.ptr_GetLease_unfold
   LeaderKey.TypeAssumptions.ptr_GetName_unfold
@@ -701,6 +713,8 @@ class LeaderRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContex
   set_unknownFields : ∀ (x : LeaderRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet LeaderRequest.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : LeaderRequest)))
   get_sizeCache : ∀ (x : LeaderRequest), go.IsGoStepPureDetTagged under (StructFieldGet LeaderRequest.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
   set_sizeCache : ∀ (x : LeaderRequest) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet LeaderRequest.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : LeaderRequest)))
+  method_set : go.MethodSetIs LeaderRequest.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType LeaderRequest.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetName", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
   ptr_GetName_unfold : MethodUnfold (go.GoType.PointerType LeaderRequest.ty) go!"GetName" LeaderRequest.GetName.impl
 
 attribute [instance] LeaderRequest.TypeAssumptions.type_repr
@@ -713,6 +727,8 @@ attribute [instance] LeaderRequest.TypeAssumptions.type_repr
   LeaderRequest.TypeAssumptions.set_unknownFields
   LeaderRequest.TypeAssumptions.get_sizeCache
   LeaderRequest.TypeAssumptions.set_sizeCache
+  LeaderRequest.TypeAssumptions.method_set
+  LeaderRequest.TypeAssumptions.ptr_method_set
   LeaderRequest.TypeAssumptions.ptr_GetName_unfold
 
 structure LeaderResponse [GooseExts] where
@@ -756,6 +772,8 @@ class LeaderResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalConte
   set_unknownFields : ∀ (x : LeaderResponse) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet LeaderResponse.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : LeaderResponse)))
   get_sizeCache : ∀ (x : LeaderResponse), go.IsGoStepPureDetTagged under (StructFieldGet LeaderResponse.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
   set_sizeCache : ∀ (x : LeaderResponse) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet LeaderResponse.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : LeaderResponse)))
+  method_set : go.MethodSetIs LeaderResponse.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType LeaderResponse.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetHeader", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)]))), (go!"GetKv", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty)]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
   ptr_GetHeader_unfold : MethodUnfold (go.GoType.PointerType LeaderResponse.ty) go!"GetHeader" LeaderResponse.GetHeader.impl
   ptr_GetKv_unfold : MethodUnfold (go.GoType.PointerType LeaderResponse.ty) go!"GetKv" LeaderResponse.GetKv.impl
 
@@ -771,6 +789,8 @@ attribute [instance] LeaderResponse.TypeAssumptions.type_repr
   LeaderResponse.TypeAssumptions.set_unknownFields
   LeaderResponse.TypeAssumptions.get_sizeCache
   LeaderResponse.TypeAssumptions.set_sizeCache
+  LeaderResponse.TypeAssumptions.method_set
+  LeaderResponse.TypeAssumptions.ptr_method_set
   LeaderResponse.TypeAssumptions.ptr_GetHeader_unfold
   LeaderResponse.TypeAssumptions.ptr_GetKv_unfold
 
@@ -811,6 +831,8 @@ class ResignRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContex
   set_unknownFields : ∀ (x : ResignRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ResignRequest.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : ResignRequest)))
   get_sizeCache : ∀ (x : ResignRequest), go.IsGoStepPureDetTagged under (StructFieldGet ResignRequest.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
   set_sizeCache : ∀ (x : ResignRequest) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ResignRequest.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : ResignRequest)))
+  method_set : go.MethodSetIs ResignRequest.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ResignRequest.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetLeader", (some (go.signature.Signature [] false [(go.GoType.PointerType LeaderKey.ty)]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
   ptr_GetLeader_unfold : MethodUnfold (go.GoType.PointerType ResignRequest.ty) go!"GetLeader" ResignRequest.GetLeader.impl
 
 attribute [instance] ResignRequest.TypeAssumptions.type_repr
@@ -823,6 +845,8 @@ attribute [instance] ResignRequest.TypeAssumptions.type_repr
   ResignRequest.TypeAssumptions.set_unknownFields
   ResignRequest.TypeAssumptions.get_sizeCache
   ResignRequest.TypeAssumptions.set_sizeCache
+  ResignRequest.TypeAssumptions.method_set
+  ResignRequest.TypeAssumptions.ptr_method_set
   ResignRequest.TypeAssumptions.ptr_GetLeader_unfold
 
 structure ResignResponse [GooseExts] where
@@ -862,6 +886,8 @@ class ResignResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalConte
   set_unknownFields : ∀ (x : ResignResponse) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ResignResponse.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : ResignResponse)))
   get_sizeCache : ∀ (x : ResignResponse), go.IsGoStepPureDetTagged under (StructFieldGet ResignResponse.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
   set_sizeCache : ∀ (x : ResignResponse) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ResignResponse.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : ResignResponse)))
+  method_set : go.MethodSetIs ResignResponse.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ResignResponse.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetHeader", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
   ptr_GetHeader_unfold : MethodUnfold (go.GoType.PointerType ResignResponse.ty) go!"GetHeader" ResignResponse.GetHeader.impl
 
 attribute [instance] ResignResponse.TypeAssumptions.type_repr
@@ -874,6 +900,8 @@ attribute [instance] ResignResponse.TypeAssumptions.type_repr
   ResignResponse.TypeAssumptions.set_unknownFields
   ResignResponse.TypeAssumptions.get_sizeCache
   ResignResponse.TypeAssumptions.set_sizeCache
+  ResignResponse.TypeAssumptions.method_set
+  ResignResponse.TypeAssumptions.ptr_method_set
   ResignResponse.TypeAssumptions.ptr_GetHeader_unfold
 
 structure ProclaimRequest [GooseExts] where
@@ -917,6 +945,8 @@ class ProclaimRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCont
   set_unknownFields : ∀ (x : ProclaimRequest) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ProclaimRequest.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : ProclaimRequest)))
   get_sizeCache : ∀ (x : ProclaimRequest), go.IsGoStepPureDetTagged under (StructFieldGet ProclaimRequest.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
   set_sizeCache : ∀ (x : ProclaimRequest) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ProclaimRequest.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : ProclaimRequest)))
+  method_set : go.MethodSetIs ProclaimRequest.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ProclaimRequest.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetLeader", (some (go.signature.Signature [] false [(go.GoType.PointerType LeaderKey.ty)]))), (go!"GetValue", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
   ptr_GetLeader_unfold : MethodUnfold (go.GoType.PointerType ProclaimRequest.ty) go!"GetLeader" ProclaimRequest.GetLeader.impl
   ptr_GetValue_unfold : MethodUnfold (go.GoType.PointerType ProclaimRequest.ty) go!"GetValue" ProclaimRequest.GetValue.impl
 
@@ -932,6 +962,8 @@ attribute [instance] ProclaimRequest.TypeAssumptions.type_repr
   ProclaimRequest.TypeAssumptions.set_unknownFields
   ProclaimRequest.TypeAssumptions.get_sizeCache
   ProclaimRequest.TypeAssumptions.set_sizeCache
+  ProclaimRequest.TypeAssumptions.method_set
+  ProclaimRequest.TypeAssumptions.ptr_method_set
   ProclaimRequest.TypeAssumptions.ptr_GetLeader_unfold
   ProclaimRequest.TypeAssumptions.ptr_GetValue_unfold
 
@@ -972,6 +1004,8 @@ class ProclaimResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCon
   set_unknownFields : ∀ (x : ProclaimResponse) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ProclaimResponse.underlying go!"unknownFields") (PairV #x #y) (Val #(({ x with unknownFields' := y } : ProclaimResponse)))
   get_sizeCache : ∀ (x : ProclaimResponse), go.IsGoStepPureDetTagged under (StructFieldGet ProclaimResponse.underlying go!"sizeCache") #x (Val #(x.sizeCache'))
   set_sizeCache : ∀ (x : ProclaimResponse) (y : w32), go.IsGoStepPureDetTagged under (StructFieldSet ProclaimResponse.underlying go!"sizeCache") (PairV #x #y) (Val #(({ x with sizeCache' := y } : ProclaimResponse)))
+  method_set : go.MethodSetIs ProclaimResponse.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ProclaimResponse.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetHeader", (some (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [_root_.Perennial.google_golang_org.protobuf.reflect.protoreflect.Message.ty]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
   ptr_GetHeader_unfold : MethodUnfold (go.GoType.PointerType ProclaimResponse.ty) go!"GetHeader" ProclaimResponse.GetHeader.impl
 
 attribute [instance] ProclaimResponse.TypeAssumptions.type_repr
@@ -984,6 +1018,8 @@ attribute [instance] ProclaimResponse.TypeAssumptions.type_repr
   ProclaimResponse.TypeAssumptions.set_unknownFields
   ProclaimResponse.TypeAssumptions.get_sizeCache
   ProclaimResponse.TypeAssumptions.set_sizeCache
+  ProclaimResponse.TypeAssumptions.method_set
+  ProclaimResponse.TypeAssumptions.ptr_method_set
   ProclaimResponse.TypeAssumptions.ptr_GetHeader_unfold
 
 axiom ElectionClient : Type
@@ -994,10 +1030,14 @@ class ElectionClient.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalConte
   type_repr : go.TypeReprUnderlying ElectionClient.underlying ElectionClient
   underlying : go.UnderlyingDirectedEq ElectionClient.ty ElectionClient.underlying
   isUnderlying : go.IsUnderlying ElectionClient.underlying ElectionClient.underlying
+  method_set : go.MethodSetIs ElectionClient.ty [(go!"Campaign", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType CampaignRequest.ty), (go.GoType.SliceType (go.GoType.Named go!"google.golang.org/grpc.CallOption" []))] true [(go.GoType.PointerType CampaignResponse.ty), go.error]))), (go!"Leader", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType LeaderRequest.ty), (go.GoType.SliceType (go.GoType.Named go!"google.golang.org/grpc.CallOption" []))] true [(go.GoType.PointerType LeaderResponse.ty), go.error]))), (go!"Observe", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType LeaderRequest.ty), (go.GoType.SliceType (go.GoType.Named go!"google.golang.org/grpc.CallOption" []))] true [(go.GoType.Named go!"google.golang.org/grpc.ServerStreamingClient" [LeaderResponse.ty]), go.error]))), (go!"Proclaim", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType ProclaimRequest.ty), (go.GoType.SliceType (go.GoType.Named go!"google.golang.org/grpc.CallOption" []))] true [(go.GoType.PointerType ProclaimResponse.ty), go.error]))), (go!"Resign", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType ResignRequest.ty), (go.GoType.SliceType (go.GoType.Named go!"google.golang.org/grpc.CallOption" []))] true [(go.GoType.PointerType ResignResponse.ty), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ElectionClient.ty) []
 
 attribute [instance] ElectionClient.TypeAssumptions.type_repr
   ElectionClient.TypeAssumptions.underlying
   ElectionClient.TypeAssumptions.isUnderlying
+  ElectionClient.TypeAssumptions.method_set
+  ElectionClient.TypeAssumptions.ptr_method_set
 
 axiom electionClient : Type
 axiom electionClient.zero_val : ZeroVal electionClient
@@ -1007,20 +1047,28 @@ class electionClient.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalConte
   type_repr : go.TypeReprUnderlying electionClient.underlying electionClient
   underlying : go.UnderlyingDirectedEq electionClient.ty electionClient.underlying
   isUnderlying : go.IsUnderlying electionClient.underlying electionClient.underlying
+  method_set : go.MethodSetIs electionClient.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType electionClient.ty) [(go!"Campaign", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType CampaignRequest.ty), (go.GoType.SliceType (go.GoType.Named go!"google.golang.org/grpc.CallOption" []))] true [(go.GoType.PointerType CampaignResponse.ty), go.error]))), (go!"Leader", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType LeaderRequest.ty), (go.GoType.SliceType (go.GoType.Named go!"google.golang.org/grpc.CallOption" []))] true [(go.GoType.PointerType LeaderResponse.ty), go.error]))), (go!"Observe", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType LeaderRequest.ty), (go.GoType.SliceType (go.GoType.Named go!"google.golang.org/grpc.CallOption" []))] true [(go.GoType.Named go!"google.golang.org/grpc.ServerStreamingClient" [LeaderResponse.ty]), go.error]))), (go!"Proclaim", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType ProclaimRequest.ty), (go.GoType.SliceType (go.GoType.Named go!"google.golang.org/grpc.CallOption" []))] true [(go.GoType.PointerType ProclaimResponse.ty), go.error]))), (go!"Resign", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType ResignRequest.ty), (go.GoType.SliceType (go.GoType.Named go!"google.golang.org/grpc.CallOption" []))] true [(go.GoType.PointerType ResignResponse.ty), go.error])))]
 
 attribute [instance] electionClient.TypeAssumptions.type_repr
   electionClient.TypeAssumptions.underlying
   electionClient.TypeAssumptions.isUnderlying
+  electionClient.TypeAssumptions.method_set
+  electionClient.TypeAssumptions.ptr_method_set
 
 abbrev ElectionServer [GooseExts] : Type := GoInterface
 
 @[reducible] noncomputable def ElectionServer.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Campaign" (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType CampaignRequest.ty)] false [(go.GoType.PointerType CampaignResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"Leader" (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType LeaderRequest.ty)] false [(go.GoType.PointerType LeaderResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"Observe" (go.signature.Signature [(go.GoType.PointerType LeaderRequest.ty), (_root_.Perennial.google_golang_org.grpc.ServerStreamingServer.ty LeaderResponse.ty)] false [go.error])), (go.InterfaceElem.MethodElem go!"Proclaim" (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType ProclaimRequest.ty)] false [(go.GoType.PointerType ProclaimResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"Resign" (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType ResignRequest.ty)] false [(go.GoType.PointerType ResignResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"mustEmbedUnimplementedElectionServer" (go.signature.Signature [] false []))])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Campaign" (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType CampaignRequest.ty)] false [(go.GoType.PointerType CampaignResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"Leader" (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType LeaderRequest.ty)] false [(go.GoType.PointerType LeaderResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"Observe" (go.signature.Signature [(go.GoType.PointerType LeaderRequest.ty), (go.GoType.Named go!"google.golang.org/grpc.ServerStreamingServer" [LeaderResponse.ty])] false [go.error])), (go.InterfaceElem.MethodElem go!"Proclaim" (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType ProclaimRequest.ty)] false [(go.GoType.PointerType ProclaimResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"Resign" (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType ResignRequest.ty)] false [(go.GoType.PointerType ResignResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3election/v3electionpb.mustEmbedUnimplementedElectionServer" (go.signature.Signature [] false []))])
 
 class ElectionServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ElectionServer.ty ElectionServer.underlying
+  method_set : go.MethodSetIs ElectionServer.ty [(go!"Campaign", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType CampaignRequest.ty)] false [(go.GoType.PointerType CampaignResponse.ty), go.error]))), (go!"Leader", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType LeaderRequest.ty)] false [(go.GoType.PointerType LeaderResponse.ty), go.error]))), (go!"Observe", (some (go.signature.Signature [(go.GoType.PointerType LeaderRequest.ty), (go.GoType.Named go!"google.golang.org/grpc.ServerStreamingServer" [LeaderResponse.ty])] false [go.error]))), (go!"Proclaim", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType ProclaimRequest.ty)] false [(go.GoType.PointerType ProclaimResponse.ty), go.error]))), (go!"Resign", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType ResignRequest.ty)] false [(go.GoType.PointerType ResignResponse.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3election/v3electionpb.mustEmbedUnimplementedElectionServer", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ElectionServer.ty) []
 
 attribute [instance] ElectionServer.TypeAssumptions.underlying
+  ElectionServer.TypeAssumptions.method_set
+  ElectionServer.TypeAssumptions.ptr_method_set
 
 structure UnimplementedElectionServer [GooseExts] where
   mk ::
@@ -1044,19 +1092,27 @@ noncomputable instance equals_unfold_UnimplementedElectionServer [GooseExts] [Go
 class UnimplementedElectionServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying UnimplementedElectionServer.underlying UnimplementedElectionServer
   underlying : go.UnderlyingDirectedEq UnimplementedElectionServer.ty UnimplementedElectionServer.underlying
+  method_set : go.MethodSetIs UnimplementedElectionServer.ty [(go!"Campaign", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType CampaignRequest.ty)] false [(go.GoType.PointerType CampaignResponse.ty), go.error]))), (go!"Leader", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType LeaderRequest.ty)] false [(go.GoType.PointerType LeaderResponse.ty), go.error]))), (go!"Observe", (some (go.signature.Signature [(go.GoType.PointerType LeaderRequest.ty), (go.GoType.Named go!"google.golang.org/grpc.ServerStreamingServer" [LeaderResponse.ty])] false [go.error]))), (go!"Proclaim", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType ProclaimRequest.ty)] false [(go.GoType.PointerType ProclaimResponse.ty), go.error]))), (go!"Resign", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType ResignRequest.ty)] false [(go.GoType.PointerType ResignResponse.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3election/v3electionpb.mustEmbedUnimplementedElectionServer", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3election/v3electionpb.testEmbeddedByValue", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType UnimplementedElectionServer.ty) [(go!"Campaign", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType CampaignRequest.ty)] false [(go.GoType.PointerType CampaignResponse.ty), go.error]))), (go!"Leader", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType LeaderRequest.ty)] false [(go.GoType.PointerType LeaderResponse.ty), go.error]))), (go!"Observe", (some (go.signature.Signature [(go.GoType.PointerType LeaderRequest.ty), (go.GoType.Named go!"google.golang.org/grpc.ServerStreamingServer" [LeaderResponse.ty])] false [go.error]))), (go!"Proclaim", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType ProclaimRequest.ty)] false [(go.GoType.PointerType ProclaimResponse.ty), go.error]))), (go!"Resign", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType ResignRequest.ty)] false [(go.GoType.PointerType ResignResponse.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3election/v3electionpb.mustEmbedUnimplementedElectionServer", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3election/v3electionpb.testEmbeddedByValue", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] UnimplementedElectionServer.TypeAssumptions.type_repr
   UnimplementedElectionServer.TypeAssumptions.underlying
+  UnimplementedElectionServer.TypeAssumptions.method_set
+  UnimplementedElectionServer.TypeAssumptions.ptr_method_set
 
 abbrev UnsafeElectionServer [GooseExts] : Type := GoInterface
 
 @[reducible] noncomputable def UnsafeElectionServer.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"mustEmbedUnimplementedElectionServer" (go.signature.Signature [] false []))])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3election/v3electionpb.mustEmbedUnimplementedElectionServer" (go.signature.Signature [] false []))])
 
 class UnsafeElectionServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq UnsafeElectionServer.ty UnsafeElectionServer.underlying
+  method_set : go.MethodSetIs UnsafeElectionServer.ty [(go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3election/v3electionpb.mustEmbedUnimplementedElectionServer", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType UnsafeElectionServer.ty) []
 
 attribute [instance] UnsafeElectionServer.TypeAssumptions.underlying
+  UnsafeElectionServer.TypeAssumptions.method_set
+  UnsafeElectionServer.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   CampaignRequest_instance : CampaignRequest.TypeAssumptions

@@ -1850,12 +1850,16 @@ noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
 abbrev action [GooseExts] : Type := GoInterface
 
 @[reducible] noncomputable def action.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"unsafeDo" (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReadWriter.ty] false [action.ty, go.error]))])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"go.etcd.io/etcd/server/v3/storage/schema.unsafeDo" (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReadWriter.ty] false [action.ty, go.error]))])
 
 class action.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq action.ty action.underlying
+  method_set : go.MethodSetIs action.ty [(go!"go.etcd.io/etcd/server/v3/storage/schema.unsafeDo", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReadWriter.ty] false [action.ty, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType action.ty) []
 
 attribute [instance] action.TypeAssumptions.underlying
+  action.TypeAssumptions.method_set
+  action.TypeAssumptions.ptr_method_set
 
 structure setKeyAction [GooseExts] where
   mk ::
@@ -1890,6 +1894,8 @@ class setKeyAction.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext
   set_FieldName : ∀ (x : setKeyAction) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet setKeyAction.underlying go!"FieldName") (PairV #x #y) (Val #(({ x with FieldName' := y } : setKeyAction)))
   get_FieldValue : ∀ (x : setKeyAction), go.IsGoStepPureDetTagged under (StructFieldGet setKeyAction.underlying go!"FieldValue") #x (Val #(x.FieldValue'))
   set_FieldValue : ∀ (x : setKeyAction) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet setKeyAction.underlying go!"FieldValue") (PairV #x #y) (Val #(({ x with FieldValue' := y } : setKeyAction)))
+  method_set : go.MethodSetIs setKeyAction.ty [(go!"go.etcd.io/etcd/server/v3/storage/schema.unsafeDo", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReadWriter.ty] false [action.ty, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType setKeyAction.ty) [(go!"go.etcd.io/etcd/server/v3/storage/schema.unsafeDo", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReadWriter.ty] false [action.ty, go.error])))]
 
 attribute [instance] setKeyAction.TypeAssumptions.type_repr
   setKeyAction.TypeAssumptions.underlying
@@ -1899,6 +1905,8 @@ attribute [instance] setKeyAction.TypeAssumptions.type_repr
   setKeyAction.TypeAssumptions.set_FieldName
   setKeyAction.TypeAssumptions.get_FieldValue
   setKeyAction.TypeAssumptions.set_FieldValue
+  setKeyAction.TypeAssumptions.method_set
+  setKeyAction.TypeAssumptions.ptr_method_set
 
 structure deleteKeyAction [GooseExts] where
   mk ::
@@ -1929,6 +1937,8 @@ class deleteKeyAction.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCont
   set_Bucket : ∀ (x : deleteKeyAction) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket), go.IsGoStepPureDetTagged under (StructFieldSet deleteKeyAction.underlying go!"Bucket") (PairV #x #y) (Val #(({ x with Bucket' := y } : deleteKeyAction)))
   get_FieldName : ∀ (x : deleteKeyAction), go.IsGoStepPureDetTagged under (StructFieldGet deleteKeyAction.underlying go!"FieldName") #x (Val #(x.FieldName'))
   set_FieldName : ∀ (x : deleteKeyAction) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet deleteKeyAction.underlying go!"FieldName") (PairV #x #y) (Val #(({ x with FieldName' := y } : deleteKeyAction)))
+  method_set : go.MethodSetIs deleteKeyAction.ty [(go!"go.etcd.io/etcd/server/v3/storage/schema.unsafeDo", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReadWriter.ty] false [action.ty, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType deleteKeyAction.ty) [(go!"go.etcd.io/etcd/server/v3/storage/schema.unsafeDo", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReadWriter.ty] false [action.ty, go.error])))]
 
 attribute [instance] deleteKeyAction.TypeAssumptions.type_repr
   deleteKeyAction.TypeAssumptions.underlying
@@ -1936,6 +1946,8 @@ attribute [instance] deleteKeyAction.TypeAssumptions.type_repr
   deleteKeyAction.TypeAssumptions.set_Bucket
   deleteKeyAction.TypeAssumptions.get_FieldName
   deleteKeyAction.TypeAssumptions.set_FieldName
+  deleteKeyAction.TypeAssumptions.method_set
+  deleteKeyAction.TypeAssumptions.ptr_method_set
 
 abbrev ActionList [GooseExts] : Type := GoSlice
 
@@ -1944,8 +1956,12 @@ abbrev ActionList [GooseExts] : Type := GoSlice
 
 class ActionList.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ActionList.ty ActionList.underlying
+  method_set : go.MethodSetIs ActionList.ty [(go!"go.etcd.io/etcd/server/v3/storage/schema.unsafeExecute", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReadWriter.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/schema.unsafeExecuteInReversedOrder", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReadWriter.ty] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ActionList.ty) [(go!"go.etcd.io/etcd/server/v3/storage/schema.unsafeExecute", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReadWriter.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/schema.unsafeExecuteInReversedOrder", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReadWriter.ty] false [])))]
 
 attribute [instance] ActionList.TypeAssumptions.underlying
+  ActionList.TypeAssumptions.method_set
+  ActionList.TypeAssumptions.ptr_method_set
 
 abbrev AlarmBackend [GooseExts] : Type := GoInterface
 
@@ -1954,8 +1970,12 @@ abbrev AlarmBackend [GooseExts] : Type := GoInterface
 
 class AlarmBackend.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq AlarmBackend.ty AlarmBackend.underlying
+  method_set : go.MethodSetIs AlarmBackend.ty [(go!"CreateAlarmBucket", (some (go.signature.Signature [] false []))), (go!"ForceCommit", (some (go.signature.Signature [] false []))), (go!"GetAllAlarms", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty)), go.error]))), (go!"MustDeleteAlarm", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty)] false []))), (go!"MustPutAlarm", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty)] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType AlarmBackend.ty) []
 
 attribute [instance] AlarmBackend.TypeAssumptions.underlying
+  AlarmBackend.TypeAssumptions.method_set
+  AlarmBackend.TypeAssumptions.ptr_method_set
 
 structure alarmBackend [GooseExts] where
   mk ::
@@ -1986,6 +2006,8 @@ class alarmBackend.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext
   set_lg : ∀ (x : alarmBackend) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet alarmBackend.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : alarmBackend)))
   get_be : ∀ (x : alarmBackend), go.IsGoStepPureDetTagged under (StructFieldGet alarmBackend.underlying go!"be") #x (Val #(x.be'))
   set_be : ∀ (x : alarmBackend) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend), go.IsGoStepPureDetTagged under (StructFieldSet alarmBackend.underlying go!"be") (PairV #x #y) (Val #(({ x with be' := y } : alarmBackend)))
+  method_set : go.MethodSetIs alarmBackend.ty [(go!"ForceCommit", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType alarmBackend.ty) [(go!"CreateAlarmBucket", (some (go.signature.Signature [] false []))), (go!"ForceCommit", (some (go.signature.Signature [] false []))), (go!"GetAllAlarms", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty)), go.error]))), (go!"MustDeleteAlarm", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty)] false []))), (go!"MustPutAlarm", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/storage/schema.mustUnsafeDeleteAlarm", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeWriter.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/storage/schema.mustUnsafePutAlarm", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeWriter.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty)] false []))), (go!"go.etcd.io/etcd/server/v3/storage/schema.unsafeGetAllAlarms", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReader.ty] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AlarmMember.ty)), go.error])))]
 
 attribute [instance] alarmBackend.TypeAssumptions.type_repr
   alarmBackend.TypeAssumptions.underlying
@@ -1993,6 +2015,8 @@ attribute [instance] alarmBackend.TypeAssumptions.type_repr
   alarmBackend.TypeAssumptions.set_lg
   alarmBackend.TypeAssumptions.get_be
   alarmBackend.TypeAssumptions.set_be
+  alarmBackend.TypeAssumptions.method_set
+  alarmBackend.TypeAssumptions.ptr_method_set
 
 structure authBackend [GooseExts] where
   mk ::
@@ -2023,6 +2047,8 @@ class authBackend.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   set_be : ∀ (x : authBackend) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend), go.IsGoStepPureDetTagged under (StructFieldSet authBackend.underlying go!"be") (PairV #x #y) (Val #(({ x with be' := y } : authBackend)))
   get_lg : ∀ (x : authBackend), go.IsGoStepPureDetTagged under (StructFieldGet authBackend.underlying go!"lg") #x (Val #(x.lg'))
   set_lg : ∀ (x : authBackend) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet authBackend.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : authBackend)))
+  method_set : go.MethodSetIs authBackend.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType authBackend.ty) [(go!"BatchTx", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthBatchTx.ty]))), (go!"CreateAuthBuckets", (some (go.signature.Signature [] false []))), (go!"ForceCommit", (some (go.signature.Signature [] false []))), (go!"GetAllRoles", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty))]))), (go!"GetAllUsers", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty))]))), (go!"GetRole", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty)]))), (go!"GetUser", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty)]))), (go!"ReadTx", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.auth.AuthReadTx.ty])))]
   ptr_BatchTx_unfold : MethodUnfold (go.GoType.PointerType authBackend.ty) go!"BatchTx" authBackend.BatchTx.impl
   ptr_CreateAuthBuckets_unfold : MethodUnfold (go.GoType.PointerType authBackend.ty) go!"CreateAuthBuckets" authBackend.CreateAuthBuckets.impl
   ptr_ForceCommit_unfold : MethodUnfold (go.GoType.PointerType authBackend.ty) go!"ForceCommit" authBackend.ForceCommit.impl
@@ -2038,6 +2064,8 @@ attribute [instance] authBackend.TypeAssumptions.type_repr
   authBackend.TypeAssumptions.set_be
   authBackend.TypeAssumptions.get_lg
   authBackend.TypeAssumptions.set_lg
+  authBackend.TypeAssumptions.method_set
+  authBackend.TypeAssumptions.ptr_method_set
   authBackend.TypeAssumptions.ptr_BatchTx_unfold
   authBackend.TypeAssumptions.ptr_CreateAuthBuckets_unfold
   authBackend.TypeAssumptions.ptr_ForceCommit_unfold
@@ -2076,6 +2104,8 @@ class authReadTx.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] 
   set_tx : ∀ (x : authReadTx) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.ReadTx), go.IsGoStepPureDetTagged under (StructFieldSet authReadTx.underlying go!"tx") (PairV #x #y) (Val #(({ x with tx' := y } : authReadTx)))
   get_lg : ∀ (x : authReadTx), go.IsGoStepPureDetTagged under (StructFieldGet authReadTx.underlying go!"lg") #x (Val #(x.lg'))
   set_lg : ∀ (x : authReadTx) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet authReadTx.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : authReadTx)))
+  method_set : go.MethodSetIs authReadTx.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType authReadTx.ty) [(go!"RLock", (some (go.signature.Signature [] false []))), (go!"RUnlock", (some (go.signature.Signature [] false []))), (go!"UnsafeGetAllRoles", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty))]))), (go!"UnsafeGetAllUsers", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty))]))), (go!"UnsafeGetRole", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty)]))), (go!"UnsafeGetUser", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty)]))), (go!"UnsafeReadAuthEnabled", (some (go.signature.Signature [] false [go.bool]))), (go!"UnsafeReadAuthRevision", (some (go.signature.Signature [] false [go.uint64])))]
   ptr_RLock_unfold : MethodUnfold (go.GoType.PointerType authReadTx.ty) go!"RLock" authReadTx.RLock.impl
   ptr_RUnlock_unfold : MethodUnfold (go.GoType.PointerType authReadTx.ty) go!"RUnlock" authReadTx.RUnlock.impl
   ptr_UnsafeGetAllRoles_unfold : MethodUnfold (go.GoType.PointerType authReadTx.ty) go!"UnsafeGetAllRoles" authReadTx.UnsafeGetAllRoles.impl
@@ -2091,6 +2121,8 @@ attribute [instance] authReadTx.TypeAssumptions.type_repr
   authReadTx.TypeAssumptions.set_tx
   authReadTx.TypeAssumptions.get_lg
   authReadTx.TypeAssumptions.set_lg
+  authReadTx.TypeAssumptions.method_set
+  authReadTx.TypeAssumptions.ptr_method_set
   authReadTx.TypeAssumptions.ptr_RLock_unfold
   authReadTx.TypeAssumptions.ptr_RUnlock_unfold
   authReadTx.TypeAssumptions.ptr_UnsafeGetAllRoles_unfold
@@ -2129,6 +2161,8 @@ class authBatchTx.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   set_tx : ∀ (x : authBatchTx) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx), go.IsGoStepPureDetTagged under (StructFieldSet authBatchTx.underlying go!"tx") (PairV #x #y) (Val #(({ x with tx' := y } : authBatchTx)))
   get_lg : ∀ (x : authBatchTx), go.IsGoStepPureDetTagged under (StructFieldGet authBatchTx.underlying go!"lg") #x (Val #(x.lg'))
   set_lg : ∀ (x : authBatchTx) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet authBatchTx.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : authBatchTx)))
+  method_set : go.MethodSetIs authBatchTx.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType authBatchTx.ty) [(go!"Lock", (some (go.signature.Signature [] false []))), (go!"Unlock", (some (go.signature.Signature [] false []))), (go!"UnsafeDeleteRole", (some (go.signature.Signature [go.string] false []))), (go!"UnsafeDeleteUser", (some (go.signature.Signature [go.string] false []))), (go!"UnsafeGetAllRoles", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty))]))), (go!"UnsafeGetAllUsers", (some (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty))]))), (go!"UnsafeGetRole", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty)]))), (go!"UnsafeGetUser", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty)]))), (go!"UnsafePutRole", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty)] false []))), (go!"UnsafePutUser", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.User.ty)] false []))), (go!"UnsafeReadAuthEnabled", (some (go.signature.Signature [] false [go.bool]))), (go!"UnsafeReadAuthRevision", (some (go.signature.Signature [] false [go.uint64]))), (go!"UnsafeSaveAuthEnabled", (some (go.signature.Signature [go.bool] false []))), (go!"UnsafeSaveAuthRevision", (some (go.signature.Signature [go.uint64] false [])))]
   ptr_Lock_unfold : MethodUnfold (go.GoType.PointerType authBatchTx.ty) go!"Lock" authBatchTx.Lock.impl
   ptr_Unlock_unfold : MethodUnfold (go.GoType.PointerType authBatchTx.ty) go!"Unlock" authBatchTx.Unlock.impl
   ptr_UnsafeDeleteRole_unfold : MethodUnfold (go.GoType.PointerType authBatchTx.ty) go!"UnsafeDeleteRole" authBatchTx.UnsafeDeleteRole.impl
@@ -2150,6 +2184,8 @@ attribute [instance] authBatchTx.TypeAssumptions.type_repr
   authBatchTx.TypeAssumptions.set_tx
   authBatchTx.TypeAssumptions.get_lg
   authBatchTx.TypeAssumptions.set_lg
+  authBatchTx.TypeAssumptions.method_set
+  authBatchTx.TypeAssumptions.ptr_method_set
   authBatchTx.TypeAssumptions.ptr_Lock_unfold
   authBatchTx.TypeAssumptions.ptr_Unlock_unfold
   authBatchTx.TypeAssumptions.ptr_UnsafeDeleteRole_unfold
@@ -2198,6 +2234,8 @@ class bucket.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   set_name : ∀ (x : bucket) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet bucket.underlying go!"name") (PairV #x #y) (Val #(({ x with name' := y } : bucket)))
   get_safeRangeBucket : ∀ (x : bucket), go.IsGoStepPureDetTagged under (StructFieldGet bucket.underlying go!"safeRangeBucket") #x (Val #(x.safeRangeBucket'))
   set_safeRangeBucket : ∀ (x : bucket) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet bucket.underlying go!"safeRangeBucket") (PairV #x #y) (Val #(({ x with safeRangeBucket' := y } : bucket)))
+  method_set : go.MethodSetIs bucket.ty [(go!"ID", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BucketID.ty]))), (go!"IsSafeRangeBucket", (some (go.signature.Signature [] false [go.bool]))), (go!"Name", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType bucket.ty) [(go!"ID", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BucketID.ty]))), (go!"IsSafeRangeBucket", (some (go.signature.Signature [] false [go.bool]))), (go!"Name", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte)]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
   ID_unfold : MethodUnfold bucket.ty go!"ID" bucket.ID.impl
   IsSafeRangeBucket_unfold : MethodUnfold bucket.ty go!"IsSafeRangeBucket" bucket.IsSafeRangeBucket.impl
   Name_unfold : MethodUnfold bucket.ty go!"Name" bucket.Name.impl
@@ -2219,6 +2257,8 @@ attribute [instance] bucket.TypeAssumptions.type_repr
   bucket.TypeAssumptions.set_name
   bucket.TypeAssumptions.get_safeRangeBucket
   bucket.TypeAssumptions.set_safeRangeBucket
+  bucket.TypeAssumptions.method_set
+  bucket.TypeAssumptions.ptr_method_set
   bucket.TypeAssumptions.ID_unfold
   bucket.TypeAssumptions.IsSafeRangeBucket_unfold
   bucket.TypeAssumptions.Name_unfold
@@ -2231,12 +2271,16 @@ attribute [instance] bucket.TypeAssumptions.type_repr
 abbrev schemaChange [GooseExts] : Type := GoInterface
 
 @[reducible] noncomputable def schemaChange.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"downgradeAction" (go.signature.Signature [] false [action.ty])), (go.InterfaceElem.MethodElem go!"upgradeAction" (go.signature.Signature [] false [action.ty]))])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"go.etcd.io/etcd/server/v3/storage/schema.downgradeAction" (go.signature.Signature [] false [action.ty])), (go.InterfaceElem.MethodElem go!"go.etcd.io/etcd/server/v3/storage/schema.upgradeAction" (go.signature.Signature [] false [action.ty]))])
 
 class schemaChange.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq schemaChange.ty schemaChange.underlying
+  method_set : go.MethodSetIs schemaChange.ty [(go!"go.etcd.io/etcd/server/v3/storage/schema.downgradeAction", (some (go.signature.Signature [] false [action.ty]))), (go!"go.etcd.io/etcd/server/v3/storage/schema.upgradeAction", (some (go.signature.Signature [] false [action.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType schemaChange.ty) []
 
 attribute [instance] schemaChange.TypeAssumptions.underlying
+  schemaChange.TypeAssumptions.method_set
+  schemaChange.TypeAssumptions.ptr_method_set
 
 structure simpleSchemaChange [GooseExts] where
   mk ::
@@ -2267,6 +2311,8 @@ class simpleSchemaChange.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalC
   set_upgrade : ∀ (x : simpleSchemaChange) (y : action), go.IsGoStepPureDetTagged under (StructFieldSet simpleSchemaChange.underlying go!"upgrade") (PairV #x #y) (Val #(({ x with upgrade' := y } : simpleSchemaChange)))
   get_downgrade : ∀ (x : simpleSchemaChange), go.IsGoStepPureDetTagged under (StructFieldGet simpleSchemaChange.underlying go!"downgrade") #x (Val #(x.downgrade'))
   set_downgrade : ∀ (x : simpleSchemaChange) (y : action), go.IsGoStepPureDetTagged under (StructFieldSet simpleSchemaChange.underlying go!"downgrade") (PairV #x #y) (Val #(({ x with downgrade' := y } : simpleSchemaChange)))
+  method_set : go.MethodSetIs simpleSchemaChange.ty [(go!"go.etcd.io/etcd/server/v3/storage/schema.downgradeAction", (some (go.signature.Signature [] false [action.ty]))), (go!"go.etcd.io/etcd/server/v3/storage/schema.upgradeAction", (some (go.signature.Signature [] false [action.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType simpleSchemaChange.ty) [(go!"go.etcd.io/etcd/server/v3/storage/schema.downgradeAction", (some (go.signature.Signature [] false [action.ty]))), (go!"go.etcd.io/etcd/server/v3/storage/schema.upgradeAction", (some (go.signature.Signature [] false [action.ty])))]
 
 attribute [instance] simpleSchemaChange.TypeAssumptions.type_repr
   simpleSchemaChange.TypeAssumptions.underlying
@@ -2274,6 +2320,8 @@ attribute [instance] simpleSchemaChange.TypeAssumptions.type_repr
   simpleSchemaChange.TypeAssumptions.set_upgrade
   simpleSchemaChange.TypeAssumptions.get_downgrade
   simpleSchemaChange.TypeAssumptions.set_downgrade
+  simpleSchemaChange.TypeAssumptions.method_set
+  simpleSchemaChange.TypeAssumptions.ptr_method_set
 
 structure membershipBackend [GooseExts] where
   mk ::
@@ -2304,6 +2352,8 @@ class membershipBackend.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCo
   set_lg : ∀ (x : membershipBackend) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet membershipBackend.underlying go!"lg") (PairV #x #y) (Val #(({ x with lg' := y } : membershipBackend)))
   get_be : ∀ (x : membershipBackend), go.IsGoStepPureDetTagged under (StructFieldGet membershipBackend.underlying go!"be") #x (Val #(x.be'))
   set_be : ∀ (x : membershipBackend) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Backend), go.IsGoStepPureDetTagged under (StructFieldSet membershipBackend.underlying go!"be") (PairV #x #y) (Val #(({ x with be' := y } : membershipBackend)))
+  method_set : go.MethodSetIs membershipBackend.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType membershipBackend.ty) [(go!"ClusterVersionFromBackend", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"github.com/Masterminds/semver/v3.Version" []))]))), (go!"DowngradeInfoFromBackend", (some (go.signature.Signature [] false [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/version.DowngradeInfo" []))]))), (go!"MustCreateBackendBuckets", (some (go.signature.Signature [] false []))), (go!"MustDeleteMemberFromBackend", (some (go.signature.Signature [(go.GoType.Named go!"go.etcd.io/etcd/client/pkg/v3/types.ID" [])] false []))), (go!"MustReadMembersFromBackend", (some (go.signature.Signature [] false [(go.GoType.MapType (go.GoType.Named go!"go.etcd.io/etcd/client/pkg/v3/types.ID" []) (go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/membership.Member" []))), (go.GoType.MapType (go.GoType.Named go!"go.etcd.io/etcd/client/pkg/v3/types.ID" []) go.bool)]))), (go!"MustSaveClusterVersionToBackend", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"github.com/Masterminds/semver/v3.Version" []))] false []))), (go!"MustSaveDowngradeToBackend", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/version.DowngradeInfo" []))] false []))), (go!"MustSaveMemberToBackend", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/membership.Member" []))] false []))), (go!"TrimClusterFromBackend", (some (go.signature.Signature [] false [go.error]))), (go!"TrimMembershipFromBackend", (some (go.signature.Signature [] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/schema.readMembersFromBackend", (some (go.signature.Signature [] false [(go.GoType.MapType (go.GoType.Named go!"go.etcd.io/etcd/client/pkg/v3/types.ID" []) (go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/membership.Member" []))), (go.GoType.MapType (go.GoType.Named go!"go.etcd.io/etcd/client/pkg/v3/types.ID" []) go.bool), go.error])))]
 
 attribute [instance] membershipBackend.TypeAssumptions.type_repr
   membershipBackend.TypeAssumptions.underlying
@@ -2311,6 +2361,8 @@ attribute [instance] membershipBackend.TypeAssumptions.type_repr
   membershipBackend.TypeAssumptions.set_lg
   membershipBackend.TypeAssumptions.get_be
   membershipBackend.TypeAssumptions.set_be
+  membershipBackend.TypeAssumptions.method_set
+  membershipBackend.TypeAssumptions.ptr_method_set
 
 abbrev migrationPlan [GooseExts] : Type := GoSlice
 
@@ -2319,8 +2371,12 @@ abbrev migrationPlan [GooseExts] : Type := GoSlice
 
 class migrationPlan.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq migrationPlan.ty migrationPlan.underlying
+  method_set : go.MethodSetIs migrationPlan.ty [(go!"Execute", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/schema.unsafeExecute", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReadWriter.ty] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType migrationPlan.ty) [(go!"Execute", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BatchTx.ty] false [go.error]))), (go!"go.etcd.io/etcd/server/v3/storage/schema.unsafeExecute", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReadWriter.ty] false [go.error])))]
 
 attribute [instance] migrationPlan.TypeAssumptions.underlying
+  migrationPlan.TypeAssumptions.method_set
+  migrationPlan.TypeAssumptions.ptr_method_set
 
 axiom migrationStep : Type
 axiom migrationStep.zero_val : ZeroVal migrationStep
@@ -2330,10 +2386,14 @@ class migrationStep.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContex
   type_repr : go.TypeReprUnderlying migrationStep.underlying migrationStep
   underlying : go.UnderlyingDirectedEq migrationStep.ty migrationStep.underlying
   isUnderlying : go.IsUnderlying migrationStep.underlying migrationStep.underlying
+  method_set : go.MethodSetIs migrationStep.ty [(go!"go.etcd.io/etcd/server/v3/storage/schema.unsafeExecute", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReadWriter.ty] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType migrationStep.ty) [(go!"go.etcd.io/etcd/server/v3/storage/schema.unsafeExecute", (some (go.signature.Signature [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty), _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReadWriter.ty] false [go.error])))]
 
 attribute [instance] migrationStep.TypeAssumptions.type_repr
   migrationStep.TypeAssumptions.underlying
   migrationStep.TypeAssumptions.isUnderlying
+  migrationStep.TypeAssumptions.method_set
+  migrationStep.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   action_instance : action.TypeAssumptions

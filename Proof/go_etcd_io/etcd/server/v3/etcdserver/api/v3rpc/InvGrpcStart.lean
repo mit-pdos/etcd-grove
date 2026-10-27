@@ -23,6 +23,7 @@ InvGrpcServer.lean`.
 -/
 module
 
+public import Perennial.Golang.Theory.TypeSet
 public import Proof.google_golang_org.grpc.InvGrpcServer
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvQuota
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.InvWatch
@@ -66,6 +67,11 @@ class v3rpc.ServerMethodSets [GooseExts] [GoGlobalContext] [GoLocalContext]
     etcdserverpb.MaintenanceServer.ty = true
   maint_te : go.typeSetContains (go.GoType.PointerType v3rpc.authMaintenanceServer.ty)
     testEmbeddedIface = false
+
+/-- `ServerMethodSets` holds, from the method sets goose emits. -/
+instance v3rpc.serverMethodSets_inst [GooseExts] [GoGlobalContext] [GoLocalContext]
+    [sem : go.Semantics] [go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.Assumptions] : v3rpc.ServerMethodSets := by
+  constructor <;> (try unfold testEmbeddedIface) <;> go_type_set
 
 section pure
 variable [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]

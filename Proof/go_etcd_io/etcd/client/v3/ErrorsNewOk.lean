@@ -11,14 +11,15 @@ Go's `*errorString` and `deadlineExceededError`, whose methods are `Error`, `Tim
 `Temporary`).
 
 `errorsNewOk_of`: from Perennial's `errors.New` (a fresh `*errorString` whose `Error()` returns the
-message, `mvcc.wp_New_errorString`) and the method-set facts of `*errorString`, which the
-semantics leaves uninterpreted (premises, as Perennial's `context.ErrorStringIsError`): it is a
+message, `mvcc.wp_New_errorString`) and the method-set facts of `*errorString` (theorems of the
+method sets goose emits, `errorStringLeaf_inst`, `errorStringNoGRPCStatus_inst`): it is a
 leaf without `Is` (`ErrorStringLeaf`) and has no `GRPCStatus` method
 (`ErrorStringNoGRPCStatus`: Go's `errors` package defines only `Error`); and `rpctypes.EtcdError`
 implements `error` (`hAs`, the client's KV premise).
 -/
 module
 
+public import Perennial.Golang.Theory.TypeSet
 public import Proof.go_etcd_io.etcd.client.v3.InvWatch
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Errorf
 public import Proof.errors.NewVar
@@ -42,6 +43,15 @@ class ErrorStringNoGRPCStatus [GooseExts] [GoGlobalContext] [GoSemanticsFunction
       go!"GRPCStatus" ≠
     some (go.Signature [] false
       [go.GoType.PointerType google_golang_org.grpc.internal.status.Status.ty])
+
+/-- `ErrorStringNoGRPCStatus` holds: `*errorString`'s method set (goose's `ptr_method_set`) is
+`Error` only. -/
+instance errorStringNoGRPCStatus_inst [GooseExts] [GoGlobalContext] [GoLocalContext]
+    [GoSemanticsFunctions] [_root_.Perennial.errors.Assumptions] : ErrorStringNoGRPCStatus := by
+  have h := go.method_set_is (t := go.GoType.PointerType _root_.Perennial.errors.errorString.ty)
+    go!"GRPCStatus"
+  simp only [go.methodSetLookup_cons, go.methodSetLookup_nil, gooseReduceIteDecide] at h
+  exact ⟨by simp [h]⟩
 
 section ctxClass
 open Iris Iris.BI
@@ -81,7 +91,7 @@ variable [errors_sem : _root_.Perennial.errors.Assumptions] [fmt_sem : _root_.Pe
 variable [rp_sem : go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
 
 /-- **`errorsNewOk` holds** (see the file header). -/
-theorem errorsNewOk_of [ErrorStringLeaf] [ErrorStringNoGRPCStatus]
+theorem errorsNewOk_of
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) :
     ⊢ errorsNewOk (GF := GF) := by
   unfold errorsNewOk
@@ -166,7 +176,7 @@ theorem clientErr_statusErrOk_of_leaf (e : GoInterfaceOk) (hl : errors.isLeafErr
 `io.isInit` keeps `EOF`'s value, an `errors.New("EOF")` error (`io.eof_of_init`), a leaf
 `*errorString` without `Is` or `GRPCStatus` (`ErrorStringLeaf`, `ErrorStringNoGRPCStatus`) whose
 `Error()` returns. -/
-theorem eofOk_of_init [_root_.Perennial.io.Assumptions] [ErrorStringLeaf] [ErrorStringNoGRPCStatus]
+theorem eofOk_of_init [_root_.Perennial.io.Assumptions]
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) :
     isPkgInit (PROP := IProp GF) pkg_id.io ⊢ eofOk := by
   iintro #Hpkg

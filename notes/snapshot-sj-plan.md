@@ -78,9 +78,13 @@ theorem.
   Compact}`): atomic variants, the existing specs kept as corollaries.
 - **J4. The server's snapshot state shared** (`InvApplyAll`'s `srvSnapState` body, `EtcdServer.snapshot`,
   `compactRaftLog`, `snapshotIfNeededAndCompactRaftLog`, `storage.Release`): recommended to translate
-  and prove `snapshot` and `compactRaftLog` (−2 axioms). After J3, J0.
+  and prove `snapshot` and `compactRaftLog` (−2 axioms). After J3, J0. *Part a done (2026-10-26): the token
+  shared, `compactRaftLog` over it, `Release` over any `Rm`; `snapshot` left an axiom: J4b after
+  J1a (the registry authority from `bootOk`, J1a's bundle at the apply thread), and L3 gains
+  `ep.confState`'s certificate; the ceiling `γsc` is J6b's (`notes/decisions.md`, "D22 J4").*
 - **J5. The applied index lags its ghost** (`InvRequest`'s `srvAppliedInv`/`srvAppliedPre`, `InvRead`,
-  the read loop, `setAppliedIndex`): `applied_jump`; `appliedKeysOk` allows jumps.
+  the read loop, `setAppliedIndex`): `applied_jump`; `appliedKeysOk` allows jumps. *Done
+  (2026-10-26; `notes/decisions.md`, "D22 J5").*
 - **J7. The image facts** (new `SnapRecvFacts.lean`, `InvImage`, `InvRest`): from `srvImage γ i D`,
   raft's `isCommitted l.dlv` and the workload, specSnap's pure premises (`hmeta`, `hkI`, `hRok`,
   `hpre`, `hlease`, `halarm`, `hauthb`, `hmemb`, `hA'`), `R` with `[[],[]] ++ R = kvModel γk A'`,
@@ -94,7 +98,10 @@ theorem.
   takes `isRaftCluster`, `clusterMem` at `L`, `srvRLogLb γ L'`: not pure, see `notes/decisions.md`,
   "D22 J7". Left for J8a (not derivable from `srvImage`): `hmeta` at the snapshot's term and
   `hRok`; both need `imageAt`/`dbImage` strengthened at the sender (and raft's `Ready` to tie the
-  snapshot's term to its last entry's).
+  snapshot's term to its last entry's). **J7b done (2026-10-26)**: `imageAt` carries
+  `IdxWf (kvModel γk A) []` (`soleWriter_idxWf` at the sender), `SnapImageFacts.hRok`/`hlen`;
+  `hmeta` by generalizing `specSnap` to the image's stored term `tI` (no term tracking, no `Ready`
+  fact needed): `notes/decisions.md`, "D22 J7b".
 - **J6a. The raft node's payload with a snapshot** (`InvRaftNode`'s `rnReadyData`/`rnApP`,
   `InvRaftLoop`'s `rnApplyTok_recv`, `updateCommittedIndex`, `newRaftNode`, `InvRun`). After J2.
 - **J6b. `raftNode.start`'s snapshot branch** (its own module): `SaveSnap`, `Save`, `Sync`, the first
