@@ -235,15 +235,42 @@ instance authApplyOkM_persistent (M : auth.AuthMode) (stl : Loc) (RD : IProp GF)
 /-- **The lessor `lp`'s backend contract on whichever backend it is on** (persistent; D22
 receiver epochs, S7c; `lease.NewLessor.spec`'s, the trust boundary): as `alarmApplyOk`, its writes
 pinned to the backend by the user's half of `le.b` (`lease.lessorBeOn`), which the write right
-lends; one write-back token per write, the reader's open share lent. -/
+lends; one write-back token per write, the reader's open share lent; the put into `Lease` (a
+tracked bucket, D22) with the client half of the tracked buckets (`backend.rbOwn`), given back with
+the record put (leases T3, L3c, 2026-10-27: until then the write right lent the half,
+`srvRestRW`, and the put's effect was not stated; the real backend's `LockInsideApply` does not
+need it, its `UnsafePut` does). -/
 def lessorApplyOk (lp : Loc) : IProp GF :=
   iprop(□ ∀ (d : mvcc.KBReal) (W Pk : IProp GF) (f : GoFunc) (RW : IProp GF),
     backend.isBackend d.γB d.P W Pk d.be -∗ backend.plHookRO d.γB f -∗ ⌜f ≠ func.nil⌝ -∗
-    rwLens RW iprop(srvRestRW d.γB ∗ lease.lessorBeOn lp d.be) -∗
-    lease.lessorBackend lp Pk #f iprop(backend.wbTok d.γB ∗ RW) (mvcc.bkRTx d.γB d.P d.be))
+    rwLens RW (lease.lessorBeOn lp d.be) -∗
+    lease.lessorBackend lp Pk #f iprop(backend.wbTok d.γB ∗ RW) (mvcc.bkRTx d.γB d.P d.be)
+      (backend.rbOwn d.γB))
 
 instance lessorApplyOk_persistent (lp : Loc) : Persistent (lessorApplyOk (GF := GF) lp) := by
   unfold lessorApplyOk; infer_instance
+
+omit [MemStorReg GF] in
+/-- The server's write right holds the lessor's write token's part (its half of `le.b`) and the
+tracked buckets' client half, the right its put takes (leases T3, L3c, 2026-10-27). -/
+theorem srvRestRWH_lessor (γB : backend.BNames) (al ast lp cl be : Loc) :
+    ⊢ □ (srvRestRWH (GF := GF) γB (srvObjsOn al ast lp cl be) -∗
+      lease.lessorBeOn lp be ∗ ∃ r, backend.rbOwn γB r) := by
+  iintro !> Hrw
+  iunfold srvRestRWH at Hrw
+  iunfold srvObjsOn at Hrw
+  icases Hrw with ⟨Hrw, -, -, Hle, -⟩
+  iunfold srvRestRW at Hrw
+  iframe Hle Hrw
+
+omit [MemStorReg GF] in
+/-- The lessor's write token's part lends itself. -/
+theorem lessorBeOn_lens (lp be : Loc) :
+    ⊢ rwLens (GF := GF) (lease.lessorBeOn lp be) (lease.lessorBeOn lp be) := by
+  iunfold rwLens
+  iintro !> Hle
+  iframe Hle
+  iintro Hle; iexact Hle
 
 /-- **The cluster `c`'s apply contract on whichever backend it is on** (persistent; D22 receiver
 epochs, S7e, 2026-10-23; `bootOk`'s, the bootstrap contract): for a real backend `d` (its

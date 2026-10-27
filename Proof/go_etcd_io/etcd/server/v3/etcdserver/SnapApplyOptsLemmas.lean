@@ -66,21 +66,6 @@ theorem srvRestRWH_lens_auth (γB : backend.BNames) (al ast lp cl be : Loc) :
   iunfold srvObjsOn
   iframe Hrw Hal Hau Hle Hcb
 
-theorem srvRestRWH_lens_lessor (γB : backend.BNames) (al ast lp cl be : Loc) :
-    ⊢ rwLens (GF := GF) (srvRestRWH γB (srvObjsOn al ast lp cl be))
-      iprop(srvRestRW γB ∗ lease.lessorBeOn lp be) := by
-  iunfold rwLens
-  iintro !> Hrw
-  iunfold srvRestRWH at Hrw
-  iunfold srvObjsOn at Hrw
-  icases Hrw with ⟨Hrw, Hal, Hau, Hle, Hcb⟩
-  isplitl [Hrw Hle]
-  · iframe Hrw Hle
-  iintro ⟨Hrw, Hle⟩
-  iunfold srvRestRWH
-  iunfold srvObjsOn
-  iframe Hrw Hal Hau Hle Hcb
-
 theorem srvRestRWH_lens_cluster (γB : backend.BNames) (al ast lp cl be : Loc) :
     ⊢ rwLens (GF := GF) (srvRestRWH γB (srvObjsOn al ast lp cl be))
       iprop(srvRestRW γB ∗ clusterBeOn cl be) := by
@@ -194,17 +179,20 @@ theorem snap_isApplyLessor
   iintro ⟨#Hpkg, #Hlbe, #Hlcfg, #Hllk, #Hlinv, #HB, #Hhook⟩
   ihave #Hlspkg : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease $$ []
   · iPkgInit
-  iapply apply.isApplyLessor_of_lessorInv hGL hAt hDt hSRD hLk hGrant hCk hTTL lp sst γs
+  iapply apply.isApplyLessor_of_lessorInv hGL hAt hDt hSRD hLk hGrant hCk hTTL lp sst γs _ _ _
+    (lease.lessorBeOn lp d'.be) (backend.rbOwn d'.γB)
   iunfold lessorLookupOk at Hllk
   iframe Hllk Hlcfg Hlinv Hlspkg
-  unfold mvcc.storeWT mvcc.storeRT
-  rw [hk, show mvcc.kbWT (GF := GF) (some d') = backend.wbTok d'.γB from rfl,
-    show mvcc.kbRT (GF := GF) (some d') = mvcc.bkRTx d'.γB d'.P d'.be from rfl]
-  iunfold lessorApplyOk at Hlbe
-  iapply Hlbe $$ %d' %(mvcc.lateW d'.gx) %Pk %g
-    %(srvRestRWH d'.γB (srvObjsOn al ast lp cl d'.be)) HB Hhook [] []
-  · ipureintro; exact hgnn
-  · iapply srvRestRWH_lens_lessor
+  isplitl []
+  · unfold mvcc.storeWT mvcc.storeRT
+    rw [hk, show mvcc.kbWT (GF := GF) (some d') = backend.wbTok d'.γB from rfl,
+      show mvcc.kbRT (GF := GF) (some d') = mvcc.bkRTx d'.γB d'.P d'.be from rfl]
+    iunfold lessorApplyOk at Hlbe
+    iapply Hlbe $$ %d' %(mvcc.lateW d'.gx) %Pk %g
+      %(lease.lessorBeOn lp d'.be) HB Hhook [] []
+    · ipureintro; exact hgnn
+    · iapply lessorBeOn_lens
+  · iapply srvRestRWH_lessor
 
 /-! ## The KV and the hook -/
 

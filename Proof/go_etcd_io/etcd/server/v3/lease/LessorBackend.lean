@@ -11,7 +11,10 @@ transaction whose `LockInsideApply()`, under the batch lock's critical-section c
 package's environment), for a write-back token `T` and a lent open share `R` of the backend
 (2026-10-17, unit N4, D14f: the real backend's `Unlock` spends a write-back, its `LockInsideApply`
 needs the backend open), gives a token `Lk (Post ∗ R)` that `UnsafePut` into the `Lease` bucket
-keeps and `Unlock()` turns into `Post ∗ R`. A contract on the lessor's environment (as mvcc's `isKeyBackend`
+keeps and `Unlock()` turns into `Post ∗ R`. The put takes the right `Rb r` to write the tracked
+buckets `r` (the real backend's client half of them, `backend.rbOwn`: the bucket is tracked, D22)
+and gives back `Rb (mvcc.rbSet r "lease" k v)` (leases T3, L3c, 2026-10-27: until then the put had
+no effect a caller could see; `Rb` defaults to no right and no effect). A contract on the lessor's environment (as mvcc's `isKeyBackend`
 was for the store before `BackendBridge.lean`): not yet proved of the real backend.
 
 `lessorBackend lp P f`: the lessor's `b` is such a backend (`newLessor` sets it; `Recover`,
@@ -27,6 +30,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.InvStore
 public import Perennial.Golang.Theory.Chan.Idioms.Bag
+public import Proof.go_etcd_io.etcd.server.v3.lease.LeaseRecord
 
 @[expose] public section
 
@@ -49,48 +53,53 @@ variable [sem : go.Semantics]
 /-- **The batch transaction `tx`** as the lessor's writes use it (persistent): `LockInsideApply()`
 under the critical-section contract gives the lock's token `Lk Post`; `UnsafePut` into the
 `Lease` bucket (the value of `schema.Lease`) of an 8-byte key (a lease's id: unit N4, 2026-10-17;
-an empty key is fatal in the real backend) keeps it; `Unlock()` gives `Post`. -/
-def leaseBatchTx (tx : GoInterfaceOk) (P : IProp GF) (f : val) (T R : IProp GF) : IProp GF :=
+an empty key is fatal in the real backend) keeps it and puts the entry into the tracked buckets
+`Rb` holds (L3c); `Unlock()` gives `Post`. -/
+def leaseBatchTx (tx : GoInterfaceOk) (P : IProp GF) (f : val) (T R : IProp GF)
+    (Rb : GMap GoString backend.BktData → IProp GF := fun _ => iprop(True)) : IProp GF :=
   iprop(∃ Lk : IProp GF → IProp GF,
     □ (∀ (Pre Q Post : IProp GF),
       {{ mvcc.csContract P f Pre Q Post ∗ T ∗ R }}
         (App (Val #(methods tx.ty go!"LockInsideApply" tx.v)) (Val #()))
       {{ RET #(); Lk iprop(Post ∗ R) }}) ∗
-    □ (∀ (R : IProp GF) (bk : GoInterface) (key val : GoSlice) (kb vb : GoString),
+    □ (∀ (R : IProp GF) (bk : GoInterface) (key val : GoSlice) (kb vb : GoString)
+        (r : GMap GoString backend.BktData),
       {{ ⌜kb.length = 8⌝ ∗ Lk R ∗ globalAddr go_etcd_io.etcd.server.v3.storage.schema.Lease ↦□ bk ∗
-          key ↦*□ kb ∗ val ↦*□ vb }}
+          key ↦*□ kb ∗ val ↦*□ vb ∗ Rb r }}
         (App (App (App (Val #(methods tx.ty go!"UnsafePut" tx.v)) (Val #bk)) (Val #key))
           (Val #val))
-      {{ RET #(); Lk R }}) ∗
+      {{ RET #(); Lk R ∗ Rb (mvcc.rbSet r mvcc.leaseName kb vb) }}) ∗
     □ (∀ (R : IProp GF),
       {{ Lk R }} (App (Val #(methods tx.ty go!"Unlock" tx.v)) (Val #())) {{ RET #(); R }}))
 
-instance leaseBatchTx_persistent (tx : GoInterfaceOk) (P : IProp GF) (f : val) (T R : IProp GF) :
-    Persistent (leaseBatchTx tx P f T R) := by
+instance leaseBatchTx_persistent (tx : GoInterfaceOk) (P : IProp GF) (f : val) (T R : IProp GF)
+    (Rb : GMap GoString backend.BktData → IProp GF) : Persistent (leaseBatchTx tx P f T R Rb) := by
   unfold leaseBatchTx; infer_instance
 
 /-- **The backend `b`** as the lessor uses it (persistent): the `Lease` bucket variable of
 `schema` holds a fixed value, and `BatchTx()` returns a `leaseBatchTx`. -/
-def leaseBackend (b : GoInterface) (P : IProp GF) (f : val) (T R : IProp GF) : IProp GF :=
+def leaseBackend (b : GoInterface) (P : IProp GF) (f : val) (T R : IProp GF)
+    (Rb : GMap GoString backend.BktData → IProp GF := fun _ => iprop(True)) : IProp GF :=
   iprop((∃ bk : GoInterface, globalAddr go_etcd_io.etcd.server.v3.storage.schema.Lease ↦□ bk) ∗
     ∃ bi : GoInterfaceOk, ⌜b = GoInterface.ok bi⌝ ∗
     □ ({{ True }} (App (Val #(methods bi.ty go!"BatchTx" bi.v)) (Val #()))
-      {{ (tx : GoInterfaceOk), RET #(GoInterface.ok tx); leaseBatchTx tx P f T R }}))
+      {{ (tx : GoInterfaceOk), RET #(GoInterface.ok tx); leaseBatchTx tx P f T R Rb }}))
 
-instance leaseBackend_persistent (b : GoInterface) (P : IProp GF) (f : val) (T R : IProp GF) :
-    Persistent (leaseBackend b P f T R) := by
+instance leaseBackend_persistent (b : GoInterface) (P : IProp GF) (f : val) (T R : IProp GF)
+    (Rb : GMap GoString backend.BktData → IProp GF) : Persistent (leaseBackend b P f T R Rb) := by
   unfold leaseBackend; infer_instance
 
 /-- **The lessor's backend** (persistent): a `leaseBackend` `b`, and the write token `T` lends a
 fraction of the lessor's `b` field at `b` (D22 receiver epochs, S7c, 2026-10-23: the field is no
 longer read-only, `Recover` replaces it; until then `lF "b" lp ↦□ b`, which that store refutes):
 the writes read `le.b` under the lessor's lock, holding the token. -/
-def lessorBackend (lp : Loc) (P : IProp GF) (f : val) (T R : IProp GF) : IProp GF :=
-  iprop(∃ b : GoInterface, leaseBackend b P f T R ∗
+def lessorBackend (lp : Loc) (P : IProp GF) (f : val) (T R : IProp GF)
+    (Rb : GMap GoString backend.BktData → IProp GF := fun _ => iprop(True)) : IProp GF :=
+  iprop(∃ b : GoInterface, leaseBackend b P f T R Rb ∗
     □ (T -∗ ∃ dq : DFrac, lF go!"b" lp ↦{dq} b ∗ (lF go!"b" lp ↦{dq} b -∗ T)))
 
-instance lessorBackend_persistent (lp : Loc) (P : IProp GF) (f : val) (T R : IProp GF) :
-    Persistent (lessorBackend lp P f T R) := by
+instance lessorBackend_persistent (lp : Loc) (P : IProp GF) (f : val) (T R : IProp GF)
+    (Rb : GMap GoString backend.BktData → IProp GF) : Persistent (lessorBackend lp P f T R Rb) := by
   unfold lessorBackend; infer_instance
 
 /-- **The lessor `lp` is on the backend at `be`** (D22 receiver epochs, S7c, 2026-10-23; not

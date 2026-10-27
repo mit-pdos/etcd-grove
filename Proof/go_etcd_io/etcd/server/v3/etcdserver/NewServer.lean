@@ -1099,27 +1099,20 @@ theorem NewServer.wp_proofM (on : Bool)
     iframe Hlexp Hlcfg Hlinv Hlspkg
   ihave #Hapl : apply.isApplyLessor (lease.lessorIface lp) kst γw.st
       (batchLockInv γA (metaTM d.γB d.P)) #hook (srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be)) $$ []
-  · iapply apply.isApplyLessor_of_lessorInv h49 h50 h51 h52 h53 h54 h55 h56 lp kst γw.st
+  · iapply apply.isApplyLessor_of_lessorInv h49 h50 h51 h52 h53 h54 h55 h56 lp kst γw.st _ _ _
+      (lease.lessorBeOn lp d.be) (backend.rbOwn d.γB)
     rw [Hγw.2.1]
     iframe Hllk Hlcfg Hlinv Hlspkg
-    unfold mvcc.storeWT mvcc.storeRT
-    rw [Hγw.2.2.1, show mvcc.kbWT (GF := GF) (some d) = backend.wbTok d.γB from rfl,
-      show mvcc.kbRT (GF := GF) (some d) = mvcc.bkRTx d.γB d.P d.be from rfl]
-    iunfold lessorApplyOk at Hlbe
-    iapply Hlbe $$ %d %(mvcc.lateW d.gx) %(batchLockInv γA (metaTM d.γB d.P)) %hook
-      %(srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be)) HB Hhook [] []
-    · ipureintro; exact Hhknn
-    · iunfold rwLens
-      iintro !> Hrw
-      iunfold srvRestRWH at Hrw
-      iunfold srvObjsOn at Hrw
-      icases Hrw with ⟨Hrw, Hal, Hau, Hle, Hcb⟩
-      isplitl [Hrw Hle]
-      · iframe Hrw Hle
-      iintro ⟨Hrw, Hle⟩
-      iunfold srvRestRWH
-      iunfold srvObjsOn
-      iframe Hrw Hal Hau Hle Hcb
+    isplitl []
+    · unfold mvcc.storeWT mvcc.storeRT
+      rw [Hγw.2.2.1, show mvcc.kbWT (GF := GF) (some d) = backend.wbTok d.γB from rfl,
+        show mvcc.kbRT (GF := GF) (some d) = mvcc.bkRTx d.γB d.P d.be from rfl]
+      iunfold lessorApplyOk at Hlbe
+      iapply Hlbe $$ %d %(mvcc.lateW d.gx) %(batchLockInv γA (metaTM d.γB d.P)) %hook
+        %(lease.lessorBeOn lp d.be) HB Hhook [] []
+      · ipureintro; exact Hhknn
+      · iapply lessorBeOn_lens
+    · iapply srvRestRWH_lessor
   ihave #Hast : apply.isAuthStore ast γw.st (batchLockInv γA (metaTM d.γB d.P)) #hook RD M
       (srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be)) $$ []
   · rw [Hastl]
