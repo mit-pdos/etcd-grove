@@ -468,18 +468,36 @@ frontier past the server's raft contract.
   `KVRead` (six credits), `newRaftNode` (spec and proof), `bootstrappedRaft.newRaftNode` (spec and
   proof: the API's `StartNode`, static or dynamic; the peers' slice not given back).
 
+Also ported since (compiling): `KVAuthModel` (`detLogOn_transfer`, `kvRaftOfOn_eqv`,
+`kvRaftOfOn_of_lb`), `KVReadOn`, `ProposeOn` (`kvOn_qinv`, `reqPropOkOn_qinv`), `ReqOn`
+(`kv_prop_au_M` gives the result's invariance), `EtcdServer__apply` (the dynamic view's
+`DynCCPre`), `raftNode__processMessages`, `SnapRO` (`SrvRaft.snapLoc`, the members' snapshot
+directories, in place of raft's `reSnapLoc`), `raftNode__start` (the `Ready` receive by
+`isReadyChan_recvAu`; the loop token carries the log's indices; `isRaftNodeIfc` carries `isNode`),
+`NodeStart` (`NodeStartSpec` quantifies the server's `SrvRaft`; `srvRaftLogInv` a premise; the read
+contexts' invariant in the installer; the peers' slice not given back), `EtcdServer__run` (the
+dynamic premise `γn.pre = [] ∧ ai₀ = 0`, in `isServerRun`/`srvBuilt`/... `HEr`), `InvBuild` (the
+network payload `srvNet γ` over `sentMsg`/`msgCredits`; `srvEr` without budget names), `InvNet`
+(`stepIn_of_recv`), `Process` and the reports, `InvBoot` (`bootOk` over `SrvRaft`: the peers'
+contexts a parameter, the certificate registry's authority `memCertAuth`, `(ps.length) < 2^62`, no
+raft modes), `BuildAlloc`, `BuildGap` (`srv_entry_src`, `entryClaims_transfer`), `ServerOn`,
+`processInternalRaftRequestOnce` (a credit for `Propose`, three for the witnesses).
+
 **Draft items added to `NodeApiDraft.lean`** (sealed, `sorry` unless noted): `isCommittedLogLb_length`,
 `readCredits_timeless` (proved), the instance-free laws `isCommittedLogLb_mono'`/`_agree'`,
 `ownCommittedOps_lb_prefix'`, `readStateOk_used'`, `readCredits_split'`, `readCredit_eq'` (proved),
 `readCtxAfter`/`readCtx_commit_after`/`readStateOk_after`, `noConfChangeV2`/`noConfChangeV2_filler`/
-`noConfChangeV2_alloc`, `isReadyChan_recvAu`.
+`noConfChangeV2_alloc`, `isReadyChan_recvAu`, `readyFits`/`readyFits_alloc`/`readyRest_fits`,
+`sentMsg_snapshot`, `msgCredits_none` (proved), `bootedCluster` (sealed, defined) with
+`nodeBoot_booted`/`nodeDynamicBoot_booted`, `stepIn_intro_booted` (a pre-vote request and a
+forwarded proposal of any context: etcd runs with `PreVote`).
 
-**Next (the build's frontier, in dependency order):** `raftNode__start.lean` (the `Ready` receive
-in the `select`: `isReadyChan_recvAu`; `isRaftNode` needs `rnIsNode`), `EtcdServer__applyConfChange.lean`,
-`EtcdServer__run.lean`, `NodeStart.lean`, the allocation (`NewServerAlloc*`, `BuildAlloc`,
-`InvBuild`, `NewServer` spec: `cluster_alloc` with `transfer := false`, `snapOk := False`, then
-`srvLogInv_alloc`), rafthttp (`InvNet`, `InvRaftMsg`, `api/rafthttp/*`: `sentMsg`, `stepIn_intro`),
-the snapshot track (`SnapSendBundle`: `sentMsg_replaceSnapshot`), then the examples.
+**Next (the build's frontier):** `NewServer` (spec and proof), `NewServerAlloc`/`NewServerAllocOn`
+(the cluster's allocation: `cluster_alloc`/`dynamicCluster_alloc` with `transfer := false`,
+`snapOk := False`, then `srvLogInv_alloc`, `noConfChangeV2_alloc`, `readyFits_alloc`,
+`bootedCluster` from a boot token; a static storage's `storageCertLink` from `memCertAuth`),
+`StartOn`/`InvStart`, the snapshot sender (`SnapSend*`, `SnapRecvFacts`), `Results`/`Link`, then
+the examples.
 
 ## Raft's node API for etcd's server, implemented (2026-10-27, branch `raft-api`)
 
