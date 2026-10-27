@@ -101,7 +101,7 @@ def NoConfIn (l : List EntryM) (lo hi : Nat) : Prop :=
   ∀ (k : Nat) (e : EntryM), lo ≤ k → k < hi → l[k]? = some e → ¬ IsConfEnt e
 
 /-- `stepLeader`'s conf-change loop at `r`: the batch and the new `pendingConfIndex`. -/
-def propBatch (r : RState) (ents : List EntryM) (cs : List (Option CCMsg)) :
+def propBatch (r : RState) (ents : List EntryM) (cs : List (Option ConfChangeIM)) :
     List EntryM × w64 :=
   propConf r.applied (plastIndex r.p) r.pci ents cs (CfgM.joint r.cfg.cfg)
 
@@ -259,7 +259,7 @@ inductive StepR : RState → List Msg → RState → Prop where
       (∀ m ∈ ms, ReplOk id r.p m) →
       (∀ m ∈ ms, AppCommitEq r.p m) →
       StepR r [] { r with p := psendMsgs r.p ms }
-  | propose (m : Msg) (r : RState) (cs : List (Option CCMsg)) :
+  | propose (m : Msg) (r : RState) (cs : List (Option ConfChangeIM)) :
       m.ty = .propose →
       r.p.role = .leader →
       CCTypesOk m.entries cs →
@@ -270,7 +270,7 @@ inductive StepR : RState → List Msg → RState → Prop where
           [pselfAck id (pappend r.p
             ((propBatch r m.entries cs).1.mapIdx (stamp r.p.term (plastIndex r.p))))]
         pci := (propBatch r m.entries cs).2 }
-  | propDrop (m : Msg) (r : RState) (cs : List (Option CCMsg)) :
+  | propDrop (m : Msg) (r : RState) (cs : List (Option ConfChangeIM)) :
       m.ty = .propose →
       r.p.role = .leader →
       CCTypesOk m.entries cs →

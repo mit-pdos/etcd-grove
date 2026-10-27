@@ -31,8 +31,8 @@ loop checks the premises against its `RawNode` (`runCfg_confc`) and applies the 
 matter.
 
 **raft v3.7 (2026-10-16, stage R5).** `cc.AsV2()` is a `*pb.ConfChangeV2` (for a
-`*ConfChangeV2`, `cc` itself), sent on `confc` read-only (`confcP`: `ownCCV2 v □`, hence
-`ownCCI c □`); the answer is the `*pb.ConfState` `run`'s `applyConfChange` returned, owned
+`*ConfChangeV2`, `cc` itself), sent on `confc` read-only (`confcP`: `ownConfChangeV2 v □`, hence
+`ownConfChangeI c □`); the answer is the `*pb.ConfState` `run`'s `applyConfChange` returned, owned
 (`csPts csp 1 cs true`), its lists the record's (`confstateS`/`confstateOk` pure). Go returns
 `nil` if `done` fires first, which it never does.
 -/
@@ -58,7 +58,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- See the file header. -/
 abbrev node.ApplyConfChange.spec : Prop :=
-  ∀ (γ : NodeNames) (id : w64) (n : Loc) (c : GoInterface) (o : CCMsg)
+  ∀ (γ : NodeNames) (id : w64) (n : Loc) (c : GoInterface) (o : ConfChangeIM)
     -- (2026-10-15, stage N) the dynamic mode's: the committed log the driver was handed (a
     -- lower bound of `run`'s), its view of the configuration, the conf entry applied (at
     -- position `k`) and the configuration it gives
@@ -69,7 +69,7 @@ abbrev node.ApplyConfChange.spec : Prop :=
   -- the dynamic mode: the next committed conf entry's decoded change, which applies
   (∀ dec c0 h0 h1, γ.mode = .dyn dec c0 h0 h1 → DynCCPreOp dec ds ca cfg (ccV2Of o) k e cs') →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode γ id n ∗
-      ownCCI c DFrac.discard (some o) ∗
+      ownConfChangeI c DFrac.discard (some o) ∗
       (⌜γ.mode = .static⌝ ∨ nodeCfg γ ca cfg ∗ dlvLb γ ds) }}
     (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"ApplyConfChange")) (Val #c))
   {{ (csp : Loc) (cs : ConfStateM), RET #csp;

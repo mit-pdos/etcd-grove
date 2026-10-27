@@ -50,7 +50,7 @@ def cfgState (cfg lrn : GSet w64) : CCState := { cfg := cfgM cfg lrn, prs := cfg
 
 /-- What `ConfChangeI.AsV2()` makes of a change: a `ConfChange` is one change with
 transition `Auto` (`ConfChange.AsV2`'s spec); a `ConfChangeV2` is itself. -/
-def ccV2Of : CCMsg → raftpb.ConfChangeTransition × List ConfChangeSingleM
+def ccV2Of : ConfChangeIM → raftpb.ConfChangeTransition × List ConfChangeSingleM
   | .v1 m => (W32 0, [{ Type' := m.type, NodeId' := m.nodeId }])
   | .v2 m => (m.transition, m.changes)
 
@@ -197,7 +197,7 @@ theorem ccApplyM_single_noop (cfg lrn : GSet w64) (Hd : ∀ k, k ∈ lrn → k �
   exact Hs
 
 /-- A `ConfChange` with `NodeId = 0`, whatever the learners. -/
-theorem ccApplyM_v1_noop (cfg : GSet w64) (m : CCV1M) (H : m.nodeId = W64 0) (Hne : cfg ≠ ∅) :
+theorem ccApplyM_v1_noop (cfg : GSet w64) (m : ConfChangeM) (H : m.nodeId = W64 0) (Hne : cfg ≠ ∅) :
     CCNoop cfg (ccV2Of (.v1 m)).1 (ccV2Of (.v1 m)).2 :=
   fun lrn Hd => ccApplyM_single_noop cfg lrn Hd _ H Hne
 

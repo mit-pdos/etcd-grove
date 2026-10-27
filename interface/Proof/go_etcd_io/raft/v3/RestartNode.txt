@@ -48,7 +48,26 @@ theorem RestartNode.wp_proof [package_sem : Assumptions] (wp_NewRawNode : NewRaw
                                                                                       ss := ss', pend := σ.pend,
                                                                                       scs := σ.scs, sal := σ.sal,
                                                                                       sdat := σ.sdat, fl := σ.fl } -∗
-                                                                                  ⋯ -∗ ⋯) ∗
+                                                                                  (∀ hp cs al,
+                                                                                      ownStorage (GoInterface.ok si)
+                                                                                          { prev := σ.prev,
+                                                                                            ents := σ.ents, ss := ss',
+                                                                                            pend := σ.pend, scs := σ.scs,
+                                                                                            sal := σ.sal, sdat := σ.sdat,
+                                                                                            fl := σ.fl } -∗
+                                                                                        hsOpt hp hs -∗
+                                                                                          csPts cs DFrac.discard csm al -∗
+                                                                                            Φ
+                                                                                              ((intoVal hp, intoVal cs),
+                                                                                                intoVal
+                                                                                                  GoInterface.nil)) -∗
+                                                                                    WP
+                                                                                      ((intoVal
+                                                                                          (methods si.ty
+                                                                                            go!"InitialState"
+                                                                                            si.v))
+                                                                                        (intoVal ()))
+                                                                                      {{ Φ }}) ∗
                                                                             rnInit γ md cv.ID' (listToSet csm.Voters') ∗
                                                                               isCommitted γ [] ∗
                                                                                 inv budgetN (budgetInv bud) ∗

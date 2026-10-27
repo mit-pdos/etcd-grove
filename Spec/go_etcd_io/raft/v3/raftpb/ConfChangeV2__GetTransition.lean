@@ -25,11 +25,11 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- `x.GetTransition()` of a `*ConfChangeV2` holding `m` (at any fraction) is its `Transition` (a
 nil field reads as `0`, `cellRO`); of a nil `*ConfChangeV2`, `0` (`Auto`). -/
 abbrev raftpb.ConfChangeV2.GetTransition.spec : Prop :=
-  (∀ (p : Loc) (dq : DFrac) (m : CCV2M),
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ ownCCV2 p dq m }}
+  (∀ (p : Loc) (dq : DFrac) (m : ConfChangeV2M),
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ ownConfChangeV2 p dq m }}
       (App (Val (p @!! go.GoType.PointerType raftpb.ConfChangeV2.ty @!! go!"GetTransition"))
         (Val #()))
-    {{ RET #m.transition; ownCCV2 p dq m }}) ∧
+    {{ RET #m.transition; ownConfChangeV2 p dq m }}) ∧
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb }}
     (App (Val ((null : Loc) @!! go.GoType.PointerType raftpb.ConfChangeV2.ty
         @!! go!"GetTransition"))

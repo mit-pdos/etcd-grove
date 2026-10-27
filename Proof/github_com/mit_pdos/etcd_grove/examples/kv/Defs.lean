@@ -513,7 +513,7 @@ def KVStat (γn : NodeNames) : Prop :=
 
 /-- The change `RemoveMember(id)` proposes: `pb.ConfChange{Type: ConfChangeRemoveNode, NodeID:
 id}` (type `1`; no context, no id). -/
-def rmCC (id : w64) : CCV1M := { type := W32 1, nodeId := id, context := [], id := W64 0 }
+def rmCC (id : w64) : ConfChangeM := { type := W32 1, nodeId := id, context := [], id := W64 0 }
 
 end ccfg
 

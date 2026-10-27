@@ -25,10 +25,10 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- `c.LeaveJoint()` of a `*ConfChangeV2` holding `m`: `true` iff the `Auto` transition and no
 changes (the change is zero but for its `Context`). -/
 abbrev raftpb.ConfChangeV2.LeaveJoint.spec : Prop :=
-  ∀ (c : Loc) (dq : DFrac) (m : CCV2M),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ ownCCV2 c dq m }}
+  ∀ (c : Loc) (dq : DFrac) (m : ConfChangeV2M),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ ownConfChangeV2 c dq m }}
     (App (Val (c @!! go.GoType.PointerType raftpb.ConfChangeV2.ty @!! go!"LeaveJoint")) (Val #()))
-  {{ RET #(decide (m.transition = W32 0 ∧ m.changes = [])); ownCCV2 c dq m }}
+  {{ RET #(decide (m.transition = W32 0 ∧ m.changes = [])); ownConfChangeV2 c dq m }}
 
 end spec
 

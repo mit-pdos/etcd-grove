@@ -35,7 +35,7 @@ theorem raftpb.ConfChange.GetType.wp_proof :
       wp_auto
       rw [show raftpb.ConfChangeType_ConfChangeAddNode = #m.type by rw [Hv]; rfl]
       iapply HΦ
-      iunfold ownCCV1
+      iunfold ownConfChange
       iframe
       iexists uf
       isplitr
@@ -44,7 +44,7 @@ theorem raftpb.ConfChange.GetType.wp_proof :
     · wp_if_destruct
       · exact absurd rfl Hpn
       · iapply HΦ
-        iunfold ownCCV1
+        iunfold ownConfChange
         iframe
         iexists uf
         isplitr

@@ -3,13 +3,14 @@
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
 def raftpb.ConfChangeV2.GetChanges.spec : Prop :=
-  (∀ (p : Loc) (dq : DFrac) (m : CCV2M),
+  (∀ (p : Loc) (dq : DFrac) (m : ConfChangeV2M),
       ⊢
         ∀ Φ,
-          isPkgInit pkg_id.go_etcd_io.raft.v3.raftpb ∗ ownCCV2 p dq m -∗
+          isPkgInit pkg_id.go_etcd_io.raft.v3.raftpb ∗ ownConfChangeV2 p dq m -∗
             (▷
                 ∀ chs ls,
-                  ownSlice chs ls dq ∗ ([∗list] q;c ∈ ls;m.changes, ccsRO q c) ∗ (ownSlice chs ls dq -∗ ownCCV2 p dq m) -∗
+                  ownSlice chs ls dq ∗
+                      ([∗list] q;c ∈ ls;m.changes, ccsRO q c) ∗ (ownSlice chs ls dq -∗ ownConfChangeV2 p dq m) -∗
                     Φ (intoVal chs)) -∗
               WP
                 ((intoVal

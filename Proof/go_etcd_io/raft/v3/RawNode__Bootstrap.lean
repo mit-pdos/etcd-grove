@@ -147,7 +147,7 @@ theorem RawNode.Bootstrap.wp_proof
     · iframe; ipureintro; exact Hpn
     try wp_auto
     -- the peer's conf change: `&pb.ConfChange{Type: AddNode.Enum(), NodeId: new(peer.ID),
-    -- Context: peer.Context}`, owned (`ownCCV1`)
+    -- Context: peer.Context}`, owned (`ownConfChange`)
     obtain ⟨ctx, Hcn⟩ : ∃ ctx, ctxs[sint.nat n]? = some ctx :=
       ⟨_, List.getElem?_eq_getElem (by rw [← Hctxlen]; exact Hlt)⟩
     ihave #Hpctx := BigSepL2.bigSepL2_lookup (Φ := fun _ (p : Peer) ctx => (p.Context' ↦*□ ctx : IProp GF))
@@ -157,7 +157,7 @@ theorem RawNode.Bootstrap.wp_proof
     wp_apply wp_ConfChangeType_Enum (W32 0) as %pty Hpty
     imod cellRO_alloc $$ Hpty with #cTy
     imod cellRO_alloc $$ «$v1» with #cN
-    imod ownCCV1_of_struct «$r0_ptr» (⟨zero_val _, pty, «$v1_ptr», p.Context', null, slice.nil, 0⟩ : raftpb.ConfChange)
+    imod ownConfChange_of_struct «$r0_ptr» (⟨zero_val _, pty, «$v1_ptr», p.Context', null, slice.nil, 0⟩ : raftpb.ConfChange)
         ⟨W32 0, p.ID', ctx, W64 0⟩ ⊤ rfl $$ [«$r0»] with Hcc
     · iframe «$r0» cTy cN Hpctx
       iunfold cellRO; ileft; ipureintro; exact ⟨rfl, rfl⟩
@@ -167,12 +167,12 @@ theorem RawNode.Bootstrap.wp_proof
     have Hpsn : ps[sint.nat n]? = some p.ID' := by
       rw [R1, List.getElem?_map, Hpn]; rfl
     obtain ⟨HeT, HeI, HeY, -, -⟩ := HbEnt _ _ Hen
-    have Hpure : ps[sint.nat n]? = some (⟨W32 0, p.ID', ctx, W64 0⟩ : CCV1M).nodeId ∧
-        ctxs[sint.nat n]? = some (⟨W32 0, p.ID', ctx, W64 0⟩ : CCV1M).context ∧
-        bootLog[sint.nat n]? = some e ∧ (⟨W32 0, p.ID', ctx, W64 0⟩ : CCV1M).type = W32 0 ∧
-        (⟨W32 0, p.ID', ctx, W64 0⟩ : CCV1M).id = W64 0 := ⟨Hpsn, Hcn, Hen, rfl, rfl⟩
+    have Hpure : ps[sint.nat n]? = some (⟨W32 0, p.ID', ctx, W64 0⟩ : ConfChangeM).nodeId ∧
+        ctxs[sint.nat n]? = some (⟨W32 0, p.ID', ctx, W64 0⟩ : ConfChangeM).context ∧
+        bootLog[sint.nat n]? = some e ∧ (⟨W32 0, p.ID', ctx, W64 0⟩ : ConfChangeM).type = W32 0 ∧
+        (⟨W32 0, p.ID', ctx, W64 0⟩ : ConfChangeM).id = W64 0 := ⟨Hpsn, Hcn, Hen, rfl, rfl⟩
     iunfold bootMarshal at Hmarshal
-    ihave #Hmk := Hmarshal $$ %(sint.nat n) %«$r0_ptr» %(DFrac.own 1) %(⟨W32 0, p.ID', ctx, W64 0⟩ : CCV1M)
+    ihave #Hmk := Hmarshal $$ %(sint.nat n) %«$r0_ptr» %(DFrac.own 1) %(⟨W32 0, p.ID', ctx, W64 0⟩ : ConfChangeM)
       %e %Hpure
     wp_apply Hmk $$ [$Hcc] as %d Hcc Hd
     try wp_auto
@@ -358,7 +358,7 @@ theorem RawNode.Bootstrap.wp_proof
     imod cellRO_alloc $$ Hpty with #cTy
     imod cellRO_alloc $$ «$v0» with #cN
     wp_alloc cc as Hcc
-    imod ownCCV1_of_struct cc (⟨zero_val _, pty, «$v0_ptr», slice.nil, null, slice.nil, 0⟩ : raftpb.ConfChange)
+    imod ownConfChange_of_struct cc (⟨zero_val _, pty, «$v0_ptr», slice.nil, null, slice.nil, 0⟩ : raftpb.ConfChange)
         ⟨W32 0, p.ID', [], W64 0⟩ ⊤ rfl $$ [Hcc] with Hcc
     · iframe Hcc cTy cN
       isplitl []

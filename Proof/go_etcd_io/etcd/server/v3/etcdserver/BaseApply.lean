@@ -368,8 +368,7 @@ the request path's unit 3b) a
 method-set fact: `*errors.errorString` (the dynamic type of an `errors.New` error and, in
 Perennial's model, of a `fmt.Errorf` error: `mvcc.errorfIs`) has no `Is`, `As` or `Unwrap`
 method (`EtcdGrove.errLeaf`), as Go's `errors` package defines it (its only method is
-`Error()`); method sets are uninterpreted in the semantics (as Perennial's
-`context.ErrorStringIsError`), so the read side's context errors need it to be errors the gRPC
+`Error()`; `ErrorStringLeaf`, from the method set goose emits), so the read side's context errors need it to be errors the gRPC
 layer can take (`applyErrIs`). -/
 abbrev srvErrVars : IProp GF :=
   iprop(EtcdGrove.errVarLeaf go_etcd_io.etcd.server.v3.etcdserver.errors.ErrTooManyRequests ∗

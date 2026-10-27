@@ -6,15 +6,15 @@ theorem confChangeToMsg.wp_proof [package_sem : Assumptions] (wp_raftpb_MarshalC
     raftpb.MarshalConfChange.spec) (wp_MessageType_Enum : raftpb.MessageType.Enum.spec)
     (wp_EntryType_Enum : raftpb.EntryType.Enum.spec) : confChangeToMsg.spec
   -- `Perennial.EtcdGrove.confChangeToMsg.spec`, unfolded:
-  ∀ (c : GoInterface) (o : Option CCMsg) (dq : DFrac),
+  ∀ (c : GoInterface) (o : Option ConfChangeIM) (dq : DFrac),
     ⊢
       ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ ownCCI c dq o -∗
+        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ ownConfChangeI c dq o -∗
           (▷
               ∀ ml bs,
-                ownCCI c dq o ∗
+                ownConfChangeI c dq o ∗
                     msgIn ml (DFrac.own 1)
                         { msg := propMsgM, ents := [ccEntryM o bs], snap := none, ctx := [], resps := [] } ∗
-                      ⌜CCData o bs⌝ -∗
+                      ⌜MarshalsConfChange o bs⌝ -∗
                   Φ (intoVal ml, intoVal GoInterface.nil)) -∗
             WP ((intoVal (functions confChangeToMsg [])) (intoVal c)) {{ Φ }}

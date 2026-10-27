@@ -3,14 +3,14 @@
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
 def raftpb.ConfChangeV2.EnterJoint.spec : Prop :=
-  ∀ (c : Loc) (dq : DFrac) (m : CCV2M),
+  ∀ (c : Loc) (dq : DFrac) (m : ConfChangeV2M),
     enterJointOf m.transition m.changes.length ≠ none →
       ⊢
         ∀ Φ,
-          isPkgInit pkg_id.go_etcd_io.raft.v3.raftpb ∗ ownCCV2 c dq m -∗
+          isPkgInit pkg_id.go_etcd_io.raft.v3.raftpb ∗ ownConfChangeV2 c dq m -∗
             (▷
                 ∀ r,
-                  (ownCCV2 c dq m ∗
+                  (ownConfChangeV2 c dq m ∗
                       match enterJointOf m.transition m.changes.length with
                       | some (autoLeave, ok) => ⌜r = (intoVal autoLeave, intoVal ok)⌝
                       | none => ⌜∃ p, r = p.PanicV⌝) -∗

@@ -4,11 +4,11 @@
 
 theorem raftpb.ConfChange.GetId.wp_proof [package_sem : Assumptions] : raftpb.ConfChange.GetId.spec
   -- `Perennial.EtcdGrove.raftpb.ConfChange.GetId.spec`, unfolded:
-  (∀ (p : Loc) (dq : DFrac) (m : CCV1M),
+  (∀ (p : Loc) (dq : DFrac) (m : ConfChangeM),
       ⊢
         ∀ Φ,
-          isPkgInit pkg_id.go_etcd_io.raft.v3.raftpb ∗ ownCCV1 p dq m -∗
-            ▷ (ownCCV1 p dq m -∗ Φ (intoVal m.id)) -∗
+          isPkgInit pkg_id.go_etcd_io.raft.v3.raftpb ∗ ownConfChange p dq m -∗
+            ▷ (ownConfChange p dq m -∗ Φ (intoVal m.id)) -∗
               WP
                 ((intoVal (methods raftpb.ConfChange.ty.PointerType go!"GetId" (intoVal p)))
                   (intoVal ()))

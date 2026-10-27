@@ -527,7 +527,7 @@ it) of the next conf-change entry `e` of the committed log handed out, at positi
 the configuration in use (`ccStepB`: no `confchange` error, fewer than `2^62` tracked ids -- Go
 panics otherwise); and its result is no auto-leave joint configuration (`appliedTo`'s auto-leave
 proposal is out of `raft.Step`'s scope). -/
-def DynCCPre (dec : CCDec) (rs : RNState) (o : CCMsg) (k : Nat) (e : EntryM)
+def DynCCPre (dec : CCDec) (rs : RNState) (o : ConfChangeIM) (k : Nat) (e : EntryM)
     (cs' : CCState) : Prop :=
   DynCCPreOp dec rs.delivered rs.capplied rs.cfg (ccV2Of o) k e cs'
 
@@ -541,7 +541,7 @@ def propMsgM : MessageM := { (zero_val MessageM) with Type' := MsgProp }
 /-- The entry `confChangeToMsg` builds for the conf change `o` marshalled as `bs`:
 `pb.Entry{Type: typ, Data: data}` (2026-10-16, stage R5; R4 dropped the value builder
 `ccEntry`). -/
-def ccEntryM (o : Option CCMsg) (bs : List w8) : EntryM := ⟨W64 0, W64 0, ccEntryType o, bs⟩
+def ccEntryM (o : Option ConfChangeIM) (bs : List w8) : EntryM := ⟨W64 0, W64 0, confChangeEntryType o, bs⟩
 
 end defs
 

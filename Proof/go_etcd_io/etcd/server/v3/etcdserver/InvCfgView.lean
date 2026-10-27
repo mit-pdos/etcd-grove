@@ -57,7 +57,7 @@ def srvDec (c0 : w64) (boot : List EntryM) : CCDec := fun pre e =>
 
 /-- The log `D` has a `RemoveNode` of `x` (a `ConfChange` entry). -/
 def RemovedIn (D : List EntryM) (x : w64) : Prop :=
-  ∃ (p : Nat) (e : EntryM) (cc : CCV1M), D[p]? = some e ∧ e.Type' = W32 1 ∧
+  ∃ (p : Nat) (e : EntryM) (cc : ConfChangeM), D[p]? = some e ∧ e.Type' = W32 1 ∧
     ccDecodeV1 e.Data' = some cc ∧ cc.type = W32 1 ∧ cc.nodeId = x
 
 theorem RemovedIn_snoc {D : List EntryM} {x : w64} (h : RemovedIn D x) (m : EntryM) :
@@ -71,7 +71,7 @@ part of `srvDynLog`): every conf entry decodes to an `AddNode` at a position bel
 length `nb` (the boot entries) or a `RemoveNode` at or after it, never of the local member
 `lid`. -/
 def srvDynPol (nb : Nat) (lid : w64) (D : List EntryM) : Prop :=
-  ∀ (p : Nat) (e : EntryM) (cc : CCV1M), D[p]? = some e → e.Type' ≠ W32 0 →
+  ∀ (p : Nat) (e : EntryM) (cc : ConfChangeM), D[p]? = some e → e.Type' ≠ W32 0 →
     ccDecodeV1 e.Data' = some cc →
     (cc.type = W32 0 → p < nb) ∧ (cc.type = W32 1 → nb ≤ p ∧ cc.nodeId ≠ lid)
 
@@ -88,7 +88,7 @@ theorem ccStepB_cfgOk {op : CCOp} {s s' : CCState} (h : ccStepB op s = some s') 
     · cases h
 
 /-- A v1 change of the node `0` is a no-op on a non-empty voters' configuration. -/
-theorem ccStepB_noop0 (W : GSet w64) (m : CCV1M) (h0 : m.nodeId = W64 0) (hne : W ≠ ∅)
+theorem ccStepB_noop0 (W : GSet w64) (m : ConfChangeM) (h0 : m.nodeId = W64 0) (hne : W ≠ ∅)
     (hsz : GMap.size (cfgState W ∅).cfg.ids < 2 ^ 62) :
     ccStepB (ccV2Of (.v1 m)) (cfgState W ∅) = some (cfgState W ∅) := by
   unfold ccStepB
@@ -106,7 +106,7 @@ theorem gset_elem_delete (W : GSet w64) (y x : w64) :
 /-- **A change `ccRaftOk` admits leaves the voters as they are** (`CCShrink`, the static mode's
 premise of `node.ApplyConfChange`; audit phase B3, 2026-10-18): an `AddNode` of a voter
 (`makeVoter` of a voter), or of the node `0` (skipped), on a non-empty configuration. -/
-theorem ccShrink_of_raftOk (cfg : GSet w64) (cm : CCV1M) (h : ccRaftOk cfg cm) :
+theorem ccShrink_of_raftOk (cfg : GSet w64) (cm : ConfChangeM) (h : ccRaftOk cfg cm) :
     CCShrink cfg (ccV2Of (.v1 cm)).1 (ccV2Of (.v1 cm)).2 := by
   obtain ⟨ht, k, hk, hid⟩ := h
   have hne : cfg ≠ ∅ := by
@@ -134,7 +134,7 @@ theorem ccShrink_of_raftOk (cfg : GSet w64) (cm : CCV1M) (h : ccRaftOk cfg cm) :
 
 /-- **A change `ccRaftOk` admits is a no-op step** (`ccStepB`) on the voters' simple
 configuration, within raft's bound on the tracked ids. -/
-theorem ccStepB_of_raftOk (V : GSet w64) (cm : CCV1M) (h : ccRaftOk V cm)
+theorem ccStepB_of_raftOk (V : GSet w64) (cm : ConfChangeM) (h : ccRaftOk V cm)
     (hsz : GMap.size (cfgState V ∅).cfg.ids < 2 ^ 62) :
     ccStepB (ccV2Of (.v1 cm)) (cfgState V ∅) = some (cfgState V ∅) := by
   obtain ⟨lrn', hsub, happ⟩ := ccShrink_of_raftOk V cm h ∅
@@ -189,7 +189,7 @@ the server's decoder's) meets raft's premise (`DynCCPreOp`); the view after it i
 `(|D| + 1, cs')`. -/
 theorem srvCfgOk_cc {V : GSet w64} {D : List EntryM} {ca : Nat} {cfg : CCState}
     (h : srvCfgOk V D ca cfg) (c0 : w64) (boot : List EntryM) (m : EntryM) (rest : List EntryM)
-    (cm : CCV1M) (Hty : m.Type' = W32 1) (Hdec : ccDecodeV1 m.Data' = some cm)
+    (cm : ConfChangeM) (Hty : m.Type' = W32 1) (Hdec : ccDecodeV1 m.Data' = some cm)
     (nb : Nat) (lid : w64) (hpol : srvDynPol nb lid (D ++ [m])) (hlid : lid ∈ V)
     (Hcm : ccApplyOk V cm ∨ (cm.type = W32 1 ∧ cm.nodeId ∈ V)) :
     ∃ cs' : CCState,
@@ -288,11 +288,11 @@ at position `k` of the committed log `ds` handed out (`DynCCPreOp`, at the node'
 the driver's view, it returns the new `*ConfState`, owned, and the view at `(k + 1, cs')`. -/
 def raftApplyCCDyn (γn : NodeNames) (n : GoInterface) : IProp GF :=
   iprop(∃ ni : GoInterfaceOk, ⌜n = GoInterface.ok ni⌝ ∗ ⌜γn.mode.isDyn = true⌝ ∗
-    □ (∀ (c : GoInterface) (cm : CCV1M) (ds : List EntryM) (ca : Nat) (cfg : CCState) (k : Nat)
+    □ (∀ (c : GoInterface) (cm : ConfChangeM) (ds : List EntryM) (ca : Nat) (cfg : CCState) (k : Nat)
         (e : EntryM) (cs' : CCState),
       ⌜∀ dec c0 h0 h1, γn.mode = .dyn dec c0 h0 h1 →
         DynCCPreOp dec ds ca cfg (ccV2Of (.v1 cm)) k e cs'⌝ -∗
-      {{ ownCCI c DFrac.discard (some (.v1 cm)) ∗ nodeCfg γn ca cfg ∗ dlvLb γn ds }}
+      {{ ownConfChangeI c DFrac.discard (some (.v1 cm)) ∗ nodeCfg γn ca cfg ∗ dlvLb γn ds }}
         (App (Val #(methods ni.ty go!"ApplyConfChange" ni.v)) (Val #c))
       {{ (csp : Loc), RET #csp; (∃ cs : ConfStateM, csPts csp (DFrac.own 1) cs true) ∗
           nodeCfg γn (k + 1) cs' }}))
@@ -395,7 +395,7 @@ raft, `ccRaftEff` at the member buckets after `L` from `kc0`, at the entry's pos
 `|srvLogOf γs L|` of the committed log handed out; D43 M5d: with a `RemoveNode`, under the dynamic
 mode's positional policy), and back from its answer the view after the entry. -/
 theorem dvView_cc (s : Loc) (γs : ServerRaftNames) (dv : Option NodeNames) (kc0 lid : w64)
-    (L rest : List EntryModel) (m : EntryModel) (cm : CCV1M)
+    (L rest : List EntryModel) (m : EntryModel) (cm : ConfChangeM)
     (Hty : m.typ = W32 1) (Hdec : ccDecodeV1 m.data = some cm)
     (Hraft : ∀ γn, dv = some γn → γn.raft = γs.raft)
     (Hdyn : ∀ γn, dv = some γn → ccApplyOkR γs.raft cm ∧

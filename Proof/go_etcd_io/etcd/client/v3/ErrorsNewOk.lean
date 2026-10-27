@@ -11,8 +11,8 @@ Go's `*errorString` and `deadlineExceededError`, whose methods are `Error`, `Tim
 `Temporary`).
 
 `errorsNewOk_of`: from Perennial's `errors.New` (a fresh `*errorString` whose `Error()` returns the
-message, `mvcc.wp_New_errorString`) and the method-set facts of `*errorString`, which the
-semantics leaves uninterpreted (premises, as Perennial's `context.ErrorStringIsError`): it is a
+message, `mvcc.wp_New_errorString`) and the method-set facts of `*errorString` (theorems of the
+method sets goose emits, `errorStringLeaf_inst`, `errorStringNoGRPCStatus_inst`): it is a
 leaf without `Is` (`ErrorStringLeaf`) and has no `GRPCStatus` method
 (`ErrorStringNoGRPCStatus`: Go's `errors` package defines only `Error`); and `rpctypes.EtcdError`
 implements `error` (`hAs`, the client's KV premise).

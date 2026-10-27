@@ -48,13 +48,13 @@ def CCNoop (cfg : GSet w64) (t : raftpb.ConfChangeTransition) (ccs : List ConfCh
 theorem cfgFlags_delete_learner (V L : GSet w64) (id : w64) (h : ¬id ∈ V) : GMap.delete id (cfgFlags
     V L) = cfgFlags V (GMap.delete id L)
 
-theorem ccApplyM_v1_noop (cfg : GSet w64) (m : CCV1M) (H : m.nodeId = W64 0) (Hne : cfg ≠ ∅) :
-    CCNoop cfg (ccV2Of (CCMsg.v1 m)).fst (ccV2Of (CCMsg.v1 m)).snd
+theorem ccApplyM_v1_noop (cfg : GSet w64) (m : ConfChangeM) (H : m.nodeId = W64 0) (Hne : cfg ≠ ∅) :
+    CCNoop cfg (ccV2Of (ConfChangeIM.v1 m)).fst (ccV2Of (ConfChangeIM.v1 m)).snd
 
-def ccV2Of : CCMsg → raftpb.ConfChangeTransition × List ConfChangeSingleM :=
+def ccV2Of : ConfChangeIM → raftpb.ConfChangeTransition × List ConfChangeSingleM :=
   match x✝ with
-  | CCMsg.v1 m => (W32 0, [{ Type' := m.type, NodeId' := m.nodeId }])
-  | CCMsg.v2 m => (m.transition, m.changes)
+  | ConfChangeIM.v1 m => (W32 0, [{ Type' := m.type, NodeId' := m.nodeId }])
+  | ConfChangeIM.v2 m => (m.transition, m.changes)
 
 theorem not_symdiffTooBig_insert (V : GSet w64) (id : w64) : ¬SymdiffTooBig V <[id := ()]>V
 

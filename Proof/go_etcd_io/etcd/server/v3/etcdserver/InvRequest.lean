@@ -261,18 +261,18 @@ member, not a promotion. So `applyConfChange` does not panic (the context unmars
 is the change's node, the type is known), removes no member (`membership.localKept` stays true),
 and what it hands raft (the change, or the change with `NodeId` `0` when the validation fails)
 leaves raft's configuration as it is (the node is a voter already: `ccRaftOk`). -/
-def ccApplyOk (cfg : GSet w64) (m : CCV1M) : Prop :=
+def ccApplyOk (cfg : GSet w64) (m : ConfChangeM) : Prop :=
   m.type = W32 0 ∧ m.nodeId ∈ cfg ∧ membership.ccContextOf m.context = some (m.nodeId, false)
 
 /-- **A conf change `applyConfChange` takes, in raft's mode** (D43 M5d/M5e, 2026-10-26, the
 user's decision): `ccApplyOk`, and in raft's dynamic mode also a `RemoveNode` of a member of the
 configuration (the local member excluded per server, until M6: `applyConfChange`'s premise, the
 dynamic mode's positional policy `srvDynLog`). -/
-def ccApplyOkR (γ : RaftNames) (m : CCV1M) : Prop :=
+def ccApplyOkR (γ : RaftNames) (m : ConfChangeM) : Prop :=
   ccApplyOk γ.reCfg m ∨ (γ.reDyn.isSome = true ∧ m.type = W32 1 ∧ m.nodeId ∈ γ.reCfg)
 
 /-- `ccApplyOkR` at the server's raft. -/
-abbrev ccApplyOkM (γs : ServerRaftNames) (m : CCV1M) : Prop := ccApplyOkR γs.raft m
+abbrev ccApplyOkM (γs : ServerRaftNames) (m : ConfChangeM) : Prop := ccApplyOkR γs.raft m
 
 /-- The bytes `d` of a conf-change entry decode to a change `applyConfChange` takes. -/
 def ccBootOk (cfg : GSet w64) (d : List w8) : Prop :=
@@ -298,7 +298,7 @@ theorem ccPolOk_static (γ : RaftNames) (d : List w8) (hs : γ.reDyn = none) (h 
 /-- **A v1 change raft's node applies without changing its configuration `cfg`** (the server's
 `raftPropose` contract for `ApplyConfChange`; raft's static mode admits only such changes,
 `CCShrink`): an `AddNode` of a voter, or of the node `0`, of a non-empty configuration. -/
-def ccRaftOk (cfg : GSet w64) (m : CCV1M) : Prop :=
+def ccRaftOk (cfg : GSet w64) (m : ConfChangeM) : Prop :=
   m.type = W32 0 ∧ ∃ k, k ∈ cfg ∧ (m.nodeId = k ∨ m.nodeId = W64 0)
 
 /-- **The application's policy on the conf changes raft may commit** (raft's `reCCOk`,
@@ -1889,8 +1889,8 @@ def raftPropose (γ : ServerRaftNames) (n : GoInterface) : IProp GF :=
         (App (App (Val #(methods ni.ty go!"Propose" ni.v)) (Val #(GoInterface.ok ctx)))
           (Val #data_sl))
       {{ (err : GoInterface), RET #err; srvPropRes γ data Q ∗ applyErrIs err }}) ∗
-    □ (∀ (c : GoInterface) (cm : CCV1M), ⌜γ.raft.reDyn = none⌝ -∗ ⌜ccRaftOk γ.raft.reCfg cm⌝ -∗
-      {{ ownCCI c DFrac.discard (some (.v1 cm)) }}
+    □ (∀ (c : GoInterface) (cm : ConfChangeM), ⌜γ.raft.reDyn = none⌝ -∗ ⌜ccRaftOk γ.raft.reCfg cm⌝ -∗
+      {{ ownConfChangeI c DFrac.discard (some (.v1 cm)) }}
         (App (Val #(methods ni.ty go!"ApplyConfChange" ni.v)) (Val #c))
       {{ (csp : Loc), RET #csp; ∃ cs : ConfStateM, csPts csp (DFrac.own 1) cs true }}))
 

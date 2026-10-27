@@ -5,11 +5,11 @@
 theorem raftpb.ConfChange.GetType.wp_proof [package_sem : Assumptions] :
     raftpb.ConfChange.GetType.spec
   -- `Perennial.EtcdGrove.raftpb.ConfChange.GetType.spec`, unfolded:
-  (∀ (p : Loc) (dq : DFrac) (m : CCV1M),
+  (∀ (p : Loc) (dq : DFrac) (m : ConfChangeM),
       ⊢
         ∀ Φ,
-          isPkgInit pkg_id.go_etcd_io.raft.v3.raftpb ∗ ownCCV1 p dq m -∗
-            ▷ (ownCCV1 p dq m -∗ Φ (intoVal m.type)) -∗
+          isPkgInit pkg_id.go_etcd_io.raft.v3.raftpb ∗ ownConfChange p dq m -∗
+            ▷ (ownConfChange p dq m -∗ Φ (intoVal m.type)) -∗
               WP
                 ((intoVal
                     (methods raftpb.ConfChange.ty.PointerType go!"GetType"

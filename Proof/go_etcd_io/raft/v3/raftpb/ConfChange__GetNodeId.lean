@@ -35,7 +35,7 @@ theorem raftpb.ConfChange.GetNodeId.wp_proof :
       wp_auto
       rw [show (W64 0) = m.nodeId from Hv.symm]
       iapply HΦ
-      iunfold ownCCV1
+      iunfold ownConfChange
       iframe
       iexists uf
       isplitr
@@ -44,7 +44,7 @@ theorem raftpb.ConfChange.GetNodeId.wp_proof :
     · wp_if_destruct
       · exact absurd rfl Hpn
       · iapply HΦ
-        iunfold ownCCV1
+        iunfold ownConfChange
         iframe
         iexists uf
         isplitr

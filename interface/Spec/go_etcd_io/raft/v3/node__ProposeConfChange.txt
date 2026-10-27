@@ -3,13 +3,13 @@
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
 def node.ProposeConfChange.spec : Prop :=
-  ∀ (γ : NodeNames) (id : w64) (n : Loc) (c : GoInterface) (o : CCMsg) (dq : DFrac) (ctx : GoInterfaceOk)
+  ∀ (γ : NodeNames) (id : w64) (n : Loc) (c : GoInterface) (o : ConfChangeIM) (dq : DFrac) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)),
     CCAllowed γ.raft o →
       ⊢
         ∀ Φ,
-          isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ isNode γ id n ∗ nodeCtx ctx cd ∗ ownCCI c dq (some o) -∗
-            (▷ ∀ err, ownCCI c dq (some o) ∗ nodeErr cd err -∗ Φ (intoVal err)) -∗
+          isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ isNode γ id n ∗ nodeCtx ctx cd ∗ ownConfChangeI c dq (some o) -∗
+            (▷ ∀ err, ownConfChangeI c dq (some o) ∗ nodeErr cd err -∗ Φ (intoVal err)) -∗
               WP
                 (((intoVal
                       (methods node.ty.PointerType

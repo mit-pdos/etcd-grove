@@ -40,8 +40,8 @@ theorem raftpb.ConfChangeV2.EnterJoint.wp_proof
     ihave %Hlen := ownSlice_len _ _ _ $$ Hch
     ihave %Hlen2 := BigSepL2.bigSepL2_length $$ Hccs
     wp_auto
-    ihave Hm : ownCCV2 c dq m $$ [HT HCh Hch HC]
-    · iunfold ownCCV2
+    ihave Hm : ownConfChangeV2 c dq m $$ [HT HCh Hch HC]
+    · iunfold ownConfChangeV2
       iexists pt, chs, ls, cs, uf
       isplitr
       · ipureintro; exact Hnn

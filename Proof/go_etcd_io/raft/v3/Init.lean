@@ -29,9 +29,6 @@ Three things are not facts of the model, and are premises:
   class `log.NewModel` says that the name `log.New` stands for `log.New.model`, a function
   that returns a new `*Logger` (what raft needs of it; the Go function allocates and
   initializes a `Logger`, without failing).
-* `context`'s initializer needs `context.ErrorStringIsError` and
-  `context.DeadlineExceededIsError`, method-set facts
-  (`Perennial/Proof/context_proof/context_init.lean`).
 -/
 module
 

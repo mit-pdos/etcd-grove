@@ -44,7 +44,7 @@ abbrev proto.UnmarshalConfChangeV2.spec : Prop :=
     (App (App (Val (@! google_golang_org.protobuf.proto.Unmarshal)) (Val #d)) (Val #(interface.mkOk (go.GoType.PointerType raftpb.ConfChangeV2.ty) #p)))
   {{ (err : GoInterface), RET #err; d ↦*{dq} bs ∗
       match ccDecodeV2 bs with
-      | some m => ⌜err = interface.nil⌝ ∗ ownCCV2 p (DFrac.own 1) m
+      | some m => ⌜err = interface.nil⌝ ∗ ownConfChangeV2 p (DFrac.own 1) m
       | none => ⌜err ≠ interface.nil⌝ ∗ ∃ x' : raftpb.ConfChangeV2, p ↦ x' }}
 
 end spec

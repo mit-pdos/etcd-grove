@@ -37,15 +37,15 @@ concurrent mutation; `raft.proto` is proto2 with no `required` and no `string` f
 caller's fraction excludes a concurrent writer, so the error is `nil`. The output is the
 encoding of every populated field and the unknown fields, and `proto.Unmarshal` of it into a
 `ConfChangeV2` yields the same populated fields (proto2 presence: an unset scalar decodes unset and
-reads as `0`, as `CCV2M` records it; `Context`'s bytes are the same, a `nil` and an empty one both
-`[]`). No pure encoder is claimed (the bytes depend on which fields are set, which `CCV2M`
+reads as `0`, as `ConfChangeV2M` records it; `Context`'s bytes are the same, a `nil` and an empty one both
+`[]`). No pure encoder is claimed (the bytes depend on which fields are set, which `ConfChangeV2M`
 forgets): the round trip is the postcondition. -/
 abbrev proto.MarshalConfChangeV2.spec : Prop :=
-  ∀ (p : Loc) (dq : DFrac) (m : CCV2M),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto ∗ ownCCV2 p dq m }}
+  ∀ (p : Loc) (dq : DFrac) (m : ConfChangeV2M),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto ∗ ownConfChangeV2 p dq m }}
     (App (Val (@! google_golang_org.protobuf.proto.Marshal)) (Val #(interface.mkOk (go.GoType.PointerType raftpb.ConfChangeV2.ty) #p)))
   {{ (d : GoSlice) (bs : List w8), RET (PairV #d #interface.nil);
-      ownCCV2 p dq m ∗ d ↦* bs ∗ ⌜ccDecodeV2 bs = some m⌝ }}
+      ownConfChangeV2 p dq m ∗ d ↦* bs ∗ ⌜ccDecodeV2 bs = some m⌝ }}
 
 end spec
 
