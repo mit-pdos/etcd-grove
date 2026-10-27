@@ -22,14 +22,12 @@ required `false`, D12: etcd's `raftConfig` sets both). The `InitialState` closur
 (D7's shape; a fresh `MemoryStorage`'s conf state is empty); since D17d (2026-10-18) it borrows the
 application's snapshot token (`memSnapTok`), which the call takes and gives back.
 
-**The ghost state** is the cluster's, allocated before (`ownRaftGhost_alloc_boot`): this node's
-`ownRaftGhost γ cv.ID' (bootPState bootLog)` and `isCommitted γ bootLog`, with `γ.reBoot =
-bootLog` and `BootLogOk γ.reCCOk ps bootLog`; the peers' contexts and the `Marshal` premise
-(`bootMarshal`, `InvBoot.lean`) as `StartNode.spec` takes them. The budget is the cluster's, at
-least at the bootstrap term `1`.
+**The ghost state** is the cluster's, allocated before (2026-10-27: the node API's
+`cluster_alloc`/`dynamicCluster_alloc`): this node's boot token (`nodeBoot`/`nodeDynamicBoot`), the
+storage's certificate link (a static cluster) or its cap (a dynamic one), as `StartNode` takes them.
 
-**The post**: raft's (`isNode`, `nodeDriver` at `[]`, `nodeCfg` at the peers' configuration, the
-names tied: static mode, the storage `memStorIface b.storage`), and the wrapper as `newRaftNode`
+**The post**: the node API's (`isNode`, `nodeDriver` at its start, in a dynamic cluster
+`nodeConfig` at the peers' membership), and the wrapper as `newRaftNode`
 leaves it (`rnBuilt`, over the config built here: the closure meets `isRNIDRemoved`, the WAL
 `isRNWal`; `transport` nil, owned) with the wrapper's names tied to the node's (`node`, `id`,
 `nl`, `ms = b.storage`, `γs`, `reg`, and `pre` the caller's). The receiver and the peers' slice
@@ -38,7 +36,6 @@ come back at their fraction.
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvNodeStart
-public import Spec.go_etcd_io.raft.v3.StartNode
 
 @[expose] public section
 
@@ -52,18 +49,18 @@ open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.raft.v3
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- See the file header. (Stated over raft's `StorageModel`, as raft's `StartNode.spec` is; the
-composition instantiates it with the `MemoryStorage`'s, `memStorageModel` under `MemStorReg
-⟨reg⟩`.) -/
+/-- See the file header. (2026-10-27: over raft's node API, at the cluster's storage model,
+`srvStor`.) -/
 abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
-  ∀ (E : RNEnv GF) (γ : RaftNames) (md : RNMode) (bud : BudgetNames) (b ss wal cl : Loc) (dq : DFrac)
-    (bv : bootstrappedRaft) (cv : Config) (lok : GoInterfaceOk) (γs : MemStorNames) (reg : GName)
+  ∀ (E : RNEnv GF) (γr : SrvRaft) (b ss wal cl : Loc) (dq : DFrac)
+    (bv : bootstrappedRaft) (cv : Config) (lok : GoInterfaceOk) (γs : MemStorNames)
     (pre : List EntryModel)
-    (pv : List Peer) (ps : List w64) (ctxs : List (List w8)) (bootLog : List EntryM),
+    (pv : List Peer) (ps : List w64) (ctxs : List (List w8)),
+  letI := srvStor (GF := GF) γr
   -- `newRaftNode`'s premises: a logger, a heartbeat
   bv.lg' ≠ null →
   bv.heartbeat' ≠ W64 0 →
@@ -79,31 +76,22 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
   (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) →
   cv.AsyncStorageWrites' = false →
   cv.Applied' = W64 0 →
-  -- the peers: their ids `ps`, distinct and non-zero, this node among them, the cluster
+  -- the peers: their ids `ps`, distinct and non-zero, this node among them, the cluster's voters
   ps = pv.map Peer.ID' →
   ps ≠ [] → ps.Nodup → W64 0 ∉ ps →
   (ps.length : Int) ≤ 2 ^ 62 →
   cv.ID' ∈ ps →
-  γ.reCfg = GMap.listToSet ps →
-  -- the bootstrap log, the ghost state's
-  γ.reBoot = bootLog →
-  BootLogOk γ.reCCOk ps bootLog →
-  -- (D43 M3, 2026-10-25) raft's mode `md`: in the dynamic mode at the server's decoder, from the
-  -- peers' configuration
-  (∀ dec c0 h0 h1, md = .dyn dec c0 h0 h1 →
-    dec = srvDec E.γr.kv.c0 bootLog ∧ c0 = cfgState (GMap.listToSet ps) ∅) →
+  γr.vs = ps →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       "Hb" ∷ b ↦{dq} bv ∗ "Hc" ∷ bv.config' ↦ cv ∗ "#Hlok" ∷ isLogger lok ∗
       -- the fresh `MemoryStorage` `b.storage` as raft's `Storage` (`memOwnStorage_empty`,
       -- `memStorage_isStorage`, over the registry the composition holds)
       "#Hsi" ∷ isStorage (memStorIface bv.storage') ∗
       "Hsto" ∷ ownStorage (memStorIface bv.storage') memStorEmpty ∗
-      -- (2026-10-19, D21 M3) `StartNode.spec`'s: in raft's no-snapshot mode, the storage never
-      -- compacted past index `1`
-      "#Hnscap" ∷ NsCap γ.reNoSnap (memStorIface bv.storage') ∗
-      -- (D22 S-b′3, 2026-10-20) `StartNode.spec`'s: the storage's certificate link (none needed in
-      -- the no-snapshot mode)
-      "#Hclk" ∷ certLink γ (memStorIface bv.storage') ∗
+      -- `StartNode`'s: a dynamic cluster's storage never compacted past index `1`, a static
+      -- cluster's certificates the cluster's
+      "#Hcert" ∷ (if γr.dyn then storCap (memStorIface bv.storage') 1
+        else Draft.storageCertLink γr.cl srvClusterN (memStorIface bv.storage')) ∗
       -- `StartNode.spec`'s `InitialState` premise (D7's shape; the conf state empty)
       "#Hinit" ∷ □ (∀ (Φ : val → IProp GF) (ss' : entryID),
            ownStorage (memStorIface bv.storage') { memStorEmpty with ss := ss' } -∗
@@ -118,14 +106,11 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
              (Val #())) {{ Φ }}) ∗
       -- (D17d, 2026-10-18) the application's snapshot token, which `InitialState` borrows
       "Htok" ∷ memSnapTok bv.storage' γs memStorEmpty ∗
-      -- the peers, their contexts, and `Marshal` at their conf changes
+      -- the peers and their contexts
       "Hpeers" ∷ bv.peers' ↦*{dq} pv ∗ "#Hctx" ∷ peersCtx pv ctxs ∗
-      "#Hmarshal" ∷ bootMarshal ps ctxs bootLog ∗
-      -- this node's ghost state at the bootstrap state, and the committed boot log
-      -- (D43 M3) in the mode `md` (`bootInit`, `StartNode`'s)
-      "Hghost" ∷ bootInit γ md cv.ID' (GMap.listToSet ps) bootLog ∗ "#Hcomm" ∷ isCommitted γ bootLog ∗
-      -- the cluster's term budget, at least at the bootstrap term `1` (`StartNode.spec`'s)
-      "#Hbud" ∷ inv budgetN (budgetInv bud) ∗ "#HtermLB" ∷ termLB bud (W64 1) ∗
+      -- this node's boot token (the cluster's allocation's)
+      "Hboot" ∷ (if γr.dyn then Draft.nodeDynamicBoot γr.cl srvClusterN ps ctxs cv.ID'
+        else Draft.nodeBoot γr.cl srvClusterN ps ctxs cv.ID') ∗
       -- the contracts (`InvNodeStart.lean`)
       "#Hzap" ∷ rnLoggerZapOk ∗ "#Hsetlg" ∷ rnSetLoggerOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
       "#Htkok" ∷ rnTickerOk E ∗ "#Hrs" ∷ rnRaftStatusOk ∗ "#Hns" ∷ rnNewStorageOk ∗
@@ -133,14 +118,14 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
     (App (App (App (Val (b @!! go.GoType.PointerType bootstrappedRaft.ty @!! go!"newRaftNode"))
       (Val #ss)) (Val #wal)) (Val #cl))
   {{ (r : Loc), RET #r;
-      ∃ (γn : NodeNames) (n : Loc) (γw : RNNames) (f : GoFunc) (st : GoInterface),
-        ⌜γn.raft = γ ∧ γn.bud = bud ∧ γn.stor = memStorIface bv.storage' ∧
-          γn.mode = md ∧ (md = .static ↔ γ.reDyn = none) ∧
-          γw.node = γn ∧ γw.id = cv.ID' ∧ γw.nl = n ∧ γw.pre = pre ∧ γw.ms = bv.storage' ∧
-          γw.γs = γs ∧ γw.reg = reg⌝ ∗
-        -- raft's node
-        isNode γn cv.ID' n ∗ nodeDriver γn cv.ID' n [] hsZero ∗
-        nodeCfg γn 0 (cfgState (GMap.listToSet ps) ∅) ∗
+      ∃ (n : Loc) (γw : RNNames) (f : GoFunc) (st : GoInterface),
+        ⌜γw.node = γr ∧ γw.id = cv.ID' ∧ γw.nl = n ∧ γw.pre = pre ∧ γw.ms = bv.storage' ∧
+          γw.γs = γs⌝ ∗
+        -- the node API's node
+        Draft.isNode n γr.cl srvClusterN cv.ID' ∗
+        Draft.nodeDriver n γr.cl srvClusterN (Draft.NodeDriverState.init (memStorIface bv.storage')) ∗
+        (if γr.dyn then Draft.nodeConfig n γr.cl srvClusterN
+          ⟨0, Draft.Membership.simple (GMap.listToSet ps)⟩ else iprop(True)) ∗
         -- the wrapper, over the config built here
         isRNIDRemoved f ∗ isRNWal st ∗
         -- (D22 J1a, 2026-10-26) a `*storage` over the snapshotter `ss` (`rnNewStorageOk`'s)
@@ -148,7 +133,9 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
         rnBuilt E γw r
           (raftNodeConfig.mk bv.lg' f (interface.mkOk (go.GoType.PointerType node.ty) #n)
             bv.storage' st bv.heartbeat' GoInterface.nil) ∗
-        b ↦{dq} bv ∗ bv.peers' ↦*{dq} pv ∗
+        -- (2026-10-27) the peers' slice not back: the node API's `StartNode` keeps it (proposed:
+        -- give it back, it only reads it)
+        b ↦{dq} bv ∗
         -- (D17d) the snapshot token back (`InitialState` ran before the node's goroutine)
         memSnapTok bv.storage' γs memStorEmpty }}
 

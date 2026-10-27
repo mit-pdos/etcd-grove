@@ -7,7 +7,7 @@ cells frozen (`cellRO_alloc`), owned (`ownConfChange_of_struct`), passed as a `C
 module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.KV__RemoveMember
-public import Spec.go_etcd_io.raft.v3.node__ProposeConfChange
+public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.Lemmas
 public import Spec.go_etcd_io.raft.v3.raftpb.ConfChangeType__Enum
 
 @[expose] public section
@@ -29,10 +29,10 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
 variable [KVStor GF]
 
 theorem KV.RemoveMember.wp_proof
-    (wp_node_ProposeConfChange : node.ProposeConfChange.spec (GF := GF) (hG := hG))
+    (wp_node_ProposeConfChange : Draft.node.ProposeConfChange.spec (GF := GF) (hG := hG))
     (wp_ConfChangeType_Enum : raftpb.ConfChangeType.Enum.spec (GF := GF) (hG := hG)) :
     KV.RemoveMember.spec (GF := GF) (hG := hG) := by
-  intro γr γp r id Hok
+  intro γr γp r id Hsh
   wp_start as #Hreg
   iunfold isKV at Hreg
   icases Hreg with ⟨%id0, %n, %st, #Hrep⟩
@@ -67,9 +67,11 @@ theorem KV.RemoveMember.wp_proof
     ipureintro; rfl
   wp_auto
   ihave #Hbg := nodeCtx_background (GF := GF) bgCd
-  wp_apply wp_node_ProposeConfChange γp.node id0 n _ (.v1 (rmCC id)) (DFrac.own 1)
-      context.backgroundCtxVal bgCd (by rw [Hraft]; exact Hok)
-      $$ [$Hraftinit $HisNode $Hbg $Hcci] as %err -
+  -- the update over the committed requested entries: the change's entry carries no datum
+  ihave Hcau := kv_ccAu γr id Hsh $$ Hinv
+  wp_apply wp_node_ProposeConfChange n γr.cluster kvRaftN id0 _ (.v1 (rmCC id)) (DFrac.own 1)
+      context.backgroundCtxVal bgCd
+      $$ [$Hraftinit $HisNode $Hbg $Hcci $Hcau] as %err -
   iapply HΦ
   itrivial
 

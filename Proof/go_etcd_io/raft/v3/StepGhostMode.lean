@@ -232,14 +232,14 @@ snapshot it sends (the storage's, `HSnapshot`), and registers the one a received
 section certLink
 variable [GooseExts] {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF] [StorageModel GF]
 
-/-- The namespace of the registry's invariant. -/
-def raftCertN : Namespace := nroot .@ "raft_snapcert"
+/-- The namespace of the registry's invariant (2026-10-27: the cluster's, `RaftNames.reCertNs`). -/
+def raftCertN (γ : RaftNames) : Namespace := γ.reCertNs
 
 /-- See above. -/
 def storCertOk (γ : RaftNames) (st : Storage) : IProp GF :=
-  iprop(□ (∀ (k : SnapTrip) (E : CoPset), ⌜↑raftCertN ⊆ E⌝ -∗ storCert st k ={E}=∗
+  iprop(□ (∀ (k : SnapTrip) (E : CoPset), ⌜↑(raftCertN γ) ⊆ E⌝ -∗ storCert st k ={E}=∗
       raftSnapCertD γ k) ∗
-    □ (∀ (k : SnapTrip) (E : CoPset), ⌜↑raftCertN ⊆ E⌝ -∗ raftSnapCertD γ k ={E}=∗
+    □ (∀ (k : SnapTrip) (E : CoPset), ⌜↑(raftCertN γ) ⊆ E⌝ -∗ raftSnapCertD γ k ={E}=∗
       storCert st k))
 
 instance storCertOk_persistent (γ : RaftNames) (st : Storage) :

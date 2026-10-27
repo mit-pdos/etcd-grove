@@ -1206,12 +1206,12 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- What `Node.Propose` takes for its data `d` (2026-10-21): `d` registered with the result
-predicate `Q` (`propIs`, from `node_prop_register`) and the client's atomic update for `d` and
-`Q` (2026-10-14, stage R), which raft fires at most once (D21 M6: each proposal is appended
-once, its ticket going with it). `d` may be proposed any number of times, each with its own
-update. (Until 2026-10-21 the fresh token went with the first proposal, and a retry of the same
-bytes needed `propMulti`.) -/
+/-- What `Node.Propose` takes for the key `d` of its entry (2026-10-21; since 2026-10-27 the key
+`entKey (W32 0) data` of the data `data`, `entKey`): `d` registered with the result predicate `Q`
+(`propIs`, from `node_prop_register`) and the client's atomic update for `d` and `Q` (2026-10-14,
+stage R), which raft fires at most once (D21 M6: each proposal is appended once, its ticket going
+with it). `d` may be proposed any number of times, each with its own update. (Until 2026-10-21 the
+fresh token went with the first proposal, and a retry of the same bytes needed `propMulti`.) -/
 def propArg (γ : RaftNames) (d : List w8) (Q : List EntryM → IProp GF) : IProp GF :=
   iprop(propIs γ d Q ∗ propAu1 γ d Q)
 
@@ -1228,36 +1228,54 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- A proposal's ghost work before it leaves the node (`Node.Propose`): its update deposited
-(a first proposal), so that its entry carries its data (`entData`). (2026-10-16, stage R5, D6:
-the entry `propEntryM data` holds the bytes, which must not be empty (`Hne`: an empty one would
-be a leader's own entry); no slice to record.) -/
+under its key, so that its entry carries its data (`entData`) and its ticket. (2026-10-16, stage
+R5, D6: the entry `propEntryM data` holds the bytes; no slice to record. 2026-10-27: an empty
+`data` makes the entry a filler, which takes no update and carries no ticket; until then `data`
+had to be non-empty.) -/
 theorem node_propose_ghost (γ : NodeNames) (id : w64) (n : Loc)
     (data : List w8) (Q : List EntryM → IProp GF) (E : CoPset)
-    (HE1 : ↑raftN ⊆ E) (Hne : data ≠ []) :
-    ⊢ isNode γ id n -∗ propArg γ.raft data Q ={E}=∗
+    (HE1 : ↑(raftN γ.raft) ⊆ E) :
+    ⊢ isNode γ id n -∗ (⌜data = []⌝ ∨ propArg γ.raft (entKey (W32 0) data) Q) ={E}=∗
       propData γ.raft (propEntryM data) ∗ entTk γ.raft (propEntryM data) := by
   iintro #Hnode Harg
   open_node Hnode
-  have Htk : entTk (GF := GF) γ.raft (propEntryM data) = propTk γ.raft data := by
-    unfold entTk; rw [if_pos ⟨rfl, Hne⟩]; rfl
+  by_cases Hne : data = []
+  · iclear Harg
+    subst Hne
+    have Hf : Filler (propEntryM ([] : List w8)).Type' (propEntryM ([] : List w8)).Data' :=
+      ⟨rfl, rfl⟩
+    imodintro
+    isplitr
+    · unfold propData
+      iexists none
+      unfold propDataIs
+      ipureintro; exact ⟨Hf, CCDecodes_normal _⟩
+    · unfold entTk
+      rw [if_pos Hf]
+      iempintro
+  icases Harg with (%H | Harg)
+  · exact absurd H Hne
+  have Hnf : ¬ Filler (propEntryM data).Type' (propEntryM data).Data' := fun h => Hne h.1
+  have Htk : entTk (GF := GF) γ.raft (propEntryM data) = propTk γ.raft (entKey (W32 0) data) := by
+    unfold entTk; rw [if_neg Hnf]; rfl
   rw [Htk]
   unfold propArg
   icases Harg with ⟨#Hpi, Hau⟩
   ihave #Hdep := propIs_deposited $$ Hpi
-  imod prop_deposit γ.raft E data Q HE1 $$ Hcinv Hpi Hau with Htk
+  imod prop_deposit γ.raft E (entKey (W32 0) data) Q HE1 $$ Hcinv Hpi Hau with Htk
   imodintro
   iframe Htk
   unfold propData
-  iexists some data
+  iexists some (entKey (W32 0) data)
   unfold propDataIs
   isplitr
-  · ipureintro; exact ⟨rfl, Hne, rfl⟩
+  · ipureintro; exact ⟨rfl, Hnf, CCDecodes_normal _⟩
   iexact Hdep
 
 /-- **Registering `d` with `Q`, at the node** (2026-10-21; `prop_register`): what a client does,
 once per data, before proposing it. -/
 theorem node_prop_register (γ : NodeNames) (id : w64) (n : Loc) (d : List w8)
-    (Q : List EntryM → IProp GF) (E : CoPset) (HE1 : ↑raftN ⊆ E) :
+    (Q : List EntryM → IProp GF) (E : CoPset) (HE1 : ↑(raftN γ.raft) ⊆ E) :
     ⊢ isNode γ id n -∗ propFresh γ.raft d ={E}=∗ propIs γ.raft d Q := by
   iintro #Hnode Hfr
   open_node Hnode
@@ -1279,7 +1297,7 @@ theorem node_readState_data (γ : NodeNames) (id : w64) (n : Loc) (st : ReadStat
 
 /-- The data of a committed log's entries. -/
 theorem node_committed_data (γ : NodeNames) (id : w64) (n : Loc) (l : List EntryM)
-    (E : CoPset) (HE : ↑raftN ⊆ E) :
+    (E : CoPset) (HE : ↑(raftN γ.raft) ⊆ E) :
     ⊢ isNode γ id n -∗ isCommitted γ.raft l ={E}=∗
       ∃ ods, [∗list] e;o ∈ l;ods, entDataIs (GF := GF) γ.raft e o := by
   iintro #Hnode #Hc

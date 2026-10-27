@@ -12,7 +12,7 @@ theorem rqRecOk_confirm [ReceiptGS GF] (γ : RaftNames) (T : w64) (r : RqRec) (P
     r.fst.fst r.fst.snd
 
 theorem read_collect [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (E : CoPset) (c : List w8) (Qr : List
-    EntryM → IProp GF) (i : w64) (L : List EntryM) : ↑raftN ⊆ E → uint.Z i ≤ ↑L.length → ⊢
+    EntryM → IProp GF) (i : w64) (L : List EntryM) : ↑(raftN γ) ⊆ E → uint.Z i ≤ ↑L.length → ⊢
     raftCommitInv γ -∗ readWit γ c Qr i -∗ isCommitted γ L ={E}=∗ ▷ ▷ □ Qr L
 
 theorem ownLogGhost_within [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (s : PState) (kl :
@@ -21,7 +21,7 @@ theorem ownLogGhost_within [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64)
 
 theorem ownRaftGhost_read_arrive [ReceiptGS GF] {md : Bool} [InvGS GF] (γ : RaftNames) (id : w64) (s
     : PState) (c : List w8) (Lc : List EntryM) : s.role = Role.leader → plogTermAt s.base s.log
-    s.commit = some s.term → ⊢ ownRaftGhost γ id s md -∗ readReq γ c Lc ={⊤ \ ↑raftRegN}=∗
+    s.commit = some s.term → ⊢ ownRaftGhost γ id s md -∗ readReq γ c Lc ={⊤ \ ↑(raftRegN γ)}=∗
     ownRaftGhost γ id s md ∗ ∃ d, rqRecOk γ s.term ((c, s.commit), d)
 
 theorem readReq_agree [ReceiptGS GF] (γ : RaftNames) (c : List w8) (L1 L2 : List EntryM) : ⊢ readReq
@@ -60,8 +60,8 @@ theorem ownRaftGhost_term_nz [ReceiptGS GF] {md : Bool} [InvGS GF] (γ : RaftNam
     PState) : s.role ≠ Role.follower → ⊢ ownRaftGhost γ id s md -∗ ⌜s.term ≠ W64 0⌝
 
 theorem readAu_fire_open [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (Qr : List EntryM → IProp GF) (l
-    : List EntryM) : ⊢ readAu γ Qr -∗ ghostVar γ.reRLog (Qp.half 1) l ={(⊤ \ ↑raftRegN) \
-    ↑raftLogN}=∗ ghostVar γ.reRLog (Qp.half 1) l ∗ □ Qr l
+    : List EntryM) : ⊢ readAu γ Qr -∗ ghostVar γ.reRLog (Qp.half 1) l ={(⊤ \ ↑(raftRegN γ)) \
+    ↑(raftLogN γ)}=∗ ghostVar γ.reRLog (Qp.half 1) l ∗ □ Qr l
 
 theorem CampOk.term_nz {T : w64} {F : List EntryM} (H : CampOk T F) : T ≠ W64 0
 

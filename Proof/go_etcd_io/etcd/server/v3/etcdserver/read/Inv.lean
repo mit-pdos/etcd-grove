@@ -360,15 +360,14 @@ def readCtxMinted (γr : ReadNames) : IProp GF :=
 instance readCtxMinted_persistent (γr : ReadNames) : Persistent (readCtxMinted (GF := GF) γr) := by
   unfold readCtxMinted; infer_instance
 
-/-- `readCtxMinted` from the mint and raft's commit invariant (`srvCtxDeposited_minted`). -/
+/-- `readCtxMinted` from the mint (`srvCtxDeposited_minted`). (2026-10-27: the read contexts'
+mint keeps the committed contexts itself; until then also raft's commit invariant.) -/
 theorem readCtxMinted_of_mint (γr : ReadNames) (γi : IdNames) :
     srvRdFreshInv (GF := GF) γr.raft γi ∗ srvRaftLogInv γr.raft ⊢ readCtxMinted γr := by
-  iintro ⟨#Hm, #Hli⟩
-  iunfold srvRaftLogInv at Hli
-  icases Hli with ⟨#Hci, -⟩
+  iintro ⟨#Hm, -⟩
   iunfold readCtxMinted
   iintro !> %c #Hd
-  iapply srvCtxDeposited_minted γr.raft γi c $$ Hm Hci Hd
+  iapply srvCtxDeposited_minted γr.raft γi c $$ Hm Hd
 
 /-! ## The `*Read` -/
 

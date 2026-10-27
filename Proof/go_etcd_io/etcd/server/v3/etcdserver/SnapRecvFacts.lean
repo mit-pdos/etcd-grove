@@ -16,8 +16,9 @@ spec/proof discipline (no code). Lean-first (no Rocq counterpart).
 * `snapRecv_kv_jump`: the apply thread's KV ghost state moved to `A'` (`kv_cert_jump`), and the
   restored log's certificate `certOk E.γ (kvModel γr.kv A')`; `kvApplied_of_jump` re-forms
   `kvApplied` at `A'` for the restored state (chain the start's, `alarmChain false false false`).
-* `srvRLogLb_dlv`: the image's committed log is raft's delivered log of the same length (the
-  `Ready`'s `isCommitted l.dlv`).
+* (`srvRLogLb_dlv`, the image's committed log raft's delivered log of the same length, the
+  `Ready`'s `isCommitted l.dlv`: deleted 2026-10-27, it read raft's committed log, and the
+  server's clusters send no snapshot.)
 
 (D22 J7b, 2026-10-26; `notes/decisions.md`, "D22 J7b") The two premises J7 left: `hRok`
 (`restoreLogOk R`) is `SnapImageFacts.hRok`, from the image's `IdxWf` of its KV model (the sender's
@@ -261,9 +262,9 @@ structure SnapImageFacts [GooseExts] (γr : ReadNames) (d : mvcc.KBReal) (D : ba
     ((backend.rbData d.P D).lookup go!"members_removed").isSome ∧
     ((backend.rbData d.P D).lookup go!"cluster").isSome
   himg : membership.clusterImageOk cl (backend.rbData d.P D) memI
-  hA' : (restModel γr.kv.c0 γr.raft.raft.reBoot (γr.raft.pre ++ A')).bk =
+  hA' : (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A')).bk =
       <[go!"alarm" := ∅]> (<[go!"lease" := ∅]> (backend.rbData d.P D)) ∧
-    (restModel γr.kv.c0 γr.raft.raft.reBoot (γr.raft.pre ++ A')).mem = memI
+    (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A')).mem = memI
 
 section lemmas
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -282,53 +283,44 @@ theorem kv_log_ccOk (γ : ServerRaftNames) (γk : KVNames) (B : List EntryModel)
   iinv Hinv with >Hi Hclose
   icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw⟩
   imod srvRLog_lb γ (⊤ \ ↑kvN) (mask_ndot_ne' nroot "raft_commit" "server_kv" (by decide))
-    L B $$ Hr HL HB with ⟨HL, -, %Hp⟩
+    L B $$ Hr HL HB with ⟨HL, %Hp⟩
+  ihave %HBi := srvRLogLb_idx γ B $$ HB
   ihave %Hcc : iprop(⌜ccLogOk γ.raft L⌝) $$ []
   · iunfold kvWork at Hw; icases Hw with ⟨%h, -⟩; ipureintro; exact h.2
   imod Hclose $$ [HL Hσ] with -
   · inext; iexists L; iframe HL Hσ Hw; ipureintro; exact Hok
   imodintro
   ipureintro
-  exact fun m hm => Hcc m (Hp.subset hm)
-
-/-- **The image's committed log is raft's delivered log of the same length** (the `Ready`'s
-snapshot payload, `isCommitted γ l.dlv` with `l.dlv.length` the snapshot's index). -/
-theorem srvRLogLb_dlv (γ : RaftNames) (A' : List EntryModel) (dlv : List EntryM)
-    (h : dlv.length = A'.length) :
-    ⊢ srvRLogLb (GF := GF) ⟨γ, [], W64 0⟩ A' -∗ isCommitted γ dlv -∗
-      ⌜dlv = A'.map EntryModel.toM⌝ := by
-  unfold srvRLogLb
-  iintro #H1 #H2
-  icases isCommitted_agree γ _ _ $$ H1 H2 with %Hc
-  ipureintro
-  have hl : (srvLogOf ⟨γ, [], W64 0⟩ A').length = dlv.length := by
-    rw [srvLogOf_length, h]; simp
-  have he : srvLogOf ⟨γ, [], W64 0⟩ A' = A'.map EntryModel.toM := by simp [srvLogOf]
-  rcases Hc with Hc | Hc
-  · rw [← he]; exact (Hc.eq_of_length hl).symm
-  · rw [← he]; exact Hc.eq_of_length hl.symm
+  -- (2026-10-27) `B`'s entries are the server's log's or fillers
+  exact srv_entry_transfer γ.ai0 B L (fun m => m.typ ≠ W32 0 → ccPolOk γ.raft m.data)
+    (fun m m' he h => by
+      have h1 := congrArg Draft.LogEntry.type he
+      have h2 := congrArg Draft.LogEntry.data he
+      simp only [EntryModel.toLE] at h1 h2
+      rw [h1, h2]; exact h)
+    (fun m ht _ h => absurd ht h) HBi Hp.2.2 Hcc
 
 /-- **The image facts, from the image's certificate** (see the file header): for the receiver at
 the fresh cluster's start (`γr.raft = ⟨γ, [], 0⟩`, the start values of `NewServer.spec`), its
 applied raft log `A` at the applied index `ai` below the snapshot's `i`, at least the boot log's
 length, and its rest resource on the real backend `d` of the cluster `cl` (`hRO`): a committed
 `A'` with `SnapImageFacts` at `memI` the model's members, `kvApplied` and `srvRest` given back. -/
-theorem snapRecv_image (γ : RaftNames) (γr : ReadNames) (E : apply.AEnv GF) (i ai : w64)
+theorem snapRecv_image (γ : SrvRaft) (γr : ReadNames) (E : apply.AEnv GF) (i ai : w64)
     (D : backend.Data) (d : mvcc.KBReal) (A : List EntryModel) (x : apply.ApplyKV) (cl : Loc)
     (H : IProp GF)
     (hraft : γr.raft = ⟨γ, [], W64 0⟩) (hc0 : γr.kv.c0 = W64 0)
     (hch : γr.kv.ch0 = apply.alarmChain false false false) (hlog0 : γr.kv.log0 = [[], []])
     (hai : uint.Z ai = uint.Z γr.raft.ai0 + A.length) (hi : uint.Z ai < uint.Z i)
-    (hboot : (γ.reBoot.length : Int) ≤ uint.Z i)
+    (hboot : (γ.boot.length : Int) ≤ uint.Z i)
     (hRO : E.RO = srvRestOwnH d.γB cl H)
-    -- (merge of D43 M5, 2026-10-27) raft's static mode (the image axiom's `ccBootOk` log)
-    (hstat : γ.reDyn = none) :
+    -- (merge of D43 M5, 2026-10-27) a static cluster (the image axiom's `ccBootOk` log)
+    (hstat : γ.dyn = false) :
     ⊢ srvKVInvs E γr -∗ srvImage γ i D -∗ kvApplied γr.raft γr.kv A x -∗ srvRest E γr A -∗
       membership.isRaftCluster cl ={⊤}=∗
       kvApplied γr.raft γr.kv A x ∗ srvRest E γr A ∗
       ∃ (A' : List EntryModel) (R : mvcc.Log), srvRLogLb γr.raft A' ∗
         ⌜SnapImageFacts γr d D cl i A A' x R
-          (restModel γr.kv.c0 γr.raft.raft.reBoot (γr.raft.pre ++ A')).mem⌝ := by
+          (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A')).mem⌝ := by
   have hpre0 : γr.raft.pre = [] := by rw [hraft]
   have hai0 : γr.raft.ai0 = W64 0 := by rw [hraft]
   have hrr : γr.raft.raft = γ := by rw [hraft]
@@ -365,9 +357,9 @@ theorem snapRecv_image (γ : RaftNames) (γr : ReadNames) (E : apply.AEnv GF) (i
   ihave #HA'' : srvRLogLb γr.raft (γr.raft.pre ++ A') $$ []
   · rw [hpre0, List.nil_append]; iexact HA'
   have hLL : γr.raft.pre ++ A <+: γr.raft.pre ++ A' := (List.prefix_append_right_inj _).2 hAA'
-  have hbl : γr.raft.raft.reBoot.length ≤ (γr.raft.pre ++ A').length := by
+  have hbl : γr.raft.raft.boot.length ≤ (γr.raft.pre ++ A').length := by
     rw [hpre0, hrr, List.nil_append]; omega
-  have hcc' : ∀ m ∈ γr.raft.pre ++ A', m.typ ≠ W32 0 → ccBootOk γr.raft.raft.reCfg m.data := by
+  have hcc' : ∀ m ∈ γr.raft.pre ++ A', m.typ ≠ W32 0 → ccBootOk γr.raft.raft.cfg m.data := by
     rw [hpre0, List.nil_append]
     intro m hm ht
     exact ccPolOk_static _ _ (by rw [hrr]; exact hstat) (Hcc m hm ht)

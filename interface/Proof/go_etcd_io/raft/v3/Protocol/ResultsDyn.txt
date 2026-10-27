@@ -4,7 +4,7 @@
 
 theorem raft_dyn_alloc_boot [ReceiptGS GF] [InvGS GF] (E : CoPset) (dec : CCDec) (c0 : CCState) (h0
     : CfgOk c0) (ids : GSet w64) (ccOk : w32 → List w8 → Prop) (bootLog : List EntryM) (C :
-    RaftNames → IProp GF) (ns nx : Bool) : ¬W64 0 ∈ ids → bootLog ≠ [] → BootWf ccOk bootLog → ⊢
+    RaftNames → IProp GF) (ns nx : Bool) : ¬W64 0 ∈ ids → bootLog ≠ [] → BootWf bootLog → ⊢
     allocClientGen E c0.cfg.incoming (some (DynCfg.ofFold dec c0 h0).all) ccOk bootLog C ={E}=∗ ∃ γ,
     ⌜γ.dyn = some (DynCfg.ofFold dec c0 h0) ∧ γ.reCCOk = ccOk ∧ γ.reCfg = c0.cfg.incoming ∧ γ.reBoot
     = bootLog ∧ γ.reNoSnap = ns ∧ γ.reNoXfer = nx⌝ ∗ raftCommitInv γ ∗ C γ ∗ ([∗map] id ↦ _u ∈ toMap

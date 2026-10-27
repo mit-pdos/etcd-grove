@@ -193,7 +193,7 @@ theorem kvModelOn_snoc_nonwrite (γk : KVNames) (st₀ : auth.AuthState) (L : Li
   rfl
 
 /-- **The mode-`on` workload facts, one entry on** (`kvWork_snoc`'s). -/
-theorem kvWorkOn_snoc (cfg : RaftNames) (γk : KVNames) (L : List EntryModel) (e : EntryModel)
+theorem kvWorkOn_snoc (cfg : SrvRaft) (γk : KVNames) (L : List EntryModel) (e : EntryModel)
     (hs : entryShapeOn e) (hc : e.typ ≠ W32 0 → ccPolOk cfg e.data) :
     ⊢ kvWorkOn (GF := GF) cfg γk L -∗ entryClaim γk.ids e -∗ kvWorkOn cfg γk (L ++ [e]) := by
   iintro Hw #He
@@ -423,6 +423,50 @@ theorem kv_prop_au_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthS
       have hs := rolesSorted_kvRaftOfOn γk.c0 γk.ch0 (st₀, γk.log0) L hadm.2.2.2.2.2
       refine ⟨hs, authDet_of_sorted rq _ hs ⟨hadm.2.2.2.1, fun r w ps hr _ => ?_⟩⟩
       rw [hadm.2.2.2.2.1] at hr; cases hr
+
+/-- **A result predicate of the mode-`on` model of the log is one the server's two logs agree on**
+(2026-10-27; `kv_qinv`'s): the mode-`on` KV invariant keeps the start's consistent index at most
+the start index (`kvRaftOfOn_eqv`). -/
+theorem kvOn_qinv (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState)
+    (Q : auth.AuthState × mvcc.Log → IProp GF) :
+    ⊢ kvInvOn (GF := GF) γ γk st₀ -∗
+      srvQInv γ (fun L => Q (kvRaftOfOn γk.c0 γk.ch0 (st₀, γk.log0) L)) := by
+  iintro #Hinv
+  iunfold srvQInv
+  iintro !> %A %B %Hab #HA
+  iunfold kvInvOn at Hinv
+  iinv Hinv with >Hi Hclose
+  icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw⟩
+  imod Hclose $$ [HL Hσ] with -
+  · inext; iexists L; iframe HL Hσ Hw; ipureintro; exact Hok
+  imodintro
+  inext
+  rw [← kvRaftOfOn_eqv γ _ _ _ A B Hab Hok.2.2.2.1]
+  iexact HA
+
+/-- The result predicates `reqPropOkOn` admits are of the mode-`on` model of the log, so the two
+logs agree on them (2026-10-27). -/
+theorem reqPropOkOn_qinv (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState)
+    (rq : apply.IRRModel) (Qr : List EntryModel → IProp GF) :
+    reqPropOkOn (GF := GF) γk st₀ rq Qr ⊢
+      reqPropOkOn γk st₀ rq Qr ∗ (kvInvOn γ γk st₀ -∗ srvQInv γ Qr) := by
+  iintro Hok
+  ihave %Hsh : ⌜∃ Q : auth.AuthState × mvcc.Log → IProp GF,
+      Qr = fun L => Q (kvRaftOfOn γk.c0 γk.ch0 (st₀, γk.log0) L)⌝ $$ [Hok]
+  · iunfold reqPropOkOn at Hok
+    icases Hok with (%Hno | ⟨%op, %Q, %γc, %Hop, -⟩ | %Had)
+    · ipureintro; exact ⟨fun _ => iprop(True), Hno.2.2.2.2.2⟩
+    · ipureintro
+      refine ⟨fun x => iprop((⌜kvGranted x.1 rq⌝ ∗ kvRes γc Q (kvStateOf x.2)) ∨
+        ⌜¬ kvGranted x.1 rq⌝), ?_⟩
+      rw [Hop.2.2.2.2.2]; rfl
+    · ipureintro
+      refine ⟨fun x => iprop(⌜rolesSorted x.1 ∧ authDet rq x.1⌝), ?_⟩
+      rw [Had.2.2]; rfl
+  obtain ⟨Q, rfl⟩ := Hsh
+  iframe Hok
+  iintro #Hinv
+  iapply kvOn_qinv γ γk st₀ Q $$ Hinv
 
 end lemmas
 

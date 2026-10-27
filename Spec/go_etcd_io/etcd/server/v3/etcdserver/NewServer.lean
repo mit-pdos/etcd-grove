@@ -119,22 +119,21 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
-variable [MemStorReg GF]
 
 /-- **`NewServer(cfg)`** (see the file header). -/
 abbrev NewServer.spec : Prop :=
-  ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs) (γ : RaftNames)
-    (bud : BudgetNames)
-    (id : w64) (bootLog : List EntryM) (ρ : ReqNames) (E₀ : apply.AEnv GF) (N : Nat)
+  ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs) (γ : SrvRaft)
+    (id : w64) (ctxs : List (List w8)) (ρ : ReqNames) (E₀ : apply.AEnv GF) (N : Nat)
     (Φs : w64 → w64 → List w8 → GName → IProp GF)
     -- (D21 M2, 2026-10-19) the raft network and its URL directory
     (γn : NetNames GF) (dir : w64 → List GoString)
-    -- (2026-10-26, D22 J2, R-loc) the member's snapshot directory's names (raft's
-    -- `RaftNames.reSnapLoc`)
+    -- (2026-10-26, D22 J2, R-loc) the member's snapshot directory's names (`SrvRaft.snapLoc`;
+    -- raft's `RaftNames.reSnapLoc` until 2026-10-27)
     (γd : GName),
-  -- the read names: at the cluster's raft names, the start log empty, the start index `0`, the
-  -- conf-change policy; the KV's start values, its certificate map the store's
-  ρ.rd.raft = ⟨γ, [], W64 0⟩ → srvCCPolicy ρ.rd.raft →
+  -- the read names: at the cluster's raft names, the start log empty, the start index `0`; the
+  -- cluster static, as raft's static mode until 2026-10-27 (the conf-change policy then, now the
+  -- KV invariant's `ccLogOk`); the KV's start values, its certificate map the store's
+  ρ.rd.raft = ⟨γ, [], W64 0⟩ → γ.dyn = false →
   ρ.rd.kv.c0 = W64 0 → ρ.rd.kv.ch0 = apply.alarmChain false false false →
   ρ.rd.kv.log0 = [[], []] → ρ.rd.kv.cok = E₀.γ.cok →
   -- the configuration (`mvcc.New`'s premise on the batch limit: unit N1, 2026-10-17;
@@ -155,7 +154,7 @@ abbrev NewServer.spec : Prop :=
     else cfg.SnapshotCatchUpEntries') + 1 →
   -- (D19b stage 5) the bootstrap log (one conf change per initial peer) shorter than `2 ^ 60`:
   -- with the receipts, raft's indices fit `MemoryStorage.Append`'s `2 ^ 61` (`rnLogFits`)
-  γ.reBoot.length ≤ 2 ^ 60 →
+  γ.boot.length ≤ 2 ^ 60 →
   -- (D21e (A), stage M4) the member's prefix in the cluster's claims is its member id's
   -- (`NewGenerator`'s `uint16(id) << 48`), and the claimers' facts at it are the server's
   -- (`srvFloorFact`, unit V2)
@@ -164,24 +163,27 @@ abbrev NewServer.spec : Prop :=
     (go.GoType.PointerType go_etcd_io.etcd.pkg.v3.featuregate.featureGate.ty) #p) →
   -- (2026-10-24, rafthttp stage 6d) the network's directory well formed
   netDirOk dir →
+  -- (2026-10-27) the `MemoryStorage` registry the cluster's storage model's (`srvStor γ`)
+  letI : MemStorReg GF := ⟨γ.reg⟩
   {{ "#Hpkg" ∷ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       "#Hfg" ∷ isFeatureGate cfg.ServerFeatureGate' ∗
       -- `bootstrap`'s contract (D13b)
-      "#Hboot" ∷ bootstrapContract cfg U γ id bootLog N dir ∗
+      "#Hboot" ∷ bootstrapContract cfg U γ id ctxs N dir ∗
       -- (D19r (B), (F)) what `bootstrap` takes: the configuration's URLs, read-only, and the
       -- storage registry's authority, empty (the caller allocates it)
       "#Hcfgro" ∷ bootCfgRO cfg U ∗ "Hrauth" ∷ memStorRegAuth (∅ : GMap Loc MemStorNamesRec) ∗
-      -- the cluster's ghost state (as `NodeStartSpec`'s) and `allocClientBoot`'s outputs
-      "Hghost" ∷ ownRaftGhost γ id (bootPState bootLog) ∗ "#Hcomm" ∷ isCommitted γ bootLog ∗
-      "#Hcinv" ∷ raftCommitInv γ ∗
-      "#Hbud" ∷ inv budgetN (budgetInv bud) ∗ "#HtermLB" ∷ termLB bud (W64 1) ∗
+      -- the cluster's (the node API's allocation, 2026-10-27): this node's boot token, of the
+      -- peers `γ.vs` with the contexts `ctxs`, and the server's raft invariant
+      "Hnboot" ∷ (if γ.dyn then Draft.nodeDynamicBoot γ.cl srvClusterN γ.vs ctxs id
+        else Draft.nodeBoot γ.cl srvClusterN γ.vs ctxs id) ∗
+      "#Hsrl" ∷ srvRaftLogInv ρ.rd.raft ∗
       -- (D21e (A), stage M4) the cluster's resources, allocated once (`srvClusterBoot_alloc`):
       -- the claims (with the reserved id `0`, D19c), the proposals' mint, the read contexts;
       -- and the member's share: its prefix's entry and slots (`idShare`), `2 ^ 48` of raft's read
       -- credits (`srvMemberBoot_alloc`)
       "#Hidc" ∷ idClusterInv ρ.ids.issued ρ.ids.cnt Φs ∗ "#HNZ0" ∷ idNoZero ρ.ids ∗
       "#Hpmint" ∷ srvPropMint ρ.rd.raft ρ.ids ∗ "#Hrdctx" ∷ srvRdCtxInv ρ.rd.raft ρ.ids.issued ∗
-      "Hids" ∷ idShare ρ.ids ∗ "HrdCred" ∷ rdCred γ (2 ^ 48) ∗
+      "Hids" ∷ idShare ρ.ids ∗ "HrdCred" ∷ Draft.readCredits γ.cl (2 ^ 48) ∗
       -- (linkv-txn stage B1, 2026-10-20) the member's entry of the registries' map, for `start`
       "Hwtok" ∷ idWaitTok ρ.ids ∗
       -- the names chosen before the call (D13a), fresh
@@ -195,11 +197,11 @@ abbrev NewServer.spec : Prop :=
       -- (D21 M2, 2026-10-19) the raft network, whose payload is the server's (`srvNet`) and
       -- directory `bootstrap`'s (until then the named premise `transportEffectsOk`); (2026-10-24,
       -- rafthttp stage 6d) its HTTP side ready (until then the member's slot, `netSlot γn id`)
-      "#Hnet" ∷ netHttpOk γn id ∗ "%Hγn" ∷ ⌜γn.N = srvNet γ bud ∧ γn.dir = dir⌝ ∗
-      -- (2026-10-26, D22 J2, R-loc) the member's snapshot directory, empty, at the names raft's
-      -- names give the member (`RaftNames.reSnapLoc`; until then `NewServer` allocated it,
-      -- `snapDir_alloc`), so that a received snapshot's `snapSaved` is raft's `snapLocal`
-      "%Hsloc" ∷ ⌜γ.reSnapLoc id = some γd⌝ ∗ "Hsdir" ∷ ghostMapAuth γd 1 (∅ : GMap w64 Unit) ∗
+      "#Hnet" ∷ netHttpOk γn id ∗ "%Hγn" ∷ ⌜γn.N = srvNet γ ∧ γn.dir = dir⌝ ∗
+      -- (2026-10-26, D22 J2, R-loc) the member's snapshot directory, empty, at the names the
+      -- cluster gives the member (raft's `RaftNames.reSnapLoc` until 2026-10-27; until then `NewServer` allocated it,
+      -- `snapDir_alloc`; 2026-10-27: at the server's `SrvRaft.snapLoc`)
+      "%Hsloc" ∷ ⌜γ.snapLoc id = some γd⌝ ∗ "Hsdir" ∷ ghostMapAuth γd 1 (∅ : GMap w64 Unit) ∗
       -- the named premises of the constructors' axioms (D14e, unit N4): the lessor's
       -- checkpointer's effects and the auth store's record bound
       "%Hckok" ∷ ⌜ckptEffectsOk⌝ ∗ "%Haufit" ∷ ⌜authRecordsFit⌝ ∗
@@ -211,7 +213,7 @@ abbrev NewServer.spec : Prop :=
       "%Hdbo" ∷ ⌜storage.dbOpensOk⌝ ∗
       -- `NodeStartSpec`'s trust-boundary premises
       "#Hzap" ∷ rnLoggerZapOk ∗ "#Hsetlg" ∷ rnSetLoggerOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
-      "#Htkok" ∷ rnTickerOk (srvEr ρ E₀ (W64 0) (W64 0) bootKV bud id iprop(True)) ∗
+      "#Htkok" ∷ rnTickerOk (srvEr ρ E₀ (W64 0) (W64 0) bootKV id iprop(True)) ∗
       "#Hns" ∷ rnNewStorageOk ∗
       "#Hstop" ∷ rnStopOkStarted ∗
       -- the packages' init facts `start` needs
@@ -228,7 +230,7 @@ abbrev NewServer.spec : Prop :=
           -- (D22 S-j2, 2026-10-20) the backend file's directory entry (`bootOk`'s), kept for
           -- `applySnapshot`'s `OpenSnapshotBackend`
           backend.pathOwn (config.backendPathOf cfg.DataDir') ∗
-          srvBuilt srv γA ci TM E ρ ρ.rd (srvEr ρ E₀ (W64 0) (W64 0) bootKV bud id (srvTrKey γn γk))
+          srvBuilt srv γA ci TM E ρ ρ.rd (srvEr ρ E₀ (W64 0) (W64 0) bootKV id (srvTrKey γn γk))
             γrn b (W64 0)
             (W64 0) bootKV N ∗
           -- (D17d, 2026-10-18) `run`'s snapshot contract, from the storage's snapshot token
@@ -265,18 +267,18 @@ the built part (`srvBuiltG on`), `ServerOn.lean`; at `on = false` each is today'
 Until E2w the spec took `kvInv`, whose start chain has auth off, so at `on = true` its precondition
 was unsatisfiable (`KVChainOff.lean`). -/
 abbrev NewServer.specM (on : Bool) : Prop :=
-  ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs) (γ : RaftNames)
-    (bud : BudgetNames)
-    (id : w64) (bootLog : List EntryM) (ρ : ReqNames) (E₀ : apply.AEnv GF) (N : Nat)
+  ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs) (γ : SrvRaft)
+    (id : w64) (ctxs : List (List w8)) (ρ : ReqNames) (E₀ : apply.AEnv GF) (N : Nat)
     (Φs : w64 → w64 → List w8 → GName → IProp GF)
     -- (D21 M2, 2026-10-19) the raft network and its URL directory
     (γn : NetNames GF) (dir : w64 → List GoString)
-    -- (2026-10-26, D22 J2, R-loc) the member's snapshot directory's names (raft's
-    -- `RaftNames.reSnapLoc`)
+    -- (2026-10-26, D22 J2, R-loc) the member's snapshot directory's names (`SrvRaft.snapLoc`;
+    -- raft's `RaftNames.reSnapLoc` until 2026-10-27)
     (γd : GName),
-  -- the read names: at the cluster's raft names, the start log empty, the start index `0`, the
-  -- conf-change policy; the KV's start values, its certificate map the store's
-  ρ.rd.raft = ⟨γ, [], W64 0⟩ → srvCCPolicy ρ.rd.raft →
+  -- the read names: at the cluster's raft names, the start log empty, the start index `0`; the
+  -- cluster static, as raft's static mode until 2026-10-27 (the conf-change policy then, now the
+  -- KV invariant's `ccLogOk`); the KV's start values, its certificate map the store's
+  ρ.rd.raft = ⟨γ, [], W64 0⟩ → γ.dyn = false →
   ρ.rd.kv.c0 = W64 0 → ρ.rd.kv.ch0 = apply.alarmChain on false false →
   ρ.rd.kv.log0 = [[], []] → ρ.rd.kv.cok = E₀.γ.cok →
   -- the configuration (`mvcc.New`'s premise on the batch limit: unit N1, 2026-10-17;
@@ -297,7 +299,7 @@ abbrev NewServer.specM (on : Bool) : Prop :=
     else cfg.SnapshotCatchUpEntries') + 1 →
   -- (D19b stage 5) the bootstrap log (one conf change per initial peer) shorter than `2 ^ 60`:
   -- with the receipts, raft's indices fit `MemoryStorage.Append`'s `2 ^ 61` (`rnLogFits`)
-  γ.reBoot.length ≤ 2 ^ 60 →
+  γ.boot.length ≤ 2 ^ 60 →
   -- (D21e (A), stage M4) the member's prefix in the cluster's claims is its member id's
   -- (`NewGenerator`'s `uint16(id) << 48`), and the claimers' facts at it are the server's
   -- (`srvFloorFact`, unit V2)
@@ -310,24 +312,27 @@ abbrev NewServer.specM (on : Bool) : Prop :=
   -- `time.Duration(cfg.TokenTTL) * time.Second`
   (on = true → cfg.AuthToken' = go!"simple" ∧ 0 < uint.Z cfg.TokenTTL' ∧
     uint.Z cfg.TokenTTL' < 2 ^ 32) →
+  -- (2026-10-27) the `MemoryStorage` registry the cluster's storage model's (`srvStor γ`)
+  letI : MemStorReg GF := ⟨γ.reg⟩
   {{ "#Hpkg" ∷ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       "#Hfg" ∷ isFeatureGate cfg.ServerFeatureGate' ∗
       -- `bootstrap`'s contract (D13b)
-      "#Hboot" ∷ bootstrapContract cfg U γ id bootLog N dir ∗
+      "#Hboot" ∷ bootstrapContract cfg U γ id ctxs N dir ∗
       -- (D19r (B), (F)) what `bootstrap` takes: the configuration's URLs, read-only, and the
       -- storage registry's authority, empty (the caller allocates it)
       "#Hcfgro" ∷ bootCfgRO cfg U ∗ "Hrauth" ∷ memStorRegAuth (∅ : GMap Loc MemStorNamesRec) ∗
-      -- the cluster's ghost state (as `NodeStartSpec`'s) and `allocClientBoot`'s outputs
-      "Hghost" ∷ ownRaftGhost γ id (bootPState bootLog) ∗ "#Hcomm" ∷ isCommitted γ bootLog ∗
-      "#Hcinv" ∷ raftCommitInv γ ∗
-      "#Hbud" ∷ inv budgetN (budgetInv bud) ∗ "#HtermLB" ∷ termLB bud (W64 1) ∗
+      -- the cluster's (the node API's allocation, 2026-10-27): this node's boot token, of the
+      -- peers `γ.vs` with the contexts `ctxs`, and the server's raft invariant
+      "Hnboot" ∷ (if γ.dyn then Draft.nodeDynamicBoot γ.cl srvClusterN γ.vs ctxs id
+        else Draft.nodeBoot γ.cl srvClusterN γ.vs ctxs id) ∗
+      "#Hsrl" ∷ srvRaftLogInv ρ.rd.raft ∗
       -- (D21e (A), stage M4) the cluster's resources, allocated once (`srvClusterBoot_alloc`):
       -- the claims (with the reserved id `0`, D19c), the proposals' mint, the read contexts;
       -- and the member's share: its prefix's entry and slots (`idShare`), `2 ^ 48` of raft's read
       -- credits (`srvMemberBoot_alloc`)
       "#Hidc" ∷ idClusterInv ρ.ids.issued ρ.ids.cnt Φs ∗ "#HNZ0" ∷ idNoZero ρ.ids ∗
       "#Hpmint" ∷ srvPropMint ρ.rd.raft ρ.ids ∗ "#Hrdctx" ∷ srvRdCtxInv ρ.rd.raft ρ.ids.issued ∗
-      "Hids" ∷ idShare ρ.ids ∗ "HrdCred" ∷ rdCred γ (2 ^ 48) ∗
+      "Hids" ∷ idShare ρ.ids ∗ "HrdCred" ∷ Draft.readCredits γ.cl (2 ^ 48) ∗
       -- (linkv-txn stage B1, 2026-10-20) the member's entry of the registries' map, for `start`
       "Hwtok" ∷ idWaitTok ρ.ids ∗
       -- the names chosen before the call (D13a), fresh
@@ -341,11 +346,11 @@ abbrev NewServer.specM (on : Bool) : Prop :=
       -- (D21 M2, 2026-10-19) the raft network, whose payload is the server's (`srvNet`) and
       -- directory `bootstrap`'s (until then the named premise `transportEffectsOk`); (2026-10-24,
       -- rafthttp stage 6d) its HTTP side ready (until then the member's slot, `netSlot γn id`)
-      "#Hnet" ∷ netHttpOk γn id ∗ "%Hγn" ∷ ⌜γn.N = srvNet γ bud ∧ γn.dir = dir⌝ ∗
-      -- (2026-10-26, D22 J2, R-loc) the member's snapshot directory, empty, at the names raft's
-      -- names give the member (`RaftNames.reSnapLoc`; until then `NewServer` allocated it,
-      -- `snapDir_alloc`), so that a received snapshot's `snapSaved` is raft's `snapLocal`
-      "%Hsloc" ∷ ⌜γ.reSnapLoc id = some γd⌝ ∗ "Hsdir" ∷ ghostMapAuth γd 1 (∅ : GMap w64 Unit) ∗
+      "#Hnet" ∷ netHttpOk γn id ∗ "%Hγn" ∷ ⌜γn.N = srvNet γ ∧ γn.dir = dir⌝ ∗
+      -- (2026-10-26, D22 J2, R-loc) the member's snapshot directory, empty, at the names the
+      -- cluster gives the member (raft's `RaftNames.reSnapLoc` until 2026-10-27; until then `NewServer` allocated it,
+      -- `snapDir_alloc`; 2026-10-27: at the server's `SrvRaft.snapLoc`)
+      "%Hsloc" ∷ ⌜γ.snapLoc id = some γd⌝ ∗ "Hsdir" ∷ ghostMapAuth γd 1 (∅ : GMap w64 Unit) ∗
       -- the named premises of the constructors' axioms (D14e, unit N4): the lessor's
       -- checkpointer's effects and the auth store's record bound
       "%Hckok" ∷ ⌜ckptEffectsOk⌝ ∗ "%Haufit" ∷ ⌜authRecordsFit⌝ ∗
@@ -357,7 +362,7 @@ abbrev NewServer.specM (on : Bool) : Prop :=
       "%Hdbo" ∷ ⌜storage.dbOpensOk⌝ ∗
       -- `NodeStartSpec`'s trust-boundary premises
       "#Hzap" ∷ rnLoggerZapOk ∗ "#Hsetlg" ∷ rnSetLoggerOk ∗ "#Htdok" ∷ rnTimeoutDetectorOk ∗
-      "#Htkok" ∷ rnTickerOk (srvErM on ρ E₀ (W64 0) (W64 0) (bootKVOf on) bud id iprop(True)) ∗
+      "#Htkok" ∷ rnTickerOk (srvErM on ρ E₀ (W64 0) (W64 0) (bootKVOf on) id iprop(True)) ∗
       "#Hns" ∷ rnNewStorageOk ∗
       "#Hstop" ∷ rnStopOkStarted ∗
       -- the packages' init facts `start` needs
@@ -374,7 +379,7 @@ abbrev NewServer.specM (on : Bool) : Prop :=
           -- (D22 S-j2, 2026-10-20) the backend file's directory entry (`bootOk`'s), kept for
           -- `applySnapshot`'s `OpenSnapshotBackend`
           backend.pathOwn (config.backendPathOf cfg.DataDir') ∗
-          srvBuiltG on srv γA ci TM E ρ ρ.rd (srvErM on ρ E₀ (W64 0) (W64 0) (bootKVOf on) bud id (srvTrKey γn γk))
+          srvBuiltG on srv γA ci TM E ρ ρ.rd (srvErM on ρ E₀ (W64 0) (W64 0) (bootKVOf on) id (srvTrKey γn γk))
             γrn b (W64 0)
             (W64 0) (bootKVOf on) N ∗
           -- (D17d, 2026-10-18) `run`'s snapshot contract, from the storage's snapshot token

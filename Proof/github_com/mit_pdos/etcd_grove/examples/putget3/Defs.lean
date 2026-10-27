@@ -7,15 +7,17 @@ the three members of `examples/putget3/putget3.go`.
 computes them: the member ids `id₁ id₂ id₃` (etcd's, from the peer URLs and the cluster token
 `putget3`; `TestMemberIDs` in `putget3_test.go` prints them), their 16 low bits distinct and not `0`
 (D21e (A): the request ids' prefixes), the peers in that order (`bootstrap` sorts the member ids:
-`0x4594…`, `0x615e…`, `0xecbf…`, the members `putget3-1`, `-2`, `-3`), and the bootstrap log, one
-conf change adding each member, id `0`, under the policy `ccOk`.
+`0x4594…`, `0x615e…`, `0xecbf…`, the members `putget3-1`, `-2`, `-3`), and the bootstrap log with
+the peers' contexts (the node API's `BootLog`), one conf change adding each member, each of id `0`
+and one the server's `applyConfChange` takes.
 
 **The Iris premises** (`premises`, persistent; each a triple of a function the program calls, as
 putget's, D19a's second kind):
-* `bootstrap`'s contract for each member (`bootPremise`), at every storage registry and raft
-  names of the three-member cluster, for a configuration with the scalar fields `startMember`
+* `bootstrap`'s contract for each member (`bootPremise`), at every server raft names of the
+  three-member cluster (its peers, static, the bootstrap log), at the peers' contexts, for a configuration with the scalar fields `startMember`
   sets (`cfgOk`) and the member's URLs (`urlsOk`), at the URL directory `dir3` (each member's one
   peer URL, the records `bootstrap` makes name it);
+* `proto.Marshal`'s contract at the bootstrap log's conf changes (`bootMarshal`, 2026-10-27);
 * putget's others: the raft wrapper's trust-boundary contracts, `rnStopOkStarted`,
   `v3rpc.runsNoRequireLeader`.
 -/
@@ -44,18 +46,18 @@ open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.raft.v3
 section pure
 variable [GooseExts]
 
-/-- **The server's conf-change policy for the cluster `ps`** (`srvCCPolicy`'s clauses, D19c; putget's
-`ccOk` at a set of members): a v1 conf change, a `ConfChange` encoding of id `0`, which changes
-nothing of the configuration. -/
-def ccOk (ps : List w64) : w32 → List w8 → Prop := fun ty d =>
-  ty = W32 1 ∧ isConfChangeEncoding d ∧ ccIdOf d = W64 0 ∧ ccBootOk (GMap.listToSet ps) d
-
 /-- **`bootstrap`'s results, as Go computes them** (pure facts of the program; see the file
-header). -/
-structure BootFacts (id₁ id₂ id₃ : w64) (bootLog : List EntryM) : Prop where
+header). (2026-10-27, the server port: the bootstrap log `bl` with the peers' contexts `ctxs` the
+node API's `BootLog`, each entry a conf change of id `0` that the server's `applyConfChange` takes;
+until then `srvBootLogOk (ccOk [id₁, id₂, id₃]) [id₁, id₂, id₃] bootLog`, under the conf-change
+policy `ccOk`, over raft's records.) -/
+structure BootFacts (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (bl : List Draft.LogEntry) :
+    Prop where
   idLow : ([id₁, id₂, id₃].map (fun id => uint.Z id % 2 ^ 16)).Nodup
   idLow0 : ∀ id ∈ [id₁, id₂, id₃], uint.Z id % 2 ^ 16 ≠ 0
-  boot : BootLogOk (ccOk [id₁, id₂, id₃]) [id₁, id₂, id₃] bootLog
+  boot : Draft.BootLog [id₁, id₂, id₃] ctxs bl
+  cc : ∀ e ∈ Draft.LogEntry.toEntries bl 0,
+    ccIdOf e.Data' = W64 0 ∧ ccBootOk (GMap.listToSet [id₁, id₂, id₃]) e.Data'
 
 /-- A URL `http://<host>`. -/
 def httpURL (host : GoString) : _root_.Perennial.net.url.URL :=
@@ -115,21 +117,21 @@ def cfgOk (name : GoString) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig
     cfg.TickMs' = W64 100 ∧ cfg.ElectionTicks' = W64 10
 
 /-- **`bootstrap`'s contract for member `name`** (id `id`, its addresses `peerAddr`, `client`), at
-every storage registry and raft names of the cluster `ps`, for its configuration and URLs (the
-initial cluster's map `Main`'s), at the bound `N`, the bootstrap log and the directory
-`dir`. -/
-def bootPremise (N : Nat) (ps : List w64) (bootLog : List EntryM) (dir : w64 → List GoString)
-    (name peerAddr client : GoString) (id : w64) : IProp GF :=
-  iprop(□ ∀ (reg : GName) (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs)
-        (γ : RaftNames),
-      ⌜cfgOk name cfg ∧ urlsOk peerAddr client U ∧ γ.reCfg = GMap.listToSet ps ∧
-        γ.reDyn = none ∧ γ.reCCOk = ccOk ps ∧ γ.reBoot = bootLog ∧ γ.reNoSnap = true ∧
-        γ.reNoXfer = true⌝ -∗
-      letI : MemStorReg GF := ⟨reg⟩; bootstrapContract cfg U γ id bootLog N dir)
+every server raft names of the cluster `ps` (its peers, static, the bootstrap log; at the storage
+registry they name; 2026-10-27, the server port: until then raft's names, with raft's no-snapshot
+and no-transfer modes and the policy `ccOk ps`), for its configuration and URLs (the initial
+cluster's map `Main`'s), at the peers' contexts `ctxs`, the bound `N` and the directory `dir`. -/
+def bootPremise (N : Nat) (ps : List w64) (bootLog : List EntryM) (ctxs : List (List w8))
+    (dir : w64 → List GoString) (name peerAddr client : GoString) (id : w64) : IProp GF :=
+  iprop(□ ∀ (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs) (γ : SrvRaft),
+      ⌜cfgOk name cfg ∧ urlsOk peerAddr client U ∧ γ.vs = ps ∧ γ.dyn = false ∧
+        γ.boot = bootLog⌝ -∗
+      letI : MemStorReg GF := ⟨γ.reg⟩; bootstrapContract cfg U γ id ctxs N dir)
 
 instance bootPremise_persistent (N : Nat) (ps : List w64) (bootLog : List EntryM)
-    (dir : w64 → List GoString) (name peerAddr client : GoString) (id : w64) :
-    Persistent (bootPremise (GF := GF) N ps bootLog dir name peerAddr client id) := by
+    (ctxs : List (List w8)) (dir : w64 → List GoString) (name peerAddr client : GoString)
+    (id : w64) :
+    Persistent (bootPremise (GF := GF) N ps bootLog ctxs dir name peerAddr client id) := by
   unfold bootPremise; infer_instance
 
 /-- **The premises shared by the members** (putget's, but `bootstrap`'s contract): the raft
@@ -144,16 +146,24 @@ instance commonPremises_persistent : Persistent (commonPremises (GF := GF)) := b
   unfold commonPremises; infer_instance
 
 /-- **`Main`'s named premises** (persistent; see the file header), at the bound `N` of each
-member's apply thread's write tokens, the member ids and the bootstrap log. -/
-def premises (N : Nat) (id₁ id₂ id₃ : w64) (bootLog : List EntryM) : IProp GF :=
+member's apply thread's write tokens, the member ids, the peers' contexts and the bootstrap log;
+(2026-10-27, the server port) with `proto.Marshal`'s contract at the bootstrap log's conf changes
+(`bootMarshal`, which the cluster's allocation takes; until then `bootstrap`'s contract gave it). -/
+def premises (N : Nat) (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (boot : List Draft.LogEntry) :
+    IProp GF :=
   iprop(
-    bootPremise N [id₁, id₂, id₃] bootLog (dir3 id₁ id₂ id₃) name₁ peerAddr₁ clientAddr₁ id₁ ∗
-    bootPremise N [id₁, id₂, id₃] bootLog (dir3 id₁ id₂ id₃) name₂ peerAddr₂ clientAddr₂ id₂ ∗
-    bootPremise N [id₁, id₂, id₃] bootLog (dir3 id₁ id₂ id₃) name₃ peerAddr₃ clientAddr₃ id₃ ∗
+    bootPremise N [id₁, id₂, id₃] (Draft.LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃)
+      name₁ peerAddr₁ clientAddr₁ id₁ ∗
+    bootPremise N [id₁, id₂, id₃] (Draft.LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃)
+      name₂ peerAddr₂ clientAddr₂ id₂ ∗
+    bootPremise N [id₁, id₂, id₃] (Draft.LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃)
+      name₃ peerAddr₃ clientAddr₃ id₃ ∗
+    bootMarshal [id₁, id₂, id₃] ctxs (Draft.LogEntry.toEntries boot 0) ∗
     commonPremises)
 
-instance premises_persistent (N : Nat) (id₁ id₂ id₃ : w64) (bootLog : List EntryM) :
-    Persistent (premises (GF := GF) N id₁ id₂ id₃ bootLog) := by
+instance premises_persistent (N : Nat) (id₁ id₂ id₃ : w64) (ctxs : List (List w8))
+    (boot : List Draft.LogEntry) :
+    Persistent (premises (GF := GF) N id₁ id₂ id₃ ctxs boot) := by
   unfold premises; infer_instance
 
 end defs

@@ -71,15 +71,15 @@ shorter than the boot log (its image misses boot members `mem` already has), or 
 of different versions; the premises exclude the first two, the deployment the third. -/
 abbrev membership.clusterImageOk_restModel.spec : Prop :=
   ∀ (c : Loc) (γ : ServerRaftNames) (c0 : w64) (L L' : List EntryModel),
-    γ.pre = [] → c0 = W64 0 → L <+: L' → γ.raft.reBoot.length ≤ L'.length →
+    γ.pre = [] → c0 = W64 0 → L <+: L' → γ.raft.boot.length ≤ L'.length →
     -- (merge of D43 M5, 2026-10-27) `ccLogOk`'s static form, which `ccLogOk` was before M5d made it
     -- mode-aware (the same statement as before the merge)
-    (∀ m ∈ L', m.typ ≠ W32 0 → ccBootOk γ.raft.reCfg m.data) →
+    (∀ m ∈ L', m.typ ≠ W32 0 → ccBootOk γ.raft.cfg m.data) →
     ⊢ membership.isRaftCluster (GF := GF) c -∗ srvRLogLb γ L' -∗
-      membership.clusterMem c (restModel c0 γ.raft.reBoot L).mem -∗
-      membership.clusterMem c (restModel c0 γ.raft.reBoot L).mem ∗
-      ⌜membership.clusterImageOk c (restModel c0 γ.raft.reBoot L').bk
-        (restModel c0 γ.raft.reBoot L').mem⌝
+      membership.clusterMem c (restModel c0 γ.raft.boot L).mem -∗
+      membership.clusterMem c (restModel c0 γ.raft.boot L).mem ∗
+      ⌜membership.clusterImageOk c (restModel c0 γ.raft.boot L').bk
+        (restModel c0 γ.raft.boot L').mem⌝
 
 end spec
 

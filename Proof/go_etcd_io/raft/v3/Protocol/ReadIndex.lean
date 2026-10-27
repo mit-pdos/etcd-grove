@@ -53,7 +53,7 @@ variable [InvGS GF]
 theorem readAu_fire_open (γ : RaftNames) (Qr : List EntryM → IProp GF)
     (l : List EntryM) :
     ⊢ readAu (GF := GF) γ Qr -∗ ghostVar γ.reRLog (1 : Qp).half l
-      ={(⊤ \ ↑raftRegN) \ ↑raftLogN}=∗ ghostVar γ.reRLog (1 : Qp).half l ∗ □ Qr l := by
+      ={(⊤ \ ↑(raftRegN γ)) \ ↑(raftLogN γ)}=∗ ghostVar γ.reRLog (1 : Qp).half l ∗ □ Qr l := by
   iintro #Hau Hv
   iapply (fupd_mask_mono (P := iprop(ghostVar (GF := GF) γ.reRLog (1 : Qp).half l ∗ □ Qr l))
     raftN_open_sub)
@@ -141,7 +141,7 @@ at some commit after the deposit (`|Lc| ≤ i`) --, under the invariant's later 
 predicate's. -/
 theorem read_collect (γ : RaftNames) (E : CoPset) (c : List w8)
     (Qr : List EntryM → IProp GF) (i : w64) (L : List EntryM) :
-    ↑raftN ⊆ E → uint.Z i ≤ (L.length : Int) →
+    ↑(raftN γ) ⊆ E → uint.Z i ≤ (L.length : Int) →
     ⊢ raftCommitInv (GF := GF) γ -∗ readWit γ c Qr i -∗ isCommitted γ L ={E}=∗ ▷ ▷ □ Qr L := by
   intro HE HiL
   iintro #Hinv #Hw #HL
@@ -821,7 +821,7 @@ theorem ownRaftGhost_read_arrive (γ : RaftNames) (id : w64) (s : PState) (c : L
     (Lc : List EntryM) :
     s.role = .leader →
     plogTermAt s.base s.log s.commit = some s.term →
-    ⊢ ownRaftGhost (GF := GF) γ id s md -∗ readReq γ c Lc ={⊤ \ ↑raftRegN}=∗
+    ⊢ ownRaftGhost (GF := GF) γ id s md -∗ readReq γ c Lc ={⊤ \ ↑(raftRegN γ)}=∗
       ownRaftGhost γ id s md ∗ ∃ d, rqRecOk γ s.term ((c, s.commit), d) := by
   intro Hr Hct
   iintro Hown #Hrq

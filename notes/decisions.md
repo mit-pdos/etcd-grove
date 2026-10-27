@@ -23700,7 +23700,313 @@ predicates' bodies and the laws' proofs `sorry` until step 2; nothing imports it
 unchanged: `ReadIndex`, the rest of a `Ready`, `Step`/the network, `Tick`/the term budget,
 `Advance`/the storage contract, `ApplyConfChange`'s modes.
 
+## The key-value store on raft's draft node API (2026-10-27 · branch `kv-port`; completes "Raft's node API over an abstract log")
+
+**What:** `examples/kv` ported onto `Proof/go_etcd_io/raft/v3/NodeApiDraft.lean`: kv's files import
+from raft's tree the draft, raft's Go-value/protobuf models (`Base`, `Init`, `InvPbSnapSet`, raftpb's
+getters), the storage API (below) and two tactic helpers (`FrameH`, `raft__Step/Dispatch`), and name
+no raft-internal definition (`rLog`, `isCommitted`, `entDataIs`, `propIs`, `RaftNames`, `NodeNames`,
+`readReq`, `rdCred`, `tickCred`, `termLB`, `isRaftMsg`, `stepP`, `KVStat`, `nodeCfg`, `memCertInv`,
+`certLink`, ... appear only in comments recording history). kv's results rest on the draft's
+`sorry`s only (52 declarations reached by `kv_Main`/`kv_adequate`, all `Draft.*`).
+
+**kv's invariant** owns `Draft.ownCommittedOps` and `Draft.ownReadCtxs`; the history is the
+requested entries' data (`logHist`, kv's own copy of the old `firstOcc`, `histOf`); minting is kv's
+own (no raft fresh tokens): every committed datum, slot and used read context is minted. Gone:
+`kv_log_prefix`, `kv_deposited_minted`, `ods_deposited`, `kv_noopAu` (fillers leave the requested
+entries alone), `node_entry_data`, `kvStat_type0` (`Draft.isStaticCluster_normal`),
+`entDataIs_odOf`, `entsDataIs_odOf`, `readyDataL_split`, `raftMsg_deliverable`, `raftMsg_snap`,
+`stepP_deliverable` (`Draft.stepIn_intro` with kv's pure `deliverable_step`), `kvStat_cluster`.
+New: `kv_ccAu` (`RemoveMember`'s update), `kv_committed_minted`, `kv_read_minted` (over
+`Draft.readStateOk_used`), `kv_mint_read` (commits the read context, `Draft.readCtx_commit`).
+
+**The API additions** (all `(open)` but the first two; predicates sealed with `sorry` bodies, laws
+`sorry`): the static cluster (`isStaticCluster`, `isStaticCluster_normal`, `leaderTransferOn`,
+`nodeRestartBoot`, `cluster_alloc_static` with the term budget inside, `RestartNode.spec`), the rest
+of a `Ready` (`readyRest`, `readySnap`: transparent, over sealed pieces and the storage contract's
+vocabulary), `node.Advance.spec`, messages (`sentMsg`, `msgCredits`, `stepIn`, `stepIn_intro`,
+`node.Step.spec`), ticks (`tickCredit`, `tickCredit_intro`, `tickCredit_zero`, `node.Tick.spec`),
+`node.TransferLeadership.spec`, snapshots' certificates (`snapshotCert`, `snapshotCert_data`,
+`snapshotCert_static`, `storageCertInv` with its allocation, read, register and any-term register,
+`storageCertLink`, `storageCertLink_intro`), and `isCommittedLogLb_nil`, `readStateOk_used`,
+instances (`ownReadCtxs_timeless`, `isReadyChan_persistent`, `committedEntriesAt_persistent`), the
+specs' placeholders (`node.wp_Propose`, ..., `wp_RestartNode`, `sorry`) that kv's hand-edited
+`Link.lean` links against.
+
+**Changes to the drafted statements:** `ownCommittedOps_get_lb` keeps the resource (a persistent
+conclusion alone cannot give it back); `ProposeConfChange`'s update gives `⌜MarshalsConfChange⌝ ∗`
+the new requested entries, not `⌜…⌝ →` them (a client cannot prove the bytes' fact, so it could not
+close its invariant); `readCtx_commit`'s conclusion parenthesized (`|==> (A ∗ B)`: without them the
+update covered only `A`); `NodeDriverState` has the node's storage and a `Ready`'s snapshot loan
+(`handling : Option (List EntryM × Option SnapLoan)`), `NodeDriverState.init` takes the storage,
+and `readyRecv`'s post hands out the loop's new state `st'` with `readyRest γ N rd st ce st'` (a
+snapshot `Ready` sets the delivered log to the snapshot's, not `delivered ++ ce`).
+
+**Not redesigned (open), carried over:** the storage contract and `MemoryStorage` (kv still names
+`StorageModel`, `isStorage`, `appendRight`, `readyOut`, `advReceipt`, `storFloor`, `memSnapTok`,
+`ownMemoryStorage`, the `MemoryStorage` specs and `MemstorageAU`'s token-in-hand forms: raft's
+storage API, not node internals); `Advance`'s premise is the static mode's (no conf-change entry
+delivered); `ApplyConfChange` and the dynamic mode are not drafted (kv's conf-change branch is dead
+in a static cluster). `etc/gen-link.py` does not know the draft: kv's `Link.lean` is edited by hand
+(the node's callees); `etc/api/raft.txt` lists the draft importable.
+
+## The node API's snapshots and static clusters, implemented (2026-10-27 · branch `raft-api`)
+
+**Snapshot certificates over the client's view.** `Draft.snapshotCert` is raft's configuration
+certificate (`raftSnapCert`) and the data's over a committed log the client knows
+(`isCommittedLogLb`), not raft's `raftSnapCertD` (whose data part is `isCommitted`): so
+`snapshotCert_data`/`snapshotCert_static` stay plain entailments as drafted (raft's form would need
+an update opening the adapter's invariant). The price is the conversion inside the storage link:
+`storageCertLink` (the client's two wands at `↑N ⊆ E`) must give raft's `storCertOk`, whose wands are
+at `↑(raftCertN γ) ⊆ E`, and converting opens the adapter's invariant (`N .@ "api"`). So raft's
+certificate namespace (`RaftNames.reCertNs`, made per cluster like `reNs`) is the cluster's whole `N`,
+not a sub-namespace disjoint from the commit invariant: raft opens a storage's registry only at `⊤`
+(a `Ready`'s `MsgSnap`s, `raft.Step`'s `MsgSnap`), so nothing needs the disjointness; the registry's
+own invariant (`storageCertInv`) is at `N .@ "cert"`.
+
+**Every API cluster takes snapshots.** Raft's no-snapshot mode (`reNoSnap`, `NsCap`) is not offered:
+a client that takes no snapshot allocates with `snapOk := fun _ _ => False` and refutes a snapshot
+`Ready` by `snapshotCert_data`. So `StartNode` takes the storage's certificate link like
+`RestartNode`, and every node takes `MsgSnap`s (`snapIn`), which `stepIn_intro` needs.
+
+**The filler law is not provable.** `isStaticCluster_normal` was false (a static cluster commits the
+conf changes clients propose; it only applies the voter-preserving ones). Its replacement "every
+committed filler is normal" needs `[]` to decode as the empty `ConfChangeV2` (`ccDecodeV2` is opaque)
+and a static-mode record of `stepLeader`'s acceptance; left to the user (a trust-base question).
+
+## Raft's node API for etcd's server (draft) (2026-10-27 · branch `server-port`; statements only, for the user's review; implemented, in part changed: "Raft's node API for etcd's server: implemented")
+
+**What:** `NodeApiDraft.lean` extended (section "What etcd's server needs") with what porting etcd's
+server (`Proof/go_etcd_io/etcd/**`) onto the node API needs: raft's dynamic mode, the no-transfer
+mode, the hard state's commit witness, the snapshot the server builds, `ReportUnreachable`/
+`ReportSnapshot`. Statements only: new predicates sealed with `sorry` bodies, laws and the specs'
+placeholders `sorry` (none reached by any result); no existing statement changed. No port yet.
+
+**The inventory** (raft's declarations the server's files name today, `Proof/go_etcd_io/etcd/**`
+and `Spec/go_etcd_io/etcd/**`, rafthttp, the read-index loop, `NewServerAlloc*`, `InvBoot`
+included; name collisions with etcd's own `hist`, `rejected`, `Role`, `isLeader`, ... left out):
+
+- *Covered by the API as it is (both modes, once `ApiImpl.NodeOk` admits dynamic nodes):* the
+  committed log and the proposal registry (`raftCommitInv`, `raftLogInv(Body)`, `rLog`,
+  `isCommitted(_agree/_mono/_prefix)`, `ownCommitted_lb`, `committed_data`, `entsData_lookup`,
+  `entDataIs(_prop)`, `propDataIs`, `deposited`, `propIs(_deposited)`, `propFresh`, `propAu1`,
+  `prop_collect`, `node_prop_register`, `propArg`, `noopAu`, `raftLogN(_of)`, `raftN`, `raftRegInv`,
+  `raftRegN`, `rlq`, `logRest`) -> `ownCommittedOps`, `isCommittedLogLb`, `Propose`'s and
+  `ProposeConfChange`'s updates; the read index (`readReq`, `readReq_agree`, `read_collect`,
+  `readWit`, `readOk`, `isRead`, `readsReg`, `readSlot`, `readAu`, `rdFresh`, `regsOwn`, `rdCred`,
+  `rdCred_split`, `rdCred_zero_upd`, `rdCredInv`) -> `ownReadCtxs`, `readCtx_commit`,
+  `isReadCtx`, `readStateOk(_ctx/_used)`, `readCredits`; the node (`isNode`, `isReadyChan`,
+  `nodeDriver`, `nodeDriverBusy`, `readyP(_take/_take_ns)`, `readyData`, `readyDataL`,
+  `readySnapData`, `readStatesPts`, `readyDq`, `readyIdx`, `readyOut`, `softStateRO`, `QMsg`,
+  `SnapLoan`, `phsNext(_ne/_zero)`, `hsZero`, `dlvAfter`, `plogLast`, `base0`, `snapId`,
+  `snapLocal`, `lastRec_receipt`, `reqWit_none`) -> `node.readyRecv.spec`, `readyRest`,
+  `readySnap`, `node.Advance.spec`; messages (`stepP`, `fwdP`, `netP`, `stTks`, `tickCred(_zero)`,
+  `NetMsgOk.of_sent`, `isRaftMsg`, `isMessage(C)`, `isMessageC_isMessage`, `absMsg(From)`,
+  `mtypeOf*`, `termLB`, `BudgetNames`, `budgetInv`, `budgetN`) -> `sentMsg`, `msgCredits`,
+  `stepIn(_intro)`, `tickCredit(_intro/_zero)`, the cluster's budget; the allocation
+  (`ownRaftGhost_alloc_boot`, `allocClientBoot`, `bootPState`, `ownRaftGhost`, `bootInit`, `toMap`,
+  `BootLogOk`) -> `cluster_alloc`; the start (`StartNode.spec`, `bootMarshal`, `peersCtx`,
+  `ConfigValid`, `isLogger`, `certLink`) -> `StartNode.spec`, `nodeBoot`, `storageCertLink`;
+  `node.{Propose,ReadIndex,Ready,Step,Tick}.spec`, `nodeCtx`, `nodeErr`, `ctxErr`, `doneNilCtx`,
+  `bgCd` (ApiCtx, unchanged), `CCShrink`, `ccV2Of`, the static `node.ApplyConfChange.spec`.
+- *Static only in the API, the server needs them dynamic:* `node.ApplyConfChange.spec` (`nodeCfg`,
+  `dlvLb`, `DynCCPreOp`, `CCState`, `cfgState`, `ccApplyM(_single/_v1_noop)`, `ccStepB(_removeVoter/
+  _removeAbsent)`, `ccApplyM_overlap`, `CCNoop.shrink`, `simpleM_cfgState_addNode`,
+  `cfgState_empty_ids`, `CfgOk`, `CCOp`, `CCDec`, `IsConfEnt`, `addNodeCC`, `RNMode(.isDyn)`) ->
+  `Membership`, `Membership.applyChange` and its laws, `ConfChangeDecoder`, `ConfigView`,
+  `nodeConfig`, `deliveredLogLb`, `node.ApplyConfChange.dynamicSpec`; `node.Advance.spec`'s A1
+  (`NoConfIn`, `NoConfIn_prefix`) -> `NoConfChangeIn`, `node.Advance.dynamicSpec`;
+  `StartNode`/`RestartNode` at `md = .dyn` (`raft_dyn_alloc(_boot)`, `allocClient(Gen)`, `NsCap`)
+  -> `dynamicCluster_alloc(_empty)`, `nodeDynamicBoot`, `nodeDynamicRestartBoot`,
+  `StartNode.dynamicSpec`, `RestartNode.dynamicSpec`.
+- *Not in the API before:* the no-transfer mode (`RaftNames.reNoXfer = true`, `SentMsgOk`,
+  `SentMsgOk.ne_timeoutNow/_transferLeader`, `AppShape`) -> `leaderTransferOff`,
+  `sentMsg_transferOff`; the no-snapshot mode (`isRaftMsg_not_snap`, `readySnapData`'s clause) ->
+  `sentMsg_dynamic_notSnapshot`, `readySnap_dynamic` (dynamic clusters only, see Q5); the hard
+  state's witness (`hsWit`, `commitWit`) -> `committedAtTerm`, `committedAtTerm_committed`,
+  `nodeDriver_hardStateCommitted`; the merged snapshot (`isMessage_snap_recontent`, `msgCert`,
+  `raftSnapCert`, `snapDataOk`, `msgDat`, `absSnap`, `msgSnapTrip`, `Msg`, `SnapTrip`, `CSLists`)
+  -> `sentMsg_replaceSnapshot`, `msgCredits_snapshot`; `node.ReportUnreachable.spec`,
+  `node.ReportSnapshot.spec`.
+- *Raft's storage API and Go-value models, outside the node API (carried over, as for kv):*
+  `MemStorNames`, `memSnapTok(_split)`, `memStorEmpty`, `memSnapRO`, `memSnapN`, `memKey`,
+  `memFloorTok`, `memTokShared`, `MemoryStorage.{Snapshot,Compact}.spec`,
+  `MemoryStorage.Compact.wp_shared`, `MemStorReg`, `MemStorNamesRec`, `memStorReg(Auth)`,
+  `memStorIface`, `memStorage_Append`, `memStorFloor_at`, `memStorCap_intro`, `StorageModel`,
+  `StorState`, `isStorage`, `appendRight`, `appendReceipt`, `advReceipt`; raftpb's getters
+  (`Message.Get*`, `Entry.Get*`, `HardState.Get*`, `SnapshotMetadata.Get*`, `ConfChange.Get*`,
+  `*.Enum`, `MessageType.String`), `IsEmptySnap`, `IsEmptyHardState`, `wp_hsOpt_Get*`, `InvPb*`,
+  `PbModel`, `ConfChangeM`, `ccDecodeV1`, the message-type constants (`MsgApp`, ...), `Init`,
+  `FrameH`, `ProjSimps`.
+
+**Proposed changes to existing (proved) statements** (not made):
+1. `node.Advance.spec` takes no mode premise; it is true only of static nodes (`ApiImpl.NodeOk`
+   requires `γn.mode = .static`). Once `isNode`/`nodeDriver` cover dynamic nodes it needs
+   `isStaticCluster γ N vs snapOk` (kv has it in hand), the dynamic case being
+   `node.Advance.dynamicSpec`.
+2. `cluster_alloc`/`cluster_alloc_static` always give `leaderTransferOn`; the server runs in the
+   no-transfer mode (else its transport must hand `node.Step` a tick credit for every
+   `MsgTimeoutNow`). Proposed: the `transfer : Bool` of `dynamicCluster_alloc`.
+3. `sentMsg` forgets the sender (`∃ src, isRaftMsg γ.raft src st`): rafthttp's msgappv2 codec needs
+   a `MsgApp`'s `From` to be the sending node (`AppFrom`). Proposed: `readyRest`'s messages, or
+   `sentMsg`, name the node whose `Ready` handed them out.
+4. A static cluster is always outside raft's no-snapshot mode; the server today runs in it
+   (`reNoSnap = true`, `storCap 1`). The port can take `snapOk := fun _ _ => False` instead (a
+   snapshot `Ready` or `MsgSnap` is refuted by `snapshotCert_data`), or the static allocation gets a
+   no-snapshot variant.
+5. (implementation, no statement) `ApiImpl.nodeDriver` owns raft's `nodeCfg`; a dynamic node's view
+   must be separate (`nodeConfig`), since etcd's apply goroutine holds it while applying.
+
+**Open design questions (for the user):** Q1 the decoder fixed at allocation (raft's
+`DynCfg.ofFold dec c0`), over `LogEntry`s and the log before the entry, or something without it;
+Q2 `ConfigView` stores the membership (today's `nodeCfg`) though it is derivable from `c0`,
+`decode` and the log's prefix (a client would then prove a fold); Q3 `Membership` mirrors
+`tracker.Config`, with `applyChange` sealed and laws only for the simple v1 changes etcd makes
+(nothing for joint configurations), `Valid` sealed; Q4 the dynamic specs as separate `dynamicSpec`
+variants (four), or one spec per function over `isStaticCluster ∨ isDynamicCluster`; Q5 a dynamic
+cluster is in raft's no-snapshot mode (raft's dynamic mode with snapshots is not proved), so
+`StartNode.dynamicSpec` takes `storCap 1` in place of the certificate link; Q6 `SentMsgOk` exposed
+as the no-transfer mode's pure vocabulary; Q7 `committedAtTerm` and `sentMsg_replaceSnapshot` for
+the snapshot track (dead while the server is in the no-snapshot mode); Q8 `deliveredLogLb` (per
+node) as `ApplyConfChange`'s premise rather than `isCommittedLogLb`; Q9 `nodeDriver_hardStateCommitted`
+excludes a lent snapshot (then the witness bounds the log before it).
+
+*Implemented, in part changed* (2026-10-27): "Raft's node API for etcd's server: implemented",
+below.
+
 ---
+
+## Raft's node API for etcd's server: implemented (2026-10-27 · branch `raft-api`)
+
+**What:** every item of the draft above implemented and proved (`NodeApiImplDyn.lean`, and
+`NodeApiImpl.lean`'s shared definitions): nothing in `NodeApiDraft.lean` is `sorry`. The open
+questions Q1-Q9 kept at the draft's defaults (the user to review them), but Q5's and Q9's below.
+
+**How:**
+- *A membership* is a `tracker.Config` (`cfgOf`); its `confchange` state the canonical one
+  (`stOf m = cfgStateC (cfgOf m)`: what every reachable state is, `cfgStateC_of_good`).
+  `Membership.Valid` is `CfgOk ∧ CCGood` of it, `applyChange` is `ccStepB` of the change as `AsV2`
+  makes it; the laws are `confchange`'s (`simpleM_cfgState_addNode`, `ccStepB_removeVoter`, ...).
+- *The cluster's mode*: `ApiImpl.Cluster` records the nodes' `RNMode` (`mode`, at every
+  `GooseExts`, `RNMode.all`, as `RaftNames.reDyn`): a node's names are in it (`NodeOk`), so
+  `isDynamicCluster γ N c0 decode` fixes the node's decoder (`decOf decode`), which raft's
+  `ApplyConfChange` checks the change against (`DynCCPreOp`). A static cluster's mode is `.static`
+  (`StaticNames`), which the static specs read in place of `NodeOk`'s former `mode = .static`.
+- *A node's predicates agree on its names* through the cluster's table (`Cluster.nodeTab`: per
+  node id a ghost map, allocated with the cluster, whose one persistent entry `StartNode` writes:
+  the names of the node's `dlm`, `cap`, `ccq`, `cam`, `nodeTabOk`): `nodeDriver`, `nodeConfig`,
+  `deliveredLogLb` each name raft's node (`isNode`, one id per location, `isNode_id_agree`) and its
+  entry; `nodeCfg` and `dlvLb` read only those names (`nodeCfg_names`, `dlvLb_names`). So the
+  configuration view (`nodeCfg`) is apart from the `Ready` loop's token, as the drafter's
+  implementation note asks.
+- *`nodeDriver`* keeps the committed log delivered (`isCommittedLogLb`, for
+  `deliveredLogLb_committed` without a fancy update), a static node's certificate link and
+  `nodeCfg` (as before), a dynamic node's table entry and the witness of its hard state
+  (`hsCommitted`, from `readyData`'s `hsWit` at each `Ready`, for
+  `nodeDriver_hardStateCommitted`).
+- *`committedAtTerm`* is raft's `commitWit` with the committed log of its index as the client
+  knows it; `commitWit_len` shows the witness's committed prefix is that long (`commitJ`: the
+  bootstrap log's term at the index, or a commit fact's `cqAt`).
+- *`snapshotCert`* also records raft's snapshot mode (`reNoSnap = false`): a dynamic cluster's
+  `Ready` with a snapshot is refuted by its certificate (`readySnap_dynamic`).
+
+**Changed from the draft** (each the closest true statement):
+1. `nodeDriver_hardStateCommitted` takes `isDynamicCluster` in place of "no snapshot loan out"
+   (Q9): after a snapshot `Ready`'s `Advance` the loop holds the log up to the snapshot, which
+   raft's witness (taken at the `Ready`, of the log before it) does not bound.
+2. `dynamicCluster_alloc_empty`, `nodeDynamicRestartBoot`, `RestartNode.dynamicSpec` dropped (Q5):
+   raft allocates its no-snapshot mode only with a bootstrap log (`ownRaftGhost_alloc_core`'s
+   `Hns`), and a dynamic node takes no `MsgSnap` (`snapIn`), so an empty dynamic cluster outside
+   the no-snapshot mode would break `stepIn_intro` for a `MsgSnap`. The server starts with
+   `StartNode`.
+3. `cluster_alloc_static` takes no `transfer` (proposed change 2 made for `cluster_alloc` only):
+   the no-transfer mode also needs a bootstrap log (`Hnx`).
+4. `sentMsg_replaceSnapshot` takes the committed log `l` up to the new snapshot, its last term the
+   snapshot's: a certificate does not fix the snapshot's term (`storageCert_registerAny` certifies
+   it at every term), and raft's `isMessage_snap_recontent` needs the entry at the index.
+5. Proposed change 3 made as `sentMsg γ N src st` (with `sentMsg_appFrom : sentMsg γ N src st ⊢
+   ⌜AppFrom src st⌝`), `readyRest γ N id ...`, and `node.readyRecv.spec` taking `isNode n γ N id`
+   (the loop's token does not name the node's id). Proposed change 1 as drafted.
+
+---
+
+## etcd's server on raft's node API (2026-10-27 · branch `server-port`; in progress)
+
+**What:** the server's raft-facing proofs ported off raft's internals onto the node API
+(`NodeApiDraft.lean`), module by module (`notes/STATUS.md`, "etcd's server on raft's node API: the
+port").
+
+**The server's two logs.** The node API gives the client only its requested entries exclusively
+(`ownCommittedOps`) and the committed log, fillers included, as lower bounds (`isCommittedLogLb`);
+raft commits its fillers without the client. The server's apply side reads the real log (its
+indices are the consistent and applied indices): `srvRLogLb γ L` is the API's lower bound of
+`pre ++ L`, the indices consecutive. The KV invariant's log (`srvRLog`, the linearization's) is the
+log of **requested entries** only, each at the index it would have without the fillers: half of a
+mono list whose other half the server's log invariant (`srvLogInv`, `SrvRaftLog.lean`) holds with
+`ownCommittedOps`. The KV model reads only the requested entries above the start's consistent
+index (`kvModel_eqv`, with the KV invariant's `c0 ≤ ai0`), so both logs give the same KV state.
+Alternatives considered: a client-owned full log (needs a standing filler update from raft: the
+API dropped it on purpose); requested entries everywhere (the apply thread's indices are real).
+
+**Registries the server keeps itself** (raft kept them until then; the API's updates are atomic
+only, `COMM True`): the proposals' (`props`: data ↦ result predicate and one-shot token, by the
+server's fresh token; `fired`: data ↦ the log before its entry, with the result), from which
+`srvPropWits` reads a proposal's result at any committed log holding its entry, through the
+result predicate's invariance under "same requested entries" (`srvQInv`, a new conjunct of
+`srvPropArg`/`srvReadAu`, proved for the server's predicates: `kv_qinv`, `reqPropOk_qinv`,
+`readQs_qinv`); the reads (`pend`): a read context's update fires the read at the moment it takes
+effect and registers it; every later requested entry fires the registered reads again
+(`srvPropAu_api`, one later credit from the proposer: `raftPropose` takes `£ 1`), so `srvReadWit`
+gives a read's result at every committed log past its index, as raft's registry did. The read
+contexts' tokens and `ownReadCtxs` are in the read contexts' mint (`srvRdCtxInv`).
+
+**Snapshots.** The server's clusters take none: a static cluster is allocated with `snapOk := False`
+(no snapshot's data is vouched for), a dynamic one is in raft's no-snapshot mode. So a snapshot
+`Ready` (`srv_readySnap_none`) and a `MsgSnap` (`srv_sentMsg_notSnap`, with the draft's
+`sentMsg_snapshot`) are refuted, and the server's snapshot paths (D22: `rnReadySnap`, `rnApSnap`,
+`rnSnapMsg`, `rnRtOk`'s commit witness) are unreachable: their predicates are `False`/`True`.
+
+**Draft items added** (sealed, `sorry`, for the raft side): `isCommittedLogLb_length` (the next
+index fits), `readCtxAfter`/`readCtx_commit_after`/`readStateOk_after` (a read state's index is
+past what was committed before its context: etcd's read-index guarantee in indices),
+`noConfChangeV2`/`noConfChangeV2_filler`/`noConfChangeV2_alloc` (no `ConfChangeV2` filler: etcd
+panics on one), `readyFits`/`readyFits_alloc`/`readyRest_fits` (`MemoryStorage.Append`'s `2^61`
+bound, from raft's time receipts), `isReadyChan_recvAu` (receiving a `Ready` in a `select`),
+`sentMsg_snapshot`. Proved: `readCredits_timeless`, `ccShrink_addVoter` (moved from the server),
+and instance-free copies of laws the server uses in modules without raft's `Assumptions`
+(`isCommittedLogLb_mono'`/`_agree'`, `ownCommittedOps_lb_prefix'`, `readStateOk_used'`,
+`readCredits_split'`, `readCredit_eq'`).
+
+**Proposed changes to existing statements:** the API's laws take `[StorageModel GF]` and raft's
+`Assumptions` they do not use (the section's variables): `omit` them, and the primed copies go;
+`cluster_alloc`/`dynamicCluster_alloc` give `noConfChangeV2` (with `ProposeConfChange` then v1
+only) and `readyFits` (under `receiptBound GF + |boot| ≤ 2^61`), so the two `_alloc` placeholders
+go (`noConfChangeV2_alloc` as stated is not sound for a cluster whose clients proposed a
+`ConfChangeV2` before).
+
+**Later in the port (2026-10-27):**
+- *Network.* The payload `srvNet γ` is the API's: `P st = ∃ src, sentMsg γ.cl N src st`,
+  `O st = msgCredits γ.cl N st`; a message with no credit may be duplicated, its credits made anew
+  (`msgCredits_none`, proved from the implementation). The receiver's `Step` takes `stepIn`; the
+  API's `stepIn_intro` refuses a `MsgPreVote` (raft's `netP` takes one only in a cluster started from
+  a bootstrap log), which etcd sends (`PreVote` is its default): the draft's `bootedCluster`
+  (sealed, defined as raft's `reBoot ≠ []`) with `nodeBoot_booted`/`nodeDynamicBoot_booted`, and
+  `stepIn_intro_booted` (also any context for a forwarded `MsgProp`). `srvClusterOk` carries
+  `bootedCluster`. Proposed change: `stepIn_intro` with these premises.
+- *Construction.* `NewServer.spec` is over the server's `SrvRaft` (its `reg` the `MemoryStorage`
+  registry: the spec's `MemStorReg` is `⟨γ.reg⟩`), static clusters only (`γ.dyn = false`, as raft's
+  static mode before), with the node's boot token and the server's raft invariant from the cluster's
+  allocation (`srvClusterBoot_alloc`: `cluster_alloc` with leader transfer off and `snapOk := False`,
+  `srvLogInv_alloc`, the companions, `kvInv_alloc_boot` at the server's boot log). A static
+  storage's certificate link (`StartNode`'s) comes from `NewMemoryStorage`'s registry authority,
+  which `bootOk` now hands (`memCertAuth`, a strengthening of `bootstrap`'s contract). `bootOk`
+  takes the peers' contexts as a parameter and bounds the peers below `2^62` (strictly: the
+  membership's validity). The node API's linked results enter the server's `Link.lean` through
+  `NodeApiLink.lean` (`srvApi_wp_*`, at `srvStor γr` for every `γr`).
+- *Deleted, raft internals:* the merged-snapshot sender's branch (`SnapSendBundle.lean`,
+  `snapBranch_send`; the branch is dead), `srvRLogLb_dlv`, raft's allocation continuation and
+  standing update for its own entries (`srvBootClient*`, `srvRaftBoot*_alloc`, `kv_noop_au_on`,
+  `srvNoopAu_to_noopAu_of`).
 
 ## Method-set facts are theorems of goose's method sets
 
@@ -23737,6 +24043,54 @@ function results (`2b17d5f09`: every function's results are variables, every `re
 into them), which changes every translated function and so every proof that symbolically executes
 one (about 2700 files here; Perennial adjusted 65 modules). `6b58510f9` is the last `lean` head
 before that merge and has method sets. Moving to the head is its own task.
+
+
+## The server port's draft items, proved; fillers are empty normal entries (2026-10-27 · branch `raft-api`)
+
+(Completes "etcd's server on raft's node API": its draft additions to `NodeApiDraft.lean`, sealed
+over the implementation, proved; its proposed changes applied.)
+
+**Fillers.** `noConfChangeV2_alloc` ("a static cluster may renounce `ConfChangeV2` proposals") was
+not sound as drafted, and nothing weaker of the kind was provable: the client's renunciation is no
+fact raft's ghost state can see. A committed type-2 filler was possible in raft's proof for one
+reason only: a client's empty `ConfChangeV2` (bytes `[]`), a filler as defined then, whose
+`propDataIs none` is pure (`Filler ∧ CCDecodes`), so anyone may have proposed it; the opaque
+`ccDecodeV2` leaves open that `[]` decodes (it does: protobuf's empty message). Raft itself never
+appends one: its auto-leave entry (`raft.go:742`) is dead in the proof (`raft.appliedTo`'s premise
+`c.autoLeave = true → s.role ≠ .leader`), and the constructions of `propDataIs γ e none` are the new
+leader's entry, `PropRepl`'s zero entry and an empty `Propose`, all of type `0`. So the decision:
+**a filler is an empty normal entry** (`Filler ty d := d = [] ∧ ty = 0`, raft's `Protocol/Ghost.lean`;
+`LogEntry.isFiller` the same), and an empty `ConfChangeV2` is a tracked proposal like any conf
+change, its `ProposeConfChange` update firing when it commits. The law the server needed is then
+pure and unconditional, `LogEntry.isFiller_normal`; `noConfChangeV2` and its `_alloc`/`_filler`
+retire. No trust-base change (no fact about `ccDecodeV2` needed). Considered: a raft-level flag
+recording "no type-2 filler" in `propDataIs none` (a new `RaftNames` field and a premise on
+`ProposeConfChange`): more machinery for a strictly weaker API.
+
+**Receipt bounds.** `isCommittedLogLb_length` (the next index fits `2^64`) is not provable as
+drafted: committed entries are bounded only by the time receipts past the bootstrap log
+(`index < receiptBound + |boot|`), and `receiptBound ≤ 2^64 - 2` with up to `2^61` bootstrap entries
+does not bound the next index. So it takes `readyFits` (sealed: `receiptBound GF + bootLen ≤ 2^61`,
+which `cluster_alloc`/`dynamicCluster_alloc` now give under that premise, retiring
+`readyFits_alloc`, whose free `nb` was a placeholder). The bound reaches the client's predicates
+through raft's updates: `noopAu`'s and `propAu1`'s commits carry the entry's receipt bound (the
+firing site has the entry's record, `isEntryR_receipt`), the adapter's invariant keeps the full
+log under it, `isCommittedLogLb` (nonempty) carries it, and `readyRest`'s `Lx` carries it
+(`lastRec_receipt` in `readyRecv`), whence `readyRest_fits`.
+
+**Read contexts.** `ctxs` maps a context to `(γq, l0)`, `l0` the committed log the client knew when
+committing it (`readCtx_commit_after`; `readCtx_commit` records `[]`). The deposit in `ReadIndex`
+happens after, at raft's committed log, which extends `l0`; `readKey` records the comparison, and
+`readStateOk` carries `l0.length ≤ idx`, so `readStateOk_after` is pure.
+
+**Others.** `sentMsg` carries a `MsgSnap`'s `snapshotCert` (made in `readyRecv`, where the
+invariants can be opened; `sentMsg_replaceSnapshot` has the new one), so `sentMsg_snapshot` is pure.
+`isReadyChan_recvAu` takes the driver token before naming the channel (its names are the token's
+node names, which `isNode` does not fix), and its post-processing runs under a fancy update after
+the commit (`recvAu_wand_fupd`, a local lemma; `notes/perennial-changes.md`). `stepIn_intro` takes
+`⌜¬ MsgPreVote⌝ ∨ bootedCluster γ` and no premise on a forwarded proposal's context (a proposal's
+abstraction ignores it); `stepIn_intro_booted` retires. The laws free of `[StorageModel GF]` and
+raft's `Assumptions` omit them; the primed copies retire.
 
 ## E3r of the auth plan: `start` with auth on; the read side generic in the deposits' state function (2026-10-27 · `notes/auth-plan.md`, E3q's first left item)
 

@@ -508,6 +508,51 @@ theorem entryShapeOn_of_entryShape (m : EntryModel) (h : entryShape m) :
   · exact Or.inl h
   · exact Or.inr ⟨rq, hd, hid, Or.inl hs⟩
 
+/-! ### The mode-`on` model reads only the requested entries (2026-10-27) -/
+
+/-- **A requested entry's effect** on the mode-`on` model's state, above the consistent index. -/
+def kvOpOn (ch : apply.Chain) (s : auth.AuthState × mvcc.Log) (x : Draft.LogEntry) :
+    auth.AuthState × mvcc.Log :=
+  kvEntryOn (W64 0) ch s ⟨x.term, W64 1, x.type, x.data⟩
+
+theorem kvEntryOn_above (c₀ : w64) (ch : apply.Chain) (s : auth.AuthState × mvcc.Log)
+    (m : EntryModel) (h : uint.Z c₀ < uint.Z m.index) :
+    kvEntryOn c₀ ch s m = kvOpOn ch s m.toLE := by
+  have h1 : decide (uint.Z c₀ < uint.Z m.index) = true := decide_eq_true h
+  have h2 : uint.Z (W64 0) < uint.Z (W64 1) := by decide
+  have h3 : decide (uint.Z (W64 0) < uint.Z (W64 1)) = true := by decide
+  unfold kvOpOn kvEntryOn kvEntry EntryModel.toLE
+  simp only [h, h2, h1, h3, true_and]
+
+theorem kvEntryOn_filler (c₀ : w64) (ch : apply.Chain) (s : auth.AuthState × mvcc.Log)
+    (m : EntryModel) (hf : m.toLE.isFiller) : kvEntryOn c₀ ch s m = s := by
+  obtain ⟨hd, ht⟩ := hf
+  simp only [EntryModel.toLE] at hd ht
+  unfold kvEntryOn kvEntry
+  simp [hd]
+
+theorem kvRaftOfOn_ops (c₀ : w64) (ch : apply.Chain) :
+    ∀ (A : List EntryModel) (s : auth.AuthState × mvcc.Log),
+      (∀ m ∈ A, uint.Z c₀ < uint.Z m.index) →
+      kvRaftOfOn c₀ ch s A = (Draft.opsOf (A.map EntryModel.toLE)).foldl (kvOpOn ch) s
+  | [], _, _ => rfl
+  | m :: A, s, h => by
+    have hA : ∀ m' ∈ A, uint.Z c₀ < uint.Z m'.index := fun m' hm' => h m' (List.mem_cons_of_mem _ hm')
+    unfold kvRaftOfOn
+    rw [List.foldl_cons]
+    by_cases hf : m.toLE.isFiller
+    · rw [kvEntryOn_filler c₀ ch s m hf]
+      have : Draft.opsOf ((m :: A).map EntryModel.toLE) = Draft.opsOf (A.map EntryModel.toLE) := by
+        simp [Draft.opsOf, hf]
+      rw [this]
+      exact kvRaftOfOn_ops c₀ ch A s hA
+    · rw [kvEntryOn_above c₀ ch s m (h m (List.mem_cons_self ..))]
+      have : Draft.opsOf ((m :: A).map EntryModel.toLE) =
+          m.toLE :: Draft.opsOf (A.map EntryModel.toLE) := by
+        simp [Draft.opsOf, hf]
+      rw [this, List.foldl_cons]
+      exact kvRaftOfOn_ops c₀ ch A _ hA
+
 end pure2
 
 section defs
@@ -524,19 +569,19 @@ def kvModelOn (γk : KVNames) (st₀ : auth.AuthState) (L : List EntryModel) : m
 theorem kvModelOn_nil (γk : KVNames) (st₀ : auth.AuthState) : kvModelOn γk st₀ [] = γk.log0 := rfl
 
 /-- **The workload facts of the committed log in the mode `on`** (`kvWork` with `logShapeOn`). -/
-def kvWorkOn (cfg : RaftNames) (γk : KVNames) (L : List EntryModel) : IProp GF :=
+def kvWorkOn (cfg : SrvRaft) (γk : KVNames) (L : List EntryModel) : IProp GF :=
   iprop(⌜logShapeOn L ∧ ccLogOk cfg L⌝ ∗ [∗list] m ∈ L, entryClaim γk.ids m)
 
-instance kvWorkOn_persistent (cfg : RaftNames) (γk : KVNames) (L : List EntryModel) :
+instance kvWorkOn_persistent (cfg : SrvRaft) (γk : KVNames) (L : List EntryModel) :
     Persistent (kvWorkOn (GF := GF) cfg γk L) := by
   unfold kvWorkOn; infer_instance
 
-instance kvWorkOn_timeless (cfg : RaftNames) (γk : KVNames) (L : List EntryModel) :
+instance kvWorkOn_timeless (cfg : SrvRaft) (γk : KVNames) (L : List EntryModel) :
     Timeless (kvWorkOn (GF := GF) cfg γk L) := by
   unfold kvWorkOn; infer_instance
 
 /-- `kvWork` gives `kvWorkOn`. -/
-theorem kvWorkOn_of_kvWork (cfg : RaftNames) (γk : KVNames) (L : List EntryModel) :
+theorem kvWorkOn_of_kvWork (cfg : SrvRaft) (γk : KVNames) (L : List EntryModel) :
     kvWork (GF := GF) cfg γk L ⊢ kvWorkOn cfg γk L := by
   unfold kvWork kvWorkOn
   iintro ⟨%h, #H⟩
@@ -554,7 +599,7 @@ def kvInvOn (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState) : IP
   inv kvN iprop(∃ L : List EntryModel,
     srvRLog γ L ∗ ghostVar γk.st (1 : Qp).half (kvStateOf (kvModelOn γk st₀ L)) ∗
     ⌜plainLogOn L ∧ detLogOn γk.c0 γk.ch0 (st₀, γk.log0) L ∧ srvIdxOkW γ.ai0 L ∧
-      uint.Z γk.c0 ≤ uint.Z γ.ai0 + L.length ∧
+      uint.Z γk.c0 ≤ uint.Z γ.ai0 ∧
       γk.ch0 = apply.alarmChain true false false ∧ γk.log0 ≠ []⌝ ∗ kvWorkOn γ.raft γk L)
 
 instance kvInvOn_persistent (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState) :
@@ -644,7 +689,7 @@ theorem kvInvOn_alloc (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthS
   · iexact Hσ
   isplitr
   · ipureintro
-    refine ⟨fun m hm => by simp at hm, detLogOn_nil _ _ _, ?_, by simpa using hc, hch, hlog⟩
+    refine ⟨fun m hm => by simp at hm, detLogOn_nil _ _ _, ?_, hc, hch, hlog⟩
     intro n m hm; simp at hm
   · iunfold kvWorkOn
     isplitr
@@ -652,6 +697,65 @@ theorem kvInvOn_alloc (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthS
       exact ⟨fun m hm => by simp at hm, fun m hm => by simp at hm⟩
     · iapply BigSepL.bigSepL_nil.2
       iempintro
+
+/-- **The mode-`on` model of two logs with the same requested entries** is the same. -/
+theorem kvRaftOfOn_eqv (γ : ServerRaftNames) (c₀ : w64) (ch : apply.Chain)
+    (s : auth.AuthState × mvcc.Log) (A B : List EntryModel) (h : srvEqv γ A B)
+    (hc : uint.Z c₀ ≤ uint.Z γ.ai0) : kvRaftOfOn c₀ ch s A = kvRaftOfOn c₀ ch s B := by
+  obtain ⟨hA, hB, hops⟩ := h
+  rw [kvRaftOfOn_ops c₀ ch A s (srvIdxOkW_above _ _ A hA hc),
+    kvRaftOfOn_ops c₀ ch B s (srvIdxOkW_above _ _ B hB hc), hops]
+
+/-- **A lower bound's mode-`on` model is a prefix's** of the server's log of requested entries
+(2026-10-27): the requested entries of a committed log `A` are a prefix of the server's `L`. -/
+theorem kvRaftOfOn_of_lb (γ : ServerRaftNames) (c₀ : w64) (ch : apply.Chain)
+    (s₀ : auth.AuthState × mvcc.Log) (A L : List EntryModel) (hc : uint.Z c₀ ≤ uint.Z γ.ai0)
+    (hA : srvIdxOkW γ.ai0 A) (hL : srvIdxOkW γ.ai0 L) (hnf : ∀ m ∈ L, ¬ m.toLE.isFiller)
+    (hp : Draft.opsOf (A.map EntryModel.toLE) <+: L.map EntryModel.toLE) :
+    ∃ L', L' <+: L ∧ kvRaftOfOn c₀ ch s₀ A = kvRaftOfOn c₀ ch s₀ L' := by
+  refine ⟨L.take (Draft.opsOf (A.map EntryModel.toLE)).length, List.take_prefix _ _, ?_⟩
+  apply kvRaftOfOn_eqv γ c₀ ch s₀ _ _ ⟨hA, srvIdxOkW_prefix _ _ L hL (List.take_prefix _ _), ?_⟩ hc
+  obtain ⟨r, hr⟩ := hp
+  rw [opsOf_nofill ((L.take (Draft.opsOf (A.map EntryModel.toLE)).length).map EntryModel.toLE)
+    (fun x hx => by
+      obtain ⟨y, hy, rfl⟩ := List.mem_map.1 hx
+      exact hnf y (List.mem_of_mem_take hy)), List.map_take, ← hr, List.take_left' rfl]
+
+/-- **Determinacy on a committed log** from the server's log of requested entries (2026-10-27): a
+committed log's entries are the server's (at the same model state before them) or fillers (no
+request, determinate). -/
+theorem detLogOn_transfer (γ : ServerRaftNames) (c₀ : w64) (ch : apply.Chain)
+    (s₀ : auth.AuthState × mvcc.Log) (B L : List EntryModel) (hc : uint.Z c₀ ≤ uint.Z γ.ai0)
+    (hB : srvIdxOkW γ.ai0 B) (hL : srvIdxOkW γ.ai0 L) (hnf : ∀ m ∈ L, ¬ m.toLE.isFiller)
+    (hp : Draft.opsOf (B.map EntryModel.toLE) <+: L.map EntryModel.toLE)
+    (h : detLogOn c₀ ch s₀ L) : detLogOn c₀ ch s₀ B := by
+  intro i m hm
+  by_cases hf : m.toLE.isFiller
+  · intro _ hd; exact absurd hf.1 hd
+  obtain ⟨m', hm', hme, htk⟩ := srv_pos B L i m hm hf hp
+  have hdet := h _ m' hm'
+  have hBi : srvIdxOkW γ.ai0 (B.take i) := srvIdxOkW_prefix _ _ B hB (List.take_prefix _ _)
+  have hLj : srvIdxOkW γ.ai0 (L.take (Draft.opsOf ((B.take i).map EntryModel.toLE)).length) :=
+    srvIdxOkW_prefix _ _ L hL (List.take_prefix _ _)
+  have hst : kvRaftOfOn c₀ ch s₀ (B.take i) =
+      kvRaftOfOn c₀ ch s₀ (L.take (Draft.opsOf ((B.take i).map EntryModel.toLE)).length) := by
+    apply kvRaftOfOn_eqv γ c₀ ch s₀ _ _ ⟨hBi, hLj, ?_⟩ hc
+    rw [opsOf_nofill ((L.take (Draft.opsOf ((B.take i).map EntryModel.toLE)).length).map
+      EntryModel.toLE) (fun x hx => by
+        obtain ⟨y, hy, rfl⟩ := List.mem_map.1 hx
+        exact hnf y (List.mem_of_mem_take hy)), htk]
+  rw [hst]
+  have h1 := congrArg Draft.LogEntry.type hme
+  have h2 := congrArg Draft.LogEntry.data hme
+  simp only [EntryModel.toLE] at h1 h2
+  intro ht hd rq hdec
+  have hd' := hdet (h1 ▸ ht) (h2 ▸ hd) rq (h2 ▸ hdec)
+  have hmi : uint.Z c₀ < uint.Z m.index := by
+    obtain ⟨n, hn⟩ : ∃ n, B[n]? = some m := ⟨i, hm⟩
+    have := (hB n m hn).1; omega
+  have hm'i : uint.Z c₀ < uint.Z m'.index := by
+    have := (hL _ m' hm').1; omega
+  exact ⟨fun _ ha => hd'.1 hm'i ha, hd'.2⟩
 
 /-- **The committed log is a mode-`on` log, determinate, and the start chain has auth on** (the
 mode-`on` invariant's; `kv_log_plain`'s counterpart): what the apply thread reads of a committed
@@ -666,12 +770,20 @@ theorem kv_log_plain_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.Aut
   iinv Hinv with >Hi Hclose
   icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw⟩
   imod srvRLog_lb γ (⊤ \ ↑kvN) (mask_ndot_ne' nroot "raft_commit" "server_kv" (by decide))
-    L B $$ Hr HL HB with ⟨HL, -, %Hp⟩
+    L B $$ Hr HL HB with ⟨HL, %Hp⟩
+  ihave %HBi := srvRLogLb_idx γ B $$ HB
   imod Hclose $$ [HL Hσ] with -
   · inext; iexists L; iframe HL Hσ Hw; ipureintro; exact Hok
   imodintro
   ipureintro
-  exact ⟨fun m hm => Hok.1 m (Hp.subset hm), detLogOn_prefix _ _ _ B L Hp Hok.2.1, Hok.2.2.2.2.1⟩
+  refine ⟨srv_entry_transfer γ.ai0 B L plainEntryOn ?_ ?_ HBi Hp.2.2 Hok.1,
+    detLogOn_transfer γ _ _ _ B L Hok.2.2.2.1 HBi Hp.1 Hp.2.1 Hp.2.2 Hok.2.1, Hok.2.2.2.2.1⟩
+  · intro m m' he h ht hd rq hdec
+    have h1 := congrArg Draft.LogEntry.type he
+    have h2 := congrArg Draft.LogEntry.data he
+    simp only [EntryModel.toLE] at h1 h2
+    exact h (h1 ▸ ht) (h2 ▸ hd) rq (h2 ▸ hdec)
+  · intro m _ hd _ h; exact absurd hd h
 
 end lemmas
 

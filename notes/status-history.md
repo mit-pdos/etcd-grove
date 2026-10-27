@@ -18303,3 +18303,19 @@ report's S3 remainder with its S5: `γ.cur` a ghost variable of the physical rec
 facts out of `isStore`, the transactions at `γ.withPhys π`, the readers' backend tokens pooled,
 the writer's fragment `hookIs` non-persistent), 60-80 files; until it, `Restore` cannot be stated
 as a true axiom (the objects and the backend's names are still fixed).
+
+## Raft's node API for etcd's server, drafted (2026-10-27, branch `server-port`)
+
+Statements only, for review before porting the server (`notes/decisions.md`, "Raft's node API for
+etcd's server (draft)": the inventory of what the server uses of raft's tree, the additions, five
+proposed changes to existing statements, nine open questions). `NodeApiDraft.lean`'s new section
+"What etcd's server needs": `Membership` (`simple`, sealed `Valid`, sealed `applyChange` with laws for
+etcd's v1 changes), `confStateIs`, `LogEntry.isConfChange`, `NoConfChangeIn`, `ConfChangeDecoder`,
+`ConfigView`; `isDynamicCluster`, `dynamicCluster_alloc(_empty)`, `nodeDynamicBoot`,
+`nodeDynamicRestartBoot`, `nodeConfig`, `deliveredLogLb` (and its laws); `leaderTransferOff`,
+`sentMsg_transferOff`, `sentMsg_dynamic_notSnapshot`, `readySnap_dynamic`; `committedAtTerm`,
+`nodeDriver_hardStateCommitted`; `sentMsg_replaceSnapshot`, `msgCredits_snapshot`; the specs
+`node.ApplyConfChange.dynamicSpec`, `node.Advance.dynamicSpec`, `StartNode.dynamicSpec`,
+`RestartNode.dynamicSpec`, `node.ReportUnreachable.spec`, `node.ReportSnapshot.spec`, with `sorry`
+placeholders (`node.wp_ApplyConfChange_dynamic`, ...). Nothing uses them yet; the existing statements
+and their proofs are unchanged (`interface/.../NodeApiDraft.txt` regenerated).

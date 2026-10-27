@@ -589,11 +589,22 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- The conf change `o` is one the cluster admits (2026-10-15, stage N): the bytes it is
-marshaled to satisfy `γ.reCCOk` (`RaftNames.reCCOk`; always, for a cluster that admits every
-change). -/
-def CCAllowed (γ : RaftNames) (o : ConfChangeIM) : Prop :=
-  ∀ bs, MarshalsConfChange (some o) bs → γ.reCCOk (confChangeEntryType (some o)) bs
+/-- **What `ProposeConfChange` takes for the conf change `o`** (2026-10-27; until then
+`CCAllowed`, that the cluster's policy `reCCOk` admitted the change, whose entry then fired the
+standing `noopAu`). A conf-change entry is a tracked proposal like a normal one, registered under
+its key `entKey ty bs` (`ty` its type, `bs` its bytes), so the caller hands in what `node.Propose`
+takes for that key: the key registered with a result predicate `Q` (`propIs`) and the update
+`propAu1` for it, which raft deposits with a ticket that travels with the proposal and fires at
+most once, when the entry commits (never if a leader refuses the change: its replacement, an empty
+normal entry, is a filler). The bytes are known only once `o` is marshaled (`MarshalsConfChange`
+is a relation), so this is a ghost step the proposal takes then, at mask `⊤` (the caller may
+register the key there, `prop_register`); for bytes that make the entry a filler (`Filler`: an
+empty `ConfChangeV2`) the caller may give nothing. -/
+def ccPropArg (γ : RaftNames) (o : ConfChangeIM) : IProp GF :=
+  iprop(∀ bs, ⌜MarshalsConfChange (some o) bs⌝ ={⊤}=∗
+    ⌜Filler (confChangeEntryType (some o)) bs⌝ ∨
+    ∃ Q : List EntryM → IProp GF, propIs γ (entKey (confChangeEntryType (some o)) bs) Q ∗
+      propAu1 γ (entKey (confChangeEntryType (some o)) bs) Q)
 
 end
 
