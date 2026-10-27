@@ -47,7 +47,6 @@ abbrev Main.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [k8s_io.apiserver.pkg.storage.etcd3.Assumptions]
     [k8s_io.apimachinery.pkg.runtime.Assumptions] [k8s_io.apimachinery.pkg.runtime.schema.Assumptions]
     [k8s_io.apiserver.pkg.storage.Assumptions] [k8s_io.apiserver.pkg.storage.value.Assumptions]
-    [ErrorStringLeaf] [context.ErrorStringIsError]
     (N : Nat) (id : w64) (bootLog : List EntryM)
     (clients ops : w64),
   putget.BootFacts id bootLog →

@@ -204,8 +204,12 @@ abbrev PerRPCCredentials [GooseExts] : Type := GoInterface
 
 class PerRPCCredentials.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq PerRPCCredentials.ty PerRPCCredentials.underlying
+  method_set : go.MethodSetIs PerRPCCredentials.ty [(go!"GetRequestMetadata", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.SliceType go.string)] true [(go.GoType.MapType go.string go.string), go.error]))), (go!"RequireTransportSecurity", (some (go.signature.Signature [] false [go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PerRPCCredentials.ty) []
 
 attribute [instance] PerRPCCredentials.TypeAssumptions.underlying
+  PerRPCCredentials.TypeAssumptions.method_set
+  PerRPCCredentials.TypeAssumptions.ptr_method_set
 
 abbrev SecurityLevel [GooseExts] : Type := w64
 
@@ -214,8 +218,12 @@ abbrev SecurityLevel [GooseExts] : Type := w64
 
 class SecurityLevel.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq SecurityLevel.ty SecurityLevel.underlying
+  method_set : go.MethodSetIs SecurityLevel.ty [(go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SecurityLevel.ty) [(go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] SecurityLevel.TypeAssumptions.underlying
+  SecurityLevel.TypeAssumptions.method_set
+  SecurityLevel.TypeAssumptions.ptr_method_set
 
 structure CommonAuthInfo [GooseExts] where
   mk ::
@@ -242,11 +250,15 @@ class CommonAuthInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalConte
   underlying : go.UnderlyingDirectedEq CommonAuthInfo.ty CommonAuthInfo.underlying
   get_SecurityLevel : ∀ (x : CommonAuthInfo), go.IsGoStepPureDetTagged under (StructFieldGet CommonAuthInfo.underlying go!"SecurityLevel") #x (Val #(x.SecurityLevel'))
   set_SecurityLevel : ∀ (x : CommonAuthInfo) (y : SecurityLevel), go.IsGoStepPureDetTagged under (StructFieldSet CommonAuthInfo.underlying go!"SecurityLevel") (PairV #x #y) (Val #(({ x with SecurityLevel' := y } : CommonAuthInfo)))
+  method_set : go.MethodSetIs CommonAuthInfo.ty [(go!"GetCommonAuthInfo", (some (go.signature.Signature [] false [CommonAuthInfo.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CommonAuthInfo.ty) [(go!"GetCommonAuthInfo", (some (go.signature.Signature [] false [CommonAuthInfo.ty])))]
 
 attribute [instance] CommonAuthInfo.TypeAssumptions.type_repr
   CommonAuthInfo.TypeAssumptions.underlying
   CommonAuthInfo.TypeAssumptions.get_SecurityLevel
   CommonAuthInfo.TypeAssumptions.set_SecurityLevel
+  CommonAuthInfo.TypeAssumptions.method_set
+  CommonAuthInfo.TypeAssumptions.ptr_method_set
 
 structure ProtocolInfo [GooseExts] where
   mk ::
@@ -285,6 +297,8 @@ class ProtocolInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext
   set_SecurityVersion : ∀ (x : ProtocolInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ProtocolInfo.underlying go!"SecurityVersion") (PairV #x #y) (Val #(({ x with SecurityVersion' := y } : ProtocolInfo)))
   get_ServerName : ∀ (x : ProtocolInfo), go.IsGoStepPureDetTagged under (StructFieldGet ProtocolInfo.underlying go!"ServerName") #x (Val #(x.ServerName'))
   set_ServerName : ∀ (x : ProtocolInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ProtocolInfo.underlying go!"ServerName") (PairV #x #y) (Val #(({ x with ServerName' := y } : ProtocolInfo)))
+  method_set : go.MethodSetIs ProtocolInfo.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ProtocolInfo.ty) []
 
 attribute [instance] ProtocolInfo.TypeAssumptions.type_repr
   ProtocolInfo.TypeAssumptions.underlying
@@ -296,6 +310,8 @@ attribute [instance] ProtocolInfo.TypeAssumptions.type_repr
   ProtocolInfo.TypeAssumptions.set_SecurityVersion
   ProtocolInfo.TypeAssumptions.get_ServerName
   ProtocolInfo.TypeAssumptions.set_ServerName
+  ProtocolInfo.TypeAssumptions.method_set
+  ProtocolInfo.TypeAssumptions.ptr_method_set
 
 abbrev AuthInfo [GooseExts] : Type := GoInterface
 
@@ -304,8 +320,12 @@ abbrev AuthInfo [GooseExts] : Type := GoInterface
 
 class AuthInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq AuthInfo.ty AuthInfo.underlying
+  method_set : go.MethodSetIs AuthInfo.ty [(go!"AuthType", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType AuthInfo.ty) []
 
 attribute [instance] AuthInfo.TypeAssumptions.underlying
+  AuthInfo.TypeAssumptions.method_set
+  AuthInfo.TypeAssumptions.ptr_method_set
 
 abbrev AuthorityValidator [GooseExts] : Type := GoInterface
 
@@ -314,8 +334,12 @@ abbrev AuthorityValidator [GooseExts] : Type := GoInterface
 
 class AuthorityValidator.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq AuthorityValidator.ty AuthorityValidator.underlying
+  method_set : go.MethodSetIs AuthorityValidator.ty [(go!"ValidateAuthority", (some (go.signature.Signature [go.string] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType AuthorityValidator.ty) []
 
 attribute [instance] AuthorityValidator.TypeAssumptions.underlying
+  AuthorityValidator.TypeAssumptions.method_set
+  AuthorityValidator.TypeAssumptions.ptr_method_set
 
 abbrev TransportCredentials [GooseExts] : Type := GoInterface
 
@@ -324,8 +348,12 @@ abbrev TransportCredentials [GooseExts] : Type := GoInterface
 
 class TransportCredentials.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq TransportCredentials.ty TransportCredentials.underlying
+  method_set : go.MethodSetIs TransportCredentials.ty [(go!"ClientHandshake", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.net.Conn.ty] false [_root_.Perennial.net.Conn.ty, AuthInfo.ty, go.error]))), (go!"Clone", (some (go.signature.Signature [] false [TransportCredentials.ty]))), (go!"Info", (some (go.signature.Signature [] false [ProtocolInfo.ty]))), (go!"OverrideServerName", (some (go.signature.Signature [go.string] false [go.error]))), (go!"ServerHandshake", (some (go.signature.Signature [_root_.Perennial.net.Conn.ty] false [_root_.Perennial.net.Conn.ty, AuthInfo.ty, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TransportCredentials.ty) []
 
 attribute [instance] TransportCredentials.TypeAssumptions.underlying
+  TransportCredentials.TypeAssumptions.method_set
+  TransportCredentials.TypeAssumptions.ptr_method_set
 
 abbrev Bundle [GooseExts] : Type := GoInterface
 
@@ -334,8 +362,12 @@ abbrev Bundle [GooseExts] : Type := GoInterface
 
 class Bundle.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Bundle.ty Bundle.underlying
+  method_set : go.MethodSetIs Bundle.ty [(go!"NewWithMode", (some (go.signature.Signature [go.string] false [Bundle.ty, go.error]))), (go!"PerRPCCredentials", (some (go.signature.Signature [] false [PerRPCCredentials.ty]))), (go!"TransportCredentials", (some (go.signature.Signature [] false [TransportCredentials.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Bundle.ty) []
 
 attribute [instance] Bundle.TypeAssumptions.underlying
+  Bundle.TypeAssumptions.method_set
+  Bundle.TypeAssumptions.ptr_method_set
 
 structure RequestInfo [GooseExts] where
   mk ::
@@ -366,6 +398,8 @@ class RequestInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   set_Method : ∀ (x : RequestInfo) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet RequestInfo.underlying go!"Method") (PairV #x #y) (Val #(({ x with Method' := y } : RequestInfo)))
   get_AuthInfo : ∀ (x : RequestInfo), go.IsGoStepPureDetTagged under (StructFieldGet RequestInfo.underlying go!"AuthInfo") #x (Val #(x.AuthInfo'))
   set_AuthInfo : ∀ (x : RequestInfo) (y : AuthInfo), go.IsGoStepPureDetTagged under (StructFieldSet RequestInfo.underlying go!"AuthInfo") (PairV #x #y) (Val #(({ x with AuthInfo' := y } : RequestInfo)))
+  method_set : go.MethodSetIs RequestInfo.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RequestInfo.ty) []
 
 attribute [instance] RequestInfo.TypeAssumptions.type_repr
   RequestInfo.TypeAssumptions.underlying
@@ -373,6 +407,8 @@ attribute [instance] RequestInfo.TypeAssumptions.type_repr
   RequestInfo.TypeAssumptions.set_Method
   RequestInfo.TypeAssumptions.get_AuthInfo
   RequestInfo.TypeAssumptions.set_AuthInfo
+  RequestInfo.TypeAssumptions.method_set
+  RequestInfo.TypeAssumptions.ptr_method_set
 
 structure requestInfoKey [GooseExts] where
   mk ::
@@ -396,9 +432,13 @@ noncomputable instance equals_unfold_requestInfoKey [GooseExts] [GoGlobalContext
 class requestInfoKey.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying requestInfoKey.underlying requestInfoKey
   underlying : go.UnderlyingDirectedEq requestInfoKey.ty requestInfoKey.underlying
+  method_set : go.MethodSetIs requestInfoKey.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType requestInfoKey.ty) []
 
 attribute [instance] requestInfoKey.TypeAssumptions.type_repr
   requestInfoKey.TypeAssumptions.underlying
+  requestInfoKey.TypeAssumptions.method_set
+  requestInfoKey.TypeAssumptions.ptr_method_set
 
 axiom ClientHandshakeInfo : Type
 axiom ClientHandshakeInfo.zero_val : ZeroVal ClientHandshakeInfo
@@ -408,10 +448,14 @@ class ClientHandshakeInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocal
   type_repr : go.TypeReprUnderlying ClientHandshakeInfo.underlying ClientHandshakeInfo
   underlying : go.UnderlyingDirectedEq ClientHandshakeInfo.ty ClientHandshakeInfo.underlying
   isUnderlying : go.IsUnderlying ClientHandshakeInfo.underlying ClientHandshakeInfo.underlying
+  method_set : go.MethodSetIs ClientHandshakeInfo.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ClientHandshakeInfo.ty) []
 
 attribute [instance] ClientHandshakeInfo.TypeAssumptions.type_repr
   ClientHandshakeInfo.TypeAssumptions.underlying
   ClientHandshakeInfo.TypeAssumptions.isUnderlying
+  ClientHandshakeInfo.TypeAssumptions.method_set
+  ClientHandshakeInfo.TypeAssumptions.ptr_method_set
 
 abbrev ChannelzSecurityInfo [GooseExts] : Type := GoInterface
 
@@ -420,18 +464,26 @@ abbrev ChannelzSecurityInfo [GooseExts] : Type := GoInterface
 
 class ChannelzSecurityInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ChannelzSecurityInfo.ty ChannelzSecurityInfo.underlying
+  method_set : go.MethodSetIs ChannelzSecurityInfo.ty [(go!"GetSecurityValue", (some (go.signature.Signature [] false [ChannelzSecurityValue.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ChannelzSecurityInfo.ty) []
 
 attribute [instance] ChannelzSecurityInfo.TypeAssumptions.underlying
+  ChannelzSecurityInfo.TypeAssumptions.method_set
+  ChannelzSecurityInfo.TypeAssumptions.ptr_method_set
 
 abbrev ChannelzSecurityValue [GooseExts] : Type := GoInterface
 
 @[reducible] noncomputable def ChannelzSecurityValue.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"isChannelzSecurityValue" (go.signature.Signature [] false []))])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"google.golang.org/grpc/credentials.isChannelzSecurityValue" (go.signature.Signature [] false []))])
 
 class ChannelzSecurityValue.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ChannelzSecurityValue.ty ChannelzSecurityValue.underlying
+  method_set : go.MethodSetIs ChannelzSecurityValue.ty [(go!"google.golang.org/grpc/credentials.isChannelzSecurityValue", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ChannelzSecurityValue.ty) []
 
 attribute [instance] ChannelzSecurityValue.TypeAssumptions.underlying
+  ChannelzSecurityValue.TypeAssumptions.method_set
+  ChannelzSecurityValue.TypeAssumptions.ptr_method_set
 
 axiom OtherChannelzSecurityValue : Type
 axiom OtherChannelzSecurityValue.zero_val : ZeroVal OtherChannelzSecurityValue
@@ -441,10 +493,14 @@ class OtherChannelzSecurityValue.TypeAssumptions [GooseExts] [GoGlobalContext] [
   type_repr : go.TypeReprUnderlying OtherChannelzSecurityValue.underlying OtherChannelzSecurityValue
   underlying : go.UnderlyingDirectedEq OtherChannelzSecurityValue.ty OtherChannelzSecurityValue.underlying
   isUnderlying : go.IsUnderlying OtherChannelzSecurityValue.underlying OtherChannelzSecurityValue.underlying
+  method_set : go.MethodSetIs OtherChannelzSecurityValue.ty [(go!"google.golang.org/grpc/credentials.isChannelzSecurityValue", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType OtherChannelzSecurityValue.ty) [(go!"google.golang.org/grpc/credentials.isChannelzSecurityValue", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] OtherChannelzSecurityValue.TypeAssumptions.type_repr
   OtherChannelzSecurityValue.TypeAssumptions.underlying
   OtherChannelzSecurityValue.TypeAssumptions.isUnderlying
+  OtherChannelzSecurityValue.TypeAssumptions.method_set
+  OtherChannelzSecurityValue.TypeAssumptions.ptr_method_set
 
 axiom TLSInfo : Type
 axiom TLSInfo.zero_val : ZeroVal TLSInfo
@@ -454,10 +510,14 @@ class TLSInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   type_repr : go.TypeReprUnderlying TLSInfo.underlying TLSInfo
   underlying : go.UnderlyingDirectedEq TLSInfo.ty TLSInfo.underlying
   isUnderlying : go.IsUnderlying TLSInfo.underlying TLSInfo.underlying
+  method_set : go.MethodSetIs TLSInfo.ty [(go!"AuthType", (some (go.signature.Signature [] false [go.string]))), (go!"GetCommonAuthInfo", (some (go.signature.Signature [] false [CommonAuthInfo.ty]))), (go!"GetSecurityValue", (some (go.signature.Signature [] false [ChannelzSecurityValue.ty]))), (go!"ValidateAuthority", (some (go.signature.Signature [go.string] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TLSInfo.ty) [(go!"AuthType", (some (go.signature.Signature [] false [go.string]))), (go!"GetCommonAuthInfo", (some (go.signature.Signature [] false [CommonAuthInfo.ty]))), (go!"GetSecurityValue", (some (go.signature.Signature [] false [ChannelzSecurityValue.ty]))), (go!"ValidateAuthority", (some (go.signature.Signature [go.string] false [go.error])))]
 
 attribute [instance] TLSInfo.TypeAssumptions.type_repr
   TLSInfo.TypeAssumptions.underlying
   TLSInfo.TypeAssumptions.isUnderlying
+  TLSInfo.TypeAssumptions.method_set
+  TLSInfo.TypeAssumptions.ptr_method_set
 
 axiom tlsCreds : Type
 axiom tlsCreds.zero_val : ZeroVal tlsCreds
@@ -467,10 +527,14 @@ class tlsCreds.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [G
   type_repr : go.TypeReprUnderlying tlsCreds.underlying tlsCreds
   underlying : go.UnderlyingDirectedEq tlsCreds.ty tlsCreds.underlying
   isUnderlying : go.IsUnderlying tlsCreds.underlying tlsCreds.underlying
+  method_set : go.MethodSetIs tlsCreds.ty [(go!"Info", (some (go.signature.Signature [] false [ProtocolInfo.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType tlsCreds.ty) [(go!"ClientHandshake", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, go.string, _root_.Perennial.net.Conn.ty] false [_root_.Perennial.net.Conn.ty, AuthInfo.ty, go.error]))), (go!"Clone", (some (go.signature.Signature [] false [TransportCredentials.ty]))), (go!"Info", (some (go.signature.Signature [] false [ProtocolInfo.ty]))), (go!"OverrideServerName", (some (go.signature.Signature [go.string] false [go.error]))), (go!"ServerHandshake", (some (go.signature.Signature [_root_.Perennial.net.Conn.ty] false [_root_.Perennial.net.Conn.ty, AuthInfo.ty, go.error])))]
 
 attribute [instance] tlsCreds.TypeAssumptions.type_repr
   tlsCreds.TypeAssumptions.underlying
   tlsCreds.TypeAssumptions.isUnderlying
+  tlsCreds.TypeAssumptions.method_set
+  tlsCreds.TypeAssumptions.ptr_method_set
 
 structure TLSChannelzSecurityValue [GooseExts] where
   mk ::
@@ -509,6 +573,8 @@ class TLSChannelzSecurityValue.TypeAssumptions [GooseExts] [GoGlobalContext] [Go
   set_LocalCertificate : ∀ (x : TLSChannelzSecurityValue) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet TLSChannelzSecurityValue.underlying go!"LocalCertificate") (PairV #x #y) (Val #(({ x with LocalCertificate' := y } : TLSChannelzSecurityValue)))
   get_RemoteCertificate : ∀ (x : TLSChannelzSecurityValue), go.IsGoStepPureDetTagged under (StructFieldGet TLSChannelzSecurityValue.underlying go!"RemoteCertificate") #x (Val #(x.RemoteCertificate'))
   set_RemoteCertificate : ∀ (x : TLSChannelzSecurityValue) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet TLSChannelzSecurityValue.underlying go!"RemoteCertificate") (PairV #x #y) (Val #(({ x with RemoteCertificate' := y } : TLSChannelzSecurityValue)))
+  method_set : go.MethodSetIs TLSChannelzSecurityValue.ty [(go!"google.golang.org/grpc/credentials.isChannelzSecurityValue", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TLSChannelzSecurityValue.ty) [(go!"google.golang.org/grpc/credentials.isChannelzSecurityValue", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] TLSChannelzSecurityValue.TypeAssumptions.type_repr
   TLSChannelzSecurityValue.TypeAssumptions.underlying
@@ -520,6 +586,8 @@ attribute [instance] TLSChannelzSecurityValue.TypeAssumptions.type_repr
   TLSChannelzSecurityValue.TypeAssumptions.set_LocalCertificate
   TLSChannelzSecurityValue.TypeAssumptions.get_RemoteCertificate
   TLSChannelzSecurityValue.TypeAssumptions.set_RemoteCertificate
+  TLSChannelzSecurityValue.TypeAssumptions.method_set
+  TLSChannelzSecurityValue.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   PerRPCCredentials_instance : PerRPCCredentials.TypeAssumptions

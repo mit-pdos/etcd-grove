@@ -75,9 +75,13 @@ noncomputable instance equals_unfold_NoUnkeyedLiterals [GooseExts] [GoGlobalCont
 class NoUnkeyedLiterals.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying NoUnkeyedLiterals.underlying NoUnkeyedLiterals
   underlying : go.UnderlyingDirectedEq NoUnkeyedLiterals.ty NoUnkeyedLiterals.underlying
+  method_set : go.MethodSetIs NoUnkeyedLiterals.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType NoUnkeyedLiterals.ty) []
 
 attribute [instance] NoUnkeyedLiterals.TypeAssumptions.type_repr
   NoUnkeyedLiterals.TypeAssumptions.underlying
+  NoUnkeyedLiterals.TypeAssumptions.method_set
+  NoUnkeyedLiterals.TypeAssumptions.ptr_method_set
 
 abbrev DoNotImplement [GooseExts] : Type := GoInterface
 
@@ -86,8 +90,12 @@ abbrev DoNotImplement [GooseExts] : Type := GoInterface
 
 class DoNotImplement.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq DoNotImplement.ty DoNotImplement.underlying
+  method_set : go.MethodSetIs DoNotImplement.ty [(go!"ProtoInternal", (some (go.signature.Signature [DoNotImplement.ty] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DoNotImplement.ty) []
 
 attribute [instance] DoNotImplement.TypeAssumptions.underlying
+  DoNotImplement.TypeAssumptions.method_set
+  DoNotImplement.TypeAssumptions.ptr_method_set
 
 abbrev DoNotCompare [GooseExts] : Type := (GoArray GoFunc 0)
 
@@ -96,8 +104,12 @@ abbrev DoNotCompare [GooseExts] : Type := (GoArray GoFunc 0)
 
 class DoNotCompare.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq DoNotCompare.ty DoNotCompare.underlying
+  method_set : go.MethodSetIs DoNotCompare.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DoNotCompare.ty) []
 
 attribute [instance] DoNotCompare.TypeAssumptions.underlying
+  DoNotCompare.TypeAssumptions.method_set
+  DoNotCompare.TypeAssumptions.ptr_method_set
 
 abbrev DoNotCopy [GooseExts] : Type := (GoArray _root_.Perennial.sync.Mutex 0)
 
@@ -106,8 +118,12 @@ abbrev DoNotCopy [GooseExts] : Type := (GoArray _root_.Perennial.sync.Mutex 0)
 
 class DoNotCopy.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq DoNotCopy.ty DoNotCopy.underlying
+  method_set : go.MethodSetIs DoNotCopy.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DoNotCopy.ty) []
 
 attribute [instance] DoNotCopy.TypeAssumptions.underlying
+  DoNotCopy.TypeAssumptions.method_set
+  DoNotCopy.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   NoUnkeyedLiterals_instance : NoUnkeyedLiterals.TypeAssumptions

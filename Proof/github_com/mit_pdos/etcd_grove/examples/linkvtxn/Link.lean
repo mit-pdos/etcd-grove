@@ -378,7 +378,7 @@ theorem wp_Check :
     EtcdGrove.linkvtxn.Check.spec (GF := GF) (hG := hG) :=
   EtcdGrove.linkvtxn.Check.wp_proof lintest.wp_Run lintest.wp_CounterClock wp_Model wp_Gen wp_Apply
 
-theorem wp_Main [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] [EtcdGrove.ErrorStringLeaf] :
+theorem wp_Main [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody] :
     EtcdGrove.linkvtxn.Main.spec (GF := GF) (hG := hG) :=
   EtcdGrove.linkvtxn.Main.wp_proof zap.wp_NewNop common.wp_StartServer common.wp_Serve common.wp_NewClient wp_Check
 

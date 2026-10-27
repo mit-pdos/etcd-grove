@@ -37,7 +37,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Assumptions]
-variable [ErrorStringLeaf]
 
 /-- **What the round trip's goroutine sends** for the request `R` to `req` of ticket `γk`: an error
 of net/http's (`RoundTrip`'s or the body read's), or no error, a response whose status the

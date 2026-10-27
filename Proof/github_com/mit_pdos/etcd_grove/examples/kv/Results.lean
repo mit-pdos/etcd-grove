@@ -192,7 +192,6 @@ answers `Ok` -- from a fresh state with one thread, of `n < 2^63` steps, has no 
 no thread that ended in a panic: porcupine always answers `Ok`. -/
 theorem kv_porcupine_safe [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
-    [hErr : context.ErrorStringIsError] [hDE : context.DeadlineExceededIsError]
     [hLog : log.NewModel]
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)

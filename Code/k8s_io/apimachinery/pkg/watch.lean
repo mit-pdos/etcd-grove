@@ -238,8 +238,12 @@ abbrev FilterFunc [GooseExts] : Type := GoFunc
 
 class FilterFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq FilterFunc.ty FilterFunc.underlying
+  method_set : go.MethodSetIs FilterFunc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType FilterFunc.ty) []
 
 attribute [instance] FilterFunc.TypeAssumptions.underlying
+  FilterFunc.TypeAssumptions.method_set
+  FilterFunc.TypeAssumptions.ptr_method_set
 
 abbrev Interface [GooseExts] : Type := GoInterface
 
@@ -248,8 +252,12 @@ abbrev Interface [GooseExts] : Type := GoInterface
 
 class Interface.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Interface.ty Interface.underlying
+  method_set : go.MethodSetIs Interface.ty [(go!"ResultChan", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly Event.ty)]))), (go!"Stop", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Interface.ty) []
 
 attribute [instance] Interface.TypeAssumptions.underlying
+  Interface.TypeAssumptions.method_set
+  Interface.TypeAssumptions.ptr_method_set
 
 structure filteredWatch [GooseExts] where
   mk ::
@@ -284,6 +292,8 @@ class filteredWatch.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContex
   set_result : ∀ (x : filteredWatch) (y : GoChan), go.IsGoStepPureDetTagged under (StructFieldSet filteredWatch.underlying go!"result") (PairV #x #y) (Val #(({ x with result' := y } : filteredWatch)))
   get_f : ∀ (x : filteredWatch), go.IsGoStepPureDetTagged under (StructFieldGet filteredWatch.underlying go!"f") #x (Val #(x.f'))
   set_f : ∀ (x : filteredWatch) (y : FilterFunc), go.IsGoStepPureDetTagged under (StructFieldSet filteredWatch.underlying go!"f") (PairV #x #y) (Val #(({ x with f' := y } : filteredWatch)))
+  method_set : go.MethodSetIs filteredWatch.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType filteredWatch.ty) [(go!"ResultChan", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly Event.ty)]))), (go!"Stop", (some (go.signature.Signature [] false []))), (go!"k8s.io/apimachinery/pkg/watch.loop", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] filteredWatch.TypeAssumptions.type_repr
   filteredWatch.TypeAssumptions.underlying
@@ -293,6 +303,8 @@ attribute [instance] filteredWatch.TypeAssumptions.type_repr
   filteredWatch.TypeAssumptions.set_result
   filteredWatch.TypeAssumptions.get_f
   filteredWatch.TypeAssumptions.set_f
+  filteredWatch.TypeAssumptions.method_set
+  filteredWatch.TypeAssumptions.ptr_method_set
 
 axiom Recorder : Type
 axiom Recorder.zero_val : ZeroVal Recorder
@@ -302,10 +314,14 @@ class Recorder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [G
   type_repr : go.TypeReprUnderlying Recorder.underlying Recorder
   underlying : go.UnderlyingDirectedEq Recorder.ty Recorder.underlying
   isUnderlying : go.IsUnderlying Recorder.underlying Recorder.underlying
+  method_set : go.MethodSetIs Recorder.ty [(go!"ResultChan", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly Event.ty)]))), (go!"Stop", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Recorder.ty) [(go!"Events", (some (go.signature.Signature [] false [(go.GoType.SliceType Event.ty)]))), (go!"ResultChan", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly Event.ty)]))), (go!"Stop", (some (go.signature.Signature [] false []))), (go!"k8s.io/apimachinery/pkg/watch.record", (some (go.signature.Signature [Event.ty] false [Event.ty, go.bool])))]
 
 attribute [instance] Recorder.TypeAssumptions.type_repr
   Recorder.TypeAssumptions.underlying
   Recorder.TypeAssumptions.isUnderlying
+  Recorder.TypeAssumptions.method_set
+  Recorder.TypeAssumptions.ptr_method_set
 
 abbrev FullChannelBehavior [GooseExts] : Type := w64
 
@@ -314,8 +330,12 @@ abbrev FullChannelBehavior [GooseExts] : Type := w64
 
 class FullChannelBehavior.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq FullChannelBehavior.ty FullChannelBehavior.underlying
+  method_set : go.MethodSetIs FullChannelBehavior.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType FullChannelBehavior.ty) []
 
 attribute [instance] FullChannelBehavior.TypeAssumptions.underlying
+  FullChannelBehavior.TypeAssumptions.method_set
+  FullChannelBehavior.TypeAssumptions.ptr_method_set
 
 axiom Broadcaster : Type
 axiom Broadcaster.zero_val : ZeroVal Broadcaster
@@ -325,10 +345,14 @@ class Broadcaster.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   type_repr : go.TypeReprUnderlying Broadcaster.underlying Broadcaster
   underlying : go.UnderlyingDirectedEq Broadcaster.ty Broadcaster.underlying
   isUnderlying : go.IsUnderlying Broadcaster.underlying Broadcaster.underlying
+  method_set : go.MethodSetIs Broadcaster.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Broadcaster.ty) [(go!"Action", (some (go.signature.Signature [EventType.ty, (go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" [])] false [go.error]))), (go!"ActionOrDrop", (some (go.signature.Signature [EventType.ty, (go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" [])] false [go.bool, go.error]))), (go!"Shutdown", (some (go.signature.Signature [] false []))), (go!"Watch", (some (go.signature.Signature [] false [Interface.ty, go.error]))), (go!"WatchWithPrefix", (some (go.signature.Signature [(go.GoType.SliceType Event.ty)] false [Interface.ty, go.error]))), (go!"k8s.io/apimachinery/pkg/watch.blockQueue", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [] false []))] false []))), (go!"k8s.io/apimachinery/pkg/watch.closeAll", (some (go.signature.Signature [] false []))), (go!"k8s.io/apimachinery/pkg/watch.distribute", (some (go.signature.Signature [Event.ty] false []))), (go!"k8s.io/apimachinery/pkg/watch.loop", (some (go.signature.Signature [] false []))), (go!"k8s.io/apimachinery/pkg/watch.stopWatching", (some (go.signature.Signature [go.int64] false [])))]
 
 attribute [instance] Broadcaster.TypeAssumptions.type_repr
   Broadcaster.TypeAssumptions.underlying
   Broadcaster.TypeAssumptions.isUnderlying
+  Broadcaster.TypeAssumptions.method_set
+  Broadcaster.TypeAssumptions.ptr_method_set
 
 abbrev functionFakeRuntimeObject [GooseExts] : Type := GoFunc
 
@@ -337,8 +361,12 @@ abbrev functionFakeRuntimeObject [GooseExts] : Type := GoFunc
 
 class functionFakeRuntimeObject.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq functionFakeRuntimeObject.ty functionFakeRuntimeObject.underlying
+  method_set : go.MethodSetIs functionFakeRuntimeObject.ty [(go!"DeepCopyObject", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" [])]))), (go!"GetObjectKind", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.ObjectKind" [])])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType functionFakeRuntimeObject.ty) [(go!"DeepCopyObject", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" [])]))), (go!"GetObjectKind", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime/schema.ObjectKind" [])])))]
 
 attribute [instance] functionFakeRuntimeObject.TypeAssumptions.underlying
+  functionFakeRuntimeObject.TypeAssumptions.method_set
+  functionFakeRuntimeObject.TypeAssumptions.ptr_method_set
 
 axiom broadcasterWatcher : Type
 axiom broadcasterWatcher.zero_val : ZeroVal broadcasterWatcher
@@ -348,10 +376,14 @@ class broadcasterWatcher.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalC
   type_repr : go.TypeReprUnderlying broadcasterWatcher.underlying broadcasterWatcher
   underlying : go.UnderlyingDirectedEq broadcasterWatcher.ty broadcasterWatcher.underlying
   isUnderlying : go.IsUnderlying broadcasterWatcher.underlying broadcasterWatcher.underlying
+  method_set : go.MethodSetIs broadcasterWatcher.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType broadcasterWatcher.ty) [(go!"ResultChan", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly Event.ty)]))), (go!"Stop", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] broadcasterWatcher.TypeAssumptions.type_repr
   broadcasterWatcher.TypeAssumptions.underlying
   broadcasterWatcher.TypeAssumptions.isUnderlying
+  broadcasterWatcher.TypeAssumptions.method_set
+  broadcasterWatcher.TypeAssumptions.ptr_method_set
 
 axiom Decoder : Type
 axiom Decoder.zero_val : ZeroVal Decoder
@@ -361,10 +393,14 @@ class Decoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   type_repr : go.TypeReprUnderlying Decoder.underlying Decoder
   underlying : go.UnderlyingDirectedEq Decoder.ty Decoder.underlying
   isUnderlying : go.IsUnderlying Decoder.underlying Decoder.underlying
+  method_set : go.MethodSetIs Decoder.ty [(go!"Close", (some (go.signature.Signature [] false []))), (go!"Decode", (some (go.signature.Signature [] false [EventType.ty, (go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" []), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Decoder.ty) []
 
 attribute [instance] Decoder.TypeAssumptions.type_repr
   Decoder.TypeAssumptions.underlying
   Decoder.TypeAssumptions.isUnderlying
+  Decoder.TypeAssumptions.method_set
+  Decoder.TypeAssumptions.ptr_method_set
 
 axiom Reporter : Type
 axiom Reporter.zero_val : ZeroVal Reporter
@@ -374,10 +410,14 @@ class Reporter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [G
   type_repr : go.TypeReprUnderlying Reporter.underlying Reporter
   underlying : go.UnderlyingDirectedEq Reporter.ty Reporter.underlying
   isUnderlying : go.IsUnderlying Reporter.underlying Reporter.underlying
+  method_set : go.MethodSetIs Reporter.ty [(go!"AsObject", (some (go.signature.Signature [go.error] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" [])])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Reporter.ty) []
 
 attribute [instance] Reporter.TypeAssumptions.type_repr
   Reporter.TypeAssumptions.underlying
   Reporter.TypeAssumptions.isUnderlying
+  Reporter.TypeAssumptions.method_set
+  Reporter.TypeAssumptions.ptr_method_set
 
 axiom StreamWatcher : Type
 axiom StreamWatcher.zero_val : ZeroVal StreamWatcher
@@ -387,10 +427,14 @@ class StreamWatcher.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContex
   type_repr : go.TypeReprUnderlying StreamWatcher.underlying StreamWatcher
   underlying : go.UnderlyingDirectedEq StreamWatcher.ty StreamWatcher.underlying
   isUnderlying : go.IsUnderlying StreamWatcher.underlying StreamWatcher.underlying
+  method_set : go.MethodSetIs StreamWatcher.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType StreamWatcher.ty) [(go!"Lock", (some (go.signature.Signature [] false []))), (go!"ResultChan", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly Event.ty)]))), (go!"Stop", (some (go.signature.Signature [] false []))), (go!"TryLock", (some (go.signature.Signature [] false [go.bool]))), (go!"Unlock", (some (go.signature.Signature [] false []))), (go!"k8s.io/apimachinery/pkg/watch.receive", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] StreamWatcher.TypeAssumptions.type_repr
   StreamWatcher.TypeAssumptions.underlying
   StreamWatcher.TypeAssumptions.isUnderlying
+  StreamWatcher.TypeAssumptions.method_set
+  StreamWatcher.TypeAssumptions.ptr_method_set
 
 abbrev EventType [GooseExts] : Type := GoString
 
@@ -399,8 +443,12 @@ abbrev EventType [GooseExts] : Type := GoString
 
 class EventType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq EventType.ty EventType.underlying
+  method_set : go.MethodSetIs EventType.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType EventType.ty) []
 
 attribute [instance] EventType.TypeAssumptions.underlying
+  EventType.TypeAssumptions.method_set
+  EventType.TypeAssumptions.ptr_method_set
 
 axiom Event : Type
 axiom Event.zero_val : ZeroVal Event
@@ -410,10 +458,14 @@ class Event.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSe
   type_repr : go.TypeReprUnderlying Event.underlying Event
   underlying : go.UnderlyingDirectedEq Event.ty Event.underlying
   isUnderlying : go.IsUnderlying Event.underlying Event.underlying
+  method_set : go.MethodSetIs Event.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Event.ty) [(go!"DeepCopy", (some (go.signature.Signature [] false [(go.GoType.PointerType Event.ty)]))), (go!"DeepCopyInto", (some (go.signature.Signature [(go.GoType.PointerType Event.ty)] false [])))]
 
 attribute [instance] Event.TypeAssumptions.type_repr
   Event.TypeAssumptions.underlying
   Event.TypeAssumptions.isUnderlying
+  Event.TypeAssumptions.method_set
+  Event.TypeAssumptions.ptr_method_set
 
 abbrev emptyWatch [GooseExts] : Type := GoChan
 
@@ -422,8 +474,12 @@ abbrev emptyWatch [GooseExts] : Type := GoChan
 
 class emptyWatch.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq emptyWatch.ty emptyWatch.underlying
+  method_set : go.MethodSetIs emptyWatch.ty [(go!"ResultChan", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly Event.ty)]))), (go!"Stop", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType emptyWatch.ty) [(go!"ResultChan", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly Event.ty)]))), (go!"Stop", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] emptyWatch.TypeAssumptions.underlying
+  emptyWatch.TypeAssumptions.method_set
+  emptyWatch.TypeAssumptions.ptr_method_set
 
 axiom FakeWatcher : Type
 axiom FakeWatcher.zero_val : ZeroVal FakeWatcher
@@ -433,10 +489,14 @@ class FakeWatcher.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   type_repr : go.TypeReprUnderlying FakeWatcher.underlying FakeWatcher
   underlying : go.UnderlyingDirectedEq FakeWatcher.ty FakeWatcher.underlying
   isUnderlying : go.IsUnderlying FakeWatcher.underlying FakeWatcher.underlying
+  method_set : go.MethodSetIs FakeWatcher.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType FakeWatcher.ty) [(go!"Action", (some (go.signature.Signature [EventType.ty, (go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" [])] false []))), (go!"Add", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" [])] false []))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" [])] false []))), (go!"Error", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" [])] false []))), (go!"IsStopped", (some (go.signature.Signature [] false [go.bool]))), (go!"Lock", (some (go.signature.Signature [] false []))), (go!"Modify", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" [])] false []))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"ResultChan", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly Event.ty)]))), (go!"Stop", (some (go.signature.Signature [] false []))), (go!"TryLock", (some (go.signature.Signature [] false [go.bool]))), (go!"Unlock", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] FakeWatcher.TypeAssumptions.type_repr
   FakeWatcher.TypeAssumptions.underlying
   FakeWatcher.TypeAssumptions.isUnderlying
+  FakeWatcher.TypeAssumptions.method_set
+  FakeWatcher.TypeAssumptions.ptr_method_set
 
 axiom FakeOptions : Type
 axiom FakeOptions.zero_val : ZeroVal FakeOptions
@@ -446,10 +506,14 @@ class FakeOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   type_repr : go.TypeReprUnderlying FakeOptions.underlying FakeOptions
   underlying : go.UnderlyingDirectedEq FakeOptions.ty FakeOptions.underlying
   isUnderlying : go.IsUnderlying FakeOptions.underlying FakeOptions.underlying
+  method_set : go.MethodSetIs FakeOptions.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType FakeOptions.ty) []
 
 attribute [instance] FakeOptions.TypeAssumptions.type_repr
   FakeOptions.TypeAssumptions.underlying
   FakeOptions.TypeAssumptions.isUnderlying
+  FakeOptions.TypeAssumptions.method_set
+  FakeOptions.TypeAssumptions.ptr_method_set
 
 axiom RaceFreeFakeWatcher : Type
 axiom RaceFreeFakeWatcher.zero_val : ZeroVal RaceFreeFakeWatcher
@@ -459,10 +523,14 @@ class RaceFreeFakeWatcher.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocal
   type_repr : go.TypeReprUnderlying RaceFreeFakeWatcher.underlying RaceFreeFakeWatcher
   underlying : go.UnderlyingDirectedEq RaceFreeFakeWatcher.ty RaceFreeFakeWatcher.underlying
   isUnderlying : go.IsUnderlying RaceFreeFakeWatcher.underlying RaceFreeFakeWatcher.underlying
+  method_set : go.MethodSetIs RaceFreeFakeWatcher.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RaceFreeFakeWatcher.ty) [(go!"Action", (some (go.signature.Signature [EventType.ty, (go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" [])] false []))), (go!"Add", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" [])] false []))), (go!"Delete", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" [])] false []))), (go!"Error", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" [])] false []))), (go!"IsStopped", (some (go.signature.Signature [] false [go.bool]))), (go!"Lock", (some (go.signature.Signature [] false []))), (go!"Modify", (some (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" [])] false []))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"ResultChan", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly Event.ty)]))), (go!"Stop", (some (go.signature.Signature [] false []))), (go!"TryLock", (some (go.signature.Signature [] false [go.bool]))), (go!"Unlock", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] RaceFreeFakeWatcher.TypeAssumptions.type_repr
   RaceFreeFakeWatcher.TypeAssumptions.underlying
   RaceFreeFakeWatcher.TypeAssumptions.isUnderlying
+  RaceFreeFakeWatcher.TypeAssumptions.method_set
+  RaceFreeFakeWatcher.TypeAssumptions.ptr_method_set
 
 axiom ProxyWatcher : Type
 axiom ProxyWatcher.zero_val : ZeroVal ProxyWatcher
@@ -472,10 +540,14 @@ class ProxyWatcher.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext
   type_repr : go.TypeReprUnderlying ProxyWatcher.underlying ProxyWatcher
   underlying : go.UnderlyingDirectedEq ProxyWatcher.ty ProxyWatcher.underlying
   isUnderlying : go.IsUnderlying ProxyWatcher.underlying ProxyWatcher.underlying
+  method_set : go.MethodSetIs ProxyWatcher.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ProxyWatcher.ty) [(go!"ResultChan", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly Event.ty)]))), (go!"Stop", (some (go.signature.Signature [] false []))), (go!"StopChan", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))]))), (go!"Stopping", (some (go.signature.Signature [] false [go.bool])))]
 
 attribute [instance] ProxyWatcher.TypeAssumptions.type_repr
   ProxyWatcher.TypeAssumptions.underlying
   ProxyWatcher.TypeAssumptions.isUnderlying
+  ProxyWatcher.TypeAssumptions.method_set
+  ProxyWatcher.TypeAssumptions.ptr_method_set
 
 structure MockWatcher [GooseExts] where
   mk ::
@@ -506,6 +578,8 @@ class MockWatcher.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   set_StopFunc : ∀ (x : MockWatcher) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet MockWatcher.underlying go!"StopFunc") (PairV #x #y) (Val #(({ x with StopFunc' := y } : MockWatcher)))
   get_ResultChanFunc : ∀ (x : MockWatcher), go.IsGoStepPureDetTagged under (StructFieldGet MockWatcher.underlying go!"ResultChanFunc") #x (Val #(x.ResultChanFunc'))
   set_ResultChanFunc : ∀ (x : MockWatcher) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet MockWatcher.underlying go!"ResultChanFunc") (PairV #x #y) (Val #(({ x with ResultChanFunc' := y } : MockWatcher)))
+  method_set : go.MethodSetIs MockWatcher.ty [(go!"ResultChan", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly Event.ty)]))), (go!"Stop", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType MockWatcher.ty) [(go!"ResultChan", (some (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly Event.ty)]))), (go!"Stop", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] MockWatcher.TypeAssumptions.type_repr
   MockWatcher.TypeAssumptions.underlying
@@ -513,6 +587,8 @@ attribute [instance] MockWatcher.TypeAssumptions.type_repr
   MockWatcher.TypeAssumptions.set_StopFunc
   MockWatcher.TypeAssumptions.get_ResultChanFunc
   MockWatcher.TypeAssumptions.set_ResultChanFunc
+  MockWatcher.TypeAssumptions.method_set
+  MockWatcher.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   FilterFunc_instance : FilterFunc.TypeAssumptions

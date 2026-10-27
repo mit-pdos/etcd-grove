@@ -426,8 +426,12 @@ abbrev Backend [GooseExts] : Type := GoInterface
 
 class Backend.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Backend.ty Backend.underlying
+  method_set : go.MethodSetIs Backend.ty [(go!"ReadTx", (some (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.ReadTx.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Backend.ty) []
 
 attribute [instance] Backend.TypeAssumptions.underlying
+  Backend.TypeAssumptions.method_set
+  Backend.TypeAssumptions.ptr_method_set
 
 abbrev ConsistentIndexer [GooseExts] : Type := GoInterface
 
@@ -436,8 +440,12 @@ abbrev ConsistentIndexer [GooseExts] : Type := GoInterface
 
 class ConsistentIndexer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ConsistentIndexer.ty ConsistentIndexer.underlying
+  method_set : go.MethodSetIs ConsistentIndexer.ty [(go!"ConsistentApplyingIndex", (some (go.signature.Signature [] false [go.uint64, go.uint64]))), (go!"ConsistentIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"SetBackend", (some (go.signature.Signature [Backend.ty] false []))), (go!"SetConsistentApplyingIndex", (some (go.signature.Signature [go.uint64, go.uint64] false []))), (go!"SetConsistentIndex", (some (go.signature.Signature [go.uint64, go.uint64] false []))), (go!"UnsafeConsistentIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"UnsafeSave", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReadWriter.ty] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ConsistentIndexer.ty) []
 
 attribute [instance] ConsistentIndexer.TypeAssumptions.underlying
+  ConsistentIndexer.TypeAssumptions.method_set
+  ConsistentIndexer.TypeAssumptions.ptr_method_set
 
 structure consistentIndex [GooseExts] where
   mk ::
@@ -484,6 +492,8 @@ class consistentIndex.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCont
   set_be : ∀ (x : consistentIndex) (y : Backend), go.IsGoStepPureDetTagged under (StructFieldSet consistentIndex.underlying go!"be") (PairV #x #y) (Val #(({ x with be' := y } : consistentIndex)))
   get_mutex : ∀ (x : consistentIndex), go.IsGoStepPureDetTagged under (StructFieldGet consistentIndex.underlying go!"mutex") #x (Val #(x.mutex'))
   set_mutex : ∀ (x : consistentIndex) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet consistentIndex.underlying go!"mutex") (PairV #x #y) (Val #(({ x with mutex' := y } : consistentIndex)))
+  method_set : go.MethodSetIs consistentIndex.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType consistentIndex.ty) [(go!"ConsistentApplyingIndex", (some (go.signature.Signature [] false [go.uint64, go.uint64]))), (go!"ConsistentIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"SetBackend", (some (go.signature.Signature [Backend.ty] false []))), (go!"SetConsistentApplyingIndex", (some (go.signature.Signature [go.uint64, go.uint64] false []))), (go!"SetConsistentIndex", (some (go.signature.Signature [go.uint64, go.uint64] false []))), (go!"UnsafeConsistentIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"UnsafeSave", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReadWriter.ty] false [])))]
   ptr_ConsistentApplyingIndex_unfold : MethodUnfold (go.GoType.PointerType consistentIndex.ty) go!"ConsistentApplyingIndex" consistentIndex.ConsistentApplyingIndex.impl
   ptr_ConsistentIndex_unfold : MethodUnfold (go.GoType.PointerType consistentIndex.ty) go!"ConsistentIndex" consistentIndex.ConsistentIndex.impl
   ptr_SetBackend_unfold : MethodUnfold (go.GoType.PointerType consistentIndex.ty) go!"SetBackend" consistentIndex.SetBackend.impl
@@ -506,6 +516,8 @@ attribute [instance] consistentIndex.TypeAssumptions.type_repr
   consistentIndex.TypeAssumptions.set_be
   consistentIndex.TypeAssumptions.get_mutex
   consistentIndex.TypeAssumptions.set_mutex
+  consistentIndex.TypeAssumptions.method_set
+  consistentIndex.TypeAssumptions.ptr_method_set
   consistentIndex.TypeAssumptions.ptr_ConsistentApplyingIndex_unfold
   consistentIndex.TypeAssumptions.ptr_ConsistentIndex_unfold
   consistentIndex.TypeAssumptions.ptr_SetBackend_unfold
@@ -543,6 +555,8 @@ class fakeConsistentIndex.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocal
   set_index : ∀ (x : fakeConsistentIndex) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet fakeConsistentIndex.underlying go!"index") (PairV #x #y) (Val #(({ x with index' := y } : fakeConsistentIndex)))
   get_term : ∀ (x : fakeConsistentIndex), go.IsGoStepPureDetTagged under (StructFieldGet fakeConsistentIndex.underlying go!"term") #x (Val #(x.term'))
   set_term : ∀ (x : fakeConsistentIndex) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet fakeConsistentIndex.underlying go!"term") (PairV #x #y) (Val #(({ x with term' := y } : fakeConsistentIndex)))
+  method_set : go.MethodSetIs fakeConsistentIndex.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType fakeConsistentIndex.ty) [(go!"ConsistentApplyingIndex", (some (go.signature.Signature [] false [go.uint64, go.uint64]))), (go!"ConsistentIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"SetBackend", (some (go.signature.Signature [Backend.ty] false []))), (go!"SetConsistentApplyingIndex", (some (go.signature.Signature [go.uint64, go.uint64] false []))), (go!"SetConsistentIndex", (some (go.signature.Signature [go.uint64, go.uint64] false []))), (go!"UnsafeConsistentIndex", (some (go.signature.Signature [] false [go.uint64]))), (go!"UnsafeSave", (some (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.UnsafeReadWriter.ty] false [])))]
   ptr_ConsistentApplyingIndex_unfold : MethodUnfold (go.GoType.PointerType fakeConsistentIndex.ty) go!"ConsistentApplyingIndex" fakeConsistentIndex.ConsistentApplyingIndex.impl
   ptr_ConsistentIndex_unfold : MethodUnfold (go.GoType.PointerType fakeConsistentIndex.ty) go!"ConsistentIndex" fakeConsistentIndex.ConsistentIndex.impl
   ptr_SetBackend_unfold : MethodUnfold (go.GoType.PointerType fakeConsistentIndex.ty) go!"SetBackend" fakeConsistentIndex.SetBackend.impl
@@ -557,6 +571,8 @@ attribute [instance] fakeConsistentIndex.TypeAssumptions.type_repr
   fakeConsistentIndex.TypeAssumptions.set_index
   fakeConsistentIndex.TypeAssumptions.get_term
   fakeConsistentIndex.TypeAssumptions.set_term
+  fakeConsistentIndex.TypeAssumptions.method_set
+  fakeConsistentIndex.TypeAssumptions.ptr_method_set
   fakeConsistentIndex.TypeAssumptions.ptr_ConsistentApplyingIndex_unfold
   fakeConsistentIndex.TypeAssumptions.ptr_ConsistentIndex_unfold
   fakeConsistentIndex.TypeAssumptions.ptr_SetBackend_unfold

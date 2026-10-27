@@ -92,8 +92,12 @@ abbrev RetrieveItemsFunc [GooseExts] (U : Type) : Type := GoFunc
 
 class RetrieveItemsFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : ∀ (U : go.GoType), go.UnderlyingDirectedEq (RetrieveItemsFunc.ty U) (RetrieveItemsFunc.underlying U)
+  method_set : ∀ (U : go.GoType), go.MethodSetIs (RetrieveItemsFunc.ty U) []
+  ptr_method_set : ∀ (U : go.GoType), go.MethodSetIs (go.GoType.PointerType (RetrieveItemsFunc.ty U)) []
 
 attribute [instance] RetrieveItemsFunc.TypeAssumptions.underlying
+  RetrieveItemsFunc.TypeAssumptions.method_set
+  RetrieveItemsFunc.TypeAssumptions.ptr_method_set
 
 axiom ListFunc : ∀ (T : Type), Type
 axiom ListFunc.zero_val : ∀ {T : Type} [ZeroVal T], ZeroVal (ListFunc T)
@@ -103,10 +107,14 @@ class ListFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [G
   type_repr : ∀ (T : go.GoType) (T' : Type) [ZeroVal T'] [TypeRepr T T'], go.TypeReprUnderlying (ListFunc.underlying T) (ListFunc T')
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (ListFunc.ty T) (ListFunc.underlying T)
   isUnderlying : ∀ (T : go.GoType), go.IsUnderlying (ListFunc.underlying T) (ListFunc.underlying T)
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (ListFunc.ty T) []
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (ListFunc.ty T)) []
 
 attribute [instance] ListFunc.TypeAssumptions.type_repr
   ListFunc.TypeAssumptions.underlying
   ListFunc.TypeAssumptions.isUnderlying
+  ListFunc.TypeAssumptions.method_set
+  ListFunc.TypeAssumptions.ptr_method_set
 
 abbrev TransformFunc [GooseExts] : Type := GoFunc
 
@@ -115,8 +123,12 @@ abbrev TransformFunc [GooseExts] : Type := GoFunc
 
 class TransformFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq TransformFunc.ty TransformFunc.underlying
+  method_set : go.MethodSetIs TransformFunc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TransformFunc.ty) []
 
 attribute [instance] TransformFunc.TypeAssumptions.underlying
+  TransformFunc.TypeAssumptions.method_set
+  TransformFunc.TypeAssumptions.ptr_method_set
 
 axiom byUID : Type
 axiom byUID.zero_val : ZeroVal byUID
@@ -126,10 +138,14 @@ class byUID.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSe
   type_repr : go.TypeReprUnderlying byUID.underlying byUID
   underlying : go.UnderlyingDirectedEq byUID.ty byUID.underlying
   isUnderlying : go.IsUnderlying byUID.underlying byUID.underlying
+  method_set : go.MethodSetIs byUID.ty [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType byUID.ty) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
 
 attribute [instance] byUID.TypeAssumptions.type_repr
   byUID.TypeAssumptions.underlying
   byUID.TypeAssumptions.isUnderlying
+  byUID.TypeAssumptions.method_set
+  byUID.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   RetrieveItemsFunc_instance : RetrieveItemsFunc.TypeAssumptions

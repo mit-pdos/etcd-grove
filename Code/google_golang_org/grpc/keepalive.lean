@@ -81,6 +81,8 @@ class ClientParameters.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCon
   set_Timeout : ∀ (x : ClientParameters) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet ClientParameters.underlying go!"Timeout") (PairV #x #y) (Val #(({ x with Timeout' := y } : ClientParameters)))
   get_PermitWithoutStream : ∀ (x : ClientParameters), go.IsGoStepPureDetTagged under (StructFieldGet ClientParameters.underlying go!"PermitWithoutStream") #x (Val #(x.PermitWithoutStream'))
   set_PermitWithoutStream : ∀ (x : ClientParameters) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ClientParameters.underlying go!"PermitWithoutStream") (PairV #x #y) (Val #(({ x with PermitWithoutStream' := y } : ClientParameters)))
+  method_set : go.MethodSetIs ClientParameters.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ClientParameters.ty) []
 
 attribute [instance] ClientParameters.TypeAssumptions.type_repr
   ClientParameters.TypeAssumptions.underlying
@@ -90,6 +92,8 @@ attribute [instance] ClientParameters.TypeAssumptions.type_repr
   ClientParameters.TypeAssumptions.set_Timeout
   ClientParameters.TypeAssumptions.get_PermitWithoutStream
   ClientParameters.TypeAssumptions.set_PermitWithoutStream
+  ClientParameters.TypeAssumptions.method_set
+  ClientParameters.TypeAssumptions.ptr_method_set
 
 structure ServerParameters [GooseExts] where
   mk ::
@@ -132,6 +136,8 @@ class ServerParameters.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCon
   set_Time : ∀ (x : ServerParameters) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet ServerParameters.underlying go!"Time") (PairV #x #y) (Val #(({ x with Time' := y } : ServerParameters)))
   get_Timeout : ∀ (x : ServerParameters), go.IsGoStepPureDetTagged under (StructFieldGet ServerParameters.underlying go!"Timeout") #x (Val #(x.Timeout'))
   set_Timeout : ∀ (x : ServerParameters) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet ServerParameters.underlying go!"Timeout") (PairV #x #y) (Val #(({ x with Timeout' := y } : ServerParameters)))
+  method_set : go.MethodSetIs ServerParameters.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ServerParameters.ty) []
 
 attribute [instance] ServerParameters.TypeAssumptions.type_repr
   ServerParameters.TypeAssumptions.underlying
@@ -145,6 +151,8 @@ attribute [instance] ServerParameters.TypeAssumptions.type_repr
   ServerParameters.TypeAssumptions.set_Time
   ServerParameters.TypeAssumptions.get_Timeout
   ServerParameters.TypeAssumptions.set_Timeout
+  ServerParameters.TypeAssumptions.method_set
+  ServerParameters.TypeAssumptions.ptr_method_set
 
 structure EnforcementPolicy [GooseExts] where
   mk ::
@@ -175,6 +183,8 @@ class EnforcementPolicy.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCo
   set_MinTime : ∀ (x : EnforcementPolicy) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet EnforcementPolicy.underlying go!"MinTime") (PairV #x #y) (Val #(({ x with MinTime' := y } : EnforcementPolicy)))
   get_PermitWithoutStream : ∀ (x : EnforcementPolicy), go.IsGoStepPureDetTagged under (StructFieldGet EnforcementPolicy.underlying go!"PermitWithoutStream") #x (Val #(x.PermitWithoutStream'))
   set_PermitWithoutStream : ∀ (x : EnforcementPolicy) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet EnforcementPolicy.underlying go!"PermitWithoutStream") (PairV #x #y) (Val #(({ x with PermitWithoutStream' := y } : EnforcementPolicy)))
+  method_set : go.MethodSetIs EnforcementPolicy.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType EnforcementPolicy.ty) []
 
 attribute [instance] EnforcementPolicy.TypeAssumptions.type_repr
   EnforcementPolicy.TypeAssumptions.underlying
@@ -182,6 +192,8 @@ attribute [instance] EnforcementPolicy.TypeAssumptions.type_repr
   EnforcementPolicy.TypeAssumptions.set_MinTime
   EnforcementPolicy.TypeAssumptions.get_PermitWithoutStream
   EnforcementPolicy.TypeAssumptions.set_PermitWithoutStream
+  EnforcementPolicy.TypeAssumptions.method_set
+  EnforcementPolicy.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   ClientParameters_instance : ClientParameters.TypeAssumptions

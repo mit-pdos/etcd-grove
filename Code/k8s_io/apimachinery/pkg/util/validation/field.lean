@@ -195,10 +195,14 @@ class NormalizationRule.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCo
   type_repr : go.TypeReprUnderlying NormalizationRule.underlying NormalizationRule
   underlying : go.UnderlyingDirectedEq NormalizationRule.ty NormalizationRule.underlying
   isUnderlying : go.IsUnderlying NormalizationRule.underlying NormalizationRule.underlying
+  method_set : go.MethodSetIs NormalizationRule.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType NormalizationRule.ty) []
 
 attribute [instance] NormalizationRule.TypeAssumptions.type_repr
   NormalizationRule.TypeAssumptions.underlying
   NormalizationRule.TypeAssumptions.isUnderlying
+  NormalizationRule.TypeAssumptions.method_set
+  NormalizationRule.TypeAssumptions.ptr_method_set
 
 structure ErrorMatcher [GooseExts] where
   mk ::
@@ -269,6 +273,8 @@ class ErrorMatcher.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext
   set_matchCoveredByDeclarative : ∀ (x : ErrorMatcher) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet ErrorMatcher.underlying go!"matchCoveredByDeclarative") (PairV #x #y) (Val #(({ x with matchCoveredByDeclarative' := y } : ErrorMatcher)))
   get_normalizationRules : ∀ (x : ErrorMatcher), go.IsGoStepPureDetTagged under (StructFieldGet ErrorMatcher.underlying go!"normalizationRules") #x (Val #(x.normalizationRules'))
   set_normalizationRules : ∀ (x : ErrorMatcher) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet ErrorMatcher.underlying go!"normalizationRules") (PairV #x #y) (Val #(({ x with normalizationRules' := y } : ErrorMatcher)))
+  method_set : go.MethodSetIs ErrorMatcher.ty [(go!"ByCoveredByDeclarative", (some (go.signature.Signature [] false [ErrorMatcher.ty]))), (go!"ByDetailExact", (some (go.signature.Signature [] false [ErrorMatcher.ty]))), (go!"ByDetailRegexp", (some (go.signature.Signature [] false [ErrorMatcher.ty]))), (go!"ByDetailSubstring", (some (go.signature.Signature [] false [ErrorMatcher.ty]))), (go!"ByField", (some (go.signature.Signature [] false [ErrorMatcher.ty]))), (go!"ByFieldNormalized", (some (go.signature.Signature [(go.GoType.SliceType NormalizationRule.ty)] false [ErrorMatcher.ty]))), (go!"ByOrigin", (some (go.signature.Signature [] false [ErrorMatcher.ty]))), (go!"BySource", (some (go.signature.Signature [] false [ErrorMatcher.ty]))), (go!"ByType", (some (go.signature.Signature [] false [ErrorMatcher.ty]))), (go!"ByValidationStabilityLevel", (some (go.signature.Signature [] false [ErrorMatcher.ty]))), (go!"ByValue", (some (go.signature.Signature [] false [ErrorMatcher.ty]))), (go!"Exactly", (some (go.signature.Signature [] false [ErrorMatcher.ty]))), (go!"MatchAncestorShortCircuit", (some (go.signature.Signature [] false [ErrorMatcher.ty]))), (go!"MatchShortCircuit", (some (go.signature.Signature [] false [ErrorMatcher.ty]))), (go!"Matches", (some (go.signature.Signature [(go.GoType.PointerType Error.ty), (go.GoType.PointerType Error.ty)] false [go.bool]))), (go!"Render", (some (go.signature.Signature [(go.GoType.PointerType Error.ty)] false [go.string]))), (go!"RequireOriginWhenInvalid", (some (go.signature.Signature [] false [ErrorMatcher.ty]))), (go!"Test", (some (go.signature.Signature [TestIntf.ty, ErrorList.ty, ErrorList.ty] false []))), (go!"k8s.io/apimachinery/pkg/util/validation/field.normalizePath", (some (go.signature.Signature [go.string] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ErrorMatcher.ty) [(go!"ByCoveredByDeclarative", (some (go.signature.Signature [] false [ErrorMatcher.ty]))), (go!"ByDetailExact", (some (go.signature.Signature [] false [ErrorMatcher.ty]))), (go!"ByDetailRegexp", (some (go.signature.Signature [] false [ErrorMatcher.ty]))), (go!"ByDetailSubstring", (some (go.signature.Signature [] false [ErrorMatcher.ty]))), (go!"ByField", (some (go.signature.Signature [] false [ErrorMatcher.ty]))), (go!"ByFieldNormalized", (some (go.signature.Signature [(go.GoType.SliceType NormalizationRule.ty)] false [ErrorMatcher.ty]))), (go!"ByOrigin", (some (go.signature.Signature [] false [ErrorMatcher.ty]))), (go!"BySource", (some (go.signature.Signature [] false [ErrorMatcher.ty]))), (go!"ByType", (some (go.signature.Signature [] false [ErrorMatcher.ty]))), (go!"ByValidationStabilityLevel", (some (go.signature.Signature [] false [ErrorMatcher.ty]))), (go!"ByValue", (some (go.signature.Signature [] false [ErrorMatcher.ty]))), (go!"Exactly", (some (go.signature.Signature [] false [ErrorMatcher.ty]))), (go!"MatchAncestorShortCircuit", (some (go.signature.Signature [] false [ErrorMatcher.ty]))), (go!"MatchShortCircuit", (some (go.signature.Signature [] false [ErrorMatcher.ty]))), (go!"Matches", (some (go.signature.Signature [(go.GoType.PointerType Error.ty), (go.GoType.PointerType Error.ty)] false [go.bool]))), (go!"Render", (some (go.signature.Signature [(go.GoType.PointerType Error.ty)] false [go.string]))), (go!"RequireOriginWhenInvalid", (some (go.signature.Signature [] false [ErrorMatcher.ty]))), (go!"Test", (some (go.signature.Signature [TestIntf.ty, ErrorList.ty, ErrorList.ty] false []))), (go!"k8s.io/apimachinery/pkg/util/validation/field.normalizePath", (some (go.signature.Signature [go.string] false [go.string])))]
 
 attribute [instance] ErrorMatcher.TypeAssumptions.type_repr
   ErrorMatcher.TypeAssumptions.underlying
@@ -296,6 +302,8 @@ attribute [instance] ErrorMatcher.TypeAssumptions.type_repr
   ErrorMatcher.TypeAssumptions.set_matchCoveredByDeclarative
   ErrorMatcher.TypeAssumptions.get_normalizationRules
   ErrorMatcher.TypeAssumptions.set_normalizationRules
+  ErrorMatcher.TypeAssumptions.method_set
+  ErrorMatcher.TypeAssumptions.ptr_method_set
 
 abbrev TestIntf [GooseExts] : Type := GoInterface
 
@@ -304,8 +312,12 @@ abbrev TestIntf [GooseExts] : Type := GoInterface
 
 class TestIntf.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq TestIntf.ty TestIntf.underlying
+  method_set : go.MethodSetIs TestIntf.ty [(go!"Errorf", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.any)] true []))), (go!"Helper", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType TestIntf.ty) []
 
 attribute [instance] TestIntf.TypeAssumptions.underlying
+  TestIntf.TypeAssumptions.method_set
+  TestIntf.TypeAssumptions.ptr_method_set
 
 abbrev ErrorType [GooseExts] : Type := GoString
 
@@ -314,8 +326,12 @@ abbrev ErrorType [GooseExts] : Type := GoString
 
 class ErrorType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ErrorType.ty ErrorType.underlying
+  method_set : go.MethodSetIs ErrorType.ty [(go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ErrorType.ty) [(go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] ErrorType.TypeAssumptions.underlying
+  ErrorType.TypeAssumptions.method_set
+  ErrorType.TypeAssumptions.ptr_method_set
 
 abbrev ValidationStabilityLevel [GooseExts] : Type := w64
 
@@ -324,8 +340,12 @@ abbrev ValidationStabilityLevel [GooseExts] : Type := w64
 
 class ValidationStabilityLevel.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ValidationStabilityLevel.ty ValidationStabilityLevel.underlying
+  method_set : go.MethodSetIs ValidationStabilityLevel.ty [(go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ValidationStabilityLevel.ty) [(go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] ValidationStabilityLevel.TypeAssumptions.underlying
+  ValidationStabilityLevel.TypeAssumptions.method_set
+  ValidationStabilityLevel.TypeAssumptions.ptr_method_set
 
 structure Error [GooseExts] where
   mk ::
@@ -388,6 +408,8 @@ class Error.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSe
   set_ShortCircuitedInDeclarative : ∀ (x : Error) (y : Bool), go.IsGoStepPureDetTagged under (StructFieldSet Error.underlying go!"ShortCircuitedInDeclarative") (PairV #x #y) (Val #(({ x with ShortCircuitedInDeclarative' := y } : Error)))
   get_ValidationStabilityLevel : ∀ (x : Error), go.IsGoStepPureDetTagged under (StructFieldGet Error.underlying go!"ValidationStabilityLevel") #x (Val #(x.ValidationStabilityLevel'))
   set_ValidationStabilityLevel : ∀ (x : Error) (y : ValidationStabilityLevel), go.IsGoStepPureDetTagged under (StructFieldSet Error.underlying go!"ValidationStabilityLevel") (PairV #x #y) (Val #(({ x with ValidationStabilityLevel' := y } : Error)))
+  method_set : go.MethodSetIs Error.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Error.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"ErrorBody", (some (go.signature.Signature [] false [go.string]))), (go!"IsAlpha", (some (go.signature.Signature [] false [go.bool]))), (go!"IsBeta", (some (go.signature.Signature [] false [go.bool]))), (go!"MarkAlpha", (some (go.signature.Signature [] false [(go.GoType.PointerType Error.ty)]))), (go!"MarkBeta", (some (go.signature.Signature [] false [(go.GoType.PointerType Error.ty)]))), (go!"MarkCoveredByDeclarative", (some (go.signature.Signature [] false [(go.GoType.PointerType Error.ty)]))), (go!"MarkFromImperative", (some (go.signature.Signature [] false [(go.GoType.PointerType Error.ty)]))), (go!"MarkShortCircuitedInDV", (some (go.signature.Signature [] false [(go.GoType.PointerType Error.ty)]))), (go!"WithOrigin", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType Error.ty)])))]
 
 attribute [instance] Error.TypeAssumptions.type_repr
   Error.TypeAssumptions.underlying
@@ -411,6 +433,8 @@ attribute [instance] Error.TypeAssumptions.type_repr
   Error.TypeAssumptions.set_ShortCircuitedInDeclarative
   Error.TypeAssumptions.get_ValidationStabilityLevel
   Error.TypeAssumptions.set_ValidationStabilityLevel
+  Error.TypeAssumptions.method_set
+  Error.TypeAssumptions.ptr_method_set
 
 structure OmitValueType [GooseExts] where
   mk ::
@@ -434,9 +458,13 @@ noncomputable instance equals_unfold_OmitValueType [GooseExts] [GoGlobalContext]
 class OmitValueType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying OmitValueType.underlying OmitValueType
   underlying : go.UnderlyingDirectedEq OmitValueType.ty OmitValueType.underlying
+  method_set : go.MethodSetIs OmitValueType.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType OmitValueType.ty) []
 
 attribute [instance] OmitValueType.TypeAssumptions.type_repr
   OmitValueType.TypeAssumptions.underlying
+  OmitValueType.TypeAssumptions.method_set
+  OmitValueType.TypeAssumptions.ptr_method_set
 
 abbrev ErrorList [GooseExts] : Type := GoSlice
 
@@ -445,8 +473,12 @@ abbrev ErrorList [GooseExts] : Type := GoSlice
 
 class ErrorList.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ErrorList.ty ErrorList.underlying
+  method_set : go.MethodSetIs ErrorList.ty [(go!"ExtractCoveredByDeclarative", (some (go.signature.Signature [] false [ErrorList.ty]))), (go!"Filter", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/errors.Matcher" []))] true [ErrorList.ty]))), (go!"MarkAlpha", (some (go.signature.Signature [] false [ErrorList.ty]))), (go!"MarkBeta", (some (go.signature.Signature [] false [ErrorList.ty]))), (go!"MarkCoveredByDeclarative", (some (go.signature.Signature [] false [ErrorList.ty]))), (go!"MarkFromImperative", (some (go.signature.Signature [] false [ErrorList.ty]))), (go!"MarkShortCircuit", (some (go.signature.Signature [] false [ErrorList.ty]))), (go!"PrefixDetail", (some (go.signature.Signature [go.string] false [ErrorList.ty]))), (go!"RemoveCoveredByDeclarative", (some (go.signature.Signature [] false [ErrorList.ty]))), (go!"ToAggregate", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/util/errors.Aggregate" [])]))), (go!"WithOrigin", (some (go.signature.Signature [go.string] false [ErrorList.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ErrorList.ty) [(go!"ExtractCoveredByDeclarative", (some (go.signature.Signature [] false [ErrorList.ty]))), (go!"Filter", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/errors.Matcher" []))] true [ErrorList.ty]))), (go!"MarkAlpha", (some (go.signature.Signature [] false [ErrorList.ty]))), (go!"MarkBeta", (some (go.signature.Signature [] false [ErrorList.ty]))), (go!"MarkCoveredByDeclarative", (some (go.signature.Signature [] false [ErrorList.ty]))), (go!"MarkFromImperative", (some (go.signature.Signature [] false [ErrorList.ty]))), (go!"MarkShortCircuit", (some (go.signature.Signature [] false [ErrorList.ty]))), (go!"PrefixDetail", (some (go.signature.Signature [go.string] false [ErrorList.ty]))), (go!"RemoveCoveredByDeclarative", (some (go.signature.Signature [] false [ErrorList.ty]))), (go!"ToAggregate", (some (go.signature.Signature [] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/util/errors.Aggregate" [])]))), (go!"WithOrigin", (some (go.signature.Signature [go.string] false [ErrorList.ty])))]
 
 attribute [instance] ErrorList.TypeAssumptions.underlying
+  ErrorList.TypeAssumptions.method_set
+  ErrorList.TypeAssumptions.ptr_method_set
 
 structure pathOptions [GooseExts] where
   mk ::
@@ -473,11 +505,15 @@ class pathOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   underlying : go.UnderlyingDirectedEq pathOptions.ty pathOptions.underlying
   get_path : ∀ (x : pathOptions), go.IsGoStepPureDetTagged under (StructFieldGet pathOptions.underlying go!"path") #x (Val #(x.path'))
   set_path : ∀ (x : pathOptions) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet pathOptions.underlying go!"path") (PairV #x #y) (Val #(({ x with path' := y } : pathOptions)))
+  method_set : go.MethodSetIs pathOptions.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType pathOptions.ty) []
 
 attribute [instance] pathOptions.TypeAssumptions.type_repr
   pathOptions.TypeAssumptions.underlying
   pathOptions.TypeAssumptions.get_path
   pathOptions.TypeAssumptions.set_path
+  pathOptions.TypeAssumptions.method_set
+  pathOptions.TypeAssumptions.ptr_method_set
 
 abbrev PathOption [GooseExts] : Type := GoFunc
 
@@ -486,8 +522,12 @@ abbrev PathOption [GooseExts] : Type := GoFunc
 
 class PathOption.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq PathOption.ty PathOption.underlying
+  method_set : go.MethodSetIs PathOption.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PathOption.ty) []
 
 attribute [instance] PathOption.TypeAssumptions.underlying
+  PathOption.TypeAssumptions.method_set
+  PathOption.TypeAssumptions.ptr_method_set
 
 structure Path [GooseExts] where
   mk ::
@@ -522,6 +562,8 @@ class Path.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSem
   set_index : ∀ (x : Path) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Path.underlying go!"index") (PairV #x #y) (Val #(({ x with index' := y } : Path)))
   get_parent : ∀ (x : Path), go.IsGoStepPureDetTagged under (StructFieldGet Path.underlying go!"parent") #x (Val #(x.parent'))
   set_parent : ∀ (x : Path) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Path.underlying go!"parent") (PairV #x #y) (Val #(({ x with parent' := y } : Path)))
+  method_set : go.MethodSetIs Path.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Path.ty) [(go!"Child", (some (go.signature.Signature [go.string, (go.GoType.SliceType go.string)] true [(go.GoType.PointerType Path.ty)]))), (go!"Index", (some (go.signature.Signature [go.int] false [(go.GoType.PointerType Path.ty)]))), (go!"Key", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType Path.ty)]))), (go!"Root", (some (go.signature.Signature [] false [(go.GoType.PointerType Path.ty)]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] Path.TypeAssumptions.type_repr
   Path.TypeAssumptions.underlying
@@ -531,6 +573,8 @@ attribute [instance] Path.TypeAssumptions.type_repr
   Path.TypeAssumptions.set_index
   Path.TypeAssumptions.get_parent
   Path.TypeAssumptions.set_parent
+  Path.TypeAssumptions.method_set
+  Path.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   NormalizationRule_instance : NormalizationRule.TypeAssumptions

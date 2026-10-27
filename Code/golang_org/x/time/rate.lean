@@ -75,8 +75,12 @@ abbrev Limit [GooseExts] : Type := w64
 
 class Limit.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Limit.ty Limit.underlying
+  method_set : go.MethodSetIs Limit.ty [(go!"golang.org/x/time/rate.durationFromTokens", (some (go.signature.Signature [go.float64] false [(go.GoType.Named go!"time.Duration" [])]))), (go!"golang.org/x/time/rate.tokensFromDuration", (some (go.signature.Signature [(go.GoType.Named go!"time.Duration" [])] false [go.float64])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Limit.ty) [(go!"golang.org/x/time/rate.durationFromTokens", (some (go.signature.Signature [go.float64] false [(go.GoType.Named go!"time.Duration" [])]))), (go!"golang.org/x/time/rate.tokensFromDuration", (some (go.signature.Signature [(go.GoType.Named go!"time.Duration" [])] false [go.float64])))]
 
 attribute [instance] Limit.TypeAssumptions.underlying
+  Limit.TypeAssumptions.method_set
+  Limit.TypeAssumptions.ptr_method_set
 
 axiom Limiter : Type
 axiom Limiter.zero_val : ZeroVal Limiter
@@ -86,10 +90,14 @@ class Limiter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   type_repr : go.TypeReprUnderlying Limiter.underlying Limiter
   underlying : go.UnderlyingDirectedEq Limiter.ty Limiter.underlying
   isUnderlying : go.IsUnderlying Limiter.underlying Limiter.underlying
+  method_set : go.MethodSetIs Limiter.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Limiter.ty) [(go!"Allow", (some (go.signature.Signature [] false [go.bool]))), (go!"AllowN", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" []), go.int] false [go.bool]))), (go!"Burst", (some (go.signature.Signature [] false [go.int]))), (go!"Limit", (some (go.signature.Signature [] false [Limit.ty]))), (go!"Reserve", (some (go.signature.Signature [] false [(go.GoType.PointerType Reservation.ty)]))), (go!"ReserveN", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" []), go.int] false [(go.GoType.PointerType Reservation.ty)]))), (go!"SetBurst", (some (go.signature.Signature [go.int] false []))), (go!"SetBurstAt", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" []), go.int] false []))), (go!"SetLimit", (some (go.signature.Signature [Limit.ty] false []))), (go!"SetLimitAt", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" []), Limit.ty] false []))), (go!"Tokens", (some (go.signature.Signature [] false [go.float64]))), (go!"TokensAt", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.float64]))), (go!"Wait", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [go.error]))), (go!"WaitN", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.int] false [go.error]))), (go!"golang.org/x/time/rate.advance", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [go.float64]))), (go!"golang.org/x/time/rate.reserveN", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" []), go.int, (go.GoType.Named go!"time.Duration" [])] false [Reservation.ty]))), (go!"golang.org/x/time/rate.wait", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.int, (go.GoType.Named go!"time.Time" []), (go.GoType.FunctionType (go.signature.Signature [(go.GoType.Named go!"time.Duration" [])] false [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.Named go!"time.Time" [])), (go.GoType.FunctionType (go.signature.Signature [] false [go.bool])), (go.GoType.FunctionType (go.signature.Signature [] false []))]))] false [go.error])))]
 
 attribute [instance] Limiter.TypeAssumptions.type_repr
   Limiter.TypeAssumptions.underlying
   Limiter.TypeAssumptions.isUnderlying
+  Limiter.TypeAssumptions.method_set
+  Limiter.TypeAssumptions.ptr_method_set
 
 axiom Reservation : Type
 axiom Reservation.zero_val : ZeroVal Reservation
@@ -99,10 +107,14 @@ class Reservation.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   type_repr : go.TypeReprUnderlying Reservation.underlying Reservation
   underlying : go.UnderlyingDirectedEq Reservation.ty Reservation.underlying
   isUnderlying : go.IsUnderlying Reservation.underlying Reservation.underlying
+  method_set : go.MethodSetIs Reservation.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Reservation.ty) [(go!"Cancel", (some (go.signature.Signature [] false []))), (go!"CancelAt", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false []))), (go!"Delay", (some (go.signature.Signature [] false [(go.GoType.Named go!"time.Duration" [])]))), (go!"DelayFrom", (some (go.signature.Signature [(go.GoType.Named go!"time.Time" [])] false [(go.GoType.Named go!"time.Duration" [])]))), (go!"OK", (some (go.signature.Signature [] false [go.bool])))]
 
 attribute [instance] Reservation.TypeAssumptions.type_repr
   Reservation.TypeAssumptions.underlying
   Reservation.TypeAssumptions.isUnderlying
+  Reservation.TypeAssumptions.method_set
+  Reservation.TypeAssumptions.ptr_method_set
 
 axiom Sometimes : Type
 axiom Sometimes.zero_val : ZeroVal Sometimes
@@ -112,10 +124,14 @@ class Sometimes.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   type_repr : go.TypeReprUnderlying Sometimes.underlying Sometimes
   underlying : go.UnderlyingDirectedEq Sometimes.ty Sometimes.underlying
   isUnderlying : go.IsUnderlying Sometimes.underlying Sometimes.underlying
+  method_set : go.MethodSetIs Sometimes.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Sometimes.ty) [(go!"Do", (some (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [] false []))] false [])))]
 
 attribute [instance] Sometimes.TypeAssumptions.type_repr
   Sometimes.TypeAssumptions.underlying
   Sometimes.TypeAssumptions.isUnderlying
+  Sometimes.TypeAssumptions.method_set
+  Sometimes.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Limit_instance : Limit.TypeAssumptions

@@ -127,8 +127,12 @@ abbrev ID [GooseExts] : Type := w64
 
 class ID.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ID.ty ID.underlying
+  method_set : go.MethodSetIs ID.ty [(go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ID.ty) [(go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] ID.TypeAssumptions.underlying
+  ID.TypeAssumptions.method_set
+  ID.TypeAssumptions.ptr_method_set
 
 abbrev IDSlice [GooseExts] : Type := GoSlice
 
@@ -137,8 +141,12 @@ abbrev IDSlice [GooseExts] : Type := GoSlice
 
 class IDSlice.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq IDSlice.ty IDSlice.underlying
+  method_set : go.MethodSetIs IDSlice.ty [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType IDSlice.ty) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
 
 attribute [instance] IDSlice.TypeAssumptions.underlying
+  IDSlice.TypeAssumptions.method_set
+  IDSlice.TypeAssumptions.ptr_method_set
 
 abbrev Set' [GooseExts] : Type := GoInterface
 
@@ -147,18 +155,26 @@ abbrev Set' [GooseExts] : Type := GoInterface
 
 class Set.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Set'.ty Set'.underlying
+  method_set : go.MethodSetIs Set'.ty [(go!"Add", (some (go.signature.Signature [go.string] false []))), (go!"Contains", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [go.bool]))), (go!"ContainsAll", (some (go.signature.Signature [(go.GoType.SliceType go.string)] false [go.bool]))), (go!"Copy", (some (go.signature.Signature [] false [Set'.ty]))), (go!"Equals", (some (go.signature.Signature [Set'.ty] false [go.bool]))), (go!"Length", (some (go.signature.Signature [] false [go.int]))), (go!"Remove", (some (go.signature.Signature [go.string] false []))), (go!"Sub", (some (go.signature.Signature [Set'.ty] false [Set'.ty]))), (go!"Values", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Set'.ty) []
 
 attribute [instance] Set.TypeAssumptions.underlying
+  Set.TypeAssumptions.method_set
+  Set.TypeAssumptions.ptr_method_set
 
 abbrev ThreadsafeSet [GooseExts] : Type := GoInterface
 
 @[reducible] noncomputable def ThreadsafeSet.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.TypeElem [(go.type_term.TypeTerm Set'.ty)])])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Add" (go.signature.Signature [go.string] false [])), (go.InterfaceElem.MethodElem go!"Contains" (go.signature.Signature [(go.GoType.SliceType go.string)] true [go.bool])), (go.InterfaceElem.MethodElem go!"ContainsAll" (go.signature.Signature [(go.GoType.SliceType go.string)] false [go.bool])), (go.InterfaceElem.MethodElem go!"Copy" (go.signature.Signature [] false [Set'.ty])), (go.InterfaceElem.MethodElem go!"Equals" (go.signature.Signature [Set'.ty] false [go.bool])), (go.InterfaceElem.MethodElem go!"Length" (go.signature.Signature [] false [go.int])), (go.InterfaceElem.MethodElem go!"Remove" (go.signature.Signature [go.string] false [])), (go.InterfaceElem.MethodElem go!"Sub" (go.signature.Signature [Set'.ty] false [Set'.ty])), (go.InterfaceElem.MethodElem go!"Values" (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))])
 
 class ThreadsafeSet.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ThreadsafeSet.ty ThreadsafeSet.underlying
+  method_set : go.MethodSetIs ThreadsafeSet.ty [(go!"Add", (some (go.signature.Signature [go.string] false []))), (go!"Contains", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [go.bool]))), (go!"ContainsAll", (some (go.signature.Signature [(go.GoType.SliceType go.string)] false [go.bool]))), (go!"Copy", (some (go.signature.Signature [] false [Set'.ty]))), (go!"Equals", (some (go.signature.Signature [Set'.ty] false [go.bool]))), (go!"Length", (some (go.signature.Signature [] false [go.int]))), (go!"Remove", (some (go.signature.Signature [go.string] false []))), (go!"Sub", (some (go.signature.Signature [Set'.ty] false [Set'.ty]))), (go!"Values", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ThreadsafeSet.ty) []
 
 attribute [instance] ThreadsafeSet.TypeAssumptions.underlying
+  ThreadsafeSet.TypeAssumptions.method_set
+  ThreadsafeSet.TypeAssumptions.ptr_method_set
 
 structure unsafeSet [GooseExts] where
   mk ::
@@ -185,11 +201,15 @@ class unsafeSet.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   underlying : go.UnderlyingDirectedEq unsafeSet.ty unsafeSet.underlying
   get_d : ∀ (x : unsafeSet), go.IsGoStepPureDetTagged under (StructFieldGet unsafeSet.underlying go!"d") #x (Val #(x.d'))
   set_d : ∀ (x : unsafeSet) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet unsafeSet.underlying go!"d") (PairV #x #y) (Val #(({ x with d' := y } : unsafeSet)))
+  method_set : go.MethodSetIs unsafeSet.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType unsafeSet.ty) [(go!"Add", (some (go.signature.Signature [go.string] false []))), (go!"Contains", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [go.bool]))), (go!"ContainsAll", (some (go.signature.Signature [(go.GoType.SliceType go.string)] false [go.bool]))), (go!"Copy", (some (go.signature.Signature [] false [Set'.ty]))), (go!"Equals", (some (go.signature.Signature [Set'.ty] false [go.bool]))), (go!"Length", (some (go.signature.Signature [] false [go.int]))), (go!"Remove", (some (go.signature.Signature [go.string] false []))), (go!"Sub", (some (go.signature.Signature [Set'.ty] false [Set'.ty]))), (go!"Values", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)])))]
 
 attribute [instance] unsafeSet.TypeAssumptions.type_repr
   unsafeSet.TypeAssumptions.underlying
   unsafeSet.TypeAssumptions.get_d
   unsafeSet.TypeAssumptions.set_d
+  unsafeSet.TypeAssumptions.method_set
+  unsafeSet.TypeAssumptions.ptr_method_set
 
 axiom tsafeSet : Type
 axiom tsafeSet.zero_val : ZeroVal tsafeSet
@@ -199,10 +219,14 @@ class tsafeSet.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [G
   type_repr : go.TypeReprUnderlying tsafeSet.underlying tsafeSet
   underlying : go.UnderlyingDirectedEq tsafeSet.ty tsafeSet.underlying
   isUnderlying : go.IsUnderlying tsafeSet.underlying tsafeSet.underlying
+  method_set : go.MethodSetIs tsafeSet.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType tsafeSet.ty) [(go!"Add", (some (go.signature.Signature [go.string] false []))), (go!"Contains", (some (go.signature.Signature [(go.GoType.SliceType go.string)] true [go.bool]))), (go!"ContainsAll", (some (go.signature.Signature [(go.GoType.SliceType go.string)] false [go.bool]))), (go!"Copy", (some (go.signature.Signature [] false [Set'.ty]))), (go!"Equals", (some (go.signature.Signature [Set'.ty] false [go.bool]))), (go!"Length", (some (go.signature.Signature [] false [go.int]))), (go!"Remove", (some (go.signature.Signature [go.string] false []))), (go!"Sub", (some (go.signature.Signature [Set'.ty] false [Set'.ty]))), (go!"Values", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)])))]
 
 attribute [instance] tsafeSet.TypeAssumptions.type_repr
   tsafeSet.TypeAssumptions.underlying
   tsafeSet.TypeAssumptions.isUnderlying
+  tsafeSet.TypeAssumptions.method_set
+  tsafeSet.TypeAssumptions.ptr_method_set
 
 abbrev Uint64Slice [GooseExts] : Type := GoSlice
 
@@ -211,8 +235,12 @@ abbrev Uint64Slice [GooseExts] : Type := GoSlice
 
 class Uint64Slice.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Uint64Slice.ty Uint64Slice.underlying
+  method_set : go.MethodSetIs Uint64Slice.ty [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Uint64Slice.ty) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
 
 attribute [instance] Uint64Slice.TypeAssumptions.underlying
+  Uint64Slice.TypeAssumptions.method_set
+  Uint64Slice.TypeAssumptions.ptr_method_set
 
 abbrev URLs [GooseExts] : Type := GoSlice
 
@@ -221,11 +249,15 @@ abbrev URLs [GooseExts] : Type := GoSlice
 
 class URLs.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq URLs.ty URLs.underlying
+  method_set : go.MethodSetIs URLs.ty [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"StringSlice", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType URLs.ty) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Sort", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"StringSlice", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
   Len_unfold : MethodUnfold URLs.ty go!"Len" URLs.Len.impl
   ptr_Len_unfold : MethodUnfold (go.GoType.PointerType URLs.ty) go!"Len" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve URLs.ty go!"Len"))) (App (Val (GoInstruction (GoLoad URLs.ty))) (Var "$r"))))
 
 attribute [instance] URLs.TypeAssumptions.underlying
+  URLs.TypeAssumptions.method_set
+  URLs.TypeAssumptions.ptr_method_set
   URLs.TypeAssumptions.Len_unfold
   URLs.TypeAssumptions.ptr_Len_unfold
 
@@ -236,8 +268,12 @@ abbrev URLsMap [GooseExts] : Type := GoMap
 
 class URLsMap.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq URLsMap.ty URLsMap.underlying
+  method_set : go.MethodSetIs URLsMap.ty [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"URLs", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType URLsMap.ty) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"URLs", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)])))]
 
 attribute [instance] URLsMap.TypeAssumptions.underlying
+  URLsMap.TypeAssumptions.method_set
+  URLsMap.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   ID_instance : ID.TypeAssumptions

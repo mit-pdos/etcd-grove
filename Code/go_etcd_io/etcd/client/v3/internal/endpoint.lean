@@ -71,8 +71,12 @@ abbrev CredsRequirement [GooseExts] : Type := w64
 
 class CredsRequirement.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq CredsRequirement.ty CredsRequirement.underlying
+  method_set : go.MethodSetIs CredsRequirement.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType CredsRequirement.ty) []
 
 attribute [instance] CredsRequirement.TypeAssumptions.underlying
+  CredsRequirement.TypeAssumptions.method_set
+  CredsRequirement.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   CredsRequirement_instance : CredsRequirement.TypeAssumptions

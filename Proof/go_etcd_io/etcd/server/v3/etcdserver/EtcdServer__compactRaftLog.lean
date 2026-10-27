@@ -38,7 +38,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
-variable [ErrorStringLeaf]
 
 theorem EtcdServer.compactRaftLog.wp_proof
     (hLg : EtcdServer.Logger.spec (GF := GF) (hG := hG))

@@ -127,6 +127,8 @@ class GroupResource.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContex
   set_Group : ∀ (x : GroupResource) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet GroupResource.underlying go!"Group") (PairV #x #y) (Val #(({ x with Group' := y } : GroupResource)))
   get_Resource : ∀ (x : GroupResource), go.IsGoStepPureDetTagged under (StructFieldGet GroupResource.underlying go!"Resource") #x (Val #(x.Resource'))
   set_Resource : ∀ (x : GroupResource) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet GroupResource.underlying go!"Resource") (PairV #x #y) (Val #(({ x with Resource' := y } : GroupResource)))
+  method_set : go.MethodSetIs GroupResource.ty [(go!"Empty", (some (go.signature.Signature [] false [go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"WithVersion", (some (go.signature.Signature [go.string] false [GroupVersionResource.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType GroupResource.ty) [(go!"Empty", (some (go.signature.Signature [] false [go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"WithVersion", (some (go.signature.Signature [go.string] false [GroupVersionResource.ty])))]
 
 attribute [instance] GroupResource.TypeAssumptions.type_repr
   GroupResource.TypeAssumptions.underlying
@@ -134,6 +136,8 @@ attribute [instance] GroupResource.TypeAssumptions.type_repr
   GroupResource.TypeAssumptions.set_Group
   GroupResource.TypeAssumptions.get_Resource
   GroupResource.TypeAssumptions.set_Resource
+  GroupResource.TypeAssumptions.method_set
+  GroupResource.TypeAssumptions.ptr_method_set
 
 structure GroupVersionResource [GooseExts] where
   mk ::
@@ -168,6 +172,8 @@ class GroupVersionResource.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLoca
   set_Version : ∀ (x : GroupVersionResource) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet GroupVersionResource.underlying go!"Version") (PairV #x #y) (Val #(({ x with Version' := y } : GroupVersionResource)))
   get_Resource : ∀ (x : GroupVersionResource), go.IsGoStepPureDetTagged under (StructFieldGet GroupVersionResource.underlying go!"Resource") #x (Val #(x.Resource'))
   set_Resource : ∀ (x : GroupVersionResource) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet GroupVersionResource.underlying go!"Resource") (PairV #x #y) (Val #(({ x with Resource' := y } : GroupVersionResource)))
+  method_set : go.MethodSetIs GroupVersionResource.ty [(go!"Empty", (some (go.signature.Signature [] false [go.bool]))), (go!"GroupResource", (some (go.signature.Signature [] false [GroupResource.ty]))), (go!"GroupVersion", (some (go.signature.Signature [] false [GroupVersion.ty]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType GroupVersionResource.ty) [(go!"Empty", (some (go.signature.Signature [] false [go.bool]))), (go!"GroupResource", (some (go.signature.Signature [] false [GroupResource.ty]))), (go!"GroupVersion", (some (go.signature.Signature [] false [GroupVersion.ty]))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] GroupVersionResource.TypeAssumptions.type_repr
   GroupVersionResource.TypeAssumptions.underlying
@@ -177,6 +183,8 @@ attribute [instance] GroupVersionResource.TypeAssumptions.type_repr
   GroupVersionResource.TypeAssumptions.set_Version
   GroupVersionResource.TypeAssumptions.get_Resource
   GroupVersionResource.TypeAssumptions.set_Resource
+  GroupVersionResource.TypeAssumptions.method_set
+  GroupVersionResource.TypeAssumptions.ptr_method_set
 
 structure GroupKind [GooseExts] where
   mk ::
@@ -207,6 +215,8 @@ class GroupKind.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   set_Group : ∀ (x : GroupKind) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet GroupKind.underlying go!"Group") (PairV #x #y) (Val #(({ x with Group' := y } : GroupKind)))
   get_Kind : ∀ (x : GroupKind), go.IsGoStepPureDetTagged under (StructFieldGet GroupKind.underlying go!"Kind") #x (Val #(x.Kind'))
   set_Kind : ∀ (x : GroupKind) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet GroupKind.underlying go!"Kind") (PairV #x #y) (Val #(({ x with Kind' := y } : GroupKind)))
+  method_set : go.MethodSetIs GroupKind.ty [(go!"Empty", (some (go.signature.Signature [] false [go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"WithVersion", (some (go.signature.Signature [go.string] false [GroupVersionKind.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType GroupKind.ty) [(go!"Empty", (some (go.signature.Signature [] false [go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"WithVersion", (some (go.signature.Signature [go.string] false [GroupVersionKind.ty])))]
 
 attribute [instance] GroupKind.TypeAssumptions.type_repr
   GroupKind.TypeAssumptions.underlying
@@ -214,6 +224,8 @@ attribute [instance] GroupKind.TypeAssumptions.type_repr
   GroupKind.TypeAssumptions.set_Group
   GroupKind.TypeAssumptions.get_Kind
   GroupKind.TypeAssumptions.set_Kind
+  GroupKind.TypeAssumptions.method_set
+  GroupKind.TypeAssumptions.ptr_method_set
 
 structure GroupVersionKind [GooseExts] where
   mk ::
@@ -248,6 +260,8 @@ class GroupVersionKind.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCon
   set_Version : ∀ (x : GroupVersionKind) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet GroupVersionKind.underlying go!"Version") (PairV #x #y) (Val #(({ x with Version' := y } : GroupVersionKind)))
   get_Kind : ∀ (x : GroupVersionKind), go.IsGoStepPureDetTagged under (StructFieldGet GroupVersionKind.underlying go!"Kind") #x (Val #(x.Kind'))
   set_Kind : ∀ (x : GroupVersionKind) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet GroupVersionKind.underlying go!"Kind") (PairV #x #y) (Val #(({ x with Kind' := y } : GroupVersionKind)))
+  method_set : go.MethodSetIs GroupVersionKind.ty [(go!"Empty", (some (go.signature.Signature [] false [go.bool]))), (go!"GroupKind", (some (go.signature.Signature [] false [GroupKind.ty]))), (go!"GroupVersion", (some (go.signature.Signature [] false [GroupVersion.ty]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"ToAPIVersionAndKind", (some (go.signature.Signature [] false [go.string, go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType GroupVersionKind.ty) [(go!"Empty", (some (go.signature.Signature [] false [go.bool]))), (go!"GroupKind", (some (go.signature.Signature [] false [GroupKind.ty]))), (go!"GroupVersion", (some (go.signature.Signature [] false [GroupVersion.ty]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"ToAPIVersionAndKind", (some (go.signature.Signature [] false [go.string, go.string])))]
 
 attribute [instance] GroupVersionKind.TypeAssumptions.type_repr
   GroupVersionKind.TypeAssumptions.underlying
@@ -257,6 +271,8 @@ attribute [instance] GroupVersionKind.TypeAssumptions.type_repr
   GroupVersionKind.TypeAssumptions.set_Version
   GroupVersionKind.TypeAssumptions.get_Kind
   GroupVersionKind.TypeAssumptions.set_Kind
+  GroupVersionKind.TypeAssumptions.method_set
+  GroupVersionKind.TypeAssumptions.ptr_method_set
 
 structure GroupVersion [GooseExts] where
   mk ::
@@ -287,6 +303,8 @@ class GroupVersion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext
   set_Group : ∀ (x : GroupVersion) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet GroupVersion.underlying go!"Group") (PairV #x #y) (Val #(({ x with Group' := y } : GroupVersion)))
   get_Version : ∀ (x : GroupVersion), go.IsGoStepPureDetTagged under (StructFieldGet GroupVersion.underlying go!"Version") #x (Val #(x.Version'))
   set_Version : ∀ (x : GroupVersion) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet GroupVersion.underlying go!"Version") (PairV #x #y) (Val #(({ x with Version' := y } : GroupVersion)))
+  method_set : go.MethodSetIs GroupVersion.ty [(go!"Empty", (some (go.signature.Signature [] false [go.bool]))), (go!"Identifier", (some (go.signature.Signature [] false [go.string]))), (go!"KindForGroupVersionKinds", (some (go.signature.Signature [(go.GoType.SliceType GroupVersionKind.ty)] false [GroupVersionKind.ty, go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"WithKind", (some (go.signature.Signature [go.string] false [GroupVersionKind.ty]))), (go!"WithResource", (some (go.signature.Signature [go.string] false [GroupVersionResource.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType GroupVersion.ty) [(go!"Empty", (some (go.signature.Signature [] false [go.bool]))), (go!"Identifier", (some (go.signature.Signature [] false [go.string]))), (go!"KindForGroupVersionKinds", (some (go.signature.Signature [(go.GoType.SliceType GroupVersionKind.ty)] false [GroupVersionKind.ty, go.bool]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"WithKind", (some (go.signature.Signature [go.string] false [GroupVersionKind.ty]))), (go!"WithResource", (some (go.signature.Signature [go.string] false [GroupVersionResource.ty])))]
 
 attribute [instance] GroupVersion.TypeAssumptions.type_repr
   GroupVersion.TypeAssumptions.underlying
@@ -294,6 +312,8 @@ attribute [instance] GroupVersion.TypeAssumptions.type_repr
   GroupVersion.TypeAssumptions.set_Group
   GroupVersion.TypeAssumptions.get_Version
   GroupVersion.TypeAssumptions.set_Version
+  GroupVersion.TypeAssumptions.method_set
+  GroupVersion.TypeAssumptions.ptr_method_set
 
 abbrev GroupVersions [GooseExts] : Type := GoSlice
 
@@ -302,8 +322,12 @@ abbrev GroupVersions [GooseExts] : Type := GoSlice
 
 class GroupVersions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq GroupVersions.ty GroupVersions.underlying
+  method_set : go.MethodSetIs GroupVersions.ty [(go!"Identifier", (some (go.signature.Signature [] false [go.string]))), (go!"KindForGroupVersionKinds", (some (go.signature.Signature [(go.GoType.SliceType GroupVersionKind.ty)] false [GroupVersionKind.ty, go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType GroupVersions.ty) [(go!"Identifier", (some (go.signature.Signature [] false [go.string]))), (go!"KindForGroupVersionKinds", (some (go.signature.Signature [(go.GoType.SliceType GroupVersionKind.ty)] false [GroupVersionKind.ty, go.bool])))]
 
 attribute [instance] GroupVersions.TypeAssumptions.underlying
+  GroupVersions.TypeAssumptions.method_set
+  GroupVersions.TypeAssumptions.ptr_method_set
 
 abbrev ObjectKind [GooseExts] : Type := GoInterface
 
@@ -312,8 +336,12 @@ abbrev ObjectKind [GooseExts] : Type := GoInterface
 
 class ObjectKind.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ObjectKind.ty ObjectKind.underlying
+  method_set : go.MethodSetIs ObjectKind.ty [(go!"GroupVersionKind", (some (go.signature.Signature [] false [GroupVersionKind.ty]))), (go!"SetGroupVersionKind", (some (go.signature.Signature [GroupVersionKind.ty] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ObjectKind.ty) []
 
 attribute [instance] ObjectKind.TypeAssumptions.underlying
+  ObjectKind.TypeAssumptions.method_set
+  ObjectKind.TypeAssumptions.ptr_method_set
 
 structure emptyObjectKind [GooseExts] where
   mk ::
@@ -337,9 +365,13 @@ noncomputable instance equals_unfold_emptyObjectKind [GooseExts] [GoGlobalContex
 class emptyObjectKind.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying emptyObjectKind.underlying emptyObjectKind
   underlying : go.UnderlyingDirectedEq emptyObjectKind.ty emptyObjectKind.underlying
+  method_set : go.MethodSetIs emptyObjectKind.ty [(go!"GroupVersionKind", (some (go.signature.Signature [] false [GroupVersionKind.ty]))), (go!"SetGroupVersionKind", (some (go.signature.Signature [GroupVersionKind.ty] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType emptyObjectKind.ty) [(go!"GroupVersionKind", (some (go.signature.Signature [] false [GroupVersionKind.ty]))), (go!"SetGroupVersionKind", (some (go.signature.Signature [GroupVersionKind.ty] false [])))]
 
 attribute [instance] emptyObjectKind.TypeAssumptions.type_repr
   emptyObjectKind.TypeAssumptions.underlying
+  emptyObjectKind.TypeAssumptions.method_set
+  emptyObjectKind.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   GroupResource_instance : GroupResource.TypeAssumptions

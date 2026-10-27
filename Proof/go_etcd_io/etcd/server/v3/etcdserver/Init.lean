@@ -5,7 +5,7 @@ Package initialization of `go_etcd_io.etcd.server.v3.etcdserver`
 Its fact (`srvInit`, `BaseApply.lean`): its metrics (`metrics.go`, untranslated: the
 trust-boundary axioms `<X>_init`; the vectors with their label names), and from its imports' facts `traceutil.Tracer`, `schema`'s
 `AllBuckets` and the error variables of `etcdserver/errors`, `auth` and raft it returns (leaf
-errors by the premise `EtcdGrove.ErrorStringLeaf`). Its precondition has the read package's
+errors by `EtcdGrove.ErrorStringLeaf`). Its precondition has the read package's
 registration rights (`EtcdGrove.read.readRegPerm`, decision D16), which it passes on to the read
 package's initializer. (D19r (C), 2026-10-18) And `raftStatusMu` (`raft.go`), initialized here,
 guarding `raftStatus` (`rnRaftStatusOk`; the names-only `init()` registers an `expvar` closure that
@@ -192,11 +192,8 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
-variable [EtcdGrove.ErrorStringLeaf]
-variable [EtcdGrove.RpctypesEtcdErrorMethods]
+variable [_root_.Perennial.errors.Assumptions]
 variable [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
-variable [_root_.Perennial.context.ErrorStringIsError]
-  [_root_.Perennial.context.DeadlineExceededIsError]
 variable [_root_.Perennial.log.NewModel]
 
 namespace go_etcd_io.etcd.server.v3.etcdserver

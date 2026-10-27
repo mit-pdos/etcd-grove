@@ -5,6 +5,7 @@ public import Code.go_etcd_io.etcd.api.v3.etcdserverpb.chunk0
 public import Code.go_etcd_io.etcd.api.v3.etcdserverpb.chunk1
 public import Code.go_etcd_io.etcd.api.v3.etcdserverpb.chunk2
 public import Code.go_etcd_io.etcd.api.v3.etcdserverpb.chunk3
+public import Code.go_etcd_io.etcd.api.v3.etcdserverpb.chunk4
 
 @[expose] public section
 

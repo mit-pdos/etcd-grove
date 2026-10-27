@@ -217,8 +217,12 @@ abbrev HealthCheckResponse_ServingStatus [GooseExts] : Type := w32
 
 class HealthCheckResponse_ServingStatus.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq HealthCheckResponse_ServingStatus.ty HealthCheckResponse_ServingStatus.underlying
+  method_set : go.MethodSetIs HealthCheckResponse_ServingStatus.ty [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumDescriptor" [])]))), (go!"Enum", (some (go.signature.Signature [] false [(go.GoType.PointerType HealthCheckResponse_ServingStatus.ty)]))), (go!"EnumDescriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"Number", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumNumber" [])]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Type", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumType" [])])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType HealthCheckResponse_ServingStatus.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumDescriptor" [])]))), (go!"Enum", (some (go.signature.Signature [] false [(go.GoType.PointerType HealthCheckResponse_ServingStatus.ty)]))), (go!"EnumDescriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"Number", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumNumber" [])]))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"Type", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.EnumType" [])])))]
 
 attribute [instance] HealthCheckResponse_ServingStatus.TypeAssumptions.underlying
+  HealthCheckResponse_ServingStatus.TypeAssumptions.method_set
+  HealthCheckResponse_ServingStatus.TypeAssumptions.ptr_method_set
 
 axiom HealthCheckRequest : Type
 axiom HealthCheckRequest.zero_val : ZeroVal HealthCheckRequest
@@ -228,10 +232,14 @@ class HealthCheckRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalC
   type_repr : go.TypeReprUnderlying HealthCheckRequest.underlying HealthCheckRequest
   underlying : go.UnderlyingDirectedEq HealthCheckRequest.ty HealthCheckRequest.underlying
   isUnderlying : go.IsUnderlying HealthCheckRequest.underlying HealthCheckRequest.underlying
+  method_set : go.MethodSetIs HealthCheckRequest.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType HealthCheckRequest.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetService", (some (go.signature.Signature [] false [go.string]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Message" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] HealthCheckRequest.TypeAssumptions.type_repr
   HealthCheckRequest.TypeAssumptions.underlying
   HealthCheckRequest.TypeAssumptions.isUnderlying
+  HealthCheckRequest.TypeAssumptions.method_set
+  HealthCheckRequest.TypeAssumptions.ptr_method_set
 
 axiom HealthCheckResponse : Type
 axiom HealthCheckResponse.zero_val : ZeroVal HealthCheckResponse
@@ -241,10 +249,14 @@ class HealthCheckResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocal
   type_repr : go.TypeReprUnderlying HealthCheckResponse.underlying HealthCheckResponse
   underlying : go.UnderlyingDirectedEq HealthCheckResponse.ty HealthCheckResponse.underlying
   isUnderlying : go.IsUnderlying HealthCheckResponse.underlying HealthCheckResponse.underlying
+  method_set : go.MethodSetIs HealthCheckResponse.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType HealthCheckResponse.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetStatus", (some (go.signature.Signature [] false [HealthCheckResponse_ServingStatus.ty]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Message" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] HealthCheckResponse.TypeAssumptions.type_repr
   HealthCheckResponse.TypeAssumptions.underlying
   HealthCheckResponse.TypeAssumptions.isUnderlying
+  HealthCheckResponse.TypeAssumptions.method_set
+  HealthCheckResponse.TypeAssumptions.ptr_method_set
 
 axiom HealthListRequest : Type
 axiom HealthListRequest.zero_val : ZeroVal HealthListRequest
@@ -254,10 +266,14 @@ class HealthListRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCo
   type_repr : go.TypeReprUnderlying HealthListRequest.underlying HealthListRequest
   underlying : go.UnderlyingDirectedEq HealthListRequest.ty HealthListRequest.underlying
   isUnderlying : go.IsUnderlying HealthListRequest.underlying HealthListRequest.underlying
+  method_set : go.MethodSetIs HealthListRequest.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType HealthListRequest.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Message" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] HealthListRequest.TypeAssumptions.type_repr
   HealthListRequest.TypeAssumptions.underlying
   HealthListRequest.TypeAssumptions.isUnderlying
+  HealthListRequest.TypeAssumptions.method_set
+  HealthListRequest.TypeAssumptions.ptr_method_set
 
 axiom HealthListResponse : Type
 axiom HealthListResponse.zero_val : ZeroVal HealthListResponse
@@ -267,10 +283,14 @@ class HealthListResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalC
   type_repr : go.TypeReprUnderlying HealthListResponse.underlying HealthListResponse
   underlying : go.UnderlyingDirectedEq HealthListResponse.ty HealthListResponse.underlying
   isUnderlying : go.IsUnderlying HealthListResponse.underlying HealthListResponse.underlying
+  method_set : go.MethodSetIs HealthListResponse.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType HealthListResponse.ty) [(go!"Descriptor", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), (go.GoType.SliceType go.int)]))), (go!"GetStatuses", (some (go.signature.Signature [] false [(go.GoType.MapType go.string (go.GoType.PointerType HealthCheckResponse.ty))]))), (go!"ProtoMessage", (some (go.signature.Signature [] false []))), (go!"ProtoReflect", (some (go.signature.Signature [] false [(go.GoType.Named go!"google.golang.org/protobuf/reflect/protoreflect.Message" [])]))), (go!"Reset", (some (go.signature.Signature [] false []))), (go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] HealthListResponse.TypeAssumptions.type_repr
   HealthListResponse.TypeAssumptions.underlying
   HealthListResponse.TypeAssumptions.isUnderlying
+  HealthListResponse.TypeAssumptions.method_set
+  HealthListResponse.TypeAssumptions.ptr_method_set
 
 abbrev HealthClient [GooseExts] : Type := GoInterface
 
@@ -279,8 +299,12 @@ abbrev HealthClient [GooseExts] : Type := GoInterface
 
 class HealthClient.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq HealthClient.ty HealthClient.underlying
+  method_set : go.MethodSetIs HealthClient.ty [(go!"Check", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType HealthCheckRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType HealthCheckResponse.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType HealthListRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType HealthListResponse.ty), go.error]))), (go!"Watch", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType HealthCheckRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(_root_.Perennial.google_golang_org.grpc.ServerStreamingClient.ty HealthCheckResponse.ty), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType HealthClient.ty) []
 
 attribute [instance] HealthClient.TypeAssumptions.underlying
+  HealthClient.TypeAssumptions.method_set
+  HealthClient.TypeAssumptions.ptr_method_set
 
 structure healthClient [GooseExts] where
   mk ::
@@ -307,11 +331,15 @@ class healthClient.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext
   underlying : go.UnderlyingDirectedEq healthClient.ty healthClient.underlying
   get_cc : ∀ (x : healthClient), go.IsGoStepPureDetTagged under (StructFieldGet healthClient.underlying go!"cc") #x (Val #(x.cc'))
   set_cc : ∀ (x : healthClient) (y : _root_.Perennial.google_golang_org.grpc.ClientConnInterface), go.IsGoStepPureDetTagged under (StructFieldSet healthClient.underlying go!"cc") (PairV #x #y) (Val #(({ x with cc' := y } : healthClient)))
+  method_set : go.MethodSetIs healthClient.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType healthClient.ty) [(go!"Check", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType HealthCheckRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType HealthCheckResponse.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType HealthListRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(go.GoType.PointerType HealthListResponse.ty), go.error]))), (go!"Watch", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType HealthCheckRequest.ty), (go.GoType.SliceType _root_.Perennial.google_golang_org.grpc.CallOption.ty)] true [(_root_.Perennial.google_golang_org.grpc.ServerStreamingClient.ty HealthCheckResponse.ty), go.error])))]
 
 attribute [instance] healthClient.TypeAssumptions.type_repr
   healthClient.TypeAssumptions.underlying
   healthClient.TypeAssumptions.get_cc
   healthClient.TypeAssumptions.set_cc
+  healthClient.TypeAssumptions.method_set
+  healthClient.TypeAssumptions.ptr_method_set
 
 abbrev HealthServer [GooseExts] : Type := GoInterface
 
@@ -320,8 +348,12 @@ abbrev HealthServer [GooseExts] : Type := GoInterface
 
 class HealthServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq HealthServer.ty HealthServer.underlying
+  method_set : go.MethodSetIs HealthServer.ty [(go!"Check", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType HealthCheckRequest.ty)] false [(go.GoType.PointerType HealthCheckResponse.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType HealthListRequest.ty)] false [(go.GoType.PointerType HealthListResponse.ty), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.PointerType HealthCheckRequest.ty), (_root_.Perennial.google_golang_org.grpc.ServerStreamingServer.ty HealthCheckResponse.ty)] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType HealthServer.ty) []
 
 attribute [instance] HealthServer.TypeAssumptions.underlying
+  HealthServer.TypeAssumptions.method_set
+  HealthServer.TypeAssumptions.ptr_method_set
 
 structure UnimplementedHealthServer [GooseExts] where
   mk ::
@@ -345,19 +377,27 @@ noncomputable instance equals_unfold_UnimplementedHealthServer [GooseExts] [GoGl
 class UnimplementedHealthServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying UnimplementedHealthServer.underlying UnimplementedHealthServer
   underlying : go.UnderlyingDirectedEq UnimplementedHealthServer.ty UnimplementedHealthServer.underlying
+  method_set : go.MethodSetIs UnimplementedHealthServer.ty [(go!"Check", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType HealthCheckRequest.ty)] false [(go.GoType.PointerType HealthCheckResponse.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType HealthListRequest.ty)] false [(go.GoType.PointerType HealthListResponse.ty), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.PointerType HealthCheckRequest.ty), (_root_.Perennial.google_golang_org.grpc.ServerStreamingServer.ty HealthCheckResponse.ty)] false [go.error]))), (go!"google.golang.org/grpc/health/grpc_health_v1.testEmbeddedByValue", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType UnimplementedHealthServer.ty) [(go!"Check", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType HealthCheckRequest.ty)] false [(go.GoType.PointerType HealthCheckResponse.ty), go.error]))), (go!"List", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType HealthListRequest.ty)] false [(go.GoType.PointerType HealthListResponse.ty), go.error]))), (go!"Watch", (some (go.signature.Signature [(go.GoType.PointerType HealthCheckRequest.ty), (_root_.Perennial.google_golang_org.grpc.ServerStreamingServer.ty HealthCheckResponse.ty)] false [go.error]))), (go!"google.golang.org/grpc/health/grpc_health_v1.testEmbeddedByValue", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] UnimplementedHealthServer.TypeAssumptions.type_repr
   UnimplementedHealthServer.TypeAssumptions.underlying
+  UnimplementedHealthServer.TypeAssumptions.method_set
+  UnimplementedHealthServer.TypeAssumptions.ptr_method_set
 
 abbrev UnsafeHealthServer [GooseExts] : Type := GoInterface
 
 @[reducible] noncomputable def UnsafeHealthServer.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"mustEmbedUnimplementedHealthServer" (go.signature.Signature [] false []))])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"google.golang.org/grpc/health/grpc_health_v1.mustEmbedUnimplementedHealthServer" (go.signature.Signature [] false []))])
 
 class UnsafeHealthServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq UnsafeHealthServer.ty UnsafeHealthServer.underlying
+  method_set : go.MethodSetIs UnsafeHealthServer.ty [(go!"google.golang.org/grpc/health/grpc_health_v1.mustEmbedUnimplementedHealthServer", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType UnsafeHealthServer.ty) []
 
 attribute [instance] UnsafeHealthServer.TypeAssumptions.underlying
+  UnsafeHealthServer.TypeAssumptions.method_set
+  UnsafeHealthServer.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   HealthCheckResponse_ServingStatus_instance : HealthCheckResponse_ServingStatus.TypeAssumptions

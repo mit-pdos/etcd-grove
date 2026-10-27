@@ -43,7 +43,7 @@ theorem Serve.wp_proof
     (wp_Listen : net.Listen.spec (GF := GF) (hG := hG))
     (wp_Serve : grpc.Server.Serve.spec (GF := GF) (hG := hG)) :
     Serve.spec (GF := GF) (hG := hG) := by
-  intro CS ESL ESE s addr E ρ γr cfg Q Hlg Htos Hwpi Hms Hbuq
+  intro CS s addr E ρ γr cfg Q Hlg Htos Hwpi Hms Hbuq
   wp_start as ⟨Haddr, #Hreq, #Hrd, #Hsf, HWR, #Hnrl, Hlg3, Hbemu, Hgo, Hwp, HG⟩
   -- `io.EOF`, from its package's fact; the imports' package facts
   ihave #Heof : v3rpc.eofVar (GF := GF) $$ []

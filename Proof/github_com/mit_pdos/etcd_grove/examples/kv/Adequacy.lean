@@ -34,8 +34,8 @@ as a hypothesis (`kv_adequate_of`); `AdequacyLinked.lean` applies it to the link
 - **The Go semantics** is a parameter, as in every Perennial result: `GoGlobalContext`,
   `GoLocalContext`, `go.Semantics`, the package assumptions `kv.Assumptions` (every name's
   translated body or Perennial's trusted model, the struct layouts, recursively for the
-  imports), and raft's initialization premises: `context`'s two method-set facts
-  (`ErrorStringIsError`, `DeadlineExceededIsError`) and the model of `log.New` (`log.NewModel`).
+  imports, method sets included), and raft's initialization premise: the model of `log.New`
+  (`log.NewModel`).
 -/
 module
 
@@ -123,12 +123,11 @@ answers `Ok` on the trace of the randomized test against the 3-node cluster (see
 header), so porcupine answered `Ok` in every interleaving and every choice of the scheduler.
 
 Parametric in the Go semantics: any `go.Semantics` at the state's local context, any package
-assumptions (the translated bodies behind the store's and its imports' names), `context`'s
-method-set facts and the model of `log.New`. No instance is assumed for the ghost state: the
+assumptions (the translated bodies behind the store's and its imports' names) and the model of
+`log.New`. No instance is assumed for the ghost state: the
 bundle `kvGF` provides iris-lean's non-atomic invariants (`NaInvG`). -/
 theorem kv_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
-    [hErr : context.ErrorStringIsError] [hDE : context.DeadlineExceededIsError]
     [hLog : log.NewModel]
     (wp_Main : kvMainSpec)
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)

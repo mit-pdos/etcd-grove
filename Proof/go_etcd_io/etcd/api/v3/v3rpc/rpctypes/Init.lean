@@ -4,8 +4,8 @@ Package initialization of `go_etcd_io.etcd.api.v3.v3rpc.rpctypes`
 
 Its fact (`rpctypesInit`, `cache/v3/Base.lean`): the errors `ErrFutureRev`, `ErrCompacted`
 (`EtcdError`s, whose `Error()` returns), the map `errStringToError` (its values `status.Error`
-errors grpc's `status` accepts), `EtcdError`'s method set (`EtcdGrove.RpctypesEtcdErrorMethods`, a
-premise on the method sets), the `EtcdError`s `ErrUserEmpty`, `ErrInvalidAuthToken`,
+errors grpc's `status` accepts), `EtcdError`'s method set (`EtcdGrove.RpctypesEtcdErrorMethods`, of
+the method set goose emits), the `EtcdError`s `ErrUserEmpty`, `ErrInvalidAuthToken`,
 `ErrAuthOldRevision`, `ErrNoLeader` and the pointer error `ErrGRPCNotSupportedForLearner`, the token keys, the `ErrGRPC*` errors
 `v3rpc`'s checks and interceptors return and its metadata keys, and (D19j) the `ErrGRPC*` errors its
 watch server returns, whose `Error()` returns. Its variables'
@@ -17,6 +17,7 @@ module
 public import Proof.go_etcd_io.etcd.cache.v3.Base
 public import Proof.google_golang_org.grpc.codes.Init
 public import Proof.google_golang_org.grpc.status.Init
+public import Perennial.Golang.Theory.TypeSet
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -297,12 +298,27 @@ end go_etcd_io.etcd.api.v3.v3rpc.rpctypes
 end opaqueInits
 
 /-- **The method set of `rpctypes.EtcdError`** is `{Code, Error}` (`error.go`): no `As`,
-`Unwrap`, `GRPCStatus` or `Is` method. A fact about the method sets, which the semantics leaves
-uninterpreted: a premise, as `EtcdGrove.ErrorStringLeaf`. -/
+`Unwrap`, `GRPCStatus` or `Is` method: a theorem of the method set goose emits
+(`EtcdError.TypeAssumptions.method_set`), as `EtcdGrove.ErrorStringLeaf`. -/
 class EtcdGrove.RpctypesEtcdErrorMethods [GooseExts] [GoGlobalContext] [GoSemanticsFunctions] : Prop where
   leaf : ∀ v : val, errors.isLeafError ⟨go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty, v⟩
   noGRPCStatus : methodSet go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty !! go!"GRPCStatus" = none
   noIs : methodSet go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty !! go!"Is" = none
+
+instance EtcdGrove.rpctypesEtcdErrorMethods_inst [GooseExts] [GoGlobalContext] [GoLocalContext]
+    [GoSemanticsFunctions] [_root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions] :
+    EtcdGrove.RpctypesEtcdErrorMethods := by
+  have h := fun m => go.method_set_is (t := go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty) m
+  have hAs := h go!"As"; have hU := h go!"Unwrap"; have hG := h go!"GRPCStatus"; have hIs := h go!"Is"
+  simp only [go.methodSetLookup_cons, go.methodSetLookup_nil, gooseReduceIteDecide] at hAs hU hG hIs
+  exact ⟨fun _ => by simp [errors.isLeafError, hAs, hU], hG, hIs⟩
+
+/-- `rpctypes.EtcdError` implements `error` (its `Error` has a value receiver): a target
+`errors.As` accepts. -/
+theorem EtcdGrove.rpctypesEtcdError_asTarget [GooseExts] [GoGlobalContext] [GoLocalContext]
+    [sem : go.Semantics] [_root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions] :
+    errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty :=
+  Or.inr (by go_type_set)
 
 section init
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -310,7 +326,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : _root_.Perennial.go_etcd_io.etcd.api.v3.v3rpc.rpctypes.Assumptions]
-variable [EtcdGrove.RpctypesEtcdErrorMethods]
 
 namespace go_etcd_io.etcd.api.v3.v3rpc.rpctypes
 

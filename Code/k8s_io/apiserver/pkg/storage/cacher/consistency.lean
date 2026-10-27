@@ -114,20 +114,28 @@ class Checker.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [Go
   type_repr : go.TypeReprUnderlying Checker.underlying Checker
   underlying : go.UnderlyingDirectedEq Checker.ty Checker.underlying
   isUnderlying : go.IsUnderlying Checker.underlying Checker.underlying
+  method_set : go.MethodSetIs Checker.ty [(go!"Run", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Checker.ty) [(go!"CalculateDigests", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [(go.GoType.PointerType Digest.ty), go.error]))), (go!"Run", (some (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false []))), (go!"k8s.io/apiserver/pkg/storage/cacher/consistency.calculateStoreDigest", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), getLister.ty, go.string, go.int64, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1.Object" [])] false []))] false [go.string, go.string, go.error]))), (go!"k8s.io/apiserver/pkg/storage/cacher/consistency.check", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" [])] false [])))]
 
 attribute [instance] Checker.TypeAssumptions.type_repr
   Checker.TypeAssumptions.underlying
   Checker.TypeAssumptions.isUnderlying
+  Checker.TypeAssumptions.method_set
+  Checker.TypeAssumptions.ptr_method_set
 
 abbrev cacher [GooseExts] : Type := GoInterface
 
 @[reducible] noncomputable def cacher.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"MarkConsistent" (go.signature.Signature [go.bool] false [])), (go.InterfaceElem.MethodElem go!"Ready" (go.signature.Signature [] false [go.bool])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm getLister.ty)])])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"GetList" (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apiserver/pkg/storage.ListOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" [])] false [go.error])), (go.InterfaceElem.MethodElem go!"MarkConsistent" (go.signature.Signature [go.bool] false [])), (go.InterfaceElem.MethodElem go!"Ready" (go.signature.Signature [] false [go.bool]))])
 
 class cacher.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq cacher.ty cacher.underlying
+  method_set : go.MethodSetIs cacher.ty [(go!"GetList", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apiserver/pkg/storage.ListOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" [])] false [go.error]))), (go!"MarkConsistent", (some (go.signature.Signature [go.bool] false []))), (go!"Ready", (some (go.signature.Signature [] false [go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType cacher.ty) []
 
 attribute [instance] cacher.TypeAssumptions.underlying
+  cacher.TypeAssumptions.method_set
+  cacher.TypeAssumptions.ptr_method_set
 
 axiom getLister : Type
 axiom getLister.zero_val : ZeroVal getLister
@@ -137,10 +145,14 @@ class getLister.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   type_repr : go.TypeReprUnderlying getLister.underlying getLister
   underlying : go.UnderlyingDirectedEq getLister.ty getLister.underlying
   isUnderlying : go.IsUnderlying getLister.underlying getLister.underlying
+  method_set : go.MethodSetIs getLister.ty [(go!"GetList", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), go.string, (go.GoType.Named go!"k8s.io/apiserver/pkg/storage.ListOptions" []), (go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" [])] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType getLister.ty) []
 
 attribute [instance] getLister.TypeAssumptions.type_repr
   getLister.TypeAssumptions.underlying
   getLister.TypeAssumptions.isUnderlying
+  getLister.TypeAssumptions.method_set
+  getLister.TypeAssumptions.ptr_method_set
 
 structure namespaceNameRV [GooseExts] where
   mk ::
@@ -175,6 +187,8 @@ class namespaceNameRV.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCont
   set_Name : ∀ (x : namespaceNameRV) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet namespaceNameRV.underlying go!"Name") (PairV #x #y) (Val #(({ x with Name' := y } : namespaceNameRV)))
   get_RV : ∀ (x : namespaceNameRV), go.IsGoStepPureDetTagged under (StructFieldGet namespaceNameRV.underlying go!"RV") #x (Val #(x.RV'))
   set_RV : ∀ (x : namespaceNameRV) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet namespaceNameRV.underlying go!"RV") (PairV #x #y) (Val #(({ x with RV' := y } : namespaceNameRV)))
+  method_set : go.MethodSetIs namespaceNameRV.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType namespaceNameRV.ty) []
 
 attribute [instance] namespaceNameRV.TypeAssumptions.type_repr
   namespaceNameRV.TypeAssumptions.underlying
@@ -184,6 +198,8 @@ attribute [instance] namespaceNameRV.TypeAssumptions.type_repr
   namespaceNameRV.TypeAssumptions.set_Name
   namespaceNameRV.TypeAssumptions.get_RV
   namespaceNameRV.TypeAssumptions.set_RV
+  namespaceNameRV.TypeAssumptions.method_set
+  namespaceNameRV.TypeAssumptions.ptr_method_set
 
 structure diffDetail [GooseExts] where
   mk ::
@@ -218,6 +234,8 @@ class diffDetail.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] 
   set_CacheItem : ∀ (x : diffDetail) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet diffDetail.underlying go!"CacheItem") (PairV #x #y) (Val #(({ x with CacheItem' := y } : diffDetail)))
   get_EtcdItem : ∀ (x : diffDetail), go.IsGoStepPureDetTagged under (StructFieldGet diffDetail.underlying go!"EtcdItem") #x (Val #(x.EtcdItem'))
   set_EtcdItem : ∀ (x : diffDetail) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet diffDetail.underlying go!"EtcdItem") (PairV #x #y) (Val #(({ x with EtcdItem' := y } : diffDetail)))
+  method_set : go.MethodSetIs diffDetail.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType diffDetail.ty) []
 
 attribute [instance] diffDetail.TypeAssumptions.type_repr
   diffDetail.TypeAssumptions.underlying
@@ -227,6 +245,8 @@ attribute [instance] diffDetail.TypeAssumptions.type_repr
   diffDetail.TypeAssumptions.set_CacheItem
   diffDetail.TypeAssumptions.get_EtcdItem
   diffDetail.TypeAssumptions.set_EtcdItem
+  diffDetail.TypeAssumptions.method_set
+  diffDetail.TypeAssumptions.ptr_method_set
 
 structure Digest [GooseExts] where
   mk ::
@@ -265,6 +285,8 @@ class Digest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   set_EtcdDigest : ∀ (x : Digest) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Digest.underlying go!"EtcdDigest") (PairV #x #y) (Val #(({ x with EtcdDigest' := y } : Digest)))
   get_DiffDetail : ∀ (x : Digest), go.IsGoStepPureDetTagged under (StructFieldGet Digest.underlying go!"DiffDetail") #x (Val #(x.DiffDetail'))
   set_DiffDetail : ∀ (x : Digest) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet Digest.underlying go!"DiffDetail") (PairV #x #y) (Val #(({ x with DiffDetail' := y } : Digest)))
+  method_set : go.MethodSetIs Digest.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Digest.ty) []
 
 attribute [instance] Digest.TypeAssumptions.type_repr
   Digest.TypeAssumptions.underlying
@@ -276,6 +298,8 @@ attribute [instance] Digest.TypeAssumptions.type_repr
   Digest.TypeAssumptions.set_EtcdDigest
   Digest.TypeAssumptions.get_DiffDetail
   Digest.TypeAssumptions.set_DiffDetail
+  Digest.TypeAssumptions.method_set
+  Digest.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Checker_instance : Checker.TypeAssumptions

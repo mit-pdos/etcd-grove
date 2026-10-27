@@ -111,10 +111,14 @@ class typePair.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [G
   type_repr : go.TypeReprUnderlying typePair.underlying typePair
   underlying : go.UnderlyingDirectedEq typePair.ty typePair.underlying
   isUnderlying : go.IsUnderlying typePair.underlying typePair.underlying
+  method_set : go.MethodSetIs typePair.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType typePair.ty) []
 
 attribute [instance] typePair.TypeAssumptions.type_repr
   typePair.TypeAssumptions.underlying
   typePair.TypeAssumptions.isUnderlying
+  typePair.TypeAssumptions.method_set
+  typePair.TypeAssumptions.ptr_method_set
 
 axiom NameFunc : Type
 axiom NameFunc.zero_val : ZeroVal NameFunc
@@ -124,10 +128,14 @@ class NameFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [G
   type_repr : go.TypeReprUnderlying NameFunc.underlying NameFunc
   underlying : go.UnderlyingDirectedEq NameFunc.ty NameFunc.underlying
   isUnderlying : go.IsUnderlying NameFunc.underlying NameFunc.underlying
+  method_set : go.MethodSetIs NameFunc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType NameFunc.ty) []
 
 attribute [instance] NameFunc.TypeAssumptions.type_repr
   NameFunc.TypeAssumptions.underlying
   NameFunc.TypeAssumptions.isUnderlying
+  NameFunc.TypeAssumptions.method_set
+  NameFunc.TypeAssumptions.ptr_method_set
 
 abbrev ConversionFunc [GooseExts] : Type := GoFunc
 
@@ -136,8 +144,12 @@ abbrev ConversionFunc [GooseExts] : Type := GoFunc
 
 class ConversionFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ConversionFunc.ty ConversionFunc.underlying
+  method_set : go.MethodSetIs ConversionFunc.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ConversionFunc.ty) []
 
 attribute [instance] ConversionFunc.TypeAssumptions.underlying
+  ConversionFunc.TypeAssumptions.method_set
+  ConversionFunc.TypeAssumptions.ptr_method_set
 
 structure ConversionFuncs [GooseExts] where
   mk ::
@@ -164,11 +176,15 @@ class ConversionFuncs.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCont
   underlying : go.UnderlyingDirectedEq ConversionFuncs.ty ConversionFuncs.underlying
   get_untyped : ∀ (x : ConversionFuncs), go.IsGoStepPureDetTagged under (StructFieldGet ConversionFuncs.underlying go!"untyped") #x (Val #(x.untyped'))
   set_untyped : ∀ (x : ConversionFuncs) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet ConversionFuncs.underlying go!"untyped") (PairV #x #y) (Val #(({ x with untyped' := y } : ConversionFuncs)))
+  method_set : go.MethodSetIs ConversionFuncs.ty [(go!"AddUntyped", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType []), ConversionFunc.ty] false [go.error]))), (go!"Merge", (some (go.signature.Signature [ConversionFuncs.ty] false [ConversionFuncs.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ConversionFuncs.ty) [(go!"AddUntyped", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType []), ConversionFunc.ty] false [go.error]))), (go!"Merge", (some (go.signature.Signature [ConversionFuncs.ty] false [ConversionFuncs.ty])))]
 
 attribute [instance] ConversionFuncs.TypeAssumptions.type_repr
   ConversionFuncs.TypeAssumptions.underlying
   ConversionFuncs.TypeAssumptions.get_untyped
   ConversionFuncs.TypeAssumptions.set_untyped
+  ConversionFuncs.TypeAssumptions.method_set
+  ConversionFuncs.TypeAssumptions.ptr_method_set
 
 structure Converter [GooseExts] where
   mk ::
@@ -203,6 +219,8 @@ class Converter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   set_generatedConversionFuncs : ∀ (x : Converter) (y : ConversionFuncs), go.IsGoStepPureDetTagged under (StructFieldSet Converter.underlying go!"generatedConversionFuncs") (PairV #x #y) (Val #(({ x with generatedConversionFuncs' := y } : Converter)))
   get_ignoredUntypedConversions : ∀ (x : Converter), go.IsGoStepPureDetTagged under (StructFieldGet Converter.underlying go!"ignoredUntypedConversions") #x (Val #(x.ignoredUntypedConversions'))
   set_ignoredUntypedConversions : ∀ (x : Converter) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Converter.underlying go!"ignoredUntypedConversions") (PairV #x #y) (Val #(({ x with ignoredUntypedConversions' := y } : Converter)))
+  method_set : go.MethodSetIs Converter.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Converter.ty) [(go!"Convert", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType []), (go.GoType.PointerType Meta.ty)] false [go.error]))), (go!"DefaultMeta", (some (go.signature.Signature [(go.GoType.Named go!"reflect.Type" [])] false [(go.GoType.PointerType Meta.ty)]))), (go!"RegisterGeneratedUntypedConversionFunc", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType []), ConversionFunc.ty] false [go.error]))), (go!"RegisterIgnoredConversion", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType [])] false [go.error]))), (go!"RegisterUntypedConversionFunc", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType []), ConversionFunc.ty] false [go.error]))), (go!"WithConversions", (some (go.signature.Signature [ConversionFuncs.ty] false [(go.GoType.PointerType Converter.ty)])))]
 
 attribute [instance] Converter.TypeAssumptions.type_repr
   Converter.TypeAssumptions.underlying
@@ -212,6 +230,8 @@ attribute [instance] Converter.TypeAssumptions.type_repr
   Converter.TypeAssumptions.set_generatedConversionFuncs
   Converter.TypeAssumptions.get_ignoredUntypedConversions
   Converter.TypeAssumptions.set_ignoredUntypedConversions
+  Converter.TypeAssumptions.method_set
+  Converter.TypeAssumptions.ptr_method_set
 
 abbrev Scope [GooseExts] : Type := GoInterface
 
@@ -220,8 +240,12 @@ abbrev Scope [GooseExts] : Type := GoInterface
 
 class Scope.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Scope.ty Scope.underlying
+  method_set : go.MethodSetIs Scope.ty [(go!"Convert", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType [])] false [go.error]))), (go!"Meta", (some (go.signature.Signature [] false [(go.GoType.PointerType Meta.ty)])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Scope.ty) []
 
 attribute [instance] Scope.TypeAssumptions.underlying
+  Scope.TypeAssumptions.method_set
+  Scope.TypeAssumptions.ptr_method_set
 
 structure Meta [GooseExts] where
   mk ::
@@ -248,11 +272,15 @@ class Meta.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSem
   underlying : go.UnderlyingDirectedEq Meta.ty Meta.underlying
   get_Context : ∀ (x : Meta), go.IsGoStepPureDetTagged under (StructFieldGet Meta.underlying go!"Context") #x (Val #(x.Context'))
   set_Context : ∀ (x : Meta) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet Meta.underlying go!"Context") (PairV #x #y) (Val #(({ x with Context' := y } : Meta)))
+  method_set : go.MethodSetIs Meta.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Meta.ty) []
 
 attribute [instance] Meta.TypeAssumptions.type_repr
   Meta.TypeAssumptions.underlying
   Meta.TypeAssumptions.get_Context
   Meta.TypeAssumptions.set_Context
+  Meta.TypeAssumptions.method_set
+  Meta.TypeAssumptions.ptr_method_set
 
 structure scope [GooseExts] where
   mk ::
@@ -283,6 +311,8 @@ class scope.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSe
   set_converter : ∀ (x : scope) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet scope.underlying go!"converter") (PairV #x #y) (Val #(({ x with converter' := y } : scope)))
   get_meta : ∀ (x : scope), go.IsGoStepPureDetTagged under (StructFieldGet scope.underlying go!"meta") #x (Val #(x.meta'))
   set_meta : ∀ (x : scope) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet scope.underlying go!"meta") (PairV #x #y) (Val #(({ x with meta' := y } : scope)))
+  method_set : go.MethodSetIs scope.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType scope.ty) [(go!"Convert", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType [])] false [go.error]))), (go!"Meta", (some (go.signature.Signature [] false [(go.GoType.PointerType Meta.ty)])))]
 
 attribute [instance] scope.TypeAssumptions.type_repr
   scope.TypeAssumptions.underlying
@@ -290,6 +320,8 @@ attribute [instance] scope.TypeAssumptions.type_repr
   scope.TypeAssumptions.set_converter
   scope.TypeAssumptions.get_meta
   scope.TypeAssumptions.set_meta
+  scope.TypeAssumptions.method_set
+  scope.TypeAssumptions.ptr_method_set
 
 axiom Equalities : Type
 axiom Equalities.zero_val : ZeroVal Equalities
@@ -299,10 +331,14 @@ class Equalities.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] 
   type_repr : go.TypeReprUnderlying Equalities.underlying Equalities
   underlying : go.UnderlyingDirectedEq Equalities.ty Equalities.underlying
   isUnderlying : go.IsUnderlying Equalities.underlying Equalities.underlying
+  method_set : go.MethodSetIs Equalities.ty [(go!"AddFunc", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"AddFuncs", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true [go.error]))), (go!"Copy", (some (go.signature.Signature [] false [Equalities.ty]))), (go!"DeepDerivative", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType [])] false [go.bool]))), (go!"DeepEqual", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType [])] false [go.bool]))), (go!"DeepEqualWithNilDifferentFromEmpty", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType [])] false [go.bool]))), (go!"k8s.io/apimachinery/third_party/forked/golang/reflect.deepEqual", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType []), go.bool] false [go.bool]))), (go!"k8s.io/apimachinery/third_party/forked/golang/reflect.deepValueDerive", (some (go.signature.Signature [(go.GoType.Named go!"reflect.Value" []), (go.GoType.Named go!"reflect.Value" []), (go.GoType.MapType (go.GoType.Named go!"k8s.io/apimachinery/third_party/forked/golang/reflect.visit" []) go.bool), go.int] false [go.bool]))), (go!"k8s.io/apimachinery/third_party/forked/golang/reflect.deepValueEqual", (some (go.signature.Signature [(go.GoType.Named go!"reflect.Value" []), (go.GoType.Named go!"reflect.Value" []), (go.GoType.MapType (go.GoType.Named go!"k8s.io/apimachinery/third_party/forked/golang/reflect.visit" []) go.bool), go.bool, go.int] false [go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Equalities.ty) [(go!"AddFunc", (some (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.error]))), (go!"AddFuncs", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true [go.error]))), (go!"Copy", (some (go.signature.Signature [] false [Equalities.ty]))), (go!"DeepDerivative", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType [])] false [go.bool]))), (go!"DeepEqual", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType [])] false [go.bool]))), (go!"DeepEqualWithNilDifferentFromEmpty", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType [])] false [go.bool]))), (go!"k8s.io/apimachinery/third_party/forked/golang/reflect.deepEqual", (some (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType []), go.bool] false [go.bool]))), (go!"k8s.io/apimachinery/third_party/forked/golang/reflect.deepValueDerive", (some (go.signature.Signature [(go.GoType.Named go!"reflect.Value" []), (go.GoType.Named go!"reflect.Value" []), (go.GoType.MapType (go.GoType.Named go!"k8s.io/apimachinery/third_party/forked/golang/reflect.visit" []) go.bool), go.int] false [go.bool]))), (go!"k8s.io/apimachinery/third_party/forked/golang/reflect.deepValueEqual", (some (go.signature.Signature [(go.GoType.Named go!"reflect.Value" []), (go.GoType.Named go!"reflect.Value" []), (go.GoType.MapType (go.GoType.Named go!"k8s.io/apimachinery/third_party/forked/golang/reflect.visit" []) go.bool), go.bool, go.int] false [go.bool])))]
 
 attribute [instance] Equalities.TypeAssumptions.type_repr
   Equalities.TypeAssumptions.underlying
   Equalities.TypeAssumptions.isUnderlying
+  Equalities.TypeAssumptions.method_set
+  Equalities.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   typePair_instance : typePair.TypeAssumptions

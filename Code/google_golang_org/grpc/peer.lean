@@ -86,6 +86,8 @@ class Peer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSem
   set_LocalAddr : ∀ (x : Peer) (y : _root_.Perennial.net.Addr), go.IsGoStepPureDetTagged under (StructFieldSet Peer.underlying go!"LocalAddr") (PairV #x #y) (Val #(({ x with LocalAddr' := y } : Peer)))
   get_AuthInfo : ∀ (x : Peer), go.IsGoStepPureDetTagged under (StructFieldGet Peer.underlying go!"AuthInfo") #x (Val #(x.AuthInfo'))
   set_AuthInfo : ∀ (x : Peer) (y : _root_.Perennial.google_golang_org.grpc.credentials.AuthInfo), go.IsGoStepPureDetTagged under (StructFieldSet Peer.underlying go!"AuthInfo") (PairV #x #y) (Val #(({ x with AuthInfo' := y } : Peer)))
+  method_set : go.MethodSetIs Peer.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Peer.ty) [(go!"String", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] Peer.TypeAssumptions.type_repr
   Peer.TypeAssumptions.underlying
@@ -95,6 +97,8 @@ attribute [instance] Peer.TypeAssumptions.type_repr
   Peer.TypeAssumptions.set_LocalAddr
   Peer.TypeAssumptions.get_AuthInfo
   Peer.TypeAssumptions.set_AuthInfo
+  Peer.TypeAssumptions.method_set
+  Peer.TypeAssumptions.ptr_method_set
 
 structure peerKey [GooseExts] where
   mk ::
@@ -118,9 +122,13 @@ noncomputable instance equals_unfold_peerKey [GooseExts] [GoGlobalContext] :
 class peerKey.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying peerKey.underlying peerKey
   underlying : go.UnderlyingDirectedEq peerKey.ty peerKey.underlying
+  method_set : go.MethodSetIs peerKey.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType peerKey.ty) []
 
 attribute [instance] peerKey.TypeAssumptions.type_repr
   peerKey.TypeAssumptions.underlying
+  peerKey.TypeAssumptions.method_set
+  peerKey.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Peer_instance : Peer.TypeAssumptions

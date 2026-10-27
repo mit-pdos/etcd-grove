@@ -25,7 +25,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Assumptions]
-variable [PeerPausable]
 
 set_option hygiene false in
 /-- `CutPeer`'s and `MendPeer`'s body: the read-locked lookups (no remote: `id ∉ L`, so no remote

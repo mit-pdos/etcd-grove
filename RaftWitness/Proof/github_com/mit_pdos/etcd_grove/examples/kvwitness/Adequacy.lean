@@ -199,7 +199,6 @@ method-set facts and the model of `log.New`. No instance is assumed for the ghos
 bundle `kvGF` provides iris-lean's non-atomic invariants (`NaInvG`). -/
 theorem kv_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.kvwitness.Assumptions]
-    [hErr : context.ErrorStringIsError] [hDE : context.DeadlineExceededIsError]
     [hLog : log.NewModel]
     (wp_Main : kvMainSpec)
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
@@ -242,7 +241,6 @@ spec: `kv_adequate_of` for `kvProgramWitness` (the store package's initializatio
 the same randomized test, and a panic unless porcupine answers `Ok`). -/
 theorem kv_witness_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
     [package_sem : github_com.mit_pdos.etcd_grove.examples.kvwitness.Assumptions]
-    [hErr : context.ErrorStringIsError] [hDE : context.DeadlineExceededIsError]
     [hLog : log.NewModel]
     (wp_MainWitness : kvMainWitnessSpec)
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)

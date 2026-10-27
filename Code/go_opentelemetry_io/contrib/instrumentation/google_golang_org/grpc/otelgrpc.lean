@@ -218,8 +218,12 @@ abbrev InterceptorFilter [GooseExts] : Type := GoFunc
 
 class InterceptorFilter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq InterceptorFilter.ty InterceptorFilter.underlying
+  method_set : go.MethodSetIs InterceptorFilter.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType InterceptorFilter.ty) []
 
 attribute [instance] InterceptorFilter.TypeAssumptions.underlying
+  InterceptorFilter.TypeAssumptions.method_set
+  InterceptorFilter.TypeAssumptions.ptr_method_set
 
 axiom Filter : Type
 axiom Filter.zero_val : ZeroVal Filter
@@ -229,10 +233,14 @@ class Filter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   type_repr : go.TypeReprUnderlying Filter.underlying Filter
   underlying : go.UnderlyingDirectedEq Filter.ty Filter.underlying
   isUnderlying : go.IsUnderlying Filter.underlying Filter.underlying
+  method_set : go.MethodSetIs Filter.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Filter.ty) []
 
 attribute [instance] Filter.TypeAssumptions.type_repr
   Filter.TypeAssumptions.underlying
   Filter.TypeAssumptions.isUnderlying
+  Filter.TypeAssumptions.method_set
+  Filter.TypeAssumptions.ptr_method_set
 
 abbrev semconvMode [GooseExts] : Type := w64
 
@@ -241,8 +249,12 @@ abbrev semconvMode [GooseExts] : Type := w64
 
 class semconvMode.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq semconvMode.ty semconvMode.underlying
+  method_set : go.MethodSetIs semconvMode.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType semconvMode.ty) []
 
 attribute [instance] semconvMode.TypeAssumptions.underlying
+  semconvMode.TypeAssumptions.method_set
+  semconvMode.TypeAssumptions.ptr_method_set
 
 axiom config : Type
 axiom config.zero_val : ZeroVal config
@@ -252,20 +264,28 @@ class config.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   type_repr : go.TypeReprUnderlying config.underlying config
   underlying : go.UnderlyingDirectedEq config.ty config.underlying
   isUnderlying : go.IsUnderlying config.underlying config.underlying
+  method_set : go.MethodSetIs config.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType config.ty) [(go!"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc.handleRPC", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"google.golang.org/grpc/stats.RPCStats" []), (go.GoType.Named go!"go.opentelemetry.io/otel/metric.Float64Histogram" []), (go.GoType.Named go!"go.opentelemetry.io/otel/metric.Float64Histogram" []), (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc/internal/status.Status" []))] false [(go.GoType.Named go!"go.opentelemetry.io/otel/codes.Code" []), go.string]))] false [])))]
 
 attribute [instance] config.TypeAssumptions.type_repr
   config.TypeAssumptions.underlying
   config.TypeAssumptions.isUnderlying
+  config.TypeAssumptions.method_set
+  config.TypeAssumptions.ptr_method_set
 
 abbrev Option [GooseExts] : Type := GoInterface
 
 @[reducible] noncomputable def Option.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"apply" (go.signature.Signature [(go.GoType.PointerType config.ty)] false []))])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc.apply" (go.signature.Signature [(go.GoType.PointerType config.ty)] false []))])
 
 class Option.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Option.ty Option.underlying
+  method_set : go.MethodSetIs Option.ty [(go!"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc.apply", (some (go.signature.Signature [(go.GoType.PointerType config.ty)] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Option.ty) []
 
 attribute [instance] Option.TypeAssumptions.underlying
+  Option.TypeAssumptions.method_set
+  Option.TypeAssumptions.ptr_method_set
 
 abbrev optionFunc [GooseExts] : Type := GoFunc
 
@@ -274,8 +294,12 @@ abbrev optionFunc [GooseExts] : Type := GoFunc
 
 class optionFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq optionFunc.ty optionFunc.underlying
+  method_set : go.MethodSetIs optionFunc.ty [(go!"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc.apply", (some (go.signature.Signature [(go.GoType.PointerType config.ty)] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType optionFunc.ty) [(go!"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc.apply", (some (go.signature.Signature [(go.GoType.PointerType config.ty)] false [])))]
 
 attribute [instance] optionFunc.TypeAssumptions.underlying
+  optionFunc.TypeAssumptions.method_set
+  optionFunc.TypeAssumptions.ptr_method_set
 
 abbrev Event [GooseExts] : Type := w64
 
@@ -284,8 +308,12 @@ abbrev Event [GooseExts] : Type := w64
 
 class Event.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Event.ty Event.underlying
+  method_set : go.MethodSetIs Event.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Event.ty) []
 
 attribute [instance] Event.TypeAssumptions.underlying
+  Event.TypeAssumptions.method_set
+  Event.TypeAssumptions.ptr_method_set
 
 abbrev InterceptorType [GooseExts] : Type := w8
 
@@ -294,8 +322,12 @@ abbrev InterceptorType [GooseExts] : Type := w8
 
 class InterceptorType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq InterceptorType.ty InterceptorType.underlying
+  method_set : go.MethodSetIs InterceptorType.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType InterceptorType.ty) []
 
 attribute [instance] InterceptorType.TypeAssumptions.underlying
+  InterceptorType.TypeAssumptions.method_set
+  InterceptorType.TypeAssumptions.ptr_method_set
 
 axiom InterceptorInfo : Type
 axiom InterceptorInfo.zero_val : ZeroVal InterceptorInfo
@@ -305,10 +337,14 @@ class InterceptorInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCont
   type_repr : go.TypeReprUnderlying InterceptorInfo.underlying InterceptorInfo
   underlying : go.UnderlyingDirectedEq InterceptorInfo.ty InterceptorInfo.underlying
   isUnderlying : go.IsUnderlying InterceptorInfo.underlying InterceptorInfo.underlying
+  method_set : go.MethodSetIs InterceptorInfo.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType InterceptorInfo.ty) []
 
 attribute [instance] InterceptorInfo.TypeAssumptions.type_repr
   InterceptorInfo.TypeAssumptions.underlying
   InterceptorInfo.TypeAssumptions.isUnderlying
+  InterceptorInfo.TypeAssumptions.method_set
+  InterceptorInfo.TypeAssumptions.ptr_method_set
 
 axiom metadataSupplier : Type
 axiom metadataSupplier.zero_val : ZeroVal metadataSupplier
@@ -318,10 +354,14 @@ class metadataSupplier.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCon
   type_repr : go.TypeReprUnderlying metadataSupplier.underlying metadataSupplier
   underlying : go.UnderlyingDirectedEq metadataSupplier.ty metadataSupplier.underlying
   isUnderlying : go.IsUnderlying metadataSupplier.underlying metadataSupplier.underlying
+  method_set : go.MethodSetIs metadataSupplier.ty [(go!"Get", (some (go.signature.Signature [go.string] false [go.string]))), (go!"Keys", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"Set", (some (go.signature.Signature [go.string, go.string] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType metadataSupplier.ty) [(go!"Get", (some (go.signature.Signature [go.string] false [go.string]))), (go!"Keys", (some (go.signature.Signature [] false [(go.GoType.SliceType go.string)]))), (go!"Set", (some (go.signature.Signature [go.string, go.string] false [])))]
 
 attribute [instance] metadataSupplier.TypeAssumptions.type_repr
   metadataSupplier.TypeAssumptions.underlying
   metadataSupplier.TypeAssumptions.isUnderlying
+  metadataSupplier.TypeAssumptions.method_set
+  metadataSupplier.TypeAssumptions.ptr_method_set
 
 structure gRPCContextKey [GooseExts] where
   mk ::
@@ -345,9 +385,13 @@ noncomputable instance equals_unfold_gRPCContextKey [GooseExts] [GoGlobalContext
 class gRPCContextKey.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying gRPCContextKey.underlying gRPCContextKey
   underlying : go.UnderlyingDirectedEq gRPCContextKey.ty gRPCContextKey.underlying
+  method_set : go.MethodSetIs gRPCContextKey.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType gRPCContextKey.ty) []
 
 attribute [instance] gRPCContextKey.TypeAssumptions.type_repr
   gRPCContextKey.TypeAssumptions.underlying
+  gRPCContextKey.TypeAssumptions.method_set
+  gRPCContextKey.TypeAssumptions.ptr_method_set
 
 structure dialTargetContextKey [GooseExts] where
   mk ::
@@ -371,9 +415,13 @@ noncomputable instance equals_unfold_dialTargetContextKey [GooseExts] [GoGlobalC
 class dialTargetContextKey.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying dialTargetContextKey.underlying dialTargetContextKey
   underlying : go.UnderlyingDirectedEq dialTargetContextKey.ty dialTargetContextKey.underlying
+  method_set : go.MethodSetIs dialTargetContextKey.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType dialTargetContextKey.ty) []
 
 attribute [instance] dialTargetContextKey.TypeAssumptions.type_repr
   dialTargetContextKey.TypeAssumptions.underlying
+  dialTargetContextKey.TypeAssumptions.method_set
+  dialTargetContextKey.TypeAssumptions.ptr_method_set
 
 axiom gRPCContext : Type
 axiom gRPCContext.zero_val : ZeroVal gRPCContext
@@ -383,10 +431,14 @@ class gRPCContext.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   type_repr : go.TypeReprUnderlying gRPCContext.underlying gRPCContext
   underlying : go.UnderlyingDirectedEq gRPCContext.ty gRPCContext.underlying
   isUnderlying : go.IsUnderlying gRPCContext.underlying gRPCContext.underlying
+  method_set : go.MethodSetIs gRPCContext.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType gRPCContext.ty) []
 
 attribute [instance] gRPCContext.TypeAssumptions.type_repr
   gRPCContext.TypeAssumptions.underlying
   gRPCContext.TypeAssumptions.isUnderlying
+  gRPCContext.TypeAssumptions.method_set
+  gRPCContext.TypeAssumptions.ptr_method_set
 
 axiom serverHandler : Type
 axiom serverHandler.zero_val : ZeroVal serverHandler
@@ -396,10 +448,14 @@ class serverHandler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContex
   type_repr : go.TypeReprUnderlying serverHandler.underlying serverHandler
   underlying : go.UnderlyingDirectedEq serverHandler.ty serverHandler.underlying
   isUnderlying : go.IsUnderlying serverHandler.underlying serverHandler.underlying
+  method_set : go.MethodSetIs serverHandler.ty [(go!"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc.handleRPC", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"google.golang.org/grpc/stats.RPCStats" []), (go.GoType.Named go!"go.opentelemetry.io/otel/metric.Float64Histogram" []), (go.GoType.Named go!"go.opentelemetry.io/otel/metric.Float64Histogram" []), (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc/internal/status.Status" []))] false [(go.GoType.Named go!"go.opentelemetry.io/otel/codes.Code" []), go.string]))] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType serverHandler.ty) [(go!"HandleConn", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"google.golang.org/grpc/stats.ConnStats" [])] false []))), (go!"HandleRPC", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"google.golang.org/grpc/stats.RPCStats" [])] false []))), (go!"TagConn", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc/stats.ConnTagInfo" []))] false [(go.GoType.Named go!"context.Context" [])]))), (go!"TagRPC", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc/stats.RPCTagInfo" []))] false [(go.GoType.Named go!"context.Context" [])]))), (go!"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc.handleRPC", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"google.golang.org/grpc/stats.RPCStats" []), (go.GoType.Named go!"go.opentelemetry.io/otel/metric.Float64Histogram" []), (go.GoType.Named go!"go.opentelemetry.io/otel/metric.Float64Histogram" []), (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc/internal/status.Status" []))] false [(go.GoType.Named go!"go.opentelemetry.io/otel/codes.Code" []), go.string]))] false [])))]
 
 attribute [instance] serverHandler.TypeAssumptions.type_repr
   serverHandler.TypeAssumptions.underlying
   serverHandler.TypeAssumptions.isUnderlying
+  serverHandler.TypeAssumptions.method_set
+  serverHandler.TypeAssumptions.ptr_method_set
 
 axiom clientHandler : Type
 axiom clientHandler.zero_val : ZeroVal clientHandler
@@ -409,10 +465,14 @@ class clientHandler.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContex
   type_repr : go.TypeReprUnderlying clientHandler.underlying clientHandler
   underlying : go.UnderlyingDirectedEq clientHandler.ty clientHandler.underlying
   isUnderlying : go.IsUnderlying clientHandler.underlying clientHandler.underlying
+  method_set : go.MethodSetIs clientHandler.ty [(go!"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc.handleRPC", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"google.golang.org/grpc/stats.RPCStats" []), (go.GoType.Named go!"go.opentelemetry.io/otel/metric.Float64Histogram" []), (go.GoType.Named go!"go.opentelemetry.io/otel/metric.Float64Histogram" []), (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc/internal/status.Status" []))] false [(go.GoType.Named go!"go.opentelemetry.io/otel/codes.Code" []), go.string]))] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType clientHandler.ty) [(go!"HandleConn", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"google.golang.org/grpc/stats.ConnStats" [])] false []))), (go!"HandleRPC", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"google.golang.org/grpc/stats.RPCStats" [])] false []))), (go!"TagConn", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc/stats.ConnTagInfo" []))] false [(go.GoType.Named go!"context.Context" [])]))), (go!"TagRPC", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc/stats.RPCTagInfo" []))] false [(go.GoType.Named go!"context.Context" [])]))), (go!"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc.handleRPC", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.Named go!"google.golang.org/grpc/stats.RPCStats" []), (go.GoType.Named go!"go.opentelemetry.io/otel/metric.Float64Histogram" []), (go.GoType.Named go!"go.opentelemetry.io/otel/metric.Float64Histogram" []), (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"google.golang.org/grpc/internal/status.Status" []))] false [(go.GoType.Named go!"go.opentelemetry.io/otel/codes.Code" []), go.string]))] false [])))]
 
 attribute [instance] clientHandler.TypeAssumptions.type_repr
   clientHandler.TypeAssumptions.underlying
   clientHandler.TypeAssumptions.isUnderlying
+  clientHandler.TypeAssumptions.method_set
+  clientHandler.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   InterceptorFilter_instance : InterceptorFilter.TypeAssumptions

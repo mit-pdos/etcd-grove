@@ -269,11 +269,15 @@ class StatusError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   underlying : go.UnderlyingDirectedEq StatusError.ty StatusError.underlying
   get_ErrStatus : ∀ (x : StatusError), go.IsGoStepPureDetTagged under (StructFieldGet StatusError.underlying go!"ErrStatus") #x (Val #(x.ErrStatus'))
   set_ErrStatus : ∀ (x : StatusError) (y : _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status), go.IsGoStepPureDetTagged under (StructFieldSet StatusError.underlying go!"ErrStatus") (PairV #x #y) (Val #(({ x with ErrStatus' := y } : StatusError)))
+  method_set : go.MethodSetIs StatusError.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType StatusError.ty) [(go!"DebugError", (some (go.signature.Signature [] false [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))]))), (go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"Status", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status.ty])))]
 
 attribute [instance] StatusError.TypeAssumptions.type_repr
   StatusError.TypeAssumptions.underlying
   StatusError.TypeAssumptions.get_ErrStatus
   StatusError.TypeAssumptions.set_ErrStatus
+  StatusError.TypeAssumptions.method_set
+  StatusError.TypeAssumptions.ptr_method_set
 
 abbrev APIStatus [GooseExts] : Type := GoInterface
 
@@ -282,8 +286,12 @@ abbrev APIStatus [GooseExts] : Type := GoInterface
 
 class APIStatus.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq APIStatus.ty APIStatus.underlying
+  method_set : go.MethodSetIs APIStatus.ty [(go!"Status", (some (go.signature.Signature [] false [_root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status.ty])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType APIStatus.ty) []
 
 attribute [instance] APIStatus.TypeAssumptions.underlying
+  APIStatus.TypeAssumptions.method_set
+  APIStatus.TypeAssumptions.ptr_method_set
 
 axiom UnexpectedObjectError : Type
 axiom UnexpectedObjectError.zero_val : ZeroVal UnexpectedObjectError
@@ -293,10 +301,14 @@ class UnexpectedObjectError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLoc
   type_repr : go.TypeReprUnderlying UnexpectedObjectError.underlying UnexpectedObjectError
   underlying : go.UnderlyingDirectedEq UnexpectedObjectError.ty UnexpectedObjectError.underlying
   isUnderlying : go.IsUnderlying UnexpectedObjectError.underlying UnexpectedObjectError.underlying
+  method_set : go.MethodSetIs UnexpectedObjectError.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType UnexpectedObjectError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] UnexpectedObjectError.TypeAssumptions.type_repr
   UnexpectedObjectError.TypeAssumptions.underlying
   UnexpectedObjectError.TypeAssumptions.isUnderlying
+  UnexpectedObjectError.TypeAssumptions.method_set
+  UnexpectedObjectError.TypeAssumptions.ptr_method_set
 
 structure ErrorReporter [GooseExts] where
   mk ::
@@ -331,6 +343,8 @@ class ErrorReporter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContex
   set_verb : ∀ (x : ErrorReporter) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ErrorReporter.underlying go!"verb") (PairV #x #y) (Val #(({ x with verb' := y } : ErrorReporter)))
   get_reason : ∀ (x : ErrorReporter), go.IsGoStepPureDetTagged under (StructFieldGet ErrorReporter.underlying go!"reason") #x (Val #(x.reason'))
   set_reason : ∀ (x : ErrorReporter) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet ErrorReporter.underlying go!"reason") (PairV #x #y) (Val #(({ x with reason' := y } : ErrorReporter)))
+  method_set : go.MethodSetIs ErrorReporter.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ErrorReporter.ty) [(go!"AsObject", (some (go.signature.Signature [go.error] false [(go.GoType.Named go!"k8s.io/apimachinery/pkg/runtime.Object" [])])))]
 
 attribute [instance] ErrorReporter.TypeAssumptions.type_repr
   ErrorReporter.TypeAssumptions.underlying
@@ -340,6 +354,8 @@ attribute [instance] ErrorReporter.TypeAssumptions.type_repr
   ErrorReporter.TypeAssumptions.set_verb
   ErrorReporter.TypeAssumptions.get_reason
   ErrorReporter.TypeAssumptions.set_reason
+  ErrorReporter.TypeAssumptions.method_set
+  ErrorReporter.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   StatusError_instance : StatusError.TypeAssumptions

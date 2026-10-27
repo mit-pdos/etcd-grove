@@ -179,6 +179,8 @@ class PageWriter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] 
   set_buf : ∀ (x : PageWriter) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet PageWriter.underlying go!"buf") (PairV #x #y) (Val #(({ x with buf' := y } : PageWriter)))
   get_bufWatermarkBytes : ∀ (x : PageWriter), go.IsGoStepPureDetTagged under (StructFieldGet PageWriter.underlying go!"bufWatermarkBytes") #x (Val #(x.bufWatermarkBytes'))
   set_bufWatermarkBytes : ∀ (x : PageWriter) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet PageWriter.underlying go!"bufWatermarkBytes") (PairV #x #y) (Val #(({ x with bufWatermarkBytes' := y } : PageWriter)))
+  method_set : go.MethodSetIs PageWriter.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType PageWriter.ty) [(go!"Flush", (some (go.signature.Signature [] false [go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error]))), (go!"go.etcd.io/etcd/pkg/v3/ioutil.flush", (some (go.signature.Signature [] false [go.int, go.error])))]
 
 attribute [instance] PageWriter.TypeAssumptions.type_repr
   PageWriter.TypeAssumptions.underlying
@@ -194,6 +196,8 @@ attribute [instance] PageWriter.TypeAssumptions.type_repr
   PageWriter.TypeAssumptions.set_buf
   PageWriter.TypeAssumptions.get_bufWatermarkBytes
   PageWriter.TypeAssumptions.set_bufWatermarkBytes
+  PageWriter.TypeAssumptions.method_set
+  PageWriter.TypeAssumptions.ptr_method_set
 
 structure ReaderAndCloser [GooseExts] where
   mk ::
@@ -224,6 +228,8 @@ class ReaderAndCloser.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCont
   set_Reader : ∀ (x : ReaderAndCloser) (y : _root_.Perennial.io.Reader), go.IsGoStepPureDetTagged under (StructFieldSet ReaderAndCloser.underlying go!"Reader") (PairV #x #y) (Val #(({ x with Reader' := y } : ReaderAndCloser)))
   get_Closer : ∀ (x : ReaderAndCloser), go.IsGoStepPureDetTagged under (StructFieldGet ReaderAndCloser.underlying go!"Closer") #x (Val #(x.Closer'))
   set_Closer : ∀ (x : ReaderAndCloser) (y : _root_.Perennial.io.Closer), go.IsGoStepPureDetTagged under (StructFieldSet ReaderAndCloser.underlying go!"Closer") (PairV #x #y) (Val #(({ x with Closer' := y } : ReaderAndCloser)))
+  method_set : go.MethodSetIs ReaderAndCloser.ty [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ReaderAndCloser.ty) [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
   Close_unfold : MethodUnfold ReaderAndCloser.ty go!"Close" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve _root_.Perennial.io.Closer.ty go!"Close"))) (App (Val (GoInstruction (StructFieldGet ReaderAndCloser.ty go!"Closer"))) (Var "$r"))))
   Read_unfold : MethodUnfold ReaderAndCloser.ty go!"Read" (LamV "$r"
@@ -239,6 +245,8 @@ attribute [instance] ReaderAndCloser.TypeAssumptions.type_repr
   ReaderAndCloser.TypeAssumptions.set_Reader
   ReaderAndCloser.TypeAssumptions.get_Closer
   ReaderAndCloser.TypeAssumptions.set_Closer
+  ReaderAndCloser.TypeAssumptions.method_set
+  ReaderAndCloser.TypeAssumptions.ptr_method_set
   ReaderAndCloser.TypeAssumptions.Close_unfold
   ReaderAndCloser.TypeAssumptions.Read_unfold
   ReaderAndCloser.TypeAssumptions.ptr_Close_unfold
@@ -277,6 +285,8 @@ class exactReadCloser.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCont
   set_br : ∀ (x : exactReadCloser) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet exactReadCloser.underlying go!"br") (PairV #x #y) (Val #(({ x with br' := y } : exactReadCloser)))
   get_totalBytes : ∀ (x : exactReadCloser), go.IsGoStepPureDetTagged under (StructFieldGet exactReadCloser.underlying go!"totalBytes") #x (Val #(x.totalBytes'))
   set_totalBytes : ∀ (x : exactReadCloser) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet exactReadCloser.underlying go!"totalBytes") (PairV #x #y) (Val #(({ x with totalBytes' := y } : exactReadCloser)))
+  method_set : go.MethodSetIs exactReadCloser.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType exactReadCloser.ty) [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
 
 attribute [instance] exactReadCloser.TypeAssumptions.type_repr
   exactReadCloser.TypeAssumptions.underlying
@@ -286,6 +296,8 @@ attribute [instance] exactReadCloser.TypeAssumptions.type_repr
   exactReadCloser.TypeAssumptions.set_br
   exactReadCloser.TypeAssumptions.get_totalBytes
   exactReadCloser.TypeAssumptions.set_totalBytes
+  exactReadCloser.TypeAssumptions.method_set
+  exactReadCloser.TypeAssumptions.ptr_method_set
 
 structure limitedBufferReader [GooseExts] where
   mk ::
@@ -316,6 +328,8 @@ class limitedBufferReader.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocal
   set_r : ∀ (x : limitedBufferReader) (y : _root_.Perennial.io.Reader), go.IsGoStepPureDetTagged under (StructFieldSet limitedBufferReader.underlying go!"r") (PairV #x #y) (Val #(({ x with r' := y } : limitedBufferReader)))
   get_n : ∀ (x : limitedBufferReader), go.IsGoStepPureDetTagged under (StructFieldGet limitedBufferReader.underlying go!"n") #x (Val #(x.n'))
   set_n : ∀ (x : limitedBufferReader) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet limitedBufferReader.underlying go!"n") (PairV #x #y) (Val #(({ x with n' := y } : limitedBufferReader)))
+  method_set : go.MethodSetIs limitedBufferReader.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType limitedBufferReader.ty) [(go!"Read", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
   ptr_Read_unfold : MethodUnfold (go.GoType.PointerType limitedBufferReader.ty) go!"Read" limitedBufferReader.Read.impl
 
 attribute [instance] limitedBufferReader.TypeAssumptions.type_repr
@@ -324,6 +338,8 @@ attribute [instance] limitedBufferReader.TypeAssumptions.type_repr
   limitedBufferReader.TypeAssumptions.set_r
   limitedBufferReader.TypeAssumptions.get_n
   limitedBufferReader.TypeAssumptions.set_n
+  limitedBufferReader.TypeAssumptions.method_set
+  limitedBufferReader.TypeAssumptions.ptr_method_set
   limitedBufferReader.TypeAssumptions.ptr_Read_unfold
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where

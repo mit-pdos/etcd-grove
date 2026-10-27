@@ -45,7 +45,7 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kvwitness.Assumptions]
-variable [context.ErrorStringIsError] [context.DeadlineExceededIsError] [log.NewModel]
+variable [log.NewModel]
 
 /-- The store's initialization (see the file header). -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)

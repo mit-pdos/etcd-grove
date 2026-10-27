@@ -129,7 +129,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Assumptions]
-variable [ErrorStringLeaf]
 
 /-- An `errors.New` error whose cell holds a message other than `errMemberRemoved`'s is a snapshot
 post's leaf error (`snapPostErr`; as `checkPostResponse`'s `postErr_errorString`). -/

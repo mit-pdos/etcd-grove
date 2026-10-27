@@ -239,6 +239,8 @@ class DiscoveryError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalConte
   set_Op : ∀ (x : DiscoveryError) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet DiscoveryError.underlying go!"Op") (PairV #x #y) (Val #(({ x with Op' := y } : DiscoveryError)))
   get_Err : ∀ (x : DiscoveryError), go.IsGoStepPureDetTagged under (StructFieldGet DiscoveryError.underlying go!"Err") #x (Val #(x.Err'))
   set_Err : ∀ (x : DiscoveryError) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet DiscoveryError.underlying go!"Err") (PairV #x #y) (Val #(({ x with Err' := y } : DiscoveryError)))
+  method_set : go.MethodSetIs DiscoveryError.ty [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType DiscoveryError.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] DiscoveryError.TypeAssumptions.type_repr
   DiscoveryError.TypeAssumptions.underlying
@@ -246,6 +248,8 @@ attribute [instance] DiscoveryError.TypeAssumptions.type_repr
   DiscoveryError.TypeAssumptions.set_Op
   DiscoveryError.TypeAssumptions.get_Err
   DiscoveryError.TypeAssumptions.set_Err
+  DiscoveryError.TypeAssumptions.method_set
+  DiscoveryError.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   DiscoveryError_instance : DiscoveryError.TypeAssumptions

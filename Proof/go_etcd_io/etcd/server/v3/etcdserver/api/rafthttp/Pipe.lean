@@ -15,6 +15,7 @@ host names the message's destination and the receiver's host its own id.
 -/
 module
 
+public import Perennial.Golang.Theory.TypeSet
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.PbMessage
 public import Proof.net.http.Boundary
 public import Proof.go_etcd_io.etcd.client.pkg.v3.types.IDStr
@@ -44,6 +45,10 @@ the pipeline handler's `errors.As(err, &writerErr)` reads of `Process`'s `ErrSto
 class ErrorStringNotWriter [GoSemanticsFunctions] : Prop where
   notIn : go.typeSetContains (go.GoType.PointerType _root_.Perennial.errors.errorString.ty)
     go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.writerToResponse.ty = false
+
+/-- `ErrorStringNotWriter` holds, from the method sets goose emits. -/
+instance errorStringNotWriter_inst [_root_.Perennial.errors.Assumptions]
+    [go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Assumptions] : ErrorStringNotWriter := ⟨by go_type_set⟩
 
 /-- **The pipeline's deposit for the request of ticket `γk`** (persistent): the message's one-shot
 part, until the ticket's holder takes it and leaves the ticket. -/

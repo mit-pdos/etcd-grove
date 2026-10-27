@@ -37,7 +37,7 @@ variable [package_sem : github_com.mit_pdos.etcd_grove.examples.linkv3p.Assumpti
 
 /-- See the file header. -/
 abbrev startMember.spec : Prop :=
-  ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [ErrorStringLeaf] [context.ErrorStringIsError]
+  ∀ [go_etcd_io.etcd.cache.v3.Assumptions]
     (N : Nat) (name peerAddr client : GoString)
     (peer : GoSlice) (cluster lg : Loc) (sl₁ sl₂ sl₃ : GoSlice)
     (ps : List w64) (bootLog : List EntryM) (dir : w64 → List GoString) (id : w64)

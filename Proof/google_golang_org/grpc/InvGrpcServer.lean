@@ -158,9 +158,12 @@ def grpcImplements (ss ht : GoInterface) : Prop :=
     go.typeSetContains si.ty T = true
 
 /-- The interface `interface{ testEmbeddedByValue() }` the generated `Register*Server` assert a
-service value to (it calls the method if the value embeds the `Unimplemented*Server` by value). -/
+service value to (it calls the method if the value embeds the `Unimplemented*Server` by value).
+The method is unexported, so its id is qualified by the package that declares it, `etcdserverpb`
+(Go's `go/types.Id`, as goose names it). -/
 def testEmbeddedIface : go.GoType :=
-  go.GoType.InterfaceType [go.InterfaceElem.MethodElem go!"testEmbeddedByValue"
+  go.GoType.InterfaceType [go.InterfaceElem.MethodElem
+    go!"go.etcd.io/etcd/api/v3/etcdserverpb.testEmbeddedByValue"
     (go.signature.Signature [] false [])]
 
 /-- **The service value `ss` has no `testEmbeddedByValue`** (a method-set fact: etcd's services

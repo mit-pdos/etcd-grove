@@ -117,7 +117,7 @@ open Iris.ProofMode
 
 /-- An `errors.New` error's `Error()` returns (`errorsNewVar`'s method fact), and it is a leaf of
 an error tree (`ErrorStringLeaf`). -/
-theorem errorString_errStrOk [ErrorStringLeaf] [_root_.Perennial.errors.Assumptions] (x : Loc) (msg : GoString) :
+theorem errorString_errStrOk [_root_.Perennial.errors.Assumptions] (x : Loc) (msg : GoString) :
     ⊢ (□ ∀ Φ : val → IProp GF, ▷ Φ #msg -∗
         WP (App (Val #(methods (go.GoType.PointerType _root_.Perennial.errors.errorString.ty)
           go!"Error" #x)) (Val #())) {{ Φ }}) -∗

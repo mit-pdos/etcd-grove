@@ -2847,6 +2847,8 @@ class kvSort.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   underlying : go.UnderlyingDirectedEq kvSort.ty kvSort.underlying
   get_kvs : ∀ (x : kvSort), go.IsGoStepPureDetTagged under (StructFieldGet kvSort.underlying go!"kvs") #x (Val #(x.kvs'))
   set_kvs : ∀ (x : kvSort) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet kvSort.underlying go!"kvs") (PairV #x #y) (Val #(({ x with kvs' := y } : kvSort)))
+  method_set : go.MethodSetIs kvSort.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType kvSort.ty) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
   ptr_Len_unfold : MethodUnfold (go.GoType.PointerType kvSort.ty) go!"Len" kvSort.Len.impl
   ptr_Swap_unfold : MethodUnfold (go.GoType.PointerType kvSort.ty) go!"Swap" kvSort.Swap.impl
 
@@ -2854,6 +2856,8 @@ attribute [instance] kvSort.TypeAssumptions.type_repr
   kvSort.TypeAssumptions.underlying
   kvSort.TypeAssumptions.get_kvs
   kvSort.TypeAssumptions.set_kvs
+  kvSort.TypeAssumptions.method_set
+  kvSort.TypeAssumptions.ptr_method_set
   kvSort.TypeAssumptions.ptr_Len_unfold
   kvSort.TypeAssumptions.ptr_Swap_unfold
 
@@ -2882,6 +2886,8 @@ class kvSortByKey.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   underlying : go.UnderlyingDirectedEq kvSortByKey.ty kvSortByKey.underlying
   get_kvSort : ∀ (x : kvSortByKey), go.IsGoStepPureDetTagged under (StructFieldGet kvSortByKey.underlying go!"kvSort") #x (Val #(x.kvSort'))
   set_kvSort : ∀ (x : kvSortByKey) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet kvSortByKey.underlying go!"kvSort") (PairV #x #y) (Val #(({ x with kvSort' := y } : kvSortByKey)))
+  method_set : go.MethodSetIs kvSortByKey.ty [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType kvSortByKey.ty) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
   Len_unfold : MethodUnfold kvSortByKey.ty go!"Len" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType kvSort.ty) go!"Len"))) (App (Val (GoInstruction (StructFieldGet kvSortByKey.ty go!"kvSort"))) (Var "$r"))))
   Swap_unfold : MethodUnfold kvSortByKey.ty go!"Swap" (LamV "$r"
@@ -2896,6 +2902,8 @@ attribute [instance] kvSortByKey.TypeAssumptions.type_repr
   kvSortByKey.TypeAssumptions.underlying
   kvSortByKey.TypeAssumptions.get_kvSort
   kvSortByKey.TypeAssumptions.set_kvSort
+  kvSortByKey.TypeAssumptions.method_set
+  kvSortByKey.TypeAssumptions.ptr_method_set
   kvSortByKey.TypeAssumptions.Len_unfold
   kvSortByKey.TypeAssumptions.Swap_unfold
   kvSortByKey.TypeAssumptions.ptr_Len_unfold
@@ -2927,6 +2935,8 @@ class kvSortByVersion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCont
   underlying : go.UnderlyingDirectedEq kvSortByVersion.ty kvSortByVersion.underlying
   get_kvSort : ∀ (x : kvSortByVersion), go.IsGoStepPureDetTagged under (StructFieldGet kvSortByVersion.underlying go!"kvSort") #x (Val #(x.kvSort'))
   set_kvSort : ∀ (x : kvSortByVersion) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet kvSortByVersion.underlying go!"kvSort") (PairV #x #y) (Val #(({ x with kvSort' := y } : kvSortByVersion)))
+  method_set : go.MethodSetIs kvSortByVersion.ty [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType kvSortByVersion.ty) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
   Len_unfold : MethodUnfold kvSortByVersion.ty go!"Len" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType kvSort.ty) go!"Len"))) (App (Val (GoInstruction (StructFieldGet kvSortByVersion.ty go!"kvSort"))) (Var "$r"))))
   Swap_unfold : MethodUnfold kvSortByVersion.ty go!"Swap" (LamV "$r"
@@ -2941,6 +2951,8 @@ attribute [instance] kvSortByVersion.TypeAssumptions.type_repr
   kvSortByVersion.TypeAssumptions.underlying
   kvSortByVersion.TypeAssumptions.get_kvSort
   kvSortByVersion.TypeAssumptions.set_kvSort
+  kvSortByVersion.TypeAssumptions.method_set
+  kvSortByVersion.TypeAssumptions.ptr_method_set
   kvSortByVersion.TypeAssumptions.Len_unfold
   kvSortByVersion.TypeAssumptions.Swap_unfold
   kvSortByVersion.TypeAssumptions.ptr_Len_unfold
@@ -2972,6 +2984,8 @@ class kvSortByCreate.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalConte
   underlying : go.UnderlyingDirectedEq kvSortByCreate.ty kvSortByCreate.underlying
   get_kvSort : ∀ (x : kvSortByCreate), go.IsGoStepPureDetTagged under (StructFieldGet kvSortByCreate.underlying go!"kvSort") #x (Val #(x.kvSort'))
   set_kvSort : ∀ (x : kvSortByCreate) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet kvSortByCreate.underlying go!"kvSort") (PairV #x #y) (Val #(({ x with kvSort' := y } : kvSortByCreate)))
+  method_set : go.MethodSetIs kvSortByCreate.ty [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType kvSortByCreate.ty) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
   Len_unfold : MethodUnfold kvSortByCreate.ty go!"Len" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType kvSort.ty) go!"Len"))) (App (Val (GoInstruction (StructFieldGet kvSortByCreate.ty go!"kvSort"))) (Var "$r"))))
   Swap_unfold : MethodUnfold kvSortByCreate.ty go!"Swap" (LamV "$r"
@@ -2986,6 +3000,8 @@ attribute [instance] kvSortByCreate.TypeAssumptions.type_repr
   kvSortByCreate.TypeAssumptions.underlying
   kvSortByCreate.TypeAssumptions.get_kvSort
   kvSortByCreate.TypeAssumptions.set_kvSort
+  kvSortByCreate.TypeAssumptions.method_set
+  kvSortByCreate.TypeAssumptions.ptr_method_set
   kvSortByCreate.TypeAssumptions.Len_unfold
   kvSortByCreate.TypeAssumptions.Swap_unfold
   kvSortByCreate.TypeAssumptions.ptr_Len_unfold
@@ -3017,6 +3033,8 @@ class kvSortByMod.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   underlying : go.UnderlyingDirectedEq kvSortByMod.ty kvSortByMod.underlying
   get_kvSort : ∀ (x : kvSortByMod), go.IsGoStepPureDetTagged under (StructFieldGet kvSortByMod.underlying go!"kvSort") #x (Val #(x.kvSort'))
   set_kvSort : ∀ (x : kvSortByMod) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet kvSortByMod.underlying go!"kvSort") (PairV #x #y) (Val #(({ x with kvSort' := y } : kvSortByMod)))
+  method_set : go.MethodSetIs kvSortByMod.ty [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType kvSortByMod.ty) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
   Len_unfold : MethodUnfold kvSortByMod.ty go!"Len" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType kvSort.ty) go!"Len"))) (App (Val (GoInstruction (StructFieldGet kvSortByMod.ty go!"kvSort"))) (Var "$r"))))
   Swap_unfold : MethodUnfold kvSortByMod.ty go!"Swap" (LamV "$r"
@@ -3031,6 +3049,8 @@ attribute [instance] kvSortByMod.TypeAssumptions.type_repr
   kvSortByMod.TypeAssumptions.underlying
   kvSortByMod.TypeAssumptions.get_kvSort
   kvSortByMod.TypeAssumptions.set_kvSort
+  kvSortByMod.TypeAssumptions.method_set
+  kvSortByMod.TypeAssumptions.ptr_method_set
   kvSortByMod.TypeAssumptions.Len_unfold
   kvSortByMod.TypeAssumptions.Swap_unfold
   kvSortByMod.TypeAssumptions.ptr_Len_unfold
@@ -3062,6 +3082,8 @@ class kvSortByValue.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContex
   underlying : go.UnderlyingDirectedEq kvSortByValue.ty kvSortByValue.underlying
   get_kvSort : ∀ (x : kvSortByValue), go.IsGoStepPureDetTagged under (StructFieldGet kvSortByValue.underlying go!"kvSort") #x (Val #(x.kvSort'))
   set_kvSort : ∀ (x : kvSortByValue) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet kvSortByValue.underlying go!"kvSort") (PairV #x #y) (Val #(({ x with kvSort' := y } : kvSortByValue)))
+  method_set : go.MethodSetIs kvSortByValue.ty [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType kvSortByValue.ty) [(go!"Len", (some (go.signature.Signature [] false [go.int]))), (go!"Less", (some (go.signature.Signature [go.int, go.int] false [go.bool]))), (go!"Swap", (some (go.signature.Signature [go.int, go.int] false [])))]
   Len_unfold : MethodUnfold kvSortByValue.ty go!"Len" (LamV "$r"
 (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType kvSort.ty) go!"Len"))) (App (Val (GoInstruction (StructFieldGet kvSortByValue.ty go!"kvSort"))) (Var "$r"))))
   Swap_unfold : MethodUnfold kvSortByValue.ty go!"Swap" (LamV "$r"
@@ -3076,6 +3098,8 @@ attribute [instance] kvSortByValue.TypeAssumptions.type_repr
   kvSortByValue.TypeAssumptions.underlying
   kvSortByValue.TypeAssumptions.get_kvSort
   kvSortByValue.TypeAssumptions.set_kvSort
+  kvSortByValue.TypeAssumptions.method_set
+  kvSortByValue.TypeAssumptions.ptr_method_set
   kvSortByValue.TypeAssumptions.Len_unfold
   kvSortByValue.TypeAssumptions.Swap_unfold
   kvSortByValue.TypeAssumptions.ptr_Len_unfold

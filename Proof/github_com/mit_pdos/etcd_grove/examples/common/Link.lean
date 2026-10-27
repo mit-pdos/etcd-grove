@@ -96,7 +96,7 @@ theorem features.wp_NewDefaultServerFeatureGate :
     EtcdGrove.features.NewDefaultServerFeatureGate.spec (GF := GF) (hG := hG) :=
   EtcdGrove.features.NewDefaultServerFeatureGate.wp_proof
 
-theorem wp_newServer [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] [EtcdGrove.ErrorStringLeaf] :
+theorem wp_newServer [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] :
     EtcdGrove.common.newServer.spec (GF := GF) (hG := hG) :=
   EtcdGrove.common.newServer.wp_proof features.wp_NewDefaultServerFeatureGate wp_NewServer
 
@@ -104,7 +104,7 @@ theorem net.wp_Listen :
     EtcdGrove.net.Listen.spec (GF := GF) (hG := hG) :=
   EtcdGrove.net.Listen.wp_proof
 
-theorem wp_NewMember [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] [EtcdGrove.ErrorStringLeaf] [EtcdGrove.ErrorStringNotWriter] :
+theorem wp_NewMember [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] :
     EtcdGrove.common.NewMember.spec (GF := GF) (hG := hG) :=
   EtcdGrove.common.NewMember.wp_proof wp_newServer net.wp_Listen EtcdServer.wp_RaftHandler
 
@@ -120,11 +120,11 @@ theorem wp_Serve :
     EtcdGrove.common.Serve.spec (GF := GF) (hG := hG) :=
   EtcdGrove.common.Serve.wp_proof grpc.wp_KeepaliveEnforcementPolicy v3rpc.wp_Server net.wp_Listen grpc.Server.wp_Serve
 
-theorem wp_StartMember [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] [EtcdGrove.ErrorStringLeaf] [EtcdGrove.ErrorStringNotWriter] :
+theorem wp_StartMember [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] :
     EtcdGrove.common.StartMember.spec (GF := GF) (hG := hG) :=
   EtcdGrove.common.StartMember.wp_proof wp_NewMember EtcdServer.wp_Start
 
-theorem wp_StartServer [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] [EtcdGrove.ErrorStringLeaf] :
+theorem wp_StartServer [go_etcd_io.etcd.cache.v3.Assumptions] [EtcdGrove.Float64ToInt64Semantics] :
     EtcdGrove.common.StartServer.spec (GF := GF) (hG := hG) :=
   EtcdGrove.common.StartServer.wp_proof wp_newServer EtcdServer.wp_Start
 

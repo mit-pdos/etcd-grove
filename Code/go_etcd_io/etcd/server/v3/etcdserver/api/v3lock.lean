@@ -186,6 +186,8 @@ class lockServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] 
   set_c : ∀ (x : lockServer) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet lockServer.underlying go!"c") (PairV #x #y) (Val #(({ x with c' := y } : lockServer)))
   get_UnsafeLockServer : ∀ (x : lockServer), go.IsGoStepPureDetTagged under (StructFieldGet lockServer.underlying go!"UnsafeLockServer") #x (Val #(x.UnsafeLockServer'))
   set_UnsafeLockServer : ∀ (x : lockServer) (y : _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnsafeLockServer), go.IsGoStepPureDetTagged under (StructFieldSet lockServer.underlying go!"UnsafeLockServer") (PairV #x #y) (Val #(({ x with UnsafeLockServer' := y } : lockServer)))
+  method_set : go.MethodSetIs lockServer.ty [(go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3lock/v3lockpb.mustEmbedUnimplementedLockServer", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType lockServer.ty) [(go!"Lock", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.LockResponse.ty), go.error]))), (go!"Unlock", (some (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockRequest.ty)] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.v3lock.v3lockpb.UnlockResponse.ty), go.error]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3lock/v3lockpb.mustEmbedUnimplementedLockServer", (some (go.signature.Signature [] false [])))]
   ptr_Lock_unfold : MethodUnfold (go.GoType.PointerType lockServer.ty) go!"Lock" lockServer.Lock.impl
   ptr_Unlock_unfold : MethodUnfold (go.GoType.PointerType lockServer.ty) go!"Unlock" lockServer.Unlock.impl
 
@@ -195,6 +197,8 @@ attribute [instance] lockServer.TypeAssumptions.type_repr
   lockServer.TypeAssumptions.set_c
   lockServer.TypeAssumptions.get_UnsafeLockServer
   lockServer.TypeAssumptions.set_UnsafeLockServer
+  lockServer.TypeAssumptions.method_set
+  lockServer.TypeAssumptions.ptr_method_set
   lockServer.TypeAssumptions.ptr_Lock_unfold
   lockServer.TypeAssumptions.ptr_Unlock_unfold
 

@@ -8115,6 +8115,7 @@ derived. A fact that names a predicate defined above the owner's `Base.lean` is 
 
 **Method sets are premises** (`EtcdGrove.ErrorStringLeaf`, `EtcdGrove.RpctypesEtcdErrorMethods`),
 as Perennial's `context.ErrorStringIsError`: the semantics leaves method sets uninterpreted.
+*Superseded* (2026-10-27, "Method-set facts are theorems of goose's method sets", below).
 
 **Item 8: context's facts (a Perennial proposal).** Perennial's `context` fact (`isInit`) keeps
 only that `Canceled` and `DeadlineExceeded` are typed errors, though its initializer stores
@@ -23183,3 +23184,42 @@ is new: `apply.opW_isGet`, `readonlyW`, `readonlyW_of_txnReadonly`, `permCheck3L
 `insLt`, `eq_of_perm_sorted`, `rolesSorted` and its lemmas, `authDet_of_sorted`, `grantPermFresh`,
 `adminDetReq`; `adminPropOk`, `adminPropRes`, `commitOkOn_admin`; restated `apply_auth_store_range_lb`,
 `apply_check_txn_auth_lb`. No closed theorem changed. Trust base unchanged.
+
+---
+
+## Method-set facts are theorems of goose's method sets
+
+**2026-10-27 · accepted** (supersedes "Method sets are premises", item 8 above, and the method-set
+premises of D19r)
+
+Perennial `8ef540a62` (at the pin `6b58510f9`) has goose emit each named type's method sets
+(`T.TypeAssumptions.method_set`/`ptr_method_set`, `go.MethodSetIs`, from `go/types`) and decides
+`go.typeSetContains` with them (`go_type_set`). Every method-set fact this repository assumed
+about a translated type is now proved from the package `Assumptions`, which the results already
+take:
+
+- The classes stay, as names for the facts, each with an instance from `Assumptions`
+  (`errorStringLeaf_inst`, `errorStringNoGRPCStatus_inst`, `rpctypesEtcdErrorMethods_inst`,
+  `errorStringNotWriter_inst`, `peerPausable_inst`, `quotaKVServerIsKVServer_inst`,
+  `serverMethodSets_inst`). No statement takes them as binders any more.
+- The explicit premises of the closed theorems are gone: `v3rpc.ServerMethodSets` (`Hms`),
+  `errors.AsTarget rpctypes.EtcdError.ty` (`hAs`, `rpctypesEtcdError_asTarget`) and k8setcd3's
+  `objTyOk`/`storageErrTyOk` (`objTyOk_holds`, `storageErrTyOk_holds`). Specs below the
+  adequacy theorems (`Main.spec`, `Server.spec`, ...) keep them as premises: the adequacy proofs
+  discharge them. Removing them there too is a clean-up for later, not a change of what is
+  proved.
+- Perennial's `context.ErrorStringIsError` and `DeadlineExceededIsError` are theorems there now.
+- Not discharged: `ContextReadErrs` and `ContextErrsClient`. Their method-set parts are now
+  provable, but they also need the *values* of `context.Canceled`/`DeadlineExceeded`, which
+  Perennial's `context.isInit` does not keep (`notes/perennial-changes.md`, "Context: `Canceled`'s
+  message cell in `context`'s package facts").
+
+`testEmbeddedIface` names its method by Go's id, `go.etcd.io/etcd/api/v3/etcdserverpb.testEmbeddedByValue`
+(unexported, so qualified by its package), as goose now does.
+
+Why the pin is `6b58510f9` and not `lean`'s head (`7e1ddf896`): the head also brings uniform
+function results (`2b17d5f09`: every function's results are variables, every `return` stores
+into them), which changes every translated function and so every proof that symbolically executes
+one (about 2700 files here; Perennial adjusted 65 modules). `6b58510f9` is the last `lean` head
+before that merge and has method sets. Moving to the head is its own task.
+

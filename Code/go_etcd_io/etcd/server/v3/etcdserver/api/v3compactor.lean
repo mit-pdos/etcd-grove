@@ -87,8 +87,12 @@ abbrev Compactor [GooseExts] : Type := GoInterface
 
 class Compactor.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Compactor.ty Compactor.underlying
+  method_set : go.MethodSetIs Compactor.ty [(go!"Pause", (some (go.signature.Signature [] false []))), (go!"Resume", (some (go.signature.Signature [] false []))), (go!"Run", (some (go.signature.Signature [] false []))), (go!"Stop", (some (go.signature.Signature [] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Compactor.ty) []
 
 attribute [instance] Compactor.TypeAssumptions.underlying
+  Compactor.TypeAssumptions.method_set
+  Compactor.TypeAssumptions.ptr_method_set
 
 axiom Compactable : Type
 axiom Compactable.zero_val : ZeroVal Compactable
@@ -98,10 +102,14 @@ class Compactable.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   type_repr : go.TypeReprUnderlying Compactable.underlying Compactable
   underlying : go.UnderlyingDirectedEq Compactable.ty Compactable.underlying
   isUnderlying : go.IsUnderlying Compactable.underlying Compactable.underlying
+  method_set : go.MethodSetIs Compactable.ty [(go!"Compact", (some (go.signature.Signature [(go.GoType.Named go!"context.Context" []), (go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/etcd/api/v3/etcdserverpb.CompactionRequest" []))] false [(go.GoType.PointerType (go.GoType.Named go!"go.etcd.io/etcd/api/v3/etcdserverpb.CompactionResponse" [])), go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Compactable.ty) []
 
 attribute [instance] Compactable.TypeAssumptions.type_repr
   Compactable.TypeAssumptions.underlying
   Compactable.TypeAssumptions.isUnderlying
+  Compactable.TypeAssumptions.method_set
+  Compactable.TypeAssumptions.ptr_method_set
 
 abbrev RevGetter [GooseExts] : Type := GoInterface
 
@@ -110,8 +118,12 @@ abbrev RevGetter [GooseExts] : Type := GoInterface
 
 class RevGetter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq RevGetter.ty RevGetter.underlying
+  method_set : go.MethodSetIs RevGetter.ty [(go!"Rev", (some (go.signature.Signature [] false [go.int64])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType RevGetter.ty) []
 
 attribute [instance] RevGetter.TypeAssumptions.underlying
+  RevGetter.TypeAssumptions.method_set
+  RevGetter.TypeAssumptions.ptr_method_set
 
 axiom Periodic : Type
 axiom Periodic.zero_val : ZeroVal Periodic
@@ -121,10 +133,14 @@ class Periodic.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [G
   type_repr : go.TypeReprUnderlying Periodic.underlying Periodic
   underlying : go.UnderlyingDirectedEq Periodic.ty Periodic.underlying
   isUnderlying : go.IsUnderlying Periodic.underlying Periodic.underlying
+  method_set : go.MethodSetIs Periodic.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Periodic.ty) [(go!"Pause", (some (go.signature.Signature [] false []))), (go!"Resume", (some (go.signature.Signature [] false []))), (go!"Run", (some (go.signature.Signature [] false []))), (go!"Stop", (some (go.signature.Signature [] false []))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3compactor.getCompactInterval", (some (go.signature.Signature [] false [(go.GoType.Named go!"time.Duration" [])]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3compactor.getRetentions", (some (go.signature.Signature [] false [go.int]))), (go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3compactor.getRetryInterval", (some (go.signature.Signature [] false [(go.GoType.Named go!"time.Duration" [])])))]
 
 attribute [instance] Periodic.TypeAssumptions.type_repr
   Periodic.TypeAssumptions.underlying
   Periodic.TypeAssumptions.isUnderlying
+  Periodic.TypeAssumptions.method_set
+  Periodic.TypeAssumptions.ptr_method_set
 
 axiom Revision : Type
 axiom Revision.zero_val : ZeroVal Revision
@@ -134,10 +150,14 @@ class Revision.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [G
   type_repr : go.TypeReprUnderlying Revision.underlying Revision
   underlying : go.UnderlyingDirectedEq Revision.ty Revision.underlying
   isUnderlying : go.IsUnderlying Revision.underlying Revision.underlying
+  method_set : go.MethodSetIs Revision.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Revision.ty) [(go!"Pause", (some (go.signature.Signature [] false []))), (go!"Resume", (some (go.signature.Signature [] false []))), (go!"Run", (some (go.signature.Signature [] false []))), (go!"Stop", (some (go.signature.Signature [] false [])))]
 
 attribute [instance] Revision.TypeAssumptions.type_repr
   Revision.TypeAssumptions.underlying
   Revision.TypeAssumptions.isUnderlying
+  Revision.TypeAssumptions.method_set
+  Revision.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Compactor_instance : Compactor.TypeAssumptions

@@ -45,7 +45,6 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Assumptions]
-variable [ErrorStringLeaf]
 
 /-- A member id, as an `fmt` argument: its `String()` returns (`fmt.argOk`). -/
 theorem id_stringMethodSpec (hIDString : types.ID.String.spec (GF := GF) (hG := hG)) (id : w64) :

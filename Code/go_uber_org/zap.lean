@@ -766,18 +766,26 @@ abbrev objects [GooseExts] (T : Type) : Type := GoSlice
 
 class objects.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (objects.ty T) (objects.underlying T)
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (objects.ty T) [(go!"MarshalLogArray", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ArrayEncoder.ty] false [go.error])))]
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (objects.ty T)) [(go!"MarshalLogArray", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ArrayEncoder.ty] false [go.error])))]
 
 attribute [instance] objects.TypeAssumptions.underlying
+  objects.TypeAssumptions.method_set
+  objects.TypeAssumptions.ptr_method_set
 
 abbrev ObjectMarshalerPtr [GooseExts] (T : Type) : Type := GoInterface
 
 @[reducible] noncomputable def ObjectMarshalerPtr.underlying [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.TypeElem [(go.type_term.TypeTerm (go.GoType.PointerType T))]), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm _root_.Perennial.go_uber_org.zap.zapcore.ObjectMarshaler.ty)])])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"MarshalLogObject" (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ObjectEncoder.ty] false [go.error])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm (go.GoType.PointerType T))])])
 
 class ObjectMarshalerPtr.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (ObjectMarshalerPtr.ty T) (ObjectMarshalerPtr.underlying T)
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (ObjectMarshalerPtr.ty T) [(go!"MarshalLogObject", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ObjectEncoder.ty] false [go.error])))]
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (ObjectMarshalerPtr.ty T)) []
 
 attribute [instance] ObjectMarshalerPtr.TypeAssumptions.underlying
+  ObjectMarshalerPtr.TypeAssumptions.method_set
+  ObjectMarshalerPtr.TypeAssumptions.ptr_method_set
 
 abbrev objectValues [GooseExts] (T P : Type) : Type := GoSlice
 
@@ -786,8 +794,12 @@ abbrev objectValues [GooseExts] (T P : Type) : Type := GoSlice
 
 class objectValues.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : ∀ (T P : go.GoType), go.UnderlyingDirectedEq (objectValues.ty T P) (objectValues.underlying T P)
+  method_set : ∀ (T P : go.GoType), go.MethodSetIs (objectValues.ty T P) [(go!"MarshalLogArray", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ArrayEncoder.ty] false [go.error])))]
+  ptr_method_set : ∀ (T P : go.GoType), go.MethodSetIs (go.GoType.PointerType (objectValues.ty T P)) [(go!"MarshalLogArray", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ArrayEncoder.ty] false [go.error])))]
 
 attribute [instance] objectValues.TypeAssumptions.underlying
+  objectValues.TypeAssumptions.method_set
+  objectValues.TypeAssumptions.ptr_method_set
 
 abbrev stringers [GooseExts] (T : Type) : Type := GoSlice
 
@@ -796,8 +808,12 @@ abbrev stringers [GooseExts] (T : Type) : Type := GoSlice
 
 class stringers.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (stringers.ty T) (stringers.underlying T)
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (stringers.ty T) [(go!"MarshalLogArray", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ArrayEncoder.ty] false [go.error])))]
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (stringers.ty T)) [(go!"MarshalLogArray", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ArrayEncoder.ty] false [go.error])))]
 
 attribute [instance] stringers.TypeAssumptions.underlying
+  stringers.TypeAssumptions.method_set
+  stringers.TypeAssumptions.ptr_method_set
 
 abbrev bools [GooseExts] : Type := GoSlice
 
@@ -806,8 +822,12 @@ abbrev bools [GooseExts] : Type := GoSlice
 
 class bools.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq bools.ty bools.underlying
+  method_set : go.MethodSetIs bools.ty [(go!"MarshalLogArray", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ArrayEncoder.ty] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType bools.ty) [(go!"MarshalLogArray", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ArrayEncoder.ty] false [go.error])))]
 
 attribute [instance] bools.TypeAssumptions.underlying
+  bools.TypeAssumptions.method_set
+  bools.TypeAssumptions.ptr_method_set
 
 abbrev byteStringsArray [GooseExts] : Type := GoSlice
 
@@ -816,8 +836,12 @@ abbrev byteStringsArray [GooseExts] : Type := GoSlice
 
 class byteStringsArray.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq byteStringsArray.ty byteStringsArray.underlying
+  method_set : go.MethodSetIs byteStringsArray.ty [(go!"MarshalLogArray", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ArrayEncoder.ty] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType byteStringsArray.ty) [(go!"MarshalLogArray", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ArrayEncoder.ty] false [go.error])))]
 
 attribute [instance] byteStringsArray.TypeAssumptions.underlying
+  byteStringsArray.TypeAssumptions.method_set
+  byteStringsArray.TypeAssumptions.ptr_method_set
 
 abbrev complex128s [GooseExts] : Type := GoSlice
 
@@ -826,8 +850,12 @@ abbrev complex128s [GooseExts] : Type := GoSlice
 
 class complex128s.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq complex128s.ty complex128s.underlying
+  method_set : go.MethodSetIs complex128s.ty [(go!"MarshalLogArray", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ArrayEncoder.ty] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType complex128s.ty) [(go!"MarshalLogArray", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ArrayEncoder.ty] false [go.error])))]
 
 attribute [instance] complex128s.TypeAssumptions.underlying
+  complex128s.TypeAssumptions.method_set
+  complex128s.TypeAssumptions.ptr_method_set
 
 abbrev complex64s [GooseExts] : Type := GoSlice
 
@@ -836,8 +864,12 @@ abbrev complex64s [GooseExts] : Type := GoSlice
 
 class complex64s.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq complex64s.ty complex64s.underlying
+  method_set : go.MethodSetIs complex64s.ty [(go!"MarshalLogArray", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ArrayEncoder.ty] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType complex64s.ty) [(go!"MarshalLogArray", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ArrayEncoder.ty] false [go.error])))]
 
 attribute [instance] complex64s.TypeAssumptions.underlying
+  complex64s.TypeAssumptions.method_set
+  complex64s.TypeAssumptions.ptr_method_set
 
 axiom durations : Type
 axiom durations.zero_val : ZeroVal durations
@@ -847,10 +879,14 @@ class durations.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [
   type_repr : go.TypeReprUnderlying durations.underlying durations
   underlying : go.UnderlyingDirectedEq durations.ty durations.underlying
   isUnderlying : go.IsUnderlying durations.underlying durations.underlying
+  method_set : go.MethodSetIs durations.ty [(go!"MarshalLogArray", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ArrayEncoder.ty] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType durations.ty) [(go!"MarshalLogArray", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ArrayEncoder.ty] false [go.error])))]
 
 attribute [instance] durations.TypeAssumptions.type_repr
   durations.TypeAssumptions.underlying
   durations.TypeAssumptions.isUnderlying
+  durations.TypeAssumptions.method_set
+  durations.TypeAssumptions.ptr_method_set
 
 abbrev float64s [GooseExts] : Type := GoSlice
 
@@ -859,8 +895,12 @@ abbrev float64s [GooseExts] : Type := GoSlice
 
 class float64s.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq float64s.ty float64s.underlying
+  method_set : go.MethodSetIs float64s.ty [(go!"MarshalLogArray", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ArrayEncoder.ty] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType float64s.ty) [(go!"MarshalLogArray", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ArrayEncoder.ty] false [go.error])))]
 
 attribute [instance] float64s.TypeAssumptions.underlying
+  float64s.TypeAssumptions.method_set
+  float64s.TypeAssumptions.ptr_method_set
 
 abbrev float32s [GooseExts] : Type := GoSlice
 
@@ -869,8 +909,12 @@ abbrev float32s [GooseExts] : Type := GoSlice
 
 class float32s.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq float32s.ty float32s.underlying
+  method_set : go.MethodSetIs float32s.ty [(go!"MarshalLogArray", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ArrayEncoder.ty] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType float32s.ty) [(go!"MarshalLogArray", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ArrayEncoder.ty] false [go.error])))]
 
 attribute [instance] float32s.TypeAssumptions.underlying
+  float32s.TypeAssumptions.method_set
+  float32s.TypeAssumptions.ptr_method_set
 
 abbrev ints [GooseExts] : Type := GoSlice
 
@@ -879,8 +923,12 @@ abbrev ints [GooseExts] : Type := GoSlice
 
 class ints.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ints.ty ints.underlying
+  method_set : go.MethodSetIs ints.ty [(go!"MarshalLogArray", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ArrayEncoder.ty] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType ints.ty) [(go!"MarshalLogArray", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ArrayEncoder.ty] false [go.error])))]
 
 attribute [instance] ints.TypeAssumptions.underlying
+  ints.TypeAssumptions.method_set
+  ints.TypeAssumptions.ptr_method_set
 
 abbrev int64s [GooseExts] : Type := GoSlice
 
@@ -889,8 +937,12 @@ abbrev int64s [GooseExts] : Type := GoSlice
 
 class int64s.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq int64s.ty int64s.underlying
+  method_set : go.MethodSetIs int64s.ty [(go!"MarshalLogArray", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ArrayEncoder.ty] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType int64s.ty) [(go!"MarshalLogArray", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ArrayEncoder.ty] false [go.error])))]
 
 attribute [instance] int64s.TypeAssumptions.underlying
+  int64s.TypeAssumptions.method_set
+  int64s.TypeAssumptions.ptr_method_set
 
 abbrev int32s [GooseExts] : Type := GoSlice
 
@@ -899,8 +951,12 @@ abbrev int32s [GooseExts] : Type := GoSlice
 
 class int32s.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq int32s.ty int32s.underlying
+  method_set : go.MethodSetIs int32s.ty [(go!"MarshalLogArray", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ArrayEncoder.ty] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType int32s.ty) [(go!"MarshalLogArray", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ArrayEncoder.ty] false [go.error])))]
 
 attribute [instance] int32s.TypeAssumptions.underlying
+  int32s.TypeAssumptions.method_set
+  int32s.TypeAssumptions.ptr_method_set
 
 abbrev int16s [GooseExts] : Type := GoSlice
 
@@ -909,8 +965,12 @@ abbrev int16s [GooseExts] : Type := GoSlice
 
 class int16s.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq int16s.ty int16s.underlying
+  method_set : go.MethodSetIs int16s.ty [(go!"MarshalLogArray", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ArrayEncoder.ty] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType int16s.ty) [(go!"MarshalLogArray", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ArrayEncoder.ty] false [go.error])))]
 
 attribute [instance] int16s.TypeAssumptions.underlying
+  int16s.TypeAssumptions.method_set
+  int16s.TypeAssumptions.ptr_method_set
 
 abbrev int8s [GooseExts] : Type := GoSlice
 
@@ -919,8 +979,12 @@ abbrev int8s [GooseExts] : Type := GoSlice
 
 class int8s.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq int8s.ty int8s.underlying
+  method_set : go.MethodSetIs int8s.ty [(go!"MarshalLogArray", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ArrayEncoder.ty] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType int8s.ty) [(go!"MarshalLogArray", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ArrayEncoder.ty] false [go.error])))]
 
 attribute [instance] int8s.TypeAssumptions.underlying
+  int8s.TypeAssumptions.method_set
+  int8s.TypeAssumptions.ptr_method_set
 
 abbrev stringArray [GooseExts] : Type := GoSlice
 
@@ -929,8 +993,12 @@ abbrev stringArray [GooseExts] : Type := GoSlice
 
 class stringArray.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq stringArray.ty stringArray.underlying
+  method_set : go.MethodSetIs stringArray.ty [(go!"MarshalLogArray", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ArrayEncoder.ty] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType stringArray.ty) [(go!"MarshalLogArray", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ArrayEncoder.ty] false [go.error])))]
 
 attribute [instance] stringArray.TypeAssumptions.underlying
+  stringArray.TypeAssumptions.method_set
+  stringArray.TypeAssumptions.ptr_method_set
 
 axiom times : Type
 axiom times.zero_val : ZeroVal times
@@ -940,10 +1008,14 @@ class times.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSe
   type_repr : go.TypeReprUnderlying times.underlying times
   underlying : go.UnderlyingDirectedEq times.ty times.underlying
   isUnderlying : go.IsUnderlying times.underlying times.underlying
+  method_set : go.MethodSetIs times.ty [(go!"MarshalLogArray", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ArrayEncoder.ty] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType times.ty) [(go!"MarshalLogArray", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ArrayEncoder.ty] false [go.error])))]
 
 attribute [instance] times.TypeAssumptions.type_repr
   times.TypeAssumptions.underlying
   times.TypeAssumptions.isUnderlying
+  times.TypeAssumptions.method_set
+  times.TypeAssumptions.ptr_method_set
 
 abbrev uints [GooseExts] : Type := GoSlice
 
@@ -952,8 +1024,12 @@ abbrev uints [GooseExts] : Type := GoSlice
 
 class uints.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq uints.ty uints.underlying
+  method_set : go.MethodSetIs uints.ty [(go!"MarshalLogArray", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ArrayEncoder.ty] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType uints.ty) [(go!"MarshalLogArray", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ArrayEncoder.ty] false [go.error])))]
 
 attribute [instance] uints.TypeAssumptions.underlying
+  uints.TypeAssumptions.method_set
+  uints.TypeAssumptions.ptr_method_set
 
 abbrev uint64s [GooseExts] : Type := GoSlice
 
@@ -962,8 +1038,12 @@ abbrev uint64s [GooseExts] : Type := GoSlice
 
 class uint64s.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq uint64s.ty uint64s.underlying
+  method_set : go.MethodSetIs uint64s.ty [(go!"MarshalLogArray", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ArrayEncoder.ty] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType uint64s.ty) [(go!"MarshalLogArray", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ArrayEncoder.ty] false [go.error])))]
 
 attribute [instance] uint64s.TypeAssumptions.underlying
+  uint64s.TypeAssumptions.method_set
+  uint64s.TypeAssumptions.ptr_method_set
 
 abbrev uint32s [GooseExts] : Type := GoSlice
 
@@ -972,8 +1052,12 @@ abbrev uint32s [GooseExts] : Type := GoSlice
 
 class uint32s.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq uint32s.ty uint32s.underlying
+  method_set : go.MethodSetIs uint32s.ty [(go!"MarshalLogArray", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ArrayEncoder.ty] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType uint32s.ty) [(go!"MarshalLogArray", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ArrayEncoder.ty] false [go.error])))]
 
 attribute [instance] uint32s.TypeAssumptions.underlying
+  uint32s.TypeAssumptions.method_set
+  uint32s.TypeAssumptions.ptr_method_set
 
 abbrev uint16s [GooseExts] : Type := GoSlice
 
@@ -982,8 +1066,12 @@ abbrev uint16s [GooseExts] : Type := GoSlice
 
 class uint16s.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq uint16s.ty uint16s.underlying
+  method_set : go.MethodSetIs uint16s.ty [(go!"MarshalLogArray", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ArrayEncoder.ty] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType uint16s.ty) [(go!"MarshalLogArray", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ArrayEncoder.ty] false [go.error])))]
 
 attribute [instance] uint16s.TypeAssumptions.underlying
+  uint16s.TypeAssumptions.method_set
+  uint16s.TypeAssumptions.ptr_method_set
 
 abbrev uint8s [GooseExts] : Type := GoSlice
 
@@ -992,8 +1080,12 @@ abbrev uint8s [GooseExts] : Type := GoSlice
 
 class uint8s.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq uint8s.ty uint8s.underlying
+  method_set : go.MethodSetIs uint8s.ty [(go!"MarshalLogArray", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ArrayEncoder.ty] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType uint8s.ty) [(go!"MarshalLogArray", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ArrayEncoder.ty] false [go.error])))]
 
 attribute [instance] uint8s.TypeAssumptions.underlying
+  uint8s.TypeAssumptions.method_set
+  uint8s.TypeAssumptions.ptr_method_set
 
 abbrev uintptrs [GooseExts] : Type := GoSlice
 
@@ -1002,8 +1094,12 @@ abbrev uintptrs [GooseExts] : Type := GoSlice
 
 class uintptrs.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq uintptrs.ty uintptrs.underlying
+  method_set : go.MethodSetIs uintptrs.ty [(go!"MarshalLogArray", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ArrayEncoder.ty] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType uintptrs.ty) [(go!"MarshalLogArray", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ArrayEncoder.ty] false [go.error])))]
 
 attribute [instance] uintptrs.TypeAssumptions.underlying
+  uintptrs.TypeAssumptions.method_set
+  uintptrs.TypeAssumptions.ptr_method_set
 
 structure SamplingConfig [GooseExts] where
   mk ::
@@ -1038,6 +1134,8 @@ class SamplingConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalConte
   set_Thereafter : ∀ (x : SamplingConfig) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet SamplingConfig.underlying go!"Thereafter") (PairV #x #y) (Val #(({ x with Thereafter' := y } : SamplingConfig)))
   get_Hook : ∀ (x : SamplingConfig), go.IsGoStepPureDetTagged under (StructFieldGet SamplingConfig.underlying go!"Hook") #x (Val #(x.Hook'))
   set_Hook : ∀ (x : SamplingConfig) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet SamplingConfig.underlying go!"Hook") (PairV #x #y) (Val #(({ x with Hook' := y } : SamplingConfig)))
+  method_set : go.MethodSetIs SamplingConfig.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SamplingConfig.ty) []
 
 attribute [instance] SamplingConfig.TypeAssumptions.type_repr
   SamplingConfig.TypeAssumptions.underlying
@@ -1047,6 +1145,8 @@ attribute [instance] SamplingConfig.TypeAssumptions.type_repr
   SamplingConfig.TypeAssumptions.set_Thereafter
   SamplingConfig.TypeAssumptions.get_Hook
   SamplingConfig.TypeAssumptions.set_Hook
+  SamplingConfig.TypeAssumptions.method_set
+  SamplingConfig.TypeAssumptions.ptr_method_set
 
 axiom AtomicLevel : Type
 axiom AtomicLevel.zero_val : ZeroVal AtomicLevel
@@ -1056,10 +1156,14 @@ class AtomicLevel.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   type_repr : go.TypeReprUnderlying AtomicLevel.underlying AtomicLevel
   underlying : go.UnderlyingDirectedEq AtomicLevel.ty AtomicLevel.underlying
   isUnderlying : go.IsUnderlying AtomicLevel.underlying AtomicLevel.underlying
+  method_set : go.MethodSetIs AtomicLevel.ty [(go!"Enabled", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.Level.ty] false [go.bool]))), (go!"Level", (some (go.signature.Signature [] false [_root_.Perennial.go_uber_org.zap.zapcore.Level.ty]))), (go!"MarshalText", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"ServeHTTP", (some (go.signature.Signature [(go.GoType.Named go!"net/http.ResponseWriter" []), (go.GoType.PointerType (go.GoType.Named go!"net/http.Request" []))] false []))), (go!"SetLevel", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.Level.ty] false []))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"go.uber.org/zap.serveHTTP", (some (go.signature.Signature [(go.GoType.Named go!"net/http.ResponseWriter" []), (go.GoType.PointerType (go.GoType.Named go!"net/http.Request" []))] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType AtomicLevel.ty) [(go!"Enabled", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.Level.ty] false [go.bool]))), (go!"Level", (some (go.signature.Signature [] false [_root_.Perennial.go_uber_org.zap.zapcore.Level.ty]))), (go!"MarshalText", (some (go.signature.Signature [] false [(go.GoType.SliceType go.byte), go.error]))), (go!"ServeHTTP", (some (go.signature.Signature [(go.GoType.Named go!"net/http.ResponseWriter" []), (go.GoType.PointerType (go.GoType.Named go!"net/http.Request" []))] false []))), (go!"SetLevel", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.Level.ty] false []))), (go!"String", (some (go.signature.Signature [] false [go.string]))), (go!"UnmarshalText", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.error]))), (go!"go.uber.org/zap.serveHTTP", (some (go.signature.Signature [(go.GoType.Named go!"net/http.ResponseWriter" []), (go.GoType.PointerType (go.GoType.Named go!"net/http.Request" []))] false [go.error])))]
 
 attribute [instance] AtomicLevel.TypeAssumptions.type_repr
   AtomicLevel.TypeAssumptions.underlying
   AtomicLevel.TypeAssumptions.isUnderlying
+  AtomicLevel.TypeAssumptions.method_set
+  AtomicLevel.TypeAssumptions.ptr_method_set
 
 structure Config [GooseExts] where
   mk ::
@@ -1122,6 +1226,8 @@ class Config.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   set_ErrorOutputPaths : ∀ (x : Config) (y : GoSlice), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"ErrorOutputPaths") (PairV #x #y) (Val #(({ x with ErrorOutputPaths' := y } : Config)))
   get_InitialFields : ∀ (x : Config), go.IsGoStepPureDetTagged under (StructFieldGet Config.underlying go!"InitialFields") #x (Val #(x.InitialFields'))
   set_InitialFields : ∀ (x : Config) (y : GoMap), go.IsGoStepPureDetTagged under (StructFieldSet Config.underlying go!"InitialFields") (PairV #x #y) (Val #(({ x with InitialFields' := y } : Config)))
+  method_set : go.MethodSetIs Config.ty [(go!"Build", (some (go.signature.Signature [(go.GoType.SliceType Option.ty)] true [(go.GoType.PointerType Logger.ty), go.error]))), (go!"go.uber.org/zap.buildEncoder", (some (go.signature.Signature [] false [_root_.Perennial.go_uber_org.zap.zapcore.Encoder.ty, go.error]))), (go!"go.uber.org/zap.buildOptions", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.WriteSyncer.ty] false [(go.GoType.SliceType Option.ty)]))), (go!"go.uber.org/zap.openSinks", (some (go.signature.Signature [] false [_root_.Perennial.go_uber_org.zap.zapcore.WriteSyncer.ty, _root_.Perennial.go_uber_org.zap.zapcore.WriteSyncer.ty, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Config.ty) [(go!"Build", (some (go.signature.Signature [(go.GoType.SliceType Option.ty)] true [(go.GoType.PointerType Logger.ty), go.error]))), (go!"go.uber.org/zap.buildEncoder", (some (go.signature.Signature [] false [_root_.Perennial.go_uber_org.zap.zapcore.Encoder.ty, go.error]))), (go!"go.uber.org/zap.buildOptions", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.WriteSyncer.ty] false [(go.GoType.SliceType Option.ty)]))), (go!"go.uber.org/zap.openSinks", (some (go.signature.Signature [] false [_root_.Perennial.go_uber_org.zap.zapcore.WriteSyncer.ty, _root_.Perennial.go_uber_org.zap.zapcore.WriteSyncer.ty, go.error])))]
 
 attribute [instance] Config.TypeAssumptions.type_repr
   Config.TypeAssumptions.underlying
@@ -1145,6 +1251,8 @@ attribute [instance] Config.TypeAssumptions.type_repr
   Config.TypeAssumptions.set_ErrorOutputPaths
   Config.TypeAssumptions.get_InitialFields
   Config.TypeAssumptions.set_InitialFields
+  Config.TypeAssumptions.method_set
+  Config.TypeAssumptions.ptr_method_set
 
 abbrev errArray [GooseExts] : Type := GoSlice
 
@@ -1153,8 +1261,12 @@ abbrev errArray [GooseExts] : Type := GoSlice
 
 class errArray.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq errArray.ty errArray.underlying
+  method_set : go.MethodSetIs errArray.ty [(go!"MarshalLogArray", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ArrayEncoder.ty] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType errArray.ty) [(go!"MarshalLogArray", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ArrayEncoder.ty] false [go.error])))]
 
 attribute [instance] errArray.TypeAssumptions.underlying
+  errArray.TypeAssumptions.method_set
+  errArray.TypeAssumptions.ptr_method_set
 
 structure errArrayElem [GooseExts] where
   mk ::
@@ -1181,11 +1293,15 @@ class errArrayElem.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext
   underlying : go.UnderlyingDirectedEq errArrayElem.ty errArrayElem.underlying
   get_error : ∀ (x : errArrayElem), go.IsGoStepPureDetTagged under (StructFieldGet errArrayElem.underlying go!"error") #x (Val #(x.error'))
   set_error : ∀ (x : errArrayElem) (y : GoError), go.IsGoStepPureDetTagged under (StructFieldSet errArrayElem.underlying go!"error") (PairV #x #y) (Val #(({ x with error' := y } : errArrayElem)))
+  method_set : go.MethodSetIs errArrayElem.ty [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType errArrayElem.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string]))), (go!"MarshalLogObject", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ObjectEncoder.ty] false [go.error])))]
 
 attribute [instance] errArrayElem.TypeAssumptions.type_repr
   errArrayElem.TypeAssumptions.underlying
   errArrayElem.TypeAssumptions.get_error
   errArrayElem.TypeAssumptions.set_error
+  errArrayElem.TypeAssumptions.method_set
+  errArrayElem.TypeAssumptions.ptr_method_set
 
 abbrev dictObject [GooseExts] : Type := GoSlice
 
@@ -1194,8 +1310,12 @@ abbrev dictObject [GooseExts] : Type := GoSlice
 
 class dictObject.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq dictObject.ty dictObject.underlying
+  method_set : go.MethodSetIs dictObject.ty [(go!"MarshalLogObject", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ObjectEncoder.ty] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType dictObject.ty) [(go!"MarshalLogObject", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ObjectEncoder.ty] false [go.error])))]
 
 attribute [instance] dictObject.TypeAssumptions.underlying
+  dictObject.TypeAssumptions.method_set
+  dictObject.TypeAssumptions.ptr_method_set
 
 abbrev anyFieldC [GooseExts] (T : Type) : Type := GoFunc
 
@@ -1204,8 +1324,12 @@ abbrev anyFieldC [GooseExts] (T : Type) : Type := GoFunc
 
 class anyFieldC.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (anyFieldC.ty T) (anyFieldC.underlying T)
+  method_set : ∀ (T : go.GoType), go.MethodSetIs (anyFieldC.ty T) [(go!"Any", (some (go.signature.Signature [go.string, go.any] false [Field.ty])))]
+  ptr_method_set : ∀ (T : go.GoType), go.MethodSetIs (go.GoType.PointerType (anyFieldC.ty T)) [(go!"Any", (some (go.signature.Signature [go.string, go.any] false [Field.ty])))]
 
 attribute [instance] anyFieldC.TypeAssumptions.underlying
+  anyFieldC.TypeAssumptions.method_set
+  anyFieldC.TypeAssumptions.ptr_method_set
 
 structure loggerWriter [GooseExts] where
   mk ::
@@ -1232,11 +1356,15 @@ class loggerWriter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext
   underlying : go.UnderlyingDirectedEq loggerWriter.ty loggerWriter.underlying
   get_logFunc : ∀ (x : loggerWriter), go.IsGoStepPureDetTagged under (StructFieldGet loggerWriter.underlying go!"logFunc") #x (Val #(x.logFunc'))
   set_logFunc : ∀ (x : loggerWriter) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet loggerWriter.underlying go!"logFunc") (PairV #x #y) (Val #(({ x with logFunc' := y } : loggerWriter)))
+  method_set : go.MethodSetIs loggerWriter.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType loggerWriter.ty) [(go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
 
 attribute [instance] loggerWriter.TypeAssumptions.type_repr
   loggerWriter.TypeAssumptions.underlying
   loggerWriter.TypeAssumptions.get_logFunc
   loggerWriter.TypeAssumptions.set_logFunc
+  loggerWriter.TypeAssumptions.method_set
+  loggerWriter.TypeAssumptions.ptr_method_set
 
 abbrev LevelEnablerFunc [GooseExts] : Type := GoFunc
 
@@ -1245,8 +1373,12 @@ abbrev LevelEnablerFunc [GooseExts] : Type := GoFunc
 
 class LevelEnablerFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq LevelEnablerFunc.ty LevelEnablerFunc.underlying
+  method_set : go.MethodSetIs LevelEnablerFunc.ty [(go!"Enabled", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.Level.ty] false [go.bool])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType LevelEnablerFunc.ty) [(go!"Enabled", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.Level.ty] false [go.bool])))]
 
 attribute [instance] LevelEnablerFunc.TypeAssumptions.underlying
+  LevelEnablerFunc.TypeAssumptions.method_set
+  LevelEnablerFunc.TypeAssumptions.ptr_method_set
 
 structure Logger [GooseExts] where
   mk ::
@@ -1309,6 +1441,8 @@ class Logger.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoS
   set_callerSkip : ∀ (x : Logger) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Logger.underlying go!"callerSkip") (PairV #x #y) (Val #(({ x with callerSkip' := y } : Logger)))
   get_clock : ∀ (x : Logger), go.IsGoStepPureDetTagged under (StructFieldGet Logger.underlying go!"clock") #x (Val #(x.clock'))
   set_clock : ∀ (x : Logger) (y : _root_.Perennial.go_uber_org.zap.zapcore.Clock), go.IsGoStepPureDetTagged under (StructFieldSet Logger.underlying go!"clock") (PairV #x #y) (Val #(({ x with clock' := y } : Logger)))
+  method_set : go.MethodSetIs Logger.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Logger.ty) [(go!"Check", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.Level.ty, go.string] false [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry.ty)]))), (go!"Core", (some (go.signature.Signature [] false [_root_.Perennial.go_uber_org.zap.zapcore.Core.ty]))), (go!"DPanic", (some (go.signature.Signature [go.string, (go.GoType.SliceType Field.ty)] true []))), (go!"Debug", (some (go.signature.Signature [go.string, (go.GoType.SliceType Field.ty)] true []))), (go!"Error", (some (go.signature.Signature [go.string, (go.GoType.SliceType Field.ty)] true []))), (go!"Fatal", (some (go.signature.Signature [go.string, (go.GoType.SliceType Field.ty)] true []))), (go!"Info", (some (go.signature.Signature [go.string, (go.GoType.SliceType Field.ty)] true []))), (go!"Level", (some (go.signature.Signature [] false [_root_.Perennial.go_uber_org.zap.zapcore.Level.ty]))), (go!"Log", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.Level.ty, go.string, (go.GoType.SliceType Field.ty)] true []))), (go!"Name", (some (go.signature.Signature [] false [go.string]))), (go!"Named", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType Logger.ty)]))), (go!"Panic", (some (go.signature.Signature [go.string, (go.GoType.SliceType Field.ty)] true []))), (go!"Sugar", (some (go.signature.Signature [] false [(go.GoType.PointerType SugaredLogger.ty)]))), (go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"Warn", (some (go.signature.Signature [go.string, (go.GoType.SliceType Field.ty)] true []))), (go!"With", (some (go.signature.Signature [(go.GoType.SliceType Field.ty)] true [(go.GoType.PointerType Logger.ty)]))), (go!"WithLazy", (some (go.signature.Signature [(go.GoType.SliceType Field.ty)] true [(go.GoType.PointerType Logger.ty)]))), (go!"WithOptions", (some (go.signature.Signature [(go.GoType.SliceType Option.ty)] true [(go.GoType.PointerType Logger.ty)]))), (go!"go.uber.org/zap.check", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.Level.ty, go.string] false [(go.GoType.PointerType _root_.Perennial.go_uber_org.zap.zapcore.CheckedEntry.ty)]))), (go!"go.uber.org/zap.clone", (some (go.signature.Signature [] false [(go.GoType.PointerType Logger.ty)])))]
 
 attribute [instance] Logger.TypeAssumptions.type_repr
   Logger.TypeAssumptions.underlying
@@ -1332,16 +1466,22 @@ attribute [instance] Logger.TypeAssumptions.type_repr
   Logger.TypeAssumptions.set_callerSkip
   Logger.TypeAssumptions.get_clock
   Logger.TypeAssumptions.set_clock
+  Logger.TypeAssumptions.method_set
+  Logger.TypeAssumptions.ptr_method_set
 
 abbrev Option [GooseExts] : Type := GoInterface
 
 @[reducible] noncomputable def Option.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
-  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"apply" (go.signature.Signature [(go.GoType.PointerType Logger.ty)] false []))])
+  (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"go.uber.org/zap.apply" (go.signature.Signature [(go.GoType.PointerType Logger.ty)] false []))])
 
 class Option.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Option.ty Option.underlying
+  method_set : go.MethodSetIs Option.ty [(go!"go.uber.org/zap.apply", (some (go.signature.Signature [(go.GoType.PointerType Logger.ty)] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Option.ty) []
 
 attribute [instance] Option.TypeAssumptions.underlying
+  Option.TypeAssumptions.method_set
+  Option.TypeAssumptions.ptr_method_set
 
 abbrev optionFunc [GooseExts] : Type := GoFunc
 
@@ -1350,8 +1490,12 @@ abbrev optionFunc [GooseExts] : Type := GoFunc
 
 class optionFunc.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq optionFunc.ty optionFunc.underlying
+  method_set : go.MethodSetIs optionFunc.ty [(go!"go.uber.org/zap.apply", (some (go.signature.Signature [(go.GoType.PointerType Logger.ty)] false [])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType optionFunc.ty) [(go!"go.uber.org/zap.apply", (some (go.signature.Signature [(go.GoType.PointerType Logger.ty)] false [])))]
 
 attribute [instance] optionFunc.TypeAssumptions.underlying
+  optionFunc.TypeAssumptions.method_set
+  optionFunc.TypeAssumptions.ptr_method_set
 
 axiom Sink : Type
 axiom Sink.zero_val : ZeroVal Sink
@@ -1361,10 +1505,14 @@ class Sink.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSem
   type_repr : go.TypeReprUnderlying Sink.underlying Sink
   underlying : go.UnderlyingDirectedEq Sink.ty Sink.underlying
   isUnderlying : go.IsUnderlying Sink.underlying Sink.underlying
+  method_set : go.MethodSetIs Sink.ty [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType Sink.ty) []
 
 attribute [instance] Sink.TypeAssumptions.type_repr
   Sink.TypeAssumptions.underlying
   Sink.TypeAssumptions.isUnderlying
+  Sink.TypeAssumptions.method_set
+  Sink.TypeAssumptions.ptr_method_set
 
 structure errSinkNotFound [GooseExts] where
   mk ::
@@ -1391,11 +1539,15 @@ class errSinkNotFound.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalCont
   underlying : go.UnderlyingDirectedEq errSinkNotFound.ty errSinkNotFound.underlying
   get_scheme : ∀ (x : errSinkNotFound), go.IsGoStepPureDetTagged under (StructFieldGet errSinkNotFound.underlying go!"scheme") #x (Val #(x.scheme'))
   set_scheme : ∀ (x : errSinkNotFound) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet errSinkNotFound.underlying go!"scheme") (PairV #x #y) (Val #(({ x with scheme' := y } : errSinkNotFound)))
+  method_set : go.MethodSetIs errSinkNotFound.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType errSinkNotFound.ty) [(go!"Error", (some (go.signature.Signature [] false [go.string])))]
 
 attribute [instance] errSinkNotFound.TypeAssumptions.type_repr
   errSinkNotFound.TypeAssumptions.underlying
   errSinkNotFound.TypeAssumptions.get_scheme
   errSinkNotFound.TypeAssumptions.set_scheme
+  errSinkNotFound.TypeAssumptions.method_set
+  errSinkNotFound.TypeAssumptions.ptr_method_set
 
 structure nopCloserSink [GooseExts] where
   mk ::
@@ -1422,11 +1574,15 @@ class nopCloserSink.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContex
   underlying : go.UnderlyingDirectedEq nopCloserSink.ty nopCloserSink.underlying
   get_WriteSyncer : ∀ (x : nopCloserSink), go.IsGoStepPureDetTagged under (StructFieldGet nopCloserSink.underlying go!"WriteSyncer") #x (Val #(x.WriteSyncer'))
   set_WriteSyncer : ∀ (x : nopCloserSink) (y : _root_.Perennial.go_uber_org.zap.zapcore.WriteSyncer), go.IsGoStepPureDetTagged under (StructFieldSet nopCloserSink.underlying go!"WriteSyncer") (PairV #x #y) (Val #(({ x with WriteSyncer' := y } : nopCloserSink)))
+  method_set : go.MethodSetIs nopCloserSink.ty [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType nopCloserSink.ty) [(go!"Close", (some (go.signature.Signature [] false [go.error]))), (go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"Write", (some (go.signature.Signature [(go.GoType.SliceType go.byte)] false [go.int, go.error])))]
 
 attribute [instance] nopCloserSink.TypeAssumptions.type_repr
   nopCloserSink.TypeAssumptions.underlying
   nopCloserSink.TypeAssumptions.get_WriteSyncer
   nopCloserSink.TypeAssumptions.set_WriteSyncer
+  nopCloserSink.TypeAssumptions.method_set
+  nopCloserSink.TypeAssumptions.ptr_method_set
 
 axiom sinkRegistry : Type
 axiom sinkRegistry.zero_val : ZeroVal sinkRegistry
@@ -1436,10 +1592,14 @@ class sinkRegistry.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext
   type_repr : go.TypeReprUnderlying sinkRegistry.underlying sinkRegistry
   underlying : go.UnderlyingDirectedEq sinkRegistry.ty sinkRegistry.underlying
   isUnderlying : go.IsUnderlying sinkRegistry.underlying sinkRegistry.underlying
+  method_set : go.MethodSetIs sinkRegistry.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType sinkRegistry.ty) [(go!"RegisterSink", (some (go.signature.Signature [go.string, (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"net/url.URL" []))] false [Sink.ty, go.error]))] false [go.error]))), (go!"go.uber.org/zap.newFileSinkFromPath", (some (go.signature.Signature [go.string] false [Sink.ty, go.error]))), (go!"go.uber.org/zap.newFileSinkFromURL", (some (go.signature.Signature [(go.GoType.PointerType (go.GoType.Named go!"net/url.URL" []))] false [Sink.ty, go.error]))), (go!"go.uber.org/zap.newSink", (some (go.signature.Signature [go.string] false [Sink.ty, go.error])))]
 
 attribute [instance] sinkRegistry.TypeAssumptions.type_repr
   sinkRegistry.TypeAssumptions.underlying
   sinkRegistry.TypeAssumptions.isUnderlying
+  sinkRegistry.TypeAssumptions.method_set
+  sinkRegistry.TypeAssumptions.ptr_method_set
 
 structure SugaredLogger [GooseExts] where
   mk ::
@@ -1466,11 +1626,15 @@ class SugaredLogger.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContex
   underlying : go.UnderlyingDirectedEq SugaredLogger.ty SugaredLogger.underlying
   get_base : ∀ (x : SugaredLogger), go.IsGoStepPureDetTagged under (StructFieldGet SugaredLogger.underlying go!"base") #x (Val #(x.base'))
   set_base : ∀ (x : SugaredLogger) (y : Loc), go.IsGoStepPureDetTagged under (StructFieldSet SugaredLogger.underlying go!"base") (PairV #x #y) (Val #(({ x with base' := y } : SugaredLogger)))
+  method_set : go.MethodSetIs SugaredLogger.ty []
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType SugaredLogger.ty) [(go!"DPanic", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"DPanicf", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"DPanicln", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"DPanicw", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Debug", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Debugf", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Debugln", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Debugw", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Desugar", (some (go.signature.Signature [] false [(go.GoType.PointerType Logger.ty)]))), (go!"Error", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Errorf", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Errorln", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Errorw", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Fatal", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Fatalf", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Fatalln", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Fatalw", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Info", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Infof", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Infoln", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Infow", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Level", (some (go.signature.Signature [] false [_root_.Perennial.go_uber_org.zap.zapcore.Level.ty]))), (go!"Log", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.Level.ty, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Logf", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.Level.ty, go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Logln", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.Level.ty, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Logw", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.Level.ty, go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Named", (some (go.signature.Signature [go.string] false [(go.GoType.PointerType SugaredLogger.ty)]))), (go!"Panic", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Panicf", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Panicln", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Panicw", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Sync", (some (go.signature.Signature [] false [go.error]))), (go!"Warn", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Warnf", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Warnln", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"Warnw", (some (go.signature.Signature [go.string, (go.GoType.SliceType (go.GoType.InterfaceType []))] true []))), (go!"With", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true [(go.GoType.PointerType SugaredLogger.ty)]))), (go!"WithLazy", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] true [(go.GoType.PointerType SugaredLogger.ty)]))), (go!"WithOptions", (some (go.signature.Signature [(go.GoType.SliceType Option.ty)] true [(go.GoType.PointerType SugaredLogger.ty)]))), (go!"go.uber.org/zap.log", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.Level.ty, go.string, (go.GoType.SliceType (go.GoType.InterfaceType [])), (go.GoType.SliceType (go.GoType.InterfaceType []))] false []))), (go!"go.uber.org/zap.logln", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.Level.ty, (go.GoType.SliceType (go.GoType.InterfaceType [])), (go.GoType.SliceType (go.GoType.InterfaceType []))] false []))), (go!"go.uber.org/zap.sweetenFields", (some (go.signature.Signature [(go.GoType.SliceType (go.GoType.InterfaceType []))] false [(go.GoType.SliceType Field.ty)])))]
 
 attribute [instance] SugaredLogger.TypeAssumptions.type_repr
   SugaredLogger.TypeAssumptions.underlying
   SugaredLogger.TypeAssumptions.get_base
   SugaredLogger.TypeAssumptions.set_base
+  SugaredLogger.TypeAssumptions.method_set
+  SugaredLogger.TypeAssumptions.ptr_method_set
 
 structure invalidPair [GooseExts] where
   mk ::
@@ -1505,6 +1669,8 @@ class invalidPair.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   set_key : ∀ (x : invalidPair) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet invalidPair.underlying go!"key") (PairV #x #y) (Val #(({ x with key' := y } : invalidPair)))
   get_value : ∀ (x : invalidPair), go.IsGoStepPureDetTagged under (StructFieldGet invalidPair.underlying go!"value") #x (Val #(x.value'))
   set_value : ∀ (x : invalidPair) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet invalidPair.underlying go!"value") (PairV #x #y) (Val #(({ x with value' := y } : invalidPair)))
+  method_set : go.MethodSetIs invalidPair.ty [(go!"MarshalLogObject", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ObjectEncoder.ty] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType invalidPair.ty) [(go!"MarshalLogObject", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ObjectEncoder.ty] false [go.error])))]
 
 attribute [instance] invalidPair.TypeAssumptions.type_repr
   invalidPair.TypeAssumptions.underlying
@@ -1514,6 +1680,8 @@ attribute [instance] invalidPair.TypeAssumptions.type_repr
   invalidPair.TypeAssumptions.set_key
   invalidPair.TypeAssumptions.get_value
   invalidPair.TypeAssumptions.set_value
+  invalidPair.TypeAssumptions.method_set
+  invalidPair.TypeAssumptions.ptr_method_set
 
 abbrev invalidPairs [GooseExts] : Type := GoSlice
 
@@ -1522,8 +1690,12 @@ abbrev invalidPairs [GooseExts] : Type := GoSlice
 
 class invalidPairs.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq invalidPairs.ty invalidPairs.underlying
+  method_set : go.MethodSetIs invalidPairs.ty [(go!"MarshalLogArray", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ArrayEncoder.ty] false [go.error])))]
+  ptr_method_set : go.MethodSetIs (go.GoType.PointerType invalidPairs.ty) [(go!"MarshalLogArray", (some (go.signature.Signature [_root_.Perennial.go_uber_org.zap.zapcore.ArrayEncoder.ty] false [go.error])))]
 
 attribute [instance] invalidPairs.TypeAssumptions.underlying
+  invalidPairs.TypeAssumptions.method_set
+  invalidPairs.TypeAssumptions.ptr_method_set
 
 class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   objects_instance : objects.TypeAssumptions
