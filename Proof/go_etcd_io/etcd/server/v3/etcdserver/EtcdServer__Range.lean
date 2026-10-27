@@ -297,19 +297,16 @@ local macro "range_tail" : tactic => `(tactic| (
       iright
       iframe HeE
       ipureintro; exact ⟨Hrn0, by intro h; cases h⟩
-    · wp_auto_lc 3
+    · wp_auto_lc 6
       ihave HQf : iprop(|={⊤}=> (if o.base.serializable then iprop(True) else
           ∃ L : List EntryModel, srvRLogLb γr.raft L ∗ ⌜kvModel γr.kv L = log⌝ ∗ □ Q L)) $$
-          [Hlc1 Hlc2 Hlc3]
+          [Hlc1 Hlc2 Hlc3 Hlc4 Hlc5 Hlc6]
       · cases hso : o.base.serializable
         · simp only [hso, Bool.false_eq_true, ↓reduceIte]
           icases HwO with ⟨%g', #Hw'⟩
           ihave #Hw'' := readWitAt_mono γr Q g' logR log Hlog.1 $$ Hw'
           iapply readWit_fire s E γr Q g' log $$ Hainv Hkvi Hw'' Hrok
-          iapply (lc_split (n := 2) (m := 1)).2
-          iframe Hlc3
-          iapply (lc_split (n := 1) (m := 1)).2
-          iframe Hlc1 Hlc2
+          iapply lc_join6 $$ Hlc1 Hlc2 Hlc3 Hlc4 Hlc5 Hlc6
         · simp only [hso, ↓reduceIte]
           imodintro; itrivial
       imod HQf with #HQf
