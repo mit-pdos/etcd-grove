@@ -25,12 +25,14 @@ links: []
   call races with `start()`'s write of `s.w` or panics on its nil value.
 - **Expected**: `NewServer` either starts the compactor in `start()` (with the server's other
   goroutines), or stops it on its error paths.
-- **How the proof handles it**: not yet: `v3compactor.New` and `Run` are names-only and their
-  contracts are pending (`?` in `etc/link-lean-first-server.txt`); N0's `compactorRunOk` (`{True}
-  Run() {True}`) hides the goroutine's proposals and is not a true contract
-  (`notes/status-history.md`, "Server construction, unit N1"). A true one makes `Run` require
-  `Compact`'s contract, which the server only meets after `start()`; `NewServer`'s spec would
-  take `cfg.AutoCompactionRetention = 0` meanwhile.
-- **Possible fixes**: move `srv.compactor.Run()` to `start()` (or `Start`), or add
+- **How the proof handles it**: fixed in the fork (2026-10-27, branch `goose-lean-compactorstart`,
+  `964dccdb4`: `NewServer` only creates the compactor, `start()` runs it after `s.w` and the request
+  path's fields are set), the spec-first pilot's choice (`notes/compactor-pilot-plan.md`): with the
+  compactor running from `NewServer`, no contract for its `Compact` calls can be sound (the third
+  review of the pilot's specs: `Compact` needs `isServerReq`, which only `start()` makes true). The
+  compactor's `Run` takes the environment's contracts (`v3compactor.runPre`), which `start()` can
+  give. Until the pilot's glue, `NewServer`'s spec keeps `cfg.AutoCompactionRetention = 0`.
+- **Possible fixes**: move `srv.compactor.Run()` to `start()` (or `Start`; the fork's fix, which passes
+  `tests/integration/embed`'s `TestEmbedEtcdAutoCompactionRetentionRetained`), or add
   `if err != nil && srv.compactor != nil { srv.compactor.Stop() }` to the deferred closure.
 - **Found**: 2026-10-17, auditing the contract of `v3compactor.New` for `NewServer`'s proof.

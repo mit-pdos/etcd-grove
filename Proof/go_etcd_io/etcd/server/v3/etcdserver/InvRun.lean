@@ -270,12 +270,17 @@ def applyRes (C : ApplyCtx GF) (A : List EntryModel) : IProp GF :=
       -- (D22 S-h, 2026-10-20; S-0's amendment) `ep.appliedt` the last applied entry's term
       lastTermIs A at'⌝)
 
-/-- **The compactor** (`s.compactor`, a `v3compactor.Compactor`, names-only: a trust-boundary
-contract): nil (no auto-compaction), or one whose `Pause` and `Resume` return. -/
+/-- **The compactor** (`s.compactor`, a `v3compactor.Compactor`): nil (no auto-compaction), or one
+whose `Pause` and `Resume` return and whose `Run` returns (`start()` runs it since the fork's fix,
+`issues/etcd-compactor-started-before-start.md`). `NewServer`'s premise
+`AutoCompactionRetention = 0` makes it nil; the spec-first pilot's glue
+(`notes/compactor-pilot-plan.md`) replaces this contract with the compactor's own
+(`v3compactor.compactorOk`, whose `Run` takes the environment's contracts). -/
 def compactorOk (c : GoInterface) : IProp GF :=
   iprop(⌜c = GoInterface.nil⌝ ∨ ∃ ci : GoInterfaceOk, ⌜c = GoInterface.ok ci⌝ ∗
     □ ({{ True }} (App (Val #(methods ci.ty go!"Pause" ci.v)) (Val #())) {{ RET #(); True }}) ∗
-    □ ({{ True }} (App (Val #(methods ci.ty go!"Resume" ci.v)) (Val #())) {{ RET #(); True }}))
+    □ ({{ True }} (App (Val #(methods ci.ty go!"Resume" ci.v)) (Val #())) {{ RET #(); True }}) ∗
+    □ ({{ True }} (App (Val #(methods ci.ty go!"Run" ci.v)) (Val #())) {{ RET #(); True }}))
 
 instance compactorOk_persistent (c : GoInterface) : Persistent (compactorOk (GF := GF) c) := by
   unfold compactorOk; infer_instance

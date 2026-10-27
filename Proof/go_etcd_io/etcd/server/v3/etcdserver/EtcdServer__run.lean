@@ -543,7 +543,7 @@ theorem EtcdServer.run.wp_proof
           (try wp_auto)
           wp_apply HDemote
           (try wp_auto)
-          icases Hcpok' with (%Hcpn | ⟨%cpi, %Hcpi, #HPause, #HResume⟩)
+          icases Hcpok' with (%Hcpn | ⟨%cpi, %Hcpi, #HPause, #HResume, -⟩)
           · rw [Hcpn]
             (try wp_auto)
             wp_join_done
@@ -571,7 +571,7 @@ theorem EtcdServer.run.wp_proof
               · iframe Hwl; iunfold leadTimeP; iexists _; iexact Hlt
               (try wp_auto)
               wp_join_done
-          icases Hcpok' with (%Hcpn | ⟨%cpi, %Hcpi, #HPause, #HResume⟩)
+          icases Hcpok' with (%Hcpn | ⟨%cpi, %Hcpi, #HPause, #HResume, -⟩)
           · rw [Hcpn]
             (try wp_auto)
             wp_join_done
@@ -1075,7 +1075,7 @@ theorem EtcdServer.run.wp_proofOn
           (try wp_auto)
           wp_apply HDemote
           (try wp_auto)
-          icases Hcpok' with (%Hcpn | ⟨%cpi, %Hcpi, #HPause, #HResume⟩)
+          icases Hcpok' with (%Hcpn | ⟨%cpi, %Hcpi, #HPause, #HResume, -⟩)
           · rw [Hcpn]
             (try wp_auto)
             wp_join_done
@@ -1103,7 +1103,7 @@ theorem EtcdServer.run.wp_proofOn
               · iframe Hwl; iunfold leadTimeP; iexists _; iexact Hlt
               (try wp_auto)
               wp_join_done
-          icases Hcpok' with (%Hcpn | ⟨%cpi, %Hcpi, #HPause, #HResume⟩)
+          icases Hcpok' with (%Hcpn | ⟨%cpi, %Hcpi, #HPause, #HResume, -⟩)
           · rw [Hcpn]
             (try wp_auto)
             wp_join_done

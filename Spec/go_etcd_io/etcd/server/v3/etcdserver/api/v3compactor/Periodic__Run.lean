@@ -28,7 +28,7 @@ that is what its proof shows). -/
 abbrev v3compactor.Periodic.Run.spec : Prop :=
   ∀ (pc : Loc) (E : CompactEnv GF) (period : Int),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor ∗ isPeriodic pc E period ∗ periodicRunTok pc ∗
-      runPre E (perPermit E.RevLb period E.γf) }}
+      runPre E (perPermit E.RevLb period E.γf) ∗ firstUnset E.γf }}
     (App (Val (pc @!! go.GoType.PointerType v3compactor.Periodic.ty @!! go!"Run")) (Val #()))
   {{ RET #(); True }}
 

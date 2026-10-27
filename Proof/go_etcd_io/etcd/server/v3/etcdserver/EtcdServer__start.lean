@@ -428,6 +428,20 @@ theorem EtcdServer.start.wp_proof
     iexact HRD
   -- `go s.run()`, with the write budget backed by time receipts (D19b)
   imod srvWTPool_alloc E N ⊤ Hrb $$ HWB with ⟨%γp, #HWB, #HWA0⟩
+  -- `if s.compactor != nil { s.compactor.Run() }` (the fork's fix: `start()` runs the compactor,
+  -- `issues/etcd-compactor-started-before-start.md`)
+  ihave #Hcpo' := Hcpo
+  iunfold compactorOk at Hcpo'
+  wp_join at next with [s]
+  · icases Hcpo' with (%Hcpn | ⟨%cpi, %Hcpi, -, -, #HCRun⟩)
+    · rw [Hcpn]
+      (try wp_auto)
+      wp_join_done
+    · rw [Hcpi]
+      (try wp_auto)
+      wp_apply HCRun
+      (try wp_auto)
+      wp_join_done
   wp_apply wp_fork $$ [Hsnap Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hstart Hlr Hsnapb]
   · wp_apply hRun s γ ci TM E { ρ with wait := γw } γr Er γn γg γcx γd
       ⟨vr.errorc, stc, dch, cancel, vr.compactor, vr.stats, lcn⟩ b ai₀ at₀ c₀ x₀
@@ -940,6 +954,20 @@ theorem EtcdServer.start.wp_proofOn
     iexact Hfs
   -- `go s.run()`, with the write budget backed by time receipts (D19b)
   imod srvWTPool_alloc E N ⊤ Hrb $$ HWB with ⟨%γp, #HWB, #HWA0⟩
+  -- `if s.compactor != nil { s.compactor.Run() }` (the fork's fix: `start()` runs the compactor,
+  -- `issues/etcd-compactor-started-before-start.md`)
+  ihave #Hcpo' := Hcpo
+  iunfold compactorOk at Hcpo'
+  wp_join at next with [s]
+  · icases Hcpo' with (%Hcpn | ⟨%cpi, %Hcpi, -, -, #HCRun⟩)
+    · rw [Hcpn]
+      (try wp_auto)
+      wp_join_done
+    · rw [Hcpi]
+      (try wp_auto)
+      wp_apply HCRun
+      (try wp_auto)
+      wp_join_done
   wp_apply wp_fork $$ [Hsnap Hloop Hsend Happly Hrdone Hcomm Hdc Hclose Hstart Hlr Hsnapb]
   · wp_apply hRun s γ ci TM E { ρ with wait := γw } γr Er γn γg γcx γd
       ⟨vr.errorc, stc, dch, cancel, vr.compactor, vr.stats, lcn⟩ b ai₀ at₀ c₀ x₀ γa hM hRB

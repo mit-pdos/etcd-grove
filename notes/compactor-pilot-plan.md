@@ -68,7 +68,8 @@ The clock is a trust boundary (`clockwork.Clock`: `Now` monotone in the real clo
 reading, `After(d)` fires no earlier than `d`); phase 1 states it, phase 2 tests it.
 
 **C2, the server with auto-compaction on** (option A only). The examples' closed theorems hold
-when the server runs with auto-compaction on, in either mode, for any accepted retention: starting
+when the server runs with auto-compaction on, in either mode, for any accepted retention (in
+periodic mode at least 10ns: narrowed in phase 1's third review round, a negative one busy-loops): starting
 with `putget_safe` (`examples/putget`), whose workload (puts and latest reads) never reads a
 compacted revision; then the others. With compaction in the model, `KVState.compacted` advances at
 a compaction's apply, reads below it answer `ErrCompacted` (the model has the field already).
@@ -244,6 +245,23 @@ of its three blockers came from round 1's repairs; one finding a false positive)
 
 New failure patterns (the reviewer's and `LESSONS.md`): once-only resources spent per call; a resource
 whose invariant contradicts the function; repairs introduce defects.
+
+**Step 2b, round 3: the findings and the repairs** (`notes/spec-first-study/pilot-review-3.md`):
+
+| finding | repair |
+|---|---|
+| `Compact`'s permit `Pc` is vacuous (each caller picks it; round 2's repair) | removed; C3's permit will be server-wide, fixed at `NewServer` and recorded by the compaction form of the proposal permit (step 3, with the model step) |
+| `periodicRunTok` does not own the `revs` slice (since round 1: rounds 1-2 missed it) | the empty slice and its capacity (what `make` gives) |
+| **`NewServer` cannot meet `Run`'s pre**: `Compact` needs `isServerReq`, which only `start()` makes true, and the Go code can call it before (a nil `s.w`) | **fork fix** (the user's choice (a)): `start()` runs the compactor (`964dccdb4`, branch `goose-lean-compactorstart`; `issues/etcd-compactor-started-before-start.md`) |
+| `Compact` unprovable (its callee excludes compactions); physical compactions uncovered | expected: step 3's model step; physical stays out (scope) |
+| `New`'s `10 ≤ ret` vs C2's "any accepted retention" | phase 0 narrowed: C2 covers a periodic retention of at least 10ns (a negative one is the busy loop of the tiny-retention issue) |
+| revision mode took an unused first-sample ghost | `modeRunPre`: only the periodic `Run` takes `firstUnset` |
+| missing laws: `firstSample`'s agreement, `revPermit`'s and `modePermit`'s persistence | added (`firstSample_agree` proved) |
+| coupling (the clock's `Defs` imports `BaseApply`; `Compact`'s spec imports the compactor's `Defs`) | left: a cleanup for the freeze |
+
+**Pending (the user's):** push the fork branch `goose-lean-compactorstart` (`964dccdb4`); then the examples'
+`go.mod` replaces (`examples/go.mod`, `examples/k8setcd3/go.mod`) move to it with `go mod tidy`, which
+`etc/goose.py --check` requires (until then the translation is made with `--src etcd=<local clone>`).
 
 **Step 3 of phase 3 (planned): an easy and a hard proof.** The easy one, `Revision.Run` (the same
 loop shape as `Periodic.Run`, with no window and no clock bound to chain); the hard one,

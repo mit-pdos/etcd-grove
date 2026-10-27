@@ -35,19 +35,20 @@ def compactOutIs (E : apply.AEnv GF) (resp : Loc) (err : GoInterface) : IProp GF
 
 /-- `s.Compact(ctx, r)` for a non-physical compaction request (the pilot's scope: the compactor never
 sets `Physical`; the physical wait, `Physc` and `ForceCommit`, is the gRPC caller's and not specified
-yet) at any revision (a future one is the apply's `ErrFutureRev`), with the caller's permit `Pc r`
-(the compactor's is C1's, `v3compactor.modePermit`; the gRPC caller's is `True`): it proposes the
-compaction through raft, the permit travelling with the proposal (the compaction form of the
-proposal permit, the server side's model step: C3 is derived from it), and returns `compactOutIs`,
+yet) at any revision (a future one is the apply's `ErrFutureRev`): it proposes the compaction
+through raft and returns `compactOutIs`,
 giving back the caller's reader slots and the store's compaction-aware reader (`storeReaderC`: the
 call's last line reads `s.kv.Rev()`; `storeReader` would assert the store is never compacted).
-(Phase 1's statement: what the apply does with the compaction, C2/C3, is not stated yet.) -/
+(Phase 1's statement: what the apply does with the compaction, C2/C3, is not stated yet. The
+compactor's C1 permit stops here until then: a per-call permit parameter would be vacuous, since each
+caller picks it (round 3 of the review); C3 needs a server-wide permit, fixed at `NewServer` and
+recorded by the compaction form of the proposal permit, designed with the model step.) -/
 abbrev EtcdServer.Compact.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
-    (cd : context.ContextDesc (IProp GF)) (p : Loc) (r : Int) (Pc : Int → IProp GF),
+    (cd : context.ContextDesc (IProp GF)) (p : Loc) (r : Int),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReq s E ρ ∗ srvLeadTimeReader s ∗ E.RD ∗ mvcc.storeReaderC E.s E.γ ∗ idCred ρ.ids 1 ∗
-      context.isContext ctx cd ∗ v3compactor.compactReqIs p r ∗ □ Pc r }}
+      context.isContext ctx cd ∗ v3compactor.compactReqIs p r }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Compact"))
       (Val #(GoInterface.ok ctx))) (Val #p))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); srvLeadTimeReader s ∗ E.RD ∗
@@ -56,10 +57,10 @@ abbrev EtcdServer.Compact.spec : Prop :=
 /-- `Compact` with auth on (`isServerReqM true`, as `Put.specOn`). -/
 abbrev EtcdServer.Compact.specOn : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
-    (cd : context.ContextDesc (IProp GF)) (p : Loc) (r : Int) (Pc : Int → IProp GF),
+    (cd : context.ContextDesc (IProp GF)) (p : Loc) (r : Int),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServerReqM true s E ρ ∗ srvLeadTimeReader s ∗ E.RD ∗ mvcc.storeReaderC E.s E.γ ∗
-      idCred ρ.ids 1 ∗ context.isContext ctx cd ∗ v3compactor.compactReqIs p r ∗ □ Pc r }}
+      idCred ρ.ids 1 ∗ context.isContext ctx cd ∗ v3compactor.compactReqIs p r }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Compact"))
       (Val #(GoInterface.ok ctx))) (Val #p))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); srvLeadTimeReader s ∗ E.RD ∗

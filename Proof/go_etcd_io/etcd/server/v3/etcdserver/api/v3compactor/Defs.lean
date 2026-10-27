@@ -130,6 +130,10 @@ instance compactableOk_persistent (c : GoInterface) (P : Int → IProp GF) (R : 
 def revPermit (RevLb : Int → IProp GF) (ret : Int) (r : Int) : IProp GF :=
   iprop(⌜0 < r⌝ ∗ □ RevLb (r + ret))
 
+instance revPermit_persistent (RevLb : Int → IProp GF) (ret r : Int) :
+    Persistent (revPermit (GF := GF) RevLb ret r) := by
+  unfold revPermit; infer_instance
+
 /-- **The run's first sample** was `r` (persistent, and the same for every use: a ghost variable the
 server allocates unset, `firstUnset`, and `Run`'s goroutine sets once to its first `Rev()`). -/
 def firstSample (γf : GName) (r : Int) : IProp GF := dghostVar γf DFrac.discard (some r)
@@ -151,10 +155,27 @@ instance perPermit_persistent (RevLb : Int → IProp GF) (period : Int) (γf : G
     Persistent (perPermit (GF := GF) RevLb period γf r) := by
   unfold perPermit firstSample; infer_instance
 
+instance firstSample_persistent (γf : GName) (r : Int) : Persistent (firstSample (GF := GF) γf r) := by
+  unfold firstSample; infer_instance
+
+/-- A run has one first sample: two `firstSample`s of the same run agree (what makes "at most one
+revision per run younger than the period" a fact a client can use). -/
+theorem firstSample_agree (γf : GName) (r r' : Int) :
+    firstSample (GF := GF) γf r ∗ firstSample γf r' ⊢ ⌜r = r'⌝ := by
+  unfold firstSample
+  iintro ⟨H1, H2⟩
+  icases dghostVar_agree γf (some r) DFrac.discard (some r') DFrac.discard $$ H1 H2 with %Heq
+  ipureintro
+  exact Option.some.inj Heq
+
 /-- The permit of a mode (`New`'s `mode`; `ret` the retention's nanoseconds or revisions). -/
 def modePermit (mode : GoString) (RevLb : Int → IProp GF) (ret : Int) (γf : GName) :
     Int → IProp GF :=
   if mode = go!"revision" then revPermit RevLb ret else perPermit RevLb ret γf
+
+instance modePermit_persistent (mode : GoString) (RevLb : Int → IProp GF) (ret : Int) (γf : GName)
+    (r : Int) : Persistent (modePermit (GF := GF) mode RevLb ret γf r) := by
+  unfold modePermit; split <;> infer_instance
 
 /-! ### The objects -/
 
@@ -171,11 +192,15 @@ structure CompactEnv (GF : BundledGFunctors) where
 
 /-- **What `Run` takes from its caller** (besides the object's run token), for a compactor whose
 `Compact` calls take the permit `P`: the revision getter's and the server's contracts (needed only
-from `Run` on: `New` calls neither), the resource they thread, a revision the store has reached (`0`,
-the getter's first lower bound), and the periodic mode's unset first sample. -/
+from `Run` on: `New` calls neither), the resource they thread, and a revision the store has reached
+(`0`, the getter's first lower bound). The periodic `Run` also takes `firstUnset E.γf`. -/
 def runPre (E : CompactEnv GF) (P : Int → IProp GF) : IProp GF :=
-  iprop(revGetterOk E.RevLb E.rg E.R ∗ compactableOk E.c P E.R ∗ E.R ∗ □ E.RevLb 0 ∗
-    firstUnset E.γf)
+  iprop(revGetterOk E.RevLb E.rg E.R ∗ compactableOk E.c P E.R ∗ E.R ∗ □ E.RevLb 0)
+
+/-- `runPre` for a mode: the periodic one also takes the unset first sample. -/
+def modeRunPre (mode : GoString) (E : CompactEnv GF) (ret : Int) : IProp GF :=
+  iprop(runPre E (modePermit mode E.RevLb ret E.γf) ∗
+    (if mode = go!"revision" then iprop(True) else firstUnset E.γf))
 
 /-- `paused` under the periodic compactor's `RWMutex`: a fraction of its cell. -/
 def perPausedInv (pc : Loc) (q : Qp) : IProp GF :=
@@ -203,10 +228,12 @@ instance isPeriodic_persistent (pc : Loc) (E : CompactEnv GF) (period : Int) :
     Persistent (isPeriodic (GF := GF) pc E period) := by
   unfold isPeriodic; infer_instance
 
-/-- **What `Run` takes** of a periodic compactor (besides the server's `E.R`): the sample window
-`revs` (only `Run`'s goroutine touches it) and a reader slot of the mutex. -/
+/-- **What `Run` takes** of a periodic compactor (besides `runPre`): the sample window `revs`, empty,
+with its slice's capacity (what `newPeriodic`'s `make` gives; only `Run`'s goroutine touches it: it
+appends to it and reads `revs[0]`), and a reader slot of the mutex. -/
 def periodicRunTok (pc : Loc) : IProp GF :=
-  iprop((∃ s : GoSlice, structFieldRef v3compactor.Periodic go!"revs" pc ↦ s) ∗
+  iprop((∃ s : GoSlice, structFieldRef v3compactor.Periodic go!"revs" pc ↦ s ∗
+      s ↦* ([] : List w64) ∗ ownSliceCap w64 s (DFrac.own 1)) ∗
     sync.ownRWMutex (structFieldRef v3compactor.Periodic go!"mu" pc) (perPausedInv pc))
 
 /-- `paused` under the revision compactor's `Mutex`. -/

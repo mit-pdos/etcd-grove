@@ -180,12 +180,14 @@ PROJECTS = [
         # `Ready`'s conf changes applied before `Advance`). Then (D43 M4, 2026-10-26) branch
         # `goose-lean-learnerfix` (on 4d9282b0f): a removed local member is no learner, rather
         # than a panic (c00a2dc06, issues/etcd-unary-interceptor-learner-removed.md;
-        # etcd-io/etcd#22188's fix).
+        # etcd-io/etcd#22188's fix). Then (the spec-first pilot, 2026-10-27) branch
+        # `goose-lean-compactorstart` (on c00a2dc06): the auto-compactor run by `start()`, not by
+        # `NewServer` (964dccdb4, issues/etcd-compactor-started-before-start.md).
         # Branch
         # `goose` (upstream main of 2026-03) stays as it is: the Rocq translations
         # (etcd-grove `main`, Perennial `master`) are regenerated from it by name.
         repo="https://github.com/upamanyus/etcd",
-        rev="c00a2dc062245b2afbc37678b4e5423eff351bfd",
+        rev="964dccdb42058b4570540cdc193bd15ccc69330b",
         # go.etcd.io/raft/v3 (etcd's go.mod: v3.7.0) is the raft above (v3.7.0 plus the
         # read-index fix), translated by the raft project: not translated here.
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",
