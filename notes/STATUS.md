@@ -233,6 +233,15 @@ removed, ..., adequacy coverage" below.
     raft's names (`snapDirs_alloc`), `NewServer.spec` taking `γd` with `snapDir_init`. `Process`
     unchanged (MsgSnap refuted in the no-snapshot mode; L3 adds `γd` to `srvProcOk`). No axiom.
     `notes/decisions.md`, "D22 J2".
+  - **J1a done (2026-10-26)**: the snapshot path's construction bundle `srvSnapBoot`
+    (`SnapRO.lean`: `srvSnapRO`, the snapshot-taken counter `γt`'s authority, the `E.RD`/`lgMu`
+    reader-slot stocks) from `NewServer` through `srvBuilt`, `isServerBuilt` and `isServerRun`;
+    `snapDirInv`'s removal fact `srvSnapRm` (J0 item 3); `bootOk`'s `keySized` for every backend and
+    the backend hooks; `isRNWal`'s `SaveSnap`/`Sync`; `NewStorage`'s `storageSnap`;
+    `NewAuthStore`'s axiom restated with `authRecoverOk`. Not done (false or racy as planned):
+    `specSnap`'s `isMetaBackend` family and the whole `s.Cfg` read-only
+    (`issues/etcd-cfg-watch-progress-interval-race.md`), J8a's to restate. No axiom, no `sorry`.
+    `notes/decisions.md`, "D22 J1a".
   - **The rest of D22 after S8d** (`notes/snapshot-sj-plan.md`, stages J*/L*): J0 (design) done;
     **J3 done (2026-10-26)**: the storage's three snapshot methods logically atomic over
     `memSnapTokG` (the application's key `ak` stays with `CreateSnapshot`'s caller, not in the

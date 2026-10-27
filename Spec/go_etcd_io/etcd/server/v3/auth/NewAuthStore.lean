@@ -68,7 +68,19 @@ at the etcd pin):
   the auth backend's batch transaction), so they write to the backend the caller's half names: the
   apply contract (`authApplyOk`) is for whichever backend that is, given a write right lending that
   half; `Recover` (names-only) needs both halves, the write lock's and the caller's. Until S7c the
-  contract was for `d` only, which `Recover` falsifies. -/
+  contract was for `d` only, which `Recover` falsifies. 
+* (D22 J1a, 2026-10-26; `notes/decisions.md`, "D22 J1a"; until then S8d's named premise
+  `srvAuthRecoverOk` of `applySnapshot.specSnap`) **`Recover` on a later backend**
+  (`authRecoverOk stl`): `Recover(ab)` (`store.go:399-418`) takes `beMu`'s write lock to set
+  `as.be` (the lock's half of `as.be` and the caller's, `authBeOn stl oldbe`, become the new
+  backend's), then a read transaction of the new backend (`ReadTx`'s `RLock`/`RUnlock`: the
+  reader's token `bkRTx` and an open share lent, given back) reading `authEnabled` (absent in an
+  image whose auth bucket is `authBoot`: false) and the revision (`setRevision` under its lock), and
+  `refreshRangePermCache` over the image's users (none: `authUsers` empty, no decoding, no panic),
+  then `enabledMu`'s write lock to set `enabled = false` (the token provider's `enable` not
+  called). The store stays disabled, so its contracts above (stated for auth off) hold after it,
+  and `RD` names no backend's read right (the checks return before reading the backend).
+-/
 abbrev auth.NewAuthStore.spec : Prop :=
   ∀ (lg : Loc) (ab tp : GoInterface) (cost : w64) (abl : Loc) (d : mvcc.KBReal)
     (W Pk : IProp GF) (qo : Qp) (r : GMap GoString backend.BktData),
@@ -91,7 +103,9 @@ abbrev auth.NewAuthStore.spec : Prop :=
         go!"authRoles" ∅) ∗
       ∃ (RD : IProp GF) (stl : Loc), ⌜st = auth.authIface stl⌝ ∗ authBeOn stl d.be ∗
       ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), RD) ∗
-      isReqAuth st RD ∗ authApplyOk stl RD }}
+      isReqAuth st RD ∗ authApplyOk stl RD ∗
+      -- (D22 J1a, 2026-10-26) `Recover` on a new backend, in the server's terms (see above)
+      authRecoverOk stl }}
 
 end spec
 

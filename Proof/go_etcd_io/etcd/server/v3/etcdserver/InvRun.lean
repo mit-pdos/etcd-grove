@@ -29,6 +29,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApplyAll
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvGoAttach
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftLoop
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.SnapRO
 public import Perennial.Proof.context
 public import Perennial.Ghost.Token
 
@@ -392,7 +393,10 @@ def isServerRun (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF
     "Hstart" ∷ applyStart s γ ci b E γr ai₀ c₀ x₀ ρ.wait ∗
     "Hlr" ∷ srvLgReader s ∗
     -- (2026-10-19, D21 M3) with its counter, the apply thread's tokens taken through `ai₀`
-    "#HWB" ∷ (∃ γp : GName, srvWTPool E γp ∗ srvWTAt γp ai₀))
+    "#HWB" ∷ (∃ γp : GName, srvWTPool E γp ∗ srvWTAt γp ai₀) ∗
+    -- (2026-10-26, D22 J1a) what the snapshot path takes of the construction (`SnapRO.lean`):
+    -- its persistent bundle, the snapshot-taken counter's authority, the reader-slot stocks
+    "Hsnapb" ∷ srvSnapBoot s ci E γr)
 
 end defs
 

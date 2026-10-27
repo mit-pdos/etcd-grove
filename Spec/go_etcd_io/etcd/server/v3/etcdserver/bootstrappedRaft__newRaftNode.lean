@@ -142,6 +142,8 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
         nodeCfg γn 0 (cfgState (GMap.listToSet ps) ∅) ∗
         -- the wrapper, over the config built here
         isRNIDRemoved f ∗ isRNWal st ∗
+        -- (D22 J1a, 2026-10-26) a `*storage` over the snapshotter `ss` (`rnNewStorageOk`'s)
+        ⌜rnStorageOf st ss⌝ ∗
         rnBuilt E γw r
           (raftNodeConfig.mk bv.lg' f (interface.mkOk (go.GoType.PointerType node.ty) #n)
             bv.storage' st bv.heartbeat' GoInterface.nil) ∗

@@ -79,7 +79,7 @@ theorem raftNode.start.wp_proof
   icases Htri with ⟨%ti, %Htieq, #HSend, #HTrStop⟩
   subst Htieq
   iunfold isRNWal at Hsti
-  icases Hsti with ⟨%si, %Hsieq, #HSave, #HClose⟩
+  icases Hsti with ⟨%si, %Hsieq, #HSave, #HClose, #HSaveSnap, #HSync⟩
   subst Hsieq
   ihave #Hzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit

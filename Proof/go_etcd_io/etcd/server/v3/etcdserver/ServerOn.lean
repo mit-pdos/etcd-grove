@@ -239,7 +239,9 @@ def srvBuiltG (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
     "%Hbound" ∷ ⌜threadBound GF ≤ 2 ^ 31⌝ ∗
     "Hua" ∷ (∃ ua : GoInterface, srvUberApplyAddr s ↦ ua ∗ apply.applierFor ua E ∗
       apply.applyKV E ua x₀) ∗
-    "Hwtok" ∷ idWaitTok ρ.ids)
+    "Hwtok" ∷ idWaitTok ρ.ids ∗
+    -- (2026-10-26, D22 J1a) what the snapshot path takes of the construction (`SnapRO.lean`)
+    "Hsnapb" ∷ srvSnapBoot s ci E γr)
 
 theorem srvBuiltG_false (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (Er : RNEnv GF) (γn : RNNames)

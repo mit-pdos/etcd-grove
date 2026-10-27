@@ -22241,3 +22241,84 @@ The two premises of `applySnapshot.specSnap` that J7 could not derive from `srvI
   `applySnapshot_walk`, `srvSnapApplied_of_walk` (+ `tI`, as above); `snapWalkPost` (internal):
   `π0.m0 = (Index, π0.m0.2)` (was `(Index, Metadata.Term)`). New: `soleWriter_idxWf`,
   `KVModelRestore.lean`'s lemmas.
+
+## D22 J1a: the snapshot path's persistent bundle threaded from `NewServer`; the bootstrap contract (2026-10-26 · decided by the orchestrator while the user was away (J1a/J6a))
+
+Stage J1a of `notes/snapshot-sj-plan.md` (with J0's amendments). New module
+`Proof/go_etcd_io/etcd/server/v3/etcdserver/SnapRO.lean`, imported by `InvRun`.
+
+**What is threaded.** `srvSnapBoot s ci E γr := ∃ γt, srvSnapRO s ci E γr γt ∗ monoNatAuthOwn γt
+1 0 ∗ srvSnapStock s E`, one conjunct (`"Hsnapb"`) of `srvBuilt` (so `NewServer`'s post),
+`isServerBuilt` and `isServerRun` (`isServerBuilt_of_gap` and `start` pass it on; `run` does not use
+it yet: J1b puts it in `applyStart`/`applyRes`, J8a reads it). `srvSnapRO` (persistent) holds:
+- the configuration's fields the snapshot path reads (`Logger`, `DataDir`, `ServerFeatureGate`
+  with `isFeatureGate`, `QuotaBackendBytes`, `WarningApplyDuration`), the logger non-nil;
+- the snapshotter (`snapshotter ↦□ ss`, `isSnapshotter`), the backend hooks (`beHooks ↦□ hk`,
+  `storage.isBackendHooks hk ⟨*consistentIndex, ci⟩ lgh`), the raft storage
+  (`rnStorageAddr ↦□ *storage stp`, `storage.storageSnap stp ss`);
+- the member's snapshot directory: `srvMemberIDAddr s ↦□ idm`, `⌜γr.raft.raft.reSnapLoc idm = some
+  γd⌝` (D22 J2's note: next to the invariant) and `inv snapDirN (snapDirInv ss γd (srvImage
+  γr.raft.raft) (srvSnapRm γt γr))` with **J0 item 3's removal fact**
+  `srvSnapRm γt γr j := snapTakenLb γt j ∨ monoNatLbOwn γr.applied (uint.nat j + 1)` (as a natural
+  number: `appliedAtLeast γr (j + 1)` in `w64` wraps at `2^64 - 1`, where it would be `True`).
+  `NewServer` allocates `γt` (at `0`) before `snapDir_init`, and the transport's `Start` takes the
+  invariant at this `Rm` (its spec is generic in `Rm`). `specSnap` and the walk still say
+  `snapTakenLb γt` (J4's restatement, with `Release`, J0's amendment);
+- the stores and their contracts on whichever backend: the fields (`alarmStore`, `authStore`,
+  `lessor`, `cluster`), `isAlarmStore`, `alarmApplyOk`, `authApplyOkM E.authMode`, `□ (⌜E.authMode =
+  .off⌝ → authRecoverOk ast)`, `lessorApplyOk`, `lessorCfg`, `lessorLookupOk`, `isRaftCluster`,
+  `clusterApplyOk`, the `versionChanged` field; `srvMembersDir cl ps dir` (`bootOk`'s `Hmembers`)
+  with the directory's members raft's peers;
+- `□ ∀ γB b, keySized γB d.P b` at the boot parameters (`E.γ.kb = some d`); `dbOpensOk` and
+  `backendUnderQuota` (`NewServer.spec`'s premises).
+`srvSnapStock`: the `E.RD` copies and `lgMu` reader slots `NewServer` dropped until now (at least
+`2^28` each: `actualMaxReaders - 66` and what is left of `lgMu`'s after the transport's, the request
+path's and the monitors'), for the snapshots' `NewUberApplier` and `AddPeer`s (J0 item 5).
+
+**Statement changes** (all inside closed theorems' premises, through `bootstrapContract` and
+`NewServer.spec`'s trust-boundary premises; no closed theorem's conclusion changes, and each new
+clause is true of the Go code at the pin):
+1. `bootOk`'s `"#Hsz"`: `keySized d.γB d.P d.be` → `□ ∀ γB b, keySized γB d.P b` (the Key bucket's
+   size bound for every backend at the boot parameters: no bbolt file holds `2^62` keys).
+2. `bootOk` gains `"#Hbh"`: `∃ lgh, storage.isBackendHooks bk.beHooks' ⟨*consistentIndex, cil⟩ lgh`
+   (`bootstrapBackend`'s `NewBackendHooks(cfg.Logger, ci)` over the consistent index the record
+   names).
+3. `isRNWal` (the WAL contract `rnNewStorageOk` gives, a `NewServer.spec` premise) gains
+   `SaveSnap` (`{{ sn.Metadata ↦{dq} mp ∗ smPts mp dq' md }} SaveSnap(sn) {{ err, same }}`: at the
+   pin it only writes the WAL snapshot record, `storage.go`, and needs the metadata pointer set)
+   and `Sync` (`{{ True }} Sync() {{ err, True }}`). This is J0's "`bootOk`'s storage contract
+   gains `SaveSnap`/`Sync`": `bootOk`'s storage is made by `NewStorage`, whose contract is
+   `rnNewStorageOk`, a premise (not an axiom): restated there.
+4. `rnNewStorageOk`'s post gains `⌜rnStorageOf st ss⌝` (a `*storage` with `storageSnap p ss`:
+   `NewStorage` returns `&storage{lg, w, s}`); `bootstrappedRaft.newRaftNode.spec` and
+   `NodeStartSpec` carry it to `NewServer` (their posts gain the conjunct; proved).
+5. `auth.NewAuthStore.spec` (an axiom) restated, its post gaining `authRecoverOk stl` (S8d's
+   `srvAuthRecoverOk`, renamed and moved to `SnapRO.lean` beside the stores' contracts: J0 item 8;
+   the docstring has S8c's argument: auth off for the store's life, `Recover` disabled again).
+   `authStoreKit` (the auth track's E2i, a definition) gains `□ (⌜M = .off⌝ → authRecoverOk stl)`;
+   `authStoreKit_off` gives it from the axiom, `authStoreKit_on` vacuously (minimal; dated note in
+   `notes/auth-plan.md`). The auth track's `NewServer.specM` statement is unchanged.
+Not changed: `NewServer.spec`/`specM`'s text (their posts' `srvBuilt` gained the conjunct), `start`,
+`run`, `Start`'s specs' text (`isServerBuilt`/`isServerRun` gained it).
+
+**Two items of J0's list not done, because they are false or not provable as stated**:
+- **The `isMetaBackend` family** (`specSnap`'s `□ ∀ π b, π.m0 = (i, t) → isMetaBackend b … (readView
+  (γ.withPh π))`, which J0 planned to take from `bootOk`'s `Hmeta` generalized): false of the Go
+  code as stated, so not added to `bootOk` (where it would make every closed theorem vacuous). Its
+  view `readView γ m = ghostVar γ.wr 1 false ∗ ⌜m = γ.m0⌝` can be met for physical names `π` no
+  backend was opened with (fresh `wr`, any `m0`), and for any backend `b`: the read would have to
+  return `π.m0`, whatever `b` holds. `bootOk`'s `Hmeta` is true because its names `γA` are the
+  protocol's own (its invariant holds `wr`). A true form must tie `π` to how `b` was opened (its
+  hooks at `batchLockInv (γ.withPh π)`, which `isBackend` pins) and to the opened data's meta keys
+  (`metaIs D π.m0`): J8a's to state, with the walk's `HnB` and `hmeta`; or to prove from the
+  backend's `ReadTx` (the backend is verified) and the protocol, which would remove the premise.
+- **The whole configuration read-only** (`specSnap`'s `srvCfgAddr s ↦□ cfg`): `applySnapshot`
+  copies `s.Cfg` (`OpenSnapshotBackend(s.Cfg, …)`), while the serving path owns
+  `WatchProgressNotifyInterval` (`srvServeBuilt`), which `v3rpc.NewWatchServer` writes: a data race
+  in Go with a sub-100ms interval (`issues/etcd-cfg-watch-progress-interval-race.md`). `srvSnapRO`
+  has the fields the snapshot path's callees read; J8a either restates `specSnap` over them (if the
+  struct copy can be stated field-wise) or the fork fixes `NewWatchServer`.
+Also not done (J4's, the other agent's): the storage token into J0 item 2's invariant at the end of
+`NewServer` (`srvSnapState`'s restatement owns it).
+
+No axiom added or removed (`NewAuthStore`'s restated), no `sorry`.

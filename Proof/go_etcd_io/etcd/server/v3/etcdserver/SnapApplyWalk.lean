@@ -155,7 +155,7 @@ theorem applySnapshot_walk
        srvCfgFieldAddr s go!"WarningApplyDuration" ↦□ wad ∗
        apply.alarmGetIs al Tal zal ∗ Tal ∗
        backend.isStopChans d.γB d.be ∗ backend.bOpen d.γB (1 : Qp).half ∗
-       srvAuthRecoverOk ast ∗
+       authRecoverOk ast ∗
        □ (∀ (π : ApplyPhys) (b : Loc), ⌜π.m0 = (sv.Metadata'.Index', tI)⌝ →
           isMetaBackend (interface.mkOk (go.GoType.PointerType
             go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #b) (⊤ \ ↑applyN) (readView (γ.withPh π))) }}
@@ -500,7 +500,7 @@ theorem applySnapshot_walk
   · rw [show mvcc.storeRT (GF := GF) (γw.st.withPhys p') = mvcc.kbRT (some d') by
       simp only [mvcc.storeRT, mvcc.StoreNames.withPhys_kb, Hp'.2]]
     rw [kbRT_some]; iexact HwRT
-  iunfold srvAuthRecoverOk at HauR
+  iunfold authRecoverOk at HauR
   ihave #HauR' := HauR $$ %d.be %aubl %sfv.lg %d' %(mvcc.lateW gx')
     %(batchLockInv (γ.withPh (futPhys π0 γB)) (metaTM γB d.P)) %((1 : Qp).half)
     %(((backend.rbData d.P D).insert go!"lease" ∅).insert go!"alarm" ∅)
