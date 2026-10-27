@@ -52,13 +52,13 @@ abbrev Main.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions]
     [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
     [ContextErrsClient (GF := GF) (hG := hG)]
-    (N : Nat) (id : w64) (bootLog : List EntryM),
-  BootFacts id bootLog →
+    (N : Nat) (id : w64) (ctxs : List (List w8)) (boot : List Draft.LogEntry),
+  BootFacts id ctxs boot →
   threadBound GF ≤ 2 ^ 31 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
   ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → storage.dbOpensOk → v3rpc.ServerMethodSets →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.putget ∗
-      netAddrFree (GF := GF) go!"127.0.0.1:23790" ∗ threadTok ∗ premises N id bootLog }}
+      netAddrFree (GF := GF) go!"127.0.0.1:23790" ∗ threadTok ∗ premises N id ctxs boot }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.putget.Main)) (Val #()))
   {{ RET #(); True }}
 

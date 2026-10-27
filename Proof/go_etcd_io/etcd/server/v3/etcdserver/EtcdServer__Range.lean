@@ -297,19 +297,16 @@ local macro "range_tail" : tactic => `(tactic| (
       iright
       iframe HeE
       ipureintro; exact ⟨Hrn0, by intro h; cases h⟩
-    · wp_auto_lc 3
+    · wp_auto_lc 6
       ihave HQf : iprop(|={⊤}=> (if o.base.serializable then iprop(True) else
           ∃ L : List EntryModel, srvRLogLb γr.raft L ∗ ⌜kvModel γr.kv L = log⌝ ∗ □ Q L)) $$
-          [Hlc1 Hlc2 Hlc3]
+          [Hlc1 Hlc2 Hlc3 Hlc4 Hlc5 Hlc6]
       · cases hso : o.base.serializable
         · simp only [hso, Bool.false_eq_true, ↓reduceIte]
           icases HwO with ⟨%g', #Hw'⟩
           ihave #Hw'' := readWitAt_mono γr Q g' logR log Hlog.1 $$ Hw'
           iapply readWit_fire s E γr Q g' log $$ Hainv Hkvi Hw'' Hrok
-          iapply (lc_split (n := 2) (m := 1)).2
-          iframe Hlc3
-          iapply (lc_split (n := 1) (m := 1)).2
-          iframe Hlc1 Hlc2
+          iapply lc_join6 $$ Hlc1 Hlc2 Hlc3 Hlc4 Hlc5 Hlc6
         · simp only [hso, ↓reduceIte]
           imodintro; itrivial
       imod HQf with #HQf
@@ -383,7 +380,7 @@ local macro "range_tailOn" : tactic => `(tactic| (
       mvcc.certOk E.γ log ∗ ⌜logR <+: log ∧ log.length + 0 + 3 ≤ 2 ^ 63 ∧ log ≠ []⌝ ∗
       txn.rangeResult respv errv log (W64 ((log.length : Int) - 1)) o true ∗
       txn.rangeHdr respv errv ∗ (∃ te, traceutil.ownTrace trc te))
-    (fun info => apply.rangeClassFrom E.authMode n info o) trc false)
+    (fun info => apply.rangeClassFrom E.authMode nA info o) trc false)
       $$ [resp err Hsr Hlr Hown0 Hard] as %serr Hds
   · iframe #
     isplitr
@@ -460,19 +457,16 @@ local macro "range_tailOn" : tactic => `(tactic| (
       iright
       iframe HeE
       ipureintro; exact ⟨Hrn0, by intro h; cases h⟩
-    · wp_auto_lc 3
+    · wp_auto_lc 6
       ihave HQf : iprop(|={⊤}=> (if o.base.serializable then iprop(True) else
           ∃ L : List EntryModel, srvRLogLb γr.raft L ∗ ⌜kvModelM true γr.kv L = log⌝ ∗ □ Q L)) $$
-          [Hlc1 Hlc2 Hlc3]
+          [Hlc1 Hlc2 Hlc3 Hlc4 Hlc5 Hlc6]
       · cases hso : o.base.serializable
         · simp only [hso, Bool.false_eq_true, ↓reduceIte]
           icases HwO with ⟨%g', #Hw'⟩
           ihave #Hw'' := readWitAt_mono γr Q g' logR log Hlog.1 $$ Hw'
           iapply readWit_fireOn s E γr Q g' log $$ Hainv Hkvi Hw'' Hrok
-          iapply (lc_split (n := 2) (m := 1)).2
-          iframe Hlc3
-          iapply (lc_split (n := 1) (m := 1)).2
-          iframe Hlc1 Hlc2
+          iapply lc_join6 $$ Hlc1 Hlc2 Hlc3 Hlc4 Hlc5 Hlc6
         · simp only [hso, ↓reduceIte]
           imodintro; itrivial
       imod HQf with #HQf
@@ -485,7 +479,11 @@ local macro "range_tailOn" : tactic => `(tactic| (
       isplitr
       · ipureintro; exact ⟨rfl, Hrn1⟩
       isplitl [Hcls]
-      · iexists infoc; iexact Hcls
+      · iexists infoc, nA
+        iframe Hcls
+        isplitr
+        · ipureintro; exact HnA
+        rw [hM]; iexact Hfl
       iunfold rangeReadOkM
       iexists log
       iframe Hcert Hrok Hres
@@ -960,10 +958,6 @@ theorem EtcdServer.Range.wp_proofOn
     rw [← hLb]; iexact HLb
   ihave #Hpub' : auth.authPubLbM (GF := GF) (.on γa) n $$ []
   · rw [← hM]; iexact Hpub
-  ihave #Hau' := HLb' $$ %n Hpub'
-  iunfold apply.isAuthStoreRangeLb at Hau'
-  icases Hau' with ⟨%aui, %Haui, #HIRP⟩
-  iunfold apply.permCheck3Lb at HIRP
   ihave #HisRead' := HisRead
   iunfold isReadNotify at HisRead'
   have Hser : o.base.serializable = ser := by subst Ho; rfl
@@ -977,7 +971,9 @@ theorem EtcdServer.Range.wp_proofOn
         (if o.base.serializable then iprop(True) else readLogOk γr c logR) ∗
         (if o.base.serializable then iprop(True) else ∃ g' : GName, readWitAt γr Q g' logR) ∗
         err_ptr ↦ GoInterface.nil ∗ trace_ptr ↦ trc ∗ srvReadReader s γr ∗
-        traceutil.ownTrace trc false) ∨
+        traceutil.ownTrace trc false ∗
+        (∃ nA : Nat, ⌜n ≤ nA⌝ ∗ auth.authPubLbM (.on γa) nA ∗
+          (if o.base.serializable then iprop(True) else authFloorAt (.on γa) γr c nA))) ∨
       (∃ rei : GoInterfaceOk, ⌜v = returnVal (PairV #Loc.null #(GoInterface.ok rei))⌝ ∗
         err_ptr ↦ GoInterface.ok rei ∗ trace_ptr ↦ trc ∗ srvReadReader s γr ∗
         traceutil.ownTrace trc false ∗ applyErrIs (GoInterface.ok rei))))
@@ -1010,7 +1006,9 @@ theorem EtcdServer.Range.wp_proofOn
         ihave #Hri' := Hri $$ %rfl
         icases Hri' with ⟨-, #Hsv⟩
         imod readServed_logRM true s E γr c g Q log₀ $$ Hainv Hsv Hg Hc0
-          with ⟨%logR, #HcR, %HpR, #HrlR, #HwR⟩
+          with ⟨%logR, #HcR, %HpR, #HrlR, #HwR, #HpF⟩
+        -- (E3u) the check's floor: the auth state at the applied log through the read index
+        ihave ⟨%nA, %HnA, #HnAlb, #Hfl⟩ := authFloor_of_pubFrom E γr γa c n hM $$ Hpub' HpF
         wp_auto
         ileft
         isplitr
@@ -1021,7 +1019,13 @@ theorem EtcdServer.Range.wp_proofOn
         iframe HcR err trace Hrr Hown0
         isplitr
         · rw [Hser]; simp only [Bool.false_eq_true, ↓reduceIte]; iexact HrlR
-        rw [Hser]; simp only [Bool.false_eq_true, ↓reduceIte]; iexists g; iexact HwR
+        isplitr
+        · rw [Hser]; simp only [Bool.false_eq_true, ↓reduceIte]; iexists g; iexact HwR
+        iexists nA
+        iframe HnAlb
+        isplitr
+        · ipureintro; exact HnA
+        rw [Hser]; simp only [Bool.false_eq_true, ↓reduceIte]; iexact Hfl
     · (try wp_auto)
       ileft
       isplitr
@@ -1032,11 +1036,22 @@ theorem EtcdServer.Range.wp_proofOn
       iframe Hc0 err trace Hrr Hown0
       isplitr
       · rw [Hser]; simp only [↓reduceIte]; itrivial
+      isplitr
+      · rw [Hser]; simp only [↓reduceIte]; itrivial
+      iexists n
+      iframe Hpub'
+      isplitr
+      · ipureintro; exact Nat.le_refl _
       rw [Hser]; simp only [↓reduceIte]; itrivial
-  iintro (⟨%Hv, %logR, %HlF, #HcR, #HriO, #HwO, err, trace, Hrr, Hown0⟩ |
+  iintro (⟨%Hv, %logR, %HlF, #HcR, #HriO, #HwO, err, trace, Hrr, Hown0, %nA, %HnA, #HnAlb, #Hfl⟩ |
     ⟨%rei, %Hv, err, trace, Hrr, Hown0, #HrE⟩)
   · subst Hv
     obtain ⟨HlR, HFR⟩ := HlF
+    -- (E3s, E3u) the store's range check at the bound `nA ≥ n`
+    ihave #Hau' := HLb' $$ %nA HnAlb
+    iunfold apply.isAuthStoreRangeLb at Hau'
+    icases Hau' with ⟨%aui, %Haui, #HIRP⟩
+    iunfold apply.permCheck3Lb at HIRP
     wp_auto
     range_tailOn
   · -- the read index's error: return

@@ -4,13 +4,13 @@
 (no Rocq counterpart).
 * `srvNetMember γn s id τ` (persistent): the server `s` is member `id` of the network `γn`:
   what its inbound path reads (`srvProcOk`, its member id among it) and its raft wrapper's
-  transport `τ.t` with the names `τ.c` (`SrvTr`), of member `id`, frozen (`trFrozen`, the static
-  mode's) with no remote ever (D43 M5c: its pool's ids `τ.c.L` empty, so no remote is started; what
-  `CutPeer`/`MendPeer` need, the partition plan's S2, 2026-10-20; until M5c, a new cluster's
-  bootstrap has none, `bootOk`'s `Hrms0`) and every other member of the network added as a peer
-  (what `Handler` needs, D40). `NewServer` gives it.
-* `srvTrTok γn τ`: one of the transport's lock's reader tokens (`trTok`), what `CutPeer` and
-  `MendPeer` borrow; `srvServeRes γn τ`: what each request the transport's handler serves
+  transport `τ.t` with the names `τ.c` (`SrvTr`), of member `id`, started (`trState`; D22 J-T,
+  2026-10-27: until then frozen, `trFrozen`, with no remote), opened (`trOpened`: a handler may
+  add a remote) and every other member among the ids its pool budgets (what `Handler` needs,
+  D40, W8). `NewServer` gives it.
+* `srvTrTok γn τ`: one of the transport's lock's reader tokens (`trTok`) and (D22 J-T) the
+  no-remote token of every other member (`trNoRem`), what `CutPeer` and `MendPeer` borrow;
+  `srvServeRes γn τ`: what each request the transport's handler serves
   borrows, a reader's token and an `R` (`Handler`, `http.Serve_spec`'s `httpProcSlots` copies).
 (Until stage 6d, `raftHandlerOf γn id h`, opaque: a handler of the transport holding `id`'s slot,
 which only `EtcdServer.RaftHandler`'s axiom gave and `net/http.Serve`'s axiom took.)
@@ -45,15 +45,17 @@ structure SrvTr (GF : BundledGFunctors) where
 /-- **The server `s` is member `id` of the network `γn`** (persistent; see the file header). -/
 def srvNetMember (γn : NetNames GF) (s : Loc) (id : w64) (τ : SrvTr GF) : IProp GF :=
   iprop(srvProcOk γn s id ∗ rnTransportAddr (srvRAddr s) ↦□ transportIface τ.t ∗ ⌜τ.c.lid = id⌝ ∗
-    ∃ rs : trIds, trFrozen γn τ.t τ.c rs ∗
-      ⌜τ.c.L = [] ∧ ∀ f, (netRh γn).member f → f ≠ id → f ∈ rs⌝)
+    trState γn τ.t τ.c ∗ trOpened τ.c ∗
+    ⌜∀ f, (netRh γn).member f → f ≠ id → f ∈ τ.c.L⌝)
 
 instance srvNetMember_persistent (γn : NetNames GF) (s : Loc) (id : w64) (τ : SrvTr GF) :
     Persistent (srvNetMember (GF := GF) γn s id τ) := by
   unfold srvNetMember; infer_instance
 
-/-- **One of the server's transport's reader tokens** (see the file header). -/
-def srvTrTok (γn : NetNames GF) (τ : SrvTr GF) : IProp GF := trTok γn τ.t τ.c
+/-- **The server's transport's peer control** (see the file header): one of the transport's lock's
+reader tokens and (D22 J-T) the no-remote token of every other member. -/
+def srvTrTok (γn : NetNames GF) (τ : SrvTr GF) : IProp GF :=
+  iprop(trTok γn τ.t τ.c ∗ [∗list] f ∈ τ.c.L, trNoRem τ.c f)
 
 /-- **What each request the server's raft handler serves borrows** (see the file header). -/
 def srvServeRes (γn : NetNames GF) (τ : SrvTr GF) : IProp GF := iprop(τ.c.R ∗ trTok γn τ.t τ.c)

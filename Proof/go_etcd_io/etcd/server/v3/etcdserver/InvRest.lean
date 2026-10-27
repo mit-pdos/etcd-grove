@@ -400,12 +400,12 @@ instance roLens_persistent (RO X : apply.RestM → IProp GF) : Persistent (roLen
 /-- **The apply thread's rest buckets at the applied log `A`** (`AEnv.RO` at `restModel` of the
 log through `A`, from the start's consistent index and the boot log). -/
 def srvRest (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel) : IProp GF :=
-  E.RO (restModel γr.kv.c0 γr.raft.raft.reBoot (γr.raft.pre ++ A))
+  E.RO (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))
 
 /-- The rest buckets one entry later. -/
 theorem srvRest_snoc (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel) (m : EntryModel) :
     srvRest E γr (A ++ [m]) =
-      E.RO (restEntry γr.kv.c0 m (restModel γr.kv.c0 γr.raft.raft.reBoot (γr.raft.pre ++ A))) := by
+      E.RO (restEntry γr.kv.c0 m (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))) := by
   unfold srvRest; rw [← List.append_assoc, restModel_append]
 
 /-- An entry with no data leaves them. -/
@@ -420,7 +420,7 @@ theorem srvRest_apply (E : apply.AEnv GF) (γr : ReadNames) (A : List EntryModel
     (ht : m.typ = W32 0) (hd : m.data ≠ []) (hdec : apply.irrDecode m.data = some rq)
     (hv3 : v3 = decide (uint.Z γr.kv.c0 < uint.Z m.index)) (hp : plainCover rq)
     (hs : apply.applyStep rq v3 x x' out) :
-    E.RO (apply.restOut rq v3 out (restModel γr.kv.c0 γr.raft.raft.reBoot (γr.raft.pre ++ A))) =
+    E.RO (apply.restOut rq v3 out (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A))) =
       srvRest E γr (A ++ [m]) := by
   rw [srvRest_snoc, restEntry_normal _ _ rq _ ht hd hdec, restOut_plain rq v3 x x' out _ hp hs, hv3]
 

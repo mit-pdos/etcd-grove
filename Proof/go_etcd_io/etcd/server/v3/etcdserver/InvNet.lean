@@ -7,10 +7,10 @@ the network contract designed"). Lean-first (no Rocq counterpart).
   methods (`rnStepIfc`), and the network's payload the server's (`srvNet`). `NewServer` has it
   before the transport starts (the wrapper's fields split off early, `rnFixed_split`), which is
   when the transport may start calling `Process`.
-* `stepP_of_recv`: a message the network delivers to the server (`netRecv`) is what raft's
-  `node.Step` takes (`stepP`): a forwarded proposal (`fwdP`, the copy owned) or a network message
-  (`netP`, the receiver's `NetMsgOk` from the sender's `SentMsgOk`, raft's clause on every
-  message a `Ready` hands out, D21g (A)).
+* `stepIn_of_recv`: a message the network delivers to the server (`netRecv`) is what the node
+  API's `node.Step` takes (`stepIn`; 2026-10-27, until then raft's `stepP`): the receiver's
+  `NetMsgOk` from the sender's `SentMsgOk`, the node API's clause on every message sent with
+  leader transfer off (`sentMsg_transferOff`).
 -/
 module
 
@@ -35,17 +35,16 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **What the inbound path reads of the server `s`**, member `id` (persistent; see the file
-header), in the network `γn` whose payload is the server's (`srvNet` at the node's raft and budget names), the
-cluster in raft's no-snapshot mode, booted from a non-empty log, and (2026-10-19, D22 S-a) in its
-no-transfer mode (`RaftNames.reNoXfer`, until then the no-snapshot mode's). -/
+header), in the network `γn` whose payload is the server's (`srvNet` at the node's cluster), the
+cluster's kind (`srvClusterOk`: no snapshot sent, leader transfer off, started from a bootstrap
+log; 2026-10-27, the node API's, until then raft's no-snapshot and no-transfer modes). -/
 def srvProcOk (γn : NetNames GF) (s : Loc) (id : w64) : IProp GF :=
   iprop(∃ (l c st : Loc) (γ : RNNames),
     srvLgAddr s ↦□ l ∗ ⌜l ≠ null⌝ ∗ srvMemberIDAddr s ↦□ id ∗ ⌜γ.id = id⌝ ∗
     srvClusterAddr s ↦□ c ∗ membership.isRaftCluster c ∗
     srvStatsAddr s ↦□ st ∗ ⌜st ≠ null⌝ ∗
     rnNodeAddr (srvRAddr s) ↦□ rnNodeIface γ ∗ rnStepIfc γ (rnNodeIface γ) ∗
-    ⌜γn.N = srvNet γ.node.raft γ.node.bud ∧ γ.node.raft.reNoSnap = true ∧
-      γ.node.raft.reBoot ≠ [] ∧ γ.node.raft.reNoXfer = true⌝)
+    srvClusterOk γ.srv ∗ ⌜γn.N = srvNet γ.node⌝)
 
 instance srvProcOk_persistent (γn : NetNames GF) (s : Loc) (id : w64) :
     Persistent (srvProcOk (GF := GF) γn s id) := by
@@ -60,106 +59,48 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- A message raft sent, not a snapshot: every abstraction of its type is sent (`isMessage`). -/
-theorem isRaftMsg_isMessages (γ : RaftNames) (sid : w64) (st : MsgSt) (Hns : st.msg.Type' ≠ MsgSnap) :
-    isRaftMsg (GF := GF) γ sid st ⊢
-      □ (∀ ty, ⌜mtypeOf st.msg.Type' = some ty⌝ -∗
-        isMessage γ (absMsg ty st.msg st.ents st.ctx)) := by
-  iintro #Hr
-  iunfold isRaftMsg at Hr
-  icases Hr with ⟨-, -, ⟨%a, %Habs, #Hl⟩, -⟩
-  imodintro
-  iintro %ty %Hty
-  rcases Habs with ⟨Hn, -⟩ | ⟨ty', Hty', -, rfl⟩ | ⟨sv, Hsn, -, -⟩
-  · rw [Hty] at Hn; cases Hn
-  · rw [Hty] at Hty'; cases Hty'
-    simp only [Option.toList_some]
-    ihave #Hx := (BigSepL.bigSepL_singleton (Φ := fun _ x => isMessageC (GF := GF) γ x)).1 $$ Hl
-    iapply isMessageC_isMessage $$ Hx
-  · exact absurd (mtypeOf_Snap _ Hsn) Hns
-
-/-- **A delivered message is what `node.Step` takes** (see the file header): at the node `γ.id`
-whose network payload is the server's. -/
-theorem stepP_of_recv (γn : NetNames GF) (γ : RNNames)
-    (HN : γn.N = srvNet γ.node.raft γ.node.bud) (hns : γ.node.raft.reNoSnap = true)
-    (hboot : γ.node.raft.reBoot ≠ [])
-    -- (2026-10-19, D22 S-a) `SentMsgOk` is of the no-transfer mode (D22 S-a to S-c: of both)
-    (hnx : γ.node.raft.reNoXfer = true) {γd : GName} (ml : Loc) :
-    netRecv (GF := GF) γn γ.id γd ml ⊢ |==> stepP γ.node γ.id ml := by
+/-- **A delivered message is what `node.Step` takes** (see the file header; 2026-10-27: the node
+API's `stepIn`, by `stepIn_intro` with `bootedCluster`): at the node `γ.id` whose network payload is the
+server's. The message was sent in the server's cluster (`sentMsg`): no snapshot, and with leader
+transfer off of raft's shape (`SentMsgOk`), so a network message is one its receiver takes
+(`NetMsgOk.of_sent`), never a `MsgTimeoutNow` or `MsgTransferLeader`. -/
+theorem stepIn_of_recv (γn : NetNames GF) (γ : RNNames) (HN : γn.N = srvNet γ.node)
+    {γd : GName} (ml : Loc) :
+    srvClusterOk (GF := GF) γ.srv ∗ netRecv γn γ.id γd ml ⊢
+      |==> Draft.stepIn γ.node.cl srvClusterN γ.id ml := by
+  letI := srvStor (GF := GF) γ.node
   obtain ⟨N, g, dir, r⟩ := γn
   simp only at HN
   subst HN
-  iintro Hr
+  iintro ⟨#Hcl, Hr⟩
   iunfold netRecv at Hr
   simp only [srvNet]
-  icases Hr with ⟨%st, %st', Hm, %Hw, #HP, ⟨HO, Htk⟩, -⟩
+  icases Hr with ⟨%st, %st', Hm, %Hw, #HP, HO, -⟩
   obtain ⟨⟨Hmsg, Hents, Hsnap, Hctx⟩, Hto, Hrs'⟩ := Hw
-  icases HP with ⟨⟨%sid, #Hrm⟩, #Htl⟩
-  ihave %Hns := isRaftMsg_not_snap γ.node.raft hns sid st $$ Hrm
-  ihave #Hrm' := Hrm
-  iunfold isRaftMsg at Hrm'
-  icases Hrm' with ⟨-, %Hsent0, -⟩
-  have Hsent := Hsent0 hnx
+  icases HP with ⟨%sid, #Hrm⟩
+  ihave %Hns := srv_sentMsg_notSnap γ.srv sid st $$ [Hcl Hrm]
+  · iframe Hcl Hrm
+  ihave #Hcl' := Hcl
+  iunfold srvClusterOk at Hcl'
+  icases Hcl' with ⟨-, #Hxo, -, #Hbt⟩
+  ihave %Hsent := Draft.sentMsg_transferOff γ.node.cl srvClusterN sid st $$ [Hxo Hrm]
+  · iframe Hxo Hrm
   have Htn := SentMsgOk.ne_timeoutNow Hsent
-  ihave #Hmsgs := isRaftMsg_isMessages γ.node.raft sid st Hns $$ Hrm
-  -- the copy's state is the message's but for its responses
-  have Hst' : st' = { st with resps := st'.resps } := by
+  have Htl := SentMsgOk.ne_transferLeader Hsent
+  have Hsr : st.resps = [] := Hsent.2.2.2.2.2.2
+  -- the copy is the message: neither has responses
+  have Hst' : st' = ⟨st.msg, st.ents, st.snap, st.ctx, []⟩ := by
     cases st; cases st'; simp_all
+  have Hcopy : (⟨st.msg, st.ents, st.snap, st.ctx, []⟩ : MsgSt) = st := by
+    cases st; simp only at Hsr ⊢; rw [Hsr]
   rw [Hst']
-  unfold stepP
-  by_cases Hp : st.msg.Type' = MsgProp
-  · -- a forwarded proposal: the copy owned
-    iright
-    unfold fwdP
-    imodintro
-    iexists { st with resps := st'.resps }
-    isplitl [Hm]
-    · rw [← Hst']; iapply msgPtsC_cap_any $$ Hm
-    isplitr
-    · ipureintro; exact ⟨Hp, Hrs'⟩
-    isplitr
-    · ihave #H := Hmsgs $$ %MsgType.propose %(by rw [Hp]; exact mtypeOf_MsgProp)
-      -- a proposal's protocol fact ignores the context (raft's `isMessage_propose_ctx`, stated
-      -- under a storage model this file does not fix)
-      unfold isMessage absMsg absMsgFrom at *
-      iexact H
-    -- (2026-10-19, D21 M6) its tickets, delivered once
-    unfold stTks
-    rw [if_pos Hp]
-    simp only [Hents]
-    iexact Htk
-  · imod msgPtsC_persist_els $$ Hm with Hm
-    imod tickCred_zero γ.node.bud with Htc
-    imodintro
-    ileft
-    unfold netP
-    iexists { st with resps := st'.resps }
-    isplitl [Hm]
-    · rw [← Hst']; iapply msgPtsC_cap_any $$ Hm
-    isplitr
-    · ipureintro
-      -- (D38a) the copy is the message: it has no responses, nor had the message
-      have Hn := NetMsgOk.of_sent Hsent Hto Hp
-      have Hsr : st.resps = [] := by unfold SentMsgOk at Hsent; exact Hsent.2.2.2.2.2.2
-      have Hcopy : ({ st with resps := st'.resps } : MsgSt) = st := by
-        rw [Hrs']; cases st; simp only at Hsr ⊢; rw [Hsr]
-      rw [Hcopy]; exact Hn
-    isplitr
-    · ipureintro
-      have Htl := SentMsgOk.ne_transferLeader Hsent
-      exact ⟨fun _ => hboot, fun h => absurd h Htl,
-        fun h => absurd h Hns⟩
-    -- (D22 S-d4) a network message's abstraction (`netP`'s, but a snapshot's), and no snapshot
-    isplitr
-    · imodintro
-      iintro %ty %Hty %_Hne
-      iapply Hmsgs $$ %ty %Hty
-    isplitr
-    · imodintro
-      iintro %h
-      exact absurd h Hns
-    simp only [ite_eq_right Htn]
-    iframe Htl HO Htc
+  imod Draft.tickCredit_zero γ.node.cl with Htc
+  iapply Draft.stepIn_intro γ.node.cl srvClusterN γ.id ml sid st
+    (fun Hp => ⟨by rw [Hcopy]; exact NetMsgOk.of_sent Hsent Hto Hp, Htl⟩)
+    (fun h => absurd h Hns) Hto
+  rw [ite_eq_right Htn]
+  iframe Hrm Hm HO Htc
+  iright; iexact Hbt
 
 end lemmas
 

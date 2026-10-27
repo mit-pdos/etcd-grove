@@ -63,7 +63,8 @@ theorem linkvtxn_safe [lctx : GoLocalContext] [sem : go.Semantics]
     [log.NewModel]
     (Hctx : ∀ hG : HeapGS .hasLC linkvtxnGF, ContextReadErrs (GF := linkvtxnGF) (hG := linkvtxnHeapAt hG lctx))
     (Hcec : ∀ hG : HeapGS .hasLC linkvtxnGF, ContextErrsClient (GF := linkvtxnGF) (hG := linkvtxnHeapAt hG lctx))
-    (id : w64) (bootLog : List EntryM) (Hbf : putget.BootFacts id bootLog)
+    (id : w64) (ctxs : List (List w8)) (boot : List Draft.LogEntry)
+    (Hbf : putget.BootFacts id ctxs boot)
     (Hck : ckptEffectsOk) (Haf : authRecordsFit)
     (Hbuq : apply.backendUnderQuota) (Hdbo : storage.dbOpensOk)
     (clients ops : w64)
@@ -73,7 +74,7 @@ theorem linkvtxn_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (HAs : addrsUnclaimed (linkvtxnProgram clients ops) [go!"127.0.0.1:23796"])
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC linkvtxnGF,
-      ⊢ linkvtxn.premises (GF := linkvtxnGF) (hG := linkvtxnHeapAt hG lctx) n id bootLog)
+      ⊢ linkvtxn.premises (GF := linkvtxnGF) (hG := linkvtxnHeapAt hG lctx) n id ctxs boot)
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
@@ -82,7 +83,7 @@ theorem linkvtxn_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #(go!"Ok") ∨ v = #(go!"Unknown")) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) :=
-  linkvtxn_adequate Hctx Hcec id bootLog Hbf Hck Haf Hbuq Hdbo clients ops Hc0 Hc31 Hops Hmul
+  linkvtxn_adequate Hctx Hcec id ctxs boot Hbf Hck Haf Hbuq Hdbo clients ops Hc0 Hc31 Hops Hmul
     HNs HAs n Hprem σ g Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn Hwb
 
 end adequacy

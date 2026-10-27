@@ -41,7 +41,7 @@ def streamHandlerOk (Rh : RaftHttp GF) (a : GoString) (γd : GName) (Rs : IProp 
           ∃ pl : Loc, ⌜pi = interface.mkOk (go.GoType.PointerType rafthttp.peer.ty) #pl⌝ ∗
             peerStreams Rh hv.id' pid pl) }}) ∗
     □ (∀ (pid : w64) (sl : GoSlice) (us : List GoString),
-      {{ sl ↦* us ∗ ⌜Rh.member pid ∧ pid ≠ hv.id'⌝ }}
+      {{ sl ↦* us ∗ ⌜Rh.member pid ∧ pid ≠ hv.id' ∧ peerURLsOk Rh pid us⌝ }}
         (App (App (Val (hv.tr' @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"AddRemote"))
           (Val #pid)) (Val #sl))
       {{ RET #(); True }}) ∗

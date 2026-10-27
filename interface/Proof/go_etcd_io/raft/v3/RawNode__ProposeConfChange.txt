@@ -6,21 +6,21 @@ theorem RawNode.ProposeConfChange.wp_proof [package_sem : Assumptions] (wp_confC
     confChangeToMsg.spec) (wp_raft_Step : raft.Step.spec) : RawNode.ProposeConfChange.spec
   -- `Perennial.EtcdGrove.RawNode.ProposeConfChange.spec`, unfolded:
   ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (c : GoInterface) (o : ConfChangeIM) (dq : DFrac),
-    CCAllowed γ o →
-      ⊢
-        ∀ Φ,
-          isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ "Hrn" ∷ ownRawNode γ rn id rs ∗ "Hc" ∷ ownConfChangeI c dq (some o) -∗
-            (▷
-                ∀ err,
-                  "Hrn" ∷ ownRawNode γ rn id rs ∗
-                      "Hc" ∷ ownConfChangeI c dq (some o) ∗
-                        "Herr" ∷
-                          (⌜err = GoInterface.nil⌝ ∨ typedPointsto (globalAddr ErrProposalDropped) err DFrac.discard) -∗
-                    Φ (intoVal err)) -∗
-              WP
-                ((intoVal
-                    (methods RawNode.ty.PointerType
-                      go!"ProposeConfChange"
-                      (intoVal rn)))
-                  (intoVal c))
-                {{ Φ }}
+    ⊢
+      ∀ Φ,
+        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+            "Hrn" ∷ ownRawNode γ rn id rs ∗ "Hc" ∷ ownConfChangeI c dq (some o) ∗ "Harg" ∷ ccPropArg γ o -∗
+          (▷
+              ∀ err,
+                "Hrn" ∷ ownRawNode γ rn id rs ∗
+                    "Hc" ∷ ownConfChangeI c dq (some o) ∗
+                      "Herr" ∷
+                        (⌜err = GoInterface.nil⌝ ∨ typedPointsto (globalAddr ErrProposalDropped) err DFrac.discard) -∗
+                  Φ (intoVal err)) -∗
+            WP
+              ((intoVal
+                  (methods RawNode.ty.PointerType
+                    go!"ProposeConfChange"
+                    (intoVal rn)))
+                (intoVal c))
+              {{ Φ }}

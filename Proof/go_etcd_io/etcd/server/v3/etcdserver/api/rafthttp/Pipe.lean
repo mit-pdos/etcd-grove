@@ -19,6 +19,8 @@ public import Perennial.Golang.Theory.TypeSet
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.PbMessage
 public import Proof.net.http.Boundary
 public import Proof.go_etcd_io.etcd.client.pkg.v3.types.IDStr
+public import Proof.go_etcd_io.etcd.client.pkg.v3.types.URLs
+public import Perennial.Proof.strings.Base
 
 @[expose] public section
 
@@ -113,11 +115,37 @@ theorem netRh_owner (γn : NetNames GF) (h : GoString) : (netRh γn).owner h = n
 theorem netRh_member (γn : NetNames GF) (id : w64) : (netRh γn).member id ↔ γn.dir id ≠ [] :=
   Iff.rfl
 
+/-- **Peer URL strings of the member `f`** (2026-10-27, D22 J-T, W8): non-empty, each a plain
+peer URL (`http://host:port`) of a host the network gives `f`: what `AddRemote` needs of a
+remote's URLs. -/
+def peerURLsOk (Rh : RaftHttp GF) (f : w64) (ss : List GoString) : Prop :=
+  ss ≠ [] ∧ (∀ s ∈ ss, types.plainPeerURL s) ∧ (∀ h, go!"http://" ++ h ∈ ss → Rh.owner h = f)
+
+/-- **A request's `X-PeerURLs` header, of the member `f`** (D22 J-T, W8): split at `,` (as the
+handlers' `strings.Split(urls, ",")`), `f`'s peer URL strings (`setPeerURLsHeader`'s: the
+sender's configured peer URLs, which are its directory URLs). -/
+def peerURLsHdrOk (Rh : RaftHttp GF) (f : w64) (hs : List (GoString × GoString)) : Prop :=
+  peerURLsOk Rh f (_root_.Perennial.strings.split (http.hdrGet hs go!"X-PeerURLs") go!",")
+
+/-- **A transport's configured peer URLs, of its member `lid`** (D22 J-T, W8): non-empty, each a
+URL of only the scheme `http` and a plain host (`http.urlRootPlain`, so `URL.String` renders it as
+`http://host`) the network gives `lid`. -/
+def trURLsOk (Rh : RaftHttp GF) (lid : w64) (uvs : List net.url.URL) : Prop :=
+  uvs ≠ [] ∧ ∀ u ∈ uvs, http.urlRootPlain u ∧ types.plainPeerURL (go!"http://" ++ u.Host') ∧
+    Rh.owner u.Host' = lid
+
+/-- The `X-PeerURLs` value `setPeerURLsHeader` writes for URLs of only a scheme and a host. -/
+def peerURLsHdr (uvs : List net.url.URL) : GoString :=
+  go!",".intercalate (uvs.map fun u => go!"http://" ++ u.Host')
+
 /-- **A request's sender, from its headers** (stage 6d; D40): `X-Server-From` holds the id of a
 member other than the receiver `rid` (`addRemoteFromRequest` reads it: then `AddRemote` of a peer
-does nothing). -/
+does nothing); (D22 J-T, W8) `X-PeerURLs` its peer URLs (`addRemoteFromRequest` passes them to
+`AddRemote`, which a handler calls at any time: between the snapshot path's `RemoveAllPeers` and
+`AddPeer`s, it adds a remote). -/
 def fromOkAt (Rh : RaftHttp GF) (rid : w64) (hs : List (GoString × GoString)) : Prop :=
-  ∃ f : w64, http.hdrGet hs go!"X-Server-From" = types.idStr f ∧ Rh.member f ∧ f ≠ rid
+  ∃ f : w64, http.hdrGet hs go!"X-Server-From" = types.idStr f ∧ Rh.member f ∧ f ≠ rid ∧
+    peerURLsHdrOk Rh f hs
 
 /-- **A pipeline request of ticket `γk`** (persistent): its body an encoding of a message `st`,
 not a snapshot (which goes by `SendSnapshot`), without responses, for the member owning the
@@ -132,6 +160,80 @@ instance pipeReq_persistent (Rh : RaftHttp GF) (R : http.HReq) (γk : GName) :
   unfold pipeReq; infer_instance
 
 end defs
+
+section urls
+
+/-- Splitting at a byte the rest of a string that starts with a field without the byte. -/
+theorem splitAux_field (c : w8) (x r field : GoString) (hx : c ∉ x) :
+    _root_.Perennial.strings.splitAux [c] (x ++ r) field =
+      _root_.Perennial.strings.splitAux [c] r (field ++ x) := by
+  induction x generalizing field with
+  | nil => simp
+  | cons a x ih =>
+    have ha : a ≠ c := fun h => hx (h ▸ List.mem_cons_self)
+    have hx' : c ∉ x := fun h => hx (List.mem_cons_of_mem _ h)
+    rw [List.cons_append, _root_.Perennial.strings.splitAux, ite_eq_right_of_eq_false]
+    · rw [ih (field ++ [a]) hx']; simp
+    · apply eq_false
+      rintro ⟨-, hp⟩
+      rw [List.cons_prefix_cons] at hp
+      exact ha hp.1.symm
+
+/-- **`strings.Split` of a `strings.Join`** at a one-byte separator no field contains: the fields
+back (`intercalate_split`'s converse; a Perennial candidate, `notes/perennial-changes.md`). -/
+theorem split_intercalate1 (c : w8) :
+    ∀ (x : GoString) (xs : List GoString), (∀ y ∈ x :: xs, c ∉ y) →
+      _root_.Perennial.strings.split ([c].intercalate (x :: xs)) [c] = x :: xs := by
+  intro x xs
+  induction xs generalizing x with
+  | nil =>
+    intro h
+    simp only [List.intercalate_singleton, _root_.Perennial.strings.split]
+    rw [show x = x ++ [] by simp, splitAux_field c x [] [] (h x List.mem_cons_self)]
+    simp [_root_.Perennial.strings.splitAux]
+  | cons y ys ih =>
+    intro h
+    rw [List.intercalate_cons_cons, _root_.Perennial.strings.split, List.append_assoc,
+      splitAux_field c x _ [] (h x List.mem_cons_self)]
+    rw [List.singleton_append, _root_.Perennial.strings.splitAux,
+      ite_eq_left_of_eq_true _ _ (eq_true ⟨by simp, by simp⟩)]
+    simp only [List.nil_append, List.length_singleton, List.drop_succ_cons, List.drop_zero]
+    congr 1
+    exact ih y (fun z hz => h z (List.mem_cons_of_mem _ hz))
+
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+/-- **The `X-PeerURLs` header of a transport's configured URLs is its member's** (W8). -/
+theorem peerURLsHdrOk_of (Rh : RaftHttp GF) (lid : w64) (uvs : List net.url.URL)
+    (hs : List (GoString × GoString)) (hu : trURLsOk Rh lid uvs)
+    (hh : http.hdrGet hs go!"X-PeerURLs" = peerURLsHdr uvs) : peerURLsHdrOk Rh lid hs := by
+  obtain ⟨hne, hu⟩ := hu
+  unfold peerURLsHdrOk
+  rw [hh]
+  unfold peerURLsHdr
+  have hss : (uvs.map fun u => go!"http://" ++ u.Host') ≠ [] := by simpa using hne
+  have hnc : ∀ y ∈ (uvs.map fun u => go!"http://" ++ u.Host'), (44 : w8) ∉ y := by
+    intro y hy
+    obtain ⟨u, hu', rfl⟩ := List.mem_map.1 hy
+    exact types.plainPeerURL_noComma _ (hu u hu').2.1
+  have hsplit : _root_.Perennial.strings.split
+      (go!",".intercalate (uvs.map fun u => go!"http://" ++ u.Host')) go!"," =
+      uvs.map fun u => go!"http://" ++ u.Host' := by
+    generalize (uvs.map fun u => go!"http://" ++ u.Host') = ss at hss hnc
+    obtain ⟨x, xs, rfl⟩ := List.exists_cons_of_ne_nil hss
+    exact split_intercalate1 44 x xs hnc
+  rw [hsplit]
+  refine ⟨hss, fun s hs => ?_, fun h hh => ?_⟩
+  · obtain ⟨u, hu', rfl⟩ := List.mem_map.1 hs
+    exact (hu u hu').2.1
+  · obtain ⟨u, hu', he⟩ := List.mem_map.1 hh
+    have : u.Host' = h := List.append_cancel_left he
+    rw [← this]; exact (hu u hu').2.2
+
+end urls
 
 section lemmas
 variable [GooseExts] [GooseSemantics] [GooseInterp]

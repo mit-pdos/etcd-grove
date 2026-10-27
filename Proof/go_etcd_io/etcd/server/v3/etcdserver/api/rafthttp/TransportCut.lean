@@ -30,26 +30,28 @@ set_option hygiene false in
 /-- `CutPeer`'s and `MendPeer`'s body: the read-locked lookups (no remote: `id ∉ L`, so no remote
 of `id` ever took its `R`s from the pool), then the peer's `M` (`hM`), if any. -/
 local macro "cut_body" : tactic => `(tactic| (
-  wp_start as ⟨Htok, #Hst⟩
+  wp_start as ⟨Htok, #Hst, Htk⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
-  wp_auto
+  wp_auto_lc 1
   iunfold trReadTok at Htok
   wp_apply sync.RWMutex.wp_RLock $$ [Htok] as ⟨Hrl, HP⟩
   · iframe Htok
   iunfold trLockP at HP
   icases HP with ⟨%pm, %rm, %PM, %RM, %T, %rs', %sb, Hp, Hr, Hpm, Hrm, Hg, Hgr, %Hrs, #Hpo, #Hro,
     Hts⟩
-  imod trStop_taken_sub Rh R γs L _ _ $$ Hst Hg with ⟨Hg, %HTL⟩
+  imod trStop_taken_sub Rh R γs L γk γo _ _ $$ Hst Hg with ⟨Hg, %HTL⟩
   ihave %HRM0 := mapOrNil_null_empty rm _ RM $$ Hrm
   have HTL' : ∀ x ∈ T, x ∈ L := HTL
+  -- (D22 J-T) `id` not among the remotes' taken ids: not budgeted, or its token held
+  imod trTokOr_noRemote Rh R γs L γk γo _ _ id $$ Hst Hg Htk Hlc1 with ⟨Hg, Htk, %HidT⟩
   have Hnone : RM !! id = none := by
     cases h : RM !! id with
     | none => rfl
     | some _ =>
       by_cases hrm : rm = null
       · rw [HRM0 hrm] at h; simp at h
-      · exact absurd (HTL' id ((Hrs.2.2 hrm id).1 (by simp [h]))) Hid
+      · exact absurd ((Hrs.2.2 hrm id).1 (by simp [h])) HidT
   (try wp_auto)
   wp_apply wp_lookup2_mapOrNil _ pm _ PM id $$ [Hpm] as Hpm
   · iframe Hpm
@@ -80,33 +82,36 @@ local macro "cut_body" : tactic => `(tactic| (
     wp_apply hM Rh lid id γd R pp $$ []
     · iframe #
     (try wp_auto)
-    iapply HΦ; iunfold trReadTok; iexact Htok
+    iapply HΦ; iunfold trReadTok; iframe
   | none =>
     simp only [Option.getD_none, Option.isSome_none, Bool.false_eq_true, _root_.decide_false]
     (try wp_auto)
-    iapply HΦ; iunfold trReadTok; iexact Htok))
+    iapply HΦ; iunfold trReadTok; iframe))
 
 /-- **`t.CutPeer(id)`** with a reader's token, `id` no remote (`id ∉ L`: no remote of `id` can be
-started, D43 M5c): it returns, the peer of `id`, if any, paused. -/
+started, D43 M5c; or, D22 J-T, `id`'s no-remote token): it returns, the peer of `id`, if any,
+paused. -/
 theorem rafthttp.Transport.CutPeer_core
     (hM : rafthttp.peer.Pause.spec (GF := GF) (hG := hG))
     (Rh : RaftHttp GF) (t : Loc) (lid : w64) (γd : GName) (R : IProp GF) (γs γr : GName)
-    (L : List w64) (id : w64) (Hid : id ∉ L) :
+    (L : List w64) (γk γo : GName) (id : w64) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
-        trReadTok Rh t lid γd R γs γr ∗ trStopInv Rh R γs L }}
+        trReadTok Rh t lid γd R γs γr ∗ trStopInv Rh R γs L γk γo ∗
+        (⌜id ∉ L⌝ ∨ trTokAt γk id 1) }}
       (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"CutPeer")) (Val #id))
-    {{ RET #(); trReadTok Rh t lid γd R γs γr }} := by
+    {{ RET #(); trReadTok Rh t lid γd R γs γr ∗ (⌜id ∉ L⌝ ∨ trTokAt γk id 1) }} := by
   cut_body
 
 /-- **`t.MendPeer(id)`**, as `CutPeer`: the peer of `id`, if any, resumed. -/
 theorem rafthttp.Transport.MendPeer_core
     (hM : rafthttp.peer.Resume.spec (GF := GF) (hG := hG))
     (Rh : RaftHttp GF) (t : Loc) (lid : w64) (γd : GName) (R : IProp GF) (γs γr : GName)
-    (L : List w64) (id : w64) (Hid : id ∉ L) :
+    (L : List w64) (γk γo : GName) (id : w64) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
-        trReadTok Rh t lid γd R γs γr ∗ trStopInv Rh R γs L }}
+        trReadTok Rh t lid γd R γs γr ∗ trStopInv Rh R γs L γk γo ∗
+        (⌜id ∉ L⌝ ∨ trTokAt γk id 1) }}
       (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"MendPeer")) (Val #id))
-    {{ RET #(); trReadTok Rh t lid γd R γs γr }} := by
+    {{ RET #(); trReadTok Rh t lid γd R γs γr ∗ (⌜id ∉ L⌝ ∨ trTokAt γk id 1) }} := by
   cut_body
 
 end proof

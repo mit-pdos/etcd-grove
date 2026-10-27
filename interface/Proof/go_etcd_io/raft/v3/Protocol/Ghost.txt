@@ -46,6 +46,8 @@ structure RaftNames : Type 1 where
   reNoXfer_ok : self.reBootRaw ≠ []
   reSnapOkRaw : Prop
   reSnapLoc : Option GName
+  reNs : Namespace
+  reCertNs : Namespace
 
 theorem witsB_agree [ReceiptGS GF] (γ : RaftNames) (F F' : List EntryM) (lim : Nat) (B : Int) :
     List.take lim F' = List.take lim F → ⊢ witsB γ F lim B -∗ witsB γ F' lim B
@@ -93,6 +95,9 @@ theorem ackAgree_term [ReceiptGS GF] (γ : RaftNames) (b : entryID) (es : List E
     logRecs γ b es -∗ ackAgree γ b es t i -∗ leadPrefix γ ldr' t bL l' -∗ ⌜plogTermAt b es j =
     plogTermAt bL l' j⌝
 
+def Filler (ty : w32) (d : List w8) : Prop :=
+  d = [] ∧ ty = W32 0
+
 theorem logRecs_boot_take [ReceiptGS GF] (γ : RaftNames) (F : List EntryM) : PlogWf base0 F → ⊢
     logRecs γ base0 F -∗ ⌜∀ (n : Nat), n ≤ γ.reBoot.length → n ≤ F.length → List.take n F =
     List.take n γ.reBoot⌝
@@ -118,7 +123,7 @@ theorem leadFull_wf [ReceiptGS GF] (γ : RaftNames) (t : w64) (G : List EntryM) 
     γ base0 G
 
 def entTk (γ : RaftNames) (e : EntryM) : IProp GF :=
-  if e.Type' = W32 0 ∧ e.Data' ≠ [] then propTk γ e.Data' else iprop(emp)
+  if Filler e.Type' e.Data' then iprop(emp) else propTk γ (entKey e.Type' e.Data')
 
 theorem entDataIs_agree [ReceiptGS GF] (γ : RaftNames) (e : EntryM) (o1 o2 : Option (List w8)) : ⊢
     entDataIs γ e o1 -∗ entDataIs γ e o2 -∗ ⌜o1 = o2⌝
@@ -418,6 +423,9 @@ def RaftNames.reSnapOk (γ : RaftNames) (L : List EntryM) (d : List w8) : Prop :
 theorem lpfull_timeless [ReceiptGS GF] (γ : RaftNames) (ldr t : w64) (bL : entryID) (l fp : List
     EntryM) : Timeless (lpfull γ ldr t bL l fp)
 
+theorem entKey_inj {ty1 ty2 : w32} {d1 d2 : List w8} (h : entKey ty1 d1 = entKey ty2 d2) : ty1 = ty2
+    ∧ d1 = d2
+
 theorem cq_boot [ReceiptGS GF] (γ : RaftNames) (t n : w64) (G : List EntryM) : ⊢ cq γ t n G -∗
     ⌜γ.reBoot <+: G ∧ (γ.reBoot ≠ [] → 2 ≤ uint.Z t)⌝
 
@@ -537,6 +545,9 @@ def leadFrags (γt : GName) (l0 l : List EntryM) : IProp GF :=
 
 theorem msgsTks_noprop [ReceiptGS GF] (γ : RaftNames) (ms : List Msg) (h : ∀ (m : Msg), m ∈ ms →
     m.ty ≠ MsgType.propose) : ⊢ msgsTks γ ms
+
+def instDecidableFiller (ty : w32) (d : List w8) : Decidable (Filler ty d) :=
+  id inferInstance
 
 theorem ackIn_zero [ReceiptGS GF] (γ : RaftNames) (t i : w64) (h : uint.Z i = 0) : ⊢ ackIn γ t i
 
@@ -748,6 +759,9 @@ theorem take_agree_le.{u_1} {α : Type u_1} {F F' : List α} {lim m : Nat} (h : 
 theorem entDataIs_timeless (γ : RaftNames) (e : EntryM) (o : Option (List w8)) : Timeless (entDataIs
     γ e o)
 
+def entKey (ty : w32) (d : List w8) : List w8 :=
+  u32Le ty ++ d
+
 theorem cmtLb_timeless (γ : RaftNames) (ldr t n : w64) : Timeless (cmtLb γ ldr t n)
 
 theorem propDataIs_persistent (γ : RaftNames) (e : EntryM) (o : Option (List w8)) : Persistent
@@ -765,9 +779,8 @@ theorem isCampK_persistent (γ : RaftNames) (c T : w64) (F : List EntryM) (k : w
 
 def propDataIs (γ : RaftNames) (e : EntryM) : Option (List w8) → IProp GF :=
   match x✝ with
-  | none =>
-    iprop(⌜e.Type' = W32 0 ∧ e.Data' = []⌝ ∨ ⌜e.Type' ≠ W32 0 ∧ CCDecodes e.Type' e.Data' ∧ γ.reCCOk e.Type' e.Data'⌝)
-  | some d => iprop(⌜e.Data' = d ∧ d ≠ [] ∧ e.Type' = W32 0⌝ ∗ deposited γ d)
+  | none => iprop(⌜Filler e.Type' e.Data' ∧ CCDecodes e.Type' e.Data'⌝)
+  | some k => iprop(⌜entKey e.Type' e.Data' = k ∧ ¬Filler e.Type' e.Data' ∧ CCDecodes e.Type' e.Data'⌝ ∗ deposited γ k)
 
 theorem snapLocal_persistent (γ : RaftNames) (id i : w64) : Persistent (snapLocal γ id i)
 
@@ -925,6 +938,8 @@ theorem isCamp_agree [ReceiptGS GF] (γ : RaftNames) (c T : w64) (F1 F2 : List E
 theorem logRecs_boot_termAt [ReceiptGS GF] (γ : RaftNames) (F : List EntryM) : PlogWf base0 F → ⊢
     logRecs γ base0 F -∗ ⌜∀ (c : w64), uint.Z c ≤ ↑γ.reBoot.length → uint.Z c ≤ ↑F.length →
     plogTermAt base0 γ.reBoot c = plogTermAt base0 F c⌝
+
+theorem CCDecodes_normal (d : List w8) : CCDecodes (W32 0) d
 
 theorem RaftNames.noXfer_boot {γ : RaftNames} (h : γ.reNoXfer = true) : γ.reBoot ≠ []
 

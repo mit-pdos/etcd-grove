@@ -323,7 +323,7 @@ theorem EtcdServer.DeleteRange.wp_proofOn
   · subst Herr
     iunfold appliedOkM at Hok
     icases Hok with ⟨%x, %x', %o, %skip, %Hstep0, Hans, #Hcert, HMint, #Hwit, #Hcok⟩
-    obtain ⟨Hstep, Hfl, -, Hmo⟩ := Hstep0
+    obtain ⟨Hstep, Hfl, -, Hmo, -⟩ := Hstep0
     have Hrq : rq' = apply.withHeader (irrDeleteRange op) hm := Hwire.2.2.2 HnzW
     have Hk : apply.dispatchKind rq' = .deleteRange := by
       rw [Hwire.2.2.1]; simp [apply.dispatchKind, apply.withHeader, irrDeleteRange, apply.irrEmpty]

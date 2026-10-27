@@ -46,14 +46,23 @@ abbrev trRec := Loc × Loc × GMap w64 GoInterface × GMap w64 Loc × List w64
 /-- The peers' ids (D43 M5c; stage 6d until then: the remotes' and the peers'). -/
 abbrev trIds := List w64
 
-/-- An entry of the pool of `R`s (D43 M5c): four `R`s for the remote of `id`, or taken. -/
-def trPoolE (R : IProp GF) (T : List w64) (id : w64) : IProp GF :=
-  iprop(⌜id ∈ T⌝ ∨ (R ∗ R ∗ R ∗ R))
+/-- **A member's no-remote token** at the fraction `q` (D22 J-T; `q = 1` the token, exclusive). -/
+def trTokAt (γk : GName) (f : w64) (q : Qp) : IProp GF :=
+  ghostMapElem γk f (DFrac.own q) ()
 
-/-- **The pool of `R`s for the remotes** (D43 M5c): four for each id of `L` whose remote has not
-taken them (`T`, the ids that did, among `L`). -/
-def trPool (R : IProp GF) (L T : List w64) : IProp GF :=
-  iprop(⌜∀ id ∈ T, id ∈ L⌝ ∗ [∗list] id ∈ L, trPoolE (GF := GF) R T id)
+/-- An entry of the pool of `R`s (D43 M5c; its token, D22 J-T): once a remote of `id` took its
+`R`s (`id ∈ T`), `id`'s no-remote token; until then four `R`s and the token unless `id` is a peer
+(the token's holder, `CutPeer`'s caller, knows `id` has no remote), or the transport stopped. -/
+def trPoolE (R : IProp GF) (γk : GName) (rm : Loc) (PM : GMap w64 GoInterface) (T : List w64)
+    (id : w64) : IProp GF :=
+  iprop((⌜id ∈ T⌝ ∗ trTokAt γk id 1) ∨
+    (⌜id ∉ T⌝ ∗ ((R ∗ R ∗ R ∗ R ∗ (trTokAt γk id 1 ∨ ⌜(PM !! id).isSome⌝)) ∨ ⌜rm = null⌝)))
+
+/-- **The pool of `R`s for the remotes** (D43 M5c): an entry for each id of `L` (no repeats; D22
+J-T), `T` the ids whose remotes took theirs, among `L`. -/
+def trPool (R : IProp GF) (γk : GName) (rm : Loc) (PM : GMap w64 GoInterface) (L T : List w64) :
+    IProp GF :=
+  iprop(⌜(∀ id ∈ T, id ∈ L) ∧ L.Nodup⌝ ∗ [∗list] id ∈ L, trPoolE (GF := GF) R γk rm PM T id)
 
 /-- A map `M` at `m`, at the fraction `q`, or `nil` and empty. -/
 def mapOrNil {V : Type} [ZeroVal V] (m : Loc) (q : Qp) (M : GMap w64 V) :
@@ -103,7 +112,7 @@ def trLockP (Rh : RaftHttp GF) (t : Loc) (lid : w64) (γd : GName) (R : IProp GF
     t.[rafthttp.Transport, go!"remotes"] ↦{DFrac.own q} rm ∗
     mapOrNil pm q PM ∗ mapOrNil rm q RM ∗ ghostVar γs q.half ((pm, rm, PM, RM, T) : trRec) ∗
     ghostVar γr q.half (rs, sb) ∗
-    ⌜(sb = false → pm ≠ null ∧ rm ≠ null) ∧ (rm ≠ null → ∀ id ∈ rs, (PM !! id).isSome) ∧
+    ⌜(sb = false → pm ≠ null ∧ rm ≠ null) ∧ (rm ≠ null → ∀ id, id ∈ rs ↔ (PM !! id).isSome) ∧
       (rm ≠ null → ∀ id, (RM !! id).isSome ↔ id ∈ T)⌝ ∗
     □ peersOk Rh lid γd R PM ∗ □ remotesOk Rh lid R RM ∗ trStats t q)
 
@@ -135,18 +144,34 @@ instance trRemotesFrozen_persistent (γr : GName) (rs : trIds) :
 
 def trStopN : Namespace := nroot.@"rafthttp_tr_stop"
 
-/-- **The transport's stop rights** (see the file header). -/
-def trStopInv (Rh : RaftHttp GF) (R : IProp GF) (γs : GName) (L : List w64) : IProp GF :=
+/-- **The transport's stop rights** (see the file header); (D22 J-T) the no-remote tokens' map
+`γk` (one token per id of `L`, each in its pool entry or given out) and the opening flag `γo`:
+while not opened (`trUnopened`, the owner's, `NewServer`'s until its `AddPeer`s are done) no
+remote took its `R`s, so `AddPeer` of an id of `L` gives its token out; once opened
+(`trOpened`, persistent, what `AddRemote` and `Handler` take) remotes may be started. -/
+def trStopInv (Rh : RaftHttp GF) (R : IProp GF) (γs : GName) (L : List w64) (γk γo : GName) :
+    IProp GF :=
   inv trStopN iprop(∃ (pm rm : Loc) (PM : GMap w64 GoInterface) (RM : GMap w64 Loc)
-      (T : List w64),
+      (T : List w64) (b : Bool),
     ghostVar γs (1 : Qp).half ((pm, rm, PM, RM, T) : trRec) ∗
     ([∗map] id ↦ pi ∈ PM, ∃ p : Loc,
       ⌜pi = interface.mkOk (go.GoType.PointerType rafthttp.peer.ty) #p⌝ ∗ peerStop Rh id R p) ∗
-    ([∗map] id ↦ g ∈ RM, remoteStop Rh id R g) ∗ trPool R L T)
+    ([∗map] id ↦ g ∈ RM, remoteStop Rh id R g) ∗ trPool R γk rm PM L T ∗
+    ghostMapAuth γk 1 (GMap.listToSet L) ∗ dghostVar γo (DFrac.own (1 : Qp).half) b ∗
+    ⌜b = false → T = []⌝ ∗ (if b then dghostVar γo DFrac.discard true else iprop(True)))
 
-instance trStopInv_persistent (Rh : RaftHttp GF) (R : IProp GF) (γs : GName) (L : List w64) :
-    Persistent (trStopInv Rh R γs L) := by
+instance trStopInv_persistent (Rh : RaftHttp GF) (R : IProp GF) (γs : GName) (L : List w64)
+    (γk γo : GName) : Persistent (trStopInv Rh R γs L γk γo) := by
   unfold trStopInv; infer_instance
+
+/-- **Not yet opened** (exclusive; D22 J-T): no remote has taken its `R`s yet. -/
+def trUnopenedAt (γo : GName) : IProp GF := dghostVar γo (DFrac.own (1 : Qp).half) false
+
+/-- **Opened** (persistent; D22 J-T): a remote may take its `R`s. -/
+def trOpenedAt (γo : GName) : IProp GF := dghostVar γo DFrac.discard true
+
+instance trOpenedAt_persistent (γo : GName) : Persistent (trOpenedAt (GF := GF) γo) := by
+  unfold trOpenedAt; infer_instance
 
 end defs
 
@@ -277,94 +302,6 @@ theorem trRemotes_agree (γr : GName) (rs rs' : trIds) (sb : Bool) (q : Qp) :
   iframe
   ipureintro; cases Hag; rfl
 
-/-- **A peer added** (`AddPeer`, under the write lock, its half of the record): the record gets
-it, and the stop invariant its stop right. -/
-theorem trStop_add_peer (Rh : RaftHttp GF) (R : IProp GF) (γs : GName) (L : List w64)
-    (pm rm : Loc) (PM : GMap w64 GoInterface) (RM : GMap w64 Loc) (T : List w64) (id : w64)
-    (p : Loc) (hn : PM !! id = none) :
-    ⊢ trStopInv Rh R γs L -∗ ghostVar γs (1 : Qp).half ((pm, rm, PM, RM, T) : trRec) -∗
-      peerStop Rh id R p ={⊤}=∗
-      ghostVar γs (1 : Qp).half ((pm, rm,
-        <[id := interface.mkOk (go.GoType.PointerType rafthttp.peer.ty) #p]> PM, RM, T) : trRec) := by
-  iintro #Hinv Hg Hst
-  unfold trStopInv
-  iinv Hinv with Hi Hclose
-  icases Hi with ⟨%pm', %rm', %PM', %RM', %T', Hg', Hps, Hrs, Hpool⟩
-  imod Hg' with Hg'
-  ihave %Hag := ghostVar_agree γs _ _ _ _ $$ Hg Hg'
-  cases Hag
-  imod ghostVar_update_halves ((pm, rm,
-      <[id := interface.mkOk (go.GoType.PointerType rafthttp.peer.ty) #p]> PM, RM, T) : trRec) γs _ _
-    $$ Hg Hg' with ⟨Hg, Hg'⟩
-  imod Hclose $$ [Hg' Hps Hrs Hst Hpool] with -
-  · inext
-    iexists pm, rm, _, RM, T
-    iframe Hg' Hrs Hpool
-    iapply (BigSepM.bigSepM_insert hn).2
-    iframe Hps
-    iexists p
-    iframe Hst
-    ipureintro; rfl
-  imodintro
-  iexact Hg
-
-/-- **A remote added** (`AddRemote`, under the write lock): the record gets it, the stop invariant
-its stop right. -/
-theorem trStop_add_remote (Rh : RaftHttp GF) (R : IProp GF) (γs : GName) (L : List w64)
-    (pm rm : Loc) (PM : GMap w64 GoInterface) (RM : GMap w64 Loc) (T : List w64) (id : w64)
-    (g : Loc) (hn : RM !! id = none) :
-    ⊢ trStopInv Rh R γs L -∗ ghostVar γs (1 : Qp).half ((pm, rm, PM, RM, T) : trRec) -∗
-      remoteStop Rh id R g ={⊤}=∗
-      ghostVar γs (1 : Qp).half ((pm, rm, PM, <[id := g]> RM, T) : trRec) := by
-  iintro #Hinv Hg Hst
-  unfold trStopInv
-  iinv Hinv with Hi Hclose
-  icases Hi with ⟨%pm', %rm', %PM', %RM', %T', Hg', Hps, Hrs, Hpool⟩
-  imod Hg' with Hg'
-  ihave %Hag := ghostVar_agree γs _ _ _ _ $$ Hg Hg'
-  cases Hag
-  imod ghostVar_update_halves ((pm, rm, PM, <[id := g]> RM, T) : trRec) γs _ _ $$ Hg Hg'
-    with ⟨Hg, Hg'⟩
-  imod Hclose $$ [Hg' Hps Hrs Hst Hpool] with -
-  · inext
-    iexists pm, rm, PM, _, T
-    iframe Hg' Hps Hpool
-    iapply (BigSepM.bigSepM_insert hn).2
-    iframe
-  imodintro
-  iexact Hg
-
-/-- **The transport stopped** (`Stop`, under the write lock): the peers' and remotes' stop rights
-leave the stop invariant, whose record (and the lock's half) becomes the empty one. -/
-theorem trStop_take (Rh : RaftHttp GF) (R : IProp GF) (γs : GName) (L : List w64) (pm rm : Loc)
-    (PM : GMap w64 GoInterface) (RM : GMap w64 Loc) (T : List w64) :
-    ⊢ trStopInv Rh R γs L -∗ ghostVar γs (1 : Qp).half ((pm, rm, PM, RM, T) : trRec) -∗ £ 1 -∗
-      £ 1 ={⊤}=∗
-      ghostVar γs (1 : Qp).half (((null : Loc), (null : Loc), ∅, ∅, T) : trRec) ∗
-      ([∗map] id ↦ pi ∈ PM, ∃ p : Loc,
-        ⌜pi = interface.mkOk (go.GoType.PointerType rafthttp.peer.ty) #p⌝ ∗ peerStop Rh id R p) ∗
-      ([∗map] id ↦ g ∈ RM, remoteStop Rh id R g) := by
-  iintro #Hinv Hg Hlc1 Hlc2
-  unfold trStopInv
-  iinv Hinv with Hi Hclose
-  icases Hi with ⟨%pm', %rm', %PM', %RM', %T', Hg', Hps, Hrs, Hpool⟩
-  imod Hg' with Hg'
-  ihave %Hag := ghostVar_agree γs _ _ _ _ $$ Hg Hg'
-  cases Hag
-  imod ghostVar_update_halves (((null : Loc), (null : Loc), ∅, ∅, T) : trRec) γs _ _ $$ Hg Hg'
-    with ⟨Hg, Hg'⟩
-  imod Hclose $$ [Hg' Hpool] with -
-  · inext
-    iexists null, null, ∅, ∅, T
-    iframe Hg' Hpool
-    isplitl
-    · iapply BigSepM.bigSepM_empty.2; itrivial
-    · iapply BigSepM.bigSepM_empty.2; itrivial
-  imod lc_fupd_elim_later $$ Hlc1 Hps with Hps
-  imod lc_fupd_elim_later $$ Hlc2 Hrs with Hrs
-  imodintro
-  iframe
-
 /-- **The transport marked stopped** (`Stop`, under the write lock): both halves of `γr`, the
 frozen record's with the stop token (D43 M5e). -/
 theorem trRemotes_stop (γr : GName) (rs : trIds) (sb : Bool) :
@@ -394,91 +331,347 @@ theorem trFrozenTok_agree (γr : GName) (rs rs' : trIds) (sb : Bool) (q : Qp) :
   ihave %Hag := ghostVar_agree γr _ _ _ _ $$ Ht Hg
   ipureintro; cases Hag; exact ⟨rfl, rfl⟩
 
-/-- A pool entry stays one when more ids are taken. -/
-theorem trPoolE_mono (R : IProp GF) (T : List w64) (id x : w64) :
-    trPoolE R T x ⊢ trPoolE R (id :: T) x := by
+/-! ### The pool's entries (D22 J-T) -/
+
+/-- An entry at a new record: the same taken state, the id a peer if it was, the remotes `nil`
+if they were. -/
+theorem trPoolE_mono (R : IProp GF) (γk : GName) (rm rm' : Loc) (PM PM' : GMap w64 GoInterface)
+    (T T' : List w64) (x : w64) (hT : x ∈ T' ↔ x ∈ T)
+    (hPM : (PM !! x).isSome → (PM' !! x).isSome) (hrm : rm = null → rm' = null) :
+    trPoolE (GF := GF) R γk rm PM T x ⊢ trPoolE R γk rm' PM' T' x := by
   unfold trPoolE
-  iintro (%h | H)
-  · ileft; ipureintro; exact List.mem_cons_of_mem _ h
-  · iright; iexact H
+  iintro (⟨%Hin, Htok⟩ | ⟨%Hn, (⟨HR1, HR2, HR3, HR4, (Htok | %Hp)⟩ | %Hnull)⟩)
+  · ileft; iframe; ipureintro; exact hT.2 Hin
+  · iright; isplitr; · ipureintro; exact fun h => Hn (hT.1 h)
+    ileft; iframe
+  · iright; isplitr; · ipureintro; exact fun h => Hn (hT.1 h)
+    ileft; iframe; iright; ipureintro; exact hPM Hp
+  · iright; isplitr; · ipureintro; exact fun h => Hn (hT.1 h)
+    iright; ipureintro; exact hrm Hnull
 
-/-- The entries of a pool, with `id` taken: the four `R`s of `id`'s first entry. -/
-theorem trPoolL_take (R : IProp GF) (T : List w64) (id : w64) (hn : id ∉ T) :
-    ∀ L : List w64, id ∈ L →
-      ([∗list] x ∈ L, trPoolE R T x) ⊢ (R ∗ R ∗ R ∗ R) ∗ [∗list] x ∈ L, trPoolE R (id :: T) x
-  | [], h => absurd h (by simp)
-  | y :: L, h => by
-    iintro ⟨Hy, H⟩
-    by_cases hy : y = id
-    · subst hy
-      iunfold trPoolE at Hy
-      icases Hy with (%Hin | HR)
-      · exact absurd Hin hn
-      iframe HR
-      isplitr
-      · iunfold trPoolE; ileft; ipureintro; exact List.mem_cons_self
-      iapply BigSepL.bigSepL_mono_of_forall (fun {_ x} => trPoolE_mono R T y x) $$ H
-    · have h' : id ∈ L := by
-        rcases List.mem_cons.1 h with h | h
-        · exact absurd h.symm hy
-        · exact h
-      ihave ⟨HR, H⟩ := trPoolL_take R T id hn L h' $$ H
-      iframe HR
-      isplitl [Hy]
-      · iapply trPoolE_mono $$ Hy
-      iexact H
+/-- The entries of a duplicate-free list, one member's out, the others' changed by `h`. -/
+theorem bigSepL_nodup_split {Φ Ψ : w64 → IProp GF} (L : List w64) (hnd : L.Nodup) (f : w64)
+    (hf : f ∈ L) (h : ∀ x ∈ L, x ≠ f → Φ x ⊢ Ψ x) :
+    ([∗list] x ∈ L, Φ x) ⊢ Φ f ∗ (Ψ f -∗ [∗list] x ∈ L, Ψ x) := by
+  obtain ⟨l₁, l₂, rfl⟩ := List.append_of_mem hf
+  have hnd' := hnd
+  rw [List.nodup_append] at hnd'
+  obtain ⟨-, hn2, hdisj⟩ := hnd'
+  have hf1 : f ∉ l₁ := fun h => hdisj f h f List.mem_cons_self rfl
+  have hf2 : f ∉ l₂ := (List.nodup_cons.1 hn2).1
+  have h1 : ([∗list] x ∈ l₁, Φ x) ⊢ [∗list] x ∈ l₁, Ψ x :=
+    BigSepL.bigSepL_mono (fun {_ x} hk => h x (List.mem_append_left _ (List.mem_of_getElem? hk))
+      (fun e => hf1 (e ▸ List.mem_of_getElem? hk)))
+  have h2 : ([∗list] x ∈ l₂, Φ x) ⊢ [∗list] x ∈ l₂, Ψ x :=
+    BigSepL.bigSepL_mono (fun {_ x} hk => h x
+      (List.mem_append_right _ (List.mem_cons_of_mem _ (List.mem_of_getElem? hk)))
+      (fun e => hf2 (e ▸ List.mem_of_getElem? hk)))
+  iintro H
+  icases BigSepL.bigSepL_append.1 $$ H with ⟨H1, H2⟩
+  icases BigSepL.bigSepL_cons.1 $$ H2 with ⟨Hf, H2⟩
+  ihave H1 := h1 $$ H1
+  ihave H2 := h2 $$ H2
+  iframe Hf
+  iintro Hf
+  iapply BigSepL.bigSepL_append.2
+  iframe H1
+  iapply BigSepL.bigSepL_cons.2
+  iframe
 
-/-- **The four `R`s of `id`'s remote, from the pool** (`AddRemote`, under the write lock, the
-remotes' record without `id`, which is in `L`): the record's taken ids gain `id`. -/
-theorem trStop_pool_take (Rh : RaftHttp GF) (R : IProp GF) (γs : GName) (L : List w64)
-    (pm rm : Loc) (PM : GMap w64 GoInterface) (RM : GMap w64 Loc) (T : List w64) (id : w64)
-    (hn : id ∉ T) (hL : id ∈ L) :
-    ⊢ trStopInv Rh R γs L -∗ ghostVar γs (1 : Qp).half ((pm, rm, PM, RM, T) : trRec) -∗ £ 1 ={⊤}=∗
-      ghostVar γs (1 : Qp).half ((pm, rm, PM, RM, id :: T) : trRec) ∗ R ∗ R ∗ R ∗ R := by
-  iintro #Hinv Hg Hlc
+/-- A pool at a new record where every entry is as `trPoolE_mono`'s. -/
+theorem trPool_mono (R : IProp GF) (γk : GName) (rm rm' : Loc) (PM PM' : GMap w64 GoInterface)
+    (L T : List w64) (hPM : ∀ x, (PM !! x).isSome → (PM' !! x).isSome)
+    (hrm : rm = null → rm' = null) :
+    trPool (GF := GF) R γk rm PM L T ⊢ trPool R γk rm' PM' L T := by
+  unfold trPool
+  iintro ⟨%Hp, H⟩
+  iframe %Hp
+  iapply BigSepL.bigSepL_mono (fun {_ x} _ =>
+    trPoolE_mono R γk rm rm' PM PM' T T x Iff.rfl (hPM x) hrm) $$ H
+
+/-- An entry after the transport stopped. -/
+theorem trPoolE_stopped (R : IProp GF) (γk : GName) (rm : Loc) (PM PM' : GMap w64 GoInterface)
+    (T : List w64) (x : w64) :
+    trPoolE (GF := GF) R γk rm PM T x ⊢ trPoolE R γk null PM' T x := by
+  unfold trPoolE
+  iintro (⟨%Hin, Htok⟩ | ⟨%Hn, -⟩)
+  · ileft; iframe; ipureintro; exact Hin
+  · iright; isplitr; · ipureintro; exact Hn
+    iright; ipureintro; rfl
+
+/-- A pool after the transport stopped. -/
+theorem trPool_stopped (R : IProp GF) (γk : GName) (rm : Loc) (PM PM' : GMap w64 GoInterface)
+    (L T : List w64) :
+    trPool (GF := GF) R γk rm PM L T ⊢ trPool R γk null PM' L T := by
+  unfold trPool
+  iintro ⟨%Hp, H⟩
+  iframe %Hp
+  iapply BigSepL.bigSepL_mono (fun {_ x} _ => trPoolE_stopped R γk rm PM PM' T x) $$ H
+
+/-! ### The ghost steps -/
+
+/-- **A peer added** (`AddPeer`, under the write lock, its half of the record): the record gets
+it, and the stop invariant its stop right; (D22 J-T) the peer's no-remote token given out if its
+entry holds it, or, if a remote of it took its `R`s, the transport opened. -/
+theorem trStop_add_peer (Rh : RaftHttp GF) (R : IProp GF) (γs : GName) (L : List w64)
+    (γk γo : GName) (pm rm : Loc) (PM : GMap w64 GoInterface) (RM : GMap w64 Loc) (T : List w64)
+    (id : w64) (p : Loc) (hn : PM !! id = none) :
+    ⊢ trStopInv Rh R γs L γk γo -∗ ghostVar γs (1 : Qp).half ((pm, rm, PM, RM, T) : trRec) -∗
+      peerStop Rh id R p -∗ £ 1 ={⊤}=∗
+      ghostVar γs (1 : Qp).half ((pm, rm,
+        <[id := interface.mkOk (go.GoType.PointerType rafthttp.peer.ty) #p]> PM, RM, T) : trRec) ∗
+      (⌜id ∉ L⌝ ∨ trTokAt γk id 1 ∨ trOpenedAt γo ∨ ⌜rm = null⌝) := by
+  iintro #Hinv Hg Hst Hlc
   unfold trStopInv
   iinv Hinv with Hi Hclose
   imod lc_fupd_elim_later $$ Hlc Hi with Hi
-  icases Hi with ⟨%pm', %rm', %PM', %RM', %T', Hg', Hps, Hrs, Hpool⟩
+  icases Hi with ⟨%pm', %rm', %PM', %RM', %T', %b, Hg', Hps, Hrs, Hpool, Hak, Hob, %Hb,
+    Hbw⟩
   ihave %Hag := ghostVar_agree γs _ _ _ _ $$ Hg Hg'
   cases Hag
+  imod ghostVar_update_halves ((pm, rm,
+      <[id := interface.mkOk (go.GoType.PointerType rafthttp.peer.ty) #p]> PM, RM, T) : trRec) γs _ _
+    $$ Hg Hg' with ⟨Hg, Hg'⟩
+  iunfold trPool at Hpool
+  icases Hpool with ⟨%HTL, Hpool⟩
+  have hPM : ∀ x, (PM !! x).isSome →
+      ((<[id := interface.mkOk (go.GoType.PointerType rafthttp.peer.ty) #p]> PM) !! x).isSome := by
+    intro x hx
+    by_cases hxi : x = id
+    · subst hxi; simp
+    · rw [GMap.lookup_insert_ne _ _ (Ne.symm hxi)]; exact hx
+  by_cases hL : id ∈ L
+  · icases bigSepL_nodup_split (Φ := fun x => trPoolE R γk rm PM T x)
+        (Ψ := fun x => trPoolE R γk rm
+          (<[id := interface.mkOk (go.GoType.PointerType rafthttp.peer.ty) #p]> PM) T x) L HTL.2 id hL
+        (fun x _ _ => trPoolE_mono R γk rm rm PM _ T T x Iff.rfl (hPM x) (fun h => h)) $$ Hpool
+      with ⟨He, Hpool⟩
+    iunfold trPoolE at He
+    icases He with (⟨%Hin, Htok⟩ | ⟨%Hn, He⟩)
+    · -- a remote took its `R`s: the transport opened
+      have hb : b = true := by
+        cases b with
+        | true => rfl
+        | false => rw [Hb rfl] at Hin; simp at Hin
+      subst hb
+      ihave #Hbw' : iprop(dghostVar γo DFrac.discard true) $$ [Hbw]
+      · simp only [↓reduceIte]; iexact Hbw
+      imod Hclose $$ [Hg' Hps Hrs Hpool Hst Htok Hak Hob] with -
+      · inext
+        iexists pm, rm, _, RM, T, true
+        iframe Hg' Hrs Hak Hob
+        isplitl [Hps Hst]
+        · iapply (BigSepM.bigSepM_insert hn).2
+          iframe Hps
+          iexists p
+          iframe Hst
+          ipureintro; rfl
+        isplitl [Hpool Htok]
+        · iunfold trPool
+          isplitr
+          · ipureintro; exact HTL
+          iapply Hpool
+          iunfold trPoolE; ileft; iframe; ipureintro; exact Hin
+        isplitr
+        · ipureintro; exact Hb
+        simp only [↓reduceIte]; iexact Hbw'
+      imodintro
+      iframe
+      iright; iright; ileft
+      simp only [↓reduceIte]
+      iunfold trOpenedAt; iexact Hbw'
+    · icases He with (⟨HR1, HR2, HR3, HR4, (Htok | %Hp)⟩ | %Hnull)
+      · imod Hclose $$ [Hg' Hps Hrs Hpool Hst HR1 HR2 HR3 HR4 Hak Hob Hbw] with -
+        · inext
+          iexists pm, rm, _, RM, T, b
+          iframe Hg' Hrs Hak Hob Hbw
+          isplitl [Hps Hst]
+          · iapply (BigSepM.bigSepM_insert hn).2
+            iframe Hps
+            iexists p
+            iframe Hst
+            ipureintro; rfl
+          isplitl [Hpool HR1 HR2 HR3 HR4]
+          · iunfold trPool
+            isplitr
+            · ipureintro; exact HTL
+            iapply Hpool
+            iunfold trPoolE; iright
+            isplitr
+            · ipureintro; exact Hn
+            ileft; iframe; (try (iright; ipureintro; simp))
+          ipureintro; exact Hb
+        imodintro
+        iframe
+      · rw [hn] at Hp; exact absurd Hp (by simp)
+      · imod Hclose $$ [Hg' Hps Hrs Hpool Hst Hak Hob Hbw] with -
+        · inext
+          iexists pm, rm, _, RM, T, b
+          iframe Hg' Hrs Hak Hob Hbw
+          isplitl [Hps Hst]
+          · iapply (BigSepM.bigSepM_insert hn).2
+            iframe Hps
+            iexists p
+            iframe Hst
+            ipureintro; rfl
+          isplitl [Hpool]
+          · iunfold trPool
+            isplitr
+            · ipureintro; exact HTL
+            iapply Hpool
+            iunfold trPoolE; iright
+            isplitr
+            · ipureintro; exact Hn
+            iright; ipureintro; exact Hnull
+          ipureintro; exact Hb
+        imodintro
+        iframe
+        iright; iright; iright; ipureintro; exact Hnull
+  · imod Hclose $$ [Hg' Hps Hrs Hpool Hst Hak Hob Hbw] with -
+    · inext
+      iexists pm, rm, _, RM, T, b
+      iframe Hg' Hrs Hak Hob Hbw
+      isplitl [Hps Hst]
+      · iapply (BigSepM.bigSepM_insert hn).2
+        iframe Hps
+        iexists p
+        iframe Hst
+        ipureintro; rfl
+      isplitl [Hpool]
+      · iapply trPool_mono R γk rm rm PM _ L T hPM (fun h => h)
+        iunfold trPool
+        iframe Hpool
+        ipureintro; exact HTL
+      ipureintro; exact Hb
+    imodintro
+    iframe
+    ileft; ipureintro; exact hL
+
+/-- **A remote added** (`AddRemote`, under the write lock): the record gets it, the stop invariant
+its stop right. -/
+theorem trStop_add_remote (Rh : RaftHttp GF) (R : IProp GF) (γs : GName) (L : List w64)
+    (γk γo : GName) (pm rm : Loc) (PM : GMap w64 GoInterface) (RM : GMap w64 Loc) (T : List w64)
+    (id : w64) (g : Loc) (hn : RM !! id = none) :
+    ⊢ trStopInv Rh R γs L γk γo -∗ ghostVar γs (1 : Qp).half ((pm, rm, PM, RM, T) : trRec) -∗
+      remoteStop Rh id R g ={⊤}=∗
+      ghostVar γs (1 : Qp).half ((pm, rm, PM, <[id := g]> RM, T) : trRec) := by
+  iintro #Hinv Hg Hst
+  unfold trStopInv
+  iinv Hinv with Hi Hclose
+  icases Hi with ⟨%pm', %rm', %PM', %RM', %T', %b, >Hg', Hps, Hrs, Hpool, Hak, Hob, Hb, Hbw⟩
+  ihave %Hag := ghostVar_agree γs _ _ _ _ $$ Hg Hg'
+  cases Hag
+  imod ghostVar_update_halves ((pm, rm, PM, <[id := g]> RM, T) : trRec) γs _ _ $$ Hg Hg'
+    with ⟨Hg, Hg'⟩
+  imod Hclose $$ [Hg' Hps Hrs Hst Hpool Hak Hob Hb Hbw] with -
+  · inext
+    iexists pm, rm, PM, _, T, b
+    iframe Hg' Hps Hpool Hak Hob Hb Hbw
+    iapply (BigSepM.bigSepM_insert hn).2
+    iframe
+  imodintro
+  iexact Hg
+
+/-- **The transport stopped** (`Stop`, under the write lock): the peers' and remotes' stop rights
+leave the stop invariant, whose record (and the lock's half) becomes the empty one. -/
+theorem trStop_take (Rh : RaftHttp GF) (R : IProp GF) (γs : GName) (L : List w64) (γk γo : GName)
+    (pm rm : Loc) (PM : GMap w64 GoInterface) (RM : GMap w64 Loc) (T : List w64) :
+    ⊢ trStopInv Rh R γs L γk γo -∗ ghostVar γs (1 : Qp).half ((pm, rm, PM, RM, T) : trRec) -∗
+      £ 1 -∗ £ 1 ={⊤}=∗
+      ghostVar γs (1 : Qp).half (((null : Loc), (null : Loc), ∅, ∅, T) : trRec) ∗
+      ([∗map] id ↦ pi ∈ PM, ∃ p : Loc,
+        ⌜pi = interface.mkOk (go.GoType.PointerType rafthttp.peer.ty) #p⌝ ∗ peerStop Rh id R p) ∗
+      ([∗map] id ↦ g ∈ RM, remoteStop Rh id R g) := by
+  iintro #Hinv Hg Hlc1 Hlc2
+  unfold trStopInv
+  iinv Hinv with Hi Hclose
+  icases Hi with ⟨%pm', %rm', %PM', %RM', %T', %b, >Hg', Hps, Hrs, Hpool, Hak, Hob, Hb, Hbw⟩
+  ihave %Hag := ghostVar_agree γs _ _ _ _ $$ Hg Hg'
+  cases Hag
+  imod ghostVar_update_halves (((null : Loc), (null : Loc), ∅, ∅, T) : trRec) γs _ _ $$ Hg Hg'
+    with ⟨Hg, Hg'⟩
+  imod Hclose $$ [Hg' Hpool Hak Hob Hb Hbw] with -
+  · inext
+    iexists null, null, ∅, ∅, T, b
+    iframe Hg' Hak Hob Hb Hbw
+    isplitr
+    · iapply BigSepM.bigSepM_empty.2; itrivial
+    isplitr
+    · iapply BigSepM.bigSepM_empty.2; itrivial
+    iapply trPool_stopped R γk rm PM ∅ L T $$ Hpool
+  imod lc_fupd_elim_later $$ Hlc1 Hps with Hps
+  imod lc_fupd_elim_later $$ Hlc2 Hrs with Hrs
+  imodintro
+  iframe
+
+/-- **The four `R`s of `id`'s remote, from the pool** (`AddRemote`, under the write lock of a
+transport not stopped and opened, the remotes' record without `id`, which is in `L` and no peer):
+the record's taken ids gain `id`, its entry its token. -/
+theorem trStop_pool_take (Rh : RaftHttp GF) (R : IProp GF) (γs : GName) (L : List w64)
+    (γk γo : GName) (pm rm : Loc) (PM : GMap w64 GoInterface) (RM : GMap w64 Loc) (T : List w64)
+    (id : w64) (hn : id ∉ T) (hL : id ∈ L) (hrm : rm ≠ null) (hpm : PM !! id = none) :
+    ⊢ trStopInv Rh R γs L γk γo -∗ ghostVar γs (1 : Qp).half ((pm, rm, PM, RM, T) : trRec) -∗
+      trOpenedAt γo -∗ £ 1 ={⊤}=∗
+      ghostVar γs (1 : Qp).half ((pm, rm, PM, RM, id :: T) : trRec) ∗ R ∗ R ∗ R ∗ R := by
+  iintro #Hinv Hg #Hop Hlc
+  unfold trStopInv
+  iinv Hinv with Hi Hclose
+  imod lc_fupd_elim_later $$ Hlc Hi with Hi
+  icases Hi with ⟨%pm', %rm', %PM', %RM', %T', %b, Hg', Hps, Hrs, Hpool, Hak, Hob, %Hb, Hbw⟩
+  ihave %Hag := ghostVar_agree γs _ _ _ _ $$ Hg Hg'
+  cases Hag
+  iunfold trOpenedAt at Hop
+  ihave %Hbt := dghostVar_agree γo _ _ _ _ $$ Hop Hob
+  subst Hbt
   imod ghostVar_update_halves ((pm, rm, PM, RM, id :: T) : trRec) γs _ _ $$ Hg Hg'
     with ⟨Hg, Hg'⟩
   iunfold trPool at Hpool
   icases Hpool with ⟨%HTL, Hpool⟩
-  ihave ⟨HR, Hpool⟩ := trPoolL_take R T id hn L hL $$ Hpool
-  imod Hclose $$ [Hg' Hps Hrs Hpool] with -
-  · inext
-    iexists pm, rm, PM, RM, id :: T
-    iframe Hg' Hps Hrs
-    iunfold trPool
-    iframe Hpool
-    ipureintro
-    intro x hx
-    rcases List.mem_cons.1 hx with hx | hx
-    · subst hx; exact hL
-    · exact HTL x hx
-  imodintro
-  iframe
+  icases bigSepL_nodup_split (Φ := fun x => trPoolE R γk rm PM T x)
+      (Ψ := fun x => trPoolE R γk rm PM (id :: T) x) L HTL.2 id hL
+      (fun x _ hx => trPoolE_mono R γk rm rm PM PM T (id :: T) x
+        (by simp only [List.mem_cons, hx, false_or]) (fun h => h) (fun h => h)) $$ Hpool
+    with ⟨He, Hpool⟩
+  iunfold trPoolE at He
+  icases He with (⟨%Hin, -⟩ | ⟨-, (⟨HR1, HR2, HR3, HR4, (Htok | %Hp)⟩ | %Hnull)⟩)
+  · exact absurd Hin hn
+  · imod Hclose $$ [Hg' Hps Hrs Hpool Htok Hak Hob Hbw] with -
+    · inext
+      iexists pm, rm, PM, RM, id :: T, true
+      iframe Hg' Hps Hrs Hak Hob Hbw
+      isplitl [Hpool Htok]
+      · iunfold trPool
+        isplitr
+        · ipureintro
+          refine ⟨fun x hx => ?_, HTL.2⟩
+          rcases List.mem_cons.1 hx with hx | hx
+          · subst hx; exact hL
+          · exact HTL.1 x hx
+        iapply Hpool
+        iunfold trPoolE; ileft; iframe; ipureintro; exact List.mem_cons_self
+      ipureintro; intro h; cases h
+    imodintro
+    iframe
+  · rw [hpm] at Hp; exact absurd Hp (by simp)
+  · exact absurd Hnull hrm
 
 /-- **The taken ids are among `L`** (any share of the record): a remote is only started for an id
 of `L`. -/
 theorem trStop_taken_sub (Rh : RaftHttp GF) (R : IProp GF) (γs : GName) (L : List w64)
-    (r : trRec) (q : Qp) :
-    ⊢ trStopInv Rh R γs L -∗ ghostVar γs q r ={⊤}=∗ ghostVar γs q r ∗ ⌜∀ id ∈ r.2.2.2.2, id ∈ L⌝ := by
+    (γk γo : GName) (r : trRec) (q : Qp) :
+    ⊢ trStopInv Rh R γs L γk γo -∗ ghostVar γs q r ={⊤}=∗
+      ghostVar γs q r ∗ ⌜∀ id ∈ r.2.2.2.2, id ∈ L⌝ := by
   iintro #Hinv Hg
   unfold trStopInv
   iinv Hinv with Hi Hclose
-  icases Hi with ⟨%pm', %rm', %PM', %RM', %T', Hg', Hps, Hrs, Hpool⟩
-  imod Hg' with Hg'
+  icases Hi with ⟨%pm', %rm', %PM', %RM', %T', %b, >Hg', Hps, Hrs, Hpool, Hak, Hob, Hb, Hbw⟩
   ihave %Hag := ghostVar_agree γs _ _ _ _ $$ Hg Hg'
   iunfold trPool at Hpool
-  icases Hpool with ⟨HTL, Hpool⟩
-  imod HTL with %HTL
-  imod Hclose $$ [Hg' Hps Hrs Hpool] with -
+  icases Hpool with ⟨>%HTL, Hpool⟩
+  imod Hclose $$ [Hg' Hps Hrs Hpool Hak Hob Hb Hbw] with -
   · inext
-    iexists pm', rm', PM', RM', T'
-    iframe Hg' Hps Hrs
+    iexists pm', rm', PM', RM', T', b
+    iframe Hg' Hps Hrs Hak Hob Hb Hbw
     iunfold trPool
     iframe Hpool
     ipureintro; exact HTL
@@ -486,7 +679,88 @@ theorem trStop_taken_sub (Rh : RaftHttp GF) (R : IProp GF) (γs : GName) (L : Li
   iframe Hg
   ipureintro
   subst Hag
-  exact HTL
+  exact HTL.1
+
+/-- **The token's holder knows its id has no remote** (D22 J-T; `CutPeer`, `MendPeer`, under the
+read lock: any share of the record): the id is not among the taken ones. -/
+theorem trTok_noRemote (Rh : RaftHttp GF) (R : IProp GF) (γs : GName) (L : List w64)
+    (γk γo : GName) (r : trRec) (q : Qp) (f : w64) :
+    ⊢ trStopInv Rh R γs L γk γo -∗ ghostVar γs q r -∗ trTokAt γk f 1 -∗ £ 1 ={⊤}=∗
+      ghostVar γs q r ∗ trTokAt γk f 1 ∗ ⌜f ∉ r.2.2.2.2⌝ := by
+  iintro #Hinv Hg Htok Hlc
+  unfold trStopInv
+  iinv Hinv with Hi Hclose
+  imod lc_fupd_elim_later $$ Hlc Hi with Hi
+  icases Hi with ⟨%pm', %rm', %PM', %RM', %T', %b, Hg', Hps, Hrs, Hpool, Hak, Hob, Hb, Hbw⟩
+  ihave %Hag := ghostVar_agree γs _ _ _ _ $$ Hg Hg'
+  subst Hag
+  iunfold trTokAt at Htok
+  ihave %Hlk := ghost_map_lookup $$ Hak Htok
+  have hf : f ∈ L := (GMap.elem_of_list_to_set f L).1 (by rw [GMap.mem_iff]; simp [Hlk])
+  iunfold trPool at Hpool
+  icases Hpool with ⟨%HTL, Hpool⟩
+  icases BigSepL.bigSepL_mem_acc (Φ := fun x => trPoolE R γk rm' PM' T' x) hf $$ Hpool
+    with ⟨He, Hpool⟩
+  iunfold trPoolE at He
+  icases He with (⟨%Hin, Htok'⟩ | ⟨%Hn, He⟩)
+  · iunfold trTokAt at Htok'
+    ihave %Hv := ghostMapElem_valid_2 f γk _ _ _ _ $$ Htok Htok'
+    exact absurd Hv.1 (dfrac_own_one_op_invalid _)
+  imod Hclose $$ [Hg' Hps Hrs Hpool He Hak Hob Hb Hbw] with -
+  · inext
+    iexists pm', rm', PM', RM', T', b
+    iframe Hg' Hps Hrs Hak Hob Hb Hbw
+    iunfold trPool
+    isplitr
+    · ipureintro; exact HTL
+    iapply Hpool
+    iunfold trPoolE; iright; iframe; ipureintro; exact Hn
+  imodintro
+  iunfold trTokAt
+  iframe
+  ipureintro; exact Hn
+
+/-- **No remote for `f`** (D22 J-T; `CutPeer`, `MendPeer`, under the read lock): not one of the
+budgeted ids, or its token held. -/
+theorem trTokOr_noRemote (Rh : RaftHttp GF) (R : IProp GF) (γs : GName) (L : List w64)
+    (γk γo : GName) (r : trRec) (q : Qp) (f : w64) :
+    ⊢ trStopInv Rh R γs L γk γo -∗ ghostVar γs q r -∗ (⌜f ∉ L⌝ ∨ trTokAt γk f 1) -∗ £ 1 ={⊤}=∗
+      ghostVar γs q r ∗ (⌜f ∉ L⌝ ∨ trTokAt γk f 1) ∗ ⌜f ∉ r.2.2.2.2⌝ := by
+  iintro #Hinv Hg Htk Hlc
+  icases Htk with (%HnL | Htok)
+  · imod trStop_taken_sub Rh R γs L γk γo r q $$ Hinv Hg with ⟨Hg, %HTL⟩
+    imodintro
+    iframe
+    isplitr
+    · ileft; ipureintro; exact HnL
+    ipureintro; exact fun h => HnL (HTL f h)
+  · imod trTok_noRemote Rh R γs L γk γo r q f $$ Hinv Hg Htok Hlc with ⟨Hg, Htok, %Hn⟩
+    imodintro
+    iframe
+    ipureintro; exact Hn
+
+/-- **The transport opened** (D22 J-T; the owner's, once its `AddPeer`s are done): remotes may
+take their `R`s from now on. -/
+theorem trOpen (Rh : RaftHttp GF) (R : IProp GF) (γs : GName) (L : List w64) (γk γo : GName) :
+    ⊢ trStopInv Rh R γs L γk γo -∗ trUnopenedAt γo ={⊤}=∗ trOpenedAt γo := by
+  iintro #Hinv Hu
+  unfold trStopInv
+  iinv Hinv with Hi Hclose
+  icases Hi with ⟨%pm', %rm', %PM', %RM', %T', %b, Hg', Hps, Hrs, Hpool, Hak, >Hob, Hb, Hbw⟩
+  iunfold trUnopenedAt at Hu
+  imod dghostVar_update_halves true γo _ _ $$ Hu Hob with ⟨Hu, Hob⟩
+  imod dghostVar_persist γo _ _ $$ Hu with #Hu
+  imod Hclose $$ [Hg' Hps Hrs Hpool Hak Hob] with -
+  · inext
+    iexists pm', rm', PM', RM', T', true
+    iframe Hg' Hps Hrs Hpool Hak Hob
+    isplitr
+    · ipureintro; intro h; cases h
+    simp only [↓reduceIte]
+    iexact Hu
+  imodintro
+  iunfold trOpenedAt
+  iexact Hu
 
 /-- A key of a duplicate-free enumeration is in its suffix from its index, and the suffix after
 it holds only other keys. -/

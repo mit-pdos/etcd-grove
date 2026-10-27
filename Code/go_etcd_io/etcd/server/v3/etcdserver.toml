@@ -46,6 +46,8 @@ translate = ["!*", "EtcdServer.Logger", "EtcdServer.isLeader", "EtcdServer.Membe
   "EtcdServer.applyAll", "EtcdServer.applySnapshot", "EtcdServer.Backend",
   "EtcdServer.snapshotIfNeededAndCompactRaftLog", "EtcdServer.shouldSnapshotToDisk",
   "EtcdServer.compactRaftLog",
+  # (D22 J4b, 2026-10-27) the snapshot itself and its consistent-index check
+  "EtcdServer.snapshot", "verifyConsistentIndexIsLatest",
   "EtcdServer.shouldSnapshotToMemory", "memorySnapshotCount",
   # the server's goroutines (server.go; the request path's unit 4c): `start`, which builds the
   # read loop and the registries and spawns `run`; `run`, the apply loop over the raft

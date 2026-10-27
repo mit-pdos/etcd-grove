@@ -91,7 +91,6 @@ theorem srv_claim_mint (ρ : ReqNames) (E : apply.AEnv GF) (g : Loc) (id : w64) 
     iexists γf
     iframe Hc Hfl
     iunfold srvPropFresh
-    iunfold propFresh
     iexact Hfr
 
 end lemmas

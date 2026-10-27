@@ -90,9 +90,9 @@ theorem srvSnapApplied_of_walk
     (msi : w64) (cs0 : Loc) (fg : GoInterface) (quota : w64) (wad : time.Duration)
     (Tal : IProp GF) (zal : Bool) (hbuq : apply.backendUnderQuota)
     (A' : List EntryModel)
-    (hA' : (restModel γr.kv.c0 γr.raft.raft.reBoot (γr.raft.pre ++ A')).bk =
+    (hA' : (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A')).bk =
         <[go!"alarm" := ∅]> (<[go!"lease" := ∅]> (backend.rbData d.P D)) ∧
-      (restModel γr.kv.c0 γr.raft.raft.reBoot (γr.raft.pre ++ A')).mem = memI)
+      (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A')).mem = memI)
     (hoff : E.authMode = auth.AuthMode.off) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       isServer s γ ci TM E ρ γr ∗

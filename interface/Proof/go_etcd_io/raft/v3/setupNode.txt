@@ -36,7 +36,7 @@ theorem setupNode.wp_proof [package_sem : Assumptions] (wp_NewRawNode : NewRawNo
                                                       cv.ID' ∈ ps →
                                                         γ.reCfg = listToSet ps →
                                                           γ.reBoot = bootLog →
-                                                            BootLogOk γ.reCCOk ps bootLog →
+                                                            BootLogOk ps bootLog →
                                                               σ.fl = W64 0 →
                                                                 ⊢
                                                                   ∀ Φ,

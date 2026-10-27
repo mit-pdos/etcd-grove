@@ -6,9 +6,9 @@ one, `kvLb_current`), it returns the key's value after a history `L` that extend
 itself a lower bound, so a prefix of the history at the return: the key's value at a point
 between the call and the return. Not logically atomic: which history the value is of is known
 only after the fact (when the read state comes back, its read index is in the past), so the
-spec is stated with lower bounds, as raft's `ReadState` is (`readOk`).
+spec is stated with lower bounds, as raft's `ReadState` is (`Draft.readStateOk_ctx`).
 
-One read credit (`rdCred`, what `Node.ReadIndex` takes); any number of voters. A request raft
+One read credit (`Draft.readCredit`, what `Node.ReadIndex` takes); any number of voters. A request raft
 drops (no leader known) leaves `Read` waiting: partial correctness. (Until 2026-10-19 an
 operation credit too.)
 -/
@@ -40,7 +40,7 @@ abbrev KV.Read.spec : Prop :=
   ∀ (γr : RKVNames) (γp : RepNames) (r : Loc) (key : List w8) (L0 : List (List w8)),
   (key.length : Int) < 2 ^ 61 →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kv ∗
-      isKV γr γp r ∗ rdCred γr.raft 1 ∗ kvLb γr L0 }}
+      isKV γr γp r ∗ Draft.readCredit γr.cluster ∗ kvLb γr L0 }}
     (App (Val (r @!! go.GoType.PointerType rKVTy @!! go!"Read")) (Val #key))
   {{ (x : List w8), RET #x; ∃ L, kvLb γr L ∗ ⌜L0 <+: L ∧ x = kvFold L key⌝ }}
 

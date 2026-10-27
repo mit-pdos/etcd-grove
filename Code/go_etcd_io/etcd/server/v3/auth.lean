@@ -2798,17 +2798,18 @@ noncomputable def authStore.RoleGrantPermission.impl [GooseExts] [GoGlobalContex
   (Let "role" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty))))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty go!"KeyPermission"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty)))) (Var "role"))))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty))]))) (Val #())) (Var "$a0")))
-  (Let "$a1" (Lam "i"
-  (App (Val exceptionDo)
-  (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (Var "i"))
-  (App (Val doReturn)
-  (App (Val (GoInstruction (GoOp GoGe go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty go!"Key"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty))))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty go!"KeyPermission"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty)))) (Var "role")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "i")))))))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty go!"Key"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty go!"Perm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty)))) (Var "r"))))))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.bytes.Compare []))) (Val #())) (Var "$a0")) (Var "$a1")))) (Val #(W64 0))))))))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sort.Search []))) (Val #())) (Var "$a0")) (Var "$a1"))))
-  (Let "idx" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (Let "kept" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty))))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty go!"Key"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty go!"Perm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty)))) (Var "r"))))))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty go!"RangeEnd"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty go!"Perm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty)))) (Var "r"))))))
+  (Let "$v2" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission_Type.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty go!"PermType"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty go!"Perm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty)))) (Var "r"))))))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Key")) (ElementExpression (go.GoType.SliceType go.byte) (Var "$v0"))), (KeyedElement (some (KeyField go!"RangeEnd")) (ElementExpression (go.GoType.SliceType go.byte) (Var "$v1"))), (KeyedElement (some (KeyField go!"PermType")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission_Type.ty (Var "$v2")))]))))))
+  (Let "newPerm" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty))))) (Var "kept"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty)))) (Var "newPerm"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty) (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty))]))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -2842,35 +2843,37 @@ noncomputable def authStore.RoleGrantPermission.impl [GooseExts] [GoGlobalContex
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty)))) (Var "role"))
   (App (App (Val (GoInstruction (MethodResolve AuthBatchTx.ty go!"UnsafePutRole"))) (App (Val (GoInstruction (GoLoad AuthBatchTx.ty))) (Var "tx"))) (Var "$a0")))))))
-  (If (If (If (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "idx")) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty))))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty go!"KeyPermission"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty)))) (Var "role"))))
-  (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty))]))) (Val #())) (Var "$a0"))))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty go!"Key"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty))))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty go!"KeyPermission"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty)))) (Var "role")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "idx")))))))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty go!"Key"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty go!"Perm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty)))) (Var "r"))))))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.bytes.Equal []))) (Val #())) (Var "$a0")) (Var "$a1")))) (Val #false)) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty go!"RangeEnd"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty))))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty go!"KeyPermission"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty)))) (Var "role")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "idx")))))))
-  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty go!"RangeEnd"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty go!"Perm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty)))) (Var "r"))))))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.bytes.Equal []))) (Val #())) (Var "$a0")) (Var "$a1")))) (Val #false))
-  (Let "$r0" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission_Type.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty go!"PermType"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty go!"Perm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty)))) (Var "r"))))))
-  (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission_Type.ty))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty go!"PermType"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty)))) (App (Val (GoInstruction (IndexRef (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty))))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty))))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty go!"KeyPermission"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty)))) (Var "role")))) (App (Val (GoInstruction (GoLoad go.int))) (Var "idx")))))) (Var "$r0")))))
-  (Let "$r0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty go!"Key"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty go!"Perm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty)))) (Var "r"))))))
-  (Let "$v1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty go!"RangeEnd"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty go!"Perm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty)))) (Var "r"))))))
-  (Let "$v2" (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission_Type.ty))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty go!"PermType"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty go!"Perm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty)))) (Var "r"))))))
-  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Key")) (ElementExpression (go.GoType.SliceType go.byte) (Var "$v0"))), (KeyedElement (some (KeyField go!"RangeEnd")) (ElementExpression (go.GoType.SliceType go.byte) (Var "$v1"))), (KeyedElement (some (KeyField go!"PermType")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission_Type.ty (Var "$v2")))]))))))
-  (Let "newPerm" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty)))) (Val #())))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty))))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty go!"KeyPermission"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty)))) (Var "role"))))
-  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty)))) (Var "newPerm"))
-  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty) (Var "$sl0")))])))
-  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty))]))) (Val #())) (Var "$a0")) (Var "$a1"))))
-  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (Convert permSlice.ty _root_.Perennial.sort.Interface.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty))))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty go!"KeyPermission"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty)))) (Var "role")))))
-  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sort.«Sort» []))) (Val #())) (Var "$a0"))))))
+  (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sort.«Sort» []))) (Val #())) (Var "$a0")))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty))))) (Pair (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty go!"KeyPermission"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty)))) (Var "role"))) (Var "$r0"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty)))) (Pair (Var "newPerm") (Var "$r0")))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty)))) (Pair (Var "newPerm") (Var "$r0")))))))))
+  (Let "$range" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty))))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty go!"KeyPermission"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty)))) (Var "role"))))
+  (Let "perm" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty)))) (Val #())))
+  (App (App (Val (slice.forRange (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty))) (Var "$range"))
+  (Lam "$key"
+  (Lam "$value"
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (If (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty go!"Key"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty)))) (Var "perm"))))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty go!"Key"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty go!"Perm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty)))) (Var "r"))))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.bytes.Equal []))) (Val #())) (Var "$a0")) (Var "$a1"))))) (Val #true) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty go!"RangeEnd"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty)))) (Var "perm"))))
+  (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty go!"RangeEnd"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty)))) (App (Val (GoInstruction (StructFieldRef _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty go!"Perm"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionRequest.ty)))) (Var "r"))))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.bytes.Equal []))) (Val #())) (Var "$a0")) (Var "$a1"))))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty))))) (Var "kept"))
+  (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty)))) (Var "perm"))
+  (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty) (Var "$sl0")))])))
+  (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty))]))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "idx") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty))))) (Pair (Var "kept") (Var "$r0")))))
+  (App (Val doExecute)
+  (Val #())))))
+  (App (Val doExecute)
+  (Var "$key")))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission.ty)))) (Pair (Var "perm") (Var "$value"))))))))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty)))) (Var "role")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Role.ty)))) (Val UntypedNil)))))
   (App (Val doReturn)
   (Pair (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.AuthRoleGrantPermissionResponse.ty)))) (Val UntypedNil)) (App (Val (GoInstruction (GoLoad go.error))) (App (Val (GoInstruction (GlobalVarAddr ErrRoleNotFound))) (Val #())))))
@@ -2901,7 +2904,7 @@ noncomputable def authStore.RoleGrantPermission.impl [GooseExts] [GoGlobalContex
   (App (Val doExecute)
   (Val #()))))))))))
 
-/-- go: store.go:864:22 -/
+/-- go: store.go:862:22 -/
 noncomputable def authStore.isOpPermitted.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "as"
   (Lam "userName"
@@ -3008,7 +3011,7 @@ noncomputable def authStore.isOpPermitted.impl [GooseExts] [GoGlobalContext] : v
   (App (Val doExecute)
   (Val #()))))))))))))))))))
 
-/-- go: store.go:905:22 -/
+/-- go: store.go:903:22 -/
 noncomputable def authStore.IsPutPermitted.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "as"
   (Lam "authInfo"
@@ -3025,7 +3028,7 @@ noncomputable def authStore.IsPutPermitted.impl [GooseExts] [GoGlobalContext] : 
   (Let "$a4" (Val _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission_WRITE)
   (App (App (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType authStore.ty) go!"isOpPermitted"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authStore.ty)))) (Var "as"))) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")))))))))))))))
 
-/-- go: store.go:909:22 -/
+/-- go: store.go:907:22 -/
 noncomputable def authStore.IsRangePermitted.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "as"
   (Lam "authInfo"
@@ -3044,7 +3047,7 @@ noncomputable def authStore.IsRangePermitted.impl [GooseExts] [GoGlobalContext] 
   (Let "$a4" (Val _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission_READ)
   (App (App (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType authStore.ty) go!"isOpPermitted"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authStore.ty)))) (Var "as"))) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")))))))))))))))))
 
-/-- go: store.go:913:22 -/
+/-- go: store.go:911:22 -/
 noncomputable def authStore.IsDeleteRangePermitted.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "as"
   (Lam "authInfo"
@@ -3063,7 +3066,7 @@ noncomputable def authStore.IsDeleteRangePermitted.impl [GooseExts] [GoGlobalCon
   (Let "$a4" (Val _root_.Perennial.go_etcd_io.etcd.api.v3.authpb.Permission_WRITE)
   (App (App (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType authStore.ty) go!"isOpPermitted"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authStore.ty)))) (Var "as"))) (Var "$a0")) (Var "$a1")) (Var "$a2")) (Var "$a3")) (Var "$a4")))))))))))))))))
 
-/-- go: store.go:917:22 -/
+/-- go: store.go:915:22 -/
 noncomputable def authStore.IsAdminPermitted.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "as"
   (Lam "authInfo"
@@ -3121,7 +3124,7 @@ noncomputable def authStore.IsAdminPermitted.impl [GooseExts] [GoGlobalContext] 
     before Recover can replace that backend: the server closes a replaced
     backend only after Recover, and closing waits for read transactions to unlock.
 
-    go: store.go:943:22 -/
+    go: store.go:941:22 -/
 noncomputable def authStore.lockedReadTx.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "as"
   (Lam BAnon
@@ -3149,7 +3152,7 @@ noncomputable def authStore.lockedReadTx.impl [GooseExts] [GoGlobalContext] : va
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef authStore.ty go!"beMu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authStore.ty)))) (Var "as")))) (Val #())))))))))
 
-/-- go: store.go:951:22 -/
+/-- go: store.go:949:22 -/
 noncomputable def authStore.IsAuthEnabled.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "as"
   (Lam BAnon
@@ -3171,7 +3174,7 @@ noncomputable def authStore.IsAuthEnabled.impl [GooseExts] [GoGlobalContext] : v
 
 /-- NewAuthStore creates a new AuthStore.
 
-    go: store.go:958:6 -/
+    go: store.go:956:6 -/
 noncomputable def NewAuthStore.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (Lam "be"
@@ -3270,7 +3273,7 @@ noncomputable def NewAuthStore.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #())))))))))))))
 
-/-- go: store.go:1008:6 -/
+/-- go: store.go:1006:6 -/
 noncomputable def hasRootRole.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "u"
   (App (Val exceptionDo)
@@ -3286,7 +3289,7 @@ noncomputable def hasRootRole.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "idx") (Var "$r0"))))))))))
 
-/-- go: store.go:1014:22 -/
+/-- go: store.go:1012:22 -/
 noncomputable def authStore.commitRevision.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "as"
   (Lam "tx"
@@ -3305,7 +3308,7 @@ noncomputable def authStore.commitRevision.impl [GooseExts] [GoGlobalContext] : 
   (Let "$a1" (Val #(W64 1))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sync.atomic.AddUint64 []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))))))
 
-/-- go: store.go:1019:22 -/
+/-- go: store.go:1017:22 -/
 noncomputable def authStore.setRevision.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "as"
   (Lam "rev"
@@ -3320,7 +3323,7 @@ noncomputable def authStore.setRevision.impl [GooseExts] [GoGlobalContext] : val
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.uint64))) (Var "rev"))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sync.atomic.StoreUint64 []))) (Val #())) (Var "$a0")) (Var "$a1")))))))))))
 
-/-- go: store.go:1023:22 -/
+/-- go: store.go:1021:22 -/
 noncomputable def authStore.Revision.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "as"
   (Lam BAnon
@@ -3330,7 +3333,7 @@ noncomputable def authStore.Revision.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$a0" (App (Val (GoInstruction (StructFieldRef authStore.ty go!"revision"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType authStore.ty)))) (Var "as")))
   (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sync.atomic.LoadUint64 []))) (Val #())) (Var "$a0"))))))))
 
-/-- go: store.go:1074:22 -/
+/-- go: store.go:1072:22 -/
 noncomputable def authStore.AuthInfoFromCtx.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "as"
   (Lam "ctx"
@@ -3440,7 +3443,7 @@ noncomputable def authStore.AuthInfoFromCtx.impl [GooseExts] [GoGlobalContext] :
   (App (Val doExecute)
   (Val #())))))))))
 
-/-- go: store.go:1108:6 -/
+/-- go: store.go:1106:6 -/
 noncomputable def decomposeOpts.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (Lam "optstr"
@@ -3541,7 +3544,7 @@ noncomputable def decomposeOpts.impl [GooseExts] [GoGlobalContext] : val :=
 
 /-- NewTokenProvider creates a new token provider.
 
-    go: store.go:1141:6 -/
+    go: store.go:1139:6 -/
 noncomputable def NewTokenProvider.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (Lam "tokenOpts"
@@ -3624,7 +3627,7 @@ noncomputable def NewTokenProvider.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.string))) (Pair (Var "tokenType") (Var "$r0"))))))))))))))))))))))))
 
-/-- go: store.go:1217:22 -/
+/-- go: store.go:1215:22 -/
 noncomputable def authStore.HasRole.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "as"
   (Lam "user"
@@ -3687,7 +3690,7 @@ noncomputable def authStore.HasRole.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore AuthBatchTx.ty))) (Pair (Var "tx") (Var "$r0"))))))))))))))
 
-/-- go: store.go:1244:22 -/
+/-- go: store.go:1242:22 -/
 noncomputable def authStore.setupMetricsReporter.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "as"
   (Lam BAnon

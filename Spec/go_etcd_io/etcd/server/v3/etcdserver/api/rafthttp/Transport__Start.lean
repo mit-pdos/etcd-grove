@@ -46,7 +46,8 @@ abbrev rafthttp.Transport.Start.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
       t ↦ tv ∗
       ⌜tv.Logger' ≠ null ∧ tv.ServerStats' ≠ null ∧ tv.LeaderStats' ≠ null ∧
-        tv.mu' = zero_val _root_.Perennial.sync.RWMutex ∧ γn.dir tv.ID' ≠ []⌝ ∗
+        tv.mu' = zero_val _root_.Perennial.sync.RWMutex ∧ γn.dir tv.ID' ≠ [] ∧ L.Nodup ∧
+        trURLsOk (netRh γn) tv.ID' uvs⌝ ∗
       tv.URLs' ↦*□ uvs ∗ □ netRaftOk γn tv.ID' γd R tv.Raft' ∗
       snap.isSnapshotter tv.Snapshotter' ∗
       inv snapDirN (snapDirInv tv.Snapshotter' γd γn.N.img Rm) ∗ netHttpOk γn tv.ID' ∗
@@ -56,7 +57,7 @@ abbrev rafthttp.Transport.Start.spec : Prop :=
   {{ (err : GoInterface), RET #err;
       ⌜err ≠ GoInterface.nil⌝ ∨
       ⌜err = GoInterface.nil⌝ ∗ ∃ c : TrN GF, ⌜c.lid = tv.ID' ∧ c.γd = γd ∧ c.R = R ∧ c.L = L⌝ ∗
-        trLive γn t c [] ∗
+        trLive γn t c [] ∗ trUnopened c ∗
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), trTok γn t c) ∗
         netTransport γn c.lid (interface.mkOk (go.GoType.PointerType rafthttp.Transport.ty) #t)
           (trTok γn t c) iprop(∃ rs : trIds, trLive γn t c rs) ∗

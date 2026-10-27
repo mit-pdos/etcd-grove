@@ -250,8 +250,12 @@ def Perennial.go_etcd_io.raft.v3.isInitialized : IProp GF :=
                                                     "#ErrCompactedNew" ∷
                                                         errorsNewVar ErrCompacted
                                                           go!"requested index is unavailable due to compaction" ∗
-                                                      "#ErrSnapOOD" ∷
-                                                        ∃ e, typedPointsto (globalAddr ErrSnapOutOfDate) e DFrac.discard)
+                                                      ("#ErrSnapOOD" ∷
+                                                          ∃ e,
+                                                            typedPointsto (globalAddr ErrSnapOutOfDate) e DFrac.discard) ∗
+                                                        "#ErrSnapOODNew" ∷
+                                                          errorsNewVar ErrSnapOutOfDate
+                                                            go!"requested index is older than the existing snapshot")
 
 def Perennial.go_etcd_io.raft.v3.protoreflect_get_is_pkg_init_wf_inst : GetIsPkgInitWf (IProp GF)
     pkg_id.google_golang_org.protobuf.reflect.protoreflect :=

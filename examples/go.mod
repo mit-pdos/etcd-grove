@@ -6,13 +6,13 @@ go 1.27
 // `etc/goose.py --check` fails if they differ). tests/v3 is linkvtxn's differential test's
 // (robustness's model), test-only.
 replace (
-	go.etcd.io/etcd/api/v3 => github.com/upamanyus/etcd/api/v3 v3.0.0-20261027170615-964dccdb4205
-	go.etcd.io/etcd/cache/v3 => github.com/upamanyus/etcd/cache/v3 v3.0.0-20261027170615-964dccdb4205
-	go.etcd.io/etcd/client/pkg/v3 => github.com/upamanyus/etcd/client/pkg/v3 v3.0.0-20261027170615-964dccdb4205
-	go.etcd.io/etcd/client/v3 => github.com/upamanyus/etcd/client/v3 v3.0.0-20261027170615-964dccdb4205
-	go.etcd.io/etcd/pkg/v3 => github.com/upamanyus/etcd/pkg/v3 v3.0.0-20261027170615-964dccdb4205
-	go.etcd.io/etcd/server/v3 => github.com/upamanyus/etcd/server/v3 v3.0.0-20261027170615-964dccdb4205
-	go.etcd.io/etcd/tests/v3 => github.com/upamanyus/etcd/tests/v3 v3.0.0-20261027170615-964dccdb4205
+	go.etcd.io/etcd/api/v3 => github.com/upamanyus/etcd/api/v3 v3.0.0-20261027220749-a20f6760ff43
+	go.etcd.io/etcd/cache/v3 => github.com/upamanyus/etcd/cache/v3 v3.0.0-20261027220749-a20f6760ff43
+	go.etcd.io/etcd/client/pkg/v3 => github.com/upamanyus/etcd/client/pkg/v3 v3.0.0-20261027220749-a20f6760ff43
+	go.etcd.io/etcd/client/v3 => github.com/upamanyus/etcd/client/v3 v3.0.0-20261027220749-a20f6760ff43
+	go.etcd.io/etcd/pkg/v3 => github.com/upamanyus/etcd/pkg/v3 v3.0.0-20261027220749-a20f6760ff43
+	go.etcd.io/etcd/server/v3 => github.com/upamanyus/etcd/server/v3 v3.0.0-20261027220749-a20f6760ff43
+	go.etcd.io/etcd/tests/v3 => github.com/upamanyus/etcd/tests/v3 v3.0.0-20261027220749-a20f6760ff43
 	go.etcd.io/raft/v3 => github.com/upamanyus/etcd/v3 v3.0.0-20261019023206-c8217eb91ae5
 )
 

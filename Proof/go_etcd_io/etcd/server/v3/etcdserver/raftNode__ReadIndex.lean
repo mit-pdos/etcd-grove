@@ -29,7 +29,7 @@ theorem raftNode.ReadIndex.wp_proof : raftNode.ReadIndex.spec (GF := GF) (hG := 
   iunfold isRaftNode at Hr
   iNamed Hr
   iunfold isRaftNodeIfc at Hni
-  icases Hni with ⟨%ni, %Hnieq, -, -, -, -, -, #HRI⟩
+  icases Hni with ⟨%ni, %Hnieq, -, -, -, -, -, #HRI, -⟩
   subst Hnieq
   ihave Hcred' := rnReadCred_of_srv E γ $$ [Hcred]
   · iframe Henv Hcred

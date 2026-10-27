@@ -83,6 +83,15 @@ transport's `AddPeer` parses). -/
 def netDirOk (dir : w64 → List GoString) : Prop :=
   dir 0 = [] ∧ dirHostsDistinct dir ∧ ∀ (id : w64) (s : GoString), s ∈ dir id → types.plainPeerURL s
 
+/-- **The member's configured peer URLs are its directory URLs** (2026-10-27, D22 J-T, W8; a
+premise of `NewServer.spec`, of the caller's configuration): non-empty, each of only the scheme
+`http` and a plain host (`http.urlRootPlain`), `http://` and the host one of the member's peer
+URLs in the directory. The transport sends them in `X-PeerURLs` (`setPeerURLsHeader`), which a
+peer's handler may add a remote for. -/
+def peerURLsDir (dir : w64 → List GoString) (id : w64) (uvs : List _root_.Perennial.net.url.URL) :
+    Prop :=
+  uvs ≠ [] ∧ ∀ u ∈ uvs, http.urlRootPlain u ∧ go!"http://" ++ u.Host' ∈ dir id
+
 /-- **A one-member directory** (rafthttp stage 6d; the one-member examples'): the member `id`'s one
 peer URL `url`, no other member. -/
 def dirOne (id : w64) (url : GoString) (i : w64) : List GoString := if i = id then [url] else []
@@ -122,6 +131,35 @@ theorem addPeer_dir (γn : NetNames GF) (dir : w64 → List GoString) (hγ : γn
     (netRh_member γn pid).2 ((hps pid).2 hp)⟩
   rw [netRh_owner]
   exact netOwner_of_mem γn.dir hd.2.1 pid h hm
+
+omit [MemStorReg GF] in
+/-- Four of `n` copies of `P` for each id of `l` (D22 J-T: the transport's pool). -/
+theorem replicate_list4 (P : IProp GF) : ∀ (l : List w64) (n : Nat), 4 * l.length ≤ n →
+    ([∗list] _x ∈ List.replicate n (), P) ⊢ [∗list] _x ∈ l, P ∗ P ∗ P ∗ P
+  | [], _, _ => by
+    iintro -
+    iapply BigSepL.bigSepL_nil.2; itrivial
+  | x :: l, n, h => by
+    obtain ⟨m, rfl⟩ : ∃ m, n = m + 4 := ⟨n - 4, by simp only [List.length_cons] at h; omega⟩
+    rw [show List.replicate (m + 4) () = () :: () :: () :: () :: List.replicate m () by
+      simp [List.replicate_succ]]
+    iintro H
+    icases BigSepL.bigSepL_cons.1 $$ H with ⟨H1, H⟩
+    icases BigSepL.bigSepL_cons.1 $$ H with ⟨H2, H⟩
+    icases BigSepL.bigSepL_cons.1 $$ H with ⟨H3, H⟩
+    icases BigSepL.bigSepL_cons.1 $$ H with ⟨H4, H⟩
+    iapply BigSepL.bigSepL_cons.2
+    iframe H1 H2 H3 H4
+    iapply replicate_list4 P l m (by simp only [List.length_cons] at h; omega) $$ H
+
+omit [MemStorReg GF] in
+/-- **The transport's configured peer URLs are its member's** (D22 J-T, W8): from the directory. -/
+theorem trURLsOk_of_dir (γn : NetNames GF) (dir : w64 → List GoString) (hγ : γn.dir = dir)
+    (hd : netDirOk dir) (ps : List w64) (hps : ∀ f, dir f ≠ [] ↔ f ∈ ps) (id : w64)
+    (hid : id ∈ ps) (uvs : List _root_.Perennial.net.url.URL) (hu : peerURLsDir dir id uvs) :
+    trURLsOk (netRh γn) id uvs := by
+  obtain ⟨-, hpl, hown, -⟩ := addPeer_dir γn dir hγ hd ps hps id hid (dir id) rfl
+  exact ⟨hu.1, fun u hu' => ⟨(hu.2 u hu').1, hpl _ (hu.2 u hu').2, hown _ (hu.2 u hu').2⟩⟩
 
 omit [MemStorReg GF] in
 /-- The members' loop's coverage, a step further: the ids added so far (`L`, within `L'`), and
@@ -206,12 +244,12 @@ raft's names `γ` and the bootstrap log `bootLog`, the backend's write-back budg
 entries, `NewServer.spec`'s lifetime bound, and seven for the construction: `mvcc.New` two,
 `NewLessor` one, `NewAuthStore` two, `NewAlarmStore` one, `SetTxPostLockInsideApplyHook` one;
 until then `2 ^ 64 + 3`, which no backend has); the post-lock hook unset (nil). -/
-def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : RaftNames) (id : w64)
-    (bootLog : List EntryM) (N : Nat) (dir : w64 → List GoString) (b : Loc) : IProp GF :=
+def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : SrvRaft) (id : w64)
+    (ctxs : List (List w8)) (N : Nat) (dir : w64 → List GoString) (b : Loc) : IProp GF :=
   iprop(∃ (bs : bootstrappedServer) (sto : bootstrappedStorage) (bk : bootstrappedBackend)
       (bw : bootstrappedWAL) (bc : bootstrappedCluster) (bv : bootstrappedRaft) (cv : Config)
       (lok : GoInterfaceOk) (γs : MemStorNames) (pv : List Peer) (ps : List w64)
-      (ctxs : List (List w8)) (rms : List Loc) (cid : w64) (cil : Loc) (γA : ApplyNames)
+      (rms : List Loc) (cid : w64) (cil : Loc) (γA : ApplyNames)
       (d : mvcc.KBReal) (D : backend.Data),
     -- the records
     "Hb" ∷ b ↦ bs ∗ "Hsto" ∷ bs.storage' ↦ sto ∗ "Hbk" ∷ sto.backend' ↦ bk ∗
@@ -229,18 +267,13 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : RaftNames
       (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) ∧
       cv.AsyncStorageWrites' = false ∧ cv.Applied' = W64 0 ∧
       cv.ID' = id ∧
-      ps = pv.map Peer.ID' ∧ ps ≠ [] ∧ ps.Nodup ∧ W64 0 ∉ ps ∧ (ps.length : Int) ≤ 2 ^ 62 ∧
-      cv.ID' ∈ ps ∧ γ.reCfg = GMap.listToSet ps ∧ γ.reBoot = bootLog ∧
-      BootLogOk γ.reCCOk ps bootLog⌝ ∗
-    -- (D21 M3, 2026-10-19) raft's no-snapshot mode (`RaftNames.reNoSnap`, what
-    -- `ownRaftGhost_alloc_boot` gives the servers), so raft sends no snapshot, and the fresh
-    -- `MemoryStorage` at the cap `1` (`MemStorNames.cap`, `NewMemoryStorage`'s choice): never
-    -- compacted past index `1`, which the mode needs (`StartNode`'s `NsCap`). (D19p to D21 M3: a
-    -- one-member cluster, `"%Hone"`, raft's tracked bound this node alone.)
-    "%Hnosnap" ∷ ⌜γ.reNoSnap = true ∧ γs.cap = 1⌝ ∗
-    -- (2026-10-19, D22 S-a) and raft's no-transfer mode (`RaftNames.reNoXfer`, until then the
-    -- no-snapshot mode's), which with it gives the receiver's `NetMsgOk` (`SentMsgOk`)
-    "%Hnoxfer" ∷ ⌜γ.reNoXfer = true⌝ ∗
+      ps = pv.map Peer.ID' ∧ ps ≠ [] ∧ ps.Nodup ∧ W64 0 ∉ ps ∧ (ps.length : Int) < 2 ^ 62 ∧
+      cv.ID' ∈ ps ∧ γ.vs = ps ∧ srvBootLogOk ps γ.boot⌝ ∗
+    -- (D21 M3, 2026-10-19) the fresh `MemoryStorage` at the cap `1` (`MemStorNames.cap`,
+    -- `NewMemoryStorage`'s choice): never compacted past index `1`, what `StartNode` takes of a
+    -- dynamic cluster's storage (`storCap`). (2026-10-27: until then with raft's no-snapshot and
+    -- no-transfer modes, now the cluster's kind, `srvClusterOk`.)
+    "%Hcap" ∷ ⌜γs.cap = 1⌝ ∗
     "Hc" ∷ bv.config' ↦ cv ∗ "#Hlok" ∷ isLogger lok ∗
     "#Hreg" ∷ memStorReg bv.storage' γs ∗
     -- (D19r (B), 2026-10-18) the registry's authority, given empty, back with the new storage
@@ -261,8 +294,10 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : RaftNames
     -- (D17d, 2026-10-18) the application's snapshot token of the fresh storage (`NewMemoryStorage`
     -- gives it), which `InitialState` borrows and `run`'s `Snapshot()` reads
     "Htok" ∷ memSnapTok bv.storage' γs memStorEmpty ∗
+    -- (2026-10-27) the storage's certificate registry's authority, empty (`NewMemoryStorage`'s):
+    -- a static cluster's storage's certificates are the cluster's (`storageCertInv_alloc`)
+    "Hcauth" ∷ memCertAuth γs ∗
     "Hpeers" ∷ bv.peers' ↦* pv ∗ "#Hctx" ∷ peersCtx pv ctxs ∗
-    "#Hmarshal" ∷ bootMarshal ps ctxs bootLog ∗
     -- the cluster
     "#Hcl" ∷ rnClusterOk bc.cl' ∗ "#Hrc" ∷ membership.isRaftCluster bc.cl' ∗
     "#Hcid" ∷ membership.clusterCid bc.cl' cid ∗ "%Hid" ∷ ⌜bc.nodeID' = id⌝ ∗
@@ -316,7 +351,7 @@ def bootOk (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (γ : RaftNames
     -- (D22, 2026-10-23; option (i) of "D22c decided") the cluster's in-memory members, as
     -- `bootstrap` made them: the boot log's (`memBoot`, the members whose JSON the bootstrap
     -- entries' contexts are)
-    "Hmem" ∷ membership.clusterMem bc.cl' (memBoot bootLog) ∗
+    "Hmem" ∷ membership.clusterMem bc.cl' (memBoot γ.boot) ∗
     -- the consistent index and the apply protocol
     "%Hci" ∷ ⌜bk.ci' = ciIface cil ∧ γA.m0 = (W64 0, W64 0)⌝ ∗
     "#HisCI" ∷ isCI cil γA.ci ∗ "#Hcons" ∷ inv applyN (consInv γA) ∗
@@ -401,17 +436,17 @@ new `MemoryStorage` joins it; until then the contract gave its registration with
 which no update can), an error, or the record with `bootOk` (at the write-back budget
 `N + 7`). -/
 def bootstrapContract (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig) (U : BootURLs)
-    (γ : RaftNames) (id : w64) (bootLog : List EntryM) (N : Nat) (dir : w64 → List GoString) :
+    (γ : SrvRaft) (id : w64) (ctxs : List (List w8)) (N : Nat) (dir : w64 → List GoString) :
     IProp GF :=
   iprop(□ ({{ bootCfgRO cfg U ∗ memStorRegAuth (∅ : GMap Loc MemStorNamesRec) }}
       (App (Val (@! bootstrap)) (Val #cfg))
     {{ (b : Loc) (err : GoInterface), RET (PairV #b #err);
-        ⌜err ≠ GoInterface.nil⌝ ∨ ⌜err = GoInterface.nil⌝ ∗ bootOk cfg γ id bootLog N dir b }}))
+        ⌜err ≠ GoInterface.nil⌝ ∨ ⌜err = GoInterface.nil⌝ ∗ bootOk cfg γ id ctxs N dir b }}))
 
 instance bootstrapContract_persistent (cfg : go_etcd_io.etcd.server.v3.config.ServerConfig)
-    (U : BootURLs) (γ : RaftNames) (id : w64) (bootLog : List EntryM) (N : Nat)
+    (U : BootURLs) (γ : SrvRaft) (id : w64) (ctxs : List (List w8)) (N : Nat)
     (dir : w64 → List GoString) :
-    Persistent (bootstrapContract (GF := GF) cfg U γ id bootLog N dir) := by
+    Persistent (bootstrapContract (GF := GF) cfg U γ id ctxs N dir) := by
   unfold bootstrapContract; infer_instance
 
 end defs
@@ -480,7 +515,7 @@ abbrev SrvKey := Loc × Loc × w64 × GName × GName × GName
 
 /-- The transport's names of a key. -/
 abbrev SrvKey.trN (x : SrvKey) : TrN GF :=
-  ⟨x.2.2.1, x.2.2.2.1, srvLgReader x.1, x.2.2.2.2.1, x.2.2.2.2.2, []⟩
+  ⟨x.2.2.1, x.2.2.2.1, srvLgReader x.1, x.2.2.2.2.1, x.2.2.2.2.2, [], x.2.2.2.2.1, x.2.2.2.2.1⟩
 
 /-- **The raft loop's key to the transport's `Send`** (rafthttp stage 6d, 2026-10-24, the user's
 choice: the raft loop holds one of the transport's lock's reader tokens): the server's transport's
@@ -517,7 +552,7 @@ theorem srvTrKey_of_trTok (γn : NetNames GF) (γk : GName) (s t : Loc) (c : TrN
   iunfold srvTrKey
   iexists (s, t, c.lid, c.γd, c.γs, c.γr)
   iframe Hk
-  obtain ⟨lid, γd, R, γs, γr, L⟩ := c
+  obtain ⟨lid, γd, R, γs, γr, L, γk', γo⟩ := c
   simp only at hR
   subst hR
   iunfold trTok at Htok
@@ -545,7 +580,7 @@ theorem netTransport_of_key (γn : NetNames GF) (lid : w64) (tr : GoInterface) (
     ihave %Heq := ghostMapElem_agree () γk DFrac.discard DFrac.discard _ _ $$ Hk Hx
     subst Heq
     ihave Htok' : trTok γn t c $$ [Htok]
-    · obtain ⟨lid', γd, R, γs, γr, L⟩ := c
+    · obtain ⟨lid', γd, R, γs, γr, L, γk', γo⟩ := c
       simp only at hR
       subst hR
       iunfold trTok at Htok

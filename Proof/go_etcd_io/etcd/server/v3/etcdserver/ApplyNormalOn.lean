@@ -563,6 +563,46 @@ theorem srvAuthApplyResB_publish (s : Loc) (ua : GoInterface) (E : apply.AEnv GF
   rw [hM]
   iexact Hpa
 
+/-- **The apply thread publishes the auth state at its applied log** (E3u): from its KV row at the
+latest auth state `sa` and the model's tie of `sa` to the committed raft log `A`, the auth state at
+the log through `i` published (`appliedPubM true`, what `setAppliedIndex.specM true` takes). -/
+theorem srvApplyKVOn_appliedPub (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV)
+    (sa : auth.AuthState) (γa : auth.AuthNames) (hM : E.authMode = .on γa) (γr : ReadNames)
+    (A : List EntryModel) (i : w64) (hi : uint.Z i = uint.Z γr.raft.ai0 + A.length) :
+    srvApplyKVOn (GF := GF) s E γw x sa ⊢ kvAppliedOn γr.raft γr.kv srvAuthSt0 A x sa ={⊤}=∗
+      srvApplyKVOn s E γw x sa ∗ kvAppliedOn γr.raft γr.kv srvAuthSt0 A x sa ∗
+      appliedPubM true E γr i := by
+  iintro HKV Hka
+  iunfold srvApplyKVOn at HKV
+  icases HKV with ⟨%ua, Hua, #Hb, Hapf, Hakv, Hbe, Hrev, HAR, Hw⟩
+  imod srvAuthApplyResB_publish s ua E γa sa hM $$ Hb HAR with ⟨HAR, #Hpa⟩
+  iunfold kvAppliedOn at Hka
+  icases Hka with ⟨Hka, %Hch⟩
+  ihave ⟨Hka, -, %Hst⟩ := kvAppliedLOn_cert _ _ _ _ _ $$ Hka
+  iunfold kvAppliedLOn at Hka
+  icases Hka with ⟨#HA, Hhi, #Hkc, %Hst'⟩
+  imodintro
+  isplitl [Hua Hapf Hakv Hbe Hrev HAR Hw]
+  · iunfold srvApplyKVOn
+    iexists ua
+    iframe Hua Hapf Hakv Hbe Hrev HAR
+    isplitr; · iexact Hb
+    iexact Hw
+  isplitl [Hhi]
+  · iunfold kvAppliedOn
+    isplitl [Hhi]
+    · iunfold kvAppliedLOn
+      iframe HA Hhi Hkc
+      ipureintro; exact Hst'
+    ipureintro; exact Hch
+  unfold appliedPubM
+  iexists A
+  iframe HA
+  isplitr
+  · ipureintro; exact hi
+  rw [← Hst]
+  iexact Hpa
+
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 /-- **The uber-applier's latest-state admin triples at the opened row** (see the file header). -/

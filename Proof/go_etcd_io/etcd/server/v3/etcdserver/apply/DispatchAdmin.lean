@@ -513,7 +513,7 @@ theorem apply.uberApplier.dispatch.wp_admin
       isplitl; rotate_left
       · iexact HeI
       simp only [apply.dispatchAnswer, hk]
-      try itrivial
+      first | itrivial | (iexists _; ipureintro; rfl)
     simp only [apply.adminDone, ↓reduceIte]
     iexists _, apply.AdminReq.authEnable
     iframe H0
@@ -585,7 +585,7 @@ theorem apply.uberApplier.dispatch.wp_admin
       isplitl; rotate_left
       · iexact HeI
       simp only [apply.dispatchAnswer, hk]
-      try itrivial
+      first | itrivial | (iexists _; ipureintro; rfl)
     simp only [apply.adminDone, ↓reduceIte]
     iexists _, (apply.AdminReq.userAdd x.name)
     iframe H0
@@ -654,7 +654,7 @@ theorem apply.uberApplier.dispatch.wp_admin
       isplitl; rotate_left
       · iexact HeI
       simp only [apply.dispatchAnswer, hk]
-      try itrivial
+      first | itrivial | (iexists _; ipureintro; rfl)
     simp only [apply.adminDone, ↓reduceIte]
     iexists _, (apply.AdminReq.userGrantRole x.1 x.2)
     iframe H0
@@ -721,7 +721,7 @@ theorem apply.uberApplier.dispatch.wp_admin
       isplitl; rotate_left
       · iexact HeI
       simp only [apply.dispatchAnswer, hk]
-      try itrivial
+      first | itrivial | (iexists _; ipureintro; rfl)
     simp only [apply.adminDone, ↓reduceIte]
     iexists _, (apply.AdminReq.roleAdd x)
     iframe H0
@@ -770,7 +770,7 @@ theorem apply.uberApplier.dispatch.wp_admin
       isplitl; rotate_left
       · iexact HeI
       simp only [apply.dispatchAnswer, hk]
-      try itrivial
+      first | itrivial | (iexists _; ipureintro; rfl)
     simp only [apply.adminDone, ↓reduceIte]
     iexists _, (apply.AdminReq.roleGrantPermission x.1 x.2)
     iframe H0

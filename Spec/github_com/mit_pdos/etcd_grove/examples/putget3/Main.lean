@@ -41,8 +41,8 @@ abbrev Main.spec : Prop :=
   ∀ [go_etcd_io.etcd.cache.v3.Assumptions]
     [EtcdGrove.ContextReadErrs (GF := GF) (hG := hG)]
     [ContextErrsClient (GF := GF) (hG := hG)]
-    (N : Nat) (id₁ id₂ id₃ : w64) (bootLog : List EntryM),
-  BootFacts id₁ id₂ id₃ bootLog →
+    (N : Nat) (id₁ id₂ id₃ : w64) (ctxs : List (List w8)) (boot : List Draft.LogEntry),
+  BootFacts id₁ id₂ id₃ ctxs boot →
   threadBound GF ≤ 2 ^ 31 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
   ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → storage.dbOpensOk → v3rpc.ServerMethodSets →
   errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty →
@@ -50,7 +50,7 @@ abbrev Main.spec : Prop :=
       netAddrFree (GF := GF) peerAddr₁ ∗ netAddrFree (GF := GF) peerAddr₂ ∗
       netAddrFree (GF := GF) peerAddr₃ ∗ netAddrFree (GF := GF) clientAddr₁ ∗
       httpProtoFree (GF := GF) peerAddr₁ ∗ httpProtoFree (GF := GF) peerAddr₂ ∗
-      httpProtoFree (GF := GF) peerAddr₃ ∗ threadTok ∗ premises N id₁ id₂ id₃ bootLog }}
+      httpProtoFree (GF := GF) peerAddr₃ ∗ threadTok ∗ premises N id₁ id₂ id₃ ctxs boot }}
     (App (Val (@! github_com.mit_pdos.etcd_grove.examples.putget3.Main)) (Val #()))
   {{ RET #(); True }}
 

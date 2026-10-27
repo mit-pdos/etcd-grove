@@ -28,18 +28,21 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- `confChangeToMsg`, then `Step` of the proposal, forwarded (`fwdP`). (Raft v3.7, stage R5, D6:
 the message `msgIn ml 1` from `confChangeToMsg`, its entry `ccEntryM (some o) bs` holding the
-bytes, so no recording of the data is needed (`entData_cc`). Stage R7a: any `nodeCtx`, the error
+bytes, so no recording of the data is needed. 2026-10-27: the proposal tracked under its key,
+`cc_propose_ghost`. Stage R7a: any `nodeCtx`, the error
 `nodeErr`.) -/
 theorem node.ProposeConfChange.wp_proof
     (wp_confChangeToMsg : confChangeToMsg.spec (GF := GF) (hG := hG))
     (wp_node_Step : node.Step.spec (GF := GF) (hG := hG)) :
     node.ProposeConfChange.spec (GF := GF) (hG := hG) := by
-  intro γ id n c o dq ctx cd Hok
-  wp_start as ⟨#Hnode, #Hctx, Hc⟩
+  intro γ id n c o dq ctx cd
+  wp_start as ⟨#Hnode, #Hctx, Hc, Harg⟩
   wp_auto
   wp_apply wp_confChangeToMsg c (some o) dq $$ [$Hc] as %ml %bs ⟨Hc, Hm, %Hbs⟩
-  ihave #Hent := entData_cc γ.raft o bs Hbs (Hok bs Hbs)
-  wp_apply wp_node_Step γ id n ml ctx cd $$ [$Hnode $Hctx Hm]
+  -- (2026-10-27) the proposal's ghost work: tracked under its key, its ticket on the entry
+  ihave #Hcinv := isNode_commitInv γ id n $$ Hnode
+  imod cc_propose_ghost γ.raft o bs Hbs $$ Hcinv Harg with ⟨#Hent, Htk⟩
+  wp_apply wp_node_Step γ id n ml ctx cd $$ [$Hnode $Hctx Hm Htk]
   · unfold stepP
     iright
     unfold fwdP
@@ -55,7 +58,7 @@ theorem node.ProposeConfChange.wp_proof
       iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => propData (GF := GF) γ.raft e)).2
       iexact Hent
     iapply (BigSepL.bigSepL_singleton (Φ := fun _ e => entTk (GF := GF) γ.raft e)).2
-    iapply entTk_cc
+    iexact Htk
   iintro %err #Herr
   wp_auto
   iapply HΦ

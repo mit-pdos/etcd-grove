@@ -29,12 +29,12 @@ theorem EtcdServer.RaftHandler.wp_proof
   intro s γn id τ a Hown
   wp_start as #Hm
   iunfold srvNetMember at Hm
-  icases Hm with ⟨-, #Htr, %Hlid, %rs, #Hf, %Hrs⟩
+  icases Hm with ⟨-, #Htr, %Hlid, #Hst, #Hop, %Hcov⟩
   ihave #Hrpkg : isPkgInit (PROP := IProp GF)
       pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp $$ []
   · iPkgInit
   wp_auto
-  wp_apply (wp_Handler γn τ.t τ.c rs a (by rw [Hlid]; exact Hown) (by rw [Hlid]; exact Hrs.2))
+  wp_apply (wp_Handler γn τ.t τ.c a (by rw [Hlid]; exact Hown) (by rw [Hlid]; exact Hcov))
     $$ [] as %h Hh
   · iframe #
   iapply HΦ

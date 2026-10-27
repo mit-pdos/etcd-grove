@@ -38,14 +38,14 @@ def userGetOut (sta : AuthState) (name : GoString) (resp : Loc) (err : GoInterfa
 /-- **`RoleGet`'s reply** for the role `name` of the state `sta`: `ErrRoleNotFound` and no response
 if the state has no such role; else no error and a response which, for a role other than `root`,
 holds the role's permissions as stored (read-only messages whose permissions of a known type are
-the state's; `root`'s reply is the package's `rootPerm`, whose contents the spec leaves open). -/
+the state's, in some order; `root`'s reply is the package's `rootPerm`, whose contents the spec leaves open). -/
 def roleGetOut (sta : AuthState) (name : GoString) (resp : Loc) (err : GoInterface) : IProp GF :=
   match sta.roles.lookup name with
   | none => iprop(⌜resp = null⌝ ∗ authErrOf .roleNotFound err)
   | some ps => iprop(⌜err = GoInterface.nil⌝ ∗
       ∃ v : etcdserverpb.AuthRoleGetResponse, resp ↦ v ∗
         (⌜name = rootRole⌝ ∨ ∃ (pl : List Loc) (ws : List PermW), v.Perm' ↦* pl ∗
-          ⌜pl.length = ws.length ∧ ({ name := name, perms := ws } : RoleRec).toRole = ps⌝ ∗
+          ⌜pl.length = ws.length ∧ ({ name := name, perms := ws } : RoleRec).toRole.Perm ps⌝ ∗
           [∗list] x ∈ pl.zip ws, ownPermW x.1 x.2))
 
 /-- **`UserList`'s reply** of the state `sta`: no error, and a response whose `Users` are the

@@ -7,21 +7,21 @@ theorem certElemOk_timeless (γ : RaftNames) (e : CertKey) : Timeless (certElemO
 theorem certElemOk_persistent (γ : RaftNames) (e : CertKey) : Persistent (certElemOk γ e)
 
 theorem memCert_register [package_sem : Assumptions] (γ : RaftNames) (γs : MemStorNames) (k :
-    SnapTrip) (E : CoPset) (hE : ↑raftCertN ⊆ E) : ⊢ memCertInv γ γs -∗ raftSnapCertD γ k ={E}=∗
+    SnapTrip) (E : CoPset) (hE : ↑(raftCertN γ) ⊆ E) : ⊢ memCertInv γ γs -∗ raftSnapCertD γ k ={E}=∗
     memStorCert γs k
 
 def memCertInv (γ : RaftNames) (γs : MemStorNames) : IProp GF :=
-  inv raftCertN iprop(∃ L, monoListAuthOwn γs.cert 1 L ∗ [∗list] e ∈ L, certElemOk γ e)
+  inv (raftCertN γ) iprop(∃ L, monoListAuthOwn γs.cert 1 L ∗ [∗list] e ∈ L, certElemOk γ e)
 
 theorem memCert_read [package_sem : Assumptions] (γ : RaftNames) (γs : MemStorNames) (k : SnapTrip)
-    (E : CoPset) (hE : ↑raftCertN ⊆ E) : ⊢ memCertInv γ γs -∗ memStorCert γs k ={E}=∗ raftSnapCertD
-    γ k
+    (E : CoPset) (hE : ↑(raftCertN γ) ⊆ E) : ⊢ memCertInv γ γs -∗ memStorCert γs k ={E}=∗
+    raftSnapCertD γ k
 
 theorem memCert_registerAny [package_sem : Assumptions] (γ : RaftNames) (γs : MemStorNames) (i :
-    w64) (cl : CSLists) (al : Bool) (d : List w8) (E : CoPset) (hE : ↑raftCertN ⊆ E) : ⊢ memCertInv
-    γ γs -∗ (□ ∀ t, raftSnapCertD γ { sid := { term' := t, index' := i }, cl := cl, al := al, dat :=
-    d }) ={E}=∗ □ ∀ t, memStorCert γs { sid := { term' := t, index' := i }, cl := cl, al := al, dat
-    := d }
+    w64) (cl : CSLists) (al : Bool) (d : List w8) (E : CoPset) (hE : ↑(raftCertN γ) ⊆ E) : ⊢
+    memCertInv γ γs -∗ (□ ∀ t, raftSnapCertD γ { sid := { term' := t, index' := i }, cl := cl, al :=
+    al, dat := d }) ={E}=∗ □ ∀ t, memStorCert γs { sid := { term' := t, index' := i }, cl := cl, al
+    := al, dat := d }
 
 theorem memCertInv_alloc [package_sem : Assumptions] (γ : RaftNames) (γs : MemStorNames) (E :
     CoPset) : ⊢ memCertAuth γs ={E}=∗ memCertInv γ γs

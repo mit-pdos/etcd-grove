@@ -224,7 +224,7 @@ def isServerBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp 
     "#Hrn" ∷ isRaftNode Er γn (srvRAddr s) ∗
     -- (D43 M3, 2026-10-25) in raft's dynamic mode a fresh start: no entry replayed
     "%HEr" ∷ ⌜Er.C = srvC ρ E ai₀ c₀ x₀ ∧ Er.γr = γr ∧
-      (γn.node.mode.isDyn = true → uint.Z c₀ ≤ uint.Z ai₀)⌝ ∗
+      (γn.node.dyn = true → uint.Z c₀ ≤ uint.Z ai₀ ∧ γn.pre = [] ∧ ai₀ = W64 0)⌝ ∗
     -- the request path's read names (2026-10-14, unit C2a)
     "%Hρrd" ∷ ⌜ρ.rd = γr⌝ ∗
     "Hsnap" ∷ (∃ ms : Loc, rnRaftStorageAddr (srvRAddr s) ↦□ ms ∗ rnSnapOnce ms γn.γs ai₀ at₀) ∗

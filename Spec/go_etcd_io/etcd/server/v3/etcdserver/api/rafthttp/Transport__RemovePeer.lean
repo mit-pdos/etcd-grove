@@ -29,7 +29,7 @@ or a log line if there was none: the live transport with `id` no longer among th
 abbrev rafthttp.Transport.RemovePeer.spec : Prop :=
   ∀ (γn : NetNames GF) (t : Loc) (c : TrN GF) (rs : trIds) (id : w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
-      trLive γn t c rs }}
+      trLive γn t c rs ∗ (⌜id ∉ rs⌝ ∨ trNoRemOr c id) }}
     (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"RemovePeer")) (Val #id))
   {{ RET #(); trLive γn t c (rs.filter (· != id)) }}
 

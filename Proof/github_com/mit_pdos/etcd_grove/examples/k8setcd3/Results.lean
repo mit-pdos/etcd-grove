@@ -69,7 +69,8 @@ theorem k8setcd3_safe [lctx : GoLocalContext] [sem : go.Semantics]
     [Float64ToInt64Semantics] [go_etcd_io.etcd.client.v3.DialWithBalancerBody]
     [log.NewModel]
     (Hctx : ∀ hG : HeapGS .hasLC k8setcd3GF, ContextReadErrs (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx))
-    (id : w64) (bootLog : List EntryM) (Hbf : putget.BootFacts id bootLog)
+    (id : w64) (ctxs : List (List w8)) (boot : List Draft.LogEntry)
+    (Hbf : putget.BootFacts id ctxs boot)
     (Hck : ckptEffectsOk) (Haf : authRecordsFit)
     (Hbuq : apply.backendUnderQuota) (Hdbo : storage.dbOpensOk)
     (clients ops : w64)
@@ -79,7 +80,7 @@ theorem k8setcd3_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (HAs : addrsUnclaimed (k8setcd3Program clients ops) [go!"127.0.0.1:23896"])
     (n : Nat)
     (Hprem : ∀ hG : HeapGS .hasLC k8setcd3GF,
-      ⊢ k8setcd3.premises (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx) n id bootLog)
+      ⊢ k8setcd3.premises (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx) n id ctxs boot)
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
     (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
@@ -88,7 +89,7 @@ theorem k8setcd3_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v t2', t2 = Val v :: t2' → v = #(go!"Ok") ∨ v = #(go!"Unknown")) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) :=
-  k8setcd3_adequate Hctx id bootLog Hbf Hck Haf Hbuq Hdbo clients ops Hc0 Hc31 Hops
+  k8setcd3_adequate Hctx id ctxs boot Hbf Hck Haf Hbuq Hdbo clients ops Hc0 Hc31 Hops
     Hmul HNs HAs n Hprem σ g Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn Hwb
 
 end adequacy

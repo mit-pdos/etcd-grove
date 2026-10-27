@@ -127,6 +127,63 @@ theorem rangeReadOkM_false (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : 
     (o : OpFull) (resp : Loc) (Q : List EntryModel → IProp GF) :
     rangeReadOkM (GF := GF) false E γr c F o resp Q = rangeReadOk E γr c F o resp Q := rfl
 
+/-- **A successful read-only `Txn` in the auth mode `on`** (`txnReadOk` with the deposit's committed
+log `L` at the mode's model, `kvModelM on`; `txnReadOk` at `on = false`, by definition; E3v). -/
+def txnReadOkM (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : mvcc.Log)
+    (t : TxnModel) (Q : List EntryModel → IProp GF) (resp : Loc) : IProp GF :=
+  iprop(∃ log : mvcc.Log, mvcc.idxCert E.γ.idx log ∗ mvcc.certOk E.γ log ∗
+    ⌜2 ≤ log.length ∧ log.length + 3 ≤ 2 ^ 63 ∧ F <+: log⌝ ∗
+    (if txn.txnSerializable t then iprop(True) else readLogOk γr c log) ∗
+    (if txn.txnSerializable t then iprop(True) else
+      ∃ L : List EntryModel, srvRLogLb γr.raft L ∗ ⌜kvModelM on γr.kv L = log⌝ ∗ □ Q L) ∗
+    txn.txnResponseIs false resp (W64 ((log.length : Int) - 1)) t
+      (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).1
+      (txn.srvRunTxn (W64 (log.length : Int)) (mvcc.stateAfter log) t).2.2 ∗
+    txn.respHdrOwn (structFieldRef etcdserverpb.TxnResponse go!"Header" resp))
+
+theorem txnReadOkM_false (E : apply.AEnv GF) (γr : ReadNames) (c : w64) (F : mvcc.Log)
+    (t : TxnModel) (Q : List EntryModel → IProp GF) (resp : Loc) :
+    txnReadOkM (GF := GF) false E γr c F t Q resp = txnReadOk E γr c F t Q resp := rfl
+
+/-- **A read-only transaction's checks passed no older than `m`** (persistent; E3v): the wire
+transaction `tw` whose model `t` is, every permission its checks see (`apply.txnChecked`) granted at
+states recorded at indices at least `m` (`apply.verdictsFrom`, E3m's `CheckTxnAuth.specLb`). -/
+def txnClassFrom (M : auth.AuthMode) (m : Nat) (info : go_etcd_io.etcd.server.v3.auth.AuthInfo)
+    (t : TxnModel) : IProp GF :=
+  iprop(∃ (tw : txn.TxnModelW) (L : List apply.Perm3), ⌜tw.toModel = t ∧ apply.txnChecked tw L⌝ ∗
+    apply.verdictsFrom M m info L)
+
+instance txnClassFrom_persistent (M : auth.AuthMode) (m : Nat)
+    (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (t : TxnModel) :
+    Persistent (txnClassFrom (GF := GF) M m info t) := by
+  unfold txnClassFrom; infer_instance
+
+/-- **The auth state at an applied log through an index at least `c` is published** (persistent;
+the auth plan's E3u): what a linearizable read waiting for the read index `c` finds in the applied
+index's invariant (`appliedPubM`). -/
+def appliedPubFrom (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (c : w64) : IProp GF :=
+  iprop(∃ i : w64, ⌜uint.Z c ≤ uint.Z i⌝ ∗ appliedPubM on E γr i)
+
+instance appliedPubFrom_persistent (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (c : w64) :
+    Persistent (appliedPubFrom (GF := GF) on E γr c) := by
+  unfold appliedPubFrom; infer_instance
+
+/-- **A floor of a linearizable read's auth check** (persistent; the auth plan's E3u): in the mode
+`on γa`, the model's auth state at a committed raft log through an index at least the read index `c`
+is recorded in the store's history at an index at most `m`; so a check whose verdict comes from
+states at indices at least `m` (`apply.rangeClassFrom M m`) saw a state no older than the one the
+committed log through the read index left. `True` in the other modes. -/
+def authFloorAt (M : auth.AuthMode) (γr : ReadNames) (c : w64) (m : Nat) : IProp GF :=
+  match M with
+  | .on γa => iprop(∃ (A : List EntryModel) (i : Nat), srvRLogLb γr.raft A ∗
+      ⌜uint.Z c ≤ uint.Z γr.raft.ai0 + A.length ∧ i ≤ m⌝ ∗
+      auth.authStateAt γa i (kvRaftOfOn γr.kv.c0 γr.kv.ch0 (srvAuthSt0, γr.kv.log0) A).1)
+  | _ => iprop(True)
+
+instance authFloorAt_persistent (M : auth.AuthMode) (γr : ReadNames) (c : w64) (m : Nat) :
+    Persistent (authFloorAt (GF := GF) M γr c m) := by
+  cases M <;> unfold authFloorAt <;> infer_instance
+
 end defs
 
 section lemmas
@@ -200,6 +257,28 @@ theorem kv_fire_reads_on (γk : KVNames) (st₀ : auth.AuthState) (L : List Entr
       iexact HQ0
     · iexact Hrest
 
+/-- The clients' results are ones the server's two logs agree on, in the mode `on`
+(`readQs_qinv`'s, through `kvRaftOfOn_eqv`). -/
+theorem readQs_qinv_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState)
+    (gs : List GName) :
+    ⊢ kvInvOn (GF := GF) γ γk st₀ -∗ ([∗list] g ∈ gs, regOk γk g (kvStOn γk st₀)) -∗
+      srvQInv γ (readQs gs) := by
+  iintro #Hinv #Hgs
+  iunfold srvQInv
+  iintro !> %A %B %Hab #HA
+  iunfold kvInvOn at Hinv
+  iinv Hinv with >Hi Hclose
+  icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw⟩
+  imod Hclose $$ [HL Hσ] with -
+  · inext; iexists L; iframe HL Hσ Hw; ipureintro; exact Hok
+  ihave HB := readQs_eqv γk (kvStOn γk st₀) A B
+    (by simp only [kvStOn, kvModelOn,
+      kvRaftOfOn_eqv γ γk.c0 γk.ch0 (st₀, γk.log0) A B Hab Hok.2.2.2.1]) gs $$ Hgs HA
+  imodintro
+  inext
+  iintro !>
+  iexact HB
+
 /-- **One read update for the registered clients `gs`, from the KV invariant in the mode `on`**
 (`kv_read_compose`'s): at every firing, every client's read update is fired in turn at the state of
 the mode-`on` model. -/
@@ -210,6 +289,9 @@ theorem kv_read_compose_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.
   have Hdisj := kvN_raftN
   iintro #Hinv #Hgs
   unfold srvReadAu
+  isplitr
+  rotate_left
+  · iapply readQs_qinv_on γ γk st₀ gs $$ Hinv Hgs
   iintro !>
   iauintro
   unfold atomic_acc
@@ -263,7 +345,7 @@ theorem srvAuthLb_of_uberBase (s : Loc) (ua : GoInterface) (E : apply.AEnv GF) :
 theorem readIndexOk_logM (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (c : w64) :
     ⊢ srvAppliedInvM (GF := GF) on s E γr -∗ readIndexOk γr c ={⊤}=∗
       ∃ (ci₀ : w64) (L₀ : mvcc.Log), ⌜uint.Z c ≤ uint.Z ci₀⌝ ∗ appliedLogAt γr ci₀ L₀ ∗
-        mvcc.idxCert E.γ.idx L₀ := by
+        mvcc.idxCert E.γ.idx L₀ ∗ appliedPubM on E γr ci₀ := by
   iintro #Hinv #Hok
   iunfold readIndexOk at Hok
   icases Hok with ⟨%ci, %Hci, #Hlb⟩
@@ -276,9 +358,10 @@ theorem readIndexOk_logM (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNa
   imod Hclose $$ [Hat Hauth HM Hp] with -
   · inext; iunfold srvAppliedBodyM; iexists vat, v, L, M, p; iframe Hat Hauth HM Hp HL Hc Hkl
     ipureintro; exact HMk
+  ihave ⟨-, #Hpub⟩ := (kvLogsPubM_iff on E γr M v).1 $$ Hkl
   imodintro
   iexists v, L
-  iframe HL Hc
+  iframe HL Hc Hpub
   ipureintro
   have h2 := Hle.2
   word
@@ -287,15 +370,18 @@ theorem readIndexOk_logM (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNa
 theorem readIndexOk_logRM (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (c : w64)
     (log₀ : mvcc.Log) :
     ⊢ srvAppliedInvM (GF := GF) on s E γr -∗ readIndexOk γr c -∗ mvcc.idxCert E.γ.idx log₀ ={⊤}=∗
-      ∃ logR : mvcc.Log, mvcc.idxCert E.γ.idx logR ∗ ⌜log₀ <+: logR⌝ ∗ readLogOk γr c logR := by
+      ∃ logR : mvcc.Log, mvcc.idxCert E.γ.idx logR ∗ ⌜log₀ <+: logR⌝ ∗ readLogOk γr c logR ∗
+        appliedPubFrom on E γr c := by
   iintro #Hinv #Hri #Hc0
-  imod readIndexOk_logM on s E γr c $$ Hinv Hri with ⟨%ci₀, %L₀, %Hci, #HL, #HcL⟩
+  imod readIndexOk_logM on s E γr c $$ Hinv Hri with ⟨%ci₀, %L₀, %Hci, #HL, #HcL, #Hpub⟩
+  ihave #HpF : appliedPubFrom on E γr c $$ []
+  · iunfold appliedPubFrom; iexists ci₀; iframe Hpub; ipureintro; exact Hci
   ihave %Hpre := mvcc.idxCert_prefix E.γ.idx log₀ L₀ $$ [Hc0 HcL]
   · iframe Hc0 HcL
   imodintro
   rcases Hpre with h | h
   · iexists L₀
-    iframe HcL
+    iframe HcL HpF
     isplitr
     · ipureintro; exact h
     iunfold readLogOk
@@ -304,7 +390,7 @@ theorem readIndexOk_logRM (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadN
     iframe HL
     ipureintro; exact ⟨Hci, List.prefix_refl _⟩
   · iexists log₀
-    iframe Hc0
+    iframe Hc0 HpF
     isplitr
     · ipureintro; exact List.prefix_refl _
     iunfold readLogOk
@@ -313,22 +399,70 @@ theorem readIndexOk_logRM (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadN
     iframe HL
     ipureintro; exact ⟨Hci, h⟩
 
+/-- **The trivial lower bound** (E3u): any reader may take `0`; with `authFloorAt`, `Range.specOn`
+at `n = 0` still checks a linearizable read no older than its read index. -/
+theorem authPubLbM_zero (M : auth.AuthMode) : ⊢ |==> auth.authPubLbM (GF := GF) M 0 := by
+  cases M with
+  | on γa => unfold auth.authPubLbM auth.authPubLb; exact monoNatLbOwn_0 γa.pub
+  | _ => unfold auth.authPubLbM; iintro; imodintro; itrivial
+
+/-- **A linearizable read's floor** (E3u): from the reader's bound `n` and the published auth state
+at an applied log through the read index (`appliedPubFrom`), a bound `m ≥ n` with the floor at it
+(the larger of `n` and the index the published state is recorded at). -/
+theorem authFloor_of_pubFrom (E : apply.AEnv GF) (γr : ReadNames) (γa : auth.AuthNames) (c : w64)
+    (n : Nat) (hM : E.authMode = .on γa) :
+    auth.authPubLbM (GF := GF) (.on γa) n ⊢ appliedPubFrom true E γr c -∗
+      ∃ m : Nat, ⌜n ≤ m⌝ ∗ auth.authPubLbM (.on γa) m ∗ authFloorAt (.on γa) γr c m := by
+  iintro #Hn #HpF
+  iunfold appliedPubFrom at HpF
+  icases HpF with ⟨%i0, %hci, #Hpi⟩
+  iunfold appliedPubM at Hpi
+  icases Hpi with ⟨%A, #HA, %hA, #Hpa⟩
+  ihave #Hpa' : authPubAt (GF := GF) (.on γa)
+      (kvRaftOfOn γr.kv.c0 γr.kv.ch0 (srvAuthSt0, γr.kv.log0) A).1 $$ []
+  · rw [← hM]; iexact Hpa
+  iunfold authPubAt at Hpa'
+  icases Hpa' with ⟨%i, #Hlb, #Hst⟩
+  have hfl : uint.Z c ≤ uint.Z γr.raft.ai0 + A.length := by omega
+  by_cases hni : n ≤ i
+  · iexists i
+    isplitr
+    · ipureintro; exact hni
+    isplitr
+    · iunfold auth.authPubLbM; iexact Hlb
+    iunfold authFloorAt
+    iexists A, i
+    iframe HA Hst
+    ipureintro; exact ⟨hfl, Nat.le_refl _⟩
+  · iexists n
+    isplitr
+    · ipureintro; exact Nat.le_refl _
+    iframe Hn
+    iunfold authFloorAt
+    iexists A, i
+    iframe HA Hst
+    ipureintro; exact ⟨hfl, by omega⟩
+
 /-- `readServed_logR` over the mode's applied index's invariant. -/
 theorem readServed_logRM (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (c : w64)
     (g : GName) (Q : List EntryModel → IProp GF) (log₀ : mvcc.Log) :
     ⊢ srvAppliedInvM (GF := GF) on s E γr -∗ readServed γr c g -∗ savedPredOwn g DFrac.discard Q -∗
       mvcc.idxCert E.γ.idx log₀ ={⊤}=∗
       ∃ logR : mvcc.Log, mvcc.idxCert E.γ.idx logR ∗ ⌜log₀ <+: logR⌝ ∗ readLogOk γr c logR ∗
-        readWitAt γr Q g logR := by
+        readWitAt γr Q g logR ∗ appliedPubFrom on E γr c := by
   iintro #Hinv #Hsv #HQ #Hc0
   iunfold readServed at Hsv
   icases Hsv with ⟨%ci, %ai, %gs, %k, %Hp, #Hai, #HW⟩
   ihave #Hri : readIndexOk γr ci $$ []
   · iunfold readIndexOk; iexists ai; iframe Hai; ipureintro; exact Hp.2.1
-  imod readIndexOk_logRM on s E γr ci log₀ $$ Hinv Hri Hc0 with ⟨%logR, #HcR, %HpR, #HrlR⟩
+  imod readIndexOk_logRM on s E γr ci log₀ $$ Hinv Hri Hc0 with ⟨%logR, #HcR, %HpR, #HrlR, #HpF⟩
+  iunfold appliedPubFrom at HpF
+  icases HpF with ⟨%i, %hi, #Hpi⟩
+  ihave #HpF : appliedPubFrom on E γr c $$ []
+  · iunfold appliedPubFrom; iexists i; iframe Hpi; ipureintro; omega
   imodintro
   iexists logR
-  iframe HcR
+  iframe HcR HpF
   isplitr
   · ipureintro; exact HpR
   iunfold readLogOk at HrlR
@@ -401,7 +535,7 @@ mode-`on` model of a committed raft log `L`, and raft's witness gives the client
 theorem readWit_fireOn (s : Loc) (E : apply.AEnv GF) (γr : ReadNames)
     (Q : List EntryModel → IProp GF) (g : GName) (l : mvcc.Log) :
     ⊢ srvAppliedInvM (GF := GF) true s E γr -∗ srvKVInvsM true E γr -∗ readWitAt γr Q g l -∗
-      mvcc.certOk E.γ l -∗ £ 3
+      mvcc.certOk E.γ l -∗ £ 6
       ={⊤}=∗ ∃ L : List EntryModel, srvRLogLb γr.raft L ∗ ⌜kvModelM true γr.kv L = l⌝ ∗ □ Q L := by
   rw [srvKVInvsM_true]
   iintro #Hainv #Hkvi #Hw #Hc Hlc
@@ -413,7 +547,7 @@ theorem readWit_fireOn (s : Loc) (E : apply.AEnv GF) (γr : ReadNames)
   imod kv_read_logOn γr E.γ Hcok ⊤ (fun _ _ => CoPset.mem_full) ci₀ L₀ l Hp.2.2 $$ HcI HkL Hc
     with ⟨%A, #HA, %HAp⟩
   iunfold srvReadWit at HW
-  icases (lc_split (n := 2) (m := 1)).1 $$ Hlc with ⟨Hlc2, Hlc1⟩
+  icases (lc_split (n := 5) (m := 1)).1 $$ Hlc with ⟨Hlc2, Hlc1⟩
   imod HW $$ %A HA %(by omega) Hlc2 with #HQs
   ihave HQL := readQs_get gs A k g Q Hp.2.1 $$ HQs HQ
   imod lc_fupd_elim_later $$ Hlc1 HQL with #HQL

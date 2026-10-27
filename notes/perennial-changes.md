@@ -17,6 +17,30 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### Lemmas: `strings.split` of `strings.Join` (2026-10-27, D22 J-T)
+
+Perennial's `Proof/strings/Base.lean` has `intercalate_split` (joining the fields of a split gives
+the string back) but not the converse. J-T proves it locally for a one-byte separator no field
+contains (`split_intercalate1`, with `splitAux_field`, in
+`Proof/go_etcd_io/etcd/server/v3/etcdserver/api/rafthttp/Pipe.lean`: the `X-PeerURLs` header,
+`setPeerURLsHeader`'s `Join` read back by the handlers' `Split`). Proposed: the general lemma (any
+non-empty separator that is no infix of a field and does not overlap them) in Perennial's
+`strings` proofs, and this repository's local copy removed.
+
+### Channels: `recvAu_wand` with a fancy update in the wand (2026-10-27, branch `raft-api`)
+
+- **Missing.** `recvAu_wand` (`Chan/AuSpec/ChanAuBase.lean`) turns a receive's update for `Φ1`
+  into one for `Φ2` with a plain wand `Φ1 -∗ Φ2`; every commit of a receive ends at `⊤`
+  (`={∅,⊤}=∗ Φ`), so a wand `Φ1 ={⊤}=∗ Φ2` is as sound, and is what a client needs that opens an
+  invariant after the receive (raft's `isReadyChan_recvAu`: the `Ready`'s facts become the node
+  API's under the cluster's invariants).
+- **Workaround here.** `recvNestedAu_wand_fupd`/`recvAu_wand_fupd` in
+  `Proof/go_etcd_io/raft/v3/NodeApiImpl.lean` (the same proofs, `iapply Hw` after the commit
+  instead of `imodintro`).
+- **Proposed change.** The two lemmas in Perennial beside `recvAu_wand` (and the same for the
+  send and close updates), then the local copies go.
+- **Status.** Open.
+
 ### Translation: `sort.StringSlice`'s methods (2026-10-25, leases T3, branch `leases-t3`)
 
 - **Missing.** Perennial's `sort` declares the type `sort.StringSlice` but none of its methods
@@ -68,7 +92,10 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   a proof of that weaker fact over Perennial's translation of `sort.Search`.
 - **Proposed change.** `sort.wp_Search_any` (or a spec whose monotonicity premise is optional)
   in Perennial's `Proof/sort`, general; then the local copy goes.
-- **Status.** Open.
+- **Status.** No longer needed here (2026-10-27): the auth plan's E3z fork fix
+  (`issues/etcd-auth-grant-permission-same-key.md`) replaced the search by a filter, and
+  `SearchAny.lean` is gone (in git history). The general spec is still a reasonable Perennial
+  change, with no client here.
 
 ### Goose: a parenthesized untyped constant expression in a bitwise operation
 
@@ -814,3 +841,14 @@ Three of the watch client's local workarounds (D25, `notes/decisions.md`, "S1c's
 - **Proposed change.** `errors.Is.spec` for a comparable non-pointer target (Go's `Is` compares
   with `==` first, which does not panic for a comparable target type), and an `errors.As` spec that
   says `false` for a leaf error not in the target's type set; then the four are proved here.
+
+### `go.NotInterface go.uint64`
+
+- **Missing.** Perennial's `PostLifting.lean` has `go.NotInterface` instances for composite types
+  (arrays, pointers, slices, maps, untyped) but none for the basic integer types, so
+  `MethodResolve` on a named type over `uint64` (`types.ID`'s `String`) does not step.
+- **Workaround here.** Local instances (`InvStart.lean`, `apply/BackendLemmas2.lean`,
+  `EtcdServer__sendMergedSnap.lean`, `SnapTakeProof.lean` (D22 J4b)), each `⟨by unfold go.uint64;
+  trivial⟩`.
+- **Proposed change.** Instances for the basic types (`uint64`, `int64`, `string`, `bool`, ...) in
+  `PostLifting.lean`, beside the composite ones.

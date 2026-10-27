@@ -54,15 +54,15 @@ batch's share of the write budget (`txn.storeWTs`, one token per entry of `ce`) 
 theorem run_job_body (hAA : EtcdServer.applyAll.spec (GF := GF) (hG := hG))
     (C : ApplyCtx GF) (A ce : List EntryModel)
     (apL : Loc) (es : GoSlice) (ceL : List Loc) (rac nc : GoChan) (γs : schedule.SchedNames)
-    (dv : Option NodeNames) (γnc : NotifyNames)
+    (dv : Option Loc) (γnc : NotifyNames)
     (hidx : srvIdxOk C.ai₀ (A ++ ce)) (hok : logShape (A ++ ce))
     (hw : C.γw = C.ρ.wait)
     -- (D43 M3, 2026-10-25) the driver's view, `applyAll`'s (`dvOk`): without one, raft's static
     -- mode or no conf entry; with one, a fresh start (`c₀ ≤ ai₀`) at the server's decoder
-    (hdvn : dv = none → C.ρ.raft.raft.reDyn = none ∨ ∀ m, m ∈ ce → m.typ ≠ W32 1)
-    (hdvs : ∀ γn, dv = some γn → uint.Z C.c₀ ≤ uint.Z C.ai₀ ∧ γn.raft = C.ρ.raft.raft ∧
-      C.ρ.raft.raft.reDyn.isSome = true ∧
-      ∃ c0 h0 h1, γn.mode = .dyn (srvDec C.γr.kv.c0 C.ρ.raft.raft.reBoot) c0 h0 h1) :
+    (hdvn : dv = none → C.ρ.raft.raft.dyn = false ∨ ∀ m, m ∈ ce → m.typ ≠ W32 1)
+    (hdvs : ∀ γn, dv = some γn → uint.Z C.c₀ ≤ uint.Z C.ai₀ ∧ C.ρ.raft.raft.dyn = true ∧
+      C.ρ.raft.raft.dec = srvDec C.γr.kv.c0 C.ρ.raft.raft.boot ∧ C.ρ.raft.pre = [] ∧
+      C.ρ.raft.ai0 = W64 0) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerApplyAll C.s C.γr ∗ batchWaitOk C.ρ C.E (A ++ ce) ∗
         taEntriesAddr apL ↦□ es ∗ taRaftAdvancedCAddr apL ↦□ rac ∗
@@ -210,15 +210,15 @@ theorem run_job_bodyOn (hAA : EtcdServer.applyAll.specOn (GF := GF) (hG := hG))
     (C : ApplyCtx GF) (A ce : List EntryModel)
     (γa : auth.AuthNames) (hM : C.E.authMode = .on γa) (hRB : receiptBound GF ≤ 2 ^ 48)
     (apL : Loc) (es : GoSlice) (ceL : List Loc) (rac nc : GoChan) (γs : schedule.SchedNames)
-    (dv : Option NodeNames) (γnc : NotifyNames)
+    (dv : Option Loc) (γnc : NotifyNames)
     (hidx : srvIdxOk C.ai₀ (A ++ ce)) (hok : logShapeOn (A ++ ce))
     (hw : C.γw = C.ρ.wait)
     -- (D43 M3, 2026-10-25) the driver's view, `applyAll`'s (`dvOk`): without one, raft's static
     -- mode or no conf entry; with one, a fresh start (`c₀ ≤ ai₀`) at the server's decoder
-    (hdvn : dv = none → C.ρ.raft.raft.reDyn = none ∨ ∀ m, m ∈ ce → m.typ ≠ W32 1)
-    (hdvs : ∀ γn, dv = some γn → uint.Z C.c₀ ≤ uint.Z C.ai₀ ∧ γn.raft = C.ρ.raft.raft ∧
-      C.ρ.raft.raft.reDyn.isSome = true ∧
-      ∃ c0 h0 h1, γn.mode = .dyn (srvDec C.γr.kv.c0 C.ρ.raft.raft.reBoot) c0 h0 h1) :
+    (hdvn : dv = none → C.ρ.raft.raft.dyn = false ∨ ∀ m, m ∈ ce → m.typ ≠ W32 1)
+    (hdvs : ∀ γn, dv = some γn → uint.Z C.c₀ ≤ uint.Z C.ai₀ ∧ C.ρ.raft.raft.dyn = true ∧
+      C.ρ.raft.raft.dec = srvDec C.γr.kv.c0 C.ρ.raft.raft.boot ∧ C.ρ.raft.pre = [] ∧
+      C.ρ.raft.ai0 = W64 0) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         srvLessorNil C.s ∗ isServerApplyAll C.s C.γr ∗ batchWaitOk C.ρ C.E (A ++ ce) ∗
         taEntriesAddr apL ↦□ es ∗ taRaftAdvancedCAddr apL ↦□ rac ∗
@@ -730,33 +730,28 @@ theorem EtcdServer.run.wp_proof
       iexfalso; iexact Hf
     simp only [↓reduceIte]
     icases Hrecv with ⟨HP, Hcons⟩
-    -- (D22 J6a) no snapshot payload in raft's no-snapshot mode (`isRaftNode`'s `rnEnvOk`)
-    ihave %Hns := isRaftNode_noSnap Er γn _ $$ Hrn
-    icases rnApplyTok_recv Er γn rcv A apv Hns $$ Hcons Hidx HP with
+    icases rnApplyTok_recv Er γn rcv A apv $$ Hcons Hidx HP with
       ⟨%ce, %ceL, Happly, #Hents, #Hentsat, #HC, %Hsnap, Hnc, HG, #Hrac, #Hcl⟩
     -- (D43 M3) `notifyc` and the driver's view, at the apply side (`rnDv`)
     icases Hnc with ⟨%γnc, #Hncb0, Hnrc⟩
     have hρ : ρ.raft = Er.γr.raft := by rw [HEγr, ← Hrd]
     have hpre : γn.pre = ρ.raft.pre := by rw [hρ]; exact Hnm.2.1.symm
+    have hnd0 : ρ.raft.raft = γn.node := by rw [hρ, Hnm.1]
     ihave #Hncb : isNotify γnc apv.notifyc' (dvView ρ.raft (rnDv γn ce) (A ++ ce)) $$ []
-    · rw [← rnApR_dv γn ρ.raft hpre A ce]; iexact Hncb0
+    · rw [← rnApR_dv γn ρ.raft hpre hnd0 A ce]; iexact Hncb0
     ihave #Hdyn := srvRaftNodeDyn_of_isRaftNode Er γn s $$ Hrn
-    icases rnApGive_dv s γn ρ.raft hpre A ce $$ [Hdyn HG] with ⟨Hdv, #Hdvr⟩
+    icases rnApGive_dv s γn ρ.raft hpre hnd0 A ce $$ [Hdyn HG] with ⟨Hdv, #Hdvr⟩
     · iframe Hdyn HG
-    have hdvn : rnDv γn ce = none → ρ.raft.raft.reDyn = none ∨ ∀ m, m ∈ ce → m.typ ≠ W32 1 := by
+    have hdvn : rnDv γn ce = none → ρ.raft.raft.dyn = false ∨ ∀ m, m ∈ ce → m.typ ≠ W32 1 := by
       intro h
       unfold rnDv at h
       by_cases hh : rnHands γn ce
       · rw [ite_eq_left hh] at h; cases h
       unfold rnHands at hh
-      cases hd : γn.node.mode.isDyn
+      cases hd : γn.node.dyn
       · left
-        have hst : γn.node.mode = .static := by
-          cases hm : γn.node.mode with
-          | static => rfl
-          | dyn => rw [hm] at hd; simp [RNMode.isDyn] at hd
         rw [hρ, Hnm.1]
-        exact Hmd.1.1 hst
+        exact hd
       · right
         rw [hd] at hh
         simp only [Bool.true_and, Bool.not_eq_true] at hh
@@ -765,29 +760,18 @@ theorem EtcdServer.run.wp_proof
         have := List.any_eq_false.1 hh m hm
         simp [hty] at this
     have hdvs : ∀ γn', rnDv γn ce = some γn' → uint.Z c₀ ≤ uint.Z ai₀ ∧
-        γn'.raft = ρ.raft.raft ∧ ρ.raft.raft.reDyn.isSome = true ∧
-        ∃ c0 h0 h1, γn'.mode = .dyn (srvDec γr.kv.c0 ρ.raft.raft.reBoot) c0 h0 h1 := by
+        ρ.raft.raft.dyn = true ∧ ρ.raft.raft.dec = srvDec γr.kv.c0 ρ.raft.raft.boot ∧
+        ρ.raft.pre = [] ∧ ρ.raft.ai0 = W64 0 := by
       intro γn' h
       unfold rnDv at h
       by_cases hh : rnHands γn ce
-      · rw [ite_eq_left hh] at h
-        cases h
-        have hd : γn.node.mode.isDyn = true := by
+      · have hd : γn.node.dyn = true := by
           unfold rnHands at hh; simp only [Bool.and_eq_true] at hh; exact hh.1
-        have hdyn : ρ.raft.raft.reDyn.isSome = true := by
-          cases hr : ρ.raft.raft.reDyn with
-          | none =>
-            have hst := Hmd.1.2 (by rw [← Hnm.1, ← hρ]; exact hr)
-            rw [hst] at hd; simp [RNMode.isDyn] at hd
-          | some _ => rfl
-        refine ⟨Hc0a hd, by rw [hρ, Hnm.1], hdyn, ?_⟩
-        cases hm : γn.node.mode with
-        | static => rw [hm] at hd; simp [RNMode.isDyn] at hd
-        | dyn dec c0 h0 h1 =>
-          have := Hmd.2.1 dec c0 h0 h1 hm
-          subst this
-          refine ⟨c0, h0, h1, ?_⟩
-          rw [hρ, HEγr]
+        obtain ⟨hc, hp0, ha0⟩ := Hc0a hd
+        have hnd : ρ.raft.raft = γn.node := by rw [hρ, Hnm.1]
+        refine ⟨hc, by rw [hnd]; exact hd, ?_, by rw [← hpre]; exact hp0, ?_⟩
+        · rw [hnd, Hmd hd, HEγr]
+        · rw [hρ, HEγr, Hkc0.2]; exact ha0
       · rw [ite_eq_right hh] at h; cases h
     ihave #HC' : iprop(srvC ρ E ai₀ c₀ x₀ (A ++ ce)) $$ []
     · rw [← HEC]; iexact HC
@@ -1252,33 +1236,28 @@ theorem EtcdServer.run.wp_proofOn
       iexfalso; iexact Hf
     simp only [↓reduceIte]
     icases Hrecv with ⟨HP, Hcons⟩
-    -- (D22 J6a) no snapshot payload in raft's no-snapshot mode (`isRaftNode`'s `rnEnvOk`)
-    ihave %Hns := isRaftNode_noSnap Er γn _ $$ Hrn
-    icases rnApplyTok_recv Er γn rcv A apv Hns $$ Hcons Hidx HP with
+    icases rnApplyTok_recv Er γn rcv A apv $$ Hcons Hidx HP with
       ⟨%ce, %ceL, Happly, #Hents, #Hentsat, #HC, %Hsnap, Hnc, HG, #Hrac, #Hcl⟩
     -- (D43 M3) `notifyc` and the driver's view, at the apply side (`rnDv`)
     icases Hnc with ⟨%γnc, #Hncb0, Hnrc⟩
     have hρ : ρ.raft = Er.γr.raft := by rw [HEγr, ← Hrd]
     have hpre : γn.pre = ρ.raft.pre := by rw [hρ]; exact Hnm.2.1.symm
+    have hnd0 : ρ.raft.raft = γn.node := by rw [hρ, Hnm.1]
     ihave #Hncb : isNotify γnc apv.notifyc' (dvView ρ.raft (rnDv γn ce) (A ++ ce)) $$ []
-    · rw [← rnApR_dv γn ρ.raft hpre A ce]; iexact Hncb0
+    · rw [← rnApR_dv γn ρ.raft hpre hnd0 A ce]; iexact Hncb0
     ihave #Hdyn := srvRaftNodeDyn_of_isRaftNode Er γn s $$ Hrn
-    icases rnApGive_dv s γn ρ.raft hpre A ce $$ [Hdyn HG] with ⟨Hdv, #Hdvr⟩
+    icases rnApGive_dv s γn ρ.raft hpre hnd0 A ce $$ [Hdyn HG] with ⟨Hdv, #Hdvr⟩
     · iframe Hdyn HG
-    have hdvn : rnDv γn ce = none → ρ.raft.raft.reDyn = none ∨ ∀ m, m ∈ ce → m.typ ≠ W32 1 := by
+    have hdvn : rnDv γn ce = none → ρ.raft.raft.dyn = false ∨ ∀ m, m ∈ ce → m.typ ≠ W32 1 := by
       intro h
       unfold rnDv at h
       by_cases hh : rnHands γn ce
       · rw [ite_eq_left hh] at h; cases h
       unfold rnHands at hh
-      cases hd : γn.node.mode.isDyn
+      cases hd : γn.node.dyn
       · left
-        have hst : γn.node.mode = .static := by
-          cases hm : γn.node.mode with
-          | static => rfl
-          | dyn => rw [hm] at hd; simp [RNMode.isDyn] at hd
         rw [hρ, Hnm.1]
-        exact Hmd.1.1 hst
+        exact hd
       · right
         rw [hd] at hh
         simp only [Bool.true_and, Bool.not_eq_true] at hh
@@ -1287,29 +1266,18 @@ theorem EtcdServer.run.wp_proofOn
         have := List.any_eq_false.1 hh m hm
         simp [hty] at this
     have hdvs : ∀ γn', rnDv γn ce = some γn' → uint.Z c₀ ≤ uint.Z ai₀ ∧
-        γn'.raft = ρ.raft.raft ∧ ρ.raft.raft.reDyn.isSome = true ∧
-        ∃ c0 h0 h1, γn'.mode = .dyn (srvDec γr.kv.c0 ρ.raft.raft.reBoot) c0 h0 h1 := by
+        ρ.raft.raft.dyn = true ∧ ρ.raft.raft.dec = srvDec γr.kv.c0 ρ.raft.raft.boot ∧
+        ρ.raft.pre = [] ∧ ρ.raft.ai0 = W64 0 := by
       intro γn' h
       unfold rnDv at h
       by_cases hh : rnHands γn ce
-      · rw [ite_eq_left hh] at h
-        cases h
-        have hd : γn.node.mode.isDyn = true := by
+      · have hd : γn.node.dyn = true := by
           unfold rnHands at hh; simp only [Bool.and_eq_true] at hh; exact hh.1
-        have hdyn : ρ.raft.raft.reDyn.isSome = true := by
-          cases hr : ρ.raft.raft.reDyn with
-          | none =>
-            have hst := Hmd.1.2 (by rw [← Hnm.1, ← hρ]; exact hr)
-            rw [hst] at hd; simp [RNMode.isDyn] at hd
-          | some _ => rfl
-        refine ⟨Hc0a hd, by rw [hρ, Hnm.1], hdyn, ?_⟩
-        cases hm : γn.node.mode with
-        | static => rw [hm] at hd; simp [RNMode.isDyn] at hd
-        | dyn dec c0 h0 h1 =>
-          have := Hmd.2.1 dec c0 h0 h1 hm
-          subst this
-          refine ⟨c0, h0, h1, ?_⟩
-          rw [hρ, HEγr]
+        obtain ⟨hc, hp0, ha0⟩ := Hc0a hd
+        have hnd : ρ.raft.raft = γn.node := by rw [hρ, Hnm.1]
+        refine ⟨hc, by rw [hnd]; exact hd, ?_, by rw [← hpre]; exact hp0, ?_⟩
+        · rw [hnd, Hmd hd, HEγr]
+        · rw [hρ, HEγr, Hkc0.2]; exact ha0
       · rw [ite_eq_right hh] at h; cases h
     ihave #HC' : iprop(srvCM true ρ E ai₀ c₀ x₀ (A ++ ce)) $$ []
     · rw [← HEC]; iexact HC

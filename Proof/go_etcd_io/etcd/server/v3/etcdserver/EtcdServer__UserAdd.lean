@@ -50,9 +50,20 @@ theorem EtcdServer.UserAdd.wp_proof
     (try wp_auto)
     rcases err with ei | _
     · wp_auto
-      iapply HΦ; ileft; iframe HP; ipureintro; exact ⟨rfl, by simp⟩
-    icases Hor with (%Herr | ⟨%hs, Hh⟩)
-    · exact absurd rfl Herr
+      icases Hor with (⟨%ei', %Hei, #Hm⟩ | ⟨%Hnil, -⟩)
+      · obtain ⟨Heq, hl, hIs, hk⟩ := Hei
+        cases Heq
+        iapply HΦ; ileft; iframe HP
+        isplitr
+        · ipureintro; exact ⟨rfl, by simp⟩
+        rcases hk with hp | ⟨hty, hkey⟩
+        · iapply applyErrIs_leaf _ ⟨hp, hl, hIs⟩
+          iunfold errMsgOk; iexact Hm
+        · iapply applyErrIs_valLeaf _ hl hIs hty hkey
+          iunfold errMsgOk; iexact Hm
+      · cases Hnil
+    icases Hor with (⟨%ei', %Hei, -⟩ | ⟨-, %hs, Hh⟩)
+    · cases Hei.1
     wp_auto
     wp_apply Henc $$ [$Hh] as Hh
     (try wp_auto)
@@ -149,9 +160,20 @@ theorem EtcdServer.UserAdd.wp_proof
       (try wp_auto)
       rcases err with ei | _
       · wp_auto
-        iapply HΦ; ileft; iframe HP; ipureintro; exact ⟨rfl, by simp⟩
-      icases Hor with (%Herr | ⟨%hs, Hh⟩)
-      · exact absurd rfl Herr
+        icases Hor with (⟨%ei', %Hei, #Hm⟩ | ⟨%Hnil, -⟩)
+        · obtain ⟨Heq, hl, hIs, hk⟩ := Hei
+          cases Heq
+          iapply HΦ; ileft; iframe HP
+          isplitr
+          · ipureintro; exact ⟨rfl, by simp⟩
+          rcases hk with hp | ⟨hty, hkey⟩
+          · iapply applyErrIs_leaf _ ⟨hp, hl, hIs⟩
+            iunfold errMsgOk; iexact Hm
+          · iapply applyErrIs_valLeaf _ hl hIs hty hkey
+            iunfold errMsgOk; iexact Hm
+        · cases Hnil
+      icases Hor with (⟨%ei', %Hei, -⟩ | ⟨-, %hs, Hh⟩)
+      · cases Hei.1
       wp_auto
       wp_apply Henc $$ [$Hh] as Hh
       (try wp_auto)
@@ -314,6 +336,34 @@ theorem EtcdServer.UserAdd.wp_proof
           iframe HQ
           ipureintro; exact ⟨rfl, He⟩
         · exact absurd rfl He
+
+/-- `spec`'s instance at `raftRequest.specM true` (`authRaftOk_on`, for every model of the
+request). -/
+theorem EtcdServer.UserAdd.wp_proofOn
+    (h_gen : bcrypt.GenerateFromPassword.spec (GF := GF) (hG := hG))
+    (hRR : EtcdServer.raftRequest.specM (GF := GF) (hG := hG) true) :
+    EtcdServer.UserAdd.specOn (GF := GF) (hG := hG) := by
+  intro s E ρ ctx cd ast r name pw hpw o b F
+  wp_start_folded as ⟨#Hast, #Hcost, %Hrnn, #HN, Hpw, Hhpw, #Ho, #Hopts, %Hn, HP⟩
+  ihave #Hc : □ (∀ m : apply.UserAddModel, ⌜m.name = name ∧ m.noPassword = b ∧ m.pwSure⌝ →
+      authRaftOk s ctx (irrUserAdd m) etcdserverpb.AuthUserAddResponse.ty
+        (adminPreOn s E ρ ctx cd F) (userAddOutOn s E ρ F name b)) $$ []
+  · imodintro
+    iintro %m %Hm
+    obtain ⟨Hmn, Hmb, Hms⟩ := Hm
+    iapply authRaftOk_on hRR s E ρ ctx cd (irrUserAdd m) F _ _ rfl rfl
+      (adminPropOk_userAdd m (Hmn ▸ Hn) Hms) (irrNoZeroEnd_admin _ rfl rfl rfl)
+    iintro %l %err H
+    iunfold userAddOutOn
+    iexists m
+    iframe H
+    ipureintro; exact ⟨Hmn, Hmb, Hms⟩
+  wp_apply EtcdServer.UserAdd.wp_proof h_gen s ctx ast r name pw hpw o b (adminPreOn s E ρ ctx cd F)
+      (userAddOutOn s E ρ F name b) $$ [Hpw Hhpw HP] as %resp %err H
+  · iframe # Hpw Hhpw HP
+    ipureintro; exact Hrnn
+  iapply HΦ
+  iexact H
 
 end proof
 

@@ -112,7 +112,7 @@ local macro "nov3_post" : tactic => `(tactic| (
   simp only [Bool.false_eq_true, ↓reduceIte, dvCCPost, ccMembRes, hst]
   iframe Hpre Hrt Hrc
   iexists γn, c
-  iframe Hfz Htk
+  iframe Hlive
   ipureintro; exact Hcl))
 
 /-- A conf change's `NodeId` field, replaced (`cc.NodeId = new(raft.None)`). -/
@@ -157,13 +157,14 @@ local macro "raft_cc " cm:term:max " with " hraft:term:max hdynp:term:max " then
         %(($hraft hdvc).1) %(($hraft hdvc).2) []
       as %csp Hcsp
     · simp only [ownConfChangeI]; iexists cc; iframe Hcc; ipureintro; rfl
-    ihave Hdvq : dvCCPost (GF := GF) none k cs' $$ []
+    ihave Hdvq : dvCCPost (GF := GF) γs none k mb $$ []
     · iunfold dvCCPost; itrivial
     clear hdvc $hraft $hdynp Hdv Hdyn
     $k
   | some γn =>
     iunfold dvCCPre at Hdvp
     icases Hdvp with ⟨#Hrnd, Hnc, #Hdl⟩
+    ihave #Hrnd := Hrnd
     iunfold srvRaftNodeDyn at Hrnd
     icases Hrnd with ⟨%nd, #Hnd, #Hdcc⟩
     iunfold raftApplyCCDyn at Hdcc
@@ -171,11 +172,11 @@ local macro "raft_cc " cm:term:max " with " hraft:term:max hdynp:term:max " then
     wp_load
     rw [Hni]
     wp_pures
-    wp_apply HACC $$ %(interface.mkOk (go.GoType.PointerType raftpb.ConfChange.ty) #cc) %$cm %ds %ca
-        %cfg %k %e %cs' %($hdynp γn hdvc) [Hnc]
+    wp_apply HACC $$ %(interface.mkOk (go.GoType.PointerType raftpb.ConfChange.ty) #cc) %$cm %ds %vw
+        %k %e %mb %($hdynp γn hdvc) [Hnc]
       as %csp ⟨Hcsp, Hdvq⟩
     · iframe Hnc Hdl; simp only [ownConfChangeI]; iexists cc; iframe Hcc; ipureintro; rfl
-    ihave Hdvq : dvCCPost (GF := GF) (some γn) k cs' $$ [Hdvq]
+    ihave Hdvq : dvCCPost (GF := GF) γs (some γn) k mb $$ [Hdvq]
     · iunfold dvCCPost; iexact Hdvq
     clear hdvc $hraft $hdynp Hdv Hdyn
     $k))
@@ -297,10 +298,10 @@ local macro "succ_tail" : tactic => `(tactic| (
         iexact Hhook
       iapply HΦ'
       iframe
-    cases hrd : γs.raft.reDyn with
-    | none =>
+    cases hrd : γs.raft.dyn with
+    | false =>
       simp only [ccMembRes, hrd]
-      icases Hmr with ⟨#Hrc, %γn, %c, %Hcl, #Hfz, Htk⟩
+      icases Hmr with ⟨#Hrc, %γn, %c, %Hcl, Hlive⟩
       ihave #HrcG := (membership.isRaftCluster_static cl).1 $$ Hrc
       wp_apply (hAdd cl membership.rcStatic rs.mem _ (DFrac.own 1) (membership.ccMemberAt m) true lgc cid
         ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.membershipBackend.ty, #mbl⟩
@@ -380,7 +381,7 @@ local macro "succ_tail" : tactic => `(tactic| (
         try simp only [ccMembRes, hrd]
         iframe Hrc
         iexists γn, c
-        iframe Hfz Htk
+        iframe Hlive
         ipureintro; exact Hcl
       · wsteps
         rw [decide_eq_false hlid]
@@ -389,8 +390,8 @@ local macro "succ_tail" : tactic => `(tactic| (
             pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp $$ []
         · iPkgInit
         wsteps
-        wp_apply (rafthttp.Transport.AddPeer_frozen γn tl c prs m.nodeId pu (Hpeer hty0 hlid))
-          $$ [Htk] as Htk
+        wp_apply (rafthttp.Transport.AddPeer_known γn tl c prs m.nodeId pu (Hpeer hty0 hlid))
+          $$ [Hlive] as Hlive
         · iframe #; iframe
         wsteps
         ihave Hmh : membership.memberAt («$r0_ptr».[go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext, go!"Member"]) (1 : Qp).half (membership.ccMemberAt m) $$ [ID PeerURLs IsLearner Name ClientURLs Hpus Hcus]
@@ -441,9 +442,9 @@ local macro "succ_tail" : tactic => `(tactic| (
         try simp only [ccMembRes, hrd]
         iframe Hrc
         iexists γn, c
-        iframe Hfz Htk
+        iframe Hlive
         ipureintro; exact Hcl
-    | some dynf =>
+    | true =>
       simp only [ccMembRes, hrd]
       icases Hmr with ⟨%γn, %c, %γc, %rm, %Hcl, Hlive, #HrcG, Hrmo⟩
       wp_apply (hAdd cl (membership.rcDyn γc) rs.mem _ (DFrac.own 1) (membership.ccMemberAt m) true lgc cid
@@ -586,7 +587,7 @@ local macro "succ_tail" : tactic => `(tactic| (
         iframe Hlive HrcG Hrmo
         ipureintro; exact Hcl
   · -- `RemoveNode` (raft's dynamic mode only, `ccApplyOkM`)
-    obtain ⟨hdynm, hin1⟩ : γs.raft.reDyn.isSome = true ∧ m.nodeId ∈ γs.raft.reCfg := by
+    obtain ⟨hdynm, hin1⟩ : γs.raft.dyn = true ∧ m.nodeId ∈ γs.raft.cfg := by
       rcases Hok with ⟨h0, -⟩ | ⟨h, -, hin⟩
       · rw [hty1] at h0; exact absurd h0 (by simp)
       · exact ⟨h, hin⟩
@@ -595,9 +596,9 @@ local macro "succ_tail" : tactic => `(tactic| (
     wp_apply (hGetNodeId.1 cc _ m) $$ [] as -
     · iframe #
     wsteps
-    cases hrd : γs.raft.reDyn with
-    | none => rw [hrd] at hdynm; cases hdynm
-    | some dynf =>
+    cases hrd : γs.raft.dyn with
+    | false => rw [hrd] at hdynm; cases hdynm
+    | true =>
     simp only [ccMembRes, hrd]
     icases Hmr with ⟨%γn, %c, %γc, %rm, %Hcl, Hlive, #HrcG, Hrmo⟩
     ihave #HbeDel : membership.beDeleteOk
@@ -647,6 +648,7 @@ local macro "succ_tail" : tactic => `(tactic| (
     wsteps
     wp_apply (hRemovePeer γn tl c prs m.nodeId) $$ [Hlive] as Hlive
     · iframe #; iframe
+      iright; iunfold trNoRemOr; ileft; ipureintro; rw [Hcl.2]; simp
     wsteps
     have hcr : ccRest true m rs = ⟨apply.bkPut (apply.bkDel rs.bk go!"members"
         (apply.memberKey m.nodeId)) go!"members_removed" (apply.memberKey m.nodeId)
@@ -705,7 +707,7 @@ theorem EtcdServer.applyConfChange.wp_proof
     (hBool : zap.Bool.spec (GF := GF) (hG := hG))
     (hZErr : zap.Error.spec (GF := GF) (hG := hG)) :
     EtcdServer.applyConfChange.spec (GF := GF) (hG := hG) := by
-  intro s cc ep m cs v3 ci ua E γs Pre Q Post Adv i t γB cl rs d al st lp dv ds ca k cfg cs' e
+  intro s cc ep m cs v3 ci ua E γs Pre Q Post Adv i t γB cl rs d al st lp dv ds vw k mb e
     lg bh ix lgh tl lid prs lgc cid Hok HRO Hkb HγB Hdv Hdyn Hpeer Hloc Hsz Hmem Hrem
   wp_start as ⟨#Hlg, %Hlgnn, Hlr, #Hci, Hua, #Happ, #Hrn, #Hcl, HRS, #Hclg, %Hclgnn, #Hcid, Hdvp, Hcc, Hcs, #Hbh, #Hbhi,
     #Htr, #Hmid, Hmr, Hrt, Hv3, Hpre⟩
@@ -755,7 +757,7 @@ theorem EtcdServer.applyConfChange.wp_proof
   · iPkgInit
   cases v3
   · -- without `v3` (a replay, raft's static mode): the validation answers `nil`
-    have hst : γs.raft.reDyn = none := by
+    have hst : γs.raft.dyn = false := by
       cases hdv : dv with
       | none => exact Hdv hdv
       | some γn => exact absurd (Hdyn γn hdv).1 (by simp)
@@ -821,7 +823,7 @@ theorem EtcdServer.applyConfChange.wp_proof
       simp only [membership.ccMemberAt]
       iframe
     simp only [ccMembRes, hst]
-    icases Hmr with ⟨#Hrc, %γn, %c, %Hcl, #Hfz, Htk⟩
+    icases Hmr with ⟨#Hrc, %γn, %c, %Hcl, Hlive⟩
     ihave #HrcG := (membership.isRaftCluster_static cl).1 $$ Hrc
     wp_apply (hAdd cl membership.rcStatic rs.mem _ (DFrac.own 1) (membership.ccMemberAt m) false lgc cid
       ⟨go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.membershipBackend.ty, #mbl⟩
@@ -846,8 +848,8 @@ theorem EtcdServer.applyConfChange.wp_proof
           pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp $$ []
       · iPkgInit
       wp_auto
-      wp_apply (rafthttp.Transport.AddPeer_frozen γn tl c prs m.nodeId pu (Hpeer hty0 hlid))
-        $$ [Htk] as Htk
+      wp_apply (rafthttp.Transport.AddPeer_known γn tl c prs m.nodeId pu (Hpeer hty0 hlid))
+        $$ [Hlive] as Hlive
       · iframe #; iframe
       nov3_post
   · -- with `v3` (`ApplyBoth`)
@@ -883,17 +885,16 @@ theorem EtcdServer.applyConfChange.wp_proof
       imod ownConfChange_persist _ _ _ $$ Hcc with #Hcc
       iunfold epConfState at Hcs
       icases Hcs with ⟨Hcsf, #Hcsok0⟩
-      have hraftS : dv = none → γs.raft.reDyn = none ∧ ccRaftOk γs.raft.reCfg m := by
+      have hraftS : dv = none → γs.raft.dyn = false ∧ ccRaftOk γs.raft.cfg m := by
         intro h
         have hs := Hdv h
         refine ⟨hs, ?_⟩
         rcases Hok with ⟨h0, hin, -⟩ | ⟨h1, -⟩
         · exact ⟨h0, m.nodeId, hin, .inl rfl⟩
         · rw [hs] at h1; cases h1
-      have hdynS : ∀ γn, dv = some γn → ∀ dec c0 h0 h1, γn.mode = .dyn dec c0 h0 h1 →
-          DynCCPreOp dec ds ca cfg (ccV2Of (.v1 m)) k e cs' :=
-        fun γn h dec c0 h0 h1 hm => by
-          have := (Hdyn γn h).2 dec c0 h0 h1 hm
+      have hdynS : ∀ γn, dv = some γn → srvDynCCPre γs.raft.dec ds vw (.v1 m) k e mb :=
+        fun γn h => by
+          have := (Hdyn γn h).2
           unfold membership.ccRaftEff at this; rw [if_pos hv] at this; exact this
       raft_cc m with hraftS hdynS then succ_tail
     · cases err with
@@ -917,18 +918,18 @@ theorem EtcdServer.applyConfChange.wp_proof
         ihave Hcc := Hcc $$ %«$r0_ptr» %(W64 0) HN []
         · iunfold cellRO; iright; iexact «$r0»
         imod ownConfChange_persist _ _ _ $$ Hcc with #Hcc
-        have hraft0 : dv = none → γs.raft.reDyn = none ∧
-            ccRaftOk γs.raft.reCfg { m with nodeId := W64 0 } := by
+        have hraft0 : dv = none → γs.raft.dyn = false ∧
+            ccRaftOk γs.raft.cfg { m with nodeId := W64 0 } := by
           intro h
           have hs := Hdv h
           refine ⟨hs, ?_⟩
           rcases Hok with ⟨h0, hin, -⟩ | ⟨h1, -⟩
           · exact ⟨h0, m.nodeId, hin, .inr rfl⟩
           · rw [hs] at h1; cases h1
-        have hdyn0 : ∀ γn, dv = some γn → ∀ dec c0 h0 h1, γn.mode = .dyn dec c0 h0 h1 →
-            DynCCPreOp dec ds ca cfg (ccV2Of (.v1 { m with nodeId := W64 0 })) k e cs' :=
-          fun γn h dec c0 h0 h1 hm => by
-            have := (Hdyn γn h).2 dec c0 h0 h1 hm
+        have hdyn0 : ∀ γn, dv = some γn →
+            srvDynCCPre γs.raft.dec ds vw (.v1 { m with nodeId := W64 0 }) k e mb :=
+          fun γn h => by
+            have := (Hdyn γn h).2
             unfold membership.ccRaftEff at this; rw [if_neg hv] at this; exact this
         raft_cc ({ m with nodeId := W64 0 }) with hraft0 hdyn0 then fail_tail
 
