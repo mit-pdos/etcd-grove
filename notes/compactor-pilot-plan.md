@@ -1,7 +1,8 @@
 # Plan: the spec-first pilot, etcd's auto-compactor
 
-Status: phase 0 (2026-10-27, branch `compactor-pilot`): this note is phase 0's output, the scope and
-the top-level statements; awaiting the user's choice of scope (A or B, "The scope decision").
+Status: phase 0 done (2026-10-27, branch `compactor-pilot`): this note is phase 0's output, the
+scope and the top-level statements. Scope **(A)**, the compactor and the server's compaction path
+(the user, 2026-10-27). Next: phase 1.
 Step 3 of `notes/spec-first-plan.md` ("Testing the plan").
 
 ## What the pilot is
@@ -79,7 +80,7 @@ workload meets it trivially), until the fix (etcd-io/etcd#22377) is in the fork.
 state the server reaches, given that only the compactor compacts. This is what a client relying on
 the retention (a watch resuming within it) needs.
 
-## The scope decision (the user's)
+## The scope decision (the user's: (A), 2026-10-27)
 
 - **(A) The compactor and the server's compaction path** (recommended): the 14 compactor functions;
   `EtcdServer.Compact`; `applierV3backend.Compaction` and the dispatch's compaction arm (the
