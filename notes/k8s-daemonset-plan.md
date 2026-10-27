@@ -339,11 +339,44 @@ theorem's program runs with it off, the premise "a failed write had no effect" (
    consumer's `Pop` with two linearization points (`popAU`: the head delta removed, or
    `ErrFIFOClosed` on an empty closed queue; `doneAU`: one initial item fewer after processing,
    `FQ.popDone`), the processing in between with the lock released when `unlockWhileProcessing`
-   (`whileProcessing_locked`). **Not done:** the reflector (`ListAndWatch`, its watch loop D4), the
-   controller's `processLoop`, the shared informer, processor and listeners (handlers' delivery),
-   `AddIndexers`/`GetIndexers`, the listers, the factory; `PopBatch`/`Transaction` (D3/C4: the
-   path `Main`'s default gates select, so either `Main` turns `InOrderInformersBatchProcess` off or
-   C4 is fixed in Perennial first).
+   (`whileProcessing_locked`).
+   *Status, proofs, second round (2026-10-27, branch `k8s-daemonset-proof`, phase C2):* no `sorry`
+   added. **Keys and resource versions per call** (refactor): a pure key function or `rvOf` fixed in
+   advance cannot describe heap-allocated objects, so `cache`'s `Add`/`Update`/`Delete`/`Get`/
+   `Replace` take `keyOk D kf KF` and `rvAcc D rvOf` over the objects `D` of that call; `isCache`
+   exposes the key function `kf`; the FIFO's `isFIFO f γ OK` drops `KF`. **The indexers**:
+   `AddIndexers` (re-indexing every item, `St.addIx`; the name-clash and non-empty-store errors),
+   `GetIndexers`; sets' `KeySet`, `List`, `HasAny`, `Intersection`, `UnsortedList`, `New`;
+   `fmt.Errorf` with a `Set[string]` argument (`ErrorfSet.lean`). **The processing of a delta**:
+   `processDeltas` (non-batch), `processReplacedAllInfo`, `reconcileReplacement` over the store's
+   exclusive writer `storeWriter γ SW` and a handler contract `handlerOk OK h H` (`InformerDefs.lean`:
+   the events `Ev`, `stepFD`); `sharedIndexInformer.handleDeltas` (under `blockDeltas`, the informer as
+   its handler: `handlerOk` a premise). **The controller loop**: `controller.processLoop` on the
+   single-delta path, premises `gateOff` (the gate `InOrderInformersBatchProcess` reads `false`: the
+   batch path is taken iff the queue is a `QueueWithBatch` (the `RealFIFO` is), `ProcessBatch ≠ nil`
+   (the shared informer sets it) and the gate is on) and `errIsOk` (`errors.Is(err, ErrFIFOClosed)`
+   returns: the package fact says only that `ErrFIFOClosed` holds some error, and `Pop`'s spec not
+   which error it returns once closed). **The listers**: `ListAll`, `ListAllByNamespace`, the
+   generic `ResourceIndexer`'s `Get`/`List`, `listers.New`/`NewNamespaced`, and the typed listers of
+   `Main`'s four informers (`NewDaemonSetLister`, `DaemonSets`, `NewControllerRevisionLister`,
+   `ControllerRevisions`, `NewPodLister`, `Pods`, `NewNodeLister`, the namespace listers' and the
+   node lister's promoted `Get`/`List`), linked in `Proof/k8s_io/client_go/informers/Link.lean`
+   (`etc/gen-link.py --k8sinformers`); new boundary axioms `apps/v1.Resource`, `core/v1.Resource`
+   (names-only, specified as returning some `GroupResource`). One client-go bug filed
+   (`issues/k8s-clientgo-getindexers-unlocked-map.md`, a data race).
+   **Not done:** the reflector (`ListAndWatch`, its watch loop D4), the shared processor and
+   listeners (`distribute`, `processorListener.add`/`pop`/`run`, the informer's
+   `OnAdd`/`OnUpdate`/`OnDelete`, i.e. `handleDeltas`'s `handlerOk`; `AddEventHandlerWithOptions`,
+   per-handler `HasSynced`), `GetPodDaemonSets`/`GetHistoryDaemonSets` (label selectors),
+   `IndexKeys`/`ListIndexFuncValues` (unreached by `Main`), the factory and typed informers (C2/D2),
+   the informer contract's assembly (the invariant tying the FIFO's queue, the store through
+   `storeWriter` and `InformerModel`); `PopBatch`/`Transaction` (D3/C4: the path `Main`'s default
+   gates select, so either `Main` turns `InOrderInformersBatchProcess` off or C4 is fixed in
+   Perennial first). **Decision needed**: the index functions `Fam` are pure functions of the
+   interface value, which cannot be right for heap-allocated objects in general (they read the
+   object's fields; it works for `Main` only through its scenario's fixed objects): record per-item
+   index values (or the objects' abstract values) in the store's state, as was done for keys and
+   resource versions.
 5. **The controller.** `Run`, the workers, `syncDaemonSet` and what it calls on this scenario's
    paths, the event handlers, `syncNodeUpdate`; S1's invariant.
 6. **The closed theorem.** `examples/dsonepod`'s `wp_Main`, its package table and init, and

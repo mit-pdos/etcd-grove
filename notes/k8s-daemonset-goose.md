@@ -350,6 +350,20 @@ handler types (`TypedResourceEventHandler[T Object]`, ...) translate with `T` un
 - `go.NotInterface go.int64` is stated again (`RealFIFO__whileProcessing_locked.lean`, as in the
   backend's proofs): `MethodResolve time.Duration` needs it and instance search does not unfold
   `go.int64`.
+- **Second round (indexers, processing, listers; 2026-10-27):**
+  - `fmt.Errorf` with `Set[string]` arguments (`AddIndexers`' errors) is proved from Perennial's
+    `fmt` model (`Proof/k8s_io/client_go/tools/cache/ErrorfSet.lean`, `wp_Errorf_setArgs`): its
+    premise records that the model's argument well-formedness (`ArgWf`) has no case for a
+    method-less map, a Perennial extension proposed (`notes/perennial-changes.md`).
+  - meta/v1's `NamespaceAll` is translated now (its `.toml`; the listers compare with it).
+  - New trust-boundary axioms, names-only `k8s.io/api` functions: `apps/v1.Resource` and
+    `core/v1.Resource` (`Spec/k8s_io/api/{apps,core}/v1/Resource.lean`), each "returns some
+    `GroupResource`": no claim about which (the listers only carry it to `NewNotFound`).
+    `schema.GroupResource.String` (consistency's) reused by `NewNotFound` in the `--k8sinformers`
+    link.
+  - `controller.processLoop`'s premises `gateOff` (client-go's `FeatureGates().Enabled(
+    InOrderInformersBatchProcess)` returns `false`) and `errIsOk` (`errors.Is` returns on the
+    loop's errors) are a spec's premises, not axioms: the batch path `Main` takes stays open.
 
 ## The call graph of `Main` (the worklist)
 

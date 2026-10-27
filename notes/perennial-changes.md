@@ -317,6 +317,37 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   `wp_apply` support atomic specs directly.
 - **Status.** Not started.
 
+### Specs: `fmt`'s `ArgWf` for a method-less map argument (2026-10-27, client-go informers)
+
+- **Missing.** Perennial's `fmt.Errorf` spec requires each argument well formed (`ArgWf`), which
+  has no case for a value of a named map type without a `String`/`Error` method (`sets.Set[string]`,
+  printed with `%v`). client-go's `AddIndexers` passes two.
+- **Workaround here.** `Proof/k8s_io/client_go/tools/cache/ErrorfSet.lean` proves
+  `wp_Errorf_setArgs` from the model with the faithfulness of that case as its premise.
+- **Proposed.** An `ArgWf` case for maps whose type has no formatting method (the value printed
+  structurally; the spec needs only that `Errorf` returns a non-nil error).
+- **Status.** Not started.
+
+### Tactics: `wp_load` misses a field of a whole-struct points-to with a generic-struct field (2026-10-27, client-go listers)
+
+- **Missing.** With `s ↦{dq} (⟨ri⟩ : daemonSetLister)` in context (a struct whose one field is the
+  generic `listers.ResourceIndexer[T]`), `wp_load` of `s.[daemonSetLister, "ResourceIndexer"]`
+  reports "could not find a points-to in context covering the address", although the generated
+  `AccessStrict` instance `daemonSetLister_access_load_ResourceIndexer` exists and applies when
+  used by hand.
+- **Workaround here.** Specs state the field points-to (`s.[daemonSetLister, "ResourceIndexer"] ↦
+  ri`); constructors split the allocation with the instance's `access_strict`
+  (`Proof/k8s_io/client_go/listers/apps/v1/NewDaemonSetLister.lean`).
+- **Status.** Not investigated.
+
+### Tactics: `iframe` leaves persistent hypotheses unframed after `iapply` of an atomic spec (2026-10-27, client-go listers)
+
+- **Missing.** After `iapply (atomicSpec ...) $$ [Hr] HAU`, the precondition goal
+  `isPkgInit ∗ isCache … ∗ typedOK …` (all available as `□` hypotheses) is not closed by `iframe`;
+  `isplitr; iexact H` per conjunct is needed. Similarly after `wp_apply (wp_Pop …) $$ [Hpop Hdn]`
+  for `isFIFO`/`processOk` in `controller__processLoop.lean`.
+- **Status.** Not investigated.
+
 ### Semantics: `sync.Mutex{}` (2026-10-26, client-go workqueue)
 
 - **Missing.** `sync.Mutex`'s model has underlying type `go.bool` (`TrustedCode/sync.lean`), and a
