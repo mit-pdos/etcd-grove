@@ -108,9 +108,11 @@ theorem isCommittedLogLb_agree (γ : Cluster) (l1 l2 : List LogEntry) :
 
 /-! ## Read contexts -/
 
-/-- **Unused read contexts** (exclusive): the contexts `c` with `S c`, which no read has been
-committed to yet. A new cluster gives all of them. -/
-@[no_expose] def readCtxsFree (γ : Cluster) (S : List w8 → Prop) : IProp GF := sorry
+/-- **The read contexts, the client's** (exclusive): `U` is the finite set of the contexts committed
+so far (`readCtx_commit`); any other context is unused and may be committed. A new cluster gives it
+at `∅`. (The authority-over-used-keys pattern of a ghost map; a client whose readers run
+concurrently shares it through its own invariant.) -/
+@[no_expose] def ownReadCtxs (γ : Cluster) (U : GSet (List w8)) : IProp GF := sorry
 
 /-- **The read context `c` is committed to `Q`** (persistent): every read with context `c` takes
 effect at a moment when the committed requested entries are some `ops`, and gives `□ Q ops`
@@ -121,21 +123,17 @@ effect at a moment when the committed requested entries are some `ops`, and give
 instance isReadCtx_persistent (γ : Cluster) (N : Namespace) (c : List w8)
     (Q : List LogEntry → IProp GF) : Persistent (isReadCtx (GF := GF) γ N c Q) := sorry
 
-theorem readCtxsFree_split (γ : Cluster) (S T : List w8 → Prop) :
-    (∀ c, ¬ (S c ∧ T c)) →
-    readCtxsFree (GF := GF) γ (fun c => S c ∨ T c) ⊣⊢ readCtxsFree γ S ∗ readCtxsFree γ T := sorry
-
 /-- **Committing an unused context `c` to `Q`**, once: with an update that, at the moment a read
 takes effect, proves `□ Q ops` of the committed requested entries `ops` (leaving them unchanged). A
 client that wants its read to see what it knew to be committed (`isCommittedLogLb γ l0`) chooses
 `Q ops := ⌜opsOf l0 <+: ops⌝ ∗ …`. -/
-theorem readCtx_commit (γ : Cluster) (N : Namespace) (S : List w8 → Prop) (c : List w8)
+theorem readCtx_commit (γ : Cluster) (N : Namespace) (U : GSet (List w8)) (c : List w8)
     (Q : List LogEntry → IProp GF) :
-    S c →
-    readCtxsFree (GF := GF) γ S ∗
+    c ∉ U →
+    ownReadCtxs (GF := GF) γ U ∗
       □ AU <{ ∃∃ (ops : List LogEntry), ownCommittedOps γ ops }> @ ⊤ \ ↑N, ∅
            <{ ownCommittedOps γ ops, COMM □ Q ops }> ⊢
-    |==> readCtxsFree γ (fun c' => S c' ∧ c' ≠ c) ∗ isReadCtx γ N c Q := sorry
+    |==> ownReadCtxs γ (insert c U) ∗ isReadCtx γ N c Q := sorry
 
 /-- (open) **A read request's credit**: raft counts read requests in a 64-bit counter (today's
 `rdCred`); carried over until the read path's bounds are redesigned. -/
@@ -157,7 +155,7 @@ theorem readStateOk_ctx (γ : Cluster) (N : Namespace) (c : List w8) (idx : w64)
 
 /-- **A new cluster** of the peers `ps`, in the caller's namespace `N`: the client's committed
 requested entries at the bootstrap entries (one `ConfChangeAddNode` per peer, at term 1: `BootLog`;
-none is a filler), all the read contexts unused, and one boot
+none is a filler), the read contexts with none used, and one boot
 token per peer, for its `StartNode`. Replaces the allocation variants (`ownRaftGhost_alloc_*`,
 `raft_dyn_alloc*`, `allocClient*`). -/
 @[no_expose] def nodeBoot (γ : Cluster) (N : Namespace) (id : w64) : IProp GF := sorry
@@ -173,7 +171,7 @@ def BootLog (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry) : Pro
 
 theorem cluster_alloc (N : Namespace) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry) :
     BootLog ps ctxs boot → ps.Nodup →
-    ⊢ |==> ∃ γ, ownCommittedOps (GF := GF) γ boot ∗ readCtxsFree γ (fun _ => True) ∗
+    ⊢ |==> ∃ γ, ownCommittedOps (GF := GF) γ boot ∗ ownReadCtxs γ ∅ ∗
         [∗list] id ∈ ps, nodeBoot γ N id :=
   sorry
 
