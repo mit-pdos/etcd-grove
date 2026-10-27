@@ -448,22 +448,25 @@ Design: `notes/decisions.md`, "etcd's server on raft's node API". **The build is
 server was broken on `raft-api` already (raft's proposal-registry changes); the port has moved the
 frontier past the server's raft contract.
 
-**Done (compiling):**
-- `SrvRaftLog.lean` (new; moved out of `InvRequest.lean`): the server's raft contract over the API.
-  `ServerRaftNames.raft : SrvRaft` (the API `Draft.Cluster`, the voters `vs`, `dyn`, the decoder
-  `dec`, the boot log `boot`, and the server's own ghost names); `srvRLogLb` = the API's
-  `isCommittedLogLb` (with the indices consecutive); `srvRLog` = half of the server's **log of
-  requested entries** (a mono list, the other half in the server's log invariant `srvLogInv` with
-  the API's `ownCommittedOps`). The proposals' registry and the reads' re-firing are the server's own
-  (`srvLogCore`/`srvLogRegs`): `srvPropAu_api` (a proposal's update as `Propose`'s, firing the
-  registered reads again), `srvProp_register`, `srvPropWits_of`, `srvReadAu_api` (a read's update as
-  a read context's), `srvReadWit_of`, `srvReadCtx_commit`, the read contexts' mint
-  (`srvRdCtxInv` keeps `ownReadCtxs`), `srvCtxDeposited_minted`, `srvLogInv_alloc`. Result
-  predicates must be invariant under `srvEqv` (same requested entries): `srvQInv`, in `srvPropArg`
-  and `srvReadAu`; `kvModel_eqv`, `kv_qinv`, `reqPropOk_qinv`, `readQs_qinv` (`KVLemmas.lean`).
-- `InvRequest.lean` (kvInv: `c0 ≤ ai0` in place of `c0 ≤ ai0 + |L|`; `raftPropose` takes `£ 1`),
-  `KVLemmas.lean` (`kv_noop_au` gone), `InvProposer.lean`, `read/Inv.lean`, `InvRest.lean`,
-  `InvImage.lean`, `ProposerLemmas.lean`.
+**Done (compiling, `etc/lean-check.py`):**
+- `SrvRaftLog.lean` (new; the raft section moved out of `InvRequest.lean`): the server's raft
+  contract over the API. `ServerRaftNames.raft : SrvRaft` (the API `Draft.Cluster`, the voters `vs`,
+  `dyn`, the decoder `dec`, the boot log `boot`, the storage registry `reg`, and the server's own
+  ghost names); `srvRLogLb` = the API's `isCommittedLogLb` (indices consecutive); `srvRLog` = half of
+  the server's **log of requested entries**; the server's own proposals' registry and reads'
+  re-firing (`srvLogInv`): `srvPropAu_api`, `srvProp_register`, `srvPropWits_of`, `srvReadAu_api`,
+  `srvReadWit_of`, `srvReadCtx_commit`, the read contexts' mint, `srvLogInv_alloc`,
+  `srvRLogLb_intro`, `srv_sentMsg_notSnap`, `srv_readySnap_none`, `srv_entry_transfer`,
+  `srv_eqv_prefix`, `srvBootLogOk` (+ `_of_BootLog`), `srvStor` (the storage model the node
+  predicates are stated at). Result predicates invariant under `srvEqv` (`srvQInv`).
+- `InvRequest`, `KVLemmas` (`kvModel_eqv`, `kv_qinv`, `reqPropOk_qinv`, `readQs_qinv`; `kv_noop_au`
+  gone), `InvProposer`, `ProposerLemmas`, `read/Inv`, `InvRest`, `InvImage`, `InvCfgView` (over
+  `Draft.Membership`/`nodeConfig`/`deliveredLogLb`; `srvDec` over `Draft.LogEntry`), `InvRaftNode`
+  (`RNNames.node : SrvRaft`; `rnDrv`/`rnBusyN` as `Draft.nodeDriver`; `rn_ready_recv` from the API's
+  receive; `srvRQ` a read context with `readCtxAfter`; the snapshot predicates `False`, `rnRtOk`
+  `True`), `NodeBridge` (all discharges over the API's specs), `InvRaftLoop`, `InvApRes`, `KVApply`,
+  `KVRead` (six credits), `newRaftNode` (spec and proof), `bootstrappedRaft.newRaftNode` (spec and
+  proof: the API's `StartNode`, static or dynamic; the peers' slice not given back).
 
 **Draft items added to `NodeApiDraft.lean`** (sealed, `sorry` unless noted): `isCommittedLogLb_length`,
 `readCredits_timeless` (proved), the instance-free laws `isCommittedLogLb_mono'`/`_agree'`,
@@ -471,11 +474,8 @@ frontier past the server's raft contract.
 `readCtxAfter`/`readCtx_commit_after`/`readStateOk_after`, `noConfChangeV2`/`noConfChangeV2_filler`/
 `noConfChangeV2_alloc`, `isReadyChan_recvAu`.
 
-**Next (the build's frontier, in dependency order):** `InvCfgView.lean` (the dynamic configuration
-view onto `Draft.Membership`/`nodeConfig`/`deliveredLogLb`), `InvRaftNode.lean` (`RNNames.node` off
-`NodeNames`; `rnDrv`/`rnBusy` as `Draft.nodeDriver`; `rnReadyP` → `isReadyChan_recvAu`; `rnEnvOk`'s
-messages as `sentMsg`/`msgCredits`; `srvRQ` as a read context with `readCtxAfter`; `hsWit` →
-`committedAtTerm`), `NodeBridge.lean`, `raftNode__start.lean`, `EtcdServer__applyConfChange.lean`,
+**Next (the build's frontier, in dependency order):** `raftNode__start.lean` (the `Ready` receive
+in the `select`: `isReadyChan_recvAu`; `isRaftNode` needs `rnIsNode`), `EtcdServer__applyConfChange.lean`,
 `EtcdServer__run.lean`, `NodeStart.lean`, the allocation (`NewServerAlloc*`, `BuildAlloc`,
 `InvBuild`, `NewServer` spec: `cluster_alloc` with `transfer := false`, `snapOk := False`, then
 `srvLogInv_alloc`), rafthttp (`InvNet`, `InvRaftMsg`, `api/rafthttp/*`: `sentMsg`, `stepIn_intro`),
