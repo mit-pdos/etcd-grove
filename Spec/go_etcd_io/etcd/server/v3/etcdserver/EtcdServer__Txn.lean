@@ -85,7 +85,9 @@ abbrev EtcdServer.Txn.specOn : Prop :=
       (Val #(GoInterface.ok ctx))) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
       srvLeadTimeReader s ∗ E.RD ∗ srvLgReader s ∗
-      ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ txnAppliedOk E ρ.rd F t Q resp) ∨
+      ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ txnAppliedOk E ρ.rd F t Q resp ∗
+          ∃ (tw : txn.TxnModelW) (hm : apply.HeaderModel) (L : List EntryModel),
+            ⌜tw.toModel = t⌝ ∗ pubAfterM true E ρ (apply.withHeader (irrTxn tw) hm) L) ∨
        (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗ txnErrOk E ρ F t err)) }}
 
 end spec

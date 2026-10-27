@@ -47,13 +47,13 @@ theorem backend.batchTx.UnsafeDeleteBucket.wp_proof
     ⟨%db, %lg, %h, #Hbe, #Hlg, %Hlgn, #-, #-, #-, #-, #-, %HP⟩
   · iframe #
   unfold btW
-  icases Hw with ⟨Htx, Hpend, Hwtx⟩
+  icases Hw with ⟨Htx, Hpend, ⟨%G, Hwtx⟩⟩
   unfold isBucket
   icases Hbk with ⟨%bo, %Hbo, #-, #HName, #-⟩
   subst Hbo
   wp_auto
   wp_apply HName as %ns #Hns
-  wp_apply (hDelBkt st.tx γ.db st.C st.S ns bi.name DFrac.discard) $$ [$Hwtx $Hns]
+  wp_apply (hDelBkt st.tx γ.db st.C st.S G ns bi.name DFrac.discard) $$ [$Hwtx $Hns]
     as %err ⟨-, Hr⟩
   icases Hr with (⟨%Hn, Hwtx, #Herr⟩ | ⟨%Hn, Hwtx⟩)
   · icombine He Herr gives %Heq
@@ -66,10 +66,15 @@ theorem backend.batchTx.UnsafeDeleteBucket.wp_proof
     unfold BSess.delBucket
     rw [GMap.delete_notin _ _ Hn]
     iframe
+    simp only [Option.getD_some]
+    iexists G
+    iexact Hwtx
   · obtain ⟨Hn, Herr⟩ := Hn
     subst Herr
     wp_auto
     iapply HΦ
+    iframe
+    iexists (fun x => if x = bi.name then G bi.name + 1 else G x)
     iframe
 
 end proof

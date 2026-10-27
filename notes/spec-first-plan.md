@@ -1,7 +1,7 @@
 # Plan: specs first, proofs later
 
-Status: proposed (2026-10-27, branch `spec-first`). Step 1 of "Testing the plan" done (below,
-"Step 1: the retrospective study").
+Status: proposed (2026-10-27, branch `spec-first`). Steps 1 and 2 of "Testing the plan" done (below,
+"Step 1: the retrospective study", "Step 2: the checker on the known false axioms").
 
 ## Goal
 
@@ -83,8 +83,8 @@ canonical form (for the pilot slice only, at first).
 2. **The checker on known bugs**: replay the trust-boundary axioms later found false (the audit's
    rows, step 1's three) and the library calls with a reproduction in `issues/` through the phase-2
    checker; how many does it catch? If few, phase 2 is not worth its cost. (Narrowed to the
-   trust boundary by step 1.)
-3. **A prospective pilot**: one unverified slice of comparable size done spec-first, compared with
+   trust boundary by step 1.) Done: below.
+3. **A prospective pilot** (started 2026-10-27: etcd's auto-compactor, `notes/compactor-pilot-plan.md`): one unverified slice of comparable size done spec-first, compared with
    a slice done the current way (from git history: e.g. cindex, the read-index loop). Metrics:
    time to a frozen spec; spec changes after the freeze (the main one); defects found by tests vs
    by proofs; proof time after the freeze.
@@ -171,3 +171,78 @@ trust-boundary axioms: the audit's false rows, the three above, and the librarie
 `issues/` reproductions. The pilot (step 3) measures phase 0 (is the configuration that of
 deployed etcd, is the top-level property the strongest one wanted) and phase 1 (glue proofs in
 full Iris, interleaved with the phase-3 proofs of the package) first.
+
+## Step 2: the checker on the known false axioms (2026-10-27)
+
+Two parts: a paper replay of every trust-boundary axiom known to have been false, and a working
+prototype of the phase-2 checker on one library, bbolt.
+
+**The paper replay.** The 44 axioms known false (the audit's 41, `notes/audit.md`, and step 1's
+three), each classified by what would refute it: `notes/spec-first-study/step2-false-axioms.jsonl`
+(one agent, the refuting execution and the generator it needs for each).
+
+| refutable by | axioms | examples |
+|---|---|---|
+| a single call | 17 | `strconv.FormatUint` base 1, `MustUnmarshalMessage` on bad bytes, prometheus label counts, nil loggers and requests, `lessor.Promote` with a negative rate |
+| a call sequence | 10 | bbolt's `wBkt` trio, `Cursor_kvw`, `Info_kv`; `NewBackendQuota` then `Available`; `store.Close` then `Compact`; `CutPeer` twice |
+| concurrency | 1 | `SetVersionChangedNotifier`'s unlocked write (`-race`) |
+| the environment | 3 | `time.Since` (a coarse clock), `NewStream` (gRPC fault injection), `monitorFileDescriptor` |
+| not observable | 13 | writes to state the spec frames out (`compactRaftLog`, `snapshot`, the monitors), proposals without a permit (`raftRequestAlarm`, `Alarm`, `revokeExpiredLeases`), inconsistent only in Lean (`convert_float64_to_int64`, `dialWithBalancer`'s two) |
+
+So 31 of 44 (70%) have a Go execution that refutes them; a frame check (the abstraction of what the
+pre does not own, compared before and after the call) would add about 4 (`compactRaftLog`,
+`snapshot`, `createMergedSnapshotMessage`, `monitorStorageVersion`). Existing upstream tests
+already run the refuting execution of about 6 (e.g. `TestProtoUnmarshalerPanic`,
+`TestV3StorageQuota*`, client_golang's invalid-label test): run against the axioms, they would have
+refuted them on day one.
+
+**The prototype: `etc/spec-test/bbolt`** (Go, 708 lines, for bbolt's 20 axioms). The specs are
+both the generator and the oracle: the tester keeps the predicate instances the specs have given
+out (`ownDB`, `wrTok`, `isDB`, `ownWTx`, `wBkt`, `ownCur`, ...) with their pure arguments (the data
+`D`, `S`, a cursor's entries), makes at random a call whose precondition that state satisfies
+(consuming its exclusive predicates; persistent ones stay), runs it on the real bbolt, and checks
+the postcondition's pure part against the result; a panic refutes (a WP excludes it). A call that
+does not return within 100 ms ends the run without a verdict (partial correctness allows
+blocking). Each axiom is transcribed by hand from its Lean statement. Runs of 60 calls:
+
+| statements | runs | refuted | how |
+|---|---|---|---|
+| current | 3000 | 28 (0.9%) | **the `wBkt` trio, still false**: a handle of a deleted, re-created bucket; `Put` panics (26), or a cursor misses the data (2) |
+| current, `wBkt` corrected | 10 000 | **0** | every axiom exercised (about 600 000 calls; 272 runs blocked) |
+| `DB.Info_kv` before B4b | 3000 | 2638 (88%) | `Info` after `Close` panics |
+| `Bucket.Cursor_kvw` before B4b | 3000 | 282 (9%) | a `Put` while the cursor is open; the cursor sees it |
+| mutant: `Seek` past an equal key | 3000 | 150 (5%) | |
+| mutant: `Commit` keeps the old data | 3000 | 149 (5%) | |
+| mutant: `Rollback` leaves `txLive` | 3000 | 1809 (60%) | calls on a closed transaction panic |
+| mutant: a read transaction sees later commits | 3000 | 39 (1.3%) | |
+| mutant: `CreateBucketIfNotExists` empties an existing bucket | 3000 | 22 (0.7%) | |
+| mutant: `Delete` a no-op | 3000 | 50 (1.7%) | |
+| mutant: `Begin(true)` keeps `wrTok` | 1000 | **0** | 390 runs blocked (39%, against 3%): a second writer waits |
+
+**What step 2 says.**
+- **The checker works, and catches resource errors too.** All three bbolt rows the audit found
+  false were refuted, and two of them are errors in the resource part (a persistent `isDB`
+  outliving `Close`, a persistent `wBkt` outliving `DeleteBucket`), which the paper replay calls
+  observable only because tracking the predicates lets the tester make the call Go does not
+  survive. One of them (`wBkt`) is still false in the current specs; the tester found it without
+  being told, along with a Go documentation issue (`issues/bbolt-deleted-bucket-handle.md`).
+- **No false alarms**: with `wBkt` corrected, 10 000 runs refute nothing, though every axiom ran.
+- **Opaque predicates need no test interpretation when the specs produce them**: `isDB`, `wBkt`,
+  `ownCur` are tokens a post hands out and a pre consumes. Only the environment's predicates
+  (`fileHolds`, `dbCloseOk`) need one (a fresh file; a local disk).
+- **What it misses**: an error whose only effect is blocking (the duplicated writer token) shows
+  only as a rise in blocked runs, which partial correctness allows; a blocked-run rate well above
+  the baseline is worth reporting as a warning. Concurrency is not exercised (one thread).
+  Rare sequences take many runs (`wBkt`: about 1 run in 100).
+- **The cost and the gap**: about 25 lines of Go per axiom, by hand, plus the pure model
+  (`bktEnts`, `seekIdx`). The transcription is unchecked: a wrong transcription tests another spec.
+  Specs in phase 2's canonical form (pure `Pre`/`Post` as Lean definitions) would let a generated
+  checker evaluate the Lean text instead; not built.
+
+**Revisions to the plan from step 2.** Phase 2 is worth building for the trust boundary (717
+axioms, which no proof will check), as spec-guided call-sequence testing with predicate tracking,
+not as checking of recorded traces alone: the sequences the specs allow are where the false
+resource parts show. Next libraries by the paper replay's yield: etcd's own names-only axioms
+(mvcc, lease, quota: call sequences), prometheus and `strconv`-like single calls (cheap), rafthttp.
+The `wBkt` trio: fixed 2026-10-27 (handles at a generation, `notes/decisions.md`, "bbolt handles at
+a generation"); the tester now runs the new statements by default (`-old-wbkt` for the old).

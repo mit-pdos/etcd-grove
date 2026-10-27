@@ -9526,6 +9526,11 @@ the fix is in what `ownWTx` records.
   the same files as (A), a smaller change.
 - *(C) Keep, as now* (latent: no proof deletes and re-creates).
 - *Recommendation:* (B), in phase C with the bbolt model (`notes/audit.md`, Plan).
+  *Superseded* (2026-10-27, "bbolt handles at a generation (D19l (iv) carried out, (A))"): (B)
+  forbids re-creating a deleted name within the bbolt transaction, which etcd does (the membership
+  schema deletes and creates `Cluster`) and which the backend's callers cannot see, since the
+  batch transaction commits on its own schedule; and (A) was cheaper than counted here (`wBkt`
+  was named in 6 files, not about 30).
 
 **(v) `mvcc.store.restore`** (a `meta` bucket with a finished or scheduled compaction makes Go set
 `compactMainRev`/`currentRev` otherwise and call `compactLockfree`; the spec fixes only the `key`
@@ -23861,3 +23866,66 @@ The coordinator's process change (2026-10-27): J4b on top of J4a without merging
 - `notInterface_uint64_snapTake`: a third local copy of `go.NotInterface go.uint64` (as
   `sendMergedSnap`'s, `InvStart`'s, `BackendLemmas2`'s): Perennial has no instance for
   `uint64` (`notes/perennial-changes.md` should list it if it does not).
+
+## bbolt handles at a generation (D19l (iv) carried out, (A)) (2026-10-27)
+
+**2026-10-27 · taken (the user)**
+
+`wBkt tx b n` was persistent and `Tx.DeleteBucket_kv` left it, so after `DeleteBucket(n)` and
+`CreateBucketIfNotExists(n)` the specs allowed `Put`, `Delete` and `Cursor` through the old
+handle; bbolt frees a deleted bucket's nodes, and the old handle's `Put` panics while its reads
+and deletes miss the data (`issues/bbolt-deleted-bucket-handle.md`, reproduced). Found false by
+the audit (D19l (iv), stopped, latent), refuted by `etc/spec-test/bbolt` (step 2 of
+`notes/spec-first-plan.md`) in 28 of 3000 runs.
+
+**Decision:** D19l's option (A), generations (its recommendation, (B), superseded above).
+- `InvBbolt.lean`: `ownWTxG tx γ D S G` (the axiom, `G : GoString → Nat` each name's
+  generation) and `wBkt tx b n g`; `ownWTx tx γ D S := ∃ G, ownWTxG tx γ D S G` (an `abbrev`),
+  so the backend's specs and invariants, and `Begin_kv`/`Commit_kv`, keep their text. The laws
+  are `ownWTxG_live`/`ownWTxG_fill` (`ownWTx_live` now a theorem from the former).
+- `Tx.Bucket_kvw` and `CreateBucketIfNotExists_kv` give `wBkt tx b n (G n)`; `DeleteBucket_kv`
+  bumps `G n`; `Bucket.Put_kv`, `Delete_kv` and `Cursor_kvw` take `G n = g`. A name can be
+  deleted and re-created in the same transaction, as in Go.
+- The backend's five operations (`unsafePut`, `UnsafeDelete`, `UnsafeRange`,
+  `UnsafeCreateBucket`, `UnsafeDeleteBucket`) open `ownWTx`'s `∃ G` and close it after the call:
+  they fetch the handle by name for every operation, so it is always current (`rfl`).
+- Rejected: (B), deleted names (above); a non-persistent `wBkt` (`DeleteBucket` cannot collect
+  the copies of a persistent fact, and making handles exclusive would thread them through every
+  backend operation).
+
+The axioms are the same (`ownWTx` and its two laws replaced by `ownWTxG` and its two laws,
+`ownWTx_live` proved); `etc/spec-test/bbolt` now tests the new statements (no refutation in
+10 000 runs; `-old-wbkt` for the old ones).
+
+## E3t of the auth plan: a reader's lower bound from its own write (2026-10-27 · `notes/auth-plan.md`, E3s's first left item)
+
+Where a reader's lower bound of the published index (`Range.specOn`'s `auth.authPubLbM E.authMode n`)
+comes from: a write it saw. After every entry the apply thread publishes (E3j's `authPublishT`, its
+call site), so the auth state the entry left is published, and that publication rides back to the
+proposer with the entry's result and on to the client in the handler's post.
+
+**Publication.** `authPublishM M stl` (`StoreLatest.lean`): with auth on, the persistent ghost update
+`authOwn hs ∗ tieRes stl hs ={⊤}=∗ authOwn hs ∗ tieRes stl hs ∗ authPubLb γa (hs.length - 1)`, of the
+store's invariant (`authPublishM_of_authInv`, through `authPublishT`). It is produced where
+`authStoreLbM` is (`authStoreKit`'s post) and kept by the built part beside it (`srvUberBase`, one more
+conjunct). `authPubAt M st` (`∃ i, authPubLb γa i ∗ authStateAt γa i st`): the state `st` is recorded
+at an index no greater than the published one; `authPubAt_publish` gives it of the latest state;
+`authPubLbM_of_pubAt` the bound a reader takes. The apply thread's row: `srvAuthApplyResB_publish`
+(`ApplyNormalOn.lean`) opens it, publishes, and recloses it.
+
+**The path to the client.** `applyEntryNormal`'s mode-`on` tail publishes after the entry's KV step
+(the row's state is the model's after the entry, `kvAppliedLOn_cert`), and the waiter's witness carries
+it (`entryWitOn M`, one more conjunct: `authPubAt M` of the model's auth state after the entry). Then:
+`processInternalRaftRequestOnce.specM`'s and `raftRequest.specM`'s success posts add `pubAfterM on E ρ
+rq' L` (`ReqOn.lean`: at `true`, an entry `e` after `L` in the committed raft log, decoding to the
+request `rq'`, with the model's auth state after `L ++ [e]` published; `True` at `false`, so the
+mode-off specs are unchanged up to it). `Put.specOn`, `DeleteRange.specOn` and `Txn.specOn` (writing)
+add it to their success posts (`∃ L, pubAfterM true E ρ rq' L`, at the request's wire form; `Txn`'s
+beside `txnAppliedOk`, which the mode-off spec shares). Statement changes: `authStoreKit`'s post,
+`srvUberBase`, `entryWitOn`'s (and so `resultΨOn`), the proposers' and the three handlers' posts (one
+conjunct each).
+
+**Not done (in order).** A server-kept bound for a reader that saw no write (`srvAuthLb` could carry
+`authPubLb γa 0` from the construction); the read-only `Txn` with auth on (`Txn.specOn`'s read branch
+over E3m's `apply_check_txn_auth_lb`); the admin proposers (their answer, and the same `pubAfterM`),
+the Auth handlers, `setupAuthOk`; `examples/authkv` and the closed theorem.

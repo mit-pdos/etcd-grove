@@ -82,7 +82,8 @@ abbrev EtcdServer.Put.specOn : Prop :=
           apply.putOutcomeIs x.log op resp GoInterface.nil o ∗
           apply.appliedHdr x.log (structFieldRef etcdserverpb.PutResponse go!"Header" resp) ∗
           mvcc.idxCert E.γ.idx x'.log ∗ revMinted E x.log x'.log ∗ appliedWit ρ.rd x'.log ∗
-          mvcc.certOk E.γ x'.log ∗ Q (kvStateOf x.log)) ∨
+          mvcc.certOk E.γ x'.log ∗ Q (kvStateOf x.log) ∗
+          ∃ L, pubAfterM true E ρ (apply.withHeader (irrPut op) hm) L) ∨
        (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗
          ((∃ hm : apply.HeaderModel, appliedErr E (apply.withHeader (irrPut op) hm) F err) ∨
           srvMaybeDeposited ρ (irrPut op)))) }}

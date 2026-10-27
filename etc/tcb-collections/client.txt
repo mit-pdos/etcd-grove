@@ -26,7 +26,7 @@ axiom attribute.String.wp_proof
 axiom backend.isDB
 axiom backend.optsAt
 axiom backend.ownDB
-axiom backend.ownWTx
+axiom backend.ownWTxG
 axiom backend.rBkt
 axiom backend.rtxSnap
 axiom backend.rtxStats
