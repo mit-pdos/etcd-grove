@@ -535,6 +535,34 @@ theorem srvAuthApplyResB_open (s : Loc) (E : apply.AEnv GF) (γa : auth.AuthName
   iframe Ho' HX' Hw HT' Htp' Hwa Hsteps
   ipureintro; exact Hl'
 
+/-- **Publication at the apply thread's auth row** (the auth plan's E3t): with the built part's
+publication (`srvUberBase`'s `authPublishM`), the row at the model's auth state `st` (the latest of
+its history) gets a published index recording `st` (`authPubAt`), the row kept. -/
+theorem srvAuthApplyResB_publish (s : Loc) (ua : GoInterface) (E : apply.AEnv GF)
+    (γa : auth.AuthNames) (st : auth.AuthState) (hM : E.authMode = .on γa) :
+    srvUberBase (GF := GF) s ua E ⊢ srvAuthApplyResB s E st ={⊤}=∗
+      srvAuthApplyResB s E st ∗ authPubAt E.authMode st := by
+  iintro #Hb HAR
+  icases srvAuthApplyResB_open s E γa st hM $$ HAR with ⟨%stl, %bel, %T, %hs, #Hf, #Hro, #Hwa,
+    #Hsteps, Hfu, Ht, %Hl, HT, Htp, Hclose⟩
+  iunfold srvUberBase at Hb
+  icases Hb with ⟨%au, %le, #Hauf, -, -, -, %stl', %Hau, #HPub, -⟩
+  subst Hau
+  icombine Hf Hauf gives %Hst
+  have Hst' := apply.mkOk_ptr_inj _ _ _ Hst
+  subst Hst'
+  ihave #HPub' : authPublishM (GF := GF) (.on γa) stl $$ []
+  · rw [← hM]; iexact HPub
+  iunfold auth.authOwnFu at Hfu
+  icases Hfu with ⟨Ho, Hfuel⟩
+  imod authPubAt_publish γa stl hs st Hl $$ HPub' Ho Ht with ⟨Ho, Ht, #Hpa⟩
+  ihave HAR := Hclose $$ %hs %st [Ho Hfuel] Ht %Hl HT Htp
+  · iunfold auth.authOwnFu; iframe Ho Hfuel
+  imodintro
+  iframe HAR
+  rw [hM]
+  iexact Hpa
+
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
 /-- **The uber-applier's latest-state admin triples at the opened row** (see the file header). -/
@@ -557,7 +585,7 @@ theorem srv_uberAuthStepsL_at
         (auth.latestRes stl (.on γa)) := by
   iintro ⟨#Hpkg, #Hb, #Hf, #Hsteps⟩
   iunfold srvUberBase at Hb
-  icases Hb with ⟨%au, %le, #Hauf, #Hlef, #Hub, -, %stl', %Hau, #HL⟩
+  icases Hb with ⟨%au, %le, #Hauf, #Hlef, #Hub, -, %stl', %Hau, -, #HL⟩
   subst Hau
   icombine Hf Hauf gives %Hst
   have Hst' := apply.mkOk_ptr_inj _ _ _ Hst

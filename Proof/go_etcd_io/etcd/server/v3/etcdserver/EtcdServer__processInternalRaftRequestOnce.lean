@@ -360,7 +360,7 @@ local macro "piro_tail" : tactic => `(tactic| (
             subst Hx
             wp_auto_lc 2
             iunfold entryWitOn at HeW
-            icases HeW with ⟨%Lw, %mw, %ew, %idw, %γw, #HLw, #Hclw, %Hew⟩
+            icases HeW with ⟨%Lw, %mw, %ew, %idw, %γw, #HLw, #Hclw, %Hew, -⟩
             obtain ⟨hlk, het, hdecw, hidw, hlbw⟩ := Hew
             have hidd : idw = id := by rw [Hidrq] at hidw; cases hidw; rfl
             subst hidd

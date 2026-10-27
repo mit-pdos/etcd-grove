@@ -267,11 +267,13 @@ def applyBuiltNAM (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInte
 its store and lessor the server's `authStore` and `lessor` fields' (`apply.uberBaseAuth`), what the
 apply thread's latest-state KV triples come from (`apply.uberKVL_of_base`); with the store's
 checks at the latest state in the environment's mode (`authStoreLatestM`, E3l: with auth on, of the
-store's invariant) and its range check at a reader's lower bound (`authStoreLbM`, E3s). -/
+store's invariant), its range check at a reader's lower bound (`authStoreLbM`, E3s) and publication
+(`authPublishM`, E3t). -/
 def srvUberBase (s : Loc) (ua : GoInterface) (E : apply.AEnv GF) : IProp GF :=
   iprop(∃ au le : GoInterface, srvAuthStoreAddr s ↦□ au ∗ srvLessorAddr s ↦□ le ∗
     apply.uberBaseAuth ua E au le ∗ authStoreLbM E.authMode au E.RD ∗
-    ∃ stl : Loc, ⌜au = auth.authIface stl⌝ ∗ authStoreLatestM E.authMode au E.RD stl)
+    ∃ stl : Loc, ⌜au = auth.authIface stl⌝ ∗ authPublishM E.authMode stl ∗
+      authStoreLatestM E.authMode au E.RD stl)
 
 instance srvUberBase_persistent (s : Loc) (ua : GoInterface) (E : apply.AEnv GF) :
     Persistent (srvUberBase s ua E) := by

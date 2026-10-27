@@ -79,6 +79,7 @@ def authStoreKit (M : auth.AuthMode) (tp : GoInterface) : IProp GF :=
         ∃ (RD : IProp GF) (stl : Loc), ⌜st = auth.authIface stl⌝ ∗ authBeOn stl d.be ∗
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), RD) ∗
         isReqAuth st RD ∗ authApplyOkM M stl RD ∗ authStoreLatestM M st RD stl ∗ authStoreLbM M st RD ∗
+        authPublishM M stl ∗
         authApplyResPre M stl (auth.bump auth.bootState) d ∗
         -- (D22 J1a, 2026-10-26) in the mode `off`, the store's `Recover` on a new backend
         -- (`NewAuthStore`'s axiom's `authRecoverOk`)
@@ -176,6 +177,8 @@ theorem authStoreKit_off (h30 : auth.NewAuthStore.spec (GF := GF) (hG := hG)) (t
   · unfold authStoreLatestM; itrivial
   isplitr
   · unfold authStoreLbM; itrivial
+  isplitr
+  · unfold authPublishM; itrivial
   isplitr
   · unfold authApplyResPre
     itrivial
@@ -284,6 +287,8 @@ theorem authStoreKit_on
   · unfold authStoreLbM
     iintro !> %n #Hlb
     iapply apply.isAuthStoreRangeLb_of_authInv hRangeLb stp R (.on γa) n $$ [$Hpkg $Hinv $Hlb]
+  -- (E3t) publication, of its invariant
+  ihave #HstPub := authPublishM_of_authInv stp R γa $$ Hinv
   subst hhs'
   -- (E2v) the halves tied to the start's history, whose states are disabled
   ihave ⟨Hown', HX⟩ := auth.tieRes_of_disabled stp γa [auth.bootState, auth.bump auth.bootState]
@@ -316,7 +321,7 @@ theorem authStoreKit_on
   iframe Hopen Hhook Hrbo
   iexists (auth.authRd stp R (.on γa)), stp
   subst Hst
-  iframe HisReq HisAuth HstL HstLb HAR
+  iframe HisReq HisAuth HstL HstLb HstPub HAR
   isplitr
   · ipureintro; rfl
   isplitl [Hbe]
