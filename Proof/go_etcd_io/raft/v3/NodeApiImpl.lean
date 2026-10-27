@@ -124,6 +124,8 @@ structure Cluster where
   ctxs : GName
   /-- the cluster's term budget (raft's `BudgetNames`) -/
   bud : BudgetNames
+  /-- the trivial result predicate the adapter registers its proposals with -/
+  trueQ : GName
 
 section api
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -256,10 +258,14 @@ theorem IdxOk_snoc {L : List EntryM} {e : EntryM} (H : IdxOk L)
 
 /-- The keys the adapter registered (and the boot entries'), each with the trivial predicate. -/
 def freshOk (γ : Cluster) (F : GMap (List w8) Unit) : IProp GF :=
-  iprop(□ ∀ k : List w8, ⌜F !! k = some ()⌝ -∗ propIs γ.raft k (fun _ => iprop(True)))
+  iprop(□ ∀ k : List w8, ⌜F !! k = some ()⌝ -∗ propIsAt γ.raft k γ.trueQ)
 
 instance freshOk_persistent (γ : Cluster) (F : GMap (List w8) Unit) :
     Persistent (freshOk (GF := GF) γ F) := by
+  unfold freshOk; infer_instance
+
+instance freshOk_timeless (γ : Cluster) (F : GMap (List w8) Unit) :
+    Timeless (freshOk (GF := GF) γ F) := by
   unfold freshOk; infer_instance
 
 /-- The read contexts the adapter deposited in raft. -/
@@ -297,7 +303,8 @@ instance apiInv_persistent (γ : Cluster) (N : Namespace) : Persistent (apiInv (
 
 /-- **The cluster's invariants**: raft's, in `N .@ "raft"`, and the adapter's. -/
 def clusterInv (γ : Cluster) (N : Namespace) : IProp GF :=
-  iprop(⌜γ.raft.reNs = N .@ "raft"⌝ ∗ raftCommitInv γ.raft ∗ apiInv γ N)
+  iprop(⌜γ.raft.reNs = N .@ "raft"⌝ ∗ raftCommitInv γ.raft ∗ apiInv γ N ∗
+    savedPredOwn γ.trueQ DFrac.discard (fun _ : List EntryM => iprop(True : IProp GF)))
 
 instance clusterInv_persistent (γ : Cluster) (N : Namespace) :
     Persistent (clusterInv (GF := GF) γ N) := by
@@ -316,7 +323,7 @@ theorem api_noopAu (γ : Cluster) (N : Namespace) (HN : γ.raft.reNs = N .@ "raf
   unfold atomic_acc apiInv apiInvBody
   have Hsub : (↑(apiN N) : CoPset) ⊆ ⊤ \ ↑(raftN γ.raft) := by
     unfold raftN; rw [HN]; exact apiN_sub_raft N
-  iinv Hinv with ⟨%L, %F, %RF, >HrL, >%Hidx, >Hfull, >Hops, >HF, #HFok, >HRF, >#HRk, #HRFok⟩ Hclose
+  iinv Hinv with ⟨%L, %F, %RF, >HrL, >%Hidx, >Hfull, >Hops, >HF, >#HFok, >HRF, >#HRk, #HRFok⟩ Hclose
   iapply fupd_mask_intro (show (∅ : CoPset) ⊆ (⊤ \ ↑(raftN γ.raft)) \ ↑(apiN N) from
     Std.LawfulSet.empty_subset)
   iintro Hclose2
@@ -603,7 +610,8 @@ def nodeBoot (γ : Cluster) (N : Namespace) (ps : List w64) (ctxs : List (List w
 /-- The client's part of a new cluster, built in raft's allocation (`allocClientGen`). -/
 def allocOut (N : Namespace) (boot : List LogEntry) (bud : BudgetNames) (γr : RaftNames) :
     IProp GF :=
-  iprop(∃ γ : Cluster, ⌜γ.raft = γr ∧ γ.bud = bud⌝ ∗ apiInv γ N ∗ ownCommittedOps γ boot ∗ ownReadCtxs γ ∅)
+  iprop(∃ γ : Cluster, ⌜γ.raft = γr ∧ γ.bud = bud⌝ ∗
+    savedPredOwn γ.trueQ DFrac.discard (fun _ : List EntryM => iprop(True : IProp GF)) ∗ apiInv γ N ∗ ownCommittedOps γ boot ∗ ownReadCtxs γ ∅)
 
 /-- The adapter's part of raft's allocation: its ghost state and invariant, raft's standing update
 from it. -/
@@ -612,7 +620,7 @@ theorem api_alloc_client (N : Namespace) (E : CoPset) (cfg : GSet w64) (ps : Lis
     ⊢ allocClientGen (GF := GF) E cfg none (fun _ _ => True) (LogEntry.toEntries boot 0)
         (allocOut N boot bud) (N .@ "raft") := by
   unfold allocClientGen
-  iintro %γr %Hγr #Hc HrL Hfa Hrfa #Hpis
+  iintro %γr %Hγr #Hc HrL Hfa Hrfa ⟨%γT, #HspT, #Hpis⟩
   obtain ⟨-, -, -, -, HNs⟩ := Hγr
   imod mono_list_own_alloc (GF := GF) boot with ⟨%γf, Hf, #Hflb⟩
   imod mono_list_own_alloc (GF := GF) boot with ⟨%γo, Ho, #Holb⟩
@@ -621,7 +629,7 @@ theorem api_alloc_client (N : Namespace) (E : CoPset) (cfg : GSet w64) (ps : Lis
       boot).fractional (1 : Qp).half (1 : Qp).half).1
     $$ [Ho] with ⟨Ho1, Ho2⟩
   · rw [Qp.half_add_half]; iexact Ho
-  let γ : Cluster := ⟨γr, γf, γo, γc, bud⟩
+  let γ : Cluster := ⟨γr, γf, γo, γc, bud, γT⟩
   imod inv_alloc (apiN N) E (apiInvBody (GF := GF) γ) $$ [HrL Hf Ho1 Hfa Hrfa] with #Hinv
   · inext
     unfold apiInvBody
@@ -640,7 +648,7 @@ theorem api_alloc_client (N : Namespace) (E : CoPset) (cfg : GSet w64) (ps : Lis
       · obtain ⟨j, hj⟩ := List.getElem?_of_mem he
         subst hek
         iapply (BigSepL.bigSepL_lookup (Φ := fun _ (e : EntryM) =>
-          propIs (GF := GF) γr (entKey e.Type' e.Data') (fun _ => iprop(True))) hj) $$ Hpis
+          propIsAt (GF := GF) γr (entKey e.Type' e.Data') γT) hj) $$ Hpis
     isplitr
     · unfold rdKeys
       imodintro
@@ -658,7 +666,7 @@ theorem api_alloc_client (N : Namespace) (E : CoPset) (cfg : GSet w64) (ps : Lis
   unfold allocOut
   iexists γ
   isplitr; · ipureintro; exact ⟨rfl, rfl⟩
-  iframe Hinv'
+  iframe Hinv' HspT
   isplitl [Ho2]
   · unfold ownCommittedOps
     iframe Ho2
@@ -708,7 +716,7 @@ theorem cluster_alloc_impl (N : Namespace) (ps : List w64) (ctxs : List (List w8
     $$ Hcl with ⟨%γr, %Hγ, #Hcinv, #Hc0, Hnodes, Hout, Hcr, -⟩
   obtain ⟨Hcfg, Hdyn, -, Hboot, -, Hns, Hnx, -, -, HNs⟩ := Hγ
   iunfold allocOut at Hout
-  icases Hout with ⟨%γ, %Hγr, #Hinv, Hops, Hctx⟩
+  icases Hout with ⟨%γ, %Hγr, #HspT, #Hinv, Hops, Hctx⟩
   obtain ⟨Hγr, Hγb⟩ := Hγr
   subst Hγr
   imodintro
@@ -725,7 +733,7 @@ theorem cluster_alloc_impl (N : Namespace) (ps : List w64) (ctxs : List (List w8
   unfold nodeBoot clusterInv
   rw [Hboot]
   rw [Hγb]
-  iframe Hg Hc0 Hm Hcinv Hinv Hbinv Htlb
+  iframe Hg Hc0 Hm Hcinv Hinv Hbinv Htlb HspT
   isplitr
   · ipureintro; exact ⟨Hcfg, Hdyn, Hok, Hns, Hnx⟩
   ipureintro; exact HNs
@@ -757,10 +765,10 @@ theorem api_committed_lb (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N 
       isCommittedLogLb γ (strip D) ∗ ⌜IdxOk D⌝ := by
   iintro #Hci #HD
   unfold clusterInv
-  icases Hci with ⟨%HNs, #Hcinv, #Hinv⟩
+  icases Hci with ⟨%HNs, #Hcinv, #Hinv, -⟩
   unfold apiInv apiInvBody
   have Ha := apiN_sub N HE
-  iinv Hinv with ⟨%L, %F, %RF, >HrL, >%Hidx, >Hfull, >Hops, >HF, #HFok, >HRF, >#HRk, #HRFok⟩ Hclose
+  iinv Hinv with ⟨%L, %F, %RF, >HrL, >%Hidx, >Hfull, >Hops, >HF, >#HFok, >HRF, >#HRk, #HRFok⟩ Hclose
   ihave #Hli := raftCommitInv_log γ.raft $$ Hcinv
   have Hl : (↑(raftLogN γ.raft) : CoPset) ⊆ E \ ↑(apiN N) := by
     unfold raftLogN raftN; rw [HNs]; exact raftN_api N HE "log"
@@ -808,12 +816,12 @@ theorem api_readReq_dep (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N �
     ⊢ clusterInv (GF := GF) γ N -∗ readReq γ.raft c Lc ={E}=∗ readKey γ c ∗ ▷ readDep γ c := by
   iintro #Hci #Hrq
   unfold clusterInv
-  icases Hci with ⟨%HNs, #Hcinv, #Hinv⟩
+  icases Hci with ⟨%HNs, #Hcinv, #Hinv, -⟩
   unfold readReq
   icases Hrq with ⟨%γq, #Hel, -⟩
   unfold apiInv apiInvBody
   have Ha := apiN_sub N HE
-  iinv Hinv with ⟨%L, %F, %RF, >HrL, >%Hidx, >Hfull, >Hops, >HF, #HFok, >HRF, >#HRk, #HRFok⟩ Hclose
+  iinv Hinv with ⟨%L, %F, %RF, >HrL, >%Hidx, >Hfull, >Hops, >HF, >#HFok, >HRF, >#HRk, #HRFok⟩ Hclose
   ihave #Hri := raftCommitInv_reg γ.raft $$ Hcinv
   have Hr : (↑(raftRegN γ.raft) : CoPset) ⊆ E \ ↑(apiN N) := by
     unfold raftRegN raftN; rw [HNs]; exact raftN_api N HE "reg"
@@ -915,10 +923,10 @@ theorem api_lb_committed (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N 
       ∃ D : List EntryM, ⌜strip D = l⌝ ∗ isCommitted γ.raft D := by
   iintro #Hci #Hl
   unfold clusterInv
-  icases Hci with ⟨%HNs, #Hcinv, #Hinv⟩
+  icases Hci with ⟨%HNs, #Hcinv, #Hinv, -⟩
   unfold apiInv apiInvBody
   have Ha := apiN_sub N HE
-  iinv Hinv with ⟨%L, %F, %RF, >HrL, >%Hidx, >Hfull, >Hops, >HF, #HFok, >HRF, >#HRk, #HRFok⟩ Hclose
+  iinv Hinv with ⟨%L, %F, %RF, >HrL, >%Hidx, >Hfull, >Hops, >HF, >#HFok, >HRF, >#HRk, #HRFok⟩ Hclose
   have Hl : (↑(raftLogN γ.raft) : CoPset) ⊆ E \ ↑(apiN N) := by
     unfold raftLogN raftN; rw [HNs]; exact raftN_api N HE "log"
   imod rLog_committed γ.raft L (E \ ↑(apiN N)) Hl $$ Hcinv HrL with ⟨HrL, #HLc⟩
@@ -1365,6 +1373,214 @@ theorem wp_StartNode_impl (hS : EtcdGrove.StartNode.spec (GF := GF) (hG := hG)) 
   iexact Hdrv
 
 end node
+
+/-! ## Proposals -/
+
+section propose
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+/-- **A key registered** with the trivial predicate: the adapter registers it the first time
+(`prop_register_at`, with the client's fresh token, which the adapter holds). -/
+theorem api_key_register (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N ⊆ E)
+    (k : List w8) :
+    ⊢ clusterInv (GF := GF) γ N ={E}=∗ propIs γ.raft k (fun _ => iprop(True)) := by
+  iintro #Hci
+  ihave #Hci' := Hci
+  iunfold clusterInv at Hci'
+  icases Hci' with ⟨%HNs, #Hcinv, #Hinv, #HspT⟩
+  ihave Hat : |={E}=> propIsAt γ.raft k γ.trueQ $$ []
+  · unfold apiInv apiInvBody
+    have Ha := apiN_sub N HE
+    iinv Hinv with ⟨%L, %F, %RF, >HrL, >%Hidx, >Hfull, >Hops, >HF, >#HFok, >HRF, >#HRk, #HRFok⟩
+      Hclose
+    cases HFk : F !! k with
+    | some u =>
+      imod Hclose $$ [HrL Hfull Hops HF HRF] with -
+      · inext
+        iexists L, F, RF
+        iframe HrL Hfull Hops HF HFok HRF HRk HRFok
+        ipureintro; exact Hidx
+      imodintro
+      iunfold freshOk at HFok
+      iapply HFok $$ %k %(by cases u; exact HFk)
+    | none =>
+      imod ghost_map_insert k () HFk $$ HF with ⟨HF, Hfr⟩
+      have HrN : ↑(raftN γ.raft) ⊆ E \ ↑(apiN N) := by
+        intro p hp
+        unfold raftN at hp; rw [HNs] at hp
+        rw [Iris.Std.LawfulSet.mem_diff]
+        exact ⟨raftN_sub N HE p hp,
+          fun h => ndot_ne_disjoint N (show "raft" ≠ "api" by decide) p ⟨hp, h⟩⟩
+      imod prop_register_at γ.raft (E \ ↑(apiN N)) k γ.trueQ HrN $$ Hcinv [Hfr] with #Hat
+      · unfold propFresh; iexact Hfr
+      imod Hclose $$ [HrL Hfull Hops HF HRF] with -
+      · inext
+        iexists L, GMap.insert k () F, RF
+        iframe HrL Hfull Hops HF HRF HRk HRFok
+        isplitr
+        · ipureintro; exact Hidx
+        unfold freshOk
+        imodintro
+        iintro %k' %Hk'
+        have := (GMap.lookup_insert_Some F k k' () ()).1 Hk'
+        rcases this with ⟨rfl, -⟩ | ⟨-, h⟩
+        · iexact Hat
+        · iapply HFok $$ %k' %h
+      imodintro
+      iexact Hat
+  imod Hat with #Hat
+  imodintro
+  iapply propIsAt_propIs $$ Hat HspT
+
+/-- **A proposal's update for raft, from the client's**: when raft appends the proposal's entry
+(of the key `entKey ty data`, so of type `ty` and bytes `data`), the client's update runs, at the
+entry's term; both logs grow by it. -/
+theorem api_propAu1 (γ : Cluster) (N : Namespace) (ty : w32) (data : List w8)
+    (_Hnf : ¬ Filler ty data) (HNs : γ.raft.reNs = N .@ "raft") :
+    ⊢ apiInv (GF := GF) γ N -∗
+      AU <{ ∃∃ (ops : List LogEntry), ownCommittedOps γ ops }> @ ⊤ \ ↑N, ∅
+         <{ ∀∀ (t : w64), ownCommittedOps γ (ops ++ [⟨t, ty, data⟩]), COMM True }> -∗
+      propAu1 γ.raft (entKey ty data) (fun _ => iprop(True)) := by
+  iintro #Hinv Hau
+  unfold propAu1
+  iauintro
+  unfold atomic_acc apiInv apiInvBody
+  have Hsub : (↑(apiN N) : CoPset) ⊆ ⊤ \ ↑(raftN γ.raft) := by
+    unfold raftN; rw [HNs]; exact apiN_sub_raft N
+  iinv Hinv with ⟨%L, %F, %RF, >HrL, >%Hidx, >Hfull, >Hops, >HF, >#HFok, >HRF, >#HRk, #HRFok⟩ Hclose
+  have Hm : (⊤ \ ↑N : CoPset) ⊆ (⊤ \ ↑(raftN γ.raft)) \ ↑(apiN N) := by
+    unfold raftN; rw [HNs]; exact mask_api_raft N
+  imod (fupd_mask_subseteq (PROP := IProp GF) Hm) with Hback
+  ihave Hacc := aupd_aacc $$ Hau
+  unfold atomic_acc
+  imod Hacc with Hacc
+  isimp only [texist_cons, texist_nil, Std.Tele.app, ULift.down] at Hacc
+  icases Hacc with ⟨%ops, Hown, Hucl⟩
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+  iexists L
+  iframe HrL
+  imodintro
+  isplit
+  · -- abort: the client's update back
+    iintro HrL
+    icases Hucl with ⟨Habort, -⟩
+    imod Habort $$ Hown with Hau
+    imod Hback with -
+    imod Hclose $$ [HrL Hfull Hops HF HRF] with -
+    · inext
+      iexists L, F, RF
+      iframe HrL Hfull Hops HF HFok HRF HRk HRFok
+      ipureintro; exact Hidx
+    imodintro
+    iexact Hau
+  · -- commit: the entry holds the proposal's key
+    iintro %e ⟨HrL, #He, %HeIdx⟩
+    icases Hucl with ⟨-, Hcommit⟩
+    iunfold entDataIs at He
+    iunfold propDataIs at He
+    icases He with ⟨⟨%Hek, -⟩, -⟩
+    obtain ⟨Hkey, Hnf', -⟩ := Hek
+    obtain ⟨Hty, Hd⟩ := entKey_inj Hkey
+    have Hx : LogEntry.ofEntryM e = ⟨e.Term', ty, data⟩ := by
+      unfold LogEntry.ofEntryM; rw [Hty, Hd]
+    have Hxf : ¬ (LogEntry.ofEntryM e).isFiller := fun h => Hnf' ((isFiller_ofEntryM e).1 h)
+    iunfold ownCommittedOps at Hown
+    icases Hown with ⟨Hown, -⟩
+    ihave %Hag := monoListAuthOwn_agree $$ Hops Hown
+    obtain ⟨-, Hops_eq⟩ := Hag
+    subst Hops_eq
+    icombine Hops Hown as Hops
+    imod monoListAuthOwn_update_app [LogEntry.ofEntryM e] $$ Hops with ⟨Hops, #Holb⟩
+    imod monoListAuthOwn_update_app [LogEntry.ofEntryM e] $$ Hfull with ⟨Hfull, #Hflb⟩
+    icases ((monoListAuthOwn_fractional (GF := GF) γ.ops
+        (opsOf (strip L) ++ [LogEntry.ofEntryM e])).fractional (1 : Qp).half (1 : Qp).half).1
+      $$ [Hops] with ⟨Hops, Hown⟩
+    · rw [Qp.half_add_half]; iexact Hops
+    have Hstrip : strip (L ++ [e]) = strip L ++ [LogEntry.ofEntryM e] := by
+      rw [strip_append]; rfl
+    have Hopsn : opsOf (strip (L ++ [e])) = opsOf (strip L) ++ [LogEntry.ofEntryM e] := by
+      rw [Hstrip, opsOf_snoc_op _ _ Hxf]
+    isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcommit
+    imod Hcommit $$ %e.Term' [Hown] with -
+    · unfold ownCommittedOps
+      rw [← Hx]
+      iframe Hown
+      iexists strip (L ++ [e])
+      unfold isCommittedLogLb
+      rw [Hopsn, Hstrip]
+      iframe Hflb Holb
+      ipureintro; rfl
+    imod Hback with -
+    imod Hclose $$ [HrL Hfull Hops HF HRF] with -
+    · inext
+      iexists L ++ [e], F, RF
+      rw [Hopsn, Hstrip]
+      iframe HrL Hfull Hops HF HFok HRF HRk HRFok
+      ipureintro; exact IdxOk_snoc Hidx HeIdx
+    imodintro
+    imodintro
+    itrivial
+
+/-- The errors of a proposal. -/
+theorem propErr_api (cd : context.ContextDesc (IProp GF)) (err : GoInterface) :
+    propErr cd err ⊢
+      ⌜err = interface.nil⌝ ∨ errStopped err ∨ errProposalDropped err ∨ ctxErr cd err := by
+  unfold propErr nodeErr stepErr
+  iintro ((%H | H | H) | (%H | H))
+  · ileft; ipureintro; exact H
+  · iright; ileft; iexact H
+  · iright; iright; iright; iexact H
+  · ileft; ipureintro; exact H
+  · iright; iright; ileft; iexact H
+
+/-- **`node.Propose(ctx, data)`** (the draft's). -/
+abbrev node.Propose.spec : Prop :=
+  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (data_sl : GoSlice) (data : List w8)
+    (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗ nodeCtx ctx cd ∗
+      data_sl ↦*□ data ∗
+      AU <{ ∃∃ (ops : List LogEntry), ownCommittedOps γ ops }> @ ⊤ \ ↑N, ∅
+         <{ ∀∀ (t : w64), ownCommittedOps γ (ops ++ [⟨t, W32 0, data⟩]), COMM True }> }}
+    (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Propose"))
+      (Val #(interface.ok ctx))) (Val #data_sl))
+  {{ (err : GoInterface), RET #err;
+      ⌜err = interface.nil⌝ ∨ errStopped err ∨ errProposalDropped err ∨ ctxErr cd err }}
+
+theorem node.wp_Propose_impl (hP : EtcdGrove.node.Propose.spec (GF := GF) (hG := hG)) :
+    node.Propose.spec (GF := GF) (hG := hG) := by
+  intro n γ N id data_sl data ctx cd
+  iintro %Φ ⟨#Hinit, #Hnode, #Hctx, #Hd, Hau⟩ HΦ
+  iunfold isNode at Hnode
+  icases Hnode with ⟨%γn, %Hf, #Hrn, #Hci⟩
+  obtain ⟨Hγr, -⟩ := Hf
+  by_cases Hne : data = []
+  · iapply (hP γn id n data_sl data (fun _ => iprop(True)) ctx cd) $$ []
+    · iframe Hinit Hrn Hctx Hd
+      ileft; ipureintro; exact Hne
+    iintro !> %err #Herr
+    iapply HΦ
+    iapply propErr_api $$ Herr
+  have Hnf : ¬ Filler (W32 0) data := fun h => Hne h.1
+  ihave #Hci' := Hci
+  iunfold clusterInv at Hci'
+  icases Hci' with ⟨%HNs, #Hcinv, #Hinv, -⟩
+  imod api_key_register γ N ⊤ CoPset.subseteq_top (entKey (W32 0) data) $$ Hci with #Hpi
+  ihave Hau1 := api_propAu1 γ N (W32 0) data Hnf HNs $$ Hinv Hau
+  iapply (hP γn id n data_sl data (fun _ => iprop(True)) ctx cd) $$ [Hau1]
+  · iframe Hinit Hrn Hctx Hd
+    iright
+    unfold propArg
+    rw [Hγr]
+    iframe Hpi Hau1
+  iintro !> %err #Herr
+  iapply HΦ
+  iapply propErr_api $$ Herr
+
+end propose
 
 end ApiImpl
 end EtcdGrove
