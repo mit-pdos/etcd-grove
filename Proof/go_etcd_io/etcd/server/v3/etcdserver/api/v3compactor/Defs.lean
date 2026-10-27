@@ -6,22 +6,23 @@ skeleton").
 
 **The environment** the compactor is built over, as persistent contracts on the interface values
 `New` receives:
-- `revGetterOk γi rg`: `rg.Rev()` returns the current revision of a store whose index certificates
-  are `γi` (what `mvcc.store.Rev` gives; the server passes `srv.kv`), as a lower bound that only
-  grows (`revLb`).
-- `compactableOk c P`: `c.Compact(ctx, &CompactionRequest{Revision: r})` returns for every `r` with
-  `P r`. **`P` is the guarantee C1** (the plan's "top-level statements"): the compactor's proof
-  shows it calls `Compact` only with a permitted revision.
+- `revGetterOk RevLb rg R`: `rg.Rev()`, with the caller's resource `R` (the store's `Rev` needs a
+  reader slot), returns a non-negative revision the store has reached (`RevLb`, the caller's
+  lower-bound predicate: the server's is `revLb`, over mvcc's index certificates; the server passes
+  `srv.kv`).
+- `compactableOk c P R`: `c.Compact(ctx, &CompactionRequest{Revision: r})`, with `R`, returns for
+  every `r` with `P r`, with an error `errors.Is` can test (`errTreeOk`). **`P` is the guarantee
+  C1** (the plan's "top-level statements"): the compactor's proof shows it calls `Compact` only
+  with a permitted revision.
 - the clock, `clockwork.clockOk clockwork.realClock` (`Proof/github_com/jonboulle/clockwork/Defs.lean`).
 
 **C1, the permits.**
-- revision mode (`revPermit γi ret r`): `0 < r` and the store has reached `r + ret`
+- revision mode (`revPermit RevLb ret r`): `0 < r` and the store has reached `r + ret`
   (`Revision.Run` compacts at `Rev() - retention`).
-- periodic mode (`perPermit γi K r`, `K = periodK period`): `0 < r` and either the store had
-  reached `r` by a clock time `T` with the clock now past `T + K` (the window of samples is full:
-  `revs[0]` was sampled `retentions - 1` waits ago), or the store has reached `r` (the first
-  compaction of a run, whose sample is the run's first: only `Now() - start ≥ period` is known, and
-  the first sample may come any time after `start`; phase 1's finding, the plan's "C1 restated").
+- periodic mode (`perPermit RevLb period First r`): `0 < r` and the store had reached `r` by a
+  clock time `T` the clock is now `period` past (a full window: `revs[0]`'s sample is `retentions`
+  waits of `retry` old); or, the run's first compaction only, consuming `First`, `retry` past (its
+  sample is the run's first, taken at an unknown time after `start`; the plan's "C1 restated").
 
 **The objects.** `isPeriodic pc E period` (persistent): the fields `New` set, read-only from then
 on, with their contracts, and the `RWMutex` guard over `paused` (`Pause`/`Resume` write-lock it);
@@ -60,9 +61,6 @@ def retryOf (period : Int) : Int := min period 3600000000000 / 10
 /-- `getRetentions`: `period / retry + 1` samples in the window. -/
 def retentionsOf (period : Int) : Int := period / retryOf period + 1
 
-/-- The age of a full window's oldest sample, in clock time: `retentions - 1` waits of `retry`. -/
-def periodK (period : Int) : Int := (retentionsOf period - 1) * retryOf period
-
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -79,30 +77,43 @@ def revLb (γi : mvcc.IdxNames) (r : Int) : IProp GF :=
 instance revLb_persistent (γi : mvcc.IdxNames) (r : Int) : Persistent (revLb (GF := GF) γi r) := by
   unfold revLb; infer_instance
 
-/-- **The revision getter** (`RevGetter`, the server's `srv.kv`): `Rev()` returns `v`, which the
-store has reached. -/
-def revGetterOk (γi : mvcc.IdxNames) (rg : GoInterface) : IProp GF :=
+/-- **The revision getter** (`RevGetter`, the server's `srv.kv`): `Rev()`, given and giving back the
+caller's resource `R` (the store's `Rev` needs a reader slot), returns a non-negative `v` the store
+has reached (`RevLb v`: the caller's lower-bound predicate; the server's is `revLb`). -/
+def revGetterOk (RevLb : Int → IProp GF) (rg : GoInterface) (R : IProp GF) : IProp GF :=
   iprop(∃ ri : GoInterfaceOk, ⌜rg = GoInterface.ok ri⌝ ∗
-    □ ({{ True }} (App (Val #(methods ri.ty go!"Rev" ri.v)) (Val #()))
-        {{ (v : w64), RET #v; revLb γi (sint.Z v) }}))
+    □ ({{ R }} (App (Val #(methods ri.ty go!"Rev" ri.v)) (Val #()))
+        {{ (v : w64), RET #v; R ∗ □ RevLb (sint.Z v) ∗ ⌜0 ≤ sint.Z v⌝ }}))
 
-instance revGetterOk_persistent (γi : mvcc.IdxNames) (rg : GoInterface) :
-    Persistent (revGetterOk (GF := GF) γi rg) := by
+instance revGetterOk_persistent (RevLb : Int → IProp GF) (rg : GoInterface) (R : IProp GF) :
+    Persistent (revGetterOk (GF := GF) RevLb rg R) := by
   unfold revGetterOk; infer_instance
 
 /-- A compaction request the compactor builds: `&pb.CompactionRequest{Revision: r}`. -/
 def compactReqIs (p : Loc) (r : Int) : IProp GF :=
   iprop(∃ v : etcdserverpb.CompactionRequest, p ↦ v ∗ ⌜sint.Z v.Revision' = r ∧ v.Physical' = false⌝)
 
-/-- **The compactable** (`Compactable`, the server): `Compact(ctx, req)` returns, for a request
-at a permitted revision (`P r`) and any context, given and giving back the caller's resource `R`
-(what the server's proposal path consumes per request: `R` is the server's to define). -/
+/-- **An error `errors.Is` can test** against any target (the part of the server's `apply.applyErrIs`
+the compactor needs: `errors.Is(err, mvcc.ErrCompacted)`). -/
+def errTreeOk (err : GoInterface) : IProp GF :=
+  iprop(□ ∀ target : GoInterface, ∃ (S : GoInterface → Prop) (M : GoInterfaceOk → Prop),
+    _root_.Perennial.errors.errorIsTree (GF := GF) S M target ∗
+    ⌜S err ∧ ((∀ tii, target = GoInterface.ok tii → _root_.Perennial.errors.IsPointerError tii) →
+      _root_.Perennial.errors.TreeTyped S target)⌝)
+
+instance errTreeOk_persistent (err : GoInterface) : Persistent (errTreeOk (GF := GF) err) := by
+  unfold errTreeOk; infer_instance
+
+/-- **The compactable** (`Compactable`, the server): `Compact(ctx, req)`, for a request at a
+permitted revision (`P r`) and any context, given and giving back the caller's resource `R` (what
+the server's proposal path consumes per request: `R` is the server's to define), returns a response
+and an error `errors.Is` can test. -/
 def compactableOk (c : GoInterface) (P : Int → IProp GF) (R : IProp GF) : IProp GF :=
   iprop(∃ ci : GoInterfaceOk, ⌜c = GoInterface.ok ci⌝ ∗
     □ (∀ (r : Int) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (p : Loc),
-        P r -∗ R -∗ context.isContext ctx cd -∗ compactReqIs p r -∗
-        WP (App (App (Val #(methods ci.ty go!"Compact" ci.v)) (Val #(GoInterface.ok ctx))) (Val #p))
-          {{ fun _ => R }}))
+        {{ P r ∗ R ∗ context.isContext ctx cd ∗ compactReqIs p r }}
+          (App (App (Val #(methods ci.ty go!"Compact" ci.v)) (Val #(GoInterface.ok ctx))) (Val #p))
+        {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); R ∗ errTreeOk err }}))
 
 instance compactableOk_persistent (c : GoInterface) (P : Int → IProp GF) (R : IProp GF) :
     Persistent (compactableOk (GF := GF) c P R) := by
@@ -111,30 +122,36 @@ instance compactableOk_persistent (c : GoInterface) (P : Int → IProp GF) (R : 
 /-! ### C1 -/
 
 /-- **C1, revision mode**: `0 < r` and the store has reached `r + ret`. -/
-def revPermit (γi : mvcc.IdxNames) (ret : Int) (r : Int) : IProp GF :=
-  iprop(⌜0 < r⌝ ∗ revLb γi (r + ret))
+def revPermit (RevLb : Int → IProp GF) (ret : Int) (r : Int) : IProp GF :=
+  iprop(⌜0 < r⌝ ∗ □ RevLb (r + ret))
 
-/-- **C1, periodic mode**: `0 < r`, and the store had reached `r` by a clock time `T` the clock is
-now `K` past (a full window), or (the run's first compaction) the store has reached `r`. -/
-def perPermit (γi : mvcc.IdxNames) (K : Int) (r : Int) : IProp GF :=
-  iprop(⌜0 < r⌝ ∗
-    ((∃ T : Int, clockwork.stampAt clockwork.realClock (revLb γi r) T ∗
-        clockwork.clockLb clockwork.realClock (T + K)) ∨
-     revLb γi r))
+/-- **C1, periodic mode**: `0 < r`, and the store had reached `r` by a clock time `T` that the clock
+is now `period` past; except the run's first compaction, which consumes the token `First` and is
+only `retry` past (its sample is the run's first, taken at an unknown time after the run's start:
+the plan's "C1 restated", the user's choice 2026-10-27). The server gives `Run` one `First`, so at
+most one compaction per run is younger than the period. -/
+def perPermit (RevLb : Int → IProp GF) (period : Int) (First : IProp GF) (r : Int) : IProp GF :=
+  iprop(⌜0 < r⌝ ∗ ∃ T : Int, clockwork.stampAt clockwork.realClock iprop(□ RevLb r) T ∗
+    (clockwork.clockLb clockwork.realClock (T + period) ∨
+     (First ∗ clockwork.clockLb clockwork.realClock (T + retryOf period))))
 
 /-- The permit of a mode (`New`'s `mode`; `ret` the retention's nanoseconds or revisions). -/
-def modePermit (mode : GoString) (γi : mvcc.IdxNames) (ret : Int) : Int → IProp GF :=
-  if mode = go!"revision" then revPermit γi ret else perPermit γi (periodK ret)
+def modePermit (mode : GoString) (RevLb : Int → IProp GF) (ret : Int) (First : IProp GF) :
+    Int → IProp GF :=
+  if mode = go!"revision" then revPermit RevLb ret else perPermit RevLb ret First
 
 /-! ### The objects -/
 
-/-- What `New`'s caller supplies: the store's certificates, the revision getter, the server, and
-the resource the server's `Compact` takes and gives back (`compactableOk`). -/
+/-- What `New`'s caller supplies: the store's revision lower bounds (`RevLb r`: the store has
+reached `r`; the server's is `revLb`), the revision getter, the server, and the resource the
+getter's `Rev` and the server's `Compact` take and give back, and the periodic mode's once-per-run
+token `First` (`perPermit`). -/
 structure CompactEnv (GF : BundledGFunctors) where
-  γi : mvcc.IdxNames
+  RevLb : Int → IProp GF
   rg : GoInterface
   c : GoInterface
   R : IProp GF
+  First : IProp GF
 
 /-- `paused` under the periodic compactor's `RWMutex`: a fraction of its cell. -/
 def perPausedInv (pc : Loc) (q : Qp) : IProp GF :=
@@ -149,9 +166,9 @@ def isPeriodic (pc : Loc) (E : CompactEnv GF) (period : Int) : IProp GF :=
     structFieldRef v3compactor.Periodic go!"clock" pc ↦□ clk ∗
     clockwork.clockOk clockwork.realClock clk ∗
     structFieldRef v3compactor.Periodic go!"period" pc ↦□ pd ∗ ⌜sint.Z pd = period ∧ 10 ≤ period⌝ ∗
-    structFieldRef v3compactor.Periodic go!"rg" pc ↦□ E.rg ∗ revGetterOk E.γi E.rg ∗
+    structFieldRef v3compactor.Periodic go!"rg" pc ↦□ E.rg ∗ revGetterOk E.RevLb E.rg E.R ∗
     structFieldRef v3compactor.Periodic go!"c" pc ↦□ E.c ∗
-    compactableOk E.c (perPermit E.γi (periodK period)) E.R ∗
+    compactableOk E.c (perPermit E.RevLb period E.First) E.R ∗
     structFieldRef v3compactor.Periodic go!"ctx" pc ↦□ GoInterface.ok ctx ∗
     context.isContext ctx cd ∗
     structFieldRef v3compactor.Periodic go!"cancel" pc ↦□ cancel ∗
@@ -181,9 +198,9 @@ def isRevision (rc : Loc) (E : CompactEnv GF) (ret : Int) : IProp GF :=
     structFieldRef v3compactor.Revision go!"clock" rc ↦□ clk ∗
     clockwork.clockOk clockwork.realClock clk ∗
     structFieldRef v3compactor.Revision go!"retention" rc ↦□ rt ∗ ⌜sint.Z rt = ret⌝ ∗
-    structFieldRef v3compactor.Revision go!"rg" rc ↦□ E.rg ∗ revGetterOk E.γi E.rg ∗
+    structFieldRef v3compactor.Revision go!"rg" rc ↦□ E.rg ∗ revGetterOk E.RevLb E.rg E.R ∗
     structFieldRef v3compactor.Revision go!"c" rc ↦□ E.c ∗
-    compactableOk E.c (revPermit E.γi ret) E.R ∗
+    compactableOk E.c (revPermit E.RevLb ret) E.R ∗
     structFieldRef v3compactor.Revision go!"ctx" rc ↦□ GoInterface.ok ctx ∗
     context.isContext ctx cd ∗
     structFieldRef v3compactor.Revision go!"cancel" rc ↦□ cancel ∗
@@ -196,17 +213,18 @@ instance isRevision_persistent (rc : Loc) (E : CompactEnv GF) (ret : Int) :
   unfold isRevision; infer_instance
 
 /-- **A compactor** (`Compactor`, the interface value `New` returns): `Stop`, `Pause` and `Resume`
-return; `Run` returns, taking the run token `RunTok` (so it runs once) and the server's resource
-`R`, which its goroutine keeps. -/
-def compactorOk (cp : GoInterface) (RunTok R : IProp GF) : IProp GF :=
+return; `Run` returns, taking the run token `RunTok` (so it runs once), the server's resource `R`
+and the token `First` (`perPermit`), which its goroutine keeps. -/
+def compactorOk (cp : GoInterface) (RunTok R First : IProp GF) : IProp GF :=
   iprop(∃ ci : GoInterfaceOk, ⌜cp = GoInterface.ok ci⌝ ∗
-    □ ({{ RunTok ∗ R }} (App (Val #(methods ci.ty go!"Run" ci.v)) (Val #())) {{ RET #(); True }}) ∗
+    □ ({{ RunTok ∗ R ∗ First }} (App (Val #(methods ci.ty go!"Run" ci.v)) (Val #()))
+      {{ RET #(); True }}) ∗
     □ ({{ True }} (App (Val #(methods ci.ty go!"Stop" ci.v)) (Val #())) {{ RET #(); True }}) ∗
     □ ({{ True }} (App (Val #(methods ci.ty go!"Pause" ci.v)) (Val #())) {{ RET #(); True }}) ∗
     □ ({{ True }} (App (Val #(methods ci.ty go!"Resume" ci.v)) (Val #())) {{ RET #(); True }}))
 
-instance compactorOk_persistent (cp : GoInterface) (RunTok R : IProp GF) :
-    Persistent (compactorOk (GF := GF) cp RunTok R) := by
+instance compactorOk_persistent (cp : GoInterface) (RunTok R First : IProp GF) :
+    Persistent (compactorOk (GF := GF) cp RunTok R First) := by
   unfold compactorOk; infer_instance
 
 end defs

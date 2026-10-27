@@ -20,6 +20,7 @@ public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.Trace__InsertStep
 public import Spec.go_etcd_io.etcd.pkg.v3.traceutil.Trace__LogIfLong
 public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest__GetPhysical
 public import Spec.go_etcd_io.etcd.api.v3.etcdserverpb.CompactionRequest__GetRevision
+public import Spec.go_etcd_io.etcd.server.v3.storage.mvcc.store__Rev
 
 @[expose] public section
 
@@ -52,7 +53,8 @@ theorem EtcdServer.Compact.wp_proof
     (hGetStart : traceutil.Trace.GetStartTime.spec (GF := GF) (hG := hG))
     (hSetStart : traceutil.Trace.SetStartTime.spec (GF := GF) (hG := hG))
     (hInsert : traceutil.Trace.InsertStep.spec (GF := GF) (hG := hG))
-    (hLogIfLong : traceutil.Trace.LogIfLong.spec (GF := GF) (hG := hG)) :
+    (hLogIfLong : traceutil.Trace.LogIfLong.spec (GF := GF) (hG := hG))
+    (hRevS : mvcc.store.Rev.spec (GF := GF) (hG := hG)) :
     EtcdServer.Compact.spec (GF := GF) (hG := hG) := by
   sorry
 

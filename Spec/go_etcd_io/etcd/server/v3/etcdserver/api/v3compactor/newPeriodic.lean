@@ -28,7 +28,7 @@ abbrev v3compactor.newPeriodic.spec : Prop :=
   ∀ (lg : Loc) (clk : GoInterface) (h : time.Duration) (E : CompactEnv GF),
   10 ≤ sint.Z h →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor ∗ ⌜lg ≠ null⌝ ∗ clockwork.clockOk clockwork.realClock clk ∗
-      revGetterOk E.γi E.rg ∗ compactableOk E.c (perPermit E.γi (periodK (sint.Z h))) E.R }}
+      revGetterOk E.RevLb E.rg E.R ∗ compactableOk E.c (perPermit E.RevLb (sint.Z h) E.First) E.R }}
     (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.newPeriodic)) (Val #lg)) (Val #clk)) (Val #h)) (Val #E.rg)) (Val #E.c))
   {{ (pc : Loc), RET #pc; isPeriodic pc E (sint.Z h) ∗ periodicRunTok pc }}
 

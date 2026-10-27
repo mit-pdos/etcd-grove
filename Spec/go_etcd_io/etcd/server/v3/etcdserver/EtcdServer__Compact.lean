@@ -5,6 +5,7 @@
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvProposer
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReqOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Defs
 
 @[expose] public section
@@ -14,7 +15,7 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 
-open Iris Iris.BI go_etcd_io.etcd.server.v3 go_etcd_io.etcd.server.v3.etcdserver
+open Iris Iris.BI go_etcd_io.etcd.server.v3 go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.etcd.api.v3
 
 section spec
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -23,20 +24,43 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- `s.Compact(ctx, r)` for a non-physical compaction request at a revision `r` the store has
-reached (`v3compactor.revLb`: what both of C1's permits give): it proposes the compaction through
-raft and returns, giving back the caller's reader slots. (Phase 1's statement: what the apply does
-with the compaction is the server side's model step, C2/C3, not stated yet; the compactor ignores
-`Compact`'s result.) -/
+/-- What `Compact` returns: `nil` and a response whose header holds a revision the store has reached
+(`s.kv.Rev()`, the call's last line), or an error the server's request path can report
+(`applyErrIs`, which `errors.Is` can test: the compactor's `ErrCompacted` check). -/
+def compactOutIs (E : apply.AEnv GF) (resp : Loc) (err : GoInterface) : IProp GF :=
+  iprop((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ ∃ (h : Loc) (v : etcdserverpb.ResponseHeader)
+      (log : mvcc.Log), structFieldRef etcdserverpb.CompactionResponse go!"Header" resp ↦ h ∗ h ↦ v ∗
+      mvcc.idxCert E.γ.idx log ∗ ⌜log ≠ [] ∧ v.Revision' = W64 ((log.length : Int) - 1)⌝) ∨
+    (⌜resp = null⌝ ∗ applyErrIs err))
+
+/-- `s.Compact(ctx, r)` for a non-physical compaction request (the pilot's scope: the compactor never
+sets `Physical`; the physical wait, `Physc` and `ForceCommit`, is the gRPC caller's and not specified
+yet) at any revision (a future one is the apply's `ErrFutureRev`): it proposes the compaction
+through raft and returns `compactOutIs`, giving back the caller's reader slots and the store reader
+(`s.kv.Rev()`). (Phase 1's statement: what the apply does with the compaction, C2/C3, is the server
+side's model step, not stated yet.) -/
 abbrev EtcdServer.Compact.spec : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)) (p : Loc) (r : Int),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
-      isServerReq s E ρ ∗ srvLeadTimeReader s ∗ E.RD ∗ idCred ρ.ids 1 ∗ context.isContext ctx cd ∗
-      v3compactor.compactReqIs p r ∗ v3compactor.revLb E.γ.idx r }}
+      isServerReq s E ρ ∗ srvLeadTimeReader s ∗ E.RD ∗ mvcc.storeReader E.s E.γ ∗ idCred ρ.ids 1 ∗
+      context.isContext ctx cd ∗ v3compactor.compactReqIs p r }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Compact"))
       (Val #(GoInterface.ok ctx))) (Val #p))
-  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); srvLeadTimeReader s ∗ E.RD }}
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); srvLeadTimeReader s ∗ E.RD ∗
+      mvcc.storeReader E.s E.γ ∗ compactOutIs E resp err }}
+
+/-- `Compact` with auth on (`isServerReqM true`, as `Put.specOn`). -/
+abbrev EtcdServer.Compact.specOn : Prop :=
+  ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
+    (cd : context.ContextDesc (IProp GF)) (p : Loc) (r : Int),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      isServerReqM true s E ρ ∗ srvLeadTimeReader s ∗ E.RD ∗ mvcc.storeReader E.s E.γ ∗
+      idCred ρ.ids 1 ∗ context.isContext ctx cd ∗ v3compactor.compactReqIs p r }}
+    (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Compact"))
+      (Val #(GoInterface.ok ctx))) (Val #p))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); srvLeadTimeReader s ∗ E.RD ∗
+      mvcc.storeReader E.s E.γ ∗ compactOutIs E resp err }}
 
 end spec
 

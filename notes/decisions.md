@@ -23885,3 +23885,27 @@ conjunct each).
 `authPubLb γa 0` from the construction); the read-only `Txn` with auth on (`Txn.specOn`'s read branch
 over E3m's `apply_check_txn_auth_lb`); the admin proposers (their answer, and the same `pubAfterM`),
 the Auth handlers, `setupAuthOk`; `examples/authkv` and the closed theorem.
+
+## The compactor pilot's specs after their first review (2026-10-27)
+
+**2026-10-27 · taken (the user for the clock and C1; the rest the review's)**
+
+The spec-first pilot's phase 1 (`notes/compactor-pilot-plan.md`, "Step 2b"): a fresh reviewer
+(`notes/spec-first-study/pilot-review-1.md`) ranked the specs crossing a package boundary before any
+proof. What changed and why:
+- **C1, periodic mode** (`v3compactor.perPermit`): was "reached by a time `T` with the clock past
+  `T + K`, or reached" — the second disjunct always holds, so the permit was vacuous. Now: `period`
+  past, except the run's first compaction, `retry` past and consuming a once-per-run token `First`
+  (`CompactEnv.First`, given to `Run`): the strongest statement true of the code without a timing
+  assumption (the first sample is taken at an unknown time after the run's start, and `Time.Sub` has
+  no meaningful spec). Rejected: `retry` for all (much weaker than the configured retention); `period`
+  for all over a new timing axiom (grows the trust base with an assumption about scheduling).
+- **The clock's `After`** (trust boundary, `clockwork.clockOk`): gives a reading `T ≥ n` for any bound
+  `clockLb n` the caller holds, so waits chain; no `0 ≤ d` premise; `clockLb_init`. The axioms have a
+  trivial model; their docstring says results' time content holds under the intended reading.
+- **The environment's contracts** (`revGetterOk`, `compactableOk`): thread the caller's resource `R`
+  (the store's `Rev` and the server's proposal path need reader slots), return what the compactor
+  inspects (`errTreeOk err`, `0 ≤ v`), and are over an abstract lower bound `CompactEnv.RevLb` instead
+  of mvcc's `IdxNames`.
+- **`EtcdServer.Compact`**: any revision (was: one the store has reached), the store reader in its pre
+  and post (its `s.kv.Rev()`), a result (`compactOutIs`), and `specOn`; `Physical` stays out, as scope.

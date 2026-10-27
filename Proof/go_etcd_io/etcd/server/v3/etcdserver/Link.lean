@@ -1644,7 +1644,7 @@ theorem EtcdServer.wp_processInternalRaftRequestOnce :
 
 theorem EtcdServer.wp_Compact :
     EtcdServer.Compact.spec (GF := GF) (hG := hG) :=
-  EtcdServer.Compact.wp_proof traceutil.Tracer.wp_Start trace.wp_WithAttributes «attribute».wp_Bool «attribute».wp_Int64 CompactionRequest.wp_GetPhysical CompactionRequest.wp_GetRevision EtcdServer.wp_Logger traceutil.wp_EnsureTrace EtcdServer.wp_processInternalRaftRequestOnce traceutil.Trace.wp_GetStartTime traceutil.Trace.wp_SetStartTime traceutil.Trace.wp_InsertStep traceutil.Trace.wp_LogIfLong
+  EtcdServer.Compact.wp_proof traceutil.Tracer.wp_Start trace.wp_WithAttributes «attribute».wp_Bool «attribute».wp_Int64 CompactionRequest.wp_GetPhysical CompactionRequest.wp_GetRevision EtcdServer.wp_Logger traceutil.wp_EnsureTrace EtcdServer.wp_processInternalRaftRequestOnce traceutil.Trace.wp_GetStartTime traceutil.Trace.wp_SetStartTime traceutil.Trace.wp_InsertStep traceutil.Trace.wp_LogIfLong mvcc.store.wp_Rev
 
 theorem rafthttp.streamReader.wp_pause :
     rafthttp.streamReader.pause.spec (GF := GF) (hG := hG) :=

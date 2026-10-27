@@ -12,9 +12,16 @@ they mean is the trust boundary, stated here.
   stamp cannot be made up afterwards, or `P` could be one learned later than `T`).
 - `realClock`: the name of the real clock, which every `NewRealClock()` reads.
 - `clockOk γc clk` (persistent): `clk` is a clock over `γc`: `Now()` returns (its value is not
-  used for safety), and `After(d)` returns, for any persistent `P` the caller holds, a stamp of
-  `P` at the clock's reading `T` at the call, and a channel whose value comes only once the clock
-  has reached `T + d`.
+  used for safety), and `After(d)` returns, for any persistent `P` and clock bound `clockLb γc n`
+  the caller holds, a reading `T ≥ n` of the clock at the call, a stamp of `P` at `T`, and a channel
+  whose value comes only once the clock has reached `T + d` (`T ≥ n` is what lets waits chain:
+  after `k` waits of `d` from a bound `n`, the clock is past `n + k·d`).
+
+**How to read results over these axioms.** They are lower bounds and stamps only, so they have a
+trivial model (`clockLb := True`, `stampAt P T := P`): no Lean result can rule out that model. A
+result's time content (a revision "at least `period` old") holds under the intended reading, that
+`clockLb` and `stampAt` speak of the real clock; that reading is the trust boundary, as the meaning
+of any environment axiom is (2026-10-27, the pilot's first spec review).
 
 Why this is true of clockwork v0.5.0's real clock (`clockwork.NewRealClock()`, the compactor's):
 `realClock.Now` is `time.Now()` and `realClock.After` is `time.After`; Go's `time.After(d)` fires
@@ -60,6 +67,9 @@ axiom stampAt (γc : ClockName) (P : IProp GF) (T : Int) : IProp GF
 @[instance] axiom stampAt_persistent (γc : ClockName) (P : IProp GF) (T : Int) :
   Persistent (stampAt (GF := GF) γc P T)
 
+/-- The clock has some reading (a first bound for the caller's chain). -/
+axiom clockLb_init (γc : ClockName) : ⊢ ∃ n : Int, clockLb (GF := GF) γc n
+
 /-- A lower bound of the clock is one of every smaller value. -/
 axiom clockLb_le (γc : ClockName) (n m : Int) (h : m ≤ n) :
   clockLb (GF := GF) γc n ⊢ clockLb γc m
@@ -73,15 +83,16 @@ axiom stampAt_clockLb (γc : ClockName) (P : IProp GF) (T : Int) :
   stampAt (GF := GF) γc P T ⊢ clockLb γc T
 
 /-- **A clock** (`clk`, a `clockwork.Clock` interface value) over `γc`: `Now()` returns some time;
-`After(d)` (for `0 ≤ d`) stamps any persistent `P` the caller holds at the clock's reading `T` at the
-call, and returns a channel whose values come only once the clock has reached `T + d`. -/
+`After(d)` reads the clock at the call, `T`, at least any bound `n` the caller holds, stamps any
+persistent `P` the caller holds at `T`, and returns a channel whose values come only once the clock
+has reached `T + d` (for any `d`: a negative one fires at once, as Go's `time.After` does). -/
 def clockOk (γc : ClockName) (clk : GoInterface) : IProp GF :=
   iprop(∃ ci : GoInterfaceOk, ⌜clk = GoInterface.ok ci⌝ ∗
     □ ({{ True }} (App (Val #(methods ci.ty go!"Now" ci.v)) (Val #()))
         {{ (t : time.Time), RET #t; True }}) ∗
-    □ (∀ (d : time.Duration) (P : IProp GF), ⌜0 ≤ sint.Z d⌝ -∗ □ P -∗
+    □ (∀ (d : time.Duration) (P : IProp GF) (n : Int), □ P -∗ clockLb γc n -∗
         {{ True }} (App (Val #(methods ci.ty go!"After" ci.v)) (Val #d))
-        {{ (ch : Loc) (γ : ChanNames), RET #ch; ∃ T : Int, stampAt γc iprop(□ P) T ∗
+        {{ (ch : Loc) (γ : ChanNames), RET #ch; ∃ T : Int, ⌜n ≤ T⌝ ∗ stampAt γc iprop(□ P) T ∗
             isChanBag γ ch (V := time.Time) (fun _ => clockLb γc (T + sint.Z d)) }}))
 
 instance clockOk_persistent (γc : ClockName) (clk : GoInterface) :

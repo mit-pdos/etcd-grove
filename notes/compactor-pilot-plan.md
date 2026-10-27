@@ -205,6 +205,28 @@ excludes clients that compact a future revision (Go answers `ErrFutureRev`); `re
 compactor to mvcc's `idxCert` where any monotone lower bound would do; `perPermit` fixes the window's
 exact age where a simpler bound may be all C3 needs.
 
+**Step 2b, round 1: the findings and the repairs** (the report:
+`notes/spec-first-study/pilot-review-1.md`; the author's self-review had found 4 of them):
+
+| finding (reviewer's rank) | tier | repair |
+|---|---|---|
+| `Compact`'s post gives nothing; the gRPC caller needs a header, the compactor an `errors.Is`-able error | requirement | `compactOutIs`: `nil` and a response with a header at a reached revision, or `applyErrIs err` |
+| `Compact`'s premise `revLb r`: a future revision is legitimate (`ErrFutureRev`) | requirement | dropped |
+| `Compact` auth-off only | requirement | `Compact.specOn` (`isServerReqM true`) |
+| `Compact` reads `s.kv.Rev()`: needs the store's reader slot | requirement | `mvcc.storeReader` in its pre and post |
+| `Compact`'s `Physical` true (the gRPC caller's) | requirement | kept out, stated as scope: the physical wait is not specified yet |
+| `revGetterOk` resource-free, but `store.Rev` needs a reader slot | requirement | threads the resource `R` |
+| `compactableOk`'s post ignores the result | requirement | returns the pair and `errTreeOk err` (Perennial's error-tree fact: the part of `applyErrIs` the compactor needs) |
+| periodic `0 < r` unprovable (`revLb v` for `v ≤ 0`) | requirement | `revGetterOk` gives `0 ≤ v`; `Run` skips `rev = 0` |
+| **`perPermit` vacuous** (its weak disjunct always holds) | requirement | restated (the user's choice): `period` old, except the run's first compaction, `retry` old, consuming a once-per-run token `First` the server gives `Run` |
+| the clock's `After` cannot chain bounds | requirement | `After` gives `T ≥ n` for a bound `n` the caller holds; `clockLb_init` (the user approved the trust-boundary change) |
+| `After`'s premise `0 ≤ d` (Go accepts any) | requirement | dropped |
+| the clock axioms have a trivial model | (documentation) | the docstring says how results over them read |
+| coupling to mvcc's `IdxNames` | preference | `CompactEnv.RevLb`, an abstract lower bound (the server's is `revLb`) |
+| `periodK` one `retry` short, and not needed | preference | gone (the permit uses `period`) |
+| `New`'s `10 ≤ ret` stricter than the code | requirement | kept as the pilot's configuration (phase 0), cited in the docstring |
+| name clash with the server's `compactorOk` | preference | left for the glue (the server's becomes a corollary) |
+
 **Review checkpoints** (`notes/spec-first-plan.md`, "Phase 1b", the feedback loop): at the freeze, a
 retrospective of the revisions the review found against those the glue proofs found; at the end of
 phase 4, every revision after the freeze attributed to a review criterion or to "none", and the

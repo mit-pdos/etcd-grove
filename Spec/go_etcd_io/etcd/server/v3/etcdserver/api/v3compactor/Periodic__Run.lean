@@ -22,11 +22,11 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- `pc.Run()`: starts the goroutine that samples the revision every `retry` and compacts, and returns.
-The goroutine keeps the run token and the server's `E.R`, and calls `Compact` only at revisions C1's
-periodic permit allows (`isPeriodic`'s `compactableOk`: that is what its proof shows). -/
+The goroutine keeps the run token, the server's `E.R` and the once-per-run `E.First`, and calls
+`Compact` only at revisions C1's periodic permit allows (`isPeriodic`'s `compactableOk`: that is what its proof shows). -/
 abbrev v3compactor.Periodic.Run.spec : Prop :=
   ∀ (pc : Loc) (E : CompactEnv GF) (period : Int),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor ∗ isPeriodic pc E period ∗ periodicRunTok pc ∗ E.R }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor ∗ isPeriodic pc E period ∗ periodicRunTok pc ∗ E.R ∗ E.First }}
     (App (Val (pc @!! go.GoType.PointerType v3compactor.Periodic.ty @!! go!"Run")) (Val #()))
   {{ RET #(); True }}
 
