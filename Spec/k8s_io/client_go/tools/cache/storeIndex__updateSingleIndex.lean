@@ -23,13 +23,6 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
 
-/-- What `updateSingleIndex` leaves in the indexer's index: the key deleted from the sets of the
-old object's values and added to those of the new object's, or (the optimized case: both objects
-index under the same single value) the index unchanged. -/
-def updNPost (F : Fn) (old new : GoInterface) (key : GoString) (V V' : GoString → KSet) : Prop :=
-  V' = addVals (delVals V (valsOf F old) key) (valsOf F new) key ∨
-  ∃ a, valsOf F old = [a] ∧ valsOf F new = [a] ∧ V' = V
-
 /-- `i.updateSingleIndex(name, old, new, key)` for an indexer `name` (`fv !! name = some f`, with
 its function's contract for `F`), on objects that are `nil` or meet `OK`: indexer `name`'s index
 updated (`updNPost`; it is made if it had none), the others unchanged. Under the store's write

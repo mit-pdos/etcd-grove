@@ -52,6 +52,22 @@ instance fnOk_persistent (OK : GoInterface → IProp GF) (f : GoFunc) (F : Fn) :
     Persistent (fnOk OK f F) := by
   unfold fnOk; infer_instance
 
+/-- **The indexers' contracts**: the indexers' map `fv` has the indexers of `fns`, each function
+meeting its contract. -/
+def fnsOk (OK : GoInterface → IProp GF) (fv : GMap GoString GoFunc) (fns : GMap GoString Fn) :
+    IProp GF :=
+  iprop(⌜∀ n, n ∈ fns ↔ n ∈ fv⌝ ∗ [∗map] n ↦ f ∈ fv, ∃ F, ⌜fns !! n = some F⌝ ∗ fnOk OK f F)
+
+instance fnsOk_persistent (OK : GoInterface → IProp GF) (fv : GMap GoString GoFunc)
+    (fns : GMap GoString Fn) : Persistent (fnsOk OK fv fns) := by
+  unfold fnsOk; infer_instance
+
+/-- The indexers' map in two halves. -/
+theorem fvMap_halves (l : Loc) (fv : GMap GoString GoFunc) (q : Qp) :
+    (l ↦${DFrac.own q} fv : IProp GF) ⊣⊢ l ↦${DFrac.own q.half} fv ∗ l ↦${DFrac.own q.half} fv := by
+  conv => lhs; rw [← Qp.half_add_half q]
+  exact (ownMap_fractional (GF := GF) l fv).fractional _ _
+
 end defs
 
 end cache

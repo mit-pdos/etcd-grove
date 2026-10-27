@@ -182,6 +182,72 @@ theorem updN_same {F : Fn} {it it' : Items} {key : GoString} {V : GoString → K
   · subst hk; unfold inIdx; rw [hold, hnew]
   · unfold inIdx; rw [hsame k hk]
 
+/-- What `updateSingleIndex` leaves in the indexer's index: the key deleted from the sets of the
+old object's values and added to those of the new object's, or (the optimized case: both objects
+index under the same single value) the index unchanged. -/
+def updNPost (F : Fn) (old new : GoInterface) (key : GoString) (V V' : GoString → KSet) : Prop :=
+  V' = addVals (delVals V (valsOf F old) key) (valsOf F new) key ∨
+  ∃ a, valsOf F old = [a] ∧ valsOf F new = [a] ∧ V' = V
+
+/-- `updateSingleIndex` keeps an index exact when the items change at the key only. -/
+theorem nameOk_upd {F : Fn} {it it' : Items} {key : GoString} {X X' : IxN}
+    (hX : nameOk F it X) (hsame : ∀ k, k ≠ key → objAt it' k = objAt it k)
+    (h : updNPost F (objAt it key) (objAt it' key) key (viewN X) (viewN X')) :
+    nameOk F it' X' := by
+  intro v k
+  rcases h with h | ⟨a, ha, hb, h⟩
+  · rw [h]; exact updN_ok hX hsame v k
+  · rw [h]; exact updN_same a hX hsame ha hb v k
+
+/-- **`updateIndices`' loop invariant**: the indexers visited so far (`done`) are exact for the
+new items, the others for the old ones; only indexers have an index. -/
+def ixOkPart (fns : GMap GoString Fn) (it it' : Items) (done : List GoString) (ix : Ix) : Prop :=
+  (∀ n, n ∈ ix → n ∈ fns) ∧
+  ∀ n F, fns !! n = some F → nameOk F (if n ∈ done then it' else it) (ixAt ix n)
+
+theorem ixOkPart_nil {fns : GMap GoString Fn} {it it' : Items} {ix : Ix} (h : ixOk fns it ix) :
+    ixOkPart fns it it' [] ix := by
+  refine ⟨h.1, fun n F hF => ?_⟩
+  simp only [List.not_mem_nil, ↓reduceIte]
+  exact h.2 n F hF
+
+theorem ixOkPart_done {fns : GMap GoString Fn} {it it' : Items} {done : List GoString} {ix : Ix}
+    (h : ixOkPart fns it it' done ix) (hall : ∀ n, n ∈ fns → n ∈ done) : ixOk fns it' ix := by
+  refine ⟨h.1, fun n F hF => ?_⟩
+  have hn : n ∈ fns := by simp [GMap.mem_iff, hF]
+  have := h.2 n F hF
+  simp only [hall n hn, ↓reduceIte] at this
+  exact this
+
+/-- One step of `updateIndices`: indexer `name` (not yet visited) updated by `updateSingleIndex`. -/
+theorem ixOkPart_step {fns : GMap GoString Fn} {it it' : Items} {done : List GoString}
+    {ix ix' : Ix} {name key : GoString} {F : Fn}
+    (h : ixOkPart fns it it' done ix) (hF : fns !! name = some F) (hnd : name ∉ done)
+    (hsame : ∀ k, k ≠ key → objAt it' k = objAt it k)
+    (hother : ∀ n, n ≠ name → ix' !! n = ix !! n)
+    (hupd : updNPost F (objAt it key) (objAt it' key) key (viewN (ixAt ix name))
+      (viewN (ixAt ix' name))) :
+    ixOkPart fns it it' (done ++ [name]) ix' := by
+  refine ⟨fun n hn => ?_, fun n G hG => ?_⟩
+  · by_cases hnn : n = name
+    · subst hnn; simp [GMap.mem_iff, hF]
+    · apply h.1 n
+      rw [GMap.mem_iff] at hn ⊢
+      rwa [hother n hnn] at hn
+  · by_cases hnn : n = name
+    · subst hnn
+      rw [hF] at hG; cases hG
+      have h0 := h.2 n F hF
+      simp only [hnd, ↓reduceIte] at h0
+      simp only [List.mem_append, List.mem_singleton, or_true, ↓reduceIte]
+      exact nameOk_upd h0 hsame hupd
+    · have hx : ixAt ix' n = ixAt ix n := by unfold ixAt; rw [hother n hnn]
+      rw [hx]
+      have h0 := h.2 n G hG
+      have hm : (n ∈ done ++ [name]) ↔ n ∈ done := by simp [hnn]
+      simp only [hm]
+      exact h0
+
 end model
 
 end cache
