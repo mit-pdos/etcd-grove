@@ -110,6 +110,9 @@ theorem ownCommittedOps_get_lb (γ : Cluster) (ops : List LogEntry) :
 theorem ownCommittedOps_lb_prefix (γ : Cluster) (ops l : List LogEntry) :
     ownCommittedOps (GF := GF) γ ops ∗ isCommittedLogLb γ l ⊢ ⌜opsOf l <+: ops⌝ := sorry
 
+/-- Every committed log extends the empty one. -/
+theorem isCommittedLogLb_nil (γ : Cluster) : ⊢ isCommittedLogLb (GF := GF) γ [] := sorry
+
 theorem isCommittedLogLb_mono (γ : Cluster) (l1 l2 : List LogEntry) :
     l1 <+: l2 → isCommittedLogLb (GF := GF) γ l2 ⊢ isCommittedLogLb γ l1 := sorry
 

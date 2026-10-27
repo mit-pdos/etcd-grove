@@ -2,11 +2,10 @@
 
 `(*KV).RemoveMember(id)` (kv.go), 2026-10-15 (stage N): the replica's node is asked
 to propose removing replica `id` from the cluster's voters (`Node.ProposeConfChange` of
-`pb.ConfChange{Type: ConfChangeRemoveNode, NodeID: id}`, `rmCC id`). The change must be one the
-cluster admits (`CCAllowed`: raft's `reCCOk`, which the cluster fixes at allocation; a cluster
-of the store applies its conf changes with a decoder of the entry alone, `KVCC`). Nothing is
-promised of the outcome: raft drops a change proposed while another one is not applied, and the
-store's operations are specified whatever the configuration.
+`pb.ConfChange{Type: ConfChangeRemoveNode, NodeID: id}`, `rmCC id`), with the update raft's draft
+API takes (`kv_ccAu`: the change's entry carries no datum, so the store does not move). Nothing is
+promised of the outcome: the store's static cluster admits no change (`Draft.isStaticCluster`), so
+the update never fires.
 -/
 module
 
@@ -33,7 +32,6 @@ variable [KVStor GF]
 /-- See the file header. -/
 abbrev KV.RemoveMember.spec : Prop :=
   ∀ (γr : RKVNames) (γp : RepNames) (r : Loc) (id : w64),
-  CCAllowed γr.raft (.v1 (rmCC id)) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kv ∗
       isKV γr γp r }}
     (App (Val (r @!! go.GoType.PointerType rKVTy @!! go!"RemoveMember")) (Val #id))
