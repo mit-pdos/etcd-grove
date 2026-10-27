@@ -84,7 +84,7 @@ canonical form (for the pilot slice only, at first).
    rows, step 1's three) and the library calls with a reproduction in `issues/` through the phase-2
    checker; how many does it catch? If few, phase 2 is not worth its cost. (Narrowed to the
    trust boundary by step 1.) Done: below.
-3. **A prospective pilot**: one unverified slice of comparable size done spec-first, compared with
+3. **A prospective pilot** (started 2026-10-27: etcd's auto-compactor, `notes/compactor-pilot-plan.md`): one unverified slice of comparable size done spec-first, compared with
    a slice done the current way (from git history: e.g. cindex, the read-index loop). Metrics:
    time to a frozen spec; spec changes after the freeze (the main one); defects found by tests vs
    by proofs; proof time after the freeze.
