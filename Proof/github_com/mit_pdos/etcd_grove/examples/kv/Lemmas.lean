@@ -301,7 +301,7 @@ theorem kv_mint (γr : RKVNames) (id ns : w64) (kind : w8) (key val : List w8)
   unfold rkvInv rkvInvBody
   iinv Hinv with ⟨%ops, %S, %Mi, %O, %U, >Hc, Hsl⟩ Hclose
   iunfold kvCore at Hc
-  icases Hc with ⟨Hops, Hv, HU, HS, HMi, HO, %Hok, %Hodm⟩
+  icases Hc with ⟨Hops, Hv, HU, HS, HMi, HO, %Hok, %Hodm, %Hrm⟩
   icases ghost_map_lookup $$ HS Hseq with %HSi
   have Hf : (fun x => kvApply x (encodeOp id (ns + W64 1) kind key val)) = kvNext kind key val :=
     funext fun x => kvApply_encodeOp x id (ns + W64 1) kind key val Hk
@@ -322,13 +322,14 @@ theorem kv_mint (γr : RKVNames) (id ns : w64) (kind : w8) (key val : List w8)
     · unfold kvCore
       iframe Hops Hv HU HS HMi HO
       ipureintro
-      refine ⟨mintOk_step S Mi O _ U U id ns d Hok HSi Hkey Hns ?_ (fun c h => .inl h), ?_⟩
+      refine ⟨mintOk_step S Mi O _ U U id ns d Hok HSi Hkey Hns ?_ (fun c h => .inl h), ?_, ?_⟩
       · intro d' γp' Hd'
         by_cases Heq : d' = d
         · exact .inr Heq
         · rw [GMap.lookup_insert_ne _ _ (Ne.symm Heq)] at Hd'; exact .inl Hd'
       · intro d' Hd'
         exact minted_insert _ _ _ _ HMi0 (Hodm d' Hd')
+      · exact Hrm
     iapply (BigSepM.bigSepM_insert (Φ := fun d γp => opSlot (GF := GF) γr d γp (logHist ops))
       HO0).2
     iframe Hsl
@@ -360,7 +361,7 @@ theorem kv_readAu (γr : RKVNames) (l0 : List Draft.LogEntry) :
   have Hdisj := rkvN_raftN
   iinv Hinv with ⟨%ops, %S, %Mi, %O, %U, >Hc, Hsl⟩ Hclose
   iunfold kvCore at Hc
-  icases Hc with ⟨Hops, Hv, HU, HS, HMi, HO, %Hok, %Hodm⟩
+  icases Hc with ⟨Hops, Hv, HU, HS, HMi, HO, %Hok, %Hodm, %Hrm⟩
   ihave %Hpre := Draft.ownCommittedOps_lb_prefix γr.cluster ops l0 $$ [Hops Hl0]
   · iframe Hops Hl0
   iapply fupd_mask_intro (show (∅ : CoPset) ⊆ (⊤ \ ↑kvRaftN) \ ↑rkvN from
@@ -378,7 +379,7 @@ theorem kv_readAu (γr : RKVNames) (l0 : List Draft.LogEntry) :
       iframe Hsl
       unfold kvCore
       iframe Hops Hv HU HS HMi HO
-      ipureintro; exact ⟨Hok, Hodm⟩
+      ipureintro; exact ⟨Hok, Hodm, Hrm⟩
     imodintro
     iempintro
   · iintro Hops
@@ -389,7 +390,7 @@ theorem kv_readAu (γr : RKVNames) (l0 : List Draft.LogEntry) :
       iframe Hsl
       unfold kvCore
       iframe Hops Hv HU HS HMi HO
-      ipureintro; exact ⟨Hok, Hodm⟩
+      ipureintro; exact ⟨Hok, Hodm, Hrm⟩
     imodintro
     imodintro
     ipureintro; exact Hpre
@@ -408,7 +409,7 @@ theorem kv_mint_read (γr : RKVNames) (id ns : w64) (key : List w8) (l0 : List D
   unfold rkvInv rkvInvBody
   iinv Hinv with ⟨%ops, %S, %Mi, %O, %U, >Hc, Hsl⟩ Hclose
   iunfold kvCore at Hc
-  icases Hc with ⟨Hops, Hv, HU, HS, HMi, HO, %Hok, %Hodm⟩
+  icases Hc with ⟨Hops, Hv, HU, HS, HMi, HO, %Hok, %Hodm, %Hrm⟩
   icases ghost_map_lookup $$ HS Hseq with %HSi
   generalize Hd : encodeOp id (ns + W64 1) opReadB key [] = d
   have Hkey : opKey d = some (id, ns + W64 1) := by rw [← Hd]; exact opKey_encodeOp _ _ _ _ _ Hk
@@ -426,7 +427,7 @@ theorem kv_mint_read (γr : RKVNames) (id ns : w64) (key : List w8) (l0 : List D
     unfold kvCore
     iframe Hops Hv HU HS HMi HO
     ipureintro
-    refine ⟨mintOk_step S Mi O O U _ id ns d Hok HSi Hkey Hns (fun d' γp h => .inl h) ?_, ?_⟩
+    refine ⟨mintOk_step S Mi O O U _ id ns d Hok HSi Hkey Hns (fun d' γp h => .inl h) ?_, ?_, ?_⟩
     · intro c Hc
       by_cases Heq : c = d
       · exact .inr Heq
@@ -436,6 +437,7 @@ theorem kv_mint_read (γr : RKVNames) (id ns : w64) (key : List w8) (l0 : List D
         · exact h
     · intro d' Hd'
       exact minted_insert _ _ _ _ HMi0 (Hodm d' Hd')
+    · exact Hrm
   imodintro
   iframe Hseq Hmint Hrc
 
@@ -449,7 +451,7 @@ theorem kv_read_minted (γr : RKVNames) (c c0 : List w8) (i : w64) (k : w64 × w
   unfold rkvInv rkvInvBody
   iinv Hinv with ⟨%ops, %S, %Mi, %O, %U, >Hc, Hsl⟩ Hclose
   iunfold kvCore at Hc
-  icases Hc with ⟨Hops, Hv, HU, HS, HMi, HO, %Hok, %Hodm⟩
+  icases Hc with ⟨Hops, Hv, HU, HS, HMi, HO, %Hok, %Hodm, %Hrm⟩
   ihave %HcU := Draft.readStateOk_used γr.cluster kvRaftN c i U $$ [Hok HU]
   · iframe Hok HU
   obtain ⟨k', Hk', HMik⟩ := Hok.2.2 c HcU
@@ -463,7 +465,7 @@ theorem kv_read_minted (γr : RKVNames) (c c0 : List w8) (i : w64) (k : w64 × w
     iframe Hsl
     unfold kvCore
     iframe Hops Hv HU HS HMi HO
-    ipureintro; exact ⟨Hok, Hodm⟩
+    ipureintro; exact ⟨Hok, Hodm, Hrm⟩
   imodintro
   ipureintro; rfl
 
@@ -488,7 +490,7 @@ theorem kv_committed_minted (γr : RKVNames) (l : List Draft.LogEntry) (d d0 : L
   unfold rkvInv rkvInvBody
   iinv Hinv with ⟨%ops, %S, %Mi, %O, %U, >Hc, Hsl⟩ Hclose
   iunfold kvCore at Hc
-  icases Hc with ⟨Hops, Hv, HU, HS, HMi, HO, %Hok, %Hodm⟩
+  icases Hc with ⟨Hops, Hv, HU, HS, HMi, HO, %Hok, %Hodm, %Hrm⟩
   ihave %Hpre := Draft.ownCommittedOps_lb_prefix γr.cluster ops l $$ [Hops Hl]
   · iframe Hops Hl
   have Hd' : some d ∈ ops.map odOf :=
@@ -504,7 +506,7 @@ theorem kv_committed_minted (γr : RKVNames) (l : List Draft.LogEntry) (d d0 : L
     iframe Hsl
     unfold kvCore
     iframe Hops Hv HU HS HMi HO
-    ipureintro; exact ⟨Hok, Hodm⟩
+    ipureintro; exact ⟨Hok, Hodm, Hrm⟩
   imodintro
   ipureintro; rfl
 
@@ -516,7 +518,7 @@ theorem kvLb_current (γr : RKVNames) (x : KVMap) (E : CoPset) (HE1 : ↑rkvN �
   unfold rkvInv rkvInvBody
   iinv Hinv with ⟨%ops, %S, %Mi, %O, %U, >Hc, Hsl⟩ Hclose
   iunfold kvCore at Hc
-  icases Hc with ⟨Hops, Hv, HU, HS, HMi, HO, %Hok, %Hodm⟩
+  icases Hc with ⟨Hops, Hv, HU, HS, HMi, HO, %Hok, %Hodm, %Hrm⟩
   ihave %Hxeq := rkvVal_agree γr (logHist ops) x $$ Hv Hx
   icases Draft.ownCommittedOps_get_lb γr.cluster ops $$ Hops with ⟨Hops, %l, #Hl, %Hl⟩
   imod Hclose $$ [Hops Hv HU HS HMi HO Hsl] with -
@@ -525,7 +527,7 @@ theorem kvLb_current (γr : RKVNames) (x : KVMap) (E : CoPset) (HE1 : ↑rkvN �
     iframe Hsl
     unfold kvCore
     iframe Hops Hv HU HS HMi HO
-    ipureintro; exact ⟨Hok, Hodm⟩
+    ipureintro; exact ⟨Hok, Hodm, Hrm⟩
   imodintro
   iframe Hx
   iexists logHist ops
@@ -573,7 +575,7 @@ theorem kv_propAu (γr : RKVNames) (d : List w8) (γp : GName × GName) (Hne : d
   have Hdisj := rkvN_raftN
   iinv Hinv with ⟨%ops, %S, %Mi, %O, %U, >Hc, Hsl⟩ Hclose
   iunfold kvCore at Hc
-  icases Hc with ⟨Hops, Hv, HU, HS, HMi, HO, %Hok, %Hodm⟩
+  icases Hc with ⟨Hops, Hv, HU, HS, HMi, HO, %Hok, %Hodm, %Hrm⟩
   icases ghost_map_lookup $$ HO Hop with %HOd
   have HMd : Minted Mi d := Hok.2.1 d γp HOd
   iapply fupd_mask_intro (show (∅ : CoPset) ⊆ (⊤ \ ↑kvRaftN) \ ↑rkvN from
@@ -592,7 +594,7 @@ theorem kv_propAu (γr : RKVNames) (d : List w8) (γp : GName × GName) (Hne : d
       iframe Hsl
       unfold kvCore
       iframe Hops Hv HU HS HMi HO
-      ipureintro; exact ⟨Hok, Hodm⟩
+      ipureintro; exact ⟨Hok, Hodm, Hrm⟩
     imodintro
     iempintro
   · -- commit: the requested entries grow by `d`'s
@@ -608,6 +610,11 @@ theorem kv_propAu (γr : RKVNames) (d : List w8) (γp : GName × GName) (Hne : d
       rcases List.mem_append.mp h with h | h
       · exact Hodm d' h
       · simp only [List.mem_singleton, Option.some.injEq] at h; subst h; exact HMd
+    have Hrm' : RmReqs (ops ++ [(⟨t, W32 0, d⟩ : Draft.LogEntry)]) := by
+      intro e he hty
+      rcases List.mem_append.mp he with h | h
+      · exact Hrm e h hty
+      · simp only [List.mem_singleton] at h; subst h; exact absurd rfl hty
     by_cases Hm : d ∈ logHist ops
     · -- a later occurrence: the history does not move
       have Hocc : logHist (ops ++ [⟨t, W32 0, d⟩]) = logHist ops := by
@@ -620,7 +627,7 @@ theorem kv_propAu (γr : RKVNames) (d : List w8) (γp : GName × GName) (Hne : d
         unfold kvCore
         rw [Hocc]
         iframe Hops Hv HU HS HMi HO
-        ipureintro; exact ⟨Hok, Hodm'⟩
+        ipureintro; exact ⟨Hok, Hodm', Hrm'⟩
       imodintro
       itrivial
     · -- the first occurrence: the client's update runs, from the slot
@@ -658,7 +665,7 @@ theorem kv_propAu (γr : RKVNames) (d : List w8) (γp : GName × GName) (Hne : d
           · unfold kvCore
             rw [Hocc]
             iframe Hops Hv HU HS HMi HO
-            ipureintro; exact ⟨Hok, Hodm'⟩
+            ipureintro; exact ⟨Hok, Hodm', Hrm'⟩
           iapply (BigSepM.bigSepM_delete (Φ := fun d' γp' =>
             opSlot (GF := GF) γr d' γp' (logHist ops ++ [d])) HOd).2
           isplitl [HΦ]
@@ -683,13 +690,13 @@ theorem kv_propAu (γr : RKVNames) (d : List w8) (γp : GName × GName) (Hne : d
 
 /-- **The update `Node.ProposeConfChange` takes** for a conf change (`RemoveMember`'s): its entry
 carries no datum, so the history does not move. -/
-theorem kv_ccAu (γr : RKVNames) (o : ConfChangeIM) :
+theorem kv_ccAu (γr : RKVNames) (id : w64) :
     ⊢ rkvInv (GF := GF) γr -∗
       AU <{ ∃∃ (ops : List Draft.LogEntry), Draft.ownCommittedOps γr.cluster ops }>
           @ ⊤ \ ↑kvRaftN, ∅
-        <{ ∀∀ (t : w64) (bs : List w8), ⌜MarshalsConfChange (some o) bs⌝ ∗
+        <{ ∀∀ (t : w64) (bs : List w8), ⌜MarshalsConfChange (some (.v1 (rmCC id))) bs⌝ ∗
              Draft.ownCommittedOps γr.cluster
-               (ops ++ [(⟨t, confChangeEntryType (some o), bs⟩ : Draft.LogEntry)]),
+               (ops ++ [(⟨t, confChangeEntryType (some (.v1 (rmCC id))), bs⟩ : Draft.LogEntry)]),
            COMM True }> := by
   iintro #Hinv
   iauintro
@@ -697,7 +704,7 @@ theorem kv_ccAu (γr : RKVNames) (o : ConfChangeIM) :
   have Hdisj := rkvN_raftN
   iinv Hinv with ⟨%ops, %S, %Mi, %O, %U, >Hc, Hsl⟩ Hclose
   iunfold kvCore at Hc
-  icases Hc with ⟨Hops, Hv, HU, HS, HMi, HO, %Hok, %Hodm⟩
+  icases Hc with ⟨Hops, Hv, HU, HS, HMi, HO, %Hok, %Hodm, %Hrm⟩
   iapply fupd_mask_intro (show (∅ : CoPset) ⊆ (⊤ \ ↑kvRaftN) \ ↑rkvN from
     Std.LawfulSet.empty_subset)
   iintro Hclose2
@@ -713,31 +720,36 @@ theorem kv_ccAu (γr : RKVNames) (o : ConfChangeIM) :
       iframe Hsl
       unfold kvCore
       iframe Hops Hv HU HS HMi HO
-      ipureintro; exact ⟨Hok, Hodm⟩
+      ipureintro; exact ⟨Hok, Hodm, Hrm⟩
     imodintro
     iempintro
-  · iintro %t %bs ⟨-, Hops⟩
+  · iintro %t %bs ⟨%Hbs, Hops⟩
     imod Hclose2 with -
-    have Hod : odOf (⟨t, confChangeEntryType (some o), bs⟩ : Draft.LogEntry) = none := by
+    have Hod : odOf (⟨t, confChangeEntryType (some (.v1 (rmCC id))), bs⟩ : Draft.LogEntry) = none := by
       unfold odOf; rw [if_neg]
       rintro ⟨h, -⟩
-      cases o <;> simp [confChangeEntryType] at h
-    have Hocc : logHist (ops ++ [⟨t, confChangeEntryType (some o), bs⟩]) = logHist ops := by
+      exact absurd h (by simp only [confChangeEntryType]; intro h1; revert h1; word)
+    have Hocc : logHist (ops ++ [⟨t, confChangeEntryType (some (.v1 (rmCC id))), bs⟩]) = logHist ops := by
       unfold logHist; rw [List.map_append, List.map_singleton, Hod, histOf_snoc]; rfl
     imod Hclose $$ [Hops Hv HU HS HMi HO Hsl] with -
     · inext
-      iexists ops ++ [⟨t, confChangeEntryType (some o), bs⟩], S, Mi, O, U
+      iexists ops ++ [⟨t, confChangeEntryType (some (.v1 (rmCC id))), bs⟩], S, Mi, O, U
       rw [Hocc]
       iframe Hsl
       unfold kvCore
       rw [Hocc]
       iframe Hops Hv HU HS HMi HO
       ipureintro
-      refine ⟨Hok, fun d' h => ?_⟩
-      rw [List.map_append, List.map_singleton, Hod] at h
-      rcases List.mem_append.mp h with h | h
-      · exact Hodm d' h
-      · simp at h
+      refine ⟨Hok, fun d' h => ?_, ?_⟩
+      · rw [List.map_append, List.map_singleton, Hod] at h
+        rcases List.mem_append.mp h with h | h
+        · exact Hodm d' h
+        · simp at h
+      · intro e he hty
+        rcases List.mem_append.mp he with h | h
+        · exact Hrm e h hty
+        · simp only [List.mem_singleton] at h; subst h
+          exact ⟨rfl, id, Hbs⟩
     imodintro
     itrivial
 
@@ -757,7 +769,7 @@ theorem kv_collect (γr : RKVNames) (d : List w8) (γp : GName × GName) (Ψ : L
   unfold rkvInv rkvInvBody
   iinv Hinv with ⟨%ops, %S, %Mi, %O, %U, >Hc, Hsl⟩ Hclose
   iunfold kvCore at Hc
-  icases Hc with ⟨Hops, Hv, HU, HS, HMi, HO, %Hok, %Hodm⟩
+  icases Hc with ⟨Hops, Hv, HU, HS, HMi, HO, %Hok, %Hodm, %Hrm⟩
   ihave %Hpre := Draft.ownCommittedOps_lb_prefix γr.cluster ops l $$ [Hops Hl]
   · iframe Hops Hl
   icases ghost_map_lookup $$ HO Hop with %HOd
@@ -793,7 +805,7 @@ theorem kv_collect (γr : RKVNames) (d : List w8) (γp : GName × GName) (Ψ : L
       isplitl [Hops Hv HU HS HMi HO]
       · unfold kvCore
         iframe Hops Hv HU HS HMi HO
-        ipureintro; exact ⟨Hok, Hodm⟩
+        ipureintro; exact ⟨Hok, Hodm, Hrm⟩
       iapply (BigSepM.bigSepM_delete (Φ := fun d γp =>
         opSlot (GF := GF) γr d γp (logHist ops)) HOd).2
       iframe Hsl

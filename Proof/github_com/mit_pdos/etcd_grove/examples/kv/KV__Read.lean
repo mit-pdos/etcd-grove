@@ -35,6 +35,26 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
 variable [KVStor GF]
 
+/-- **`Draft.readStateOk_ctx` as raft's implementation proves it** (2026-10-27,
+`ApiImpl.readStateOk_ctx_impl`): a ghost update within the cluster's namespace, given a committed
+log at least `idx` long, the result under two laters. Derived here from the draft's stronger
+placeholder statement until the draft takes the implemented one (then it is the draft's law). -/
+theorem readStateOk_ctx' (γ : Draft.Cluster) (N : Namespace) (c : List w8) (idx : w64)
+    (Q : List Draft.LogEntry → IProp GF) (l' : List Draft.LogEntry) (E : CoPset) (_HE : ↑N ⊆ E) :
+    uint.nat idx ≤ l'.length →
+    ⊢ Draft.readStateOk γ N c idx -∗ Draft.isReadCtx γ N c Q -∗ Draft.isCommittedLogLb γ l' ={E}=∗
+      ∃ l, ⌜l.length = uint.nat idx⌝ ∗ Draft.isCommittedLogLb γ l ∗ ▷ ▷ □ Q (Draft.opsOf l) := by
+  intro _
+  iintro #Hst #Hctx -
+  icases Draft.readStateOk_ctx γ N c idx Q $$ [Hst Hctx] with ⟨%l, %Hlen, #Hl, HQ⟩
+  · iframe Hst Hctx
+  imodintro
+  iexists l
+  iframe Hl
+  isplitr
+  · ipureintro; exact Hlen
+  inext; inext; iexact HQ
+
 theorem KV.Read.wp_proof
     (wp_encode : kv.encode.spec (GF := GF) (hG := hG))
     (wp_node_ReadIndex : Draft.node.ReadIndex.spec (GF := GF) (hG := hG)) :
@@ -114,12 +134,13 @@ theorem KV.Read.wp_proof
   ihave #Hraftinit : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
   · iPkgInit
   ihave #Hbg := nodeCtx_background (GF := GF) bgCd
-  wp_apply wp_node_ReadIndex n γr.cluster kvRaftN id b cx
+  wp_apply +noauto wp_node_ReadIndex n γr.cluster kvRaftN id b cx
     (fun ops => iprop(⌜Draft.opsOf l0 <+: ops⌝)) context.backgroundCtxVal
     bgCd $$ [$Hraftinit $HisNode $Hbg $Hb $Hrc $Hrdc] as %err -
   -- the answer: a read state of the context, and the value after a committed log at least that
   -- long; the read took effect at a committed log that long (`Draft.readStateOk_ctx`), whose
   -- requested entries extend `l0`'s
+  wp_auto_lc 2
   wp_apply +noauto wp_handoff_receive (t := go.string) γh ch (readAns γr cx)
     iprop(True) iprop(False) false $$ [$Hho $Hcons] as %v %ok ⟨Hcons, Hgot⟩
   unfold handoffGot
@@ -132,12 +153,11 @@ theorem KV.Read.wp_proof
   icases Hgot with ⟨Hw, -⟩
   iunfold readAns at Hw
   icases Hw with ⟨%i, %ap, #Hok, #Hap, %Hi⟩
-  icases Draft.readStateOk_ctx γr.cluster kvRaftN cx i (fun ops => iprop(⌜Draft.opsOf l0 <+: ops⌝))
-    $$ [Hok Hrc] with ⟨%l, %Hlen, #Hl, HQ⟩
-  · iframe Hok Hrc
-  ihave HQ : iprop(▷ ⌜Draft.opsOf l0 <+: Draft.opsOf l⌝) $$ [HQ]
-  · inext; icases HQ with #%HQ; ipureintro; exact HQ
-  imod HQ with %HQ
+  imod readStateOk_ctx' γr.cluster kvRaftN cx i (fun ops => iprop(⌜Draft.opsOf l0 <+: ops⌝)) ap ⊤
+      CoPset.subseteq_top (by have := Hi.1; word) $$ Hok Hrc Hap with ⟨%l, %Hlen, #Hl, HQ⟩
+  imod lc_fupd_elim_later $$ Hlc1 HQ with HQ
+  imod lc_fupd_elim_later $$ Hlc2 HQ with HQ
+  icases HQ with #%HQ
   wp_auto
   ihave %Hag := Draft.isCommittedLogLb_agree γr.cluster l ap $$ [Hl Hap]
   · iframe Hl Hap

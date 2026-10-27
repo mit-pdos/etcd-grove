@@ -250,6 +250,23 @@ def MintOk [GooseExts] (S : GMap w64 w64) (Mi : GMap (w64 × w64) (List w8))
   (∀ d γp, O !! d = some γp → Minted Mi d) ∧
   (∀ c, c ∈ U → Minted Mi c)
 
+section ccfg
+variable [GooseExts]
+
+/-- The change `RemoveMember(id)` proposes: `pb.ConfChange{Type: ConfChangeRemoveNode, NodeID:
+id}` (type `1`; no context, no id). -/
+def rmCC (id : w64) : ConfChangeM := { type := W32 1, nodeId := id, context := [], id := W64 0 }
+
+/-- **The conf changes among the committed requested entries are `RemoveMember`'s** (2026-10-27):
+every entry of `ops` that is not a normal one is a `ConfChange` (type `1`) whose bytes carry
+`rmCC id` for some `id` -- the only conf change the store proposes (`kv_ccAu`). What `run` needs to
+apply a committed conf-change entry (`node.ApplyConfChange`). -/
+def RmReqs (ops : List Draft.LogEntry) : Prop :=
+  ∀ e ∈ ops, e.type ≠ W32 0 →
+    e.type = W32 1 ∧ ∃ id, MarshalsConfChange (some (.v1 (rmCC id))) e.data
+
+end ccfg
+
 /-- A replica's ghost names: none of its own (2026-10-27: until then its raft node's, which raft's
 draft API keeps). -/
 structure RepNames where
@@ -295,7 +312,9 @@ def kvCore (γr : RKVNames) (ops : List Draft.LogEntry) (S : GMap w64 w64)
     ghostMapAuth γr.seq 1 S ∗ ghostMapAuth γr.mint 1 Mi ∗ ghostMapAuth γr.ops 1 O ∗
     ⌜MintOk S Mi O U⌝ ∗
     -- every datum committed was minted (only the store's updates move `ops`)
-    ⌜∀ d, some d ∈ ops.map odOf → Minted Mi d⌝)
+    ⌜∀ d, some d ∈ ops.map odOf → Minted Mi d⌝ ∗
+    -- the conf changes committed are `RemoveMember`'s
+    ⌜RmReqs ops⌝)
 
 instance kvCore_timeless (γr : RKVNames) (ops : List Draft.LogEntry) (S : GMap w64 w64)
     (Mi : GMap (w64 × w64) (List w8)) (O : GMap (List w8) (GName × GName)) (U : GSet (List w8)) :
@@ -469,15 +488,6 @@ def runStor (γr : RKVNames) (st : Loc) (σt : StorState) : IProp GF :=
     ⌜γs.cap = 2 ^ 64 ∧ uint.Z σt.prev.index' ≤ uint.Z σt.ss.index'⌝)
 
 end ghost
-
-section ccfg
-variable [GooseExts]
-
-/-- The change `RemoveMember(id)` proposes: `pb.ConfChange{Type: ConfChangeRemoveNode, NodeID:
-id}` (type `1`; no context, no id). -/
-def rmCC (id : w64) : ConfChangeM := { type := W32 1, nodeId := id, context := [], id := W64 0 }
-
-end ccfg
 
 end EtcdGrove
 end Perennial

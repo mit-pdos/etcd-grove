@@ -75,11 +75,12 @@ theorem rkvInv_alloc (E : CoPset) (γ : Draft.Cluster) (S0 : GMap w64 w64) :
       simp only [show logHist ([] : List Draft.LogEntry) = [] from rfl]
       iframe Hops Hv1 HU HS HMi HO
       ipureintro
-      refine ⟨⟨?_, ?_, ?_⟩, ?_⟩
+      refine ⟨⟨?_, ?_, ?_⟩, ?_, ?_⟩
       · intro i s d h; simp at h
       · intro d γp h; simp at h
       · intro c h; rw [GMap.elem_of_gset] at h; simp at h
       · intro d h; simp at h
+      · intro e h; simp at h
     · iapply BigSepM.bigSepM_empty.2
       itrivial
   imodintro

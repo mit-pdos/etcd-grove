@@ -68,7 +68,7 @@ theorem KV.RemoveMember.wp_proof
   wp_auto
   ihave #Hbg := nodeCtx_background (GF := GF) bgCd
   -- the update over the committed requested entries: the change's entry carries no datum
-  ihave Hcau := kv_ccAu γr (.v1 (rmCC id)) $$ Hinv
+  ihave Hcau := kv_ccAu γr id $$ Hinv
   wp_apply wp_node_ProposeConfChange n γr.cluster kvRaftN id0 _ (.v1 (rmCC id)) (DFrac.own 1)
       context.backgroundCtxVal bgCd
       $$ [$Hraftinit $HisNode $Hbg $Hcci $Hcau] as %err -
