@@ -24030,3 +24030,30 @@ at the model's state there (`adminQh`).
 success says the entry was applied, not yet that the model's step admitted it; the client can
 unfold `kvRaftOfOn` at `L ++ [e]`); the Auth handlers, `setupAuthOk`; `examples/authkv` and the
 closed theorem.
+
+## E3x of the auth plan: an admin answer tied to the model (2026-10-27 · `notes/auth-plan.md`, E3w's first left item)
+
+E3w's admin proposers learned that their entry was applied, not that the model's step admitted it
+(`authTie` covers KV requests only). Now `raftRequest.specM true`'s success post says, of an admin
+request, that its step from the auth state the model of the committed prefix `L` reaches succeeded:
+`adminDoneM true` in `appliedOkM` (`ReqOn.lean`), `needAdminPermission rq = true →
+adminStepOk rq st (adminNext rq st)` with `st := (kvRaftOfOn … L).1`. `adminStepOk`
+(`KVAuthModel.lean`): the principal admin-permitted at `st` and the kind's step (`adminStepO`,
+`adminStateR`'s steps; `AuthEnable` at `st`'s own flag) to an outcome other than an error, `st'` the
+state after it; `adminStateR_of_stepOk`/`adminNext_of_stepOk` relate it to the model's step. The
+entry points' `specOn` (E3w) carry it unchanged, through `adminOutOn`'s `appliedOkM`.
+
+Why a tie on the result rather than a pure one like `authTie`: the error is not in the apply
+outcome (`ApplyOut`) but in the result (`Result.Err`), so what the apply thread hands over is
+persistent, at the result's location: `adminTieAr ar rq st st' out` (`KVAuthModel.lean`), for a
+dispatched admin request `∃ v, ar ↦□ v ∗ ⌜v.Err' = nil → adminStepOk rq st st'⌝`. Its route:
+`adminOutX_on_noExtraE` (`ApplyTieOn.lean`, `adminOutX_on_noExtra` keeping that an error outcome's
+`authErrOf` is not `nil`) → `adminOut_model` (now with the tie at the result it read) →
+`adminEntryOn.spec`'s post (`v3`) → `applyEntryNormal` (at `st' = adminNext rq st` by
+`kvEntryOn_admin`; free for the other requests, `adminTieAr_nonAdmin`) → `resultIsWOn` → `resPostM`
+(`adminTieM`, `True` off) → `raftRequest`, which reads the same `Err` (`adminDoneM_of_tie`, the
+points-to agreement). Mode off unchanged (`adminTieM false`, `adminDoneM false` are `True`); no
+statement of a mode-off result changed; the mode-`on` statements gained the conjuncts.
+
+**Not done (in order).** The Auth handlers, `setupAuthOk`; `examples/authkv` and the closed
+theorem.

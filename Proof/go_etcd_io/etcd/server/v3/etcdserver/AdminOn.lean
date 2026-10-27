@@ -126,7 +126,8 @@ def adminQh (γk : KVNames) (rq : apply.IRRModel) (hm : apply.HeaderModel) (L : 
 
 /-- **What `raftRequest.specM true` answers, at the entry point's response** (the contract's `Q`):
 on `nil`, the request applied at the committed prefix `L` before its entry (`appliedOkM true`, at
-the response `*T` pointing to `l`), the auth state after it published (`pubAfterM true`) and the
+the response `*T` pointing to `l`; with E3x's `adminDoneM`: its step from the state `L` reaches
+succeeded, `adminStepOk`), the auth state after it published (`pubAfterM true`) and the
 proposal's result `Qh`; else the error the apply thread answered with, or the request perhaps
 proposed. -/
 def adminOutOn (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (rq : apply.IRRModel) (F : mvcc.Log)

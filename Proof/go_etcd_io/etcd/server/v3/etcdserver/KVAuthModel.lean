@@ -107,6 +107,27 @@ def adminStateR (rq : apply.IRRModel) (st st' : auth.AuthState) : Prop :=
     | _ => st' = st
   else st' = st
 
+/-- **An admin request's step at `st` to the outcome `o`** (`adminStateR`'s kinds, its admin check
+aside): the request model's step of its kind (`AuthEnable`'s at `st`'s own flag); no other kind
+steps. -/
+def adminStepO (rq : apply.IRRModel) (st : auth.AuthState) (o : auth.Outcome) : Prop :=
+  match apply.dispatchKind rq with
+  | .authUserAdd => ∃ m, rq.authUserAdd = some m ∧ auth.stepOf (auth.userAddF m.name) st o
+  | .authRoleAdd => ∃ n, rq.authRoleAdd = some n ∧ auth.stepOf (auth.roleAddF n) st o
+  | .authUserGrantRole =>
+      ∃ u r, rq.authUserGrantRole = some (u, r) ∧ auth.userGrantRoleR u r st o
+  | .authRoleGrantPermission =>
+      ∃ n w, rq.authRoleGrantPermission = some (n, w) ∧ auth.roleGrantPermissionR n w st o
+  | .authEnable => auth.stepOf (auth.authEnableF st.enabled) st o
+  | _ => False
+
+/-- **An admin entry succeeded from `st` to `st'`** (the auth plan's E3x, 2026-10-27): its
+principal admin-permitted at `st` and its step's outcome no error, `st'` the state after it
+(`adminStateR`'s successful successors: neither the refusal nor the step's error). -/
+def adminStepOk (rq : apply.IRRModel) (st st' : auth.AuthState) : Prop :=
+  auth.adminOk st (some (auth.authInfoM (apply.principalOf rq))) ∧
+    ∃ o, adminStepO rq st o ∧ (∀ e, o ≠ .err e) ∧ st' = outState st o
+
 /-- **The admin entry is determinate at `st`**: one successor state. -/
 def authDet (rq : apply.IRRModel) (st : auth.AuthState) : Prop :=
   ∃ st', adminStateR rq st st' ∧ ∀ st'', adminStateR rq st st'' → st'' = st'
@@ -125,6 +146,26 @@ theorem adminNext_of_det (rq : apply.IRRModel) (st st' : auth.AuthState) (hd : a
   rw [dif_pos hd]
   have hc := Classical.choose_spec hd
   exact ((hc.2 st' h).trans (hc.2 _ hc.1).symm).symm
+
+/-- **A successful admin step is one of the model's** (`adminStepOk`, `adminStateR`). -/
+theorem adminStateR_of_stepOk (rq : apply.IRRModel) (st st' : auth.AuthState)
+    (h : adminStepOk rq st st') : adminStateR rq st st' := by
+  obtain ⟨ha, o, hO, -, rfl⟩ := h
+  unfold adminStateR
+  rw [if_pos ha]
+  unfold adminStepO at hO
+  split at hO <;> rename_i hk
+  · obtain ⟨m, hm, h⟩ := hO; simp only [hm]; exact Or.inr ⟨o, h, rfl⟩
+  · obtain ⟨n, hn, h⟩ := hO; simp only [hn]; exact ⟨o, h, rfl⟩
+  · obtain ⟨u, r, hu, h⟩ := hO; simp only [hu]; exact ⟨o, h, rfl⟩
+  · obtain ⟨n, w, hn, h⟩ := hO; simp only [hn]; exact ⟨o, h, rfl⟩
+  · exact ⟨o, hO, rfl⟩
+  · exact hO.elim
+
+/-- **A successful admin step at a determinate entry is the model's step**. -/
+theorem adminNext_of_stepOk (rq : apply.IRRModel) (st st' : auth.AuthState) (hd : authDet rq st)
+    (h : adminStepOk rq st st') : adminNext rq st = st' :=
+  adminNext_of_det rq st st' hd (adminStateR_of_stepOk rq st st' h)
 
 /-! ## The KV entries' check -/
 
@@ -536,6 +577,29 @@ theorem kvInvM_true (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthSta
 instance kvInvM_persistent (on : Bool) (γ : ServerRaftNames) (γk : KVNames)
     (st₀ : auth.AuthState) : Persistent (kvInvM (GF := GF) on γ γk st₀) := by
   cases on <;> unfold kvInvM <;> infer_instance
+
+/-- **An admin entry's result tied to its step** (the auth plan's E3x, persistent): for a
+dispatched admin request, its result `ar` read-only, whose error `nil` says the step from `st` to
+`st'` succeeded (`adminStepOk`); nothing for another request or outcome. What the apply thread hands
+the waiter (`resultIsWOn`), at the model's step. -/
+def adminTieAr (ar : Loc) (rq : apply.IRRModel) (st st' : auth.AuthState) (out : apply.ApplyOut) :
+    IProp GF :=
+  iprop(⌜apply.needAdminPermission rq = false ∨ ∀ o b, out ≠ .dispatched o b⌝ ∨
+    ∃ v : go_etcd_io.etcd.server.v3.etcdserver.apply.Result, ar ↦□ v ∗
+      ⌜v.Err' = GoInterface.nil → adminStepOk rq st st'⌝)
+
+instance adminTieAr_persistent (ar : Loc) (rq : apply.IRRModel) (st st' : auth.AuthState)
+    (out : apply.ApplyOut) : Persistent (adminTieAr (GF := GF) ar rq st st' out) := by
+  unfold adminTieAr; infer_instance
+
+/-- Of a request needing no admin permission, the tie is free. -/
+theorem adminTieAr_nonAdmin (ar : Loc) (rq : apply.IRRModel) (st st' : auth.AuthState)
+    (out : apply.ApplyOut) (h : apply.needAdminPermission rq = false) :
+    ⊢ adminTieAr (GF := GF) ar rq st st' out := by
+  iunfold adminTieAr
+  ileft
+  ipureintro
+  exact Or.inl h
 
 end defs
 
