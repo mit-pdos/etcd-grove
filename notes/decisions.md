@@ -23214,3 +23214,53 @@ them); what is slow is evolving proofs on top, because clients depend on raft's 
 predicates' bodies and the laws' proofs `sorry` until step 2; nothing imports it. Open, carried over
 unchanged: `ReadIndex`, the rest of a `Ready`, `Step`/the network, `Tick`/the term budget,
 `Advance`/the storage contract, `ApplyConfChange`'s modes.
+
+## The key-value store on raft's draft node API (2026-10-27 · branch `kv-port`; completes "Raft's node API over an abstract log")
+
+**What:** `examples/kv` ported onto `Proof/go_etcd_io/raft/v3/NodeApiDraft.lean`: kv's files import
+from raft's tree the draft, raft's Go-value/protobuf models (`Base`, `Init`, `InvPbSnapSet`, raftpb's
+getters), the storage API (below) and two tactic helpers (`FrameH`, `raft__Step/Dispatch`), and name
+no raft-internal definition (`rLog`, `isCommitted`, `entDataIs`, `propIs`, `RaftNames`, `NodeNames`,
+`readReq`, `rdCred`, `tickCred`, `termLB`, `isRaftMsg`, `stepP`, `KVStat`, `nodeCfg`, `memCertInv`,
+`certLink`, ... appear only in comments recording history). kv's results rest on the draft's
+`sorry`s only (52 declarations reached by `kv_Main`/`kv_adequate`, all `Draft.*`).
+
+**kv's invariant** owns `Draft.ownCommittedOps` and `Draft.ownReadCtxs`; the history is the
+requested entries' data (`logHist`, kv's own copy of the old `firstOcc`, `histOf`); minting is kv's
+own (no raft fresh tokens): every committed datum, slot and used read context is minted. Gone:
+`kv_log_prefix`, `kv_deposited_minted`, `ods_deposited`, `kv_noopAu` (fillers leave the requested
+entries alone), `node_entry_data`, `kvStat_type0` (`Draft.isStaticCluster_normal`),
+`entDataIs_odOf`, `entsDataIs_odOf`, `readyDataL_split`, `raftMsg_deliverable`, `raftMsg_snap`,
+`stepP_deliverable` (`Draft.stepIn_intro` with kv's pure `deliverable_step`), `kvStat_cluster`.
+New: `kv_ccAu` (`RemoveMember`'s update), `kv_committed_minted`, `kv_read_minted` (over
+`Draft.readStateOk_used`), `kv_mint_read` (commits the read context, `Draft.readCtx_commit`).
+
+**The API additions** (all `(open)` but the first two; predicates sealed with `sorry` bodies, laws
+`sorry`): the static cluster (`isStaticCluster`, `isStaticCluster_normal`, `leaderTransferOn`,
+`nodeRestartBoot`, `cluster_alloc_static` with the term budget inside, `RestartNode.spec`), the rest
+of a `Ready` (`readyRest`, `readySnap`: transparent, over sealed pieces and the storage contract's
+vocabulary), `node.Advance.spec`, messages (`sentMsg`, `msgCredits`, `stepIn`, `stepIn_intro`,
+`node.Step.spec`), ticks (`tickCredit`, `tickCredit_intro`, `tickCredit_zero`, `node.Tick.spec`),
+`node.TransferLeadership.spec`, snapshots' certificates (`snapshotCert`, `snapshotCert_data`,
+`snapshotCert_static`, `storageCertInv` with its allocation, read, register and any-term register,
+`storageCertLink`, `storageCertLink_intro`), and `isCommittedLogLb_nil`, `readStateOk_used`,
+instances (`ownReadCtxs_timeless`, `isReadyChan_persistent`, `committedEntriesAt_persistent`), the
+specs' placeholders (`node.wp_Propose`, ..., `wp_RestartNode`, `sorry`) that kv's hand-edited
+`Link.lean` links against.
+
+**Changes to the drafted statements:** `ownCommittedOps_get_lb` keeps the resource (a persistent
+conclusion alone cannot give it back); `ProposeConfChange`'s update gives `⌜MarshalsConfChange⌝ ∗`
+the new requested entries, not `⌜…⌝ →` them (a client cannot prove the bytes' fact, so it could not
+close its invariant); `readCtx_commit`'s conclusion parenthesized (`|==> (A ∗ B)`: without them the
+update covered only `A`); `NodeDriverState` has the node's storage and a `Ready`'s snapshot loan
+(`handling : Option (List EntryM × Option SnapLoan)`), `NodeDriverState.init` takes the storage,
+and `readyRecv`'s post hands out the loop's new state `st'` with `readyRest γ N rd st ce st'` (a
+snapshot `Ready` sets the delivered log to the snapshot's, not `delivered ++ ce`).
+
+**Not redesigned (open), carried over:** the storage contract and `MemoryStorage` (kv still names
+`StorageModel`, `isStorage`, `appendRight`, `readyOut`, `advReceipt`, `storFloor`, `memSnapTok`,
+`ownMemoryStorage`, the `MemoryStorage` specs and `MemstorageAU`'s token-in-hand forms: raft's
+storage API, not node internals); `Advance`'s premise is the static mode's (no conf-change entry
+delivered); `ApplyConfChange` and the dynamic mode are not drafted (kv's conf-change branch is dead
+in a static cluster). `etc/gen-link.py` does not know the draft: kv's `Link.lean` is edited by hand
+(the node's callees); `etc/api/raft.txt` lists the draft importable.
