@@ -4,14 +4,12 @@ Lean-first (no Rocq counterpart).
 # A snapshot's data, at the replica (D22 S-r, 2026-10-21)
 
 What `run` needs to install and to take a snapshot (`KV__run.lean`), outside the spec/proof
-discipline (lemmas on `Base.lean`'s `StateEnc` and raft's predicates):
+discipline (lemmas on `Base.lean`'s `StateEnc` and raft's protobuf model):
 
 * the data a replica's state encodes (`stateEnc_intro`: `encodeState`'s bindings of the two
   maps `runOwn` holds encode the replicated state of its client history), and what a
   decoded snapshot gives back (`maps_of_stateEnc`: `decodeState`'s maps are `runOwn`'s of the
   history the data encodes);
-* an entry's data fact pins its client datum (`entDataIs_odOf`, `entsDataIs_odOf`: `Base.lean`'s
-  `odOf`, which the cluster's certificate `kvSnapOk` reads);
 * `Snapshot.GetData` on a snapshot whose pointer fields are all set (`ownSnapS`, what a
   snapshot `Ready` hands out), as raft's `GetData` spec is on `ownSnapM`
   (`wp_Snapshot_GetData_S`; raft's `InvPbSnapSet.lean` has the other two getters,
@@ -56,51 +54,6 @@ theorem maps_of_stateEnc (H : List (List w8)) (kvs ops : List (List w8 × List w
   refine ⟨fun k => by rw [HK k]; exact Hk k, ?_⟩
   have He : (fun o => A !! o) = (fun o => ops.lookup o) := funext HAo
   unfold AppliedOk; rw [He]; exact Ho
-
-section ghost
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-
-/-- An entry's data fact pins its client datum. -/
-theorem entDataIs_odOf (γ : RaftNames) (e : EntryM) (o : Option (List w8)) :
-    entDataIs (GF := GF) γ e o ⊢ ⌜o = odOf e⌝ := by
-  cases o with
-  | some d =>
-    simp only [entDataIs, propDataIs]
-    iintro ⟨⟨%Hd, -⟩, -⟩
-    ipureintro
-    obtain ⟨h1, h2, h3⟩ := Hd
-    unfold odOf
-    rw [if_pos ⟨h3, by rw [h1]; exact h2⟩, h1]
-  | none =>
-    simp only [entDataIs, propDataIs]
-    iintro (%Hz | %Hc)
-    · ipureintro
-      unfold odOf
-      rw [if_neg (fun h => h.2 Hz.2)]
-    · ipureintro
-      unfold odOf
-      rw [if_neg (fun h => Hc.1 h.1)]
-
-/-- A log's data facts pin its client data. -/
-theorem entsDataIs_odOf (γ : RaftNames) (L : List EntryM) (ods : List (Option (List w8))) :
-    ([∗list] e;o ∈ L;ods, entDataIs (GF := GF) γ e o) ⊢ ⌜ods = L.map odOf⌝ := by
-  induction L generalizing ods with
-  | nil =>
-    iintro H
-    ihave %H := (BigSepL2.bigSepL2_nil_inv_left (Φ := fun _ e o => entDataIs (GF := GF) γ e o)) $$ H
-    ipureintro; simp [H]
-  | cons e L ih =>
-    iintro H
-    icases (BigSepL2.bigSepL2_cons_inv_left (Φ := fun _ e o => entDataIs (GF := GF) γ e o)).1 $$ H with ⟨%o, %ods', %Hods, He, H⟩
-    ihave %H1 := entDataIs_odOf γ e o $$ He
-    ihave %H2 := ih ods' $$ H
-    ipureintro
-    subst Hods H1 H2
-    rfl
-
-end ghost
 
 section getdata
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -170,58 +123,6 @@ theorem pendAbove_of_logIndices (σ : StorState) (es : List EntryM)
   omega
 
 end pend
-
-/-! ### A `Ready`'s data, with or without a snapshot, as `run` reads it
-
-`readyDataL` (raft's `InvNode.lean`) split in what `run` reads of every `Ready` (`rdCommon`: the
-entries, the messages, the read states, the indices' bound) and what depends on its snapshot
-(`rdSnap`: without one the right to append and a `nil` snapshot; with one, the loan's facts and
-the storage). -/
-
-section ready
-variable [GooseExts] [GooseSemantics] [GooseInterp]
-variable [go_gctx : GoGlobalContext]
-variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
-variable [sem : go.Semantics]
-variable [package_sem : go_etcd_io.raft.v3.Assumptions]
-
-def rdCommon (γ : NodeNames) (rd : Ready) (d ce es : List EntryM) (ms : List QMsg) : IProp GF :=
-  iprop(entsRO rd.CommittedEntries' ce ∗ isCommitted γ.raft (d ++ ce) ∗ entsRO rd.Entries' es ∗
-    rd.Messages' ↦* ms.map QMsg.loc ∗
-    ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ isRaftMsg γ.raft γ.id q.st ∗
-      termLB γ.bud q.st.msg.Term') ∗
-    ([∗list] q ∈ ms, rdCred γ.raft (if q.st.msg.Type' = MsgReadIndex then 1 else 0)) ∗
-    ([∗list] q ∈ ms, stTks γ.raft q.st) ∗
-    (∃ sts : List ReadStateM, readStatesPts rd.ReadStates' sts ∗
-      [∗list] st ∈ sts, readStateOk γ.raft st) ∗
-    readyIdx γ.raft d ce es)
-
-def rdSnap (γ : NodeNames) (rd : Ready) (d ce es : List EntryM) : Option SnapLoan → IProp GF
-  | none => iprop(appendRight γ.stor es ∗ ⌜rd.Snapshot' = null⌝)
-  | some l => iprop(ownSnapS l.ptr (DFrac.own (1 : Qp).half) l.snap ∗ isCommitted γ.raft l.dlv ∗
-      ⌜l.ptr = rd.Snapshot' ∧ ce = [] ∧ d <+: l.dlv ∧ d.length < l.dlv.length ∧
-        l.dlv.length = (uint.Z l.snap.Metadata'.Index').toNat ∧
-        0 < uint.Z l.snap.Metadata'.Index' ∧ uint.Z l.snap.Metadata'.Index' < 2^61 ∧
-        uint.Z l.fl ≤ uint.Z l.snap.Metadata'.Index' ∧ LogIndicesOk (snapId l.snap) es⌝ ∗
-      readyOut γ.stor es (some l))
-
-theorem readyDataL_split (γ : NodeNames) (rd : Ready) (d ce es : List EntryM) (ms : List QMsg)
-    (p p' : HardStateM) (L : Option SnapLoan) :
-    readyDataL (GF := GF) γ rd d ce es ms p p' L ⊢ rdCommon γ rd d ce es ms ∗ rdSnap γ rd d ce es L := by
-  cases L with
-  | none =>
-    simp only [readyDataL, readyData, rdCommon, rdSnap]
-    iintro ⟨#Hce, #Hcomm, #Hes, Happ, Hms, Hmsok, Hcr, Htks, Hsts, -, -, -, %Hsn, #Hidx⟩
-    iframe Hce Hcomm Hes Happ Hms Hmsok Hcr Htks Hsts Hidx
-    ipureintro; exact Hsn
-  | some l =>
-    simp only [readyDataL, readySnapData, rdCommon, rdSnap]
-    iintro ⟨#Hce, #Hcomm, #Hes, Hms, Hmsok, Hcr, Htks, Hsts, -, -, -, #Hidx, -, Hsn, #Hdl, -, %Hl,
-      Hout⟩
-    iframe Hce Hcomm Hes Hms Hmsok Hcr Htks Hsts Hidx Hsn Hdl Hout
-    ipureintro; exact Hl
-
-end ready
 
 end EtcdGrove
 end Perennial

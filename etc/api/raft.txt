@@ -15,6 +15,9 @@ root go_etcd_io.raft.v3
 
 ## The node API: its specs, the module clients import, the API modules
 importable Spec.go_etcd_io.raft.v3.Api
+# (branch kv-port, 2026-10-27) the redesigned node API, a draft (its predicates sealed, its laws and
+# specs `sorry`): what the key-value store example is ported onto
+importable Proof.go_etcd_io.raft.v3.NodeApiDraft
 importable Spec.go_etcd_io.raft.v3.StartNode
 importable Spec.go_etcd_io.raft.v3.RestartNode
 importable Spec.go_etcd_io.raft.v3.node__Advance

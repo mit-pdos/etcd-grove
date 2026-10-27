@@ -100,13 +100,18 @@ instance isCommittedLogLb_persistent (γ : Cluster) (l : List LogEntry) :
 instance isCommittedLogLb_timeless (γ : Cluster) (l : List LogEntry) :
     Timeless (isCommittedLogLb (GF := GF) γ l) := sorry
 
-/-- The committed requested entries are those of a committed log. -/
+/-- The committed requested entries are those of a committed log. (2026-10-27, for kv: the
+client's resource kept, which a persistent conclusion alone does not give back.) -/
 theorem ownCommittedOps_get_lb (γ : Cluster) (ops : List LogEntry) :
-    ownCommittedOps (GF := GF) γ ops ⊢ ∃ l, isCommittedLogLb γ l ∗ ⌜opsOf l = ops⌝ := sorry
+    ownCommittedOps (GF := GF) γ ops ⊢
+      ownCommittedOps γ ops ∗ ∃ l, isCommittedLogLb γ l ∗ ⌜opsOf l = ops⌝ := sorry
 
 /-- The requested entries of a committed log are a prefix of those committed now. -/
 theorem ownCommittedOps_lb_prefix (γ : Cluster) (ops l : List LogEntry) :
     ownCommittedOps (GF := GF) γ ops ∗ isCommittedLogLb γ l ⊢ ⌜opsOf l <+: ops⌝ := sorry
+
+/-- Every committed log extends the empty one. -/
+theorem isCommittedLogLb_nil (γ : Cluster) : ⊢ isCommittedLogLb (GF := GF) γ [] := sorry
 
 theorem isCommittedLogLb_mono (γ : Cluster) (l1 l2 : List LogEntry) :
     l1 <+: l2 → isCommittedLogLb (GF := GF) γ l2 ⊢ isCommittedLogLb γ l1 := sorry
@@ -123,6 +128,9 @@ so far (`readCtx_commit`); any other context is unused and may be committed. A n
 at `∅`. (The authority-over-used-keys pattern of a ghost map; a client whose readers run
 concurrently shares it through its own invariant.) -/
 @[no_expose] def ownReadCtxs (γ : Cluster) (U : GSet (List w8)) : IProp GF := sorry
+
+instance ownReadCtxs_timeless (γ : Cluster) (U : GSet (List w8)) :
+    Timeless (ownReadCtxs (GF := GF) γ U) := sorry
 
 /-- **The read context `c` is committed to `Q`** (persistent): every read with context `c` takes
 effect at a moment when the committed requested entries are some `ops`, and gives `□ Q ops`
@@ -143,7 +151,7 @@ theorem readCtx_commit (γ : Cluster) (N : Namespace) (U : GSet (List w8)) (c : 
     ownReadCtxs (GF := GF) γ U ∗
       □ AU <{ ∃∃ (ops : List LogEntry), ownCommittedOps γ ops }> @ ⊤ \ ↑N, ∅
            <{ ownCommittedOps γ ops, COMM □ Q ops }> ⊢
-    |==> ownReadCtxs γ (insert c U) ∗ isReadCtx γ N c Q := sorry
+    |==> (ownReadCtxs γ (insert c U) ∗ isReadCtx γ N c Q) := sorry
 
 /-- (open) **A read request's credit**: raft counts read requests in a 64-bit counter (today's
 `rdCred`); carried over until the read path's bounds are redesigned. -/
@@ -162,6 +170,12 @@ theorem readStateOk_ctx (γ : Cluster) (N : Namespace) (c : List w8) (idx : w64)
     (Q : List LogEntry → IProp GF) :
     readStateOk (GF := GF) γ N c idx ∗ isReadCtx γ N c Q ⊢
     ∃ l, ⌜l.length = uint.nat idx⌝ ∗ isCommittedLogLb γ l ∗ ▷ □ Q (opsOf l) := sorry
+
+/-- **A read state's context was committed** (`readCtx_commit`): a read is requested only with a
+committed context (`node.ReadIndex`). (2026-10-27, for kv: the applier tells its own reader's
+context from another's by it.) -/
+theorem readStateOk_used (γ : Cluster) (N : Namespace) (c : List w8) (idx : w64) (U : GSet (List w8)) :
+    readStateOk (GF := GF) γ N c idx ∗ ownReadCtxs γ U ⊢ ⌜c ∈ U⌝ := sorry
 
 /-- **A new cluster** of the peers `ps`, in the caller's namespace `N`: the client's committed
 requested entries at the bootstrap entries (one `ConfChangeAddNode` per peer, at term 1: `BootLog`;
@@ -198,6 +212,9 @@ instance isNode_persistent (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) :
 /-- The node's `Ready` channel `ch` (persistent). -/
 @[no_expose] def isReadyChan (n : Loc) (γ : Cluster) (N : Namespace) (ch : Loc) : IProp GF := sorry
 
+instance isReadyChan_persistent (n : Loc) (γ : Cluster) (N : Namespace) (ch : Loc) :
+    Persistent (isReadyChan (GF := GF) n γ N ch) := sorry
+
 /-- The Go entries of the log entries `l`, at the indices after `base`. -/
 def LogEntry.toEntries (l : List LogEntry) (base : Nat) : List EntryM :=
   l.mapIdx fun i e => e.toEntryM (W64 (base + i + 1))
@@ -227,6 +244,10 @@ def NodeDriverState.init (stor : Storage) : NodeDriverState := ⟨stor, [], hsZe
 /-- The Go entries `sl` are the log entries `ce`, at the indices after `base` (read-only). -/
 def committedEntriesAt (sl : GoSlice) (base : Nat) (ce : List LogEntry) : IProp GF :=
   entsRO sl (LogEntry.toEntries ce base)
+
+instance committedEntriesAt_persistent (sl : GoSlice) (base : Nat) (ce : List LogEntry) :
+    Persistent (committedEntriesAt (GF := GF) sl base ce) := by
+  unfold committedEntriesAt; infer_instance
 
 /-! ## A static cluster (open: today's static mode, carried over)
 
@@ -467,7 +488,7 @@ abbrev node.ProposeConfChange.spec : Prop :=
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗ nodeCtx ctx cd ∗
       ownConfChangeI c dq (some o) ∗
       AU <{ ∃∃ (ops : List LogEntry), ownCommittedOps γ ops }> @ ⊤ \ ↑N, ∅
-         <{ ∀∀ (t : w64) (bs : List w8), ⌜MarshalsConfChange (some o) bs⌝ →
+         <{ ∀∀ (t : w64) (bs : List w8), ⌜MarshalsConfChange (some o) bs⌝ ∗
               ownCommittedOps γ (ops ++ [⟨t, confChangeEntryType (some o), bs⟩]),
             COMM True }> }}
     (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"ProposeConfChange"))
