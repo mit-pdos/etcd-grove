@@ -23760,6 +23760,30 @@ only) and `readyFits` (under `receiptBound GF + |boot| ≤ 2^61`), so the two `_
 go (`noConfChangeV2_alloc` as stated is not sound for a cluster whose clients proposed a
 `ConfChangeV2` before).
 
+**Later in the port (2026-10-27):**
+- *Network.* The payload `srvNet γ` is the API's: `P st = ∃ src, sentMsg γ.cl N src st`,
+  `O st = msgCredits γ.cl N st`; a message with no credit may be duplicated, its credits made anew
+  (`msgCredits_none`, proved from the implementation). The receiver's `Step` takes `stepIn`; the
+  API's `stepIn_intro` refuses a `MsgPreVote` (raft's `netP` takes one only in a cluster started from
+  a bootstrap log), which etcd sends (`PreVote` is its default): the draft's `bootedCluster`
+  (sealed, defined as raft's `reBoot ≠ []`) with `nodeBoot_booted`/`nodeDynamicBoot_booted`, and
+  `stepIn_intro_booted` (also any context for a forwarded `MsgProp`). `srvClusterOk` carries
+  `bootedCluster`. Proposed change: `stepIn_intro` with these premises.
+- *Construction.* `NewServer.spec` is over the server's `SrvRaft` (its `reg` the `MemoryStorage`
+  registry: the spec's `MemStorReg` is `⟨γ.reg⟩`), static clusters only (`γ.dyn = false`, as raft's
+  static mode before), with the node's boot token and the server's raft invariant from the cluster's
+  allocation (`srvClusterBoot_alloc`: `cluster_alloc` with leader transfer off and `snapOk := False`,
+  `srvLogInv_alloc`, the companions, `kvInv_alloc_boot` at the server's boot log). A static
+  storage's certificate link (`StartNode`'s) comes from `NewMemoryStorage`'s registry authority,
+  which `bootOk` now hands (`memCertAuth`, a strengthening of `bootstrap`'s contract). `bootOk`
+  takes the peers' contexts as a parameter and bounds the peers below `2^62` (strictly: the
+  membership's validity). The node API's linked results enter the server's `Link.lean` through
+  `NodeApiLink.lean` (`srvApi_wp_*`, at `srvStor γr` for every `γr`).
+- *Deleted, raft internals:* the merged-snapshot sender's branch (`SnapSendBundle.lean`,
+  `snapBranch_send`; the branch is dead), `srvRLogLb_dlv`, raft's allocation continuation and
+  standing update for its own entries (`srvBootClient*`, `srvRaftBoot*_alloc`, `kv_noop_au_on`,
+  `srvNoopAu_to_noopAu_of`).
+
 ## Method-set facts are theorems of goose's method sets
 
 **2026-10-27 · accepted** (supersedes "Method sets are premises", item 8 above, and the method-set
