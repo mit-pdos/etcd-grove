@@ -1,0 +1,18 @@
+# The functions linked in `Proof/k8s_io/client_go/informers/Link.lean` (all Lean-first), read by
+# `etc/gen-link.py --k8sinformers`: `<fn>: <callees in the order of <fn>.wp_proof's hypotheses>`.
+# client-go's informers above the store (`k8s.io/client-go/listers`, `informers`;
+# notes/k8s-daemonset-plan.md phase 4); the results are in the namespace `k8sinformers`.
+#
+# the store's results (linked in Proof/k8s_io/client_go/tools/cache/Link.lean)
+cache__GetByKey: @
+ListAllByNamespace: @
+#
+# the trust boundary: names-only functions (axioms)
+schema_GroupResource__String_ptr:
+#
+# apimachinery's errors (with bodies)
+NewNotFound: schema_GroupResource__String_ptr
+#
+# the generic lister (`listers/generic_helpers.go`)
+ResourceIndexer__Get: cache__GetByKey NewNotFound
+ResourceIndexer__List: ListAllByNamespace

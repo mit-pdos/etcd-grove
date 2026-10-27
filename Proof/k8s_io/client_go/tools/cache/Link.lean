@@ -13,6 +13,7 @@ public import Proof.k8s_io.client_go.tools.cache.InformerNameAndResource__Name_p
 public import Proof.k8s_io.client_go.tools.cache.InformerNameAndResource__Reserved
 public import Proof.k8s_io.apimachinery.pkg.util.sets.KeySet
 public import Proof.k8s_io.client_go.tools.cache.ListAll
+public import Proof.k8s_io.client_go.tools.cache.ListAllByNamespace
 public import Proof.k8s_io.client_go.tools.cache.NewThreadSafeStore
 public import Proof.k8s_io.client_go.tools.cache.ObjectName__String
 public import Proof.k8s_io.client_go.tools.cache.RealFIFO__Add
@@ -155,6 +156,22 @@ theorem cache.cache.wp_List :
 theorem cache.wp_ListAll :
     EtcdGrove.cache.ListAll.spec (GF := GF) (hG := hG) :=
   EtcdGrove.cache.ListAll.wp_proof cache.cache.wp_List
+
+theorem cache.storeIndex.wp_getKeysFromIndex :
+    EtcdGrove.cache.storeIndex.getKeysFromIndex.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cache.storeIndex.getKeysFromIndex.wp_proof sets.Set.wp_Insert
+
+theorem cache.threadSafeMap.wp_Index :
+    EtcdGrove.cache.threadSafeMap.Index.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cache.threadSafeMap.Index.wp_proof cache.storeIndex.wp_getKeysFromIndex
+
+theorem cache.cache.wp_Index :
+    EtcdGrove.cache.cache.Index.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cache.cache.Index.wp_proof cache.threadSafeMap.wp_Index
+
+theorem cache.wp_ListAllByNamespace :
+    EtcdGrove.cache.ListAllByNamespace.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cache.ListAllByNamespace.wp_proof cache.wp_ListAll cache.cache.wp_Index
 
 theorem cache.noopMetric.wp_Set :
     EtcdGrove.cache.noopMetric.Set.spec (GF := GF) (hG := hG) :=
@@ -387,18 +404,6 @@ theorem cache.threadSafeMap.wp_GetIndexers :
 theorem cache.cache.wp_GetIndexers :
     EtcdGrove.cache.cache.GetIndexers.spec (GF := GF) (hG := hG) :=
   EtcdGrove.cache.cache.GetIndexers.wp_proof cache.threadSafeMap.wp_GetIndexers
-
-theorem cache.storeIndex.wp_getKeysFromIndex :
-    EtcdGrove.cache.storeIndex.getKeysFromIndex.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.cache.storeIndex.getKeysFromIndex.wp_proof sets.Set.wp_Insert
-
-theorem cache.threadSafeMap.wp_Index :
-    EtcdGrove.cache.threadSafeMap.Index.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.cache.threadSafeMap.Index.wp_proof cache.storeIndex.wp_getKeysFromIndex
-
-theorem cache.cache.wp_Index :
-    EtcdGrove.cache.cache.Index.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.cache.cache.Index.wp_proof cache.threadSafeMap.wp_Index
 
 theorem cache.threadSafeMap.wp_LastStoreSyncResourceVersion :
     EtcdGrove.cache.threadSafeMap.LastStoreSyncResourceVersion.spec (GF := GF) (hG := hG) :=

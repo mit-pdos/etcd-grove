@@ -1,13 +1,15 @@
 # client-go's informer layer (k8s.io/client-go/tools/cache, notes/k8s-daemonset-plan.md phase 4):
 # the `cache` store over the thread-safe store (store.go), the RealFIFO, the reflector, the
 # shared informer, the listers; the linked results of Proof/k8s_io/client_go/tools/cache/Link.lean
-# whose specs are phase 4's (the listers, the reflector and the informer: none linked yet).
+# whose specs are phase 4's, and of Proof/k8s_io/client_go/informers/Link.lean (the listers,
+# the factory).
 #
 #   etc/tcb-report.py --collection etc/tcb-collections/clientgo-informers.txt [--check [--update]]
 #
 # `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
-roots ^Spec/k8s_io/client_go/tools/cache/(cache__|RealFIFO__|Reflector__|sharedIndexInformer__|sharedProcessor__|processorListener__|controller__)
+roots ^Spec/k8s_io/client_go/tools/cache/(cache__|RealFIFO__|Reflector__|sharedIndexInformer__|sharedProcessor__|processorListener__|controller__|ListAll|processDeltas|processReplacedAllInfo|reconcileReplacement)
+roots ^Spec/k8s_io/client_go/(listers|informers)/
 axiom schema.GroupVersionResource.Empty_ptr.wp_proof
 axiom strconv.ParseInt.wp_proof
 axiom time.Duration.Seconds.wp_proof
