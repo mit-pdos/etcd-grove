@@ -39,3 +39,10 @@ One entry per critique of a run: date, target, what the user said, the rule it b
   an invariant. In general, we should avoid specs that are really the disjunction of two alternate
   specifications, especially if one of those specs is strictly stronger than the others." Rule
   (`SKILL.md`, review list): no disjunction of alternative specs; keep the stronger.
+- 2026-10-27, raft's `isStaticCluster` (the snapshot work gave it a parameter `snapOk : List LogEntry →
+  List w8 → Prop` relating a snapshot's data to the committed log, so every use changed): "injecting
+  predicates is like HoCAP style of specifications, but we want TaDa style specs". The snapshots made
+  should be one client-owned ghost resource: making a snapshot takes it and gives it back with the new
+  snapshot; receiving one out of raft gives a witness that it is in the set; etcd puts the resource in
+  an invariant saying the data is empty, and an app that makes no snapshots keeps the set empty. Rule
+  (`SKILL.md`, review list): no caller predicate as a library predicate's parameter.

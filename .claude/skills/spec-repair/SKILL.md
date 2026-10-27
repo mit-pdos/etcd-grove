@@ -34,6 +34,12 @@ leaky or unusable. Check its findings against the source before acting on them. 
 - a spec that is really the disjunction of two alternative specs (a precondition
   `⌜Q = fun _ => True⌝ ∨ AU …`): keep the stronger one, of which the other is a layer on top
   (here: `kvState` in an invariant gives the trivial AU); a case split on the input is fine;
+- a library predicate parameterized by a caller's predicate (HoCAP style: `isStaticCluster … snapOk`,
+  relating snapshot data to the log, which changed every use of `isStaticCluster`). We write TaDa
+  style: the library's specs take and update client-owned ghost state (making a snapshot: the
+  caller's ownership of the snapshots made, given back with the new one; receiving one: a witness
+  that it is in that set), and the client keeps its own invariant over it (etcd: every snapshot's
+  data empty; an app that makes none: the set stays empty);
 - a spec that no client uses;
 - a statement that `interface/` does not show in full or that hides behind a wrapper (an atomic
   update behind a helper like `kvOpAu1`: write it in the triple), or whose shape differs from
