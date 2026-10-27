@@ -114,10 +114,13 @@ theorem kv_cert_floor_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.Au
       ⌜l.length ≤ (kvModelOn γk st₀ L).length⌝) $$ [HL Hcase]
   · icases Hcase with (%hl | ⟨%A, #HA, %hA⟩)
     · imodintro; iframe HL; ipureintro; unfold kvModelOn; simp only at hlen; omega
-    · imod srvRLog_lb γ ((⊤ \ ↑(nroot.@x)) \ ↑kvN) hr L A $$ HrI HL HA with ⟨HL, -, %Hp⟩
+    · imod srvRLog_lb γ ((⊤ \ ↑(nroot.@x)) \ ↑kvN) hr L A $$ HrI HL HA with ⟨HL, %Hp⟩
+      ihave %HAi := srvRLogLb_idx γ A $$ HA
       imodintro; iframe HL; ipureintro
-      have := (kvRaftOfOn_prefix γk.c0 γk.ch0 (st₀, γk.log0) A L Hp).length_le
-      unfold kvModelOn at hA ⊢; rw [← hA]; exact this
+      obtain ⟨L', hL', hAL⟩ := kvRaftOfOn_of_lb γ γk.c0 γk.ch0 (st₀, γk.log0) A L Hok'.2.2.2.1
+        HAi Hp.1 Hp.2.1 Hp.2.2
+      have := (kvRaftOfOn_prefix γk.c0 γk.ch0 (st₀, γk.log0) L' L hL').length_le
+      unfold kvModelOn at hA ⊢; rw [← hA, hAL]; exact this
   imod Hp with ⟨HL, %Hle⟩
   imod Hclose $$ [HL Hσ'] with -
   · inext; iexists L; iframe HL Hσ' Hw; ipureintro; exact Hok'

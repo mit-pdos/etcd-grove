@@ -32,7 +32,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- (D22 S-l sender) A `Ready`'s message opened: its fields at some fraction, and back to what
 it is for the transport (any but a `MsgSnap`) or for `msgSnapC` (a `MsgSnap`). -/
-theorem rnMsgR_open (E : RNEnv GF) (γ : NodeNames) (m : Loc) :
+theorem rnMsgR_open (E : RNEnv GF) (γ : RNNames) (m : Loc) :
     rnMsgR E γ m ⊢ ∃ (dq : DFrac) (st : MsgSt), msgOwn m dq st ∗
       ((⌜st.msg.Type' ≠ MsgSnap⌝ -∗ msgOwn m dq st -∗ rnMsgOk E m) ∧
        (⌜st.msg.Type' = MsgSnap⌝ -∗ msgOwn m dq st -∗ rnSnapMsg m)) := by
@@ -56,17 +56,7 @@ theorem rnMsgR_open (E : RNEnv GF) (γ : NodeNames) (m : Loc) :
     · iintro %h
       exact absurd h Hty
   · iunfold rnSnapMsg at Hs
-    icases Hs with ⟨%st, Hm, %Hty, #Hrm, #Htl⟩
-    iexists DFrac.own 1, st
-    iframe Hm
-    isplit
-    · iintro %h
-      exact absurd Hty h
-    · iintro %_ Hm
-      iunfold rnSnapMsg
-      iexists st
-      iframe Hm Hrm Htl
-      ipureintro; exact Hty
+    iexfalso; iexact Hs
 
 /-- `m.GetTo()` at any fraction. -/
 theorem wp_msgOwn_GetTo (wp_GetTo : raftpb.Message.GetTo.spec (GF := GF) (hG := hG))
@@ -159,10 +149,10 @@ theorem raftNode.processMessages.wp_proof
       have : sint.Z (k - W64 1) = sint.Z k - 1 := by word
       omega
     rw [htake]
-    icases (BigSepL.bigSepL_snoc (Φ := fun _ m => rnMsgR (GF := GF) E γ.node m)).1 $$ Hall
+    icases (BigSepL.bigSepL_snoc (Φ := fun _ m => rnMsgR (GF := GF) E γ m)).1 $$ Hall
       with ⟨Hall, HmR⟩
     -- (D22 S-l sender) a `MsgSnap` owned, any other read-only
-    icases rnMsgR_open E γ.node m $$ HmR with ⟨%dq, %st, Hmat, HK⟩
+    icases rnMsgR_open E γ m $$ HmR with ⟨%dq, %st, Hmat, HK⟩
     obtain ⟨to, hto⟩ : ∃ to, st.msg.To' = to := ⟨_, rfl⟩
     obtain ⟨ty, hty⟩ : ∃ ty, st.msg.Type' = ty := ⟨_, rfl⟩
     wp_apply wp_GetTo m dq st to hto $$ [$Hrpb $Hmat] as Hmat

@@ -9,7 +9,7 @@ with the names it is stated over (`srvSnapBoot`):
   directory, feature gate, quota and apply-duration warning), the snapshotter, the backend hooks
   over the consistent index, the raft storage over the snapshotter (`storage.storageSnap`, from
   `NewStorage`'s contract `rnNewStorageOk`), the member's snapshot directory's invariant at the
-  names raft's names give the member (`RaftNames.reSnapLoc`) with the server's removal fact
+  names raft's names give the member (`SrvRaft.snapLoc`) with the server's removal fact
   `srvSnapRm` (J0 item 3), the stores and their contracts on whichever backend (the alarm store's,
   the auth store's in the environment's mode and, in the mode `off`, its `Recover`, the lessor's,
   the cluster's), the cluster's `Members()` (`srvMembersDir`, `bootOk`'s `Hmembers`), and the
@@ -223,7 +223,7 @@ def srvSnapRO (s ci : Loc) (E : apply.AEnv GF) (γr : ReadNames) (γt : GName) :
       (idm : w64) (al ast lp cl : Loc) (ps : List w64) (dir : w64 → List GoString)
       (d : mvcc.KBReal),
     ⌜E.γ.kb = some d ∧ cfg.Logger' ≠ null ∧ storage.storageSnap stp ss ∧ storage.dbOpensOk ∧
-      apply.backendUnderQuota ∧ γr.raft.raft.reSnapLoc idm = some γd ∧
+      apply.backendUnderQuota ∧ γr.raft.raft.snapLoc idm = some γd ∧
       (∀ f, dir f ≠ [] ↔ f ∈ ps)⌝ ∗
     -- the configuration's fields the snapshot path reads, its feature gate
     srvCfgFieldAddr s go!"Logger" ↦□ cfg.Logger' ∗ srvCfgFieldAddr s go!"DataDir" ↦□ cfg.DataDir' ∗

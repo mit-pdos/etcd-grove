@@ -563,6 +563,21 @@ theorem kvRaftOfOn_eqv (γ : ServerRaftNames) (c₀ : w64) (ch : apply.Chain)
   rw [kvRaftOfOn_ops c₀ ch A s (srvIdxOkW_above _ _ A hA hc),
     kvRaftOfOn_ops c₀ ch B s (srvIdxOkW_above _ _ B hB hc), hops]
 
+/-- **A lower bound's mode-`on` model is a prefix's** of the server's log of requested entries
+(2026-10-27): the requested entries of a committed log `A` are a prefix of the server's `L`. -/
+theorem kvRaftOfOn_of_lb (γ : ServerRaftNames) (c₀ : w64) (ch : apply.Chain)
+    (s₀ : auth.AuthState × mvcc.Log) (A L : List EntryModel) (hc : uint.Z c₀ ≤ uint.Z γ.ai0)
+    (hA : srvIdxOkW γ.ai0 A) (hL : srvIdxOkW γ.ai0 L) (hnf : ∀ m ∈ L, ¬ m.toLE.isFiller)
+    (hp : Draft.opsOf (A.map EntryModel.toLE) <+: L.map EntryModel.toLE) :
+    ∃ L', L' <+: L ∧ kvRaftOfOn c₀ ch s₀ A = kvRaftOfOn c₀ ch s₀ L' := by
+  refine ⟨L.take (Draft.opsOf (A.map EntryModel.toLE)).length, List.take_prefix _ _, ?_⟩
+  apply kvRaftOfOn_eqv γ c₀ ch s₀ _ _ ⟨hA, srvIdxOkW_prefix _ _ L hL (List.take_prefix _ _), ?_⟩ hc
+  obtain ⟨r, hr⟩ := hp
+  rw [opsOf_nofill ((L.take (Draft.opsOf (A.map EntryModel.toLE)).length).map EntryModel.toLE)
+    (fun x hx => by
+      obtain ⟨y, hy, rfl⟩ := List.mem_map.1 hx
+      exact hnf y (List.mem_of_mem_take hy)), List.map_take, ← hr, List.take_left' rfl]
+
 /-- **Determinacy on a committed log** from the server's log of requested entries (2026-10-27): a
 committed log's entries are the server's (at the same model state before them) or fillers (no
 request, determinate). -/
