@@ -196,7 +196,7 @@ theorem split_intercalate1 (c : w8) :
     congr 1
     exact ih y (fun z hz => h z (List.mem_cons_of_mem _ hz))
 
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
