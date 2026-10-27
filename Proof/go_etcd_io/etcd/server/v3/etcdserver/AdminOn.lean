@@ -3,7 +3,7 @@
 of the auth plan"). An Auth entry point (`EtcdServer.AuthEnable`, ...) takes `raftRequest` on its
 request as the contract `authRaftOk` (`AuthEntry.lean`); in the mode `on`, `raftRequest.specM true`
 covers the admin requests the mode admits (`reqPropOkOn`'s third case, `adminPropOk`: `AuthEnable`,
-`UserAdd`, `RoleAdd`, `UserGrantRole`), and `dispatch`'s answer to one is a response of its type
+`UserAdd`, `RoleAdd`, `UserGrantRole` and, since E3z, `RoleGrantPermission`), and `dispatch`'s answer to one is a response of its type
 (`apply.dispatchAnswer`). Here the contract's instance:
 
 - `adminRespTy`: the response type of an admitted admin request's kind.
@@ -38,28 +38,28 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io
 section pure
 variable [GooseExts] [go_gctx : GoGlobalContext]
 
-/-- **The response type of an admin request the mode `on` admits** (`apply.adminKindOk`, but for
-`RoleGrantPermission`, which `adminPropOk` leaves out): what `dispatch` answers it with
-(`apply.dispatchAnswer`) and its entry point asserts. -/
+/-- **The response type of an admin request the mode `on` admits** (`apply.adminKindOk`): what
+`dispatch` answers it with (`apply.dispatchAnswer`) and its entry point asserts. -/
 def adminRespTy : apply.ReqKind → Option go.GoType
   | .authEnable => some etcdserverpb.AuthEnableResponse.ty
   | .authUserAdd => some etcdserverpb.AuthUserAddResponse.ty
   | .authRoleAdd => some etcdserverpb.AuthRoleAddResponse.ty
   | .authUserGrantRole => some etcdserverpb.AuthUserGrantRoleResponse.ty
+  | .authRoleGrantPermission => some etcdserverpb.AuthRoleGrantPermissionResponse.ty
   | _ => none
 
 /-- The server's starting auth state has its users' roles sorted. -/
 theorem rolesSorted_srvAuthSt0 : rolesSorted srvAuthSt0 :=
   rolesSorted_bump _ rolesSorted_bootState
 
-/-! The four admitted admin requests of the entry points: admitted (`adminPropOk`), with no range
+/-! The five admitted admin requests of the entry points: admitted (`adminPropOk`), with no range
 end `[0]` and the id `0` (the server stamps the id). -/
 
 theorem adminPropOk_authEnable : adminPropOk srvAuthSt0 irrAuthEnable :=
   ⟨by simp [apply.adminKindOk, apply.dispatchKind, irrAuthEnable, apply.irrEmpty],
    by simp [apply.noSideEffect, irrAuthEnable, apply.irrEmpty],
    by simp [apply.needAdminPermission, irrAuthEnable, apply.irrEmpty],
-   by simp [irrAuthEnable, apply.irrEmpty], by simp [irrAuthEnable, apply.irrEmpty],
+   by simp [irrAuthEnable, apply.irrEmpty],
    rolesSorted_srvAuthSt0⟩
 
 theorem adminPropOk_userAdd (m : apply.UserAddModel) (hn : m.name.length ≤ backend.maxKeySize)
@@ -71,7 +71,6 @@ theorem adminPropOk_userAdd (m : apply.UserAddModel) (hn : m.name.length ≤ bac
    by simp [apply.noSideEffect, irrUserAdd, apply.irrEmpty],
    by simp [apply.needAdminPermission, irrUserAdd, apply.irrEmpty],
    by intro m' h; simp only [irrUserAdd, Option.some.injEq] at h; subst h; exact hpw,
-   by simp [irrUserAdd, apply.irrEmpty],
    rolesSorted_srvAuthSt0⟩
 
 theorem adminPropOk_roleAdd (name : GoString) (hn : name.length ≤ backend.maxKeySize) :
@@ -82,7 +81,7 @@ theorem adminPropOk_roleAdd (name : GoString) (hn : name.length ≤ backend.maxK
       intro n h; cases h; exact hn,
    by simp [apply.noSideEffect, irrRoleAdd, apply.irrEmpty],
    by simp [apply.needAdminPermission, irrRoleAdd, apply.irrEmpty],
-   by simp [irrRoleAdd, apply.irrEmpty], by simp [irrRoleAdd, apply.irrEmpty],
+   by simp [irrRoleAdd, apply.irrEmpty],
    rolesSorted_srvAuthSt0⟩
 
 theorem adminPropOk_userGrantRole (user role : GoString) (hn : user.length ≤ backend.maxKeySize) :
@@ -93,7 +92,19 @@ theorem adminPropOk_userGrantRole (user role : GoString) (hn : user.length ≤ b
       intro u ro h; cases h; exact hn,
    by simp [apply.noSideEffect, irrUserGrantRole, apply.irrEmpty],
    by simp [apply.needAdminPermission, irrUserGrantRole, apply.irrEmpty],
-   by simp [irrUserGrantRole, apply.irrEmpty], by simp [irrUserGrantRole, apply.irrEmpty],
+   by simp [irrUserGrantRole, apply.irrEmpty],
+   rolesSorted_srvAuthSt0⟩
+
+theorem adminPropOk_roleGrantPermission (name : GoString) (w : Option auth.PermW)
+    (hn : name.length ≤ backend.maxKeySize) :
+    adminPropOk srvAuthSt0 (irrRoleGrantPermission name w) :=
+  ⟨by simp only [apply.adminKindOk]
+      simp only [apply.dispatchKind, irrRoleGrantPermission, apply.irrEmpty]
+      simp only [Option.isSome_none, Option.isSome_some, Bool.false_eq_true, ↓reduceIte]
+      intro n w' h; cases h; exact hn,
+   by simp [apply.noSideEffect, irrRoleGrantPermission, apply.irrEmpty],
+   by simp [apply.needAdminPermission, irrRoleGrantPermission, apply.irrEmpty],
+   by simp [irrRoleGrantPermission, apply.irrEmpty],
    rolesSorted_srvAuthSt0⟩
 
 /-- An admin request (no KV field) has no range end `[0]`. -/

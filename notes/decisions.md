@@ -24541,3 +24541,53 @@ error with nothing proposed (`adminPreOn` back), or `userAddOutOn`.
 
 **Not done (in order).** `setupAuthOk`; `examples/authkv` and the closed theorem.
 
+
+## E3z of the auth plan: `RoleGrantPermission` admitted with auth on (2026-10-27 · `notes/auth-plan.md`, E3y's first left item, `setupAuthOk`'s first prerequisite)
+
+`setupAuthOk` (`examples/authkv`'s `SetUp` with auth on) proposes a `RoleGrantPermission`, which
+`adminPropOk` excluded: the model's step `roleGrantPermissionR` was a relation (the role's
+permissions after the append and `sort.Sort`, any order `sort.Sort` may leave; and on an update,
+the first of the role's permissions with the key, wherever the search landed), determinate only at
+a role with no permission (`grantPermFresh`), which no proposer sees.
+
+Making it a function turned up a bug in the Go code (`issues/etcd-auth-grant-permission-same-key.md`):
+`RoleGrantPermission` finds the permission to update by key alone (`sort.Search` on the key, then
+`bytes.Equal` of the keys) but the role may hold several on one key with different range ends;
+the grant then updates (or inserts beside) whichever the search lands on, and a downgrade of
+`[a, c)` from READWRITE to READ can append a second `[a, c)` permission, leaving the old type in
+effect (reproduced: `issues/etcd-auth-grant-permission-same-key/grant_same_key_test.go`). A model
+faithful to that code is a relation over the search's index and the sort's order; one of the
+record's exact order needs `sort.Sort`'s result exactly, which Perennial proves only relationally
+(a permutation, sorted), so it would need a new axiom.
+
+The choice (the user's, 2026-10-27, over an exact record model): **fix the fork and compare roles
+up to order.**
+
+- **The fork** (`upamanyus/etcd` branch `goose-lean-grantfix`, `acafa0317` on `goose-lean`'s
+  `c00a2dc06`; `etc/goose.py`'s etcd pin): `RoleGrantPermission` removes every permission on the
+  range `[Key, RangeEnd)`, appends the new one and sorts (`sort.Sort(permSlice)`), with a Go test
+  (`TestRoleGrantPermissionSameKeyUpdates`). Only `Code/go_etcd_io/etcd/server/v3/auth.lean`
+  changed in the translation.
+- **The model** (`auth/Steps.lean`): `grantPerms ps w` = the permissions not on `w`'s range, then
+  `w`'s if of a known type; `roleGrantPermissionR` its function (`o = .next (bump (putRole st role
+  (grantPerms ps w)))`). A role (`Role`, a list) is now compared to its record up to permutation:
+  `roleOut`/`roleOutX` give `rr.toRole.Perm ps` (`Buckets.lean`), `UnsafePutRole`'s contract takes
+  any `ps` with `rr.toRole.Perm ps` (`InvAuth.lean`), `RoleGet`'s reply holds the role's
+  permissions in some order (`roleGetOut`). Nothing reads a role's order: the permission checks
+  (`getMergedPerms`) build interval trees from it, whose contents are compared up to permutation
+  already (`ivlsOf`).
+- **The proof** (`authStore__RoleGrantPermission.lean`): the filter loop's invariant (`kept` holds
+  the permissions of the first `n` off `w`'s range, `offW`), then the append and `sort.wp_Sort` as
+  before; `grant_kept_perm` gives the record's model role a permutation of `grantPerms ps w`.
+  `SearchAny.lean` (`sort.Search` without monotonicity) has no user left and is gone
+  (`notes/perennial-changes.md`).
+- **Determinacy** (`KVAuthShape.lean`): `relState_roleGrantPermission_unique` at every state;
+  `grantPermFresh` is gone, `adminDetReq` is `UserAdd`'s password choice alone; `adminPropOk` no
+  longer excludes `RoleGrantPermission` (`ProposeOn.lean`). `adminRespTy` has its response type,
+  `adminPropOk_roleGrantPermission` (`AdminOn.lean`); `EtcdServer.RoleGrantPermission.specOn`
+  (`server_role_grant_permission_on`) and `roleGrantPermission_end_to_end_on`
+  (`api/v3rpc/Results.lean`) as E3w/E3y for the other four.
+
+**Not done (in order).** The gRPC Auth layer (`_Auth_X_Handler`, the gRPC specs,
+`etcd_auth_served`); a member started with auth on (`grpcUp`'s Auth registration); `setupAuthOk`;
+`examples/authkv` and the closed theorem.

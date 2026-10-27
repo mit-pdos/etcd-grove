@@ -458,6 +458,35 @@ theorem userGrantRole_end_to_end_on (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNam
   iframe # HP
   try (ipureintro; assumption)
 
+/-- **`AuthServer.RoleGrantPermission` with auth on, end to end** (the auth plan's E3z, 2026-10-27): the handler's
+contract discharged by the server's `RoleGrantPermission` with auth on (`server_role_grant_permission_on`): the handler's `(resp, nil)` is
+the request applied at the committed prefix before its entry, its admin step succeeding there
+(`adminOutOn`'s `appliedOkM true`, `adminDoneM`); its error, `togRPCError`'s of the apply thread's
+or the proposal's (`authWrapOut`). -/
+theorem roleGrantPermission_end_to_end_on (p s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
+    (cd : context.ContextDesc (IProp GF)) (r : Loc) (name : GoString) (w : Option auth.PermW) (F : mvcc.Log) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc ∗
+        isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+        v3rpc.authServerIs p s ∗ apply.authRoleGrantPermissionIs r (name, w) ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗ adminPreOn s E ρ ctx cd F }}
+      (App (App (Val (p @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc.AuthServer.ty @!! go!"RoleGrantPermission"))
+        (Val #(GoInterface.ok ctx))) (Val #r))
+    {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+        v3rpc.authWrapOut (adminOutOn s E ρ (irrRoleGrantPermission name w) F (adminQh ρ.kv (irrRoleGrantPermission name w))
+          etcdserverpb.AuthRoleGrantPermissionResponse.ty) resp err }} := by
+  iintro %Φ ⟨#Pv, #Ps, #Has, #Hreq, %Hn, HP⟩ HΦ
+  ihave #Hin : v3rpc.authInnerOk s go!"RoleGrantPermission" (GoInterface.ok ctx) r
+      iprop(apply.authRoleGrantPermissionIs r (name, w) ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗ adminPreOn s E ρ ctx cd F)
+      (adminOutOn s E ρ (irrRoleGrantPermission name w) F (adminQh ρ.kv (irrRoleGrantPermission name w)) etcdserverpb.AuthRoleGrantPermissionResponse.ty) $$ []
+  · iunfold v3rpc.authInnerOk
+    iintro !> %Ψ ⟨#Hreq', %Hn', HP'⟩ HΨ
+    iapply (server_role_grant_permission_on s E ρ ctx cd r name w F) $$ [HP'] HΨ
+    iframe # HP'
+    try (ipureintro; assumption)
+  iapply (AuthServer.wp_RoleGrantPermission p s ctx r iprop(apply.authRoleGrantPermissionIs r (name, w) ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗ adminPreOn s E ρ ctx cd F)
+      (adminOutOn s E ρ (irrRoleGrantPermission name w) F (adminQh ρ.kv (irrRoleGrantPermission name w)) etcdserverpb.AuthRoleGrantPermissionResponse.ty)) $$ [HP] HΦ
+  iframe # HP
+  try (ipureintro; assumption)
+
 /-- **What `AuthServer.UserAdd` with auth on answers** (the server's error and response, before
 `togRPCError`): the hashing's error, nothing proposed (`adminPreOn` back), or the server's answer to
 the proposed request (`userAddOutOn`). -/
@@ -1010,6 +1039,7 @@ end v3rpc
 #print axioms Perennial.EtcdGrove.v3rpc.userAdd_end_to_end_on
 #print axioms Perennial.EtcdGrove.v3rpc.roleAdd_end_to_end_on
 #print axioms Perennial.EtcdGrove.v3rpc.userGrantRole_end_to_end_on
+#print axioms Perennial.EtcdGrove.v3rpc.roleGrantPermission_end_to_end_on
 
 end EtcdGrove
 end Perennial

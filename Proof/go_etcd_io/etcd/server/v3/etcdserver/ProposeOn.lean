@@ -76,14 +76,12 @@ theorem adminKindOk_nonKV' (rq : apply.IRRModel) (h : apply.adminKindOk rq) :
 
 /-- **What an admin proposal needs in the mode `on`** (the auth plan's E3m; `KVAuthShape.lean`): an
 admitted admin request (`adminKindOk`) that needs the admin permission, whose `UserAdd` (if any)
-has a password choice that cannot fail and that grants no permission to a role (a
-`RoleGrantPermission` is determinate only at a state where its role has none, which the proposer
-does not see: `grantPermFresh`), from a start whose users' roles are sorted; and (E3o) with no read
-field set (`noSideEffect`: `plainEntryOn`'s). -/
+has a password choice that cannot fail, from a start whose users' roles are sorted; and (E3o) with
+no read field set (`noSideEffect`: `plainEntryOn`'s). (Until E3z it also excluded
+`RoleGrantPermission`, determinate then only at a role with no permission.) -/
 def adminPropOk (st₀ : auth.AuthState) (rq : apply.IRRModel) : Prop :=
   apply.adminKindOk rq ∧ apply.noSideEffect rq = false ∧ apply.needAdminPermission rq = true ∧
-    (∀ m, rq.authUserAdd = some m → m.pwSure) ∧ rq.authRoleGrantPermission = none ∧
-    rolesSorted st₀
+    (∀ m, rq.authUserAdd = some m → m.pwSure) ∧ rolesSorted st₀
 
 /-- **The committer's obligation for an admin entry** (`commitOkOn`): admitted, and determinate
 at the state after any log (the users' roles sorted along the model, `rolesSorted_kvRaftOfOn`;
@@ -92,7 +90,7 @@ theorem commitOkOn_admin (c₀ : w64) (ch : apply.Chain) (st₀ : auth.AuthState
     (L : List EntryModel) (e : EntryModel) (d : List w8) (rq : apply.IRRModel)
     (hed : e.data = d) (hdec : apply.irrDecode d = some rq) (ha : adminPropOk st₀ rq) :
     commitOkOn c₀ ch (st₀, log₀) L e := by
-  obtain ⟨hk, hns, -, hpw, hgp, hsort⟩ := ha
+  obtain ⟨hk, hns, -, hpw, hsort⟩ := ha
   refine ⟨fun _ _ rq' h => ?_, fun _ _ rq' h => ?_⟩
   · rw [hed, hdec] at h; cases h; exact Or.inr ⟨hk, hns⟩
   · rw [hed, hdec] at h
@@ -100,8 +98,7 @@ theorem commitOkOn_admin (c₀ : w64) (ch : apply.Chain) (st₀ : auth.AuthState
     refine ⟨fun _ _ => ?_, fun hkv => ?_⟩
     · apply authDet_of_sorted
       · exact rolesSorted_kvRaftOfOn c₀ ch _ L hsort
-      · refine ⟨hpw, fun r w ps hr _ => ?_⟩
-        rw [hgp] at hr; cases hr
+      · exact hpw
     · rw [adminKindOk_nonKV' rq hk] at hkv; cases hkv
 
 /-- **A write-free entry keeps the mode-`on` model's state** (auth state and log): a request that
@@ -420,9 +417,8 @@ theorem kv_prop_au_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthS
       iintro !>
       iunfold adminPropRes
       ipureintro
-      have hs := rolesSorted_kvRaftOfOn γk.c0 γk.ch0 (st₀, γk.log0) L hadm.2.2.2.2.2
-      refine ⟨hs, authDet_of_sorted rq _ hs ⟨hadm.2.2.2.1, fun r w ps hr _ => ?_⟩⟩
-      rw [hadm.2.2.2.2.1] at hr; cases hr
+      have hs := rolesSorted_kvRaftOfOn γk.c0 γk.ch0 (st₀, γk.log0) L hadm.2.2.2.2
+      exact ⟨hs, authDet_of_sorted rq _ hs hadm.2.2.2.1⟩
 
 /-- **A result predicate of the mode-`on` model of the log is one the server's two logs agree on**
 (2026-10-27; `kv_qinv`'s): the mode-`on` KV invariant keeps the start's consistent index at most

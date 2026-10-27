@@ -189,7 +189,7 @@ theorem roleOutD_are (st : auth.AuthState) (D : AuthData) (r : Loc) (name : GoSt
     have := hinj _ _ He; subst this
     iexists rr
     iframe H
-    ipureintro; exact ⟨hn, rfl⟩
+    ipureintro; exact ⟨hn, List.Perm.refl _⟩
 
 /-! ## The contracts -/
 

@@ -23,10 +23,11 @@ invariant ties the KV state (`etcdKV`'s ghost variable) to the model of raft's *
 it. So the model must be a function of the committed log; recording the auth state per entry in
 ghost state (E2p's other option) would make the committer, raft's commit, choose an outcome the
 apply thread must later reproduce, which only works if the outcome is a function of the prefix. In
-Go it is (every member applies the same prefix), but three of the model's admin steps are relations
-(`userGrantRoleR`, `roleGrantPermissionR`: the record's order after `sort.Sort`, a permission of an
-unknown type; `UserAdd`'s `ErrNoPasswordUser`, a refusal decided by the request's password choice,
-which the request model keeps since E2t: `UserAddModel.pwSure` rules it out), so the model's step is the *unique* successor where there is one (`adminNext`), and the
+Go it is (every member applies the same prefix), but two of the model's admin steps are relations
+(`userGrantRoleR`: the user's roles after `sort.Strings`; `UserAdd`'s `ErrNoPasswordUser`, a refusal
+decided by the request's password choice, which the request model keeps since E2t:
+`UserAddModel.pwSure` rules it out; `roleGrantPermissionR` was a third until E3z, when the fork's
+fix made it a function), so the model's step is the *unique* successor where there is one (`adminNext`), and the
 mode-`on` log premise (`detLogOn`) asks every committed admin entry to have a unique successor at
 the state it is applied at, and every KV entry with auth enabled to be of the shape the permission
 cache decides (`kvDet`: `auth.reqShape`, outside of which the cache's answer is not stated). Both

@@ -92,7 +92,10 @@ non-empty separator that is no infix of a field and does not overlap them) in Pe
   a proof of that weaker fact over Perennial's translation of `sort.Search`.
 - **Proposed change.** `sort.wp_Search_any` (or a spec whose monotonicity premise is optional)
   in Perennial's `Proof/sort`, general; then the local copy goes.
-- **Status.** Open.
+- **Status.** No longer needed here (2026-10-27): the auth plan's E3z fork fix
+  (`issues/etcd-auth-grant-permission-same-key.md`) replaced the search by a filter, and
+  `SearchAny.lean` is gone (in git history). The general spec is still a reasonable Perennial
+  change, with no client here.
 
 ### Goose: a parenthesized untyped constant expression in a bitwise operation
 
