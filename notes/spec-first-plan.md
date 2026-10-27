@@ -62,6 +62,11 @@ mirror the code) in two tiers:
   depends on: each is a place where a change elsewhere forces this spec to change, step 1's main
   cause of churn).
 
+*Rounds.* Repairs introduce defects (in the pilot, two of round 2's three blockers came from round 1's
+repairs), so every repair is followed by another round with a fresh reviewer, until a round finds
+nothing in the first tier; each later round is told what the previous repair changed (the diff) and
+looks hardest there.
+
 The pilot measures whether the review pays: spec revisions found by the review, by the glue proofs,
 and after the freeze.
 
