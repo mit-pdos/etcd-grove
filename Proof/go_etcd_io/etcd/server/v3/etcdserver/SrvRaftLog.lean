@@ -63,7 +63,7 @@ def srvLogN : Namespace := srvRaftN .@ "log"
 
 theorem srvClusterN_sub : (↑srvClusterN : CoPset) ⊆ ↑srvRaftN := nclose_subseteq _ _
 theorem srvLogN_sub : (↑srvLogN : CoPset) ⊆ ↑srvRaftN := nclose_subseteq _ _
-theorem srvLogN_clusterN : (↑srvLogN : CoPset) ⊆ ⊤ \ ↑srvClusterN :=
+@[simp] theorem srvLogN_clusterN : (↑srvLogN : CoPset) ⊆ ⊤ \ ↑srvClusterN :=
   mask_ndot_ne' srvRaftN "log" "cluster" (by decide)
 
 /-- **The cluster, as the server sees it** (2026-10-27): the node API's cluster, the voters it
@@ -711,6 +711,266 @@ theorem srvProp_register (γ : ServerRaftNames) (d : List w8) (Q : List EntryMod
   iframe Hel HQ
   unfold srvPropTk
   iexact Htk
+
+/-- The fired registry after one more fired proposal. -/
+theorem srv_fired_snoc (Lf : List EntryModel) (F : GMap (List w8) (List EntryModel))
+    (e : EntryModel) (d : List w8) (hed : e.data = d) (HFd : F.lookup d = none)
+    (H : ∀ (j : Nat) (m : EntryModel), Lf[j]? = some m → m.typ = W32 0 →
+      F.lookup m.data = some (Lf.take j)) :
+    ∀ (j : Nat) (m : EntryModel), (Lf ++ [e])[j]? = some m → m.typ = W32 0 →
+      (F.insert d Lf).lookup m.data = some ((Lf ++ [e]).take j) := by
+  intro j m hm ht
+  rcases Nat.lt_or_ge j Lf.length with hj | hj
+  · rw [List.getElem?_append_left hj] at hm
+    have h1 := H j m hm ht
+    have hne : m.data ≠ d := fun h => by rw [h, HFd] at h1; cases h1
+    rw [GMap.lookup_insert_ne _ _ (Ne.symm hne), h1, List.take_append_of_le_length (by omega)]
+  · rw [List.getElem?_append_right hj] at hm
+    have hj' : j = Lf.length := by
+      have := (List.getElem?_eq_some_iff.mp hm).1
+      simp only [List.length_singleton] at this
+      omega
+    subst hj'
+    simp only [Nat.sub_self, List.getElem?_cons_zero, Option.some.injEq] at hm
+    subst hm
+    rw [hed, GMap.lookup_insert_eq, List.take_left]
+
+/-- **A proposal's update, as the node API's `Propose` takes it** (2026-10-27): when raft commits
+the requested entry `⟨t, normal, d⟩`, the server's log grows by it (its index the next of the
+server's log), the server's update fires (the KV invariant's half), the registered reads fire again,
+and the result is left in the registry. One later credit, for the registries. -/
+theorem srvPropAu_api (γ : ServerRaftNames) (d : List w8) (Q : List EntryModel → IProp GF)
+    (γQ γt : GName) (hd : d ≠ []) :
+    ⊢ srvRaftLogInv (GF := GF) γ -∗ d ↪[γ.raft.props]□ (γQ, γt) -∗
+      savedPredOwn γQ DFrac.discard Q -∗ srvPropTk γt -∗ £ 1 -∗ srvPropAu1 γ d Q -∗
+      AU <{ ∃∃ (ops : List Draft.LogEntry), Draft.ownCommittedOps γ.raft.cl ops }>
+          @ ⊤ \ ↑srvClusterN, ∅
+         <{ ∀∀ (t : w64), Draft.ownCommittedOps γ.raft.cl (ops ++ [⟨t, W32 0, d⟩]), COMM True }> := by
+  letI := srvAnyStor (GF := GF)
+  iintro #Hinv #Hp #HQ Htk Hlc Hau
+  iunfold srvRaftLogInv at Hinv
+  icases Hinv with ⟨#Hli, -, #Hlb0, %Hai0⟩
+  iauintro
+  unfold atomic_acc
+  iunfold srvLogInv at Hli
+  iinv Hli with ⟨%Lf, %P, %F, %R, >Hcore, Hregs⟩ Hclose
+  iunfold srvLogCore at Hcore
+  icases Hcore with ⟨Hown, Hlog, HP, HF, HR, Hfrs, %Hfacts⟩
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+  iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
+  iintro Hmask
+  iexists Draft.opsOf (srvLE γ Lf)
+  iframe Hown
+  isplit
+  · -- abort
+    iintro Hown
+    imod Hmask with -
+    imod Hclose $$ [Hown Hlog HP HF HR Hfrs Hregs] with -
+    · inext
+      iexists Lf, P, F, R
+      iunfold srvLogCore
+      iframe Hown Hlog HP HF HR Hfrs Hregs
+      ipureintro; exact Hfacts
+    imodintro
+    iframe Htk Hlc Hau
+  · -- commit: the requested entry `⟨t, normal, d⟩`
+    iintro %t Hown
+    imod Hmask with -
+    obtain ⟨Hidx, Hnf, Hfired, HRle⟩ := Hfacts
+    imod lc_fupd_elim_later $$ Hlc Hregs with Hregs
+    iunfold srvLogRegs at Hregs
+    icases Hregs with ⟨HFr, HRr⟩
+    -- the proposal fires once: not fired before
+    have hcase : F.lookup d = none ∨ ∃ Lb, F.lookup d = some Lb := by
+      cases F.lookup d <;> simp
+    rcases hcase with HFd | ⟨Lb, HFd⟩
+    rotate_left
+    · iexfalso
+      icases (BigSepM.bigSepM_lookup_acc (Φ := fun d Lb => iprop(∃ (γQ γt : GName)
+          (Q : List EntryModel → IProp GF), d ↪[γ.raft.props]□ (γQ, γt) ∗
+          savedPredOwn γQ DFrac.discard Q ∗ □ Q Lb ∗ srvPropTk γt)) (m := F) HFd).1 $$ HFr
+        with ⟨⟨%γQ', %γt', %Q', #Hp', -, -, Htk'⟩, -⟩
+      ihave %Hag := ghostMapElem_agree d γ.raft.props _ _ _ _ $$ Hp Hp'
+      cases Hag
+      iapply srvPropTk_excl γt $$ Htk Htk'
+    -- the next index fits
+    ihave ⟨Hown, %l, #Hl, %Hlops⟩ := Draft.ownCommittedOps_get_lb γ.raft.cl _ $$ Hown
+    ihave %Hllen := Draft.isCommittedLogLb_length γ.raft.cl l $$ Hl
+    iunfold srvRLogLb at Hlb0
+    icases Hlb0 with ⟨#Hl0, -⟩
+    ihave %Hag0 := Draft.isCommittedLogLb_agree γ.raft.cl (srvLE γ []) l $$ [Hl0 Hl]
+    · iframe Hl0 Hl
+    have Hb := srv_next_bound γ Lf l ⟨t, W32 0, d⟩ Hnf Hlops Hag0
+    let e : EntryModel := ⟨t, W64 (uint.Z γ.ai0 + 1 + Lf.length), W32 0, d⟩
+    have He : uint.Z e.index = uint.Z γ.ai0 + 1 + Lf.length := by
+      show uint.Z (W64 (uint.Z γ.ai0 + 1 + Lf.length)) = _
+      have : (l.length : Int) ≥ γ.pre.length + Lf.length + 1 := by exact_mod_cast Hb
+      word
+    -- the server's update
+    imod (fupd_mask_subseteq (PROP := IProp GF) srv_mask_inner) with Hback
+    iunfold srvPropAu1 at Hau
+    ihave Hacc := aupd_aacc $$ Hau
+    unfold atomic_acc
+    imod Hacc with Hacc
+    isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hacc
+    icases Hacc with ⟨%L, HL, Hcl⟩
+    iunfold srvRLog at HL
+    ihave %Hag := monoListAuthOwn_agree $$ Hlog HL
+    obtain ⟨-, Heq⟩ := Hag
+    subst Heq
+    icombine Hlog HL as Hlog
+    imod monoListAuthOwn_update_app [e] $$ Hlog with ⟨Hlog, -⟩
+    icases ((monoListAuthOwn_fractional (GF := GF) γ.raft.log (Lf ++ [e])).fractional
+        (1 : Qp).half (1 : Qp).half).1 $$ [Hlog] with ⟨Hlog, HL⟩
+    · rw [Qp.half_add_half]; iexact Hlog
+    icases Hcl with ⟨-, Hcommit⟩
+    imod Hcommit $$ %e [HL] with #HQL
+    · isplitr
+      · ipureintro; exact ⟨rfl, rfl, He⟩
+      iunfold srvRLog; iexact HL
+    -- the registered reads, again
+    imod srvFireReads γ Lf e R $$ Hlog HRr with ⟨Hlog, HRr⟩
+    imod Hback with -
+    -- the registries
+    imod ghost_map_insert d Lf HFd $$ HF with ⟨HF, -⟩
+    have Hnfe : ¬ e.toLE.isFiller := fun h => hd h.1
+    imod Hclose $$ [Hown Hlog HP HF HR Hfrs HFr HRr Htk] with -
+    · inext
+      iexists Lf ++ [e], P, F.insert d Lf, R
+      iunfold srvLogCore
+      have Hops : Draft.opsOf (srvLE γ Lf) ++ [⟨t, W32 0, d⟩] = Draft.opsOf (srvLE γ (Lf ++ [e])) := by
+        rw [srvLE_append, opsOf_append, opsOf_nofill ([e].map EntryModel.toLE) (by simpa using Hnfe)]
+        rfl
+      rw [← Hops]
+      iframe Hown Hlog HP HF HR Hfrs
+      isplitr
+      · ipureintro
+        refine ⟨srvIdxOkW_snoc γ.ai0 Lf e Hidx He (Or.inl rfl), ?_,
+          srv_fired_snoc Lf F e d rfl HFd Hfired, ?_⟩
+        · intro m hm
+          rcases List.mem_append.1 hm with hm | hm
+          · exact Hnf m hm
+          · rw [List.mem_singleton.1 hm]; exact Hnfe
+        · intro r hr; have := HRle r hr; simp; omega
+      iunfold srvLogRegs
+      iframe HRr
+      iapply (BigSepM.bigSepM_insert (Φ := fun d Lb => iprop(∃ (γQ γt : GName)
+          (Q : List EntryModel → IProp GF), d ↪[γ.raft.props]□ (γQ, γt) ∗
+          savedPredOwn γQ DFrac.discard Q ∗ □ Q Lb ∗ srvPropTk γt)) HFd).2
+      iframe HFr
+      iexists γQ, γt, Q
+      iframe Hp HQ HQL Htk
+    imodintro
+    itrivial
+
+/-- Where a committed requested entry sits in the server's log. -/
+theorem srv_pos (L Lf : List EntryModel) (m : Nat) (e : EntryModel) (hm : L[m]? = some e)
+    (hnf : ¬ e.toLE.isFiller)
+    (h : Draft.opsOf (L.map EntryModel.toLE) <+: Lf.map EntryModel.toLE) :
+    ∃ m', Lf[(Draft.opsOf ((L.take m).map EntryModel.toLE)).length]? = some m' ∧
+      m'.toLE = e.toLE ∧
+      (Lf.take (Draft.opsOf ((L.take m).map EntryModel.toLE)).length).map EntryModel.toLE =
+        Draft.opsOf ((L.take m).map EntryModel.toLE) := by
+  obtain ⟨hlt, hget⟩ := List.getElem?_eq_some_iff.mp hm
+  have hd : L.drop m = e :: L.drop (m + 1) := by
+    rw [List.drop_eq_getElem_cons hlt, hget]
+  have hL : L = L.take m ++ e :: L.drop (m + 1) := by
+    rw [← hd]; exact (List.take_append_drop m L).symm
+  have hmap : L.map EntryModel.toLE =
+      (L.take m).map EntryModel.toLE ++ e.toLE :: (L.drop (m + 1)).map EntryModel.toLE := by
+    have := congrArg (List.map EntryModel.toLE) hL
+    rw [List.map_append, List.map_cons] at this
+    exact this
+  have hops : Draft.opsOf (L.map EntryModel.toLE) =
+      Draft.opsOf ((L.take m).map EntryModel.toLE) ++ e.toLE ::
+        Draft.opsOf ((L.drop (m + 1)).map EntryModel.toLE) := by
+    rw [hmap, opsOf_append]
+    congr 1
+    simp only [Draft.opsOf, List.filter_cons, hnf, decide_false, Bool.not_false, ↓reduceIte]
+  rw [hops] at h
+  obtain ⟨r, hr⟩ := h
+  generalize Draft.opsOf ((L.take m).map EntryModel.toLE) = a at hr ⊢
+  have hlen : a.length < Lf.length := by
+    have := congrArg List.length hr; simp at this; omega
+  obtain ⟨m', hm'⟩ : ∃ m', Lf[a.length]? = some m' := ⟨_, List.getElem?_eq_getElem hlen⟩
+  refine ⟨m', hm', ?_, ?_⟩
+  · have := congrArg (fun l => l[a.length]?) hr
+    simp only [List.getElem?_map, hm', Option.map_some] at this
+    rw [List.append_assoc, List.getElem?_append_right (by omega), Nat.sub_self] at this
+    simpa using this.symm
+  · rw [List.map_take, ← hr, List.append_assoc, List.take_left]
+
+/-- **The proposals' witnesses, from the server's registry** (2026-10-27; until then from raft's,
+`prop_collect`). -/
+theorem srvPropWits_of (γ : ServerRaftNames) : ⊢ srvRaftLogInv (GF := GF) γ -∗ srvPropWits γ := by
+  letI := srvAnyStor (GF := GF)
+  iintro #Hinv
+  iunfold srvRaftLogInv at Hinv
+  icases Hinv with ⟨#Hli, -, -, -⟩
+  iunfold srvPropWits
+  iintro !> %d %Q %L %m %e #Hp #HL %Hf Hlc
+  obtain ⟨Hlk, Het, Hed, Hne⟩ := Hf
+  iunfold srvIsProp at Hp
+  icases Hp with ⟨%γQ, %γt, #Hel, #HQ, #HQinv⟩
+  iunfold srvRLogLb at HL
+  icases HL with ⟨#HL, %HLi⟩
+  icases (lc_split (n := 1) (m := 2)).1 $$ Hlc with ⟨Hlc1, Hlc⟩
+  icases (lc_split (n := 1) (m := 1)).1 $$ Hlc with ⟨Hlc2, Hlc3⟩
+  iunfold srvLogInv at Hli
+  iinv Hli with ⟨%Lf, %P, %F, %R, >Hcore, Hregs⟩ Hclose
+  iunfold srvLogCore at Hcore
+  icases Hcore with ⟨Hown, Hlog, HP, HF, HR, Hfrs, %Hfacts⟩
+  obtain ⟨Hidx, Hnf, Hfired, HRle⟩ := Hfacts
+  ihave %Hp := Draft.ownCommittedOps_lb_prefix γ.raft.cl _ _ $$ [Hown HL]
+  · iframe Hown HL
+  have Hnfe : ¬ e.toLE.isFiller := fun h => Hne (Hed ▸ h.1)
+  obtain ⟨m', Hm', Hme, Htk⟩ := srv_pos L Lf m e Hlk Hnfe (srv_ops_prefix γ L Lf Hnf Hp)
+  generalize hj : (Draft.opsOf ((L.take m).map EntryModel.toLE)).length = j at Hm' Htk
+  have Hm'd : m'.data = d ∧ m'.typ = W32 0 := by
+    have h := congrArg Draft.LogEntry.data Hme
+    have h2 := congrArg Draft.LogEntry.type Hme
+    simp only [EntryModel.toLE] at h h2
+    exact ⟨h.trans Hed, h2.trans Het⟩
+  have HFd := Hfired j m' Hm' Hm'd.2
+  rw [Hm'd.1] at HFd
+  imod lc_fupd_elim_later $$ Hlc1 Hregs with Hregs
+  iunfold srvLogRegs at Hregs
+  icases Hregs with ⟨HFr, HRr⟩
+  icases (BigSepM.bigSepM_lookup_acc (Φ := fun d Lb => iprop(∃ (γQ γt : GName)
+      (Q : List EntryModel → IProp GF), d ↪[γ.raft.props]□ (γQ, γt) ∗
+      savedPredOwn γQ DFrac.discard Q ∗ □ Q Lb ∗ srvPropTk γt)) (m := F) HFd).1 $$ HFr
+    with ⟨⟨%γQ', %γt', %Q', #Hel', #HQ', #HQL', Htk'⟩, Hacc⟩
+  ihave %Hag := ghostMapElem_agree d γ.raft.props _ _ _ _ $$ Hel Hel'
+  cases Hag
+  ihave #Hsag := saved_pred_agree γQ DFrac.discard DFrac.discard Q' Q (Lf.take j) $$ HQ' HQ
+  ihave HFr := Hacc $$ [Htk']
+  · iexists γQ, γt, Q'
+    iframe Hel' HQ' HQL' Htk'
+  imod Hclose $$ [Hown Hlog HP HF HR Hfrs HFr HRr] with -
+  · inext
+    iexists Lf, P, F, R
+    iunfold srvLogCore
+    iunfold srvLogRegs
+    iframe Hown Hlog HP HF HR Hfrs HFr HRr
+    ipureintro; exact ⟨Hidx, Hnf, Hfired, HRle⟩
+  ihave HQL : iprop(▷ □ Q (Lf.take j)) $$ []
+  · inext
+    ihave #Hiff := internalEq_iff _ _ $$ Hsag
+    iintro !>
+    icases Hiff with ⟨Hto, -⟩
+    iapply Hto $$ HQL'
+  imod lc_fupd_elim_later $$ Hlc2 HQL with #HQL
+  iunfold srvQInv at HQinv
+  ihave HQm := HQinv $$ %(Lf.take j) %(L.take m) [] HQL
+  · ipureintro
+    refine ⟨srvIdxOkW_prefix γ.ai0 _ Lf Hidx (List.take_prefix _ _),
+      srvIdxOkW_prefix γ.ai0 _ L HLi (List.take_prefix _ _), ?_⟩
+    rw [opsOf_nofill _ (fun x hx => by
+      obtain ⟨y, hy, rfl⟩ := List.mem_map.1 hx
+      exact Hnf y (List.mem_of_mem_take hy)), Htk]
+  imod lc_fupd_elim_later $$ Hlc3 HQm with #HQm
+  imodintro
+  iexact HQm
 
 end bridges
 
