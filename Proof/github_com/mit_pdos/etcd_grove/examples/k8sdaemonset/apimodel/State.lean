@@ -103,7 +103,7 @@ are the consistency store's, `consistency.Owner`'s, `Proof/k8s_io/client_go/util
 abbrev Key : Type := k8s_io.apimachinery.pkg.types.NamespacedName
 
 /-- A key from a namespace and a name. -/
-def mkKey (ns name : GoString) : Key := ⟨ns, name⟩
+abbrev mkKey (ns name : GoString) : Key := ⟨ns, name⟩
 
 /-- An object's key. -/
 def Obj.key (o : Obj) : Key := mkKey o.meta.Namespace' o.meta.Name'

@@ -42,6 +42,51 @@ theorem srvFixed_tableOf (s : Loc) (γ : ApiNames) (L : SrvLocs) (cfg : _root_.P
   ipureintro
   exact Heq
 
+/-- **A resource's table among the four**, and putting a new one back. -/
+theorem tablesLocked_acc (L : SrvLocs) (σ : St) (r : Res) :
+    tablesLocked (GF := GF) L σ ⊢ tableLocked (L.tbl r) (σ.tbl r) ∗
+      (∀ σ' : St, ⌜∀ r', r' ≠ r → σ'.tbl r' = σ.tbl r'⌝ -∗ tableLocked (L.tbl r) (σ'.tbl r) -∗
+        tablesLocked L σ') := by
+  unfold tablesLocked
+  iintro ⟨Hp, Hn, Hd, Hc⟩
+  cases r
+  · simp only [SrvLocs.tbl, St.tbl]
+    iframe Hp
+    iintro %σ' %Heq Hp'
+    have h1 := Heq .nodes (by decide)
+    have h2 := Heq .daemonSets (by decide)
+    have h3 := Heq .revisions (by decide)
+    simp only [St.tbl] at h1 h2 h3
+    rw [h1, h2, h3]
+    iframe
+  · simp only [SrvLocs.tbl, St.tbl]
+    iframe Hn
+    iintro %σ' %Heq Hn'
+    have h1 := Heq .pods (by decide)
+    have h2 := Heq .daemonSets (by decide)
+    have h3 := Heq .revisions (by decide)
+    simp only [St.tbl] at h1 h2 h3
+    rw [h1, h2, h3]
+    iframe
+  · simp only [SrvLocs.tbl, St.tbl]
+    iframe Hd
+    iintro %σ' %Heq Hd'
+    have h1 := Heq .pods (by decide)
+    have h2 := Heq .nodes (by decide)
+    have h3 := Heq .revisions (by decide)
+    simp only [St.tbl] at h1 h2 h3
+    rw [h1, h2, h3]
+    iframe
+  · simp only [SrvLocs.tbl, St.tbl]
+    iframe Hc
+    iintro %σ' %Heq Hc'
+    have h1 := Heq .pods (by decide)
+    have h2 := Heq .nodes (by decide)
+    have h3 := Heq .daemonSets (by decide)
+    simp only [St.tbl] at h1 h2 h3
+    rw [h1, h2, h3]
+    iframe
+
 end lemmas
 
 end apimodel

@@ -245,14 +245,20 @@ def tableLocked (T : Tbl) (tb : Table) : IProp GF :=
     T.t.[apimodel.table, go!"log"] ↦ sl ∗ sl ↦* cs ∗ ownSliceCap apimodel.change sl (DFrac.own 1) ∗
     [∗list] c;e ∈ cs;tb.log, changeAt c e)
 
+/-- The four tables' states in the heap. -/
+def tablesLocked (L : SrvLocs) (σ : St) : IProp GF :=
+  iprop(tableLocked L.tp σ.pods ∗ tableLocked L.tn σ.nodes ∗ tableLocked L.td σ.dss ∗
+    tableLocked L.tc σ.crs)
+
 /-- **The server's state in the heap** (under its lock): the last version issued, the issued
 versions' map, the UIDs issued, the tables; one receipt per version issued since the first (which
 bounds the counter, `isServer`'s `receiptBound`). -/
 def srvLocked (s : Loc) (L : SrvLocs) (σ : St) : IProp GF :=
-  iprop(s.[apimodel.Server, go!"rev"] ↦ σ.rev ∗ s.[apimodel.Server, go!"uids"] ↦ σ.uids ∗
-    L.rvs ↦$ issuedMap σ.rev.toNat ∗
-    tableLocked L.tp σ.pods ∗ tableLocked L.tn σ.nodes ∗ tableLocked L.td σ.dss ∗
-    tableLocked L.tc σ.crs ∗ ⧗ (σ.rev.toNat - 1) ∗ ⌜σ.uids.toNat < σ.rev.toNat⌝)
+  iprop("Hrev" ∷ s.[apimodel.Server, go!"rev"] ↦ σ.rev ∗
+    "Huids" ∷ s.[apimodel.Server, go!"uids"] ↦ σ.uids ∗
+    "Hrvsm" ∷ L.rvs ↦$ issuedMap σ.rev.toNat ∗
+    "Htbls" ∷ tablesLocked L σ ∗ "Hrc" ∷ ⧗ (σ.rev.toNat - 1) ∗
+    "%Huidlt" ∷ ⌜σ.uids.toNat < σ.rev.toNat⌝)
 
 /-- **The registered watchers' stop flags** (under the server's lock): a watcher not stopped
 holds its stop channel's sending side (`Stop` closes it once). -/
