@@ -167,13 +167,13 @@ theorem raftNode.start.wp_proof
       iunfold rnDrv at Hdrv
       icases Hdrv with ⟨Hdrv, Hcfg⟩
       icases Draft.isReadyChan_recvAu γ.nl rc γ.node.cl srvClusterN γ.id (rnDrvSt γ L' p) _ rfl
-        $$ Hrc Hisn with ⟨%γc, #Hch, Hau⟩
+        $$ Hrc Hisn Hdrv with ⟨%γc, #Hch, Hau⟩
       iexists Ready, inferInstance, inferInstance, inferInstance, inferInstance, rc, γc
       isplitr
       · ipureintro; rfl
       isplitr
       · iexact Hch
-      iapply Hau $$ [$Hlc1 $Hlc2] Hdrv
+      iapply Hau $$ [$Hlc1 $Hlc2]
       inext
       iintro %rd ⟨%ce0, %es0, %h0, %Lo, #Hcea0, #Hcom0, Hrs0, Hrest, Hdrv⟩
       -- (2026-10-27) the log's indices, at the start's index (`rnEnvOk`'s)

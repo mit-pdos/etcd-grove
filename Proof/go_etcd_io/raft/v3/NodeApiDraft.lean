@@ -441,24 +441,38 @@ theorem tickCredit_zero (γ : Cluster) : ⊢ |==> tickCredit (GF := GF) γ 0 := 
 @[no_expose] def stepIn (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) : IProp GF :=
   ApiImpl.stepIn γ N id ml
 
+/-- **The cluster was started from a bootstrap log** (persistent; raft's `RaftNames.reBoot ≠ []`):
+what `cluster_alloc` and `dynamicCluster_alloc` allocate (`nodeBoot_booted`,
+`nodeDynamicBoot_booted`), and `cluster_alloc_static` does not. Its nodes are past term `0`, so
+they step a pre-vote request (`stepIn_intro`). (2026-10-27, the server port's addition.) -/
+@[no_expose] def bootedCluster (γ : Cluster) : IProp GF := iprop(⌜γ.raft.reBoot ≠ []⌝)
+
+instance bootedCluster_persistent (γ : Cluster) : Persistent (bootedCluster (GF := GF) γ) := by
+  unfold bootedCluster; infer_instance
+
 /-- (open) **Stepping a sent message**: a copy of it (its fields, entries and snapshot; no local
 responses), owned with its entries slice fresh, addressed to `id`, with its credits and, for a
-`MsgTimeoutNow`, a tick credit: a forwarded proposal with no context, or what a node steps from the
-network (`NetMsgOk`, no pre-vote, no leader transfer; a snapshot below `2^61`). (Today kv's
-`stepP_deliverable`.) -/
+`MsgTimeoutNow`, a tick credit: a forwarded proposal (of any context: its abstraction ignores it),
+or what a node steps from the network (`NetMsgOk`, no leader transfer; a snapshot below `2^61`); a
+pre-vote request only in a cluster started from a bootstrap log (`bootedCluster`: raft's `netP`
+takes one only there). (Today kv's `stepP_deliverable`. 2026-10-27, for etcd's server, whose nodes
+run with `PreVote`: the pre-vote premise `bootedCluster` in place of excluding it, and no premise on a
+forwarded proposal's context; until then `stepIn_intro_booted` beside it.) -/
 theorem stepIn_intro (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) (src : w64) (st : MsgSt) :
-    (st.msg.Type' = MsgProp → st.ctx = []) →
     (st.msg.Type' ≠ MsgProp → NetMsgOk id ⟨st.msg, st.ents, st.snap, st.ctx, []⟩ ∧
-      st.msg.Type' ≠ MsgPreVote ∧ st.msg.Type' ≠ MsgTransferLeader) →
+      st.msg.Type' ≠ MsgTransferLeader) →
     (st.msg.Type' = MsgSnap → ∃ sv, st.snap = some sv ∧ uint.Z sv.Metadata'.Index' < 2 ^ 61) →
     st.msg.To' = id →
-    sentMsg (GF := GF) γ N src st ∗
+    (⌜st.msg.Type' ≠ MsgPreVote⌝ ∨ bootedCluster γ) ∗ sentMsg (GF := GF) γ N src st ∗
       msgPtsC ml (DFrac.own 1) (DFrac.own 1) true ⟨st.msg, st.ents, st.snap, st.ctx, []⟩ ∗
       msgCredits γ N st ∗ tickCredit γ (if st.msg.Type' = MsgTimeoutNow then 1 else 0) ⊢
     |==> stepIn γ N id ml := by
-  intro H1 H2 H3 H4
-  unfold sentMsg msgCredits tickCredit stepIn
-  exact ApiImpl.stepIn_intro_impl γ N id ml src st H1 H2 H3 H4
+  intro H1 H2 H3
+  unfold bootedCluster sentMsg msgCredits tickCredit stepIn
+  iintro ⟨Hpv, Hrest⟩
+  icases Hpv with (%Hpv | %Hpv)
+  · iapply ApiImpl.stepIn_intro_impl γ N id ml src st H1 H2 H3 (.inl Hpv) $$ Hrest
+  · iapply ApiImpl.stepIn_intro_impl γ N id ml src st H1 H2 H3 (.inr Hpv) $$ Hrest
 
 /-! ## The rest of a `Ready` -/
 
@@ -773,15 +787,16 @@ theorem readStateOk_after (γ : Cluster) (N : Namespace) (c : List w8) (idx : w6
     readStateOk (GF := GF) γ N c idx ∗ readCtxAfter γ N c l0 ⊢ ⌜l0.length ≤ uint.nat idx⌝ := sorry
 
 /-- (2026-10-27, the server port's addition) **Receiving a `Ready` as a channel's receive**, for a
-`select` (etcd's `raftNode.start` receives it among a ticker's and a stop channel's): the node's
-`Ready` channel is a channel of `Ready`s whose receive, by the loop's token at rest, gives
-`node.readyRecv.spec`'s postcondition (two later credits, as a handshake's receive). -/
+`select` (etcd's `raftNode.start` receives it among a ticker's and a stop channel's): with the loop's
+token at rest, the node's `Ready` channel is a channel of `Ready`s whose receive gives
+`node.readyRecv.spec`'s postcondition (two later credits, as a handshake's receive). (Changed from
+the draft: the token is taken before the channel's names, which are its node's.) -/
 theorem isReadyChan_recvAu (n ch : Loc) (γ : Cluster) (N : Namespace) (id : w64)
     (st : NodeDriverState) (Φ : Ready → Bool → IProp GF) :
     st.handling = none →
-    ⊢ isReadyChan (GF := GF) n γ N ch -∗ isNode n γ N id -∗
+    ⊢ isReadyChan (GF := GF) n γ N ch -∗ isNode n γ N id -∗ nodeDriver n γ N st -∗
       ∃ γc : ChanNames, isChan ch γc Ready ∗
-        (£ 1 ∗ £ 1 -∗ nodeDriver n γ N st -∗
+        (£ 1 ∗ £ 1 -∗
           ▷ (∀ rd : Ready, (∃ (ce : List LogEntry) (es : List EntryM) (h : HardStateM)
               (L : Option SnapLoan),
               committedEntriesAt rd.CommittedEntries' st.delivered.length ce ∗
@@ -798,46 +813,50 @@ theorem isReadyChan_recvAu (n ch : Loc) (γ : Cluster) (N : Namespace) (id : w64
                     delivered := strip l.dlv
                     hardState := phsNext st.hardState h
                     handling := some (es, some l) })) -∗ Φ rd true) -∗
-          recvAu γc Ready Φ) := sorry
-
-/-- (2026-10-27, the server port's addition) **The cluster was started from a bootstrap log**
-(persistent; today `RaftNames.reBoot ≠ []`): what `cluster_alloc` and `dynamicCluster_alloc`
-allocate, and `cluster_alloc_static` does not. Its nodes are past term `0`, so they step a
-pre-vote request (`stepIn_intro_booted`). -/
-@[no_expose] def bootedCluster (γ : Cluster) : IProp GF := iprop(⌜γ.raft.reBoot ≠ []⌝)
-
-instance bootedCluster_persistent (γ : Cluster) : Persistent (bootedCluster (GF := GF) γ) := by
-  unfold bootedCluster; infer_instance
+          recvAu γc Ready Φ) := by
+  intro Hh
+  unfold isReadyChan isNode nodeDriver
+  iintro Hrc Hn Hdrv
+  icases ApiImpl.isReadyChan_recvAu_impl n ch γ N id st Φ Hh $$ Hrc Hn Hdrv
+    with ⟨%γc, #Hch, Hau⟩
+  iexists γc
+  iframe Hch
+  iintro Hlc HΦ
+  iapply Hau $$ Hlc
+  inext
+  iintro %rd ⟨%ce, %es, %h, %L, Hce, Hlb, Hrs, Hrest, Hdrv⟩
+  iapply HΦ
+  iexists ce, es, h, L
+  unfold isCommittedLogLb readStateOk
+  iframe Hce Hlb Hrs Hdrv
+  iapply readyRest_of_impl $$ Hrest
 
 /-- (the server port's addition) A boot token of `cluster_alloc` (of peers `ps`, not empty) is of
 a cluster started from a bootstrap log. -/
 theorem nodeBoot_booted (γ : Cluster) (N : Namespace) (ps : List w64) (ctxs : List (List w8))
     (id : w64) : ps ≠ [] →
-    nodeBoot (GF := GF) γ N ps ctxs id ⊢ nodeBoot γ N ps ctxs id ∗ bootedCluster γ := sorry
+    nodeBoot (GF := GF) γ N ps ctxs id ⊢ nodeBoot γ N ps ctxs id ∗ bootedCluster γ := by
+  intro Hne
+  unfold nodeBoot bootedCluster ApiImpl.nodeBoot
+  iintro ⟨Hs, %Hb, Hrest⟩
+  ihave %Hnb : ⌜γ.raft.reBoot ≠ []⌝ $$ []
+  · ipureintro; intro h; rw [h] at Hb; exact Hne (List.length_eq_zero_iff.mp Hb.1.symm)
+  iframe Hs Hrest
+  isplitl <;> ipureintro <;> first | exact Hb | exact Hnb
 
 /-- (the server port's addition) A boot token of `dynamicCluster_alloc` (of peers `ps`, not empty)
 is of a cluster started from a bootstrap log. -/
 theorem nodeDynamicBoot_booted (γ : Cluster) (N : Namespace) (ps : List w64)
     (ctxs : List (List w8)) (id : w64) : ps ≠ [] →
     nodeDynamicBoot (GF := GF) γ N ps ctxs id ⊢
-      nodeDynamicBoot γ N ps ctxs id ∗ bootedCluster γ := sorry
-
-/-- (2026-10-27, the server port's addition) **Stepping a sent message in a cluster started from
-a bootstrap log** (`stepIn_intro`'s, with a pre-vote request allowed, and a forwarded proposal of
-any context): what etcd's server needs, whose nodes run with `PreVote` (etcd's default) and whose
-transport delivers a forwarded `MsgProp` as sent. (Raft's `netP` takes a `MsgPreVote` at a cluster
-with `reBoot ≠ []`, and `fwdP` a proposal of any context, its abstraction `absMsg .propose`
-ignoring it.) Proposed change: `stepIn_intro` with these premises in place of its own. -/
-theorem stepIn_intro_booted (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) (src : w64)
-    (st : MsgSt) :
-    (st.msg.Type' ≠ MsgProp → NetMsgOk id ⟨st.msg, st.ents, st.snap, st.ctx, []⟩ ∧
-      st.msg.Type' ≠ MsgTransferLeader) →
-    (st.msg.Type' = MsgSnap → ∃ sv, st.snap = some sv ∧ uint.Z sv.Metadata'.Index' < 2 ^ 61) →
-    st.msg.To' = id →
-    bootedCluster (GF := GF) γ ∗ sentMsg γ N src st ∗
-      msgPtsC ml (DFrac.own 1) (DFrac.own 1) true ⟨st.msg, st.ents, st.snap, st.ctx, []⟩ ∗
-      msgCredits γ N st ∗ tickCredit γ (if st.msg.Type' = MsgTimeoutNow then 1 else 0) ⊢
-    |==> stepIn γ N id ml := sorry
+      nodeDynamicBoot γ N ps ctxs id ∗ bootedCluster γ := by
+  intro Hne
+  unfold nodeDynamicBoot bootedCluster ApiImpl.nodeDynamicBoot
+  iintro ⟨Hs, %Hb, Hrest⟩
+  ihave %Hnb : ⌜γ.raft.reBoot ≠ []⌝ $$ []
+  · ipureintro; intro h; rw [h] at Hb; exact Hne (List.length_eq_zero_iff.mp Hb.1.1.symm)
+  iframe Hs Hrest
+  isplitl <;> ipureintro <;> first | exact Hb | exact Hnb
 
 end api
 
@@ -998,8 +1017,10 @@ cluster's): with `snapshotCert_data`, a static cluster that vouches for no snaps
 theorem sentMsg_snapshot (γ : Cluster) (N : Namespace) (src : w64) (st : MsgSt) :
     st.msg.Type' = MsgSnap →
     sentMsg (GF := GF) γ N src st ⊢
-      ∃ sv, ⌜st.snap = some sv⌝ ∗ snapshotCert γ N (snapTrip sv sv.Metadata'.ConfState'.lists) :=
-  sorry
+      ∃ sv, ⌜st.snap = some sv⌝ ∗ snapshotCert γ N (snapTrip sv sv.Metadata'.ConfState'.lists) := by
+  intro Hty
+  unfold sentMsg snapshotCert
+  exact ApiImpl.sentMsg_snapshot_impl γ N src st Hty
 
 /-- (2026-10-27, the server port's addition; proved) **A message that carries no credit**: one
 neither a `MsgReadIndex` (a read credit) nor a `MsgProp` (a forwarded proposal's tickets) carries

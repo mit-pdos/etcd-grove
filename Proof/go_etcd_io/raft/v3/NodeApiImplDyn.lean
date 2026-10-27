@@ -512,7 +512,7 @@ theorem sentMsg_replaceSnapshot_impl (γ : Cluster) (N : Namespace) (src : w64) 
   intro HE Hty Hsn Hix Hc Hl Hlt
   iintro #Hs #Hca #Hlb #Hk
   unfold sentMsg
-  icases Hs with ⟨#Hci, #Hrm, #Htlb⟩
+  icases Hs with ⟨#Hci, #Hrm, #Htlb, -⟩
   ihave #Hci' := Hci
   iunfold clusterInv at Hci'
   icases Hci' with ⟨%HNs, #Hcinv, -, -⟩
@@ -555,6 +555,13 @@ theorem sentMsg_replaceSnapshot_impl (γ : Cluster) (N : Namespace) (src : w64) 
     sv'.Metadata'.ConfState'.lists sv'.Metadata'.ConfState'.AutoLeave' rfl
   imodintro
   iframe Hci Htlb
+  isplitl
+  rotate_left
+  · unfold sentSnapCert
+    iright
+    iexists sv'
+    iframe Hk
+    ipureintro; rfl
   iunfold isRaftMsg
   isplitr
   · ipureintro; exact Hns

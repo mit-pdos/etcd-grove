@@ -87,9 +87,12 @@ local macro "deliver_tail " snc:term : tactic =>
     wp_apply context.wp_Background
     ihave #Hbg := nodeCtx_background (GF := GF) bgCd
     have Hsteps := deliverable_step q.st.msg.To' q.st Hd rfl
-    imod Draft.stepIn_intro γ kvRaftN q.st.msg.To' «$r0_ptr» src q.st Hsteps.1 Hsteps.2.1 Hsteps.2.2 rfl
+    imod Draft.stepIn_intro γ kvRaftN q.st.msg.To' «$r0_ptr» src q.st
+      (fun h => ⟨(Hsteps.2.1 h).1, (Hsteps.2.1 h).2.2⟩) Hsteps.2.2 rfl
       $$ [Hmok Hmc Hc1 Htc] with Hstep
-    · iframe Hmok Hmc Hc1 Htc
+    · isplitr
+      · ileft; ipureintro; exact deliverable_not_prevote q.st Hd
+      iframe Hmok Hmc Hc1 Htc
     wp_apply +noauto wp_node_Step n γ kvRaftN q.st.msg.To' «$r0_ptr» context.backgroundCtxVal bgCd
       $$ [Hstep] as %err -
     · iframe
