@@ -1284,6 +1284,86 @@ theorem node.wp_readyRecv_impl : node.readyRecv.spec (GF := GF) (hG := hG) := by
   · ipureintro; rfl
   iexact Hbusy
 
+/-- **`StartNode(c, peers)`** (the draft's, with the differences in the report: the boot token
+names the peers and their contexts, the term budget is the cluster's, and the storage is never
+compacted past index `1`, raft's no-snapshot mode). -/
+abbrev StartNode.spec : Prop :=
+  ∀ (γ : Cluster) (N : Namespace) (c : Loc) (cv : Config) (lok si : GoInterfaceOk)
+    (σ : StorState) (hs : HardStateM) (csm : ConfStateM) (R : IProp GF)
+    (peers : GoSlice) (dq : DFrac) (pv : List Peer) (ps : List w64) (ctxs : List (List w8)),
+  ConfigValid cv →
+  cv.Logger' = interface.ok lok →
+  cv.Storage' = interface.ok si →
+  sint.Z cv.MaxInflightMsgs' < 2 ^ 62 →
+  cv.DisableProposalForwarding' = false →
+  cv.ReadOnlyOption' = W64 0 →
+  cv.DisableConfChangeValidation' = false →
+  (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) →
+  cv.AsyncStorageWrites' = false →
+  cv.Applied' = W64 0 →
+  σ.prev = entryID.mk (W64 0) (W64 0) → σ.ents = [] → (uint.Z σ.ss.index' = 0 ∨ σ.ss = σ.prev) →
+  σ.pend = [] → HsEmpty hs →
+  csm.Voters' = [] → csm.VotersOutgoing' = [] → csm.Learners' = [] → csm.LearnersNext' = [] →
+  csm.AutoLeave' = false →
+  ps = pv.map Peer.ID' → ps ≠ [] → ps.Nodup → W64 0 ∉ ps → (ps.length : Int) ≤ 2 ^ 62 →
+  cv.ID' ∈ ps →
+  σ.fl = W64 0 →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
+      isStorage (interface.ok si) ∗ ownStorage (interface.ok si) σ ∗
+      (∀ (Φ : val → IProp GF) (ss' : entryID), ownStorage (interface.ok si) { σ with ss := ss' } -∗
+           (∀ (hp cs : Loc) (al : Bool), ownStorage (interface.ok si) { σ with ss := ss' } -∗
+            R -∗ hsOpt hp hs -∗ csPts cs DFrac.discard csm al -∗
+            Φ (PairV (PairV #hp #cs) #interface.nil)) -∗
+           WP (App (Val #(methods si.ty go!"InitialState" si.v)) (Val #())) {{ Φ }}) ∗
+      peers ↦*{dq} pv ∗ peersCtx pv ctxs ∗
+      nodeBoot γ N ps ctxs cv.ID' ∗
+      -- the storage never compacted past index `1` (raft's no-snapshot mode, `NsCap`)
+      storCap (interface.ok si) 1 }}
+    (App (App (Val #(functions StartNode [])) (Val #c)) (Val #peers))
+  {{ (nd : GoInterface), RET #nd;
+      R ∗ ∃ (n : Loc), ⌜nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗
+        isNode n γ N cv.ID' ∗ nodeDriver n γ N (NodeDriverState.init (interface.ok si)) }}
+
+theorem wp_StartNode_impl (hS : EtcdGrove.StartNode.spec (GF := GF) (hG := hG)) :
+    StartNode.spec (GF := GF) (hG := hG) := by
+  intro γ N c cv lok si σ hs csm R peers dq pv ps ctxs H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 Hp He Hss
+    Hpe Hhs Hv Hvo Hl Hln Hal Hps Hne Hnd Hnz Hlen Hid Hfl
+  iintro %Φ ⟨#Hinit, Hc, #Hlog, #Hstor, Hown, Hinst, Hpeers, #Hpc, Hboot, #Hcap⟩ HΦ
+  iunfold nodeBoot at Hboot
+  icases Hboot with ⟨%Hf, #Hci, Hg, #Hc0, #Hm, #Hbinv, #Htlb⟩
+  obtain ⟨Hcfg, Hdyn, Hok, Hns, Hnx⟩ := Hf
+  iapply (hS γ.raft .static γ.bud c cv lok si σ hs csm R peers dq pv ps ctxs γ.raft.reBoot false
+    H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 Hp He Hss Hpe Hhs Hv Hvo Hl Hln Hal Hps Hne Hnd Hnz Hlen Hid
+    Hcfg rfl Hok Hfl (fun h => by cases h)) $$ [Hc Hown Hinst Hpeers Hg]
+  · iframe Hinit Hc Hlog Hstor Hown Hinst Hpeers Hpc Hm Hc0 Hbinv Htlb
+    isplitl [Hg]
+    · unfold bootInit; iexact Hg
+    isplitr
+    · unfold NsCap; imodintro; iintro -; iexact Hcap
+    · iapply certLink_noSnap γ.raft _ Hns
+  iintro !> %nd ⟨HR, %γn, %n, %Hf, -, #Hnode, Hdrv, -, -⟩
+  obtain ⟨Hγr, Hγb, Hγs, -, Hsn, Hnd'⟩ := Hf
+  iapply HΦ
+  iframe HR
+  iexists n
+  isplitr
+  · ipureintro; exact Hnd'
+  isplitr
+  · unfold isNode
+    iexists γn
+    iframe Hnode Hci
+    ipureintro; exact ⟨Hγr, Hγb⟩
+  unfold nodeDriver
+  iexists γn, cv.ID', []
+  isplitr
+  · ipureintro; exact ⟨Hγr, Hγb, Hγs, Hsn, rfl⟩
+  iframe Hci
+  ileft
+  isplitr
+  · ipureintro; rfl
+  unfold NodeDriverState.init
+  iexact Hdrv
+
 end node
 
 end ApiImpl
