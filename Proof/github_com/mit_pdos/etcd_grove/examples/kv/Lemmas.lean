@@ -843,7 +843,7 @@ theorem kv_committed_cc (γr : RKVNames) (l : List Draft.LogEntry) (e : Draft.Lo
   ihave %Hpre := Draft.ownCommittedOps_lb_prefix γr.cluster ops l $$ [Hops Hl]
   · iframe Hops Hl
   have Hnf : ¬ e.isFiller := by
-    rintro ⟨-, h | h⟩ <;> rw [Hty] at h <;> revert h <;> word
+    rintro ⟨-, h⟩; rw [Hty] at h; revert h; word
   have Hin : e ∈ ops := Hpre.subset (List.mem_filter.mpr ⟨Hel, by simp [Hnf]⟩)
   have Hne : e.type ≠ W32 0 := by rw [Hty]; intro h; revert h; word
   obtain ⟨-, id, Hm, Hsh⟩ := Hrm e Hin Hne

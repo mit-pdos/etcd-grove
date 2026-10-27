@@ -23820,3 +23820,50 @@ into them), which changes every translated function and so every proof that symb
 one (about 2700 files here; Perennial adjusted 65 modules). `6b58510f9` is the last `lean` head
 before that merge and has method sets. Moving to the head is its own task.
 
+
+## The server port's draft items, proved; fillers are empty normal entries (2026-10-27 · branch `raft-api`)
+
+(Completes "etcd's server on raft's node API": its draft additions to `NodeApiDraft.lean`, sealed
+over the implementation, proved; its proposed changes applied.)
+
+**Fillers.** `noConfChangeV2_alloc` ("a static cluster may renounce `ConfChangeV2` proposals") was
+not sound as drafted, and nothing weaker of the kind was provable: the client's renunciation is no
+fact raft's ghost state can see. A committed type-2 filler was possible in raft's proof for one
+reason only: a client's empty `ConfChangeV2` (bytes `[]`), a filler as defined then, whose
+`propDataIs none` is pure (`Filler ∧ CCDecodes`), so anyone may have proposed it; the opaque
+`ccDecodeV2` leaves open that `[]` decodes (it does: protobuf's empty message). Raft itself never
+appends one: its auto-leave entry (`raft.go:742`) is dead in the proof (`raft.appliedTo`'s premise
+`c.autoLeave = true → s.role ≠ .leader`), and the constructions of `propDataIs γ e none` are the new
+leader's entry, `PropRepl`'s zero entry and an empty `Propose`, all of type `0`. So the decision:
+**a filler is an empty normal entry** (`Filler ty d := d = [] ∧ ty = 0`, raft's `Protocol/Ghost.lean`;
+`LogEntry.isFiller` the same), and an empty `ConfChangeV2` is a tracked proposal like any conf
+change, its `ProposeConfChange` update firing when it commits. The law the server needed is then
+pure and unconditional, `LogEntry.isFiller_normal`; `noConfChangeV2` and its `_alloc`/`_filler`
+retire. No trust-base change (no fact about `ccDecodeV2` needed). Considered: a raft-level flag
+recording "no type-2 filler" in `propDataIs none` (a new `RaftNames` field and a premise on
+`ProposeConfChange`): more machinery for a strictly weaker API.
+
+**Receipt bounds.** `isCommittedLogLb_length` (the next index fits `2^64`) is not provable as
+drafted: committed entries are bounded only by the time receipts past the bootstrap log
+(`index < receiptBound + |boot|`), and `receiptBound ≤ 2^64 - 2` with up to `2^61` bootstrap entries
+does not bound the next index. So it takes `readyFits` (sealed: `receiptBound GF + bootLen ≤ 2^61`,
+which `cluster_alloc`/`dynamicCluster_alloc` now give under that premise, retiring
+`readyFits_alloc`, whose free `nb` was a placeholder). The bound reaches the client's predicates
+through raft's updates: `noopAu`'s and `propAu1`'s commits carry the entry's receipt bound (the
+firing site has the entry's record, `isEntryR_receipt`), the adapter's invariant keeps the full
+log under it, `isCommittedLogLb` (nonempty) carries it, and `readyRest`'s `Lx` carries it
+(`lastRec_receipt` in `readyRecv`), whence `readyRest_fits`.
+
+**Read contexts.** `ctxs` maps a context to `(γq, l0)`, `l0` the committed log the client knew when
+committing it (`readCtx_commit_after`; `readCtx_commit` records `[]`). The deposit in `ReadIndex`
+happens after, at raft's committed log, which extends `l0`; `readKey` records the comparison, and
+`readStateOk` carries `l0.length ≤ idx`, so `readStateOk_after` is pure.
+
+**Others.** `sentMsg` carries a `MsgSnap`'s `snapshotCert` (made in `readyRecv`, where the
+invariants can be opened; `sentMsg_replaceSnapshot` has the new one), so `sentMsg_snapshot` is pure.
+`isReadyChan_recvAu` takes the driver token before naming the channel (its names are the token's
+node names, which `isNode` does not fix), and its post-processing runs under a fancy update after
+the commit (`recvAu_wand_fupd`, a local lemma; `notes/perennial-changes.md`). `stepIn_intro` takes
+`⌜¬ MsgPreVote⌝ ∨ bootedCluster γ` and no premise on a forwarded proposal's context (a proposal's
+abstraction ignores it); `stepIn_intro_booted` retires. The laws free of `[StorageModel GF]` and
+raft's `Assumptions` omit them; the primed copies retire.

@@ -17,6 +17,20 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### Channels: `recvAu_wand` with a fancy update in the wand (2026-10-27, branch `raft-api`)
+
+- **Missing.** `recvAu_wand` (`Chan/AuSpec/ChanAuBase.lean`) turns a receive's update for `Φ1`
+  into one for `Φ2` with a plain wand `Φ1 -∗ Φ2`; every commit of a receive ends at `⊤`
+  (`={∅,⊤}=∗ Φ`), so a wand `Φ1 ={⊤}=∗ Φ2` is as sound, and is what a client needs that opens an
+  invariant after the receive (raft's `isReadyChan_recvAu`: the `Ready`'s facts become the node
+  API's under the cluster's invariants).
+- **Workaround here.** `recvNestedAu_wand_fupd`/`recvAu_wand_fupd` in
+  `Proof/go_etcd_io/raft/v3/NodeApiImpl.lean` (the same proofs, `iapply Hw` after the commit
+  instead of `imodintro`).
+- **Proposed change.** The two lemmas in Perennial beside `recvAu_wand` (and the same for the
+  send and close updates), then the local copies go.
+- **Status.** Open.
+
 ### Translation: `sort.StringSlice`'s methods (2026-10-25, leases T3, branch `leases-t3`)
 
 - **Missing.** Perennial's `sort` declares the type `sort.StringSlice` but none of its methods

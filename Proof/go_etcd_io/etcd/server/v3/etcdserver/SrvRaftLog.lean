@@ -296,17 +296,9 @@ theorem srv_entry_transfer (ai₀ : w64) (A L : List EntryModel) (P : EntryModel
     (hL : ∀ m ∈ L, P m) : ∀ m ∈ A, P m := by
   intro m hm
   by_cases hf : m.toLE.isFiller
-  · obtain ⟨n, hn⟩ := List.getElem?_of_mem hm
-    have ht := (hA n m hn).2
-    obtain ⟨hd, hty⟩ := hf
+  · obtain ⟨hd, hty⟩ := hf
     simp only [EntryModel.toLE] at hd hty
-    refine hfill m ?_ hd
-    rcases ht with ht | ⟨ht, -⟩
-    · exact ht
-    · rcases hty with h0 | h2
-      · exact h0
-      · have h12 : (W32 1 : w32) = W32 2 := ht.symm.trans h2
-        exact absurd h12 (by decide)
+    exact hfill m hty hd
   · have hin : m.toLE ∈ Draft.opsOf (A.map EntryModel.toLE) := by
       unfold Draft.opsOf
       rw [List.mem_filter]
@@ -322,17 +314,9 @@ theorem srv_entry_src (ai₀ : w64) (A L : List EntryModel) (hA : srvIdxOkW ai�
     ∀ m ∈ A, (m.typ = W32 0 ∧ m.data = []) ∨ ∃ m' ∈ L, m'.toLE = m.toLE := by
   intro m hm
   by_cases hf : m.toLE.isFiller
-  · obtain ⟨n, hn⟩ := List.getElem?_of_mem hm
-    have ht := (hA n m hn).2
-    obtain ⟨hd, hty⟩ := hf
+  · obtain ⟨hd, hty⟩ := hf
     simp only [EntryModel.toLE] at hd hty
-    refine .inl ⟨?_, hd⟩
-    rcases ht with ht | ⟨ht, -⟩
-    · exact ht
-    · rcases hty with h0 | h2
-      · exact h0
-      · have h12 : (W32 1 : w32) = W32 2 := ht.symm.trans h2
-        exact absurd h12 (by decide)
+    exact .inl ⟨hty, hd⟩
   · have hin : m.toLE ∈ Draft.opsOf (A.map EntryModel.toLE) := by
       unfold Draft.opsOf
       rw [List.mem_filter]
