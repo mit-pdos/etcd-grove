@@ -2320,6 +2320,22 @@ theorem server_txn_on : EtcdServer.Txn.specOn (GF := GF) (hG := hG) :=
     TxnRequest.wp_GetFailure «attribute».wp_Bool EtcdServer.wp_Logger traceutil.wp_EnsureTrace
     context.wp_WithValue server_raft_request_on
 
+/-- **The admin proposers with auth on** (the auth plan's E3w, `AdminOn.lean`): `AuthEnable`,
+`UserAdd`, `RoleAdd` and `UserGrantRole`, their contract `raftRequest` in the mode `on`
+(`authRaftOk_on`): a success is the request applied at the committed prefix before its entry, the
+auth state after it published, its step determinate there. Every callee linked. -/
+theorem server_auth_enable_on : EtcdServer.AuthEnable.specOn (GF := GF) (hG := hG) :=
+  EtcdServer.AuthEnable.wp_proofOn server_raft_request_on
+
+theorem server_user_add_on : EtcdServer.UserAdd.specOn (GF := GF) (hG := hG) :=
+  EtcdServer.UserAdd.wp_proofOn bcrypt.wp_GenerateFromPassword server_raft_request_on
+
+theorem server_role_add_on : EtcdServer.RoleAdd.specOn (GF := GF) (hG := hG) :=
+  EtcdServer.RoleAdd.wp_proofOn server_raft_request_on
+
+theorem server_user_grant_role_on : EtcdServer.UserGrantRole.specOn (GF := GF) (hG := hG) :=
+  EtcdServer.UserGrantRole.wp_proofOn server_raft_request_on
+
 end serverProposeOn
 
 section applyEntryOn
@@ -2460,6 +2476,10 @@ end Perennial
 #print axioms Perennial.EtcdGrove.server_put_on
 #print axioms Perennial.EtcdGrove.server_delete_range_on
 #print axioms Perennial.EtcdGrove.server_txn_on
+#print axioms Perennial.EtcdGrove.server_auth_enable_on
+#print axioms Perennial.EtcdGrove.server_user_add_on
+#print axioms Perennial.EtcdGrove.server_role_add_on
+#print axioms Perennial.EtcdGrove.server_user_grant_role_on
 
 #print axioms Perennial.EtcdGrove.apply_kv_entry_pre_on
 #print axioms Perennial.EtcdGrove.apply_kv_after_on
