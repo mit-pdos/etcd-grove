@@ -28,7 +28,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 namespace linkv
 
 section pure
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- A bootstrap log's entries change no KV state: they are conf changes. -/
 theorem kvRaftOf_boot (c₀ : w64) (ch : apply.Chain) (log₀ : mvcc.Log)
@@ -64,7 +64,7 @@ end linkv
 namespace linkvtxn
 
 section alloc
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

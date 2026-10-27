@@ -22,7 +22,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.api
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -107,7 +107,10 @@ theorem rafthttp.Transport.Start_core
   (try wp_auto)
   wp_apply hNewProber srt as %sp #Hspok
   (try wp_auto)
-  wp_if_destruct
+  -- `DialRetryFrequency == 0` on a float64: the uninterpreted `float64Eq` (Perennial `08d191151`)
+  cases float64Eq drf0 (W64 0)
+  rotate_left
+  all_goals (try wp_auto)
   · wp_apply hEvery as %drf _
     (try wp_auto)
     iapply HΦ

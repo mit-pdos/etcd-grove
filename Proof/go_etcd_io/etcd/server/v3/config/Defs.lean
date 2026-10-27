@@ -20,7 +20,7 @@ namespace config
 
 /-- **The backend's database file of the data directory `dataDir`** (opaque; see the file
 header). -/
-opaque backendPathOf [FfiSyntax] (dataDir : GoString) : GoString
+opaque backendPathOf [GooseExts] (dataDir : GoString) : GoString
 
 end config
 end EtcdGrove

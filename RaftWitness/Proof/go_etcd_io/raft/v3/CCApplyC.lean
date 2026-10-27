@@ -26,7 +26,7 @@ open Iris Iris.BI go_etcd_io.raft.v3
 /-! ## The reachable states -/
 
 section model
-variable [FfiSyntax]
+variable [GooseExts]
 
 theorem gm_mem_insert {V : Type} (m : GMap w64 V) (i k : w64) (v : V) :
     k ∈ (<[i := v]> m : GMap w64 V) ↔ k = i ∨ k ∈ m := by

@@ -176,7 +176,7 @@ theorem more_limit1 (o : OpFull) (sel : List EtcdKv) (more : Bool) (hl : o.base.
   · simp only [decide_eq_false_iff_not] at h'; omega
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [EM : EtcdModel GF]
@@ -236,7 +236,7 @@ instance dequeueOrder_persistent (pfx kp : GoString) (le : EtcdKv → EtcdKv →
 end defs
 
 section lemmas
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [EM : EtcdModel GF]

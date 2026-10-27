@@ -25,7 +25,7 @@ namespace authkv
 open common
 
 section checks
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- The principals (`Principals()`), in order. -/
 def principals : List GoString := [go!"u", go!"v", go!"anon", go!"bad"]

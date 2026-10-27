@@ -18,7 +18,7 @@ namespace EtcdGrove
 namespace auth
 
 section pure
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- The permissions of one more role. -/
 theorem userPerms_take_succ (st : AuthState) (roles : List GoString) (n : Nat) (rn : GoString)

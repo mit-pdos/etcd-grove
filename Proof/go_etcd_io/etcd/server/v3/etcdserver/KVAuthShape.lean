@@ -40,7 +40,7 @@ namespace EtcdGrove
 open go_etcd_io.etcd.server.v3.etcdserver
 
 section pure
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-! ## Strictly sorted role lists -/
 

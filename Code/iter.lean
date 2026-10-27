@@ -20,97 +20,97 @@ end pkg_id
 
 namespace iter
 
-noncomputable def Seq'.ty [FfiSyntax] [GoGlobalContext] (V : go.GoType) : go.GoType :=
+noncomputable def Seq'.ty [GooseExts] [GoGlobalContext] (V : go.GoType) : go.GoType :=
   (go.GoType.Named go!"iter.Seq" [V])
 
 attribute [irreducible] Seq'.ty
 
-noncomputable def Seq2.ty [FfiSyntax] [GoGlobalContext] (K : go.GoType) (V : go.GoType) : go.GoType :=
+noncomputable def Seq2.ty [GooseExts] [GoGlobalContext] (K : go.GoType) (V : go.GoType) : go.GoType :=
   (go.GoType.Named go!"iter.Seq2" [K, V])
 
 attribute [irreducible] Seq2.ty
 
-noncomputable def coro.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def coro.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"iter.coro" [])
 
 attribute [irreducible] coro.ty
 
-noncomputable def goexitPanicValue [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def goexitPanicValue [GooseExts] [GoGlobalContext] : GoString :=
   go!"iter.goexitPanicValue"
 
-axiom goexitPanicValue.init [FfiSyntax] [GoGlobalContext] : val
+axiom goexitPanicValue.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def newcoro [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newcoro [GooseExts] [GoGlobalContext] : GoString :=
   go!"iter.newcoro"
 
-noncomputable def coroswitch [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def coroswitch [GooseExts] [GoGlobalContext] : GoString :=
   go!"iter.coroswitch"
 
-noncomputable def Pull [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Pull [GooseExts] [GoGlobalContext] : GoString :=
   go!"iter.Pull"
 
-noncomputable def Pull2 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Pull2 [GooseExts] [GoGlobalContext] : GoString :=
   go!"iter.Pull2"
 
 noncomputable instance info' : PkgInfo pkg_id.iter where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.iter)) (Lam BAnon
   (App (Val exceptionDo)
   (App (Val doExecute)
   (App (Val goexitPanicValue.init) (Val #())))))))
 
-abbrev Seq' [FfiSyntax] (V : Type) : Type := GoFunc
+abbrev Seq' [GooseExts] (V : Type) : Type := GoFunc
 
-@[reducible] noncomputable def Seq'.underlying [FfiSyntax] [GoGlobalContext] (V : go.GoType) : go.GoType :=
+@[reducible] noncomputable def Seq'.underlying [GooseExts] [GoGlobalContext] (V : go.GoType) : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [V] false [go.bool]))] false []))
 
-class Seq.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Seq.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : ∀ (V : go.GoType), go.UnderlyingDirectedEq (Seq'.ty V) (Seq'.underlying V)
 
 attribute [instance] Seq.TypeAssumptions.underlying
 
-abbrev Seq2 [FfiSyntax] (K V : Type) : Type := GoFunc
+abbrev Seq2 [GooseExts] (K V : Type) : Type := GoFunc
 
-@[reducible] noncomputable def Seq2.underlying [FfiSyntax] [GoGlobalContext] (K : go.GoType) (V : go.GoType) : go.GoType :=
+@[reducible] noncomputable def Seq2.underlying [GooseExts] [GoGlobalContext] (K : go.GoType) (V : go.GoType) : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [(go.GoType.FunctionType (go.signature.Signature [K, V] false [go.bool]))] false []))
 
-class Seq2.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Seq2.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : ∀ (K V : go.GoType), go.UnderlyingDirectedEq (Seq2.ty K V) (Seq2.underlying K V)
 
 attribute [instance] Seq2.TypeAssumptions.underlying
 
-structure coro [FfiSyntax] where
+structure coro [GooseExts] where
   mk ::
 
-noncomputable instance coro.zero_val [FfiSyntax] : ZeroVal coro :=
+noncomputable instance coro.zero_val [GooseExts] : ZeroVal coro :=
   ⟨coro.mk⟩
 
-@[reducible] noncomputable def coro.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def coro.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   []
 
-@[irreducible] noncomputable def coro.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def coro.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   coro.fieldsUnsealed
 
-noncomputable instance equals_unfold_coro [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_coro [GooseExts] [GoGlobalContext] :
     EqualsUnfold coro.fields coro.fieldsUnsealed :=
   ⟨by unfold coro.fields; rfl⟩
 
-@[reducible] noncomputable def coro.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def coro.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType coro.fields)
 
-class coro.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class coro.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying coro.underlying coro
   underlying : go.UnderlyingDirectedEq coro.ty coro.underlying
 
 attribute [instance] coro.TypeAssumptions.type_repr
   coro.TypeAssumptions.underlying
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Seq_instance : Seq.TypeAssumptions
   Seq2_instance : Seq2.TypeAssumptions
   coro_instance : coro.TypeAssumptions

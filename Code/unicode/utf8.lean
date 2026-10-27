@@ -20,173 +20,173 @@ end pkg_id
 
 namespace unicode.utf8
 
-noncomputable def acceptRange.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def acceptRange.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"unicode/utf8.acceptRange" [])
 
 attribute [irreducible] acceptRange.ty
 
-axiom RuneError [FfiSyntax] [GoGlobalContext] : val
+axiom RuneError [GooseExts] [GoGlobalContext] : val
 
 /-- characters below RuneSelf are represented as themselves in a single byte. -/
-@[reducible] noncomputable def RuneSelf [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def RuneSelf [GooseExts] [GoGlobalContext] : val :=
   #(128 : Int)
 
-axiom MaxRune [FfiSyntax] [GoGlobalContext] : val
+axiom MaxRune [GooseExts] [GoGlobalContext] : val
 
-axiom UTFMax [FfiSyntax] [GoGlobalContext] : val
+axiom UTFMax [GooseExts] [GoGlobalContext] : val
 
-axiom surrogateMin [FfiSyntax] [GoGlobalContext] : val
+axiom surrogateMin [GooseExts] [GoGlobalContext] : val
 
-axiom surrogateMax [FfiSyntax] [GoGlobalContext] : val
+axiom surrogateMax [GooseExts] [GoGlobalContext] : val
 
-axiom t1 [FfiSyntax] [GoGlobalContext] : val
+axiom t1 [GooseExts] [GoGlobalContext] : val
 
-axiom tx [FfiSyntax] [GoGlobalContext] : val
+axiom tx [GooseExts] [GoGlobalContext] : val
 
-axiom t2 [FfiSyntax] [GoGlobalContext] : val
+axiom t2 [GooseExts] [GoGlobalContext] : val
 
-axiom t3 [FfiSyntax] [GoGlobalContext] : val
+axiom t3 [GooseExts] [GoGlobalContext] : val
 
-axiom t4 [FfiSyntax] [GoGlobalContext] : val
+axiom t4 [GooseExts] [GoGlobalContext] : val
 
-axiom t5 [FfiSyntax] [GoGlobalContext] : val
+axiom t5 [GooseExts] [GoGlobalContext] : val
 
-axiom maskx [FfiSyntax] [GoGlobalContext] : val
+axiom maskx [GooseExts] [GoGlobalContext] : val
 
-axiom mask2 [FfiSyntax] [GoGlobalContext] : val
+axiom mask2 [GooseExts] [GoGlobalContext] : val
 
-axiom mask3 [FfiSyntax] [GoGlobalContext] : val
+axiom mask3 [GooseExts] [GoGlobalContext] : val
 
-axiom mask4 [FfiSyntax] [GoGlobalContext] : val
+axiom mask4 [GooseExts] [GoGlobalContext] : val
 
-axiom rune1Max [FfiSyntax] [GoGlobalContext] : val
+axiom rune1Max [GooseExts] [GoGlobalContext] : val
 
-axiom rune2Max [FfiSyntax] [GoGlobalContext] : val
+axiom rune2Max [GooseExts] [GoGlobalContext] : val
 
-axiom rune3Max [FfiSyntax] [GoGlobalContext] : val
+axiom rune3Max [GooseExts] [GoGlobalContext] : val
 
-@[reducible] noncomputable def locb [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def locb [GooseExts] [GoGlobalContext] : val :=
   #(128 : Int)
 
-@[reducible] noncomputable def hicb [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def hicb [GooseExts] [GoGlobalContext] : val :=
   #(191 : Int)
 
 /-- invalid: size 1 -/
-@[reducible] noncomputable def xx [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def xx [GooseExts] [GoGlobalContext] : val :=
   #(241 : Int)
 
 /-- ASCII: size 1 -/
-@[reducible] noncomputable def as' [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def as' [GooseExts] [GoGlobalContext] : val :=
   #(240 : Int)
 
 /-- accept 0, size 2 -/
-@[reducible] noncomputable def s1 [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def s1 [GooseExts] [GoGlobalContext] : val :=
   #(2 : Int)
 
 /-- accept 1, size 3 -/
-@[reducible] noncomputable def s2 [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def s2 [GooseExts] [GoGlobalContext] : val :=
   #(19 : Int)
 
 /-- accept 0, size 3 -/
-@[reducible] noncomputable def s3 [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def s3 [GooseExts] [GoGlobalContext] : val :=
   #(3 : Int)
 
 /-- accept 2, size 3 -/
-@[reducible] noncomputable def s4 [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def s4 [GooseExts] [GoGlobalContext] : val :=
   #(35 : Int)
 
 /-- accept 3, size 4 -/
-@[reducible] noncomputable def s5 [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def s5 [GooseExts] [GoGlobalContext] : val :=
   #(52 : Int)
 
 /-- accept 0, size 4 -/
-@[reducible] noncomputable def s6 [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def s6 [GooseExts] [GoGlobalContext] : val :=
   #(4 : Int)
 
 /-- accept 4, size 4 -/
-@[reducible] noncomputable def s7 [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def s7 [GooseExts] [GoGlobalContext] : val :=
   #(68 : Int)
 
-axiom runeErrorByte0 [FfiSyntax] [GoGlobalContext] : val
+axiom runeErrorByte0 [GooseExts] [GoGlobalContext] : val
 
-axiom runeErrorByte1 [FfiSyntax] [GoGlobalContext] : val
+axiom runeErrorByte1 [GooseExts] [GoGlobalContext] : val
 
-axiom runeErrorByte2 [FfiSyntax] [GoGlobalContext] : val
+axiom runeErrorByte2 [GooseExts] [GoGlobalContext] : val
 
-@[reducible] noncomputable def ptrSize [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def ptrSize [GooseExts] [GoGlobalContext] : val :=
   #(8 : Int)
 
-@[reducible] noncomputable def hiBits [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def hiBits [GooseExts] [GoGlobalContext] : val :=
   #(9259542123273814144 : Int)
 
-noncomputable def first [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def first [GooseExts] [GoGlobalContext] : GoString :=
   go!"unicode/utf8.first"
 
-noncomputable def acceptRanges [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def acceptRanges [GooseExts] [GoGlobalContext] : GoString :=
   go!"unicode/utf8.acceptRanges"
 
-noncomputable def FullRune [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def FullRune [GooseExts] [GoGlobalContext] : GoString :=
   go!"unicode/utf8.FullRune"
 
-noncomputable def FullRuneInString [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def FullRuneInString [GooseExts] [GoGlobalContext] : GoString :=
   go!"unicode/utf8.FullRuneInString"
 
-noncomputable def DecodeRune [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def DecodeRune [GooseExts] [GoGlobalContext] : GoString :=
   go!"unicode/utf8.DecodeRune"
 
-noncomputable def decodeRuneSlow [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def decodeRuneSlow [GooseExts] [GoGlobalContext] : GoString :=
   go!"unicode/utf8.decodeRuneSlow"
 
-noncomputable def DecodeRuneInString [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def DecodeRuneInString [GooseExts] [GoGlobalContext] : GoString :=
   go!"unicode/utf8.DecodeRuneInString"
 
-noncomputable def decodeRuneInStringSlow [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def decodeRuneInStringSlow [GooseExts] [GoGlobalContext] : GoString :=
   go!"unicode/utf8.decodeRuneInStringSlow"
 
-noncomputable def DecodeLastRune [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def DecodeLastRune [GooseExts] [GoGlobalContext] : GoString :=
   go!"unicode/utf8.DecodeLastRune"
 
-noncomputable def DecodeLastRuneInString [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def DecodeLastRuneInString [GooseExts] [GoGlobalContext] : GoString :=
   go!"unicode/utf8.DecodeLastRuneInString"
 
-noncomputable def RuneLen [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def RuneLen [GooseExts] [GoGlobalContext] : GoString :=
   go!"unicode/utf8.RuneLen"
 
-noncomputable def EncodeRune [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def EncodeRune [GooseExts] [GoGlobalContext] : GoString :=
   go!"unicode/utf8.EncodeRune"
 
-noncomputable def encodeRuneNonASCII [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def encodeRuneNonASCII [GooseExts] [GoGlobalContext] : GoString :=
   go!"unicode/utf8.encodeRuneNonASCII"
 
-noncomputable def AppendRune [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def AppendRune [GooseExts] [GoGlobalContext] : GoString :=
   go!"unicode/utf8.AppendRune"
 
-noncomputable def appendRuneNonASCII [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendRuneNonASCII [GooseExts] [GoGlobalContext] : GoString :=
   go!"unicode/utf8.appendRuneNonASCII"
 
-noncomputable def RuneCount [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def RuneCount [GooseExts] [GoGlobalContext] : GoString :=
   go!"unicode/utf8.RuneCount"
 
-noncomputable def RuneCountInString [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def RuneCountInString [GooseExts] [GoGlobalContext] : GoString :=
   go!"unicode/utf8.RuneCountInString"
 
-noncomputable def RuneStart [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def RuneStart [GooseExts] [GoGlobalContext] : GoString :=
   go!"unicode/utf8.RuneStart"
 
-noncomputable def word [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def word [GooseExts] [GoGlobalContext] : GoString :=
   go!"unicode/utf8.word"
 
-noncomputable def Valid [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Valid [GooseExts] [GoGlobalContext] : GoString :=
   go!"unicode/utf8.Valid"
 
-noncomputable def ValidString [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidString [GooseExts] [GoGlobalContext] : GoString :=
   go!"unicode/utf8.ValidString"
 
-noncomputable def ValidRune [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidRune [GooseExts] [GoGlobalContext] : GoString :=
   go!"unicode/utf8.ValidRune"
 
 /-- go: utf8.go:462:6 -/
-noncomputable def word.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val :=
+noncomputable def word.impl [GooseExts] [GoGlobalContext] (T : go.GoType) : val :=
   (LamV "s"
   (App (Val exceptionDo)
   (Let "s" (App (Val (GoInstruction (GoAlloc T))) (Var "s"))
@@ -202,7 +202,7 @@ noncomputable def word.impl [FfiSyntax] [GoGlobalContext] (T : go.GoType) : val 
 /-- ValidString reports whether s consists entirely of valid UTF-8-encoded runes.
 
     go: utf8.go:522:6 -/
-noncomputable def ValidString.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def ValidString.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (App (Val exceptionDo)
   (Let "s" (App (Val (GoInstruction (GoAlloc go.string))) (Var "s"))
@@ -326,9 +326,9 @@ noncomputable def ValidString.impl [FfiSyntax] [GoGlobalContext] : val :=
 noncomputable instance info' : PkgInfo pkg_id.unicode.utf8 where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.unicode.utf8)) (Lam BAnon
   (App (Val exceptionDo)
@@ -612,29 +612,29 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc acceptRanges (go.GoType.ArrayType 16 acceptRange.ty))) (Val #()))))))))
 
-structure acceptRange [FfiSyntax] where
+structure acceptRange [GooseExts] where
   mk ::
   lo' : w8
   hi' : w8
 
-noncomputable instance acceptRange.zero_val [FfiSyntax] : ZeroVal acceptRange :=
+noncomputable instance acceptRange.zero_val [GooseExts] : ZeroVal acceptRange :=
   ⟨acceptRange.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def acceptRange.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def acceptRange.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"lo" go.uint8),
 (go.field_decl.FieldDecl go!"hi" go.uint8)]
 
-@[irreducible] noncomputable def acceptRange.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def acceptRange.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   acceptRange.fieldsUnsealed
 
-noncomputable instance equals_unfold_acceptRange [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_acceptRange [GooseExts] [GoGlobalContext] :
     EqualsUnfold acceptRange.fields acceptRange.fieldsUnsealed :=
   ⟨by unfold acceptRange.fields; rfl⟩
 
-@[reducible] noncomputable def acceptRange.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def acceptRange.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType acceptRange.fields)
 
-class acceptRange.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class acceptRange.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying acceptRange.underlying acceptRange
   underlying : go.UnderlyingDirectedEq acceptRange.ty acceptRange.underlying
   get_lo : ∀ (x : acceptRange), go.IsGoStepPureDetTagged under (StructFieldGet acceptRange.underlying go!"lo") #x (Val #(x.lo'))
@@ -649,7 +649,7 @@ attribute [instance] acceptRange.TypeAssumptions.type_repr
   acceptRange.TypeAssumptions.get_hi
   acceptRange.TypeAssumptions.set_hi
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   acceptRange_instance : acceptRange.TypeAssumptions
   word_unfold : ∀ (T : go.GoType), FuncUnfold word [T] (word.impl T)
   ValidString_unfold : FuncUnfold ValidString [] ValidString.impl

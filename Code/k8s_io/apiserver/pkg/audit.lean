@@ -20,174 +20,174 @@ end pkg_id
 
 namespace k8s_io.apiserver.pkg.audit
 
-noncomputable def key.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def key.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/audit.key" [])
 
 attribute [irreducible] key.ty
 
-noncomputable def AuditContext.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def AuditContext.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/audit.AuditContext" [])
 
 attribute [irreducible] AuditContext.ty
 
-noncomputable def RequestAuditConfig.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def RequestAuditConfig.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/audit.RequestAuditConfig" [])
 
 attribute [irreducible] RequestAuditConfig.ty
 
-noncomputable def PolicyRuleEvaluator.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PolicyRuleEvaluator.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/audit.PolicyRuleEvaluator" [])
 
 attribute [irreducible] PolicyRuleEvaluator.ty
 
-noncomputable def Sink.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Sink.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/audit.Sink" [])
 
 attribute [irreducible] Sink.ty
 
-noncomputable def Backend.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Backend.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/audit.Backend" [])
 
 attribute [irreducible] Backend.ty
 
-noncomputable def union.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def union.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/audit.union" [])
 
 attribute [irreducible] union.ty
 
-axiom AuditContext.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom AuditContext.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom RequestAuditConfig.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom RequestAuditConfig.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom PolicyRuleEvaluator.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom PolicyRuleEvaluator.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Sink.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Sink.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom auditKey [FfiSyntax] [GoGlobalContext] : val
+axiom auditKey [GooseExts] [GoGlobalContext] : val
 
-axiom subsystem [FfiSyntax] [GoGlobalContext] : val
+axiom subsystem [GooseExts] [GoGlobalContext] : val
 
-axiom maxUserAgentLength [FfiSyntax] [GoGlobalContext] : val
+axiom maxUserAgentLength [GooseExts] [GoGlobalContext] : val
 
-axiom userAgentTruncateSuffix [FfiSyntax] [GoGlobalContext] : val
+axiom userAgentTruncateSuffix [GooseExts] [GoGlobalContext] : val
 
-noncomputable def eventCounter [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def eventCounter [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/audit.eventCounter"
 
-axiom eventCounter.init [FfiSyntax] [GoGlobalContext] : val
+axiom eventCounter.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def errorCounter [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def errorCounter [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/audit.errorCounter"
 
-axiom errorCounter.init [FfiSyntax] [GoGlobalContext] : val
+axiom errorCounter.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def levelCounter [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def levelCounter [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/audit.levelCounter"
 
-axiom levelCounter.init [FfiSyntax] [GoGlobalContext] : val
+axiom levelCounter.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ApiserverAuditDroppedCounter [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ApiserverAuditDroppedCounter [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/audit.ApiserverAuditDroppedCounter"
 
-axiom ApiserverAuditDroppedCounter.init [FfiSyntax] [GoGlobalContext] : val
+axiom ApiserverAuditDroppedCounter.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def Scheme [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Scheme [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/audit.Scheme"
 
-axiom Scheme.init [FfiSyntax] [GoGlobalContext] : val
+axiom Scheme.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def Codecs [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Codecs [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/audit.Codecs"
 
-axiom Codecs.init [FfiSyntax] [GoGlobalContext] : val
+axiom Codecs.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def AddAuditAnnotation [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def AddAuditAnnotation [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/audit.AddAuditAnnotation"
 
-noncomputable def AddAuditAnnotations [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def AddAuditAnnotations [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/audit.AddAuditAnnotations"
 
-noncomputable def AddAuditAnnotationsMap [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def AddAuditAnnotationsMap [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/audit.AddAuditAnnotationsMap"
 
-noncomputable def addAuditAnnotationLocked [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def addAuditAnnotationLocked [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/audit.addAuditAnnotationLocked"
 
-noncomputable def WithAuditContext [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithAuditContext [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/audit.WithAuditContext"
 
-noncomputable def AuditContextFrom [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def AuditContextFrom [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/audit.AuditContextFrom"
 
-noncomputable def WithAuditID [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WithAuditID [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/audit.WithAuditID"
 
-noncomputable def AuditIDFrom [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def AuditIDFrom [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/audit.AuditIDFrom"
 
-noncomputable def GetAuditIDTruncated [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def GetAuditIDTruncated [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/audit.GetAuditIDTruncated"
 
-noncomputable def EventString [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def EventString [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/audit.EventString"
 
-noncomputable def auditStringSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def auditStringSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/audit.auditStringSlice"
 
-noncomputable def init.«0» [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def init.«0» [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/audit.init.0"
 
-noncomputable def ObserveEvent [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ObserveEvent [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/audit.ObserveEvent"
 
-noncomputable def ObservePolicyLevel [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ObservePolicyLevel [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/audit.ObservePolicyLevel"
 
-noncomputable def HandlePluginError [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def HandlePluginError [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/audit.HandlePluginError"
 
-noncomputable def LogRequestMetadata [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def LogRequestMetadata [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/audit.LogRequestMetadata"
 
-noncomputable def LogImpersonatedUser [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def LogImpersonatedUser [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/audit.LogImpersonatedUser"
 
-noncomputable def LogRequestObject [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def LogRequestObject [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/audit.LogRequestObject"
 
-noncomputable def LogRequestPatch [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def LogRequestPatch [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/audit.LogRequestPatch"
 
-noncomputable def LogResponseObject [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def LogResponseObject [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/audit.LogResponseObject"
 
-noncomputable def encodeObject [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def encodeObject [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/audit.encodeObject"
 
-noncomputable def maybeTruncateUserAgent [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def maybeTruncateUserAgent [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/audit.maybeTruncateUserAgent"
 
-noncomputable def copyWithoutManagedFields [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def copyWithoutManagedFields [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/audit.copyWithoutManagedFields"
 
-noncomputable def removeManagedFields [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def removeManagedFields [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/audit.removeManagedFields"
 
-noncomputable def shouldOmitManagedFields [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def shouldOmitManagedFields [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/audit.shouldOmitManagedFields"
 
-noncomputable def init.«1» [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def init.«1» [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/audit.init.1"
 
-noncomputable def Union [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Union [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/audit.Union"
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apiserver.pkg.audit where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.apiserver.pkg.audit)) (Lam BAnon
   (App (Val exceptionDo)
@@ -215,12 +215,12 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val eventCounter.init) (Val #()))))))))
 
-abbrev key [FfiSyntax] : Type := w64
+abbrev key [GooseExts] : Type := w64
 
-@[reducible] noncomputable def key.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def key.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.int
 
-class key.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class key.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq key.ty key.underlying
 
 attribute [instance] key.TypeAssumptions.underlying
@@ -229,7 +229,7 @@ axiom AuditContext : Type
 axiom AuditContext.zero_val : ZeroVal AuditContext
 attribute [instance] AuditContext.zero_val
 
-class AuditContext.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class AuditContext.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying AuditContext.underlying AuditContext
   underlying : go.UnderlyingDirectedEq AuditContext.ty AuditContext.underlying
   isUnderlying : go.IsUnderlying AuditContext.underlying AuditContext.underlying
@@ -242,7 +242,7 @@ axiom RequestAuditConfig : Type
 axiom RequestAuditConfig.zero_val : ZeroVal RequestAuditConfig
 attribute [instance] RequestAuditConfig.zero_val
 
-class RequestAuditConfig.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class RequestAuditConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RequestAuditConfig.underlying RequestAuditConfig
   underlying : go.UnderlyingDirectedEq RequestAuditConfig.ty RequestAuditConfig.underlying
   isUnderlying : go.IsUnderlying RequestAuditConfig.underlying RequestAuditConfig.underlying
@@ -255,7 +255,7 @@ axiom PolicyRuleEvaluator : Type
 axiom PolicyRuleEvaluator.zero_val : ZeroVal PolicyRuleEvaluator
 attribute [instance] PolicyRuleEvaluator.zero_val
 
-class PolicyRuleEvaluator.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class PolicyRuleEvaluator.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PolicyRuleEvaluator.underlying PolicyRuleEvaluator
   underlying : go.UnderlyingDirectedEq PolicyRuleEvaluator.ty PolicyRuleEvaluator.underlying
   isUnderlying : go.IsUnderlying PolicyRuleEvaluator.underlying PolicyRuleEvaluator.underlying
@@ -268,7 +268,7 @@ axiom Sink : Type
 axiom Sink.zero_val : ZeroVal Sink
 attribute [instance] Sink.zero_val
 
-class Sink.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Sink.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Sink.underlying Sink
   underlying : go.UnderlyingDirectedEq Sink.ty Sink.underlying
   isUnderlying : go.IsUnderlying Sink.underlying Sink.underlying
@@ -277,37 +277,37 @@ attribute [instance] Sink.TypeAssumptions.type_repr
   Sink.TypeAssumptions.underlying
   Sink.TypeAssumptions.isUnderlying
 
-abbrev Backend [FfiSyntax] : Type := GoInterface
+abbrev Backend [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def Backend.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Backend.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Run" (go.signature.Signature [(go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))] false [go.error])), (go.InterfaceElem.MethodElem go!"Shutdown" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"String" (go.signature.Signature [] false [go.string])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm Sink.ty)])])
 
-class Backend.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Backend.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Backend.ty Backend.underlying
 
 attribute [instance] Backend.TypeAssumptions.underlying
 
-structure union [FfiSyntax] where
+structure union [GooseExts] where
   mk ::
   backends' : GoSlice
 
-noncomputable instance union.zero_val [FfiSyntax] : ZeroVal union :=
+noncomputable instance union.zero_val [GooseExts] : ZeroVal union :=
   ⟨union.mk zeroValDef⟩
 
-@[reducible] noncomputable def union.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def union.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"backends" (go.GoType.SliceType Backend.ty))]
 
-@[irreducible] noncomputable def union.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def union.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   union.fieldsUnsealed
 
-noncomputable instance equals_unfold_union [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_union [GooseExts] [GoGlobalContext] :
     EqualsUnfold union.fields union.fieldsUnsealed :=
   ⟨by unfold union.fields; rfl⟩
 
-@[reducible] noncomputable def union.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def union.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType union.fields)
 
-class union.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class union.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying union.underlying union
   underlying : go.UnderlyingDirectedEq union.ty union.underlying
   get_backends : ∀ (x : union), go.IsGoStepPureDetTagged under (StructFieldGet union.underlying go!"backends") #x (Val #(x.backends'))
@@ -318,7 +318,7 @@ attribute [instance] union.TypeAssumptions.type_repr
   union.TypeAssumptions.get_backends
   union.TypeAssumptions.set_backends
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   key_instance : key.TypeAssumptions
   AuditContext_instance : AuditContext.TypeAssumptions
   RequestAuditConfig_instance : RequestAuditConfig.TypeAssumptions

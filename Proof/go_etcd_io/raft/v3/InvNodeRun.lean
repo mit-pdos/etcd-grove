@@ -59,7 +59,7 @@ open RawNodeOwnAccess
 /-! ## Slices of length zero -/
 
 section slices
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -97,7 +97,7 @@ theorem ownSlice_of_shape (s : GoSlice) (dq : DFrac) (h : SliceShape s 0) :
 end slices
 
 section lemmas
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
@@ -378,7 +378,7 @@ end lemmas
 /-! ## `r.Step`, on the node -/
 
 section step
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
@@ -867,7 +867,7 @@ end step
 /-! ## `r.applyConfChange`, on the node (2026-10-13) -/
 
 section applycc
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
@@ -1399,7 +1399,7 @@ end applycc
 /-! ## `run`'s states -/
 
 section states
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
@@ -1916,13 +1916,13 @@ end states
 /-! ## The configuration `run` shares with the driver (2026-10-15, stage N) -/
 
 section cfgshare
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-omit ffi [FfiInterp ffi] [FfiSemantics ext ffi] go_gctx in
+omit [GooseInterp] [GooseSemantics] go_gctx in
 /-- A conf change's premises on the driver's view (a prefix `D` of the committed log handed
 out, the configuration index `ca` of the last applied conf change) carry over to `run`'s
 `RawNode`, whose committed log `D'` extends `D` and whose configuration index `ca'` is past `ca`
@@ -1948,7 +1948,7 @@ theorem dynCCPreOp_transfer {dec : CCDec} {D D' : List EntryM} {ca ca' : Nat}
     rw [List.take_append_of_le_length (by omega)]
     exact ⟨op', Hdec, Hstep'⟩
 
-omit ffi [FfiInterp ffi] [FfiSemantics ext ffi] go_gctx in
+omit [GooseInterp] [GooseSemantics] go_gctx in
 /-- `NoConfIn` over two adjacent ranges. -/
 theorem NoConfIn_trans {D : List EntryM} {a b c : Nat} (H1 : NoConfIn D a b)
     (H2 : NoConfIn D b c) : NoConfIn D a c := by
@@ -1957,14 +1957,14 @@ theorem NoConfIn_trans {D : List EntryM} {a b c : Nat} (H1 : NoConfIn D a b)
   · exact H1 k e hk1 h he
   · exact H2 k e (by omega) hk2 he
 
-omit ffi [FfiInterp ffi] [FfiSemantics ext ffi] go_gctx in
+omit [GooseInterp] [GooseSemantics] go_gctx in
 /-- `NoConfIn` over a smaller range. -/
 theorem NoConfIn_mono {D : List EntryM} {a b a' b' : Nat} (H : NoConfIn D a b)
     (ha : a ≤ a') (hb : b' ≤ b) : NoConfIn D a' b' := by
   intro k e hk1 hk2 he
   exact H k e (by omega) (by omega) he
 
-omit ffi [FfiInterp ffi] [FfiSemantics ext ffi] go_gctx in
+omit [GooseInterp] [GooseSemantics] go_gctx in
 theorem NoConfIn_empty (D : List EntryM) (a : Nat) : NoConfIn D a a := by
   intro k e hk1 hk2 _
   omega

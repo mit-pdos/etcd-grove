@@ -16,7 +16,7 @@ noncomputable section
 
 namespace go_etcd_io.etcd.api.v3.etcdserverpb
 
-class AuthUserDeleteResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class AuthUserDeleteResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying AuthUserDeleteResponse.underlying AuthUserDeleteResponse
   underlying : go.UnderlyingDirectedEq AuthUserDeleteResponse.ty AuthUserDeleteResponse.underlying
   get_state : ∀ (x : AuthUserDeleteResponse), go.IsGoStepPureDetTagged under (StructFieldGet AuthUserDeleteResponse.underlying go!"state") #x (Val #(x.state'))
@@ -39,7 +39,7 @@ attribute [instance] AuthUserDeleteResponse.TypeAssumptions.type_repr
   AuthUserDeleteResponse.TypeAssumptions.get_sizeCache
   AuthUserDeleteResponse.TypeAssumptions.set_sizeCache
 
-class AuthUserChangePasswordResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class AuthUserChangePasswordResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying AuthUserChangePasswordResponse.underlying AuthUserChangePasswordResponse
   underlying : go.UnderlyingDirectedEq AuthUserChangePasswordResponse.ty AuthUserChangePasswordResponse.underlying
   get_state : ∀ (x : AuthUserChangePasswordResponse), go.IsGoStepPureDetTagged under (StructFieldGet AuthUserChangePasswordResponse.underlying go!"state") #x (Val #(x.state'))
@@ -62,7 +62,7 @@ attribute [instance] AuthUserChangePasswordResponse.TypeAssumptions.type_repr
   AuthUserChangePasswordResponse.TypeAssumptions.get_sizeCache
   AuthUserChangePasswordResponse.TypeAssumptions.set_sizeCache
 
-class AuthUserGrantRoleResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class AuthUserGrantRoleResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying AuthUserGrantRoleResponse.underlying AuthUserGrantRoleResponse
   underlying : go.UnderlyingDirectedEq AuthUserGrantRoleResponse.ty AuthUserGrantRoleResponse.underlying
   get_state : ∀ (x : AuthUserGrantRoleResponse), go.IsGoStepPureDetTagged under (StructFieldGet AuthUserGrantRoleResponse.underlying go!"state") #x (Val #(x.state'))
@@ -85,7 +85,7 @@ attribute [instance] AuthUserGrantRoleResponse.TypeAssumptions.type_repr
   AuthUserGrantRoleResponse.TypeAssumptions.get_sizeCache
   AuthUserGrantRoleResponse.TypeAssumptions.set_sizeCache
 
-class AuthUserRevokeRoleResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class AuthUserRevokeRoleResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying AuthUserRevokeRoleResponse.underlying AuthUserRevokeRoleResponse
   underlying : go.UnderlyingDirectedEq AuthUserRevokeRoleResponse.ty AuthUserRevokeRoleResponse.underlying
   get_state : ∀ (x : AuthUserRevokeRoleResponse), go.IsGoStepPureDetTagged under (StructFieldGet AuthUserRevokeRoleResponse.underlying go!"state") #x (Val #(x.state'))
@@ -108,7 +108,7 @@ attribute [instance] AuthUserRevokeRoleResponse.TypeAssumptions.type_repr
   AuthUserRevokeRoleResponse.TypeAssumptions.get_sizeCache
   AuthUserRevokeRoleResponse.TypeAssumptions.set_sizeCache
 
-class AuthRoleAddResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class AuthRoleAddResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying AuthRoleAddResponse.underlying AuthRoleAddResponse
   underlying : go.UnderlyingDirectedEq AuthRoleAddResponse.ty AuthRoleAddResponse.underlying
   get_state : ∀ (x : AuthRoleAddResponse), go.IsGoStepPureDetTagged under (StructFieldGet AuthRoleAddResponse.underlying go!"state") #x (Val #(x.state'))
@@ -131,7 +131,7 @@ attribute [instance] AuthRoleAddResponse.TypeAssumptions.type_repr
   AuthRoleAddResponse.TypeAssumptions.get_sizeCache
   AuthRoleAddResponse.TypeAssumptions.set_sizeCache
 
-class AuthRoleGetResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class AuthRoleGetResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying AuthRoleGetResponse.underlying AuthRoleGetResponse
   underlying : go.UnderlyingDirectedEq AuthRoleGetResponse.ty AuthRoleGetResponse.underlying
   get_state : ∀ (x : AuthRoleGetResponse), go.IsGoStepPureDetTagged under (StructFieldGet AuthRoleGetResponse.underlying go!"state") #x (Val #(x.state'))
@@ -158,7 +158,7 @@ attribute [instance] AuthRoleGetResponse.TypeAssumptions.type_repr
   AuthRoleGetResponse.TypeAssumptions.get_sizeCache
   AuthRoleGetResponse.TypeAssumptions.set_sizeCache
 
-class AuthRoleListResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class AuthRoleListResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying AuthRoleListResponse.underlying AuthRoleListResponse
   underlying : go.UnderlyingDirectedEq AuthRoleListResponse.ty AuthRoleListResponse.underlying
   get_state : ∀ (x : AuthRoleListResponse), go.IsGoStepPureDetTagged under (StructFieldGet AuthRoleListResponse.underlying go!"state") #x (Val #(x.state'))
@@ -185,7 +185,7 @@ attribute [instance] AuthRoleListResponse.TypeAssumptions.type_repr
   AuthRoleListResponse.TypeAssumptions.get_sizeCache
   AuthRoleListResponse.TypeAssumptions.set_sizeCache
 
-class AuthUserListResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class AuthUserListResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying AuthUserListResponse.underlying AuthUserListResponse
   underlying : go.UnderlyingDirectedEq AuthUserListResponse.ty AuthUserListResponse.underlying
   get_state : ∀ (x : AuthUserListResponse), go.IsGoStepPureDetTagged under (StructFieldGet AuthUserListResponse.underlying go!"state") #x (Val #(x.state'))
@@ -212,7 +212,7 @@ attribute [instance] AuthUserListResponse.TypeAssumptions.type_repr
   AuthUserListResponse.TypeAssumptions.get_sizeCache
   AuthUserListResponse.TypeAssumptions.set_sizeCache
 
-class AuthRoleDeleteResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class AuthRoleDeleteResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying AuthRoleDeleteResponse.underlying AuthRoleDeleteResponse
   underlying : go.UnderlyingDirectedEq AuthRoleDeleteResponse.ty AuthRoleDeleteResponse.underlying
   get_state : ∀ (x : AuthRoleDeleteResponse), go.IsGoStepPureDetTagged under (StructFieldGet AuthRoleDeleteResponse.underlying go!"state") #x (Val #(x.state'))
@@ -235,7 +235,7 @@ attribute [instance] AuthRoleDeleteResponse.TypeAssumptions.type_repr
   AuthRoleDeleteResponse.TypeAssumptions.get_sizeCache
   AuthRoleDeleteResponse.TypeAssumptions.set_sizeCache
 
-class AuthRoleGrantPermissionResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class AuthRoleGrantPermissionResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying AuthRoleGrantPermissionResponse.underlying AuthRoleGrantPermissionResponse
   underlying : go.UnderlyingDirectedEq AuthRoleGrantPermissionResponse.ty AuthRoleGrantPermissionResponse.underlying
   get_state : ∀ (x : AuthRoleGrantPermissionResponse), go.IsGoStepPureDetTagged under (StructFieldGet AuthRoleGrantPermissionResponse.underlying go!"state") #x (Val #(x.state'))
@@ -258,7 +258,7 @@ attribute [instance] AuthRoleGrantPermissionResponse.TypeAssumptions.type_repr
   AuthRoleGrantPermissionResponse.TypeAssumptions.get_sizeCache
   AuthRoleGrantPermissionResponse.TypeAssumptions.set_sizeCache
 
-class AuthRoleRevokePermissionResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class AuthRoleRevokePermissionResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying AuthRoleRevokePermissionResponse.underlying AuthRoleRevokePermissionResponse
   underlying : go.UnderlyingDirectedEq AuthRoleRevokePermissionResponse.ty AuthRoleRevokePermissionResponse.underlying
   get_state : ∀ (x : AuthRoleRevokePermissionResponse), go.IsGoStepPureDetTagged under (StructFieldGet AuthRoleRevokePermissionResponse.underlying go!"state") #x (Val #(x.state'))
@@ -281,7 +281,7 @@ attribute [instance] AuthRoleRevokePermissionResponse.TypeAssumptions.type_repr
   AuthRoleRevokePermissionResponse.TypeAssumptions.get_sizeCache
   AuthRoleRevokePermissionResponse.TypeAssumptions.set_sizeCache
 
-class RangeStreamResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class RangeStreamResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RangeStreamResponse.underlying RangeStreamResponse
   underlying : go.UnderlyingDirectedEq RangeStreamResponse.ty RangeStreamResponse.underlying
   get_state : ∀ (x : RangeStreamResponse), go.IsGoStepPureDetTagged under (StructFieldGet RangeStreamResponse.underlying go!"state") #x (Val #(x.state'))
@@ -304,12 +304,12 @@ attribute [instance] RangeStreamResponse.TypeAssumptions.type_repr
   RangeStreamResponse.TypeAssumptions.get_sizeCache
   RangeStreamResponse.TypeAssumptions.set_sizeCache
 
-class KVClient.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class KVClient.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq KVClient.ty KVClient.underlying
 
 attribute [instance] KVClient.TypeAssumptions.underlying
 
-class kVClient.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class kVClient.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying kVClient.underlying kVClient
   underlying : go.UnderlyingDirectedEq kVClient.ty kVClient.underlying
   get_cc : ∀ (x : kVClient), go.IsGoStepPureDetTagged under (StructFieldGet kVClient.underlying go!"cc") #x (Val #(x.cc'))
@@ -328,29 +328,29 @@ attribute [instance] kVClient.TypeAssumptions.type_repr
   kVClient.TypeAssumptions.ptr_Range_unfold
   kVClient.TypeAssumptions.ptr_Txn_unfold
 
-class KVServer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class KVServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq KVServer.ty KVServer.underlying
 
 attribute [instance] KVServer.TypeAssumptions.underlying
 
-class UnimplementedKVServer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class UnimplementedKVServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying UnimplementedKVServer.underlying UnimplementedKVServer
   underlying : go.UnderlyingDirectedEq UnimplementedKVServer.ty UnimplementedKVServer.underlying
 
 attribute [instance] UnimplementedKVServer.TypeAssumptions.type_repr
   UnimplementedKVServer.TypeAssumptions.underlying
 
-class UnsafeKVServer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class UnsafeKVServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq UnsafeKVServer.ty UnsafeKVServer.underlying
 
 attribute [instance] UnsafeKVServer.TypeAssumptions.underlying
 
-class WatchClient.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class WatchClient.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq WatchClient.ty WatchClient.underlying
 
 attribute [instance] WatchClient.TypeAssumptions.underlying
 
-class watchClient.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class watchClient.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying watchClient.underlying watchClient
   underlying : go.UnderlyingDirectedEq watchClient.ty watchClient.underlying
   get_cc : ∀ (x : watchClient), go.IsGoStepPureDetTagged under (StructFieldGet watchClient.underlying go!"cc") #x (Val #(x.cc'))
@@ -363,29 +363,29 @@ attribute [instance] watchClient.TypeAssumptions.type_repr
   watchClient.TypeAssumptions.set_cc
   watchClient.TypeAssumptions.ptr_Watch_unfold
 
-class WatchServer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class WatchServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq WatchServer.ty WatchServer.underlying
 
 attribute [instance] WatchServer.TypeAssumptions.underlying
 
-class UnimplementedWatchServer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class UnimplementedWatchServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying UnimplementedWatchServer.underlying UnimplementedWatchServer
   underlying : go.UnderlyingDirectedEq UnimplementedWatchServer.ty UnimplementedWatchServer.underlying
 
 attribute [instance] UnimplementedWatchServer.TypeAssumptions.type_repr
   UnimplementedWatchServer.TypeAssumptions.underlying
 
-class UnsafeWatchServer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class UnsafeWatchServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq UnsafeWatchServer.ty UnsafeWatchServer.underlying
 
 attribute [instance] UnsafeWatchServer.TypeAssumptions.underlying
 
-class LeaseClient.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class LeaseClient.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq LeaseClient.ty LeaseClient.underlying
 
 attribute [instance] LeaseClient.TypeAssumptions.underlying
 
-class leaseClient.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class leaseClient.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying leaseClient.underlying leaseClient
   underlying : go.UnderlyingDirectedEq leaseClient.ty leaseClient.underlying
   get_cc : ∀ (x : leaseClient), go.IsGoStepPureDetTagged under (StructFieldGet leaseClient.underlying go!"cc") #x (Val #(x.cc'))
@@ -402,29 +402,29 @@ attribute [instance] leaseClient.TypeAssumptions.type_repr
   leaseClient.TypeAssumptions.ptr_LeaseKeepAlive_unfold
   leaseClient.TypeAssumptions.ptr_LeaseRevoke_unfold
 
-class LeaseServer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class LeaseServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq LeaseServer.ty LeaseServer.underlying
 
 attribute [instance] LeaseServer.TypeAssumptions.underlying
 
-class UnimplementedLeaseServer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class UnimplementedLeaseServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying UnimplementedLeaseServer.underlying UnimplementedLeaseServer
   underlying : go.UnderlyingDirectedEq UnimplementedLeaseServer.ty UnimplementedLeaseServer.underlying
 
 attribute [instance] UnimplementedLeaseServer.TypeAssumptions.type_repr
   UnimplementedLeaseServer.TypeAssumptions.underlying
 
-class UnsafeLeaseServer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class UnsafeLeaseServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq UnsafeLeaseServer.ty UnsafeLeaseServer.underlying
 
 attribute [instance] UnsafeLeaseServer.TypeAssumptions.underlying
 
-class ClusterClient.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ClusterClient.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ClusterClient.ty ClusterClient.underlying
 
 attribute [instance] ClusterClient.TypeAssumptions.underlying
 
-class clusterClient.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class clusterClient.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying clusterClient.underlying clusterClient
   underlying : go.UnderlyingDirectedEq clusterClient.ty clusterClient.underlying
   get_cc : ∀ (x : clusterClient), go.IsGoStepPureDetTagged under (StructFieldGet clusterClient.underlying go!"cc") #x (Val #(x.cc'))
@@ -435,29 +435,29 @@ attribute [instance] clusterClient.TypeAssumptions.type_repr
   clusterClient.TypeAssumptions.get_cc
   clusterClient.TypeAssumptions.set_cc
 
-class ClusterServer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ClusterServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ClusterServer.ty ClusterServer.underlying
 
 attribute [instance] ClusterServer.TypeAssumptions.underlying
 
-class UnimplementedClusterServer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class UnimplementedClusterServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying UnimplementedClusterServer.underlying UnimplementedClusterServer
   underlying : go.UnderlyingDirectedEq UnimplementedClusterServer.ty UnimplementedClusterServer.underlying
 
 attribute [instance] UnimplementedClusterServer.TypeAssumptions.type_repr
   UnimplementedClusterServer.TypeAssumptions.underlying
 
-class UnsafeClusterServer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class UnsafeClusterServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq UnsafeClusterServer.ty UnsafeClusterServer.underlying
 
 attribute [instance] UnsafeClusterServer.TypeAssumptions.underlying
 
-class MaintenanceClient.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class MaintenanceClient.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq MaintenanceClient.ty MaintenanceClient.underlying
 
 attribute [instance] MaintenanceClient.TypeAssumptions.underlying
 
-class maintenanceClient.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class maintenanceClient.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying maintenanceClient.underlying maintenanceClient
   underlying : go.UnderlyingDirectedEq maintenanceClient.ty maintenanceClient.underlying
   get_cc : ∀ (x : maintenanceClient), go.IsGoStepPureDetTagged under (StructFieldGet maintenanceClient.underlying go!"cc") #x (Val #(x.cc'))
@@ -468,29 +468,29 @@ attribute [instance] maintenanceClient.TypeAssumptions.type_repr
   maintenanceClient.TypeAssumptions.get_cc
   maintenanceClient.TypeAssumptions.set_cc
 
-class MaintenanceServer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class MaintenanceServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq MaintenanceServer.ty MaintenanceServer.underlying
 
 attribute [instance] MaintenanceServer.TypeAssumptions.underlying
 
-class UnimplementedMaintenanceServer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class UnimplementedMaintenanceServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying UnimplementedMaintenanceServer.underlying UnimplementedMaintenanceServer
   underlying : go.UnderlyingDirectedEq UnimplementedMaintenanceServer.ty UnimplementedMaintenanceServer.underlying
 
 attribute [instance] UnimplementedMaintenanceServer.TypeAssumptions.type_repr
   UnimplementedMaintenanceServer.TypeAssumptions.underlying
 
-class UnsafeMaintenanceServer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class UnsafeMaintenanceServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq UnsafeMaintenanceServer.ty UnsafeMaintenanceServer.underlying
 
 attribute [instance] UnsafeMaintenanceServer.TypeAssumptions.underlying
 
-class AuthClient.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class AuthClient.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq AuthClient.ty AuthClient.underlying
 
 attribute [instance] AuthClient.TypeAssumptions.underlying
 
-class authClient.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class authClient.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying authClient.underlying authClient
   underlying : go.UnderlyingDirectedEq authClient.ty authClient.underlying
   get_cc : ∀ (x : authClient), go.IsGoStepPureDetTagged under (StructFieldGet authClient.underlying go!"cc") #x (Val #(x.cc'))
@@ -511,19 +511,19 @@ attribute [instance] authClient.TypeAssumptions.type_repr
   authClient.TypeAssumptions.ptr_UserAdd_unfold
   authClient.TypeAssumptions.ptr_UserGrantRole_unfold
 
-class AuthServer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class AuthServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq AuthServer.ty AuthServer.underlying
 
 attribute [instance] AuthServer.TypeAssumptions.underlying
 
-class UnimplementedAuthServer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class UnimplementedAuthServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying UnimplementedAuthServer.underlying UnimplementedAuthServer
   underlying : go.UnderlyingDirectedEq UnimplementedAuthServer.ty UnimplementedAuthServer.underlying
 
 attribute [instance] UnimplementedAuthServer.TypeAssumptions.type_repr
   UnimplementedAuthServer.TypeAssumptions.underlying
 
-class UnsafeAuthServer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class UnsafeAuthServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq UnsafeAuthServer.ty UnsafeAuthServer.underlying
 
 attribute [instance] UnsafeAuthServer.TypeAssumptions.underlying

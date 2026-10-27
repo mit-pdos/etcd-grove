@@ -21,52 +21,52 @@ end pkg_id
 
 namespace google_golang_org.grpc.status
 
-@[reducible] noncomputable def Status.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Status.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   _root_.Perennial.google_golang_org.grpc.internal.status.Status.ty
 
-noncomputable def New [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def New [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/status.New"
 
-noncomputable def Newf [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Newf [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/status.Newf"
 
-noncomputable def Error [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Error [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/status.Error"
 
-noncomputable def Errorf [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Errorf [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/status.Errorf"
 
-noncomputable def ErrorProto [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrorProto [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/status.ErrorProto"
 
-noncomputable def FromProto [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def FromProto [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/status.FromProto"
 
-noncomputable def FromError [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def FromError [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/status.FromError"
 
-noncomputable def Convert' [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Convert' [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/status.Convert"
 
-noncomputable def Code [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Code [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/status.Code"
 
-noncomputable def FromContextError [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def FromContextError [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/status.FromContextError"
 
 noncomputable instance info' : PkgInfo pkg_id.google_golang_org.grpc.status where
   pkgImportedPkgs := [pkg_id.google_golang_org.grpc.internal.status]
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.google_golang_org.grpc.status)) (Lam BAnon
   (App (Val exceptionDo)
   (App (Val doExecute)
   (App (Val _root_.Perennial.google_golang_org.grpc.internal.status.initialize') (Val #())))))))
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   import_status_Assumption : _root_.Perennial.google_golang_org.grpc.internal.status.Assumptions
 
 attribute [instance] Assumptions.import_status_Assumption

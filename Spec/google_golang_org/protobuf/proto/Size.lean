@@ -39,7 +39,7 @@ namespace EtcdGrove
 open Iris Iris.BI google_golang_org.protobuf go_etcd_io.etcd.api.v3
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

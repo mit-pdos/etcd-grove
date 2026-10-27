@@ -41,15 +41,15 @@ open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver
 /-- **A callback's error as the Go error the store returns** (`validateDeletion`'s, `tryUpdate`'s):
 the store returns it unchanged, so a caller that knows its callback's errors (`GoInterface`: the
 error itself) can tell them apart from the others. -/
-class KUserErr [FfiSyntax] (E : Type) where
+class KUserErr [GooseExts] (E : Type) where
   is : E → GoInterface → Prop
 
-instance [FfiSyntax] : KUserErr Empty := ⟨fun e _ => nomatch e⟩
+instance [GooseExts] : KUserErr Empty := ⟨fun e _ => nomatch e⟩
 
-instance [FfiSyntax] : KUserErr GoInterface := ⟨fun e err => err = e⟩
+instance [GooseExts] : KUserErr GoInterface := ⟨fun e err => err = e⟩
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -118,13 +118,14 @@ def storageErrIs (err : GoInterface) (code : w64) (key : GoString) (rv : w64) : 
     p ↦□ k8s_io.apiserver.pkg.storage.StorageError.mk code key rv GoInterface.nil)
 
 /-- **An error whose outcome is unknown** (a method's first disjunct: its write, if any, may or may
-not have fired): not `nil`, and the client's (`clientErr`, `statusErrOk`: the store returns the
-client's errors unchanged), an `InternalError` (the transformer's failures, wrapped), or the
-codec's own (`ObjSpec.encErr`). None is a `*StorageError` or a callback's error, which a caller
-tells apart by type or identity. -/
+not have fired): not `nil`, and the client's (`clientErr`, `statusErrOk`, `errCellOk`: the store
+returns the client's errors unchanged), an `InternalError` (the transformer's failures, wrapped),
+or the codec's own (`ObjSpec.encErr`). None is a `*StorageError` or a callback's error, which a
+caller tells apart by type or identity. -/
 def unkErr (c : StoreCfg GF Obj) (err : GoInterface) : IProp GF :=
   iprop(⌜err ≠ GoInterface.nil⌝ ∗
-    ((⌜clientErr err⌝ ∗ go_etcd_io.etcd.cache.v3.statusErrOk err) ∨
+    ((⌜clientErr err⌝ ∗ go_etcd_io.etcd.cache.v3.statusErrOk err ∗
+        go_etcd_io.etcd.cache.v3.errCellOk err) ∨
       ⌜(∃ ie : k8s_io.apiserver.pkg.storage.InternalError,
           err = interface.mkOk k8s_io.apiserver.pkg.storage.InternalError.ty #ie) ∨
         c.S.encErr err⌝))
@@ -142,13 +143,15 @@ theorem unkErr_ne (c : StoreCfg GF Obj) (err : GoInterface) :
 
 open Iris.ProofMode in
 theorem unkErr_client (c : StoreCfg GF Obj) (err : GoInterface) (hn : err ≠ GoInterface.nil)
-    (hc : clientErr err) : go_etcd_io.etcd.cache.v3.statusErrOk err ⊢ unkErr c err := by
-  iintro #H
+    (hc : clientErr err) :
+    go_etcd_io.etcd.cache.v3.errCellOk err ⊢ go_etcd_io.etcd.cache.v3.statusErrOk err -∗
+      unkErr c err := by
+  iintro #Hcl #H
   unfold unkErr
   isplitr
   · ipureintro; exact hn
   ileft
-  iframe H
+  iframe H Hcl
   ipureintro; exact hc
 
 open Iris.ProofMode in
@@ -241,7 +244,7 @@ end defs
 /-! ## Pure facts of the abstraction -/
 
 section pure
-variable [ext : FfiSyntax]
+variable [GooseExts]
 variable {Obj : Type} [DecidableEq Obj]
 
 theorem W64_uint_nat (x : w64) : W64 ((uint.nat x : Nat) : Int) = x := by
@@ -287,7 +290,7 @@ theorem ObjCodec.dec_some (C : ObjCodec Obj) (v : GoString) (o : Obj) (b : Bool)
 end pure
 
 section abs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

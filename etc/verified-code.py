@@ -253,7 +253,7 @@ def goose_functions(pkgs):
                 recv, name = (parts[0], parts[1]) if len(parts) == 2 else ("", parts[0])
                 bodies.add((pkg, recv, name))
             for m in re.finditer(
-                r"^(?:noncomputable )?def (\S+) \[FfiSyntax\] \[GoGlobalContext\] : GoString",
+                r"^(?:noncomputable )?def (\S+) \[GooseExts\] \[GoGlobalContext\] : GoString",
                 text,
                 re.M,
             ):

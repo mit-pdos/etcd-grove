@@ -25,7 +25,7 @@ namespace EtcdGrove
 namespace linkvtxn
 
 section client
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- **The `Op` `opOf` builds** for a model transaction operation. -/
 def clientOp : linkv.MOp GoString GoString → OpFull

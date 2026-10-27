@@ -37,96 +37,96 @@ end pkg_id
 
 namespace github_com.mit_pdos.etcd_grove.examples.linkv3p
 
-noncomputable def Step.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Step.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/mit-pdos/etcd-grove/examples/linkv3p.Step" [])
 
 attribute [irreducible] Step.ty
 
-@[reducible] noncomputable def peerAddr1 [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def peerAddr1 [GooseExts] [GoGlobalContext] : val :=
   #(go!"127.0.0.1:23841")
 
-@[reducible] noncomputable def peerAddr2 [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def peerAddr2 [GooseExts] [GoGlobalContext] : val :=
   #(go!"127.0.0.1:23842")
 
-@[reducible] noncomputable def peerAddr3 [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def peerAddr3 [GooseExts] [GoGlobalContext] : val :=
   #(go!"127.0.0.1:23843")
 
-@[reducible] noncomputable def clientAddr1 [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def clientAddr1 [GooseExts] [GoGlobalContext] : val :=
   #(go!"127.0.0.1:23831")
 
-@[reducible] noncomputable def clientAddr2 [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def clientAddr2 [GooseExts] [GoGlobalContext] : val :=
   #(go!"127.0.0.1:23832")
 
-@[reducible] noncomputable def clientAddr3 [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def clientAddr3 [GooseExts] [GoGlobalContext] : val :=
   #(go!"127.0.0.1:23833")
 
-@[reducible] noncomputable def bridgeAddr1 [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def bridgeAddr1 [GooseExts] [GoGlobalContext] : val :=
   #(go!"127.0.0.1:23851")
 
-@[reducible] noncomputable def bridgeAddr2 [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def bridgeAddr2 [GooseExts] [GoGlobalContext] : val :=
   #(go!"127.0.0.1:23852")
 
-@[reducible] noncomputable def bridgeAddr3 [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def bridgeAddr3 [GooseExts] [GoGlobalContext] : val :=
   #(go!"127.0.0.1:23853")
 
-@[reducible] noncomputable def PeerCut [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def PeerCut [GooseExts] [GoGlobalContext] : val :=
   #(0 : Int)
 
-@[reducible] noncomputable def PeerMend [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def PeerMend [GooseExts] [GoGlobalContext] : val :=
   #(1 : Int)
 
-@[reducible] noncomputable def ClientBlackhole [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def ClientBlackhole [GooseExts] [GoGlobalContext] : val :=
   #(2 : Int)
 
-@[reducible] noncomputable def ClientUnblackhole [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def ClientUnblackhole [GooseExts] [GoGlobalContext] : val :=
   #(3 : Int)
 
-@[reducible] noncomputable def ClientDrop [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def ClientDrop [GooseExts] [GoGlobalContext] : val :=
   #(4 : Int)
 
-@[reducible] noncomputable def wprefix [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def wprefix [GooseExts] [GoGlobalContext] : val :=
   #(go!"wk/")
 
-@[reducible] noncomputable def WatchOk [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def WatchOk [GooseExts] [GoGlobalContext] : val :=
   #(0 : Int)
 
-@[reducible] noncomputable def WatchFailed [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def WatchFailed [GooseExts] [GoGlobalContext] : val :=
   #(1 : Int)
 
-@[reducible] noncomputable def WatchEnded [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def WatchEnded [GooseExts] [GoGlobalContext] : val :=
   #(2 : Int)
 
-noncomputable def startMember [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def startMember [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/linkv3p.startMember"
 
-noncomputable def startBridge [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def startBridge [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/linkv3p.startBridge"
 
-noncomputable def peerStep [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def peerStep [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/linkv3p.peerStep"
 
-noncomputable def clientStep [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def clientStep [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/linkv3p.clientStep"
 
-noncomputable def partitioner [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def partitioner [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/linkv3p.partitioner"
 
-noncomputable def Apply [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Apply [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/linkv3p.Apply"
 
-noncomputable def Check [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Check [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/linkv3p.Check"
 
-noncomputable def startCluster [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def startCluster [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/linkv3p.startCluster"
 
-noncomputable def Main [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Main [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/linkv3p.Main"
 
-noncomputable def writer [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def writer [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/linkv3p.writer"
 
-noncomputable def MainWatch [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def MainWatch [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/linkv3p.MainWatch"
 
 /-- startMember starts member name of the new cluster cluster, whose peer URLs are peer (the one
@@ -135,7 +135,7 @@ noncomputable def MainWatch [FfiSyntax] [GoGlobalContext] : GoString :=
     server served on a listener at client.
 
     go: linkv3p.go:99:6 -/
-noncomputable def startMember.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def startMember.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "name"
   (Lam "peer"
   (Lam "peerAddr"
@@ -223,7 +223,7 @@ noncomputable def startMember.impl [FfiSyntax] [GoGlobalContext] : val :=
     the bridge's accept loop (bridge.New).
 
     go: linkv3p.go:123:6 -/
-noncomputable def startBridge.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def startBridge.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "addr"
   (Lam "client"
   (App (Val exceptionDo)
@@ -260,7 +260,7 @@ noncomputable def startBridge.impl [FfiSyntax] [GoGlobalContext] : val :=
     InjectPartition/RecoverPartition).
 
     go: linkv3p.go:134:6 -/
-noncomputable def peerStep.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def peerStep.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "srvs"
   (Lam "kind"
   (Lam "a"
@@ -313,7 +313,7 @@ noncomputable def peerStep.impl [FfiSyntax] [GoGlobalContext] : val :=
     unguarded, so a second one would panic (issues/nonissues/etcd-bridge-blackhole-twice-panic.md).
 
     go: linkv3p.go:153:6 -/
-noncomputable def clientStep.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def clientStep.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "brs"
   (Lam "holed"
   (Lam "kind"
@@ -362,7 +362,7 @@ noncomputable def clientStep.impl [FfiSyntax] [GoGlobalContext] : val :=
     after its delay.
 
     go: linkv3p.go:173:6 -/
-noncomputable def partitioner.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def partitioner.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "srvs"
   (Lam "brs"
   (Lam "sched"
@@ -414,7 +414,7 @@ noncomputable def partitioner.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- Apply runs one operation through a client of clis picked at random (linkvtxn.Apply).
 
     go: linkv3p.go:186:6 -/
-noncomputable def Apply.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Apply.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "clis"
   (Lam "input"
   (App (Val exceptionDo)
@@ -436,7 +436,7 @@ noncomputable def Apply.impl [FfiSyntax] [GoGlobalContext] : val :=
     verdict against linkvtxn's model.
 
     go: linkv3p.go:194:6 -/
-noncomputable def Check.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Check.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "clis"
   (Lam "clients"
   (Lam "ops"
@@ -472,7 +472,7 @@ noncomputable def Check.impl [FfiSyntax] [GoGlobalContext] : val :=
     bridges and the clients, and false if a step failed (the specs allow every step to fail).
 
     go: linkv3p.go:203:6 -/
-noncomputable def startCluster.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def startCluster.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "lg"
   (App (Val exceptionDo)
   (Let "lg" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_uber_org.zap.Logger.ty)))) (Var "lg"))
@@ -741,7 +741,7 @@ noncomputable def startCluster.impl [FfiSyntax] [GoGlobalContext] : val :=
     history illegal. A failed start ends Main without a check.
 
     go: linkv3p.go:263:6 -/
-noncomputable def Main.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "clients"
   (Lam "ops"
   (Lam "sched"
@@ -812,7 +812,7 @@ noncomputable def Main.impl [FfiSyntax] [GoGlobalContext] : val :=
     logging in w each that returned no error, with its reply's revision.
 
     go: linkv3p.go:295:6 -/
-noncomputable def writer.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def writer.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "clis"
   (Lam "w"
   (Lam "tried"
@@ -907,7 +907,7 @@ noncomputable def writer.impl [FfiSyntax] [GoGlobalContext] : val :=
     writers of nops puts each, then reads the watch and checks it against the writes.
 
     go: linkv3p.go:314:6 -/
-noncomputable def MainWatch.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def MainWatch.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "nw"
   (Lam "nops"
   (Lam "sched"
@@ -1093,7 +1093,7 @@ noncomputable def MainWatch.impl [FfiSyntax] [GoGlobalContext] : val :=
 noncomputable instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.examples.linkv3p where
   pkgImportedPkgs := [pkg_id.context, pkg_id.net, pkg_id.sync, pkg_id.time, pkg_id.github_com.anishathalye.porcupine, pkg_id.github_com.goose_lang.primitive, pkg_id.go_uber_org.zap, pkg_id.google_golang_org.grpc, pkg_id.google_golang_org.grpc.keepalive, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.client.v3, pkg_id.go_etcd_io.etcd.server.v3.etcdserver, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc, pkg_id.github_com.mit_pdos.etcd_grove.examples.common, pkg_id.github_com.mit_pdos.etcd_grove.examples.linkvtxn, pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest, pkg_id.github_com.mit_pdos.etcd_grove.third_party.bridge]
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.github_com.mit_pdos.etcd_grove.examples.linkv3p)) (Lam BAnon
   (App (Val exceptionDo)
@@ -1148,33 +1148,33 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.third_party.bridge.initialize') (Val #()))))))))
 
-structure Step [FfiSyntax] where
+structure Step [GooseExts] where
   mk ::
   Delay' : _root_.Perennial.time.Duration
   Kind' : w64
   A' : w64
   B' : w64
 
-noncomputable instance Step.zero_val [FfiSyntax] : ZeroVal Step :=
+noncomputable instance Step.zero_val [GooseExts] : ZeroVal Step :=
   ⟨Step.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Step.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Step.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Delay" _root_.Perennial.time.Duration.ty),
 (go.field_decl.FieldDecl go!"Kind" go.int),
 (go.field_decl.FieldDecl go!"A" go.int),
 (go.field_decl.FieldDecl go!"B" go.int)]
 
-@[irreducible] noncomputable def Step.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Step.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Step.fieldsUnsealed
 
-noncomputable instance equals_unfold_Step [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Step [GooseExts] [GoGlobalContext] :
     EqualsUnfold Step.fields Step.fieldsUnsealed :=
   ⟨by unfold Step.fields; rfl⟩
 
-@[reducible] noncomputable def Step.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Step.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Step.fields)
 
-class Step.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Step.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Step.underlying Step
   underlying : go.UnderlyingDirectedEq Step.ty Step.underlying
   get_Delay : ∀ (x : Step), go.IsGoStepPureDetTagged under (StructFieldGet Step.underlying go!"Delay") #x (Val #(x.Delay'))
@@ -1197,7 +1197,7 @@ attribute [instance] Step.TypeAssumptions.type_repr
   Step.TypeAssumptions.get_B
   Step.TypeAssumptions.set_B
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Step_instance : Step.TypeAssumptions
   startMember_unfold : FuncUnfold startMember [] startMember.impl
   startBridge_unfold : FuncUnfold startBridge [] startBridge.impl

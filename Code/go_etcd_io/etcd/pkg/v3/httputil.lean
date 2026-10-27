@@ -22,18 +22,18 @@ end pkg_id
 
 namespace go_etcd_io.etcd.pkg.v3.httputil
 
-noncomputable def GracefulClose [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def GracefulClose [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/pkg/v3/httputil.GracefulClose"
 
-noncomputable def GetHostname [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def GetHostname [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/pkg/v3/httputil.GetHostname"
 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.pkg.v3.httputil where
   pkgImportedPkgs := [pkg_id.io, pkg_id.net.http]
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.pkg.v3.httputil)) (Lam BAnon
   (App (Val exceptionDo)
@@ -43,7 +43,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.net.http.initialize') (Val #()))))))))
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   import_io_Assumption : _root_.Perennial.io.Assumptions
   import_http_Assumption : _root_.Perennial.net.http.Assumptions
 

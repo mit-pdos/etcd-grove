@@ -46,7 +46,7 @@ theorem readyParity_succ (e : Nat) : readyParity (e + 1) = !readyParity e := by
   rcases Nat.mod_two_eq_zero_or_one e with h | h <;> simp [h, Nat.add_mod]
 
 section addrs
-variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
 /-- The address of `r.mu`. -/
 abbrev readyMuAddr (r : Loc) : Loc := structFieldRef ready go!"mu" r
@@ -60,7 +60,7 @@ abbrev readyStateChAddr (r : Loc) : Loc := structFieldRef ready go!"stateCh" r
 end addrs
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

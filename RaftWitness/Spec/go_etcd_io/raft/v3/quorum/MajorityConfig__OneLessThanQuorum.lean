@@ -24,7 +24,7 @@ def IsCountIndex (s : GSet w64) (f : w64 → w64) (k : Nat) (N : w64) : Prop :=
     GMap.size (GMap.filter (fun v _ => decide (uint.Z N' ≤ uint.Z (f v))) s) < k)
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

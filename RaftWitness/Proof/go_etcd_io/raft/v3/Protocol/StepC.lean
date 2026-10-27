@@ -58,11 +58,11 @@ structure CfgM where
 
 /-- The voter a leader's replication set excludes (2026-10-19, witness support): `rsx`, or the
 witness when `rsx = 0` (`PState.rsx`). -/
-def exclOf [FfiSyntax] (c : CfgM) (s : PState) : w64 := if s.rsx = W64 0 then c.wit else s.rsx
+def exclOf [GooseExts] (c : CfgM) (s : PState) : w64 := if s.rsx = W64 0 then c.wit else s.rsx
 
 /-- The replication set's voters other than the witness: the incoming voters but the witness and
 the excluded one (`Epoch.ReplicationSet[0].NonWitnessVoters`, what the witness stores). -/
-def rsVoters [FfiSyntax] (c : CfgM) (s : PState) : GSet w64 :=
+def rsVoters [GooseExts] (c : CfgM) (s : PState) : GSet w64 :=
   c.incoming \ ({[c.wit]} ∪ {[exclOf c s]})
 
 /-- The voters of either half: what `JointConfig.IDs` returns. -/
@@ -190,7 +190,7 @@ def CfgM.joint (c : CfgM) : Bool := decide (0 < GMap.size c.outgoing)
 in stage B5: the ghost state's dynamic facts read them) -/
 
 section conf
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- The number of conf-change entries of `l`. -/
 def confCount (l : List EntryM) : Nat := l.countP fun e => decide (IsConfEnt e)
@@ -443,7 +443,7 @@ def AppCommitEq (s : PState) (m : Msg) : Prop := m.ty = .app → m.commit = s.co
 end conf
 
 section model
-variable [FfiSyntax]
+variable [GooseExts]
 
 -- `c` is the node's configuration; `id` the node being described.
 variable (c : CfgM) (id : w64)
@@ -758,7 +758,7 @@ inductive StepC : PState → List Msg → PState → Prop where
 end model
 
 section equiv
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- `StepC` at a non-joint configuration is `Step` at its voters. -/
 theorem step_of_stepC (c : CfgM) (id : w64) (B : Int) (hi : c.incoming ≠ ∅) (ho : c.outgoing = ∅)

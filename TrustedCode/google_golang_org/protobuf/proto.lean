@@ -25,7 +25,7 @@ namespace Perennial
 
 namespace google_golang_org.protobuf.proto
 section code
-variable [FfiSyntax] [GoGlobalContext]
+variable [GooseExts] [GoGlobalContext]
 
 /-- `wireTypes` (`encode_gen.go`), the wire type of each field kind, read by the encoder:
 

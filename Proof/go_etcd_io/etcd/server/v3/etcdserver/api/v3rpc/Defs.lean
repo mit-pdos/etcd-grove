@@ -100,7 +100,7 @@ inductive CheckErr where
   deriving DecidableEq
 
 section vars
-variable [FfiSyntax] [GoGlobalContext]
+variable [GooseExts] [GoGlobalContext]
 
 /-- The `rpctypes` variable holding the error. -/
 def CheckErr.var : CheckErr → GoString

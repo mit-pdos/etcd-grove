@@ -21,27 +21,27 @@ end pkg_id
 
 namespace hash
 
-noncomputable def Hash.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Hash.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"hash.Hash" [])
 
 attribute [irreducible] Hash.ty
 
-noncomputable def Hash32.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Hash32.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"hash.Hash32" [])
 
 attribute [irreducible] Hash32.ty
 
-noncomputable def Hash64.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Hash64.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"hash.Hash64" [])
 
 attribute [irreducible] Hash64.ty
 
-noncomputable def Cloner.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Cloner.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"hash.Cloner" [])
 
 attribute [irreducible] Cloner.ty
 
-noncomputable def XOF.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def XOF.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"hash.XOF" [])
 
 attribute [irreducible] XOF.ty
@@ -49,66 +49,66 @@ attribute [irreducible] XOF.ty
 noncomputable instance info' : PkgInfo pkg_id.hash where
   pkgImportedPkgs := [pkg_id.io]
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.hash)) (Lam BAnon
   (App (Val exceptionDo)
   (App (Val doExecute)
   (App (Val _root_.Perennial.io.initialize') (Val #())))))))
 
-abbrev Hash [FfiSyntax] : Type := GoInterface
+abbrev Hash [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def Hash.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Hash.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"BlockSize" (go.signature.Signature [] false [go.int])), (go.InterfaceElem.MethodElem go!"Reset" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"Size" (go.signature.Signature [] false [go.int])), (go.InterfaceElem.MethodElem go!"Sum" (go.signature.Signature [(go.GoType.SliceType go.byte)] false [(go.GoType.SliceType go.byte)])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm _root_.Perennial.io.Writer.ty)])])
 
-class Hash.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Hash.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Hash.ty Hash.underlying
 
 attribute [instance] Hash.TypeAssumptions.underlying
 
-abbrev Hash32 [FfiSyntax] : Type := GoInterface
+abbrev Hash32 [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def Hash32.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Hash32.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Sum32" (go.signature.Signature [] false [go.uint32])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm Hash.ty)])])
 
-class Hash32.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Hash32.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Hash32.ty Hash32.underlying
 
 attribute [instance] Hash32.TypeAssumptions.underlying
 
-abbrev Hash64 [FfiSyntax] : Type := GoInterface
+abbrev Hash64 [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def Hash64.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Hash64.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Sum64" (go.signature.Signature [] false [go.uint64])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm Hash.ty)])])
 
-class Hash64.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Hash64.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Hash64.ty Hash64.underlying
 
 attribute [instance] Hash64.TypeAssumptions.underlying
 
-abbrev Cloner [FfiSyntax] : Type := GoInterface
+abbrev Cloner [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def Cloner.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Cloner.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Clone" (go.signature.Signature [] false [Cloner.ty, go.error])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm Hash.ty)])])
 
-class Cloner.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Cloner.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Cloner.ty Cloner.underlying
 
 attribute [instance] Cloner.TypeAssumptions.underlying
 
-abbrev XOF [FfiSyntax] : Type := GoInterface
+abbrev XOF [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def XOF.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def XOF.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"BlockSize" (go.signature.Signature [] false [go.int])), (go.InterfaceElem.MethodElem go!"Reset" (go.signature.Signature [] false [])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm _root_.Perennial.io.Writer.ty)]), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm _root_.Perennial.io.Reader.ty)])])
 
-class XOF.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class XOF.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq XOF.ty XOF.underlying
 
 attribute [instance] XOF.TypeAssumptions.underlying
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Hash_instance : Hash.TypeAssumptions
   Hash32_instance : Hash32.TypeAssumptions
   Hash64_instance : Hash64.TypeAssumptions

@@ -41,7 +41,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 -- (stage R1).
 
 section readylog
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- One past the last index. -/
 def logEnd (ls : LogState) : w64 := logLast ls + W64 1
@@ -285,7 +285,7 @@ end readylog
 -- (`ownTracker_autoleave`, on the tracker, comes with the raft layer, stage R4.)
 
 section handed
-variable [FfiSyntax]
+variable [GooseExts]
 
 def logHanded (ls : LogState) : LogState :=
   { ls with unpersisted := nextUnstable ls, stored := ls.sents ++ ls.uents }
@@ -308,7 +308,7 @@ theorem persist_handed (prev : entryID) (σ : StorState) (sents uents : List Ent
 end handed
 
 section handout
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]

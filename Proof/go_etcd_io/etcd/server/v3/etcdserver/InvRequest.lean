@@ -118,7 +118,7 @@ after-clauses carry the appended entry's facts alone (its type, data and index: 
 commit step knows); the KV invariant derives its own entry-wise `srvIdxOkW` from them. -/
 
 section ghost
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -130,7 +130,7 @@ start index itself. -/
 structure ServerRaftNames where
   raft : RaftNames
   /-- raft's committed log before the server's start index (the server's record type: the
-  names stay free of `FfiSyntax`) -/
+  names stay free of `GooseExts`) -/
   pre : List EntryModel
   /-- the index the log starts after (the snapshot's: the server's `ai₀`) -/
   ai0 : w64
@@ -986,7 +986,7 @@ also keeps `L` plain at the workload (`plainLog`, D19q): the only updates raft c
 over `L` are the ones built from it (`kv_prop_au`, `kv_noop_au`), which check. -/
 
 section kvGhost
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -1326,7 +1326,7 @@ end kvGhost
 /-! ## Reads (`read.Read`, names-only until unit 4) -/
 
 section readGhost
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -1560,7 +1560,7 @@ end readGhost
 /-! ## The wait registry (`pkg/wait`) -/
 
 section wait
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -1901,7 +1901,7 @@ instance raftPropose_persistent (γ : ServerRaftNames) (n : GoInterface) :
 end wait
 
 section addrs
-variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
 abbrev srvRAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"r" s
 /-- The address of the server's raft `Node` (`s.r.raftNodeConfig.Node`). -/
@@ -1919,7 +1919,7 @@ abbrev srvAppliedIndexAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"appl
 end addrs
 
 section raftNode
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -1936,7 +1936,7 @@ instance srvRaftNode_persistent (s : Loc) (γ : ServerRaftNames) :
 end raftNode
 
 section applied
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -2318,7 +2318,7 @@ theorem readIndexOk_log (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (c : w64
 end applied
 
 section readAddrs
-variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
 /-- The address of the read loop's current notifier (`r.notifier`). -/
 abbrev readNotifierAddr (r : Loc) : Loc :=
@@ -2330,7 +2330,7 @@ abbrev readMuAddr (r : Loc) : Loc :=
 end readAddrs
 
 section read
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

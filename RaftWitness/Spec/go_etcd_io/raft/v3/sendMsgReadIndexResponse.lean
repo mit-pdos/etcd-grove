@@ -47,7 +47,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.raft.v3
 
 section results
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- The request `m` (entries `ents`) arriving at the leader in state `s`: its record. -/
 def arriveReq (s : NState) (m : MessageM) (ents : List EntryM) : ReadReq :=
@@ -151,7 +151,7 @@ def SendRIResult (c : CfgM) (id : w64) (s : NState) (m : MessageM)
 end results
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]

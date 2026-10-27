@@ -22,7 +22,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.raft.v3
 
 section pure
-variable [FfiSyntax]
+variable [GooseExts]
 
 /- `membership.urlTaken` and `membership.ccValidM` are in `InvRest.lean` (D43 M5b′, 2026-10-26:
 `ccValidOn` is defined from them). -/
@@ -30,7 +30,7 @@ variable [FfiSyntax]
 end pure
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

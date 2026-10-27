@@ -57,7 +57,7 @@ private theorem drop_cons_of_lookup {α : Type _} {l : List α} {k : Nat} {x : �
   exact List.drop_eq_getElem_cons hk
 
 section terms
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- What stepping a self-addressed response of term `t` (a pre-vote response if `pv`)
 does to the node's term and role, from `TermStep` and `RespStep`. -/
@@ -163,7 +163,7 @@ private theorem termInv_step (s s1 s2 : NState) (p : Pending) (rest : List Pendi
 end terms
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]

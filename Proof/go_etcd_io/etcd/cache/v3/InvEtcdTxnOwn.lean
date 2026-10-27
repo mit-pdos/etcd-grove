@@ -52,7 +52,7 @@ open Iris Iris.BI go_etcd_io.etcd.cache.v3 go_etcd_io.etcd.api.v3
 /-! ## Headers and key-values -/
 
 section model
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- A `*pb.ResponseHeader`'s fields (what `copyHeader` copies). -/
 structure HdrM where
@@ -182,7 +182,7 @@ theorem TxnModel.under_nil (t : TxnModel) : t.Under [] :=
   ⟨fun _ _ _ _ => List.nil_prefix, fun op _ => TxnOp.under_nil op, fun op _ => TxnOp.under_nil op⟩
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [EM : EtcdModel GF]

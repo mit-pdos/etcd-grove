@@ -16,7 +16,7 @@ namespace k8setcd3
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -28,7 +28,7 @@ theorem decoder.Decode.wp_proof (wp_decodeObj : decodeObj.spec (GF := GF) (hG :=
   wp_start as ⟨Hs, Hp⟩
   ihave #Hi : (github_com.mit_pdos.etcd_grove.examples.k8setcd3.drvInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hi with ⟨-, ⟨%eD, #HeD, #HsD⟩, -⟩
+  icases Hi with ⟨-, ⟨%eD, #HeD, #HsD, -⟩, -⟩
   (try wp_auto)
   wp_apply wp_decodeObj $$ [$Hs] as %n %v %ok ⟨Hs, %Hd⟩
   cases hdec : decodeD d with

@@ -30,7 +30,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.raft.v3
 
 section addrs
-variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
 /-- `s.beHooks`. -/
 abbrev srvBeHooksAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"beHooks" s
@@ -46,7 +46,7 @@ abbrev srvTrIface (t : Loc) : GoInterface :=
 end addrs
 
 section pure
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- **The transport's peers after a conf change** (see the file header). -/
 def ccPeersAfter (v3 : Bool) (m : CCV1M) (bk : GMap GoString backend.BktData) (rs : trIds) :
@@ -215,7 +215,7 @@ theorem size_le_of_keys {V : Type} (mem : GMap w64 V) (S : GSet w64)
 end pure
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -264,7 +264,7 @@ def srvApRes (s : Loc) (γr : ReadNames) (A : List EntryModel) : IProp GF :=
 end defs
 
 section lemmas
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

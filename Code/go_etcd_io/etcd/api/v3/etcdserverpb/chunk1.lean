@@ -16,7 +16,7 @@ noncomputable section
 
 namespace go_etcd_io.etcd.api.v3.etcdserverpb
 
-class Metadata.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Metadata.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Metadata.underlying Metadata
   underlying : go.UnderlyingDirectedEq Metadata.ty Metadata.underlying
   isUnderlying : go.IsUnderlying Metadata.underlying Metadata.underlying
@@ -25,7 +25,7 @@ attribute [instance] Metadata.TypeAssumptions.type_repr
   Metadata.TypeAssumptions.underlying
   Metadata.TypeAssumptions.isUnderlying
 
-class RequestHeader.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class RequestHeader.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RequestHeader.underlying RequestHeader
   underlying : go.UnderlyingDirectedEq RequestHeader.ty RequestHeader.underlying
   get_state : ∀ (x : RequestHeader), go.IsGoStepPureDetTagged under (StructFieldGet RequestHeader.underlying go!"state") #x (Val #(x.state'))
@@ -56,7 +56,7 @@ attribute [instance] RequestHeader.TypeAssumptions.type_repr
   RequestHeader.TypeAssumptions.get_sizeCache
   RequestHeader.TypeAssumptions.set_sizeCache
 
-class InternalRaftRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class InternalRaftRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying InternalRaftRequest.underlying InternalRaftRequest
   underlying : go.UnderlyingDirectedEq InternalRaftRequest.ty InternalRaftRequest.underlying
   get_state : ∀ (x : InternalRaftRequest), go.IsGoStepPureDetTagged under (StructFieldGet InternalRaftRequest.underlying go!"state") #x (Val #(x.state'))
@@ -203,7 +203,7 @@ attribute [instance] InternalRaftRequest.TypeAssumptions.type_repr
   InternalRaftRequest.TypeAssumptions.get_sizeCache
   InternalRaftRequest.TypeAssumptions.set_sizeCache
 
-class EmptyResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class EmptyResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying EmptyResponse.underlying EmptyResponse
   underlying : go.UnderlyingDirectedEq EmptyResponse.ty EmptyResponse.underlying
   isUnderlying : go.IsUnderlying EmptyResponse.underlying EmptyResponse.underlying
@@ -212,7 +212,7 @@ attribute [instance] EmptyResponse.TypeAssumptions.type_repr
   EmptyResponse.TypeAssumptions.underlying
   EmptyResponse.TypeAssumptions.isUnderlying
 
-class InternalAuthenticateRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class InternalAuthenticateRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying InternalAuthenticateRequest.underlying InternalAuthenticateRequest
   underlying : go.UnderlyingDirectedEq InternalAuthenticateRequest.ty InternalAuthenticateRequest.underlying
   get_state : ∀ (x : InternalAuthenticateRequest), go.IsGoStepPureDetTagged under (StructFieldGet InternalAuthenticateRequest.underlying go!"state") #x (Val #(x.state'))
@@ -243,7 +243,7 @@ attribute [instance] InternalAuthenticateRequest.TypeAssumptions.type_repr
   InternalAuthenticateRequest.TypeAssumptions.get_sizeCache
   InternalAuthenticateRequest.TypeAssumptions.set_sizeCache
 
-class InternalRaftStringer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class InternalRaftStringer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying InternalRaftStringer.underlying InternalRaftStringer
   underlying : go.UnderlyingDirectedEq InternalRaftStringer.ty InternalRaftStringer.underlying
   get_Request : ∀ (x : InternalRaftStringer), go.IsGoStepPureDetTagged under (StructFieldGet InternalRaftStringer.underlying go!"Request") #x (Val #(x.Request'))
@@ -254,7 +254,7 @@ attribute [instance] InternalRaftStringer.TypeAssumptions.type_repr
   InternalRaftStringer.TypeAssumptions.get_Request
   InternalRaftStringer.TypeAssumptions.set_Request
 
-class txnRequestStringer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class txnRequestStringer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying txnRequestStringer.underlying txnRequestStringer
   underlying : go.UnderlyingDirectedEq txnRequestStringer.ty txnRequestStringer.underlying
   get_Request : ∀ (x : txnRequestStringer), go.IsGoStepPureDetTagged under (StructFieldGet txnRequestStringer.underlying go!"Request") #x (Val #(x.Request'))
@@ -265,7 +265,7 @@ attribute [instance] txnRequestStringer.TypeAssumptions.type_repr
   txnRequestStringer.TypeAssumptions.get_Request
   txnRequestStringer.TypeAssumptions.set_Request
 
-class requestOpStringer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class requestOpStringer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying requestOpStringer.underlying requestOpStringer
   underlying : go.UnderlyingDirectedEq requestOpStringer.ty requestOpStringer.underlying
   get_Op : ∀ (x : requestOpStringer), go.IsGoStepPureDetTagged under (StructFieldGet requestOpStringer.underlying go!"Op") #x (Val #(x.Op'))
@@ -276,17 +276,17 @@ attribute [instance] requestOpStringer.TypeAssumptions.type_repr
   requestOpStringer.TypeAssumptions.get_Op
   requestOpStringer.TypeAssumptions.set_Op
 
-class Compare_CompareResult.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Compare_CompareResult.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Compare_CompareResult.ty Compare_CompareResult.underlying
 
 attribute [instance] Compare_CompareResult.TypeAssumptions.underlying
 
-class Compare_CompareTarget.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Compare_CompareTarget.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Compare_CompareTarget.ty Compare_CompareTarget.underlying
 
 attribute [instance] Compare_CompareTarget.TypeAssumptions.underlying
 
-class loggableValueCompare.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class loggableValueCompare.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying loggableValueCompare.underlying loggableValueCompare
   underlying : go.UnderlyingDirectedEq loggableValueCompare.ty loggableValueCompare.underlying
   get_Result : ∀ (x : loggableValueCompare), go.IsGoStepPureDetTagged under (StructFieldGet loggableValueCompare.underlying go!"Result") #x (Val #(x.Result'))
@@ -313,7 +313,7 @@ attribute [instance] loggableValueCompare.TypeAssumptions.type_repr
   loggableValueCompare.TypeAssumptions.get_RangeEnd
   loggableValueCompare.TypeAssumptions.set_RangeEnd
 
-class loggablePutRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class loggablePutRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying loggablePutRequest.underlying loggablePutRequest
   underlying : go.UnderlyingDirectedEq loggablePutRequest.ty loggablePutRequest.underlying
   get_Key : ∀ (x : loggablePutRequest), go.IsGoStepPureDetTagged under (StructFieldGet loggablePutRequest.underlying go!"Key") #x (Val #(x.Key'))
@@ -344,37 +344,37 @@ attribute [instance] loggablePutRequest.TypeAssumptions.type_repr
   loggablePutRequest.TypeAssumptions.get_IgnoreLease
   loggablePutRequest.TypeAssumptions.set_IgnoreLease
 
-class AlarmType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class AlarmType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq AlarmType.ty AlarmType.underlying
 
 attribute [instance] AlarmType.TypeAssumptions.underlying
 
-class RangeRequest_SortOrder.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class RangeRequest_SortOrder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq RangeRequest_SortOrder.ty RangeRequest_SortOrder.underlying
 
 attribute [instance] RangeRequest_SortOrder.TypeAssumptions.underlying
 
-class RangeRequest_SortTarget.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class RangeRequest_SortTarget.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq RangeRequest_SortTarget.ty RangeRequest_SortTarget.underlying
 
 attribute [instance] RangeRequest_SortTarget.TypeAssumptions.underlying
 
-class WatchCreateRequest_FilterType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class WatchCreateRequest_FilterType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq WatchCreateRequest_FilterType.ty WatchCreateRequest_FilterType.underlying
 
 attribute [instance] WatchCreateRequest_FilterType.TypeAssumptions.underlying
 
-class AlarmRequest_AlarmAction.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class AlarmRequest_AlarmAction.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq AlarmRequest_AlarmAction.ty AlarmRequest_AlarmAction.underlying
 
 attribute [instance] AlarmRequest_AlarmAction.TypeAssumptions.underlying
 
-class DowngradeRequest_DowngradeAction.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DowngradeRequest_DowngradeAction.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq DowngradeRequest_DowngradeAction.ty DowngradeRequest_DowngradeAction.underlying
 
 attribute [instance] DowngradeRequest_DowngradeAction.TypeAssumptions.underlying
 
-class ResponseHeader.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ResponseHeader.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ResponseHeader.underlying ResponseHeader
   underlying : go.UnderlyingDirectedEq ResponseHeader.ty ResponseHeader.underlying
   get_state : ∀ (x : ResponseHeader), go.IsGoStepPureDetTagged under (StructFieldGet ResponseHeader.underlying go!"state") #x (Val #(x.state'))
@@ -423,7 +423,7 @@ attribute [instance] ResponseHeader.TypeAssumptions.type_repr
   ResponseHeader.TypeAssumptions.ptr_GetRaftTerm_unfold
   ResponseHeader.TypeAssumptions.ptr_GetRevision_unfold
 
-class RangeRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class RangeRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RangeRequest.underlying RangeRequest
   underlying : go.UnderlyingDirectedEq RangeRequest.ty RangeRequest.underlying
   get_state : ∀ (x : RangeRequest), go.IsGoStepPureDetTagged under (StructFieldGet RangeRequest.underlying go!"state") #x (Val #(x.state'))
@@ -506,7 +506,7 @@ attribute [instance] RangeRequest.TypeAssumptions.type_repr
   RangeRequest.TypeAssumptions.ptr_GetRangeEnd_unfold
   RangeRequest.TypeAssumptions.ptr_GetRevision_unfold
 
-class RangeResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class RangeResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RangeResponse.underlying RangeResponse
   underlying : go.UnderlyingDirectedEq RangeResponse.ty RangeResponse.underlying
   get_state : ∀ (x : RangeResponse), go.IsGoStepPureDetTagged under (StructFieldGet RangeResponse.underlying go!"state") #x (Val #(x.state'))
@@ -543,7 +543,7 @@ attribute [instance] RangeResponse.TypeAssumptions.type_repr
   RangeResponse.TypeAssumptions.set_sizeCache
   RangeResponse.TypeAssumptions.ptr_GetKvs_unfold
 
-class PutRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class PutRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PutRequest.underlying PutRequest
   underlying : go.UnderlyingDirectedEq PutRequest.ty PutRequest.underlying
   get_state : ∀ (x : PutRequest), go.IsGoStepPureDetTagged under (StructFieldGet PutRequest.underlying go!"state") #x (Val #(x.state'))
@@ -590,7 +590,7 @@ attribute [instance] PutRequest.TypeAssumptions.type_repr
   PutRequest.TypeAssumptions.ptr_GetKey_unfold
   PutRequest.TypeAssumptions.ptr_GetLease_unfold
 
-class PutResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class PutResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying PutResponse.underlying PutResponse
   underlying : go.UnderlyingDirectedEq PutResponse.ty PutResponse.underlying
   get_state : ∀ (x : PutResponse), go.IsGoStepPureDetTagged under (StructFieldGet PutResponse.underlying go!"state") #x (Val #(x.state'))
@@ -617,7 +617,7 @@ attribute [instance] PutResponse.TypeAssumptions.type_repr
   PutResponse.TypeAssumptions.get_sizeCache
   PutResponse.TypeAssumptions.set_sizeCache
 
-class DeleteRangeRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DeleteRangeRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DeleteRangeRequest.underlying DeleteRangeRequest
   underlying : go.UnderlyingDirectedEq DeleteRangeRequest.ty DeleteRangeRequest.underlying
   get_state : ∀ (x : DeleteRangeRequest), go.IsGoStepPureDetTagged under (StructFieldGet DeleteRangeRequest.underlying go!"state") #x (Val #(x.state'))
@@ -652,7 +652,7 @@ attribute [instance] DeleteRangeRequest.TypeAssumptions.type_repr
   DeleteRangeRequest.TypeAssumptions.ptr_GetKey_unfold
   DeleteRangeRequest.TypeAssumptions.ptr_GetRangeEnd_unfold
 
-class DeleteRangeResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DeleteRangeResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DeleteRangeResponse.underlying DeleteRangeResponse
   underlying : go.UnderlyingDirectedEq DeleteRangeResponse.ty DeleteRangeResponse.underlying
   get_state : ∀ (x : DeleteRangeResponse), go.IsGoStepPureDetTagged under (StructFieldGet DeleteRangeResponse.underlying go!"state") #x (Val #(x.state'))
@@ -683,12 +683,12 @@ attribute [instance] DeleteRangeResponse.TypeAssumptions.type_repr
   DeleteRangeResponse.TypeAssumptions.get_sizeCache
   DeleteRangeResponse.TypeAssumptions.set_sizeCache
 
-class isRequestOp_Request.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class isRequestOp_Request.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq isRequestOp_Request.ty isRequestOp_Request.underlying
 
 attribute [instance] isRequestOp_Request.TypeAssumptions.underlying
 
-class RequestOp.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class RequestOp.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RequestOp.underlying RequestOp
   underlying : go.UnderlyingDirectedEq RequestOp.ty RequestOp.underlying
   get_state : ∀ (x : RequestOp), go.IsGoStepPureDetTagged under (StructFieldGet RequestOp.underlying go!"state") #x (Val #(x.state'))
@@ -715,7 +715,7 @@ attribute [instance] RequestOp.TypeAssumptions.type_repr
   RequestOp.TypeAssumptions.ptr_GetRequest_unfold
   RequestOp.TypeAssumptions.ptr_GetRequestRange_unfold
 
-class RequestOp_RequestRange.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class RequestOp_RequestRange.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RequestOp_RequestRange.underlying RequestOp_RequestRange
   underlying : go.UnderlyingDirectedEq RequestOp_RequestRange.ty RequestOp_RequestRange.underlying
   get_RequestRange : ∀ (x : RequestOp_RequestRange), go.IsGoStepPureDetTagged under (StructFieldGet RequestOp_RequestRange.underlying go!"RequestRange") #x (Val #(x.RequestRange'))
@@ -726,7 +726,7 @@ attribute [instance] RequestOp_RequestRange.TypeAssumptions.type_repr
   RequestOp_RequestRange.TypeAssumptions.get_RequestRange
   RequestOp_RequestRange.TypeAssumptions.set_RequestRange
 
-class RequestOp_RequestPut.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class RequestOp_RequestPut.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RequestOp_RequestPut.underlying RequestOp_RequestPut
   underlying : go.UnderlyingDirectedEq RequestOp_RequestPut.ty RequestOp_RequestPut.underlying
   get_RequestPut : ∀ (x : RequestOp_RequestPut), go.IsGoStepPureDetTagged under (StructFieldGet RequestOp_RequestPut.underlying go!"RequestPut") #x (Val #(x.RequestPut'))
@@ -737,7 +737,7 @@ attribute [instance] RequestOp_RequestPut.TypeAssumptions.type_repr
   RequestOp_RequestPut.TypeAssumptions.get_RequestPut
   RequestOp_RequestPut.TypeAssumptions.set_RequestPut
 
-class RequestOp_RequestDeleteRange.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class RequestOp_RequestDeleteRange.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RequestOp_RequestDeleteRange.underlying RequestOp_RequestDeleteRange
   underlying : go.UnderlyingDirectedEq RequestOp_RequestDeleteRange.ty RequestOp_RequestDeleteRange.underlying
   get_RequestDeleteRange : ∀ (x : RequestOp_RequestDeleteRange), go.IsGoStepPureDetTagged under (StructFieldGet RequestOp_RequestDeleteRange.underlying go!"RequestDeleteRange") #x (Val #(x.RequestDeleteRange'))
@@ -748,7 +748,7 @@ attribute [instance] RequestOp_RequestDeleteRange.TypeAssumptions.type_repr
   RequestOp_RequestDeleteRange.TypeAssumptions.get_RequestDeleteRange
   RequestOp_RequestDeleteRange.TypeAssumptions.set_RequestDeleteRange
 
-class RequestOp_RequestTxn.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class RequestOp_RequestTxn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RequestOp_RequestTxn.underlying RequestOp_RequestTxn
   underlying : go.UnderlyingDirectedEq RequestOp_RequestTxn.ty RequestOp_RequestTxn.underlying
   get_RequestTxn : ∀ (x : RequestOp_RequestTxn), go.IsGoStepPureDetTagged under (StructFieldGet RequestOp_RequestTxn.underlying go!"RequestTxn") #x (Val #(x.RequestTxn'))
@@ -759,12 +759,12 @@ attribute [instance] RequestOp_RequestTxn.TypeAssumptions.type_repr
   RequestOp_RequestTxn.TypeAssumptions.get_RequestTxn
   RequestOp_RequestTxn.TypeAssumptions.set_RequestTxn
 
-class isResponseOp_Response.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class isResponseOp_Response.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq isResponseOp_Response.ty isResponseOp_Response.underlying
 
 attribute [instance] isResponseOp_Response.TypeAssumptions.underlying
 
-class ResponseOp.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ResponseOp.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ResponseOp.underlying ResponseOp
   underlying : go.UnderlyingDirectedEq ResponseOp.ty ResponseOp.underlying
   get_state : ∀ (x : ResponseOp), go.IsGoStepPureDetTagged under (StructFieldGet ResponseOp.underlying go!"state") #x (Val #(x.state'))
@@ -797,7 +797,7 @@ attribute [instance] ResponseOp.TypeAssumptions.type_repr
   ResponseOp.TypeAssumptions.ptr_GetResponseRange_unfold
   ResponseOp.TypeAssumptions.ptr_GetResponseTxn_unfold
 
-class ResponseOp_ResponseRange.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ResponseOp_ResponseRange.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ResponseOp_ResponseRange.underlying ResponseOp_ResponseRange
   underlying : go.UnderlyingDirectedEq ResponseOp_ResponseRange.ty ResponseOp_ResponseRange.underlying
   get_ResponseRange : ∀ (x : ResponseOp_ResponseRange), go.IsGoStepPureDetTagged under (StructFieldGet ResponseOp_ResponseRange.underlying go!"ResponseRange") #x (Val #(x.ResponseRange'))
@@ -808,7 +808,7 @@ attribute [instance] ResponseOp_ResponseRange.TypeAssumptions.type_repr
   ResponseOp_ResponseRange.TypeAssumptions.get_ResponseRange
   ResponseOp_ResponseRange.TypeAssumptions.set_ResponseRange
 
-class ResponseOp_ResponsePut.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ResponseOp_ResponsePut.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ResponseOp_ResponsePut.underlying ResponseOp_ResponsePut
   underlying : go.UnderlyingDirectedEq ResponseOp_ResponsePut.ty ResponseOp_ResponsePut.underlying
   get_ResponsePut : ∀ (x : ResponseOp_ResponsePut), go.IsGoStepPureDetTagged under (StructFieldGet ResponseOp_ResponsePut.underlying go!"ResponsePut") #x (Val #(x.ResponsePut'))
@@ -819,7 +819,7 @@ attribute [instance] ResponseOp_ResponsePut.TypeAssumptions.type_repr
   ResponseOp_ResponsePut.TypeAssumptions.get_ResponsePut
   ResponseOp_ResponsePut.TypeAssumptions.set_ResponsePut
 
-class ResponseOp_ResponseDeleteRange.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ResponseOp_ResponseDeleteRange.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ResponseOp_ResponseDeleteRange.underlying ResponseOp_ResponseDeleteRange
   underlying : go.UnderlyingDirectedEq ResponseOp_ResponseDeleteRange.ty ResponseOp_ResponseDeleteRange.underlying
   get_ResponseDeleteRange : ∀ (x : ResponseOp_ResponseDeleteRange), go.IsGoStepPureDetTagged under (StructFieldGet ResponseOp_ResponseDeleteRange.underlying go!"ResponseDeleteRange") #x (Val #(x.ResponseDeleteRange'))
@@ -830,7 +830,7 @@ attribute [instance] ResponseOp_ResponseDeleteRange.TypeAssumptions.type_repr
   ResponseOp_ResponseDeleteRange.TypeAssumptions.get_ResponseDeleteRange
   ResponseOp_ResponseDeleteRange.TypeAssumptions.set_ResponseDeleteRange
 
-class ResponseOp_ResponseTxn.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ResponseOp_ResponseTxn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ResponseOp_ResponseTxn.underlying ResponseOp_ResponseTxn
   underlying : go.UnderlyingDirectedEq ResponseOp_ResponseTxn.ty ResponseOp_ResponseTxn.underlying
   get_ResponseTxn : ∀ (x : ResponseOp_ResponseTxn), go.IsGoStepPureDetTagged under (StructFieldGet ResponseOp_ResponseTxn.underlying go!"ResponseTxn") #x (Val #(x.ResponseTxn'))
@@ -841,12 +841,12 @@ attribute [instance] ResponseOp_ResponseTxn.TypeAssumptions.type_repr
   ResponseOp_ResponseTxn.TypeAssumptions.get_ResponseTxn
   ResponseOp_ResponseTxn.TypeAssumptions.set_ResponseTxn
 
-class isCompare_TargetUnion.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class isCompare_TargetUnion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq isCompare_TargetUnion.ty isCompare_TargetUnion.underlying
 
 attribute [instance] isCompare_TargetUnion.TypeAssumptions.underlying
 
-class Compare.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Compare.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Compare.underlying Compare
   underlying : go.UnderlyingDirectedEq Compare.ty Compare.underlying
   get_state : ∀ (x : Compare), go.IsGoStepPureDetTagged under (StructFieldGet Compare.underlying go!"state") #x (Val #(x.state'))
@@ -895,7 +895,7 @@ attribute [instance] Compare.TypeAssumptions.type_repr
   Compare.TypeAssumptions.ptr_GetTarget_unfold
   Compare.TypeAssumptions.ptr_GetTargetUnion_unfold
 
-class Compare_Version.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Compare_Version.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Compare_Version.underlying Compare_Version
   underlying : go.UnderlyingDirectedEq Compare_Version.ty Compare_Version.underlying
   get_Version : ∀ (x : Compare_Version), go.IsGoStepPureDetTagged under (StructFieldGet Compare_Version.underlying go!"Version") #x (Val #(x.Version'))
@@ -906,7 +906,7 @@ attribute [instance] Compare_Version.TypeAssumptions.type_repr
   Compare_Version.TypeAssumptions.get_Version
   Compare_Version.TypeAssumptions.set_Version
 
-class Compare_CreateRevision.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Compare_CreateRevision.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Compare_CreateRevision.underlying Compare_CreateRevision
   underlying : go.UnderlyingDirectedEq Compare_CreateRevision.ty Compare_CreateRevision.underlying
   get_CreateRevision : ∀ (x : Compare_CreateRevision), go.IsGoStepPureDetTagged under (StructFieldGet Compare_CreateRevision.underlying go!"CreateRevision") #x (Val #(x.CreateRevision'))
@@ -917,7 +917,7 @@ attribute [instance] Compare_CreateRevision.TypeAssumptions.type_repr
   Compare_CreateRevision.TypeAssumptions.get_CreateRevision
   Compare_CreateRevision.TypeAssumptions.set_CreateRevision
 
-class Compare_ModRevision.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Compare_ModRevision.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Compare_ModRevision.underlying Compare_ModRevision
   underlying : go.UnderlyingDirectedEq Compare_ModRevision.ty Compare_ModRevision.underlying
   get_ModRevision : ∀ (x : Compare_ModRevision), go.IsGoStepPureDetTagged under (StructFieldGet Compare_ModRevision.underlying go!"ModRevision") #x (Val #(x.ModRevision'))
@@ -928,7 +928,7 @@ attribute [instance] Compare_ModRevision.TypeAssumptions.type_repr
   Compare_ModRevision.TypeAssumptions.get_ModRevision
   Compare_ModRevision.TypeAssumptions.set_ModRevision
 
-class Compare_Value.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Compare_Value.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Compare_Value.underlying Compare_Value
   underlying : go.UnderlyingDirectedEq Compare_Value.ty Compare_Value.underlying
   get_Value : ∀ (x : Compare_Value), go.IsGoStepPureDetTagged under (StructFieldGet Compare_Value.underlying go!"Value") #x (Val #(x.Value'))
@@ -939,7 +939,7 @@ attribute [instance] Compare_Value.TypeAssumptions.type_repr
   Compare_Value.TypeAssumptions.get_Value
   Compare_Value.TypeAssumptions.set_Value
 
-class Compare_Lease.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Compare_Lease.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Compare_Lease.underlying Compare_Lease
   underlying : go.UnderlyingDirectedEq Compare_Lease.ty Compare_Lease.underlying
   get_Lease : ∀ (x : Compare_Lease), go.IsGoStepPureDetTagged under (StructFieldGet Compare_Lease.underlying go!"Lease") #x (Val #(x.Lease'))
@@ -950,7 +950,7 @@ attribute [instance] Compare_Lease.TypeAssumptions.type_repr
   Compare_Lease.TypeAssumptions.get_Lease
   Compare_Lease.TypeAssumptions.set_Lease
 
-class TxnRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class TxnRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying TxnRequest.underlying TxnRequest
   underlying : go.UnderlyingDirectedEq TxnRequest.ty TxnRequest.underlying
   get_state : ∀ (x : TxnRequest), go.IsGoStepPureDetTagged under (StructFieldGet TxnRequest.underlying go!"state") #x (Val #(x.state'))
@@ -987,7 +987,7 @@ attribute [instance] TxnRequest.TypeAssumptions.type_repr
   TxnRequest.TypeAssumptions.ptr_GetFailure_unfold
   TxnRequest.TypeAssumptions.ptr_GetSuccess_unfold
 
-class TxnResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class TxnResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying TxnResponse.underlying TxnResponse
   underlying : go.UnderlyingDirectedEq TxnResponse.ty TxnResponse.underlying
   get_state : ∀ (x : TxnResponse), go.IsGoStepPureDetTagged under (StructFieldGet TxnResponse.underlying go!"state") #x (Val #(x.state'))
@@ -1018,7 +1018,7 @@ attribute [instance] TxnResponse.TypeAssumptions.type_repr
   TxnResponse.TypeAssumptions.get_sizeCache
   TxnResponse.TypeAssumptions.set_sizeCache
 
-class CompactionRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class CompactionRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying CompactionRequest.underlying CompactionRequest
   underlying : go.UnderlyingDirectedEq CompactionRequest.ty CompactionRequest.underlying
   get_state : ∀ (x : CompactionRequest), go.IsGoStepPureDetTagged under (StructFieldGet CompactionRequest.underlying go!"state") #x (Val #(x.state'))
@@ -1045,7 +1045,7 @@ attribute [instance] CompactionRequest.TypeAssumptions.type_repr
   CompactionRequest.TypeAssumptions.get_sizeCache
   CompactionRequest.TypeAssumptions.set_sizeCache
 
-class CompactionResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class CompactionResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying CompactionResponse.underlying CompactionResponse
   underlying : go.UnderlyingDirectedEq CompactionResponse.ty CompactionResponse.underlying
   get_state : ∀ (x : CompactionResponse), go.IsGoStepPureDetTagged under (StructFieldGet CompactionResponse.underlying go!"state") #x (Val #(x.state'))
@@ -1068,7 +1068,7 @@ attribute [instance] CompactionResponse.TypeAssumptions.type_repr
   CompactionResponse.TypeAssumptions.get_sizeCache
   CompactionResponse.TypeAssumptions.set_sizeCache
 
-class HashRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class HashRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying HashRequest.underlying HashRequest
   underlying : go.UnderlyingDirectedEq HashRequest.ty HashRequest.underlying
   isUnderlying : go.IsUnderlying HashRequest.underlying HashRequest.underlying
@@ -1077,7 +1077,7 @@ attribute [instance] HashRequest.TypeAssumptions.type_repr
   HashRequest.TypeAssumptions.underlying
   HashRequest.TypeAssumptions.isUnderlying
 
-class HashKVRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class HashKVRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying HashKVRequest.underlying HashKVRequest
   underlying : go.UnderlyingDirectedEq HashKVRequest.ty HashKVRequest.underlying
   isUnderlying : go.IsUnderlying HashKVRequest.underlying HashKVRequest.underlying
@@ -1086,7 +1086,7 @@ attribute [instance] HashKVRequest.TypeAssumptions.type_repr
   HashKVRequest.TypeAssumptions.underlying
   HashKVRequest.TypeAssumptions.isUnderlying
 
-class HashKVResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class HashKVResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying HashKVResponse.underlying HashKVResponse
   underlying : go.UnderlyingDirectedEq HashKVResponse.ty HashKVResponse.underlying
   isUnderlying : go.IsUnderlying HashKVResponse.underlying HashKVResponse.underlying
@@ -1095,7 +1095,7 @@ attribute [instance] HashKVResponse.TypeAssumptions.type_repr
   HashKVResponse.TypeAssumptions.underlying
   HashKVResponse.TypeAssumptions.isUnderlying
 
-class HashResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class HashResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying HashResponse.underlying HashResponse
   underlying : go.UnderlyingDirectedEq HashResponse.ty HashResponse.underlying
   isUnderlying : go.IsUnderlying HashResponse.underlying HashResponse.underlying
@@ -1104,7 +1104,7 @@ attribute [instance] HashResponse.TypeAssumptions.type_repr
   HashResponse.TypeAssumptions.underlying
   HashResponse.TypeAssumptions.isUnderlying
 
-class SnapshotRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class SnapshotRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying SnapshotRequest.underlying SnapshotRequest
   underlying : go.UnderlyingDirectedEq SnapshotRequest.ty SnapshotRequest.underlying
   isUnderlying : go.IsUnderlying SnapshotRequest.underlying SnapshotRequest.underlying
@@ -1113,7 +1113,7 @@ attribute [instance] SnapshotRequest.TypeAssumptions.type_repr
   SnapshotRequest.TypeAssumptions.underlying
   SnapshotRequest.TypeAssumptions.isUnderlying
 
-class SnapshotResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class SnapshotResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying SnapshotResponse.underlying SnapshotResponse
   underlying : go.UnderlyingDirectedEq SnapshotResponse.ty SnapshotResponse.underlying
   isUnderlying : go.IsUnderlying SnapshotResponse.underlying SnapshotResponse.underlying
@@ -1122,12 +1122,12 @@ attribute [instance] SnapshotResponse.TypeAssumptions.type_repr
   SnapshotResponse.TypeAssumptions.underlying
   SnapshotResponse.TypeAssumptions.isUnderlying
 
-class isWatchRequest_RequestUnion.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class isWatchRequest_RequestUnion.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq isWatchRequest_RequestUnion.ty isWatchRequest_RequestUnion.underlying
 
 attribute [instance] isWatchRequest_RequestUnion.TypeAssumptions.underlying
 
-class WatchRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class WatchRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying WatchRequest.underlying WatchRequest
   underlying : go.UnderlyingDirectedEq WatchRequest.ty WatchRequest.underlying
   get_state : ∀ (x : WatchRequest), go.IsGoStepPureDetTagged under (StructFieldGet WatchRequest.underlying go!"state") #x (Val #(x.state'))
@@ -1150,7 +1150,7 @@ attribute [instance] WatchRequest.TypeAssumptions.type_repr
   WatchRequest.TypeAssumptions.get_sizeCache
   WatchRequest.TypeAssumptions.set_sizeCache
 
-class WatchRequest_CreateRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class WatchRequest_CreateRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying WatchRequest_CreateRequest.underlying WatchRequest_CreateRequest
   underlying : go.UnderlyingDirectedEq WatchRequest_CreateRequest.ty WatchRequest_CreateRequest.underlying
   get_CreateRequest : ∀ (x : WatchRequest_CreateRequest), go.IsGoStepPureDetTagged under (StructFieldGet WatchRequest_CreateRequest.underlying go!"CreateRequest") #x (Val #(x.CreateRequest'))
@@ -1161,7 +1161,7 @@ attribute [instance] WatchRequest_CreateRequest.TypeAssumptions.type_repr
   WatchRequest_CreateRequest.TypeAssumptions.get_CreateRequest
   WatchRequest_CreateRequest.TypeAssumptions.set_CreateRequest
 
-class WatchRequest_CancelRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class WatchRequest_CancelRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying WatchRequest_CancelRequest.underlying WatchRequest_CancelRequest
   underlying : go.UnderlyingDirectedEq WatchRequest_CancelRequest.ty WatchRequest_CancelRequest.underlying
   get_CancelRequest : ∀ (x : WatchRequest_CancelRequest), go.IsGoStepPureDetTagged under (StructFieldGet WatchRequest_CancelRequest.underlying go!"CancelRequest") #x (Val #(x.CancelRequest'))
@@ -1172,7 +1172,7 @@ attribute [instance] WatchRequest_CancelRequest.TypeAssumptions.type_repr
   WatchRequest_CancelRequest.TypeAssumptions.get_CancelRequest
   WatchRequest_CancelRequest.TypeAssumptions.set_CancelRequest
 
-class WatchRequest_ProgressRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class WatchRequest_ProgressRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying WatchRequest_ProgressRequest.underlying WatchRequest_ProgressRequest
   underlying : go.UnderlyingDirectedEq WatchRequest_ProgressRequest.ty WatchRequest_ProgressRequest.underlying
   get_ProgressRequest : ∀ (x : WatchRequest_ProgressRequest), go.IsGoStepPureDetTagged under (StructFieldGet WatchRequest_ProgressRequest.underlying go!"ProgressRequest") #x (Val #(x.ProgressRequest'))
@@ -1183,7 +1183,7 @@ attribute [instance] WatchRequest_ProgressRequest.TypeAssumptions.type_repr
   WatchRequest_ProgressRequest.TypeAssumptions.get_ProgressRequest
   WatchRequest_ProgressRequest.TypeAssumptions.set_ProgressRequest
 
-class WatchCreateRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class WatchCreateRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying WatchCreateRequest.underlying WatchCreateRequest
   underlying : go.UnderlyingDirectedEq WatchCreateRequest.ty WatchCreateRequest.underlying
   get_state : ∀ (x : WatchCreateRequest), go.IsGoStepPureDetTagged under (StructFieldGet WatchCreateRequest.underlying go!"state") #x (Val #(x.state'))

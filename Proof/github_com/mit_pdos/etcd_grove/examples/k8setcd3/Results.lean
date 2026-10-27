@@ -17,7 +17,8 @@ trust base of each printed in the build log (`#print axioms`). Lean-first (no Ro
   fresh state with one thread, has no stuck thread, no thread ended in a panic (so never
   "k8setcd3: porcupine found the history not linearizable"), and the main thread's result, if
   any, is `Ok` or `Unknown`; under k8setcd3's hypotheses at k8setcd3's configuration, the
-  Kubernetes packages' semantics assumptions and the method-set fact `objTyOk`.
+  Kubernetes packages' semantics assumptions and the method-set facts `objTyOk` and
+  `storageErrTyOk`.
 -/
 module
 
@@ -38,7 +39,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.raft.v3
 
 section results
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -54,7 +55,7 @@ theorem k8setcd3_Main [go_etcd_io.etcd.cache.v3.Assumptions] [Float64ToInt64Sema
 end results
 
 section adequacy
-attribute [local instance] disk_op disk_model disk_semantics disk_interp
+attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp
 variable [go_gctx : GoGlobalContext]
 
 /-- **The Kubernetes etcd3 store's linearizability instance is safe, in the operational semantics** (`k8setcd3_adequate`,
@@ -71,7 +72,7 @@ theorem k8setcd3_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (Hctx : ∀ hG : HeapGS .hasLC k8setcd3GF, ContextReadErrs (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx))
     (Hms : v3rpc.ServerMethodSets)
     (hAs : errors.AsTarget go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty)
-    (Hty : k8setcd3.objTyOk)
+    (hse : k8setcd3.storageErrTyOk) (Hty : k8setcd3.objTyOk)
     (id : w64) (bootLog : List EntryM) (Hbf : putget.BootFacts id bootLog)
     (Hck : ckptEffectsOk) (Haf : authRecordsFit)
     (Hbuq : apply.backendUnderQuota) (Hdbo : storage.dbOpensOk)
@@ -84,15 +85,15 @@ theorem k8setcd3_safe [lctx : GoLocalContext] [sem : go.Semantics]
     (Hprem : ∀ hG : HeapGS .hasLC k8setcd3GF,
       ⊢ k8setcd3.premises (GF := k8setcd3GF) (hG := k8setcd3HeapAt hG lctx) n id bootLog)
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
-    (Hthreads : g.threads = 1)
+    (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([k8setcd3Program clients ops], ((σ, g) : CfgState)) κs (t2, σ2))
     (Hn : n + 2 ≤ 2 ^ 31) (Hwb : n + 7 ≤ backend.wbInit) :
     (∀ v t2', t2 = Val v :: t2' → v = #(go!"Ok") ∨ v = #(go!"Unknown")) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) :=
-  k8setcd3_adequate Hctx Hms hAs Hty id bootLog Hbf Hck Haf Hbuq Hdbo clients ops Hc0 Hc31 Hops Hmul
-    HNs HAs n Hprem σ g Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn Hwb
+  k8setcd3_adequate Hctx Hms hAs hse Hty id bootLog Hbf Hck Haf Hbuq Hdbo clients ops Hc0 Hc31 Hops
+    Hmul HNs HAs n Hprem σ g Hlctx Hinit Hthreads κs t2 σ2 Hsteps Hn Hwb
 
 end adequacy
 

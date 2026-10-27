@@ -63,7 +63,7 @@ inductive AuthErr where
   deriving DecidableEq, Inhabited
 
 /-- The Go variable's name. -/
-def AuthErr.var [FfiSyntax] [GoGlobalContext] : AuthErr → GoString
+def AuthErr.var [GooseExts] [GoGlobalContext] : AuthErr → GoString
   | .rootUserNotExist => go_etcd_io.etcd.server.v3.auth.ErrRootUserNotExist
   | .rootRoleNotExist => go_etcd_io.etcd.server.v3.auth.ErrRootRoleNotExist
   | .userAlreadyExist => go_etcd_io.etcd.server.v3.auth.ErrUserAlreadyExist
@@ -283,7 +283,7 @@ theorem permKeysOk_of_perm {ps ps' : Role} (hp : ps'.Perm ps) (h : ∀ p ∈ ps,
 /-! ## The authority, and an operation's outcome in the mode -/
 
 section ghost
-variable [FfiSyntax] {GF : BundledGFunctors} [AllG GF]
+variable [GooseExts] {GF : BundledGFunctors} [AllG GF]
 
 /-- **The admin side's authority** in the mode `M`, the history `hs` (see the file header):
 `on γa`, the admin side's half of the history and half the latest state's ghost variable (the
@@ -427,7 +427,7 @@ theorem authOwnF_last (γa : AuthNames) (hs : List AuthState) :
 end ghost
 
 section res
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

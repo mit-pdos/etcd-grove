@@ -54,7 +54,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.raft.v3
 
 section send_ok
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- `SendOk id s m ents out`: the message `m`, whose `Entries` slice holds `ents`, takes
 a non-panicking path through `send` on a node with id `id` in state `s`, and `out` is
@@ -197,7 +197,7 @@ def SnapOut (id : w64) (s : NState) (m : MessageM) (sn : Option SnapshotM)
 end send_ok
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]

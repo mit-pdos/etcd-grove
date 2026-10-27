@@ -23,53 +23,53 @@ end pkg_id
 
 namespace go_etcd_io.etcd.server.v3.etcdserver.api
 
-noncomputable def Capability.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Capability.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api.Capability" [])
 
 attribute [irreducible] Capability.ty
 
-noncomputable def Cluster.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Cluster.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api.Cluster" [])
 
 attribute [irreducible] Cluster.ty
 
-axiom AuthCapability [FfiSyntax] [GoGlobalContext] : val
+axiom AuthCapability [GooseExts] [GoGlobalContext] : val
 
-@[reducible] noncomputable def V3rpcCapability [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def V3rpcCapability [GooseExts] [GoGlobalContext] : val :=
   #(go!"v3rpc")
 
-noncomputable def capabilityMaps [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def capabilityMaps [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api.capabilityMaps"
 
-axiom capabilityMaps.init [FfiSyntax] [GoGlobalContext] : val
+axiom capabilityMaps.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def enableMapMu [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def enableMapMu [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api.enableMapMu"
 
-noncomputable def enabledMap [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def enabledMap [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api.enabledMap"
 
-noncomputable def curVersion [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def curVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api.curVersion"
 
-noncomputable def init.«0» [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def init.«0» [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api.init.0"
 
-noncomputable def UpdateCapability [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def UpdateCapability [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api.UpdateCapability"
 
-noncomputable def IsCapabilityEnabled [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def IsCapabilityEnabled [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api.IsCapabilityEnabled"
 
-noncomputable def EnableCapability [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def EnableCapability [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api.EnableCapability"
 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api where
   pkgImportedPkgs := [pkg_id.github_com.Masterminds.semver.v3, pkg_id.go_etcd_io.etcd.client.pkg.v3.types, pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership]
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api)) (Lam BAnon
   (App (Val exceptionDo)
@@ -88,27 +88,27 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.initialize') (Val #()))))))))
 
-abbrev Capability [FfiSyntax] : Type := GoString
+abbrev Capability [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def Capability.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Capability.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-class Capability.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Capability.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Capability.ty Capability.underlying
 
 attribute [instance] Capability.TypeAssumptions.underlying
 
-abbrev Cluster [FfiSyntax] : Type := GoInterface
+abbrev Cluster [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def Cluster.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Cluster.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"ClientURLs" (go.signature.Signature [] false [(go.GoType.SliceType go.string)])), (go.InterfaceElem.MethodElem go!"ID" (go.signature.Signature [] false [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty])), (go.InterfaceElem.MethodElem go!"Member" (go.signature.Signature [_root_.Perennial.go_etcd_io.etcd.client.pkg.v3.types.ID.ty] false [(go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty)])), (go.InterfaceElem.MethodElem go!"Members" (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty))])), (go.InterfaceElem.MethodElem go!"Version" (go.signature.Signature [] false [(go.GoType.PointerType _root_.Perennial.github_com.Masterminds.semver.v3.Version.ty)]))])
 
-class Cluster.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Cluster.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Cluster.ty Cluster.underlying
 
 attribute [instance] Cluster.TypeAssumptions.underlying
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Capability_instance : Capability.TypeAssumptions
   Cluster_instance : Cluster.TypeAssumptions
   import_semver_Assumption : _root_.Perennial.github_com.Masterminds.semver.v3.Assumptions

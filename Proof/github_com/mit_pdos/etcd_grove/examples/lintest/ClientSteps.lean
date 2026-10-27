@@ -33,7 +33,7 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 open github_com.anishathalye.porcupine github_com.anishathalye.porcupine.Theory
 
 section steps
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

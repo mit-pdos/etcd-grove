@@ -51,7 +51,7 @@ the status message (`status.FromError(err).Message()`), which for an error that 
 error is its `Error()` (`Spec/google_golang_org/grpc/status/FromError.lean`). grpc's `FromError`
 reads the status embedded in the error value, so the description is a function of the error, as
 its code is (`statusCode`); nothing more is said of it. -/
-opaque errDesc [FfiSyntax] : GoInterface → GoString
+opaque errDesc [GooseExts] : GoInterface → GoString
 
 /-- **The refusals** (D29): the descriptions after which the client's retry interceptor sends a
 `nonRepeatable` call (a write) again: the auth errors (`shouldRefreshToken`, then
@@ -68,13 +68,13 @@ theorem mem_refusalDescs_balancer (d : GoString)
   rcases h with rfl | rfl <;> simp [refusalDescs]
 
 /-- **An error that is not a refusal** (D29): `nil`, or one whose description is not a refusal's. -/
-def noRefusal [FfiSyntax] (err : GoInterface) : Prop :=
+def noRefusal [GooseExts] (err : GoInterface) : Prop :=
   err = GoInterface.nil ∨ errDesc err ∉ refusalDescs
 
 end desc
 
 section init
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -554,7 +554,7 @@ instance get_isPkgInit_wf_inst : GetIsPkgInitWf (IProp GF) pkg_id.go_etcd_io.etc
 end init
 
 section errstr
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -618,32 +618,37 @@ another dynamic type (a grpc status error, an `rpctypes.EtcdError`, context's
 def clientErrMsgs : List GoString := [go!"EOF", go!"context canceled"]
 
 /-- **An error that is no caller's own `errors.New` value** (persistent; D37): if it is an
-`*errors.errorString` at `x`, the cell of `x` holds one of `clientErrMsgs` for good (the `s`
-field, which only `errors.New` writes: `errStrCell`). A caller's `errors.New(msg)` error, `msg`
-not among them, is then a different value (`errCellOk_ne`), and, the client's errors being leaves
-(`clientErr`), not `errors.Is` it either. What a program that tells its own errors apart from the
+`*errors.errorString`, it is a pointer `x` (what `errors.New` returns) whose cell holds one of
+`clientErrMsgs` for good (the `s` field, which only `errors.New` writes: `errStrCell`). A caller's
+`errors.New(msg)` error, `msg` not among them, is then a different value (`errCellOk_ne`), and, the
+client's errors being leaves (`clientErr`), not `errors.Is` it either; and comparing it with `==`
+compares pointers (`errCellOk_ptr`). What a program that tells its own errors apart from the
 client's needs (Kubernetes' storage test: `errDeleteRejected`, `errUpdateRejected`). -/
 def errCellOk (err : GoInterface) : IProp GF :=
-  iprop(□ ∀ x : Loc,
-    ⌜err = interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x⌝ →
-    ∃ m : GoString, ⌜m ∈ clientErrMsgs⌝ ∗ x.[_root_.Perennial.errors.errorString, go!"s"] ↦□ m)
+  iprop(□ ∀ ii : GoInterfaceOk,
+    ⌜err = GoInterface.ok ii ∧
+      ii.ty = go.GoType.PointerType _root_.Perennial.errors.errorString.ty⌝ →
+    ∃ (x : Loc) (m : GoString), ⌜ii.v = #x ∧ m ∈ clientErrMsgs⌝ ∗
+      x.[_root_.Perennial.errors.errorString, go!"s"] ↦□ m)
 
 instance errCellOk_persistent (err : GoInterface) : Persistent (errCellOk (GF := GF) err) := by
   unfold errCellOk; infer_instance
 
 theorem errCellOk_nil : ⊢ errCellOk (GF := GF) GoInterface.nil := by
   unfold errCellOk
-  iintro !> %x %h
-  cases h
+  iintro !> %ii %h
+  exact absurd h.1 nofun
 
 /-- An error of a dynamic type other than `*errors.errorString`. -/
 theorem errCellOk_of_ty (e : GoInterfaceOk)
     (h : e.ty ≠ go.GoType.PointerType _root_.Perennial.errors.errorString.ty) :
     ⊢ errCellOk (GF := GF) (GoInterface.ok e) := by
   unfold errCellOk
-  iintro !> %x %he
+  iintro !> %ii %he
+  obtain ⟨he, ht⟩ := he
   injection he with he
-  exact absurd (congrArg GoInterfaceOk.ty he) h
+  subst he
+  exact absurd ht h
 
 /-- An `*errors.errorString` whose cell holds one of `clientErrMsgs`. -/
 theorem errCellOk_of_cell (x : Loc) (m : GoString) (hm : m ∈ clientErrMsgs) :
@@ -651,15 +656,13 @@ theorem errCellOk_of_cell (x : Loc) (m : GoString) (hm : m ∈ clientErrMsgs) :
       errCellOk (GF := GF)
         (interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #x) := by
   unfold errCellOk
-  iintro #Hc !> %y %he
-  have hy : x = y := by
-    injection he with he
-    injection he with _ hv
-    exact go.intoVal_inj (V := Loc) hv
-  subst hy
-  iexists m
+  iintro #Hc !> %ii %he
+  obtain ⟨he, -⟩ := he
+  injection he with he
+  subst he
+  iexists x, m
   iframe Hc
-  ipureintro; exact hm
+  ipureintro; exact ⟨rfl, hm⟩
 
 /-- **A client error is not a caller's `errors.New(msg)` value** of a message `msg` not among
 `clientErrMsgs`. -/
@@ -669,10 +672,32 @@ theorem errCellOk_ne (err : GoInterface) (y : Loc) (msg : GoString) (hmsg : msg 
   unfold errCellOk
   iintro #H #Hy
   by_cases he : err = interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #y
-  · ihave ⟨%m, %hm, #Hm⟩ := H $$ %y %he
+  · have hh : err = GoInterface.ok
+          ⟨go.GoType.PointerType _root_.Perennial.errors.errorString.ty, #y⟩ ∧
+        go.GoType.PointerType _root_.Perennial.errors.errorString.ty =
+          go.GoType.PointerType _root_.Perennial.errors.errorString.ty := ⟨he, rfl⟩
+    ihave ⟨%x, %m, %hxm, #Hm⟩ := H $$ %_ %hh
+    obtain ⟨hx, hm⟩ := hxm
+    have hxy : y = x := go.intoVal_inj (V := Loc) hx
+    subst hxy
     icombine Hy Hm gives %h
     exact absurd (h ▸ hm) hmsg
   · ipureintro; exact he
+
+/-- **A client error of type `*errors.errorString` holds a pointer** (what `errors.New` returns),
+so that `==` on it compares pointers. -/
+theorem errCellOk_ptr (ii : GoInterfaceOk) :
+    errCellOk (GF := GF) (GoInterface.ok ii) ⊢
+      ⌜ii.ty = go.GoType.PointerType _root_.Perennial.errors.errorString.ty →
+        ∃ l : Loc, ii.v = #l⌝ := by
+  unfold errCellOk
+  iintro #H
+  by_cases ht : ii.ty = go.GoType.PointerType _root_.Perennial.errors.errorString.ty
+  · have hh : GoInterface.ok ii = GoInterface.ok ii ∧
+        ii.ty = go.GoType.PointerType _root_.Perennial.errors.errorString.ty := ⟨rfl, ht⟩
+    ihave ⟨%x, %m, %hxm, -⟩ := H $$ %ii %hh
+    ipureintro; exact fun _ => ⟨x, hxm.1⟩
+  · ipureintro; exact fun h => absurd h ht
 
 end errstr
 

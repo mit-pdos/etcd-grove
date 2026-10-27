@@ -22,7 +22,7 @@ namespace EtcdGrove
 open Iris Iris.BI
 
 section defs
-variable [ext : FfiSyntax] [go_gctx : GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [go_gctx : GoGlobalContext] [GoSemanticsFunctions]
 
 /-- The named types (Go paths) whose underlying type is a predeclared basic type and that have
 no methods, so neither `Error`, `String`, `Format` nor `GoString`: Go's `fmt` formats a value of
@@ -45,7 +45,7 @@ def fmt.SprintfArgOk : GoInterface → Prop
 end defs
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

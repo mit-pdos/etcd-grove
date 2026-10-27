@@ -20,39 +20,39 @@ end pkg_id
 
 namespace google_golang_org.grpc.credentials.insecure
 
-noncomputable def insecureTC.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def insecureTC.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/credentials/insecure.insecureTC" [])
 
 attribute [irreducible] insecureTC.ty
 
-noncomputable def info.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def info.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/credentials/insecure.info" [])
 
 attribute [irreducible] info.ty
 
-noncomputable def insecureBundle.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def insecureBundle.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/credentials/insecure.insecureBundle" [])
 
 attribute [irreducible] insecureBundle.ty
 
-axiom insecureTC.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom insecureTC.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom info.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom info.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom insecureBundle.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom insecureBundle.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-noncomputable def NewCredentials [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewCredentials [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/credentials/insecure.NewCredentials"
 
-noncomputable def NewBundle [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewBundle [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/credentials/insecure.NewBundle"
 
 noncomputable instance info' : PkgInfo pkg_id.google_golang_org.grpc.credentials.insecure where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.google_golang_org.grpc.credentials.insecure)) (Lam BAnon
   (App (Val exceptionDo)
@@ -63,7 +63,7 @@ axiom insecureTC : Type
 axiom insecureTC.zero_val : ZeroVal insecureTC
 attribute [instance] insecureTC.zero_val
 
-class insecureTC.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class insecureTC.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying insecureTC.underlying insecureTC
   underlying : go.UnderlyingDirectedEq insecureTC.ty insecureTC.underlying
   isUnderlying : go.IsUnderlying insecureTC.underlying insecureTC.underlying
@@ -76,7 +76,7 @@ axiom info : Type
 axiom info.zero_val : ZeroVal info
 attribute [instance] info.zero_val
 
-class info.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class info.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying info.underlying info
   underlying : go.UnderlyingDirectedEq info.ty info.underlying
   isUnderlying : go.IsUnderlying info.underlying info.underlying
@@ -89,7 +89,7 @@ axiom insecureBundle : Type
 axiom insecureBundle.zero_val : ZeroVal insecureBundle
 attribute [instance] insecureBundle.zero_val
 
-class insecureBundle.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class insecureBundle.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying insecureBundle.underlying insecureBundle
   underlying : go.UnderlyingDirectedEq insecureBundle.ty insecureBundle.underlying
   isUnderlying : go.IsUnderlying insecureBundle.underlying insecureBundle.underlying
@@ -98,7 +98,7 @@ attribute [instance] insecureBundle.TypeAssumptions.type_repr
   insecureBundle.TypeAssumptions.underlying
   insecureBundle.TypeAssumptions.isUnderlying
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   insecureTC_instance : insecureTC.TypeAssumptions
   info_instance : info.TypeAssumptions
   insecureBundle_instance : insecureBundle.TypeAssumptions

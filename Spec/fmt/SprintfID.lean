@@ -20,7 +20,7 @@ namespace EtcdGrove
 open Iris Iris.BI
 
 section defs
-variable [ext : FfiSyntax] [go_gctx : GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [go_gctx : GoGlobalContext] [GoSemanticsFunctions]
 
 /-- An argument of `Sprintf` whose formatting Go does by itself or by `types.ID.String`: `nil`, a
 value of a predeclared basic type (`fmt.ArgWf`), or a `types.ID`, whose `String` is
@@ -34,7 +34,7 @@ def fmt.SprintfIDArgOk : GoInterface → Prop
 end defs
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

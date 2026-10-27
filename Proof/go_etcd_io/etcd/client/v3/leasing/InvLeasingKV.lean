@@ -76,7 +76,7 @@ def leasingWgWGN : Namespace := nroot.@"leasingWaitGroup"
 def leasingWgN : Namespace := nroot.@"leasingWgCounter"
 
 section addrs
-variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
 /-- `&lkv.leases` -/
 abbrev lkvLeases (lkv : Loc) : Loc := structFieldRef leasingKV go!"leases" lkv
@@ -86,7 +86,7 @@ abbrev lkvWg (lkv : Loc) : Loc := structFieldRef leasingKV go!"wg" lkv
 end addrs
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [EM : EtcdModel GF]

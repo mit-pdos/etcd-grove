@@ -447,7 +447,7 @@ theorem stepOk_of_fuel (γa : AuthNames) (hs : List AuthState) (R : StepRel) (k 
   exact permsFit_of_small st' h4 (by omega)
 
 section ghost
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

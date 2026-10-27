@@ -30,7 +30,7 @@ namespace EtcdGrove
 open Iris Iris.BI GMap go_etcd_io.raft.v3
 
 section model
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- A storage state as the protocol reads it. -/
 def WHS.ws (σ : WHS) : WState := ⟨σ.term, σ.vote, σ.lt, σ.ls, σ.li, σ.rs⟩
@@ -52,7 +52,7 @@ end model
 
 /-- The responders of a tally among a replication set without repetition, counted over it
 (`votesInSet`), are all of them: every responder is in the set. -/
-theorem votesInSet_all [FfiSyntax] (rs : List w64) (votes : GMap w64 Bool) (hnd : rs.Nodup)
+theorem votesInSet_all [GooseExts] (rs : List w64) (votes : GMap w64 Bool) (hnd : rs.Nodup)
     (h : votesInSet rs votes = GMap.size votes) : ∀ v, v ∈ domSet votes → v ∈ rs := by
   intro v hv
   refine Classical.byContradiction (fun hvr => ?_)
@@ -84,7 +84,7 @@ theorem votesInSet_all [FfiSyntax] (rs : List w64) (votes : GMap w64 Bool) (hnd 
   omega
 
 section ghost
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 -- `hlc := HasLC.hasLC`, so that the heap's invariants are an `InvGS GF` (`raft__Step.lean`)
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
@@ -131,7 +131,7 @@ theorem ltPair_iff_LexLe (a b c d : w64) (hne : ¬ (a = c ∧ b = d)) :
       omega
 
 /-- `handleAppendNoUpdate`'s answer, when it handles the request, is W2's `wAppNoUpd`'s. -/
-theorem wAppNoUpd_of [FfiSyntax] (id : w64) (σ : WHS) (μ : WMsg) (Hty : μ.ty = MsgApp)
+theorem wAppNoUpd_of [GooseExts] (id : w64) (σ : WHS) (μ : WMsg) (Hty : μ.ty = MsgApp)
     (Hh : (wAppendNoUpdate id σ μ).2 = true) :
     (wAppendNoUpdate id σ μ).1.2 = [] ∧ (wAppendNoUpdate id σ μ).1.1.Type' = MsgAppResp ∧
     wAppNoUpd id σ.ws (wAbsReq μ) =
@@ -154,7 +154,7 @@ theorem wAppNoUpd_of [FfiSyntax] (id : w64) (σ : WHS) (μ : WMsg) (Hty : μ.ty 
     · rw [if_neg Hl] at Hh; cases Hh
 
 section ghost2
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 -- `hlc := HasLC.hasLC`, so that the heap's invariants are an `InvGS GF` (`raft__Step.lean`)
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
@@ -389,7 +389,7 @@ end ghost2
 /-- `handleVote` of a vote request: a rejection at the state's term, the state unchanged; or a
 grant (the witness may vote for the candidate, whose last entry is not below its own, and of
 its own with every responder in its replication set), the vote recorded. -/
-theorem wVote_cases [FfiSyntax] (id : w64) (ρ : WHS) (μ : WMsg) (Hv : μ.ty = MsgVote) :
+theorem wVote_cases [GooseExts] (id : w64) (ρ : WHS) (μ : WMsg) (Hv : μ.ty = MsgVote) :
     wVote id ρ μ = (ρ, (respM MsgVoteResp μ.frm id ρ.term (W64 0) true, [])) ∨
     ((ρ.vote = μ.frm ∨ (ρ.vote = W64 0 ∧ ρ.lead = W64 0)) ∧ ¬ ltPair μ.lt μ.ls ρ.lt ρ.ls ∧
       (μ.lt = ρ.lt ∧ μ.ls = ρ.ls → votesInSet ρ.rs μ.votes = GMap.size μ.votes) ∧
@@ -407,7 +407,7 @@ theorem wVote_cases [FfiSyntax] (id : w64) (ρ : WHS) (μ : WMsg) (Hv : μ.ty = 
   · left; simp only [wVote, Hnpv, eq_true Hv, _root_.false_and, _root_.or_false, _root_.true_and, ↓reduceIte, ne_eq, _root_.decide_true, decide_false, not_true_eq_false, not_false_eq_true, Bool.false_eq_true, Bool.true_eq_false, _root_.and_self, _root_.and_true, _root_.and_false, ite_true, ite_false, eq_self_iff_true, eq_false hc]
 
 /-- `handleVote` of a pre-vote leaves the state as it is and answers with a `MsgPreVoteResp`. -/
-theorem wVote_prevote [FfiSyntax] (id : w64) (ρ : WHS) (μ : WMsg) (Hp : μ.ty = MsgPreVote) :
+theorem wVote_prevote [GooseExts] (id : w64) (ρ : WHS) (μ : WMsg) (Hp : μ.ty = MsgPreVote) :
     ∃ t rj, wVote id ρ μ = (ρ, (respM MsgPreVoteResp μ.frm id t (W64 0) rj, [])) := by
   have Hnv : ¬ μ.ty = MsgVote := by rw [Hp]; simp [MsgVote, MsgPreVote]
   unfold wVote
@@ -415,7 +415,7 @@ theorem wVote_prevote [FfiSyntax] (id : w64) (ρ : WHS) (μ : WMsg) (Hp : μ.ty 
   exact ⟨_, _, rfl⟩
 
 section ghost3
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -530,7 +530,7 @@ theorem wInst_write_prevote (γ : RaftNames) (E : CoPset) (μ : WMsg) (σ : WHS)
 end ghost3
 
 section ghost2
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

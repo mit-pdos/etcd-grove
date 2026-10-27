@@ -28,7 +28,7 @@ namespace auth
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.auth
 
 section defs
-variable [FfiSyntax] {GF : BundledGFunctors} [AllG GF]
+variable [GooseExts] {GF : BundledGFunctors} [AllG GF]
 
 /-- **`Revision`'s answer no older than the index `i`** in the mode `M` (persistent): in `on γa`,
 the revision of a state recorded at an index at least `i`; as `revisionVerdict` otherwise. -/
@@ -79,7 +79,7 @@ theorem enabledVerdictFrom_verdict (M : AuthMode) (i : Nat) (b : Bool) :
 end defs
 
 section ghost
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -261,7 +261,7 @@ theorem authPublish (st : Loc) (R : IProp GF) (M : AuthMode) (hs : List AuthStat
 end ghost
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

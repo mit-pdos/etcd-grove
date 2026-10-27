@@ -26,58 +26,58 @@ end pkg_id
 
 namespace go_etcd_io.raft.v3.quorum
 
-noncomputable def JointConfig.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def JointConfig.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/raft/v3/quorum.JointConfig" [])
 
 attribute [irreducible] JointConfig.ty
 
-noncomputable def MajorityConfig.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def MajorityConfig.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/raft/v3/quorum.MajorityConfig" [])
 
 attribute [irreducible] MajorityConfig.ty
 
-noncomputable def tup.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def tup.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/raft/v3/quorum.tup" [])
 
 attribute [irreducible] tup.ty
 
-noncomputable def Index'.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Index'.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/raft/v3/quorum.Index" [])
 
 attribute [irreducible] Index'.ty
 
-noncomputable def AckedIndexer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def AckedIndexer.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/raft/v3/quorum.AckedIndexer" [])
 
 attribute [irreducible] AckedIndexer.ty
 
-noncomputable def mapAckIndexer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def mapAckIndexer.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/raft/v3/quorum.mapAckIndexer" [])
 
 attribute [irreducible] mapAckIndexer.ty
 
-noncomputable def VoteResult.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def VoteResult.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/raft/v3/quorum.VoteResult" [])
 
 attribute [irreducible] VoteResult.ty
 
-@[reducible] noncomputable def VotePending [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def VotePending [GooseExts] [GoGlobalContext] : val :=
   #(W8 1)
 
-@[reducible] noncomputable def VoteLost [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def VoteLost [GooseExts] [GoGlobalContext] : val :=
   #(W8 2)
 
-@[reducible] noncomputable def VoteWon [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def VoteWon [GooseExts] [GoGlobalContext] : val :=
   #(W8 3)
 
-@[reducible] noncomputable def _VoteResult_name [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def _VoteResult_name [GooseExts] [GoGlobalContext] : val :=
   #(go!"VotePendingVoteLostVoteWon")
 
-noncomputable def _VoteResult_index [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def _VoteResult_index [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3/quorum._VoteResult_index"
 
 /-- go: joint.go:21:22 -/
-noncomputable def JointConfig.String.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def JointConfig.String.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -96,7 +96,7 @@ noncomputable def JointConfig.String.impl [FfiSyntax] [GoGlobalContext] : val :=
     in the joint configuration.
 
     go: joint.go:30:22 -/
-noncomputable def JointConfig.IDs.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def JointConfig.IDs.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -136,7 +136,7 @@ noncomputable def JointConfig.IDs.impl [FfiSyntax] [GoGlobalContext] : val :=
     given lookuper.
 
     go: joint.go:42:22 -/
-noncomputable def JointConfig.Describe.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def JointConfig.Describe.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "l"
   (App (Val exceptionDo)
@@ -151,7 +151,7 @@ noncomputable def JointConfig.Describe.impl [FfiSyntax] [GoGlobalContext] : val 
     majorities.
 
     go: joint.go:49:22 -/
-noncomputable def JointConfig.CommittedIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def JointConfig.CommittedIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "l"
   (App (Val exceptionDo)
@@ -183,7 +183,7 @@ noncomputable def JointConfig.CommittedIndex.impl [FfiSyntax] [GoGlobalContext] 
     requires both majority quorums to vote in favor.
 
     go: joint.go:61:22 -/
-noncomputable def JointConfig.VoteResult.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def JointConfig.VoteResult.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "votes"
   (App (Val exceptionDo)
@@ -217,7 +217,7 @@ noncomputable def JointConfig.VoteResult.impl [FfiSyntax] [GoGlobalContext] : va
   (App (Val (GoInstruction (GoStore VoteResult.ty))) (Pair (Var "r1") (Var "$r0"))))))))))))
 
 /-- go: joint.go:77:22 -/
-noncomputable def JointConfig.VoteResultWithDifference.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def JointConfig.VoteResultWithDifference.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "votes"
   (App (Val exceptionDo)
@@ -274,7 +274,7 @@ noncomputable def JointConfig.VoteResultWithDifference.impl [FfiSyntax] [GoGloba
   (App (Val (GoInstruction (GoStore VoteResult.ty))) (Pair (Var "r1") (Var "$r0")))))))))))))))))
 
 /-- go: majority.go:28:25 -/
-noncomputable def MajorityConfig.String.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def MajorityConfig.String.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -342,7 +342,7 @@ noncomputable def MajorityConfig.String.impl [FfiSyntax] [GoGlobalContext] : val
     given lookuper.
 
     go: majority.go:48:25 -/
-noncomputable def MajorityConfig.Describe.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def MajorityConfig.Describe.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "l"
   (App (Val exceptionDo)
@@ -510,7 +510,7 @@ noncomputable def MajorityConfig.Describe.impl [FfiSyntax] [GoGlobalContext] : v
 /-- Slice returns the MajorityConfig as a sorted slice.
 
     go: majority.go:109:25 -/
-noncomputable def MajorityConfig.Slice.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def MajorityConfig.Slice.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -542,7 +542,7 @@ noncomputable def MajorityConfig.Slice.impl [FfiSyntax] [GoGlobalContext] : val 
     provided AckedIndexer (for the active config).
 
     go: majority.go:120:25 -/
-noncomputable def MajorityConfig.CommittedIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def MajorityConfig.CommittedIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "l"
   (App (Val exceptionDo)
@@ -621,7 +621,7 @@ noncomputable def MajorityConfig.CommittedIndex.impl [FfiSyntax] [GoGlobalContex
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "n") (Var "$r0"))))))))))))
 
 /-- go: majority.go:165:25 -/
-noncomputable def MajorityConfig.OneLessThanQuorum.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def MajorityConfig.OneLessThanQuorum.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "l"
   (App (Val exceptionDo)
@@ -711,7 +711,7 @@ noncomputable def MajorityConfig.OneLessThanQuorum.impl [FfiSyntax] [GoGlobalCon
     quorum of no has been reached).
 
     go: majority.go:218:25 -/
-noncomputable def MajorityConfig.VoteResult.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def MajorityConfig.VoteResult.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "votes"
   (App (Val exceptionDo)
@@ -783,7 +783,7 @@ noncomputable def MajorityConfig.VoteResult.impl [FfiSyntax] [GoGlobalContext] :
   (Val #())))))))))
 
 /-- go: majority.go:249:25 -/
-noncomputable def MajorityConfig.VoteResultWithDifference.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def MajorityConfig.VoteResultWithDifference.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "votes"
   (App (Val exceptionDo)
@@ -859,7 +859,7 @@ noncomputable def MajorityConfig.VoteResultWithDifference.impl [FfiSyntax] [GoGl
   (Val #())))))))))
 
 /-- go: quorum.go:25:16 -/
-noncomputable def Index.String.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Index.String.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "i"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -876,7 +876,7 @@ noncomputable def Index.String.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #()))))))))
 
 /-- go: quorum.go:40:24 -/
-noncomputable def mapAckIndexer.AckedIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def mapAckIndexer.AckedIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "m"
   (Lam "id"
   (App (Val exceptionDo)
@@ -899,7 +899,7 @@ noncomputable def mapAckIndexer.AckedIndex.impl [FfiSyntax] [GoGlobalContext] : 
   (App (Val (GoInstruction (GoStore Index'.ty))) (Pair (Var "idx") (Var "$r0")))))))))))))))))
 
 /-- go: voteresult_string.go:20:21 -/
-noncomputable def VoteResult.String.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def VoteResult.String.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "i"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -922,7 +922,7 @@ noncomputable def VoteResult.String.impl [FfiSyntax] [GoGlobalContext] : val :=
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.raft.v3.quorum where
   pkgImportedPkgs := [pkg_id.cmp, pkg_id.fmt, pkg_id.math, pkg_id.slices, pkg_id.strings, pkg_id.strconv]
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.raft.v3.quorum)) (Lam BAnon
   (App (Val exceptionDo)
@@ -955,12 +955,12 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc _VoteResult_index (go.GoType.ArrayType 4 go.uint8))) (Val #()))))))))
 
-abbrev MajorityConfig [FfiSyntax] : Type := GoMap
+abbrev MajorityConfig [GooseExts] : Type := GoMap
 
-@[reducible] noncomputable def MajorityConfig.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def MajorityConfig.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.MapType go.uint64 (go.GoType.StructType []))
 
-class MajorityConfig.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class MajorityConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq MajorityConfig.ty MajorityConfig.underlying
   CommittedIndex_unfold : MethodUnfold MajorityConfig.ty go!"CommittedIndex" MajorityConfig.CommittedIndex.impl
   Describe_unfold : MethodUnfold MajorityConfig.ty go!"Describe" MajorityConfig.Describe.impl
@@ -1000,12 +1000,12 @@ attribute [instance] MajorityConfig.TypeAssumptions.underlying
   MajorityConfig.TypeAssumptions.ptr_VoteResult_unfold
   MajorityConfig.TypeAssumptions.ptr_VoteResultWithDifference_unfold
 
-abbrev JointConfig [FfiSyntax] : Type := (GoArray MajorityConfig 2)
+abbrev JointConfig [GooseExts] : Type := (GoArray MajorityConfig 2)
 
-@[reducible] noncomputable def JointConfig.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def JointConfig.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.ArrayType 2 MajorityConfig.ty)
 
-class JointConfig.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class JointConfig.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq JointConfig.ty JointConfig.underlying
   CommittedIndex_unfold : MethodUnfold JointConfig.ty go!"CommittedIndex" JointConfig.CommittedIndex.impl
   Describe_unfold : MethodUnfold JointConfig.ty go!"Describe" JointConfig.Describe.impl
@@ -1040,12 +1040,12 @@ attribute [instance] JointConfig.TypeAssumptions.underlying
   JointConfig.TypeAssumptions.ptr_VoteResult_unfold
   JointConfig.TypeAssumptions.ptr_VoteResultWithDifference_unfold
 
-abbrev Index' [FfiSyntax] : Type := w64
+abbrev Index' [GooseExts] : Type := w64
 
-@[reducible] noncomputable def Index'.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Index'.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.uint64
 
-class Index.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Index.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Index'.ty Index'.underlying
   String_unfold : MethodUnfold Index'.ty go!"String" Index.String.impl
   ptr_String_unfold : MethodUnfold (go.GoType.PointerType Index'.ty) go!"String" (LamV "$r"
@@ -1055,33 +1055,33 @@ attribute [instance] Index.TypeAssumptions.underlying
   Index.TypeAssumptions.String_unfold
   Index.TypeAssumptions.ptr_String_unfold
 
-structure tup [FfiSyntax] where
+structure tup [GooseExts] where
   mk ::
   id' : w64
   idx' : Index'
   ok' : Bool
   bar' : w64
 
-noncomputable instance tup.zero_val [FfiSyntax] : ZeroVal tup :=
+noncomputable instance tup.zero_val [GooseExts] : ZeroVal tup :=
   ⟨tup.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def tup.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def tup.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"id" go.uint64),
 (go.field_decl.FieldDecl go!"idx" Index'.ty),
 (go.field_decl.FieldDecl go!"ok" go.bool),
 (go.field_decl.FieldDecl go!"bar" go.int)]
 
-@[irreducible] noncomputable def tup.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def tup.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   tup.fieldsUnsealed
 
-noncomputable instance equals_unfold_tup [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_tup [GooseExts] [GoGlobalContext] :
     EqualsUnfold tup.fields tup.fieldsUnsealed :=
   ⟨by unfold tup.fields; rfl⟩
 
-@[reducible] noncomputable def tup.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def tup.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType tup.fields)
 
-class tup.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class tup.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying tup.underlying tup
   underlying : go.UnderlyingDirectedEq tup.ty tup.underlying
   get_id : ∀ (x : tup), go.IsGoStepPureDetTagged under (StructFieldGet tup.underlying go!"id") #x (Val #(x.id'))
@@ -1104,22 +1104,22 @@ attribute [instance] tup.TypeAssumptions.type_repr
   tup.TypeAssumptions.get_bar
   tup.TypeAssumptions.set_bar
 
-abbrev AckedIndexer [FfiSyntax] : Type := GoInterface
+abbrev AckedIndexer [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def AckedIndexer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def AckedIndexer.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"AckedIndex" (go.signature.Signature [go.uint64] false [Index'.ty, go.bool]))])
 
-class AckedIndexer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class AckedIndexer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq AckedIndexer.ty AckedIndexer.underlying
 
 attribute [instance] AckedIndexer.TypeAssumptions.underlying
 
-abbrev mapAckIndexer [FfiSyntax] : Type := GoMap
+abbrev mapAckIndexer [GooseExts] : Type := GoMap
 
-@[reducible] noncomputable def mapAckIndexer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def mapAckIndexer.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.MapType go.uint64 Index'.ty)
 
-class mapAckIndexer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class mapAckIndexer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq mapAckIndexer.ty mapAckIndexer.underlying
   AckedIndex_unfold : MethodUnfold mapAckIndexer.ty go!"AckedIndex" mapAckIndexer.AckedIndex.impl
   ptr_AckedIndex_unfold : MethodUnfold (go.GoType.PointerType mapAckIndexer.ty) go!"AckedIndex" (LamV "$r"
@@ -1129,12 +1129,12 @@ attribute [instance] mapAckIndexer.TypeAssumptions.underlying
   mapAckIndexer.TypeAssumptions.AckedIndex_unfold
   mapAckIndexer.TypeAssumptions.ptr_AckedIndex_unfold
 
-abbrev VoteResult [FfiSyntax] : Type := w8
+abbrev VoteResult [GooseExts] : Type := w8
 
-@[reducible] noncomputable def VoteResult.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def VoteResult.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.uint8
 
-class VoteResult.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class VoteResult.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq VoteResult.ty VoteResult.underlying
   String_unfold : MethodUnfold VoteResult.ty go!"String" VoteResult.String.impl
   ptr_String_unfold : MethodUnfold (go.GoType.PointerType VoteResult.ty) go!"String" (LamV "$r"
@@ -1144,7 +1144,7 @@ attribute [instance] VoteResult.TypeAssumptions.underlying
   VoteResult.TypeAssumptions.String_unfold
   VoteResult.TypeAssumptions.ptr_String_unfold
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   JointConfig_instance : JointConfig.TypeAssumptions
   MajorityConfig_instance : MajorityConfig.TypeAssumptions
   tup_instance : tup.TypeAssumptions

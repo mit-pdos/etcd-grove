@@ -34,7 +34,7 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 open go_etcd_io.etcd.server.v3.etcdserver linkvtxn
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -185,8 +185,8 @@ theorem Client.OptimisticPut.wp_proof (wp_WithLease : WithLease.spec (GF := GF) 
       iapply HΦ
       iright
       iunfold kvErr at Hke
-      icases Hke with ⟨%Hce, #Hse, -⟩
-      iframe Hse
+      icases Hke with ⟨%Hce, #Hse, #Hcl⟩
+      iframe Hse Hcl
       isplitl []
       · ipureintro; exact Herr
       ipureintro; exact Hce
@@ -304,8 +304,8 @@ theorem Client.OptimisticPut.wp_proof (wp_WithLease : WithLease.spec (GF := GF) 
       iapply HΦ
       iright
       iunfold kvErr at Hke
-      icases Hke with ⟨%Hce, #Hse, -⟩
-      iframe Hse
+      icases Hke with ⟨%Hce, #Hse, #Hcl⟩
+      iframe Hse Hcl
       isplitl []
       · ipureintro; exact Herr
       ipureintro; exact Hce

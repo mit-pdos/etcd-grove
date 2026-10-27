@@ -26,48 +26,48 @@ end pkg_id
 
 namespace go_etcd_io.raft.v3.confchange
 
-noncomputable def Changer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Changer.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/raft/v3/confchange.Changer" [])
 
 attribute [irreducible] Changer.ty
 
-noncomputable def checkInvariants [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def checkInvariants [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3/confchange.checkInvariants"
 
-noncomputable def checkAndReturn [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def checkAndReturn [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3/confchange.checkAndReturn"
 
-noncomputable def nilAwareAdd [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def nilAwareAdd [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3/confchange.nilAwareAdd"
 
-noncomputable def nilAwareDelete [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def nilAwareDelete [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3/confchange.nilAwareDelete"
 
-noncomputable def symdiff [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def symdiff [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3/confchange.symdiff"
 
-noncomputable def joint [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def joint [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3/confchange.joint"
 
-noncomputable def incoming [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def incoming [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3/confchange.incoming"
 
-noncomputable def outgoing [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def outgoing [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3/confchange.outgoing"
 
-noncomputable def outgoingPtr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def outgoingPtr [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3/confchange.outgoingPtr"
 
-noncomputable def Describe [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Describe [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3/confchange.Describe"
 
-noncomputable def toConfChangeSingle [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def toConfChangeSingle [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3/confchange.toConfChangeSingle"
 
-noncomputable def chain [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def chain [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3/confchange.chain"
 
-noncomputable def Restore [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Restore [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3/confchange.Restore"
 
 /-- EnterJoint verifies that the outgoing (=right) majority config of the joint
@@ -87,7 +87,7 @@ noncomputable def Restore [FfiSyntax] [GoGlobalContext] : GoString :=
     [1]: https://github.com/ongardie/dissertation/blob/master/online-trim.pdf
 
     go: confchange.go:51:18 -/
-noncomputable def Changer.EnterJoint.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Changer.EnterJoint.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "autoLeave"
   (Lam "ccs"
@@ -233,7 +233,7 @@ noncomputable def Changer.EnterJoint.impl [FfiSyntax] [GoGlobalContext] : val :=
     [1]: https://github.com/ongardie/dissertation/blob/master/online-trim.pdf
 
     go: confchange.go:95:18 -/
-noncomputable def Changer.LeaveJoint.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Changer.LeaveJoint.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -383,7 +383,7 @@ noncomputable def Changer.LeaveJoint.impl [FfiSyntax] [GoGlobalContext] : val :=
     outgoing configuration).
 
     go: confchange.go:131:18 -/
-noncomputable def Changer.Simple.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Changer.Simple.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "ccs"
   (App (Val exceptionDo)
@@ -486,7 +486,7 @@ noncomputable def Changer.Simple.impl [FfiSyntax] [GoGlobalContext] : val :=
     empty or preserves the outgoing majority configuration while in a joint state.
 
     go: confchange.go:153:18 -/
-noncomputable def Changer.apply.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Changer.apply.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "cfg"
   (Lam "trk"
@@ -572,7 +572,7 @@ noncomputable def Changer.apply.impl [FfiSyntax] [GoGlobalContext] : val :=
     majority config.
 
     go: confchange.go:189:18 -/
-noncomputable def Changer.makeVoter.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Changer.makeVoter.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "cfg"
   (Lam "trk"
@@ -646,7 +646,7 @@ noncomputable def Changer.makeVoter.impl [FfiSyntax] [GoGlobalContext] : val :=
     LeaveJoint().
 
     go: confchange.go:221:18 -/
-noncomputable def Changer.makeLearner.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Changer.makeLearner.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "cfg"
   (Lam "trk"
@@ -737,7 +737,7 @@ noncomputable def Changer.makeLearner.impl [FfiSyntax] [GoGlobalContext] : val :
     majority config.
 
     go: confchange.go:255:18 -/
-noncomputable def Changer.makeWitness.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Changer.makeWitness.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "cfg"
   (Lam "trk"
@@ -797,7 +797,7 @@ noncomputable def Changer.makeWitness.impl [FfiSyntax] [GoGlobalContext] : val :
 /-- remove this peer as a voter or learner or witness from the incoming config.
 
     go: confchange.go:281:18 -/
-noncomputable def Changer.remove.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Changer.remove.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "cfg"
   (Lam "trk"
@@ -875,7 +875,7 @@ noncomputable def Changer.remove.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- initProgress initializes a new progress for the given node or learner or witness.
 
     go: confchange.go:300:18 -/
-noncomputable def Changer.initProgress.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Changer.initProgress.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "cfg"
   (Lam "trk"
@@ -928,7 +928,7 @@ noncomputable def Changer.initProgress.impl [FfiSyntax] [GoGlobalContext] : val 
     as well as what it returns.
 
     go: confchange.go:333:6 -/
-noncomputable def checkInvariants.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def checkInvariants.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cfg"
   (Lam "trk"
   (App (Val exceptionDo)
@@ -1157,7 +1157,7 @@ noncomputable def checkInvariants.impl [FfiSyntax] [GoGlobalContext] : val :=
     if checkInvariants does.
 
     go: confchange.go:403:18 -/
-noncomputable def Changer.checkAndCopy.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Changer.checkAndCopy.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1206,7 +1206,7 @@ noncomputable def Changer.checkAndCopy.impl [FfiSyntax] [GoGlobalContext] : val 
     resulting error or the input.
 
     go: confchange.go:417:6 -/
-noncomputable def checkAndReturn.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def checkAndReturn.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cfg"
   (Lam "trk"
   (App (Val exceptionDo)
@@ -1231,7 +1231,7 @@ noncomputable def checkAndReturn.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- err returns zero values and an error.
 
     go: confchange.go:425:18 -/
-noncomputable def Changer.err.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Changer.err.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "err"
   (App (Val exceptionDo)
@@ -1243,7 +1243,7 @@ noncomputable def Changer.err.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- nilAwareAdd populates a map entry, creating the map if necessary.
 
     go: confchange.go:430:6 -/
-noncomputable def nilAwareAdd.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def nilAwareAdd.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "m"
   (Lam "id"
   (App (Val exceptionDo)
@@ -1266,7 +1266,7 @@ noncomputable def nilAwareAdd.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- nilAwareDelete deletes from a map, nil'ing the map itself if it is empty after.
 
     go: confchange.go:438:6 -/
-noncomputable def nilAwareDelete.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def nilAwareDelete.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "m"
   (Lam "id"
   (App (Val exceptionDo)
@@ -1298,7 +1298,7 @@ noncomputable def nilAwareDelete.impl [FfiSyntax] [GoGlobalContext] : val :=
     uint64s, i.e. len( (l - r) \union (r - l)).
 
     go: confchange.go:450:6 -/
-noncomputable def symdiff.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def symdiff.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "l"
   (Lam "r"
   (App (Val exceptionDo)
@@ -1355,7 +1355,7 @@ noncomputable def symdiff.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.ArrayType 2 _root_.Perennial.go_etcd_io.raft.v3.quorum.MajorityConfig.ty))))) (Pair (Var "pairs") (Var "$r0")))))))))))))
 
 /-- go: confchange.go:466:6 -/
-noncomputable def joint.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def joint.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cfg"
   (App (Val exceptionDo)
   (Let "cfg" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.tracker.Config.ty))) (Var "cfg"))
@@ -1365,7 +1365,7 @@ noncomputable def joint.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (FuncResolve go.len [_root_.Perennial.go_etcd_io.raft.v3.quorum.MajorityConfig.ty]))) (Val #())) (Var "$a0"))) (Val #(W64 0))))))))
 
 /-- go: confchange.go:470:6 -/
-noncomputable def incoming.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def incoming.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "voters"
   (App (Val exceptionDo)
   (Let "voters" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty))) (Var "voters"))
@@ -1373,7 +1373,7 @@ noncomputable def incoming.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.MajorityConfig.ty))) (App (Val (GoInstruction (IndexRef _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty))) (Pair (Var "voters") (Val #(W64 0)))))))))
 
 /-- go: confchange.go:471:6 -/
-noncomputable def outgoing.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def outgoing.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "voters"
   (App (Val exceptionDo)
   (Let "voters" (App (Val (GoInstruction (GoAlloc _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty))) (Var "voters"))
@@ -1381,7 +1381,7 @@ noncomputable def outgoing.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoLoad _root_.Perennial.go_etcd_io.raft.v3.quorum.MajorityConfig.ty))) (App (Val (GoInstruction (IndexRef _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty))) (Pair (Var "voters") (Val #(W64 1)))))))))
 
 /-- go: confchange.go:472:6 -/
-noncomputable def outgoingPtr.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def outgoingPtr.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "voters"
   (App (Val exceptionDo)
   (Let "voters" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.quorum.JointConfig.ty)))) (Var "voters"))
@@ -1392,7 +1392,7 @@ noncomputable def outgoingPtr.impl [FfiSyntax] [GoGlobalContext] : val :=
     space-delimited string.
 
     go: confchange.go:476:6 -/
-noncomputable def Describe.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Describe.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ccs"
   (App (Val exceptionDo)
   (Let "ccs" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty))))) (Var "ccs"))
@@ -1432,7 +1432,7 @@ noncomputable def Describe.impl [FfiSyntax] [GoGlobalContext] : val :=
     ConfState.
 
     go: restore.go:26:6 -/
-noncomputable def toConfChangeSingle.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def toConfChangeSingle.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cs"
   (App (Val exceptionDo)
   (Let "in" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.ConfChangeSingle.ty))))) (Val #())))
@@ -1560,7 +1560,7 @@ noncomputable def toConfChangeSingle.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "id") (Var "$value"))))))))))))))))
 
 /-- go: restore.go:114:6 -/
-noncomputable def chain.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def chain.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "chg"
   (Lam "ops"
   (App (Val exceptionDo)
@@ -1624,7 +1624,7 @@ noncomputable def chain.impl [FfiSyntax] [GoGlobalContext] : val :=
     the results from that alone.
 
     go: restore.go:134:6 -/
-noncomputable def Restore.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Restore.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "chg"
   (Lam "cs"
   (App (Val exceptionDo)
@@ -1741,7 +1741,7 @@ noncomputable def Restore.impl [FfiSyntax] [GoGlobalContext] : val :=
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.raft.v3.confchange where
   pkgImportedPkgs := [pkg_id.errors, pkg_id.fmt, pkg_id.strings, pkg_id.go_etcd_io.raft.v3.quorum, pkg_id.go_etcd_io.raft.v3.raftpb, pkg_id.go_etcd_io.raft.v3.tracker]
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.raft.v3.confchange)) (Lam BAnon
   (App (Val exceptionDo)
@@ -1763,29 +1763,29 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.raft.v3.tracker.initialize') (Val #()))))))))
 
-structure Changer [FfiSyntax] where
+structure Changer [GooseExts] where
   mk ::
   Tracker' : _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressTracker
   LastIndex' : w64
 
-noncomputable instance Changer.zero_val [FfiSyntax] : ZeroVal Changer :=
+noncomputable instance Changer.zero_val [GooseExts] : ZeroVal Changer :=
   ⟨Changer.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Changer.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Changer.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Tracker" _root_.Perennial.go_etcd_io.raft.v3.tracker.ProgressTracker.ty),
 (go.field_decl.FieldDecl go!"LastIndex" go.uint64)]
 
-@[irreducible] noncomputable def Changer.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Changer.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Changer.fieldsUnsealed
 
-noncomputable instance equals_unfold_Changer [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Changer [GooseExts] [GoGlobalContext] :
     EqualsUnfold Changer.fields Changer.fieldsUnsealed :=
   ⟨by unfold Changer.fields; rfl⟩
 
-@[reducible] noncomputable def Changer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Changer.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Changer.fields)
 
-class Changer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Changer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Changer.underlying Changer
   underlying : go.UnderlyingDirectedEq Changer.ty Changer.underlying
   get_Tracker : ∀ (x : Changer), go.IsGoStepPureDetTagged under (StructFieldGet Changer.underlying go!"Tracker") #x (Val #(x.Tracker'))
@@ -1855,7 +1855,7 @@ attribute [instance] Changer.TypeAssumptions.type_repr
   Changer.TypeAssumptions.ptr_makeWitness_unfold
   Changer.TypeAssumptions.ptr_remove_unfold
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Changer_instance : Changer.TypeAssumptions
   checkInvariants_unfold : FuncUnfold checkInvariants [] checkInvariants.impl
   checkAndReturn_unfold : FuncUnfold checkAndReturn [] checkAndReturn.impl

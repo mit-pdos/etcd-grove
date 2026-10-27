@@ -53,7 +53,7 @@ open go_etcd_io.raft.v3
 `GetData()`, `GetSubterm()` of a `*pb.Entry` return (a nil field reads as zero). The subterm
 (2026-10-19, witness support, `notes/raft-witness.md`) is the leader's subterm when it
 appended the entry; `0` in a cluster without a witness. -/
-structure EntryM [FfiSyntax] where
+structure EntryM [GooseExts] where
   mk ::
   Term' : w64
   Index' : w64
@@ -61,12 +61,12 @@ structure EntryM [FfiSyntax] where
   Data' : List w8
   Subterm' : w64
 
-instance EntryM.zero_val [FfiSyntax] : ZeroVal EntryM :=
+instance EntryM.zero_val [GooseExts] : ZeroVal EntryM :=
   ⟨EntryM.mk zeroValDef zeroValDef zeroValDef [] zeroValDef⟩
 
 /-- A message's scalar fields as the model sees them: what `GetType()`, `GetTo()`, ...,
 `GetRejectHint()` of a `*pb.Message` return. -/
-structure MessageM [FfiSyntax] where
+structure MessageM [GooseExts] where
   mk ::
   Type' : raftpb.MessageType
   To' : w64
@@ -79,18 +79,18 @@ structure MessageM [FfiSyntax] where
   Reject' : Bool
   RejectHint' : w64
 
-instance MessageM.zero_val [FfiSyntax] : ZeroVal MessageM :=
+instance MessageM.zero_val [GooseExts] : ZeroVal MessageM :=
   ⟨MessageM.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef
     zeroValDef zeroValDef zeroValDef⟩
 
 /-- One conf change as the model sees it: `GetType()`, `GetNodeId()` of a
 `*pb.ConfChangeSingle`. -/
-structure ConfChangeSingleM [FfiSyntax] where
+structure ConfChangeSingleM [GooseExts] where
   mk ::
   Type' : raftpb.ConfChangeType
   NodeId' : w64
 
-instance ConfChangeSingleM.zero_val [FfiSyntax] : ZeroVal ConfChangeSingleM :=
+instance ConfChangeSingleM.zero_val [GooseExts] : ZeroVal ConfChangeSingleM :=
   ⟨ConfChangeSingleM.mk zeroValDef zeroValDef⟩
 
 /-- A conf state as the model sees it: `GetVoters()`, `GetLearners()`, `GetVotersOutgoing()`,
@@ -116,7 +116,7 @@ structure SnapshotMetadataM where
   Index' : w64
   Term' : w64
 
-instance SnapshotMetadataM.zero_val [FfiSyntax] : ZeroVal SnapshotMetadataM :=
+instance SnapshotMetadataM.zero_val [GooseExts] : ZeroVal SnapshotMetadataM :=
   ⟨SnapshotMetadataM.mk (ConfStateM.mk [] [] [] [] false (W64 0)) zeroValDef zeroValDef⟩
 
 /-- A snapshot as the model sees it: `GetData()` (the bytes) and `GetMetadata()` (a nil one
@@ -126,7 +126,7 @@ structure SnapshotM where
   Data' : List w8
   Metadata' : SnapshotMetadataM
 
-instance SnapshotM.zero_val [FfiSyntax] : ZeroVal SnapshotM :=
+instance SnapshotM.zero_val [GooseExts] : ZeroVal SnapshotM :=
   ⟨SnapshotM.mk [] (SnapshotMetadataM.mk (ConfStateM.mk [] [] [] [] false (W64 0)) zeroValDef zeroValDef)⟩
 
 /-- A hard state as the model sees it: `GetTerm()`, `GetVote()`, `GetCommit()` of a
@@ -137,7 +137,7 @@ structure HardStateM where
   Vote' : w64
   Commit' : w64
 
-instance HardStateM.zero_val [FfiSyntax] : ZeroVal HardStateM :=
+instance HardStateM.zero_val [GooseExts] : ZeroVal HardStateM :=
   ⟨HardStateM.mk zeroValDef zeroValDef zeroValDef⟩
 
 /-- A read state as the model sees it (D6, stage R4): the Go struct `raft.ReadState`'s `Index`
@@ -148,7 +148,7 @@ structure ReadStateM where
   Index' : w64
   RequestCtx' : List w8
 
-instance ReadStateM.zero_val [FfiSyntax] : ZeroVal ReadStateM :=
+instance ReadStateM.zero_val [GooseExts] : ZeroVal ReadStateM :=
   ⟨ReadStateM.mk zeroValDef []⟩
 
 end EtcdGrove

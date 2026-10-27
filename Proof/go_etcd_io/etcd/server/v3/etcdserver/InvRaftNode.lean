@@ -61,7 +61,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io
 -- `EntryModel`'s countable instance: `InvRaftpb.lean` (2026-10-14, unit T1).
 
 section countable
-variable [FfiSyntax]
+variable [GooseExts]
 
 -- `Ready`'s countable instance: raft's (`InvNode.ready_countable`; the server's own went with
 -- stage R7b, the file importing raft's node layer).
@@ -83,7 +83,7 @@ ghost name (`memStorReg`, raft's `MemstorageInstance.lean`: the registry is a cl
 layer builds the instance from it, `letI : MemStorReg GF := ⟨γ.reg⟩`, so that no section of the
 server needs the class); `applyc`'s SPSC names and the mono-list `cum` of the log forwarded after
 each payload; the broadcast channel `done`. -/
-structure RNNames [FfiSyntax] where
+structure RNNames [GooseExts] where
   node : NodeNames
   id : w64
   nl : Loc
@@ -97,15 +97,15 @@ structure RNNames [FfiSyntax] where
 
 /-- Raft's full committed log holding the server's `L` after its start (`srvLogOf`, by the
 wrapper's names). -/
-def rnLogOf [FfiSyntax] (γ : RNNames) (L : List EntryModel) : List EntryM :=
+def rnLogOf [GooseExts] (γ : RNNames) (L : List EntryModel) : List EntryM :=
   (γ.pre ++ L).map EntryModel.toM
 
-theorem rnLogOf_append [FfiSyntax] (γ : RNNames) (A B : List EntryModel) :
+theorem rnLogOf_append [GooseExts] (γ : RNNames) (A B : List EntryModel) :
     rnLogOf γ (A ++ B) = rnLogOf γ A ++ B.map EntryModel.toM := by
   simp [rnLogOf]
 
 section addrs
-variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
 abbrev rnLgAddr (r : Loc) : Loc := structFieldRef raftNode go!"lg" r
 abbrev rnTickMuAddr (r : Loc) : Loc := structFieldRef raftNode go!"tickMu" r
@@ -132,7 +132,7 @@ abbrev rnDoneAddr (r : Loc) : Loc := structFieldRef raftNode go!"done" r
 end addrs
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -883,7 +883,7 @@ theorem rnRtOk_of_hsWit (γ : RNNames) (t : w64) (p' : HardStateM) (n : Nat)
       iframe Hcw; ipureintro; exact Hn
 
 /-- (D43 M3, 2026-10-25) A batch has a `ConfChange` entry (raft.go's `confChanged` scan). -/
-def ccIn [FfiSyntax] (ce : List EntryModel) : Bool := ce.any (fun m => decide (m.typ = W32 1))
+def ccIn [GooseExts] (ce : List EntryModel) : Bool := ce.any (fun m => decide (m.typ = W32 1))
 
 /-- (D43 M3) The driver's view goes to the apply thread with the batch `ce`: raft's dynamic mode
 and a conf entry in it (the apply thread applies it; the second `notifyc` send brings the view

@@ -16,11 +16,11 @@ open Iris Iris.BI go_etcd_io.raft.v3
 
 /-- The heartbeat `sendHeartbeatToWitness` queues: from `id` to `to` at the term `tm`, with the
 context `cl`. Its protocol reading (`wAbs`) is a plain heartbeat with commit `0`. -/
-def whbMsg [FfiSyntax] (id to tm : w64) (cl : List w8) : WMsg :=
+def whbMsg [GooseExts] (id to tm : w64) (cl : List w8) : WMsg :=
   ⟨MsgHeartbeat, id, to, tm, W64 0, W64 0, W64 0, [], [], ∅, cl⟩
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]

@@ -35,10 +35,10 @@ open Iris Iris.BI
 
 /-- **The path of the database snapshot of index `id`** of the snapshotter `ss` (opaque; see the
 file header). -/
-opaque snapDBPath [FfiSyntax] (ss : Loc) (id : w64) : GoString
+opaque snapDBPath [GooseExts] (ss : Loc) (id : w64) : GoString
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

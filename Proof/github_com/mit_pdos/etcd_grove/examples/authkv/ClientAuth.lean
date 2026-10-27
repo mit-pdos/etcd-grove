@@ -81,7 +81,7 @@ theorem tokIssued_badToken {GF : BundledGFunctors} [AllG GF] (γa : auth.AuthNam
 /-! ## The contract over the contexts' metadata (C1, C2, C4) -/
 
 section contract
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -104,7 +104,7 @@ theorem trimPrefix_badToken : strings.trimPrefix badToken go!"Bearer " = badToke
 
 /-- The token of a handler context delivering outgoing metadata whose token values are
 `[badtoken]`. -/
-theorem ctxTokenOf_bad [FfiSyntax] (c h : GoInterface) (hd : deliversOutgoing c h)
+theorem ctxTokenOf_bad [GooseExts] (c h : GoInterface) (hd : deliversOutgoing c h)
     (ht : metadata.mdVals (metadata.outgoingOf c) go!"token" = [badToken]) :
     auth.ctxTokenOf h = some badToken := by
   unfold auth.ctxTokenOf
@@ -124,7 +124,7 @@ theorem ctxTokenOf_bad [FfiSyntax] (c h : GoInterface) (hd : deliversOutgoing c 
       simp only [hm, trimPrefix_badToken]
 
 section bound
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

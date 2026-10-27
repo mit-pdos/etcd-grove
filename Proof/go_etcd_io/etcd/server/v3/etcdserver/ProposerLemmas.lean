@@ -25,7 +25,7 @@ theorem idClusterN_mintN : (↑idClusterN : CoPset) ⊆ ⊤ \ ↑srvMintN :=
   mask_ndot_ne' nroot "idutil_cluster" "server_mint" (by decide)
 
 section lemmas
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -97,7 +97,7 @@ theorem srv_claim_mint (ρ : ReqNames) (E : apply.AEnv GF) (g : Loc) (id : w64) 
 end lemmas
 
 section heap
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

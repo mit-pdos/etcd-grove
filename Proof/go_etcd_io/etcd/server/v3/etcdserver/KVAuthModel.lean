@@ -61,7 +61,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode Iris.Std go_etcd_io.etcd.server.v3.etcdserver
 
 section pure
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-! ## The admin entries' step -/
 
@@ -304,7 +304,7 @@ end pure
 /-! ## The mode-`on` log premises -/
 
 section pure2
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- **An entry of the mode-`on` log**: a normal entry with data decodes to a plain request of the
 proposers' kinds (today's `plainReq`, D44) or an admitted admin request (`apply.adminKindOk`). -/
@@ -391,7 +391,7 @@ theorem entryShapeOn_of_entryShape (m : EntryModel) (h : entryShape m) :
 end pure2
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -461,7 +461,7 @@ instance kvInvM_persistent (on : Bool) (γ : ServerRaftNames) (γk : KVNames)
 end defs
 
 section lemmas
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

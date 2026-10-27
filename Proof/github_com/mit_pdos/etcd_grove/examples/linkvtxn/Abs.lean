@@ -28,7 +28,7 @@ open github_com.mit_pdos.etcd_grove.examples.linkvtxn
 open Classical
 
 section go
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-! ## The abstraction -/
 

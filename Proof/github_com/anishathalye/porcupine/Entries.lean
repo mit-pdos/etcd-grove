@@ -28,7 +28,7 @@ namespace github_com.anishathalye.porcupine
 open Theory
 
 section entries
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- `byTime.Less` on two entries (see the file header). -/
 def entryLt (a b : entry) : Bool :=

@@ -53,7 +53,7 @@ def ciJ (c c₀ ai : w64) : Prop :=
   c = c₀ ∨ (uint.Z c₀ ≤ uint.Z ai ∧ uint.Z c ≤ uint.Z ai)
 
 /-- A batch after the log `A`: its indices are above `ai₀ + |A|`. -/
-theorem srvIdxOk_batch_above [FfiSyntax] (ai₀ ai : w64) (A B : List EntryModel) (h : srvIdxOk ai₀ (A ++ B))
+theorem srvIdxOk_batch_above [GooseExts] (ai₀ ai : w64) (A B : List EntryModel) (h : srvIdxOk ai₀ (A ++ B))
     (hai : uint.Z ai = uint.Z ai₀ + A.length) :
     ∀ m ∈ B, uint.Z ai < uint.Z m.index := by
   intro m hm
@@ -63,7 +63,7 @@ theorem srvIdxOk_batch_above [FfiSyntax] (ai₀ ai : w64) (A B : List EntryModel
   omega
 
 /-- A non-empty batch after the log `A` counts up from `ai + 1` (`entriesFrom`). -/
-theorem srvIdxOk_batch_from [FfiSyntax] (ai₀ ai : w64) (A B : List EntryModel) (h : srvIdxOk ai₀ (A ++ B))
+theorem srvIdxOk_batch_from [GooseExts] (ai₀ ai : w64) (A B : List EntryModel) (h : srvIdxOk ai₀ (A ++ B))
     (hai : uint.Z ai = uint.Z ai₀ + A.length) (hne : B ≠ []) :
     entriesFrom (ai + 1) B ∧ uint.Z (ai + 1) = uint.Z ai + 1 := by
   have h1 : uint.Z ai₀ + 1 + (A.length : Int) + (B.length : Int) < 2 ^ 64 := by
@@ -85,7 +85,7 @@ theorem srvIdxOk_batch_from [FfiSyntax] (ai₀ ai : w64) (A B : List EntryModel)
   exact ⟨e3, this.2⟩
 
 /-- The applied index after a non-empty batch: its last index. -/
-theorem srvIdxOk_batch_last [FfiSyntax] (ai₀ ai : w64) (A B : List EntryModel) (h : srvIdxOk ai₀ (A ++ B))
+theorem srvIdxOk_batch_last [GooseExts] (ai₀ ai : w64) (A B : List EntryModel) (h : srvIdxOk ai₀ (A ++ B))
     (hai : uint.Z ai = uint.Z ai₀ + A.length) :
     max (uint.Z ai) (((B.getLast?).map (fun m => uint.Z m.index)).getD 0) =
       uint.Z ai₀ + (A ++ B).length := by
@@ -166,7 +166,7 @@ theorem ciJ_step (c c' c₀ ai ai' : w64) (hJ : ciJ c c₀ ai) (hle : uint.Z ai 
 /-! ## The server's `E.C` and the apply thread's resources -/
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

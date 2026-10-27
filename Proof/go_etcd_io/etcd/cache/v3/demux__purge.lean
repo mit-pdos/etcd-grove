@@ -81,7 +81,7 @@ theorem demuxPurge_final {views vs1 vs2 : GMap Loc View} {k1 k2 : List Loc}
     · rw [h2.1 w hw2, hdom1]
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

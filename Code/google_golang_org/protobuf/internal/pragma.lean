@@ -21,22 +21,22 @@ end pkg_id
 
 namespace google_golang_org.protobuf.internal.pragma
 
-noncomputable def NoUnkeyedLiterals.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def NoUnkeyedLiterals.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/pragma.NoUnkeyedLiterals" [])
 
 attribute [irreducible] NoUnkeyedLiterals.ty
 
-noncomputable def DoNotImplement.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DoNotImplement.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/pragma.DoNotImplement" [])
 
 attribute [irreducible] DoNotImplement.ty
 
-noncomputable def DoNotCompare.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DoNotCompare.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/pragma.DoNotCompare" [])
 
 attribute [irreducible] DoNotCompare.ty
 
-noncomputable def DoNotCopy.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DoNotCopy.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/protobuf/internal/pragma.DoNotCopy" [])
 
 attribute [irreducible] DoNotCopy.ty
@@ -44,72 +44,72 @@ attribute [irreducible] DoNotCopy.ty
 noncomputable instance info' : PkgInfo pkg_id.google_golang_org.protobuf.internal.pragma where
   pkgImportedPkgs := [pkg_id.sync]
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.google_golang_org.protobuf.internal.pragma)) (Lam BAnon
   (App (Val exceptionDo)
   (App (Val doExecute)
   (App (Val _root_.Perennial.sync.initialize') (Val #())))))))
 
-structure NoUnkeyedLiterals [FfiSyntax] where
+structure NoUnkeyedLiterals [GooseExts] where
   mk ::
 
-noncomputable instance NoUnkeyedLiterals.zero_val [FfiSyntax] : ZeroVal NoUnkeyedLiterals :=
+noncomputable instance NoUnkeyedLiterals.zero_val [GooseExts] : ZeroVal NoUnkeyedLiterals :=
   ⟨NoUnkeyedLiterals.mk⟩
 
-@[reducible] noncomputable def NoUnkeyedLiterals.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def NoUnkeyedLiterals.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   []
 
-@[irreducible] noncomputable def NoUnkeyedLiterals.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def NoUnkeyedLiterals.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   NoUnkeyedLiterals.fieldsUnsealed
 
-noncomputable instance equals_unfold_NoUnkeyedLiterals [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_NoUnkeyedLiterals [GooseExts] [GoGlobalContext] :
     EqualsUnfold NoUnkeyedLiterals.fields NoUnkeyedLiterals.fieldsUnsealed :=
   ⟨by unfold NoUnkeyedLiterals.fields; rfl⟩
 
-@[reducible] noncomputable def NoUnkeyedLiterals.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def NoUnkeyedLiterals.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType NoUnkeyedLiterals.fields)
 
-class NoUnkeyedLiterals.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class NoUnkeyedLiterals.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying NoUnkeyedLiterals.underlying NoUnkeyedLiterals
   underlying : go.UnderlyingDirectedEq NoUnkeyedLiterals.ty NoUnkeyedLiterals.underlying
 
 attribute [instance] NoUnkeyedLiterals.TypeAssumptions.type_repr
   NoUnkeyedLiterals.TypeAssumptions.underlying
 
-abbrev DoNotImplement [FfiSyntax] : Type := GoInterface
+abbrev DoNotImplement [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def DoNotImplement.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def DoNotImplement.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"ProtoInternal" (go.signature.Signature [DoNotImplement.ty] false []))])
 
-class DoNotImplement.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DoNotImplement.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq DoNotImplement.ty DoNotImplement.underlying
 
 attribute [instance] DoNotImplement.TypeAssumptions.underlying
 
-abbrev DoNotCompare [FfiSyntax] : Type := (GoArray GoFunc 0)
+abbrev DoNotCompare [GooseExts] : Type := (GoArray GoFunc 0)
 
-@[reducible] noncomputable def DoNotCompare.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def DoNotCompare.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.ArrayType 0 (go.GoType.FunctionType (go.signature.Signature [] false [])))
 
-class DoNotCompare.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DoNotCompare.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq DoNotCompare.ty DoNotCompare.underlying
 
 attribute [instance] DoNotCompare.TypeAssumptions.underlying
 
-abbrev DoNotCopy [FfiSyntax] : Type := (GoArray _root_.Perennial.sync.Mutex 0)
+abbrev DoNotCopy [GooseExts] : Type := (GoArray _root_.Perennial.sync.Mutex 0)
 
-@[reducible] noncomputable def DoNotCopy.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def DoNotCopy.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.ArrayType 0 _root_.Perennial.sync.Mutex.ty)
 
-class DoNotCopy.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DoNotCopy.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq DoNotCopy.ty DoNotCopy.underlying
 
 attribute [instance] DoNotCopy.TypeAssumptions.underlying
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   NoUnkeyedLiterals_instance : NoUnkeyedLiterals.TypeAssumptions
   DoNotImplement_instance : DoNotImplement.TypeAssumptions
   DoNotCompare_instance : DoNotCompare.TypeAssumptions

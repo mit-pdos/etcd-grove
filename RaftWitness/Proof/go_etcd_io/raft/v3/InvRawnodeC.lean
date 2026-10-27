@@ -36,7 +36,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 section rawnodeC
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
@@ -88,7 +88,7 @@ end rawnodeC
 /-! ## The scope of a configuration-changing `ApplyConfChange` -/
 
 section model
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- A change that `applyConfChange` carries out (no `confchange` error, no undefined
 transition: `ccApplyM` answers) at a node with the voters `cfg` and any learners `lrn`

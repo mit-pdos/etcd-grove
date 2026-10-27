@@ -44,7 +44,7 @@ namespace github_com.anishathalye.porcupine
 open Theory
 
 section defs
-variable [ext : FfiSyntax]
+variable [GooseExts]
 variable {σ : Type}
 
 /-- The node of `l[p]`, `nil` past the end. -/
@@ -156,7 +156,7 @@ theorem sdiv_two (l : w64) (k : Nat) (h1 : sint.Z l = 2 * (k : Int)) (hk : (k : 
 end defs
 
 section heap
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [NaInvG GF]
 variable [sem : go.Semantics]

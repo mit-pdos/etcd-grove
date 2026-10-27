@@ -19,7 +19,7 @@ namespace EtcdGrove
 open Iris Iris.BI
 
 section addrs
-variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
 /-- A field of the membership backend `*membershipBackend` `mb`. -/
 abbrev schema.mbF (n : GoString) (mb : Loc) : Loc :=
@@ -28,7 +28,7 @@ abbrev schema.mbF (n : GoString) (mb : Loc) : Loc :=
 end addrs
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

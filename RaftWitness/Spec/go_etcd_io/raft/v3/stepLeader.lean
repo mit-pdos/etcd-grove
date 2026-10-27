@@ -120,7 +120,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.raft.v3
 
 section results
-variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
 /-- `releasePendingReadIndexMessages`' heartbeats at `s` (2026-10-12): `HeartbeatOk`, each
 with the position after one of the released requests. -/
@@ -311,7 +311,7 @@ def LeaderStepResultC (c : CfgM) (id : w64) (s : NState) (m : MessageM)
 end results
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]

@@ -35,7 +35,7 @@ namespace watchkv
 open go_etcd_io.etcd.server.v3.etcdserver
 
 section pure
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 theorem flatten_map_single {α β : Type _} (l : List α) (f : α → β) :
     (l.map fun a => [f a]).flatten = l.map f := by

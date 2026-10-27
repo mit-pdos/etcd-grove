@@ -65,7 +65,7 @@ open Iris Iris.BI go_etcd_io.etcd.api.v3
 open go_etcd_io.etcd.cache.v3 (backoffOk)
 
 section pure
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- **A plain endpoint** (`host:port`): no `://` in it, and not a unix socket's (`unix:`,
 `unixs:`); `endpoint.translateEndpoint` returns it unchanged, with `CredsOptional`. -/
@@ -87,11 +87,11 @@ end pure
 
 /-- **etcd's resolver `r`, not yet dialed, with the endpoints `eps`** (exclusive; an axiomatized
 predicate; see the file header). -/
-axiom etcdResolverOwn {GF : BundledGFunctors} [FfiSyntax] (r : Loc) (eps : List GoString) :
+axiom etcdResolverOwn {GF : BundledGFunctors} [GooseExts] (r : Loc) (eps : List GoString) :
   IProp GF
 
 section addrs
-variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
 /-- The resolver `r` as grpc's `resolver.Builder`. -/
 abbrev resolverIface (r : Loc) : GoInterface :=
@@ -109,13 +109,13 @@ header): `EtcdManualResolver.Build` sets the manual resolver's initial state to 
 endpoint per endpoint at `endpoint.Interpret(ep)` (`translateEndpoint`'s address: `ep` itself for
 a plain one), with the round-robin service config (each attempt to one of them); its scheme is
 `Schema`. One plain endpoint until 2026-10-21 (`notes/decisions.md` D27). -/
-axiom etcdResolver_grpc {GF : BundledGFunctors} [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+axiom etcdResolver_grpc {GF : BundledGFunctors} [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
     (r : Loc) (eps : List GoString) :
   plainEndpoints eps →
     (etcdResolverOwn (GF := GF) r eps ⊢ grpcResolverAt (resolverIface r) etcdScheme eps)
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

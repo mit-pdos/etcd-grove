@@ -666,7 +666,7 @@ namespace EtcdGrove
 open Iris Iris.BI{(' ' + opens) if opens else ''}
 """)
     out.append(f"""section links
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {{hlc : HasLC}} {{GF : BundledGFunctors}} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -807,7 +807,7 @@ variable [package_sem : {assumptions}]
         out.append(f"""/-! The specs stated at `HeapGS HasLC.hasLC GF`: those using channels, `sync.Once` or
 `context` (Perennial states them there: their invariants need later credits). -/
 section links_hasLC
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {{GF : BundledGFunctors}} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -823,7 +823,7 @@ variable [package_sem : {assumptions}]
         out.append(f"""/-! The results that reach a function specified but not proved yet (a later unit's):
 its spec is a hypothesis (`h_<fn>`) of each of them. -/
 section links_pending
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {{GF : BundledGFunctors}} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

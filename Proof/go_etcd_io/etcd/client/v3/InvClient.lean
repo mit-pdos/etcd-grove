@@ -24,7 +24,7 @@ namespace EtcdGrove
 open Iris Iris.BI
 
 section addrs
-variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
 /-- `&client.lg` (an `atomic.Pointer[zap.Logger]`). -/
 abbrev clientLgAddr (cl : Loc) : Loc :=
@@ -33,7 +33,7 @@ abbrev clientLgAddr (cl : Loc) : Loc :=
 end addrs
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

@@ -33,7 +33,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.apply go_e
 namespace apply
 
 section pure
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- The comparisons' reads as the check saw them. -/
 def cmpsChecked : List CmpModel → List Perm3 → Prop
@@ -197,7 +197,7 @@ end pure
 end apply
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -269,7 +269,7 @@ abbrev apply.authApplierV3.Txn.specL : Prop :=
 end spec
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

@@ -28,361 +28,361 @@ end pkg_id
 
 namespace go_etcd_io.raft.v3.raftpb
 
-noncomputable def ConfChangeI.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ConfChangeI.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/raft/v3/raftpb.ConfChangeI" [])
 
 attribute [irreducible] ConfChangeI.ty
 
-noncomputable def EntryType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EntryType.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/raft/v3/raftpb.EntryType" [])
 
 attribute [irreducible] EntryType.ty
 
-noncomputable def MessageType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def MessageType.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/raft/v3/raftpb.MessageType" [])
 
 attribute [irreducible] MessageType.ty
 
-noncomputable def ConfChangeTransition.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ConfChangeTransition.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/raft/v3/raftpb.ConfChangeTransition" [])
 
 attribute [irreducible] ConfChangeTransition.ty
 
-noncomputable def ConfChangeType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ConfChangeType.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/raft/v3/raftpb.ConfChangeType" [])
 
 attribute [irreducible] ConfChangeType.ty
 
-noncomputable def Entry.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Entry.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/raft/v3/raftpb.Entry" [])
 
 attribute [irreducible] Entry.ty
 
-noncomputable def SnapshotMetadata.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def SnapshotMetadata.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/raft/v3/raftpb.SnapshotMetadata" [])
 
 attribute [irreducible] SnapshotMetadata.ty
 
-noncomputable def Snapshot.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Snapshot.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/raft/v3/raftpb.Snapshot" [])
 
 attribute [irreducible] Snapshot.ty
 
-noncomputable def Message.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Message.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/raft/v3/raftpb.Message" [])
 
 attribute [irreducible] Message.ty
 
-noncomputable def HardState.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def HardState.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/raft/v3/raftpb.HardState" [])
 
 attribute [irreducible] HardState.ty
 
-noncomputable def ConfState.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ConfState.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/raft/v3/raftpb.ConfState" [])
 
 attribute [irreducible] ConfState.ty
 
-noncomputable def ConfChange.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ConfChange.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/raft/v3/raftpb.ConfChange" [])
 
 attribute [irreducible] ConfChange.ty
 
-noncomputable def ConfChangeSingle.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ConfChangeSingle.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/raft/v3/raftpb.ConfChangeSingle" [])
 
 attribute [irreducible] ConfChangeSingle.ty
 
-noncomputable def ConfChangeV2.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ConfChangeV2.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/raft/v3/raftpb.ConfChangeV2" [])
 
 attribute [irreducible] ConfChangeV2.ty
 
-@[reducible] noncomputable def EntryNormal [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def EntryNormal [GooseExts] [GoGlobalContext] : val :=
   #(W32 0)
 
-@[reducible] noncomputable def EntryConfChange [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def EntryConfChange [GooseExts] [GoGlobalContext] : val :=
   #(W32 1)
 
-@[reducible] noncomputable def EntryConfChangeV2 [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def EntryConfChangeV2 [GooseExts] [GoGlobalContext] : val :=
   #(W32 2)
 
-@[reducible] noncomputable def MsgHup [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def MsgHup [GooseExts] [GoGlobalContext] : val :=
   #(W32 0)
 
-@[reducible] noncomputable def MsgBeat [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def MsgBeat [GooseExts] [GoGlobalContext] : val :=
   #(W32 1)
 
-@[reducible] noncomputable def MsgProp [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def MsgProp [GooseExts] [GoGlobalContext] : val :=
   #(W32 2)
 
-@[reducible] noncomputable def MsgApp [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def MsgApp [GooseExts] [GoGlobalContext] : val :=
   #(W32 3)
 
-@[reducible] noncomputable def MsgAppResp [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def MsgAppResp [GooseExts] [GoGlobalContext] : val :=
   #(W32 4)
 
-@[reducible] noncomputable def MsgVote [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def MsgVote [GooseExts] [GoGlobalContext] : val :=
   #(W32 5)
 
-@[reducible] noncomputable def MsgVoteResp [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def MsgVoteResp [GooseExts] [GoGlobalContext] : val :=
   #(W32 6)
 
-@[reducible] noncomputable def MsgSnap [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def MsgSnap [GooseExts] [GoGlobalContext] : val :=
   #(W32 7)
 
-@[reducible] noncomputable def MsgHeartbeat [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def MsgHeartbeat [GooseExts] [GoGlobalContext] : val :=
   #(W32 8)
 
-@[reducible] noncomputable def MsgHeartbeatResp [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def MsgHeartbeatResp [GooseExts] [GoGlobalContext] : val :=
   #(W32 9)
 
-@[reducible] noncomputable def MsgUnreachable [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def MsgUnreachable [GooseExts] [GoGlobalContext] : val :=
   #(W32 10)
 
-@[reducible] noncomputable def MsgSnapStatus [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def MsgSnapStatus [GooseExts] [GoGlobalContext] : val :=
   #(W32 11)
 
-@[reducible] noncomputable def MsgCheckQuorum [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def MsgCheckQuorum [GooseExts] [GoGlobalContext] : val :=
   #(W32 12)
 
-@[reducible] noncomputable def MsgTransferLeader [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def MsgTransferLeader [GooseExts] [GoGlobalContext] : val :=
   #(W32 13)
 
-@[reducible] noncomputable def MsgTimeoutNow [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def MsgTimeoutNow [GooseExts] [GoGlobalContext] : val :=
   #(W32 14)
 
-@[reducible] noncomputable def MsgReadIndex [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def MsgReadIndex [GooseExts] [GoGlobalContext] : val :=
   #(W32 15)
 
-@[reducible] noncomputable def MsgReadIndexResp [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def MsgReadIndexResp [GooseExts] [GoGlobalContext] : val :=
   #(W32 16)
 
-@[reducible] noncomputable def MsgPreVote [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def MsgPreVote [GooseExts] [GoGlobalContext] : val :=
   #(W32 17)
 
-@[reducible] noncomputable def MsgPreVoteResp [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def MsgPreVoteResp [GooseExts] [GoGlobalContext] : val :=
   #(W32 18)
 
-@[reducible] noncomputable def MsgStorageAppend [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def MsgStorageAppend [GooseExts] [GoGlobalContext] : val :=
   #(W32 19)
 
-@[reducible] noncomputable def MsgStorageAppendResp [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def MsgStorageAppendResp [GooseExts] [GoGlobalContext] : val :=
   #(W32 20)
 
-@[reducible] noncomputable def MsgStorageApply [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def MsgStorageApply [GooseExts] [GoGlobalContext] : val :=
   #(W32 21)
 
-@[reducible] noncomputable def MsgStorageApplyResp [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def MsgStorageApplyResp [GooseExts] [GoGlobalContext] : val :=
   #(W32 22)
 
-@[reducible] noncomputable def MsgForgetLeader [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def MsgForgetLeader [GooseExts] [GoGlobalContext] : val :=
   #(W32 23)
 
-@[reducible] noncomputable def ConfChangeTransitionAuto [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def ConfChangeTransitionAuto [GooseExts] [GoGlobalContext] : val :=
   #(W32 0)
 
-@[reducible] noncomputable def ConfChangeTransitionJointImplicit [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def ConfChangeTransitionJointImplicit [GooseExts] [GoGlobalContext] : val :=
   #(W32 1)
 
-@[reducible] noncomputable def ConfChangeTransitionJointExplicit [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def ConfChangeTransitionJointExplicit [GooseExts] [GoGlobalContext] : val :=
   #(W32 2)
 
-@[reducible] noncomputable def ConfChangeAddNode [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def ConfChangeAddNode [GooseExts] [GoGlobalContext] : val :=
   #(W32 0)
 
-@[reducible] noncomputable def ConfChangeRemoveNode [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def ConfChangeRemoveNode [GooseExts] [GoGlobalContext] : val :=
   #(W32 1)
 
-@[reducible] noncomputable def ConfChangeUpdateNode [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def ConfChangeUpdateNode [GooseExts] [GoGlobalContext] : val :=
   #(W32 2)
 
-@[reducible] noncomputable def ConfChangeAddLearnerNode [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def ConfChangeAddLearnerNode [GooseExts] [GoGlobalContext] : val :=
   #(W32 3)
 
-@[reducible] noncomputable def EntryType_EntryNormal [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def EntryType_EntryNormal [GooseExts] [GoGlobalContext] : val :=
   #(W32 0)
 
 /-- corresponds to pb.ConfChange -/
-@[reducible] noncomputable def EntryType_EntryConfChange [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def EntryType_EntryConfChange [GooseExts] [GoGlobalContext] : val :=
   #(W32 1)
 
 /-- corresponds to pb.ConfChangeV2 -/
-@[reducible] noncomputable def EntryType_EntryConfChangeV2 [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def EntryType_EntryConfChangeV2 [GooseExts] [GoGlobalContext] : val :=
   #(W32 2)
 
-@[reducible] noncomputable def MessageType_MsgHup [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def MessageType_MsgHup [GooseExts] [GoGlobalContext] : val :=
   #(W32 0)
 
-@[reducible] noncomputable def MessageType_MsgBeat [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def MessageType_MsgBeat [GooseExts] [GoGlobalContext] : val :=
   #(W32 1)
 
-@[reducible] noncomputable def MessageType_MsgProp [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def MessageType_MsgProp [GooseExts] [GoGlobalContext] : val :=
   #(W32 2)
 
-@[reducible] noncomputable def MessageType_MsgApp [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def MessageType_MsgApp [GooseExts] [GoGlobalContext] : val :=
   #(W32 3)
 
-@[reducible] noncomputable def MessageType_MsgAppResp [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def MessageType_MsgAppResp [GooseExts] [GoGlobalContext] : val :=
   #(W32 4)
 
-@[reducible] noncomputable def MessageType_MsgVote [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def MessageType_MsgVote [GooseExts] [GoGlobalContext] : val :=
   #(W32 5)
 
-@[reducible] noncomputable def MessageType_MsgVoteResp [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def MessageType_MsgVoteResp [GooseExts] [GoGlobalContext] : val :=
   #(W32 6)
 
-@[reducible] noncomputable def MessageType_MsgSnap [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def MessageType_MsgSnap [GooseExts] [GoGlobalContext] : val :=
   #(W32 7)
 
-@[reducible] noncomputable def MessageType_MsgHeartbeat [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def MessageType_MsgHeartbeat [GooseExts] [GoGlobalContext] : val :=
   #(W32 8)
 
-@[reducible] noncomputable def MessageType_MsgHeartbeatResp [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def MessageType_MsgHeartbeatResp [GooseExts] [GoGlobalContext] : val :=
   #(W32 9)
 
-@[reducible] noncomputable def MessageType_MsgUnreachable [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def MessageType_MsgUnreachable [GooseExts] [GoGlobalContext] : val :=
   #(W32 10)
 
-@[reducible] noncomputable def MessageType_MsgSnapStatus [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def MessageType_MsgSnapStatus [GooseExts] [GoGlobalContext] : val :=
   #(W32 11)
 
-@[reducible] noncomputable def MessageType_MsgCheckQuorum [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def MessageType_MsgCheckQuorum [GooseExts] [GoGlobalContext] : val :=
   #(W32 12)
 
-@[reducible] noncomputable def MessageType_MsgTransferLeader [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def MessageType_MsgTransferLeader [GooseExts] [GoGlobalContext] : val :=
   #(W32 13)
 
-@[reducible] noncomputable def MessageType_MsgTimeoutNow [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def MessageType_MsgTimeoutNow [GooseExts] [GoGlobalContext] : val :=
   #(W32 14)
 
-@[reducible] noncomputable def MessageType_MsgReadIndex [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def MessageType_MsgReadIndex [GooseExts] [GoGlobalContext] : val :=
   #(W32 15)
 
-@[reducible] noncomputable def MessageType_MsgReadIndexResp [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def MessageType_MsgReadIndexResp [GooseExts] [GoGlobalContext] : val :=
   #(W32 16)
 
-@[reducible] noncomputable def MessageType_MsgPreVote [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def MessageType_MsgPreVote [GooseExts] [GoGlobalContext] : val :=
   #(W32 17)
 
-@[reducible] noncomputable def MessageType_MsgPreVoteResp [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def MessageType_MsgPreVoteResp [GooseExts] [GoGlobalContext] : val :=
   #(W32 18)
 
-@[reducible] noncomputable def MessageType_MsgStorageAppend [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def MessageType_MsgStorageAppend [GooseExts] [GoGlobalContext] : val :=
   #(W32 19)
 
-@[reducible] noncomputable def MessageType_MsgStorageAppendResp [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def MessageType_MsgStorageAppendResp [GooseExts] [GoGlobalContext] : val :=
   #(W32 20)
 
-@[reducible] noncomputable def MessageType_MsgStorageApply [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def MessageType_MsgStorageApply [GooseExts] [GoGlobalContext] : val :=
   #(W32 21)
 
-@[reducible] noncomputable def MessageType_MsgStorageApplyResp [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def MessageType_MsgStorageApplyResp [GooseExts] [GoGlobalContext] : val :=
   #(W32 22)
 
-@[reducible] noncomputable def MessageType_MsgForgetLeader [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def MessageType_MsgForgetLeader [GooseExts] [GoGlobalContext] : val :=
   #(W32 23)
 
-@[reducible] noncomputable def ConfChangeTransition_ConfChangeTransitionAuto [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def ConfChangeTransition_ConfChangeTransitionAuto [GooseExts] [GoGlobalContext] : val :=
   #(W32 0)
 
-@[reducible] noncomputable def ConfChangeTransition_ConfChangeTransitionJointImplicit [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def ConfChangeTransition_ConfChangeTransitionJointImplicit [GooseExts] [GoGlobalContext] : val :=
   #(W32 1)
 
-@[reducible] noncomputable def ConfChangeTransition_ConfChangeTransitionJointExplicit [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def ConfChangeTransition_ConfChangeTransitionJointExplicit [GooseExts] [GoGlobalContext] : val :=
   #(W32 2)
 
-@[reducible] noncomputable def ConfChangeType_ConfChangeAddNode [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def ConfChangeType_ConfChangeAddNode [GooseExts] [GoGlobalContext] : val :=
   #(W32 0)
 
-@[reducible] noncomputable def ConfChangeType_ConfChangeRemoveNode [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def ConfChangeType_ConfChangeRemoveNode [GooseExts] [GoGlobalContext] : val :=
   #(W32 1)
 
-@[reducible] noncomputable def ConfChangeType_ConfChangeUpdateNode [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def ConfChangeType_ConfChangeUpdateNode [GooseExts] [GoGlobalContext] : val :=
   #(W32 2)
 
-@[reducible] noncomputable def ConfChangeType_ConfChangeAddLearnerNode [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def ConfChangeType_ConfChangeAddLearnerNode [GooseExts] [GoGlobalContext] : val :=
   #(W32 3)
 
-axiom file_raft_proto_rawDesc [FfiSyntax] [GoGlobalContext] : val
+axiom file_raft_proto_rawDesc [GooseExts] [GoGlobalContext] : val
 
-noncomputable def EntryType_name [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def EntryType_name [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3/raftpb.EntryType_name"
 
-noncomputable def EntryType_value [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def EntryType_value [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3/raftpb.EntryType_value"
 
-noncomputable def MessageType_name [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def MessageType_name [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3/raftpb.MessageType_name"
 
-noncomputable def MessageType_value [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def MessageType_value [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3/raftpb.MessageType_value"
 
-noncomputable def ConfChangeTransition_name [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ConfChangeTransition_name [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3/raftpb.ConfChangeTransition_name"
 
-noncomputable def ConfChangeTransition_value [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ConfChangeTransition_value [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3/raftpb.ConfChangeTransition_value"
 
-noncomputable def ConfChangeType_name [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ConfChangeType_name [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3/raftpb.ConfChangeType_name"
 
-noncomputable def ConfChangeType_value [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ConfChangeType_value [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3/raftpb.ConfChangeType_value"
 
-noncomputable def File_raft_proto [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def File_raft_proto [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3/raftpb.File_raft_proto"
 
-noncomputable def file_raft_proto_rawDescOnce [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def file_raft_proto_rawDescOnce [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3/raftpb.file_raft_proto_rawDescOnce"
 
-noncomputable def file_raft_proto_rawDescData [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def file_raft_proto_rawDescData [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3/raftpb.file_raft_proto_rawDescData"
 
-noncomputable def file_raft_proto_enumTypes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def file_raft_proto_enumTypes [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3/raftpb.file_raft_proto_enumTypes"
 
-noncomputable def file_raft_proto_msgTypes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def file_raft_proto_msgTypes [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3/raftpb.file_raft_proto_msgTypes"
 
-noncomputable def file_raft_proto_goTypes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def file_raft_proto_goTypes [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3/raftpb.file_raft_proto_goTypes"
 
-noncomputable def file_raft_proto_depIdxs [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def file_raft_proto_depIdxs [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3/raftpb.file_raft_proto_depIdxs"
 
-noncomputable def MarshalConfChange [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def MarshalConfChange [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3/raftpb.MarshalConfChange"
 
-noncomputable def ConfChangesFromString [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ConfChangesFromString [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3/raftpb.ConfChangesFromString"
 
-noncomputable def ConfChangesToString [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ConfChangesToString [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3/raftpb.ConfChangesToString"
 
-noncomputable def file_raft_proto_rawDescGZIP [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def file_raft_proto_rawDescGZIP [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3/raftpb.file_raft_proto_rawDescGZIP"
 
-noncomputable def init.«0» [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def init.«0» [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3/raftpb.init.0"
 
-noncomputable def file_raft_proto_init [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def file_raft_proto_init [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3/raftpb.file_raft_proto_init"
 
-noncomputable def EnsureConfState [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def EnsureConfState [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3/raftpb.EnsureConfState"
 
-noncomputable def EnsureSnapshotMetadata [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def EnsureSnapshotMetadata [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3/raftpb.EnsureSnapshotMetadata"
 
-noncomputable def EnsureSnapshot [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def EnsureSnapshot [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/raft/v3/raftpb.EnsureSnapshot"
 
 /-- MarshalConfChange calls Marshal on the underlying ConfChange or ConfChangeV2
     and returns the result along with the corresponding EntryType.
 
     go: confchange.go:36:6 -/
-noncomputable def MarshalConfChange.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def MarshalConfChange.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (App (Val exceptionDo)
   (Let "c" (App (Val (GoInstruction (GoAlloc ConfChangeI.ty))) (Var "c"))
@@ -453,7 +453,7 @@ noncomputable def MarshalConfChange.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- AsV2 returns a V2 configuration change carrying out the same operation.
 
     go: confchange.go:58:22 -/
-noncomputable def ConfChange.AsV2.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def ConfChange.AsV2.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -468,7 +468,7 @@ noncomputable def ConfChange.AsV2.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- AsV1 returns the ConfChange and true.
 
     go: confchange.go:69:22 -/
-noncomputable def ConfChange.AsV1.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def ConfChange.AsV1.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -479,7 +479,7 @@ noncomputable def ConfChange.AsV1.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- AsV2 is the identity.
 
     go: confchange.go:74:24 -/
-noncomputable def ConfChangeV2.AsV2.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def ConfChangeV2.AsV2.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -490,7 +490,7 @@ noncomputable def ConfChangeV2.AsV2.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- AsV1 returns nil and false.
 
     go: confchange.go:77:24 -/
-noncomputable def ConfChangeV2.AsV1.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def ConfChangeV2.AsV1.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -505,7 +505,7 @@ noncomputable def ConfChangeV2.AsV1.impl [FfiSyntax] [GoGlobalContext] : val :=
     Joint State will be left automatically.
 
     go: confchange.go:84:24 -/
-noncomputable def ConfChangeV2.EnterJoint.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def ConfChangeV2.EnterJoint.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -547,7 +547,7 @@ noncomputable def ConfChangeV2.EnterJoint.impl [FfiSyntax] [GoGlobalContext] : v
     the Context field.
 
     go: confchange.go:111:24 -/
-noncomputable def ConfChangeV2.LeaveJoint.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def ConfChangeV2.LeaveJoint.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -564,7 +564,7 @@ noncomputable def ConfChangeV2.LeaveJoint.impl [FfiSyntax] [GoGlobalContext] : v
     - un: update n.
 
     go: confchange.go:122:6 -/
-noncomputable def ConfChangesFromString.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def ConfChangesFromString.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (App (Val exceptionDo)
   (Let "s" (App (Val (GoInstruction (GoAlloc go.string))) (Var "s"))
@@ -673,7 +673,7 @@ noncomputable def ConfChangesFromString.impl [FfiSyntax] [GoGlobalContext] : val
 /-- ConfChangesToString is the inverse to ConfChangesFromString.
 
     go: confchange.go:156:6 -/
-noncomputable def ConfChangesToString.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def ConfChangesToString.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ccs"
   (App (Val exceptionDo)
   (Let "ccs" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.PointerType ConfChangeSingle.ty))))) (Var "ccs"))
@@ -732,7 +732,7 @@ noncomputable def ConfChangesToString.impl [FfiSyntax] [GoGlobalContext] : val :
     On mismatch, returns a descriptive error showing the differences.
 
     go: confstate.go:26:22 -/
-noncomputable def ConfState.Equivalent.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def ConfState.Equivalent.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cs"
   (Lam "cs2"
   (App (Val exceptionDo)
@@ -829,7 +829,7 @@ noncomputable def ConfState.Equivalent.impl [FfiSyntax] [GoGlobalContext] : val 
   (Val #())))))))))
 
 /-- go: raft.pb.go:47:20 -/
-noncomputable def EntryType.Enum.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EntryType.Enum.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -847,7 +847,7 @@ noncomputable def EntryType.Enum.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType EntryType.ty)))) (Pair (Var "p") (Var "$r0")))))))))))
 
 /-- go: raft.pb.go:171:22 -/
-noncomputable def MessageType.Enum.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def MessageType.Enum.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -865,7 +865,7 @@ noncomputable def MessageType.Enum.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType MessageType.ty)))) (Pair (Var "p") (Var "$r0")))))))))))
 
 /-- go: raft.pb.go:244:31 -/
-noncomputable def ConfChangeTransition.Enum.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def ConfChangeTransition.Enum.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -883,7 +883,7 @@ noncomputable def ConfChangeTransition.Enum.impl [FfiSyntax] [GoGlobalContext] :
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType ConfChangeTransition.ty)))) (Pair (Var "p") (Var "$r0")))))))))))
 
 /-- go: raft.pb.go:306:25 -/
-noncomputable def ConfChangeType.Enum.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def ConfChangeType.Enum.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -901,7 +901,7 @@ noncomputable def ConfChangeType.Enum.impl [FfiSyntax] [GoGlobalContext] : val :
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType ConfChangeType.ty)))) (Pair (Var "p") (Var "$r0")))))))))))
 
 /-- go: raft.pb.go:364:15 -/
-noncomputable def Entry.ProtoMessage.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Entry.ProtoMessage.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam BAnon
   (App (Val exceptionDo)
@@ -909,7 +909,7 @@ noncomputable def Entry.ProtoMessage.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #())))))
 
 /-- go: raft.pb.go:383:17 -/
-noncomputable def Entry.GetTerm.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Entry.GetTerm.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -924,7 +924,7 @@ noncomputable def Entry.GetTerm.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #()))))))))
 
 /-- go: raft.pb.go:390:17 -/
-noncomputable def Entry.GetIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Entry.GetIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -939,7 +939,7 @@ noncomputable def Entry.GetIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #()))))))))
 
 /-- go: raft.pb.go:397:17 -/
-noncomputable def Entry.GetType.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Entry.GetType.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -954,7 +954,7 @@ noncomputable def Entry.GetType.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #()))))))))
 
 /-- go: raft.pb.go:404:17 -/
-noncomputable def Entry.GetData.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Entry.GetData.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -969,7 +969,7 @@ noncomputable def Entry.GetData.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #()))))))))
 
 /-- go: raft.pb.go:431:26 -/
-noncomputable def SnapshotMetadata.ProtoMessage.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def SnapshotMetadata.ProtoMessage.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam BAnon
   (App (Val exceptionDo)
@@ -977,7 +977,7 @@ noncomputable def SnapshotMetadata.ProtoMessage.impl [FfiSyntax] [GoGlobalContex
   (Val #())))))
 
 /-- go: raft.pb.go:450:28 -/
-noncomputable def SnapshotMetadata.GetConfState.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def SnapshotMetadata.GetConfState.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -992,7 +992,7 @@ noncomputable def SnapshotMetadata.GetConfState.impl [FfiSyntax] [GoGlobalContex
   (Val #()))))))))
 
 /-- go: raft.pb.go:457:28 -/
-noncomputable def SnapshotMetadata.GetIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def SnapshotMetadata.GetIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1007,7 +1007,7 @@ noncomputable def SnapshotMetadata.GetIndex.impl [FfiSyntax] [GoGlobalContext] :
   (Val #()))))))))
 
 /-- go: raft.pb.go:464:28 -/
-noncomputable def SnapshotMetadata.GetTerm.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def SnapshotMetadata.GetTerm.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1022,7 +1022,7 @@ noncomputable def SnapshotMetadata.GetTerm.impl [FfiSyntax] [GoGlobalContext] : 
   (Val #()))))))))
 
 /-- go: raft.pb.go:490:18 -/
-noncomputable def Snapshot.ProtoMessage.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Snapshot.ProtoMessage.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1030,7 +1030,7 @@ noncomputable def Snapshot.ProtoMessage.impl [FfiSyntax] [GoGlobalContext] : val
   (Val #())))))
 
 /-- go: raft.pb.go:509:20 -/
-noncomputable def Snapshot.GetData.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Snapshot.GetData.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1045,7 +1045,7 @@ noncomputable def Snapshot.GetData.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #()))))))))
 
 /-- go: raft.pb.go:516:20 -/
-noncomputable def Snapshot.GetMetadata.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Snapshot.GetMetadata.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1060,7 +1060,7 @@ noncomputable def Snapshot.GetMetadata.impl [FfiSyntax] [GoGlobalContext] : val 
   (Val #()))))))))
 
 /-- go: raft.pb.go:576:17 -/
-noncomputable def Message.ProtoMessage.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Message.ProtoMessage.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1068,7 +1068,7 @@ noncomputable def Message.ProtoMessage.impl [FfiSyntax] [GoGlobalContext] : val 
   (Val #())))))
 
 /-- go: raft.pb.go:595:19 -/
-noncomputable def Message.GetType.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Message.GetType.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1083,7 +1083,7 @@ noncomputable def Message.GetType.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #()))))))))
 
 /-- go: raft.pb.go:602:19 -/
-noncomputable def Message.GetTo.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Message.GetTo.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1098,7 +1098,7 @@ noncomputable def Message.GetTo.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #()))))))))
 
 /-- go: raft.pb.go:609:19 -/
-noncomputable def Message.GetFrom.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Message.GetFrom.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1113,7 +1113,7 @@ noncomputable def Message.GetFrom.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #()))))))))
 
 /-- go: raft.pb.go:616:19 -/
-noncomputable def Message.GetTerm.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Message.GetTerm.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1128,7 +1128,7 @@ noncomputable def Message.GetTerm.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #()))))))))
 
 /-- go: raft.pb.go:623:19 -/
-noncomputable def Message.GetLogTerm.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Message.GetLogTerm.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1143,7 +1143,7 @@ noncomputable def Message.GetLogTerm.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #()))))))))
 
 /-- go: raft.pb.go:630:19 -/
-noncomputable def Message.GetIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Message.GetIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1158,7 +1158,7 @@ noncomputable def Message.GetIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #()))))))))
 
 /-- go: raft.pb.go:637:19 -/
-noncomputable def Message.GetEntries.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Message.GetEntries.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1173,7 +1173,7 @@ noncomputable def Message.GetEntries.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #()))))))))
 
 /-- go: raft.pb.go:644:19 -/
-noncomputable def Message.GetCommit.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Message.GetCommit.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1188,7 +1188,7 @@ noncomputable def Message.GetCommit.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #()))))))))
 
 /-- go: raft.pb.go:651:19 -/
-noncomputable def Message.GetVote.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Message.GetVote.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1203,7 +1203,7 @@ noncomputable def Message.GetVote.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #()))))))))
 
 /-- go: raft.pb.go:658:19 -/
-noncomputable def Message.GetSnapshot.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Message.GetSnapshot.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1218,7 +1218,7 @@ noncomputable def Message.GetSnapshot.impl [FfiSyntax] [GoGlobalContext] : val :
   (Val #()))))))))
 
 /-- go: raft.pb.go:665:19 -/
-noncomputable def Message.GetReject.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Message.GetReject.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1233,7 +1233,7 @@ noncomputable def Message.GetReject.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #()))))))))
 
 /-- go: raft.pb.go:672:19 -/
-noncomputable def Message.GetRejectHint.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Message.GetRejectHint.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1248,7 +1248,7 @@ noncomputable def Message.GetRejectHint.impl [FfiSyntax] [GoGlobalContext] : val
   (Val #()))))))))
 
 /-- go: raft.pb.go:679:19 -/
-noncomputable def Message.GetContext.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Message.GetContext.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1263,7 +1263,7 @@ noncomputable def Message.GetContext.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #()))))))))
 
 /-- go: raft.pb.go:686:19 -/
-noncomputable def Message.GetResponses.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Message.GetResponses.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1278,7 +1278,7 @@ noncomputable def Message.GetResponses.impl [FfiSyntax] [GoGlobalContext] : val 
   (Val #()))))))))
 
 /-- go: raft.pb.go:713:19 -/
-noncomputable def HardState.ProtoMessage.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def HardState.ProtoMessage.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1286,7 +1286,7 @@ noncomputable def HardState.ProtoMessage.impl [FfiSyntax] [GoGlobalContext] : va
   (Val #())))))
 
 /-- go: raft.pb.go:732:21 -/
-noncomputable def HardState.GetTerm.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def HardState.GetTerm.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1301,7 +1301,7 @@ noncomputable def HardState.GetTerm.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #()))))))))
 
 /-- go: raft.pb.go:739:21 -/
-noncomputable def HardState.GetVote.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def HardState.GetVote.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1316,7 +1316,7 @@ noncomputable def HardState.GetVote.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #()))))))))
 
 /-- go: raft.pb.go:746:21 -/
-noncomputable def HardState.GetCommit.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def HardState.GetCommit.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1331,7 +1331,7 @@ noncomputable def HardState.GetCommit.impl [FfiSyntax] [GoGlobalContext] : val :
   (Val #()))))))))
 
 /-- go: raft.pb.go:784:19 -/
-noncomputable def ConfState.ProtoMessage.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def ConfState.ProtoMessage.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1339,7 +1339,7 @@ noncomputable def ConfState.ProtoMessage.impl [FfiSyntax] [GoGlobalContext] : va
   (Val #())))))
 
 /-- go: raft.pb.go:803:21 -/
-noncomputable def ConfState.GetVoters.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def ConfState.GetVoters.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1354,7 +1354,7 @@ noncomputable def ConfState.GetVoters.impl [FfiSyntax] [GoGlobalContext] : val :
   (Val #()))))))))
 
 /-- go: raft.pb.go:810:21 -/
-noncomputable def ConfState.GetLearners.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def ConfState.GetLearners.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1369,7 +1369,7 @@ noncomputable def ConfState.GetLearners.impl [FfiSyntax] [GoGlobalContext] : val
   (Val #()))))))))
 
 /-- go: raft.pb.go:817:21 -/
-noncomputable def ConfState.GetVotersOutgoing.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def ConfState.GetVotersOutgoing.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1384,7 +1384,7 @@ noncomputable def ConfState.GetVotersOutgoing.impl [FfiSyntax] [GoGlobalContext]
   (Val #()))))))))
 
 /-- go: raft.pb.go:824:21 -/
-noncomputable def ConfState.GetLearnersNext.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def ConfState.GetLearnersNext.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1399,7 +1399,7 @@ noncomputable def ConfState.GetLearnersNext.impl [FfiSyntax] [GoGlobalContext] :
   (Val #()))))))))
 
 /-- go: raft.pb.go:831:21 -/
-noncomputable def ConfState.GetAutoLeave.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def ConfState.GetAutoLeave.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1414,7 +1414,7 @@ noncomputable def ConfState.GetAutoLeave.impl [FfiSyntax] [GoGlobalContext] : va
   (Val #()))))))))
 
 /-- go: raft.pb.go:862:20 -/
-noncomputable def ConfChange.ProtoMessage.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def ConfChange.ProtoMessage.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1422,7 +1422,7 @@ noncomputable def ConfChange.ProtoMessage.impl [FfiSyntax] [GoGlobalContext] : v
   (Val #())))))
 
 /-- go: raft.pb.go:881:22 -/
-noncomputable def ConfChange.GetType.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def ConfChange.GetType.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1437,7 +1437,7 @@ noncomputable def ConfChange.GetType.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #()))))))))
 
 /-- go: raft.pb.go:888:22 -/
-noncomputable def ConfChange.GetNodeId.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def ConfChange.GetNodeId.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1452,7 +1452,7 @@ noncomputable def ConfChange.GetNodeId.impl [FfiSyntax] [GoGlobalContext] : val 
   (Val #()))))))))
 
 /-- go: raft.pb.go:895:22 -/
-noncomputable def ConfChange.GetContext.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def ConfChange.GetContext.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1467,7 +1467,7 @@ noncomputable def ConfChange.GetContext.impl [FfiSyntax] [GoGlobalContext] : val
   (Val #()))))))))
 
 /-- go: raft.pb.go:902:22 -/
-noncomputable def ConfChange.GetId.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def ConfChange.GetId.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1482,7 +1482,7 @@ noncomputable def ConfChange.GetId.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #()))))))))
 
 /-- go: raft.pb.go:930:26 -/
-noncomputable def ConfChangeSingle.ProtoMessage.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def ConfChangeSingle.ProtoMessage.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1490,7 +1490,7 @@ noncomputable def ConfChangeSingle.ProtoMessage.impl [FfiSyntax] [GoGlobalContex
   (Val #())))))
 
 /-- go: raft.pb.go:949:28 -/
-noncomputable def ConfChangeSingle.GetType.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def ConfChangeSingle.GetType.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1505,7 +1505,7 @@ noncomputable def ConfChangeSingle.GetType.impl [FfiSyntax] [GoGlobalContext] : 
   (Val #()))))))))
 
 /-- go: raft.pb.go:956:28 -/
-noncomputable def ConfChangeSingle.GetNodeId.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def ConfChangeSingle.GetNodeId.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1520,7 +1520,7 @@ noncomputable def ConfChangeSingle.GetNodeId.impl [FfiSyntax] [GoGlobalContext] 
   (Val #()))))))))
 
 /-- go: raft.pb.go:1015:22 -/
-noncomputable def ConfChangeV2.ProtoMessage.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def ConfChangeV2.ProtoMessage.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1528,7 +1528,7 @@ noncomputable def ConfChangeV2.ProtoMessage.impl [FfiSyntax] [GoGlobalContext] :
   (Val #())))))
 
 /-- go: raft.pb.go:1034:24 -/
-noncomputable def ConfChangeV2.GetTransition.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def ConfChangeV2.GetTransition.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1543,7 +1543,7 @@ noncomputable def ConfChangeV2.GetTransition.impl [FfiSyntax] [GoGlobalContext] 
   (Val #()))))))))
 
 /-- go: raft.pb.go:1041:24 -/
-noncomputable def ConfChangeV2.GetChanges.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def ConfChangeV2.GetChanges.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1558,7 +1558,7 @@ noncomputable def ConfChangeV2.GetChanges.impl [FfiSyntax] [GoGlobalContext] : v
   (Val #()))))))))
 
 /-- go: raft.pb.go:1048:24 -/
-noncomputable def ConfChangeV2.GetContext.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def ConfChangeV2.GetContext.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1577,7 +1577,7 @@ noncomputable def ConfChangeV2.GetContext.impl [FfiSyntax] [GoGlobalContext] : v
     point to its zero value. Returns the resulting cs.
 
     go: util.go:20:6 -/
-noncomputable def EnsureConfState.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EnsureConfState.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "cs"
   (App (Val exceptionDo)
   (Let "cs" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType ConfState.ty)))) (Var "cs"))
@@ -1603,7 +1603,7 @@ noncomputable def EnsureConfState.impl [FfiSyntax] [GoGlobalContext] : val :=
     field is set to point to its zero value. Returns the resulting m.
 
     go: util.go:33:6 -/
-noncomputable def EnsureSnapshotMetadata.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EnsureSnapshotMetadata.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "m"
   (App (Val exceptionDo)
   (Let "m" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType SnapshotMetadata.ty)))) (Var "m"))
@@ -1649,7 +1649,7 @@ noncomputable def EnsureSnapshotMetadata.impl [FfiSyntax] [GoGlobalContext] : va
     point to its zero value. Returns the resulting s.
 
     go: util.go:56:6 -/
-noncomputable def EnsureSnapshot.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def EnsureSnapshot.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (App (Val exceptionDo)
   (Let "s" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Snapshot.ty)))) (Var "s"))
@@ -1679,7 +1679,7 @@ noncomputable def EnsureSnapshot.impl [FfiSyntax] [GoGlobalContext] : val :=
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.raft.v3.raftpb where
   pkgImportedPkgs := [pkg_id.fmt, pkg_id.strconv, pkg_id.strings, pkg_id.google_golang_org.protobuf.proto, pkg_id.slices, pkg_id.google_golang_org.protobuf.reflect.protoreflect, pkg_id.google_golang_org.protobuf.runtime.protoimpl]
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.raft.v3.raftpb)) (Lam BAnon
   (App (Val exceptionDo)
@@ -1948,22 +1948,22 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc file_raft_proto_depIdxs (go.GoType.SliceType go.int32))) (Val #()))))))))
 
-abbrev ConfChangeI [FfiSyntax] : Type := GoInterface
+abbrev ConfChangeI [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def ConfChangeI.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ConfChangeI.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"AsV1" (go.signature.Signature [] false [(go.GoType.PointerType ConfChange.ty), go.bool])), (go.InterfaceElem.MethodElem go!"AsV2" (go.signature.Signature [] false [(go.GoType.PointerType ConfChangeV2.ty)]))])
 
-class ConfChangeI.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ConfChangeI.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ConfChangeI.ty ConfChangeI.underlying
 
 attribute [instance] ConfChangeI.TypeAssumptions.underlying
 
-abbrev EntryType [FfiSyntax] : Type := w32
+abbrev EntryType [GooseExts] : Type := w32
 
-@[reducible] noncomputable def EntryType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def EntryType.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.int32
 
-class EntryType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class EntryType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq EntryType.ty EntryType.underlying
   Enum_unfold : MethodUnfold EntryType.ty go!"Enum" EntryType.Enum.impl
   ptr_Enum_unfold : MethodUnfold (go.GoType.PointerType EntryType.ty) go!"Enum" (LamV "$r"
@@ -1973,12 +1973,12 @@ attribute [instance] EntryType.TypeAssumptions.underlying
   EntryType.TypeAssumptions.Enum_unfold
   EntryType.TypeAssumptions.ptr_Enum_unfold
 
-abbrev MessageType [FfiSyntax] : Type := w32
+abbrev MessageType [GooseExts] : Type := w32
 
-@[reducible] noncomputable def MessageType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def MessageType.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.int32
 
-class MessageType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class MessageType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq MessageType.ty MessageType.underlying
   Enum_unfold : MethodUnfold MessageType.ty go!"Enum" MessageType.Enum.impl
   ptr_Enum_unfold : MethodUnfold (go.GoType.PointerType MessageType.ty) go!"Enum" (LamV "$r"
@@ -1988,12 +1988,12 @@ attribute [instance] MessageType.TypeAssumptions.underlying
   MessageType.TypeAssumptions.Enum_unfold
   MessageType.TypeAssumptions.ptr_Enum_unfold
 
-abbrev ConfChangeTransition [FfiSyntax] : Type := w32
+abbrev ConfChangeTransition [GooseExts] : Type := w32
 
-@[reducible] noncomputable def ConfChangeTransition.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ConfChangeTransition.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.int32
 
-class ConfChangeTransition.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ConfChangeTransition.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ConfChangeTransition.ty ConfChangeTransition.underlying
   Enum_unfold : MethodUnfold ConfChangeTransition.ty go!"Enum" ConfChangeTransition.Enum.impl
   ptr_Enum_unfold : MethodUnfold (go.GoType.PointerType ConfChangeTransition.ty) go!"Enum" (LamV "$r"
@@ -2003,12 +2003,12 @@ attribute [instance] ConfChangeTransition.TypeAssumptions.underlying
   ConfChangeTransition.TypeAssumptions.Enum_unfold
   ConfChangeTransition.TypeAssumptions.ptr_Enum_unfold
 
-abbrev ConfChangeType [FfiSyntax] : Type := w32
+abbrev ConfChangeType [GooseExts] : Type := w32
 
-@[reducible] noncomputable def ConfChangeType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ConfChangeType.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.int32
 
-class ConfChangeType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ConfChangeType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ConfChangeType.ty ConfChangeType.underlying
   Enum_unfold : MethodUnfold ConfChangeType.ty go!"Enum" ConfChangeType.Enum.impl
   ptr_Enum_unfold : MethodUnfold (go.GoType.PointerType ConfChangeType.ty) go!"Enum" (LamV "$r"
@@ -2018,7 +2018,7 @@ attribute [instance] ConfChangeType.TypeAssumptions.underlying
   ConfChangeType.TypeAssumptions.Enum_unfold
   ConfChangeType.TypeAssumptions.ptr_Enum_unfold
 
-structure Entry [FfiSyntax] where
+structure Entry [GooseExts] where
   mk ::
   state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
   Term' : Loc
@@ -2028,10 +2028,10 @@ structure Entry [FfiSyntax] where
   unknownFields' : GoSlice
   sizeCache' : w32
 
-noncomputable instance Entry.zero_val [FfiSyntax] : ZeroVal Entry :=
+noncomputable instance Entry.zero_val [GooseExts] : ZeroVal Entry :=
   ⟨Entry.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Entry.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Entry.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
 (go.field_decl.FieldDecl go!"Term" (go.GoType.PointerType go.uint64)),
 (go.field_decl.FieldDecl go!"Index" (go.GoType.PointerType go.uint64)),
@@ -2040,17 +2040,17 @@ noncomputable instance Entry.zero_val [FfiSyntax] : ZeroVal Entry :=
 (go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
 (go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
 
-@[irreducible] noncomputable def Entry.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Entry.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Entry.fieldsUnsealed
 
-noncomputable instance equals_unfold_Entry [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Entry [GooseExts] [GoGlobalContext] :
     EqualsUnfold Entry.fields Entry.fieldsUnsealed :=
   ⟨by unfold Entry.fields; rfl⟩
 
-@[reducible] noncomputable def Entry.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Entry.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Entry.fields)
 
-class Entry.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Entry.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Entry.underlying Entry
   underlying : go.UnderlyingDirectedEq Entry.ty Entry.underlying
   get_state : ∀ (x : Entry), go.IsGoStepPureDetTagged under (StructFieldGet Entry.underlying go!"state") #x (Val #(x.state'))
@@ -2095,7 +2095,7 @@ attribute [instance] Entry.TypeAssumptions.type_repr
   Entry.TypeAssumptions.ptr_GetType_unfold
   Entry.TypeAssumptions.ptr_ProtoMessage_unfold
 
-structure SnapshotMetadata [FfiSyntax] where
+structure SnapshotMetadata [GooseExts] where
   mk ::
   state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
   ConfState' : Loc
@@ -2104,10 +2104,10 @@ structure SnapshotMetadata [FfiSyntax] where
   unknownFields' : GoSlice
   sizeCache' : w32
 
-noncomputable instance SnapshotMetadata.zero_val [FfiSyntax] : ZeroVal SnapshotMetadata :=
+noncomputable instance SnapshotMetadata.zero_val [GooseExts] : ZeroVal SnapshotMetadata :=
   ⟨SnapshotMetadata.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def SnapshotMetadata.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def SnapshotMetadata.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
 (go.field_decl.FieldDecl go!"ConfState" (go.GoType.PointerType ConfState.ty)),
 (go.field_decl.FieldDecl go!"Index" (go.GoType.PointerType go.uint64)),
@@ -2115,17 +2115,17 @@ noncomputable instance SnapshotMetadata.zero_val [FfiSyntax] : ZeroVal SnapshotM
 (go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
 (go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
 
-@[irreducible] noncomputable def SnapshotMetadata.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def SnapshotMetadata.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   SnapshotMetadata.fieldsUnsealed
 
-noncomputable instance equals_unfold_SnapshotMetadata [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_SnapshotMetadata [GooseExts] [GoGlobalContext] :
     EqualsUnfold SnapshotMetadata.fields SnapshotMetadata.fieldsUnsealed :=
   ⟨by unfold SnapshotMetadata.fields; rfl⟩
 
-@[reducible] noncomputable def SnapshotMetadata.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def SnapshotMetadata.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType SnapshotMetadata.fields)
 
-class SnapshotMetadata.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class SnapshotMetadata.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying SnapshotMetadata.underlying SnapshotMetadata
   underlying : go.UnderlyingDirectedEq SnapshotMetadata.ty SnapshotMetadata.underlying
   get_state : ∀ (x : SnapshotMetadata), go.IsGoStepPureDetTagged under (StructFieldGet SnapshotMetadata.underlying go!"state") #x (Val #(x.state'))
@@ -2164,7 +2164,7 @@ attribute [instance] SnapshotMetadata.TypeAssumptions.type_repr
   SnapshotMetadata.TypeAssumptions.ptr_GetTerm_unfold
   SnapshotMetadata.TypeAssumptions.ptr_ProtoMessage_unfold
 
-structure Snapshot [FfiSyntax] where
+structure Snapshot [GooseExts] where
   mk ::
   state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
   Data' : GoSlice
@@ -2172,27 +2172,27 @@ structure Snapshot [FfiSyntax] where
   unknownFields' : GoSlice
   sizeCache' : w32
 
-noncomputable instance Snapshot.zero_val [FfiSyntax] : ZeroVal Snapshot :=
+noncomputable instance Snapshot.zero_val [GooseExts] : ZeroVal Snapshot :=
   ⟨Snapshot.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Snapshot.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Snapshot.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
 (go.field_decl.FieldDecl go!"Data" (go.GoType.SliceType go.byte)),
 (go.field_decl.FieldDecl go!"Metadata" (go.GoType.PointerType SnapshotMetadata.ty)),
 (go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
 (go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
 
-@[irreducible] noncomputable def Snapshot.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Snapshot.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Snapshot.fieldsUnsealed
 
-noncomputable instance equals_unfold_Snapshot [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Snapshot [GooseExts] [GoGlobalContext] :
     EqualsUnfold Snapshot.fields Snapshot.fieldsUnsealed :=
   ⟨by unfold Snapshot.fields; rfl⟩
 
-@[reducible] noncomputable def Snapshot.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Snapshot.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Snapshot.fields)
 
-class Snapshot.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Snapshot.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Snapshot.underlying Snapshot
   underlying : go.UnderlyingDirectedEq Snapshot.ty Snapshot.underlying
   get_state : ∀ (x : Snapshot), go.IsGoStepPureDetTagged under (StructFieldGet Snapshot.underlying go!"state") #x (Val #(x.state'))
@@ -2225,7 +2225,7 @@ attribute [instance] Snapshot.TypeAssumptions.type_repr
   Snapshot.TypeAssumptions.ptr_GetMetadata_unfold
   Snapshot.TypeAssumptions.ptr_ProtoMessage_unfold
 
-structure Message [FfiSyntax] where
+structure Message [GooseExts] where
   mk ::
   state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
   Type' : Loc
@@ -2245,10 +2245,10 @@ structure Message [FfiSyntax] where
   unknownFields' : GoSlice
   sizeCache' : w32
 
-noncomputable instance Message.zero_val [FfiSyntax] : ZeroVal Message :=
+noncomputable instance Message.zero_val [GooseExts] : ZeroVal Message :=
   ⟨Message.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Message.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Message.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
 (go.field_decl.FieldDecl go!"Type" (go.GoType.PointerType MessageType.ty)),
 (go.field_decl.FieldDecl go!"To" (go.GoType.PointerType go.uint64)),
@@ -2267,17 +2267,17 @@ noncomputable instance Message.zero_val [FfiSyntax] : ZeroVal Message :=
 (go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
 (go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
 
-@[irreducible] noncomputable def Message.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Message.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Message.fieldsUnsealed
 
-noncomputable instance equals_unfold_Message [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Message [GooseExts] [GoGlobalContext] :
     EqualsUnfold Message.fields Message.fieldsUnsealed :=
   ⟨by unfold Message.fields; rfl⟩
 
-@[reducible] noncomputable def Message.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Message.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Message.fields)
 
-class Message.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Message.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Message.underlying Message
   underlying : go.UnderlyingDirectedEq Message.ty Message.underlying
   get_state : ∀ (x : Message), go.IsGoStepPureDetTagged under (StructFieldGet Message.underlying go!"state") #x (Val #(x.state'))
@@ -2382,7 +2382,7 @@ attribute [instance] Message.TypeAssumptions.type_repr
   Message.TypeAssumptions.ptr_GetVote_unfold
   Message.TypeAssumptions.ptr_ProtoMessage_unfold
 
-structure HardState [FfiSyntax] where
+structure HardState [GooseExts] where
   mk ::
   state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
   Term' : Loc
@@ -2391,10 +2391,10 @@ structure HardState [FfiSyntax] where
   unknownFields' : GoSlice
   sizeCache' : w32
 
-noncomputable instance HardState.zero_val [FfiSyntax] : ZeroVal HardState :=
+noncomputable instance HardState.zero_val [GooseExts] : ZeroVal HardState :=
   ⟨HardState.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def HardState.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def HardState.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
 (go.field_decl.FieldDecl go!"Term" (go.GoType.PointerType go.uint64)),
 (go.field_decl.FieldDecl go!"Vote" (go.GoType.PointerType go.uint64)),
@@ -2402,17 +2402,17 @@ noncomputable instance HardState.zero_val [FfiSyntax] : ZeroVal HardState :=
 (go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
 (go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
 
-@[irreducible] noncomputable def HardState.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def HardState.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   HardState.fieldsUnsealed
 
-noncomputable instance equals_unfold_HardState [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_HardState [GooseExts] [GoGlobalContext] :
     EqualsUnfold HardState.fields HardState.fieldsUnsealed :=
   ⟨by unfold HardState.fields; rfl⟩
 
-@[reducible] noncomputable def HardState.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def HardState.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType HardState.fields)
 
-class HardState.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class HardState.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying HardState.underlying HardState
   underlying : go.UnderlyingDirectedEq HardState.ty HardState.underlying
   get_state : ∀ (x : HardState), go.IsGoStepPureDetTagged under (StructFieldGet HardState.underlying go!"state") #x (Val #(x.state'))
@@ -2451,7 +2451,7 @@ attribute [instance] HardState.TypeAssumptions.type_repr
   HardState.TypeAssumptions.ptr_GetVote_unfold
   HardState.TypeAssumptions.ptr_ProtoMessage_unfold
 
-structure ConfState [FfiSyntax] where
+structure ConfState [GooseExts] where
   mk ::
   state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
   Voters' : GoSlice
@@ -2462,10 +2462,10 @@ structure ConfState [FfiSyntax] where
   unknownFields' : GoSlice
   sizeCache' : w32
 
-noncomputable instance ConfState.zero_val [FfiSyntax] : ZeroVal ConfState :=
+noncomputable instance ConfState.zero_val [GooseExts] : ZeroVal ConfState :=
   ⟨ConfState.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ConfState.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ConfState.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
 (go.field_decl.FieldDecl go!"Voters" (go.GoType.SliceType go.uint64)),
 (go.field_decl.FieldDecl go!"Learners" (go.GoType.SliceType go.uint64)),
@@ -2475,17 +2475,17 @@ noncomputable instance ConfState.zero_val [FfiSyntax] : ZeroVal ConfState :=
 (go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
 (go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
 
-@[irreducible] noncomputable def ConfState.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ConfState.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ConfState.fieldsUnsealed
 
-noncomputable instance equals_unfold_ConfState [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ConfState [GooseExts] [GoGlobalContext] :
     EqualsUnfold ConfState.fields ConfState.fieldsUnsealed :=
   ⟨by unfold ConfState.fields; rfl⟩
 
-@[reducible] noncomputable def ConfState.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ConfState.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ConfState.fields)
 
-class ConfState.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ConfState.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ConfState.underlying ConfState
   underlying : go.UnderlyingDirectedEq ConfState.ty ConfState.underlying
   get_state : ∀ (x : ConfState), go.IsGoStepPureDetTagged under (StructFieldGet ConfState.underlying go!"state") #x (Val #(x.state'))
@@ -2538,7 +2538,7 @@ attribute [instance] ConfState.TypeAssumptions.type_repr
   ConfState.TypeAssumptions.ptr_GetVotersOutgoing_unfold
   ConfState.TypeAssumptions.ptr_ProtoMessage_unfold
 
-structure ConfChange [FfiSyntax] where
+structure ConfChange [GooseExts] where
   mk ::
   state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
   Type' : Loc
@@ -2548,10 +2548,10 @@ structure ConfChange [FfiSyntax] where
   unknownFields' : GoSlice
   sizeCache' : w32
 
-noncomputable instance ConfChange.zero_val [FfiSyntax] : ZeroVal ConfChange :=
+noncomputable instance ConfChange.zero_val [GooseExts] : ZeroVal ConfChange :=
   ⟨ConfChange.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ConfChange.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ConfChange.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
 (go.field_decl.FieldDecl go!"Type" (go.GoType.PointerType ConfChangeType.ty)),
 (go.field_decl.FieldDecl go!"NodeId" (go.GoType.PointerType go.uint64)),
@@ -2560,17 +2560,17 @@ noncomputable instance ConfChange.zero_val [FfiSyntax] : ZeroVal ConfChange :=
 (go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
 (go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
 
-@[irreducible] noncomputable def ConfChange.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ConfChange.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ConfChange.fieldsUnsealed
 
-noncomputable instance equals_unfold_ConfChange [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ConfChange [GooseExts] [GoGlobalContext] :
     EqualsUnfold ConfChange.fields ConfChange.fieldsUnsealed :=
   ⟨by unfold ConfChange.fields; rfl⟩
 
-@[reducible] noncomputable def ConfChange.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ConfChange.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ConfChange.fields)
 
-class ConfChange.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ConfChange.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ConfChange.underlying ConfChange
   underlying : go.UnderlyingDirectedEq ConfChange.ty ConfChange.underlying
   get_state : ∀ (x : ConfChange), go.IsGoStepPureDetTagged under (StructFieldGet ConfChange.underlying go!"state") #x (Val #(x.state'))
@@ -2619,7 +2619,7 @@ attribute [instance] ConfChange.TypeAssumptions.type_repr
   ConfChange.TypeAssumptions.ptr_GetType_unfold
   ConfChange.TypeAssumptions.ptr_ProtoMessage_unfold
 
-structure ConfChangeSingle [FfiSyntax] where
+structure ConfChangeSingle [GooseExts] where
   mk ::
   state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
   Type' : Loc
@@ -2627,27 +2627,27 @@ structure ConfChangeSingle [FfiSyntax] where
   unknownFields' : GoSlice
   sizeCache' : w32
 
-noncomputable instance ConfChangeSingle.zero_val [FfiSyntax] : ZeroVal ConfChangeSingle :=
+noncomputable instance ConfChangeSingle.zero_val [GooseExts] : ZeroVal ConfChangeSingle :=
   ⟨ConfChangeSingle.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ConfChangeSingle.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ConfChangeSingle.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
 (go.field_decl.FieldDecl go!"Type" (go.GoType.PointerType ConfChangeType.ty)),
 (go.field_decl.FieldDecl go!"NodeId" (go.GoType.PointerType go.uint64)),
 (go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
 (go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
 
-@[irreducible] noncomputable def ConfChangeSingle.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ConfChangeSingle.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ConfChangeSingle.fieldsUnsealed
 
-noncomputable instance equals_unfold_ConfChangeSingle [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ConfChangeSingle [GooseExts] [GoGlobalContext] :
     EqualsUnfold ConfChangeSingle.fields ConfChangeSingle.fieldsUnsealed :=
   ⟨by unfold ConfChangeSingle.fields; rfl⟩
 
-@[reducible] noncomputable def ConfChangeSingle.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ConfChangeSingle.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ConfChangeSingle.fields)
 
-class ConfChangeSingle.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ConfChangeSingle.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ConfChangeSingle.underlying ConfChangeSingle
   underlying : go.UnderlyingDirectedEq ConfChangeSingle.ty ConfChangeSingle.underlying
   get_state : ∀ (x : ConfChangeSingle), go.IsGoStepPureDetTagged under (StructFieldGet ConfChangeSingle.underlying go!"state") #x (Val #(x.state'))
@@ -2680,7 +2680,7 @@ attribute [instance] ConfChangeSingle.TypeAssumptions.type_repr
   ConfChangeSingle.TypeAssumptions.ptr_GetType_unfold
   ConfChangeSingle.TypeAssumptions.ptr_ProtoMessage_unfold
 
-structure ConfChangeV2 [FfiSyntax] where
+structure ConfChangeV2 [GooseExts] where
   mk ::
   state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
   Transition' : Loc
@@ -2689,10 +2689,10 @@ structure ConfChangeV2 [FfiSyntax] where
   unknownFields' : GoSlice
   sizeCache' : w32
 
-noncomputable instance ConfChangeV2.zero_val [FfiSyntax] : ZeroVal ConfChangeV2 :=
+noncomputable instance ConfChangeV2.zero_val [GooseExts] : ZeroVal ConfChangeV2 :=
   ⟨ConfChangeV2.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ConfChangeV2.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ConfChangeV2.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
 (go.field_decl.FieldDecl go!"Transition" (go.GoType.PointerType ConfChangeTransition.ty)),
 (go.field_decl.FieldDecl go!"Changes" (go.GoType.SliceType (go.GoType.PointerType ConfChangeSingle.ty))),
@@ -2700,17 +2700,17 @@ noncomputable instance ConfChangeV2.zero_val [FfiSyntax] : ZeroVal ConfChangeV2 
 (go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
 (go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
 
-@[irreducible] noncomputable def ConfChangeV2.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ConfChangeV2.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ConfChangeV2.fieldsUnsealed
 
-noncomputable instance equals_unfold_ConfChangeV2 [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ConfChangeV2 [GooseExts] [GoGlobalContext] :
     EqualsUnfold ConfChangeV2.fields ConfChangeV2.fieldsUnsealed :=
   ⟨by unfold ConfChangeV2.fields; rfl⟩
 
-@[reducible] noncomputable def ConfChangeV2.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ConfChangeV2.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ConfChangeV2.fields)
 
-class ConfChangeV2.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ConfChangeV2.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ConfChangeV2.underlying ConfChangeV2
   underlying : go.UnderlyingDirectedEq ConfChangeV2.ty ConfChangeV2.underlying
   get_state : ∀ (x : ConfChangeV2), go.IsGoStepPureDetTagged under (StructFieldGet ConfChangeV2.underlying go!"state") #x (Val #(x.state'))
@@ -2757,7 +2757,7 @@ attribute [instance] ConfChangeV2.TypeAssumptions.type_repr
   ConfChangeV2.TypeAssumptions.ptr_LeaveJoint_unfold
   ConfChangeV2.TypeAssumptions.ptr_ProtoMessage_unfold
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   ConfChangeI_instance : ConfChangeI.TypeAssumptions
   EntryType_instance : EntryType.TypeAssumptions
   MessageType_instance : MessageType.TypeAssumptions

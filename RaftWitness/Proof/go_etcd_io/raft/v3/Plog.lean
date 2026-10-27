@@ -38,7 +38,7 @@ namespace EtcdGrove
 open go_etcd_io.raft.v3
 
 section plog
-variable [FfiSyntax]
+variable [GooseExts]
 
 def entId (e : EntryM) : entryID :=
   entryID.mk e.Term' e.Index'
@@ -229,7 +229,7 @@ theorem plogTermAt_none_range (b : entryID) (es : List EntryM) (i : w64) :
     · intro h; cases h
     · intro h; omega
 
-omit [FfiSyntax] in
+omit [GooseExts] in
 theorem getLast?_some_getElem? {A : Type _} (l : List A) (e : A) (h : l.getLast? = some e) :
     l[l.length - 1]? = some e := by
   rw [List.getLast?_eq_getElem?] at h; exact h

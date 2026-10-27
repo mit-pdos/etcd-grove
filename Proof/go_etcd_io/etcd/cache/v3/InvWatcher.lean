@@ -160,11 +160,11 @@ structure WatcherNames where
 
 /-- The encoding of a `WatchResponse` (for `Pos.Countable`, which the channel's ghost state
 needs). -/
-def watchResponseEnc [FfiSyntax] (r : go_etcd_io.etcd.client.v3.WatchResponse) :
+def watchResponseEnc [GooseExts] (r : go_etcd_io.etcd.client.v3.WatchResponse) :
     Loc × GoSlice × w64 × Bool × Bool × GoInterface × GoString :=
   (r.Header', r.Events', r.CompactRevision', r.Canceled', r.Created', r.closeErr', r.CancelReason')
 
-instance watchResponse_countable [FfiSyntax] :
+instance watchResponse_countable [GooseExts] :
     Pos.Countable go_etcd_io.etcd.client.v3.WatchResponse :=
   .ofInjective (fun r => Pos.Countable.encode (watchResponseEnc r))
     (fun a b h => by
@@ -175,7 +175,7 @@ instance watchResponse_countable [FfiSyntax] :
       rfl)
 
 section addrs
-variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
 /-- The address of `w.respCh`. -/
 abbrev watcherRespChAddr (w : Loc) : Loc := structFieldRef watcher go!"respCh" w
@@ -213,7 +213,7 @@ def WatcherPub.trivial (GF : BundledGFunctors) : WatcherPub GF :=
   ⟨fun _ _ => iprop(True), fun _ _ => inferInstance⟩
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -445,7 +445,7 @@ end defs
 /-! ## Lemmas -/
 
 section lemmas
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

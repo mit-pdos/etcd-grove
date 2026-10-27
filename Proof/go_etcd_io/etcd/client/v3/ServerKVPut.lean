@@ -105,7 +105,7 @@ theorem applyTxnOp_delete_underPfx (pfx : GoString) (r : w64) (s : List EtcdKv) 
 /-! ## The apply thread's log after a put or a delete -/
 
 section applied
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -176,7 +176,7 @@ theorem putTxnOp_putLike (o : OpFull) :
     fun _ _ => rfl⟩
 
 section proofs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

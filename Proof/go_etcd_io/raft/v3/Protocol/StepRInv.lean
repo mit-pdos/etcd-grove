@@ -56,7 +56,7 @@ namespace EtcdGrove
 open GMap go_etcd_io.raft.v3
 
 section inv
-variable [FfiSyntax]
+variable [GooseExts]
 
 theorem rUnat_eq (w : w64) : (uint.nat w : Int) = uint.Z w := by
   simp [uint.nat, uint.Z]

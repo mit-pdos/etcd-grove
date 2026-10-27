@@ -43,7 +43,7 @@ theorem histShape_nil (L : Log) : histShape L [] = histOf L := by
   simp [histShape, evsOfRev]
 
 section moves
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

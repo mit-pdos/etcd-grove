@@ -43,7 +43,7 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 namespace github_com.mit_pdos.etcd_grove.examples.kv
 
 section init
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -234,7 +234,7 @@ takes a snapshot (`CreateSnapshot`, of its applied prefix: `runOwn`'s), and the 
 it reads it back at the prefix it is handed (committed prefixes of one length are equal). -/
 
 section snapdata
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- An entry's client datum, as `entDataIs` pins it: a normal entry's non-empty data, else
 none. -/
@@ -344,7 +344,7 @@ state of `L`. -/
 def kvSnapOk (L : List BootEntry) (d : List w8) : Prop :=
   StateEnc (firstOcc (L.map odOfB)) d
 
-theorem kvSnapOk_entries [FfiSyntax] (L : List EntryM) (d : List w8) :
+theorem kvSnapOk_entries [GooseExts] (L : List EntryM) (d : List w8) :
     kvSnapOk (L.map BootEntry.ofEntry) d ↔ StateEnc (firstOcc (L.map odOf)) d := by
   unfold kvSnapOk; rw [map_odOfB_ofEntry]
 

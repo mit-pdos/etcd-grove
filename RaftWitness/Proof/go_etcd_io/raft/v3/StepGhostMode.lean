@@ -41,7 +41,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode GMap go_etcd_io.raft.v3
 
 section mode
-variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
 /-- The mode of the ghost state `raft.Step` keeps (see the file header). -/
 inductive GMode where
@@ -230,7 +230,7 @@ theorem GMode.Pre.dynHyp {md : GMode} {m : MessageM} {ents : List EntryM}
 end mode
 
 section ghost
-variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 
 /-- What the mode keeps beyond `ownRaftGhost`: statically, the configuration's voters are the

@@ -36,7 +36,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 set_option Elab.async false
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -467,7 +467,7 @@ theorem wp_GetAutoLeave_own
   · exact absurd Hn Hnn
   · iexact Hcs
 
-omit [FfiInterp ffi] [FfiSemantics ext ffi] go_gctx hG sem package_sem in
+omit [GooseInterp] [GooseSemantics] go_gctx hG sem package_sem in
 /-- `Restore`'s ops have no `AddWitness` change (types `0`, `1`, `3`; raft#168's is `4`). -/
 theorem restoreCC_nowit (vo v l ln : List w64) (H0 : W64 0 ∉ v) :
     (∀ c ∈ restoreInCC vo v l ln (W64 0), c.NodeId' ≠ W64 0 → c.Type' ≠ W32 4) ∧

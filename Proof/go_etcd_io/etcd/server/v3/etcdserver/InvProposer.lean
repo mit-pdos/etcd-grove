@@ -157,7 +157,7 @@ instance notInterface_int64 : go.NotInterface go.int64 := ⟨by unfold go.int64;
 def srvMintN : Namespace := nroot .@ "server_mint"
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -301,7 +301,7 @@ end defs
 /-! ## The server, as a proposer sees it -/
 
 section typeRepr
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -316,7 +316,7 @@ instance (priority := high) raftNodeConfig_typeRepr_u :
 end typeRepr
 
 section addrs
-variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
 /-- The configuration's fields the request path reads. -/
 abbrev srvCfgFieldAddr (s : Loc) (f : GoString) : Loc :=
@@ -326,7 +326,7 @@ abbrev srvCfgFieldAddr (s : Loc) (f : GoString) : Loc :=
 end addrs
 
 section srv
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

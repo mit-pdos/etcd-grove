@@ -34,7 +34,7 @@ Lean notes:
   `if P then … else …`.
 * The Rocq `Section results` has the heap context (`heapGS Σ`, `go.Semantics`,
   `raft.Assumptions`) although the definitions are pure; here they need only
-  `[FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]` (for `stepFuncOf`, through
+  `[GooseExts] [GoGlobalContext] [GoSemanticsFunctions]` (for `stepFuncOf`, through
   `becomeLeader`/`becomeFollower`).
 -/
 module
@@ -55,7 +55,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.raft.v3
 
 section results
-variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
 /-- The `MsgVoteResp` case, as it was.
 
@@ -274,7 +274,7 @@ theorem CandidateStepResultC.simple {cfg L : GSet w64} {scfg : CSLists} {id : w6
 end results
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]

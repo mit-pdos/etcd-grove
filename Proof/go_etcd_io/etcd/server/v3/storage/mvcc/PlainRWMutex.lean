@@ -27,25 +27,25 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode
 
 section defs
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- An unlocked `RWMutex`, as allocated. -/
 abbrev rwZero : sync.RWMutex := zero_val sync.RWMutex
 
 /-- An `RWMutex` with one reader and no writer. -/
 def rwR1 : sync.RWMutex :=
-  sync.RWMutex.mk false (W32 0) (W32 0) { _0' := zero_val _, v' := W32 1 }
-    { _0' := zero_val _, v' := W32 0 }
+  sync.RWMutex.mk false (W32 0) (W32 0) { «_#0'» := zero_val _, v' := W32 1 }
+    { «_#0'» := zero_val _, v' := W32 0 }
 
 /-- A write-locked `RWMutex` with no reader. -/
 def rwW : sync.RWMutex :=
-  sync.RWMutex.mk true (W32 0) (W32 0) { _0' := zero_val _, v' := W32 (-(1073741824 : Int)) }
-    { _0' := zero_val _, v' := W32 0 }
+  sync.RWMutex.mk true (W32 0) (W32 0) { «_#0'» := zero_val _, v' := W32 (-(1073741824 : Int)) }
+    { «_#0'» := zero_val _, v' := W32 0 }
 
 end defs
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -67,7 +67,7 @@ theorem plain.wp_RLock (hAdd : sync.atomic.Int32.Add.spec (GF := GF) (hG := hG))
   inext
   iexists (W32 0)
   simp only [sync.atomic.ownInt32_unseal, sync.atomic.ownInt32Def]
-  rw [show rwZero.readerCount' = ({ _0' := zero_val _, v' := W32 0 } : sync.atomic.Int32) from rfl]
+  rw [show rwZero.readerCount' = ({ «_#0'» := zero_val _, v' := W32 0 } : sync.atomic.Int32) from rfl]
   iframe readerCount
   iintro readerCount
   imod Hmask with _
@@ -94,7 +94,7 @@ theorem plain.wp_RUnlock (hAdd : sync.atomic.Int32.Add.spec (GF := GF) (hG := hG
   inext
   iexists (W32 1)
   simp only [sync.atomic.ownInt32_unseal, sync.atomic.ownInt32Def]
-  rw [show rwR1.readerCount' = ({ _0' := zero_val _, v' := W32 1 } : sync.atomic.Int32) from rfl]
+  rw [show rwR1.readerCount' = ({ «_#0'» := zero_val _, v' := W32 1 } : sync.atomic.Int32) from rfl]
   iframe readerCount
   iintro readerCount
   imod Hmask with _
@@ -154,7 +154,7 @@ theorem plain.wp_Lock (hAdd : sync.atomic.Int32.Add.spec (GF := GF) (hG := hG)) 
   inext
   iexists (W32 0)
   simp only [sync.atomic.ownInt32_unseal, sync.atomic.ownInt32Def]
-  rw [show rwZero.readerCount' = ({ _0' := zero_val _, v' := W32 0 } : sync.atomic.Int32) from rfl]
+  rw [show rwZero.readerCount' = ({ «_#0'» := zero_val _, v' := W32 0 } : sync.atomic.Int32) from rfl]
   iframe readerCount
   iintro readerCount
   imod Hmask with _
@@ -183,7 +183,7 @@ theorem plain.wp_Unlock (hAdd : sync.atomic.Int32.Add.spec (GF := GF) (hG := hG)
   iexists (W32 (-1073741824))
   simp only [sync.atomic.ownInt32_unseal, sync.atomic.ownInt32Def]
   rw [show rwW.readerCount' =
-    ({ _0' := zero_val _, v' := W32 (-1073741824) } : sync.atomic.Int32) from rfl]
+    ({ «_#0'» := zero_val _, v' := W32 (-1073741824) } : sync.atomic.Int32) from rfl]
   iframe readerCount
   iintro readerCount
   imod Hmask with _

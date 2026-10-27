@@ -14,7 +14,7 @@ namespace EtcdGrove
 namespace leasing
 
 section lemmas
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 theorem sint_compareInt64M (a b : w64) : sint.Z (compareInt64M a b) = int64Cmp a b := by
   unfold compareInt64M int64Cmp cmpSign

@@ -92,7 +92,7 @@ theorem readsAdd_take_all (reads : GMap GoString ReadM) (ks : List GoString) (es
   simp [List.length_zip]; omega
 
 section iprop
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [EM : EtcdModel GF]

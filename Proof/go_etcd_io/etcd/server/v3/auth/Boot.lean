@@ -51,7 +51,7 @@ theorem bootState_small : authSmall bootState := by
   refine ⟨?_, ?_, ?_, [], List.nodup_nil, ?_, ?_⟩ <;> simp [bootState, permsOn]
 
 section ghost
-variable [FfiSyntax] {GF : BundledGFunctors} [AllG GF]
+variable [GooseExts] {GF : BundledGFunctors} [AllG GF]
 
 /-- **The auth names at boot**: a history of the boot state alone, with the token names `γt`,
 `γf`: the admin side's authority, the other half of the latest state's ghost variable (the store's
@@ -97,7 +97,7 @@ theorem tokFresh_mint (γa : AuthNames) (m : GMap GoString Unit) (token : GoStri
 end ghost
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -133,7 +133,7 @@ theorem authFuel_boot : ⊢ |==> authFuel (GF := GF) [bootState, bump bootState]
 end defs
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

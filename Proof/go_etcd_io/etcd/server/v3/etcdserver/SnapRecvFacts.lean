@@ -61,7 +61,7 @@ theorem delIn_isSome (r : apply.RestM) (n k n' : GoString) (h : (r.bk.lookup n')
   · rw [delIn_other _ _ _ _ e]; exact h
 
 /-- **An entry keeps every present bucket present.** -/
-theorem restEntry_isSome [FfiSyntax] (c0 : w64) (m : EntryModel) (r : apply.RestM) (n : GoString)
+theorem restEntry_isSome [GooseExts] (c0 : w64) (m : EntryModel) (r : apply.RestM) (n : GoString)
     (h : (r.bk.lookup n).isSome) : ((restEntry c0 m r).bk.lookup n).isSome := by
   have hsv : ∀ v3 s (r' : apply.RestM), (r'.bk.lookup n).isSome →
       ((apply.restSetVersion v3 s r').bk.lookup n).isSome := by
@@ -103,7 +103,7 @@ theorem restEntry_isSome [FfiSyntax] (c0 : w64) (m : EntryModel) (r : apply.Rest
     · exact h
 
 /-- The model keeps every bucket present at the start present. -/
-theorem restModel_isSome [FfiSyntax] (c0 : w64) (bootLog : List EntryM) (L : List EntryModel)
+theorem restModel_isSome [GooseExts] (c0 : w64) (bootLog : List EntryM) (L : List EntryModel)
     (n : GoString) (h : ((restBoot bootLog).bk.lookup n).isSome) :
     ((restModel c0 bootLog L).bk.lookup n).isSome := by
   unfold restModel
@@ -113,7 +113,7 @@ theorem restModel_isSome [FfiSyntax] (c0 : w64) (bootLog : List EntryM) (L : Lis
   | cons m L ih => rw [List.foldl_cons]; exact ih _ (restEntry_isSome _ _ _ _ h)
 
 /-- The model has no bucket but the rest buckets. -/
-theorem restModel_bk_none [FfiSyntax] (c0 : w64) (bootLog : List EntryM) (L : List EntryModel)
+theorem restModel_bk_none [GooseExts] (c0 : w64) (bootLog : List EntryM) (L : List EntryModel)
     (n : GoString) (hn : n ∉ mvcc.restBuckets) : (restModel c0 bootLog L).bk.lookup n = none := by
   have h1 : go!"members" ≠ n := fun e => hn (e ▸ by decide)
   have h2 : go!"cluster" ≠ n := fun e => hn (e ▸ by decide)
@@ -127,7 +127,7 @@ theorem restModel_bk_none [FfiSyntax] (c0 : w64) (bootLog : List EntryM) (L : Li
 /-! ## An image's buckets (pure) -/
 
 /-- `bkRestAt_boot` (`InvImage.lean`) without its section's instances. -/
-theorem bkRestAt_boot' [FfiSyntax] {c0 : w64} {bootLog : List EntryM} {L : List EntryModel}
+theorem bkRestAt_boot' [GooseExts] {c0 : w64} {bootLog : List EntryM} {L : List EntryModel}
     {D : backend.Data} (h : bkRestAt c0 bootLog L D) :
     D.lookup go!"lease" = some ∅ ∧ D.lookup go!"alarm" = some ∅ ∧
       D.lookup go!"auth" = some authBoot ∧ D.lookup go!"authUsers" = some ∅ ∧
@@ -140,7 +140,7 @@ theorem bkRestAt_boot' [FfiSyntax] {c0 : w64} {bootLog : List EntryM} {L : List 
 alarm store's emptied (`specSnap`'s `hA'`, first half): the real instance tracks exactly the rest
 buckets, which the image holds at the model's values (`bkRestAt`), the lease and alarm buckets
 empty already. -/
-theorem restModel_bk_of_bkRestAt [FfiSyntax] (d : mvcc.KBReal) {c0 : w64} {bootLog : List EntryM}
+theorem restModel_bk_of_bkRestAt [GooseExts] (d : mvcc.KBReal) {c0 : w64} {bootLog : List EntryM}
     {L : List EntryModel} {D : backend.Data} (h : bkRestAt c0 bootLog L D) :
     (restModel c0 bootLog L).bk =
       <[go!"alarm" := ∅]> (<[go!"lease" := ∅]> (backend.rbData d.P D)) := by
@@ -165,7 +165,7 @@ theorem restModel_bk_of_bkRestAt [FfiSyntax] (d : mvcc.KBReal) {c0 : w64} {bootL
 
 /-- **An image's lease, alarm and auth buckets are the boot state's** (`specSnap`'s `hlease`,
 `halarm`, `hauthb`). -/
-theorem image_bootBuckets [FfiSyntax] (d : mvcc.KBReal) {c0 : w64} {bootLog : List EntryM}
+theorem image_bootBuckets [GooseExts] (d : mvcc.KBReal) {c0 : w64} {bootLog : List EntryM}
     {L : List EntryModel} {D : backend.Data} (h : bkRestAt c0 bootLog L D) :
     ((backend.rbData d.P D).lookup go!"lease").getD ∅ = ∅ ∧
     ((backend.rbData d.P D).lookup go!"alarm").getD ∅ = ∅ ∧
@@ -180,7 +180,7 @@ theorem image_bootBuckets [FfiSyntax] (d : mvcc.KBReal) {c0 : w64} {bootLog : Li
 
 /-- **An image's membership buckets are present** (`specSnap`'s `hmemb`): the start's, kept by
 every entry. -/
-theorem image_membBuckets [FfiSyntax] (d : mvcc.KBReal) {c0 : w64} {bootLog : List EntryM}
+theorem image_membBuckets [GooseExts] (d : mvcc.KBReal) {c0 : w64} {bootLog : List EntryM}
     {L : List EntryModel} {D : backend.Data} (h : bkRestAt c0 bootLog L D) :
     ((backend.rbData d.P D).lookup go!"members").isSome ∧
     ((backend.rbData d.P D).lookup go!"members_removed").isSome ∧
@@ -195,7 +195,7 @@ theorem image_membBuckets [FfiSyntax] (d : mvcc.KBReal) {c0 : w64} {bootLog : Li
 
 /-- **The image's membership buckets are the model's** (for `specSnap`'s `himg`): `clusterImageOk`
 reads only the three membership buckets, which the image holds at the model's values. -/
-theorem clusterImageOk_of_bkRestAt [FfiSyntax] (d : mvcc.KBReal) (c : Loc) (mem : GMap w64 apply.MemberM)
+theorem clusterImageOk_of_bkRestAt [GooseExts] (d : mvcc.KBReal) (c : Loc) (mem : GMap w64 apply.MemberM)
     {c0 : w64} {bootLog : List EntryM} {L : List EntryModel} {D : backend.Data}
     (h : bkRestAt c0 bootLog L D)
     (hc : membership.clusterImageOk c (restModel c0 bootLog L).bk mem) :
@@ -232,7 +232,7 @@ and real backend `d`, the applied raft log `A` and KV state `x`, the image's com
 (after the fresh start's index `0`) and the restored log's tail `R`, the members `memI` the
 membership buckets decode to (see the file header). Each field is the premise of `specSnap` of the
 same name. -/
-structure SnapImageFacts [FfiSyntax] (γr : ReadNames) (d : mvcc.KBReal) (D : backend.Data) (cl : Loc)
+structure SnapImageFacts [GooseExts] (γr : ReadNames) (d : mvcc.KBReal) (D : backend.Data) (cl : Loc)
     (i : w64) (A A' : List EntryModel) (x : apply.ApplyKV) (R : mvcc.Log)
     (memI : GMap w64 apply.MemberM) : Prop where
   /-- the image's log extends the applied one -/
@@ -260,7 +260,7 @@ structure SnapImageFacts [FfiSyntax] (γr : ReadNames) (d : mvcc.KBReal) (D : ba
     (restModel γr.kv.c0 γr.raft.raft.reBoot (γr.raft.pre ++ A')).mem = memI
 
 section lemmas
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

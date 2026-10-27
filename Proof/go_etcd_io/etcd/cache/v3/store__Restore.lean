@@ -56,7 +56,7 @@ theorem Restore_restoreMap_mem (kvs : KvMap) (x : KvEntry) (h : x ∈ restoreMap
   · exact absurd h List.not_mem_nil
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

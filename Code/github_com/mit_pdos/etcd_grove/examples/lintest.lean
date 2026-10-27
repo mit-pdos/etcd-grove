@@ -24,28 +24,28 @@ end pkg_id
 
 namespace github_com.mit_pdos.etcd_grove.examples.lintest
 
-noncomputable def Clock.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Clock.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/mit-pdos/etcd-grove/examples/lintest.Clock" [])
 
 attribute [irreducible] Clock.ty
 
-noncomputable def MonotonicClock [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def MonotonicClock [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/lintest.MonotonicClock"
 
-noncomputable def CounterClock [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def CounterClock [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/lintest.CounterClock"
 
-noncomputable def runClient [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def runClient [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/lintest.runClient"
 
-noncomputable def Run [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Run [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/lintest.Run"
 
 /-- MonotonicClock is the clock of etcd's robustness tests: the time since a base, by Go's
     monotonic clock (time.Since).
 
     go: lintest.go:28:6 -/
-noncomputable def MonotonicClock.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def MonotonicClock.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val exceptionDo)
   (Let "$r0" (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.time.Now []))) (Val #())) (Val #()))
@@ -63,7 +63,7 @@ noncomputable def MonotonicClock.impl [FfiSyntax] [GoGlobalContext] : val :=
 /-- CounterClock is a logical clock: each reading is one more than the one before.
 
     go: lintest.go:36:6 -/
-noncomputable def CounterClock.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def CounterClock.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val exceptionDo)
   (Let "$r0" (App (Val (GoInstruction (GoAlloc _root_.Perennial.sync.atomic.Int64.ty))) (App (Val (GoInstruction (GoZeroVal _root_.Perennial.sync.atomic.Int64.ty))) (Val #())))
@@ -82,7 +82,7 @@ noncomputable def CounterClock.impl [FfiSyntax] [GoGlobalContext] : val :=
     returns their trace.
 
     go: lintest.go:45:6 -/
-noncomputable def runClient.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def runClient.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "id"
   (Lam "ops"
   (Lam "gen"
@@ -146,7 +146,7 @@ noncomputable def runClient.impl [FfiSyntax] [GoGlobalContext] : val :=
     checks their trace against model with porcupine.
 
     go: lintest.go:65:6 -/
-noncomputable def Run.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Run.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "model"
   (Lam "apply"
   (Lam "gen"
@@ -251,7 +251,7 @@ noncomputable def Run.impl [FfiSyntax] [GoGlobalContext] : val :=
 noncomputable instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest where
   pkgImportedPkgs := [pkg_id.sync, pkg_id.sync.atomic, pkg_id.time, pkg_id.github_com.anishathalye.porcupine]
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest)) (Lam BAnon
   (App (Val exceptionDo)
@@ -267,17 +267,17 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.github_com.anishathalye.porcupine.initialize') (Val #()))))))))
 
-abbrev Clock [FfiSyntax] : Type := GoFunc
+abbrev Clock [GooseExts] : Type := GoFunc
 
-@[reducible] noncomputable def Clock.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Clock.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.FunctionType (go.signature.Signature [] false [go.int64]))
 
-class Clock.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Clock.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Clock.ty Clock.underlying
 
 attribute [instance] Clock.TypeAssumptions.underlying
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Clock_instance : Clock.TypeAssumptions
   MonotonicClock_unfold : FuncUnfold MonotonicClock [] MonotonicClock.impl
   CounterClock_unfold : FuncUnfold CounterClock [] CounterClock.impl

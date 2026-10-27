@@ -45,7 +45,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 section branches
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
@@ -53,12 +53,12 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 namespace StepProof
 
-omit ext ffi [FfiInterp ffi] [FfiSemantics ext ffi] go_gctx in
+omit [GooseInterp] [GooseSemantics] go_gctx in
 /-- `if` on a decided condition (Mathlib's `if_pos`/`if_neg`, deprecated here). -/
 private theorem ite_pos {α : Sort _} {c : Prop} [Decidable c] {a b : α} (h : c) :
     (if c then a else b) = a := by simp [h]
 
-omit ext ffi [FfiInterp ffi] [FfiSemantics ext ffi] go_gctx in
+omit [GooseInterp] [GooseSemantics] go_gctx in
 private theorem ite_neg {α : Sort _} {c : Prop} [Decidable c] {a b : α} (h : ¬c) :
     (if c then a else b) = b := by simp [h]
 

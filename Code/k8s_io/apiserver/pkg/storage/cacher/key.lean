@@ -20,22 +20,22 @@ end pkg_id
 
 namespace k8s_io.apiserver.pkg.storage.cacher.key
 
-noncomputable def HasPathPrefix [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def HasPathPrefix [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher/key.HasPathPrefix"
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apiserver.pkg.storage.cacher.key where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.apiserver.pkg.storage.cacher.key)) (Lam BAnon
   (App (Val exceptionDo)
   (App (Val doExecute)
   (Val #()))))))
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop
 
 end k8s_io.apiserver.pkg.storage.cacher.key
 

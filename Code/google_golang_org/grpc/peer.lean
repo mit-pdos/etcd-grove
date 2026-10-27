@@ -22,28 +22,28 @@ end pkg_id
 
 namespace google_golang_org.grpc.peer
 
-noncomputable def Peer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Peer.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/peer.Peer" [])
 
 attribute [irreducible] Peer.ty
 
-noncomputable def peerKey.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def peerKey.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/peer.peerKey" [])
 
 attribute [irreducible] peerKey.ty
 
-noncomputable def NewContext [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewContext [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/peer.NewContext"
 
-noncomputable def FromContext [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def FromContext [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/peer.FromContext"
 
 noncomputable instance info' : PkgInfo pkg_id.google_golang_org.grpc.peer where
   pkgImportedPkgs := [pkg_id.net, pkg_id.google_golang_org.grpc.credentials]
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.google_golang_org.grpc.peer)) (Lam BAnon
   (App (Val exceptionDo)
@@ -53,31 +53,31 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.google_golang_org.grpc.credentials.initialize') (Val #()))))))))
 
-structure Peer [FfiSyntax] where
+structure Peer [GooseExts] where
   mk ::
   Addr' : _root_.Perennial.net.Addr
   LocalAddr' : _root_.Perennial.net.Addr
   AuthInfo' : _root_.Perennial.google_golang_org.grpc.credentials.AuthInfo
 
-noncomputable instance Peer.zero_val [FfiSyntax] : ZeroVal Peer :=
+noncomputable instance Peer.zero_val [GooseExts] : ZeroVal Peer :=
   ⟨Peer.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Peer.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Peer.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Addr" _root_.Perennial.net.Addr.ty),
 (go.field_decl.FieldDecl go!"LocalAddr" _root_.Perennial.net.Addr.ty),
 (go.field_decl.FieldDecl go!"AuthInfo" _root_.Perennial.google_golang_org.grpc.credentials.AuthInfo.ty)]
 
-@[irreducible] noncomputable def Peer.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Peer.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Peer.fieldsUnsealed
 
-noncomputable instance equals_unfold_Peer [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Peer [GooseExts] [GoGlobalContext] :
     EqualsUnfold Peer.fields Peer.fieldsUnsealed :=
   ⟨by unfold Peer.fields; rfl⟩
 
-@[reducible] noncomputable def Peer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Peer.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Peer.fields)
 
-class Peer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Peer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Peer.underlying Peer
   underlying : go.UnderlyingDirectedEq Peer.ty Peer.underlying
   get_Addr : ∀ (x : Peer), go.IsGoStepPureDetTagged under (StructFieldGet Peer.underlying go!"Addr") #x (Val #(x.Addr'))
@@ -96,33 +96,33 @@ attribute [instance] Peer.TypeAssumptions.type_repr
   Peer.TypeAssumptions.get_AuthInfo
   Peer.TypeAssumptions.set_AuthInfo
 
-structure peerKey [FfiSyntax] where
+structure peerKey [GooseExts] where
   mk ::
 
-noncomputable instance peerKey.zero_val [FfiSyntax] : ZeroVal peerKey :=
+noncomputable instance peerKey.zero_val [GooseExts] : ZeroVal peerKey :=
   ⟨peerKey.mk⟩
 
-@[reducible] noncomputable def peerKey.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def peerKey.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   []
 
-@[irreducible] noncomputable def peerKey.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def peerKey.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   peerKey.fieldsUnsealed
 
-noncomputable instance equals_unfold_peerKey [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_peerKey [GooseExts] [GoGlobalContext] :
     EqualsUnfold peerKey.fields peerKey.fieldsUnsealed :=
   ⟨by unfold peerKey.fields; rfl⟩
 
-@[reducible] noncomputable def peerKey.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def peerKey.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType peerKey.fields)
 
-class peerKey.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class peerKey.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying peerKey.underlying peerKey
   underlying : go.UnderlyingDirectedEq peerKey.ty peerKey.underlying
 
 attribute [instance] peerKey.TypeAssumptions.type_repr
   peerKey.TypeAssumptions.underlying
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Peer_instance : Peer.TypeAssumptions
   peerKey_instance : peerKey.TypeAssumptions
   import_net_Assumption : _root_.Perennial.net.Assumptions
