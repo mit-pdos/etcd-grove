@@ -123,6 +123,7 @@ theorem startCluster.wp_proof
   have Hdok : netDirOk (dir3 id₁ id₂ id₃) :=
     dir3_ok id₁ id₂ id₃ (Hnz id₁ (by simp)) (Hnz id₂ (by simp)) (Hnz id₃ (by simp))
   have hblen0 : boot.length = 3 := by rw [Hbf.boot.1]; rfl
+  iunfold ids at Hmarsh
   imod (common.alloc3 id₁ id₂ id₃ ctxs boot Hbf.idLow Hbf.idLow0 Hbf.boot Hbf.cc (dir3 id₁ id₂ id₃)
       peerAddr₁ peerAddr₂ peerAddr₃ Hdok.1 (dir3_host id₁ id₂ id₃) (by omega) (by omega))
       $$ Hmarsh Hf₁ Hf₂ Hf₃
