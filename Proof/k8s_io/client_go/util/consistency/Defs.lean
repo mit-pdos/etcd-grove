@@ -165,6 +165,7 @@ def consWf (M : GMap Owner Rec) (W : GMap Owner Loc) (R : GMap Loc RecS) (Vg : G
   (∀ o r, W !! o = some r → ∃ s, R !! r = some s ∧ s.owner = o) ∧
   (∀ id p, P !! id = some p → (R !! p.r).isSome ∧ id < n) ∧
   (∀ r V, Vg !! r = some V → vsWf V) ∧
+  (∀ r, (R !! r).isSome → (Vg !! r).isSome) ∧
   (∀ o e, E !! o = some e →
     (W !! o = some e.r ∨ W !! o = none) ∧ Vg !! e.r = some e.V ∧
     (∃ s, R !! e.r = some s ∧ s.owner = o))
@@ -286,9 +287,11 @@ def consInv (γ : ConsNames) (T : Owner → Qp → IProp GF) : IProp GF :=
     "HW" ∷ ghostVar γ.W (1 : Qp).half W ∗
     "Hrecs" ∷ ghostMapAuth γ.recs 1 R ∗
     "#Hrecs_p" ∷ ([∗map] r ↦ s ∈ R, isRec γ r s) ∗
-    "Hvg" ∷ ([∗map] r ↦ s ∈ R, ∃ V, ghostVar s.γv (1 : Qp).half V ∗ ⌜Vg !! r = some V⌝) ∗
+    "Hvg" ∷ ([∗map] r ↦ V ∈ Vg, ∃ s : RecS, ghostMapElem γ.recs r DFrac.discard s ∗
+      ghostVar s.γv (1 : Qp).half V) ∗
     "Hpend" ∷ ghostMapAuth γ.pend 1 P ∗
-    "Hptoks" ∷ ([∗map] _id ↦ p ∈ P, ∃ s, ⌜R !! p.r = some s⌝ ∗ T s.owner p.q) ∗
+    "Hptoks" ∷ ([∗map] _id ↦ p ∈ P, ∃ s : RecS, ghostMapElem γ.recs p.r DFrac.discard s ∗
+      T s.owner p.q) ∗
     "Hens" ∷ ghostMapAuth γ.ens 1 E ∗
     "Hetoks" ∷ ([∗map] o ↦ _e ∈ E, T o 1) ∗
     "%Hwf" ∷ ⌜consWf M W R Vg P n E⌝)

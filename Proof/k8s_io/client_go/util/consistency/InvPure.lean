@@ -85,9 +85,9 @@ theorem wf_found {M W R Vg P n E} (hwf : consWf M W R Vg P n E) {o : Owner} {r :
     (hWo : W !! o = some r) (hR : R !! r = some s) (hown : s.owner = o) (huid : s.uid = uid)
     (hE : E !! o = none) :
     consWf (wroteAtM M o uid gr rv) W R Vg (<[n := ⟨r, gr, rv, q⟩]> P) (n + 1) E := by
-  obtain ⟨hA, hW, hP, hV, hEw⟩ := hwf
-  have hn : P !! n = none := fresh_n ⟨hA, hW, hP, hV, hEw⟩
-  refine ⟨?_, hW, ?_, hV, hEw⟩
+  obtain ⟨hA, hW, hP, hV, hRV, hEw⟩ := hwf
+  have hn : P !! n = none := fresh_n ⟨hA, hW, hP, hV, hRV, hEw⟩
+  refine ⟨?_, hW, ?_, hV, hRV, hEw⟩
   · intro o'
     by_cases eo : o' = o
     · subst eo
@@ -135,8 +135,8 @@ theorem wf_new {M W R Vg P n E} (hwf : consWf M W R Vg P n E) {o : Owner} {r' : 
     (hfresh : R !! r' = none) (hown : s'.owner = o) (huid : s'.uid = uid) (hE : E !! o = none) :
     consWf (wroteAtM M o uid gr rv) (<[o := r']> W) (<[r' := s']> R) (<[r' := ∅]> Vg)
       (<[n := ⟨r', gr, rv, q⟩]> P) (n + 1) E := by
-  obtain ⟨hA, hW, hP, hV, hEw⟩ := hwf
-  have hn : P !! n = none := fresh_n ⟨hA, hW, hP, hV, hEw⟩
+  obtain ⟨hA, hW, hP, hV, hRV, hEw⟩ := hwf
+  have hn : P !! n = none := fresh_n ⟨hA, hW, hP, hV, hRV, hEw⟩
   -- no pending write is to `r'`, nor any current record or slot `r'`
   have hpr' : ∀ id p, P !! id = some p → p.r ≠ r' := by
     intro id p hp e; have := (hP id p hp).1; rw [e, hfresh] at this; cases this
@@ -152,7 +152,7 @@ theorem wf_new {M W R Vg P n E} (hwf : consWf M W R Vg P n E) {o : Owner} {r' : 
       obtain ⟨s1, V, Va, h1, -, hM, -⟩ := h.2 (hnc r0)
       rw [hs0] at h1; cases h1
       simp only [recFor, hM, hne, ↓reduceIte]
-  refine ⟨?_, ?_, ?_, ?_, ?_⟩
+  refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
   · intro o'
     by_cases eo : o' = o
     · subst eo
@@ -207,6 +207,11 @@ theorem wf_new {M W R Vg P n E} (hwf : consWf M W R Vg P n E) {o : Owner} {r' : 
     split at hv
     · cases hv; intro gr x hx; simp at hx
     · exact hV r V hv
+  · intro r hr
+    rw [GMap.lookup_insert_eq_iff] at hr ⊢
+    split
+    · rfl
+    · rename_i e; simp only [e, ↓reduceIte] at hr; exact hRV r hr
   · intro o' e he
     obtain ⟨h1, h2, s2, h3, h4⟩ := hEw o' e he
     have hne : e.r ≠ r' := by intro x; rw [x, hfresh] at h3; cases h3
@@ -222,8 +227,8 @@ theorem wf_withdraw {M W R Vg P n E} (hwf : consWf M W R Vg P n E) {id : Nat} {p
     {s : RecS} {V : Vs} (hp : P !! id = some p) (hR : R !! p.r = some s) (hVg : Vg !! p.r = some V)
     (hE : E !! s.owner = none) :
     consWf M W R (<[p.r := wroteAtVs V p.gr p.rv]> Vg) (GMap.delete id P) n E := by
-  obtain ⟨hA, hW, hP, hV, hEw⟩ := hwf
-  refine ⟨?_, hW, ?_, ?_, ?_⟩
+  obtain ⟨hA, hW, hP, hV, hRV, hEw⟩ := hwf
+  refine ⟨?_, hW, ?_, ?_, ?_, ?_⟩
   · intro o
     have h := hA o
     cases hw : W !! o with
@@ -260,6 +265,11 @@ theorem wf_withdraw {M W R Vg P n E} (hwf : consWf M W R Vg P n E) {id : Nat} {p
     split at hv
     · cases hv; exact wroteAtVs_wf V p.gr p.rv (hV _ _ hVg)
     · exact hV r V' hv
+  · intro r hr
+    rw [GMap.lookup_insert_eq_iff]
+    split
+    · rfl
+    · exact hRV r hr
   · intro o e he
     obtain ⟨h1, h2, s2, h3, h4⟩ := hEw o e he
     have hne : e.r ≠ p.r := by
@@ -271,8 +281,8 @@ theorem wf_withdraw {M W R Vg P n E} (hwf : consWf M W R Vg P n E) {id : Nat} {p
 theorem wf_ens_deposit {M W R Vg P n E} (hwf : consWf M W R Vg P n E) {o : Owner} {r : Loc}
     {V : Vs} (hWo : W !! o = some r) (hVg : Vg !! r = some V) (hE : E !! o = none) :
     consWf M W R Vg P n (<[o := ⟨r, V, false⟩]> E) := by
-  obtain ⟨hA, hW, hP, hV, hEw⟩ := hwf
-  refine ⟨?_, hW, hP, hV, ?_⟩
+  obtain ⟨hA, hW, hP, hV, hRV, hEw⟩ := hwf
+  refine ⟨?_, hW, hP, hV, hRV, ?_⟩
   · intro o'
     have h := hA o'
     have hc : ∀ r', clearedAt (<[o := ⟨r, V, false⟩]> E) o' r' ↔ clearedAt E o' r' := by
@@ -310,11 +320,11 @@ theorem wf_ens_ok {M W R Vg P n E} (hwf : consWf M W R Vg P n E) {o : Owner} {r 
     (he : E !! o = some ⟨r, V, false⟩) (hnop : ∀ id p, P !! id = some p → p.r ≠ r) :
     consWf (GMap.delete o M) W R Vg P n (<[o := ⟨r, V, true⟩]> E) ∧
       (M !! o = none ∨ ∃ s, R !! r = some s ∧ M !! o = some ⟨s.uid, V⟩) := by
-  obtain ⟨hA, hW, hP, hV, hEw⟩ := hwf
+  obtain ⟨hA, hW, hP, hV, hRV, hEw⟩ := hwf
   obtain ⟨hWo, hVg, -⟩ := hEw o _ he
   have hnc : ∀ r', ¬ clearedAt E o r' := by
     rintro r' ⟨e, he', -, h2⟩; rw [he] at he'; cases he'; cases h2
-  refine ⟨⟨?_, hW, hP, hV, ?_⟩, ?_⟩
+  refine ⟨⟨?_, hW, hP, hV, hRV, ?_⟩, ?_⟩
   · intro o'
     have h := hA o'
     by_cases eo : o' = o
@@ -352,8 +362,8 @@ theorem wf_ens_ok {M W R Vg P n E} (hwf : consWf M W R Vg P n E) {o : Owner} {r 
 theorem wf_ens_err {M W R Vg P n E} (hwf : consWf M W R Vg P n E) {o : Owner} {e : EnsSt}
     (he : E !! o = some e) (hnc : e.cleared = false) :
     consWf M W R Vg P n (GMap.delete o E) := by
-  obtain ⟨hA, hW, hP, hV, hEw⟩ := hwf
-  refine ⟨?_, hW, hP, hV, ?_⟩
+  obtain ⟨hA, hW, hP, hV, hRV, hEw⟩ := hwf
+  refine ⟨?_, hW, hP, hV, hRV, ?_⟩
   · intro o'
     have h := hA o'
     cases hw : W !! o' with
@@ -381,7 +391,7 @@ theorem wf_clear_del {M W R Vg P n E} (hwf : consWf M W R Vg P n E) {o : Owner} 
     {s0 : RecS} {uid : GoString} (hWo : W !! o = some r0) (hs0 : R !! r0 = some s0)
     (hc : uid = [] ∨ s0.uid = uid) :
     consWf (clearM M o uid) (GMap.delete o W) R Vg P n E := by
-  obtain ⟨hA, hW, hP, hV, hEw⟩ := hwf
+  obtain ⟨hA, hW, hP, hV, hRV, hEw⟩ := hwf
   have hMo : clearM M o uid !! o = none := by
     have h := hA o
     rw [hWo] at h
@@ -398,7 +408,7 @@ theorem wf_clear_del {M W R Vg P n E} (hwf : consWf M W R Vg P n E) {o : Owner} 
       · rw [GMap.lookup_delete_ne _ (Ne.symm eo)]
       · rfl
     · rfl
-  refine ⟨?_, ?_, hP, hV, ?_⟩
+  refine ⟨?_, ?_, hP, hV, hRV, ?_⟩
   · intro o'
     by_cases eo : o' = o
     · subst eo; rw [GMap.lookup_delete_eq]; exact hMo
@@ -437,14 +447,14 @@ theorem wf_clear_ens {M W R Vg P n E} (hwf : consWf M W R Vg P n E) {o : Owner} 
     {V : Vs} (he : E !! o = some ⟨r, V, true⟩) :
     consWf M (GMap.delete o W) R Vg P n (GMap.delete o E) ∧ M !! o = none ∧
       (W !! o = some r ∨ W !! o = none) := by
-  obtain ⟨hA, hW, hP, hV, hEw⟩ := hwf
+  obtain ⟨hA, hW, hP, hV, hRV, hEw⟩ := hwf
   obtain ⟨hWo, -, -⟩ := hEw o _ he
   have hMo : M !! o = none := by
     have h := hA o
     rcases hWo with hw | hw
     · rw [hw] at h; exact h.1 ⟨_, he, rfl, rfl⟩
     · rw [hw] at h; exact h
-  refine ⟨⟨?_, ?_, hP, hV, ?_⟩, hMo, hWo⟩
+  refine ⟨⟨?_, ?_, hP, hV, hRV, ?_⟩, hMo, hWo⟩
   · intro o'
     by_cases eo : o' = o
     · subst eo; rw [GMap.lookup_delete_eq]; exact hMo
