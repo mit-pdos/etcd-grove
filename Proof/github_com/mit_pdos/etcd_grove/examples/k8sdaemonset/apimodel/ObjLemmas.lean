@@ -1456,6 +1456,529 @@ theorem objAt_SetGeneration (hset : metav1.ObjectMeta.SetGeneration.spec (GF := 
     simp only [TypedPointsto.typedPointstoDef]
     iframe
 
+/-! ### Pointer and slice fields -/
+
+/-- A deep pointer is `nil` exactly for `none`. -/
+theorem ownPtrD_null {V E : Type} [ZeroVal V] [TypedPointsto (GF := GF) V]
+    (inner : V → DFrac → E → IProp GF) (p : Loc) (dq : DFrac) (e : Option E) :
+    ownPtrD inner p dq e ⊢ ownPtrD inner p dq e ∗ ⌜p = null ↔ e = none⌝ := by
+  cases e with
+  | none =>
+    unfold ownPtrD
+    iintro %h
+    isplitr
+    · ipureintro; exact h
+    · ipureintro; simp [h]
+  | some e =>
+    unfold ownPtrD
+    iintro ⟨%x, Hp, Hi⟩
+    icases typedPointsto_not_null_dup _ _ _ $$ Hp with ⟨Hp, %hnn⟩
+    isplitl
+    · iexists x
+      iframe
+    · ipureintro; simp [hnn]
+
+/-- A deep slice's length is its deep value's. -/
+theorem ownSliceD_len {V E : Type} [ZeroVal V] [TypedPointsto (GF := GF) V]
+    (inner : V → DFrac → E → IProp GF) (s : GoSlice) (dq : DFrac) (ds : List E) :
+    ownSliceD inner s dq ds ⊢ ownSliceD inner s dq ds ∗
+      ⌜ds.length = sint.nat s.len ∧ 0 ≤ sint.Z s.len⌝ := by
+  unfold ownSliceD
+  iintro ⟨%vs, Hs, Hl⟩
+  ihave %h1 := ownSlice_len _ _ _ $$ Hs
+  ihave %h2 := (BigSepL2.bigSepL2_length (PROP := IProp GF)) $$ Hl
+  isplitl
+  · iexists vs
+    iframe
+  · ipureintro
+    exact ⟨h2 ▸ h1.1, h1.2⟩
+
+theorem meta_own_dts (mv : k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (dq : DFrac) (m : kd.meta.ObjectMeta) :
+    kd.meta.ObjectMeta.own (GF := GF) mv dq m ⊢ kd.meta.ObjectMeta.own mv dq m ∗
+      ⌜mv.DeletionTimestamp' = null ↔ m.DeletionTimestamp' = none⌝ := by
+  unfold kd.meta.ObjectMeta.own
+  iintro ⟨Name, GenerateName, Namespace, SelfLink, UID, ResourceVersion, Generation, CreationTimestamp, DeletionTimestamp, DeletionGracePeriodSeconds, Labels, Annotations, OwnerReferences, Finalizers, ManagedFields⟩
+  icases ownPtrD_null _ _ _ _ $$ DeletionTimestamp with ⟨DeletionTimestamp, %h⟩
+  isplitl
+  · iframe
+  · ipureintro; exact h
+
+theorem meta_own_fin (mv : k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (dq : DFrac) (m : kd.meta.ObjectMeta) :
+    kd.meta.ObjectMeta.own (GF := GF) mv dq m ⊢ kd.meta.ObjectMeta.own mv dq m ∗
+      ⌜m.Finalizers'.length = sint.nat mv.Finalizers'.len ∧ 0 ≤ sint.Z mv.Finalizers'.len⌝ := by
+  unfold kd.meta.ObjectMeta.own
+  iintro ⟨Name, GenerateName, Namespace, SelfLink, UID, ResourceVersion, Generation, CreationTimestamp, DeletionTimestamp, DeletionGracePeriodSeconds, Labels, Annotations, OwnerReferences, Finalizers, ManagedFields⟩
+  icases ownSliceD_len _ _ _ _ $$ Finalizers with ⟨Finalizers, %h⟩
+  isplitl
+  · iframe
+  · ipureintro; exact h
+
+theorem meta_own_set_DeletionTimestamp (mv : k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (m : kd.meta.ObjectMeta)
+    (p : Loc) (t : k8s_io.apimachinery.pkg.apis.«meta».v1.Time) :
+    kd.meta.ObjectMeta.own (GF := GF) mv (DFrac.own 1) m ∗ p ↦ t ⊢
+      kd.meta.ObjectMeta.own { mv with DeletionTimestamp' := p } (DFrac.own 1)
+        { m with DeletionTimestamp' := some t } := by
+  unfold kd.meta.ObjectMeta.own
+  iintro ⟨⟨Name, GenerateName, Namespace, SelfLink, UID, ResourceVersion, Generation, CreationTimestamp, -, DeletionGracePeriodSeconds, Labels, Annotations, OwnerReferences, Finalizers, ManagedFields⟩, Hp⟩
+  iframe
+  simp only [ownPtrD, ownBaseD]
+  iexists t
+  iframe
+  ipureintro; rfl
+
+theorem meta_own_set_DeletionGracePeriodSeconds (mv : k8s_io.apimachinery.pkg.apis.«meta».v1.ObjectMeta) (m : kd.meta.ObjectMeta)
+    (p : Loc) (g : w64) :
+    kd.meta.ObjectMeta.own (GF := GF) mv (DFrac.own 1) m ∗ p ↦ g ⊢
+      kd.meta.ObjectMeta.own { mv with DeletionGracePeriodSeconds' := p } (DFrac.own 1)
+        { m with DeletionGracePeriodSeconds' := some g } := by
+  unfold kd.meta.ObjectMeta.own
+  iintro ⟨⟨Name, GenerateName, Namespace, SelfLink, UID, ResourceVersion, Generation, CreationTimestamp, DeletionTimestamp, -, Labels, Annotations, OwnerReferences, Finalizers, ManagedFields⟩, Hp⟩
+  iframe
+  simp only [ownPtrD, ownBaseD]
+  iexists g
+  iframe
+  ipureintro; rfl
+
+theorem objAt_GetDeletionTimestamp (hget : metav1.ObjectMeta.GetDeletionTimestamp.spec (GF := GF) (hG := hG))
+    (x : GoInterface) (o : Obj) :
+    {{ objAt (GF := GF) x (DFrac.own 1) o }}
+      (App (match x with
+          | GoInterface.nil => Panic "nil interface"
+          | GoInterface.ok i => Val #(methods i.ty go!"GetDeletionTimestamp" i.v)) (Val #()))
+    {{ (r : Loc), RET #r; objAt x (DFrac.own 1) o ∗ ⌜r = null ↔ o.meta.DeletionTimestamp' = none⌝ }} := by
+  wp_start as Ho
+  cases o with
+  | pod d =>
+    simp only [objAt, podAt, Obj.meta, Obj.setMeta, Obj.modMeta]
+    icases Ho with ⟨%l, %Hx, %v, Hl, Hd⟩
+    subst Hx
+    wp_auto
+    wp_method_call
+    wp_call
+    icases typedPointsto_not_null_dup _ _ _ $$ Hl with ⟨Hl, %Hnn⟩
+    iStructNamed Hl
+    icases kd.core.Pod.own_meta _ _ _ $$ Hd with ⟨Hm, Hback⟩
+    icases meta_own_dts _ _ _ $$ Hm with ⟨Hm, %Hb⟩
+    wp_apply (hget _ v.ObjectMeta' (DFrac.own 1)) $$ [ObjectMeta] as ObjectMeta
+    · iexact ObjectMeta
+    ihave Hd := Hback $$ %v.ObjectMeta' %d.ObjectMeta' [Hm]
+    · iexact Hm
+    iapply HΦ
+    isplitl
+    · iexists l
+      isplitr
+      · ipureintro; rfl
+      iexists v
+      iframe Hd
+      iapply typedPointsto_combine _ _ _ Hnn
+      simp only [TypedPointsto.typedPointstoDef]
+      iframe
+    · ipureintro; exact Hb
+  | node d =>
+    simp only [objAt, nodeAt, Obj.meta, Obj.setMeta, Obj.modMeta]
+    icases Ho with ⟨%l, %Hx, %v, Hl, Hd⟩
+    subst Hx
+    wp_auto
+    wp_method_call
+    wp_call
+    icases typedPointsto_not_null_dup _ _ _ $$ Hl with ⟨Hl, %Hnn⟩
+    iStructNamed Hl
+    icases kd.core.Node.own_meta _ _ _ $$ Hd with ⟨Hm, Hback⟩
+    icases meta_own_dts _ _ _ $$ Hm with ⟨Hm, %Hb⟩
+    wp_apply (hget _ v.ObjectMeta' (DFrac.own 1)) $$ [ObjectMeta] as ObjectMeta
+    · iexact ObjectMeta
+    ihave Hd := Hback $$ %v.ObjectMeta' %d.ObjectMeta' [Hm]
+    · iexact Hm
+    iapply HΦ
+    isplitl
+    · iexists l
+      isplitr
+      · ipureintro; rfl
+      iexists v
+      iframe Hd
+      iapply typedPointsto_combine _ _ _ Hnn
+      simp only [TypedPointsto.typedPointstoDef]
+      iframe
+    · ipureintro; exact Hb
+  | ds d =>
+    simp only [objAt, dsAt, Obj.meta, Obj.setMeta, Obj.modMeta]
+    icases Ho with ⟨%l, %Hx, %v, Hl, Hd⟩
+    subst Hx
+    wp_auto
+    wp_method_call
+    wp_call
+    icases typedPointsto_not_null_dup _ _ _ $$ Hl with ⟨Hl, %Hnn⟩
+    iStructNamed Hl
+    icases kd.apps.DaemonSet.own_meta _ _ _ $$ Hd with ⟨Hm, Hback⟩
+    icases meta_own_dts _ _ _ $$ Hm with ⟨Hm, %Hb⟩
+    wp_apply (hget _ v.ObjectMeta' (DFrac.own 1)) $$ [ObjectMeta] as ObjectMeta
+    · iexact ObjectMeta
+    ihave Hd := Hback $$ %v.ObjectMeta' %d.ObjectMeta' [Hm]
+    · iexact Hm
+    iapply HΦ
+    isplitl
+    · iexists l
+      isplitr
+      · ipureintro; rfl
+      iexists v
+      iframe Hd
+      iapply typedPointsto_combine _ _ _ Hnn
+      simp only [TypedPointsto.typedPointstoDef]
+      iframe
+    · ipureintro; exact Hb
+  | cr d =>
+    simp only [objAt, crAt, Obj.meta, Obj.setMeta, Obj.modMeta]
+    icases Ho with ⟨%l, %Hx, %v, Hl, Hd⟩
+    subst Hx
+    wp_auto
+    wp_method_call
+    wp_call
+    icases typedPointsto_not_null_dup _ _ _ $$ Hl with ⟨Hl, %Hnn⟩
+    iStructNamed Hl
+    icases kd.apps.ControllerRevision.own_meta _ _ _ $$ Hd with ⟨Hm, Hback⟩
+    icases meta_own_dts _ _ _ $$ Hm with ⟨Hm, %Hb⟩
+    wp_apply (hget _ v.ObjectMeta' (DFrac.own 1)) $$ [ObjectMeta] as ObjectMeta
+    · iexact ObjectMeta
+    ihave Hd := Hback $$ %v.ObjectMeta' %d.ObjectMeta' [Hm]
+    · iexact Hm
+    iapply HΦ
+    isplitl
+    · iexists l
+      isplitr
+      · ipureintro; rfl
+      iexists v
+      iframe Hd
+      iapply typedPointsto_combine _ _ _ Hnn
+      simp only [TypedPointsto.typedPointstoDef]
+      iframe
+    · ipureintro; exact Hb
+
+theorem objAt_GetFinalizers (hget : metav1.ObjectMeta.GetFinalizers.spec (GF := GF) (hG := hG))
+    (x : GoInterface) (o : Obj) :
+    {{ objAt (GF := GF) x (DFrac.own 1) o }}
+      (App (match x with
+          | GoInterface.nil => Panic "nil interface"
+          | GoInterface.ok i => Val #(methods i.ty go!"GetFinalizers" i.v)) (Val #()))
+    {{ (r : GoSlice), RET #r; objAt x (DFrac.own 1) o ∗ ⌜o.meta.Finalizers'.length = sint.nat r.len ∧ 0 ≤ sint.Z r.len⌝ }} := by
+  wp_start as Ho
+  cases o with
+  | pod d =>
+    simp only [objAt, podAt, Obj.meta, Obj.setMeta, Obj.modMeta]
+    icases Ho with ⟨%l, %Hx, %v, Hl, Hd⟩
+    subst Hx
+    wp_auto
+    wp_method_call
+    wp_call
+    icases typedPointsto_not_null_dup _ _ _ $$ Hl with ⟨Hl, %Hnn⟩
+    iStructNamed Hl
+    icases kd.core.Pod.own_meta _ _ _ $$ Hd with ⟨Hm, Hback⟩
+    icases meta_own_fin _ _ _ $$ Hm with ⟨Hm, %Hb⟩
+    wp_apply (hget _ v.ObjectMeta' (DFrac.own 1)) $$ [ObjectMeta] as ObjectMeta
+    · iexact ObjectMeta
+    ihave Hd := Hback $$ %v.ObjectMeta' %d.ObjectMeta' [Hm]
+    · iexact Hm
+    iapply HΦ
+    isplitl
+    · iexists l
+      isplitr
+      · ipureintro; rfl
+      iexists v
+      iframe Hd
+      iapply typedPointsto_combine _ _ _ Hnn
+      simp only [TypedPointsto.typedPointstoDef]
+      iframe
+    · ipureintro; exact Hb
+  | node d =>
+    simp only [objAt, nodeAt, Obj.meta, Obj.setMeta, Obj.modMeta]
+    icases Ho with ⟨%l, %Hx, %v, Hl, Hd⟩
+    subst Hx
+    wp_auto
+    wp_method_call
+    wp_call
+    icases typedPointsto_not_null_dup _ _ _ $$ Hl with ⟨Hl, %Hnn⟩
+    iStructNamed Hl
+    icases kd.core.Node.own_meta _ _ _ $$ Hd with ⟨Hm, Hback⟩
+    icases meta_own_fin _ _ _ $$ Hm with ⟨Hm, %Hb⟩
+    wp_apply (hget _ v.ObjectMeta' (DFrac.own 1)) $$ [ObjectMeta] as ObjectMeta
+    · iexact ObjectMeta
+    ihave Hd := Hback $$ %v.ObjectMeta' %d.ObjectMeta' [Hm]
+    · iexact Hm
+    iapply HΦ
+    isplitl
+    · iexists l
+      isplitr
+      · ipureintro; rfl
+      iexists v
+      iframe Hd
+      iapply typedPointsto_combine _ _ _ Hnn
+      simp only [TypedPointsto.typedPointstoDef]
+      iframe
+    · ipureintro; exact Hb
+  | ds d =>
+    simp only [objAt, dsAt, Obj.meta, Obj.setMeta, Obj.modMeta]
+    icases Ho with ⟨%l, %Hx, %v, Hl, Hd⟩
+    subst Hx
+    wp_auto
+    wp_method_call
+    wp_call
+    icases typedPointsto_not_null_dup _ _ _ $$ Hl with ⟨Hl, %Hnn⟩
+    iStructNamed Hl
+    icases kd.apps.DaemonSet.own_meta _ _ _ $$ Hd with ⟨Hm, Hback⟩
+    icases meta_own_fin _ _ _ $$ Hm with ⟨Hm, %Hb⟩
+    wp_apply (hget _ v.ObjectMeta' (DFrac.own 1)) $$ [ObjectMeta] as ObjectMeta
+    · iexact ObjectMeta
+    ihave Hd := Hback $$ %v.ObjectMeta' %d.ObjectMeta' [Hm]
+    · iexact Hm
+    iapply HΦ
+    isplitl
+    · iexists l
+      isplitr
+      · ipureintro; rfl
+      iexists v
+      iframe Hd
+      iapply typedPointsto_combine _ _ _ Hnn
+      simp only [TypedPointsto.typedPointstoDef]
+      iframe
+    · ipureintro; exact Hb
+  | cr d =>
+    simp only [objAt, crAt, Obj.meta, Obj.setMeta, Obj.modMeta]
+    icases Ho with ⟨%l, %Hx, %v, Hl, Hd⟩
+    subst Hx
+    wp_auto
+    wp_method_call
+    wp_call
+    icases typedPointsto_not_null_dup _ _ _ $$ Hl with ⟨Hl, %Hnn⟩
+    iStructNamed Hl
+    icases kd.apps.ControllerRevision.own_meta _ _ _ $$ Hd with ⟨Hm, Hback⟩
+    icases meta_own_fin _ _ _ $$ Hm with ⟨Hm, %Hb⟩
+    wp_apply (hget _ v.ObjectMeta' (DFrac.own 1)) $$ [ObjectMeta] as ObjectMeta
+    · iexact ObjectMeta
+    ihave Hd := Hback $$ %v.ObjectMeta' %d.ObjectMeta' [Hm]
+    · iexact Hm
+    iapply HΦ
+    isplitl
+    · iexists l
+      isplitr
+      · ipureintro; rfl
+      iexists v
+      iframe Hd
+      iapply typedPointsto_combine _ _ _ Hnn
+      simp only [TypedPointsto.typedPointstoDef]
+      iframe
+    · ipureintro; exact Hb
+
+theorem objAt_SetDeletionTimestamp (hset : metav1.ObjectMeta.SetDeletionTimestamp.spec (GF := GF) (hG := hG))
+    (x : GoInterface) (o : Obj) (p : Loc) (y : k8s_io.apimachinery.pkg.apis.«meta».v1.Time) :
+    {{ objAt (GF := GF) x (DFrac.own 1) o ∗ p ↦ y }}
+      (App (match x with
+          | GoInterface.nil => Panic "nil interface"
+          | GoInterface.ok i => Val #(methods i.ty go!"SetDeletionTimestamp" i.v)) (Val #p))
+    {{ RET #(); objAt x (DFrac.own 1) (o.modMeta (fun m => { m with DeletionTimestamp' := some y })) }} := by
+  wp_start as Ho
+  cases o with
+  | pod d =>
+    simp only [objAt, podAt, Obj.meta, Obj.setMeta, Obj.modMeta]
+    icases Ho with ⟨⟨%l, %Hx, %v, Hl, Hd⟩, Hp⟩
+    subst Hx
+    wp_auto
+    wp_method_call
+    wp_call
+    icases typedPointsto_not_null_dup _ _ _ $$ Hl with ⟨Hl, %Hnn⟩
+    iStructNamed Hl
+    icases kd.core.Pod.own_meta _ _ _ $$ Hd with ⟨Hm, Hback⟩
+    wp_apply (hset _ v.ObjectMeta' p) $$ [ObjectMeta] as ObjectMeta
+    · iexact ObjectMeta
+    ihave Hm := meta_own_set_DeletionTimestamp _ _ p y $$ [$Hm $Hp]
+    ihave Hd := Hback $$ %_ %_ [Hm]
+    · iexact Hm
+    iapply HΦ
+    iexists l
+    isplitr
+    · ipureintro; rfl
+    iexists _
+    iframe Hd
+    iapply typedPointsto_combine _ _ _ Hnn
+    simp only [TypedPointsto.typedPointstoDef]
+    iframe
+  | node d =>
+    simp only [objAt, nodeAt, Obj.meta, Obj.setMeta, Obj.modMeta]
+    icases Ho with ⟨⟨%l, %Hx, %v, Hl, Hd⟩, Hp⟩
+    subst Hx
+    wp_auto
+    wp_method_call
+    wp_call
+    icases typedPointsto_not_null_dup _ _ _ $$ Hl with ⟨Hl, %Hnn⟩
+    iStructNamed Hl
+    icases kd.core.Node.own_meta _ _ _ $$ Hd with ⟨Hm, Hback⟩
+    wp_apply (hset _ v.ObjectMeta' p) $$ [ObjectMeta] as ObjectMeta
+    · iexact ObjectMeta
+    ihave Hm := meta_own_set_DeletionTimestamp _ _ p y $$ [$Hm $Hp]
+    ihave Hd := Hback $$ %_ %_ [Hm]
+    · iexact Hm
+    iapply HΦ
+    iexists l
+    isplitr
+    · ipureintro; rfl
+    iexists _
+    iframe Hd
+    iapply typedPointsto_combine _ _ _ Hnn
+    simp only [TypedPointsto.typedPointstoDef]
+    iframe
+  | ds d =>
+    simp only [objAt, dsAt, Obj.meta, Obj.setMeta, Obj.modMeta]
+    icases Ho with ⟨⟨%l, %Hx, %v, Hl, Hd⟩, Hp⟩
+    subst Hx
+    wp_auto
+    wp_method_call
+    wp_call
+    icases typedPointsto_not_null_dup _ _ _ $$ Hl with ⟨Hl, %Hnn⟩
+    iStructNamed Hl
+    icases kd.apps.DaemonSet.own_meta _ _ _ $$ Hd with ⟨Hm, Hback⟩
+    wp_apply (hset _ v.ObjectMeta' p) $$ [ObjectMeta] as ObjectMeta
+    · iexact ObjectMeta
+    ihave Hm := meta_own_set_DeletionTimestamp _ _ p y $$ [$Hm $Hp]
+    ihave Hd := Hback $$ %_ %_ [Hm]
+    · iexact Hm
+    iapply HΦ
+    iexists l
+    isplitr
+    · ipureintro; rfl
+    iexists _
+    iframe Hd
+    iapply typedPointsto_combine _ _ _ Hnn
+    simp only [TypedPointsto.typedPointstoDef]
+    iframe
+  | cr d =>
+    simp only [objAt, crAt, Obj.meta, Obj.setMeta, Obj.modMeta]
+    icases Ho with ⟨⟨%l, %Hx, %v, Hl, Hd⟩, Hp⟩
+    subst Hx
+    wp_auto
+    wp_method_call
+    wp_call
+    icases typedPointsto_not_null_dup _ _ _ $$ Hl with ⟨Hl, %Hnn⟩
+    iStructNamed Hl
+    icases kd.apps.ControllerRevision.own_meta _ _ _ $$ Hd with ⟨Hm, Hback⟩
+    wp_apply (hset _ v.ObjectMeta' p) $$ [ObjectMeta] as ObjectMeta
+    · iexact ObjectMeta
+    ihave Hm := meta_own_set_DeletionTimestamp _ _ p y $$ [$Hm $Hp]
+    ihave Hd := Hback $$ %_ %_ [Hm]
+    · iexact Hm
+    iapply HΦ
+    iexists l
+    isplitr
+    · ipureintro; rfl
+    iexists _
+    iframe Hd
+    iapply typedPointsto_combine _ _ _ Hnn
+    simp only [TypedPointsto.typedPointstoDef]
+    iframe
+
+theorem objAt_SetDeletionGracePeriodSeconds (hset : metav1.ObjectMeta.SetDeletionGracePeriodSeconds.spec (GF := GF) (hG := hG))
+    (x : GoInterface) (o : Obj) (p : Loc) (y : w64) :
+    {{ objAt (GF := GF) x (DFrac.own 1) o ∗ p ↦ y }}
+      (App (match x with
+          | GoInterface.nil => Panic "nil interface"
+          | GoInterface.ok i => Val #(methods i.ty go!"SetDeletionGracePeriodSeconds" i.v)) (Val #p))
+    {{ RET #(); objAt x (DFrac.own 1) (o.modMeta (fun m => { m with DeletionGracePeriodSeconds' := some y })) }} := by
+  wp_start as Ho
+  cases o with
+  | pod d =>
+    simp only [objAt, podAt, Obj.meta, Obj.setMeta, Obj.modMeta]
+    icases Ho with ⟨⟨%l, %Hx, %v, Hl, Hd⟩, Hp⟩
+    subst Hx
+    wp_auto
+    wp_method_call
+    wp_call
+    icases typedPointsto_not_null_dup _ _ _ $$ Hl with ⟨Hl, %Hnn⟩
+    iStructNamed Hl
+    icases kd.core.Pod.own_meta _ _ _ $$ Hd with ⟨Hm, Hback⟩
+    wp_apply (hset _ v.ObjectMeta' p) $$ [ObjectMeta] as ObjectMeta
+    · iexact ObjectMeta
+    ihave Hm := meta_own_set_DeletionGracePeriodSeconds _ _ p y $$ [$Hm $Hp]
+    ihave Hd := Hback $$ %_ %_ [Hm]
+    · iexact Hm
+    iapply HΦ
+    iexists l
+    isplitr
+    · ipureintro; rfl
+    iexists _
+    iframe Hd
+    iapply typedPointsto_combine _ _ _ Hnn
+    simp only [TypedPointsto.typedPointstoDef]
+    iframe
+  | node d =>
+    simp only [objAt, nodeAt, Obj.meta, Obj.setMeta, Obj.modMeta]
+    icases Ho with ⟨⟨%l, %Hx, %v, Hl, Hd⟩, Hp⟩
+    subst Hx
+    wp_auto
+    wp_method_call
+    wp_call
+    icases typedPointsto_not_null_dup _ _ _ $$ Hl with ⟨Hl, %Hnn⟩
+    iStructNamed Hl
+    icases kd.core.Node.own_meta _ _ _ $$ Hd with ⟨Hm, Hback⟩
+    wp_apply (hset _ v.ObjectMeta' p) $$ [ObjectMeta] as ObjectMeta
+    · iexact ObjectMeta
+    ihave Hm := meta_own_set_DeletionGracePeriodSeconds _ _ p y $$ [$Hm $Hp]
+    ihave Hd := Hback $$ %_ %_ [Hm]
+    · iexact Hm
+    iapply HΦ
+    iexists l
+    isplitr
+    · ipureintro; rfl
+    iexists _
+    iframe Hd
+    iapply typedPointsto_combine _ _ _ Hnn
+    simp only [TypedPointsto.typedPointstoDef]
+    iframe
+  | ds d =>
+    simp only [objAt, dsAt, Obj.meta, Obj.setMeta, Obj.modMeta]
+    icases Ho with ⟨⟨%l, %Hx, %v, Hl, Hd⟩, Hp⟩
+    subst Hx
+    wp_auto
+    wp_method_call
+    wp_call
+    icases typedPointsto_not_null_dup _ _ _ $$ Hl with ⟨Hl, %Hnn⟩
+    iStructNamed Hl
+    icases kd.apps.DaemonSet.own_meta _ _ _ $$ Hd with ⟨Hm, Hback⟩
+    wp_apply (hset _ v.ObjectMeta' p) $$ [ObjectMeta] as ObjectMeta
+    · iexact ObjectMeta
+    ihave Hm := meta_own_set_DeletionGracePeriodSeconds _ _ p y $$ [$Hm $Hp]
+    ihave Hd := Hback $$ %_ %_ [Hm]
+    · iexact Hm
+    iapply HΦ
+    iexists l
+    isplitr
+    · ipureintro; rfl
+    iexists _
+    iframe Hd
+    iapply typedPointsto_combine _ _ _ Hnn
+    simp only [TypedPointsto.typedPointstoDef]
+    iframe
+  | cr d =>
+    simp only [objAt, crAt, Obj.meta, Obj.setMeta, Obj.modMeta]
+    icases Ho with ⟨⟨%l, %Hx, %v, Hl, Hd⟩, Hp⟩
+    subst Hx
+    wp_auto
+    wp_method_call
+    wp_call
+    icases typedPointsto_not_null_dup _ _ _ $$ Hl with ⟨Hl, %Hnn⟩
+    iStructNamed Hl
+    icases kd.apps.ControllerRevision.own_meta _ _ _ $$ Hd with ⟨Hm, Hback⟩
+    wp_apply (hset _ v.ObjectMeta' p) $$ [ObjectMeta] as ObjectMeta
+    · iexact ObjectMeta
+    ihave Hm := meta_own_set_DeletionGracePeriodSeconds _ _ p y $$ [$Hm $Hp]
+    ihave Hd := Hback $$ %_ %_ [Hm]
+    · iexact Hm
+    iapply HΦ
+    iexists l
+    isplitr
+    · ipureintro; rfl
+    iexists _
+    iframe Hd
+    iapply typedPointsto_combine _ _ _ Hnn
+    simp only [TypedPointsto.typedPointstoDef]
+    iframe
+
 end lemmas
 
 end apimodel

@@ -80,47 +80,6 @@ theorem updateErr_none {r : Res} {ns : GoString} {o st : Obj} {σ : St}
   simp only []
   rw [if_neg h]
 
-/-- Every stored object is some logged change's. -/
-theorem replay_mem (l : List Change) (k : Key) (st : Obj) (h : replay l !! k = some st) :
-    ∃ c ∈ l, c.obj = st := by
-  unfold replay at h
-  suffices H : ∀ (l : List Change) (M : GMap Key Obj), (∀ k v, M !! k = some v → ∃ c ∈ l, c.obj = v) →
-      ∀ (l' : List Change) k v, l'.foldl applyChange M !! k = some v → ∃ c ∈ l ++ l', c.obj = v by
-    have := H [] ∅ (fun k v h => by simp at h) l k st h
-    simpa using this
-  intro l0 M hM l'
-  induction l' generalizing l0 M with
-  | nil =>
-    intro k v h
-    simpa using hM k v h
-  | cons c l' ih =>
-    intro k v h
-    have := ih (l0 ++ [c]) (applyChange M c) ?_ k v h
-    · simpa using this
-    · intro k' v' h'
-      unfold applyChange at h'
-      split at h'
-      · rw [GMap.lookup_delete_iff] at h'
-        split at h'
-        · simp at h'
-        · obtain ⟨c', hc', rfl⟩ := hM k' v' h'
-          exact ⟨c', by simp [hc'], rfl⟩
-      all_goals
-        rw [GMap.lookup_insert_eq_iff] at h'
-        split at h'
-        · simp at h'; subst h'; exact ⟨c, by simp, rfl⟩
-        · obtain ⟨c', hc', rfl⟩ := hM k' v' h'
-          exact ⟨c', by simp [hc'], rfl⟩
-
-/-- A stored object is the table's resource and carries an issued UID. -/
-theorem wf_stored {σ : St} (hwf : σ.wf) {r : Res} {k : Key} {st : Obj}
-    (h : (σ.tbl r).objs !! k = some st) :
-    st.res = r ∧ ∃ n : w64, 1 ≤ n.toNat ∧ n.toNat ≤ σ.uids.toNat ∧
-      st.meta.UID' = go!"uid-" ++ rvStr n := by
-  rw [hwf.objs_replay r] at h
-  obtain ⟨c, hc, rfl⟩ := replay_mem _ k st h
-  exact ⟨(hwf.log_obj r c hc).1, hwf.log_uid r c hc⟩
-
 /-- The object an update stores, as the calls build it. -/
 theorem updateApply_fst (r : Res) (st o' : Obj) (σ : St) :
     (((((o'.modMeta (fun m => { m with Name' := st.meta.Name' })).modMeta
