@@ -46,7 +46,7 @@ theorem auth.authStore.commitRevision.wp_proof
   iintro Hmask
   inext
   iunfold revInv at Hi
-  icases Hi with ⟨%r, Hr, -, Hc⟩
+  icases Hi with ⟨%r, Hr, -, Hc, Hf⟩
   iexists r
   iframe Hr
   iintro Hr
@@ -61,9 +61,11 @@ theorem auth.authStore.commitRevision.wp_proof
     word
   imod (authOwnF_revCur_append M hs (bump sta) r (r + W64 1) Hk (fun h => by
       subst h; exact Hoff rfl) hr') $$ Hown Hc with ⟨Hown, Hc, #Hv⟩
+  imod (authOwnF_revFresh M (hs ++ [bump sta]) (bump sta) r (r + W64 1)
+    (fun _ _ => by simp) hr') $$ Hown Hf with ⟨Hown, Hf⟩
   imod Hmask with -
-  imod Hclose $$ [Hr Hc] with -
-  · inext; iunfold revInv; iexists (r + W64 1); iframe Hr Hc; iexact Hv
+  imod Hclose $$ [Hr Hc Hf] with -
+  · inext; iunfold revInv; iexists (r + W64 1); iframe Hr Hc Hf; iexact Hv
   imodintro
   wp_auto
   icases (authOwnF_split M (hs ++ [bump sta])).1 $$ Hown with ⟨Hown, Hsh⟩

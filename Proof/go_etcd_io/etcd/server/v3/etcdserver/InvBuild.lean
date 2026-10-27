@@ -77,6 +77,40 @@ theorem bootKVOf_false : bootKVOf false = bootKV := rfl
 /-- The bootstrap log as the server's entries. -/
 def bootEntries (bootLog : List EntryM) : List EntryModel := bootLog.map EntryModel.ofM
 
+/-- A bootstrap log's entries change no lease table (unit T3, L3a). -/
+theorem kvTableOf_boot (c₀ : w64) (ch : apply.Chain) (lt : LeaseTable)
+    (ccOk : w32 → List w8 → Prop) (ps : List w64) (bootLog : List EntryM)
+    (hb : BootLogOk ccOk ps bootLog) : kvTableOf c₀ ch lt (bootEntries bootLog) = lt := by
+  obtain ⟨-, -, he⟩ := hb
+  unfold kvTableOf bootEntries
+  rw [List.foldl_map]
+  suffices h : ∀ (l : List EntryM), (∀ e ∈ l, e.Type' = W32 1) →
+      l.foldl (fun lt e => kvTable c₀ ch lt (EntryModel.ofM e)) lt = lt by
+    apply h
+    intro e hm
+    obtain ⟨k, hk, rfl⟩ := List.getElem_of_mem hm
+    exact (he k _ (List.getElem?_eq_getElem hk)).2.2.1
+  intro l
+  induction l with
+  | nil => intro _; rfl
+  | cons e l ih =>
+    intro hl
+    rw [List.foldl_cons]
+    have ht : e.Type' = W32 1 := hl e (List.mem_cons_self ..)
+    have : kvTable c₀ ch lt (EntryModel.ofM e) = lt := by
+      unfold kvTable
+      simp only [EntryModel.ofM, ht]
+      rfl
+    rw [this]
+    exact ih (fun e' h' => hl e' (List.mem_cons_of_mem _ h'))
+
+/-- **The start state of a bootstrap log has no lease** (unit T3, L3a). -/
+theorem kvModelSt_boot (γk : KVNames) (ccOk : w32 → List w8 → Prop) (ps : List w64)
+    (bootLog : List EntryM) (hb : BootLogOk ccOk ps bootLog) :
+    kvModelSt γk (bootEntries bootLog) = kvStateOf (kvModel γk (bootEntries bootLog)) := by
+  unfold kvModelSt kvLeases
+  rw [kvTableOf_boot _ _ _ ccOk ps bootLog hb]
+
 /-- **A message raft hands the server is no `MsgSnap`** (D19p, 2026-10-18; since D21 M3,
 2026-10-19, of any cluster in the no-snapshot mode, `RaftNames.reNoSnap`, which `isRaftMsg` says;
 until then of a one-member cluster, raft's tracked bound its one node). -/

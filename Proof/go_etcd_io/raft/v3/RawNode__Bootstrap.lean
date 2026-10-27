@@ -503,11 +503,13 @@ theorem RawNode.Bootstrap.wp_proof
             fun l h => (by cases h)⟩
           (TrackedOk.of_sub Hsub (by rw [R7]; exact (GMap.elem_of_list_to_set _ _).2 R6))
           Hnl0
-        $$ Hrn Hphys Hghost Hsdrf Hsoft Hes' Hsteps Hsteps_cap [] Hcomm0 [] [] []
+        $$ Hrn Hphys Hghost Hsdrf Hsoft Hes' Hsteps Hsteps_cap [] Hcomm0 [] [] [] []
       · iapply pendList_nil
       · iapply ackInv_none; intro _ _ _ _ h; cases h
       · ipureintro; trivial
       · simp only; rw [HNls]; simp only [logAppend, Hsg]; iexact Hcl
+      · first | (rw [HNls]; simp only [logAppend, Hsn]) | (simp only; rw [HNls]; simp only [logAppend, Hsn])
+        iapply snapLocOk_none
     | dyn dec c0 h0 h1 =>
       -- (2026-10-25, T-M M2a) the dynamic mode: the ghost state at `rboot c0 bootLog`, the
       -- configuration index `0`, the configuration the peers' (`ownRaftPhysC` at it, as
@@ -558,10 +560,12 @@ theorem RawNode.Bootstrap.wp_proof
           -- (D22 S-d3a) no snapshot lent
           ⟨by simp only; rw [HNgh]; rfl, fun _ => ⟨by simp only; rw [HNgh], fun _ _ _ _ h => (by cases h)⟩,
             fun l h => (by cases h)⟩
-        $$ Hrn Hphys Hghost Hsdrf Hsoft Hes' Hsteps Hsteps_cap [] Hcomm0 [] []
+        $$ Hrn Hphys Hghost Hsdrf Hsoft Hes' Hsteps Hsteps_cap [] Hcomm0 [] [] []
       · iapply pendList_nil
       · iapply ackInv_none; intro _ _ _ _ h; cases h
       · ipureintro; trivial
+      · first | (rw [HNls]; simp only [logAppend, Hsn]) | (simp only; rw [HNls]; simp only [logAppend, Hsn])
+        iapply snapLocOk_none
   · iexact Hpeers
 
 end proof

@@ -69,6 +69,7 @@ batchTxBuffered__UnsafeSeqPut: @
 batchTxBuffered__Unlock: @
 batchTxBuffered__UnsafeRange: @
 batchTxBuffered__UnsafeCreateBucket: @
+batchTxBuffered__UnsafeDelete: @
 # The lessor's KV-facing methods (server/lease/lessor.go; the backend's unit 8, 2026-10-13), see
 # lease/InvLessor.lean: mvcc's and the txn package's lessor contracts are derived from them
 # (lease/LessorContract.lean).
@@ -80,12 +81,15 @@ lease_lessor__SetRangeDeleter:
 # The lessor's apply-side methods (the backend's unit 9, 2026-10-13), see lease/InvLessor.lean and
 # lease/LessorBackend.lean: `Grant`, `Checkpoint` and their callees, `ExpiredLeasesC`; the apply
 # package's and the server's lessor contracts are derived from them (apply/LessorDerive.lean,
-# LessorOk.lean). The trust boundary: container/heap's Push and Fix (names only), api/v3/version's
+# LessorOk.lean). container/heap's Push and Fix are proved, with the sift loops up and down they
+# call (translated by this repository: Code/container/heap.toml). The trust boundary: api/v3/version's
 # LessThan, schema's MustUnsafePutLease (protobuf's Marshal), and the lessor's
 # scheduleCheckpointIfNeeded and Promote (float-to-integer conversions) and Demote (the close of
 # demotec).
-heap_Push:
-heap_Fix:
+heap_up:
+heap_down:
+heap_Push: heap_up
+heap_Fix: heap_down heap_up
 version_LessThan:
 schema_MustUnsafePutLease:
 lease_LeaseQueue__Len:
@@ -108,6 +112,17 @@ lease_lessor__Checkpoint: lease_lessor__shouldPersistCheckpoints lease_Lease__pe
 lease_lessor__ExpiredLeasesC:
 lease_lessor__Promote:
 lease_lessor__Demote:
+# Revoke (unit T3, 2026-10-25): the lease's keys (`Lease.Keys`), sorted (`sort.StringSlice.Sort`,
+# the trust boundary: Perennial's `sort` has the type only), deleted through the store's range
+# deleter (mvcc's metrics/watchable write transaction), the lease's record deleted
+# (`schema.UnsafeDeleteLease`, names-only: the trust boundary). Not reached from NewServer: the
+# apply thread's `Revoke` clause is still vacuous (L3).
+lease_Lease__Keys:
+sort_StringSlice__Sort:
+schema_UnsafeDeleteLease:
+mvcc_metricsTxnWrite__DeleteRange: @
+mvcc_watchableStoreTxnWrite__End: @
+lease_lessor__Revoke: lease_Lease__Keys sort_StringSlice__Sort schema_UnsafeDeleteLease mvcc_metricsTxnWrite__DeleteRange mvcc_watchableStoreTxnWrite__End
 schema_bucket__ID:
 schema_bucket__Name:
 schema_bucket__IsSafeRangeBucket:
@@ -286,13 +301,17 @@ EtcdServer__MemberList: EtcdServer__requireAuthInfo RaftCluster__Members
 # the auth plan's A3, the API layer (2026-10-24): the Auth service's entry points (v3_server.go;
 # `AuthEntry.lean`): each is `raftRequest` on its request, taken as the contract `authRaftOk`
 # (`reqPropOk` has no auth request), so they have no callee. Authenticate (auth's
-# `ErrAuthNotEnabled`, not in the package's fact) is translated but not proved; UserAdd and
-# UserChangePassword are names only (they hash the password: bcrypt, base64).
+# `ErrAuthNotEnabled`, not in the package's fact) is translated but not proved. UserAdd (the auth
+# plan's E2x, 2026-10-26) hashes the password, bcrypt's `GenerateFromPassword` the trust boundary
+# (D-AU6), and base64-encodes the hash (`StdEncoding`'s `EncodeToString`: base64's package fact,
+# `encoding/base64/Base.lean`); UserChangePassword is translated, not proved.
 EtcdServer__AuthEnable:
 EtcdServer__AuthDisable:
 EtcdServer__AuthStatus:
 EtcdServer__UserDelete:
 EtcdServer__UserGrantRole:
+bcrypt_GenerateFromPassword:
+EtcdServer__UserAdd: bcrypt_GenerateFromPassword
 EtcdServer__UserGet:
 EtcdServer__UserList:
 EtcdServer__UserRevokeRole:
@@ -634,7 +653,7 @@ watchableStore__Close: @
 backend__SetTxPostLockInsideApplyHook: @
 EtcdServer__restoreAlarms: schema_NewAlarmBackend v3alarm_NewAlarmStore
 EtcdServer__NewUberApplier: EtcdServer__KV apply_NewUberApplier
-etcdserver_NewServer: zap_Logger__Error zap_Error zap_Logger__Info zap_Logger__Warn v2stats_NewServerStats membership_RaftCluster__String v2stats_NewLeaderStats types_ID__String_ptr bootstrappedRaft__newRaftNode node__Ready node__Advance node__Tick node__ReadIndex types_URLs__StringSlice idutil_NewGenerator NewNotifier addFeatureGateMetrics prometheus_GaugeVec__With membership_RaftCluster__SetVersionChangedNotifier EtcdServer__Logger config_ServerConfig__ReqTimeout EtcdServer__FeatureEnabled time_Duration__Seconds_ptr math_Ceil lease_NewLessor auth_NewTokenProvider mvcc_New newCorruptionChecker mvcc_store__HashStorage schema_NewAuthBackend auth_NewAuthStore v3compactor_New EtcdServer__restoreAlarms EtcdServer__NewUberApplier EtcdServer__getTxPostLockInsideApplyHook backend__SetTxPostLockInsideApplyHook config_ServerConfig__PeerDialTimeout membership_RaftCluster__ID rafthttp_Transport__Start rafthttp_Transport__AddRemote rafthttp_Transport__AddPeer watchableStore__Close schema_bucket__ID schema_bucket__Name schema_bucket__IsSafeRangeBucket lease_lessor__GetLease lease_lessor__Attach lease_lessor__Detach lease_lessor__SetRangeDeleter lease_lessor__Lookup lease_lessor__Grant lease_lessor__Checkpoint lease_Lease__TTL lease_lessor__Promote lease_lessor__Demote lease_lessor__ExpiredLeasesC backend__ConcurrentReadTx backend__ReadTx backend__BatchTx backend__ForceCommit backend__Size backend__SizeInUse concurrentReadTx__RLock concurrentReadTx__RUnlock concurrentReadTx__UnsafeRange readTx__RLock readTx__RUnlock readTx__UnsafeRange batchTxBuffered__LockInsideApply batchTxBuffered__LockOutsideApply batchTxBuffered__UnsafeSeqPut batchTxBuffered__Unlock batchTxBuffered__UnsafeRange batchTxBuffered__UnsafeCreateBucket node__Propose EtcdServer__MemberID EtcdServer__Leader EtcdServer__Term EtcdServer__ForceSnapshot consistentIndex__ConsistentIndex EtcdServer__ClusterVersion MemoryStorage__Snapshot node__ApplyConfChange node__Step node__ReportUnreachable node__ReportSnapshot EtcdServer__Process EtcdServer__IsIDRemoved EtcdServer__ReportUnreachable EtcdServer__ReportSnapshot
+etcdserver_NewServer: zap_Logger__Error zap_Error zap_Logger__Info zap_Logger__Warn v2stats_NewServerStats membership_RaftCluster__String v2stats_NewLeaderStats types_ID__String_ptr bootstrappedRaft__newRaftNode node__Ready node__Advance node__Tick node__ReadIndex types_URLs__StringSlice idutil_NewGenerator NewNotifier addFeatureGateMetrics prometheus_GaugeVec__With membership_RaftCluster__SetVersionChangedNotifier EtcdServer__Logger config_ServerConfig__ReqTimeout EtcdServer__FeatureEnabled time_Duration__Seconds_ptr math_Ceil lease_NewLessor auth_NewTokenProvider mvcc_New newCorruptionChecker mvcc_store__HashStorage schema_NewAuthBackend auth_NewAuthStore v3compactor_New EtcdServer__restoreAlarms EtcdServer__NewUberApplier EtcdServer__getTxPostLockInsideApplyHook backend__SetTxPostLockInsideApplyHook config_ServerConfig__PeerDialTimeout membership_RaftCluster__ID rafthttp_Transport__Start rafthttp_Transport__AddRemote rafthttp_Transport__AddPeer watchableStore__Close schema_bucket__ID schema_bucket__Name schema_bucket__IsSafeRangeBucket lease_lessor__GetLease lease_lessor__Attach lease_lessor__Detach lease_lessor__SetRangeDeleter lease_lessor__Lookup lease_lessor__Grant lease_lessor__Checkpoint lease_Lease__TTL lease_lessor__Promote lease_lessor__Demote lease_lessor__ExpiredLeasesC backend__ConcurrentReadTx backend__ReadTx backend__BatchTx backend__ForceCommit backend__Size backend__SizeInUse concurrentReadTx__RLock concurrentReadTx__RUnlock concurrentReadTx__UnsafeRange readTx__RLock readTx__RUnlock readTx__UnsafeRange batchTxBuffered__LockInsideApply batchTxBuffered__LockOutsideApply batchTxBuffered__UnsafeSeqPut batchTxBuffered__Unlock batchTxBuffered__UnsafeRange batchTxBuffered__UnsafeCreateBucket node__Propose EtcdServer__MemberID EtcdServer__Leader EtcdServer__Term EtcdServer__ForceSnapshot consistentIndex__ConsistentIndex EtcdServer__ClusterVersion MemoryStorage__Snapshot node__ApplyConfChange node__Step node__ReportUnreachable node__ReportSnapshot EtcdServer__Process EtcdServer__IsIDRemoved EtcdServer__ReportUnreachable EtcdServer__ReportSnapshot batchTxBuffered__UnsafeDelete
 # (D22 S-f, 2026-10-19) opening a received database snapshot (server/storage/backend.go,
 # storage/InvOpen.lean): `OpenSnapshotBackend` with its body; the trust boundary: `OpenBackend`
 # (its goroutine can panic: `dbOpensOk`), the snapshotter's `DBFilePath`, `os.Rename` and the

@@ -77,16 +77,20 @@ instance enabledP_fractional (st : Loc) (M : AuthMode) :
     Fractional (enabledP (GF := GF) st M) := by
   unfold enabledP
   exact fractional_exists_agree
-    (fun (b : Bool) q => iprop(aF go!"enabled" st ↦{DFrac.own q.half} b ∗ enabledVerdict M b))
+    (fun (b : Bool) q => iprop(aF go!"enabled" st ↦{DFrac.own q.half} b ∗ enabledVerdict M b ∗
+      enG M q.half b))
     (fun b => ⟨fun q1 q2 => by
       rw [Qp.half_add]
       constructor
-      · iintro ⟨H, #Hv⟩
+      · iintro ⟨H, #Hv, Hg⟩
         icases (typedPointsto_frac_add _ _ q1.half q2.half).1 $$ H with ⟨H1, H2⟩
-        iframe H1 H2 Hv
-      · iintro ⟨⟨H1, #Hv⟩, ⟨H2, -⟩⟩
+        icases (enG_split M q1.half q2.half b).1 $$ Hg with ⟨Hg1, Hg2⟩
+        iframe H1 H2 Hv Hg1 Hg2
+      · iintro ⟨⟨H1, #Hv, Hg1⟩, ⟨H2, -, Hg2⟩⟩
         iframe Hv
-        iapply (typedPointsto_frac_add _ _ q1.half q2.half).2 $$ [$H1 $H2]⟩)
+        isplitl [H1 H2]
+        · iapply (typedPointsto_frac_add _ _ q1.half q2.half).2 $$ [$H1 $H2]
+        · iapply (enG_split M q1.half q2.half b).2 $$ [$Hg1 $Hg2]⟩)
     (fun x y q1 q2 => by
       iintro ⟨⟨H1, -⟩, ⟨H2, -⟩⟩
       icombine H1 H2 gives %Heq
@@ -118,19 +122,23 @@ instance cacheP_fractional (st : Loc) (M : AuthMode) :
   unfold cacheP
   exact fractional_exists_agree
     (fun (mp : GoMap) q => iprop(∃ Mp : GMap GoString Loc,
-      aF go!"rangePermCache" st ↦{DFrac.own q.half} mp ∗ mp ↦${DFrac.discard} Mp ∗ cacheOk M Mp))
+      aF go!"rangePermCache" st ↦{DFrac.own q.half} mp ∗ mp ↦${DFrac.discard} Mp ∗ cacheOk M Mp ∗
+        caGM M q.half mp Mp))
     (fun mp => fractional_exists_agree
       (fun (Mp : GMap GoString Loc) q => iprop(aF go!"rangePermCache" st ↦{DFrac.own q.half} mp ∗
-        mp ↦${DFrac.discard} Mp ∗ cacheOk M Mp))
+        mp ↦${DFrac.discard} Mp ∗ cacheOk M Mp ∗ caGM M q.half mp Mp))
       (fun Mp => ⟨fun q1 q2 => by
         rw [Qp.half_add]
         constructor
-        · iintro ⟨H, #Hm, #Hv⟩
+        · iintro ⟨H, #Hm, #Hv, Hg⟩
           icases (typedPointsto_frac_add _ _ q1.half q2.half).1 $$ H with ⟨H1, H2⟩
-          iframe H1 H2 Hm Hv
-        · iintro ⟨⟨H1, #Hm, #Hv⟩, ⟨H2, -, -⟩⟩
+          icases (caGM_split M q1.half q2.half mp Mp).1 $$ Hg with ⟨Hg1, Hg2⟩
+          iframe H1 H2 Hm Hv Hg1 Hg2
+        · iintro ⟨⟨H1, #Hm, #Hv, Hg1⟩, ⟨H2, -, -, Hg2⟩⟩
           iframe Hm Hv
-          iapply (typedPointsto_frac_add _ _ q1.half q2.half).2 $$ [$H1 $H2]⟩)
+          isplitl [H1 H2]
+          · iapply (typedPointsto_frac_add _ _ q1.half q2.half).2 $$ [$H1 $H2]
+          · iapply (caGM_split M q1.half q2.half mp Mp).2 $$ [$Hg1 $Hg2]⟩)
       (fun x y q1 q2 => by
         iintro ⟨⟨-, H1, -⟩, ⟨-, H2, -⟩⟩
         iapply ownMap_agree $$ [$H1 $H2]))
@@ -209,7 +217,7 @@ theorem newAuthStore_on
         □ ({{ T }} (App (Val #(methods bi.ty go!"CreateAuthBuckets" bi.v)) (Val #()))
           {{ RET #(); T }}) ∗
         T ∗ mvcc.csContract P f Pre Q Post ∗ tokenProviderOkA tp (.on γa) A ∗ A ∗
-        authOwn (.on γa) hs ∗ authCurHalf γa stl }}
+        authOwn (.on γa) hs ∗ authStoreInit γa stl }}
       (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.auth.NewAuthStore)) (Val #lg))
         (Val #ab)) (Val #tp)) (Val #cost))
     {{ (st : GoInterface), RET #st; ∃ (stp : Loc) (hs' : List AuthState),
@@ -219,6 +227,8 @@ theorem newAuthStore_on
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (),
           enabledRd stp (.on γa) ∗ cacheRd stp (.on γa) ∗ beRd stp R (.on γa)) }} := by
   wp_start as ⟨%Hlg, %Hab, #Hrdok, #HwokR, #HCreate, HT, Hcs, #HtpA, HA, Hown, Hcur⟩
+  iunfold authStoreInit at Hcur
+  icases Hcur with ⟨Hcur, Hpub, ⟨%b0, Hfe⟩, %v0, Hfc⟩
   ihave #Hwok := authWBackendOk_of_R _ (.on γa) P f T $$ HwokR
   subst Hab
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
@@ -325,16 +335,28 @@ theorem newAuthStore_on
   obtain ⟨se, hse, hseu⟩ := hempty
   obtain ⟨ie, hie⟩ := List.mem_iff_getElem?.1 hse
   imod (authOwnF_stateAt_keep γa hs ie se hie) $$ Hown with ⟨Hown, #Hse⟩
+  obtain ⟨s0, hs0⟩ : ∃ s0, hs[0]? = some s0 := by
+    cases hs with
+    | nil => cases hlast
+    | cons x xs => exact ⟨x, rfl⟩
+  imod (authOwnF_stateAt_keep γa hs 0 s0 hs0) $$ Hown with ⟨Hown, #Hs0⟩
   -- the three locks' guards
   ihave ⟨Hbe1, Hbe2⟩ := (typedPointsto_half_split _ _ (1 : Qp)).1 $$ be
   ihave ⟨Hen1, Hen2⟩ := (typedPointsto_half_split _ _ (1 : Qp)).1 $$ enabled
   imod (sync.init_RWMutex (beP «$r0_ptr» R (.on γa)) (aF go!"beMu" «$r0_ptr») (E := ⊤))
     $$ [Hbe1] beMu with HbeS
   · inext; iunfold beP; iexists _; iframe Hbe1; iexact Hrdok
+  -- (E3h) the field's ghost variable at the flag read: half the guard's, a quarter the admin
+  -- side's, a quarter the store's freshness
+  imod (ghostVar_update b γa.fen b0) $$ Hfe with Hfe
+  icases (ghostVar_split_half γa.fen 1 b).1 $$ Hfe with ⟨HfeG, Hfe2⟩
+  icases (ghostVar_split_half γa.fen (1 : Qp).half b).1 $$ Hfe2 with ⟨HfeA, HfeI⟩
   imod (sync.init_RWMutex (enabledP «$r0_ptr» (.on γa)) (aF go!"enabledMu" «$r0_ptr») (E := ⊤))
-    $$ [Hen1] enabledMu with HenS
+    $$ [Hen1 HfeG] enabledMu with HenS
   · inext; iunfold enabledP; iexists _; iframe Hen1
-    iunfold enabledVerdict; iexists _, st0; iframe Hst0; ipureintro; exact Hb
+    isplitl []
+    · iunfold enabledVerdict; iexists _, st0; iframe Hst0; ipureintro; exact Hb
+    · iunfold enG; iexact HfeG
   ihave ⟨Hca1, Hca2⟩ := (typedPointsto_half_split _ _ (1 : Qp)).1 $$ rangePermCache
   imod ownMap_persist mp _ ∅ $$ HM with #HM
   ihave #Hof : (cacheOf (GF := GF) se ∅) $$ []
@@ -342,17 +364,25 @@ theorem newAuthStore_on
     isplitr
     · ipureintro; intro u; simp [hseu]
     · iapply BigSepM.bigSepM_empty.2; itrivial
+  -- (E3h) the cache's ghost variable at the empty map of the empty state: half the guard's, a
+  -- quarter the admin side's, a quarter the store's freshness
+  imod (ghostVar_update (mp, ie) γa.fca v0) $$ Hfc with Hfc
+  icases (ghostVar_split_half γa.fca 1 (mp, ie)).1 $$ Hfc with ⟨HfcG, Hfc2⟩
+  icases (ghostVar_split_half γa.fca (1 : Qp).half (mp, ie)).1 $$ Hfc2 with ⟨HfcA, HfcI⟩
   imod (sync.init_RWMutex (cacheP «$r0_ptr» (.on γa)) (aF go!"rangePermCacheMu" «$r0_ptr»)
-    (E := ⊤)) $$ [Hca1] rangePermCacheMu with HcaS
+    (E := ⊤)) $$ [Hca1 HfcG] rangePermCacheMu with HcaS
   · inext; iunfold cacheP; iexists mp, ∅; iframe Hca1 HM
-    iunfold cacheOk; iexists ie, se; iframe Hse
-    isplitr
-    · ipureintro; intro u; simp [hseu]
-    · iapply BigSepM.bigSepM_empty.2; itrivial
-  ihave Hca : (cacheHalf (GF := GF) «$r0_ptr» (.on γa)) $$ [Hca2]
+    isplitl []
+    · iunfold cacheOk; iexists ie, se; iframe Hse
+      isplitr
+      · ipureintro; intro u; simp [hseu]
+      · iapply BigSepM.bigSepM_empty.2; itrivial
+    iunfold caGM; iexists ie, se; iframe HfcG Hse Hof
+  ihave Hca : (cacheHalf (GF := GF) «$r0_ptr» (.on γa)) $$ [Hca2 HfcA]
   · iunfold cacheHalf; iexists se
-    isplitl [Hca2]
+    isplitl [Hca2 HfcA]
     · iunfold cacheAt; iexists mp, ∅; iframe Hca2 HM Hof
+      iunfold caA; iexists ie, se; iframe HfcA Hse; ipureintro; rfl
     · iunfold authSnap; iexists ie; iexact Hse
   ihave ⟨HbeS, #Gbe⟩ := sync.ownRWMutex_slots_guard _ _ $$ HbeS
   ihave ⟨HenS, #Gen⟩ := sync.ownRWMutex_slots_guard _ _ $$ HenS
@@ -360,12 +390,28 @@ theorem newAuthStore_on
   ipersist lg
   ipersist tokenProvider
   -- the revision's invariant
-  imod inv_alloc (nroot.@"authRev") ⊤ (revInv (GF := GF) «$r0_ptr» (.on γa)) $$ [revision Hcur]
+  imod inv_alloc (nroot.@"authRev") ⊤ (revInv (GF := GF) «$r0_ptr» (.on γa)) $$ [revision Hcur Hpub HfeI HfcI]
     with #Hrev
   · inext; iunfold revInv; iexists x; iframe revision
     isplitl []
     · iunfold revisionVerdict; iexists _, st0; iframe Hst0; ipureintro; exact Hx
+    isplitl [Hcur]
     · iunfold revCur; iexists st0; iframe Hcur; ipureintro; exact Hx
+    · -- (E3h) nothing published yet: the published index `0`, the latest state's revision
+      iunfold revFresh
+      iexists 0
+      iframe Hpub
+      isplitl []
+      · iexists s0; iexact Hs0
+      isplitl []
+      · iexists _, st0; iframe Hst0; ipureintro; exact ⟨Nat.zero_le _, Hx⟩
+      isplitl [HfeI]
+      · iexists b
+        iframe HfeI
+        iexists _, st0; iframe Hst0; ipureintro; exact ⟨Nat.zero_le _, Hb⟩
+      iexists (mp, ie)
+      iframe HfcI
+      iexists se, ie, se; iframe Hse; ipureintro; exact ⟨Nat.zero_le _, rfl⟩
   ihave #Hinv : authInv (GF := GF) «$r0_ptr» R (.on γa) $$ []
   · iunfold authInv
     iframe Hrev Gbe Gen Gca
@@ -440,15 +486,15 @@ theorem newAuthStore_on
   imod (authSnapF_of_last (.on γa) hs' sta Hsta.1) $$ Hown with ⟨Hown, #Hsnap⟩
   wp_bind (App (Val («$r0_ptr» @!! go.GoType.PointerType authStore.ty @!! go!"refreshRangePermCache"))
     (Val #(GoInterface.ok ti)))
-  iapply (h_refresh «$r0_ptr» R (.on γa) ti (fun x => Lk x Post) sta) $$ [HL Hca]
-  · iframe Hpkg Hinv Hca Hsnap
+  iapply (h_refresh «$r0_ptr» R (.on γa) ti (fun x => Lk x Post) sta hs') $$ [HL Hca Hown]
+  · iframe Hpkg Hinv Hca Hsnap Hown
     isplitr
     · iapply HRd
     isplitl [HL]
     · iexact HL
-    ipureintro; exact Hsta.2.1
+    ipureintro; exact ⟨Hsta.2.1, fun _ _ => Hsta.1⟩
   inext
-  iintro ⟨HL, Hca⟩
+  iintro ⟨HL, Hca, Hown⟩
   ihave Hca := cacheHalf_of_at _ _ _ $$ Hca Hsnap
   (try wp_auto)
   -- `tx.Unlock()`, `be.ForceCommit()`
@@ -468,12 +514,14 @@ theorem newAuthStore_on
   isplitr
   · ipureintro; rfl
   iframe Hinv HPost Hown
-  isplitl [Hbe2 HT Hen2 Hca]
+  isplitl [Hbe2 HT Hen2 HfeA Hca]
   · iunfold authWRAt
     iframe HT Hca
     isplitl [Hbe2]
     · iframe Hbe2 Hwok
-    · iunfold enabledHalf; iexists b; iframe Hen2
+    · iunfold enabledHalf; iexists b
+      isplitl [Hen2 HfeA]
+      · iunfold flagAt; iframe Hen2; iunfold enG; iexact HfeA
       iunfold enabledVerdict; iexists _, st0; iframe Hst0; ipureintro; exact Hb
   isplitl [HA]
   · iunfold tpAdmin; iexists (GoInterface.ok tpi), A; iframe tokenProvider HtpA HA

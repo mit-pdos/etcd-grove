@@ -85,6 +85,7 @@ axiom backend.wBkt_persistent
 axiom backend.wrTok
 axiom bbolt.Bucket.Cursor_kvr.wp_proof
 axiom bbolt.Bucket.Cursor_kvw.wp_proof
+axiom bbolt.Bucket.Delete_kv.wp_proof
 axiom bbolt.Bucket.Put_kv.wp_proof
 axiom bbolt.Cursor.Next_kv.wp_proof
 axiom bbolt.Cursor.Seek_kv.wp_proof
@@ -100,6 +101,7 @@ axiom bbolt.Tx.Rollback_kv.wp_proof
 axiom bbolt.Tx.Size_kv.wp_proof
 axiom bbolt.Tx.Stats_kv.wp_proof
 axiom bcrypt.CompareHashAndPassword.wp_proof
+axiom bcrypt.GenerateFromPassword.wp_proof
 axiom binary.ReadUint64.wp_proof
 axiom binary.WriteUint64.wp_proof
 axiom binary.WriteUint8.wp_proof
@@ -120,8 +122,6 @@ axiom fmt.ErrorfPlain.wp_proof
 axiom fmt.SprintfArgs.wp_proof
 axiom fmt.SprintfID.wp_proof
 axiom go_humanize.Bytes.wp_proof
-axiom heap.Fix.wp_proof
-axiom heap.Push.wp_proof
 axiom http.CloseIdleConnections_ok
 axiom http.Error_ok
 axiom http.Flush_ok
@@ -216,6 +216,7 @@ axiom rate.NewLimiter.wp_proof
 axiom reflect.ValueOf.wp_proof
 axiom schema.MustUnsafePutLease.wp_proof
 axiom schema.MustUnsafeSaveConfStateToBackend.wp_proof
+axiom schema.UnsafeDeleteLease.wp_proof
 axiom schema.membershipBackend.MustDeleteMemberFromBackend.wp_proof
 axiom schema.membershipBackend.MustReadMembersFromBackend.wp_proof
 axiom schema.membershipBackend.MustSaveMemberToBackend.wp_proof
@@ -234,6 +235,7 @@ axiom snap.NewMessage.wp_proof
 axiom snap.Snapshotter.DBFilePath.wp_proof
 axiom snap.Snapshotter.SaveDBFrom.wp_proof
 axiom sort.Stable.wp_proof
+axiom sort.StringSlice.Sort.wp_proof
 axiom storage.BackendQuota.Cost.wp_proof
 axiom storage.NewBackendQuota.wp_proof
 axiom storage.OpenBackend.wp_proof
@@ -273,7 +275,6 @@ axiom v2stats.ServerStats.SendAppendReq.wp_proof
 axiom v3alarm.AlarmStore.restore.wp_proof
 axiom v3alarm.NewAlarmStore.wp_proof
 axiom v3compactor.New.wp_proof
-axiom verify.Assert.wp_proof
 axiom verify.Verify.wp_proof
 axiom version.Cluster.wp_proof
 axiom version.LessThan.wp_proof

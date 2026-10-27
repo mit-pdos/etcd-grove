@@ -192,7 +192,10 @@ PROJECTS = [
                     # (D43 M4, 2026-10-26) membership's `json.Unmarshal` (the k8s-apiserver
                     # project's names-only translation, `Code/encoding/json.lean`)
                     "encoding/json=",
-                    "github.com/grpc-ecosystem="],
+                    "github.com/grpc-ecosystem=",
+                    # the server's UserAdd/UserChangePassword (the auth plan's E2x): base64 names
+                    # only, the k8s-apiserver project's translation (Code/encoding/base64.toml)
+                    "encoding/base64="],
         packages=[
             # with bodies (cache/v3.toml)
             "go.etcd.io/etcd/cache/v3",
@@ -644,6 +647,18 @@ PROJECTS = [
             ".",
             "k8s.io/apiserver/pkg/storage/etcd3",
             "k8s.io/apiserver/pkg/storage",
+            # the watch cache's store, with bodies (notes/kep-6404-plan.md)
+            "k8s.io/apiserver/pkg/storage/cacher",
+            "k8s.io/apiserver/pkg/storage/cacher/store",
+            "k8s.io/apiserver/pkg/storage/cacher/delegator",
+            "k8s.io/apiserver/pkg/storage/cacher/metrics",
+            "k8s.io/apiserver/pkg/storage/cacher/progress",
+            "k8s.io/client-go/util/consistencydetector",
+            "k8s.io/client-go/util/watchlist",
+            "k8s.io/component-base/metrics",
+            "k8s.io/apiserver/pkg/storage/cacher/consistency",
+            "k8s.io/apiserver/pkg/storage/cacher/key",
+            "k8s.io/client-go/tools/cache",
             # types and names only (their .toml): what the two name
             "k8s.io/apimachinery/pkg/api/errors",
             "k8s.io/apimachinery/pkg/api/validate/content",
@@ -680,6 +695,7 @@ PROJECTS = [
             # (`path` is the etcd project's, with the bodies rafthttp needs: `Code/path.toml`)
         ],
         owned=[os.path.join("k8s_io", "apiserver"), os.path.join("k8s_io", "apimachinery"),
+               os.path.join("k8s_io", "client_go"),
                os.path.join("k8s_io", "klog"), os.path.join("k8s_io", "component_base"),
                os.path.join("k8s_io", "utils", "clock"), os.path.join("encoding", "json"),
                os.path.join("encoding", "base64"), "iter",

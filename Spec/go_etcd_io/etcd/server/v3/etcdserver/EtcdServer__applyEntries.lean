@@ -40,7 +40,9 @@ log applied through `ai'` the KV's after (`apply` deposits one per entry; 2026-1
 each entry committed, `batchCommittedIdx`). **The write budget**
 (2026-10-13, unit 6): one write token of the store per entry applied (since D19b, 2026-10-18,
 taken by `apply` from the budget `srvWTPool E` with a time receipt; until then
-`txn.storeWTs E.γ (unapplied ai ms).length`, handed in and spent: `apply.Apply` may open one store write transaction per entry, and over the real backend
+`txn.storeWTs E.γ (unapplied ai ms).length`, handed in and spent; D22 J5, 2026-10-26: the count of
+tokens taken goes from `w` to `w` plus the entries applied, `srvWTTaken`, until then from `ai` to
+`ai'`, `srvWTAt`: `apply.Apply` may open one store write transaction per entry, and over the real backend
 every write transaction's `Unlock` may write back, costing one of the backend's write-back
 tokens, `backend.wbTok`). **The KV model** (2026-10-14, unit T1): the apply thread at the committed
 raft log `A` through `ai` (`kvApplied`), the entries above `ai` committed after it (`kvBatch`), at
@@ -49,7 +51,7 @@ abbrev EtcdServer.applyEntries.spec : Prop :=
   ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF) (ρ : ReqNames)
     (b : GoInterface) (ep ap : Loc) (es : GoSlice) (ents : List Loc) (ms : List EntryModel) (f0 : w64)
     (rac : GoChan) (st : ApplyState) (ai at0 a t : w64) (cs : Loc)
-    (x : apply.ApplyKV) (γr : ReadNames) (A : List EntryModel) (γp : GName) (dv : Option NodeNames),
+    (x : apply.ApplyKV) (γr : ReadNames) (A : List EntryModel) (γp : GName) (dv : Option NodeNames) (w : Nat),
   (ms = [] ∨ (entriesFrom f0 ms ∧ uint.Z f0 ≤ uint.Z ai + 1)) → uint.Z ai + 1 < 2 ^ 64 →
   loopOk γ st ai → logShape (unapplied ai ms) →
   -- (D43 M3, 2026-10-25) the driver's view, `apply`'s
@@ -59,7 +61,7 @@ abbrev EtcdServer.applyEntries.spec : Prop :=
       epAppliedIAddr ep ↦ ai ∗ epAppliedTAddr ep ↦ at0 ∗ epConfState ep cs ∗
       applyThread γ st ∗ applyBackend γ ci b ∗ ciApplying ci a t ∗ srvLgReader s ∗ srvGoRes s ∗
       srvApplyKV s E ρ.wait x ∗ srvAppliedOwn γr ai ∗ appliedLogAt γr ai x.log ∗
-      batchCommittedIdx γr ms ∗ srvWTPool E γp ∗ srvWTAt γp ai ∗ srvFS s ∗
+      batchCommittedIdx γr ms ∗ srvWTPool E γp ∗ srvWTTaken γp w ∗ srvFS s ∗
       kvApplied γr.raft γr.kv A x ∗ srvRest E γr A ∗ kvBatch γr (ciEff γ st.k) ai A (unapplied ai ms) ∗
       dvView ρ.raft dv A ∗ dvRes s ρ.raft dv (A ++ unapplied ai ms) ∗ srvApRes s γr A }}
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"applyEntries"))
@@ -69,12 +71,14 @@ abbrev EtcdServer.applyEntries.spec : Prop :=
       ∃ (st' : ApplyState) (ai' at' a' t' : w64) (cs' : Loc),
         epAppliedIAddr ep ↦ ai' ∗ epAppliedTAddr ep ↦ at' ∗ epConfState ep cs' ∗
         applyThread γ st' ∗ applyBackend γ ci b ∗ ciApplying ci a' t' ∗ srvLgReader s ∗ srvGoRes s ∗
-        srvAppliedOwn γr ai' ∗ srvWTAt γp ai' ∗
+        srvAppliedOwn γr ai' ∗ srvWTTaken γp (w + (unapplied ai ms).length) ∗
         (∃ x' : apply.ApplyKV, srvApplyKV s E ρ.wait x' ∗
           ⌜entriesStep (ciEff γ st.k) (unapplied ai ms) x x'⌝ ∗ appliedLogAt γr ai' x'.log ∗
           kvApplied γr.raft γr.kv (A ++ unapplied ai ms) x' ∗ srvRest E γr (A ++ unapplied ai ms)) ∗
         ⌜loopOk γ st' ai' ∧
           uint.Z ai' = max (uint.Z ai) (((ms.getLast?).map (fun m => uint.Z m.index)).getD 0) ∧
+          -- (D22 J5) one index per entry applied
+          uint.Z ai' = uint.Z ai + (unapplied ai ms).length ∧
           (ciEff γ st'.k = ciEff γ st.k ∨
             uint.Z (ciEff γ st'.k) = max (uint.Z (ciEff γ st.k)) (uint.Z ai')) ∧
           -- (D22 S-h, 2026-10-20; S-0's amendment) the applied term: the last applied entry's

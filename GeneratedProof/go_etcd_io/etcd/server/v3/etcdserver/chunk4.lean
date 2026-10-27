@@ -3,6 +3,7 @@ module
 
 public import Perennial.Proof.ProofPrelude
 public import Perennial.GeneratedProof.context
+public import GeneratedProof.encoding.base64
 public import GeneratedProof.encoding.json
 public import Perennial.GeneratedProof.errors
 public import Perennial.GeneratedProof.fmt
@@ -47,6 +48,7 @@ public import GeneratedProof.go_etcd_io.raft.v3.raftpb
 public import GeneratedProof.go_opentelemetry_io.otel.«attribute»
 public import GeneratedProof.go_opentelemetry_io.otel.trace
 public import GeneratedProof.go_uber_org.zap
+public import GeneratedProof.golang_org.x.crypto.bcrypt
 public import GeneratedProof.google_golang_org.protobuf.proto
 public import Perennial.GeneratedProof.io
 public import Perennial.GeneratedProof.log

@@ -260,8 +260,10 @@ def applyRes (C : ApplyCtx GF) (A : List EntryModel) : IProp GF :=
     srvLgReader C.s ∗ srvBemuReaderAt C.s C.E.γbe ∗ srvWgReader C.s ∗ srvApplyKV C.s B.E C.γw x ∗
     srvAppliedOwn C.γr ai ∗ appliedLogAt C.γr ai x.log ∗ kvRun C.γr C.ai₀ C.c₀ A x ∗
     srvRest B.E C.γr A ∗ srvApRes C.s C.γr A ∗
-    -- (2026-10-19, D21 M3) the write tokens taken through `ai`, the storage's cap
-    srvWTAt C.wt ai ∗
+    -- (2026-10-19, D21 M3) the write tokens taken through `ai`, the storage's cap; (D22 J5,
+    -- 2026-10-26) a count `w` of the tokens taken, at least the applied index (no snapshot
+    -- installed: `applyAll`'s premise; J8a's snapshot case makes it conditional)
+    (∃ w : Nat, srvWTTaken C.wt w ∗ ⌜uint.Z ai ≤ w⌝) ∗
     ⌜loopOk B.γ st ai ∧ uint.Z ai = uint.Z C.ai₀ + A.length ∧ ciJ (ciEff B.γ st.k) C.c₀ ai ∧
       entriesStep C.c₀ A C.x₀ x ∧ 1 ≤ C.γs.cap ∧
       -- (D22 S-h, 2026-10-20; S-0's amendment) `ep.appliedt` the last applied entry's term

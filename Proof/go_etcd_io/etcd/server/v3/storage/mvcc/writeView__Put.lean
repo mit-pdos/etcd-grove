@@ -36,8 +36,8 @@ theorem mvcc.writeView.Put.wp_proof
     mvcc.writeView.Put.spec (GF := GF) (hG := hG) := by
   have hWrite := mvcc.store.Write.spec_frozen hWrite
   have hEnd := mvcc.metricsTxnWrite.End.spec_frozen hEnd
-  intro wv s γ P Pre Q Post f key value k v leaseID L
-  wp_start as ⟨#Hwv, Hrd, Htok, Hwt, Hhook, Hcs, #Hfree, #Hkey, #Hval, Hown, %Hlease, %Hwq⟩
+  intro wv s γ P Pre Q Post f key value k v leaseID L I
+  wp_start as ⟨#Hwv, Hrd, Htok, Hwt, Hhook, Hcs, #Hfree, #Hkey, #Hval, Hown, #HI, %Hlease, %Hwq⟩
   iunfold mvcc.isWriteView at Hwv
   iNamed Hwv
   iunfold mvcc.csContract at Hcs
@@ -57,6 +57,10 @@ theorem mvcc.writeView.Put.wp_proof
   ihave Hhook : mvcc.hookIs γ P f $$ [Hfrag]
   · iapply (mvcc.hookIs_split γ P f).2; iframe HhookOk Hfrag
   (try wp_auto)
+  -- the owner's item map is the transaction's committed state's
+  icases mvcc.isTxnWrite_cert _ _ _ _ _ _ _ _ _ _ _ _ $$ Htx with ⟨Htx, #Hc0⟩
+  ihave %HIeq := HI $$ %ilog Hc0
+  ihave Hown := lease.leaseOwn_eq HIeq.symm $$ Hown
   -- `tw.Put(key, value, lease)`
   wp_apply (hPut t mw s γ ilog [] (W64 0) (W64 0) (W64 0) key value k v leaseID L)
     $$ [$Htx $Hkey $Hval $Hown] as ⟨Htx, Hown⟩
@@ -78,9 +82,9 @@ theorem mvcc.writeView.Put.wp_proof
   simp only [mvcc.txnEndPost, mvcc.commitLog, List.cons_ne_self, ↓reduceIte]
   icases Hcert with ⟨Hcert, -, -, -⟩
   iapply HΦ
-  iframe Hrd HPost Hown
+  iframe Hrd HPost
   iexists ilog
-  iframe Hcert
+  iframe Hcert Hown
   try (ipureintro; rfl)
 
 end proof

@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory
 public import Code.k8s_io.utils.clock
 
@@ -15,120 +16,6 @@ namespace Perennial
 open Iris Iris.BI
 noncomputable section
 namespace k8s_io.utils.clock
-
-namespace PassiveClock
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.utils.clock.Assumptions]
-
-noncomputable instance PassiveClock_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.utils.clock.PassiveClock :=
-  sorry -- axiomatized type
-
-noncomputable instance PassiveClock_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.utils.clock.PassiveClock k8s_io.utils.clock.PassiveClock.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end PassiveClock
-
-namespace Clock
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.utils.clock.Assumptions]
-
-noncomputable instance Clock_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.utils.clock.Clock :=
-  sorry -- axiomatized type
-
-noncomputable instance Clock_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.utils.clock.Clock k8s_io.utils.clock.Clock.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end Clock
-
-namespace WithTicker
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.utils.clock.Assumptions]
-
-noncomputable instance WithTicker_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.utils.clock.WithTicker :=
-  sorry -- axiomatized type
-
-noncomputable instance WithTicker_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.utils.clock.WithTicker k8s_io.utils.clock.WithTicker.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end WithTicker
-
-namespace WithDelayedExecution
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.utils.clock.Assumptions]
-
-noncomputable instance WithDelayedExecution_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.utils.clock.WithDelayedExecution :=
-  sorry -- axiomatized type
-
-noncomputable instance WithDelayedExecution_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.utils.clock.WithDelayedExecution k8s_io.utils.clock.WithDelayedExecution.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end WithDelayedExecution
-
-namespace WithTickerAndDelayedExecution
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.utils.clock.Assumptions]
-
-noncomputable instance WithTickerAndDelayedExecution_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.utils.clock.WithTickerAndDelayedExecution :=
-  sorry -- axiomatized type
-
-noncomputable instance WithTickerAndDelayedExecution_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.utils.clock.WithTickerAndDelayedExecution k8s_io.utils.clock.WithTickerAndDelayedExecution.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end WithTickerAndDelayedExecution
-
-namespace Ticker
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.utils.clock.Assumptions]
-
-noncomputable instance Ticker_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.utils.clock.Ticker :=
-  sorry -- axiomatized type
-
-noncomputable instance Ticker_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.utils.clock.Ticker k8s_io.utils.clock.Ticker.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end Ticker
 
 namespace RealClock
 section def_
@@ -153,25 +40,6 @@ noncomputable instance RealClock_into_val_typed :
 end def_
 end RealClock
 
-namespace Timer
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.utils.clock.Assumptions]
-
-noncomputable instance Timer_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.utils.clock.Timer :=
-  sorry -- axiomatized type
-
-noncomputable instance Timer_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.utils.clock.Timer k8s_io.utils.clock.Timer.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end Timer
-
 namespace realTimer
 section def_
 
@@ -181,12 +49,33 @@ variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.utils.clock.Assumptions]
 
 noncomputable instance realTimer_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.utils.clock.realTimer :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) k8s_io.utils.clock.realTimer where
+  typedPointstoDef l v dq := iprop(
+    "timer" ∷ typedPointsto (structFieldRef k8s_io.utils.clock.realTimer go!"timer" l) v.timer' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance realTimer_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.utils.clock.realTimer k8s_io.utils.clock.realTimer.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) k8s_io.utils.clock.realTimer k8s_io.utils.clock.realTimer.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance realTimer_access_load_timer (l : Loc) (v : k8s_io.utils.clock.realTimer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.utils.clock.realTimer go!"timer" l) v.timer' dq)
+      (typedPointsto (structFieldRef k8s_io.utils.clock.realTimer go!"timer" l) v.timer' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance realTimer_access_store_timer (l : Loc) (v : k8s_io.utils.clock.realTimer) (timer' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.utils.clock.realTimer go!"timer" l) v.timer' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.utils.clock.realTimer go!"timer" l) timer' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with timer' := timer' } : k8s_io.utils.clock.realTimer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end realTimer
@@ -200,12 +89,33 @@ variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.utils.clock.Assumptions]
 
 noncomputable instance realTicker_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.utils.clock.realTicker :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) k8s_io.utils.clock.realTicker where
+  typedPointstoDef l v dq := iprop(
+    "ticker" ∷ typedPointsto (structFieldRef k8s_io.utils.clock.realTicker go!"ticker" l) v.ticker' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance realTicker_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.utils.clock.realTicker k8s_io.utils.clock.realTicker.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) k8s_io.utils.clock.realTicker k8s_io.utils.clock.realTicker.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance realTicker_access_load_ticker (l : Loc) (v : k8s_io.utils.clock.realTicker) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.utils.clock.realTicker go!"ticker" l) v.ticker' dq)
+      (typedPointsto (structFieldRef k8s_io.utils.clock.realTicker go!"ticker" l) v.ticker' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance realTicker_access_store_ticker (l : Loc) (v : k8s_io.utils.clock.realTicker) (ticker' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.utils.clock.realTicker go!"ticker" l) v.ticker' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.utils.clock.realTicker go!"ticker" l) ticker' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with ticker' := ticker' } : k8s_io.utils.clock.realTicker) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end realTicker

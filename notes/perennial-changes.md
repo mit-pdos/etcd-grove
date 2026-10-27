@@ -17,6 +17,34 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### Translation: `sort.StringSlice`'s methods (2026-10-25, leases T3, branch `leases-t3`)
+
+- **Missing.** Perennial's `sort` declares the type `sort.StringSlice` but none of its methods
+  (`Len`, `Less`, `Swap`, `Sort`, `Search`), so `sort.StringSlice(keys).Sort()` does not resolve.
+- **Needed by.** `lessor.Revoke` (`server/lease/lessor.go`): it sorts the lease's keys before
+  deleting them (`notes/leases-plan.md`, L2d).
+- **Workaround here.** A trust-boundary spec, `Spec/sort/StringSlice__Sort.lean` (the statement
+  of Perennial's `sort.Strings.spec`), an axiom.
+- **Proposed change.** Translate the methods in Perennial's `sort` and prove `Sort` as
+  `sort.Strings` is proved; then the axiom here goes.
+- **Status.** Open.
+
+### Tooling: incremental proof checks, and long `·` blocks as auxiliary theorems
+
+- **Missing.** A way to check a proof after an edit without elaborating the whole file
+  (`lake build` and `lake env lean` start over each time; Perennial's tutorial checks a file
+  with `lake build`), and a way to keep the once-per-declaration work of a long Iris proof
+  (instantiation, sharing, the kernel's check of one huge term) from being redone on every edit.
+- **Needed by.** Every proof here and in Perennial; most for the longest
+  (`watchGRPCStream.run`, 3368 lines: an edit near its end costs about its fresh time).
+- **Workaround here.** `etc/lean-check.py` (a kept Lean server; `--fast`, `-e`, `--goal`,
+  `--split`) and `Proof/AbstractBullets.lean` (option `abstractBullets`), both generic: the
+  script names no project, the tactic module nothing of this repository's.
+- **Proposed change.** Move both to Perennial (`etc/lean-check.py`, the tactic in its
+  `PerennialMeta` library), document the loop in `docs/PERENNIAL_PROOF_TUTORIAL.md` beside
+  `lake build`; `lean-check.py` here then imports nothing of its own (`SPLIT_MODULE`).
+- **Status.** Open (2026-10-26, `notes/STATUS.md`, "Checking proofs while editing them").
+
 ### Specs: `(*Time).After`
 
 - **Missing.** The pointer-receiver form of `time.Time.After` (Perennial's `Proof/time/PtrMethods.lean`
@@ -155,6 +183,37 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   make `pkgRef` an error, never a substitution, when the package is not imported under its own
   name.
 - **Status.** Not started. The substitution is worth fixing first: it is wrong, not missing.
+- **Also the watch cache (2026-10-26, branch `kep-6404`, `notes/kep-6404-plan.md`).** The cacher's
+  `processEvent`, `UpdateResourceVersion` and `waitUntilFreshLocked` use the cacher's `metrics`
+  variables, of component-base's `metrics` types (`CounterVec`, `HistogramVec`), which the cacher
+  does not import: the substitution names them `cacher.metrics.CounterVec` (`Unknown identifier`).
+  Workaround here: `cacher.toml` drops its import of the cacher's `metrics` (both are then named
+  by their paths) and the names arrive through `consistency`'s public import of the cacher's
+  `metrics` and its of component-base's (names only). Its cost: `watchCacheEvent`, whose
+  `timeline` field is a `metrics.DispatchTimeline`, is axiomatized (`translate_types` skips a type
+  naming a package not imported), so `processEvent` and `UpdateResourceVersion`, which build one,
+  cannot be proved until the general fix.
+
+### Specs: the builtin `max` (2026-10-26, branch `kep-6404`)
+
+- **Missing.** No spec of the predeclared `max` (`functions go.max [t, t]`): each proof proves its
+  own: raft's `wp_max2_uint64` (`raft/v3/InvTracker.lean`), mvcc's `sw_wp_max_int64`
+  (`watchableStore__syncWatchers.lean`), the watch cache store's `wp_max_uint64` (`cacher/store/
+  DefsWCS.lean`).
+- **Proposed.** A spec of `max`/`min` on the integer types in Perennial's predeclared theory.
+- **Status.** Not started.
+
+### Goose: a constraint interface's `comparable` term (2026-10-26, branch `kep-6404`)
+
+- **Missing.** `translate_types` accepts an interface that embeds `comparable`
+  (client-go's `tools/cache.Object`: `interface { GetName() string; GetNamespace() string;
+  comparable }`) and emits `go.type_term.TypeTerm go.comparable`, which Perennial does not define
+  (`Unknown identifier go.comparable`).
+- **Needed by.** Nothing yet: the watch cache's store names `tools/cache`'s indexer types only.
+- **Workaround here.** `client_go/tools/cache.toml` without `translate_types` (types axiomatized).
+- **Proposed.** Either a `go.comparable` type set in Perennial's semantics, or Goose rejecting
+  (axiomatizing) such an interface under `translate_types`, as it does other unsupported types.
+- **Status.** Not started.
 
 ### Specs: `reflect`
 
@@ -408,18 +467,26 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   (`deadlineExceededError`); then `ErrAny` drops the two facts.
 - **Status.** Not started (found 2026-10-23).
 
-### `encoding/base64` (the auth plan's E2u, 2026-10-26)
+### `encoding/base64` (the auth plan's E2u, 2026-10-26; E2x)
 
-- **Missing.** Perennial has no `encoding/base64`, not even names-only, so etcd's
-  `EtcdServer.UserAdd` and `UserChangePassword` (they hash the password with bcrypt and put the
-  hash in the request base64-encoded, `v3_server.go`) cannot be translated here.
-- **Workaround here.** The apply side names the encoding as an opaque function
-  (`auth.stdB64Enc`, `auth/Requests.lean`) and `selectPassword`'s boundary spec says its decoding
-  of an encoding has no error; that the handler's request is of that form (`UserAddModel.pwSure`)
-  is a proposer's obligation (`commitOkOn`, E2t) until the handler is proved.
-- **Proposed change.** `encoding/base64` in Perennial: `StdEncoding` (a package variable with its
-  fact), `EncodeToString` and `DecodeString` with a model of the standard encoding (or at least
-  `DecodeString (EncodeToString b) = (b, nil)`), translated or as trusted models.
+- **Missing.** Perennial has no `encoding/base64`, not even names-only. etcd's
+  `EtcdServer.UserAdd` and `UserChangePassword` hash the password with bcrypt and put the hash in
+  the request base64-encoded (`v3_server.go`); the k8s etcd3 store's continue tokens are JSON in
+  base64.
+- **Workaround here** (E2x, 2026-10-26; the user chose this over a Perennial model). The package is
+  names-only in this repository's configuration (`Code/encoding/base64.toml`, the k8s-apiserver
+  project's translation; the etcd project maps `encoding/base64=` to it, `etc/goose.py`). Its
+  package fact (`Proof/encoding/base64/Base.lean`, `base64Init`) says `StdEncoding` holds a fixed
+  `*Encoding` whose `EncodeToString` returns the opaque `encoding.base64.stdEnc` of its argument's
+  bytes; the trust-boundary axiom `StdEncoding_init` (`Proof/encoding/base64/Init.lean`,
+  `etc/gen-init.py`) establishes it. `auth.stdB64Enc` is that `stdEnc`, and `selectPassword`'s
+  boundary spec says its decoding of such an encoding has no error, so `EtcdServer.UserAdd` is
+  proved to propose a `pwSure` request (`server_user_add_sure`).
+- **Proposed change (later).** `encoding/base64` in Perennial: `StdEncoding` (a package variable
+  with its fact), `EncodeToString` and `DecodeString` with a model of the standard encoding (or at
+  least `DecodeString (EncodeToString b) = (b, nil)`), translated or as trusted models. It would
+  turn `StdEncoding_init`'s method clause and `selectPassword`'s decode clause into theorems, and
+  serve the k8s etcd3 store's continue tokens.
 
 ## Landed
 
@@ -594,6 +661,11 @@ Three of the watch client's local workarounds (D25, `notes/decisions.md`, "S1c's
   Held D` elaborates, and `wp_apply` of the same shape worked for `hRL` two calls earlier (before
   `D` existed). Workaround: `wp_bind` the call, then `iapply (hRU ...) $$ [Hpkg Htxf Hrtx HD]`,
   prove the precondition goal by `iframe`, `inext`, `iintro HR`.
+- **A third instance** (2026-10-26, `heap.up.wp_proof`/`heap.down.wp_proof`): `wp_apply HSwap $$
+  %ys %p %jv [HR] as HR`, `HSwap` an Iris hypothesis (the `heap.Interface`'s `Swap` triple), after a
+  `cases b` on a Boolean an earlier `wp_apply HLess ... as %b HR` introduced: no error, the
+  following tactics "never executed", and only "declaration uses `sorry`"; `wp_apply_core` of the
+  same reports "unknown free variable". The same `wp_apply` of `HLess` before the `cases` worked.
 - **Workaround here.** Prepare the hypothesis with `ihave` and frame it with `$`; check every new
   proof for the "declaration uses `sorry`" warning; at a deferred call, `wp_bind` and `iapply`.
 - **Proposed change.** Not designed: a minimal reproduction first, then make the tactic report
@@ -638,3 +710,61 @@ Three of the watch client's local workarounds (D25, `notes/decisions.md`, "S1c's
   `iintro`.
 - **Proposed change.** Not designed: a minimal reproduction first; the tactic should report
   where and why it fails.
+
+### An `RWMutex`'s reader slots are leaked by readers that hold them for life
+
+- **Missing** (2026-10-26, D22 J0). `RWMutex.RLock` takes a reader token (`ownRLockToken`), of which
+  a lock has `actualMaxReaders` (`2^30 - 1`, `ownRWMutex`'s `Hmax`). A goroutine or an object that
+  takes a token for its whole life and is then abandoned (not joined) leaks it in the proof, while
+  in Go only the readers inside `RLock`..`RUnlock` at one time count. etcd's server repeats this
+  once per received snapshot: `applySnapshot`'s `RemoveAllPeers` stops each peer without joining
+  its two `Process` goroutines (`peer.go:173-205`, `:314-333`), which hold a slot of the server's
+  `lgMu` each (`startPeer.lean`'s `HR7`/`HR8`), and the new `UberApplier` takes a slot of the auth
+  store's `enabledMu` that the old one never gives back. So any finite stock runs out after enough
+  snapshots, and an unbounded number of snapshots cannot be verified.
+- **Needed by.** D22's second-snapshot loop (`notes/snapshot-sj-plan.md`, "J0 decisions", gap 5;
+  stages J8b and L3).
+- **Workaround here.** None that is free. Until the change lands, J8a states `srvSnapApplied` with
+  the slots it can return and the stock threaded from `NewServer` (`NewServer` drops the rest of
+  `NewAuthStore`'s `actualMaxReaders` slots and `lgMu`'s today: J1b keeps them), and J8b closes the
+  loop only if the stock suffices; the fallback is a named premise bounding the snapshots a member
+  applies in a run, for the user's approval.
+- **Proposed change.** `RLock` paid by a thread token (`GooseLang/Threads.lean`) when
+  `threadBound ≤ actualMaxReaders`: every reader is a live thread, so the readers at one time are
+  bounded by the threads, which is the real reason Go's counter does not overflow. A reader token
+  then need not be held between critical sections. Not yet designed; general (any program whose
+  goroutines read-lock a long-lived `RWMutex`), not shaped by this proof.
+- **Landed** (2026-10-26, Perennial `3c64ae292`, branch `rlock-thread-token`): `Perennial/Proof/ThreadPool.lean`
+  (`threadPool.isThreadPool N γ R`: at least `threadBound - 1` copies of `R`, a thread token swapped for
+  a copy, `borrow`/`borrow_lc`/`giveBack`) and `Perennial/Proof/sync/RWMutexThreads.lean`
+  (`init_RWMutex_threadPool`: every reader token in a pool, premise `threadBound GF ≤ 2^30`). Additive,
+  no trusted-base change. Limitation: one thread token borrows one copy at a time, so a thread holding
+  two thread-paid read locks at once pays the second with a stock token. The pin bump is still to do
+  (with J8b).
+
+### `strconv.NumError`'s `Error()` has no spec
+
+- **Missing.** Perennial specifies `strconv.ParseUint`'s errors as fresh `*NumError`s
+  (`strconv.numErrorOf`) but not `(*NumError).Error` (`"strconv." + Func + ": parsing " +
+  Quote(Num) + ": " + Err.Error()`, through `strconv.Quote`), so a caller that must show the error
+  prints (`http.errStrOk`, `zap.Error`'s callers) cannot. Found 2026-10-26 when trying
+  `types.IDFromString` (`strconv.ParseUint(s, 16, 64)`): its proof would need a new axiom for
+  `NumError.Error` in place of the one it discharges, so it stays an axiom.
+- **Workaround here.** None: `types.IDFromString.wp_proof` stays a trust-boundary axiom. Its success
+  case is provable over `ParseUint.spec` (a pure lemma that `parseUint (types.idStr x) 16 64 = .ok
+  x`, by induction on `types.hexNatF`'s fuel with `parseDigits_append_ok`).
+- **Proposed change.** A spec of `(*NumError).Error` (returns some string; or the string, with a
+  spec of `Quote`) in Perennial's `Proof/strconv`.
+
+### `errors.Is`/`errors.As` at non-pointer targets and for leaves
+
+- **Missing.** Perennial's `errors.Is.spec` takes a `nil` or pointer target, and its
+  `errors.As.spec` allows any result. Four axioms here are specializations it does not cover
+  (2026-10-26 survey): `errors.IsDeadlineExceeded` and `errors.IsCtxErr` (the target
+  `context.DeadlineExceeded`, an empty struct), `errors.IsStatusErr` (an `EtcdError` value
+  target), `errors.AsLeaf` (`As` of an `errors.New` error against a type whose set excludes
+  `*errorString` returns `false`).
+- **Workaround here.** The four stay trust-boundary axioms (`Proof/errors/`).
+- **Proposed change.** `errors.Is.spec` for a comparable non-pointer target (Go's `Is` compares
+  with `==` first, which does not panic for a comparable target type), and an `errors.As` spec that
+  says `false` for a leaf error not in the target's type set; then the four are proved here.

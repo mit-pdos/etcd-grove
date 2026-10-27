@@ -870,6 +870,15 @@ theorem node.run.wp_proof
       with ⟨#Hss, Hrn⟩
     -- the append right goes with the `Ready` (D22 S-d4: with a snapshot the storage itself and the
     -- snapshot's certificate), and `rof` records it with its loan
+    -- (2026-10-26, D22 J2, R-loc) a snapshot handed out is local to the node
+    ihave #Hlloc : iprop(□ ∀ l : SnapLoan, ⌜L = some l⌝ -∗
+        snapLocal γ.raft id l.snap.Metadata'.Index') $$ [Hrn]
+    · cases L with
+      | none => imodintro; iintro %l %h; cases h
+      | some l0 =>
+        icases ownRawNodeReady_loanLoc γ.raft nv.rn' id rs rdv' ce es ms false l0 $$ Hrn
+          with ⟨#Hx, -⟩
+        imodintro; iintro %l %h; cases h; iexact Hx
     imod ownRawNodeReady_handout γ.raft nv.rn' id rs rdv' ce es ms L $$ Hrn
       with ⟨Hrn, Happ, Hcr, Htk, #Hri⟩
     -- (2026-10-15, stage N) the committed log handed out grows, a lower bound for the driver;
@@ -908,7 +917,9 @@ theorem node.run.wp_proof
           · rfl
         simp only [readyDataL, readySnapData, rdSnapOut]
         icases Hsnz with ⟨Hhalf, #Hdc, %Hlo⟩
-        iframe Hce Hcommitted Hents Hmsgs Hmt Hcr Htk Hrsts Hhw Hss Hri Hhalf Hdc
+        ihave #Hll : snapLocal γ.raft γ.id l.snap.Metadata'.Index' $$ []
+        · rw [Hgid]; iapply Hlloc $$ %l %rfl
+        iframe Hce Hcommitted Hents Hmsgs Hmt Hcr Htk Hrsts Hhw Hss Hri Hhalf Hdc Hll
         isplitr
         · iexists h; iframe Hhh; ipureintro; rfl
         isplitr

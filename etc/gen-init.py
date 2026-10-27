@@ -52,7 +52,9 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
          # the auth plan's E2b (2026-10-25): the authentication example
          'github_com.mit_pdos.etcd_grove.examples.authkv',
          'go_etcd_io.etcd.client.v3.kubernetes',
-         'github_com.mit_pdos.etcd_grove.examples.k8setcd3']
+         'github_com.mit_pdos.etcd_grove.examples.k8setcd3',
+         # KEP-6404 (2026-10-26): the watch cache and its store
+         'k8s_io.apiserver.pkg.storage.cacher']
 # Packages of the closure still without a `wp_initialize'` (their facts are assumed: notes/STATUS.md,
 # "Item 8: package initialization"); see also `ASSUMED`.
 NOT_YET = set()
@@ -247,6 +249,21 @@ states `linkHeartbeatMessage`'s and `linkHeartbeatSize_init` `linkHeartbeatSize`
 FIN_PRE = ['iframe Hown', 'imodintro', 'isplitr', '· ipureintro', '  exact isPanic_intoVal _',
            'is_pkg_init_finish', 'try (isplitl []; · (imodintro; itrivial))', 'imodintro']
 
+# (2026-10-26) `ValidString` with its body: the tables it reads are translated
+SPECIAL['unicode.utf8'] = dict(
+    doc='''Its fact (`utf8Init`, `Base.lean`): the tables `first` and `acceptRanges` (`utf8.go`) hold
+their values (`firstTable`, `acceptTable`), read-only for good. Its initializer allocates them and
+stores their translated array literals.''',
+    alloc_types={'first': 'GoArray w8 256',
+                 'acceptRanges': 'GoArray _root_.Perennial.unicode.utf8.acceptRange 16'},
+    # `first`'s literal is 256 `let`s
+    pre=['set_option maxRecDepth 20000', ''],
+    heavy=True,
+    finish=['ipersist Hfirst', 'ipersist HacceptRanges'] + FIN_PRE + [
+        'unfold EtcdGrove.utf8.utf8Init', 'isplit',
+        '· iExactEq Hfirst', '  rfl', '· iExactEq HacceptRanges', '  rfl'],
+)
+
 # (2026-10-24, the auth plan's A3c: the Lock and Election servers bring the client's concurrency
 # package into the closure) its five error variables, translated `errors.New` calls
 _CC = [('ErrElectionNotLeader', 'N'), ('ErrElectionNoLeader', 'O'), ('ErrLocked', 'L'),
@@ -347,6 +364,23 @@ trust-boundary axiom `ErrTransactionConflict_init` states the one the fact reads
             'imodintro', 'iexists _', 'iexact HErrTransactionConflict'],
 )
 
+# KEP-6404 (2026-10-26): the watch cache's metrics; their facts are in
+# `Proof/k8s_io/apiserver/pkg/storage/cacher/Base.lean`.
+SPECIAL['k8s_io.apiserver.pkg.storage.cacher.metrics'] = dict(
+    doc='''Its fact (`cacherMetricsInit`, `storage/cacher/Base.lean`): `WatchCacheReadWait` holds a
+histogram vector of the labels `group` and `resource`. Its initializer runs its variables'
+untranslated initializers (`metrics.go`); the trust-boundary axiom `WatchCacheReadWait_init` states
+the one the fact reads (`compbasemetrics.NewHistogramVec(..., []string{"group", "resource"})`),
+`opaqueInitsOk` the others.''',
+    custom={'WatchCacheReadWait': dict(
+        doc='/-- `WatchCacheReadWait = compbasemetrics.NewHistogramVec(..., []string{"group", "resource"})`\n(`metrics.go`): a `*HistogramVec` with those labels (`kmetrics.vecLabels`). -/',
+        post='∃ v : Loc, globalAddr WatchCacheReadWait ↦ v ∗ ⌜EtcdGrove.kmetrics.vecLabels v [go!"group", go!"resource"]⌝',
+        pat='⟨%v@, H@, %L@⟩')},
+    finish=['ipersist HWatchCacheReadWait'] + FIN_PRE[:7] + [
+            'imodintro', 'iexists _', 'iframe HWatchCacheReadWait', 'ipureintro',
+            'exact LWatchCacheReadWait'],
+)
+
 SPECIAL['k8s_io.apiserver.pkg.util.feature'] = dict(
     doc='''Its fact (`featureInit`, `storage/etcd3/Base.lean`): `DefaultFeatureGate` holds a feature
 gate whose `Enabled` answers some `bool` for any feature. Its initializer initializes its import
@@ -380,8 +414,25 @@ polling the endpoint's `Status`, and returns), `opaqueInitsOk` the others.''',
     finish=FIN_PRE[:6],
 )
 
+SPECIAL['encoding.base64'] = dict(
+    doc='''Its fact (`base64Init`, `encoding/base64/Base.lean`; the auth plan's E2x, 2026-10-26):
+`StdEncoding` holds a fixed `*Encoding` whose `EncodeToString` returns the standard encoding
+(`stdEnc`) of its argument's bytes, stated as the method call's own WP (the type is axiomatized).
+Its initializer runs its variables' untranslated initializers (`base64.go`); the trust-boundary
+axiom `StdEncoding_init` states the one the fact reads (`NewEncoding(encodeStd)`, a fresh
+`*Encoding` with the standard alphabet and padding, whose `EncodeToString` allocates its output
+buffer, `Encode`s into it and returns it as a string: no panic, no write to its argument),
+`opaqueInitsOk` the others.''',
+    custom={'StdEncoding': dict(
+        doc='/-- `StdEncoding = NewEncoding(encodeStd)` (`base64.go`): a fixed `*Encoding` (Go never writes the variable after) whose `EncodeToString` returns the standard base64 encoding `stdEnc` of its argument\'s bytes, reading and keeping the slice. -/',
+        post='_root_.Perennial.encoding.base64.base64Init (GF := GF)',
+        pat='#H@')},
+    finish=FIN_PRE[:6],
+)
+
 SPECIAL['k8s_io.apiserver.pkg.storage'] = dict(
-    doc='''Its fact (`storageInit`, `storage/etcd3/Base.lean`): `RequestWatchProgress` holds a string.
+    doc='''Its fact (`storageInit`, `storage/etcd3/Base.lean`): `RequestWatchProgress` and
+`tooLargeResourceVersionCauseMsg` hold strings.
 Its initializer allocates its translated variables (`errors.go`, `feature.go`, `selection_predicate.go`:
 six `errors.New` errors, the map `errCodeToMessage`, three strings, and `Everything`, a
 `SelectionPredicate` of `labels.Everything()` and `fields.Everything()`, names-only, the
@@ -404,8 +455,8 @@ its imports and runs the translated initializers.''',
         'try wp_auto',
         'wp_apply EtcdGrove.fields.Everything.wp_proof as %_ -',
         'try wp_auto']},
-    finish=['ipersist HRequestWatchProgress'] + FIN_PRE[:7] + [
-            'imodintro', 'iexists _', 'iexact HRequestWatchProgress'],
+    finish=['ipersist HRequestWatchProgress', 'ipersist HtooLargeResourceVersionCauseMsg'] +
+           FIN_PRE[:7] + ['imodintro', 'iexists _, _', 'iframe #'],
 )
 
 # the driver's error variables and the tags of their `errors.New` results
@@ -610,23 +661,26 @@ SPECIAL['go_etcd_io.etcd.server.v3.storage.schema'] = dict(
     doc='''Its fact (`schemaInit`, `etcdserver/Base.lean`): the `Meta`, `Key`, `Auth`, `AuthUsers` and
 `AuthRoles` buckets, as `bucket.go` makes them, the consistent index's two key names (`cindex.go`),
 the auth bucket's two key names and the auth backend's `authEnabled`/`authDisabled` values
-(`auth.go`; the auth plan's S1, 2026-10-23). Its initializer allocates and sets those translated
-variables (with the buckets' names), initializes its imports and runs its other variables'
-untranslated initializers, which the trust-boundary axiom `opaqueInitsOk` says run.''',
+(`auth.go`; the auth plan's S1, 2026-10-23), and the lessor's `Lease` bucket (leases T3,
+2026-10-25). Its initializer allocates and sets those translated variables (with the buckets'
+names), initializes its imports and runs its other variables' untranslated initializers, which
+the trust-boundary axiom `opaqueInitsOk` says run.''',
     alloc_types={'MetaTermKeyName': 'GoSlice', 'MetaConsistentIndexKeyName': 'GoSlice',
                  'Meta': 'GoInterface', 'Key': 'GoInterface', 'metaBucketName': 'GoSlice',
                  'keyBucketName': 'GoSlice', 'authEnabled': 'GoSlice', 'authDisabled': 'GoSlice',
                  'authBucketName': 'GoSlice', 'authUsersBucketName': 'GoSlice',
                  'authRolesBucketName': 'GoSlice', 'Auth': 'GoInterface', 'AuthUsers': 'GoInterface',
                  'AuthRoles': 'GoInterface', 'AuthEnabledKeyName': 'GoSlice',
-                 'AuthRevisionKeyName': 'GoSlice'},
+                 'AuthRevisionKeyName': 'GoSlice', 'Lease': 'GoInterface',
+                 'leaseBucketName': 'GoSlice'},
     before={
         '«_»': ['wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %sen ⟨Hsen, -⟩',
                 'simp only [go.arrayLiteralSize, List.foldl]', 'try wp_auto',
                 'wp_apply (wp_slice_literal (l := _)); isplitr; (· ipureintro; rfl); iintro %sdis ⟨Hsdis, -⟩',
                 'simp only [go.arrayLiteralSize, List.foldl]', 'try wp_auto'],
         'leaseBucketName': ['wp_apply wp_string_to_bytes go!"key" as %skey ⟨Hskey, -⟩', 'try wp_auto',
-                            'wp_apply wp_string_to_bytes go!"meta" as %smeta ⟨Hsmeta, -⟩', 'try wp_auto'],
+                            'wp_apply wp_string_to_bytes go!"meta" as %smeta ⟨Hsmeta, -⟩', 'try wp_auto',
+                            'wp_apply wp_string_to_bytes go!"lease" as %slease ⟨Hslease, -⟩', 'try wp_auto'],
         'testBucketName': ['wp_apply wp_string_to_bytes go!"auth" as %sauth ⟨Hsauth, -⟩', 'try wp_auto',
                            'wp_apply wp_string_to_bytes go!"authUsers" as %sausers ⟨Hsausers, -⟩', 'try wp_auto',
                            'wp_apply wp_string_to_bytes go!"authRoles" as %saroles ⟨Hsaroles, -⟩', 'try wp_auto'],
@@ -644,8 +698,8 @@ untranslated initializers, which the trust-boundary axiom `opaqueInitsOk` says r
             'ipersist HKey', 'ipersist HMeta', 'ipersist HMetaConsistentIndexKeyName',
             'ipersist HMetaTermKeyName', 'ipersist HAuth', 'ipersist HAuthUsers', 'ipersist HAuthRoles',
             'ipersist HAuthEnabledKeyName', 'ipersist HAuthRevisionKeyName', 'ipersist HauthEnabled',
-            'ipersist HauthDisabled'] + FIN_PRE[:6] + ['imodintro',
-            'unfold schemaInit bucketIs metaName ciKeyBytes termKeyBytes keyName authName authUsersName authRolesName',
+            'ipersist HauthDisabled', 'ipersist Hslease', 'ipersist HLease'] + FIN_PRE[:6] + ['imodintro',
+            'unfold schemaInit bucketIs metaName ciKeyBytes termKeyBytes keyName authName authUsersName authRolesName leaseName',
             'iframe #', 'repeat (first | (isplitl []; · (ipureintro; rfl)) | (ipureintro; rfl))'],
 )
 
@@ -853,7 +907,9 @@ _AUTH_ERRS = ['ErrRootUserNotExist', 'ErrRootRoleNotExist', 'ErrUserAlreadyExist
               'ErrRoleNotGranted', 'ErrPermissionNotGranted', 'ErrAuthNotEnabled', 'ErrAuthOldRevision',
               'ErrInvalidAuthToken', 'ErrInvalidAuthOpts', 'ErrInvalidAuthMgmt']
 def _auth_news(names):
-    return [f'wp_apply _root_.Perennial.context.wp_New_errorString as %x{n} #M{n}' for n in names]
+    # with the message cells (the auth plan's E3i, 2026-10-27: `authErrMsgs`, what tells them apart
+    # from `etcdserver/errors.ErrNoSpace`)
+    return [f'wp_apply EtcdGrove.wp_New_errorString_cell as %x{n} ⟨#M{n}, #C{n}⟩' for n in names]
 SPECIAL['go_etcd_io.etcd.server.v3.auth'] = dict(
     doc='''Its fact (`authInit`, `Base.lean`): its error variables `ErrUserEmpty`, `ErrUserNotFound`,
 `ErrPermissionDenied`, `ErrAuthOldRevision`, `ErrInvalidAuthToken`, and the admin side's eleven
@@ -862,7 +918,7 @@ SPECIAL['go_etcd_io.etcd.server.v3.auth'] = dict(
 `errors.New` calls: leaf pointer errors without `Is`, by `EtcdGrove.ErrorStringLeaf`, whose
 `Error()` returns), and `rpctypes`' token keys (from `rpctypes`' fact). Its other variables'
 initializers are untranslated (`opaqueInitsOk`).''',
-    imports=['Proof.errors.NewVar', 'Perennial.Proof.context.NewErrorString',
+    imports=['Proof.errors.NewVar', 'Proof.errors.NewVarCell', 'Perennial.Proof.context.NewErrorString',
              'Perennial.Proof.sync.RWMutexGuard'],
     vars=['[EtcdGrove.ErrorStringLeaf]'],
     alloc_types={**{x: 'GoInterface' for x in reversed(_AUTH_ERRS)},
@@ -880,6 +936,13 @@ initializers are untranslated (`opaqueInitsOk`).''',
     },
     finish=[f'ipersist H{n}' for n in _AUTH_ERRS] + ['ipersist HsimpleTokenTTLResolution'] +
            [f'ihave #T{n} := EtcdGrove.errorMsg_triple _ _ _ $$ M{n}' for n in _AUTH_ERRS] + [
+            # the message cells (E3i): `errVarCells authErrMsgs`
+            'ihave #VCells : (EtcdGrove.errVarCells go_etcd_io.etcd.server.v3.auth.authErrMsgs : IProp GF) $$ []',
+            '· unfold go_etcd_io.etcd.server.v3.auth.authErrMsgs',
+            '  simp only [EtcdGrove.errVarCells, EtcdGrove.errVarCell]',
+            '  iframe #',
+            '  repeat (first | (isplitl []; · (iexists _; iframe #)) | (iexists _; iframe #))',
+            '  try itrivial'] + [
             'ihave Hri : (go_etcd_io.etcd.cache.v3.rpctypesInit : IProp GF) $$ []',
             '· iapply isPkgInit_access $$ Hd17',
             'icases Hri with ⟨-, -, -, -, -, -, -, -, -, #HTG, #HTS, -⟩',
@@ -1198,7 +1261,15 @@ errors by the premise `EtcdGrove.ErrorStringLeaf`.""",
              'ihave #LMC := EtcdGrove.errVarLeaf_of_newVar _ _ $$ NMC',
              'ihave #LMF := EtcdGrove.errVarLeaf_of_newVar _ _ $$ NMF'] +
             _noSpaceApart() +
-            FIN_PRE[:6] + ['imodintro', 'unfold applyInit applyErrVars', 'iframe #']),
+            # (the auth plan's E3i, 2026-10-27) `ErrNoSpace` apart from the auth package's error
+            # variables, from their message cells (`authInit`'s last conjunct)
+            ['ihave Hau : (go_etcd_io.etcd.server.v3.auth.authInit : IProp GF) $$ []',
+             '· iapply isPkgInit_access $$ {Hd:go_etcd_io.etcd.server.v3.auth}',
+             'icases Hau with ⟨' + '-, ' * 23 + '#AUC⟩',
+             'ihave #AAU := EtcdGrove.errVarApart_cells go_etcd_io.etcd.server.v3.etcdserver.errors.ErrNoSpace'
+             ' go!"etcdserver: no space" go_etcd_io.etcd.server.v3.auth.authErrMsgs'
+             ' (go_etcd_io.etcd.server.v3.auth.authErrMsgs_ne_of _ (by decide)) $$ CNSP AUC'] +
+            FIN_PRE[:6] + ['imodintro', 'unfold applyInit applyErrVars authErrsApart', 'iframe #']),
 )
 
 _SRV_ERRS = [('ErrTooManyRequests', 'etcdserver: too many requests', 'TMR'),

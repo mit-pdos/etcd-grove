@@ -117,6 +117,14 @@ loaded if it was 0. -/
 def stLoaded (γ : ApplyNames) (st : ApplyState) : ApplyState :=
   if st.k = W64 0 then { st with k := γ.m0.1 } else st
 
+/-- Loading is idempotent: a loaded state stays as it is (`srvCiC`'s condition). -/
+theorem stLoaded_idem (γ : ApplyNames) (st : ApplyState) :
+    stLoaded γ (stLoaded γ st) = stLoaded γ st := by
+  unfold stLoaded
+  by_cases h : st.k = W64 0
+  · rw [if_pos h]; split <;> rfl
+  · rw [if_neg h, if_neg h]
+
 /-- Reading `ci` through `ConsistentIndex`/`UnsafeConsistentIndex` (by the apply thread,
 outside an entry's flight): the update their specs take. It returns `ciEff γ st.k`, and
 loads `ci` if it was 0. -/

@@ -9,6 +9,15 @@ links:
 
 > Moved to `issues/nonissues/` on 2026-10-23 (review of `issues/INDEX-reviewed.md`): not an issue: a precondition of a test hook (`Pausable`, "a testing interface"); no test cuts a remote twice (checked at upstream `3aaab3479b`, 2026-10-23), the same pattern as `etcd-bridge-blackhole-twice-panic`.
 
+> Correction (2026-10-26, D22 J0's transport review, `notes/snapshot-sj-plan.md`, "J0 decisions", J-T):
+> "a remote exists only on a member that joined an existing cluster" is wrong. A member of a new
+> cluster gets a permanent remote whenever a handler's `AddRemote` runs in `applySnapshot`'s window
+> between `RemoveAllPeers` and the `AddPeer` loop (`server.go:1150-1160`): a peer whose stream our
+> `writer.stop` just closed redials, `Get(from)` is `nil` (`http.go:415-423`), and `AddRemote`
+> (`transport.go:263-294`) adds a remote that nothing but `Stop` removes. So after a snapshot a
+> second `CutPeer` without a `MendPeer` can panic on any member. Still a test hook's precondition
+> (the verdict stands); the reachability review above is to be redone with this path.
+
 # server/etcdserver/api/rafthttp: a second `CutPeer` of a remote panics
 
 - **Status**: a test hook's undocumented precondition, not a bug any caller reaches (review of

@@ -33,16 +33,19 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- **The `UberApplier` `ua` with its auth store's admin step facts** (the auth plan's E2o;
-persistent): `applierFor ua E` and `isAuthSteps` of its options' auth store with the store's
-write resource `W` (what the admin triples of its base applier need, `applierAdmin_uber`). -/
-def apply.uberAuthSteps (ua : GoInterface) (E : apply.AEnv GF) (W : IProp GF) : IProp GF :=
+/-- **The `UberApplier` `ua` with its base applier's admin triples** (the auth plan's E2o;
+persistent; E2v: the triples themselves, for the authority family `Own`, rather than the store's
+`isAuthStepsX` they come from, `uberAuthSteps_of_stepsX`): `uberIs` and
+the base applier's admin triples with the store's write resource `W`. -/
+def apply.uberAuthSteps (ua : GoInterface) (E : apply.AEnv GF) (W : IProp GF) (Own : auth.AuthNames → List auth.AuthState → IProp GF) :
+    IProp GF :=
   iprop(∃ (p : Loc) (opts : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions),
     ⌜ua = interface.mkOk (go.GoType.PointerType uberApplier.ty) #p⌝ ∗ apply.uberIs E p opts ∗
-    apply.isAuthSteps opts.AuthStore' E.P E.f E.authMode W)
+    ∃ base : GoInterface, structFieldRef uberApplier go!"applyV3base" p ↦□ base ∗
+      apply.applierAdmin E (apply.baseChain E.authOn) base W Own)
 
-instance apply.uberAuthSteps_persistent (ua : GoInterface) (E : apply.AEnv GF) (W : IProp GF) :
-    Persistent (apply.uberAuthSteps ua E W) := by
+instance apply.uberAuthSteps_persistent (ua : GoInterface) (E : apply.AEnv GF) (W : IProp GF)
+    (Own : auth.AuthNames → List auth.AuthState → IProp GF) : Persistent (apply.uberAuthSteps ua E W Own) := by
   unfold apply.uberAuthSteps; infer_instance
 
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
@@ -56,16 +59,16 @@ abbrev apply.Apply.adminSpec : Prop :=
   ∀ (lg e : Loc) (m : EntryModel) (ua w : GoInterface) (v3 : Bool) (E : apply.AEnv GF)
     (Pre Q Post : IProp GF) (x : apply.ApplyKV) (rq : apply.IRRModel) (id : w64) (RD : IProp GF)
     (K G : Option GName → w64 → IProp GF) (ot : Option GName) (W : IProp GF)
-    (γa : auth.AuthNames) (hs : List auth.AuthState),
+    (γa : auth.AuthNames) (hs : List auth.AuthState) (Own : auth.AuthNames → List auth.AuthState → IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
-      apply.uberAuthSteps ua E W ∗ waitOk w RD K G ∗ RD ∗ K ot id ∗ ⌜lg ≠ null⌝ ∗ entryAt e m ∗
+      apply.uberAuthSteps ua E W Own ∗ waitOk w RD K G ∗ RD ∗ K ot id ∗ ⌜lg ≠ null⌝ ∗ entryAt e m ∗
       (if v3 then iprop(□ ({{ E.P ∗ Pre }} (App (Val E.f) (Val #())) {{ RET #(); Q }}) ∗
           (Q ={⊤}=∗ E.P ∗ Post))
        else iprop(True)) ∗ Pre ∗
       apply.applyKV E ua x ∗
       ⌜apply.irrDecode m.data = some rq ∧ apply.irrId rq = some id ∧ apply.adminKindOk rq ∧
         apply.dispatchOk E.authOn rq ∧ E.authMode = .on γa ∧ receiptBound GF ≤ 2 ^ 48⌝ ∗
-      auth.authOwnFu γa hs ∗ ⧗ 1 ∗ W }}
+      Own γa hs ∗ ⧗ 1 ∗ W }}
     (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.apply.Apply))
       (Val #lg)) (Val #e)) (Val #ua)) (Val #w)) (Val #v3))
   {{ (ar : Loc) (id' : w64), RET (PairV #ar #id'); RD ∗
@@ -74,7 +77,7 @@ abbrev apply.Apply.adminSpec : Prop :=
       ∃ (x' : apply.ApplyKV) (out : apply.ApplyOut), apply.applyKV E ua x' ∗
         ⌜apply.applyStep rq v3 x x' out⌝ ∗
         apply.applyResultIs rq v3 x.log ar out ∗ apply.applyAuthRes E.authMode x.chain rq v3 out ∗
-        (⌜out.waived = false⌝ ∨ G ot id) ∗ W ∗ apply.adminOut γa E.authMode hs rq v3 ar out }}
+        (⌜out.waived = false⌝ ∨ G ot id) ∗ W ∗ apply.adminOut Own γa E.authMode hs rq v3 ar out }}
 
 end defs
 
@@ -85,10 +88,34 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.apply.Assumptions]
 
+/-- **The uber-applier's admin triples carrying `X`** (the auth plan's E2v): from the store's
+`isAuthStepsX` (of the real store with the tie, `isAuthStepsX_of_authInvT`) with the fuel triples
+carrying `X`, for the authority with its fuel and `X`. -/
+theorem apply.uberAuthSteps_of_stepsX
+    (hUA : apply.applierV3backend.UserAdd.fuelSpecX (GF := GF) (hG := hG))
+    (hRA : apply.applierV3backend.RoleAdd.fuelSpecX (GF := GF) (hG := hG))
+    (hUGR : apply.applierV3backend.UserGrantRole.fuelSpecX (GF := GF) (hG := hG))
+    (hRGP : apply.applierV3backend.RoleGrantPermission.fuelSpecX (GF := GF) (hG := hG))
+    (hAE : apply.applierV3backend.AuthEnable.fuelSpecX (GF := GF) (hG := hG))
+    (E : apply.AEnv GF) (X : List auth.AuthState → IProp GF) (W : IProp GF) (p : Loc)
+    (opts : go_etcd_io.etcd.server.v3.etcdserver.apply.ApplierOptions) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
+      apply.uberIs E p opts ∗ apply.isAuthStepsX opts.AuthStore' E.P E.f E.authMode X W ⊢
+      apply.uberAuthSteps (interface.mkOk (go.GoType.PointerType uberApplier.ty) #p) E W
+        (fun γa h => iprop(auth.authOwnFu γa h ∗ X h)) := by
+  iintro ⟨#Hpkg, #Hu, #Hst⟩
+  iunfold apply.uberAuthSteps
+  iexists p, opts
+  iframe Hu
+  isplitr
+  · ipureintro; rfl
+  iapply apply.applierAdmin_uberX hUA hRA hUGR hRGP hAE E X W p opts $$ [Hpkg Hu Hst]
+  iframe #
+
 set_option hygiene false in
 /-- The call `uberApply.Apply(wrapper, v3)` through its admin triple and the postcondition. -/
 local macro "call_tail_admin" : tactic => `(tactic| (
-  wp_apply (hUA E p opts x «$r0_ptr» rq sk v3 Pre Q Post W γa hs)
+  wp_apply (hUA E p opts x «$r0_ptr» rq sk v3 Pre Q Post W γa hs Own)
       $$ [Hown Hkv Hcs Ho Hrc HW] as %ar ⟨%x', %out, Hown, Hkv, HPP, %Hst, Htr, Hres, #Hauth, HW, Hdone⟩
   · iframe # Hown Hkv Hcs Ho Hrc HW
     isplitr
@@ -126,7 +153,7 @@ theorem apply.Apply.wp_admin
     (hNSE : apply.noSideEffect.spec (GF := GF) (hG := hG))
     (hUA : apply.uberApplier.Apply.adminSpec (GF := GF) (hG := hG)) :
     apply.Apply.adminSpec (GF := GF) (hG := hG) := by
-  intro lg e m ua w v3 E Pre Q Post x rq id RD K G ot W γa hs
+  intro lg e m ua w v3 E Pre Q Post x rq id RD K G ot W γa hs Own
   wp_start as ⟨#Hfor, #Hwok, HRD, HK, %Hlg, #He, Hhook, HPre, Hkv, %Hprem, Ho, Hrc, HW⟩
   obtain ⟨Hdec, Hid, Hadm, Hdk, Hmode, Hrb⟩ := Hprem
   ihave #Pzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
@@ -149,6 +176,7 @@ theorem apply.Apply.wp_admin
   ihave #Hirr' := Hirr
   iunfold apply.internalRaftRequestIs at Hirr'
   icases Hirr' with ⟨%Hpn, #HID, ⟨%lh, #FH, #Hh⟩, -, -, -, ⟨%lt, #FT, #Ht⟩, -⟩
+  ihave #Ht := apply.optReqIs_txnW lt rq $$ Ht
   ihave %Hlt := apply.optReqIs_nil lt rq.txn _ apply.txnRequestIs_nn $$ Ht
   ihave %Hlh := apply.optReqIs_nil lh rq.header _ apply.headerIs_nn $$ Hh
   wp_auto

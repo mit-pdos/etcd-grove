@@ -260,6 +260,24 @@ the requests in flight finish (`ErrStopped`). *(B)* Also `Stop`/`HardStop` from 
     transport, the dynamic mode's `AddPeer`); M5d waits with it. Decided the same day; started (`Unmarshal`
     restated, the `be` field, the translation), then blocked on `s.beHooks`: D43 "M5e started, then
     blocked again". **Done (2026-10-26)**: D43 "M5e carried out" (721 → 723 axioms).
+  *Note from the snapshot track (2026-10-26, D22 J0; `notes/snapshot-sj-plan.md`, "J0 decisions",
+  J-T; decided by the orchestrator while the user was away): D22's stage J-T takes M5's rafthttp
+  part that `applySnapshot` needs, and does it first: the transport state split (`γr` keeping the
+  peers' ids and the stopped flag, half in `trLive` with the apply thread; the remotes' ids owned
+  by the lock with a per-member remote budget and a no-remote token `trNoRem` per member, which
+  `CutPeer`/`MendPeer` take in place of `id ∉ rs.1`), `trLive_freeze` removed from `NewServer`,
+  the readers (`Send`, `CutPeer`, `MendPeer`, `Handler`, `ActiveSince`, `SendSnapshot`) restated
+  over `trState`, `Stop_live` with the `netTransport`/`isRNTransport` Stop clause and the
+  `stopped` channel's payload, `RemoveAllPeers` proved (its `sorry` gone; it returns 4 of `lgMu`'s
+  reader slots per peer, 6 once `streamWriter.stop` is strengthened -- not 8: `peer.stop` does not
+  join the two `Process` goroutines), and W8 (the HTTP protocol's `X-PeerURLs` stated as the
+  sender's directory URLs, so a handler's `AddRemote` in the snapshot window meets
+  `AddRemote_core`'s premises). Left to M5: `RemovePeer`'s spec and proof on the same
+  `removePeer` core, `applyConfChange`, and the removed-sender `403`/`Process` change; M6 uses
+  `Stop_live` as J-T leaves it. Rebase M5's rafthttp work on J-T's state, not on `trFrozen`. (Merge of M5 into `lean`, 2026-10-27: M5a and M5c did this rafthttp part first,
+  on branch `membership-m5`, before J-T started -- the peers-only `trLive`, the remotes' ids and a
+  pool of four `R`s per member in the lock, `Stop` gated by `TS`/`E.ST`, `RemoveAllPeers` proved; D43
+  "M5c carried out". J-T starts from that state.)*
 - **M6. The stopping server** (Q4 (A)): `apply`'s `shouldStop`, `stopWithDelay` translated, `errorc`
   carrying a stop request, `run`'s return and deferred shutdown (`Cleanup`, `raftNode.stop`,
   `transport.Stop` consuming the peers right), the "server open" token (D19m (B)) through every

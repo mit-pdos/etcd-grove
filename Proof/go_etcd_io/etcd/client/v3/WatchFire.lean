@@ -106,7 +106,7 @@ theorem watch_fire (E : apply.AEnv GF) (γr : ReadNames) (γ : KVNames) (hst : �
   · inext; iexists Lf; iframe HLf Hσ' Hw; ipureintro; exact Hok'
   imodintro
   iexists kvModel γr.kv Lf
-  rw [Hag]
+  rw [← kvModelSt_plain γr.kv Lf Hok'.1, Hag]
   iframe HQ0
   ipureintro; exact HpL
 

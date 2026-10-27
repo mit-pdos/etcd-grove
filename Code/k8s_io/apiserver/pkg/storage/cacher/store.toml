@@ -1,0 +1,7 @@
+# Translated with bodies: the watch cache's store (KEP-4988's snapshotted B-tree), the cache
+# KEP-6404 serves every GET from (notes/kep-6404-plan.md).
+translate = ["*"]
+imports = ["*"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

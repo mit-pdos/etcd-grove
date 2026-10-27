@@ -269,12 +269,13 @@ theorem netNames_alloc (N : NetPayload GF) (dir : w64 → List GoString) (S : GM
   unfold netSlot
   iexact Hs
 
-/-- **A member's snapshot directory, allocated empty** (D22 S-i): what the receiver gives
-`Transport.Start` for its snapshotter `ss`, at the payload's certificate and its removal fact
-`Rm` (a fresh data directory: its snapshot directory has no `.snap.db` file). -/
-theorem snapDir_alloc (ss : Loc) (img : w64 → backend.Data → IProp GF) (Rm : w64 → IProp GF)
-    (E : CoPset) : ⊢ |={E}=> ∃ γd : GName, inv snapDirN (snapDirInv ss γd img Rm) := by
-  imod ghost_map_alloc_empty (GF := GF) (K := w64) (V := Unit) with ⟨%γd, Ha⟩
+/-- **A member's snapshot directory, at names allocated before** (2026-10-26, D22 J2, R-loc: the
+names are raft's `RaftNames.reSnapLoc`, fixed before the member starts): from the directory map's
+authority, empty, the directory's invariant (a fresh data directory: no `.snap.db` file). -/
+theorem snapDir_init (ss : Loc) (γd : GName) (img : w64 → backend.Data → IProp GF)
+    (Rm : w64 → IProp GF) (E : CoPset) :
+    ⊢ ghostMapAuth γd 1 (∅ : GMap w64 Unit) ={E}=∗ inv snapDirN (snapDirInv ss γd img Rm) := by
+  iintro Ha
   imod (inv_alloc snapDirN E (snapDirInv ss γd img Rm)) $$ [Ha] with #Hi
   · iunfold snapDirInv
     iexists (∅ : GMap w64 backend.Data), (∅ : GMap w64 Unit)
@@ -286,6 +287,22 @@ theorem snapDir_alloc (ss : Loc) (img : w64 → backend.Data → IProp GF) (Rm :
     isplitr
     · imodintro; iintro %i %h; exact absurd (GMap.lookup_empty i) h
     · imodintro; iintro %i %h; exact absurd (GMap.lookup_empty i) h.1
+  imodintro
+  iexact Hi
+
+/-- (2026-10-26, D22 J2, R-loc) **A saved index is local to the receiver** whose raft names name
+its directory: `snapSaved` is `snapLocal`'s body (`RaftNames.reSnapLoc`). -/
+theorem snapLocal_of_saved {γ : RaftNames} {id : w64} {γd : GName} (h : γ.reSnapLoc id = some γd)
+    (i : w64) : snapSaved (GF := GF) γd i ⊢ snapLocal γ id i :=
+  snapLocal_of_elem h i
+
+/-- **A member's snapshot directory, allocated empty** (D22 S-i): what the receiver gives
+`Transport.Start` for its snapshotter `ss`, at the payload's certificate and its removal fact
+`Rm` (a fresh data directory: its snapshot directory has no `.snap.db` file). -/
+theorem snapDir_alloc (ss : Loc) (img : w64 → backend.Data → IProp GF) (Rm : w64 → IProp GF)
+    (E : CoPset) : ⊢ |={E}=> ∃ γd : GName, inv snapDirN (snapDirInv ss γd img Rm) := by
+  imod ghost_map_alloc_empty (GF := GF) (K := w64) (V := Unit) with ⟨%γd, Ha⟩
+  imod (snapDir_init ss γd img Rm E) $$ Ha with #Hi
   imodintro
   iexists γd
   iexact Hi

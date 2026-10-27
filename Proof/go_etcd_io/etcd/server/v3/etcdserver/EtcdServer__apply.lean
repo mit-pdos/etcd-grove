@@ -66,8 +66,9 @@ local macro "cc_kv_applied" : tactic => `(tactic| (
     · iframe He
     icases srvApplyKV_idxCert s E ρ.wait xj $$ HKV with ⟨HKV, #Hcert⟩
     ihave %Hlxj := idxCert_len E.γ.idx xj.log $$ Hcert
-    have hcc0 : kvEntry γr.kv.c0 xj.chain xj.log m = xj.log :=
-      kvEntry_nonwrite _ _ _ m (Or.inr (Or.inl (by rw [h1]; decide)))
+    have hcc0 : kvEntry γr.kv.c0 xj.chain (kvLeases γr.kv (A ++ ms.take (sint.nat j))) xj.log m =
+        xj.log :=
+      kvEntry_nonwrite _ _ _ _ m (Or.inr (Or.inl (by rw [h1]; decide)))
     imod kv_applied_step E γr (A ++ ms.take (sint.nat j)) m xj (by rw [hcc0]; exact Hlxj)
       $$ Hkvi Hka HlbJ with ⟨%Hpe, Hka⟩
     ihave ⟨Hka, #HkL⟩ := kvApplied_next γr (A ++ ms.take (sint.nat j)) m xj xj m.index hiA
@@ -144,7 +145,7 @@ theorem EtcdServer.apply.wp_proof
   have hGI := wp_entryAt_GetIndex hGI
   have hGT := wp_entryAt_GetTerm hGT
   have hGTy := wp_entryAt_GetType hGTy
-  intro s γ ci TM E ρ b es ents ms f0 ep cs rac st a at0 x γr A γp dv hne hfrom hok hEok hdv
+  intro s γ ci TM E ρ b es ents ms f0 ep cs rac st a at0 x γr A γp dv w hne hfrom hok hEok hdv
   wp_start as ⟨#Hsrv, #Hbw, #Hes, #Hents, Hst, Hbe, Happ, Hcs, Hlr, Hgr, HKV, Hao, #Hlog0, #Hbc,
     #HWP, #HWA0, Hfs, Hka, HRS, #Hkb, Hdv, #Hdvr, HAR⟩
   ihave #Hsrv0 := Hsrv
@@ -208,8 +209,8 @@ theorem EtcdServer.apply.wp_proof
       "HKV" ∷ srvApplyKV s E ρ.wait xj ∗
       "Hao" ∷ srvAppliedOwn γr aw ∗
       "#Hlog" ∷ appliedLogAt γr aw xj.log ∗
-      -- (2026-10-19, D21 M3) the write tokens taken through `aw`
-      "#HWA" ∷ srvWTAt γp aw ∗
+      -- (D22 J5) the write tokens taken, one per entry
+      "#HWA" ∷ srvWTTaken γp (w + sint.nat j) ∗
       "Hka" ∷ kvApplied γr.raft γr.kv (A ++ ms.take (sint.nat j)) xj ∗
       "HRS" ∷ srvRest E γr (A ++ ms.take (sint.nat j)) ∗
       "HAR" ∷ srvApRes s γr (A ++ ms.take (sint.nat j)) ∗
@@ -220,7 +221,7 @@ theorem EtcdServer.apply.wp_proof
         (∃ (st' : ApplyState) (a' at' : w64) (csl : Loc),
           applyThread γ st' ∗ applyBackend γ ci b ∗ ciApplying ci a' at' ∗
           epConfState ep csl ∗ srvLgReader s ∗ srvGoRes s ∗ srvAppliedOwn γr appliedi ∗
-          srvWTAt γp appliedi ∗
+          srvWTTaken γp (w + ms.length) ∗
           (∃ x' : apply.ApplyKV, srvApplyKV s E ρ.wait x' ∗ ⌜entriesStep (ciEff γ st.k) ms x x'⌝ ∗
             appliedLogAt γr appliedi x'.log ∗ kvApplied γr.raft γr.kv (A ++ ms) x' ∗
             srvRest E γr (A ++ ms)) ∗
@@ -345,14 +346,10 @@ theorem EtcdServer.apply.wp_proof
     iapply wp_value'
     -- (2026-10-19, D21 M3) the token's count, past the entry's index
     have hma : uint.Z m.index = uint.Z aw + 1 := by omega
-    imod srvWTPool_take_at s E γp ρ.wait xj aw (by have := hma; word) $$ HWP Hr HWA HKV
+    imod srvWTPool_take_n s E γp ρ.wait xj (w + sint.nat j) $$ HWP Hr HWA HKV
       with ⟨Hwt, #HWA1, HKV⟩
-    ihave #HWA2 : srvWTAt γp m.index $$ []
-    · rw [show m.index = aw + W64 1 by
-        apply BitVec.eq_of_toNat_eq
-        have h2 : uint.Z m.index = uint.Z (aw + W64 1) := by rw [hma]; word
-        simp only [uint.Z] at h2
-        exact_mod_cast h2]
+    ihave #HWA2 : srvWTTaken γp (w + sint.nat (j + W64 1)) $$ []
+    · rw [hjs, ← Nat.add_assoc]
       iexact HWA1
     (try wp_auto)
     -- the `Debug` log
@@ -434,7 +431,7 @@ theorem EtcdServer.apply.wp_proof
           ipureintro
           refine ⟨⟨hlp ▸ hpend', hOk1 h0, h0⟩, ?_⟩
           rw [hlpp, hlc]
-          refine ⟨hip, by omega, hgt⟩
+          refine ⟨hip, by omega, hgt, stLoaded_idem γ st'⟩
         have hb1 : batchStep (ciEff γ st.k) m xj x1 := by
           unfold batchStep; rw [ite_eq_left h0]
           refine ⟨out1, ?_⟩
@@ -863,7 +860,9 @@ theorem EtcdServer.apply.wp_proof
     · rw [show A ++ ms = A ++ ms.take (sint.nat j) by rw [htkF]]; iexact HAR
     iexists st', a', t', csl
     rw [hjn, List.take_of_length_le (Nat.le_refl _)] at Hxs
-    iframe Hst Hbe Happ Hcs Hlr Hgr Hao HWA
+    iframe Hst Hbe Happ Hcs Hlr Hgr Hao
+    isplitr
+    · rw [← hjn]; iexact HWA
     have htk' : ms.take (sint.nat j) = ms := by rw [hjn, List.take_of_length_le (Nat.le_refl _)]
     isplitl [HKV Hka HRS]
     · iexists xj; iframe HKV Hlogf

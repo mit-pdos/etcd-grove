@@ -80,14 +80,15 @@ theorem memberBoot_of (γ : RaftNames) (bud : BudgetNames) (bootLog : List Entry
       idClusterInv issued cnt Φs -∗ (W64 0) ↪[issued]□ (none : Option (List w8 × GName)) -∗
       srvPropMint ⟨γ, [], W64 0⟩ γk.ids -∗ srvRdCtxInv ⟨γ, [], W64 0⟩ issued -∗
       kvInv ⟨γ, [], W64 0⟩ γk -∗
-      (idPfxOf (W16 (uint.Z id)) ↪[cnt] ([] : List w64) ∗ rdCred γ (2 ^ 48)) -∗
+      (idPfxOf (W16 (uint.Z id)) ↪[cnt] ([] : List w64) ∗ rdCred γ (2 ^ 48) ∗
+        ∃ γd : GName, ⌜γ.reSnapLoc id = some γd⌝ ∗ ghostMapAuth γd 1 (∅ : GMap w64 Unit)) -∗
       idWaitTokAt γk.ids.wn (idPfxOf (W16 (uint.Z id))) -∗
       mvcc.idxFresh idx -∗ ghostMapAuth cok 1 (∅ : GMap w64 mvcc.Log) -∗
       ghostMapAuth rev 1 (∅ : GMap w64 Unit) ==∗
       ∃ ρ : ReqNames, ⌜ρ.rd.kv.st = γk.st ∧ ρ.rd.kv.c0 = γk.c0 ∧ ρ.rd.kv.ch0 = γk.ch0 ∧
         ρ.rd.kv.log0 = γk.log0⌝ ∗
         memberBoot γ bud bootLog ρ (env₀ idx cok rev) Φs id := by
-  iintro Hghost #Hcomm #Hcinv #Hbinv #Hlb #Hcl #H0 #Hpm #Hrc #Hkv ⟨Hp, HrdC⟩ Hwn Hidx Hcok Hrev
+  iintro Hghost #Hcomm #Hcinv #Hbinv #Hlb #Hcl #H0 #Hpm #Hrc #Hkv ⟨Hp, HrdC, Hsd⟩ Hwn Hidx Hcok Hrev
   imod (srvMemberBoot_alloc (GF := GF) γ cnt γk id cok) $$ Hkv Hp Hwn
     with ⟨%ρ, %Hρ, #Hkvρ, Hsh, Hnk, Hwt⟩
   obtain ⟨hraft, hst, hc0', hch', hlog', hcok, hiss', hcnt, hpfx⟩ := Hρ
@@ -99,7 +100,7 @@ theorem memberBoot_of (γ : RaftNames) (bud : BudgetNames) (bootLog : List Entry
   simp only [env₀]
   rw [hiss', hcnt, hraft, Hiss]
   rw [← srvPropMint_congr _ γk.ids ρ.ids (by rw [hiss', Hiss])]
-  iframe Hghost Hcomm Hcinv Hbinv Hlb Hcl Hpm Hrc Hsh HrdC Hidx Hcok Hrev Hnk Hkvρ Hwt
+  iframe Hghost Hcomm Hcinv Hbinv Hlb Hcl Hpm Hrc Hsh HrdC Hidx Hcok Hrev Hnk Hkvρ Hwt Hsd
   isplitr
   · ipureintro
     refine ⟨rfl, Hpol, by rw [hc0', Hc0], by rw [hch', Hch], by rw [hlog', Hlog], hcok,
@@ -135,7 +136,7 @@ theorem alloc3 (id₁ id₂ id₃ : w64) (bootLog : List EntryM)
       (netHttpOk γn id₂ ∗ http.httpProtoOwn a₂ (raftProto (netRh γn))) ∗
       memberBoot γ bud bootLog ρ₃ E₃ Φs id₃ ∗
       (netHttpOk γn id₃ ∗ http.httpProtoOwn a₃ (raftProto (netRh γn))) ∗
-      etcdKV ρ₁.rd.kv (kvStateOf (kvModel ρ₁.rd.kv (bootEntries bootLog))) := by
+      etcdKV ρ₁.rd.kv (kvModelSt ρ₁.rd.kv (bootEntries bootLog)) := by
   obtain ⟨hn12, hn13, hn23⟩ := id_ne id₁ id₂ id₃ Hlow Hlow0
   obtain ⟨hp12, hp13, hp23⟩ := pfx_ne id₁ id₂ id₃ Hlow Hlow0
   have Hnz := id_nz id₁ id₂ id₃ Hlow Hlow0
@@ -224,8 +225,8 @@ theorem alloc3 (id₁ id₂ id₃ : w64) (bootLog : List EntryM)
       by funext B; unfold kvModel; rw [hc0₃, hch₃, hlog₃, hc0₁, hch₁, hlog₁],
       by rw [hlog₂, hlog], by rw [hlog₃, hlog]⟩
   rw [etcdKV_congr ρ₁.rd.kv γk hst₁,
-    show kvModel ρ₁.rd.kv (bootEntries bootLog) = kvModel γk (bootEntries bootLog) by
-      unfold kvModel; rw [hc0₁, hch₁, hlog₁]]
+    show kvModelSt ρ₁.rd.kv (bootEntries bootLog) = kvModelSt γk (bootEntries bootLog) by
+      unfold kvModelSt kvLeases kvModel; rw [hc0₁, hch₁, hlog₁]]
   iexact Hetcd
 
 end alloc

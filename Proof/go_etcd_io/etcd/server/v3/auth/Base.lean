@@ -29,6 +29,7 @@ public import Perennial.Proof.strings
 public import Perennial.Proof.strconv.Base
 public import Perennial.Proof.context
 public import Perennial.Proof.errors
+public import Proof.errors.NewVarCell
 
 @[expose] public section
 
@@ -95,6 +96,65 @@ instance reportP_fractional : Fractional (reportP (GF := GF)) where
       iexists f1
       iapply (typedPointsto_frac_add _ _ q1 q2).2 $$ [$H1 $H2]
 
+/-- **The auth package's `errors.New` variables with their messages** (`store.go`; the auth plan's
+E3i, 2026-10-27): what tells them apart from other packages' error variables (`errVarCells`, the
+message cells: the server's `applyEntryNormal` needs an auth rejection told apart from
+`etcdserver/errors.ErrNoSpace`, the apply package's `applyErrVars`). The translated ones, in
+`store.go`'s order. -/
+def authErrMsgs : List (GoString × GoString) := [
+  (ErrRootUserNotExist, go!"auth: root user does not exist"),
+  (ErrRootRoleNotExist, go!"auth: root user does not have root role"),
+  (ErrUserAlreadyExist, go!"auth: user already exists"),
+  (ErrUserEmpty, go!"auth: user name is empty"),
+  (ErrUserNotFound, go!"auth: user not found"),
+  (ErrRoleAlreadyExist, go!"auth: role already exists"),
+  (ErrRoleNotFound, go!"auth: role not found"),
+  (ErrRoleEmpty, go!"auth: role name is empty"),
+  (ErrPermissionNotGiven, go!"auth: permission not given"),
+  (ErrAuthFailed, go!"auth: authentication failed, invalid user ID or password"),
+  (ErrNoPasswordUser, go!"auth: authentication failed, password was given for no password user"),
+  (ErrPermissionDenied, go!"auth: permission denied"),
+  (ErrRoleNotGranted, go!"auth: role is not granted to the user"),
+  (ErrPermissionNotGranted, go!"auth: permission is not granted to the role"),
+  (ErrAuthNotEnabled, go!"auth: authentication is not enabled"),
+  (ErrAuthOldRevision, go!"auth: revision in header is old"),
+  (ErrInvalidAuthToken, go!"auth: invalid auth token"),
+  (ErrInvalidAuthOpts, go!"auth: invalid auth options"),
+  (ErrInvalidAuthMgmt, go!"auth: invalid auth management")]
+
+/-- The messages of `authErrMsgs` (a literal list: what `decide` can compare with another
+message). -/
+def authErrTexts : List GoString := [
+  go!"auth: root user does not exist",
+  go!"auth: root user does not have root role",
+  go!"auth: user already exists",
+  go!"auth: user name is empty",
+  go!"auth: user not found",
+  go!"auth: role already exists",
+  go!"auth: role not found",
+  go!"auth: role name is empty",
+  go!"auth: permission not given",
+  go!"auth: authentication failed, invalid user ID or password",
+  go!"auth: authentication failed, password was given for no password user",
+  go!"auth: permission denied",
+  go!"auth: role is not granted to the user",
+  go!"auth: permission is not granted to the role",
+  go!"auth: authentication is not enabled",
+  go!"auth: revision in header is old",
+  go!"auth: invalid auth token",
+  go!"auth: invalid auth options",
+  go!"auth: invalid auth management"]
+
+theorem authErrMsgs_snd : authErrMsgs.map Prod.snd = authErrTexts := rfl
+
+/-- A message none of the auth package's error variables has. -/
+theorem authErrMsgs_ne_of (m : GoString) (h : m ∉ authErrTexts) :
+    ∀ p ∈ authErrMsgs, p.2 ≠ m := by
+  intro p hp heq
+  apply h
+  rw [← authErrMsgs_snd, ← heq]
+  exact List.mem_map_of_mem hp
+
 /-- The auth package's facts: its error variables the request side returns (`authErrVar`), and
 `rpctypes`' token keys (fixed read-only strings). -/
 abbrev authInit : IProp GF :=
@@ -117,7 +177,9 @@ abbrev authInit : IProp GF :=
     -- `RWMutex` over the reporter, which `setupMetricsReporter` takes to set it
     sync.isRWMutexGuard (globalAddr reportCurrentAuthRevMu) reportP ∗
     -- the token provider's constructor's error (the auth plan's E2g, 2026-10-25), appended
-    authErrVar ErrInvalidAuthOpts)
+    authErrVar ErrInvalidAuthOpts ∗
+    -- the error variables' message cells (the auth plan's E3i, 2026-10-27), appended
+    EtcdGrove.errVarCells authErrMsgs)
 
 instance isPkgInit_inst : IsPkgInit (IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth :=
   define_is_pkg_init authInit

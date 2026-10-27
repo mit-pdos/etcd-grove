@@ -18,6 +18,7 @@ axiom NewCluster.wp_proof
 axiom NewLoggableTxnRequest.wp_proof
 axiom NewMaintenance.wp_proof
 axiom Perennial.crypto.tls.opaqueInitsOk
+axiom Perennial.encoding.base64.StdEncoding_init
 axiom Perennial.encoding.base64.opaqueInitsOk
 axiom Perennial.encoding.hex.opaqueInitsOk
 axiom Perennial.encoding.json.initFuncsOk
@@ -267,7 +268,6 @@ axiom Perennial.os.initFuncsOk
 axiom Perennial.os.opaqueInitsOk
 axiom Perennial.path.opaqueInitsOk
 axiom Perennial.reflect.opaqueInitsOk
-axiom Perennial.unicode.utf8.opaqueInitsOk
 axiom RangeRequest.String.wp_proof
 axiom WithRequireLeader.wp_proof
 axiom addFeatureGateMetrics.wp_proof
@@ -358,6 +358,7 @@ axiom bbolt.Tx.Rollback_kv.wp_proof
 axiom bbolt.Tx.Size_kv.wp_proof
 axiom bbolt.Tx.Stats_kv.wp_proof
 axiom bcrypt.CompareHashAndPassword.wp_proof
+axiom bcrypt.GenerateFromPassword.wp_proof
 axiom binary.ReadUint64.wp_proof
 axiom binary.WriteUint64.wp_proof
 axiom binary.WriteUint8.wp_proof
@@ -466,8 +467,6 @@ axiom grpc_prometheus.WithServerHandlingTimeHistogram.wp_proof
 axiom grpclog.SetLoggerV2.wp_proof
 axiom health.NewServer.wp_proof
 axiom health.Server.SetServingStatus.wp_proof
-axiom heap.Fix.wp_proof
-axiom heap.Push.wp_proof
 axiom http.CloseIdleConnections_ok
 axiom http.Error_ok
 axiom http.Flush_ok
@@ -511,6 +510,7 @@ axiom io.Pipe.wp_proof
 axiom io.PipeWriter.CloseWithError.wp_proof
 axiom klog.V.wp_proof
 axiom klog.Verbose.Infof.wp_proof
+axiom kmetrics.HistogramVec.WithContext.wp_proof
 axiom labels.Everything.wp_proof
 axiom lease.NewLessor.wp_proof
 axiom lease.lessor.Demote.wp_proof
@@ -616,6 +616,7 @@ axiom resolver.New.wp_proof
 axiom rpctypes.errDesc_etcdError
 axiom schema.MustUnsafePutLease.wp_proof
 axiom schema.MustUnsafeSaveConfStateToBackend.wp_proof
+axiom schema.UnsafeDeleteLease.wp_proof
 axiom schema.membershipBackend.MustDeleteMemberFromBackend.wp_proof
 axiom schema.membershipBackend.MustReadMembersFromBackend.wp_proof
 axiom schema.membershipBackend.MustSaveMemberToBackend.wp_proof
@@ -634,6 +635,7 @@ axiom snap.NewMessage.wp_proof
 axiom snap.Snapshotter.DBFilePath.wp_proof
 axiom snap.Snapshotter.SaveDBFrom.wp_proof
 axiom sort.Stable.wp_proof
+axiom sort.StringSlice.Sort.wp_proof
 axiom status.Code.wp_proof
 axiom status.Error.wp_proof
 axiom status.Errorf.wp_proof
@@ -668,6 +670,7 @@ axiom traceutil.Trace.LogWithStepThreshold.wp_proof
 axiom traceutil.Tracer.Start.wp_proof
 axiom tracing.Span.AddEvent.wp_proof
 axiom tracing.Span.End.wp_proof
+axiom tracing.SpanFromContext.wp_proof
 axiom tracing.Start.wp_proof
 axiom transport.IsClosedConnError.wp_proof
 axiom txn.ApplySecObserve.wp_proof
@@ -679,7 +682,6 @@ axiom types.ID.String_ptr.wp_proof
 axiom types.IDFromString.wp_proof
 axiom types.NewURLs.wp_proof
 axiom types.URLs.StringSlice.wp_proof
-axiom utf8.ValidString.wp_proof
 axiom v2stats.FollowerStats.Fail.wp_proof
 axiom v2stats.FollowerStats.Succ.wp_proof
 axiom v2stats.NewServerStats.wp_proof
@@ -693,7 +695,6 @@ axiom v3rpc.NewMaintenanceServer.wp_proof
 axiom v3rpc.codec_proto
 axiom v3rpc.isClientCtxErr.wp_proof
 axiom v3rpc.logUnaryRequestStats.wp_proof
-axiom verify.Assert.wp_proof
 axiom verify.Verify.wp_proof
 axiom version.Cluster.wp_proof
 axiom version.LessThan.wp_proof

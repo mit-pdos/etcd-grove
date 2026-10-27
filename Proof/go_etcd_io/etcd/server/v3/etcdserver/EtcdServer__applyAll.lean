@@ -42,8 +42,8 @@ theorem EtcdServer.applyAll.wp_proof
     (hV : backend.VerifyBackendConsistency.spec (GF := GF) (hG := hG))
     (hSINC : EtcdServer.snapshotIfNeededAndCompactRaftLog.spec (GF := GF) (hG := hG)) :
     EtcdServer.applyAll.spec (GF := GF) (hG := hG) := by
-  intro s γ ci TM E ρ γr b ep ap es ents ms f0 rac nc st ai at0 a t cs x A mst γs γp dv γnc Hms Hai1
-    Hok hEok hcap hdv
+  intro s γ ci TM E ρ γr b ep ap es ents ms f0 rac nc st ai at0 a t cs x A mst γs γp dv γnc w Hms Hai1
+    Hok hEok hcap hdv haw
   wp_start as ⟨#Hsrv, #Hsa, #Hbw, #Hes, #Hrac, #Hracc, #Hsn, #Hnc, #Hncb, Hnrc, #Hesl, #Hentsat, Hai, Hat, Hcs,
     Hss, Hst, Hbe, Happ, Hlr, Hgr, Hbr, HKV, Hao, #Hlog, #Hbc, #HW, #HWA, Hka, HRS, #Hkb, Hdv, #Hdvr, HAR⟩
   ihave #Hsrv' := Hsrv
@@ -70,7 +70,7 @@ theorem EtcdServer.applyAll.wp_proof
   icases Hss with ⟨%sd0, %sm0, %sf0, Hsd0, Hsm0, Hsf0, %Hdm0, #Hmst, %σ0, Htok, %Hσ0⟩
   ihave Hfs : srvFS s $$ [Hsf0]
   · iunfold srvFS; iexists _; iexact Hsf0
-  wp_apply hAE s γ ci TM E ρ b ep ap es ents ms f0 rac st ai at0 a t cs x γr A γp dv Hms Hai1 Hok
+  wp_apply hAE s γ ci TM E ρ b ep ap es ents ms f0 rac st ai at0 a t cs x γr A γp dv w Hms Hai1 Hok
     hEok hdv
     $$ [Hai Hat Hcs Hst Hbe Happ Hlr Hgr HKV Hao Hfs Hka HRS Hdv HAR]
     as ⟨Hfs, Hdv, HAR, %st', %ai', %at', %a', %t', %cs', Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, Hgr, Hao, #HWA',
@@ -78,7 +78,7 @@ theorem EtcdServer.applyAll.wp_proof
   · iframe #; iframe
   iunfold srvFS at Hfs
   icases Hfs with ⟨%sf1, Hsf1⟩
-  obtain ⟨hok', hai', hci', hat'⟩ := Hpost
+  obtain ⟨hok', hai', hlen', hci', hat'⟩ := Hpost
   have Hai' : uint.Z ai ≤ uint.Z ai' := by rw [hai']; exact Int.le_max_left _ _
   ihave Hss : srvSnapState s ep mst γs ai' (W64 0) $$ [Hsd0 Hsm0 Hsf1 Htok]
   · iunfold srvSnapState; iexists _, _, _; iframe Hsd0 Hsm0 Hsf1 Hmst
@@ -163,7 +163,8 @@ theorem EtcdServer.applyAll.wp_proof
   ihave #Hfl' : memFloorAtLeast mst γs (uint.Z ai') $$ []
   · rw [hai']; iexact Hflb
   -- `s.snapshotIfNeededAndCompactRaftLog(ep)`
-  wp_apply hSINC s E ρ.wait γ ci b γr ep st' ai' at' cs' a' t' x' mst γs γp hok' hcap
+  wp_apply hSINC s E ρ.wait γ ci b γr ep st' ai' at' cs' a' t' x' mst γs γp
+      (w + (unapplied ai ms).length) hok' hcap (by push_cast; omega)
     $$ [Hss Hai Hat Hcs Hst Hbe Happ Hlr HKV]
     as ⟨%st'', Hss, Hai, Hat, Hcs, Hst, Hbe, Happ, Hlr, HKV, %Hst''⟩
   · iframe #; iframe

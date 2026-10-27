@@ -123,6 +123,14 @@ process or publicly through etcd-io/etcd#22395 was the user's decision: a securi
     (compare-only transactions), by inspection only, no reproduction yet; the fix is a one-line
     guard. Upstream not searched yet.
 
+12. **[etcd-applied-index-stale-after-snapshot](etcd-applied-index-stale-after-snapshot.md)**
+    (2026-10-26): after a follower installs a leader's snapshot, `applySnapshot` leaves the atomic
+    applied index behind (only `applyEntries` sets it), and the request limit (committed > applied
+    + 5000) then refuses every write through that member until another member's write commits; in
+    a quiet cluster indefinitely. Default configuration (`SnapshotCatchUpEntries` 5000); reproduced
+    by an integration test at the pin, which a one-line fix passes. Availability through one
+    member, no data loss. Upstream not searched beyond `main`'s code (unchanged).
+
 Also to file (2026-10-21, the last scan of the current batch):
 [etcd-watch-id-reuse-stale-events](etcd-watch-id-reuse-stale-events.md) (a watch created with a
 client-chosen id that a just-canceled watch used receives the canceled watch's buffered events, of
@@ -404,6 +412,11 @@ For Kubernetes' sig-api-machinery, not etcd's maintainers:
 storage test model `correctness.Model` rejects the store's intended rewrite of non-canonical or
 stale data on a no-op update. It is a test-only bug that `TestCorrectness` does not reach, with a
 Go reproduction and a small fix in the Model.
+[k8s-watchcache-index-error-partial-update](k8s-watchcache-index-error-partial-update.md)
+(2026-10-26): the watch cache keeps (and soon serves) an object whose update failed in its
+indexer, with no event in its history; reproduced at the store. Only reached through an index
+function that fails, which Kubernetes' own do only on an object of the wrong type: worth a small
+robustness fix (index before mutating), not urgent.
 
 ## How to bring them
 

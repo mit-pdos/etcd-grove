@@ -126,7 +126,7 @@ theorem store.updateOnce.wp_proof
     wp_apply _root_.Perennial.time.wp_Now as %t0 -
     (try wp_auto)
     ihave Hau' := (k8sAusRW_kvAu1 c.ms c (updStep key z f) W Φu
-      (.txn (kubernetes.optPutTxn key val s.rev true))
+      (.txn (kubernetes.optPutTxn key val s.rev true)) trivial
       (fun σ => (txn.srvRunTxn (W64 ((σ.rev + 1 : Nat) : Int)) σ.kvs
         (kubernetes.optPutTxn key val s.rev true)).1)
       (stepHand c (updStep key z f))

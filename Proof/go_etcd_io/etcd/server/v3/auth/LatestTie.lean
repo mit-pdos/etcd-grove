@@ -63,50 +63,70 @@ theorem tieStep_refresh (M : AuthMode) (hs hs' : List AuthState) (b0 : Bool) (sc
     intro ht stl hl
     have h1 : hs'.getLast? = some sc := hl'
     rw [h1] at hl; cases hl
-    refine ⟨?_, fun _ => rfl⟩
+    refine ⟨?_, fun _ => rfl, rfl⟩
     rw [he]; exact (ht st0 hl0).1
   | off => intro _; trivial
   | any => intro _; trivial
 
-/-- The flag set to the state after's (`b`), the cache that state's when the flag is set. -/
+/-- The flag set to the state after's (`b`), the cache that state's when the flag is set and with
+that state's permissions (`hp`). -/
 theorem tieStep_set (M : AuthMode) (hs hs' : List AuthState) (b0 : Bool) (sc0 : AuthState)
     (b : Bool) (sc s' : AuthState) (hl' : histLast M hs' s') (hb : b = s'.enabled)
-    (hc : b = true → sc = s') : tieStep M hs b0 sc0 b sc hs' := by
+    (hc : b = true → sc = s') (hp : permView sc = permView s') : tieStep M hs b0 sc0 b sc hs' := by
   cases M with
   | on γa =>
     intro _ stl hl
     have h1 : hs'.getLast? = some s' := hl'
     rw [h1] at hl; cases hl
-    exact ⟨hb, hc⟩
+    exact ⟨hb, hc, hp⟩
   | off => intro _; trivial
   | any => intro _; trivial
 
-/-- The flag and the cache kept, auth disabled: the step kept the flag. -/
+/-- The flag set to the state after's (`b`), the cache kept (the auth plan's E3j: `AuthDisable`),
+the step keeping the permissions (`hp`): the cache that state's when the flag is set. -/
+theorem tieStep_setKeep (M : AuthMode) (hs hs' : List AuthState) (b0 : Bool) (sc0 st0 : AuthState)
+    (b : Bool) (s' : AuthState) (hl0 : histLast M hs st0) (hl' : histLast M hs' s')
+    (hb : b = s'.enabled) (hc : b = true → sc0 = s') (hp : permView s' = permView st0) :
+    tieStep M hs b0 sc0 b sc0 hs' := by
+  cases M with
+  | on γa =>
+    intro ht stl hl
+    have h1 : hs'.getLast? = some s' := hl'
+    rw [h1] at hl; cases hl
+    obtain ⟨-, -, hpv⟩ := ht st0 hl0
+    exact ⟨hb, hc, hpv.trans hp.symm⟩
+  | off => intro _; trivial
+  | any => intro _; trivial
+
+/-- The flag and the cache kept, auth disabled: the step kept the flag and the permissions. -/
 theorem tieStep_keep (M : AuthMode) (hs hs' : List AuthState) (b0 : Bool) (sc0 st0 s' : AuthState)
     (hl0 : histLast M hs st0) (hl' : histLast M hs' s') (he : s'.enabled = st0.enabled)
+    (hp : permView s' = permView st0)
     (hb : b0 = false) : tieStep M hs b0 sc0 b0 sc0 hs' := by
   cases M with
   | on γa =>
     intro ht stl hl
     have h1 : hs'.getLast? = some s' := hl'
     rw [h1] at hl; cases hl
-    refine ⟨?_, fun h => absurd (hb ▸ h) (by simp)⟩
-    rw [he]; exact (ht st0 hl0).1
+    obtain ⟨hb0, -, hpv⟩ := ht st0 hl0
+    refine ⟨?_, fun h => absurd (hb ▸ h) (by simp), hpv.trans hp.symm⟩
+    rw [he]; exact hb0
   | off => intro _; trivial
   | any => intro _; trivial
 
 /-- The flag and the cache kept, unless the cache was the state before's with the flag set (then
-the step must refresh it, `cacheAt_congr`): the step kept the flag. -/
+the step must refresh it, `cacheAt_congr`): the step kept the flag and the permissions. -/
 theorem tieStep_keep' (M : AuthMode) (hs hs' : List AuthState) (b0 : Bool) (sc0 st0 s' : AuthState)
     (hl0 : histLast M hs st0) (hl' : histLast M hs' s') (he : s'.enabled = st0.enabled)
+    (hp : permView s' = permView st0)
     (hc : ¬ (b0 = true ∧ sc0 = st0)) : tieStep M hs b0 sc0 b0 sc0 hs' := by
   cases M with
   | on γa =>
     intro ht stl hl
     have h1 : hs'.getLast? = some s' := hl'
     rw [h1] at hl; cases hl
-    obtain ⟨hb, hcs⟩ := ht st0 hl0
-    refine ⟨by rw [he]; exact hb, fun h => absurd ⟨h, hcs h⟩ hc⟩
+    obtain ⟨hb, hcs, hpv⟩ := ht st0 hl0
+    refine ⟨by rw [he]; exact hb, fun h => absurd ⟨h, hcs h⟩ hc, hpv.trans hp.symm⟩
   | off => intro _; trivial
   | any => intro _; trivial
 
@@ -119,12 +139,23 @@ theorem userPerms_putRole_empty (st : AuthState) (name : GoString) (h : st.roles
   · subst hr; simp only [putRole, GMap.lookup_insert, h, Option.getD_some, Option.getD_none]
   · simp only [putRole, GMap.lookup_insert_ne _ _ (Ne.symm hr)]
 
+/-- `bump` keeps the permissions. -/
+theorem permView_bump (s : AuthState) : permView (bump s) = permView s := rfl
+
+/-- A new role without permissions keeps the permissions (the auth plan's E3j: `RoleAdd`). -/
+theorem permView_putRole_empty (st : AuthState) (name : GoString) (h : st.roles !! name = none) :
+    permView (putRole st name []) = permView st := by
+  funext u
+  unfold permView
+  show (st.users !! u).map (userPerms (putRole st name [])) = (st.users !! u).map (userPerms st)
+  congr 1; funext r; exact userPerms_putRole_empty st name h r
+
 /-- The tie gives the latest state's flag. -/
 theorem latestTie_flag (M : AuthMode) (hs : List AuthState) (b : Bool) (sc st0 : AuthState)
     (ht : latestTie M hs b sc) (hl : histLast M hs st0) (hon : M.isOn = true) (hany : M ≠ .any) :
     b = st0.enabled ∧ (b = true → sc = st0) := by
   cases M with
-  | on γa => exact ht st0 hl
+  | on γa => exact ⟨(ht st0 hl).1, (ht st0 hl).2.1⟩
   | off => cases hon
   | any => exact absurd rfl hany
 
@@ -142,7 +173,31 @@ the cache's half at `sc` (a recorded state). -/
 def authWRx (st : Loc) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF) (b : Bool)
     (sc : AuthState) : IProp GF :=
   iprop((∃ be : AuthBackend, aF go!"be" st ↦{DFrac.own (1 : Qp).half} be ∗ authWBackendOk be M P f T) ∗
-    T ∗ flagAt st b ∗ enabledVerdict M b ∗ cacheAt st sc ∗ authSnap M sc)
+    T ∗ flagAt st M b ∗ enabledVerdict M b ∗ cacheAt st M sc ∗ authSnap M sc)
+
+/-- **`authWRx` at the backend `be`** (the auth plan's E3l, 2026-10-27): the store's half of its
+`be` field at `be`, with the backend's write contract there. The admin operations that do not
+replace the store's backend (all but `Recover`) keep it (`X.specTB`), so a caller that lent the
+field's half (the server's rest, `authBeOn`) gets the same value back. -/
+def authWRxB (st : Loc) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF) (b : Bool)
+    (sc : AuthState) (be : AuthBackend) : IProp GF :=
+  iprop((aF go!"be" st ↦{DFrac.own (1 : Qp).half} be ∗ authWBackendOk be M P f T) ∗
+    T ∗ flagAt st M b ∗ enabledVerdict M b ∗ cacheAt st M sc ∗ authSnap M sc)
+
+theorem authWRx_B (st : Loc) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF) (b : Bool)
+    (sc : AuthState) : authWRx (GF := GF) st M P f T b sc ⊢ ∃ be, authWRxB st M P f T b sc be := by
+  unfold authWRx authWRxB
+  iintro ⟨⟨%be, Hbe⟩, Hr⟩
+  iexists be
+  iframe Hbe Hr
+
+theorem authWRx_of_B (st : Loc) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF) (b : Bool)
+    (sc : AuthState) (be : AuthBackend) : authWRxB (GF := GF) st M P f T b sc be ⊢ authWRx st M P f T b sc := by
+  unfold authWRx authWRxB
+  iintro ⟨Hbe, Hr⟩
+  iframe Hr
+  iexists be
+  iframe Hbe
 
 theorem authWR_of_x (st : Loc) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF) (b : Bool)
     (sc : AuthState) : authWRx (GF := GF) st M P f T b sc ⊢ authWR st M P f T := by
@@ -197,24 +252,21 @@ theorem adminOutP_adminOut (M : AuthMode) (hs : List AuthState) (R : StepRel)
 
 set_option synthInstance.maxSize 512 in
 /-- The cache's map of a state is that of another with the same users and permissions. -/
-theorem cacheAt_congr (st : Loc) (sa sb : AuthState) (hu : sa.users = sb.users)
+theorem cacheAt_congr (st : Loc) (M : AuthMode) (sa sb : AuthState) (hu : sa.users = sb.users)
     (hp : ∀ u : User, userPerms sa u = userPerms sb u) :
-    cacheAt (GF := GF) st sa ⊢ cacheAt st sb := by
-  unfold cacheAt cacheOf
-  iintro ⟨%mp, %Mp, Hf, #HM, %Hdom, #Hall⟩
+    cacheAt (GF := GF) st M sa ⊢ cacheAt st M sb := by
+  have hv : permView sa = permView sb := by
+    funext u; unfold permView; rw [hu]
+    cases sb.users !! u with
+    | none => rfl
+    | some r => simp only [Option.map_some, hp r]
+  unfold cacheAt
+  iintro ⟨%mp, %Mp, Hf, #HM, #Hof, Hq⟩
   iexists mp, Mp
   iframe Hf HM
-  isplitr
-  · ipureintro; intro u; rw [← hu]; exact Hdom u
-  iapply (BigSepM.bigSepM_mono (Φ := fun (u : GoString) (p : Loc) =>
-      iprop(∃ Lr Lw, permsAt p Lr Lw ∗ ⌜cacheEntryIs sa u Lr Lw⌝))) ?_ $$ Hall
-  intro u p _
-  iintro ⟨%Lr, %Lw, Hp, %He⟩
-  iexists Lr, Lw
-  iframe Hp
-  ipureintro
-  obtain ⟨roles, hr, h1, h2⟩ := He
-  exact ⟨roles, hu ▸ hr, hp roles ▸ h1, hp roles ▸ h2⟩
+  isplitl []
+  · iapply (cacheOf_permView sa sb hv Mp) $$ Hof
+  iapply (caA_congr M mp sa sb hv) $$ Hq
 
 end res
 
@@ -227,7 +279,8 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.auth.Assumptions]
 
-/-- `AuthEnable.spec` with the admin side's halves of the flag and the cache at `b0`/`sc0` exposed and
+/-- `AuthEnable.spec` with the admin side's halves of the flag and the cache at `b0`/`sc0` exposed (the
+flag it read the admin side's half, `en = b0`: the auth plan's E3c) and
 kept tied to the latest state (`tieStep`). -/
 abbrev auth.authStore.AuthEnable.specT : Prop :=
   ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF)
@@ -236,7 +289,7 @@ abbrev auth.authStore.AuthEnable.specT : Prop :=
       ⌜∀ en : Bool, stepOk M hs (stepOf (authEnableF en))⌝ }}
     (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"AuthEnable")) (Val #()))
   {{ (err : GoInterface), RET #err; ∃ (b : Bool) (sc : AuthState), tpAdmin st M ∗ (Post ∨ Pre) ∗ authWRx st M P f T b sc ∗
-      ∃ en : Bool, enabledVerdict M en ∗ adminOutP M hs (stepOf (authEnableF en)) noExtra err (tieStep M hs b0 sc0 b sc) }}
+      ∃ en : Bool, ⌜en = b0⌝ ∗ enabledVerdict M en ∗ adminOutP M hs (stepOf (authEnableF en)) noExtra err (tieStep M hs b0 sc0 b sc) }}
 
 /-- `AuthDisable.spec` with the admin side's halves of the flag and the cache at `b0`/`sc0` exposed and
 kept tied to the latest state (`tieStep`). -/
@@ -366,6 +419,54 @@ abbrev auth.authStore.RoleRevokePermission.specT : Prop :=
       respOk etcdserverpb.AuthRoleRevokePermissionResponse resp err ∗
       adminOutP M hs (roleRevokePermissionR role key rangeEnd) noExtra err (tieStep M hs b0 sc0 b sc) }}
 
+/-- `AuthEnable.specT` keeping the store's backend `be` (`authWRxB`; the auth plan's E3l). -/
+abbrev auth.authStore.AuthEnable.specTB : Prop :=
+  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF)
+    (hs : List AuthState) (Pre Q Post : IProp GF) (b0 : Bool) (sc0 : AuthState) (be : AuthBackend),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗ ⌜M.isOn = true⌝ ∗ authOwn M hs ∗ authWRxB st M P f T b0 sc0 be ∗ tpAdmin st M ∗ mvcc.csContract P f Pre Q Post ∗
+      ⌜∀ en : Bool, stepOk M hs (stepOf (authEnableF en))⌝ }}
+    (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"AuthEnable")) (Val #()))
+  {{ (err : GoInterface), RET #err; ∃ (b : Bool) (sc : AuthState), tpAdmin st M ∗ (Post ∨ Pre) ∗ authWRxB st M P f T b sc be ∗
+      ∃ en : Bool, ⌜en = b0⌝ ∗ enabledVerdict M en ∗ adminOutP M hs (stepOf (authEnableF en)) noExtra err (tieStep M hs b0 sc0 b sc) }}
+
+/-- `UserGrantRole.specT` keeping the store's backend `be` (`authWRxB`; the auth plan's E3l). -/
+abbrev auth.authStore.UserGrantRole.specTB : Prop :=
+  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF)
+    (hs : List AuthState) (Pre Q Post : IProp GF) (r : Loc) (user role : GoString) (b0 : Bool) (sc0 : AuthState) (be : AuthBackend),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
+      userGrantRoleReqIs r user role ∗ ⌜user.length ≤ backend.maxKeySize⌝ ∗ authOwn M hs ∗
+      authWRxB st M P f T b0 sc0 be ∗ mvcc.csContract P f Pre Q Post ∗
+      ⌜∀ (sta : AuthState) (u : User), histLast M hs sta → sta.users !! user = some u →
+        u.length < 2 ^ 62⌝ ∗
+      ⌜stepOk M hs (userGrantRoleR user role)⌝ }}
+    (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"UserGrantRole")) (Val #r))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); ∃ (b : Bool) (sc : AuthState), (Post ∨ Pre) ∗ authWRxB st M P f T b sc be ∗
+      respOk etcdserverpb.AuthUserGrantRoleResponse resp err ∗
+      adminOutP M hs (userGrantRoleR user role) noExtra err (tieStep M hs b0 sc0 b sc) }}
+
+/-- `RoleAdd.specT` keeping the store's backend `be` (`authWRxB`; the auth plan's E3l). -/
+abbrev auth.authStore.RoleAdd.specTB : Prop :=
+  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF)
+    (hs : List AuthState) (Pre Q Post : IProp GF) (r : Loc) (name : GoString) (b0 : Bool) (sc0 : AuthState) (be : AuthBackend),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗ roleAddReqIs r name ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗ authOwn M hs ∗ authWRxB st M P f T b0 sc0 be ∗ mvcc.csContract P f Pre Q Post ∗
+      ⌜stepOk M hs (stepOf (roleAddF name))⌝ }}
+    (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"RoleAdd")) (Val #r))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); ∃ (b : Bool) (sc : AuthState), (Post ∨ Pre) ∗ authWRxB st M P f T b sc be ∗
+      respOk etcdserverpb.AuthRoleAddResponse resp err ∗ adminOutP M hs (stepOf (roleAddF name)) noExtra err (tieStep M hs b0 sc0 b sc) }}
+
+/-- `RoleGrantPermission.specT` keeping the store's backend `be` (`authWRxB`; the auth plan's E3l). -/
+abbrev auth.authStore.RoleGrantPermission.specTB : Prop :=
+  ∀ (st : Loc) (R : IProp GF) (M : AuthMode) (P : IProp GF) (f : val) (T : IProp GF)
+    (hs : List AuthState) (Pre Q Post : IProp GF) (r : Loc) (name : GoString) (w : Option PermW) (b0 : Bool) (sc0 : AuthState) (be : AuthBackend),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ authInv st R M ∗
+      roleGrantPermissionReqIs r name w ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗
+      authOwn M hs ∗ authWRxB st M P f T b0 sc0 be ∗ mvcc.csContract P f Pre Q Post ∗
+      ⌜stepOk M hs (roleGrantPermissionR name w)⌝ }}
+    (App (Val (st @!! go.GoType.PointerType authStore.ty @!! go!"RoleGrantPermission")) (Val #r))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); ∃ (b : Bool) (sc : AuthState), (Post ∨ Pre) ∗ authWRxB st M P f T b sc be ∗
+      respOk etcdserverpb.AuthRoleGrantPermissionResponse resp err ∗
+      adminOutP M hs (roleGrantPermissionR name w) noExtra err (tieStep M hs b0 sc0 b sc) }}
+
 end spec
 
 section derive
@@ -382,7 +483,7 @@ theorem auth.authStore.AuthEnable.spec_of_T (h : auth.authStore.AuthEnable.specT
   ihave ⟨%b0, %sc0, HWR⟩ := authWR_to_x st M P f T $$ HWR
   iapply (h st R M P f T hs Pre Q Post b0 sc0) $$ [Hown HWR Htpa Hcs]
   · iframe; iframe #; ipureintro; exact ⟨HisOn, Hok⟩
-  iintro !> %err ⟨%b, %sc, Htpa, HPP, HWR, %en, #Hev, Hout⟩
+  iintro !> %err ⟨%b, %sc, Htpa, HPP, HWR, %en, -, #Hev, Hout⟩
   iapply HΦ
   iframe Htpa HPP
   try iframe Hresp
@@ -531,6 +632,59 @@ theorem auth.authStore.RoleRevokePermission.spec_of_T (h : auth.authStore.RoleRe
   isplitl [HWR]
   · iapply authWR_of_x $$ HWR
   · iapply adminOutP_adminOut $$ Hout
+
+theorem auth.authStore.AuthEnable.specT_of_TB (h : auth.authStore.AuthEnable.specTB (GF := GF) (hG := hG)) :
+    auth.authStore.AuthEnable.specT (GF := GF) (hG := hG) := by
+  intro st R M P f T hs Pre Q Post b0 sc0
+  iintro %Φ ⟨#Hpkg, #Hinv, %HisOn, Hown, HWR, Htpa, Hcs, %Hok⟩ HΦ
+  ihave ⟨%be, HWR⟩ := authWRx_B st M P f T b0 sc0 $$ HWR
+  iapply (h st R M P f T hs Pre Q Post b0 sc0 be) $$ [Hown HWR Htpa Hcs]
+  · iframe; iframe #; ipureintro; exact ⟨HisOn, Hok⟩
+  iintro !> %err ⟨%b, %sc, Htpa, HPP, HWR, Hrest⟩
+  iapply HΦ
+  iexists b, sc
+  iframe Htpa HPP Hrest
+  iapply authWRx_of_B $$ HWR
+
+theorem auth.authStore.UserGrantRole.specT_of_TB (h : auth.authStore.UserGrantRole.specTB (GF := GF) (hG := hG)) :
+    auth.authStore.UserGrantRole.specT (GF := GF) (hG := hG) := by
+  intro st R M P f T hs Pre Q Post r user role b0 sc0
+  iintro %Φ ⟨#Hpkg, #Hinv, #Hr, %Hlen, Hown, HWR, Hcs, %Hu, %Hok⟩ HΦ
+  ihave ⟨%be, HWR⟩ := authWRx_B st M P f T b0 sc0 $$ HWR
+  iapply (h st R M P f T hs Pre Q Post r user role b0 sc0 be) $$ [Hown HWR Hcs]
+  · iframe; iframe #; ipureintro; exact ⟨Hlen, Hu, Hok⟩
+  iintro !> %resp %err ⟨%b, %sc, HPP, HWR, Hrest⟩
+  iapply HΦ
+  iexists b, sc
+  iframe HPP Hrest
+  iapply authWRx_of_B $$ HWR
+
+theorem auth.authStore.RoleAdd.specT_of_TB (h : auth.authStore.RoleAdd.specTB (GF := GF) (hG := hG)) :
+    auth.authStore.RoleAdd.specT (GF := GF) (hG := hG) := by
+  intro st R M P f T hs Pre Q Post r name b0 sc0
+  iintro %Φ ⟨#Hpkg, #Hinv, #Hr, %Hlen, Hown, HWR, Hcs, %Hok⟩ HΦ
+  ihave ⟨%be, HWR⟩ := authWRx_B st M P f T b0 sc0 $$ HWR
+  iapply (h st R M P f T hs Pre Q Post r name b0 sc0 be) $$ [Hown HWR Hcs]
+  · iframe; iframe #; ipureintro; exact ⟨Hlen, Hok⟩
+  iintro !> %resp %err ⟨%b, %sc, HPP, HWR, Hrest⟩
+  iapply HΦ
+  iexists b, sc
+  iframe HPP Hrest
+  iapply authWRx_of_B $$ HWR
+
+theorem auth.authStore.RoleGrantPermission.specT_of_TB
+    (h : auth.authStore.RoleGrantPermission.specTB (GF := GF) (hG := hG)) :
+    auth.authStore.RoleGrantPermission.specT (GF := GF) (hG := hG) := by
+  intro st R M P f T hs Pre Q Post r name w b0 sc0
+  iintro %Φ ⟨#Hpkg, #Hinv, #Hr, %Hlen, Hown, HWR, Hcs, %Hok⟩ HΦ
+  ihave ⟨%be, HWR⟩ := authWRx_B st M P f T b0 sc0 $$ HWR
+  iapply (h st R M P f T hs Pre Q Post r name w b0 sc0 be) $$ [Hown HWR Hcs]
+  · iframe; iframe #; ipureintro; exact ⟨Hlen, Hok⟩
+  iintro !> %resp %err ⟨%b, %sc, HPP, HWR, Hrest⟩
+  iapply HΦ
+  iexists b, sc
+  iframe HPP Hrest
+  iapply authWRx_of_B $$ HWR
 
 end derive
 

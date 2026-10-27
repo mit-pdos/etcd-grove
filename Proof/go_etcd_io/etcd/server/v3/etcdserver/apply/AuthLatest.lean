@@ -183,7 +183,7 @@ def permCheck2L (ai : GoInterfaceOk) (m : GoString) (RD : IProp GF) (M : auth.Au
       (dk : DFrac) (hs : List auth.AuthState),
     {{ a ↦{dq} info ∗ key ↦*{dk} k ∗ RD ∗ L hs ∗ ⌜sint.Z key.len < 2 ^ 63 - 1⌝ }}
       (App (App (Val #(methods ai.ty m ai.v)) (Val #a)) (Val #key))
-    {{ (err : GoInterface), RET #err; a ↦{dq} info ∗ key ↦*{dk} k ∗ RD ∗ L hs ∗ applyErrIs err ∗
+    {{ (err : GoInterface), RET #err; a ↦{dq} info ∗ key ↦*{dk} k ∗ RD ∗ L hs ∗ authApplyErrIs err ∗
         ⌜auth.permVerdictL M hs (auth.authInfoM info) k [] .write err⌝ ∗
         auth.permVerdict M info k [] .write err }}))
 
@@ -195,7 +195,7 @@ def permCheck3L (ai : GoInterfaceOk) (m : GoString) (RD : IProp GF) (M : auth.Au
     {{ a ↦{dq} info ∗ key ↦*{dk} k ∗ re ↦*{de} e ∗ RD ∗ L hs ∗ ⌜sint.Z key.len < 2 ^ 63 - 1⌝ }}
       (App (App (App (Val #(methods ai.ty m ai.v)) (Val #a)) (Val #key)) (Val #re))
     {{ (err : GoInterface), RET #err; a ↦{dq} info ∗ key ↦*{dk} k ∗ re ↦*{de} e ∗ RD ∗ L hs ∗
-        applyErrIs err ∗ ⌜auth.permVerdictL M hs (auth.authInfoM info) k e op err⌝ ∗
+        authApplyErrIs err ∗ ⌜auth.permVerdictL M hs (auth.authInfoM info) k e op err⌝ ∗
         auth.permVerdict M info k e op err }}))
 
 /-- **The auth store's checks at the latest state** (see the file header): the three permission
@@ -209,7 +209,7 @@ def isAuthStoreL (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode)
     permCheck3L ai go!"IsDeleteRangePermitted" RD M .write L ∗
     □ (∀ (a : Loc) (info : auth.AuthInfo) (dq : DFrac) (hs : List auth.AuthState),
       {{ a ↦{dq} info ∗ RD ∗ L hs }} (App (Val #(methods ai.ty go!"IsAdminPermitted" ai.v)) (Val #a))
-      {{ (err : GoInterface), RET #err; a ↦{dq} info ∗ RD ∗ L hs ∗ applyErrIs err ∗
+      {{ (err : GoInterface), RET #err; a ↦{dq} info ∗ RD ∗ L hs ∗ authApplyErrIs err ∗
           ⌜auth.adminVerdictL M hs (some (auth.authInfoM info)) err⌝ }}))
 
 instance isAuthStoreL_persistent (st : GoInterface) (RD : IProp GF) (M : auth.AuthMode)
@@ -244,7 +244,7 @@ theorem isAuthStoreL_of_authInv
   · iunfold permCheck2L
     iintro !> %a %info %dq %key %k %dk %hs %Φ !> ⟨Ha, Hk, Hrd, HL, %Hlen⟩ HΦ
     iunfold auth.latestRes at HL
-    icases HL with ⟨Hown, %b, %sc, Hfl, Hca, %Htie⟩
+    icases HL with ⟨Hown, %b, %sc, Hfl, Hca, #Hev, #Hsn, %Htie⟩
     ihave ⟨Hown, #Hsnap⟩ := auth.authOwn_latestSnap M hs $$ Hown
     iapply (hPut st R M hs b sc a info dq key k dk) $$ [Ha Hk Hrd Hown Hfl Hca]
     · iframe; iframe #; ipureintro; exact ⟨Hlen, Htie⟩
@@ -252,9 +252,9 @@ theorem isAuthStoreL_of_authInv
     iapply HΦ
     iframe
     isplitl [Hown Hfl Hca]
-    · iunfold auth.latestRes; iframe Hown; iexists b, sc; iframe; ipureintro; exact Htie
+    · iunfold auth.latestRes; iframe Hown; iexists b, sc; iframe Hfl Hca Hev Hsn; ipureintro; exact Htie
     isplitl []
-    · iapply authErrIs_applyErrIs err $$ [$Hpkg $Herr]
+    · iapply authErrIs_authApplyErrIs err $$ [$Hpkg $Herr]
     isplitl []
     · ipureintro; exact Hv
     · iapply (auth.permVerdict_of_L M hs info _ _ _ err Hv) $$ Hsnap
@@ -262,7 +262,7 @@ theorem isAuthStoreL_of_authInv
   · iunfold permCheck3L
     iintro !> %a %info %dq %key %re %k %e %dk %de %hs %Φ !> ⟨Ha, Hk, He, Hrd, HL, %Hlen⟩ HΦ
     iunfold auth.latestRes at HL
-    icases HL with ⟨Hown, %b, %sc, Hfl, Hca, %Htie⟩
+    icases HL with ⟨Hown, %b, %sc, Hfl, Hca, #Hev, #Hsn, %Htie⟩
     ihave ⟨Hown, #Hsnap⟩ := auth.authOwn_latestSnap M hs $$ Hown
     iapply (hRange st R M hs b sc a info dq key re k e dk de) $$ [Ha Hk He Hrd Hown Hfl Hca]
     · iframe; iframe #; ipureintro; exact ⟨Hlen, Htie⟩
@@ -270,9 +270,9 @@ theorem isAuthStoreL_of_authInv
     iapply HΦ
     iframe
     isplitl [Hown Hfl Hca]
-    · iunfold auth.latestRes; iframe Hown; iexists b, sc; iframe; ipureintro; exact Htie
+    · iunfold auth.latestRes; iframe Hown; iexists b, sc; iframe Hfl Hca Hev Hsn; ipureintro; exact Htie
     isplitl []
-    · iapply authErrIs_applyErrIs err $$ [$Hpkg $Herr]
+    · iapply authErrIs_authApplyErrIs err $$ [$Hpkg $Herr]
     isplitl []
     · ipureintro; exact Hv
     · iapply (auth.permVerdict_of_L M hs info _ _ _ err Hv) $$ Hsnap
@@ -280,7 +280,7 @@ theorem isAuthStoreL_of_authInv
   · iunfold permCheck3L
     iintro !> %a %info %dq %key %re %k %e %dk %de %hs %Φ !> ⟨Ha, Hk, He, Hrd, HL, %Hlen⟩ HΦ
     iunfold auth.latestRes at HL
-    icases HL with ⟨Hown, %b, %sc, Hfl, Hca, %Htie⟩
+    icases HL with ⟨Hown, %b, %sc, Hfl, Hca, #Hev, #Hsn, %Htie⟩
     ihave ⟨Hown, #Hsnap⟩ := auth.authOwn_latestSnap M hs $$ Hown
     iapply (hDel st R M hs b sc a info dq key re k e dk de) $$ [Ha Hk He Hrd Hown Hfl Hca]
     · iframe; iframe #; ipureintro; exact ⟨Hlen, Htie⟩
@@ -288,15 +288,15 @@ theorem isAuthStoreL_of_authInv
     iapply HΦ
     iframe
     isplitl [Hown Hfl Hca]
-    · iunfold auth.latestRes; iframe Hown; iexists b, sc; iframe; ipureintro; exact Htie
+    · iunfold auth.latestRes; iframe Hown; iexists b, sc; iframe Hfl Hca Hev Hsn; ipureintro; exact Htie
     isplitl []
-    · iapply authErrIs_applyErrIs err $$ [$Hpkg $Herr]
+    · iapply authErrIs_authApplyErrIs err $$ [$Hpkg $Herr]
     isplitl []
     · ipureintro; exact Hv
     · iapply (auth.permVerdict_of_L M hs info _ _ _ err Hv) $$ Hsnap
   iintro !> %a %info %dq %hs %Φ !> ⟨Ha, Hrd, HL⟩ HΦ
   iunfold auth.latestRes at HL
-  icases HL with ⟨Hown, %b, %sc, Hfl, Hca, %Htie⟩
+  icases HL with ⟨Hown, %b, %sc, Hfl, Hca, #Hev, #Hsn, %Htie⟩
   ihave Ha' : auth.authInfoAt a dq (some info) $$ [Ha]
   · iunfold auth.authInfoAt; iexact Ha
   iapply (hAdmin st R M hs b sc a (some info) dq) $$ [Ha' Hrd Hown Hfl]
@@ -306,9 +306,9 @@ theorem isAuthStoreL_of_authInv
   iapply HΦ
   iframe
   isplitl [Hown Hfl Hca]
-  · iunfold auth.latestRes; iframe Hown; iexists b, sc; iframe; ipureintro; exact Htie
+  · iunfold auth.latestRes; iframe Hown; iexists b, sc; iframe Hfl Hca Hev Hsn; ipureintro; exact Htie
   isplitl []
-  · iapply authErrIs_applyErrIs err $$ [$Hpkg $Herr]
+  · iapply authErrIs_authApplyErrIs err $$ [$Hpkg $Herr]
   · ipureintro; exact Hv
 
 end proof

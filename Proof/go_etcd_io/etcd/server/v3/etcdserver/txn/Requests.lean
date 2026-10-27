@@ -123,6 +123,49 @@ def putTxnOp (o : OpFull) : TxnOp :=
   else if o.ignoreLease then .putKeep o.key o.val
   else .put o.key o.val o.leaseID
 
+/-- **An operation of a transaction as the wire has it** (the auth plan's E3e, 2026-10-27): a get's,
+a put's and a delete's `OpFull`, a nested transaction's comparisons and branches. Unlike `TxnOp`
+(the client's model, which `putTxnOp` maps a put to), a put keeps its whole request, its `PrevKv`
+included, which the auth layer's checks read (`checkPutAuth`: with `PrevKv`, a read of the key too);
+`toOp` forgets it. -/
+inductive TxnOpW where
+  | get (o : OpFull)
+  | put (o : OpFull)
+  | delete (o : OpFull)
+  | txn (cmps : List CmpModel) (thenOps elseOps : List TxnOpW)
+
+/-- **A `*pb.TxnRequest` as the wire has it** (`TxnOpW`'s operations). -/
+structure TxnModelW where
+  cmps : List CmpModel
+  thenOps : List TxnOpW
+  elseOps : List TxnOpW
+
+mutual
+/-- The model's operation (`TxnOp`) of a wire operation: a put's `putTxnOp`. -/
+def TxnOpW.toOp : TxnOpW → TxnOp
+  | .get o => .get o
+  | .put o => putTxnOp o
+  | .delete o => .delete o
+  | .txn cs ts es => .txn cs (TxnOpW.toOps ts) (TxnOpW.toOps es)
+
+/-- The model's operations of wire operations, in order. -/
+def TxnOpW.toOps : List TxnOpW → List TxnOp
+  | [] => []
+  | op :: ops => op.toOp :: TxnOpW.toOps ops
+end
+
+/-- The model's transaction (`TxnModel`) of a wire transaction. -/
+def TxnModelW.toModel (t : TxnModelW) : TxnModel :=
+  { cmps := t.cmps, thenOps := TxnOpW.toOps t.thenOps, elseOps := TxnOpW.toOps t.elseOps }
+
+theorem TxnOpW.toOps_eq_map : ∀ l : List TxnOpW, TxnOpW.toOps l = l.map TxnOpW.toOp
+  | [] => rfl
+  | op :: ops => by simp only [TxnOpW.toOps, List.map_cons, TxnOpW.toOps_eq_map ops]
+
+theorem TxnOpW.toOps_append (l l' : List TxnOpW) :
+    TxnOpW.toOps (l ++ l') = TxnOpW.toOps l ++ TxnOpW.toOps l' := by
+  simp only [TxnOpW.toOps_eq_map, List.map_append]
+
 section defs
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
@@ -289,6 +332,74 @@ def txnRequestIs (rt : Loc) (t : TxnModel) : IProp GF :=
 instance txnRequestIs_persistent (rt : Loc) (t : TxnModel) :
     Persistent (txnRequestIs (GF := GF) rt t) := by
   unfold txnRequestIs; infer_instance
+
+mutual
+/-- **The `*pb.RequestOp` `p` denotes the wire operation `op`** (read-only; E3e): as
+`requestOpIs`, with the request the wrapper holds (a put's whole `OpFull`, its `PrevKv` included)
+pinned by the heap. -/
+def requestOpIsW (p : Loc) : TxnOpW → IProp GF
+  | .txn cs ts es => iprop(□ (⌜p ≠ null⌝ ∗ ∃ (w r : Loc),
+      structFieldRef etcdserverpb.RequestOp go!"Request" p ↦□
+        (interface.mkOk (go.GoType.PointerType etcdserverpb.RequestOp_RequestTxn.ty) #w :
+          GoInterface) ∗
+      structFieldRef etcdserverpb.RequestOp_RequestTxn go!"RequestTxn" w ↦□ r ∗ ⌜r ≠ null⌝ ∗
+      ∃ (csl ssl fsl : GoSlice) (cps sps fps : List Loc),
+        structFieldRef etcdserverpb.TxnRequest go!"Compare" r ↦□ csl ∗ csl ↦*□ cps ∗
+        comparesIs cps cs ∗
+        structFieldRef etcdserverpb.TxnRequest go!"Success" r ↦□ ssl ∗ ssl ↦*□ sps ∗
+        requestOpsIsW sps ts ∗
+        structFieldRef etcdserverpb.TxnRequest go!"Failure" r ↦□ fsl ∗ fsl ↦*□ fps ∗
+        requestOpsIsW fps es))
+  | .get o => iprop(□ (⌜p ≠ null⌝ ∗ ∃ (w r : Loc),
+      structFieldRef etcdserverpb.RequestOp go!"Request" p ↦□
+        (interface.mkOk (go.GoType.PointerType etcdserverpb.RequestOp_RequestRange.ty) #w :
+          GoInterface) ∗
+      structFieldRef etcdserverpb.RequestOp_RequestRange go!"RequestRange" w ↦□ r ∗
+      rangeRequestIs r o))
+  | .put o => iprop(□ (⌜p ≠ null⌝ ∗ ∃ (w r : Loc),
+      structFieldRef etcdserverpb.RequestOp go!"Request" p ↦□
+        (interface.mkOk (go.GoType.PointerType etcdserverpb.RequestOp_RequestPut.ty) #w :
+          GoInterface) ∗
+      structFieldRef etcdserverpb.RequestOp_RequestPut go!"RequestPut" w ↦□ r ∗
+      putRequestIs r o))
+  | .delete o => iprop(□ (⌜p ≠ null⌝ ∗ ∃ (w r : Loc),
+      structFieldRef etcdserverpb.RequestOp go!"Request" p ↦□
+        (interface.mkOk (go.GoType.PointerType etcdserverpb.RequestOp_RequestDeleteRange.ty) #w :
+          GoInterface) ∗
+      structFieldRef etcdserverpb.RequestOp_RequestDeleteRange go!"RequestDeleteRange" w ↦□ r ∗
+      deleteRangeRequestIs r o))
+
+/-- The `*pb.RequestOp`s `ps` denote, in order, the wire operations `ops`. -/
+def requestOpsIsW : List Loc → List TxnOpW → IProp GF
+  | [], [] => iprop(True)
+  | p :: ps, op :: ops => iprop(requestOpIsW p op ∗ requestOpsIsW ps ops)
+  | _, _ => iprop(False)
+end
+
+instance requestOpIsW_persistent (p : Loc) (op : TxnOpW) :
+    Persistent (requestOpIsW (GF := GF) p op) := by
+  cases op <;> unfold requestOpIsW <;> infer_instance
+
+instance requestOpsIsW_persistent (ps : List Loc) (ops : List TxnOpW) :
+    Persistent (requestOpsIsW (GF := GF) ps ops) := by
+  induction ops generalizing ps with
+  | nil => cases ps <;> unfold requestOpsIsW <;> infer_instance
+  | cons op ops ih => cases ps <;> unfold requestOpsIsW <;> infer_instance
+
+/-- **The `*pb.TxnRequest` `rt` denotes the wire transaction `t`** (read-only; not nil; E3e): as
+`txnRequestIs`, each put's whole request pinned. -/
+def txnRequestIsW (rt : Loc) (t : TxnModelW) : IProp GF :=
+  iprop(⌜rt ≠ null⌝ ∗ ∃ (csl ssl fsl : GoSlice) (cps sps fps : List Loc),
+    structFieldRef etcdserverpb.TxnRequest go!"Compare" rt ↦□ csl ∗ csl ↦*□ cps ∗
+    comparesIs cps t.cmps ∗
+    structFieldRef etcdserverpb.TxnRequest go!"Success" rt ↦□ ssl ∗ ssl ↦*□ sps ∗
+    requestOpsIsW sps t.thenOps ∗
+    structFieldRef etcdserverpb.TxnRequest go!"Failure" rt ↦□ fsl ∗ fsl ↦*□ fps ∗
+    requestOpsIsW fps t.elseOps)
+
+instance txnRequestIsW_persistent (rt : Loc) (t : TxnModelW) :
+    Persistent (txnRequestIsW (GF := GF) rt t) := by
+  unfold txnRequestIsW; infer_instance
 
 /-! ## The responses -/
 
@@ -530,6 +641,269 @@ theorem requestOpIs_cases (p : Loc) (op : TxnOp) :
     · ileft; iexists w, r, o; iframe #; ipureintro; exact hop
     · iright; ileft; iexists w, r, o; iframe #; ipureintro; exact hop
     · iright; iright; ileft; iexists w, r, o; iframe #; ipureintro; exact hop
+
+/-! ## The wire transaction and the model's (E3e) -/
+
+theorem requestOpsIsW_length :
+    ∀ (ps : List Loc) (ops : List TxnOpW), requestOpsIsW (GF := GF) ps ops ⊢ ⌜ps.length = ops.length⌝
+  | [], [] => by iintro -; ipureintro; rfl
+  | _ :: ps, _ :: ops => by
+    simp only [requestOpsIsW]
+    iintro ⟨-, H⟩
+    ihave %h := requestOpsIsW_length ps ops $$ H
+    ipureintro; simp [h]
+  | [], _ :: _ => by unfold requestOpsIsW; iintro H; iexfalso; iexact H
+  | _ :: _, [] => by unfold requestOpsIsW; iintro H; iexfalso; iexact H
+
+/-- The `i`-th wire operation of the list. -/
+theorem requestOpsIsW_elem :
+    ∀ (ps : List Loc) (ops : List TxnOpW) (i : Nat) (p : Loc), ps[i]? = some p →
+      requestOpsIsW (GF := GF) ps ops ⊢ ∃ op, ⌜ops[i]? = some op⌝ ∗ requestOpIsW p op
+  | [], _, _, _, h => by simp at h
+  | _ :: _, [], _, _, _ => by unfold requestOpsIsW; iintro H; iexfalso; iexact H
+  | q :: ps, op :: ops, 0, p, h => by
+    simp only [List.getElem?_cons_zero, Option.some.injEq] at h
+    subst h
+    simp only [requestOpsIsW]
+    iintro ⟨H, -⟩
+    iexists op
+    iframe H
+    ipureintro; rfl
+  | q :: ps, op :: ops, i + 1, p, h => by
+    simp only [List.getElem?_cons_succ] at h ⊢
+    simp only [requestOpsIsW]
+    iintro ⟨-, H⟩
+    iapply requestOpsIsW_elem ps ops i p h $$ H
+
+/-- A nested transaction's wire operation: its `TxnRequest`'s `txnRequestIsW`. -/
+theorem requestOpIsW_txn (p : Loc) (cs : List CmpModel) (ts es : List TxnOpW) :
+    requestOpIsW (GF := GF) p (.txn cs ts es) ⊢ ⌜p ≠ null⌝ ∗ ∃ (w r : Loc),
+      structFieldRef etcdserverpb.RequestOp go!"Request" p ↦□
+        (interface.mkOk (go.GoType.PointerType etcdserverpb.RequestOp_RequestTxn.ty) #w :
+          GoInterface) ∗
+      structFieldRef etcdserverpb.RequestOp_RequestTxn go!"RequestTxn" w ↦□ r ∗
+      txnRequestIsW r { cmps := cs, thenOps := ts, elseOps := es } := by
+  unfold requestOpIsW
+  iintro #⟨%Hp, %w, %r, #Hu, #Hw, %Hr, %csl, %ssl, %fsl, %cps, %sps, %fps, #Hc, #Hcs, #Hcm, #Hs,
+    #Hss, #Hsm, #Hf, #Hfs, #Hfm⟩
+  isplitl []; · ipureintro; exact Hp
+  iexists w, r
+  iframe Hu Hw
+  unfold txnRequestIsW
+  isplitl []; · ipureintro; exact Hr
+  iexists csl, ssl, fsl, cps, sps, fps
+  iframe Hc Hcs Hcm Hs Hss Hsm Hf Hfs Hfm
+
+theorem putTxnOp_ne_txn (o : OpFull) (cs : List CmpModel) (ts es : List TxnOp) :
+    putTxnOp o ≠ .txn cs ts es := by
+  unfold putTxnOp; split <;> (try split) <;> simp
+
+/-- `requestOpIs` of an operation that is not a nested transaction (the definition's second case). -/
+theorem requestOpIs_nontxn (p : Loc) (op : TxnOp) (hnt : ∀ cs ts es, op ≠ .txn cs ts es) :
+    requestOpIs (GF := GF) p op = iprop(□ (⌜p ≠ null⌝ ∗ ∃ (u : GoInterface) (w r : Loc) (o : OpFull),
+      structFieldRef etcdserverpb.RequestOp go!"Request" p ↦□ u ∗
+      ((⌜u = interface.mkOk (go.GoType.PointerType etcdserverpb.RequestOp_RequestRange.ty) #w ∧
+          op = .get o⌝ ∗
+        structFieldRef etcdserverpb.RequestOp_RequestRange go!"RequestRange" w ↦□ r ∗
+        rangeRequestIs r o) ∨
+       (⌜u = interface.mkOk (go.GoType.PointerType etcdserverpb.RequestOp_RequestPut.ty) #w ∧
+          op = putTxnOp o⌝ ∗
+        structFieldRef etcdserverpb.RequestOp_RequestPut go!"RequestPut" w ↦□ r ∗
+        putRequestIs r o) ∨
+       (⌜u = interface.mkOk
+            (go.GoType.PointerType etcdserverpb.RequestOp_RequestDeleteRange.ty) #w ∧
+          op = .delete o⌝ ∗
+        structFieldRef etcdserverpb.RequestOp_RequestDeleteRange go!"RequestDeleteRange" w ↦□ r ∗
+        deleteRangeRequestIs r o)))) := by
+  cases op with
+  | txn cs ts es => exact absurd rfl (hnt cs ts es)
+  | _ => rfl
+
+/-- A non-transaction operation's wire operation. -/
+theorem requestOpIs_W_nontxn (p : Loc) (op : TxnOp) (hnt : ∀ cs ts es, op ≠ .txn cs ts es) :
+    requestOpIs (GF := GF) p op ⊢ ∃ ow : TxnOpW, ⌜ow.toOp = op⌝ ∗ requestOpIsW p ow := by
+  rw [requestOpIs_nontxn p op hnt]
+  iintro #⟨%Hpn, %u, %w, %r, %o, #Hu, H⟩
+  icases H with (⟨%Hc, #Hw, #Hr⟩ | ⟨%Hc, #Hw, #Hr⟩ | ⟨%Hc, #Hw, #Hr⟩)
+  · obtain ⟨rfl, rfl⟩ := Hc
+    iexists .get o
+    isplitr; · ipureintro; rfl
+    unfold requestOpIsW
+    imodintro
+    isplitr; · ipureintro; exact Hpn
+    iexists w, r
+    iframe Hu Hw Hr
+  · obtain ⟨rfl, rfl⟩ := Hc
+    iexists .put o
+    isplitr; · ipureintro; rfl
+    unfold requestOpIsW
+    imodintro
+    isplitr; · ipureintro; exact Hpn
+    iexists w, r
+    iframe Hu Hw Hr
+  · obtain ⟨rfl, rfl⟩ := Hc
+    iexists .delete o
+    isplitr; · ipureintro; rfl
+    unfold requestOpIsW
+    imodintro
+    isplitr; · ipureintro; exact Hpn
+    iexists w, r
+    iframe Hu Hw Hr
+
+mutual
+/-- **A wire operation denotes its model's operation** (`requestOpIs` of `toOp`). -/
+theorem requestOpIsW_plain : ∀ (p : Loc) (op : TxnOpW),
+    requestOpIsW (GF := GF) p op ⊢ requestOpIs p op.toOp
+  | p, .get o => by
+    unfold requestOpIsW
+    simp only [TxnOpW.toOp]
+    unfold requestOpIs
+    iintro #⟨%Hpn, %w, %r, #HR, #Hw, #Hr⟩
+    imodintro
+    isplitr; · ipureintro; exact Hpn
+    iexists _, w, r, o
+    iframe HR
+    ileft
+    iframe Hw Hr
+    ipureintro; exact ⟨rfl, rfl⟩
+  | p, .put o => by
+    unfold requestOpIsW
+    simp only [TxnOpW.toOp]
+    rw [requestOpIs_nontxn p _ (putTxnOp_ne_txn o)]
+    iintro #⟨%Hpn, %w, %r, #HR, #Hw, #Hr⟩
+    imodintro
+    isplitr; · ipureintro; exact Hpn
+    iexists _, w, r, o
+    iframe HR
+    iright; ileft
+    iframe Hw Hr
+    ipureintro; exact ⟨rfl, rfl⟩
+  | p, .delete o => by
+    unfold requestOpIsW
+    simp only [TxnOpW.toOp]
+    unfold requestOpIs
+    iintro #⟨%Hpn, %w, %r, #HR, #Hw, #Hr⟩
+    imodintro
+    isplitr; · ipureintro; exact Hpn
+    iexists _, w, r, o
+    iframe HR
+    iright; iright
+    iframe Hw Hr
+    ipureintro; exact ⟨rfl, rfl⟩
+  | p, .txn cs ts es => by
+    unfold requestOpIsW
+    simp only [TxnOpW.toOp]
+    unfold requestOpIs
+    iintro #⟨%Hpn, %w, %r, #HR, #Hw, %Hrn, %csl, %ssl, %fsl, %cps, %sps, %fps, #Hc, #Hcs, #Hcm,
+      #Hs, #Hss, #Hsm, #Hf, #Hfs, #Hfm⟩
+    ihave #Hsm' := requestOpsIsW_plain sps ts $$ Hsm
+    ihave #Hfm' := requestOpsIsW_plain fps es $$ Hfm
+    imodintro
+    isplitr; · ipureintro; exact Hpn
+    iexists w, r
+    iframe HR Hw
+    isplitr; · ipureintro; exact Hrn
+    iexists csl, ssl, fsl, cps, sps, fps
+    iframe #
+
+/-- Wire operations denote their model's operations. -/
+theorem requestOpsIsW_plain : ∀ (ps : List Loc) (ops : List TxnOpW),
+    requestOpsIsW (GF := GF) ps ops ⊢ requestOpsIs ps (TxnOpW.toOps ops)
+  | [], [] => by
+    unfold requestOpsIsW
+    simp only [TxnOpW.toOps]
+    unfold requestOpsIs
+    iintro -; itrivial
+  | [], _ :: _ => by unfold requestOpsIsW; iintro H; iexfalso; iexact H
+  | _ :: _, [] => by unfold requestOpsIsW; iintro H; iexfalso; iexact H
+  | p :: ps, op :: ops => by
+    unfold requestOpsIsW
+    simp only [TxnOpW.toOps]
+    unfold requestOpsIs
+    iintro ⟨H, Hs⟩
+    isplitl [H]
+    · iapply requestOpIsW_plain p op $$ H
+    · iapply requestOpsIsW_plain ps ops $$ Hs
+end
+
+mutual
+/-- **An operation's request, as the wire has it** (`requestOpIsW`, with the put's `PrevKv`): the
+heap holds one whose model is the operation. -/
+theorem requestOpIs_W : ∀ (p : Loc) (op : TxnOp),
+    requestOpIs (GF := GF) p op ⊢ ∃ ow : TxnOpW, ⌜ow.toOp = op⌝ ∗ requestOpIsW p ow
+  | p, .get o => requestOpIs_W_nontxn p _ (by intro _ _ _ h; cases h)
+  | p, .put k v l => requestOpIs_W_nontxn p _ (by intro _ _ _ h; cases h)
+  | p, .putKeep k v => requestOpIs_W_nontxn p _ (by intro _ _ _ h; cases h)
+  | p, .putIgnVal k l => requestOpIs_W_nontxn p _ (by intro _ _ _ h; cases h)
+  | p, .delete o => requestOpIs_W_nontxn p _ (by intro _ _ _ h; cases h)
+  | p, .txn cs ts es => by
+    unfold requestOpIs
+    iintro #⟨%Hpn, %w, %r, #HR, #Hw, %Hrn, %csl, %ssl, %fsl, %cps, %sps, %fps, #Hc, #Hcs, #Hcm,
+      #Hs, #Hss, #Hsm, #Hf, #Hfs, #Hfm⟩
+    ihave #⟨%ts', %Hts, #Hsm'⟩ := requestOpsIs_W sps ts $$ Hsm
+    ihave #⟨%es', %Hes, #Hfm'⟩ := requestOpsIs_W fps es $$ Hfm
+    iexists .txn cs ts' es'
+    isplitr; · ipureintro; simp only [TxnOpW.toOp, Hts, Hes]
+    unfold requestOpIsW
+    imodintro
+    isplitr; · ipureintro; exact Hpn
+    iexists w, r
+    iframe HR Hw
+    isplitr; · ipureintro; exact Hrn
+    iexists csl, ssl, fsl, cps, sps, fps
+    iframe #
+
+/-- Operations' requests, as the wire has them. -/
+theorem requestOpsIs_W : ∀ (ps : List Loc) (ops : List TxnOp),
+    requestOpsIs (GF := GF) ps ops ⊢ ∃ ows : List TxnOpW, ⌜TxnOpW.toOps ows = ops⌝ ∗ requestOpsIsW ps ows
+  | [], [] => by
+    unfold requestOpsIs
+    iintro -
+    iexists []
+    isplitr; · ipureintro; rfl
+    unfold requestOpsIsW; itrivial
+  | [], _ :: _ => by unfold requestOpsIs; iintro H; iexfalso; iexact H
+  | _ :: _, [] => by unfold requestOpsIs; iintro H; iexfalso; iexact H
+  | p :: ps, op :: ops => by
+    unfold requestOpsIs
+    iintro ⟨H, Hs⟩
+    ihave ⟨%ow, %How, H'⟩ := requestOpIs_W p op $$ H
+    ihave ⟨%ows, %Hows, Hs'⟩ := requestOpsIs_W ps ops $$ Hs
+    iexists ow :: ows
+    isplitr; · ipureintro; simp only [TxnOpW.toOps, How, Hows]
+    simp only [requestOpsIsW]
+    iframe H' Hs'
+end
+
+/-- **A wire transaction denotes its model** (`txnRequestIs` of `toModel`). -/
+theorem txnRequestIsW_plain (rt : Loc) (t : TxnModelW) :
+    txnRequestIsW (GF := GF) rt t ⊢ txnRequestIs rt t.toModel := by
+  unfold txnRequestIsW txnRequestIs txnFieldsIs
+  iintro #⟨%Hrn, %csl, %ssl, %fsl, %cps, %sps, %fps, #Hc, #Hcs, #Hcm, #Hs, #Hss, #Hsm, #Hf, #Hfs,
+    #Hfm⟩
+  ihave #Hsm' := requestOpsIsW_plain sps t.thenOps $$ Hsm
+  ihave #Hfm' := requestOpsIsW_plain fps t.elseOps $$ Hfm
+  simp only [TxnModelW.toModel]
+  isplitr; · ipureintro; exact Hrn
+  iexists csl, ssl, fsl, cps, sps, fps
+  iframe #
+
+/-- **A transaction's request, as the wire has it** (`txnRequestIsW`): the heap holds one whose
+model is the transaction (E3e: what a proposer of `irrTxn` needs). -/
+theorem txnRequestIs_W (rt : Loc) (t : TxnModel) :
+    txnRequestIs (GF := GF) rt t ⊢ ∃ tw : TxnModelW, ⌜tw.toModel = t⌝ ∗ txnRequestIsW rt tw := by
+  obtain ⟨cs, ts, es⟩ := t
+  unfold txnRequestIs txnFieldsIs
+  iintro #⟨%Hrn, %csl, %ssl, %fsl, %cps, %sps, %fps, #Hc, #Hcs, #Hcm, #Hs, #Hss, #Hsm, #Hf, #Hfs,
+    #Hfm⟩
+  ihave #⟨%ts', %Hts, #Hsm'⟩ := requestOpsIs_W sps ts $$ Hsm
+  ihave #⟨%es', %Hes, #Hfm'⟩ := requestOpsIs_W fps es $$ Hfm
+  iexists { cmps := cs, thenOps := ts', elseOps := es' }
+  isplitr; · ipureintro; simp only [TxnModelW.toModel, Hts, Hes]
+  unfold txnRequestIsW
+  isplitr; · ipureintro; exact Hrn
+  iexists csl, ssl, fsl, cps, sps, fps
+  iframe #
 
 end lemmas
 

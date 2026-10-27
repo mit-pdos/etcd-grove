@@ -1,7 +1,9 @@
 # Types and names only: function and method bodies are axiomatized (project k8s-apiserver;
-# notes/k8s-etcd3-goose.md).
+# notes/k8s-etcd3-goose.md). It imports `time` (Perennial's), so that its interfaces, whose methods
+# name `time`'s types, translate (`translate_types` skips a type naming a package not imported):
+# the watch cache calls its configuration's `Clock` (notes/kep-6404-plan.md).
 translate = ["!*"]
-imports = ["!*"]
+imports = ["time"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true
