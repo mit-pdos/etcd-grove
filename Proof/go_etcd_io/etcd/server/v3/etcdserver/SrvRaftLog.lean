@@ -407,7 +407,7 @@ theorem srvRLogLb_prefix (γ : ServerRaftNames) (A B : List EntryModel) :
     srvRLogLb (GF := GF) γ A ∗ srvRLogLb γ B ⊢ ⌜A <+: B ∨ B <+: A⌝ := by
   unfold srvRLogLb
   iintro ⟨⟨#HA, %hA⟩, ⟨#HB, %hB⟩⟩
-  icases Draft.isCommittedLogLb_agree' γ.raft.cl (srvLE γ A) (srvLE γ B) $$ [HA HB] with %H
+  icases Draft.isCommittedLogLb_agree γ.raft.cl (srvLE γ A) (srvLE γ B) $$ [HA HB] with %H
   · iframe HA HB
   ipureintro
   rcases H with h | h
@@ -420,7 +420,7 @@ theorem srvRLogLb_mono (γ : ServerRaftNames) (A B : List EntryModel) (h : A <+:
   unfold srvRLogLb
   iintro ⟨#HB, %hB⟩
   isplitl
-  · iapply Draft.isCommittedLogLb_mono' γ.raft.cl _ _ (srvLE_prefix_of γ A B h) $$ HB
+  · iapply Draft.isCommittedLogLb_mono γ.raft.cl _ _ (srvLE_prefix_of γ A B h) $$ HB
   · ipureintro; exact srvIdxOkW_prefix γ.ai0 A B hB h
 
 end ghost
@@ -767,7 +767,7 @@ theorem srvRLog_lb (γ : ServerRaftNames) (E : CoPset) (hE0 : ↑srvRaftN ⊆ E)
   obtain ⟨-, rfl⟩ := Hag
   iunfold srvRLogLb at HA
   icases HA with ⟨#HA, %HAi⟩
-  ihave %Hp := Draft.ownCommittedOps_lb_prefix' γ.raft.cl _ _ $$ [Hown HA]
+  ihave %Hp := Draft.ownCommittedOps_lb_prefix γ.raft.cl _ _ $$ [Hown HA]
   · iframe Hown HA
   imod Hclose $$ [Hown Hlog HP HF HR Hfr Hregs] with -
   · inext
@@ -800,7 +800,7 @@ theorem srvRLogLb_intro (γ : ServerRaftNames) (E : CoPset) (hE : ↑srvLogN ⊆
   iinv Hli with ⟨%Lf, %P, %F, %R, >Hcore, Hregs⟩ Hclose
   iunfold srvLogCore at Hcore
   icases Hcore with ⟨Hown, Hlog, HP, HF, HR, Hfrs, %Hfacts⟩
-  ihave %Hp := Draft.ownCommittedOps_lb_prefix' γ.raft.cl _ _ $$ [Hown HL]
+  ihave %Hp := Draft.ownCommittedOps_lb_prefix γ.raft.cl _ _ $$ [Hown HL]
   · iframe Hown HL
   imod Hclose $$ [Hown Hlog HP HF HR Hfrs Hregs] with -
   · inext
@@ -1726,7 +1726,7 @@ theorem srvRdFresh_mint (γ : ServerRaftNames) (γi : IdNames) (g : Loc)
   ihave Hc' : iprop(Draft.readCredits γ.raft.cl ((2 ^ 48 - (U.length + 1)) + 1)) $$ [Hc]
   · rw [show (2 ^ 48 - (U.length + 1)) + 1 = 2 ^ 48 - U.length by omega]
     iexact Hc
-  icases (Draft.readCredits_split' γ.raft.cl _ 1).1 $$ Hc' with ⟨Hc, Hc1⟩
+  icases (Draft.readCredits_split γ.raft.cl _ 1).1 $$ Hc' with ⟨Hc, Hc1⟩
   imod Hclose $$ [Hc Hus Hsl] with -
   · inext
     iexists (id :: U)
@@ -1739,7 +1739,7 @@ theorem srvRdFresh_mint (γ : ServerRaftNames) (γi : IdNames) (g : Loc)
   imodintro
   unfold srvRdFresh srvRdCred
   iframe Hfr
-  iapply (Draft.readCredit_eq' γ.raft.cl).2 $$ Hc1
+  iapply (Draft.readCredit_eq γ.raft.cl).2 $$ Hc1
 
 
 /-- **The context `c` was committed with raft** (persistent): a read state of it (what a
@@ -1765,7 +1765,7 @@ theorem srvCtxDeposited_minted (γ : ServerRaftNames) (γi : IdNames) (c : List 
   iunfold srvRdCtxInv at Hinv
   icases Hinv with ⟨#Hctx, #Hused⟩
   iinv Hused with ⟨%Uc, %Lc, >Hu, >Hts, >%HUL⟩ Hclose
-  ihave %Hc := Draft.readStateOk_used' γ.raft.cl srvClusterN c i Uc $$ [Hst Hu]
+  ihave %Hc := Draft.readStateOk_used γ.raft.cl srvClusterN c i Uc $$ [Hst Hu]
   · iframe Hst Hu
   have HcL := (HUL c).1 Hc
   icases BigSepL.bigSepL_mem_acc (Φ := fun c => (c ↪[γ.raft.rdFresh] () : IProp GF)) HcL $$ Hts

@@ -140,7 +140,7 @@ theorem readCredits_members (cl : Draft.Cluster) (c : Nat) :
     ihave H' : iprop(Draft.readCredits cl (c + (n - c))) $$ [H]
     · rw [show c + (n - c) = n by omega]
       iexact H
-    icases (Draft.readCredits_split' cl _ _).1 $$ H' with ⟨H1, H2⟩
+    icases (Draft.readCredits_split cl _ _).1 $$ H' with ⟨H1, H2⟩
     iapply BigSepL.bigSepL_cons.2
     iframe H1
     iapply (readCredits_members cl c ps (n - c) (by omega)) $$ H2
