@@ -529,6 +529,8 @@ axiom klog.V.wp_proof
 axiom klog.Verbose.Infof.wp_proof
 axiom kmetrics.HistogramVec.WithContext.wp_proof
 axiom labels.Everything.wp_proof
+axiom labels.LabelSelectorAsSelector.wp_proof
+axiom labels.reqsValid
 axiom lease.NewLessor.wp_proof
 axiom lease.lessor.Demote.wp_proof
 axiom lease.lessor.Promote.wp_proof
@@ -749,6 +751,7 @@ axiom zap.Uint64.wp_proof
 axiom zapcore.CheckedEntry.Write.wp_proof
 sorry apimodel.copyObject.wp_proof
 sorry authkv.Main.wp_proof
+sorry cache.deferred_HandleCrashWithLogger
 sorry k8setcd3.clientErr_other
 sorry k8setcd3.client_ctx_field
 sorry k8setcd3.revRoom

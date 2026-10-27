@@ -12,3 +12,4 @@ axiom strconv.ParseInt.wp_proof
 axiom time.Duration.Seconds.wp_proof
 axiom trace.New.wp_proof
 axiom trace.Trace.LogIfLong.wp_proof
+sorry cache.deferred_HandleCrashWithLogger
