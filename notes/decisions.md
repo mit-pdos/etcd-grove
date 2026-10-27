@@ -23264,3 +23264,27 @@ storage API, not node internals); `Advance`'s premise is the static mode's (no c
 delivered); `ApplyConfChange` and the dynamic mode are not drafted (kv's conf-change branch is dead
 in a static cluster). `etc/gen-link.py` does not know the draft: kv's `Link.lean` is edited by hand
 (the node's callees); `etc/api/raft.txt` lists the draft importable.
+
+## The node API's snapshots and static clusters, implemented (2026-10-27 · branch `raft-api`)
+
+**Snapshot certificates over the client's view.** `Draft.snapshotCert` is raft's configuration
+certificate (`raftSnapCert`) and the data's over a committed log the client knows
+(`isCommittedLogLb`), not raft's `raftSnapCertD` (whose data part is `isCommitted`): so
+`snapshotCert_data`/`snapshotCert_static` stay plain entailments as drafted (raft's form would need
+an update opening the adapter's invariant). The price is the conversion inside the storage link:
+`storageCertLink` (the client's two wands at `↑N ⊆ E`) must give raft's `storCertOk`, whose wands are
+at `↑(raftCertN γ) ⊆ E`, and converting opens the adapter's invariant (`N .@ "api"`). So raft's
+certificate namespace (`RaftNames.reCertNs`, made per cluster like `reNs`) is the cluster's whole `N`,
+not a sub-namespace disjoint from the commit invariant: raft opens a storage's registry only at `⊤`
+(a `Ready`'s `MsgSnap`s, `raft.Step`'s `MsgSnap`), so nothing needs the disjointness; the registry's
+own invariant (`storageCertInv`) is at `N .@ "cert"`.
+
+**Every API cluster takes snapshots.** Raft's no-snapshot mode (`reNoSnap`, `NsCap`) is not offered:
+a client that takes no snapshot allocates with `snapOk := fun _ _ => False` and refutes a snapshot
+`Ready` by `snapshotCert_data`. So `StartNode` takes the storage's certificate link like
+`RestartNode`, and every node takes `MsgSnap`s (`snapIn`), which `stepIn_intro` needs.
+
+**The filler law is not provable.** `isStaticCluster_normal` was false (a static cluster commits the
+conf changes clients propose; it only applies the voter-preserving ones). Its replacement "every
+committed filler is normal" needs `[]` to decode as the empty `ConfChangeV2` (`ccDecodeV2` is opaque)
+and a static-mode record of `stepLeader`'s acceptance; left to the user (a trust-base question).

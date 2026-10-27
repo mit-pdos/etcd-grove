@@ -415,36 +415,52 @@ In status-history.md: the raft v3.7 retarget ("Retargeting raft to v3.7, stage R
 
 ## The node API over an abstract log, implemented (2026-10-27, branch `raft-api`)
 
-`Proof/go_etcd_io/raft/v3/NodeApiImpl.lean` (namespace `ApiImpl`) implements the drafted API
-(`NodeApiDraft.lean`) over raft's internals; the draft's bodies and proofs are swapped in (sealed),
-its pure vocabulary moved unchanged to `NodeApiVocab.lean`.
+`Proof/go_etcd_io/raft/v3/NodeApiImpl.lean` (namespace `ApiImpl`) implements the API
+(`NodeApiDraft.lean`) over raft's internals; the draft's predicates are sealed over it and every law
+and spec of the draft is proved (no `sorry` left in the draft; `#print axioms` of its specs: raft's
+existing trust-boundary axioms only). Its pure vocabulary is `NodeApiVocab.lean` (with `strip`, a raft
+log as the client sees it).
 
 - **Ghost state** (`Cluster`): raft's names, two monotone lists of `LogEntry` (`full`, the committed
   log; `ops`, its requested entries, halved between the client and the adapter), the read contexts
   (`ctxs`, ghost map `c ↦ γq`), the cluster's term budget, the trivial predicate's name (`trueQ`).
   The adapter's invariant `apiInv` (at `N .@ "api"`; raft's commit invariant at `N .@ "raft"`) holds
   raft's client half `rLog`, the authorities, and the fresh-token authorities with what the adapter
-  registered (`propIsAt … trueQ`) and deposited (read contexts). `isCommittedLogLb` is `l = []` or
-  the two lower bounds.
-- **Proved, as drafted:** the four laws and `isCommittedLogLb_nil`, read contexts (`readCtx_commit`,
-  `readStateOk_used`), `node.Propose`, `node.ProposeConfChange`, `node.ReadIndex` (the adapter
-  deposits a context's read once, firing the client's update itself, `read_deposit_with`; retries
-  reuse it, `node__ReadIndexReq.lean`), `node.Ready`, the `Ready` receive (no-snapshot nodes),
-  `node.Advance`, `node.Step` (given `stepIn`), `node.Tick`, `node.TransferLeadership`, `tickCredit`'s
-  laws; the instances.
-- **Proved with changed statements** (in `ApiImpl`; the draft keeps `sorry`): `readStateOk_ctx_impl`
-  (a ghost update within `N`, given a committed lower bound at least `idx` long, the result under
-  two laters: raft does not know the read index committed when it hands the read state out);
-  `cluster_alloc_impl` (`|={E}=>`, the receipts' bound, `ps ≠ []`, `0 ∉ ps`, `bootMarshal` premise,
-  read credits out; `nodeBoot` names the peers and contexts); `wp_StartNode_impl` (budget the
-  cluster's, `storCap si 1` premise: raft's no-snapshot mode).
-- **Not done:** the static cluster (`isStaticCluster`, `_normal`, `cluster_alloc_static`,
-  `nodeRestartBoot`, `RestartNode`), the snapshot certificates' laws (`snapshotCert` is raft's
-  `raftSnapCertD`; `raftCertN` is a fixed namespace, not the cluster's), `stepIn_intro`, a snapshot
-  `Ready` (`readySnap`'s snapshot case is `False` in the implementation: no implemented node takes
-  snapshots).
-- Raft: the allocation's continuation learns `reNs` and the boot registrations (`propIsAt`,
-  `prop_register_at`). Trust base unchanged (13 axioms, 0 sorries).
+  registered and deposited. `isCommittedLogLb` is `l = []` or the two lower bounds.
+- **Every cluster is static and takes snapshots** (`StaticNames`: raft's static mode, `reNoSnap =
+  false`, leader transfer on, no snapshot directory, `reSnapOkRaw = sokOf snapOk`, `reCertNs = N`):
+  `cluster_alloc` (bootstrapped, `StartNode`) and `cluster_alloc_static` (empty, `RestartNode`) both
+  give `isStaticCluster γ N vs snapOk`, `leaderTransferOn` and the read credits. Every node takes a
+  `MsgSnap` (`snapIn`; `NodeOk`). A client that wants no snapshot picks `snapOk := fun _ _ => False`.
+- **Snapshots' certificates.** `snapshotCert` is raft's configuration certificate and the data's over a
+  committed log the client knows (`isCommittedLogLb`), so `snapshotCert_data`/`snapshotCert_static` are
+  plain entailments; it converts to and from raft's `raftSnapCertD` within `N`. `storageCertLink` is
+  the two wands of the draft; it gives raft's `storCertOk` because raft's certificate namespace
+  (`RaftNames.reCertNs`, new: commit `e63dee0352`, as `reNs` for the commit invariant) is the
+  cluster's whole `N` (the conversion opens the adapter's invariant, inside `N`). A `MemoryStorage`'s
+  registry (`storageCertInv`) is at `N .@ "cert"`.
+- **`readyRecv`**: the loop's new state stated, by a `match` on the `Ready`'s snapshot loan: `delivered ++
+  ce`, or the committed log up to the snapshot (`strip l.dlv`); the hard state `phsNext st.hardState h`;
+  busy with `(es, L)`. `readyRest`/`readySnap` take `es h L`. The snapshot case is proved
+  (`node_ready_receive`, `readySnapData`; the certificate from the storage's link).
+- **Changed statements** (all proved): `readStateOk_ctx` (an update within `N`, given a committed lower
+  bound at least `idx` long, `▷ ▷`); `cluster_alloc` (`|={E}=>`, the receipts' bound, `ps ≠ []`, `0 ∉
+  ps`, `bootMarshal`, `snapOk`; out: read credits, `isStaticCluster`, `leaderTransferOn`; `nodeBoot γ N
+  ps ctxs id`); `cluster_alloc_static` (+ read credits); `StartNode` (`storageCertLink`, not `storCap`);
+  `node.Advance` (no premise on conf-change entries: raft's static mode needs none);
+  `readyRecv`/`readyRest`/`readySnap` (above); `isStaticCluster_normal` removed (false: a client may
+  propose conf changes, which commit). New: `readCredits` (+ `_split`, `readCredit_eq`),
+  `node.ApplyConfChange.spec` (static: `CCShrink` of the voters, the voters' `ConfState` back).
+- **Not done: `isStaticCluster_filler_normal`** (every committed filler of a static cluster is
+  normal). Not provable from the trust base: `ccDecodeV2` is opaque, so an empty `ConfChangeV2`
+  (bytes `[]`) a client proposes may, for all the proof knows, decode to a change with changes, which
+  the leader accepts outside a joint configuration (`raft.go:1335`) and which then commits as a type-2
+  filler. Proving it needs both protobuf's fact that `[]` decodes to the empty message (a trust-base
+  change, the user's decision) and a static-mode record of `stepLeader`'s choice on the log's entries
+  (`StepC.propose` allows any `PropRepl` replacement today). kv needs no such law: it applies only
+  normal entries and type-1 conf changes.
+- Raft: the allocation's continuation learns `reNs`, `reCertNs` and the boot registrations. Trust base
+  unchanged (13 axioms, 0 sorries).
 
 ## Proposals keyed by type and data; fillers only fire `noopAu` (2026-10-27, branch `raft-api`)
 
