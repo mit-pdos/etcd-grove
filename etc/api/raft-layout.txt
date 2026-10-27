@@ -210,3 +210,4 @@ Spec.go_etcd_io.raft.v3.stepLeader Perennial.EtcdGrove.leaderPropConf  # exposed
 Spec.go_etcd_io.raft.v3.stepLeader Perennial.EtcdGrove.proposed  # exposed by a spec file (def)
 Spec.go_etcd_io.raft.v3.unstable__stableTo Perennial.EtcdGrove.UnstableHit  # exposed by a spec file (def)
 Spec.go_etcd_io.raft.v3.unstable__truncateAndAppend Perennial.EtcdGrove.truncOffsetInProgress  # exposed by a spec file (def)
+Proof.go_etcd_io.raft.v3.RawNode__Advance Perennial.EtcdGrove.ackSnapLog_snap  # exposed by a proof file (theorem)

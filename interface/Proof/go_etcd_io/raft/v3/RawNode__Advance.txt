@@ -47,3 +47,6 @@ theorem ackSnapLog_facts_miss (ls : LogState) (m : MessageM) (t : w64) (sv : Sna
     sv).prev = ls.prev ∧ (ackSnapLog ls m t sv).stored = ls.stored ∧ (ackSnapLog ls m t sv).storage
     = ls.storage ∧ (ackSnapLog ls m t sv).fl = ls.fl ∧ (ackSnapLog ls m t sv).committed =
     ls.committed ∧ (ackSnapLog ls m t sv).lent = ls.lent
+
+theorem ackSnapLog_snap (ls : LogState) (m : MessageM) (t : w64) (sv : SnapshotM) : (ackSnapLog ls m
+    t sv).snap = ls.snap ∨ (ackSnapLog ls m t sv).snap = none

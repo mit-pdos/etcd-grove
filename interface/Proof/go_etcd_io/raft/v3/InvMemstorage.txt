@@ -23,6 +23,11 @@ theorem memCut.proj_sal (σ : StorState) (c : entryID) : (memCut σ c).sal = σ.
 
 theorem memStorCut_persistent (γs : MemStorNames) (n : Int) : Persistent (memStorCut γs n)
 
+def memSnapRO (ms : Loc) (γs : MemStorNames) : IProp GF :=
+  iprop(isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+      sync.isMutex (structFieldRef MemoryStorage go!"Mutex" ms) (memstorageInv ms γs) ∗
+        inv memSnapN (memSnapInv ms γs))
+
 theorem memStorApplied.proj_sdat (snap : SnapshotM) : (memStorApplied snap).sdat = snap.Data'
 
 theorem memSnapKeys_excl [package_sem : Assumptions] (γs : MemStorNames) (k j : Nat) : ⊢ memSnapKeys
@@ -31,6 +36,8 @@ theorem memSnapKeys_excl [package_sem : Assumptions] (γs : MemStorNames) (k j :
 def certCovers (e : CertKey) (k : SnapTrip) : Prop :=
   if e.snd = true then e.fst.sid.index' = k.sid.index' ∧ e.fst.cl = k.cl ∧ e.fst.al = k.al ∧ e.fst.dat = k.dat
   else e.fst = k
+
+theorem memSnapTokG_timeless (γs : MemStorNames) (σ : StorState) : Timeless (memSnapTokG γs σ)
 
 theorem DataEq.refl (a : StorState) : DataEq a a
 
@@ -116,6 +123,8 @@ theorem memSnapCertOk_congr (γs : MemStorNames) (σ σ' : StorState) (h1 : σ'.
     σ'
 
 theorem memStorApplied.proj_prev (snap : SnapshotM) : (memStorApplied snap).prev = snapId snap
+
+theorem memSnapRO_persistent (ms : Loc) (γs : MemStorNames) : Persistent (memSnapRO ms γs)
 
 theorem memStorCut_cap (γs : MemStorNames) (n : Int) : ⊢ memStorCut γs n -∗ ⌜n ≤ γs.cap⌝
 
@@ -260,6 +269,12 @@ def ownMemoryStorage (ms : Loc) (γs : MemStorNames) (σ : StorState) : IProp GF
 theorem memInvGhost_key [package_sem : Assumptions] (γs : MemStorNames) (σp : StorState) : ⊢
     memInvGhost γs σp -∗ memKey γs.lk ∗ (memKey γs.lk -∗ memInvGhost γs σp)
 
+def memStorCreated (σ : StorState) (i t : w64) (oc : Option ConfStateM) (bs : List w8) : StorState
+    :=
+  { prev := σ.prev, ents := σ.ents, ss := { term' := t, index' := i }, pend := σ.pend,
+    scs := (memSnapCreated σ i t oc bs).Metadata'.ConfState'.lists,
+    sal := (memSnapCreated σ i t oc bs).Metadata'.ConfState'.AutoLeave', sdat := bs, fl := σ.fl }
+
 theorem memStorApplied.proj_ss (snap : SnapshotM) : (memStorApplied snap).ss = snapId snap
 
 theorem memStorCompacted.proj_sal (σ : StorState) (ci t : w64) : (memStorCompacted σ ci t).sal =
@@ -267,6 +282,9 @@ theorem memStorCompacted.proj_sal (σ : StorState) (ci t : w64) : (memStorCompac
 
 def memQ : Qp :=
   (Qp.half 1).half
+
+theorem memSnapTokG_congr (γs : MemStorNames) (σ σ' : StorState) (h1 : snapPart σ' = snapPart σ) (h2
+    : σ'.prev = σ.prev) : memSnapTokG γs σ ⊢ memSnapTokG γs σ'
 
 theorem memSnap_update [package_sem : Assumptions] (γs : MemStorNames) (a b c σ' : StorState) : ⊢
     ghostVar γs.sn memQ a -∗ ghostVar γs.sn memQ b -∗ ghostVar γs.sn (Qp.half 1) c ==∗ ghostVar
@@ -395,6 +413,11 @@ def MemView (σ σp : StorState) : Prop :=
 def memFlLb (γs : MemStorNames) (x : w64) : IProp GF :=
   iprop(∃ L, monoListLbOwn γs.hist L ∗ ⌜HistOk L ∧ ∃ w, L.getLast? = some w ∧ uint.Z x ≤ uint.Z w.fl⌝)
 
+def memCsArg (cs : Loc) (dq : DFrac) (oc : Option ConfStateM) : IProp GF :=
+  match oc with
+  | none => iprop(⌜cs = null⌝)
+  | some c => ownCSM cs dq c
+
 def HistOk (L : List StorState) : Prop :=
   List.Pairwise (fun a b => uint.Z a.fl ≤ uint.Z b.fl) L ∧
     ∀ (b : StorState), b ∈ L → uint.Z b.fl ≤ stLast b ∧ b.pend = [] ∧ PlogWf b.prev b.ents
@@ -495,6 +518,9 @@ def snapTrip_countable : Pos.Countable SnapTrip :=
 
 def CutOk (σ : StorState) (c : entryID) : Prop :=
   uint.Z σ.prev.index' ≤ uint.Z c.index' ∧ uint.Z c.index' ≤ stLast σ ∧ termAt σ.prev σ.ents c.index' = some c.term'
+
+def memSnapTokG (γs : MemStorNames) (σ : StorState) : IProp GF :=
+  iprop(ghostVar γs.sn memQ (snapPart σ) ∗ ghostVar γs.cb (Qp.half 1) σ.prev)
 
 theorem memStorApplied.proj_sal (snap : SnapshotM) : (memStorApplied snap).sal =
     snap.Metadata'.ConfState'.AutoLeave'
@@ -602,6 +628,9 @@ theorem HistOk.last_mono {L1 L2 : List StorState} {a b : StorState} (h : L1 <+: 
     (ha : L1.getLast? = some a) (hb : L2.getLast? = some b) : uint.Z a.fl ≤ uint.Z b.fl
 
 theorem memCut.proj_ss (σ : StorState) (c : entryID) : (memCut σ c).ss = σ.ss
+
+theorem memSnapTok_split [package_sem : Assumptions] (ms : Loc) (γs : MemStorNames) (σ : StorState)
+    : memSnapTok ms γs σ ⊣⊢ memSnapRO ms γs ∗ memKey γs.ak ∗ memSnapTokG γs σ
 
 theorem memstorageFields_congr [package_sem : Assumptions] (ms : Loc) (σ σ' : StorState) (h1 :
     σ'.prev = σ.prev) (h2 : σ'.ents = σ.ents) : memstorageFields ms σ ⊢ memstorageFields ms σ'

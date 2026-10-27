@@ -57,6 +57,8 @@ importable Proof.go_etcd_io.raft.v3.InvMemstorage
 importable Proof.go_etcd_io.raft.v3.MemstorageInstance
 importable Proof.go_etcd_io.raft.v3.MemCertLink
 importable Proof.go_etcd_io.raft.v3.LemmasMemstorage
+# the token-in-hand forms of the atomic `MemoryStorage` specs (added on lean, 2026-10-26)
+importable Proof.go_etcd_io.raft.v3.MemstorageAU
 
 ## raftpb: the getters' specs, the protobuf records' models
 importable Spec.go_etcd_io.raft.v3.raftpb.*

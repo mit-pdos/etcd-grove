@@ -6,24 +6,25 @@ theorem MemoryStorage.Compact.wp_proof [package_sem : Assumptions] (wp_GetIndex 
     raftpb.Entry.GetIndex.spec) (wp_MemoryStorage_lastIndex : MemoryStorage.lastIndex.spec)
     (wp_GetTerm : raftpb.Entry.GetTerm.spec) : MemoryStorage.Compact.spec
   -- `Perennial.EtcdGrove.MemoryStorage.Compact.spec`, unfolded:
-  ∀ (ms : Loc) (γs : MemStorNames) (σt : StorState) (x ci : w64) (ecomp : GoInterface),
-    (uint.Z σt.prev.index' < uint.Z ci → uint.Z ci ≤ uint.Z x ∧ uint.Z ci ≤ uint.Z σt.ss.index' ∧ uint.Z ci ≤ γs.cap) →
-      ⊢
-        ∀ Φ,
-          isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-              "Htok" ∷ memSnapTok ms γs σt ∗
-                "#Hfw" ∷ memFloorTok ms γs x ∗ "#Herr" ∷ typedPointsto (globalAddr ErrCompacted) ecomp DFrac.discard -∗
-            (▷
-                ∀ err,
-                  (⌜uint.Z ci ≤ uint.Z σt.prev.index' ∧ err = ecomp⌝ ∗ memSnapTok ms γs σt ∨
-                      ∃ t,
-                        ⌜uint.Z σt.prev.index' < uint.Z ci ∧ err = GoInterface.nil⌝ ∗
-                          memSnapTok ms γs
-                            { prev := { term' := t, index' := ci }, ents := σt.ents, ss := σt.ss, pend := σt.pend,
-                              scs := σt.scs, sal := σt.sal, sdat := σt.sdat, fl := σt.fl }) -∗
-                    Φ (intoVal err)) -∗
-              WP
-                ((intoVal
-                    (methods MemoryStorage.ty.PointerType go!"Compact" (intoVal ms)))
-                  (intoVal ci))
-                {{ Φ }}
+  ∀ (ms : Loc) (γs : MemStorNames) (x ci : w64) (ecomp : GoInterface),
+    ⊢
+      ∀ Φ,
+        isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
+            memSnapRO ms γs ∗ memFloorTok ms γs x ∗ typedPointsto (globalAddr ErrCompacted) ecomp DFrac.discard -∗
+          (|={⊤ \ ↑memSnapN,∅}=>
+              ∃ σt,
+                memSnapTokG γs σt ∗
+                  ⌜uint.Z σt.prev.index' < uint.Z ci →
+                        uint.Z ci ≤ uint.Z x ∧ uint.Z ci ≤ uint.Z σt.ss.index' ∧ uint.Z ci ≤ γs.cap⌝ ∗
+                    (⌜uint.Z ci ≤ uint.Z σt.prev.index'⌝ -∗ memSnapTokG γs σt ={∅,⊤ \ ↑memSnapN}=∗ Φ (intoVal ecomp)) ∧
+                      ∀ t,
+                        ⌜uint.Z σt.prev.index' < uint.Z ci⌝ -∗
+                          memSnapTokG γs
+                              { prev := { term' := t, index' := ci }, ents := σt.ents, ss := σt.ss, pend := σt.pend,
+                                scs := σt.scs, sal := σt.sal, sdat := σt.sdat, fl := σt.fl } ={∅,⊤ \ ↑memSnapN}=∗
+                            Φ (intoVal GoInterface.nil)) -∗
+            WP
+              ((intoVal
+                  (methods MemoryStorage.ty.PointerType go!"Compact" (intoVal ms)))
+                (intoVal ci))
+              {{ Φ }}

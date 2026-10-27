@@ -34,7 +34,8 @@ theorem RawNode.Step.wp_proof [package_sem : Assumptions] (wp_IsResponseMsg : Is
                                                   scfg = sv.Metadata'.ConfState'.lists ∧
                                                     uint.Z sv.Metadata'.Index' < 2 ^ 61⌝ ∗
                                               isMessageC γ (absSnap st.msg sv scfg) ∗
-                                                snapDataOk γ sv.Metadata'.Index' sv.Data') ∗
+                                                snapDataOk γ sv.Metadata'.Index' sv.Data' ∗
+                                                  snapLocal γ id sv.Metadata'.Index') ∗
                                     "Hcred" ∷ rdCred γ (if st.msg.Type' = MsgReadIndex then 1 else 0) -∗
                           (▷
                               ∀ err t,

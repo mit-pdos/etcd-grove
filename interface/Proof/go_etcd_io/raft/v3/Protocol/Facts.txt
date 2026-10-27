@@ -24,11 +24,12 @@ theorem ownRaftGhost_alloc_core [ReceiptGS GF] [InvGS GF] (E : CoPset) (cfg ids 
     Option ((e : FfiSyntax) → DynCfg)) (ccOk : w32 → List w8 → Prop) (L : List EntryM) (t : w64) (C
     : RaftNames → IProp GF) (trk : Option (GSet w64)) (Htrk : ∀ (T : GSet w64), trk = some T → cfg ⊆
     T ∧ dyn = none) (ns : Bool) (Hns : ns = true → L ≠ []) (nx : Bool) (Hnx : nx = true → L ≠ [])
-    (sok : List BootEntry → List w8 → Prop) : cfg ≠ ∅ → ¬W64 0 ∈ ids → BootWf ccOk L → (L ≠ [] → 1 ≤
-    uint.Z t) → ⊢ allocClientGen E cfg dyn ccOk L C ={E}=∗ ∃ γ, ⌜γ.reCfg = cfg ∧ γ.reDyn = dyn ∧
-    γ.reCCOk = ccOk ∧ γ.reBoot = L ∧ γ.reTracked = trk ∧ γ.reNoSnap = ns ∧ γ.reNoXfer = nx ∧
-    γ.reSnapOkRaw = sok⌝ ∗ raftCommitInv γ ∗ isCommitted γ L ∗ ([∗map] id ↦ _u ∈ toMap ids,
-    ownRaftGhost γ id (initPStateAt t L) dyn.isSome) ∗ C γ ∗ rdCred γ (2 ^ 64 - 2) ∗ rdCredInv γ
+    (sok : List BootEntry → List w8 → Prop) (sl : w64 → Option GName) : cfg ≠ ∅ → ¬W64 0 ∈ ids →
+    BootWf ccOk L → (L ≠ [] → 1 ≤ uint.Z t) → ⊢ allocClientGen E cfg dyn ccOk L C ={E}=∗ ∃ γ,
+    ⌜γ.reCfg = cfg ∧ γ.reDyn = dyn ∧ γ.reCCOk = ccOk ∧ γ.reBoot = L ∧ γ.reTracked = trk ∧ γ.reNoSnap
+    = ns ∧ γ.reNoXfer = nx ∧ γ.reSnapOkRaw = sok ∧ γ.reSnapLoc = sl⌝ ∗ raftCommitInv γ ∗ isCommitted
+    γ L ∗ ([∗map] id ↦ _u ∈ toMap ids, ownRaftGhost γ id (initPStateAt t L) dyn.isSome) ∗ C γ ∗
+    rdCred γ (2 ^ 64 - 2) ∗ rdCredInv γ
 
 theorem heartbeat_commit_le_last [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (ps : PState)
     (m : Msg) {md : Bool} : m.ty = MsgType.heartbeat → m.dst = id → uint.Z ps.term ≤ uint.Z m.term →
@@ -128,11 +129,11 @@ theorem prop_deposit [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (E : CoPset) (d 
 
 theorem ownRaftGhost_alloc_boot [ReceiptGS GF] [InvGS GF] (E : CoPset) (cfg ids : GSet w64) (ccOk :
     w32 → List w8 → Prop) (ps : List w64) (bootLog : List EntryM) (C : RaftNames → IProp GF) (ns nx
-    : Bool) : cfg ≠ ∅ → ¬W64 0 ∈ ids → cfg = listToSet ps → BootLogOk ccOk ps bootLog → ⊢
-    allocClientBoot E cfg ccOk bootLog C ={E}=∗ ∃ γ, ⌜γ.reCfg = cfg ∧ γ.reDyn = none ∧ γ.reCCOk =
-    ccOk ∧ γ.reBoot = bootLog ∧ γ.reTracked = some cfg ∧ γ.reNoSnap = ns ∧ γ.reNoXfer = nx⌝ ∗
-    raftCommitInv γ ∗ isCommitted γ bootLog ∗ ([∗map] id ↦ _u ∈ toMap ids, ownRaftGhost γ id
-    (bootPState bootLog)) ∗ C γ ∗ rdCred γ (2 ^ 64 - 2) ∗ rdCredInv γ
+    : Bool) (sl : w64 → Option GName) : cfg ≠ ∅ → ¬W64 0 ∈ ids → cfg = listToSet ps → BootLogOk ccOk
+    ps bootLog → ⊢ allocClientBoot E cfg ccOk bootLog C ={E}=∗ ∃ γ, ⌜γ.reCfg = cfg ∧ γ.reDyn = none
+    ∧ γ.reCCOk = ccOk ∧ γ.reBoot = bootLog ∧ γ.reTracked = some cfg ∧ γ.reNoSnap = ns ∧ γ.reNoXfer =
+    nx ∧ γ.reSnapLoc = sl⌝ ∗ raftCommitInv γ ∗ isCommitted γ bootLog ∗ ([∗map] id ↦ _u ∈ toMap ids,
+    ownRaftGhost γ id (bootPState bootLog)) ∗ C γ ∗ rdCred γ (2 ^ 64 - 2) ∗ rdCredInv γ
 
 theorem ownRaftGhost_committed [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (s : PState) {md
     : Bool} : ⊢ ownRaftGhost γ id s md -∗ ∃ fp, ⌜FullOk s.base fp⌝ ∗ isCommitted γ (List.take
@@ -181,5 +182,5 @@ theorem ownRaftGhost_alloc_snap [ReceiptGS GF] [InvGS GF] (E : CoPset) (cfg ids 
     w32 → List w8 → Prop) (sok : List BootEntry → List w8 → Prop) (C : RaftNames → IProp GF) : cfg ≠
     ∅ → ¬W64 0 ∈ ids → ⊢ allocClient E cfg none C ={E}=∗ ∃ γ, ⌜γ.reCfg = cfg ∧ γ.reDyn = none ∧
     γ.reCCOk = ccOk ∧ γ.reNoXfer = false ∧ γ.reNoSnap = false ∧ γ.reTracked = none ∧ γ.reSnapOkRaw =
-    sok⌝ ∗ raftCommitInv γ ∗ isCommitted γ [] ∗ ([∗map] id ↦ _u ∈ toMap ids, ownRaftGhost γ id
-    initPState) ∗ C γ ∗ rdCred γ (2 ^ 64 - 2) ∗ rdCredInv γ
+    sok ∧ γ.reSnapLoc = fun x => none⌝ ∗ raftCommitInv γ ∗ isCommitted γ [] ∗ ([∗map] id ↦ _u ∈
+    toMap ids, ownRaftGhost γ id initPState) ∗ C γ ∗ rdCred γ (2 ^ 64 - 2) ∗ rdCredInv γ

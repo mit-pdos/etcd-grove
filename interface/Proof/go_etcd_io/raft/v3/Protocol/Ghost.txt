@@ -45,6 +45,7 @@ structure RaftNames : Type 1 where
   reNoXfer : Bool
   reNoXfer_ok : self.reBootRaw ≠ []
   reSnapOkRaw : Prop
+  reSnapLoc : Option GName
 
 theorem witsB_agree [ReceiptGS GF] (γ : RaftNames) (F F' : List EntryM) (lim : Nat) (B : Int) :
     List.take lim F' = List.take lim F → ⊢ witsB γ F lim B -∗ witsB γ F' lim B
@@ -402,6 +403,8 @@ def raftSnapCertD [ReceiptGS GF] (γ : RaftNames) (k : SnapTrip) : IProp GF :=
   iprop(raftSnapCert γ k ∗ snapDataOk γ k.sid.index' k.dat)
 
 theorem dynOn_persistent (γ : RaftNames) (P : IProp GF) [Persistent P] : Persistent (dynOn γ P)
+
+theorem snapLocal_timeless (γ : RaftNames) (id i : w64) : Timeless (snapLocal γ id i)
 
 theorem ackAgree_persistent [ReceiptGS GF] (γ : RaftNames) (b : entryID) (es : List EntryM) (t i :
     w64) : Persistent (ackAgree γ b es t i)
@@ -766,6 +769,8 @@ def propDataIs (γ : RaftNames) (e : EntryM) : Option (List w8) → IProp GF :=
     iprop(⌜e.Type' = W32 0 ∧ e.Data' = []⌝ ∨ ⌜e.Type' ≠ W32 0 ∧ CCDecodes e.Type' e.Data' ∧ γ.reCCOk e.Type' e.Data'⌝)
   | some d => iprop(⌜e.Data' = d ∧ d ≠ [] ∧ e.Type' = W32 0⌝ ∗ deposited γ d)
 
+theorem snapLocal_persistent (γ : RaftNames) (id i : w64) : Persistent (snapLocal γ id i)
+
 theorem isCommittedIdx_persistent [ReceiptGS GF] (γ : RaftNames) (i : w64) : Persistent
     (isCommittedIdx γ i)
 
@@ -778,6 +783,9 @@ def aevTerm (e : Aev) : w64 :=
   match e with
   | Aev.ack t i => t
   | Aev.vote T d F => T
+
+theorem snapLocal_of_elem {γ : RaftNames} {id : w64} {γd : GName} (h : γ.reSnapLoc id = some γd) (i
+    : w64) : i ↪[γd]□ () ⊢ snapLocal γ id i
 
 theorem isTermLog_timeless (γ : RaftNames) (v t : w64) (γt : GName) (b : entryID) (l0 : List EntryM)
     : Timeless (isTermLog γ v t γt b l0)
@@ -848,6 +856,14 @@ def ownCommitted (γ : RaftNames) (l : List EntryM) : IProp GF :=
 
 theorem leadPrefix_persistent [ReceiptGS GF] (γ : RaftNames) (ldr t : w64) (bL : entryID) (l : List
     EntryM) : Persistent (leadPrefix γ ldr t bL l)
+
+def snapLocal (γ : RaftNames) (id i : w64) : IProp GF :=
+  match γ.reSnapLoc id with
+  | none => iprop(True)
+  | some γd => i ↪[γd]□ ()
+
+theorem snapLocal_none {γ : RaftNames} {id : w64} (h : γ.reSnapLoc id = none) (i : w64) : ⊢
+    snapLocal γ id i
 
 theorem RaftNames.dyn_none {γ : RaftNames} (h : γ.reDyn = none) : γ.dyn = none
 
