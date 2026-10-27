@@ -691,44 +691,40 @@ theorem propData_ccEnts (γ : RaftNames) (ents : List EntryM) :
     icases (BigSepL.bigSepL_cons (Φ := fun _ e => propData (GF := GF) γ e)).1 $$ Hes
       with ⟨#He, #Hes'⟩
     icases ih $$ Hes' with ⟨%cs, #Hcs⟩
-    have Hone : ∀ o, (propDataIs (GF := GF) γ e o ⊢ ∃ c, ccEntOk e c) := by
+    -- (2026-10-27) either way the entry's bytes decode as its type says
+    have Hdec : ∀ o, (propDataIs (GF := GF) γ e o ⊢ ⌜CCDecodes e.Type' e.Data'⌝) := by
       intro o
       cases o with
       | some d =>
         iintro He
         iunfold propDataIs at He
         icases He with ⟨%Hd, -⟩
-        iexists none
-        unfold ccEntOk
-        ipureintro
-        unfold IsConfEnt; rw [Hd.2.2]
-        rintro (h | h) <;> revert h <;> word
+        ipureintro; exact Hd.2.2
       | none =>
         iintro He
         iunfold propDataIs at He
-        icases He with (%Hz | %Hz)
-        · iexists none
-          unfold ccEntOk
-          ipureintro
-          unfold IsConfEnt; rw [Hz.1]
-          rintro (h | h) <;> revert h <;> word
-        · obtain ⟨-, Hdec, -⟩ := Hz
-          by_cases H1 : e.Type' = W32 1
-          · obtain ⟨m, Hm⟩ := Hdec.1 H1
-            iexists some (.v1 m)
-            simp only [ccEntOk]
-            ipureintro; exact ⟨H1, Hm⟩
-          by_cases H2 : e.Type' = W32 2
-          · obtain ⟨m, Hm⟩ := Hdec.2 H2
-            iexists some (.v2 m)
-            simp only [ccEntOk]
-            ipureintro; exact ⟨H2, Hm⟩
-          iexists none
-          unfold ccEntOk
-          ipureintro
-          rintro (h | h)
-          · exact H1 h
-          · exact H2 h
+        icases He with %Hz
+        ipureintro; exact Hz.2
+    have Hone : ∀ o, (propDataIs (GF := GF) γ e o ⊢ ∃ c, ccEntOk e c) := by
+      intro o
+      iintro He
+      icases (Hdec o) $$ He with %Hdec
+      by_cases H1 : e.Type' = W32 1
+      · obtain ⟨m, Hm⟩ := Hdec.1 H1
+        iexists some (.v1 m)
+        simp only [ccEntOk]
+        ipureintro; exact ⟨H1, Hm⟩
+      by_cases H2 : e.Type' = W32 2
+      · obtain ⟨m, Hm⟩ := Hdec.2 H2
+        iexists some (.v2 m)
+        simp only [ccEntOk]
+        ipureintro; exact ⟨H2, Hm⟩
+      iexists none
+      unfold ccEntOk
+      ipureintro
+      rintro (h | h)
+      · exact H1 h
+      · exact H2 h
     iunfold propData at He
     icases He with ⟨%o, #He⟩
     icases (Hone o) $$ He with ⟨%c, #Hc⟩

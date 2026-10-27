@@ -219,22 +219,25 @@ local macro "piro_tail" : tactic => `(tactic| (
       iframe Hwn Hregd
     imod kv_prop_au_M on ρ.raft ρ.kv bs rq rq' ⟨id, hv.Username', hv.AuthRevision'⟩ Qh
       (Hbsne (by simp [apply.withHeader])) Hdec Hwire id γf Hidrq ⊤
-      CoPset.subseteq_top $$ Hclog Hclaim Hireg Hok with Hau
+      CoPset.subseteq_top $$ Hclog Hclaim Hireg Hok with ⟨Hau, #Hqi⟩
     rw [method_unfold (t := go.GoType.PointerType raftNode.ty) (m := go!"Propose")]
-    (try wp_auto)
+    -- (2026-10-27) a later credit for the node API's `Propose` (its registry's invariant)
+    wp_auto_lc 1
+    irename Hlc1 => HlcP
     rw [method_unfold (t := go.GoType.PointerType raftNodeConfig.ty) (m := go!"Propose")]
     wp_pures
     (try wp_auto)
     rw [Hni]
     (try wp_auto)
-    wp_apply HPropose $$ %cctx %_ %dsl %bs %(Qh ⟨id, hv.Username', hv.AuthRevision'⟩) [Hpf Hau] as %perr Hpres
+    wp_apply HPropose $$ %cctx %_ %dsl %bs %(Qh ⟨id, hv.Username', hv.AuthRevision'⟩) [Hpf Hau HlcP] as %perr Hpres
     · iframe Hbs
       isplitr
       · iunfold mvcc.txnCtx; iright; iexact Hcctx
       isplitr
       · ipureintro; exact Hbsne (by simp [apply.withHeader])
+      iframe HlcP
       iunfold srvPropArg
-      iframe Hpf Hau
+      iframe Hpf Hau Hqi
     (try wp_auto)
     iunfold srvPropRes at Hpres
     icases Hpres with ⟨⟨#Hdep, #HisP⟩, #HaE⟩
@@ -313,7 +316,7 @@ local macro "piro_tail" : tactic => `(tactic| (
             iunfold resultΨ at Hres
             icases Hres with ⟨%ar, %lb, %Hx, HTr, Hri, #HeW⟩
             subst Hx
-            wp_auto_lc 2
+            wp_auto_lc 3
             iunfold entryWit at HeW
             icases HeW with ⟨%Lw, %mw, %ew, %idw, %γw, #HLw, #Hclw, %Hew⟩
             obtain ⟨hlk, het, hdecw, hidw, hlbw⟩ := Hew
@@ -323,9 +326,10 @@ local macro "piro_tail" : tactic => `(tactic| (
             replace Hdd := Hdd.1
             ihave #HWits' := HWits
             iunfold srvPropWits at HWits'
-            imod HWits' $$ %bs %(Qh ⟨idw, hv.Username', hv.AuthRevision'⟩) %Lw %mw %ew HisP HLw [] [Hlc1 Hlc2] with #HQr
+            imod HWits' $$ %bs %(Qh ⟨idw, hv.Username', hv.AuthRevision'⟩) %Lw %mw %ew HisP HLw [] [Hlc1 Hlc2 Hlc3] with #HQr
             · ipureintro; exact ⟨hlk, het, Hdd, Hbsne (by simp [apply.withHeader])⟩
-            · iapply (lc_split (n := 1) (m := 1)).2; iframe
+            · iapply (lc_split (n := 2) (m := 1)).2; iframe Hlc3
+              iapply (lc_split (n := 1) (m := 1)).2; iframe
             ihave #HLt : iprop(srvRLogLb ρ.raft (Lw.take mw)) $$ []
             · iapply srvRLogLb_mono ρ.raft _ _ (List.take_prefix _ _) $$ HLw
             wp_apply HAddEv
@@ -362,7 +366,7 @@ local macro "piro_tail" : tactic => `(tactic| (
             iunfold resultΨOn at Hres
             icases Hres with ⟨%ar, %lb, %st, %Hx, HTr, Hri, #HeW⟩
             subst Hx
-            wp_auto_lc 2
+            wp_auto_lc 3
             iunfold entryWitOn at HeW
             icases HeW with ⟨%Lw, %mw, %ew, %idw, %γw, #HLw, #Hclw, %Hew, #HpA⟩
             obtain ⟨hlk, het, hdecw, hidw, hlbw⟩ := Hew
@@ -372,9 +376,10 @@ local macro "piro_tail" : tactic => `(tactic| (
             replace Hdd := Hdd.1
             ihave #HWits' := HWits
             iunfold srvPropWits at HWits'
-            imod HWits' $$ %bs %(Qh ⟨idw, hv.Username', hv.AuthRevision'⟩) %Lw %mw %ew HisP HLw [] [Hlc1 Hlc2] with #HQr
+            imod HWits' $$ %bs %(Qh ⟨idw, hv.Username', hv.AuthRevision'⟩) %Lw %mw %ew HisP HLw [] [Hlc1 Hlc2 Hlc3] with #HQr
             · ipureintro; exact ⟨hlk, het, Hdd, Hbsne (by simp [apply.withHeader])⟩
-            · iapply (lc_split (n := 1) (m := 1)).2; iframe
+            · iapply (lc_split (n := 2) (m := 1)).2; iframe Hlc3
+              iapply (lc_split (n := 1) (m := 1)).2; iframe
             ihave #HLt : iprop(srvRLogLb ρ.raft (Lw.take mw)) $$ []
             · iapply srvRLogLb_mono ρ.raft _ _ (List.take_prefix _ _) $$ HLw
             wp_apply HAddEv

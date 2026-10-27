@@ -145,7 +145,7 @@ no witness: `witsB`), in the no-snapshot and no-transfer modes `ns`, `nx` or not
 theorem raft_dyn_alloc_boot (E : CoPset) (dec : CCDec) (c0 : CCState) (h0 : CfgOk c0)
     (ids : GSet w64) (ccOk : w32 → List w8 → Prop) (bootLog : List EntryM)
     (C : RaftNames → IProp GF) (ns nx : Bool) :
-    W64 0 ∉ ids → bootLog ≠ [] → BootWf ccOk bootLog →
+    W64 0 ∉ ids → bootLog ≠ [] → BootWf bootLog →
     ⊢ allocClientGen E c0.cfg.incoming (some (DynCfg.all (DynCfg.ofFold dec c0 h0))) ccOk bootLog C -∗
       |={E}=> ∃ γ : RaftNames,
         ⌜γ.dyn = some (DynCfg.ofFold dec c0 h0) ∧ γ.reCCOk = ccOk ∧ γ.reCfg = c0.cfg.incoming ∧
@@ -159,7 +159,7 @@ theorem raft_dyn_alloc_boot (E : CoPset) (dec : CCDec) (c0 : CCState) (h0 : CfgO
   imod ownRaftGhost_alloc_core (GF := GF) E c0.cfg.incoming ids
     (some (DynCfg.all (DynCfg.ofFold dec c0 h0))) ccOk bootLog (W64 1) C none
     (fun _ h => by cases h) ns (fun _ => Hbne) nx (fun _ => Hbne) (fun _ _ => True) (fun _ => none)
-    h0.2.1 Hnz Hok
+    (nroot .@ "raft_commit") (nroot .@ "raft_snapcert") h0.2.1 Hnz Hok
     (fun _ => by rw [show uint.Z (W64 1) = 1 from rfl]; exact Int.le_refl _)
     $$ Hcl with ⟨%γ, %Hγ, #Hinv, #Hc0, Hn, HC, Hcr, #Hcri⟩
   simp only [Option.isSome_some]

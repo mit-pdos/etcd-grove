@@ -80,7 +80,7 @@ def bootEntries (bootLog : List EntryM) : List EntryModel := bootLog.map EntryMo
 /-- A bootstrap log's entries change no lease table (unit T3, L3a). -/
 theorem kvTableOf_boot (c₀ : w64) (ch : apply.Chain) (lt : LeaseTable)
     (ccOk : w32 → List w8 → Prop) (ps : List w64) (bootLog : List EntryM)
-    (hb : BootLogOk ccOk ps bootLog) : kvTableOf c₀ ch lt (bootEntries bootLog) = lt := by
+    (hb : srvBootLogOk ps bootLog) : kvTableOf c₀ ch lt (bootEntries bootLog) = lt := by
   obtain ⟨-, -, he⟩ := hb
   unfold kvTableOf bootEntries
   rw [List.foldl_map]
@@ -106,7 +106,7 @@ theorem kvTableOf_boot (c₀ : w64) (ch : apply.Chain) (lt : LeaseTable)
 
 /-- **The start state of a bootstrap log has no lease** (unit T3, L3a). -/
 theorem kvModelSt_boot (γk : KVNames) (ccOk : w32 → List w8 → Prop) (ps : List w64)
-    (bootLog : List EntryM) (hb : BootLogOk ccOk ps bootLog) :
+    (bootLog : List EntryM) (hb : srvBootLogOk ps bootLog) :
     kvModelSt γk (bootEntries bootLog) = kvStateOf (kvModel γk (bootEntries bootLog)) := by
   unfold kvModelSt kvLeases
   rw [kvTableOf_boot _ _ _ ccOk ps bootLog hb]
@@ -118,44 +118,27 @@ def srvMsgNoSnap (m : Loc) : IProp GF :=
   iprop(∃ st : MsgSt, msgOwn m DFrac.discard st ∗ ⌜st.msg.Type' ≠ MsgSnap⌝)
 
 /-- **A message raft hands the server, with what its receiver needs** (2026-10-19, D21 stage
-M1): read-only, a message raft sent (`isRaftMsg`, its protocol abstraction), at a term the
-budget `bud` reached (`termLB`), with its read credit, one for a `MsgReadIndex` (`rdCred`):
-what a peer's `node.Step` takes of a network message (`netP`) but the receiver's own facts
-(`NetMsgOk`) and a `MsgTimeoutNow`'s tick credit. (2026-10-24, rafthttp stage 6d) Of the member
-`id` that sent it (`isRaftMsg`'s sender: a `MsgApp`'s `From`, what the transport's msgappv2 stream
-needs). -/
-def srvMsgNet (γ : RaftNames) (bud : BudgetNames) (id : w64) (m : Loc) : IProp GF :=
-  iprop(∃ st : MsgSt, msgOwn m DFrac.discard st ∗ isRaftMsg γ id st ∗
-    termLB bud st.msg.Term' ∗
-    rdCred γ (if st.msg.Type' = MsgReadIndex then 1 else 0) ∗
-    -- (2026-10-19, D21 M6) a forwarded proposal's tickets
-    stTks γ st)
+M1; 2026-10-27: the node API's): read-only, a message the node `id` of the server's cluster sent
+(`sentMsg`: raft's protocol facts and its term bound, and its sender, what the transport's msgappv2
+stream needs), with its credits (`msgCredits`: a `MsgReadIndex`'s read credit, a forwarded
+proposal's tickets): what a peer's `node.Step` takes of a network message (`stepIn_intro`) but the
+receiver's own facts. -/
+def srvMsgNet (γ : SrvRaft) (id : w64) (m : Loc) : IProp GF :=
+  iprop(∃ st : MsgSt, msgOwn m DFrac.discard st ∗ Draft.sentMsg γ.cl srvClusterN id st ∗
+    Draft.msgCredits γ.cl srvClusterN st)
 
 /-- **What the server's messages carry over the network** (D21 M2, 2026-10-19; the network's
-payload, `NetPayload`): persistently, the protocol facts and the term bound (`isRaftMsg`, whose
-`SentMsgOk` clause gives the receiver's `NetMsgOk`, and `termLB`); once, the read credit of a
-`MsgReadIndex`, delivered at most once; any other message may be duplicated, its credit `0` anew.
-(2026-10-19, D21 M6, D20 (b)) and a forwarded `MsgProp`'s tickets (`stTks`), delivered at most
-once: the transport's at-most-once promise for a `once` message (`Transport.Start`, D21b).
-(2026-10-19, D22 S-i) A snapshot's database image carries `srvImage` (`dbImage` at the fresh
-cluster's start): what the sender's backend snapshot gives (S-h) and the receiver's
-`OpenSnapshotBackend` reads (S-j). -/
-def srvNet (γ : RaftNames) (bud : BudgetNames) : NetPayload GF where
-  P st := iprop((∃ sid, isRaftMsg γ sid st) ∗ termLB bud st.msg.Term')
-  O st := iprop(rdCred γ (if st.msg.Type' = MsgReadIndex then 1 else 0) ∗ stTks γ st)
+payload, `NetPayload`; 2026-10-27: the node API's): persistently, the protocol facts
+(`sentMsg`); once, the credits of a `MsgReadIndex` or a forwarded `MsgProp`, delivered at most
+once; any other message may be duplicated, its credits made anew (`msgCredits_none`). (2026-10-19,
+D22 S-i) A snapshot's database image carries `srvImage` (`dbImage` at the fresh cluster's start;
+the server's clusters send no snapshot). -/
+def srvNet (γ : SrvRaft) : NetPayload GF where
+  P st := iprop(∃ sid, Draft.sentMsg γ.cl srvClusterN sid st)
+  O st := Draft.msgCredits γ.cl srvClusterN st
   once st := st.msg.Type' = MsgReadIndex ∨ st.msg.Type' = MsgProp
   P_pers st := by infer_instance
-  dup st h := by
-    have h1 : st.msg.Type' ≠ MsgReadIndex := fun e => h (Or.inl e)
-    have h2 : st.msg.Type' ≠ MsgProp := fun e => h (Or.inr e)
-    simp only [h1, if_false]
-    iintro
-    imod rdCred_zero_upd γ with Hz
-    imodintro
-    iframe Hz
-    unfold stTks
-    rw [if_neg h2]
-    iempintro
+  dup st h := Draft.msgCredits_none γ.cl srvClusterN st (fun e => h (Or.inl e)) (fun e => h (Or.inr e))
   img i D := srvImage γ i D
   img_pers i D := by infer_instance
 
@@ -174,17 +157,19 @@ theorem msgOwn_type_agree (m : Loc) (st1 st2 : MsgSt) :
   iapply (cellRO_agree pty1 st1.msg.Type' st2.msg.Type') $$ [$cTy1 $cTy2]
 
 /-- A message raft hands the server, with its bundle, not a snapshot (D22 S-i: `Send` takes
-none), is one the network takes from its sender (`netBundle`; 2026-10-24, rafthttp stage 6d: in
-the no-transfer mode, a `MsgApp` of raft's shape, `SentMsgOk`, from its sender, `AppFrom`). -/
-theorem srvMsgNet_bundle (γ : RaftNames) (bud : BudgetNames) (id : w64) (m : Loc)
-    (hnx : γ.reNoXfer = true) :
-    srvMsgNet (GF := GF) γ bud id m ∗ srvMsgNoSnap m ⊢ netBundle (srvNet γ bud) id m := by
-  iintro ⟨H, Hns⟩
+none), is one the network takes from its sender (`netBundle`; 2026-10-24, rafthttp stage 6d: with
+leader transfer off, a `MsgApp` of raft's shape, `SentMsgOk`, from its sender, `AppFrom`;
+2026-10-27: the node API's `sentMsg_transferOff`, `sentMsg_appFrom`). -/
+theorem srvMsgNet_bundle (γ : SrvRaft) (id : w64) (m : Loc) :
+    Draft.leaderTransferOff (GF := GF) γ.cl srvClusterN ∗ srvMsgNet γ id m ∗ srvMsgNoSnap m ⊢
+      netBundle (srvNet γ) id m := by
+  letI := srvAnyStor (GF := GF)
+  iintro ⟨#Hxo, H, Hns⟩
   iunfold srvMsgNet at H
-  icases H with ⟨%st, #Hm, #Hr, #Ht, Hc, Htk⟩
-  ihave #Hr' := Hr
-  iunfold isRaftMsg at Hr'
-  icases Hr' with ⟨-, %Hsent, -, -, %Hrs⟩
+  icases H with ⟨%st, #Hm, #Hr, Hc⟩
+  ihave %Hsent := Draft.sentMsg_transferOff γ.cl srvClusterN id st $$ [Hxo Hr]
+  · iframe Hxo Hr
+  ihave %Hfrom := Draft.sentMsg_appFrom γ.cl srvClusterN id st $$ Hr
   iunfold srvMsgNoSnap at Hns
   icases Hns with ⟨%st', #Hm', %Hns⟩
   ihave %Hty := msgOwn_type_agree m st st' $$ [Hm Hm']
@@ -192,56 +177,40 @@ theorem srvMsgNet_bundle (γ : RaftNames) (bud : BudgetNames) (id : w64) (m : Lo
   iunfold netBundle
   iexists st
   simp only [srvNet]
-  iframe Hm Hc Htk
+  iframe Hm Hc
   isplitr
   · imodintro
-    iframe Ht
     iexists id; iexact Hr
   ipureintro
   rw [Hty]
-  exact ⟨Hns, Hrs.1, fun ha => ⟨(Hsent hnx).2.2.2.2.2.1 (Hty ▸ ha), Hrs.2 (Hty ▸ ha)⟩⟩
+  exact ⟨Hns, Hsent.2.2.2.2.2.2, fun ha => ⟨Hsent.2.2.2.2.2.1 (Hty ▸ ha), Hfrom (Hty ▸ ha)⟩⟩
 
 /-- **The server's raft environment** (`RNEnv`): `E.C` the server's (`srvC`), every message raft
-hands out but a snapshot (`srvMsgNoSnap`, D19p; until then every message, the transport's
-contract, `rafthttp.Transport`, asking nothing of them) with its bundle (`srvMsgNet`, D21 stage
-M1), a tick's resource raft's tick credit of the budget `bud`, the read names `ρ.rd`, raft's read
-registrations. (2026-10-24, rafthttp stage 6d) Of the member `id` (its messages' sender), the
-transport's `Send` borrowing `S` (the server's: the raft loop's key, `srvTrKey`); (D43 M5c) its
-`Stop` (D43 M5e, 2026-10-26) asked of no one (`ST := False`: the static server's transport is
-frozen, its stop token the apply thread's, `srvApRes`, which M6's stopping server hands over; until
-then `True`, a free `Stop`, which Go's `AddPeer` on a stopped transport made unsound). -/
+hands out but a snapshot (`srvMsgNoSnap`, D19p) with its bundle (`srvMsgNet`, D21 stage M1), a
+tick's resource `True`, the read names `ρ.rd`, the server's read registrations (`srvRQ`).
+(2026-10-24, rafthttp stage 6d) Of the member `id` (its messages' sender), the transport's `Send`
+borrowing `S` (the server's: the raft loop's key, `srvTrKey`); (D43 M5c) its `Stop` (D43 M5e,
+2026-10-26) asked of no one (`ST := False`: the static server's transport is frozen, its stop token
+the apply thread's, `srvApRes`, which M6's stopping server hands over). (2026-10-27: no budget
+names, the node API's term budget is the cluster's.) -/
 def srvEr (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV)
-    (bud : BudgetNames) (id : w64) (S : IProp GF) : RNEnv GF :=
-  ⟨srvC ρ E ai₀ c₀ x₀, fun m => iprop(srvMsgNet ρ.raft.raft bud id m ∗ srvMsgNoSnap m),
+    (id : w64) (S : IProp GF) : RNEnv GF :=
+  ⟨srvC ρ E ai₀ c₀ x₀, fun m => iprop(srvMsgNet ρ.raft.raft id m ∗ srvMsgNoSnap m),
     iprop(True), ρ.rd, srvRQ ρ.rd.raft, S, iprop(False)⟩
 
 /-- The ticker's contract does not read the transport's borrow (`isRNTicker` reads `E.T`). -/
 theorem rnTickerOk_srvEr_S (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64)
-    (x₀ : apply.ApplyKV) (bud : BudgetNames) (id : w64) (S S' : IProp GF) :
-    rnTickerOk (srvEr ρ E ai₀ c₀ x₀ bud id S) ⊢ rnTickerOk (srvEr ρ E ai₀ c₀ x₀ bud id S') := by
+    (x₀ : apply.ApplyKV) (id : w64) (S S' : IProp GF) :
+    rnTickerOk (srvEr ρ E ai₀ c₀ x₀ id S) ⊢ rnTickerOk (srvEr ρ E ai₀ c₀ x₀ id S') := by
   unfold rnTickerOk isRNTicker srvEr
   exact .rfl
 
-/-- **A cluster in the no-snapshot mode sends no snapshot** (D21 M3, 2026-10-19; `isRaftMsg`'s
-clause, from raft's invariant `LogNsOk`). Until then (D19p) of a one-member cluster: with raft's
-tracked bound one node, a `MsgSnap`'s sender and receiver would be the same. -/
-theorem isRaftMsg_not_snap (γ : RaftNames) (hns : γ.reNoSnap = true) (sid : w64) (st : MsgSt) :
-    isRaftMsg (GF := GF) γ sid st ⊢ ⌜st.msg.Type' ≠ MsgSnap⌝ := by
-  iintro Hr
-  iunfold isRaftMsg at Hr
-  icases Hr with ⟨%H, -⟩
-  ipureintro; exact H hns
-
-/-- **The server's `msgSnapC` never delivers** (D19p) in raft's no-snapshot mode: what
-`processMessages` hands it is an owned `MsgSnap` with its protocol facts (`rnSnapMsg`, D22 S-l
-sender, 2026-10-22), which raft never sends in that mode (`isRaftMsg_not_snap`). -/
-theorem rnSnapMsg_false (γ : NodeNames) (hns : γ.raft.reNoSnap = true) (m : Loc) :
-    rnSnapMsg γ m ⊢ (False : IProp GF) := by
+/-- **The server's `msgSnapC` never delivers** (D19p): what `processMessages` hands it is
+`rnSnapMsg`, which is `False` since the server's clusters send no snapshot (2026-10-27). -/
+theorem rnSnapMsg_false (m : Loc) : rnSnapMsg m ⊢ (False : IProp GF) := by
   iintro H
   iunfold rnSnapMsg at H
-  icases H with ⟨%st, -, %Hty, #Hrm, -⟩
-  ihave %Hne := isRaftMsg_not_snap γ.raft hns γ.id st $$ Hrm
-  exact absurd Hty Hne
+  iexact H
 
 /-- **The read names' fresh rows but the KV state's variable** (D19g (a), 2026-10-18): what
 `NewServer.spec` takes, the KV state's variable having gone into the KV invariant and the
@@ -343,7 +312,7 @@ def srvBuilt (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF)
     "#Hrn" ∷ isRaftNode Er γn (srvRAddr s) ∗
     -- (D43 M3, 2026-10-25) in raft's dynamic mode a fresh start: no entry replayed
     "%HEr" ∷ ⌜Er.C = srvC ρ E ai₀ c₀ x₀ ∧ Er.γr = γr ∧
-      (γn.node.mode.isDyn = true → uint.Z c₀ ≤ uint.Z ai₀)⌝ ∗
+      (γn.node.dyn = true → uint.Z c₀ ≤ uint.Z ai₀ ∧ γn.pre = [] ∧ ai₀ = W64 0)⌝ ∗
     "%Hρrd" ∷ ⌜ρ.rd = γr⌝ ∗
     "Hloop" ∷ rnLoopTok γn [] ∗ "Hsend" ∷ Er.S ∗ "Happly" ∷ rnApplyTok γn [] ∗ "Hrdone" ∷ rnDoneTok γn (srvRAddr s) ∗
     "#Hcci" ∷ context.isClosedchanInit ∗

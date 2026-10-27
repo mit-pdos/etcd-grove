@@ -6,7 +6,6 @@ module
 
 public import Proof.ReceiptTactics
 public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.tick
-public import Spec.go_etcd_io.raft.v3.node__Tick
 public import Perennial.Proof.time
 
 @[expose] public section
@@ -27,9 +26,9 @@ variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.kv.Assumptions]
 variable [StorageModel GF]
 
-theorem tick.wp_proof (wp_node_Tick : node.Tick.spec (GF := GF) (hG := hG)) :
+theorem tick.wp_proof (wp_node_Tick : Draft.node.Tick.spec (GF := GF) (hG := hG)) :
     tick.spec (GF := GF) (hG := hG) := by
-  intro γn id n
+  intro γ id n
   wp_start as #HisNode
   wp_auto
   ihave IH : iprop(∃ k : w64, "i" ∷ i_ptr ↦ k ∗
@@ -45,9 +44,8 @@ theorem tick.wp_proof (wp_node_Tick : node.Tick.spec (GF := GF) (hG := hG)) :
     wp_apply +noauto time.wp_Sleep
     -- the tick's credit (D19b): the receipt of the resolution of `Tick`
     wp_take_receipt as Hc1
-    ihave Hc1 : tickCred γn.bud 1 $$ [Hc1]
-    · unfold tickCred; iexact Hc1
-    wp_apply wp_node_Tick γn id n $$ [$HisNode $Hc1]
+    ihave Hc1 := Draft.tickCredit_intro γ 1 $$ Hc1
+    wp_apply wp_node_Tick n γ kvRaftN id $$ [$Hraftinit $HisNode $Hc1]
     wp_for_post
     iframe
     iexists k + W64 1

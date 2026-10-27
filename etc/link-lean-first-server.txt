@@ -537,14 +537,14 @@ zapcore_CheckedEntry__Write:
 auth_authStore__Authenticate: auth_authStore__IsAuthEnabled auth_authStore__Revision auth_redactToken zap_String zap_Logger__Check zapcore_CheckedEntry__Write
 # The raft wrapper's construction (raft.go, bootstrap.go; stage R8b-C of the raft v3.7 retarget,
 # 2026-10-16): `newRaftNode` (its callees are contracts in its spec and Perennial's `time.Now`),
-# and the new cluster's `bootstrappedRaft.newRaftNode` over raft's `StartNode` (`@`: proved and
-# linked in raft's Link.lean, under raft's `StorageModel`) and Perennial's mutex.
-StartNode: @
+# and the new cluster's `bootstrappedRaft.newRaftNode` over the node API's `StartNode` (2026-10-27:
+# its linked results at the server's storage model, `NodeApiLink.lean`, `=` terms) and Perennial's
+# mutex.
 # (D17d, 2026-10-18) `NewServer` reads `run`'s snapshot contract off the storage's application
 # token through `MemoryStorage.Snapshot`'s application triple (`rnSnapOnce_of_tok`).
 MemoryStorage__Snapshot: @
 newRaftNode:
-bootstrappedRaft__newRaftNode: StartNode newRaftNode
+bootstrappedRaft__newRaftNode: =srvApi_wp_StartNode =srvApi_wp_StartNode_dyn newRaftNode
 # The server's construction (server.go's `NewServer`; the server-construction unit, stage N0,
 # 2026-10-16, D13 and D13a-d: InvBuild.lean, InvBoot.lean, BuildAlloc.lean, BuildGap.lean).
 # `NewServer`, `restoreAlarms` and `NewUberApplier` with their bodies (their proofs unit N1's);
@@ -597,12 +597,9 @@ membership_RaftCluster__SetBackend:
 membership_RaftCluster__Recover:
 apply_NewUberApplier: @
 # (D21 M2, 2026-10-19) the inbound path from the transport (`rafthttp.Raft`, NetBridge.lean):
-# `Process` and the reports with their bodies, raft's node methods linked in raft's Link (`@`),
+# `Process` and the reports with their bodies, the node API's methods (`NodeApiLink.lean`, `=`),
 # the cluster's `IsIDRemoved` with its body; the trust boundary (D21h (A)): the stats'
 # `RecvAppendReq` and `proto.Size` of a raft message.
-node__Step: @
-node__ReportUnreachable: @
-node__ReportSnapshot: @
 v2stats_ServerStats__RecvAppendReq:
 proto_SizeMessage:
 RaftCluster__IsIDRemoved:
@@ -642,18 +639,12 @@ EtcdServer__MendPeer: rafthttp_Transport__MendPeer
 # (rafthttp stage 6d, 2026-10-24) the member's raft handler with its body, over rafthttp's
 # `Transport.Handler` (proved over its callees, `TransportSpecs.lean`; linked below since stage 6f)
 EtcdServer__RaftHandler: rafthttp_Transport__Handler
-node__Ready: @
-node__Advance: @
-node__Tick: @
-node__ReadIndex: @
-node__Propose: @
-node__ApplyConfChange: @
 mvcc_New: @
 watchableStore__Close: @
 backend__SetTxPostLockInsideApplyHook: @
 EtcdServer__restoreAlarms: schema_NewAlarmBackend v3alarm_NewAlarmStore
 EtcdServer__NewUberApplier: EtcdServer__KV apply_NewUberApplier
-etcdserver_NewServer: zap_Logger__Error zap_Error zap_Logger__Info zap_Logger__Warn v2stats_NewServerStats membership_RaftCluster__String v2stats_NewLeaderStats types_ID__String_ptr bootstrappedRaft__newRaftNode node__Ready node__Advance node__Tick node__ReadIndex types_URLs__StringSlice idutil_NewGenerator NewNotifier addFeatureGateMetrics prometheus_GaugeVec__With membership_RaftCluster__SetVersionChangedNotifier EtcdServer__Logger config_ServerConfig__ReqTimeout EtcdServer__FeatureEnabled time_Duration__Seconds_ptr math_Ceil lease_NewLessor auth_NewTokenProvider mvcc_New newCorruptionChecker mvcc_store__HashStorage schema_NewAuthBackend auth_NewAuthStore v3compactor_New EtcdServer__restoreAlarms EtcdServer__NewUberApplier EtcdServer__getTxPostLockInsideApplyHook backend__SetTxPostLockInsideApplyHook config_ServerConfig__PeerDialTimeout membership_RaftCluster__ID rafthttp_Transport__Start rafthttp_Transport__AddRemote rafthttp_Transport__AddPeer watchableStore__Close schema_bucket__ID schema_bucket__Name schema_bucket__IsSafeRangeBucket lease_lessor__GetLease lease_lessor__Attach lease_lessor__Detach lease_lessor__SetRangeDeleter lease_lessor__Lookup lease_lessor__Grant lease_lessor__Checkpoint lease_Lease__TTL lease_lessor__Promote lease_lessor__Demote lease_lessor__ExpiredLeasesC backend__ConcurrentReadTx backend__ReadTx backend__BatchTx backend__ForceCommit backend__Size backend__SizeInUse concurrentReadTx__RLock concurrentReadTx__RUnlock concurrentReadTx__UnsafeRange readTx__RLock readTx__RUnlock readTx__UnsafeRange batchTxBuffered__LockInsideApply batchTxBuffered__LockOutsideApply batchTxBuffered__UnsafeSeqPut batchTxBuffered__Unlock batchTxBuffered__UnsafeRange batchTxBuffered__UnsafeCreateBucket node__Propose EtcdServer__MemberID EtcdServer__Leader EtcdServer__Term EtcdServer__ForceSnapshot consistentIndex__ConsistentIndex EtcdServer__ClusterVersion MemoryStorage__Snapshot node__ApplyConfChange node__Step node__ReportUnreachable node__ReportSnapshot EtcdServer__Process EtcdServer__IsIDRemoved EtcdServer__ReportUnreachable EtcdServer__ReportSnapshot batchTxBuffered__UnsafeDelete
+etcdserver_NewServer: zap_Logger__Error zap_Error zap_Logger__Info zap_Logger__Warn v2stats_NewServerStats membership_RaftCluster__String v2stats_NewLeaderStats types_ID__String_ptr bootstrappedRaft__newRaftNode =srvApi_wp_Ready =srvApi_wp_Advance =srvApi_wp_Advance_dyn =srvApi_wp_Tick =srvApi_wp_ReadIndex types_URLs__StringSlice idutil_NewGenerator NewNotifier addFeatureGateMetrics prometheus_GaugeVec__With membership_RaftCluster__SetVersionChangedNotifier EtcdServer__Logger config_ServerConfig__ReqTimeout EtcdServer__FeatureEnabled time_Duration__Seconds_ptr math_Ceil lease_NewLessor auth_NewTokenProvider mvcc_New newCorruptionChecker mvcc_store__HashStorage schema_NewAuthBackend auth_NewAuthStore v3compactor_New EtcdServer__restoreAlarms EtcdServer__NewUberApplier EtcdServer__getTxPostLockInsideApplyHook backend__SetTxPostLockInsideApplyHook config_ServerConfig__PeerDialTimeout membership_RaftCluster__ID rafthttp_Transport__Start rafthttp_Transport__AddRemote rafthttp_Transport__AddPeer watchableStore__Close schema_bucket__ID schema_bucket__Name schema_bucket__IsSafeRangeBucket lease_lessor__GetLease lease_lessor__Attach lease_lessor__Detach lease_lessor__SetRangeDeleter lease_lessor__Lookup lease_lessor__Grant lease_lessor__Checkpoint lease_Lease__TTL lease_lessor__Promote lease_lessor__Demote lease_lessor__ExpiredLeasesC backend__ConcurrentReadTx backend__ReadTx backend__BatchTx backend__ForceCommit backend__Size backend__SizeInUse concurrentReadTx__RLock concurrentReadTx__RUnlock concurrentReadTx__UnsafeRange readTx__RLock readTx__RUnlock readTx__UnsafeRange batchTxBuffered__LockInsideApply batchTxBuffered__LockOutsideApply batchTxBuffered__UnsafeSeqPut batchTxBuffered__Unlock batchTxBuffered__UnsafeRange batchTxBuffered__UnsafeCreateBucket =srvApi_wp_Propose EtcdServer__MemberID EtcdServer__Leader EtcdServer__Term EtcdServer__ForceSnapshot consistentIndex__ConsistentIndex EtcdServer__ClusterVersion =srvApi_wp_MemSnapshot =srvApi_wp_ApplyConfChange =srvApi_wp_ApplyConfChange_dyn =srvApi_wp_Step =srvApi_wp_ReportUnreachable =srvApi_wp_ReportSnapshot EtcdServer__Process EtcdServer__IsIDRemoved EtcdServer__ReportUnreachable EtcdServer__ReportSnapshot batchTxBuffered__UnsafeDelete
 # (D22 S-f, 2026-10-19) opening a received database snapshot (server/storage/backend.go,
 # storage/InvOpen.lean): `OpenSnapshotBackend` with its body; the trust boundary: `OpenBackend`
 # (its goroutine can panic: `dbOpensOk`), the snapshotter's `DBFilePath`, `os.Rename` and the
@@ -668,7 +659,7 @@ storage_OpenBackend:
 storage_storage__Release:
 storage_OpenSnapshotBackend: SnapshotMetadata__GetIndex snap_Snapshotter__DBFilePath fmt_Errorf os_Rename config_ServerConfig__BackendPath storage_OpenBackend
 # (D22 S-h, 2026-10-20) the merged snapshot's sender (snapshot_merge.go, server.go; InvSnapSend.lean,
-# SnapSendBundle.lean, SnapSendBranch.lean): `newSnapshotReaderCloser`, `createMergedSnapshotMessage`
+# SnapSendBranch.lean): `newSnapshotReaderCloser`, `createMergedSnapshotMessage`
 # and `sendMergedSnap` with their bodies; the trust boundary: `io.Pipe` and its writer's
 # `CloseWithError` (names-only in Perennial), snap's `NewMessage`, `CloseNotify` and the promoted
 # `GetTo` (snap is names-only); the backend snapshot's `WriteTo`, `Size` and `Close` and raft's

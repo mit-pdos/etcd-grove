@@ -71,5 +71,5 @@ theorem ownRaftGhostR_stepR_in [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (dec :
     (id : w64) (B : Int) (HB : B < 2 ^ 64) (r : RState) (recv : List Msg) (r' : RState) : StepR
     (AdmS dec c0 S) dec id B r recv r' → ⊢ ⧖(B.toNat - γ.reBoot.length) -∗ regsOwn γ -∗ (□ ∀ fp, ⌜S
     fp⌝ -∗ logRecs γ base0 fp) -∗ ([∗list] m ∈ recv, isMessage γ m) -∗ rdCred γ (rdCount recv) -∗
-    msgsTks γ recv -∗ ownRaftGhostR γ dec c0 id r ={⊤ \ ↑raftRegN}=∗ regsOwn γ ∗ ownRaftGhostR γ dec
-    c0 id r'
+    msgsTks γ recv -∗ ownRaftGhostR γ dec c0 id r ={⊤ \ ↑(raftRegN γ)}=∗ regsOwn γ ∗ ownRaftGhostR γ
+    dec c0 id r'

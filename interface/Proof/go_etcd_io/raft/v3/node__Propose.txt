@@ -10,7 +10,9 @@ theorem node.Propose.wp_proof [package_sem : Assumptions] (wp_node_stepWait : no
     ⊢
       ∀ Φ,
         isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-            isNode γ id n ∗ nodeCtx ctx cd ∗ ownSlice data_sl data DFrac.discard ∗ ⌜data ≠ []⌝ ∗ propArg γ.raft data Q -∗
+            isNode γ id n ∗
+              nodeCtx ctx cd ∗
+                ownSlice data_sl data DFrac.discard ∗ (⌜data = []⌝ ∨ propArg γ.raft (entKey (W32 0) data) Q) -∗
           (▷ ∀ err, propErr cd err -∗ Φ (intoVal err)) -∗
             WP
               (((intoVal (methods node.ty.PointerType go!"Propose" (intoVal n)))

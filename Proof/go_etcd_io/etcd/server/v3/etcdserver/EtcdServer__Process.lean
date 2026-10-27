@@ -5,7 +5,7 @@ counterpart); D21 stage M2 (2026-10-19).
 The logger read under `lgMu` (the borrowed reader slot); `IsIDRemoved` is `false` (static
 membership); the message's `To` is the member's (the network's promise), so both `403` branches
 are dead; a `MsgApp` is counted (`RecvAppendReq` over `proto.Size`, trust-boundary axioms, D21h
-(A)); the delivered message is what raft's `node.Step` takes (`stepP_of_recv`).
+(A)); the delivered message is what the node API's `node.Step` takes (`stepIn_of_recv`).
 -/
 module
 
@@ -53,8 +53,7 @@ theorem EtcdServer.Process.wp_proof
   wp_start as ⟨#Hok, #Hctx, Hlr, Hrecv⟩
   iunfold srvProcOk at Hok
   icases Hok with ⟨%l, %c, %st, %γ, #Hlg, %Hlgnn, #Hid, %Hγid, #Hcl, #Hrc, #Hstat, %Hstnn, #Hn,
-    #Hsi, %HN⟩
-  obtain ⟨HNe, hns, hboot, hnx⟩ := HN
+    #Hsi, #Hcok, %HN⟩
   ihave #Hmpkg : isPkgInit (PROP := IProp GF)
       pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership $$ []
   · iPkgInit
@@ -113,7 +112,8 @@ theorem EtcdServer.Process.wp_proof
       iframe Hm HO HP HS
       ipureintro
       exact ⟨⟨Hmsg, Hents, Hsnap, Hctx'⟩, by rw [Hγid]; exact Hto, Hrs'⟩
-    imod (stepP_of_recv γn γ HNe hns hboot hnx ml) $$ Hrecv with Hstep
+    imod (stepIn_of_recv γn γ HN ml) $$ [Hcok Hrecv] with Hstep
+    · iframe Hcok Hrecv
     iunfold rnStepIfc at Hsi
     icases Hsi with ⟨%ni, %Hni, #HStep, -, -⟩
     have Hni' : ni = ⟨go.GoType.PointerType node.ty, #γ.nl⟩ :=
@@ -137,7 +137,8 @@ theorem EtcdServer.Process.wp_proof
       iframe Hm HO HP HS
       ipureintro
       exact ⟨⟨Hmsg, Hents, Hsnap, Hctx'⟩, by rw [Hγid]; exact Hto, Hrs'⟩
-    imod (stepP_of_recv γn γ HNe hns hboot hnx ml) $$ Hrecv with Hstep
+    imod (stepIn_of_recv γn γ HN ml) $$ [Hcok Hrecv] with Hstep
+    · iframe Hcok Hrecv
     iunfold rnStepIfc at Hsi
     icases Hsi with ⟨%ni, %Hni, #HStep, -, -⟩
     have Hni' : ni = ⟨go.GoType.PointerType node.ty, #γ.nl⟩ :=

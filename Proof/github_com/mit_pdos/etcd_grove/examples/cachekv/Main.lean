@@ -124,12 +124,12 @@ theorem Main.wp_proof
     (wp_CWatch : ∀ [go_etcd_io.etcd.cache.v3.Assumptions] [EM : EtcdModel GF],
       Cache.Watch.spec (GF := GF) (hG := hG)) :
     Main.spec (GF := GF) (hG := hG) := by
-  intro CS ES FS RS CRE CEC N id bootLog nw nops Hbf Htb Hrb48 HrbN Hck Haf
+  intro CS ES FS RS CRE CEC N id ctxs boot nw nops Hbf Htb Hrb48 HrbN Hck Haf
     Hbuq Hdbo Hms hAs H0 H31 Hops Hmul
   have Htb31 : threadBound GF ≤ 2 ^ 31 := by omega
   wp_start as ⟨Haddr, Htok, #Hprem⟩
   iunfold premises at Hprem
-  icases Hprem with ⟨#Hboot, #Hzap, #Hsetlg, #Htd, #Hns, #Htk, #Hstop, #Hnrl⟩
+  icases Hprem with ⟨#Hboot, #Hmarsh, #Hzap, #Hsetlg, #Htd, #Hns, #Htk, #Hstop, #Hnrl⟩
   -- `io.EOF` (the server's and the watch client's) and `context`'s `closedchan`, from their
   -- packages' facts
   ihave #Heof : v3rpc.eofVar (GF := GF) $$ []
@@ -197,34 +197,36 @@ theorem Main.wp_proof
   wp_apply wp_NewNop as %lg %Hlg
   (try wp_auto)
   -- the ghost state `NewServer` takes (`alloc1`)
-  imod (common.alloc1 id bootLog Hbf.idLow Hbf.boot (ckDir id) (dirOne_member id _)
-      (by omega)) with ⟨%γ, %bud, %ρ, %E₀, %Φs, %γn, %Hal, Hmb, #Hnet, Hetcd⟩
-  obtain ⟨hcfg, hdyn, hcc, hboot, htr, htx, hγn1, hγn2, hlog⟩ := Hal
+  have hblen0 : boot.length = 1 := by rw [Hbf.boot.1]; rfl
+  imod (common.alloc1 id ctxs boot Hbf.idLow Hbf.boot Hbf.cc (ckDir id) (dirOne_member id _)
+      (by omega) (by omega)) $$ Hmarsh with ⟨%γ, %ρ, %E₀, %Φs, %γn, %Hal, Hmb, #Hnet, Hetcd⟩
+  obtain ⟨hvs, hdyn, hboot, hγn1, hγn2, hlog⟩ := Hal
   -- (D48) the adapter's invariant over the KV state's half, at the plan's fact: the bootstrap log
   -- changes no KV state (`linkv.kvRaftOf_boot`), so the start state's changes are `[[]]`
-  have hσ0 : (kvModelSt ρ.rd.kv (bootEntries bootLog)).changes = [[]] := by
+  have hσ0 : (kvModelSt ρ.rd.kv (bootEntries (Draft.LogEntry.toEntries boot 0))).changes = [[]] := by
     unfold kvModelSt kvModel
-    rw [linkv.kvRaftOf_boot _ _ _ _ _ bootLog Hbf.boot, hlog]
+    rw [linkv.kvRaftOf_boot _ _ _ (fun _ _ => True) _ (Draft.LogEntry.toEntries boot 0) (srvBootLogOk_of_BootLog _ _ _ Hbf.boot), hlog]
     rfl
   imod (client.kmInv_alloc ρ.rd.kv _ (watchkv.wkW (trs.map pairOf))
       (by rw [hσ0]; exact watchkv.wkW_start _)) $$ Hetcd with ⟨%γk, %Hγk, #Hkm, #Hl0⟩
   rw [hσ0]
   obtain ⟨hγkv, hγW⟩ := Hγk
-  have hblen : bootLog.length ≤ 2 ^ 60 := by rw [Hbf.boot.1]; simp
+  have hblen : (Draft.LogEntry.toEntries boot 0).length ≤ 2 ^ 60 := by
+    simp [Draft.LogEntry.toEntries, hblen0]
   -- `Main`'s premises in the shared start's form
-  ihave #Hb := common.bootPremise_of N [id] bootLog (ckDir id) go!"cachekv" go!"cachekv"
-      (common.urls1 go!"cachekv" go!"127.0.0.1:23883" go!"127.0.0.1:23873") id cfgOk urlsOk (putget.ccOk id)
+  ihave #Hb := common.bootPremise_of N [id] (Draft.LogEntry.toEntries boot 0) ctxs (ckDir id) go!"cachekv" go!"cachekv"
+      (common.urls1 go!"cachekv" go!"127.0.0.1:23883" go!"127.0.0.1:23873") id cfgOk urlsOk
       (fun _ h => by obtain ⟨h1, h2, h3, h4, h5, h6⟩ := h; exact ⟨h1, by rw [h2]; rfl, h3, h4, h5, h6⟩)
-      (fun _ h => by obtain ⟨h1, h2, h3, h4⟩ := h; exact ⟨h1, h2, h3, h4⟩) rfl $$ Hboot
+      (fun _ h => by obtain ⟨h1, h2, h3, h4⟩ := h; exact ⟨h1, h2, h3, h4⟩) $$ Hboot
   ihave #Hcom : common.commonPremises (GF := GF) $$ []
   · iunfold common.commonPremises; iframe #
   -- `StartServer("cachekv", peerAddr, clientAddr, lg)`
   -- (2026-10-24, rafthttp stage 6d) the one-member directory is well formed
   have Hdirok : netDirOk (ckDir id) :=
     dirOne_ok id _ (by intro h; apply Hbf.idLow; rw [h]; decide) (by decide)
-  wp_apply (wp_StartServer N go!"cachekv" go!"127.0.0.1:23883" go!"127.0.0.1:23873" lg bootLog
-      (ckDir id) id γ bud ρ E₀ Φs γn Htb31
-      Hrb48 HrbN hcfg hdyn hcc hboot htr htx hblen hγn1 hγn2 Hdirok
+  wp_apply (wp_StartServer N go!"cachekv" go!"127.0.0.1:23883" go!"127.0.0.1:23873" lg (Draft.LogEntry.toEntries boot 0) ctxs
+      (ckDir id) id γ ρ E₀ Φs γn Htb31
+      Hrb48 HrbN hvs hdyn hboot hblen hγn1 hγn2 Hdirok
       (by simp [ckDir, dirOne]) Hlg Hck Haf Hbuq Hdbo)
     $$ [Htok Hmb] as %srv %err Hr
   · iframe; iframe #

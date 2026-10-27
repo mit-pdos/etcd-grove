@@ -190,8 +190,8 @@ def GMode.isDyn : GMode → Bool :=
   | GMode.static => false
   | GMode.dyn dec c0 h0 g => true
 
-def raftCertN : Namespace :=
-  nroot.@"raft_snapcert"
+def raftCertN (γ : RaftNames) : Namespace :=
+  γ.reCertNs
 
 theorem ownRaftGhost_ns_last [GoGlobalContext] [GoSemanticsFunctions] [ReceiptGS GF] [InvGS GF] (γ :
     RaftNames) (id : w64) (s : NState) {md : Bool} (Hnl : NsLink γ s) : ⊢ ownRaftGhost γ id
@@ -222,8 +222,8 @@ def ghostRest [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (md : GMode) (c : CfgM)
   iprop(⌜NsLink γ s⌝ ∗ ghostRestM γ md c id s ∗ certLink γ s.logst.storage)
 
 def storCertOk [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (st : Storage) : IProp GF :=
-  iprop((□ ∀ k E, ⌜↑raftCertN ⊆ E⌝ -∗ storCert st k ={E}=∗ raftSnapCertD γ k) ∗
-      □ ∀ k E, ⌜↑raftCertN ⊆ E⌝ -∗ raftSnapCertD γ k ={E}=∗ storCert st k)
+  iprop((□ ∀ k E, ⌜↑(raftCertN γ) ⊆ E⌝ -∗ storCert st k ={E}=∗ raftSnapCertD γ k) ∗
+      □ ∀ k E, ⌜↑(raftCertN γ) ⊆ E⌝ -∗ raftSnapCertD γ k ={E}=∗ storCert st k)
 
 theorem ghostRest_keep [GoGlobalContext] [GoSemanticsFunctions] [ReceiptGS GF] [InvGS GF] (γ :
     RaftNames) (md : GMode) (c : CfgM) (id : w64) {s s' : NState} (hb : (toPState s').base =

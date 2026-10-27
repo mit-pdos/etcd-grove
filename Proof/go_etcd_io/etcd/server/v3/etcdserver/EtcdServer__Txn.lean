@@ -277,7 +277,7 @@ local macro "txn_tail" : tactic => `(tactic| (
   · icases Hds with ⟨Hard, (⟨%Hs0, -, %respv, %errv, %log, resp, err, Hsr, Hlr, #Hcert, #Hcok, %Hlog, Hres, Hown⟩ |
       ⟨%Hs0, #HsE, Hg⟩)⟩
     · subst Hs0
-      wp_auto_lc 3
+      wp_auto_lc 6
       rcases errv with ei | _
       · icases Hres with (⟨%Hnull, #Hce⟩ | ⟨%Hn, -⟩ | ⟨#He, #Hrd, Hh⟩)
         · ihave #HeE : applyErrIs (GoInterface.ok ei) $$ []
@@ -299,16 +299,13 @@ local macro "txn_tail" : tactic => `(tactic| (
         -- the read deposit's result at the log read (unit W-M3, as `Range`'s)
         ihave HQf : iprop(|={⊤}=> (if txn.txnSerializable t then iprop(True) else
             ∃ L : List EntryModel, srvRLogLb γr.raft L ∗ ⌜kvModel γr.kv L = log⌝ ∗ □ Qr L)) $$
-            [Hlc1 Hlc2 Hlc3]
+            [Hlc1 Hlc2 Hlc3 Hlc4 Hlc5 Hlc6]
         · cases hso : txn.txnSerializable t
           · simp only [hso, Bool.false_eq_true, ↓reduceIte]
             icases HwO with ⟨%g', #Hw'⟩
             ihave #Hw'' := readWitAt_mono γr Qr g' logR log Hlog.1 $$ Hw'
             iapply readWit_fire s E γr Qr g' log $$ Hainv Hkvi Hw'' Hcok
-            iapply (lc_split (n := 2) (m := 1)).2
-            iframe Hlc3
-            iapply (lc_split (n := 1) (m := 1)).2
-            iframe Hlc1 Hlc2
+            iapply lc_join6 $$ Hlc1 Hlc2 Hlc3 Hlc4 Hlc5 Hlc6
           · simp only [hso, ↓reduceIte]
             imodintro; itrivial
         imod HQf with #HQf
@@ -497,7 +494,7 @@ local macro "txn_tailOnR" : tactic => `(tactic| (
   · icases Hds with ⟨Hard, (⟨%Hs0, #Hcls, %respv, %errv, %log, resp, err, Hsr, Hlr, #Hcert, #Hcok, %Hlog, Hres, Hown⟩ |
       ⟨%Hs0, #HsE, Hg⟩)⟩
     · subst Hs0
-      wp_auto_lc 3
+      wp_auto_lc 6
       rcases errv with ei | _
       · icases Hres with (⟨%Hnull, #Hce⟩ | ⟨%Hn, -⟩ | ⟨#He, #Hrd, Hh⟩)
         · ihave #HeE : applyErrIs (GoInterface.ok ei) $$ []
@@ -519,16 +516,13 @@ local macro "txn_tailOnR" : tactic => `(tactic| (
         -- the read deposit's result at the log read (unit W-M3, as `Range`'s)
         ihave HQf : iprop(|={⊤}=> (if txn.txnSerializable t then iprop(True) else
             ∃ L : List EntryModel, srvRLogLb γr.raft L ∗ ⌜kvModelM true γr.kv L = log⌝ ∗ □ Qr L)) $$
-            [Hlc1 Hlc2 Hlc3]
+            [Hlc1 Hlc2 Hlc3 Hlc4 Hlc5 Hlc6]
         · cases hso : txn.txnSerializable t
           · simp only [hso, Bool.false_eq_true, ↓reduceIte]
             icases HwO with ⟨%g', #Hw'⟩
             ihave #Hw'' := readWitAt_mono γr Qr g' logR log Hlog.1 $$ Hw'
             iapply readWit_fireOn s E γr Qr g' log $$ Hainv Hkvi Hw'' Hcok
-            iapply (lc_split (n := 2) (m := 1)).2
-            iframe Hlc3
-            iapply (lc_split (n := 1) (m := 1)).2
-            iframe Hlc1 Hlc2
+            iapply lc_join6 $$ Hlc1 Hlc2 Hlc3 Hlc4 Hlc5 Hlc6
           · simp only [hso, ↓reduceIte]
             imodintro; itrivial
         imod HQf with #HQf

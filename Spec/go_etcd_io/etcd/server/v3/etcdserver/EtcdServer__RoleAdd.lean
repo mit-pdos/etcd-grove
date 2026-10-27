@@ -5,6 +5,7 @@
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AuthEntry
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AdminOn
 
 @[expose] public section
 
@@ -40,6 +41,23 @@ abbrev EtcdServer.RoleAdd.spec : Prop :=
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"RoleAdd"))
       (Val #(GoInterface.ok ctx))) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); applyErrIs err ∗ authEntryOut Q resp err }}
+
+/-- **`s.RoleAdd(ctx, r)` with auth on** (the auth plan's E3w, 2026-10-27; `AdminOn.lean`): `spec`
+with its contract `raftRequest.specM true`'s (`authRaftOk_on`), the request admitted (`adminPropOk`, for a name of at most `maxKeySize` bytes);
+the outcome `authEntryOut` of `adminOutOn`: on success, the request applied at the committed prefix
+`L` before its entry (`appliedOkM true`), the auth state after it published (`pubAfterM true`) and
+its step determinate there (`adminQh`); else the apply thread's error, or the request perhaps
+proposed. -/
+abbrev EtcdServer.RoleAdd.specOn : Prop :=
+  ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
+    (cd : context.ContextDesc (IProp GF)) (r : Loc) (name : GoString) (F : mvcc.Log),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ apply.authRoleAddIs r name ∗ ⌜name.length ≤ backend.maxKeySize⌝ ∗
+      adminPreOn s E ρ ctx cd F }}
+    (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"RoleAdd"))
+      (Val #(GoInterface.ok ctx))) (Val #r))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); applyErrIs err ∗
+      authEntryOut (adminOutOn s E ρ (irrRoleAdd name) F (adminQh ρ.kv (irrRoleAdd name))
+        etcdserverpb.AuthRoleAddResponse.ty) resp err }}
 
 end spec
 

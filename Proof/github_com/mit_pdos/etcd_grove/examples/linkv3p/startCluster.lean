@@ -35,7 +35,7 @@ namespace EtcdGrove
 namespace linkv3p
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3 go_etcd_io.etcd.server.v3.etcdserver
-open putget3 (httpURL ccOk commonPremises)
+open putget3 (httpURL commonPremises)
 open common (memberBoot)
 
 section proof
@@ -52,10 +52,10 @@ theorem startCluster.wp_proof
     (wp_startBridge : startBridge.spec (GF := GF) (hG := hG))
     (wp_NewClients : common.NewClients.spec (GF := GF) (hG := hG)) :
     startCluster.spec (GF := GF) (hG := hG) := by
-  intro CS N id₁ id₂ id₃ bootLog lg pfx Hbf Hlg Htb Hrb48 HrbN Hck Haf Hbuq Hdbo Hms
+  intro CS N id₁ id₂ id₃ ctxs boot lg pfx Hbf Hlg Htb Hrb48 HrbN Hck Haf Hbuq Hdbo Hms
   wp_start as ⟨Ha₁, Ha₂, Ha₃, Hc₁, Hc₂, Hc₃, Hba₁, Hba₂, Hba₃, Hf₁, Hf₂, Hf₃, Htok, #Hprem⟩
   iunfold premises at Hprem
-  icases Hprem with ⟨#Hb₁, #Hb₂, #Hb₃, #Hcom⟩
+  icases Hprem with ⟨#Hb₁, #Hb₂, #Hb₃, #Hmarsh, #Hcom⟩
   -- `context`'s `closedchan`, from its package's facts
   ihave #Hcci : context.isClosedchanInit (GF := GF) $$ []
   · iapply context.isClosedchanInit_of_init
@@ -122,23 +122,27 @@ theorem startCluster.wp_proof
   have Hnz := common.id_nz id₁ id₂ id₃ Hbf.idLow Hbf.idLow0
   have Hdok : netDirOk (dir3 id₁ id₂ id₃) :=
     dir3_ok id₁ id₂ id₃ (Hnz id₁ (by simp)) (Hnz id₂ (by simp)) (Hnz id₃ (by simp))
-  imod (common.alloc3 id₁ id₂ id₃ bootLog Hbf.idLow Hbf.idLow0 Hbf.boot (dir3 id₁ id₂ id₃)
-      peerAddr₁ peerAddr₂ peerAddr₃ Hdok.1 (dir3_host id₁ id₂ id₃) (by omega)) $$ Hf₁ Hf₂ Hf₃
-    with ⟨%γ, %bud, %ρ₁, %ρ₂, %ρ₃, %E₁, %E₂, %E₃, %Φs, %γn, %Hal, Hmb₁, ⟨#Hsl₁, Ho₁⟩, Hmb₂,
+  have hblen0 : boot.length = 3 := by rw [Hbf.boot.1]; rfl
+  iunfold ids at Hmarsh
+  imod (common.alloc3 id₁ id₂ id₃ ctxs boot Hbf.idLow Hbf.idLow0 Hbf.boot Hbf.cc (dir3 id₁ id₂ id₃)
+      peerAddr₁ peerAddr₂ peerAddr₃ Hdok.1 (dir3_host id₁ id₂ id₃) (by omega) (by omega))
+      $$ Hmarsh Hf₁ Hf₂ Hf₃
+    with ⟨%γ, %reg₁, %reg₂, %reg₃, %ρ₁, %ρ₂, %ρ₃, %E₁, %E₂, %E₃, %Φs, %γn, %Hal, Hmb₁, ⟨#Hsl₁, Ho₁⟩, Hmb₂,
     ⟨#Hsl₂, Ho₂⟩, Hmb₃, ⟨#Hsl₃, Ho₃⟩, Hetcd⟩
-  obtain ⟨hcfg, hdyn, hcc, hboot, htr, htx, hγn1, hγn2, hlog₁, hst₂, hst₃, -⟩ :=
-    Hal
+  obtain ⟨hvs, hdyn, hboot, hγn1, hγn2, hlog₁, hst₂, hst₃, -⟩ := Hal
   obtain ⟨hn12, hn13, hn23⟩ := common.id_ne id₁ id₂ id₃ Hbf.idLow Hbf.idLow0
-  have hblen : bootLog.length ≤ 2 ^ 60 := by rw [Hbf.boot.1]; simp
+  have hblen : (Draft.LogEntry.toEntries boot 0).length ≤ 2 ^ 60 := by
+    simp [Draft.LogEntry.toEntries, hblen0]
   -- the three members, each served
   iunfold memberBoot at Hmb₁
   icases Hmb₁ with ⟨%Hp₁, Hmb₁⟩
-  ihave Hmb₁ : memberBoot γ bud bootLog ρ₁ E₁ Φs id₁ $$ [Hmb₁]
+  ihave Hmb₁ : memberBoot { γ with reg := reg₁ } ctxs ρ₁ E₁ Φs id₁ $$ [Hmb₁]
   · iunfold memberBoot; iframe; ipureintro; exact Hp₁
   wp_apply (wp_startMember N name₁ peerAddr₁ clientAddr₁ (slice.mk peer₁ (W64 1) (W64 1)) pm lg
       (slice.mk peer₁ (W64 1) (W64 1)) (slice.mk peer₂ (W64 1) (W64 1))
-      (slice.mk peer₃ (W64 1) (W64 1)) (ids id₁ id₂ id₃) bootLog
-      (dir3 id₁ id₂ id₃) id₁ γ bud ρ₁ E₁ Φs γn Htb Hrb48 HrbN hcfg hdyn hcc hboot htr htx hblen hγn1 hγn2
+      (slice.mk peer₃ (W64 1) (W64 1)) (ids id₁ id₂ id₃)
+      (Draft.LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃) id₁ { γ with reg := reg₁ } ρ₁ E₁ Φs γn
+      Htb Hrb48 HrbN hvs hdyn hboot hblen hγn1 hγn2
       Hdok (by simp [dir3]) Hlg Hck Haf Hbuq Hdbo Hms) $$ [Ha₁ Hc₁ Htok Hmb₁ Ho₁] as %s₁ %err₁ Hr₁
   · iframe; iframe #
   icases Hr₁ with (⟨%Herr, Htok⟩ | ⟨%Herr, Hup₁⟩)
@@ -156,12 +160,13 @@ theorem startCluster.wp_proof
   icases Hgo₁ with ⟨-, Htok⟩
   iunfold memberBoot at Hmb₂
   icases Hmb₂ with ⟨%Hp₂, Hmb₂⟩
-  ihave Hmb₂ : memberBoot γ bud bootLog ρ₂ E₂ Φs id₂ $$ [Hmb₂]
+  ihave Hmb₂ : memberBoot { γ with reg := reg₂ } ctxs ρ₂ E₂ Φs id₂ $$ [Hmb₂]
   · iunfold memberBoot; iframe; ipureintro; exact Hp₂
   wp_apply (wp_startMember N name₂ peerAddr₂ clientAddr₂ (slice.mk peer₂ (W64 1) (W64 1)) pm lg
       (slice.mk peer₁ (W64 1) (W64 1)) (slice.mk peer₂ (W64 1) (W64 1))
-      (slice.mk peer₃ (W64 1) (W64 1)) (ids id₁ id₂ id₃) bootLog
-      (dir3 id₁ id₂ id₃) id₂ γ bud ρ₂ E₂ Φs γn Htb Hrb48 HrbN hcfg hdyn hcc hboot htr htx hblen hγn1 hγn2
+      (slice.mk peer₃ (W64 1) (W64 1)) (ids id₁ id₂ id₃)
+      (Draft.LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃) id₂ { γ with reg := reg₂ } ρ₂ E₂ Φs γn
+      Htb Hrb48 HrbN hvs hdyn hboot hblen hγn1 hγn2
       Hdok (by simp [dir3, Ne.symm hn12]) Hlg Hck Haf Hbuq Hdbo Hms)
     $$ [Ha₂ Hc₂ Htok Hmb₂ Ho₂] as %s₂ %err₂ Hr₂
   · iframe; iframe #
@@ -180,12 +185,13 @@ theorem startCluster.wp_proof
   icases Hgo₂ with ⟨-, Htok⟩
   iunfold memberBoot at Hmb₃
   icases Hmb₃ with ⟨%Hp₃, Hmb₃⟩
-  ihave Hmb₃ : memberBoot γ bud bootLog ρ₃ E₃ Φs id₃ $$ [Hmb₃]
+  ihave Hmb₃ : memberBoot { γ with reg := reg₃ } ctxs ρ₃ E₃ Φs id₃ $$ [Hmb₃]
   · iunfold memberBoot; iframe; ipureintro; exact Hp₃
   wp_apply (wp_startMember N name₃ peerAddr₃ clientAddr₃ (slice.mk peer₃ (W64 1) (W64 1)) pm lg
       (slice.mk peer₁ (W64 1) (W64 1)) (slice.mk peer₂ (W64 1) (W64 1))
-      (slice.mk peer₃ (W64 1) (W64 1)) (ids id₁ id₂ id₃) bootLog
-      (dir3 id₁ id₂ id₃) id₃ γ bud ρ₃ E₃ Φs γn Htb Hrb48 HrbN hcfg hdyn hcc hboot htr htx hblen hγn1 hγn2
+      (slice.mk peer₃ (W64 1) (W64 1)) (ids id₁ id₂ id₃)
+      (Draft.LogEntry.toEntries boot 0) ctxs (dir3 id₁ id₂ id₃) id₃ { γ with reg := reg₃ } ρ₃ E₃ Φs γn
+      Htb Hrb48 HrbN hvs hdyn hboot hblen hγn1 hγn2
       Hdok (by simp [dir3, Ne.symm hn13, Ne.symm hn23]) Hlg Hck Haf Hbuq Hdbo Hms)
     $$ [Ha₃ Hc₃ Htok Hmb₃ Ho₃] as %s₃ %err₃ Hr₃
   · iframe; iframe #
@@ -330,19 +336,19 @@ theorem startCluster.wp_proof
     · ipureintro; exact Hnr₁
     isplitr
     · ipureintro; exact HR₁
-    ipureintro; exact ⟨hr₁, hc₁, hch₁, hl₁⟩
+    ipureintro; exact ⟨⟨reg₁, hr₁⟩, hc₁, hch₁, hl₁⟩
   isplitr
   · iunfold memberAt; iframe #; isplitr
     · ipureintro; exact Hnr₂
     isplitr
     · ipureintro; exact HR₂
-    ipureintro; exact ⟨hr₂, hc₂, hch₂, hl₂⟩
+    ipureintro; exact ⟨⟨reg₂, hr₂⟩, hc₂, hch₂, hl₂⟩
   isplitr
   · iunfold memberAt; iframe #; isplitr
     · ipureintro; exact Hnr₃
     isplitr
     · ipureintro; exact HR₃
-    ipureintro; exact ⟨hr₃, hc₃, hch₃, hl₃⟩
+    ipureintro; exact ⟨⟨reg₃, hr₃⟩, hc₃, hch₃, hl₃⟩
   ipureintro; exact ⟨hst₂, hst₃⟩
 
 end proof

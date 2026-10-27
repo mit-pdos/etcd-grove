@@ -359,7 +359,7 @@ theorem kv_prop_au_M (on : Bool) (γ : ServerRaftNames) (γk : KVNames) (d : Lis
     (hdec : apply.irrDecode d = some rq') (hw : irrWireOf (apply.withHeader rq hm) rq')
     (id : w64) (γf : GName) (hid : apply.irrId rq' = some id) (E : CoPset) (hE : ↑kvN ⊆ E) :
     ⊢ kvInvM (GF := GF) on γ γk srvAuthSt0 -∗ idClaim γk.ids id d γf -∗ idRegd γk.ids id -∗
-      reqPropOkM on γk rq Qh ={E}=∗ srvPropAu1 γ d (Qh hm) := by
+      reqPropOkM on γk rq Qh ={E}=∗ srvPropAu1 γ d (Qh hm) ∗ srvQInv γ (Qh hm) := by
   cases on
   · rw [kvInvM_false]
     iintro #Hinv #Hcl #Hreg Hok
@@ -367,7 +367,11 @@ theorem kv_prop_au_M (on : Bool) (γ : ServerRaftNames) (γk : KVNames) (d : Lis
     icases Hok with ⟨%Qr, Hok, %HQh⟩
     subst HQh
     ihave Hok' := reqPropOk_wire γk rq rq' hm Qr hw $$ Hok
-    iapply kv_prop_au γ γk d rq' Qr hd hdec id γf hid E hE $$ Hinv Hcl Hreg Hok'
+    ihave ⟨Hok', Hq⟩ := reqPropOk_qinv γ γk rq' Qr $$ Hok'
+    imod kv_prop_au γ γk d rq' Qr hd hdec id γf hid E hE $$ Hinv Hcl Hreg Hok' with Hau
+    imodintro
+    iframe Hau
+    iapply Hq $$ Hinv
   · rw [kvInvM_true]
     iintro #Hinv #Hcl #Hreg Hok
     iunfold reqPropOkM at Hok
@@ -376,8 +380,12 @@ theorem kv_prop_au_M (on : Bool) (γ : ServerRaftNames) (γk : KVNames) (d : Lis
     ihave ⟨%Hz, Hok⟩ := reqPropOkOn_noZero γk srvAuthSt0 (apply.withHeader rq hm) (Qh hm) $$ Hok
     have he := irrWireOf_eq rq rq' hm hw Hz
     subst he
-    iapply kv_prop_au_on γ γk srvAuthSt0 d (apply.withHeader rq hm) (Qh hm) hd hdec id γf hid E hE
-      $$ Hinv Hcl Hreg Hok
+    ihave ⟨Hok, Hq⟩ := reqPropOkOn_qinv γ γk srvAuthSt0 (apply.withHeader rq hm) (Qh hm) $$ Hok
+    imod kv_prop_au_on γ γk srvAuthSt0 d (apply.withHeader rq hm) (Qh hm) hd hdec id γf hid E hE
+      $$ Hinv Hcl Hreg Hok with Hau
+    imodintro
+    iframe Hau
+    iapply Hq $$ Hinv
 
 end lemmas
 

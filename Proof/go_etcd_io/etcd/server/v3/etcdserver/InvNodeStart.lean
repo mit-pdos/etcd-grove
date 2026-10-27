@@ -28,7 +28,7 @@ cluster's `bootstrappedRaft.newRaftNode` (`bootstrap.go`) are specified over, be
   `cfg`'s fields as the caller gave them, both halves of `applyc` with `cum` at `[[]]`, and the
   right to close `done`. The names `γ` are the wrapper's (`RNNames`): `newRaftNode` allocates
   `ap`, `cum` and `done`, the rest are the caller's.
-* `srvIdxOk_boot`: the bootstrap log (`BootLogOk`) passes the server's `srvIdxOk` at the applied
+* `srvIdxOk_boot`: the bootstrap log (`srvBootLogOk`) passes the server's `srvIdxOk` at the applied
   index `0` (its entries are v1 conf changes whose bytes decode: `isConfChangeEncoding`).
 -/
 module

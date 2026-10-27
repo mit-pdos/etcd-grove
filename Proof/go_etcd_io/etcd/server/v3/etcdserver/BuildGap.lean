@@ -83,6 +83,33 @@ theorem batchWaitOk_of_work (ρ : ReqNames) (E : apply.AEnv GF) (L : List EntryM
     icases HR with ⟨%d, %rq, %γf, %F, #Hc0, -, -⟩
     iapply idClaim_noZero ρ.ids d γf $$ HNZ Hc0
 
+/-- **The claims of a committed log** (2026-10-27): those of the server's log of requested
+entries, every entry of a committed log `A` being a filler (which claims nothing) or of the same
+type and data as one of the server's log. -/
+theorem entryClaims_transfer (γi : IdNames) (ai₀ : w64) (A L : List EntryModel)
+    (hA : srvIdxOkW ai₀ A) (h : Draft.opsOf (A.map EntryModel.toLE) <+: L.map EntryModel.toLE) :
+    ([∗list] m ∈ L, entryClaim (GF := GF) γi m) ⊢ [∗list] m ∈ A, entryClaim γi m := by
+  have key : ∀ (k : Nat) (m : EntryModel), A[k]? = some m →
+      iprop(□ [∗list] m ∈ L, entryClaim (GF := GF) γi m) ⊢ entryClaim γi m := by
+    intro k m hk
+    rcases srv_entry_src ai₀ A L hA h m (List.mem_of_getElem? hk) with ⟨ht, hd⟩ | ⟨m', hm', he⟩
+    · iintro -
+      iunfold entryClaim
+      ileft; ipureintro; exact .inr hd
+    · obtain ⟨j, hj⟩ := List.getElem?_of_mem hm'
+      have h1 := congrArg Draft.LogEntry.type he
+      have h2 := congrArg Draft.LogEntry.data he
+      simp only [EntryModel.toLE] at h1 h2
+      iintro #HL
+      ihave #Hc := (BigSepL.bigSepL_lookup (Φ := fun _ m => entryClaim (GF := GF) γi m) hj) $$ HL
+      unfold entryClaim
+      rw [← h1, ← h2]
+      iexact Hc
+  iintro #HL
+  iapply (BigSepL.bigSepL_intro (Φ := fun _ m => entryClaim (GF := GF) γi m) key)
+  imodintro
+  iexact HL
+
 /-- **The workload clause, proved** (D19c, 2026-10-18; until then a premise of `NewServer.spec`):
 a committed log is a prefix of the KV invariant's, whose entries have good shapes and claimed ids
 (`kvWork`); with the reserved id `0` the claims give the ids (`batchWaitOk_of_work`). -/
@@ -96,48 +123,60 @@ theorem clusterWorkloadOk_of (ρ : ReqNames) (E : apply.AEnv GF) :
   iinv Hkv with >Hi Hclose
   icases Hi with ⟨%L', HL', Hσ, %Hok, #Hw⟩
   imod srvRLog_lb ρ.raft (⊤ \ ↑kvN) (mask_ndot_ne' nroot "raft_commit" "server_kv" (by decide))
-    L' L $$ Hr HL' HL with ⟨HL', -, %Hp⟩
+    L' L $$ Hr HL' HL with ⟨HL', %Hp⟩
+  ihave %HLi := srvRLogLb_idx ρ.raft L $$ HL
   imod Hclose $$ [HL' Hσ] with -
   · inext; iexists L'; iframe HL' Hσ Hw; ipureintro; exact Hok
   iunfold kvWork at Hw
   icases Hw with ⟨%Hsh, #Hcl⟩
   obtain ⟨Hsh, Hccl⟩ := Hsh
-  obtain ⟨R, rfl⟩ := Hp
-  rw [logShape_append] at Hsh
-  icases BigSepL.bigSepL_append.1 $$ Hcl with ⟨#HclL, -⟩
+  -- (2026-10-27) the committed log's entries are the server's log's or fillers
+  have hshL : logShape L := by
+    intro m hm
+    rcases srv_entry_src _ L L' HLi Hp.2.2 m hm with ⟨ht, hd⟩ | ⟨m', hm', he⟩
+    · exact ⟨fun _ => .inl hd, fun h => absurd ht h⟩
+    · have h1 := congrArg Draft.LogEntry.type he
+      have h2 := congrArg Draft.LogEntry.data he
+      simp only [EntryModel.toLE] at h1 h2
+      have := Hsh m' hm'
+      unfold entryShape at this ⊢
+      rw [← h1, ← h2]; exact this
+  have hcclL : ccLogOk ρ.raft.raft L := by
+    intro m hm
+    rcases srv_entry_src _ L L' HLi Hp.2.2 m hm with ⟨ht, hd⟩ | ⟨m', hm', he⟩
+    · intro h; exact absurd ht h
+    · have h1 := congrArg Draft.LogEntry.type he
+      have h2 := congrArg Draft.LogEntry.data he
+      simp only [EntryModel.toLE] at h1 h2
+      rw [← h1, ← h2]; exact Hccl m' hm'
+  ihave #HclL := entryClaims_transfer ρ.ids _ L L' HLi Hp.2.2 $$ Hcl
   imodintro
   isplitr
-  · ipureintro; exact Hsh.1
-  iapply batchWaitOk_of_work ρ E L Hsh.1 (fun m hm => Hccl m (List.mem_append_left _ hm))
-    $$ HclL HNZ HL
+  · ipureintro; exact hshL
+  iapply batchWaitOk_of_work ρ E L hshL hcclL $$ HclL HNZ HL
 
 /-- **The server's raft environment meets the wrapper's discharge** (`rnEnvOk`), for wrapper
-names `γw` over the server's raft names (raft's, the start log and index the server's), in the
-static mode over the `MemoryStorage`, with the budget `bud`: the tick's resource and the read
-registrations by `srvEr`'s definition, every message but a snapshot admitted (D21 M3: raft's no-snapshot mode; D19p: a one-member cluster), with
-its bundle (`srvMsgNet`, D21 stage M1), a committed log's `E.C` from the
-KV invariant's indices (a committed log is a prefix of the KV invariant's, `srvIdxOkW`, and its
-next index fits), the workload clause's `logShape` and `batchWaitOk`, and back from `srvC`. -/
+names `γw` over the server's raft names (the cluster the server's, the start log and index the
+server's), in a dynamic cluster at the server's decoder, the storage's cap at least `1`: the tick's
+resource and the read registrations by `srvEr`'s definition, every message the node sends
+admitted with its bundle (`srvMsgNet`, D21 stage M1) and no snapshot (`srv_sentMsg_notSnap`), a
+committed log's `E.C` from the KV invariant's indices (a committed log's requested entries are a
+prefix of the KV invariant's, whose indices its own are, `srvRLogLb_idx`, and its next index fits),
+the workload clause's `logShape` and `batchWaitOk`, and back from `srvC`. (2026-10-27: over the node
+API; no budget names, no raft modes.) -/
 theorem rnEnvOk_of_cluster (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64)
-    (x₀ : apply.ApplyKV) (bud : BudgetNames) (γw : RNNames)
-    (hraft : γw.node.raft = ρ.raft.raft) (hpre : γw.pre = ρ.raft.pre)
+    (x₀ : apply.ApplyKV) (γw : RNNames)
+    (hraft : γw.node = ρ.raft.raft) (hpre : γw.pre = ρ.raft.pre)
     (hai : uint.Z ρ.raft.ai0 = γw.pre.length) (hai0 : ρ.raft.ai0 = ai₀)
-    -- (D43 M3, 2026-10-25) the node's mode, static exactly when raft's names are; in the dynamic
-    -- mode at the server's decoder
-    (hmode : γw.node.mode = RNMode.static ↔ γw.node.raft.reDyn = none)
-    (hdec : ∀ dec c0 h0 h1, γw.node.mode = .dyn dec c0 h0 h1 →
-      dec = srvDec ρ.rd.kv.c0 ρ.rd.raft.raft.reBoot)
-    (hstor : γw.node.stor = memStorIface γw.ms)
-    (hbud : γw.node.bud = bud)
-    -- (D21 M3, 2026-10-19; until then, D19p, a one-member cluster) raft's no-snapshot mode
-    (hns : ρ.raft.raft.reNoSnap = true)
+    -- (D43 M3, 2026-10-25) in a dynamic cluster at the server's decoder
+    (hdec : γw.node.dyn = true → γw.node.dec = srvDec ρ.rd.kv.c0 γw.node.boot)
     -- (D21 M3) the storage's cap at least `1`
     (hcap : 1 ≤ γw.γs.cap)
     -- (2026-10-24, rafthttp stage 6d) the member's id, its messages' sender, and the transport's
     -- `Send`'s borrow
-    (id : w64) (S : IProp GF) (hid : γw.node.id = id) :
+    (id : w64) (S : IProp GF) (hid : γw.id = id) :
     kvInv (GF := GF) ρ.raft ρ.kv ∗ srvRaftLogInv ρ.raft ∗ clusterWorkloadOk ρ E ⊢
-      rnEnvOk (srvEr ρ E ai₀ c₀ x₀ bud id S) γw := by
+      rnEnvOk (srvEr ρ E ai₀ c₀ x₀ id S) γw := by
   iintro ⟨#Hkv, #Hr, #Hwl⟩
   unfold rnEnvOk srvEr
   simp only
@@ -146,33 +185,32 @@ theorem rnEnvOk_of_cluster (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64
   isplitr
   · ipureintro; exact ⟨hraft.symm, hpre.symm, hai⟩
   isplitr
-  · ipureintro; exact ⟨hmode, hdec, hstor, by rw [hraft]; exact hns⟩
+  · ipureintro; exact hdec
   isplitr
   · ipureintro; exact hcap
   isplitr
-  · iintro !> %m %st ⟨#Hmo, #Hrm, #Htl, Hc, Htk⟩
-    rw [hraft, hbud] at *
-    isplitl [Hc Htk]
+  · iexact Hr
+  isplitr
+  · iintro !> %m %st ⟨#Hmo, #Hrm, Hc⟩
+    ihave #Hcl : srvClusterOk ρ.raft $$ []
+    · iunfold srvRaftLogInv at Hr; icases Hr with ⟨-, #H, -⟩; iexact H
+    rw [hraft, hid] at *
+    ihave %Hns := srv_sentMsg_notSnap ρ.raft id st $$ [Hcl Hrm]
+    · iframe Hcl Hrm
+    isplitl [Hc]
     · -- (D21 stage M1) the bundle a receiver's `Step` takes
       iunfold srvMsgNet
       iexists st
-      iframe Hmo Htl Hc Htk
-      rw [← hid]; iexact Hrm
+      iframe Hmo Hrm Hc
     iunfold srvMsgNoSnap
     iexists st
     iframe Hmo
-    iapply isRaftMsg_not_snap ρ.raft.raft hns _ st $$ Hrm
+    ipureintro; exact Hns
   isplitr
   · iintro !> %L #HL %Hfit
     iunfold clusterWorkloadOk at Hwl
     imod Hwl $$ HL with ⟨%Hent, #Hbw⟩
-    iunfold kvInv at Hkv
-    iinv Hkv with >Hi Hclose
-    icases Hi with ⟨%L', HL', Hσ, %Hok, #Hw⟩
-    imod srvRLog_lb ρ.raft (⊤ \ ↑kvN) (mask_ndot_ne' nroot "raft_commit" "server_kv" (by decide))
-      L' L $$ Hr HL' HL with ⟨HL', -, %Hp⟩
-    imod Hclose $$ [HL' Hσ] with -
-    · inext; iexists L'; iframe HL' Hσ Hw; ipureintro; exact Hok
+    ihave %HLi := srvRLogLb_idx ρ.raft L $$ HL
     imodintro
     imodintro
     unfold srvC
@@ -180,7 +218,7 @@ theorem rnEnvOk_of_cluster (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64
     ipureintro
     refine ⟨?_, Hent⟩
     rw [← hai0]
-    exact srvIdxOk_of_W _ _ (srvIdxOkW_prefix _ _ _ Hok.2.1 Hp) Hfit
+    exact srvIdxOk_of_W _ _ HLi Hfit
   isplitr
   · iintro !> %L #HC
     unfold srvC

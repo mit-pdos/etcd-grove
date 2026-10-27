@@ -43,7 +43,7 @@ as an `EntryConfChange`'s data: `cc.Marshal()` in `configure`): raft's decoder `
 (`CCModel.lean`, what `proto.Unmarshal` makes of bytes into a `*ConfChange`, opaque) accepts
 them. `pbutil.MustUnmarshalMessage` panics on any other bytes. Until stage R8b of the raft v3.7
 retarget (2026-10-16) an opaque predicate of the server's own; now one notion of a `ConfChange`
-encoding, so that the bootstrap log's entries (`BootLogOk`: bytes decoding to `AddNode`) pass
+encoding, so that the bootstrap log's entries (`srvBootLogOk`: bytes decoding to `AddNode`) pass
 the server's `srvIdxOk` and `srvCCPolicy` matches raft's policy. -/
 def isConfChangeEncoding [GooseExts] (bs : List w8) : Prop := (ccDecodeV1 bs).isSome
 

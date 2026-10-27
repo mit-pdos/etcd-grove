@@ -104,7 +104,7 @@ variable [sem : go.Semantics]
 header): of a committed prefix `A` of the server's log ending at `i`. -/
 def dbImage (γ : ServerRaftNames) (γk : KVNames) (i : w64) (D : Data) : IProp GF :=
   iprop(∃ A : List EntryModel, srvRLogLb γ A ∗
-    ⌜uint.Z i = uint.Z γ.ai0 + A.length ∧ imageAt γk γ.raft.reBoot i (γ.pre ++ A) A D⌝)
+    ⌜uint.Z i = uint.Z γ.ai0 + A.length ∧ imageAt γk γ.raft.boot i (γ.pre ++ A) A D⌝)
 
 instance dbImage_persistent (γ : ServerRaftNames) (γk : KVNames) (i : w64) (D : Data) :
     Persistent (dbImage (GF := GF) γ γk i D) := by
@@ -116,11 +116,11 @@ instance dbImage_persistent (γ : ServerRaftNames) (γk : KVNames) (i : w64) (D 
 fixes. The KV names differ per member (their ghost names), but `dbImage` reads only the start
 values (`kvModel`): `dbImage_of_srvImage`, `srvImage_of_dbImage` move between a member's and the
 network's. -/
-def srvImage (γ : RaftNames) (i : w64) (D : Data) : IProp GF :=
+def srvImage (γ : SrvRaft) (i : w64) (D : Data) : IProp GF :=
   iprop(∃ γk : KVNames, ⌜γk.c0 = W64 0 ∧ γk.ch0 = apply.alarmChain false false false ∧
     γk.log0 = [[], []]⌝ ∗ dbImage ⟨γ, [], W64 0⟩ γk i D)
 
-instance srvImage_persistent (γ : RaftNames) (i : w64) (D : Data) :
+instance srvImage_persistent (γ : SrvRaft) (i : w64) (D : Data) :
     Persistent (srvImage (GF := GF) γ i D) := by
   unfold srvImage; infer_instance
 
@@ -145,7 +145,7 @@ theorem dbImage_kv_congr {γ : ServerRaftNames} {γk γk' : KVNames} {i : w64} {
   exact h2'
 
 /-- A member's image certificate is the network's. -/
-theorem srvImage_of_dbImage {γ : RaftNames} {γk : KVNames} {i : w64} {D : Data}
+theorem srvImage_of_dbImage {γ : SrvRaft} {γk : KVNames} {i : w64} {D : Data}
     (h0 : γk.c0 = W64 0) (h1 : γk.ch0 = apply.alarmChain false false false)
     (h2 : γk.log0 = [[], []]) :
     dbImage (GF := GF) ⟨γ, [], W64 0⟩ γk i D ⊢ srvImage γ i D := by
@@ -157,7 +157,7 @@ theorem srvImage_of_dbImage {γ : RaftNames} {γk : KVNames} {i : w64} {D : Data
   exact ⟨h0, h1, h2⟩
 
 /-- The network's image certificate is any member's. -/
-theorem dbImage_of_srvImage {γ : RaftNames} {γk : KVNames} {i : w64} {D : Data}
+theorem dbImage_of_srvImage {γ : SrvRaft} {γk : KVNames} {i : w64} {D : Data}
     (h0 : γk.c0 = W64 0) (h1 : γk.ch0 = apply.alarmChain false false false)
     (h2 : γk.log0 = [[], []]) :
     srvImage (GF := GF) γ i D ⊢ dbImage ⟨γ, [], W64 0⟩ γk i D := by
