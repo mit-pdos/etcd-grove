@@ -1,0 +1,45 @@
+/-
+`(*threadSafeMap).deleteLocked(key)` (`thread_safe_store.go:355`): removes the key's object from
+the indices and the items, under the write lock. Lean-first.
+-/
+module
+
+public import Proof.k8s_io.client_go.tools.cache.TSDefs
+
+@[expose] public section
+
+noncomputable section
+
+namespace Perennial
+namespace EtcdGrove
+namespace cache
+
+open Iris Iris.BI k8s_io.client_go.tools.cache
+
+section spec
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
+
+/-- `c.deleteLocked(key)` with the write lock's resources: the key not in the items, the indices
+exact for them. -/
+abbrev threadSafeMap.deleteLocked.spec : Prop :=
+  ∀ (c : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn) (σ : St) (ph : Ph)
+    (key : GoString),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗
+      structFieldRef threadSafeMap go!"index" c ↦□ γ.idx ∗
+      structFieldRef storeIndex go!"indexers" γ.idx ↦□ γ.im ∗
+      tsPhys c γ σ ph 1 ∗ tsPers OK Fam σ ph ∗
+      ⌜ixOk (σ.fns Fam) σ.items ph.ix⌝ }}
+    (App (Val (c @!! go.GoType.PointerType threadSafeMap.ty @!! go!"deleteLocked")) (Val #key))
+  {{ RET #(); ∃ ix' : Ix,
+      tsPhys c γ { σ with items := GMap.delete key σ.items } { ph with ix := ix' } 1 ∗
+      ⌜ixOk (σ.fns Fam) (GMap.delete key σ.items) ix'⌝ }}
+
+end spec
+
+end cache
+end EtcdGrove
+end Perennial
