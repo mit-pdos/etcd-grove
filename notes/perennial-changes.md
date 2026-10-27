@@ -776,3 +776,14 @@ Three of the watch client's local workarounds (D25, `notes/decisions.md`, "S1c's
 - **Proposed change.** `errors.Is.spec` for a comparable non-pointer target (Go's `Is` compares
   with `==` first, which does not panic for a comparable target type), and an `errors.As` spec that
   says `false` for a leaf error not in the target's type set; then the four are proved here.
+
+### `go.NotInterface go.uint64`
+
+- **Missing.** Perennial's `PostLifting.lean` has `go.NotInterface` instances for composite types
+  (arrays, pointers, slices, maps, untyped) but none for the basic integer types, so
+  `MethodResolve` on a named type over `uint64` (`types.ID`'s `String`) does not step.
+- **Workaround here.** Local instances (`InvStart.lean`, `apply/BackendLemmas2.lean`,
+  `EtcdServer__sendMergedSnap.lean`, `SnapTakeProof.lean` (D22 J4b)), each `⟨by unfold go.uint64;
+  trivial⟩`.
+- **Proposed change.** Instances for the basic types (`uint64`, `int64`, `string`, `bool`, ...) in
+  `PostLifting.lean`, beside the composite ones.
