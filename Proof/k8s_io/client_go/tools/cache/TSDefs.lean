@@ -195,6 +195,33 @@ theorem storeSt_update (γ : TsNames) (σ : St) (f : St → St) (K : St → IPro
   imodintro
   iframe
 
+/-- **The object accessor's contract** (a premise of the writers' specs: apimachinery's
+`meta.Accessor` and the accessor's `GetResourceVersion`, outside client-go, which the client
+discharges for its object types): on an object meeting `OK`, `meta.Accessor` fails exactly when
+`rvOf` has no resource version, and otherwise returns an accessor whose `GetResourceVersion()`
+returns it. -/
+def getRVOk (m : GoInterface) (rv : GoString) : IProp GF :=
+  match m with
+  | .nil => iprop(False)
+  | .ok i => iprop({{ True }} (App (Val #(methods i.ty go!"GetResourceVersion" i.v)) (Val #()))
+      {{ RET #rv; True }})
+
+instance getRVOk_persistent (m : GoInterface) (rv : GoString) :
+    Persistent (getRVOk (GF := GF) m rv) := by
+  cases m <;> unfold getRVOk <;> infer_instance
+
+def rvAcc (OK : GoInterface → IProp GF) (rvOf : GoInterface → Option GoString) : IProp GF :=
+  iprop(∀ o : GoInterface, {{ □ OK o }}
+    (App (Val (@! _root_.Perennial.k8s_io.apimachinery.pkg.api.«meta».Accessor)) (Val #o))
+    {{ (m err : GoInterface), RET (PairV #m #err);
+        match rvOf o with
+        | some rv => ⌜err = interface.nil⌝ ∗ getRVOk m rv
+        | none => ⌜err ≠ interface.nil⌝ }})
+
+instance rvAcc_persistent (OK : GoInterface → IProp GF) (rvOf : GoInterface → Option GoString) :
+    Persistent (rvAcc (GF := GF) OK rvOf) := by
+  unfold rvAcc; infer_instance
+
 /-- One of the store lock's reader slots. -/
 def tsReader (c : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn) : IProp GF :=
   sync.ownRWMutex (structFieldRef threadSafeMap go!"lock" c) (tsP c γ OK Fam)
