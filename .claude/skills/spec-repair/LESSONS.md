@@ -51,3 +51,6 @@ One entry per critique of a run: date, target, what the user said, the rule it b
   reconfig and stuff without. In reality, no reconfiguration should be captured by the generic proof
   with reconfiguration." Rule (`SKILL.md`, review list): no special-case predicate or spec family
   beside the general one.
+- 2026-10-27, `EtcdServer.Start.spec` (candidate: `{{ kvBuilt s γ ∗ threadTok }}`, with no candidate
+  giving `kvBuilt`): "What's kvBuilt? How would the user of the EtcdServer specs gain kvBuilt?" Rule
+  (`SKILL.md`, review list): every premise has a source the client sees.
