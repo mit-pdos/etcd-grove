@@ -23,3 +23,7 @@ One entry per critique of a run: date, target, what the user said, the rule it b
   of kvOpAu1 as a helper definition, and just write the AU directly in the hoare triple. It should
   look like the client Put spec." Rule (`SKILL.md`, the wrapper item): AUs in the triple, and the
   closest sibling spec's shape.
+- 2026-10-27, `EtcdServer.Put.spec` (candidate 5 copied `σ.rev + 4 < 2 ^ 63 ∧ kvLogOk σ ∧ …` from
+  the client's `kv.Put`): "Why did you add the pure facts with random hard-coded numbers?" They were
+  proof slack and facts of every reachable state. Rule (`SKILL.md`, review list): no unchecked copied
+  conjunct or constant; reachable-state facts are a law of the vocabulary.
