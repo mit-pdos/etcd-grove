@@ -211,7 +211,9 @@ removed, ..., adequacy coverage" below.
   definition in the statements' closure of the examples' `Results.lean` theorems changed), the
   trust base unchanged but `URLStringAny_ok` restated (`notes/decisions.md`, "D22 J-T"). Landing
   fixes: the snapshot walk's `AddPeer` post (its third part), `NewServer`'s `lgMu` count with J1a's
-  stock and J-T's pool, `common.peerURLsDir_httpURL` over the `""` literals. Open:
+  stock and J-T's pool, `common.peerURLsDir_httpURL` over the `""` literals; merged over the
+  raft-api server port (`ccMembRes` matches `γs.raft.dyn`, its static branch J-T's `trLive`, the
+  examples' `StartServer` calls lean's with J-T's directory premise). Open:
   - **S8d of the receiver epochs** (`applySnapshot` past the empty case; S8a-S8c done, section
     "D22 receiver epochs, S8" below): the spec and proof. Done: W1 (`Rm := snapTakenLb`,
     `storage.Release`'s axiom), W5 (`storage.snapOpensOk` with `backend.dbCloseOk`), W6
