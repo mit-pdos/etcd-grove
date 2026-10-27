@@ -100,6 +100,45 @@ theorem mutateOk_of (r : Res) (mutR : Obj → Obj → Option Obj → Prop) (f : 
   iapply HΦ
   iexact Hz
 
+/-- Pod's grace function's spec as `remove` takes it. -/
+theorem graceOk_pods (f : GoFunc)
+    (h : ∀ (x : GoInterface) (d : kd.core.Pod) (opts : k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions)
+      (dq : DFrac) (dop : kd.meta.DeleteOptions),
+      {{ (objAt (GF := GF) x (DFrac.own 1) (.pod d)) ∗ kd.meta.DeleteOptions.own opts dq dop }}
+        (App (App (Val #f) (Val #x)) (Val #opts))
+      {{ RET #(podGraceD d dop.GracePeriodSeconds'); objAt x (DFrac.own 1) (.pod d) ∗
+          kd.meta.DeleteOptions.own opts dq dop }}) :
+    ⊢ graceOk (GF := GF) .pods f := by
+  unfold graceOk
+  iintro %x %st %opts %dq %dop %hr
+  cases st with
+  | pod d =>
+    imodintro
+    iintro %Φ ⟨Hx, Ho⟩ HΦ
+    wp_apply (h x d opts dq dop) $$ [$Hx $Ho] as ⟨Hx, Ho⟩
+    rw [show graceOf Res.pods (Obj.pod d) dop.GracePeriodSeconds' = podGraceD d dop.GracePeriodSeconds' from rfl]
+    iapply HΦ
+    iframe
+  | node d => simp [Obj.res] at hr
+  | ds d => simp [Obj.res] at hr
+  | cr d => simp [Obj.res] at hr
+
+/-- A grace function of 0 (`noGrace`) as `remove` takes it, for a resource without one. -/
+theorem graceOk_zero (r : Res) (hr : r ≠ .pods) (f : GoFunc)
+    (h : ∀ (o : GoInterface) (opts : k8s_io.apimachinery.pkg.apis.«meta».v1.DeleteOptions),
+      {{ (True : IProp GF) }} (App (App (Val #f) (Val #o)) (Val #opts)) {{ RET #(W64 0); True }}) :
+    ⊢ graceOk (GF := GF) r f := by
+  unfold graceOk
+  iintro %x %st %opts %dq %dop %hres
+  imodintro
+  iintro %Φ ⟨Hx, Ho⟩ HΦ
+  wp_apply (h x opts)
+  have hg : graceOf r st dop.GracePeriodSeconds' = W64 0 := by
+    cases r <;> cases st <;> first | rfl | exact absurd rfl hr
+  rw [hg]
+  iapply HΦ
+  iframe
+
 end lemmas
 
 end apimodel
