@@ -559,6 +559,30 @@ def watchCons (γw : WatchNames) (n : Nat) (p : Pos') : IProp GF :=
   iprop(∃ evs : List k8s_io.apimachinery.pkg.watch.Event, spscConsumer γw.ch evs ∗
     ⌜evs.length = n⌝ ∗ monoListIdxOwn γw.cur n p)
 
+/-- **A watcher's goroutine at its start** (`watcher.run`'s precondition, which `watch` gives):
+the watcher's fixed fields, its cursor's fields (the log index `logStart` of the start version
+`n0`, the last version sent `n0`), the initial objects (owned, deep values `inits`), the result
+channel's sending side with no event sent and the cursor's ghost list at the start position, the
+stop channel's receiving side, the state `σ0` the watch started from. -/
+def runPre (w : Loc) (γ : ApiNames) (γw : WatchNames) (cfg : apimodel.Config) (r : Res)
+    (ns : GoString) (admin bm : Bool) (inits : List Obj) : IProp GF :=
+  iprop(∃ (s t : Loc) (initSl : GoSlice) (ch dch : Loc) (g : SpscNames) (bmf : Bool)
+      (xs : List GoInterface) (n0 : w64) (σ0 : St),
+    w.[apimodel.watcher, go!"s"] ↦□ s ∗ w.[apimodel.watcher, go!"t"] ↦□ t ∗
+    w.[apimodel.watcher, go!"ns"] ↦□ ns ∗ w.[apimodel.watcher, go!"admin"] ↦□ admin ∗
+    w.[apimodel.watcher, go!"initial"] ↦□ initSl ∗ w.[apimodel.watcher, go!"bookmarks"] ↦□ bmf ∗
+    w.[apimodel.watcher, go!"ch"] ↦□ ch ∗ w.[apimodel.watcher, go!"done"] ↦□ dch ∗
+    isServer s γ cfg ∗ tableOf s r t ∗
+    w.[apimodel.watcher, go!"next"] ↦ W64 (logStart (σ0.tbl r).log n0) ∗
+    w.[apimodel.watcher, go!"sentRV"] ↦ n0 ∗
+    initSl ↦* xs ∗ ([∗list] x;o ∈ xs;inits, objAt x (DFrac.own 1) o) ∗
+    isSpsc γw.ch ch (evOk γ γw r ns bm inits) (fun _ => iprop(True)) ∗
+    spscProducer (V := k8s_io.apimachinery.pkg.watch.Event) γw.ch [] ∗
+    isSpsc (V := Unit) g dch (fun _ _ => iprop(False)) (fun _ => iprop(True)) ∗
+    spscConsumer (V := Unit) g [] ∗ w ↪[γ.ws]□ spscCode g ∗
+    monoListAuthOwn γw.cur 1 ([(logStart (σ0.tbl r).log n0, n0)] : List Pos') ∗ pastSt γ σ0 ∗
+    ⌜bm = (bmf && cfg.Bookmarks' && !admin) ∧ n0.toNat ≤ σ0.rev.toNat⌝)
+
 /-! ## What a watch returns -/
 
 /-- **A started watch's start** (`lo` its options, `σ` the state it read): for the version `""`
