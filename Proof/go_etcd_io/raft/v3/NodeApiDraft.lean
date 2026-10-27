@@ -96,21 +96,6 @@ def ownEntsAu (γ : Cluster) (N : Namespace) : IProp GF :=
                    ⌜ty = W32 0 ∨ ty = W32 2⌝ → ownCommitted γ (L ++ [⟨t, ty, []⟩]),
                  COMM True }>)
 
-/-- The update a proposal of `data` hands in: its entry appended, raft choosing the term. -/
-def proposeAu (γ : Cluster) (N : Namespace) (data : List w8) : IProp GF :=
-  iprop(AU <{ ∃∃ (L : List Ent), ownCommitted γ L }> @ ⊤ \ ↑N, ∅
-           <{ ∀∀ (t : w64), ownCommitted γ (L ++ [⟨t, W32 0, data⟩]), COMM True }>)
-
-/-- The update a proposal of the conf change `o` hands in: its entry appended (the type and bytes
-`MarshalConfChange` gives it, raft choosing the term), or, if the leader refuses the change, an
-empty normal entry in its place (`raft.go:1341`). -/
-def proposeConfAu (γ : Cluster) (N : Namespace) (o : CCMsg) : IProp GF :=
-  iprop(AU <{ ∃∃ (L : List Ent), ownCommitted γ L }> @ ⊤ \ ↑N, ∅
-           <{ ∀∀ (t : w64) (bs : List w8) (refused : Bool),
-                ⌜CCData (some o) bs⌝ →
-                ownCommitted γ (L ++ [if refused then ⟨t, W32 0, []⟩ else ⟨t, ccEntryType (some o), bs⟩]),
-              COMM True }>)
-
 /-! ## The cluster and its nodes -/
 
 /-- **A new cluster** of the peers `ps`, in the caller's namespace `N`: the client's committed log
@@ -183,27 +168,35 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-/-- **`node.Propose(ctx, data)`**: hands raft the update appending `data`; it fires at most once,
-when an entry of this proposal commits, on whichever node commits it. The error is `nil` (run took
-the proposal; it may still be lost), `ErrStopped`, `ErrProposalDropped` (raft refused it; it was not
-appended) or the context's. -/
+/-- **`node.Propose(ctx, data)`**: hands raft the update appending `data`'s entry, raft choosing its
+term; it fires at most once, when an entry of this proposal commits, on whichever node commits it.
+The error is `nil` (run took the proposal; it may still be lost), `ErrStopped`, `ErrProposalDropped`
+(raft refused it; it was not appended) or the context's. -/
 abbrev node.Propose.spec : Prop :=
-  ∀ (γ : Cluster) (N : Namespace) (id : w64) (n : Loc) (data_sl : GoSlice) (data : List w8)
+  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (data_sl : GoSlice) (data : List w8)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗ nodeCtx ctx cd ∗
-      data_sl ↦*□ data ∗ proposeAu γ N data }}
+      data_sl ↦*□ data ∗
+      AU <{ ∃∃ (L : List Ent), ownCommitted γ L }> @ ⊤ \ ↑N, ∅
+         <{ ∀∀ (t : w64), ownCommitted γ (L ++ [⟨t, W32 0, data⟩]), COMM True }> }}
     (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Propose"))
       (Val #(interface.ok ctx))) (Val #data_sl))
   {{ (err : GoInterface), RET #err;
       ⌜err = interface.nil⌝ ∨ errStopped err ∨ errProposalDropped err ∨ ctxErr cd err }}
 
-/-- **`node.ProposeConfChange(ctx, cc)`**: the same, for the conf change `cc` holds; it is given
-back. -/
+/-- **`node.ProposeConfChange(ctx, cc)`**: the same, for the conf change `o` that `cc` holds (given
+back): its entry has the type and bytes `MarshalConfChange` gives it (raft choosing the term), or, if
+the leader refuses the change, is an empty normal entry in its place (`raft.go:1341`). -/
 abbrev node.ProposeConfChange.spec : Prop :=
-  ∀ (γ : Cluster) (N : Namespace) (id : w64) (n : Loc) (c : GoInterface) (o : CCMsg) (dq : DFrac)
+  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (c : GoInterface) (o : CCMsg) (dq : DFrac)
     (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗ nodeCtx ctx cd ∗
-      ownCCI c dq (some o) ∗ proposeConfAu γ N o }}
+      ownCCI c dq (some o) ∗
+      AU <{ ∃∃ (L : List Ent), ownCommitted γ L }> @ ⊤ \ ↑N, ∅
+         <{ ∀∀ (t : w64) (bs : List w8) (refused : Bool),
+              ⌜CCData (some o) bs⌝ →
+              ownCommitted γ (L ++ [if refused then ⟨t, W32 0, []⟩ else ⟨t, ccEntryType (some o), bs⟩]),
+            COMM True }> }}
     (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"ProposeConfChange"))
       (Val #(interface.ok ctx))) (Val #c))
   {{ (err : GoInterface), RET #err; ownCCI c dq (some o) ∗ nodeErr cd err }}
