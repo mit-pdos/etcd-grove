@@ -24,6 +24,9 @@ public import Proof.go_etcd_io.raft.v3.InvNodeCtx
 public import Perennial.Proof.context
 public import Proof.go_etcd_io.raft.v3.InvMemstorage
 public import Perennial.Ghost.MonoList
+public import Spec.go_etcd_io.raft.v3.Api
+import all Proof.go_etcd_io.raft.v3.InvNode
+import Proof.go_etcd_io.raft.v3.node__Ready
 
 @[expose] public section
 
@@ -1064,6 +1067,224 @@ theorem readStateOk_ctx_impl (γ : Cluster) (N : Namespace) (c : List w8) (idx :
   iexact HQ0
 
 end facts
+
+/-! ## The nodes -/
+
+section node
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+/-- **A running node** `n` of id `id` in the cluster `γ` (persistent): raft's node, of the
+cluster's names and budget, and the cluster's invariants. -/
+def isNode (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) : IProp GF :=
+  iprop(∃ γn : NodeNames, ⌜γn.raft = γ.raft ∧ γn.bud = γ.bud⌝ ∗ EtcdGrove.isNode γn id n ∗
+    clusterInv γ N)
+
+instance isNode_persistent (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) :
+    Persistent (isNode (GF := GF) n γ N id) := by
+  unfold isNode; infer_instance
+
+/-- The node's `Ready` channel `ch` (persistent): the node struct's `readyc`. -/
+def isReadyChan (n : Loc) (_γ : Cluster) (_N : Namespace) (ch : Loc) : IProp GF :=
+  iprop(∃ nv : node, n ↦□ nv ∗ ⌜ch = nv.readyc'⌝)
+
+instance isReadyChan_persistent (n : Loc) (γ : Cluster) (N : Namespace) (ch : Loc) :
+    Persistent (isReadyChan (GF := GF) n γ N ch) := by
+  unfold isReadyChan; infer_instance
+
+/-- The state of a node's `Ready` loop (the draft's). -/
+structure NodeDriverState where
+  storage : Storage
+  delivered : List LogEntry
+  hardState : HardStateM
+  handling : Option (List EntryM × Option SnapLoan)
+
+def NodeDriverState.init (stor : Storage) : NodeDriverState := ⟨stor, [], hsZero, none⟩
+
+/-- **The `Ready` loop's token**: raft's driver token (idle, or busy with a `Ready`) at the raft
+log `ds` the client sees as `st.delivered`, at a node that takes no snapshot. -/
+def nodeDriver (n : Loc) (γ : Cluster) (N : Namespace) (st : NodeDriverState) : IProp GF :=
+  iprop(∃ (γn : NodeNames) (id : w64) (ds : List EntryM),
+    ⌜γn.raft = γ.raft ∧ γn.bud = γ.bud ∧ γn.stor = st.storage ∧ γn.snapIn = false ∧
+      strip ds = st.delivered⌝ ∗ clusterInv γ N ∗
+    ((⌜st.handling = none⌝ ∗ EtcdGrove.nodeDriver γn id n ds st.hardState) ∨
+     (∃ (es : List EntryM) (L : Option SnapLoan), ⌜st.handling = some (es, L)⌝ ∗
+       nodeDriverBusy γn id n ds es st.hardState L)))
+
+/-- The Go entries `sl` are the log entries `ce`, at the indices after `base` (read-only). -/
+def committedEntriesAt (sl : GoSlice) (base : Nat) (ce : List LogEntry) : IProp GF :=
+  entsRO sl (LogEntry.toEntries ce base)
+
+/-- (open) **A message a `Ready` handed out**: sent by a node of the cluster, of a term within the
+cluster's budget. -/
+def sentMsg (γ : Cluster) (N : Namespace) (st : MsgSt) : IProp GF :=
+  iprop(clusterInv γ N ∗ (∃ src : w64, isRaftMsg γ.raft src st) ∗ termLB γ.bud st.msg.Term')
+
+instance sentMsg_persistent (γ : Cluster) (N : Namespace) (st : MsgSt) :
+    Persistent (sentMsg (GF := GF) γ N st) := by
+  unfold sentMsg; infer_instance
+
+/-- (open) **What a sent message carries for its receiver's `Step`.** -/
+def msgCredits (γ : Cluster) (_N : Namespace) (st : MsgSt) : IProp GF :=
+  iprop(rdCred γ.raft (if st.msg.Type' = MsgReadIndex then 1 else 0) ∗ stTks γ.raft st)
+
+/-- (open) A `Ready`'s storage part (the draft's `readySnap`; the snapshot case is not reached
+yet: no node takes snapshots). -/
+def readySnap (_γ : Cluster) (_N : Namespace) (rd : Ready) (st : NodeDriverState)
+    (ce : List LogEntry) (st' : NodeDriverState) (es : List EntryM) : Option SnapLoan → IProp GF
+  | none => iprop(⌜st'.delivered = st.delivered ++ ce ∧ rd.Snapshot' = null⌝ ∗
+      appendRight st.storage es)
+  | some _ => iprop(False)
+
+/-- (open) **The rest of a `Ready`** (the draft's `readyRest`). -/
+def readyRest (γ : Cluster) (N : Namespace) (rd : Ready) (st : NodeDriverState)
+    (ce : List LogEntry) (st' : NodeDriverState) : IProp GF :=
+  iprop(∃ (es : List EntryM) (ms : List QMsg) (L : Option SnapLoan) (h : HardStateM),
+    ⌜st'.storage = st.storage ∧ st'.handling = some (es, L) ∧
+      st'.hardState = phsNext st.hardState h⌝ ∗
+    entsRO rd.Entries' es ∗
+    rd.Messages' ↦* ms.map QMsg.loc ∗
+    ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ sentMsg γ N q.st ∗ msgCredits γ N q.st) ∗
+    hsOpt rd.HardState' h ∗ softStateRO rd.SoftState' ∗
+    ⌜∃ Lx : Int, Lx < 2 ^ 64 ∧
+      (∀ e0, es.head? = some e0 → uint.Z e0.Index' + (es.length : Int) ≤ Lx + 1) ∧
+      ((st.delivered ++ ce).length : Int) ≤ Lx⌝ ∗
+    readySnap γ N rd st ce st' es L)
+
+/-- **`node.Ready()`** (the draft's). -/
+abbrev node.Ready.spec : Prop :=
+  ∀ (γ : Cluster) (N : Namespace) (id : w64) (n : Loc),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id }}
+    (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Ready")) (Val #()))
+  {{ (ch : Loc), RET #ch; isReadyChan n γ N ch }}
+
+theorem node.wp_Ready_impl : node.Ready.spec (GF := GF) (hG := hG) := by
+  intro γ N id n
+  wp_start as Hnode
+  iunfold isNode at Hnode
+  icases Hnode with ⟨%γn, -, #Hnode, -⟩
+  iunfold EtcdGrove.isNode at Hnode
+  icases Hnode with ⟨%nv, %r, %lok, #Hnode⟩
+  iNamed Hnode
+  ihave #Hn' := Hn
+  iStructNamed Hn'
+  wp_auto
+  iapply HΦ
+  unfold isReadyChan
+  iexists nv
+  iframe Hn
+  ipureintro; rfl
+
+/-- **Receiving a `Ready`** (the draft's `node.readyRecv`). -/
+abbrev node.readyRecv.spec : Prop :=
+  ∀ (n ch : Loc) (γ : Cluster) (N : Namespace) (st : NodeDriverState),
+  st.handling = none →
+  {{ isReadyChan (GF := GF) n γ N ch ∗ nodeDriver n γ N st }}
+    (App (Val (chan.receive Ready.ty)) (Val #ch))
+  {{ (rd : Ready), RET (PairV #rd #true);
+      ∃ (ce : List LogEntry) (st' : NodeDriverState),
+        committedEntriesAt rd.CommittedEntries' st.delivered.length ce ∗
+        isCommittedLogLb γ (st.delivered ++ ce) ∗
+        (∃ rs, readStatesPts rd.ReadStates' rs ∗
+          [∗list] s ∈ rs, readStateOk γ N s.RequestCtx' s.Index') ∗
+        readyRest γ N rd st ce st' ∗
+        nodeDriver n γ N st' }}
+
+theorem node.wp_readyRecv_impl : node.readyRecv.spec (GF := GF) (hG := hG) := by
+  intro n ch γ N st Hh
+  iintro %Φ ⟨#Hrc, Hdrv⟩ HΦ
+  iunfold nodeDriver at Hdrv
+  icases Hdrv with ⟨%γn, %id, %ds, %Hf, #Hci, Htok⟩
+  obtain ⟨Hγr, Hγb, Hγs, Hsn, Hds⟩ := Hf
+  icases Htok with (⟨-, Htok⟩ | ⟨%es0, %L0, %Hh', -⟩)
+  rotate_left
+  · rw [Hh] at Hh'; cases Hh'
+  ihave ⟨Htok, #Hnode⟩ := nodeDriver_isNode γn id n ds st.hardState $$ Htok
+  iunfold isReadyChan at Hrc
+  icases Hrc with ⟨%nv, #Hn0, %Hch⟩
+  ihave #Hnode' := Hnode
+  iunfold EtcdGrove.isNode at Hnode'
+  icases Hnode' with ⟨%nv', %r, %lok, #Hnode'⟩
+  iNamed Hnode'
+  icombine Hn0 Hn gives %Hnv
+  subst Hnv
+  ihave #Hrc' : EtcdGrove.isReadyChan γn ch $$ []
+  · unfold EtcdGrove.isReadyChan; rw [Hch]; iexact Hreadyc
+  iapply wp_fupd
+  iapply node_ready_receive_ns γn id n ch ds st.hardState (Or.inr (Or.inr Hsn)) $$ [Htok]
+  · iframe Hrc' Htok
+  iintro !> %rd ⟨%ce, %es, %ms, %p', Hdata, Hbusy⟩
+  iunfold readyData at Hdata
+  icases Hdata with ⟨#Hce, #Hcom, #Hes, Happ, Hmsgs, Hmo, Hcr, Htks, ⟨%sts, Hsts, Hrs⟩,
+    ⟨%h, Hhs, %Hp'⟩, -, Hss, %Hnull, #Hidx⟩
+  imod api_committed_lb γ N ⊤ CoPset.subseteq_top (ds ++ ce) $$ Hci [Hcom] with ⟨#Hlb, %HidxOk⟩
+  · rw [Hγr]; iexact Hcom
+  imod api_readStates γ N ⊤ CoPset.subseteq_top sts $$ Hci [Hrs] with Hrs
+  · rw [← Hγr]; iexact Hrs
+  iunfold readyIdx at Hidx
+  icases Hidx with ⟨%Lx, -, %HLx⟩
+  imodintro
+  iapply HΦ
+  iexists strip ce, ⟨st.storage, st.delivered ++ strip ce, p', some (es, none)⟩
+  have Hlen : st.delivered.length = ds.length := by rw [← Hds, strip_length]
+  have Hce : LogEntry.toEntries (strip ce) st.delivered.length = ce := by
+    apply toEntries_strip
+    intro k e Hk
+    have := HidxOk (ds.length + k) e
+      (by rw [List.getElem?_append_right (by omega), Nat.add_sub_cancel_left]; exact Hk)
+    rw [this, Hlen]; push_cast; omega
+  isplitl []
+  · unfold committedEntriesAt; rw [Hce]; iexact Hce
+  isplitl []
+  · rw [← Hds, ← strip_append]; iexact Hlb
+  isplitl [Hsts Hrs]
+  · iexists sts; iframe Hsts Hrs
+  isplitl [Hes Happ Hmsgs Hmo Hcr Htks Hhs Hss]
+  · unfold readyRest
+    iexists es, ms, none, h
+    isplitr
+    · ipureintro; exact ⟨rfl, rfl, Hp'⟩
+    iframe Hes Hmsgs Hhs Hss
+    isplitl [Hmo Hcr Htks]
+    · ihave H := (BigSepL.bigSepL_sep_eqv).2 $$ [Hcr Htks]
+      · iframe Hcr Htks
+      ihave H := (BigSepL.bigSepL_sep_eqv).2 $$ [Hmo H]
+      · iframe Hmo H
+      iapply (BigSepL.bigSepL_impl) $$ H
+      imodintro
+      iintro %k %q %_ ⟨⟨Ho, #Hraft, #Htlb⟩, Hcr, Htk⟩
+      iframe Ho
+      unfold sentMsg msgCredits
+      rw [← Hγr, ← Hγb]
+      iframe Hci Htlb Hcr Htk
+      iexists γn.id
+      iexact Hraft
+    isplitr
+    · ipureintro
+      refine ⟨Lx, HLx.1, HLx.2.1, ?_⟩
+      have := HLx.2.2
+      simp only [List.length_append, strip_length] at this ⊢
+      omega
+    unfold readySnap
+    isplitr
+    · ipureintro; exact ⟨rfl, Hnull⟩
+    rw [← Hγs]; iexact Happ
+  unfold nodeDriver
+  iexists γn, id, ds ++ ce
+  isplitr
+  · ipureintro
+    exact ⟨Hγr, Hγb, Hγs, Hsn, by rw [strip_append, Hds]⟩
+  iframe Hci
+  iright
+  iexists es, none
+  isplitr
+  · ipureintro; rfl
+  iexact Hbusy
+
+end node
 
 end ApiImpl
 end EtcdGrove
