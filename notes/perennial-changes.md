@@ -120,7 +120,10 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   RET #ch; isContextDone s ch γch }}`, next to `isContext_pers`: branch `context-done-law` of
   Perennial (`3c384b081`, off `lean` at `edcadb1e5`; worktree `/shared/perennial-ctxdone`), checked
   against the pinned `6b58510f9` (the same `isContextDef`), not yet built or landed there.
-- **Status.** Branch committed, not pushed (2026-10-27).
+- **Status.** Landed on Perennial's `lean` (`3c384b081`, 2026-10-27). Not yet in the pin: moving the
+  pin there brings Perennial's uniform function results (`2b17d5f09`), which touch every proof that
+  runs a translated function (the pin `6b58510f9` stops before it on purpose). The compactor's
+  `Run` proofs switch to the law at the pin bump that does that migration.
 
 ### Specs: `context.WithCancel`'s cancel function not `nil`
 

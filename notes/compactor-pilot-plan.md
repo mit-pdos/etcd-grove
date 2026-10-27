@@ -310,8 +310,9 @@ Added (the user's, 2026-10-27): `clockwork.clockOk_ok`/`clockOk_Now`/`clockOk_Af
 (`Proof/github_com/jonboulle/clockwork/Defs.lean`) and `mvcc.ErrCompacted_target`
 (`Proof/go_etcd_io/etcd/server/v3/storage/mvcc/ErrLaws.lean`, a module of its own so that adding it
 rebuilds only its importers); both `Run` proofs use them. Perennial's `context.isContext_Done` is on
-a Perennial branch (`notes/perennial-changes.md`); until it lands, the `isContextDef` unfold stays,
-the one cross-package unfold left.
+a Perennial branch, landed (`3c384b081`) but past the pin's stopping point (Perennial's uniform
+function results, `notes/perennial-changes.md`); until the pin moves there, the `isContextDef`
+unfold stays, the one cross-package unfold left, and the freeze records it as pending.
 
 **Review checkpoints** (`notes/spec-first-plan.md`, "Phase 1b", the feedback loop): at the freeze, a
 retrospective of the revisions the review found against those the glue proofs found; at the end of
