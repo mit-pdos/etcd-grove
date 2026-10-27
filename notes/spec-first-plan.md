@@ -40,6 +40,31 @@ the callers whose bodies only thread state between callees, from the callees' sp
 are short and are what find a missing frame, a premise the caller cannot give, or a
 postcondition too weak for the caller -- before the callee's expensive proof exists.
 
+**Phase 1b: review the specs, and iterate with the glue** (added 2026-10-27, from the pilot's
+phase 1). Writing a spec and proving its callers' glue alternate per package boundary: write the
+spec, prove the glue of *every* caller, review, revise; a spec is frozen only when every caller's
+glue proves and the review leaves nothing in the first tier below. The review is a fresh reviewer's
+(the `spec-repair` skill, `--review-only`), given the specs, the Go code and the callers, not the
+author's conclusions; it ranks each spec that crosses a package boundary (internal helpers' specs may
+mirror the code) in two tiers:
+
+- *Requirements* (fail one and the spec is wrong): **true** of the code (phase 2's tester, then the
+  proof); **sufficient for every caller** (each caller can establish the pre and gets what its proof
+  needs from the post: the glue proofs check it); **faithful to concurrency** (callers that invoke it
+  concurrently need persistent contracts, a once-only or exclusive use a token; and an exclusive
+  requirement of the code is stated); **no unneeded premise** (each is one the code needs or one a
+  stronger result needs; one that excludes a legitimate caller fails sufficiency).
+- *Preferences* (among specs that pass): **abstraction** (only names the callers need: no fields,
+  ghost names, helpers or other packages' internals; counted on the unfolded statement,
+  `etc/gen-interface.py`); **implementation independence** (another reasonable implementation would
+  satisfy it); **the weakest pre and the post no stronger than some caller needs**; **size** (the
+  unfolded statement's length, binders, premises); **coupling** (other packages' predicates it
+  depends on: each is a place where a change elsewhere forces this spec to change, step 1's main
+  cause of churn).
+
+The pilot measures whether the review pays: spec revisions found by the review, by the glue proofs,
+and after the freeze.
+
 **Phase 2: test the specs against the Go code** (no proof).
 - Canonical form: `own σ ∗ ⌜Pre σ args⌝ -∗ WP f args {r, ∃ σ', own σ' ∗ ⌜Post σ args r σ'⌝ ∗ …}`
   with `Pre`, `Post` decidable definitions on the pure records the predicates are indexed by

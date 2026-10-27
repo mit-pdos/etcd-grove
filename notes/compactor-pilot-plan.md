@@ -195,6 +195,16 @@ phase 1's design, before any proof):
    `compactor-pilot` (with `lean` merged in) until the compactor's proofs are done; the
    translation (step 1) is merged.
 
+**Step 2b, the review** (added 2026-10-27: `notes/spec-first-plan.md`, "Phase 1b"): before the
+glue, a fresh reviewer ranks the specs that cross a package boundary (`New`, `compactorOk`, the
+environment's contracts and C1's permits, the clock's, `EtcdServer.Compact`) in the two tiers;
+steps 2 and 3 then alternate per boundary until the freeze. Self-review before it, by the rubric,
+already found: `EtcdServer.Compact`'s post gives nothing, which its other caller (the gRPC
+`kvServer.Compact`, whose `compactOk` needs a response header) cannot use, and its premise `revLb r`
+excludes clients that compact a future revision (Go answers `ErrFutureRev`); `revGetterOk` ties the
+compactor to mvcc's `idxCert` where any monotone lower bound would do; `perPermit` fixes the window's
+exact age where a simpler bound may be all C3 needs.
+
 **Next (step 3, the glue):** `New`, `newPeriodic`, `newRevision`, the getters; `EtcdServer.Compact`
 over `processInternalRaftRequestOnce` (needs the compaction permit: `reqPropOk`'s compaction form,
 `dispatchOk` and the KV model's compaction step); `NewServer`/`run` over the new `New.spec`
