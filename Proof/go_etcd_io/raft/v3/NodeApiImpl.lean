@@ -406,6 +406,298 @@ theorem readCtx_commit_impl (γ : Cluster) (N : Namespace) (U : GSet (List w8)) 
 
 end ctx
 
+/-! ## A new cluster -/
+
+section boot
+variable [GooseExts]
+
+/-- The bootstrap log (the draft's): a `ConfChangeAddNode` of each peer, its context `ctx`, at term
+1, as `MarshalConfChange` encodes it. -/
+def BootLog (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry) : Prop :=
+  boot.length = ps.length ∧ (boot.length : Int) < 2 ^ 61 ∧
+  ∀ (k : Nat) (e : LogEntry), boot[k]? = some e →
+    ∃ id ctx, ps[k]? = some id ∧ ctxs[k]? = some ctx ∧ e.term = W64 1 ∧ e.type = W32 1 ∧
+      MarshalsConfChange (some (.v1 ⟨W32 0, id, ctx, W64 0⟩)) e.data
+
+theorem ofEntryM_toEntryM (idx : w64) (e : LogEntry) : LogEntry.ofEntryM (e.toEntryM idx) = e := by
+  cases e; rfl
+
+theorem toEntries_length (l : List LogEntry) (base : Nat) :
+    (LogEntry.toEntries l base).length = l.length := by
+  unfold LogEntry.toEntries; exact List.length_mapIdx
+
+theorem toEntries_getElem? (l : List LogEntry) (base k : Nat) :
+    (LogEntry.toEntries l base)[k]? = (l[k]?).map (LogEntry.toEntryM (W64 (base + k + 1))) := by
+  unfold LogEntry.toEntries; rw [List.getElem?_mapIdx]
+
+theorem strip_toEntries (l : List LogEntry) (base : Nat) :
+    strip (LogEntry.toEntries l base) = l := by
+  apply List.ext_getElem?
+  intro k
+  unfold strip
+  rw [List.getElem?_map, toEntries_getElem?]
+  cases l[k]? <;> simp [ofEntryM_toEntryM]
+
+/-- A raft log whose entries are at the indices after `base` is the Go entries of what the client
+sees of it. -/
+theorem toEntries_strip (L : List EntryM) (base : Nat)
+    (H : ∀ (k : Nat) (e : EntryM), L[k]? = some e → uint.Z e.Index' = ((base + k + 1 : Nat) : Int)) :
+    LogEntry.toEntries (strip L) base = L := by
+  apply List.ext_getElem?
+  intro k
+  rw [toEntries_getElem?]
+  unfold strip
+  rw [List.getElem?_map]
+  cases hk : L[k]? with
+  | none => rfl
+  | some e =>
+    have hi := H k e hk
+    simp only [Option.map_some]
+    congr 1
+    cases e with
+    | mk t i ty d =>
+      simp only [LogEntry.toEntryM, LogEntry.ofEntryM, EntryM.mk.injEq, and_true, true_and]
+      simp only at hi
+      apply word.unsigned_inj
+      rw [hi]
+      have := word.unsigned_range i
+      word
+
+theorem opsOf_eq_self (l : List LogEntry) (H : ∀ e ∈ l, ¬ e.isFiller) : opsOf l = l := by
+  unfold opsOf
+  rw [List.filter_eq_self]
+  intro e he
+  simp [H e he]
+
+theorem BootLog.ok {ps : List w64} {ctxs : List (List w8)} {boot : List LogEntry}
+    (H : BootLog ps ctxs boot) : BootLogOk ps (LogEntry.toEntries boot 0) := by
+  obtain ⟨Hl, Hb, Hk⟩ := H
+  refine ⟨by rw [toEntries_length, Hl], by rw [toEntries_length]; exact Hb, fun k e He => ?_⟩
+  rw [toEntries_getElem?] at He
+  cases hb : boot[k]? with
+  | none => rw [hb] at He; cases He
+  | some e0 =>
+    rw [hb] at He
+    simp only [Option.map_some, Option.some.injEq] at He
+    subst He
+    obtain ⟨id, ctx, Hid, -, Ht, Hty, Hm⟩ := Hk k e0 hb
+    have hk : k < boot.length := (List.getElem?_eq_some_iff.mp hb).1
+    refine ⟨Ht, ?_, Hty, ⟨⟨W32 0, id, ctx, W64 0⟩, Hm, rfl, Hid⟩⟩
+    show uint.Z (W64 ((0 + k + 1 : Nat) : Int)) = _
+    have : ((0 + k + 1 : Nat) : Int) < 2 ^ 64 := by omega
+    rw [uint_Z_W64 _ (by omega) this]
+    push_cast; omega
+
+theorem BootLog.opsOf {ps : List w64} {ctxs : List (List w8)} {boot : List LogEntry}
+    (H : BootLog ps ctxs boot) : opsOf boot = boot := by
+  apply opsOf_eq_self
+  intro e he
+  obtain ⟨k, hk⟩ := List.getElem?_of_mem he
+  obtain ⟨-, -, -, -, -, Hty, -⟩ := H.2.2 k e hk
+  rintro ⟨-, h | h⟩ <;> rw [Hty] at h <;> have := congrArg (fun x : w32 => uint.Z x) h <;>
+    revert this <;> decide
+
+theorem BootLog.idx {ps : List w64} {ctxs : List (List w8)} {boot : List LogEntry}
+    (H : BootLog ps ctxs boot) : IdxOk (LogEntry.toEntries boot 0) := by
+  intro k e He
+  have Hok := H.ok
+  exact (Hok.2.2 k e He).2.1
+
+/-- The fresh-data tokens of the keys of `L` (raft's `bootFreshFrom`). -/
+theorem bootFreshFrom_lookup (F : GMap (List w8) Unit) (L : List EntryM) (k : List w8) :
+    (bootFreshFrom F L) !! k = some () →
+    F !! k = some () ∨ ∃ e ∈ L, entKey e.Type' e.Data' = k := by
+  induction L generalizing F with
+  | nil => intro h; exact .inl h
+  | cons e L ih =>
+    intro h
+    rcases ih (Std.insert F (entKey e.Type' e.Data') ()) h with h1 | ⟨e', he', hk⟩
+    · have h1' : (<[entKey e.Type' e.Data' := ()]> F) !! k = some () := h1
+      rw [GMap.lookup_insert_Some] at h1'
+      rcases h1' with ⟨hk, -⟩ | ⟨-, h⟩
+      · exact .inr ⟨e, List.mem_cons_self .., hk⟩
+      · exact .inl h
+    · exact .inr ⟨e', List.mem_cons_of_mem _ he', hk⟩
+
+end boot
+
+section alloc
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+/-- A set of distinct elements, as a list. -/
+theorem bigSepM_listToSet (Φ : w64 → IProp GF) (ps : List w64) (Hnd : ps.Nodup) :
+    ([∗map] id ↦ _u ∈ toMap (GMap.listToSet ps), Φ id) ⊢ [∗list] id ∈ ps, Φ id := by
+  induction ps with
+  | nil =>
+    iintro -
+    iapply (BigSepL.bigSepL_nil (Φ := fun _ id => Φ id)).2
+    iempintro
+  | cons p ps ih =>
+    rw [List.nodup_cons] at Hnd
+    have Hnone : (GMap.listToSet ps) !! p = none := by
+      cases h : (GMap.listToSet ps) !! p with
+      | none => rfl
+      | some u =>
+        exfalso; apply Hnd.1
+        rw [← GMap.elem_of_list_to_set]
+        show ((GMap.listToSet ps).lookup p).isSome = true
+        show ((GMap.listToSet ps) !! p).isSome = true
+        rw [h]; rfl
+    rw [show toMap (GMap.listToSet (p :: ps)) =
+      (Std.insert (GMap.listToSet ps : GMap w64 Unit) p () : GMap w64 Unit) from rfl]
+    iintro H
+    icases (BigSepM.bigSepM_insert (Φ := fun id (_u : Unit) => Φ id) Hnone).1 $$ H with ⟨Hp, H⟩
+    iapply (BigSepL.bigSepL_cons (Φ := fun _ id => Φ id)).2
+    iframe Hp
+    iapply ih Hnd.2 $$ H
+
+/-- **Read credits** (open: raft's `rdCred`). -/
+def readCredits (γ : Cluster) (n : Nat) : IProp GF := rdCred γ.raft n
+
+/-- (open) **A read request's credit.** -/
+def readCredit (γ : Cluster) : IProp GF := readCredits γ 1
+
+theorem readCredits_split (γ : Cluster) (a b : Nat) :
+    readCredits (GF := GF) γ (a + b) ⊣⊢ readCredits γ a ∗ readCredits γ b := by
+  unfold readCredits; exact rdCred_split γ.raft a b
+
+/-- **A node's boot token** of a new cluster of the peers `ps` with the contexts `ctxs`: its raft
+ghost state at the bootstrap state, the committed bootstrap log, the bytes of its entries
+(`bootMarshal`), and the cluster's invariants. The cluster is static, in raft's no-snapshot mode,
+with leader transfer on. -/
+def nodeBoot (γ : Cluster) (N : Namespace) (ps : List w64) (ctxs : List (List w8)) (id : w64) :
+    IProp GF :=
+  iprop(⌜γ.raft.reCfg = GMap.listToSet ps ∧ γ.raft.reDyn = none ∧ BootLogOk ps γ.raft.reBoot ∧
+      γ.raft.reNoSnap = true ∧ γ.raft.reNoXfer = false⌝ ∗
+    clusterInv γ N ∗ ownRaftGhost γ.raft id (bootPState γ.raft.reBoot) ∗
+    isCommitted γ.raft γ.raft.reBoot ∗ bootMarshal ps ctxs γ.raft.reBoot)
+
+/-- The client's part of a new cluster, built in raft's allocation (`allocClientGen`). -/
+def allocOut (N : Namespace) (boot : List LogEntry) (γr : RaftNames) : IProp GF :=
+  iprop(∃ γ : Cluster, ⌜γ.raft = γr⌝ ∗ apiInv γ N ∗ ownCommittedOps γ boot ∗ ownReadCtxs γ ∅)
+
+/-- The adapter's part of raft's allocation: its ghost state and invariant, raft's standing update
+from it. -/
+theorem api_alloc_client (N : Namespace) (E : CoPset) (cfg : GSet w64) (ps : List w64)
+    (ctxs : List (List w8)) (boot : List LogEntry) (HB : BootLog ps ctxs boot) :
+    ⊢ allocClientGen (GF := GF) E cfg none (fun _ _ => True) (LogEntry.toEntries boot 0)
+        (allocOut N boot) (N .@ "raft") := by
+  unfold allocClientGen
+  iintro %γr %Hγr #Hc HrL Hfa Hrfa #Hpis
+  obtain ⟨-, -, -, -, HNs⟩ := Hγr
+  imod mono_list_own_alloc (GF := GF) boot with ⟨%γf, Hf, #Hflb⟩
+  imod mono_list_own_alloc (GF := GF) boot with ⟨%γo, Ho, #Holb⟩
+  imod ghost_map_alloc_empty (GF := GF) (K := List w8) (V := GName) with ⟨%γc, Hca⟩
+  icases ((monoListAuthOwn_fractional (GF := GF) γo
+      boot).fractional (1 : Qp).half (1 : Qp).half).1
+    $$ [Ho] with ⟨Ho1, Ho2⟩
+  · rw [Qp.half_add_half]; iexact Ho
+  let γ : Cluster := ⟨γr, γf, γo, γc⟩
+  imod inv_alloc (apiN N) E (apiInvBody (GF := GF) γ) $$ [HrL Hf Ho1 Hfa Hrfa] with #Hinv
+  · inext
+    unfold apiInvBody
+    iexists LogEntry.toEntries boot 0, bootFresh (LogEntry.toEntries boot 0), ∅
+    rw [strip_toEntries, HB.opsOf]
+    iframe HrL Hf Ho1 Hfa Hrfa
+    isplitr
+    · ipureintro; exact HB.idx
+    isplitr
+    · unfold freshOk
+      imodintro
+      iintro %k %Hk
+      unfold bootFresh at Hk
+      rcases bootFreshFrom_lookup ∅ _ k Hk with h | ⟨e, he, hek⟩
+      · exact absurd h (by simp [GMap.lookup_empty])
+      · obtain ⟨j, hj⟩ := List.getElem?_of_mem he
+        subst hek
+        iapply (BigSepL.bigSepL_lookup (Φ := fun _ (e : EntryM) =>
+          propIs (GF := GF) γr (entKey e.Type' e.Data') (fun _ => iprop(True))) hj) $$ Hpis
+    · unfold rdFreshOk
+      imodintro
+      iintro %c %Hc
+      exact absurd Hc (by simp [GMap.lookup_empty])
+  ihave #Hinv' : apiInv (GF := GF) γ N $$ []
+  · unfold apiInv; iexact Hinv
+  ihave #Hnoop := api_noopAu γ N HNs $$ Hinv'
+  imodintro
+  iframe Hnoop
+  unfold allocOut
+  iexists γ
+  isplitr; · ipureintro; rfl
+  iframe Hinv'
+  isplitl [Ho2]
+  · unfold ownCommittedOps
+    iframe Ho2
+    iexists boot
+    unfold isCommittedLogLb
+    rw [HB.opsOf]
+    iframe Hflb Holb
+    ipureintro; rfl
+  · unfold ownReadCtxs
+    iexists ∅
+    iframe Hca
+    ipureintro
+    intro c
+    constructor <;> intro h <;> exact absurd h (by simp [Membership.mem, GMap.lookup_empty])
+
+/-- **A new cluster** (the draft's `cluster_alloc`; see the report for the differences). -/
+theorem cluster_alloc_impl (N : Namespace) (ps : List w64) (ctxs : List (List w8))
+    (boot : List LogEntry) (E : CoPset) :
+    BootLog ps ctxs boot → ps.Nodup → ps ≠ [] → W64 0 ∉ ps →
+    ⊢ bootMarshal (GF := GF) ps ctxs (LogEntry.toEntries boot 0) -∗
+      |={E}=> ∃ γ, ownCommittedOps γ boot ∗ ownReadCtxs γ ∅ ∗ readCredits γ (2 ^ 64 - 2) ∗
+        [∗list] id ∈ ps, nodeBoot γ N ps ctxs id := by
+  intro HB Hnd Hne Hnz
+  iintro #Hm
+  have Hok := HB.ok
+  have Hwf := Hok.wf Hnd
+  have Hbne : LogEntry.toEntries boot 0 ≠ [] := by
+    intro h
+    have := congrArg List.length h
+    rw [toEntries_length, HB.1] at this
+    exact Hne (List.eq_nil_of_length_eq_zero this)
+  have Hcne : GMap.listToSet ps ≠ ∅ := by
+    intro h
+    obtain ⟨p, ps', rfl⟩ := List.exists_cons_of_ne_nil Hne
+    have : p ∈ GMap.listToSet (p :: ps') := (GMap.elem_of_list_to_set p _).2 (List.mem_cons_self ..)
+    rw [h] at this
+    exact (GMap.not_elem_of_empty p) this
+  have Hnz' : W64 0 ∉ GMap.listToSet ps := fun h => Hnz ((GMap.elem_of_list_to_set _ _).1 h)
+  ihave Hcl := api_alloc_client (GF := GF) N E (GMap.listToSet ps) ps ctxs boot HB
+  imod ownRaftGhost_alloc_core E (GMap.listToSet ps) (GMap.listToSet ps) none (fun _ _ => True)
+    (LogEntry.toEntries boot 0) (W64 1) (allocOut N boot) (some (GMap.listToSet ps))
+    (fun T hT => by cases hT; exact ⟨GMap.subseteq_refl _, rfl⟩) true (fun _ => Hbne)
+    false (fun h => by cases h) (fun _ _ => True) (fun _ => none) (N .@ "raft") Hcne Hnz' Hwf
+    (fun _ => by rw [show uint.Z (W64 1) = 1 from rfl]; exact Int.le_refl _)
+    $$ Hcl with ⟨%γr, %Hγ, #Hcinv, #Hc0, Hnodes, Hout, Hcr, -⟩
+  obtain ⟨Hcfg, Hdyn, -, Hboot, -, Hns, Hnx, -, -, HNs⟩ := Hγ
+  iunfold allocOut at Hout
+  icases Hout with ⟨%γ, %Hγr, #Hinv, Hops, Hctx⟩
+  subst Hγr
+  imodintro
+  iexists γ
+  iframe Hops Hctx
+  isplitl [Hcr]
+  · unfold readCredits; iexact Hcr
+  simp only [Option.isSome_none]
+  rw [← bootPState_eq]
+  iapply bigSepM_listToSet _ ps Hnd
+  iapply BigSepM.bigSepM_impl $$ Hnodes
+  imodintro
+  iintro %id %u %_ Hg
+  unfold nodeBoot clusterInv
+  rw [Hboot]
+  iframe Hg Hc0 Hm Hcinv Hinv
+  isplitr
+  · ipureintro; exact ⟨Hcfg, Hdyn, Hok, Hns, Hnx⟩
+  ipureintro; exact HNs
+
+end alloc
+
 end ApiImpl
 end EtcdGrove
 end Perennial
