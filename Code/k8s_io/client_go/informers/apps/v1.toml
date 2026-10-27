@@ -1,0 +1,9 @@
+# Types and names only: function and method bodies are axiomatized (project k8s-apiserver;
+# notes/k8s-daemonset-goose.md: what the DaemonSet controller and its example name).
+# It imports what its interfaces' and structs' members name (names only), so that
+# those types are concrete.
+translate = ["!*"]
+imports = ["!*", "k8s.io/client-go/tools/cache", "k8s.io/client-go/listers/apps/v1"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true

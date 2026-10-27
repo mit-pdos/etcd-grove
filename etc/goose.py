@@ -357,6 +357,10 @@ PROJECTS = [
             # types only (the interfaces `Hash`, `Hash32`, ...): the type of mvcc's
             # `kvHasher.hash` field, so that Goose translates `kvHasher`
             "hash",
+            # types and names only: the FNV hash the DaemonSet controller's `controller.ComputeHash`
+            # writes into (project k8s-daemonset; notes/k8s-daemonset-goose.md); here since this
+            # project owns `hash`
+            "hash/fnv",
             # names only (D38, rafthttp's stage 1): what rafthttp's message path calls of the
             # standard library's `path` (the stream handler's URL parsing) and of etcd's
             # `pkg/v3/ioutil` (the pipeline handler's limited reader) and `pkg/v3/httputil`
@@ -785,12 +789,35 @@ PROJECTS = [
             "encoding/base64",
             "iter",
             # (`path` is the etcd project's, with the bodies rafthttp needs: `Code/path.toml`)
+            # types and names only: what the DaemonSet controller and its example name beyond the
+            # above (project k8s-daemonset translates the controller; notes/k8s-daemonset-goose.md),
+            # here because this project owns their directories and translates them from the same
+            # client-go, apimachinery and component-base (CLIENT_GO_PINS)
+            "k8s.io/api/extensions/v1beta1",
+            "k8s.io/apimachinery/pkg/api/equality",
+            "k8s.io/apimachinery/pkg/selection",
+            "k8s.io/apimachinery/pkg/util/json",
+            "k8s.io/apimachinery/pkg/util/rand",
+            "k8s.io/apimachinery/pkg/util/strategicpatch",
+            "k8s.io/apimachinery/pkg/util/validation",
+            "k8s.io/client-go/informers",
+            "k8s.io/client-go/informers/apps",
+            "k8s.io/client-go/informers/core",
+            "k8s.io/client-go/informers/apps/v1",
+            "k8s.io/client-go/informers/core/v1",
+            "k8s.io/client-go/kubernetes/scheme",
+            "k8s.io/client-go/tools/record",
+            "k8s.io/component-base/metrics/legacyregistry",
+            "k8s.io/component-base/zpages/features",
+            "k8s.io/utils/dump",
+            "k8s.io/utils/ptr",
         ],
         owned=[os.path.join("k8s_io", "apiserver"), os.path.join("k8s_io", "apimachinery"),
                os.path.join("k8s_io", "api"),
                os.path.join("k8s_io", "client_go"),
                os.path.join("k8s_io", "klog"), os.path.join("k8s_io", "component_base"),
                os.path.join("k8s_io", "utils", "clock"), os.path.join("k8s_io", "utils", "trace"),
+               os.path.join("k8s_io", "utils", "dump"), os.path.join("k8s_io", "utils", "ptr"),
                os.path.join("encoding", "json"),
                os.path.join("github_com", "go_logr"),
                os.path.join("encoding", "base64"), "iter",
@@ -804,12 +831,44 @@ PROJECTS = [
         # module of its own requiring client-go, apimachinery and k8s.io/api at the pins of
         # examples/k8setcd3/go.mod (CLIENT_GO_PINS checks they agree), with bodies. Everything it
         # names outside the package is project k8s-apiserver's translation (the empty root).
+        # And (2026-10-27, notes/k8s-daemonset-goose.md) the theorem's program `dsmain.Main` and
+        # the DaemonSet controller's closure from k8s.io/kubernetes 878cfa6c4cc7 (the module's
+        # go.mod: k8s.io/kubernetes and the staging modules it needs, pinned by `replace`), with
+        # bodies, and the k8s.io/kubernetes, component-helpers, controller-manager and
+        # apiextensions-apiserver packages they name, names only; client-go, apimachinery,
+        # component-base and the rest are project k8s-apiserver's (the empty root).
         repo=None,
         rev=None,
         local=os.path.join("examples", "k8sdaemonset"),
-        lean_roots=["k8s.io=", "github.com/mit-pdos/etcd-grove="],
-        packages=["./apimodel"],
-        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "k8sdaemonset")],
+        lean_roots=["k8s.io=", "github.com/mit-pdos/etcd-grove=", "hash=", "encoding/json=",
+                    "iter=", "github.com/go-logr="],
+        packages=[
+            "./apimodel",
+            "./dsmain",
+            # with bodies (their .toml)
+            "k8s.io/kubernetes/pkg/controller/daemon",
+            "k8s.io/kubernetes/pkg/controller/daemon/util",
+            "k8s.io/kubernetes/pkg/controller/daemon/metrics",
+            "k8s.io/kubernetes/pkg/controller",
+            "k8s.io/kubernetes/pkg/api/v1/pod",
+            "k8s.io/kubernetes/pkg/apis/core/v1/helper",
+            "k8s.io/kubernetes/pkg/util/labels",
+            "k8s.io/kubernetes/pkg/util/hash",
+            "k8s.io/kubernetes/pkg/features",
+            "k8s.io/component-helpers/scheduling/corev1",
+            "k8s.io/component-helpers/scheduling/corev1/nodeaffinity",
+            # types and names only
+            "k8s.io/kubernetes/pkg/apis/core/helper",
+            "k8s.io/kubernetes/pkg/apis/core/install",
+            "k8s.io/kubernetes/pkg/apis/core/validation",
+            "k8s.io/kubernetes/pkg/util/taints",
+            "k8s.io/apiextensions-apiserver/pkg/features",
+            "k8s.io/controller-manager/pkg/features",
+        ],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "k8sdaemonset"),
+               os.path.join("k8s_io", "kubernetes"), os.path.join("k8s_io", "component_helpers"),
+               os.path.join("k8s_io", "apiextensions_apiserver"),
+               os.path.join("k8s_io", "controller_manager")],
     ),
     Project(
         name="kvwitness",
@@ -847,19 +906,28 @@ GO_MOD_PINS = {
 
 
 # Go modules of this repository whose Kubernetes requirements must be those of another: the model
-# API server's module (project k8s-daemonset) names the types and interfaces project k8s-apiserver
-# translates from examples/k8setcd3's module, so both must be at the same versions.
+# API server's and the DaemonSet controller's module (project k8s-daemonset) names the types,
+# interfaces and functions project k8s-apiserver translates from examples/k8setcd3's module, so
+# both must be at the same versions (examples/k8sdaemonset/go.mod pins the staging ones by
+# `replace`).
 CLIENT_GO_PINS = {
     os.path.join("examples", "k8sdaemonset", "go.mod"): (
         os.path.join("examples", "k8setcd3", "go.mod"),
-        ["k8s.io/api", "k8s.io/apimachinery", "k8s.io/client-go"]),
+        ["k8s.io/api", "k8s.io/apimachinery", "k8s.io/client-go", "k8s.io/apiserver",
+         "k8s.io/component-base", "k8s.io/klog/v2", "k8s.io/utils", "k8s.io/kube-openapi"]),
 }
 
 
 def go_mod_requires(f):
-    """The required versions of a go.mod file, by module path."""
+    """The versions a go.mod file selects, by module path: its requirements, except that a module
+    replaced by the same path at a version (`M => M vX`, as examples/k8sdaemonset/go.mod replaces
+    the staging modules k8s.io/kubernetes requires at v0.0.0) is at the replacement's version."""
     text = open(os.path.join(ROOT, f), encoding="utf-8").read()
-    return dict(re.findall(r"^\s*(?:require\s+)?(\S+)\s+(v\S+)(?:\s*//.*)?$", text, re.M))
+    reqs = dict(re.findall(r"^\s*(?:require\s+)?(\S+)\s+(v\S+)(?:\s*//.*)?$", text, re.M))
+    for old, new, ver in re.findall(r"^\s*(?:replace\s+)?(\S+)\s+=>\s+(\S+)\s+(v\S+)\s*$", text, re.M):
+        if old == new:
+            reqs[old] = ver
+    return reqs
 
 
 def go_mod_pin_errors():

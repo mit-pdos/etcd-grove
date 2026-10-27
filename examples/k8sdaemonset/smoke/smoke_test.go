@@ -5,13 +5,14 @@
 // kubernetes/kubernetes#139657 does (one Ready node, one DaemonSet "ds-1"; a checker lists the
 // pods every millisecond).
 //
-// It needs a Kubernetes checkout (the controller is k8s.io/kubernetes, which another module can
-// only import with its staging modules replaced): generate this directory's go.mod from one,
-// then run with the build tag:
+// It runs at the example module's Kubernetes pin (examples/k8sdaemonset/go.mod, k8s.io/kubernetes
+// 878cfa6c4cc7), with the build tag (the runs take minutes; dsmain's tests run the theorem's
+// program itself):
 //
-//	python3 -I gen-gomod.py /path/to/kubernetes
-//	go mod tidy
 //	go test -tags k8ssmoke -v .                       # SMOKE_RUNS=n, SMOKE_SETTLE_SECONDS=s
+//
+// (Until 2026-10-27 its go.mod was generated from a Kubernetes checkout; the results below were
+// taken that way, at the PR head.)
 //
 // Checked at kubernetes/kubernetes#139657's head 13ecb9cc (2026-10-26):
 //   - TestNoFaults: 5 of 5 runs converge to one pod.
