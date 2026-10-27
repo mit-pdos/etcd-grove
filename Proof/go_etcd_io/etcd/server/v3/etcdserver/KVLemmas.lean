@@ -510,7 +510,7 @@ theorem kv_fire_reads (γk : KVNames) (L : List EntryModel) (hpl : plainLog L) :
       iframe HQ
       rw [HQeq]
       iintro !> !>
-      rw [← kvModelSt_plain γk L hpl, Hag]
+      rw [kvStOff, ← kvModelSt_plain γk L hpl, Hag]
       iexact HQ0
     · iexact Hrest
 

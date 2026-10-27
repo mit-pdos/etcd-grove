@@ -95,6 +95,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NoSpaceDeadOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.NoSpaceDeadAdminOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AppliedOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.UberOn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.AdminEntryOn
 
 @[expose] public section
 
@@ -1086,10 +1087,11 @@ at `lp` (`lease.lessorInv`, its configuration, its backend's contract for the `L
 clauses, from their proofs; its `Revoke` and `Lookup` clauses are the premises
 (`apply.isApplyLessor_of_lessorInv`). -/
 theorem lessor_apply_contract (lp s : Loc) (γ : mvcc.StoreNames) (P : IProp GF) (f : val)
-    (RW : IProp GF) :
+    (RW RW₀ : IProp GF) (Rb : GMap GoString backend.BktData → IProp GF) :
     isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗
       lease.lessorInv lp γ.leases ∗ lease.lessorCfg lp ∗
-      lease.lessorBackend lp P f iprop(mvcc.storeWT γ ∗ RW) (mvcc.storeRT γ) ∗
+      lease.lessorBackend lp P f iprop(mvcc.storeWT γ ∗ RW₀) (mvcc.storeRT γ) Rb ∗
+      □ (RW -∗ RW₀ ∗ ∃ r, Rb r) ∗
       □ (∀ id : w64,
         {{ True }} (App (Val (lp @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.lease.lessor.ty
           @!! go!"Lookup")) (Val #id))
@@ -1097,7 +1099,7 @@ theorem lessor_apply_contract (lp s : Loc) (γ : mvcc.StoreNames) (P : IProp GF)
       EtcdGrove.apply.isApplyLessor (lease.lessorIface lp) s γ P f RW :=
   EtcdGrove.apply.isApplyLessor_of_lessorInv lease.lessor.wp_GetLease lease.lessor.wp_Attach
     lease.lessor.wp_Detach lease.lessor.wp_SetRangeDeleter lease.lessor.wp_Lookup
-    lease.lessor.wp_Grant lease.lessor.wp_Checkpoint lease.Lease.wp_TTL lp s γ P f RW
+    lease.lessor.wp_Grant lease.lessor.wp_Checkpoint lease.Lease.wp_TTL lp s γ P f RW RW₀ Rb
 
 /-- **The auth store's admin side as model steps, of the real store** (the auth plan's S4, its
 apply part, 2026-10-24; `apply/AuthSteps.lean`): the store at `st` (`auth.authInv st R M`) has
@@ -1608,6 +1610,23 @@ theorem server_uber_kvl_on (s : Loc) (ua : GoInterface) (E : EtcdGrove.apply.AEn
   srv_uberKVL_on apply_range_latest apply_delete_range_latest apply_put_latest apply_txn_latest
     s ua E γa hM
 
+/-- **The server's uber-applier's admin triples at the latest state, with auth on** (the auth
+plan's E3n, `UberOn.lean`), every callee linked: of the built part's store fact and the apply
+thread's auth row, at the admin steps' resource `adminW` (blocker 1's row). -/
+theorem server_uber_auth_steps_on (s : Loc) (ua : GoInterface) (E : EtcdGrove.apply.AEnv GF)
+    (γa : auth.AuthNames) (st : auth.AuthState) (hM : E.authMode = .on γa) :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.apply ∗
+      srvUberBase s ua E ∗ srvAuthApplyResB s E st ⊢
+      srvAuthApplyResB s E st ∗ ∃ (stl bel : Loc) (T : IProp GF),
+        srvAuthStoreAddr s ↦□ auth.authIface stl ∗
+        EtcdGrove.apply.uberAuthStepsL ua E (adminW stl bel (.on γa) E.P E.f T)
+          (fun γa' h => iprop(auth.authOwnFu γa' h ∗ auth.tieRes stl (.on γa) h))
+          (auth.latestRes stl (.on γa)) :=
+  srv_uberAuthStepsL_on apply_UserAdd_fuelX apply_RoleAdd_fuelX apply_UserGrantRole_fuelX
+    apply_RoleGrantPermission_fuelX apply_AuthEnable_fuelX
+    (EtcdGrove.apply.authApplierV3.Apply.wp_latest Perennial.EtcdGrove.apply.wp_needAdminPermission)
+    Perennial.EtcdGrove.apply.applierV3backend.wp_Apply s ua E γa st hM
+
 /-- **`dispatch` on a KV request, the verdict at the latest state** (the auth plan's E2y,
 `apply/DispatchKVL.lean`), every callee linked. -/
 theorem apply_dispatch_kv_latest :
@@ -1713,6 +1732,110 @@ theorem apply_apply_admin_latest :
     Perennial.EtcdGrove.apply.zap.wp_Stringer Perennial.EtcdGrove.apply.zap.Logger.wp_Debug
     Perennial.EtcdGrove.apply.wp_noSideEffect apply_uber_apply_admin_latest
 
+/-- **An admin entry's application by the apply thread, with auth on** (the auth plan's E3n,
+`AdminEntryOn.lean`), every callee linked: the store's half of `be` borrowed from the rest, the
+outcome the model's admin step, the row back at the history after it. -/
+theorem server_admin_entry_on : adminEntryOn.spec (GF := GF) (hG := hG) :=
+  apply_admin_entry_on apply_apply_admin_latest
+
+/-- **The apply thread's step on one committed normal entry, with auth on** (the auth plan's E3o,
+`EtcdServer__applyEntryNormal.lean`'s `wp_proofOn`), every callee linked: a KV request's verdict
+the latest state's (`apply_apply_kv_latest`), an admin request's step the auth row's
+(`server_admin_entry_on`); the state after the entry the mode-`on` model's (`kvAppliedOn`), the
+result handed to its waiter with the verdict tied to the model (`resultΨOn`). -/
+theorem server_apply_entry_normal_on :
+    EtcdServer.applyEntryNormal.specOn (GF := GF) (hG := hG) :=
+  EtcdServer.applyEntryNormal.wp_proofOn raftpb.Entry.wp_GetIndex raftpb.Entry.wp_GetTerm
+    consistentIndex.wp_ConsistentIndex consistentIndex.wp_SetConsistentIndex
+    notify.Notifier.wp_Notify EtcdServer.wp_isLeader config.ServerConfig.wp_ElectionTimeout
+    Perennial.EtcdGrove.apply.wp_Apply apply_apply_kv_latest server_admin_entry_on
+    apply_range_latest apply_delete_range_latest apply_put_latest apply_txn_latest
+    apply_UserAdd_fuelX apply_RoleAdd_fuelX apply_UserGrantRole_fuelX
+    apply_RoleGrantPermission_fuelX apply_AuthEnable_fuelX
+    (EtcdGrove.apply.authApplierV3.Apply.wp_latest Perennial.EtcdGrove.apply.wp_needAdminPermission)
+    Perennial.EtcdGrove.apply.applierV3backend.wp_Apply
+    errors.wp_Is v3alarm.AlarmStore.wp_Get EtcdServer.wp_Logger zap.wp_String zap.wp_Int64
+    zap.wp_Error go_humanize.wp_Bytes zap.Logger.wp_Warn EtcdServer.wp_GoAttach
+    EtcdServer.wp_MemberID
+
+/-- **The apply loop over a batch with auth on** (the auth plan's E3p, `EtcdServer__apply.lean`'s
+`wp_proofOn`): each entry through `server_apply_entry_normal_on` (its admin step's time receipt from
+the iteration's Go steps), each conf change through `applyConfChange`; the apply thread after the
+batch at the mode-`on` model of the committed log (`kvAppliedOn`). -/
+theorem server_apply_on :
+    EtcdServer.apply.specOn (GF := GF) (hG := hG) :=
+  EtcdServer.apply.wp_proofOn zap.Logger.wp_Debug zap.wp_Int' zap.wp_Uint64 zap.wp_Stringer
+    consistentIndex.wp_ConsistentIndex consistentIndex.wp_SetConsistentApplyingIndex
+    consistentIndex.wp_SetConsistentIndex raftpb.Entry.wp_GetIndex raftpb.Entry.wp_GetTerm
+    raftpb.Entry.wp_GetType server_apply_entry_normal_on
+    (EtcdServer.setAppliedIndex.wp_proofM true) (EtcdServer.setTerm.wp_proofM true)
+    pbutil.wp_MustUnmarshalMessage EtcdServer.wp_applyConfChange raftpb.ConfChange.wp_GetId
+    membership.RaftCluster.wp_Members
+
+/-- **`applyEntries` with auth on** (the auth plan's E3p): the batch's unapplied entries through
+`server_apply_on`. -/
+theorem server_apply_entries_on :
+    EtcdServer.applyEntries.specOn (GF := GF) (hG := hG) :=
+  EtcdServer.applyEntries.wp_proofOn raftpb.Entry.wp_GetIndex server_apply_on
+
+/-- **`applyAll` with auth on** (the auth plan's E3p): the batch through `server_apply_entries_on`,
+the snapshot and compaction with the mode-`on` applier row (`snapshot`'s contract over the part
+both rows share, `srvApplyKVCore`). -/
+theorem server_apply_all_on [EtcdGrove.ErrorStringLeaf] :
+    EtcdServer.applyAll.specOn (GF := GF) (hG := hG) :=
+  EtcdServer.applyAll.wp_proofOn EtcdServer.wp_applySnapshot server_apply_entries_on
+    EtcdServer.wp_Backend EtcdServer.wp_Logger backend.wp_VerifyBackendConsistency
+    (EtcdServer.snapshotIfNeededAndCompactRaftLog.wp_proofOn EtcdServer.wp_shouldSnapshotToDisk
+      EtcdServer.wp_shouldSnapshotToMemory EtcdServer.wp_snapshot EtcdServer.wp_compactRaftLog)
+
+/-- **`run` with auth on** (the auth plan's E3q, `EtcdServer__run.lean`'s `wp_proofOn`): from
+`isServerRunOn`, every scheduled job `server_apply_all_on` over the apply thread's mode-`on`
+resources (`applyResOn`). -/
+theorem server_run_on [EtcdGrove.ErrorStringLeaf] :
+    EtcdServer.run.specOn (GF := GF) (hG := hG) :=
+  EtcdServer.run.wp_proofOn server_apply_all_on EtcdServer.wp_Logger
+    raftpb.SnapshotMetadata.wp_GetIndex raftpb.SnapshotMetadata.wp_GetTerm
+    schedule.wp_NewFIFOScheduler EtcdServer.wp_getLead EtcdServer.wp_setLead EtcdServer.wp_isLeader
+    notify.Notifier.wp_Notify v2stats.ServerStats.wp_BecomeLeader EtcdServer.wp_getCommittedIndex
+    EtcdServer.wp_setCommittedIndex raftNode.wp_start raftNode.wp_apply schedule.wp_NewJob
+    schedule.Scheduler.wp_Schedule
+
+/-- **`start` with auth on** (the auth plan's E3r, `EtcdServer__start.lean`'s `wp_proofOn`): from the
+mode-`on` construction premise and the lessor finding no lease, `run` started with auth on
+(`server_run_on`), the request and read views in the mode, and the read loop's precondition at the
+mode-`on` model's state (`kv_read_compose_on`). Every callee linked. -/
+theorem server_start_on [EtcdGrove.ErrorStringLeaf] :
+    EtcdServer.start.specOn (GF := GF) (hG := hG) :=
+  EtcdServer.start.wp_proofOn EtcdServer.wp_Logger zap.Logger.wp_Info zap.wp_String zap.wp_Uint64
+    wait.wp_New wait.wp_NewTimeList wait.timeList.wp_Wait wait.timeList.wp_Trigger read.wp_NewRead
+    notify.wp_NewNotifier EtcdServer.wp_MemberID EtcdServer.wp_Cluster membership.RaftCluster.wp_ID
+    types.ID.wp_String semver.Version.wp_String version.wp_Cluster prometheus.GaugeVec.wp_With
+    server_run_on EtcdServer.wp_ApplyWait EtcdServer.wp_Done EtcdServer.wp_Stopping
+    EtcdServer.wp_LeaderChanged EtcdServer.wp_FirstCommitInTermNotify EtcdServer.wp_NextRequestID
+    EtcdServer.wp_RequestTimeout (EtcdServer.AppliedIndex.wp_proofM true
+      (EtcdServer.getAppliedIndex.wp_proofM true)) raftNode.wp_ReadState raftNode.wp_ReadIndex
+
+/-- **`Range` with auth on** (the auth plan's E3s, 2026-10-27; `EtcdServer.Range.specOn`,
+`Proof/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__Range.lean`): over the request and read
+views with auth on and the read deposit at the mode-`on` model's state, for a reader holding a
+lower bound `n` of the auth store's published index (`authPubLbM`) and the store's range check at
+it (`srvAuthLb`, `start.specOn`'s): a success passed `IsRangePermitted` at states no older than `n`
+(`apply.rangeClassFrom`), and a linearizable one read the mode-`on` model of a committed raft log
+at which the deposit fired (`rangeReadOkM true`). Every callee linked (`doSerialize` through its
+proof in either mode, `doSerialize.wp_proofM`). -/
+theorem server_range_on [go_etcd_io.etcd.cache.v3.Assumptions] :
+    EtcdServer.Range.specOn (GF := GF) (hG := hG) :=
+  EtcdServer.Range.wp_proofOn traceutil.Tracer.wp_Start trace.wp_WithAttributes «attribute».wp_String
+    «attribute».wp_Int64 «attribute».wp_Bool RangeRequest.wp_GetKey RangeRequest.wp_GetRangeEnd
+    RangeRequest.wp_GetRevision RangeRequest.wp_GetLimit RangeRequest.wp_GetCountOnly
+    RangeRequest.wp_GetKeysOnly EtcdServer.wp_Logger traceutil.wp_EnsureTrace
+    txn.wp_WarnOfExpensiveReadOnlyRangeRequest traceutil.Trace.wp_AddField traceutil.Trace.wp_LogIfLong
+    strconv.wp_FormatBool time.Duration.wp_Seconds prometheus.HistogramVec.wp_WithLabelValues
+    traceutil.Trace.wp_Step EtcdServer.wp_KV txn.wp_Range
+    (EtcdServer.doSerialize.wp_proofM true traceutil.wp_Get EtcdServer.wp_AuthInfoFromCtx
+      traceutil.Trace.wp_Step)
+    RangeRequest.wp_String proto.wp_Size
+
 end adminLatest
 
 /-- **A refused admin check keeps the model's auth state; a passed one admits the principal** (the
@@ -1740,6 +1863,14 @@ theorem admin_state_auth_enable [GooseExts] (γa : auth.AuthNames) (rq : EtcdGro
 #print axioms Perennial.EtcdGrove.apply_dispatch_admin
 #print axioms Perennial.EtcdGrove.apply_uber_apply_admin_latest
 #print axioms Perennial.EtcdGrove.apply_apply_admin_latest
+#print axioms Perennial.EtcdGrove.server_admin_entry_on
+#print axioms Perennial.EtcdGrove.server_apply_entry_normal_on
+#print axioms Perennial.EtcdGrove.server_apply_on
+#print axioms Perennial.EtcdGrove.server_apply_entries_on
+#print axioms Perennial.EtcdGrove.server_apply_all_on
+#print axioms Perennial.EtcdGrove.server_run_on
+#print axioms Perennial.EtcdGrove.server_start_on
+#print axioms Perennial.EtcdGrove.server_range_on
 #print axioms Perennial.EtcdGrove.admin_state_of_latest
 
 section userAddHandler
@@ -1885,7 +2016,7 @@ theorem srv_auth_tp_on (hValid : auth.ValidSpec (GF := GF) (hG := hG))
     auth.authStore.wp_IsPutPermitted auth.authStore.wp_IsRangePermitted
     auth.authStore.wp_IsDeleteRangePermitted auth.authStore.wp_IsAdminPermitted
     auth.authStore.wp_IsAuthEnabled auth_put_permitted_latest auth_range_permitted_latest
-    auth_delete_range_permitted_latest auth_admin_permitted_latest
+    auth_delete_range_permitted_latest auth_admin_permitted_latest auth_range_permitted_lb
     (auth.authStore.AuthEnable.wp_tieB auth.authStore.wp_refreshRangePermCache
       auth.authStore.wp_setRevision auth.wp_hasRootRole zap.Logger.wp_Info)
     (auth.authStore.UserAdd.wp_tieSureB auth.authStore.wp_commitRevision
@@ -2129,7 +2260,7 @@ result at the header the server stamps, the applied result's auth verdict the mo
 committed prefix before the entry (`resPostM true`, `authTie`). Every callee linked. -/
 theorem server_process_irr_on :
     EtcdServer.processInternalRaftRequestOnce.specM (GF := GF) (hG := hG) true :=
-  EtcdServer.processInternalRaftRequestOnce.wp_proofM true EtcdServer.wp_getAppliedIndex
+  EtcdServer.processInternalRaftRequestOnce.wp_proofM true (EtcdServer.getAppliedIndex.wp_proofM true)
     EtcdServer.wp_getCommittedIndex EtcdServer.wp_FeatureEnabled wp_exceedsRequestLimit
     idutil.Generator.wp_Next EtcdServer.wp_AuthInfoFromCtx wp_getRequestType proto.wp_MarshalIRR
     config.ServerConfig.wp_ReqTimeout trace.wp_SpanFromContext
@@ -2184,17 +2315,17 @@ theorem apply_kv_entry_pre_on (E : EtcdGrove.apply.AEnv GF) (γr : ReadNames) (s
     (hdec : EtcdGrove.apply.irrDecode m.data = some rq) (hv : uint.Z γr.kv.c0 < uint.Z m.index)
     (hk : EtcdGrove.apply.isKVKind (EtcdGrove.apply.dispatchKind rq) = true)
     (γa : auth.AuthNames) (hs : List auth.AuthState) (hl : hs.getLast? = some st)
-    (hz : noZeroEnds rq)
     (hlen : (kvEntryOn γr.kv.c0 x.chain (st, x.log) m).2.length < 2 ^ 63) :
     ⊢ srvKVInvsOn (GF := GF) E γr st₀ -∗ kvAppliedOn γr.raft γr.kv st₀ A x st -∗
       srvRLogLb γr.raft (A ++ [m]) ={⊤}=∗
       ⌜plainCover rq ∧ EtcdGrove.apply.needAdminPermission rq = false ∧
-        entryDetOn γr.kv.c0 (st, x.log) m ∧ x.chain = EtcdGrove.apply.alarmChain true false false⌝ ∗
+        entryDetOn γr.kv.c0 (st, x.log) m ∧ x.chain = EtcdGrove.apply.alarmChain true false false ∧
+        noZeroEnds rq ∧ kvShapeAll rq⌝ ∗
       EtcdGrove.apply.certPreVW true E x.chain rq x.log
         (EtcdGrove.apply.kvOutL (.on γa) hs (auth.authInfoM (EtcdGrove.apply.principalOf rq))
           (.quota .backend) rq x.log) ∗
       kvAppliedLOn γr.raft γr.kv st₀ (A ++ [m]) (kvEntryOn γr.kv.c0 x.chain (st, x.log) m) :=
-  kv_entry_pre_on E γr st₀ A m x st rq ht hd hdec hv hk γa hs hl hz hlen
+  kv_entry_pre_on E γr st₀ A m x st rq ht hd hdec hv hk γa hs hl hlen
 
 /-- **After `apply.Apply` on a KV entry with auth on** (E3f): the apply thread's state is the
 model's (`kvOn_after_kv`). -/
@@ -2316,3 +2447,4 @@ end Perennial
 #print axioms Perennial.EtcdGrove.server_apply_not_nospace_on
 #print axioms Perennial.EtcdGrove.server_uber_kvl
 #print axioms Perennial.EtcdGrove.server_uber_kvl_on
+#print axioms Perennial.EtcdGrove.server_uber_auth_steps_on

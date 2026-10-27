@@ -989,7 +989,7 @@ theorem EtcdServer.Txn.wp_proofOn
         ipureintro; exact ⟨Ht, Ha⟩
       iexists _; iexact Header
     (try wp_auto)
-    icases Hres with (⟨%Herr, %hm, %rq', %Lq, %Hwire, #HLq, Hok, #HQq⟩ | ⟨%Hre, #HaE, Hfail⟩)
+    icases Hres with (⟨%Herr, %hm, %rq', %Lq, %Hwire, #HLq, Hok, #HpAf, #HQq⟩ | ⟨%Hre, #HaE, Hfail⟩)
     · subst Herr
       have hz : irrNoZeroEnd (apply.withHeader (irrTxn tw) hm) := by
         refine ⟨?_, ?_, ?_⟩
@@ -1033,6 +1033,10 @@ theorem EtcdServer.Txn.wp_proofOn
       ileft
       isplitr
       · ipureintro; exact ⟨by first | rfl | trivial, Hprn⟩
+      isplitl; rotate_left
+      · iexists tw, hm, Lq
+        isplitr; · ipureintro; first | rfl | trivial
+        iexact HpAf
       iunfold txnAppliedOk
       iexists tw, hm, apply.withHeader (irrTxn tw) hm, t', x, x', log', skip
       simp only [apply.txnOutcomeIs, apply.noSpaceErrIs, Bool.false_eq_true, ↓reduceIte]

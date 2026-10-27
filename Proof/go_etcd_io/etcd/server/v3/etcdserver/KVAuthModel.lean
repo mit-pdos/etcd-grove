@@ -192,6 +192,83 @@ theorem kvGranted_of_nil (st : auth.AuthState) (rq : apply.IRRModel) (h : reqPer
     kvGranted st rq := by
   intro x hx; rw [h] at hx; cases hx
 
+/-- **No range end of the request is `"\x00"`** (a premise of the workload; since E3o kept by the
+mode-`on` log, `plainEntryOn`): the one end at which a check can see another range than the
+model's (`authEndOf`: a non-`nil` empty `RangeEnd` on the wire, which the model reads as `"\x00"`). -/
+def noZeroEnds (rq : apply.IRRModel) : Prop := ∀ x ∈ reqPerms rq, x.2.1 ≠ [W8 0]
+
+/-- **Every permission the request needs is of the shape the permission cache decides** (since E3o
+kept by the mode-`on` log, `plainEntryOn`): the check is decided at any state (`kvDet`). -/
+def kvShapeAll (rq : apply.IRRModel) : Prop :=
+  ∀ x ∈ reqPerms rq, auth.reqShape x.1 x.2.1
+
+theorem putPerms_noZero (o : OpFull) : ∀ x ∈ apply.putPerms o, x.2.1 ≠ [W8 0] := by
+  intro x hx
+  unfold apply.putPerms at hx
+  split at hx <;> simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at hx <;>
+    rcases hx with rfl | rfl <;> simp
+
+mutual
+theorem opPerms_noZero : ∀ op : txn.TxnOpW, txnOpNoZeroEnd op.toOp →
+    ∀ x ∈ opPerms op, x.2.1 ≠ [W8 0]
+  | .get o, h, x, hx => by
+    simp only [opPerms, List.mem_cons, List.not_mem_nil, _root_.or_false] at hx
+    subst hx; exact h
+  | .put o, _, x, hx => putPerms_noZero o x hx
+  | .delete o, h, x, hx => by
+    simp only [opPerms] at hx
+    split at hx <;> simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at hx <;>
+      rcases hx with rfl | rfl <;> exact h
+  | .txn cs ts es, h, x, hx => by
+    obtain ⟨hc, ht, he⟩ := h
+    simp only [opPerms, List.mem_append, List.mem_map] at hx
+    rcases hx with (⟨cm, hcm, rfl⟩ | hx) | hx
+    · exact hc cm hcm
+    · exact opsPerms_noZero ts ht x hx
+    · exact opsPerms_noZero es he x hx
+
+theorem opsPerms_noZero : ∀ ops : List txn.TxnOpW, txnOpsNoZeroEnd (txn.TxnOpW.toOps ops) →
+    ∀ x ∈ opsPerms ops, x.2.1 ≠ [W8 0]
+  | [], _, x, hx => by simp [opsPerms] at hx
+  | op :: ops, h, x, hx => by
+    obtain ⟨h1, h2⟩ := h
+    simp only [opsPerms, List.mem_append] at hx
+    rcases hx with hx | hx
+    · exact opPerms_noZero op h1 x hx
+    · exact opsPerms_noZero ops h2 x hx
+end
+
+/-- **The wire's `irrNoZeroEnd` (the proposers') gives `noZeroEnds`** (E3o). -/
+theorem noZeroEnds_of_irr (rq : apply.IRRModel) (h : irrNoZeroEnd rq) : noZeroEnds rq := by
+  obtain ⟨hr, hd, ht⟩ := h
+  intro x hx
+  unfold reqPerms at hx
+  split at hx
+  · split at hx
+    · exact putPerms_noZero _ x hx
+    · cases hx
+  · split at hx
+    · rename_i o ho
+      split at hx <;> simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at hx <;>
+        rcases hx with rfl | rfl <;> exact hd o ho
+    · cases hx
+  · split at hx
+    · rename_i o ho
+      simp only [List.mem_cons, List.not_mem_nil, _root_.or_false] at hx
+      subst hx; exact hr o ho
+    · cases hx
+  · split at hx
+    · rename_i t ht'
+      have h' := ht t.toModel (by simp [apply.IRRModel.txn, ht'])
+      obtain ⟨hc, hth, hel⟩ := h'
+      simp only [List.mem_append, List.mem_map] at hx
+      rcases hx with ((⟨cm, hcm, rfl⟩ | hx) | hx)
+      · exact hc cm hcm
+      · exact opsPerms_noZero _ hth x hx
+      · exact opsPerms_noZero _ hel x hx
+    · cases hx
+  · cases hx
+
 /-- **The check is decided at `st`**: with auth enabled, every permission the request needs is of
 the shape the permission cache decides (`auth.reqShape`). -/
 def kvDet (st : auth.AuthState) (rq : apply.IRRModel) : Prop :=
@@ -307,16 +384,18 @@ section pure2
 variable [GooseExts]
 
 /-- **An entry of the mode-`on` log**: a normal entry with data decodes to a plain request of the
-proposers' kinds (today's `plainReq`, D44) or an admitted admin request (`apply.adminKindOk`). -/
+proposers' kinds (today's `plainReq`, D44), with (E3o) no range end `"\x00"` and its checks of the
+permission cache's shape (`noZeroEnds`, `kvShapeAll`: what the apply thread's latest-state triple
+asks, which the proposers know), or an admitted admin request (`apply.adminKindOk`) without a read field (`noSideEffect` false, E3o: `apply.Apply` skips a request with one when no
+one waits for it, so whether it applies would depend on the member; the proposers set one field). -/
 def plainEntryOn (m : EntryModel) : Prop :=
   m.typ = W32 0 → m.data ≠ [] → ∀ rq, apply.irrDecode m.data = some rq →
-    plainReq rq ∨ apply.adminKindOk rq
+    (plainReq rq ∧ noZeroEnds rq ∧ kvShapeAll rq) ∨
+      (apply.adminKindOk rq ∧ apply.noSideEffect rq = false)
 
 /-- Every entry of the mode-`on` log. -/
 def plainLogOn (A : List EntryModel) : Prop := ∀ m ∈ A, plainEntryOn m
 
-theorem plainEntryOn_of_plain (m : EntryModel) (h : plainEntry m) :
-    plainEntryOn m := fun ht hd rq hdec => Or.inl (h ht hd rq hdec)
 
 /-- **The entry is determinate at the state `s` it is applied at** (see the header): an admin entry
 above `c₀` has one successor (`authDet`), a KV entry's check is decided (`kvDet`). -/

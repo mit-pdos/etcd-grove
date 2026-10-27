@@ -114,26 +114,29 @@ theorem resultIsW_of_on (E : apply.AEnv GF) (γr : ReadNames) (rq : apply.IRRMod
 
 /-- **The committed entry a result is of, in the mode `on`** (`entryWit`'s, see the file header):
 the mode-`on` model of the raft prefix before it is `(st, lb)`, the auth state and the log the
-entry met. -/
-def entryWitOn (ρ : ReqNames) (rq : apply.IRRModel) (lb : mvcc.Log) (st : auth.AuthState) :
-    IProp GF :=
+entry met; (the auth plan's E3t, 2026-10-27) and the auth state after it, the model's of the prefix
+through it, published (`authPubAt M`: a reader holding it is checked at states no older). -/
+def entryWitOn (M : auth.AuthMode) (ρ : ReqNames) (rq : apply.IRRModel) (lb : mvcc.Log)
+    (st : auth.AuthState) : IProp GF :=
   iprop(∃ (L : List EntryModel) (m : Nat) (e : EntryModel) (id : w64) (γf : GName),
     srvRLogLb ρ.raft L ∗ idClaim ρ.ids id e.data γf ∗
     ⌜L[m]? = some e ∧ e.typ = W32 0 ∧ apply.irrDecode e.data = some rq ∧
       apply.irrId rq = some id ∧
-      kvRaftOfOn ρ.kv.c0 ρ.kv.ch0 (srvAuthSt0, ρ.kv.log0) (L.take m) = (st, lb)⌝)
+      kvRaftOfOn ρ.kv.c0 ρ.kv.ch0 (srvAuthSt0, ρ.kv.log0) (L.take m) = (st, lb)⌝ ∗
+    authPubAt M (kvRaftOfOn ρ.kv.c0 ρ.kv.ch0 (srvAuthSt0, ρ.kv.log0) (L.take (m + 1))).1)
 
-instance entryWitOn_persistent (ρ : ReqNames) (rq : apply.IRRModel) (lb : mvcc.Log)
-    (st : auth.AuthState) : Persistent (entryWitOn (GF := GF) ρ rq lb st) := by
+instance entryWitOn_persistent (M : auth.AuthMode) (ρ : ReqNames) (rq : apply.IRRModel)
+    (lb : mvcc.Log) (st : auth.AuthState) :
+    Persistent (entryWitOn (GF := GF) M ρ rq lb st) := by
   unfold entryWitOn; infer_instance
 
 /-- **The result the proposer expects in the mode `on`** (`resultΨ`'s, with `resultIsWOn` and
-`entryWitOn` at the auth state and the log the entry met). -/
+`entryWitOn` at the auth state and the log the entry met, with the state after it published). -/
 def resultΨOn (E : apply.AEnv GF) (ρ : ReqNames) (rq : apply.IRRModel) (F : mvcc.Log)
     (x : GoInterface) : IProp GF :=
   iprop(∃ (ar : Loc) (lb : mvcc.Log) (st : auth.AuthState),
     ⌜x = interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.apply.Result.ty) #ar⌝ ∗
-    apply.resTrace ar ∗ resultIsWOn E ρ.rd rq F ar lb st ∗ entryWitOn ρ rq lb st)
+    apply.resTrace ar ∗ resultIsWOn E ρ.rd rq F ar lb st ∗ entryWitOn E.authMode ρ rq lb st)
 
 /-- **The result the proposer expects, in the auth mode `on`**: `resultΨ` off, `resultΨOn` on. -/
 def resultΨM (on : Bool) (E : apply.AEnv GF) (ρ : ReqNames) (rq : apply.IRRModel) (F : mvcc.Log) :
@@ -170,6 +173,23 @@ def resPostM (on : Bool) (E : apply.AEnv GF) (ρ : ReqNames) (rq : apply.IRRMode
       mvcc.idxCert E.γ.idx y'.log ∗ revMinted E y.log y'.log ∗ appliedWit ρ.rd y'.log ∗
       mvcc.certOk E.γ y'.log)
 
+/-- **The auth state after a request's entry, published, in the auth mode `on`** (the auth plan's
+E3t, 2026-10-27; persistent): `True` off; on, the entry `e` of `rq'` committed right after the
+prefix `L` (`L ++ [e]`), and the mode-`on` model's auth state after it published (`authPubAt`: a
+reader holding it is checked at states no older, `Range.specOn`). What the apply thread hands the
+waiter (`entryWitOn`), as the proposer reports it. -/
+def pubAfterM (on : Bool) (E : apply.AEnv GF) (ρ : ReqNames) (rq' : apply.IRRModel)
+    (L : List EntryModel) : IProp GF :=
+  match on with
+  | false => iprop(True)
+  | true => iprop(∃ e : EntryModel, srvRLogLb ρ.raft (L ++ [e]) ∗
+      ⌜e.typ = W32 0 ∧ apply.irrDecode e.data = some rq'⌝ ∗
+      authPubAt E.authMode (kvRaftOfOn ρ.kv.c0 ρ.kv.ch0 (srvAuthSt0, ρ.kv.log0) (L ++ [e])).1)
+
+instance pubAfterM_persistent (on : Bool) (E : apply.AEnv GF) (ρ : ReqNames) (rq' : apply.IRRModel)
+    (L : List EntryModel) : Persistent (pubAfterM (GF := GF) on E ρ rq' L) := by
+  cases on <;> unfold pubAfterM <;> infer_instance
+
 /-- **The apply thread's answer, as `raftRequest` reports it, in the auth mode `on`** (`appliedOk`'s
 at the committed prefix `L` before the entry, with `modelOutM`). -/
 def appliedOkM (on : Bool) (E : apply.AEnv GF) (ρ : ReqNames) (rq' : apply.IRRModel) (F : mvcc.Log)
@@ -201,8 +221,21 @@ instance waitInvM_persistent (on : Bool) (w : GoInterface) (ρ : ReqNames) (E : 
 theorem waitInvM_false (w : GoInterface) (ρ : ReqNames) (E : apply.AEnv GF) :
     waitInvM (GF := GF) false w ρ E = waitInv w ρ E := rfl
 
-/-- **The server as a proposer sees it, in the auth mode `on`** (`srvReqFieldsAt` with `waitInvM`
-and `kvInvM` from the server's start state, `srvAuthSt0`). -/
+/-- **The applied and committed indices' invariants in the auth mode `on`** (`srvIndexInvs` at
+`false`, by definition; the auth plan's E3r, 2026-10-27: with auth on the server's applied index's
+invariant is `srvAppliedInvM true`, the only one at its atomic). -/
+def srvIndexInvsM (on : Bool) (s : Loc) (E : apply.AEnv GF) : IProp GF :=
+  iprop(∃ γr : ReadNames, srvAppliedInvM on s E γr ∗ srvCommittedInv s γr)
+
+instance srvIndexInvsM_persistent (on : Bool) (s : Loc) (E : apply.AEnv GF) :
+    Persistent (srvIndexInvsM (GF := GF) on s E) := by
+  unfold srvIndexInvsM; infer_instance
+
+theorem srvIndexInvsM_false (s : Loc) (E : apply.AEnv GF) :
+    srvIndexInvsM (GF := GF) false s E = srvIndexInvs s E := rfl
+
+/-- **The server as a proposer sees it, in the auth mode `on`** (`srvReqFieldsAt` with `waitInvM`,
+`kvInvM` from the server's start state, `srvAuthSt0`, and (E3r) `srvIndexInvsM`). -/
 def srvReqFieldsAtM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (v : ReqFields) :
     IProp GF :=
   iprop(structFieldRef EtcdServer go!"reqIDGen" s ↦□ v.gen ∗ idGen ρ.ids v.gen (srvFloorFact E) ∗
@@ -221,7 +254,7 @@ def srvReqFieldsAtM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (v
     structFieldRef raftNodeConfig go!"transport"
       (structFieldRef raftNode go!"raftNodeConfig" (structFieldRef EtcdServer go!"r" s)) ↦□ v.tr ∗
     srvPeersOk v.cluster v.cid v.tr ∗
-    srvIndexInvs s E ∗
+    srvIndexInvsM on s E ∗
     srvMintInv ρ ∗ kvInvM on ρ.raft ρ.kv srvAuthSt0 ∗ ⌜structFieldRef EtcdServer go!"Cfg" s ≠ null⌝)
 
 instance srvReqFieldsAtM_persistent (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)

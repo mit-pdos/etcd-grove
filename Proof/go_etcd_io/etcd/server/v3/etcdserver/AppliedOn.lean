@@ -13,8 +13,9 @@ Then the server as the apply thread sees it (`isServer`): `isServerM`, with the 
 (`waitInvM`, E3b) and the atomics' row in the mode (`srvAtomicsM`: `srvAppliedInvM` and
 `srvKVInvsM`, E2w's `srvKVInvsOn` at `true`); and the apply thread's applier state with auth on
 (`srvApplyKVOn`): `srvApplyKV` with the auth resource at the model's latest auth state
-(`srvAuthApplyResB`, E3c/E3l) and the server applier's latest-state facts (`apply.uberKVL`, E2y;
-`apply.uberAuthStepsL`, E3c), for the families the store's construction will name.
+(`srvAuthApplyResB`, E3c/E3l) and the base applier's auth layer (`srvUberBase`, E3k; E3o), from
+which the server applier's latest-state facts (`apply.uberKVL`, E2y; `apply.uberAuthStepsL`, E3c)
+are derived.
 -/
 module
 
@@ -69,6 +70,24 @@ theorem kvLogsOkM_insert (on : Bool) (γr : ReadNames) (M : GMap w64 mvcc.Log) (
     · obtain ⟨A', h1, h2, h3⟩ := Hm k L' hk
       exact ⟨A', h1.trans h, h2, h3⟩
 
+/-- The applied logs of `kvLogsPubM` (E3u). -/
+theorem kvLogsPubM_ok (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (M : GMap w64 mvcc.Log)
+    (a : w64) : kvLogsPubM (GF := GF) on E γr M a ⊢ kvLogsOkM on γr M := by
+  iintro H
+  icases (kvLogsPubM_iff on E γr M a).1 $$ H with ⟨H, -⟩
+  iexact H
+
+/-- `kvLogsOkM_insert` under `kvLogsPubM` (E3u; the current applied index unchanged). -/
+theorem kvLogsPubM_insert (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (M : GMap w64 mvcc.Log)
+    (a v : w64) (L : mvcc.Log) :
+    kvLogsPubM (GF := GF) on E γr M a ∗ kvLogAtM on γr v L ⊢ kvLogsPubM on E γr (M.insert v L) a := by
+  iintro ⟨H, #HA⟩
+  icases (kvLogsPubM_iff on E γr M a).1 $$ H with ⟨#Hk, #Hp⟩
+  iapply (kvLogsPubM_iff on E γr _ a).2
+  iframe Hp
+  iapply kvLogsOkM_insert on γr M v L $$ [Hk HA]
+  iframe Hk HA
+
 /-- **The log after the next entry, deposited ahead, in the mode** (`applied_predeposit`'s
 counterpart): the apply thread deposits a log `L` extending its current one as the log applied
 through `v' = v + 1`, `L` the mode's model of the committed raft log through `v'`. -/
@@ -107,7 +126,7 @@ theorem applied_predepositM (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : Rea
     | some L' => have := hk v' L' h; omega
   imod ghost_map_insert_persist v' L hfresh $$ HM with ⟨HM, #HLv'⟩
   imod ghostVar_update_halves true γr.pend false false $$ Hpo Hp with ⟨Hpo, Hp⟩
-  ihave #Hkl' := kvLogsOkM_insert on γr M v' L $$ [Hkl HkA]
+  ihave #Hkl' := kvLogsPubM_insert on E γr M v0 v' L $$ [Hkl HkA]
   · iframe Hkl HkA
   imod Hclose $$ [Hat Hauth HM Hp] with -
   · inext
@@ -148,6 +167,7 @@ theorem appliedLogAt_kvLogAtM (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : R
     iframe Hat Hauth HM Hp HL Hc Hkl
     ipureintro; exact HMk
   imodintro
+  ihave #Hkl := kvLogsPubM_ok on E γr M v $$ Hkl
   iunfold kvLogsOkM at Hkl
   icases Hkl with ⟨%Lb, #Hlb, %Hm⟩
   obtain ⟨A, hA, h1, h2⟩ := Hm i L1 Hm1
@@ -235,17 +255,16 @@ theorem srvAtomicsM_of_builtOn (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : Meta
   iframe Hai Hkvi Hti
 
 /-- **The apply thread's applier state with auth on** at `x` and the model's auth state `st`
-(`srvApplyKV`'s): the auth resource at `st` (`srvAuthApplyResB`: the store's history's latest state
-is the model's), and the server applier's latest-state facts for the families the store's
-construction names: the KV triples (`apply.uberKVL` at the current chain `ci` and the checks'
-family `L`) and the admin ones (`apply.uberAuthStepsL` with the admin steps' resource `W`, the
-authority family `Own` and `L`). -/
+(`srvApplyKV`'s): the uber-applier with its base applier's auth layer at the server's store and
+lessor (`srvUberBase`, what the latest-state triples come from: `srv_uberKVL_on`, and with the row's
+admin steps `apply.uberAuthStepsL_of_base`), and the auth resource at `st` (`srvAuthApplyResB`: the
+store's history's latest state is the model's). E3o: the latest-state triples are derived where
+they are used rather than carried (until E3o this row named them, for families the construction
+did not yet fix); `applyBuiltOn` holds the same parts. -/
 def srvApplyKVOn (s : Loc) (E : apply.AEnv GF) (γw : GName) (x : apply.ApplyKV)
-    (st : auth.AuthState) (ci : apply.Chain) (L : List auth.AuthState → IProp GF) (W : IProp GF)
-    (Own : auth.AuthNames → List auth.AuthState → IProp GF) : IProp GF :=
-  iprop(∃ ua : GoInterface, srvUberApplyAddr s ↦ ua ∗ apply.applierFor ua E ∗
+    (st : auth.AuthState) : IProp GF :=
+  iprop(∃ ua : GoInterface, srvUberApplyAddr s ↦ ua ∗ srvUberBase s ua E ∗ apply.applierFor ua E ∗
     apply.applyKV E ua x ∗ srvBeOwn s E ∗ revAuth E x.log ∗ srvAuthApplyResB s E st ∗
-    apply.uberKVL ua E ci L ∗ apply.uberAuthStepsL ua E W Own L ∗
     ∃ (w : GoInterface) (RD : IProp GF), srvWAddr s ↦□ w ∗
       waitOk w RD (fun ot id => waitRegdOpt γw id ot) (fun ot id => waitGoneOpt γw id ot) ∗ RD)
 

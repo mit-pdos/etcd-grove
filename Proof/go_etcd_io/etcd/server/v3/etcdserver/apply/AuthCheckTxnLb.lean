@@ -134,6 +134,18 @@ theorem verdictsFrom_append (M : auth.AuthMode) (n : Nat) (info : auth.AuthInfo)
   iapply BigSepL.bigSepL_append.2
   iframe H1 H2
 
+/-- **The read of a range or get `o` no older than `n`** (`rangeClass` at a reader's lower bound;
+the auth plan's E3s, 2026-10-27): the range end `e` the check saw (`authEndOf`) and the check's
+passing verdict at states no older than `n` (`auth.permVerdictFrom`: in the mode `on γa`, a state
+recorded at an index at least `n` permits the read of `[key, e)` and the token is not stale). -/
+def rangeClassFrom (M : auth.AuthMode) (n : Nat) (info : auth.AuthInfo) (o : OpFull) : IProp GF :=
+  iprop(∃ e : GoString, ⌜authEndOf o.base.rangeEnd e⌝ ∗
+    auth.permVerdictFrom M n info o.key e .read GoInterface.nil)
+
+instance rangeClassFrom_persistent (M : auth.AuthMode) (n : Nat) (info : auth.AuthInfo)
+    (o : OpFull) : Persistent (rangeClassFrom (GF := GF) M n info o) := by
+  unfold rangeClassFrom; infer_instance
+
 /-- A check's verdict in the mode `off` is a pass. -/
 theorem permVerdictFrom_isOn (M : auth.AuthMode) (n : Nat) (info : auth.AuthInfo)
     (k e : GoString) (op : auth.PermType) (err : GoInterface) :

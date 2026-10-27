@@ -70,7 +70,8 @@ with the proposer's view of the server, the wait's results and the KV model of t
 and the auth layer's verdict the model's grant there, `authTie`), and the proposal's permission at the header the server stamps
 (`reqPropOkM`: in the mode `on` the check reads the request's principal, which the server fills in
 from the context before it proposes; the result `Qh hm` is at that header `hm`, the one the post
-names). At `on = false` it is `spec` (`EtcdServer.processInternalRaftRequestOnce.wp_proof` is
+names); (E3t, 2026-10-27) with auth on, the auth state after the entry published (`pubAfterM`). At
+`on = false` it is `spec` (`EtcdServer.processInternalRaftRequestOnce.wp_proof` is
 derived from it, a constant `Qh`). -/
 abbrev EtcdServer.processInternalRaftRequestOnce.specM (on : Bool) : Prop :=
   ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (ctx : GoInterfaceOk)
@@ -87,7 +88,8 @@ abbrev EtcdServer.processInternalRaftRequestOnce.specM (on : Bool) : Prop :=
   {{ (res : Loc) (err : GoInterface), RET (PairV #res #err); srvLeadTimeReader s ∗ E.RD ∗
       ((⌜err = GoInterface.nil⌝ ∗ ∃ (hm : apply.HeaderModel) (rq' : apply.IRRModel),
           ⌜irrWireOf (apply.withHeader rq hm) rq'⌝ ∗ apply.resTrace res ∗
-          ∃ L : List EntryModel, srvRLogLb ρ.raft L ∗ resPostM on E ρ rq' F res L ∗ □ Qh hm L) ∨
+          ∃ L : List EntryModel, srvRLogLb ρ.raft L ∗ resPostM on E ρ rq' F res L ∗
+            pubAfterM on E ρ rq' L ∗ □ Qh hm L) ∨
        (⌜res = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗ srvMaybeDeposited ρ rq)) }}
 
 end spec

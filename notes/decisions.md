@@ -9526,6 +9526,11 @@ the fix is in what `ownWTx` records.
   the same files as (A), a smaller change.
 - *(C) Keep, as now* (latent: no proof deletes and re-creates).
 - *Recommendation:* (B), in phase C with the bbolt model (`notes/audit.md`, Plan).
+  *Superseded* (2026-10-27, "bbolt handles at a generation (D19l (iv) carried out, (A))"): (B)
+  forbids re-creating a deleted name within the bbolt transaction, which etcd does (the membership
+  schema deletes and creates `Cluster`) and which the backend's callers cannot see, since the
+  batch transaction commits on its own schedule; and (A) was cheaper than counted here (`wBkt`
+  was named in 6 files, not about 30).
 
 **(v) `mvcc.store.restore`** (a `meta` bucket with a finished or scheduled compaction makes Go set
 `compactMainRev`/`currentRev` otherwise and call `compactLockfree`; the spec fixes only the `key`
@@ -19537,6 +19542,10 @@ under the batch lock, the user chose (b).
   (`authPubLbM`) holds a state recorded at an index at least `i` (`authSnapFrom`), true of the
   real backend provided a state is published only after its batch's write-back (the store's
   publication is to be done by the apply thread after the admin step's `Unlock`);
+- the write contract at every schema auth backend on the server's backend (appended by E3l), at
+  the post-lock hook the server freezes (appended by E3n, 2026-10-27: "E3n of the auth plan"): an
+  admin entry's batch transaction runs under the server's hook, not the `nil` one of the store's
+  construction;
 - `CreateAuthBuckets` (one transaction, from `rbOwn` with the auth buckets absent or empty);
 - at a backend swap (`applySnapshot`'s restore, `Recover`), the old lock's `authLockI` given out
   and the new one's installed (the share with the restored state appended, `Recover`'s post).
@@ -23373,6 +23382,221 @@ is new: `apply.opW_isGet`, `readonlyW`, `readonlyW_of_txnReadonly`, `permCheck3L
 `adminDetReq`; `adminPropOk`, `adminPropRes`, `commitOkOn_admin`; restated `apply_auth_store_range_lb`,
 `apply_check_txn_auth_lb`. No closed theorem changed. Trust base unchanged.
 
+## E3n of the auth plan: the admin steps at the server's frozen hook; the uber-applier's latest-state admin triples; an admin entry's application with auth on (2026-10-27 · `notes/auth-plan.md`, E3l's and E3m's left items)
+
+**(1) The hook the admin steps run under, and the uber-applier's admin triples.** E3l's row
+(`authApplyResB`) held the store's admin steps (`apply.isAuthStepsX`) and the write contract at every
+schema auth backend (`authWBackendAt`) at the batch-lock contract `P f` D22's premise gives at the
+store's construction, when the backend's post-lock hook is still `nil`. An admin entry's application
+runs under the hook the server freezes later (`E.P = batchLockInv γA (metaTM …)`, `E.f = #hook`), and
+the apply layer's admin triples (`applierAdmin_uberX`) ask the store's steps at `E.P E.f`: the two did
+not meet. Now, as `authApplyOkM` already does for the store's other contracts:
+- the construction's post gives `authApplyResPre M stl st d` (`StoreLatest.lean`): the row with its
+  hook-dependent facts for every frozen hook of the backend `d` (`authStepsAtHook`: `∀ W Pk f`,
+  `isBackend … Pk`, `plHookRO d.γB f`, `f ≠ nil`, the write contract and the admin steps at `Pk #f`);
+- `authApplyResB M stl st bel Pk f` takes the hook as parameters, and `srvAuthApplyResB` is at
+  `E.P E.f`; `NewServer` instantiates the construction's at the frozen hook
+  (`authApplyResB_of_pre`, with `isBackend` and `plHookRO`);
+- **D22's named premise `authSchemaSrv` changes accordingly**: its E3l clause (the write contract at
+  every schema auth backend on the server's backend) is now at the frozen hook (`∀ W' Pk' f'`,
+  `isBackend d.γB d.P W' Pk' d.be`, `plHookRO d.γB f'`, `f' ≠ nil`), with the same write token `T`.
+  One more item for D22's list: the auth write contract at the server's post-lock hook.
+
+`apply.uberAuthStepsL_of_base` (`apply/UberAdmLBase.lean`): the uber-applier's construction
+(`uberBaseAuth`: `uberIs`'s `baseAuth` and `baseShape`), its store's checks at the latest state and
+its admin steps carrying `X` give `uberAuthStepsL` (the base chain's admin triples,
+`applierAdmin_uberX`; the auth applier's latest-state `Apply` over an inner applier that does not
+reject, `applierAdmL_auth`, `applyNR_base`), as `uberKVL_of_base` does for KV. `srv_uberAuthStepsL_on`
+(`UberOn.lean`; restated `server_uber_auth_steps_on`, every callee linked): with auth on, the built
+part's store fact (`srvUberBase`) and the apply thread's row give `uberAuthStepsL ua E (adminW stl
+bel (.on γa) E.P E.f T) (authOwnFu ∗ tieRes stl) (latestRes stl)`, the row given back.
+
+**(2) An admin entry's application with auth on.** Two gaps closed first:
+- *The borrow of the store's `be` half.* The apply thread holds the rest resource (`E.RO`, the rest
+  buckets with the objects' backend parts), not the write right `E.RW` the E3l lens was over, and a
+  lens through `E.RW` would give back some rest value, not the same. `srvAuthApplyResB` gains
+  `roLendsAuthBe E.RO stl bel` (`□ ∀ r, E.RO r -∗ authBeOn stl bel ∗ (authBeOn stl bel -∗ E.RO r)`),
+  which `NewServer` proves of `srvRestOwnH … (srvObjsOn …)` (`roLends_authBeOn`).
+- *The outcome as the model's step.* `applyStep_admin_keep` (`ApplyTieOn.lean`): an admitted admin
+  request's `apply.Apply` keeps the KV log and the chain (an admin kind is neither pre-v3 nor a store
+  kind, nor an alarm). `adminOut_model`: `Apply.adminSpecL`'s admin outcome with `v3`, at a history
+  whose latest state is `st`: a refusal at the latest state keeps the authority and the state; a
+  dispatched request's result (without an extra error) is a step to `o`, the authority at the history
+  after it, whose latest state `outState st o` the model's admin step reaches (`adminStateR`), for
+  each of `SetUp`'s five kinds (`AuthEnable` through `authEnableR`).
+
+`apply_admin_entry_on` (`AdminEntryOn.lean`, the triple `adminEntryOn.spec`; restated
+`server_admin_entry_on`, every callee linked): `apply.Apply(lg, e, uberApply, w, true)` on an
+admitted admin request, from the row's parts (the authority with its fuel and tie at `hs`, latest
+`st`; `T`; the provider's admin share; the write contract at every schema auth backend on `bel`), the
+rest lens and the rest `E.RO rs`, `uberAuthStepsL` and one receipt: the half of `be` borrowed into
+`adminW` (`adminW_of_beOn`) and returned (`beOn_of_adminW`), `latestRes` lent (`ownFuT_lend`); post:
+`Apply`'s (the result, the waiter's part, `adminRejErr`), the rest at the same value, the KV log and
+chain kept, `T` and the admin share back, and the authority at a history `hs'` whose latest state
+`st'` satisfies `adminStateR rq st st'`. Its premise `noSideEffect rq = false` excludes a crafted
+request that also sets a read field (`apply.Apply` would skip it with no waiter); the server's
+proposers set one field.
+
+**Not done (in order).**
+- `applyEntryNormal.specOn` itself (over `isServerM true`, `srvApplyKVOn`): the no-data entries, KV
+  entries (`kv_entry_pre_on`, `apply.Apply.kvSpecL` with `L hs` lent by `ownFuT_lend`,
+  `kvOn_after_kv`, `kv_entry_post_on`, then `kvLogAtM true` for `applied_predepositM`), cluster
+  entries, admin entries (`apply_admin_entry_on`; the receipt taken at an apply-thread step; the
+  model's step `outcomeOn_of_adminStateR` with `entryDetOn` for `kvEntryOn`; `authPublishT` for the
+  published lower bound), replays (`v3 = false`); handing the waiter `resultΨOn` (`authTie`,
+  `entryWitOn`); the NOSPACE branch dead (`applyResultIs_notNoSpaceOn`, `_Admin`). It is today's
+  690-line proof over the mode-`on` rows; a stage of its own. Two lemmas it needs are still missing:
+  the mode-`on` `kvApplied_next` (`kvAppliedLOn … (A ++ [m])` to `kvLogAtM true γr i x'.log`), and the
+  rest across an admin entry (`restEntry`'s `restAfter` is the identity on an admin kind,
+  `restAfter_other`, so `srvRest E γr (A ++ [m]) = srvRest E γr A` for it).
+- `applyAll`, `run`, `start` with auth on.
+
+**Exported statements changed.** Definitions: `authApplyResB` (the hook as parameters),
+`srvAuthApplyResB` (at `E.P E.f`; `roLendsAuthBe`), `authStoreKit` (post: `authApplyResPre`),
+`authSchemaSrv` (the clause at the frozen hook). Theorems: `authApplyResAt_of_B` (the hook
+parameters). New: `authStepsAtHook`, `authApplyResPre`, `authApplyResB_of_pre`, `roLendsAuthBe`,
+`roLends_authBeOn`, `apply.uberAuthStepsL_of_base`, `srv_uberAuthStepsL_on`,
+`server_uber_auth_steps_on`, `applyStep_admin_keep`, `adminOut_model`, `adminEntryOn.spec`,
+`apply_admin_entry_on`, `server_admin_entry_on`. No closed theorem changed.
+
+**Trust base.** Unchanged (no axiom, no `sorry`); D22's named premise `authSchemaSrv` says more.
+
+## E3o of the auth plan: the apply thread's step on one normal entry with auth on (2026-10-27 · `notes/auth-plan.md`, E3n's first left item)
+
+`EtcdServer.applyEntryNormal.specOn` (`Spec/.../EtcdServer__applyEntryNormal.lean`) and its proof
+`wp_proofOn` (in `Proof/.../EtcdServer__applyEntryNormal.lean`, next to the mode-off `wp_proof`, as
+`Put`/`Txn` keep their `wp_proofOn`); restated `server_apply_entry_normal_on` (`Results.lean`, every
+callee linked; trust base unchanged). Pre: `isServerM true`, the apply thread's mode-`on` row
+`srvApplyKVOn s E γw x sa` (below), `kvAppliedOn … srvAuthSt0 A x sa`, the entry's premise
+`entryOkOn` (`entryOk`'s, an admitted admin request allowed), plus three premises the mode-off triple
+does not take: `srvLessorNil s` (`srv_uberKVL_on`'s), one receipt `⧗ 1` (`adminEntryOn`'s) and
+`receiptBound GF ≤ 2^48`. Post: `kvAppliedOn … (A ++ [m]) x' sa'` at the auth state `sa'` after the
+entry, and the waiter handed `resultΨOn` (the verdict tied to the model's state the entry met,
+`authTie`, and `entryWitOn`). The proof is the mode-off proof's, with three applications of an entry
+with data, chosen by the log's admission (`plainEntryOn`):
+- a KV request: `apply.Apply.kvSpecL` at the auth row's history (`srvAuthApplyResB_open`, the
+  history lent by `auth.ownFuT_lend`, the uber-applier's latest-state triples `srv_uberKVL_on` at the
+  same store), the certificates `kv_certPreVW_on`, the model's step `kvOn_after_kv`, the tie
+  `authTie_of_kvOutL`;
+- a cluster request: `apply.Apply.spec`, the log kept (`applyStep_keep`, `kv_certPre_keep`,
+  `kvEntryOn_keep`);
+- an admin request: `adminEntryOn.spec` over the row's admin steps (`srv_uberAuthStepsL_at`), the
+  model's step `outcomeOn_of_adminStateR` with `entryDetOn`, the rest unchanged (`srvRest_admin`).
+A replayed entry (`v3` false) leaves the model's state (`kvEntryOn_below`): a plain request through
+`apply.Apply.spec`, an admin one through `adminEntryOn.spec` at `v3 = false` (generalized to either
+`v3`: its hook and NOSPACE clauses under `if v3`, the auth state kept at `false`). The NOSPACE branch
+is dead in each case (`applyResultIs_notNoSpaceOn`; for an admin request, `adminEntryOn`'s post,
+`applyResultIs_notNoSpaceAdmin`).
+
+**Two gaps in this repository's mode-`on` model, closed.**
+- *A crafted admin request with a read field.* `plainEntryOn`'s admin case admitted an admin request
+  that also sets a field `noSideEffect` reads (a range, a user or role get, the status): `apply.Apply`
+  skips such a request on a member with no waiter and applies it on the member with one, so the
+  model's step (`adminStateR`) would not be every member's. Not reachable through etcd's API (each
+  proposer sets one field), so no `issues/` entry. `plainEntryOn`'s admin case and the proposer's
+  `adminPropOk` now carry `noSideEffect rq = false` (the proposers set one field; `commitOkOn_admin`).
+- *What the KV triple at the latest state asks of the log.* `apply.Apply.kvSpecL` asks `kvShapedL`
+  and `kv_certPreVW_on` asks `noZeroEnds`; the mode-`on` log did not keep either. `plainEntryOn`'s KV
+  case keeps `noZeroEnds rq ∧ kvShapeAll rq` (moved to `KVAuthModel.lean`), which the proposers give
+  (`noZeroEnds_of_irr` from the wire's `irrNoZeroEnd`); `kv_entry_pre_on` loses its `hz` premise.
+
+**`srvApplyKVOn` redefined** (unused until now): `srvApplyKV`'s row with the built part's base
+applier fact `srvUberBase s ua E` and the auth row `srvAuthApplyResB s E st` at the model's auth state
+`st` in place of `srvAuthApplyRes`. Mode-`on` lemmas in `ApplyNormalOn.lean`: `kvApplied_nextOn`,
+`appliedMono_of_invM`, `srvRest_admin`, `srvAuthApplyResB_open`, `srv_uberAuthStepsL_at`,
+`srvApplyKVOn_idxCert`, `kvAppliedLOn_cert`, and the pure facts on the admitted kinds.
+
+**Exported statements changed.** Definitions: `plainEntryOn` (both cases), `adminPropOk`
+(`noSideEffect`), `srvApplyKVOn`; `noZeroEnds`, `kvShapeAll` moved to `KVAuthModel.lean`. Theorems:
+`adminEntryOn.spec` (a `v3` parameter), `kv_entry_pre_on`/`apply_kv_entry_pre_on` (no `hz`, a longer
+post), `commitOkOn_plain` (`irrNoZeroEnd`). New: `entryOkOn`, `EtcdServer.applyEntryNormal.specOn`,
+`wp_proofOn`, `server_apply_entry_normal_on`. No closed theorem changed.
+
+**Not done (in order).** `applyAll`, `run`, `start` with auth on (over `specOn`; the readers'
+published lower bound `authPublishT` at the apply thread's admin steps is not in `specOn`'s post and
+is for them); then the admin proposers over `raftRequest.specM true`, the Auth handlers,
+`setupAuthOk`; then `examples/authkv` and the closed theorem.
+
+## E3p of the auth plan: the apply loop with auth on; `snapshot`'s contract over the row's shared part (2026-10-27 · `notes/auth-plan.md`, E3o's first left item)
+
+`EtcdServer.apply.specOn`, `applyEntries.specOn`, `applyAll.specOn` (each spec file, next to `spec`)
+and their proofs `wp_proofOn` (next to `wp_proof`, by the same edits of the mode-off proof: E3o's
+precedent); restated `server_apply_on`, `server_apply_entries_on`, `server_apply_all_on`
+(`Results.lean`, every callee linked, no `sorry`). Each takes, beside `spec`'s, the server with auth
+on (`isServerM true`, the environment's mode `on γa`), the server's lessor finding no lease
+(`srvLessorNil`), the receipts' bound (`receiptBound GF ≤ 2^48`), the batch of the mode-`on` log's
+shapes (`logShapeOn`: an admitted admin request too), the applier row at the model's auth state `sa`
+(`srvApplyKVOn`) and the apply thread at the mode-`on` model (`kvAppliedOn … srvAuthSt0`); after the
+batch, at the model's state after it (some `sa'`).
+
+- **Each entry's premise** (`entryOkOn`, `applyEntryNormal.specOn`'s): `entryOkOn_of_shape`, from
+  `logShapeOn` at the small log (`srvApplyKVOn_small`) and the chain's mode (an admitted
+  `authEnable` is dispatchable only with auth on: `srvApplyKVOn_idxCert`'s `x.chain.authOn =
+  E.authOn`).
+- **Each entry's time receipt for its admin step** (`applyEntryNormal.specOn`'s `⧗ 1`): the loop's
+  iteration takes a second receipt at a Go step (the zero value of `index`'s allocation,
+  `wp_go_step_receipt'`), beside D19b's for the write token (`srvWTPool_take_nOn`).
+- **A conf change with auth on**: the model's state kept (`kvEntryOn_cc`), the step through
+  `kv_applied_step_on`/`kvApplied_nextOn`/`applied_predepositM true`; its `Trigger` meets no
+  registration in the mode either (`reqWaitRM_none` from `entryWaitOk`'s refutation);
+  `applyConfChange` gets the applier as before (`srvApplyKVOn_ua_rt`).
+- **Callees in either mode**: `setAppliedIndex.specM on` (the applied index's invariant over the
+  mode's model, `srvAppliedInvM`) and `setTerm.specM on` (`srvAtomicsM`), each `wp_proofM`, with
+  `spec`/`wp_proof` its instance at `false` (by definition); `snapshotIfNeededAndCompactRaftLog.specOn`.
+
+**`EtcdServer.snapshot`'s contract restated** (an axiom, the trust boundary; count unchanged): it took
+and gave back the whole mode-off row `srvApplyKV`, whose auth part (`srvAuthApplyRes`) the mode-`on`
+row does not have (`srvAuthApplyResB`, with the history's latest state, which a rebuilt row could not
+recover). It now takes `srvApplyKVCore s E γw x ua` (`ApplyKVCore.lean`): the row without the auth
+store's apply-side resource -- the uber-applier at the field, its applier facts, the KV writer, the
+backend's ownership, the minted revisions and the wait -- which both rows lend (`srvApplyKV_core`,
+`srvApplyKVOn_core`). The contract asks less than before (stronger as a statement), by exactly the
+auth resource: Go's `snapshot` (`server.go`) commits the KV (`s.KV().Commit()`), creates the raft
+snapshot and saves it; it calls nothing of the auth store (`s.authStore`). The audit's verdict on
+the rest (`notes/audit.md`, D19i) is unchanged.
+
+**Exported statements changed.** `EtcdServer.snapshot.spec` (above). New: `srvApplyKVCore`,
+`entryOkOn_of_shape`, `kvEntryOn_cc`, `reqWaitRM_none`, `isServerM_waitIs`, `srvApplyKVOn_beOwn`,
+`srvWTPool_take_nOn`, `srvApplyKVOn_small`, `srvApplyKVOn_ua_rt`, `srvApplyKVOn_core`, the specs and
+proofs above. No closed theorem changed.
+
+**Not done (in order).** `run` and `start` with auth on: a mode-`on` `isServerRun` (its `applyRes`
+over `srvApplyKVOn`/`kvAppliedOn`, the boot's `applyBuiltOn`), `run`'s loop over `applyAll.specOn`,
+`start` from `isServerBuiltOn`; the readers' published lower bound `authPublishT` at the apply
+thread's admin steps is not in these posts yet. Then the admin proposers over `raftRequest.specM
+true`, the Auth handlers, `setupAuthOk`; then `examples/authkv` and the closed theorem.
+
+## E3q of the auth plan: `run` with auth on; `start` left for the mode-`on` read path (2026-10-27 · `notes/auth-plan.md`, E3p's first left item)
+
+`EtcdServer.run.specOn` (`Spec/.../EtcdServer__run.lean`) and its proof `wp_proofOn` with the job's
+body `run_job_bodyOn` (next to `wp_proof`/`run_job_body`, by the same edits); restated
+`server_run_on` (`Results.lean`, every callee linked, its jobs `server_apply_all_on`; no `sorry`,
+trust base unchanged). Premise `isServerRunOn` (`RunOn.lean`, additive): `isServerRun` with the
+server with auth on (`isServerM true`), the server's lessor finding no lease (`srvLessorNil`, the
+apply thread's latest-state triples' named premise, carried up: nothing discharges it yet), the raft
+environment's `E.C` in the mode (`srvCM true`: the batches of the mode-`on` log's shapes,
+`logShapeOn`), and the apply thread's start `applyStartOn` (the row `srvApplyKVOn` and the model
+`kvRunAtOn` at the start's auth state `srvAuthSt0`); the spec adds the environment's mode `on γa`
+(kept by the jobs' backend moves, `beSucc_authMode`) and the receipts' bound. The jobs' chain
+resource `applyResOn`: `applyRes` with the row and the model at one auth state `sa` (`StartOn`'s
+`kvRunOn` hides it, which the loop must share with the row: `kvRunAtOn`).
+
+**`start` not done, and why.** `start`'s post hands the request path's and the read path's views
+(`isServerReq`, `isServerRead`, `srvStarted`'s read loop precondition), all stated over the mode-off
+invariants: the read view's fields (`srvReadFieldsAt`: `srvAppliedInv`, `srvKVInvs`), the read
+loop's composition (`readCompose`, from `kv_read_compose` over `kvInv`), and the read server's
+discharge (`isReadServer_of_server`, over `isServerReq` and `isServerRead`). With auth on, the
+request view is at hand (`srvReqBuiltM true` gives `isServerReqM true`), but the read path needs its
+mode-`on` counterparts (the read view over `srvAppliedInvM true`/`srvKVInvsM true`, `kv_read_compose`
+over `kvInvOn`, the discharge over both), a stage of its own; `start.specOn`'s apply side is then
+`isServerBuiltOn`'s `applyBuiltOn` assembled into `applyStartOn` (the row from its parts, as
+`start`'s proof assembles `srvApplyKV`; `kvRunOn []`'s auth state is `srvAuthSt0`).
+
+**Not done (in order).** The mode-`on` read path and `start.specOn`; the readers' published lower
+bound `authPublishT` at the apply thread's admin steps; the admin proposers over `raftRequest.specM
+true`, the Auth handlers, `setupAuthOk`; `examples/authkv` and the closed theorem. `srvLessorNil` is
+a premise from `applyEntryNormal.specOn` up to `run.specOn`.
+
 ## D22 J6a: the raft node's payload with a snapshot; J7b's raft part (2026-10-26 · decided by the orchestrator while the user was away (J1a/J6a))
 
 Stage J6a of `notes/snapshot-sj-plan.md`, with J7b's raft part ("D22 J7": raft's `Ready` ties the
@@ -23867,3 +24091,192 @@ the commit (`recvAu_wand_fupd`, a local lemma; `notes/perennial-changes.md`). `s
 `⌜¬ MsgPreVote⌝ ∨ bootedCluster γ` and no premise on a forwarded proposal's context (a proposal's
 abstraction ignores it); `stepIn_intro_booted` retires. The laws free of `[StorageModel GF]` and
 raft's `Assumptions` omit them; the primed copies retire.
+
+## E3r of the auth plan: `start` with auth on; the read side generic in the deposits' state function (2026-10-27 · `notes/auth-plan.md`, E3q's first left item)
+
+`EtcdServer.start.specOn` (`Spec/.../EtcdServer__start.lean`) and `wp_proofOn` (by the same edits as
+`wp_proof`), restated `server_start_on` (`Results.lean`, every callee linked, `run` through
+`server_run_on`; no `sorry`, trust base unchanged). Premises: `isServerBuiltOn`, the environment's
+mode `on γa`, the receipts' bound, and `srvLessorNil` (carried up from the apply thread, still
+discharged by nothing). Post: `isServerReqM true`, `isServerReadM true`, `srvStarted` at `kvStM true`.
+
+**The read side's deposits, generic in a state function.** A reader deposits its update with the
+read index (`kvDep γk Q`: `Q L = □ Q0 (state of L)`), and the read loop fires the deposits at the
+committed log (`readCompose`, from the KV invariant, `kv_read_compose`). The state of `L` was the
+mode-off model's (`kvStateOf (kvModel γk L)`), which with auth on is not the KV invariant's
+(`kvInvOn`: the mode-`on` model's), so the deposits could not be fired. Options weighed: a guard on
+the start chain's auth bit (`γk.ch0`) inside the deposit (needs the mode-off readers to know the bit,
+which is inside `kvInv`); the mode as a field of the names (the same); indexing the read package by
+`on` (the read package would import the auth model). Chosen: the deposits' **state function `F`** as a
+trailing argument with a default, `kvDep γk Q (F := kvStOff γk)`, and the same on `regOk`, `readInv`,
+`readCompose`, `isReadPre`, `isReadLoopPre`, `isReadNotify`, `srvStarted`: every existing use
+elaborates to today's meaning with its text unchanged, and the read package's specs (`NewRead`,
+`LinearizableReadNotify`, `LinearizableReadLoop`, `requestCurrentIndex`, `sendReadIndex`) quantify
+over `F` (their proofs never look inside a deposit: one more binder each). With auth on `F` is
+`kvStOn γk srvAuthSt0` (`kvStM true`, `ReadOn.lean`), and `kv_read_compose_on` fires the deposits from
+`kvInvOn`. The read view `isServerReadM on` (`srvReadFieldsAtM`: the notifier at `kvStM on`, the mode's
+applied index and KV invariants), `isReadServer_of_serverM` in either mode (`AppliedIndex.specM`,
+`getAppliedIndex.specM`).
+
+**Found: the request view with auth on could not be built.** `srvReqFieldsAtM on` (E3b) carried
+`srvIndexInvs`, the applied index's invariant **over the mode-off model**; with auth on the server
+allocates only `srvAppliedInvM true` at the atomic (E3k), so `isServerReqM true` had no producer, and
+the results over it (`server_process_irr_on`, `server_raft_request_on`, `server_put_on`,
+`server_delete_range_on`, `server_txn_on`) rested on a premise no server meets. Fixed: `srvIndexInvsM
+on` in `srvReqFieldsAtM` (`srvIndexInvs` at `false`, by definition), the proposer's `wp_proofM` over
+`getAppliedIndex.specM on`; `start.specOn` now produces `isServerReqM true`. Statement change of those
+results' premise (at `on = true` only).
+
+**Not done (in order).** The readers with auth on (`Range`, the read-only `Txn`, over
+`isServerReadM true` with deposits at `kvStM true`, and the published lower bound `authPublishT`); the
+admin proposers, the Auth handlers, `setupAuthOk`; `examples/authkv` and the closed theorem.
+`srvLessorNil` is a premise from `applyEntryNormal.specOn` up to `start.specOn`.
+
+
+## E3s of the auth plan: `Range` with auth on, at a reader's lower bound (2026-10-27 · `notes/auth-plan.md`, E3r's first left item)
+
+`EtcdServer.Range.specOn` (`Spec/.../EtcdServer__Range.lean`) and `wp_proofOn` (generated from
+`wp_proof` by the same edits; its tail a copy of the `range_tail` macro, `range_tailOn`), linked as
+`server_range_on` (`Results.lean`, every callee linked; `doSerialize` through
+`doSerialize.wp_proofM true`). Premise: the environment's mode `on γa`. Pre, beside `spec`'s:
+`isServerReqM true`, `isServerReadM true`, the deposit at the mode-`on` model's state (`kvDep γr.kv Q
+(kvStM true γr.kv)`), a lower bound `n` of the auth store's published index (`auth.authPubLbM
+E.authMode n`), and the server's range check at such bounds (`srvAuthLb`). Success: the check passed for
+some auth info at states no older than `n` (`apply.rangeClassFrom E.authMode n info o`: a state
+recorded at an index at least `n` permits the read of `[key, e)` and the token is not stale), and the
+read as `spec`'s over the mode's model (`rangeReadOkM true`: a linearizable read is the mode-`on`
+model of a committed raft log at which the deposit fired).
+
+**Why the lower bound, not `isAuthStore`'s verdict.** The read view's `apply.isAuthStore` in the mode
+`on γa` gives `auth.permVerdict`: *some* recorded state permits the read, possibly one from before a
+revocation the reader already saw. The read path checks outside the apply thread, so the latest state
+(E2r's `isAuthStoreL`) is not available to it; E3g's decision is the reads' freshness as a lower bound
+of the published index, and E3j proved `IsRangePermitted.specLb` against it. `Range.specOn` uses that.
+
+**How the reader gets the check.** `authStoreLbM M st RD` (`StoreLatest.lean`): with auth on,
+`□ ∀ n, authPubLbM n -∗ apply.isAuthStoreRangeLb st RD M n` (E3m's contract), of the store's
+invariant (`apply.isAuthStoreRangeLb_of_authInv` over `auth_range_permitted_lb`). It is produced where
+`authStoreLatestM` is, by the store's construction (`authStoreKit`'s post; `authStoreKit_on` and
+`authSrvTP_on` take `IsRangePermitted.specLb`), kept by the built part beside it (`srvUberBase`, one
+more conjunct), and handed to readers by `start.specOn`'s post (`srvAuthLb`: the `authStore` field
+and `authStoreLbM` of it; `srvAuthLb_of_uberBase`). Statement changes: `authStoreKit`'s post,
+`srvUberBase`, `start.specOn`'s post (one conjunct each), `authSrvTP_on`'s premises. Chosen over a
+new conjunct of `srvReadFieldsAtM true` because that definition is uniform in `on` (`_false` by
+`rfl`) and shared with `isReadServer_of_serverM`.
+
+**The mode-`on` read lemmas** (`ReadOn.lean`): `readIndexOk_logM`, `readIndexOk_logRM`,
+`readServed_logRM` (over `srvAppliedInvM on`), `kv_read_logOn` (`kv_read_log`'s over
+`kvCertInvOn`/`kvLogAtM true`), `readWit_fireOn` (the deposit's result at the mode-`on` model);
+`rangeReadOkM` (`rangeReadOk` at `false`, by `rfl`). `doSerialize.specM on` (it reads only fields both
+modes share; `spec` at `false`).
+
+**Not done (in order).** Where a reader's lower bound comes from: nothing produces `authPubLb` yet but
+publication (`authPublishT`, whose call site in the apply loop is not done) and `authPubLb_le`; a
+client needs at least `authPubLb γa 0` (the server could keep one in `srvAuthLb`) and, for freshness
+that means something, a bound from a write it saw. The read-only `Txn` with auth on (`Txn.specOn`'s
+read branch over E3m's `apply_check_txn_auth_lb`); the admin proposers, the Auth handlers,
+`setupAuthOk`; `examples/authkv` and the closed theorem.
+
+## bbolt handles at a generation (D19l (iv) carried out, (A)) (2026-10-27)
+
+**2026-10-27 · taken (the user)**
+
+`wBkt tx b n` was persistent and `Tx.DeleteBucket_kv` left it, so after `DeleteBucket(n)` and
+`CreateBucketIfNotExists(n)` the specs allowed `Put`, `Delete` and `Cursor` through the old
+handle; bbolt frees a deleted bucket's nodes, and the old handle's `Put` panics while its reads
+and deletes miss the data (`issues/bbolt-deleted-bucket-handle.md`, reproduced). Found false by
+the audit (D19l (iv), stopped, latent), refuted by `etc/spec-test/bbolt` (step 2 of
+`notes/spec-first-plan.md`) in 28 of 3000 runs.
+
+**Decision:** D19l's option (A), generations (its recommendation, (B), superseded above).
+- `InvBbolt.lean`: `ownWTxG tx γ D S G` (the axiom, `G : GoString → Nat` each name's
+  generation) and `wBkt tx b n g`; `ownWTx tx γ D S := ∃ G, ownWTxG tx γ D S G` (an `abbrev`),
+  so the backend's specs and invariants, and `Begin_kv`/`Commit_kv`, keep their text. The laws
+  are `ownWTxG_live`/`ownWTxG_fill` (`ownWTx_live` now a theorem from the former).
+- `Tx.Bucket_kvw` and `CreateBucketIfNotExists_kv` give `wBkt tx b n (G n)`; `DeleteBucket_kv`
+  bumps `G n`; `Bucket.Put_kv`, `Delete_kv` and `Cursor_kvw` take `G n = g`. A name can be
+  deleted and re-created in the same transaction, as in Go.
+- The backend's five operations (`unsafePut`, `UnsafeDelete`, `UnsafeRange`,
+  `UnsafeCreateBucket`, `UnsafeDeleteBucket`) open `ownWTx`'s `∃ G` and close it after the call:
+  they fetch the handle by name for every operation, so it is always current (`rfl`).
+- Rejected: (B), deleted names (above); a non-persistent `wBkt` (`DeleteBucket` cannot collect
+  the copies of a persistent fact, and making handles exclusive would thread them through every
+  backend operation).
+
+The axioms are the same (`ownWTx` and its two laws replaced by `ownWTxG` and its two laws,
+`ownWTx_live` proved); `etc/spec-test/bbolt` now tests the new statements (no refutation in
+10 000 runs; `-old-wbkt` for the old ones).
+
+## E3t of the auth plan: a reader's lower bound from its own write (2026-10-27 · `notes/auth-plan.md`, E3s's first left item)
+
+Where a reader's lower bound of the published index (`Range.specOn`'s `auth.authPubLbM E.authMode n`)
+comes from: a write it saw. After every entry the apply thread publishes (E3j's `authPublishT`, its
+call site), so the auth state the entry left is published, and that publication rides back to the
+proposer with the entry's result and on to the client in the handler's post.
+
+**Publication.** `authPublishM M stl` (`StoreLatest.lean`): with auth on, the persistent ghost update
+`authOwn hs ∗ tieRes stl hs ={⊤}=∗ authOwn hs ∗ tieRes stl hs ∗ authPubLb γa (hs.length - 1)`, of the
+store's invariant (`authPublishM_of_authInv`, through `authPublishT`). It is produced where
+`authStoreLbM` is (`authStoreKit`'s post) and kept by the built part beside it (`srvUberBase`, one more
+conjunct). `authPubAt M st` (`∃ i, authPubLb γa i ∗ authStateAt γa i st`): the state `st` is recorded
+at an index no greater than the published one; `authPubAt_publish` gives it of the latest state;
+`authPubLbM_of_pubAt` the bound a reader takes. The apply thread's row: `srvAuthApplyResB_publish`
+(`ApplyNormalOn.lean`) opens it, publishes, and recloses it.
+
+**The path to the client.** `applyEntryNormal`'s mode-`on` tail publishes after the entry's KV step
+(the row's state is the model's after the entry, `kvAppliedLOn_cert`), and the waiter's witness carries
+it (`entryWitOn M`, one more conjunct: `authPubAt M` of the model's auth state after the entry). Then:
+`processInternalRaftRequestOnce.specM`'s and `raftRequest.specM`'s success posts add `pubAfterM on E ρ
+rq' L` (`ReqOn.lean`: at `true`, an entry `e` after `L` in the committed raft log, decoding to the
+request `rq'`, with the model's auth state after `L ++ [e]` published; `True` at `false`, so the
+mode-off specs are unchanged up to it). `Put.specOn`, `DeleteRange.specOn` and `Txn.specOn` (writing)
+add it to their success posts (`∃ L, pubAfterM true E ρ rq' L`, at the request's wire form; `Txn`'s
+beside `txnAppliedOk`, which the mode-off spec shares). Statement changes: `authStoreKit`'s post,
+`srvUberBase`, `entryWitOn`'s (and so `resultΨOn`), the proposers' and the three handlers' posts (one
+conjunct each).
+
+**Not done (in order).** A server-kept bound for a reader that saw no write (`srvAuthLb` could carry
+`authPubLb γa 0` from the construction); the read-only `Txn` with auth on (`Txn.specOn`'s read branch
+over E3m's `apply_check_txn_auth_lb`); the admin proposers (their answer, and the same `pubAfterM`),
+the Auth handlers, `setupAuthOk`; `examples/authkv` and the closed theorem.
+
+## E3u of the auth plan: the server-kept lower bound, a linearizable read's floor (2026-10-27 · `notes/auth-plan.md`, E3t's first left item)
+
+**What a server-kept bound can mean.** A bound of `0` is free (`authPubLbM_zero`, from
+`monoNatLbOwn_0`), so keeping one in `srvAuthLb` would say nothing. A bound that says something must
+be tied to an event the reader can name. For a linearizable `Range`, there is one: Go's `Range`
+waits for the read index (`linearizableReadNotify`) *before* its auth check (`doSerialize`'s
+`chk`), so the check can be required to see an auth state no older than the one the committed log
+through the read index left. Serializable reads have no such event; they keep the caller's bound.
+
+**How.** The applied index's invariant keeps, in the mode `on`, the auth state at the current
+applied log published (`appliedPubM on E γr a`, `ServerOn.lean`: a committed raft log `A` through
+`a` whose model's auth state is `authPubAt`). It is folded into the body as `kvLogsPubM on E γr M a`
+(`kvLogsOk` at `false`, by definition, so `srvAppliedBodyM_false` stays `rfl`; `kvLogsPubM_iff`,
+`_ok`, `_insert`, `_move`). Who maintains it:
+
+- the boot: `srvIndices_allocM` takes `appliedPubM on E γr 0`, which `NewServer` publishes from the
+  construction's apply resource (`authApplyResPre_publish`, `StoreLatest.lean`; `appliedPubM_zero`);
+- `setAppliedIndex.specM on` takes `appliedPubM on E γr v'` (one more premise; `spec` derived from
+  `specM false` with `True` for it);
+- the apply loop with auth on publishes from its KV row before each `setAppliedIndex`
+  (`srvApplyKVOn_appliedPub`, `ApplyNormalOn.lean`: the row's latest state is the model's at the
+  applied log, `kvAppliedLOn`), at the normal entry and at the conf change.
+
+The readers: `readIndexOk_logM`/`readIndexOk_logRM`/`readServed_logRM` return it
+(`appliedPubFrom on E γr c`: published at an applied index at least the read index `c`), and
+`authFloor_of_pubFrom` turns it with the reader's bound `n` into a bound `m ≥ n` with the floor
+`authFloorAt M γr c m` (`ReadOn.lean`: the model's auth state at a committed raft log through an
+index at least `c` is recorded in the store's history at an index at most `m`).
+
+**The statement.** `Range.specOn`'s success: `∃ info m, ⌜n ≤ m⌝ ∗ apply.rangeClassFrom E.authMode m
+info o ∗ (if serializable then True else authFloorAt E.authMode γr c m)`: the check's verdict comes
+from states at indices at least `m`, so for a linearizable read no older than the state its read
+index's committed log left. The proof instantiates the store's lower-bound check after the read
+index (`Range.wp_proofOn`'s `wp_join` carries `m`), as the code does. Statement changes:
+`srvAppliedBodyM`'s last conjunct, `srvIndices_allocM`'s and `setAppliedIndex.specM`'s premises,
+the read-index lemmas' posts, `Range.specOn`'s post.
+
+**Not done (in order).** The read-only `Txn` with auth on (`Txn.specOn`'s read branch over E3m's
+`apply_check_txn_auth_lb`, which can take the same floor); the admin proposers, the Auth handlers,
+`setupAuthOk`; `examples/authkv` and the closed theorem.

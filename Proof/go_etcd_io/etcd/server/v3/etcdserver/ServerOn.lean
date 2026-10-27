@@ -123,15 +123,88 @@ instance kvLogsOkM_timeless (on : Bool) (γr : ReadNames) (M : GMap w64 mvcc.Log
 theorem kvLogsOkM_false (γr : ReadNames) (M : GMap w64 mvcc.Log) :
     kvLogsOkM (GF := GF) false γr M = kvLogsOk γr M := rfl
 
+/-- **The auth state at the log applied through `i` is published** (persistent; the auth plan's
+E3u, 2026-10-27): in the mode `on`, a committed raft log `A` through `i` whose model's auth state is
+published (`authPubAt`); `True` at `false`. The applied index's invariant holds it of the current
+applied index, so a linearizable reader, which waits for the applied index to reach its read index
+before its auth check, gets a lower bound of the published index without a write of its own. -/
+def appliedPubM (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (i : w64) : IProp GF :=
+  match on with
+  | false => iprop(True)
+  | true => iprop(∃ A : List EntryModel, srvRLogLb γr.raft A ∗
+      ⌜uint.Z i = uint.Z γr.raft.ai0 + A.length⌝ ∗
+      authPubAt E.authMode (kvRaftOfOn γr.kv.c0 γr.kv.ch0 (srvAuthSt0, γr.kv.log0) A).1)
+
+instance appliedPubM_persistent (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (i : w64) :
+    Persistent (appliedPubM (GF := GF) on E γr i) := by
+  cases on <;> unfold appliedPubM <;> infer_instance
+
+instance appliedPubM_timeless (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (i : w64) :
+    Timeless (appliedPubM (GF := GF) on E γr i) := by
+  cases on <;> unfold appliedPubM <;> infer_instance
+
+/-- **The applied logs, and in the mode `on` the auth state at the current one published**
+(`kvLogsOk` at `false`, by definition; `kvLogsOkM on` and `appliedPubM on` of the current applied
+index `a`, `kvLogsPubM_iff`). -/
+def kvLogsPubM (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (M : GMap w64 mvcc.Log) (a : w64) :
+    IProp GF :=
+  match on with
+  | false => kvLogsOk γr M
+  | true => iprop(kvLogsOkM true γr M ∗ appliedPubM true E γr a)
+
+instance kvLogsPubM_persistent (on : Bool) (E : apply.AEnv GF) (γr : ReadNames)
+    (M : GMap w64 mvcc.Log) (a : w64) : Persistent (kvLogsPubM (GF := GF) on E γr M a) := by
+  cases on <;> unfold kvLogsPubM <;> infer_instance
+
+instance kvLogsPubM_timeless (on : Bool) (E : apply.AEnv GF) (γr : ReadNames)
+    (M : GMap w64 mvcc.Log) (a : w64) : Timeless (kvLogsPubM (GF := GF) on E γr M a) := by
+  cases on <;> unfold kvLogsPubM <;> infer_instance
+
+theorem kvLogsPubM_iff (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (M : GMap w64 mvcc.Log)
+    (a : w64) :
+    kvLogsPubM (GF := GF) on E γr M a ⊣⊢ kvLogsOkM on γr M ∗ appliedPubM on E γr a := by
+  cases on
+  · show kvLogsOk γr M ⊣⊢ kvLogsOkM false γr M ∗ iprop(True)
+    rw [kvLogsOkM_false]
+    exact ⟨by iintro H; iframe H, by iintro ⟨H, -⟩; iexact H⟩
+  · exact .rfl
+
+/-- `kvLogsPubM` at a new current applied index `a'`, with the auth state there published (E3u;
+`setAppliedIndex`). -/
+theorem kvLogsPubM_move (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (M : GMap w64 mvcc.Log)
+    (a a' : w64) :
+    kvLogsPubM (GF := GF) on E γr M a ∗ appliedPubM on E γr a' ⊢ kvLogsPubM on E γr M a' := by
+  iintro ⟨H, #Hp⟩
+  icases (kvLogsPubM_iff on E γr M a).1 $$ H with ⟨#Hk, -⟩
+  iapply (kvLogsPubM_iff on E γr M a').2
+  iframe Hk Hp
+
+/-- The auth state at the start published, at the applied index `0` (E3u; the start's raft log
+empty). -/
+theorem appliedPubM_zero (on : Bool) (E : apply.AEnv GF) (γr : ReadNames)
+    (hai : γr.raft.ai0 = W64 0) :
+    srvRLogLb (GF := GF) γr.raft [] ⊢ authPubAt E.authMode srvAuthSt0 -∗ appliedPubM on E γr (W64 0) := by
+  cases on
+  · iintro - -; unfold appliedPubM; itrivial
+  · iintro #HL #Hp
+    unfold appliedPubM
+    iexists []
+    iframe HL
+    isplitr
+    · ipureintro; rw [hai]; simp
+    simp only [kvRaftOfOn_nil]
+    iexact Hp
+
 /-- **The applied index's invariant's body in the mode `on`** (`srvAppliedBody` at `false`): its
-applied logs the mode's KV models (`kvLogsOkM`). -/
+applied logs the mode's KV models and, with auth on, the auth state at the current one published
+(`kvLogsPubM`, E3u). -/
 def srvAppliedBodyM (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) : IProp GF :=
   iprop(∃ (v a : w64) (L : mvcc.Log) (M : GMap w64 mvcc.Log) (p : Bool),
     sync.atomic.ownUint64 (srvAppliedIndexAddr s) (DFrac.own 1) v ∗
     monoNatAuthOwn γr.applied (1 : Qp).half (uint.nat a) ∗
     ghostMapAuth γr.logs 1 M ∗ ghostVar γr.pend (1 : Qp).half p ∗
     ⌜uint.Z v ≤ uint.Z a ∧ appliedKeysOk M a p ∧ appliedMonoMap M⌝ ∗
-    appliedLogAt γr a L ∗ mvcc.idxCert E.γ.idx L ∗ kvLogsOkM on γr M)
+    appliedLogAt γr a L ∗ mvcc.idxCert E.γ.idx L ∗ kvLogsPubM on E γr M a)
 
 theorem srvAppliedBodyM_false (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
     srvAppliedBodyM (GF := GF) false s E γr = srvAppliedBody s E γr := rfl
@@ -267,11 +340,13 @@ def applyBuiltNAM (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInte
 its store and lessor the server's `authStore` and `lessor` fields' (`apply.uberBaseAuth`), what the
 apply thread's latest-state KV triples come from (`apply.uberKVL_of_base`); with the store's
 checks at the latest state in the environment's mode (`authStoreLatestM`, E3l: with auth on, of the
-store's invariant). -/
+store's invariant), its range check at a reader's lower bound (`authStoreLbM`, E3s) and publication
+(`authPublishM`, E3t). -/
 def srvUberBase (s : Loc) (ua : GoInterface) (E : apply.AEnv GF) : IProp GF :=
   iprop(∃ au le : GoInterface, srvAuthStoreAddr s ↦□ au ∗ srvLessorAddr s ↦□ le ∗
-    apply.uberBaseAuth ua E au le ∗
-    ∃ stl : Loc, ⌜au = auth.authIface stl⌝ ∗ authStoreLatestM E.authMode au E.RD stl)
+    apply.uberBaseAuth ua E au le ∗ authStoreLbM E.authMode au E.RD ∗
+    ∃ stl : Loc, ⌜au = auth.authIface stl⌝ ∗ authPublishM E.authMode stl ∗
+      authStoreLatestM E.authMode au E.RD stl)
 
 instance srvUberBase_persistent (s : Loc) (ua : GoInterface) (E : apply.AEnv GF) :
     Persistent (srvUberBase s ua E) := by
@@ -404,11 +479,11 @@ theorem srvIndices_allocM (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadN
       sync.atomic.ownUint64 (srvTermAddr s) (DFrac.own 1) (W64 0) -∗
       monoNatAuthOwn γr.applied 1 0 -∗ monoNatAuthOwn γr.committed 1 0 -∗
       ghostMapAuth γr.logs 1 (∅ : GMap w64 mvcc.Log) -∗ ghostVar γr.pend 1 false -∗
-      mvcc.idxCert E.γ.idx γr.kv.log0 -∗ srvRLogLb γr.raft [] ={Ec}=∗
+      mvcc.idxCert E.γ.idx γr.kv.log0 -∗ srvRLogLb γr.raft [] -∗ appliedPubM on E γr (W64 0) ={Ec}=∗
       srvAppliedInvM on s E γr ∗ srvAppliedOwn γr (W64 0) ∗ appliedLogAt γr (W64 0) γr.kv.log0 ∗
       srvCommittedInv s γr ∗ srvCommittedOwn γr (W64 0) ∗
       inv srvN (∃ t : w64, sync.atomic.ownUint64 (srvTermAddr s) (DFrac.own 1) t) := by
-  iintro Hai Hci Hti Hap Hcm Hlogs Hpend #Hcert #HL
+  iintro Hai Hci Hti Hap Hcm Hlogs Hpend #Hcert #HL #Hpub0
   have h0 : uint.nat (W64 0) = 0 := rfl
   icases buildMonoNatHalves γr.applied 0 $$ Hap with ⟨Hap1, Hap2⟩
   icases buildMonoNatHalves γr.committed 0 $$ Hcm with ⟨Hcm1, Hcm2⟩
@@ -454,6 +529,8 @@ theorem srvIndices_allocM (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadN
         · simp at h1
     isplitr
     · iunfold appliedLogAt; iexact Hlog0
+    iapply (kvLogsPubM_iff on E γr _ _).2
+    iframe Hpub0
     iunfold kvLogsOkM
     iexists []
     iframe HL

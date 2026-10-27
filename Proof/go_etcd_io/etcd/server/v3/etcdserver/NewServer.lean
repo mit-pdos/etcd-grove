@@ -642,7 +642,7 @@ theorem NewServer.wp_proofM (on : Bool)
   wp_apply HKt'
     $$ [HK Hopen Hhook Hwa Hrbo]
     as %ast ⟨Hopen, Hhook, Hrbo, %RD, %astl, %Hastl, HauthOn, HRDs, #HisReq, #HisAuth,
-      #HstL, HAres, #HauR⟩
+      #HstL, #HstLb, #HstPub, HAres, #HauR⟩
   · iframe Habbe Hablg HB
     iframe Hapkg HK Hopen Hhook Hwa Hrbo
     ipureintro
@@ -651,6 +651,8 @@ theorem NewServer.wp_proofM (on : Bool)
     · rw [GMap.lookup_insert_ne _ _ (by decide)]; exact hDl go!"authUsers" (by decide)
     · rw [GMap.lookup_insert_ne _ _ (by decide)]; exact hDl go!"authRoles" (by decide)
   (try wp_auto)
+  -- (E3u) the start's auth state published, for the applied index's invariant
+  imod authApplyResPre_publish M astl _ _ $$ HstPub HAres with ⟨HAres, #Hpub0⟩
   -- the compactor is off (`AutoCompactionRetention = 0`)
   rw [Hacr]
   (try wp_auto)
@@ -1022,12 +1024,15 @@ theorem NewServer.wp_proofM (on : Bool)
   imod (srvIndices_allocM on s
       ⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, M, srvFS s, srvCiC γA cil, srvRestOwnH d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe⟩ ρ.rd ⊤
       (by rw [HρRaft]))
-    $$ [appliedIndex] [committedIndex] [term] Hap Hcm Hlogs Hpend [] Hrlb
+    $$ [appliedIndex] [committedIndex] [term] Hap Hcm Hlogs Hpend [] Hrlb []
     with ⟨#Hai, Haown, #Hal0, #Hcmi, Hcmown, #Hti⟩
   · iapply hU64; iexact appliedIndex
   · iapply hU64; iexact committedIndex
   · iapply hU64; iexact term
   · simp only [Hlog0]; rw [Hγw.2.2.2.1]; iexact Hcert0
+  · iapply appliedPubM_zero on _ ρ.rd (by rw [HρRaft]) $$ Hrlb
+    iExactEq Hpub0
+    rfl
   -- the KV invariants
   imod (kvCertInvM_alloc on ρ.rd.raft ρ.rd.kv srvAuthSt0 ⊤ (by rw [Hlog0]; simp)) $$ [Hcok] Hkhi1 Hrlb
     with #Hkci
@@ -1122,27 +1127,20 @@ theorem NewServer.wp_proofM (on : Bool)
     iframe Hlexp Hlcfg Hlinv Hlspkg
   ihave #Hapl : apply.isApplyLessor (lease.lessorIface lp) kst γw.st
       (batchLockInv γA (metaTM d.γB d.P)) #hook (srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be)) $$ []
-  · iapply apply.isApplyLessor_of_lessorInv h49 h50 h51 h52 h53 h54 h55 h56 lp kst γw.st
+  · iapply apply.isApplyLessor_of_lessorInv h49 h50 h51 h52 h53 h54 h55 h56 lp kst γw.st _ _ _
+      (lease.lessorBeOn lp d.be) (backend.rbOwn d.γB)
     rw [Hγw.2.1]
     iframe Hllk Hlcfg Hlinv Hlspkg
-    unfold mvcc.storeWT mvcc.storeRT
-    rw [Hγw.2.2.1, show mvcc.kbWT (GF := GF) (some d) = backend.wbTok d.γB from rfl,
-      show mvcc.kbRT (GF := GF) (some d) = mvcc.bkRTx d.γB d.P d.be from rfl]
-    iunfold lessorApplyOk at Hlbe
-    iapply Hlbe $$ %d %(mvcc.lateW d.gx) %(batchLockInv γA (metaTM d.γB d.P)) %hook
-      %(srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be)) HB Hhook [] []
-    · ipureintro; exact Hhknn
-    · iunfold rwLens
-      iintro !> Hrw
-      iunfold srvRestRWH at Hrw
-      iunfold srvObjsOn at Hrw
-      icases Hrw with ⟨Hrw, Hal, Hau, Hle, Hcb⟩
-      isplitl [Hrw Hle]
-      · iframe Hrw Hle
-      iintro ⟨Hrw, Hle⟩
-      iunfold srvRestRWH
-      iunfold srvObjsOn
-      iframe Hrw Hal Hau Hle Hcb
+    isplitl []
+    · unfold mvcc.storeWT mvcc.storeRT
+      rw [Hγw.2.2.1, show mvcc.kbWT (GF := GF) (some d) = backend.wbTok d.γB from rfl,
+        show mvcc.kbRT (GF := GF) (some d) = mvcc.bkRTx d.γB d.P d.be from rfl]
+      iunfold lessorApplyOk at Hlbe
+      iapply Hlbe $$ %d %(mvcc.lateW d.gx) %(batchLockInv γA (metaTM d.γB d.P)) %hook
+        %(lease.lessorBeOn lp d.be) HB Hhook [] []
+      · ipureintro; exact Hhknn
+      · iapply lessorBeOn_lens
+    · iapply srvRestRWH_lessor
   ihave #Hast : apply.isAuthStore ast γw.st (batchLockInv γA (metaTM d.γB d.P)) #hook RD M
       (srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be)) $$ []
   · rw [Hastl]
@@ -1310,10 +1308,19 @@ theorem NewServer.wp_proofM (on : Bool)
     rw [← Hastl]
     iframe authStore
     isplitl [HAres]
-    · iExactEq HAres
-      rfl
+    · -- (E3n) the construction's resource at the server's frozen hook
+      iapply (authApplyResB_of_pre M astl srvAuthSt0 d (mvcc.lateW d.gx)
+        (batchLockInv γA (metaTM d.γB d.P)) hook)
+      iframe HB Hhook
+      isplitl [HAres]
+      · iExactEq HAres
+        rfl
+      ipureintro; exact Hhknn
     -- (E3l) the equation of the backend names: the write right lends the store's half on `d.be`
-    iapply rwLens_authBeOn
+    isplitr
+    · iapply rwLens_authBeOn
+    -- (E3n) and so does the rest resource, at the same rest value
+    iapply roLends_authBeOn
   imodintro
   iapply HΦ
   iright
@@ -1712,10 +1719,16 @@ theorem NewServer.wp_proofM (on : Bool)
     · iexists up, uopts
       iframe Hui
       ipureintro; exact ⟨Hua, Huopts.2.2.2.1, Huopts.2.2.2.2.1⟩
+    -- (E3s) the range check at a reader's lower bound, from the construction
+    isplitr
+    · iexact HstLb
     -- (E3l) the store's checks at the latest state, from the construction
     iexists astl
     isplitr
     · ipureintro; exact Hastl
+    -- (E3t) publication, from the construction
+    isplitr
+    · iexact HstPub
     iexact HstL
   isplitr
   · iunfold apply.applierFor

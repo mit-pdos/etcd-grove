@@ -249,6 +249,25 @@ is widening `plainCover`):
   lends `storeRb`/`RW`; the rest model (`RestModel.lean`) gains the lease bucket's effects (the
   user's choice, 2026-10-26: extend the rest model, an opaque encoding of a lease's record made
   precise in the lessor's backend contract).
+  *Lease-package part done (2026-10-27, branch `leases-t3`).* `lessor.Grant`'s errors are exact
+  (id `0`, TTL above `MaxLeaseTTL`, `id ∈ L`; else `L ++ [id]`). The record's write is stated:
+  `schema.MustUnsafePutLease` (the boundary spec) names its key, the id's 8 big-endian bytes, and
+  its value, `lease.leaseEnc id ttl rem` (opaque, `LeaseRecord.lean`, for a message with no
+  unknown fields); the lessor's backend contract (`leaseBatchTx`/`leaseBackend`/`lessorBackend`)
+  takes a right `Rb` to the tracked buckets, its put `Rb r` to `Rb (mvcc.rbSet r "lease" k v)`
+  (default: no right, no effect); `persistTo`, `Grant` (the TTL `grantTTL mt ttl` of the lessor's
+  `minLeaseTTL`, the remaining TTL `0`) and `Checkpoint` state the put. `lessorApplyOk` (the
+  `NewLessor` axiom's contract) instantiates `Rb` with the backend's `rbOwn`, and its write right
+  no longer lends the tracked buckets' half (the real `LockInsideApply` does not need it; its
+  `UnsafePut` of a tracked bucket does). `apply.isApplyLessor_of_lessorInv` takes the write right
+  `RW` split as the write token's part `RW₀` and `∃ r, Rb r` (`srvRestRWH_lessor`, `InvBoot`) and
+  forgets the effect: the apply-side contract is unchanged until L3b part 2. The rest model's
+  lease effects are in `apply/RestLease.lean` (`restGrant`, `restRevoke`; `grant_bk`/`revoke_bk`
+  tie them to the specs' `rbSet`/`rbDel`), a module beside `RestModel.lean` rather than in it (no
+  rebuild of the apply layer, no conflict with the snapshot track). Not done: `lessorApplyOk`
+  proved from the backend's bridge (the put's half of `bt_leaseDel`'s work: the contract stays in
+  the `NewLessor` axiom); the snapshot side's empty-lease-bucket premise (`hlease`) and
+  `lessor.Recover` (which would reload granted leases), to settle with the snapshot track.
 - *L3d.* The server's results restated; notes.
 
 **L4. The server's entry points.** `EtcdServer.LeaseGrant` (the id from `reqIDGen` when `0`,
