@@ -64,7 +64,7 @@ abbrev EtcdServer.applyConfChange.spec : Prop :=
     (cid : w64),
   ccApplyOkM γs m → E.RO = srvRestOwnH γB cl (srvObjsOn al st lp cl d.be) →
   E.γ.kb = some d → d.γB = γB →
-  (dv = none → γs.raft.reDyn = none) →
+  (dv = none → γs.raft.dyn = false) →
   (∀ γn, dv = some γn → v3 = true ∧ ∀ dec c0 h0 h1, γn.mode = .dyn dec c0 h0 h1 →
     DynCCPreOp dec ds ca cfg (ccV2Of (.v1 (membership.ccRaftEff rs.bk m))) k e cs') →
   (m.type = W32 0 → m.nodeId ≠ lid → m.nodeId ∈ prs) →

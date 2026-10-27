@@ -59,9 +59,9 @@ theorem run_job_body (hAA : EtcdServer.applyAll.spec (GF := GF) (hG := hG))
     (hw : C.γw = C.ρ.wait)
     -- (D43 M3, 2026-10-25) the driver's view, `applyAll`'s (`dvOk`): without one, raft's static
     -- mode or no conf entry; with one, a fresh start (`c₀ ≤ ai₀`) at the server's decoder
-    (hdvn : dv = none → C.ρ.raft.raft.reDyn = none ∨ ∀ m, m ∈ ce → m.typ ≠ W32 1)
+    (hdvn : dv = none → C.ρ.raft.raft.dyn = false ∨ ∀ m, m ∈ ce → m.typ ≠ W32 1)
     (hdvs : ∀ γn, dv = some γn → uint.Z C.c₀ ≤ uint.Z C.ai₀ ∧ γn.raft = C.ρ.raft.raft ∧
-      C.ρ.raft.raft.reDyn.isSome = true ∧
+      C.ρ.raft.raft.dyn = true ∧
       ∃ c0 h0 h1, γn.mode = .dyn (srvDec C.γr.kv.c0 C.ρ.raft.raft.boot) c0 h0 h1) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
         isServerApplyAll C.s C.γr ∗ batchWaitOk C.ρ C.E (A ++ ce) ∗
@@ -596,13 +596,13 @@ theorem EtcdServer.run.wp_proof
     ihave #Hdyn := srvRaftNodeDyn_of_isRaftNode Er γn s $$ Hrn
     icases rnApGive_dv s γn ρ.raft hpre A ce $$ [Hdyn HG] with ⟨Hdv, #Hdvr⟩
     · iframe Hdyn HG
-    have hdvn : rnDv γn ce = none → ρ.raft.raft.reDyn = none ∨ ∀ m, m ∈ ce → m.typ ≠ W32 1 := by
+    have hdvn : rnDv γn ce = none → ρ.raft.raft.dyn = false ∨ ∀ m, m ∈ ce → m.typ ≠ W32 1 := by
       intro h
       unfold rnDv at h
       by_cases hh : rnHands γn ce
       · rw [ite_eq_left hh] at h; cases h
       unfold rnHands at hh
-      cases hd : γn.node.mode.isDyn
+      cases hd : γn.node.dyn
       · left
         have hst : γn.node.mode = .static := by
           cases hm : γn.node.mode with
@@ -618,16 +618,16 @@ theorem EtcdServer.run.wp_proof
         have := List.any_eq_false.1 hh m hm
         simp [hty] at this
     have hdvs : ∀ γn', rnDv γn ce = some γn' → uint.Z c₀ ≤ uint.Z ai₀ ∧
-        γn'.raft = ρ.raft.raft ∧ ρ.raft.raft.reDyn.isSome = true ∧
+        γn'.raft = ρ.raft.raft ∧ ρ.raft.raft.dyn = true ∧
         ∃ c0 h0 h1, γn'.mode = .dyn (srvDec γr.kv.c0 ρ.raft.raft.boot) c0 h0 h1 := by
       intro γn' h
       unfold rnDv at h
       by_cases hh : rnHands γn ce
       · rw [ite_eq_left hh] at h
         cases h
-        have hd : γn.node.mode.isDyn = true := by
+        have hd : γn.node.dyn = true := by
           unfold rnHands at hh; simp only [Bool.and_eq_true] at hh; exact hh.1
-        have hdyn : ρ.raft.raft.reDyn.isSome = true := by
+        have hdyn : ρ.raft.raft.dyn = true := by
           cases hr : ρ.raft.raft.reDyn with
           | none =>
             have hst := Hmd.1.2 (by rw [← Hnm.1, ← hρ]; exact hr)

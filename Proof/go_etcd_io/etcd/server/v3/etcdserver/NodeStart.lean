@@ -173,7 +173,7 @@ with `cum` at `[[]]` (`newRaftNode`'s). -/
 theorem rnToks_of_start (γ : RNNames) (ca : Nat) (cfg : CCState) (hpre : γ.pre = [])
     (p : HardStateM)
     -- (D43 M3, 2026-10-25) in raft's dynamic mode, the view at the start (`srvCfgOk`)
-    (hcfg : γ.node.mode.isDyn = true → srvCfgOk γ.node.raft.reCfg [] ca cfg) :
+    (hcfg : γ.node.dyn = true → srvCfgOk γ.node.cfg [] ca cfg) :
     (letI : MemStorReg GF := ⟨γ.reg⟩;
       iprop(nodeDriver γ.node γ.id γ.nl [] p ∗ nodeCfg γ.node ca cfg)) ∗
       spscProducer γ.ap ([] : List toApply) ∗ spscConsumer γ.ap ([] : List toApply) ∗

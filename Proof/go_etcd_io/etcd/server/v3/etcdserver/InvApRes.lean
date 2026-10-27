@@ -59,15 +59,15 @@ def ccPeersAfter (v3 : Bool) (m : ConfChangeM) (bk : GMap GoString backend.BktDa
 good, in the dynamic mode until the boot entries are applied (after them a `RemoveNode` may remove
 one; an `AddNode` comes only before, the dynamic policy's `srvDynLog`). -/
 def srvPeersCover (γs : ServerRaftNames) (lid : w64) (A : List EntryModel) (prs : trIds) : Prop :=
-  (γs.raft.reDyn = none ∨ (γs.pre ++ A).length < γs.raft.boot.length) →
-    ∀ f, f ∈ γs.raft.reCfg → f ≠ lid → f ∈ prs
+  (γs.raft.dyn = false ∨ (γs.pre ++ A).length < γs.raft.boot.length) →
+    ∀ f, f ∈ γs.raft.cfg → f ≠ lid → f ∈ prs
 
 /-- **The in-memory members stay among the boot configuration's** (D43 M5e: what keeps
 `AddMember`'s bound, `size ≤ 2 ^ 62`): the members of the rest model at the applied log are
 members of raft's boot configuration, of at most `2 ^ 62` members. -/
 def srvMemOk (γs : ServerRaftNames) (c0 : w64) (A : List EntryModel) : Prop :=
-  (∀ k, ((restModel c0 γs.raft.boot (γs.pre ++ A)).mem !! k).isSome = true → k ∈ γs.raft.reCfg) ∧
-    GMap.size γs.raft.reCfg ≤ 2 ^ 62
+  (∀ k, ((restModel c0 γs.raft.boot (γs.pre ++ A)).mem !! k).isSome = true → k ∈ γs.raft.cfg) ∧
+    GMap.size γs.raft.cfg ≤ 2 ^ 62
 
 /-- A normal entry keeps the members' ids. -/
 theorem restEntry_normal_memKeys (c0 : w64) (m : EntryModel) (r : apply.RestM) (ht : m.typ = W32 0)
@@ -187,7 +187,7 @@ theorem memBoot_keys (bootLog : List EntryM) (S : GSet w64)
 
 /-- **The rest model's members at the start of a new cluster** are the boot peers (`BootLogOk`). -/
 theorem srvMemOk_boot (γs : ServerRaftNames) (c0 : w64) (ccOk : w32 → List w8 → Prop)
-    (ps : List w64) (hpre : γs.pre = []) (hcfg : γs.raft.reCfg = GMap.listToSet ps)
+    (ps : List w64) (hpre : γs.pre = []) (hcfg : γs.raft.cfg = GMap.listToSet ps)
     (hnd : ps.Nodup) (hlen : (ps.length : Int) ≤ 2 ^ 62) (hb : BootLogOk ccOk ps γs.raft.boot) :
     srvMemOk γs c0 [] := by
   unfold srvMemOk
@@ -239,7 +239,7 @@ static mode. -/
 def srvDynLog (γs : ServerRaftNames) (lid : w64) : IProp GF :=
   match γs.raft.reDyn with
   | none => iprop(True)
-  | some _ => iprop(⌜lid ∈ γs.raft.reCfg⌝ ∗ □ ∀ L : List EntryModel, srvRLogLb γs L -∗
+  | some _ => iprop(⌜lid ∈ γs.raft.cfg⌝ ∗ □ ∀ L : List EntryModel, srvRLogLb γs L -∗
       ⌜srvDynPol γs.raft.boot.length lid (srvLogOf γs L)⌝)
 
 instance srvDynLog_persistent (γs : ServerRaftNames) (lid : w64) :
@@ -402,7 +402,7 @@ theorem srvApRes_cc (s : Loc) (γr : ReadNames) (A : List EntryModel) (m : Entry
           (cm.type = W32 1 → cm.nodeId ≠ lid) ∧
           (cm.type = W32 0 → GMap.size (GMap.insert cm.nodeId (membership.ccMemberAt cm)
             (restModel γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ A)).mem) ≤ 2 ^ 62) ∧
-          (γr.raft.raft.reDyn.isSome = true →
+          (γr.raft.raft.dyn = true →
             srvDynPol γr.raft.raft.boot.length lid (srvLogOf γr.raft (A ++ [m])) ∧
             lid ∈ γr.raft.raft.cfg)⌝ ∗
         (∀ v3 : Bool, ccMembRes γs cl tl lid (ccPeersAfter v3 cm
@@ -414,7 +414,7 @@ theorem srvApRes_cc (s : Loc) (γr : ReadNames) (A : List EntryModel) (m : Entry
   icases H with ⟨%bh, %ix, %lgh, %tl, %lid, %cl, %lgc, %cid, %prs, #H1, #H2, #H3, #H4, #H5, #H6,
     %H7, #H8, Hmr, %Hp, #Hd⟩
   -- the positional policy, in the dynamic mode
-  ihave %Hdyn : ⌜γr.raft.raft.reDyn.isSome = true →
+  ihave %Hdyn : ⌜γr.raft.raft.dyn = true →
       srvDynPol γr.raft.raft.boot.length lid (srvLogOf γr.raft (A ++ [m])) ∧
       lid ∈ γr.raft.raft.cfg⌝ $$ []
   · cases hrd : γr.raft.raft.reDyn with
@@ -430,7 +430,7 @@ theorem srvApRes_cc (s : Loc) (γr : ReadNames) (A : List EntryModel) (m : Entry
       uint.Z m.index ≤ γr.raft.raft.boot.length) ∧
       (cm.type = W32 1 → γr.raft.raft.boot.length < uint.Z m.index ∧ cm.nodeId ≠ lid) := by
     intro hn
-    have hs : γr.raft.raft.reDyn.isSome = true := by
+    have hs : γr.raft.raft.dyn = true := by
       cases h : γr.raft.raft.reDyn with
       | none => exact absurd h hn
       | some _ => rfl
@@ -456,7 +456,7 @@ theorem srvApRes_cc (s : Loc) (γr : ReadNames) (A : List EntryModel) (m : Entry
     refine ⟨?_, ?_, ?_, Hdyn⟩
     · intro h0 hne
       apply Hp.1 _ _ hin hne
-      by_cases hrd : γr.raft.raft.reDyn = none
+      by_cases hrd : γr.raft.raft.dyn = false
       · exact .inl hrd
       · right; have := (Hpos hrd).1 h0; omega
     · intro h1; exact ((Hpos (hstat1 h1)).2 h1).2

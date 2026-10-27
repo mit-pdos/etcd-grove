@@ -303,7 +303,7 @@ def srvBuiltG (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
     "#Hci'" ∷ srvCommittedInv s γr ∗
     "#Hrn" ∷ isRaftNode Er γn (srvRAddr s) ∗
     "%HEr" ∷ ⌜Er.C = srvCM on ρ E ai₀ c₀ x₀ ∧ Er.γr = γr ∧
-      (γn.node.mode.isDyn = true → uint.Z c₀ ≤ uint.Z ai₀)⌝ ∗
+      (γn.node.dyn = true → uint.Z c₀ ≤ uint.Z ai₀)⌝ ∗
     "%Hρrd" ∷ ⌜ρ.rd = γr⌝ ∗
     "Hloop" ∷ rnLoopTok γn [] ∗ "Hsend" ∷ Er.S ∗ "Happly" ∷ rnApplyTok γn [] ∗ "Hrdone" ∷ rnDoneTok γn (srvRAddr s) ∗
     "#Hcci" ∷ context.isClosedchanInit ∗
@@ -580,7 +580,7 @@ theorem rnEnvOk_of_clusterOn (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w
     (x₀ : apply.ApplyKV) (bud : BudgetNames) (γw : RNNames) (st₀ : auth.AuthState)
     (hraft : γw.node.raft = ρ.raft.raft) (hpre : γw.pre = ρ.raft.pre)
     (hai : uint.Z ρ.raft.ai0 = γw.pre.length) (hai0 : ρ.raft.ai0 = ai₀)
-    (hmode : γw.node.mode = RNMode.static ↔ γw.node.raft.reDyn = none)
+    (hmode : γw.node.mode = RNMode.static ↔ γw.node.raft.dyn = false)
     (hdec : ∀ dec c0 h0 h1, γw.node.mode = .dyn dec c0 h0 h1 →
       dec = srvDec ρ.rd.kv.c0 ρ.rd.raft.raft.boot)
     (hstor : γw.node.stor = memStorIface γw.ms)
@@ -646,7 +646,7 @@ theorem rnEnvOk_of_clusterM (on : Bool) (ρ : ReqNames) (E : apply.AEnv GF) (ai�
     (x₀ : apply.ApplyKV) (bud : BudgetNames) (γw : RNNames)
     (hraft : γw.node.raft = ρ.raft.raft) (hpre : γw.pre = ρ.raft.pre)
     (hai : uint.Z ρ.raft.ai0 = γw.pre.length) (hai0 : ρ.raft.ai0 = ai₀)
-    (hmode : γw.node.mode = RNMode.static ↔ γw.node.raft.reDyn = none)
+    (hmode : γw.node.mode = RNMode.static ↔ γw.node.raft.dyn = false)
     (hdec : ∀ dec c0 h0 h1, γw.node.mode = .dyn dec c0 h0 h1 →
       dec = srvDec ρ.rd.kv.c0 ρ.rd.raft.raft.boot)
     (hstor : γw.node.stor = memStorIface γw.ms)
@@ -707,7 +707,7 @@ satisfiable. -/
 theorem kvInvOn_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState)
     (ccOk : w32 → List w8 → Prop) (ps : List w64) (bootLog : List EntryM) (E : CoPset)
     (hpre : γs.pre = []) (hai : γs.ai0 = W64 0) (hboot : BootLogOk ccOk ps bootLog)
-    (hcc : ∀ ty d, ccOk ty d → ccIdOf d = W64 0 ∧ ccBootOk γs.raft.reCfg d)
+    (hcc : ∀ ty d, ccOk ty d → ccIdOf d = W64 0 ∧ ccBootOk γs.raft.cfg d)
     (hc0 : γk.c0 = W64 0) (hch : γk.ch0 = apply.alarmChain true false false)
     (hlog : γk.log0 ≠ []) :
     ⊢ rLog (GF := GF) γs.raft bootLog -∗

@@ -586,7 +586,7 @@ local macro "succ_tail" : tactic => `(tactic| (
         iframe Hlive HrcG Hrmo
         ipureintro; exact Hcl
   · -- `RemoveNode` (raft's dynamic mode only, `ccApplyOkM`)
-    obtain ⟨hdynm, hin1⟩ : γs.raft.reDyn.isSome = true ∧ m.nodeId ∈ γs.raft.reCfg := by
+    obtain ⟨hdynm, hin1⟩ : γs.raft.dyn = true ∧ m.nodeId ∈ γs.raft.cfg := by
       rcases Hok with ⟨h0, -⟩ | ⟨h, -, hin⟩
       · rw [hty1] at h0; exact absurd h0 (by simp)
       · exact ⟨h, hin⟩
@@ -755,7 +755,7 @@ theorem EtcdServer.applyConfChange.wp_proof
   · iPkgInit
   cases v3
   · -- without `v3` (a replay, raft's static mode): the validation answers `nil`
-    have hst : γs.raft.reDyn = none := by
+    have hst : γs.raft.dyn = false := by
       cases hdv : dv with
       | none => exact Hdv hdv
       | some γn => exact absurd (Hdyn γn hdv).1 (by simp)
@@ -883,7 +883,7 @@ theorem EtcdServer.applyConfChange.wp_proof
       imod ownConfChange_persist _ _ _ $$ Hcc with #Hcc
       iunfold epConfState at Hcs
       icases Hcs with ⟨Hcsf, #Hcsok0⟩
-      have hraftS : dv = none → γs.raft.reDyn = none ∧ ccRaftOk γs.raft.reCfg m := by
+      have hraftS : dv = none → γs.raft.dyn = false ∧ ccRaftOk γs.raft.cfg m := by
         intro h
         have hs := Hdv h
         refine ⟨hs, ?_⟩
@@ -917,8 +917,8 @@ theorem EtcdServer.applyConfChange.wp_proof
         ihave Hcc := Hcc $$ %«$r0_ptr» %(W64 0) HN []
         · iunfold cellRO; iright; iexact «$r0»
         imod ownConfChange_persist _ _ _ $$ Hcc with #Hcc
-        have hraft0 : dv = none → γs.raft.reDyn = none ∧
-            ccRaftOk γs.raft.reCfg { m with nodeId := W64 0 } := by
+        have hraft0 : dv = none → γs.raft.dyn = false ∧
+            ccRaftOk γs.raft.cfg { m with nodeId := W64 0 } := by
           intro h
           have hs := Hdv h
           refine ⟨hs, ?_⟩

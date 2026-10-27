@@ -124,7 +124,7 @@ theorem rnEnvOk_of_cluster (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64
     (hai : uint.Z ρ.raft.ai0 = γw.pre.length) (hai0 : ρ.raft.ai0 = ai₀)
     -- (D43 M3, 2026-10-25) the node's mode, static exactly when raft's names are; in the dynamic
     -- mode at the server's decoder
-    (hmode : γw.node.mode = RNMode.static ↔ γw.node.raft.reDyn = none)
+    (hmode : γw.node.mode = RNMode.static ↔ γw.node.raft.dyn = false)
     (hdec : ∀ dec c0 h0 h1, γw.node.mode = .dyn dec c0 h0 h1 →
       dec = srvDec ρ.rd.kv.c0 ρ.rd.raft.raft.boot)
     (hstor : γw.node.stor = memStorIface γw.ms)

@@ -45,7 +45,7 @@ def srvProcOk (γn : NetNames GF) (s : Loc) (id : w64) : IProp GF :=
     srvStatsAddr s ↦□ st ∗ ⌜st ≠ null⌝ ∗
     rnNodeAddr (srvRAddr s) ↦□ rnNodeIface γ ∗ rnStepIfc γ (rnNodeIface γ) ∗
     ⌜γn.N = srvNet γ.node.raft γ.node.bud ∧ γ.node.raft.reNoSnap = true ∧
-      γ.node.raft.reBoot ≠ [] ∧ γ.node.raft.reNoXfer = true⌝)
+      γ.node.boot ≠ [] ∧ γ.node.raft.reNoXfer = true⌝)
 
 instance srvProcOk_persistent (γn : NetNames GF) (s : Loc) (id : w64) :
     Persistent (srvProcOk (GF := GF) γn s id) := by
@@ -82,7 +82,7 @@ theorem isRaftMsg_isMessages (γ : RaftNames) (sid : w64) (st : MsgSt) (Hns : st
 whose network payload is the server's. -/
 theorem stepP_of_recv (γn : NetNames GF) (γ : RNNames)
     (HN : γn.N = srvNet γ.node.raft γ.node.bud) (hns : γ.node.raft.reNoSnap = true)
-    (hboot : γ.node.raft.reBoot ≠ [])
+    (hboot : γ.node.boot ≠ [])
     -- (2026-10-19, D22 S-a) `SentMsgOk` is of the no-transfer mode (D22 S-a to S-c: of both)
     (hnx : γ.node.raft.reNoXfer = true) {γd : GName} (ml : Loc) :
     netRecv (GF := GF) γn γ.id γd ml ⊢ |==> stepP γ.node γ.id ml := by

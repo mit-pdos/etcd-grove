@@ -299,6 +299,11 @@ instance srvRaftNodeDyn_persistent (s : Loc) (γs : ServerRaftNames) (n : Loc) :
     Persistent (srvRaftNodeDyn (GF := GF) s γs n) := by
   unfold srvRaftNodeDyn; infer_instance
 
+/-- The dynamic contract reads only the cluster. -/
+theorem srvRaftNodeDyn_congr (s : Loc) (γ1 γ2 : ServerRaftNames) (n : Loc) (h : γ1.raft = γ2.raft) :
+    srvRaftNodeDyn (GF := GF) s γ1 n = srvRaftNodeDyn s γ2 n := by
+  unfold srvRaftNodeDyn raftApplyCCDyn; rw [h]
+
 end addr
 
 section apply

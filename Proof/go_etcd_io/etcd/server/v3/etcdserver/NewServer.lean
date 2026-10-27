@@ -760,7 +760,7 @@ theorem NewServer.wp_proofM (on : Bool)
     rw [← Hid]
     iframe stats memberID HNodeC cluster lg HstepI Hrc
     ipureintro
-    have hb : γrn.node.raft.reBoot ≠ [] := by
+    have hb : γrn.node.boot ≠ [] := by
       rw [Hrn1, Hrboot]
       intro h
       have hl := Hrbok.1
