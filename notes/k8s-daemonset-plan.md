@@ -314,6 +314,14 @@ theorem's program runs with it off, the premise "a failed write had no effect" (
    shared informer's processor and listeners, `WaitForNamedCacheSyncWithContext`: the informer
    contract above, plus the handlers' delivery (in order, with the objects' concrete types, which
    every handler's unchecked assertion needs). The hardest phase.
+   *Status, translation (2026-10-27, branch `k8s-daemonset-proof`; `notes/k8s-daemonset-goose.md`,
+   "The informers"):* `tools/cache` with bodies (the reflector, `RealFIFO`, the controller, the
+   shared informer, processor, listeners), `tools/pager`, `synctrack`, `k8s.io/utils/buffer`, the
+   factory and `informers/{apps,core}/v1`: 288 of the 312 informer functions `Main` reaches. Gaps:
+   D3 (`RealFIFO.PopBatch`, C4's `min`) with C4 (`Transaction`): the batch path, which `Main`'s
+   gates select (`InOrderInformersBatchProcess` on by default); D4 (`handleAnyWatch`'s labeled
+   `break`); C2 (the typed informers' promoted methods, every call the controller makes on an
+   informer); D2 (the typed informers' list-watch closures).
 5. **The controller.** `Run`, the workers, `syncDaemonSet` and what it calls on this scenario's
    paths, the event handlers, `syncNodeUpdate`; S1's invariant.
 6. **The closed theorem.** `examples/dsonepod`'s `wp_Main`, its package table and init, and

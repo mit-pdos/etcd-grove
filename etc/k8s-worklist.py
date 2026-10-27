@@ -25,6 +25,7 @@ remains is listed as found. Writes the summary and the list as Markdown (stdout 
 """
 import argparse
 import collections
+import glob
 import os
 import re
 import subprocess
@@ -70,6 +71,26 @@ for _r, _n in [("LazyErrorNodeSelector", "Match"), ("PreferredSchedulingTerms", 
 for _r in ("delayingType", "rateLimitingType"):
     for _n in ("Add", "Len", "Get", "Done", "ShutDown", "ShutDownWithDrain", "ShuttingDown", "AddAfter"):
         GAPS[("k8s.io/client-go/util/workqueue", _r, _n)] = "C2"
+# the informer layer (phase 4; notes/k8s-daemonset-goose.md, "The informers")
+GAPS[("k8s.io/client-go/tools/cache", "RealFIFO", "PopBatch")] = "D3"
+GAPS[("k8s.io/client-go/tools/cache", "", "handleAnyWatch")] = "D4"
+for _r, _n in [("", "NewInformerName"), ("InformerName", "Release"),
+               ("", "ResetInformerNamesForTesting"), ("", "SetReflectorMetricsProvider")]:
+    GAPS[("k8s.io/client-go/tools/cache", _r, _n)] = "D5"
+for _n in ("Add", "AddIndexers", "Bookmark", "ByIndex", "Delete", "Get", "GetByKey", "GetIndexers",
+           "Index", "IndexKeys", "LastStoreSyncResourceVersion", "List", "ListIndexFuncValues",
+           "ListKeys", "Replace", "Resync", "Update"):
+    GAPS[("k8s.io/client-go/tools/cache", "typedIndexer", _n)] = "C2"
+for _n in ("AddEventHandler", "AddEventHandlerWithOptions", "AddEventHandlerWithResyncPeriod",
+           "AddIndexers", "GetController", "GetIndexer", "GetStore", "HasSynced", "HasSyncedChecker",
+           "IsStopped", "LastSyncResourceVersion", "RemoveEventHandler", "Run", "RunWithContext",
+           "SetShardSelector", "SetTransform", "SetWatchErrorHandler",
+           "SetWatchErrorHandlerWithContext"):
+    GAPS[("k8s.io/client-go/tools/cache", "typedSharedIndexInformer", _n)] = "C2"
+for _g, _rs in [("apps", ("ControllerRevision", "DaemonSet", "Deployment", "ReplicaSet", "StatefulSet")),
+                ("core", ("Pod", "Node"))]:
+    for _r in _rs:
+        GAPS[("k8s.io/client-go/informers/%s/v1" % _g, "", "NewTyped%sInformerWithOptions" % _r)] = "D2"
 
 KEEP_GROUPS = ("apps/v1", "core/v1")
 INTERNAL = ("k8s.io/kubernetes/pkg/apis/core", "k8s.io/kubernetes/pkg/apis/apps",
@@ -105,6 +126,11 @@ _text = {}
 def text(path):
     if path not in _text:
         _text[path] = open(path, encoding="utf-8").read() if os.path.isfile(path) else None
+        # a large package's translation is split into `<pkg>/chunk<k>.lean` (tools/cache)
+        if _text[path] is not None:
+            d = path[:-len(".lean")]
+            for c in sorted(glob.glob(os.path.join(d, "chunk*.lean"))):
+                _text[path] += open(c, encoding="utf-8").read()
     return _text[path]
 
 

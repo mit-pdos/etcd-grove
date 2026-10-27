@@ -2,22 +2,46 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import GeneratedProof.container.heap
 public import Perennial.GeneratedProof.context
 public import Perennial.GeneratedProof.errors
 public import Perennial.GeneratedProof.fmt
+public import Perennial.GeneratedProof.io
 public import GeneratedProof.k8s_io.apimachinery.pkg.api.errors
 public import GeneratedProof.k8s_io.apimachinery.pkg.api.«meta»
 public import GeneratedProof.k8s_io.apimachinery.pkg.apis.«meta».v1
+public import GeneratedProof.k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured
+public import GeneratedProof.k8s_io.apimachinery.pkg.apis.«meta».v1beta1
+public import GeneratedProof.k8s_io.apimachinery.pkg.fields
 public import GeneratedProof.k8s_io.apimachinery.pkg.labels
 public import GeneratedProof.k8s_io.apimachinery.pkg.runtime
 public import GeneratedProof.k8s_io.apimachinery.pkg.runtime.schema
+public import GeneratedProof.k8s_io.apimachinery.pkg.sharding
 public import GeneratedProof.k8s_io.apimachinery.pkg.types
+public import GeneratedProof.k8s_io.apimachinery.pkg.util.cache
+public import GeneratedProof.k8s_io.apimachinery.pkg.util.diff
+public import GeneratedProof.k8s_io.apimachinery.pkg.util.naming
+public import GeneratedProof.k8s_io.apimachinery.pkg.util.net
 public import GeneratedProof.k8s_io.apimachinery.pkg.util.runtime
 public import GeneratedProof.k8s_io.apimachinery.pkg.util.sets
 public import GeneratedProof.k8s_io.apimachinery.pkg.util.wait
+public import GeneratedProof.k8s_io.apimachinery.pkg.watch
 public import GeneratedProof.k8s_io.client_go.features
+public import GeneratedProof.k8s_io.client_go.rest
+public import GeneratedProof.k8s_io.client_go.tools.cache.synctrack
+public import GeneratedProof.k8s_io.client_go.tools.pager
+public import GeneratedProof.k8s_io.client_go.util.consistencydetector
+public import GeneratedProof.k8s_io.client_go.util.watchlist
 public import GeneratedProof.k8s_io.klog.v2
+public import GeneratedProof.k8s_io.utils.buffer
+public import GeneratedProof.k8s_io.utils.clock
+public import GeneratedProof.k8s_io.utils.ptr
 public import GeneratedProof.k8s_io.utils.trace
+public import Perennial.GeneratedProof.math
+public import Perennial.GeneratedProof.math.rand
+public import Perennial.GeneratedProof.os
+public import Perennial.GeneratedProof.reflect
+public import Perennial.GeneratedProof.slices
 public import Perennial.GeneratedProof.strconv
 public import Perennial.GeneratedProof.strings
 public import Perennial.GeneratedProof.sync
@@ -29,6 +53,10 @@ public import GeneratedProof.k8s_io.client_go.tools.cache.chunk1
 public import GeneratedProof.k8s_io.client_go.tools.cache.chunk2
 public import GeneratedProof.k8s_io.client_go.tools.cache.chunk3
 public import GeneratedProof.k8s_io.client_go.tools.cache.chunk4
+public import GeneratedProof.k8s_io.client_go.tools.cache.chunk5
+public import GeneratedProof.k8s_io.client_go.tools.cache.chunk6
+public import GeneratedProof.k8s_io.client_go.tools.cache.chunk7
+public import GeneratedProof.k8s_io.client_go.tools.cache.chunk8
 
 @[expose] public section
 

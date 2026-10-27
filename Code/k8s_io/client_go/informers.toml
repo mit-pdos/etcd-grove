@@ -1,9 +1,21 @@
-# Types and names only: function and method bodies are axiomatized (project k8s-apiserver;
-# notes/k8s-daemonset-goose.md: what the DaemonSet controller and its example name).
-# It imports what its interfaces' and structs' members name (names only), so that
-# those types are concrete.
-translate = ["!*"]
-imports = ["!*", "k8s.io/client-go/informers/apps/v1", "k8s.io/client-go/informers/core/v1", "k8s.io/client-go/tools/cache"]
+# With bodies (project k8s-apiserver; notes/k8s-daemonset-goose.md, "The informers"): the
+# factory, as the DaemonSet example uses it (`NewSharedInformerFactory`, `Start`, the `apps` and
+# `core` groups, `InformerFor`). The other API groups' accessors and the generic informer
+# (`ForResource`, generic.go) names only. It imports what those bodies and the factory's struct
+# name; the interface `SharedInformerFactory`, which names every group, stays axiomatized.
+translate = ["!*", "SharedInformerOption", "sharedInformerFactory", "WithCustomResyncConfig",
+  "WithTweakListOptions", "WithNamespace", "WithTransform", "WithShardSelector",
+  "WithInformerName", "sharedInformerFactory.InformerName", "NewSharedInformerFactory",
+  "NewFilteredSharedInformerFactory", "NewSharedInformerFactoryWithOptions",
+  "sharedInformerFactory.Start", "sharedInformerFactory.StartWithContext",
+  "sharedInformerFactory.Shutdown", "sharedInformerFactory.WaitForCacheSync",
+  "sharedInformerFactory.WaitForCacheSyncWithContext", "sharedInformerFactory.InformerFor",
+  "sharedInformerFactory.Apps", "sharedInformerFactory.Core"]
+imports = ["!*", "context", "reflect", "sync", "time", "k8s.io/apimachinery/pkg/apis/meta/v1",
+  "k8s.io/apimachinery/pkg/runtime", "k8s.io/apimachinery/pkg/runtime/schema",
+  "k8s.io/apimachinery/pkg/sharding", "k8s.io/apimachinery/pkg/util/wait",
+  "k8s.io/client-go/informers/apps", "k8s.io/client-go/informers/core",
+  "k8s.io/client-go/informers/internalinterfaces", "k8s.io/client-go/kubernetes",
+  "k8s.io/client-go/tools/cache"]
 
-# translate the definitions of all type declarations goose supports
-translate_types = true
+translate_types = false

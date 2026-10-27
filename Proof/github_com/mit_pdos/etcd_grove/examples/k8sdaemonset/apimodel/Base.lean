@@ -1,7 +1,8 @@
 /-
 Package initialization instances of the model API server (`examples/k8sdaemonset/apimodel`; phase
 3 of `notes/k8s-daemonset-plan.md`) and of the packages it imports that have none yet: client-go's
-`kubernetes` and its 56 typed group packages, `rest`, `discovery`, the apply configurations of
+`kubernetes` and its 56 typed group packages (`rest`'s is in the watch cache's `Base.lean`,
+which `tools/cache` needs since phase 4), `discovery`, the apply configurations of
 `core`, `apps` and `autoscaling`, and the API groups `policy`, `authentication`, `autoscaling`
 (all names only: the typed interfaces the model implements name them,
 `notes/k8s-apimodel-goose.md`). Their facts are `True`.
@@ -147,10 +148,6 @@ instance k8s_io_client_go_kubernetes_typed_admissionregistration_v1beta1_getIsPk
 instance k8s_io_client_go_kubernetes_typed_apiserverinternal_v1alpha1_isPkgInit : IsPkgInit (IProp GF) pkg_id.k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1 :=
   define_is_pkg_init iprop(True)
 instance k8s_io_client_go_kubernetes_typed_apiserverinternal_v1alpha1_getIsPkgInitWf : GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.client_go.kubernetes.typed.apiserverinternal.v1alpha1 :=
-  build_get_is_pkg_init_wf
-instance k8s_io_client_go_rest_isPkgInit : IsPkgInit (IProp GF) pkg_id.k8s_io.client_go.rest :=
-  define_is_pkg_init iprop(True)
-instance k8s_io_client_go_rest_getIsPkgInitWf : GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.client_go.rest :=
   build_get_is_pkg_init_wf
 instance k8s_io_client_go_kubernetes_typed_apps_v1_isPkgInit : IsPkgInit (IProp GF) pkg_id.k8s_io.client_go.kubernetes.typed.apps.v1 :=
   define_is_pkg_init iprop(True)

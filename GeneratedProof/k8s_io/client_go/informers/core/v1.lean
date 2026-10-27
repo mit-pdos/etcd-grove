@@ -2,8 +2,17 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import Perennial.GeneratedProof.context
+public import GeneratedProof.k8s_io.api.core.v1
+public import GeneratedProof.k8s_io.apimachinery.pkg.apis.«meta».v1
+public import GeneratedProof.k8s_io.apimachinery.pkg.runtime
+public import GeneratedProof.k8s_io.apimachinery.pkg.runtime.schema
+public import GeneratedProof.k8s_io.apimachinery.pkg.watch
+public import GeneratedProof.k8s_io.client_go.informers.internalinterfaces
+public import GeneratedProof.k8s_io.client_go.kubernetes
 public import GeneratedProof.k8s_io.client_go.listers.core.v1
 public import GeneratedProof.k8s_io.client_go.tools.cache
+public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory
 public import Code.k8s_io.client_go.informers.core.v1
 
@@ -18,25 +27,6 @@ open Iris Iris.BI
 noncomputable section
 namespace k8s_io.client_go.informers.core.v1
 
-namespace ComponentStatusIndexInformer
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.informers.core.v1.Assumptions]
-
-noncomputable instance ComponentStatusIndexInformer_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.client_go.informers.core.v1.ComponentStatusIndexInformer :=
-  sorry -- axiomatized type
-
-noncomputable instance ComponentStatusIndexInformer_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.informers.core.v1.ComponentStatusIndexInformer k8s_io.client_go.informers.core.v1.ComponentStatusIndexInformer.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end ComponentStatusIndexInformer
-
 namespace componentStatusInformer
 section def_
 
@@ -46,12 +36,50 @@ variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.informers.core.v1.Assumptions]
 
 noncomputable instance componentStatusInformer_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.client_go.informers.core.v1.componentStatusInformer :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) k8s_io.client_go.informers.core.v1.componentStatusInformer where
+  typedPointstoDef l v dq := iprop(
+    "factory" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.componentStatusInformer go!"factory" l) v.factory' dq ∗
+    "tweakListOptions" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.componentStatusInformer go!"tweakListOptions" l) v.tweakListOptions' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance componentStatusInformer_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.informers.core.v1.componentStatusInformer k8s_io.client_go.informers.core.v1.componentStatusInformer.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.informers.core.v1.componentStatusInformer k8s_io.client_go.informers.core.v1.componentStatusInformer.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance componentStatusInformer_access_load_factory (l : Loc) (v : k8s_io.client_go.informers.core.v1.componentStatusInformer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.componentStatusInformer go!"factory" l) v.factory' dq)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.componentStatusInformer go!"factory" l) v.factory' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance componentStatusInformer_access_store_factory (l : Loc) (v : k8s_io.client_go.informers.core.v1.componentStatusInformer) (factory' : k8s_io.client_go.informers.internalinterfaces.SharedInformerFactory) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.componentStatusInformer go!"factory" l) v.factory' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.componentStatusInformer go!"factory" l) factory' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with factory' := factory' } : k8s_io.client_go.informers.core.v1.componentStatusInformer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance componentStatusInformer_access_load_tweakListOptions (l : Loc) (v : k8s_io.client_go.informers.core.v1.componentStatusInformer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.componentStatusInformer go!"tweakListOptions" l) v.tweakListOptions' dq)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.componentStatusInformer go!"tweakListOptions" l) v.tweakListOptions' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance componentStatusInformer_access_store_tweakListOptions (l : Loc) (v : k8s_io.client_go.informers.core.v1.componentStatusInformer) (tweakListOptions' : k8s_io.client_go.informers.internalinterfaces.TweakListOptionsFunc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.componentStatusInformer go!"tweakListOptions" l) v.tweakListOptions' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.componentStatusInformer go!"tweakListOptions" l) tweakListOptions' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tweakListOptions' := tweakListOptions' } : k8s_io.client_go.informers.core.v1.componentStatusInformer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end componentStatusInformer
@@ -96,25 +124,6 @@ noncomputable instance componentStatusTypedInformerAdapter_access_store_Componen
 end def_
 end componentStatusTypedInformerAdapter
 
-namespace ConfigMapIndexInformer
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.informers.core.v1.Assumptions]
-
-noncomputable instance ConfigMapIndexInformer_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.client_go.informers.core.v1.ConfigMapIndexInformer :=
-  sorry -- axiomatized type
-
-noncomputable instance ConfigMapIndexInformer_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.informers.core.v1.ConfigMapIndexInformer k8s_io.client_go.informers.core.v1.ConfigMapIndexInformer.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end ConfigMapIndexInformer
-
 namespace configMapInformer
 section def_
 
@@ -124,12 +133,67 @@ variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.informers.core.v1.Assumptions]
 
 noncomputable instance configMapInformer_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.client_go.informers.core.v1.configMapInformer :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) k8s_io.client_go.informers.core.v1.configMapInformer where
+  typedPointstoDef l v dq := iprop(
+    "factory" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.configMapInformer go!"factory" l) v.factory' dq ∗
+    "tweakListOptions" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.configMapInformer go!"tweakListOptions" l) v.tweakListOptions' dq ∗
+    "namespace'" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.configMapInformer go!"namespace" l) v.namespace' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance configMapInformer_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.informers.core.v1.configMapInformer k8s_io.client_go.informers.core.v1.configMapInformer.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.informers.core.v1.configMapInformer k8s_io.client_go.informers.core.v1.configMapInformer.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance configMapInformer_access_load_factory (l : Loc) (v : k8s_io.client_go.informers.core.v1.configMapInformer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.configMapInformer go!"factory" l) v.factory' dq)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.configMapInformer go!"factory" l) v.factory' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance configMapInformer_access_store_factory (l : Loc) (v : k8s_io.client_go.informers.core.v1.configMapInformer) (factory' : k8s_io.client_go.informers.internalinterfaces.SharedInformerFactory) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.configMapInformer go!"factory" l) v.factory' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.configMapInformer go!"factory" l) factory' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with factory' := factory' } : k8s_io.client_go.informers.core.v1.configMapInformer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance configMapInformer_access_load_tweakListOptions (l : Loc) (v : k8s_io.client_go.informers.core.v1.configMapInformer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.configMapInformer go!"tweakListOptions" l) v.tweakListOptions' dq)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.configMapInformer go!"tweakListOptions" l) v.tweakListOptions' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance configMapInformer_access_store_tweakListOptions (l : Loc) (v : k8s_io.client_go.informers.core.v1.configMapInformer) (tweakListOptions' : k8s_io.client_go.informers.internalinterfaces.TweakListOptionsFunc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.configMapInformer go!"tweakListOptions" l) v.tweakListOptions' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.configMapInformer go!"tweakListOptions" l) tweakListOptions' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tweakListOptions' := tweakListOptions' } : k8s_io.client_go.informers.core.v1.configMapInformer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance configMapInformer_access_load_namespace (l : Loc) (v : k8s_io.client_go.informers.core.v1.configMapInformer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.configMapInformer go!"namespace" l) v.namespace' dq)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.configMapInformer go!"namespace" l) v.namespace' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance configMapInformer_access_store_namespace (l : Loc) (v : k8s_io.client_go.informers.core.v1.configMapInformer) (namespace' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.configMapInformer go!"namespace" l) v.namespace' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.configMapInformer go!"namespace" l) namespace' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with namespace' := namespace' } : k8s_io.client_go.informers.core.v1.configMapInformer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end configMapInformer
@@ -174,25 +238,6 @@ noncomputable instance configMapTypedInformerAdapter_access_store_ConfigMapInfor
 end def_
 end configMapTypedInformerAdapter
 
-namespace EndpointsIndexInformer
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.informers.core.v1.Assumptions]
-
-noncomputable instance EndpointsIndexInformer_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.client_go.informers.core.v1.EndpointsIndexInformer :=
-  sorry -- axiomatized type
-
-noncomputable instance EndpointsIndexInformer_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.informers.core.v1.EndpointsIndexInformer k8s_io.client_go.informers.core.v1.EndpointsIndexInformer.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end EndpointsIndexInformer
-
 namespace endpointsInformer
 section def_
 
@@ -202,12 +247,67 @@ variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.informers.core.v1.Assumptions]
 
 noncomputable instance endpointsInformer_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.client_go.informers.core.v1.endpointsInformer :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) k8s_io.client_go.informers.core.v1.endpointsInformer where
+  typedPointstoDef l v dq := iprop(
+    "factory" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.endpointsInformer go!"factory" l) v.factory' dq ∗
+    "tweakListOptions" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.endpointsInformer go!"tweakListOptions" l) v.tweakListOptions' dq ∗
+    "namespace'" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.endpointsInformer go!"namespace" l) v.namespace' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance endpointsInformer_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.informers.core.v1.endpointsInformer k8s_io.client_go.informers.core.v1.endpointsInformer.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.informers.core.v1.endpointsInformer k8s_io.client_go.informers.core.v1.endpointsInformer.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance endpointsInformer_access_load_factory (l : Loc) (v : k8s_io.client_go.informers.core.v1.endpointsInformer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.endpointsInformer go!"factory" l) v.factory' dq)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.endpointsInformer go!"factory" l) v.factory' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance endpointsInformer_access_store_factory (l : Loc) (v : k8s_io.client_go.informers.core.v1.endpointsInformer) (factory' : k8s_io.client_go.informers.internalinterfaces.SharedInformerFactory) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.endpointsInformer go!"factory" l) v.factory' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.endpointsInformer go!"factory" l) factory' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with factory' := factory' } : k8s_io.client_go.informers.core.v1.endpointsInformer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance endpointsInformer_access_load_tweakListOptions (l : Loc) (v : k8s_io.client_go.informers.core.v1.endpointsInformer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.endpointsInformer go!"tweakListOptions" l) v.tweakListOptions' dq)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.endpointsInformer go!"tweakListOptions" l) v.tweakListOptions' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance endpointsInformer_access_store_tweakListOptions (l : Loc) (v : k8s_io.client_go.informers.core.v1.endpointsInformer) (tweakListOptions' : k8s_io.client_go.informers.internalinterfaces.TweakListOptionsFunc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.endpointsInformer go!"tweakListOptions" l) v.tweakListOptions' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.endpointsInformer go!"tweakListOptions" l) tweakListOptions' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tweakListOptions' := tweakListOptions' } : k8s_io.client_go.informers.core.v1.endpointsInformer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance endpointsInformer_access_load_namespace (l : Loc) (v : k8s_io.client_go.informers.core.v1.endpointsInformer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.endpointsInformer go!"namespace" l) v.namespace' dq)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.endpointsInformer go!"namespace" l) v.namespace' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance endpointsInformer_access_store_namespace (l : Loc) (v : k8s_io.client_go.informers.core.v1.endpointsInformer) (namespace' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.endpointsInformer go!"namespace" l) v.namespace' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.endpointsInformer go!"namespace" l) namespace' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with namespace' := namespace' } : k8s_io.client_go.informers.core.v1.endpointsInformer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end endpointsInformer
@@ -252,25 +352,6 @@ noncomputable instance endpointsTypedInformerAdapter_access_store_EndpointsInfor
 end def_
 end endpointsTypedInformerAdapter
 
-namespace EventIndexInformer
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.informers.core.v1.Assumptions]
-
-noncomputable instance EventIndexInformer_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.client_go.informers.core.v1.EventIndexInformer :=
-  sorry -- axiomatized type
-
-noncomputable instance EventIndexInformer_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.informers.core.v1.EventIndexInformer k8s_io.client_go.informers.core.v1.EventIndexInformer.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end EventIndexInformer
-
 namespace eventInformer
 section def_
 
@@ -280,12 +361,67 @@ variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.informers.core.v1.Assumptions]
 
 noncomputable instance eventInformer_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.client_go.informers.core.v1.eventInformer :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) k8s_io.client_go.informers.core.v1.eventInformer where
+  typedPointstoDef l v dq := iprop(
+    "factory" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.eventInformer go!"factory" l) v.factory' dq ∗
+    "tweakListOptions" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.eventInformer go!"tweakListOptions" l) v.tweakListOptions' dq ∗
+    "namespace'" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.eventInformer go!"namespace" l) v.namespace' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance eventInformer_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.informers.core.v1.eventInformer k8s_io.client_go.informers.core.v1.eventInformer.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.informers.core.v1.eventInformer k8s_io.client_go.informers.core.v1.eventInformer.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance eventInformer_access_load_factory (l : Loc) (v : k8s_io.client_go.informers.core.v1.eventInformer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.eventInformer go!"factory" l) v.factory' dq)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.eventInformer go!"factory" l) v.factory' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance eventInformer_access_store_factory (l : Loc) (v : k8s_io.client_go.informers.core.v1.eventInformer) (factory' : k8s_io.client_go.informers.internalinterfaces.SharedInformerFactory) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.eventInformer go!"factory" l) v.factory' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.eventInformer go!"factory" l) factory' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with factory' := factory' } : k8s_io.client_go.informers.core.v1.eventInformer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance eventInformer_access_load_tweakListOptions (l : Loc) (v : k8s_io.client_go.informers.core.v1.eventInformer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.eventInformer go!"tweakListOptions" l) v.tweakListOptions' dq)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.eventInformer go!"tweakListOptions" l) v.tweakListOptions' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance eventInformer_access_store_tweakListOptions (l : Loc) (v : k8s_io.client_go.informers.core.v1.eventInformer) (tweakListOptions' : k8s_io.client_go.informers.internalinterfaces.TweakListOptionsFunc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.eventInformer go!"tweakListOptions" l) v.tweakListOptions' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.eventInformer go!"tweakListOptions" l) tweakListOptions' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tweakListOptions' := tweakListOptions' } : k8s_io.client_go.informers.core.v1.eventInformer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance eventInformer_access_load_namespace (l : Loc) (v : k8s_io.client_go.informers.core.v1.eventInformer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.eventInformer go!"namespace" l) v.namespace' dq)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.eventInformer go!"namespace" l) v.namespace' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance eventInformer_access_store_namespace (l : Loc) (v : k8s_io.client_go.informers.core.v1.eventInformer) (namespace' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.eventInformer go!"namespace" l) v.namespace' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.eventInformer go!"namespace" l) namespace' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with namespace' := namespace' } : k8s_io.client_go.informers.core.v1.eventInformer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end eventInformer
@@ -339,34 +475,70 @@ variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.informers.core.v1.Assumptions]
 
 noncomputable instance version_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.client_go.informers.core.v1.version :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) k8s_io.client_go.informers.core.v1.version where
+  typedPointstoDef l v dq := iprop(
+    "factory" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.version go!"factory" l) v.factory' dq ∗
+    "namespace'" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.version go!"namespace" l) v.namespace' dq ∗
+    "tweakListOptions" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.version go!"tweakListOptions" l) v.tweakListOptions' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance version_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.informers.core.v1.version k8s_io.client_go.informers.core.v1.version.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.informers.core.v1.version k8s_io.client_go.informers.core.v1.version.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance version_access_load_factory (l : Loc) (v : k8s_io.client_go.informers.core.v1.version) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.version go!"factory" l) v.factory' dq)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.version go!"factory" l) v.factory' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance version_access_store_factory (l : Loc) (v : k8s_io.client_go.informers.core.v1.version) (factory' : k8s_io.client_go.informers.internalinterfaces.SharedInformerFactory) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.version go!"factory" l) v.factory' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.version go!"factory" l) factory' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with factory' := factory' } : k8s_io.client_go.informers.core.v1.version) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance version_access_load_namespace (l : Loc) (v : k8s_io.client_go.informers.core.v1.version) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.version go!"namespace" l) v.namespace' dq)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.version go!"namespace" l) v.namespace' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance version_access_store_namespace (l : Loc) (v : k8s_io.client_go.informers.core.v1.version) (namespace' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.version go!"namespace" l) v.namespace' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.version go!"namespace" l) namespace' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with namespace' := namespace' } : k8s_io.client_go.informers.core.v1.version) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance version_access_load_tweakListOptions (l : Loc) (v : k8s_io.client_go.informers.core.v1.version) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.version go!"tweakListOptions" l) v.tweakListOptions' dq)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.version go!"tweakListOptions" l) v.tweakListOptions' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance version_access_store_tweakListOptions (l : Loc) (v : k8s_io.client_go.informers.core.v1.version) (tweakListOptions' : k8s_io.client_go.informers.internalinterfaces.TweakListOptionsFunc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.version go!"tweakListOptions" l) v.tweakListOptions' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.version go!"tweakListOptions" l) tweakListOptions' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tweakListOptions' := tweakListOptions' } : k8s_io.client_go.informers.core.v1.version) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end version
-
-namespace LimitRangeIndexInformer
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.informers.core.v1.Assumptions]
-
-noncomputable instance LimitRangeIndexInformer_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.client_go.informers.core.v1.LimitRangeIndexInformer :=
-  sorry -- axiomatized type
-
-noncomputable instance LimitRangeIndexInformer_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.informers.core.v1.LimitRangeIndexInformer k8s_io.client_go.informers.core.v1.LimitRangeIndexInformer.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end LimitRangeIndexInformer
 
 namespace limitRangeInformer
 section def_
@@ -377,12 +549,67 @@ variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.informers.core.v1.Assumptions]
 
 noncomputable instance limitRangeInformer_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.client_go.informers.core.v1.limitRangeInformer :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) k8s_io.client_go.informers.core.v1.limitRangeInformer where
+  typedPointstoDef l v dq := iprop(
+    "factory" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.limitRangeInformer go!"factory" l) v.factory' dq ∗
+    "tweakListOptions" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.limitRangeInformer go!"tweakListOptions" l) v.tweakListOptions' dq ∗
+    "namespace'" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.limitRangeInformer go!"namespace" l) v.namespace' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance limitRangeInformer_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.informers.core.v1.limitRangeInformer k8s_io.client_go.informers.core.v1.limitRangeInformer.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.informers.core.v1.limitRangeInformer k8s_io.client_go.informers.core.v1.limitRangeInformer.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance limitRangeInformer_access_load_factory (l : Loc) (v : k8s_io.client_go.informers.core.v1.limitRangeInformer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.limitRangeInformer go!"factory" l) v.factory' dq)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.limitRangeInformer go!"factory" l) v.factory' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance limitRangeInformer_access_store_factory (l : Loc) (v : k8s_io.client_go.informers.core.v1.limitRangeInformer) (factory' : k8s_io.client_go.informers.internalinterfaces.SharedInformerFactory) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.limitRangeInformer go!"factory" l) v.factory' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.limitRangeInformer go!"factory" l) factory' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with factory' := factory' } : k8s_io.client_go.informers.core.v1.limitRangeInformer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance limitRangeInformer_access_load_tweakListOptions (l : Loc) (v : k8s_io.client_go.informers.core.v1.limitRangeInformer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.limitRangeInformer go!"tweakListOptions" l) v.tweakListOptions' dq)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.limitRangeInformer go!"tweakListOptions" l) v.tweakListOptions' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance limitRangeInformer_access_store_tweakListOptions (l : Loc) (v : k8s_io.client_go.informers.core.v1.limitRangeInformer) (tweakListOptions' : k8s_io.client_go.informers.internalinterfaces.TweakListOptionsFunc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.limitRangeInformer go!"tweakListOptions" l) v.tweakListOptions' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.limitRangeInformer go!"tweakListOptions" l) tweakListOptions' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tweakListOptions' := tweakListOptions' } : k8s_io.client_go.informers.core.v1.limitRangeInformer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance limitRangeInformer_access_load_namespace (l : Loc) (v : k8s_io.client_go.informers.core.v1.limitRangeInformer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.limitRangeInformer go!"namespace" l) v.namespace' dq)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.limitRangeInformer go!"namespace" l) v.namespace' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance limitRangeInformer_access_store_namespace (l : Loc) (v : k8s_io.client_go.informers.core.v1.limitRangeInformer) (namespace' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.limitRangeInformer go!"namespace" l) v.namespace' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.limitRangeInformer go!"namespace" l) namespace' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with namespace' := namespace' } : k8s_io.client_go.informers.core.v1.limitRangeInformer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end limitRangeInformer
@@ -427,25 +654,6 @@ noncomputable instance limitRangeTypedInformerAdapter_access_store_LimitRangeInf
 end def_
 end limitRangeTypedInformerAdapter
 
-namespace NamespaceIndexInformer
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.informers.core.v1.Assumptions]
-
-noncomputable instance NamespaceIndexInformer_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.client_go.informers.core.v1.NamespaceIndexInformer :=
-  sorry -- axiomatized type
-
-noncomputable instance NamespaceIndexInformer_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.informers.core.v1.NamespaceIndexInformer k8s_io.client_go.informers.core.v1.NamespaceIndexInformer.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end NamespaceIndexInformer
-
 namespace namespaceInformer
 section def_
 
@@ -455,12 +663,50 @@ variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.informers.core.v1.Assumptions]
 
 noncomputable instance namespaceInformer_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.client_go.informers.core.v1.namespaceInformer :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) k8s_io.client_go.informers.core.v1.namespaceInformer where
+  typedPointstoDef l v dq := iprop(
+    "factory" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.namespaceInformer go!"factory" l) v.factory' dq ∗
+    "tweakListOptions" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.namespaceInformer go!"tweakListOptions" l) v.tweakListOptions' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance namespaceInformer_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.informers.core.v1.namespaceInformer k8s_io.client_go.informers.core.v1.namespaceInformer.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.informers.core.v1.namespaceInformer k8s_io.client_go.informers.core.v1.namespaceInformer.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance namespaceInformer_access_load_factory (l : Loc) (v : k8s_io.client_go.informers.core.v1.namespaceInformer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.namespaceInformer go!"factory" l) v.factory' dq)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.namespaceInformer go!"factory" l) v.factory' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance namespaceInformer_access_store_factory (l : Loc) (v : k8s_io.client_go.informers.core.v1.namespaceInformer) (factory' : k8s_io.client_go.informers.internalinterfaces.SharedInformerFactory) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.namespaceInformer go!"factory" l) v.factory' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.namespaceInformer go!"factory" l) factory' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with factory' := factory' } : k8s_io.client_go.informers.core.v1.namespaceInformer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance namespaceInformer_access_load_tweakListOptions (l : Loc) (v : k8s_io.client_go.informers.core.v1.namespaceInformer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.namespaceInformer go!"tweakListOptions" l) v.tweakListOptions' dq)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.namespaceInformer go!"tweakListOptions" l) v.tweakListOptions' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance namespaceInformer_access_store_tweakListOptions (l : Loc) (v : k8s_io.client_go.informers.core.v1.namespaceInformer) (tweakListOptions' : k8s_io.client_go.informers.internalinterfaces.TweakListOptionsFunc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.namespaceInformer go!"tweakListOptions" l) v.tweakListOptions' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.namespaceInformer go!"tweakListOptions" l) tweakListOptions' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tweakListOptions' := tweakListOptions' } : k8s_io.client_go.informers.core.v1.namespaceInformer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end namespaceInformer
@@ -505,25 +751,6 @@ noncomputable instance namespaceTypedInformerAdapter_access_store_NamespaceInfor
 end def_
 end namespaceTypedInformerAdapter
 
-namespace NodeIndexInformer
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.informers.core.v1.Assumptions]
-
-noncomputable instance NodeIndexInformer_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.client_go.informers.core.v1.NodeIndexInformer :=
-  sorry -- axiomatized type
-
-noncomputable instance NodeIndexInformer_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.informers.core.v1.NodeIndexInformer k8s_io.client_go.informers.core.v1.NodeIndexInformer.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end NodeIndexInformer
-
 namespace nodeInformer
 section def_
 
@@ -533,12 +760,50 @@ variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.informers.core.v1.Assumptions]
 
 noncomputable instance nodeInformer_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.client_go.informers.core.v1.nodeInformer :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) k8s_io.client_go.informers.core.v1.nodeInformer where
+  typedPointstoDef l v dq := iprop(
+    "factory" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.nodeInformer go!"factory" l) v.factory' dq ∗
+    "tweakListOptions" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.nodeInformer go!"tweakListOptions" l) v.tweakListOptions' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance nodeInformer_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.informers.core.v1.nodeInformer k8s_io.client_go.informers.core.v1.nodeInformer.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.informers.core.v1.nodeInformer k8s_io.client_go.informers.core.v1.nodeInformer.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance nodeInformer_access_load_factory (l : Loc) (v : k8s_io.client_go.informers.core.v1.nodeInformer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.nodeInformer go!"factory" l) v.factory' dq)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.nodeInformer go!"factory" l) v.factory' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance nodeInformer_access_store_factory (l : Loc) (v : k8s_io.client_go.informers.core.v1.nodeInformer) (factory' : k8s_io.client_go.informers.internalinterfaces.SharedInformerFactory) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.nodeInformer go!"factory" l) v.factory' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.nodeInformer go!"factory" l) factory' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with factory' := factory' } : k8s_io.client_go.informers.core.v1.nodeInformer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance nodeInformer_access_load_tweakListOptions (l : Loc) (v : k8s_io.client_go.informers.core.v1.nodeInformer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.nodeInformer go!"tweakListOptions" l) v.tweakListOptions' dq)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.nodeInformer go!"tweakListOptions" l) v.tweakListOptions' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance nodeInformer_access_store_tweakListOptions (l : Loc) (v : k8s_io.client_go.informers.core.v1.nodeInformer) (tweakListOptions' : k8s_io.client_go.informers.internalinterfaces.TweakListOptionsFunc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.nodeInformer go!"tweakListOptions" l) v.tweakListOptions' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.nodeInformer go!"tweakListOptions" l) tweakListOptions' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tweakListOptions' := tweakListOptions' } : k8s_io.client_go.informers.core.v1.nodeInformer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end nodeInformer
@@ -583,25 +848,6 @@ noncomputable instance nodeTypedInformerAdapter_access_store_NodeInformer (l : L
 end def_
 end nodeTypedInformerAdapter
 
-namespace PersistentVolumeIndexInformer
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.informers.core.v1.Assumptions]
-
-noncomputable instance PersistentVolumeIndexInformer_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.client_go.informers.core.v1.PersistentVolumeIndexInformer :=
-  sorry -- axiomatized type
-
-noncomputable instance PersistentVolumeIndexInformer_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.informers.core.v1.PersistentVolumeIndexInformer k8s_io.client_go.informers.core.v1.PersistentVolumeIndexInformer.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end PersistentVolumeIndexInformer
-
 namespace persistentVolumeInformer
 section def_
 
@@ -611,12 +857,50 @@ variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.informers.core.v1.Assumptions]
 
 noncomputable instance persistentVolumeInformer_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.client_go.informers.core.v1.persistentVolumeInformer :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) k8s_io.client_go.informers.core.v1.persistentVolumeInformer where
+  typedPointstoDef l v dq := iprop(
+    "factory" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.persistentVolumeInformer go!"factory" l) v.factory' dq ∗
+    "tweakListOptions" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.persistentVolumeInformer go!"tweakListOptions" l) v.tweakListOptions' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance persistentVolumeInformer_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.informers.core.v1.persistentVolumeInformer k8s_io.client_go.informers.core.v1.persistentVolumeInformer.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.informers.core.v1.persistentVolumeInformer k8s_io.client_go.informers.core.v1.persistentVolumeInformer.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance persistentVolumeInformer_access_load_factory (l : Loc) (v : k8s_io.client_go.informers.core.v1.persistentVolumeInformer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.persistentVolumeInformer go!"factory" l) v.factory' dq)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.persistentVolumeInformer go!"factory" l) v.factory' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance persistentVolumeInformer_access_store_factory (l : Loc) (v : k8s_io.client_go.informers.core.v1.persistentVolumeInformer) (factory' : k8s_io.client_go.informers.internalinterfaces.SharedInformerFactory) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.persistentVolumeInformer go!"factory" l) v.factory' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.persistentVolumeInformer go!"factory" l) factory' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with factory' := factory' } : k8s_io.client_go.informers.core.v1.persistentVolumeInformer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance persistentVolumeInformer_access_load_tweakListOptions (l : Loc) (v : k8s_io.client_go.informers.core.v1.persistentVolumeInformer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.persistentVolumeInformer go!"tweakListOptions" l) v.tweakListOptions' dq)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.persistentVolumeInformer go!"tweakListOptions" l) v.tweakListOptions' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance persistentVolumeInformer_access_store_tweakListOptions (l : Loc) (v : k8s_io.client_go.informers.core.v1.persistentVolumeInformer) (tweakListOptions' : k8s_io.client_go.informers.internalinterfaces.TweakListOptionsFunc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.persistentVolumeInformer go!"tweakListOptions" l) v.tweakListOptions' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.persistentVolumeInformer go!"tweakListOptions" l) tweakListOptions' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tweakListOptions' := tweakListOptions' } : k8s_io.client_go.informers.core.v1.persistentVolumeInformer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end persistentVolumeInformer
@@ -661,25 +945,6 @@ noncomputable instance persistentVolumeTypedInformerAdapter_access_store_Persist
 end def_
 end persistentVolumeTypedInformerAdapter
 
-namespace PersistentVolumeClaimIndexInformer
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.informers.core.v1.Assumptions]
-
-noncomputable instance PersistentVolumeClaimIndexInformer_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.client_go.informers.core.v1.PersistentVolumeClaimIndexInformer :=
-  sorry -- axiomatized type
-
-noncomputable instance PersistentVolumeClaimIndexInformer_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.informers.core.v1.PersistentVolumeClaimIndexInformer k8s_io.client_go.informers.core.v1.PersistentVolumeClaimIndexInformer.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end PersistentVolumeClaimIndexInformer
-
 namespace persistentVolumeClaimInformer
 section def_
 
@@ -689,12 +954,67 @@ variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.informers.core.v1.Assumptions]
 
 noncomputable instance persistentVolumeClaimInformer_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.client_go.informers.core.v1.persistentVolumeClaimInformer :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) k8s_io.client_go.informers.core.v1.persistentVolumeClaimInformer where
+  typedPointstoDef l v dq := iprop(
+    "factory" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.persistentVolumeClaimInformer go!"factory" l) v.factory' dq ∗
+    "tweakListOptions" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.persistentVolumeClaimInformer go!"tweakListOptions" l) v.tweakListOptions' dq ∗
+    "namespace'" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.persistentVolumeClaimInformer go!"namespace" l) v.namespace' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance persistentVolumeClaimInformer_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.informers.core.v1.persistentVolumeClaimInformer k8s_io.client_go.informers.core.v1.persistentVolumeClaimInformer.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.informers.core.v1.persistentVolumeClaimInformer k8s_io.client_go.informers.core.v1.persistentVolumeClaimInformer.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance persistentVolumeClaimInformer_access_load_factory (l : Loc) (v : k8s_io.client_go.informers.core.v1.persistentVolumeClaimInformer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.persistentVolumeClaimInformer go!"factory" l) v.factory' dq)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.persistentVolumeClaimInformer go!"factory" l) v.factory' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance persistentVolumeClaimInformer_access_store_factory (l : Loc) (v : k8s_io.client_go.informers.core.v1.persistentVolumeClaimInformer) (factory' : k8s_io.client_go.informers.internalinterfaces.SharedInformerFactory) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.persistentVolumeClaimInformer go!"factory" l) v.factory' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.persistentVolumeClaimInformer go!"factory" l) factory' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with factory' := factory' } : k8s_io.client_go.informers.core.v1.persistentVolumeClaimInformer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance persistentVolumeClaimInformer_access_load_tweakListOptions (l : Loc) (v : k8s_io.client_go.informers.core.v1.persistentVolumeClaimInformer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.persistentVolumeClaimInformer go!"tweakListOptions" l) v.tweakListOptions' dq)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.persistentVolumeClaimInformer go!"tweakListOptions" l) v.tweakListOptions' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance persistentVolumeClaimInformer_access_store_tweakListOptions (l : Loc) (v : k8s_io.client_go.informers.core.v1.persistentVolumeClaimInformer) (tweakListOptions' : k8s_io.client_go.informers.internalinterfaces.TweakListOptionsFunc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.persistentVolumeClaimInformer go!"tweakListOptions" l) v.tweakListOptions' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.persistentVolumeClaimInformer go!"tweakListOptions" l) tweakListOptions' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tweakListOptions' := tweakListOptions' } : k8s_io.client_go.informers.core.v1.persistentVolumeClaimInformer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance persistentVolumeClaimInformer_access_load_namespace (l : Loc) (v : k8s_io.client_go.informers.core.v1.persistentVolumeClaimInformer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.persistentVolumeClaimInformer go!"namespace" l) v.namespace' dq)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.persistentVolumeClaimInformer go!"namespace" l) v.namespace' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance persistentVolumeClaimInformer_access_store_namespace (l : Loc) (v : k8s_io.client_go.informers.core.v1.persistentVolumeClaimInformer) (namespace' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.persistentVolumeClaimInformer go!"namespace" l) v.namespace' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.persistentVolumeClaimInformer go!"namespace" l) namespace' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with namespace' := namespace' } : k8s_io.client_go.informers.core.v1.persistentVolumeClaimInformer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end persistentVolumeClaimInformer
@@ -739,25 +1059,6 @@ noncomputable instance persistentVolumeClaimTypedInformerAdapter_access_store_Pe
 end def_
 end persistentVolumeClaimTypedInformerAdapter
 
-namespace PodIndexInformer
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.informers.core.v1.Assumptions]
-
-noncomputable instance PodIndexInformer_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.client_go.informers.core.v1.PodIndexInformer :=
-  sorry -- axiomatized type
-
-noncomputable instance PodIndexInformer_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.informers.core.v1.PodIndexInformer k8s_io.client_go.informers.core.v1.PodIndexInformer.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end PodIndexInformer
-
 namespace podInformer
 section def_
 
@@ -767,12 +1068,67 @@ variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.informers.core.v1.Assumptions]
 
 noncomputable instance podInformer_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.client_go.informers.core.v1.podInformer :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) k8s_io.client_go.informers.core.v1.podInformer where
+  typedPointstoDef l v dq := iprop(
+    "factory" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.podInformer go!"factory" l) v.factory' dq ∗
+    "tweakListOptions" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.podInformer go!"tweakListOptions" l) v.tweakListOptions' dq ∗
+    "namespace'" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.podInformer go!"namespace" l) v.namespace' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance podInformer_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.informers.core.v1.podInformer k8s_io.client_go.informers.core.v1.podInformer.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.informers.core.v1.podInformer k8s_io.client_go.informers.core.v1.podInformer.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance podInformer_access_load_factory (l : Loc) (v : k8s_io.client_go.informers.core.v1.podInformer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.podInformer go!"factory" l) v.factory' dq)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.podInformer go!"factory" l) v.factory' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance podInformer_access_store_factory (l : Loc) (v : k8s_io.client_go.informers.core.v1.podInformer) (factory' : k8s_io.client_go.informers.internalinterfaces.SharedInformerFactory) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.podInformer go!"factory" l) v.factory' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.podInformer go!"factory" l) factory' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with factory' := factory' } : k8s_io.client_go.informers.core.v1.podInformer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance podInformer_access_load_tweakListOptions (l : Loc) (v : k8s_io.client_go.informers.core.v1.podInformer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.podInformer go!"tweakListOptions" l) v.tweakListOptions' dq)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.podInformer go!"tweakListOptions" l) v.tweakListOptions' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance podInformer_access_store_tweakListOptions (l : Loc) (v : k8s_io.client_go.informers.core.v1.podInformer) (tweakListOptions' : k8s_io.client_go.informers.internalinterfaces.TweakListOptionsFunc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.podInformer go!"tweakListOptions" l) v.tweakListOptions' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.podInformer go!"tweakListOptions" l) tweakListOptions' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tweakListOptions' := tweakListOptions' } : k8s_io.client_go.informers.core.v1.podInformer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance podInformer_access_load_namespace (l : Loc) (v : k8s_io.client_go.informers.core.v1.podInformer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.podInformer go!"namespace" l) v.namespace' dq)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.podInformer go!"namespace" l) v.namespace' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance podInformer_access_store_namespace (l : Loc) (v : k8s_io.client_go.informers.core.v1.podInformer) (namespace' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.podInformer go!"namespace" l) v.namespace' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.podInformer go!"namespace" l) namespace' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with namespace' := namespace' } : k8s_io.client_go.informers.core.v1.podInformer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end podInformer
@@ -817,25 +1173,6 @@ noncomputable instance podTypedInformerAdapter_access_store_PodInformer (l : Loc
 end def_
 end podTypedInformerAdapter
 
-namespace PodTemplateIndexInformer
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.informers.core.v1.Assumptions]
-
-noncomputable instance PodTemplateIndexInformer_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.client_go.informers.core.v1.PodTemplateIndexInformer :=
-  sorry -- axiomatized type
-
-noncomputable instance PodTemplateIndexInformer_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.informers.core.v1.PodTemplateIndexInformer k8s_io.client_go.informers.core.v1.PodTemplateIndexInformer.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end PodTemplateIndexInformer
-
 namespace podTemplateInformer
 section def_
 
@@ -845,12 +1182,67 @@ variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.informers.core.v1.Assumptions]
 
 noncomputable instance podTemplateInformer_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.client_go.informers.core.v1.podTemplateInformer :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) k8s_io.client_go.informers.core.v1.podTemplateInformer where
+  typedPointstoDef l v dq := iprop(
+    "factory" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.podTemplateInformer go!"factory" l) v.factory' dq ∗
+    "tweakListOptions" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.podTemplateInformer go!"tweakListOptions" l) v.tweakListOptions' dq ∗
+    "namespace'" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.podTemplateInformer go!"namespace" l) v.namespace' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance podTemplateInformer_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.informers.core.v1.podTemplateInformer k8s_io.client_go.informers.core.v1.podTemplateInformer.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.informers.core.v1.podTemplateInformer k8s_io.client_go.informers.core.v1.podTemplateInformer.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance podTemplateInformer_access_load_factory (l : Loc) (v : k8s_io.client_go.informers.core.v1.podTemplateInformer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.podTemplateInformer go!"factory" l) v.factory' dq)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.podTemplateInformer go!"factory" l) v.factory' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance podTemplateInformer_access_store_factory (l : Loc) (v : k8s_io.client_go.informers.core.v1.podTemplateInformer) (factory' : k8s_io.client_go.informers.internalinterfaces.SharedInformerFactory) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.podTemplateInformer go!"factory" l) v.factory' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.podTemplateInformer go!"factory" l) factory' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with factory' := factory' } : k8s_io.client_go.informers.core.v1.podTemplateInformer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance podTemplateInformer_access_load_tweakListOptions (l : Loc) (v : k8s_io.client_go.informers.core.v1.podTemplateInformer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.podTemplateInformer go!"tweakListOptions" l) v.tweakListOptions' dq)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.podTemplateInformer go!"tweakListOptions" l) v.tweakListOptions' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance podTemplateInformer_access_store_tweakListOptions (l : Loc) (v : k8s_io.client_go.informers.core.v1.podTemplateInformer) (tweakListOptions' : k8s_io.client_go.informers.internalinterfaces.TweakListOptionsFunc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.podTemplateInformer go!"tweakListOptions" l) v.tweakListOptions' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.podTemplateInformer go!"tweakListOptions" l) tweakListOptions' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tweakListOptions' := tweakListOptions' } : k8s_io.client_go.informers.core.v1.podTemplateInformer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance podTemplateInformer_access_load_namespace (l : Loc) (v : k8s_io.client_go.informers.core.v1.podTemplateInformer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.podTemplateInformer go!"namespace" l) v.namespace' dq)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.podTemplateInformer go!"namespace" l) v.namespace' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance podTemplateInformer_access_store_namespace (l : Loc) (v : k8s_io.client_go.informers.core.v1.podTemplateInformer) (namespace' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.podTemplateInformer go!"namespace" l) v.namespace' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.podTemplateInformer go!"namespace" l) namespace' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with namespace' := namespace' } : k8s_io.client_go.informers.core.v1.podTemplateInformer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end podTemplateInformer
@@ -895,25 +1287,6 @@ noncomputable instance podTemplateTypedInformerAdapter_access_store_PodTemplateI
 end def_
 end podTemplateTypedInformerAdapter
 
-namespace ReplicationControllerIndexInformer
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.informers.core.v1.Assumptions]
-
-noncomputable instance ReplicationControllerIndexInformer_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.client_go.informers.core.v1.ReplicationControllerIndexInformer :=
-  sorry -- axiomatized type
-
-noncomputable instance ReplicationControllerIndexInformer_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.informers.core.v1.ReplicationControllerIndexInformer k8s_io.client_go.informers.core.v1.ReplicationControllerIndexInformer.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end ReplicationControllerIndexInformer
-
 namespace replicationControllerInformer
 section def_
 
@@ -923,12 +1296,67 @@ variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.informers.core.v1.Assumptions]
 
 noncomputable instance replicationControllerInformer_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.client_go.informers.core.v1.replicationControllerInformer :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) k8s_io.client_go.informers.core.v1.replicationControllerInformer where
+  typedPointstoDef l v dq := iprop(
+    "factory" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.replicationControllerInformer go!"factory" l) v.factory' dq ∗
+    "tweakListOptions" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.replicationControllerInformer go!"tweakListOptions" l) v.tweakListOptions' dq ∗
+    "namespace'" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.replicationControllerInformer go!"namespace" l) v.namespace' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance replicationControllerInformer_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.informers.core.v1.replicationControllerInformer k8s_io.client_go.informers.core.v1.replicationControllerInformer.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.informers.core.v1.replicationControllerInformer k8s_io.client_go.informers.core.v1.replicationControllerInformer.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance replicationControllerInformer_access_load_factory (l : Loc) (v : k8s_io.client_go.informers.core.v1.replicationControllerInformer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.replicationControllerInformer go!"factory" l) v.factory' dq)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.replicationControllerInformer go!"factory" l) v.factory' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance replicationControllerInformer_access_store_factory (l : Loc) (v : k8s_io.client_go.informers.core.v1.replicationControllerInformer) (factory' : k8s_io.client_go.informers.internalinterfaces.SharedInformerFactory) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.replicationControllerInformer go!"factory" l) v.factory' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.replicationControllerInformer go!"factory" l) factory' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with factory' := factory' } : k8s_io.client_go.informers.core.v1.replicationControllerInformer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance replicationControllerInformer_access_load_tweakListOptions (l : Loc) (v : k8s_io.client_go.informers.core.v1.replicationControllerInformer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.replicationControllerInformer go!"tweakListOptions" l) v.tweakListOptions' dq)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.replicationControllerInformer go!"tweakListOptions" l) v.tweakListOptions' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance replicationControllerInformer_access_store_tweakListOptions (l : Loc) (v : k8s_io.client_go.informers.core.v1.replicationControllerInformer) (tweakListOptions' : k8s_io.client_go.informers.internalinterfaces.TweakListOptionsFunc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.replicationControllerInformer go!"tweakListOptions" l) v.tweakListOptions' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.replicationControllerInformer go!"tweakListOptions" l) tweakListOptions' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tweakListOptions' := tweakListOptions' } : k8s_io.client_go.informers.core.v1.replicationControllerInformer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance replicationControllerInformer_access_load_namespace (l : Loc) (v : k8s_io.client_go.informers.core.v1.replicationControllerInformer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.replicationControllerInformer go!"namespace" l) v.namespace' dq)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.replicationControllerInformer go!"namespace" l) v.namespace' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance replicationControllerInformer_access_store_namespace (l : Loc) (v : k8s_io.client_go.informers.core.v1.replicationControllerInformer) (namespace' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.replicationControllerInformer go!"namespace" l) v.namespace' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.replicationControllerInformer go!"namespace" l) namespace' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with namespace' := namespace' } : k8s_io.client_go.informers.core.v1.replicationControllerInformer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end replicationControllerInformer
@@ -973,25 +1401,6 @@ noncomputable instance replicationControllerTypedInformerAdapter_access_store_Re
 end def_
 end replicationControllerTypedInformerAdapter
 
-namespace ResourceQuotaIndexInformer
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.informers.core.v1.Assumptions]
-
-noncomputable instance ResourceQuotaIndexInformer_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.client_go.informers.core.v1.ResourceQuotaIndexInformer :=
-  sorry -- axiomatized type
-
-noncomputable instance ResourceQuotaIndexInformer_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.informers.core.v1.ResourceQuotaIndexInformer k8s_io.client_go.informers.core.v1.ResourceQuotaIndexInformer.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end ResourceQuotaIndexInformer
-
 namespace resourceQuotaInformer
 section def_
 
@@ -1001,12 +1410,67 @@ variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.informers.core.v1.Assumptions]
 
 noncomputable instance resourceQuotaInformer_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.client_go.informers.core.v1.resourceQuotaInformer :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) k8s_io.client_go.informers.core.v1.resourceQuotaInformer where
+  typedPointstoDef l v dq := iprop(
+    "factory" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.resourceQuotaInformer go!"factory" l) v.factory' dq ∗
+    "tweakListOptions" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.resourceQuotaInformer go!"tweakListOptions" l) v.tweakListOptions' dq ∗
+    "namespace'" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.resourceQuotaInformer go!"namespace" l) v.namespace' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance resourceQuotaInformer_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.informers.core.v1.resourceQuotaInformer k8s_io.client_go.informers.core.v1.resourceQuotaInformer.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.informers.core.v1.resourceQuotaInformer k8s_io.client_go.informers.core.v1.resourceQuotaInformer.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance resourceQuotaInformer_access_load_factory (l : Loc) (v : k8s_io.client_go.informers.core.v1.resourceQuotaInformer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.resourceQuotaInformer go!"factory" l) v.factory' dq)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.resourceQuotaInformer go!"factory" l) v.factory' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance resourceQuotaInformer_access_store_factory (l : Loc) (v : k8s_io.client_go.informers.core.v1.resourceQuotaInformer) (factory' : k8s_io.client_go.informers.internalinterfaces.SharedInformerFactory) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.resourceQuotaInformer go!"factory" l) v.factory' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.resourceQuotaInformer go!"factory" l) factory' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with factory' := factory' } : k8s_io.client_go.informers.core.v1.resourceQuotaInformer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance resourceQuotaInformer_access_load_tweakListOptions (l : Loc) (v : k8s_io.client_go.informers.core.v1.resourceQuotaInformer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.resourceQuotaInformer go!"tweakListOptions" l) v.tweakListOptions' dq)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.resourceQuotaInformer go!"tweakListOptions" l) v.tweakListOptions' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance resourceQuotaInformer_access_store_tweakListOptions (l : Loc) (v : k8s_io.client_go.informers.core.v1.resourceQuotaInformer) (tweakListOptions' : k8s_io.client_go.informers.internalinterfaces.TweakListOptionsFunc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.resourceQuotaInformer go!"tweakListOptions" l) v.tweakListOptions' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.resourceQuotaInformer go!"tweakListOptions" l) tweakListOptions' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tweakListOptions' := tweakListOptions' } : k8s_io.client_go.informers.core.v1.resourceQuotaInformer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance resourceQuotaInformer_access_load_namespace (l : Loc) (v : k8s_io.client_go.informers.core.v1.resourceQuotaInformer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.resourceQuotaInformer go!"namespace" l) v.namespace' dq)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.resourceQuotaInformer go!"namespace" l) v.namespace' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance resourceQuotaInformer_access_store_namespace (l : Loc) (v : k8s_io.client_go.informers.core.v1.resourceQuotaInformer) (namespace' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.resourceQuotaInformer go!"namespace" l) v.namespace' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.resourceQuotaInformer go!"namespace" l) namespace' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with namespace' := namespace' } : k8s_io.client_go.informers.core.v1.resourceQuotaInformer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end resourceQuotaInformer
@@ -1051,25 +1515,6 @@ noncomputable instance resourceQuotaTypedInformerAdapter_access_store_ResourceQu
 end def_
 end resourceQuotaTypedInformerAdapter
 
-namespace SecretIndexInformer
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.informers.core.v1.Assumptions]
-
-noncomputable instance SecretIndexInformer_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.client_go.informers.core.v1.SecretIndexInformer :=
-  sorry -- axiomatized type
-
-noncomputable instance SecretIndexInformer_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.informers.core.v1.SecretIndexInformer k8s_io.client_go.informers.core.v1.SecretIndexInformer.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end SecretIndexInformer
-
 namespace secretInformer
 section def_
 
@@ -1079,12 +1524,67 @@ variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.informers.core.v1.Assumptions]
 
 noncomputable instance secretInformer_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.client_go.informers.core.v1.secretInformer :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) k8s_io.client_go.informers.core.v1.secretInformer where
+  typedPointstoDef l v dq := iprop(
+    "factory" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.secretInformer go!"factory" l) v.factory' dq ∗
+    "tweakListOptions" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.secretInformer go!"tweakListOptions" l) v.tweakListOptions' dq ∗
+    "namespace'" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.secretInformer go!"namespace" l) v.namespace' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance secretInformer_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.informers.core.v1.secretInformer k8s_io.client_go.informers.core.v1.secretInformer.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.informers.core.v1.secretInformer k8s_io.client_go.informers.core.v1.secretInformer.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance secretInformer_access_load_factory (l : Loc) (v : k8s_io.client_go.informers.core.v1.secretInformer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.secretInformer go!"factory" l) v.factory' dq)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.secretInformer go!"factory" l) v.factory' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance secretInformer_access_store_factory (l : Loc) (v : k8s_io.client_go.informers.core.v1.secretInformer) (factory' : k8s_io.client_go.informers.internalinterfaces.SharedInformerFactory) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.secretInformer go!"factory" l) v.factory' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.secretInformer go!"factory" l) factory' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with factory' := factory' } : k8s_io.client_go.informers.core.v1.secretInformer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance secretInformer_access_load_tweakListOptions (l : Loc) (v : k8s_io.client_go.informers.core.v1.secretInformer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.secretInformer go!"tweakListOptions" l) v.tweakListOptions' dq)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.secretInformer go!"tweakListOptions" l) v.tweakListOptions' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance secretInformer_access_store_tweakListOptions (l : Loc) (v : k8s_io.client_go.informers.core.v1.secretInformer) (tweakListOptions' : k8s_io.client_go.informers.internalinterfaces.TweakListOptionsFunc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.secretInformer go!"tweakListOptions" l) v.tweakListOptions' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.secretInformer go!"tweakListOptions" l) tweakListOptions' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tweakListOptions' := tweakListOptions' } : k8s_io.client_go.informers.core.v1.secretInformer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance secretInformer_access_load_namespace (l : Loc) (v : k8s_io.client_go.informers.core.v1.secretInformer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.secretInformer go!"namespace" l) v.namespace' dq)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.secretInformer go!"namespace" l) v.namespace' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance secretInformer_access_store_namespace (l : Loc) (v : k8s_io.client_go.informers.core.v1.secretInformer) (namespace' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.secretInformer go!"namespace" l) v.namespace' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.secretInformer go!"namespace" l) namespace' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with namespace' := namespace' } : k8s_io.client_go.informers.core.v1.secretInformer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end secretInformer
@@ -1129,25 +1629,6 @@ noncomputable instance secretTypedInformerAdapter_access_store_SecretInformer (l
 end def_
 end secretTypedInformerAdapter
 
-namespace ServiceIndexInformer
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.informers.core.v1.Assumptions]
-
-noncomputable instance ServiceIndexInformer_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.client_go.informers.core.v1.ServiceIndexInformer :=
-  sorry -- axiomatized type
-
-noncomputable instance ServiceIndexInformer_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.informers.core.v1.ServiceIndexInformer k8s_io.client_go.informers.core.v1.ServiceIndexInformer.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end ServiceIndexInformer
-
 namespace serviceInformer
 section def_
 
@@ -1157,12 +1638,67 @@ variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.informers.core.v1.Assumptions]
 
 noncomputable instance serviceInformer_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.client_go.informers.core.v1.serviceInformer :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) k8s_io.client_go.informers.core.v1.serviceInformer where
+  typedPointstoDef l v dq := iprop(
+    "factory" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.serviceInformer go!"factory" l) v.factory' dq ∗
+    "tweakListOptions" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.serviceInformer go!"tweakListOptions" l) v.tweakListOptions' dq ∗
+    "namespace'" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.serviceInformer go!"namespace" l) v.namespace' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance serviceInformer_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.informers.core.v1.serviceInformer k8s_io.client_go.informers.core.v1.serviceInformer.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.informers.core.v1.serviceInformer k8s_io.client_go.informers.core.v1.serviceInformer.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance serviceInformer_access_load_factory (l : Loc) (v : k8s_io.client_go.informers.core.v1.serviceInformer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.serviceInformer go!"factory" l) v.factory' dq)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.serviceInformer go!"factory" l) v.factory' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance serviceInformer_access_store_factory (l : Loc) (v : k8s_io.client_go.informers.core.v1.serviceInformer) (factory' : k8s_io.client_go.informers.internalinterfaces.SharedInformerFactory) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.serviceInformer go!"factory" l) v.factory' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.serviceInformer go!"factory" l) factory' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with factory' := factory' } : k8s_io.client_go.informers.core.v1.serviceInformer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance serviceInformer_access_load_tweakListOptions (l : Loc) (v : k8s_io.client_go.informers.core.v1.serviceInformer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.serviceInformer go!"tweakListOptions" l) v.tweakListOptions' dq)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.serviceInformer go!"tweakListOptions" l) v.tweakListOptions' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance serviceInformer_access_store_tweakListOptions (l : Loc) (v : k8s_io.client_go.informers.core.v1.serviceInformer) (tweakListOptions' : k8s_io.client_go.informers.internalinterfaces.TweakListOptionsFunc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.serviceInformer go!"tweakListOptions" l) v.tweakListOptions' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.serviceInformer go!"tweakListOptions" l) tweakListOptions' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tweakListOptions' := tweakListOptions' } : k8s_io.client_go.informers.core.v1.serviceInformer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance serviceInformer_access_load_namespace (l : Loc) (v : k8s_io.client_go.informers.core.v1.serviceInformer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.serviceInformer go!"namespace" l) v.namespace' dq)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.serviceInformer go!"namespace" l) v.namespace' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance serviceInformer_access_store_namespace (l : Loc) (v : k8s_io.client_go.informers.core.v1.serviceInformer) (namespace' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.serviceInformer go!"namespace" l) v.namespace' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.serviceInformer go!"namespace" l) namespace' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with namespace' := namespace' } : k8s_io.client_go.informers.core.v1.serviceInformer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end serviceInformer
@@ -1207,25 +1743,6 @@ noncomputable instance serviceTypedInformerAdapter_access_store_ServiceInformer 
 end def_
 end serviceTypedInformerAdapter
 
-namespace ServiceAccountIndexInformer
-section def_
-
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : k8s_io.client_go.informers.core.v1.Assumptions]
-
-noncomputable instance ServiceAccountIndexInformer_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.client_go.informers.core.v1.ServiceAccountIndexInformer :=
-  sorry -- axiomatized type
-
-noncomputable instance ServiceAccountIndexInformer_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.informers.core.v1.ServiceAccountIndexInformer k8s_io.client_go.informers.core.v1.ServiceAccountIndexInformer.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end ServiceAccountIndexInformer
-
 namespace serviceAccountInformer
 section def_
 
@@ -1235,12 +1752,67 @@ variable [sem : go.Semantics]
 variable [package_sem' : k8s_io.client_go.informers.core.v1.Assumptions]
 
 noncomputable instance serviceAccountInformer_typed_pointsto :
-    TypedPointsto (GF := GF) k8s_io.client_go.informers.core.v1.serviceAccountInformer :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) k8s_io.client_go.informers.core.v1.serviceAccountInformer where
+  typedPointstoDef l v dq := iprop(
+    "factory" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.serviceAccountInformer go!"factory" l) v.factory' dq ∗
+    "tweakListOptions" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.serviceAccountInformer go!"tweakListOptions" l) v.tweakListOptions' dq ∗
+    "namespace'" ∷ typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.serviceAccountInformer go!"namespace" l) v.namespace' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance serviceAccountInformer_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.informers.core.v1.serviceAccountInformer k8s_io.client_go.informers.core.v1.serviceAccountInformer.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) k8s_io.client_go.informers.core.v1.serviceAccountInformer k8s_io.client_go.informers.core.v1.serviceAccountInformer.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance serviceAccountInformer_access_load_factory (l : Loc) (v : k8s_io.client_go.informers.core.v1.serviceAccountInformer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.serviceAccountInformer go!"factory" l) v.factory' dq)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.serviceAccountInformer go!"factory" l) v.factory' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance serviceAccountInformer_access_store_factory (l : Loc) (v : k8s_io.client_go.informers.core.v1.serviceAccountInformer) (factory' : k8s_io.client_go.informers.internalinterfaces.SharedInformerFactory) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.serviceAccountInformer go!"factory" l) v.factory' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.serviceAccountInformer go!"factory" l) factory' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with factory' := factory' } : k8s_io.client_go.informers.core.v1.serviceAccountInformer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance serviceAccountInformer_access_load_tweakListOptions (l : Loc) (v : k8s_io.client_go.informers.core.v1.serviceAccountInformer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.serviceAccountInformer go!"tweakListOptions" l) v.tweakListOptions' dq)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.serviceAccountInformer go!"tweakListOptions" l) v.tweakListOptions' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance serviceAccountInformer_access_store_tweakListOptions (l : Loc) (v : k8s_io.client_go.informers.core.v1.serviceAccountInformer) (tweakListOptions' : k8s_io.client_go.informers.internalinterfaces.TweakListOptionsFunc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.serviceAccountInformer go!"tweakListOptions" l) v.tweakListOptions' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.serviceAccountInformer go!"tweakListOptions" l) tweakListOptions' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with tweakListOptions' := tweakListOptions' } : k8s_io.client_go.informers.core.v1.serviceAccountInformer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance serviceAccountInformer_access_load_namespace (l : Loc) (v : k8s_io.client_go.informers.core.v1.serviceAccountInformer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.serviceAccountInformer go!"namespace" l) v.namespace' dq)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.serviceAccountInformer go!"namespace" l) v.namespace' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance serviceAccountInformer_access_store_namespace (l : Loc) (v : k8s_io.client_go.informers.core.v1.serviceAccountInformer) (namespace' : GoString) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.serviceAccountInformer go!"namespace" l) v.namespace' (DFrac.own 1))
+      (typedPointsto (structFieldRef k8s_io.client_go.informers.core.v1.serviceAccountInformer go!"namespace" l) namespace' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with namespace' := namespace' } : k8s_io.client_go.informers.core.v1.serviceAccountInformer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end serviceAccountInformer

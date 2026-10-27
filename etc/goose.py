@@ -811,6 +811,20 @@ PROJECTS = [
             "k8s.io/component-base/zpages/features",
             "k8s.io/utils/dump",
             "k8s.io/utils/ptr",
+            # the informer layer (phase 4 of notes/k8s-daemonset-plan.md;
+            # notes/k8s-daemonset-goose.md, "The informers"): with bodies the factory's
+            # interfaces, the reflector's pager, the shared informer's sync tracking and its
+            # listeners' ring buffer (tools/cache itself and the typed informers above, with
+            # bodies now); names only what they name beyond the above
+            "k8s.io/client-go/informers/internalinterfaces",
+            "k8s.io/client-go/tools/pager",
+            "k8s.io/client-go/tools/cache/synctrack",
+            "k8s.io/utils/buffer",
+            "k8s.io/apimachinery/pkg/apis/meta/v1beta1",
+            "k8s.io/apimachinery/pkg/apis/meta/internalversion",
+            "k8s.io/apimachinery/pkg/util/net",
+            "k8s.io/apimachinery/pkg/util/diff",
+            "k8s.io/apimachinery/pkg/util/cache",
         ],
         owned=[os.path.join("k8s_io", "apiserver"), os.path.join("k8s_io", "apimachinery"),
                os.path.join("k8s_io", "api"),
@@ -818,6 +832,7 @@ PROJECTS = [
                os.path.join("k8s_io", "klog"), os.path.join("k8s_io", "component_base"),
                os.path.join("k8s_io", "utils", "clock"), os.path.join("k8s_io", "utils", "trace"),
                os.path.join("k8s_io", "utils", "dump"), os.path.join("k8s_io", "utils", "ptr"),
+               os.path.join("k8s_io", "utils", "buffer"),
                os.path.join("encoding", "json"),
                os.path.join("github_com", "go_logr"),
                os.path.join("encoding", "base64"), "iter",

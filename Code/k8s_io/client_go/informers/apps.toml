@@ -1,7 +1,6 @@
-# Types and names only: function and method bodies are axiomatized (project k8s-apiserver;
-# notes/k8s-daemonset-goose.md: what the DaemonSet controller and its example name).
-translate = ["!*"]
-imports = ["!*"]
+# With bodies (project k8s-apiserver; notes/k8s-daemonset-goose.md, "The informers"): the
+# group's `V1` (the other versions names only, not imported: `Interface` stays axiomatized).
+translate = ["!*", "group", "New", "group.V1"]
+imports = ["!*", "k8s.io/client-go/informers/apps/v1", "k8s.io/client-go/informers/internalinterfaces"]
 
-# translate the definitions of all type declarations goose supports
-translate_types = true
+translate_types = false

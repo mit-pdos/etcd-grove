@@ -1,48 +1,57 @@
-# The local half with bodies (project k8s-apiserver; notes/k8s-clientgo-goose.md): the store
-# (`store.go`), the thread-safe map and its indices (`thread_safe_store.go`, `index.go`), object
-# names and keys, the listers' helpers (`listers.go`), the store's metrics (no-ops by default), and
-# the cache-sync wait; the reflector, the FIFOs and the shared informer names only. The watch
-# cache's store ranges over `Indexers` (`indexer.updateElem`; notes/kep-6404-plan.md).
-translate = ["!*",
-  # store.go
-  "Store", "TransactionType", "TransactionTypeAdd", "TransactionTypeUpdate",
-  "TransactionTypeDelete", "Transaction", "TransactionStore", "TransactionError",
-  "TransactionError.Error", "KeyFunc", "KeyError", "KeyError.*", "ExplicitKey",
-  "MetaNamespaceKeyFunc", "ObjectToName", "MetaObjectToName", "SplitMetaNamespaceKey", "cache",
-  "cache.*", "StoreOption", "WithTransformer", "WithStoreMetrics", "NewStore", "NewIndexer",
-  # thread_safe_store.go
-  "ThreadSafeStore", "ThreadSafeStoreWithTransaction", "ThreadSafeStoreTransaction",
-  "ThreadSafeStoreOption", "WithThreadSafeStoreMetrics", "storeIndex", "storeIndex.*",
-  "threadSafeMap", "threadSafeMap.*", "rvFromObject", "NewThreadSafeStore",
-  "parseRVForMetricsWithTruncation",
+# With bodies (project k8s-apiserver): the local half (notes/k8s-clientgo-goose.md: the store,
+# the thread-safe map and its indices, object names and keys, the listers' helpers, the store's
+# metrics, the cache-sync wait) and, since phase 4 of the DaemonSet plan
+# (notes/k8s-daemonset-goose.md, "The informers"), the informer layer: the reflector, the FIFOs,
+# the controller, the shared informer, its processor and listeners, the list-watch.
+translate = ["*", "!Object",
+  # (`!_`: the `var _ I = &T{}` interface assertions, compile-time only, names only, as in
+  # util/workqueue.toml: translated, each would be an allocation for `Init.lean` to step through)
+  "!_",
   # names only: its `min` on `time.Duration` (the slow-trace threshold) is rejected by the pinned
   # Goose (gap C4)
   "!threadSafeMap.Transaction",
-  # index.go
-  "Indexer", "IndexFunc", "IndexFuncToKeyFuncAdapter", "NamespaceIndex", "MetaNamespaceIndexFunc",
-  "index", "Indexers", "Indices", "TypedIndexers", "TypedIndexFunc", "TypedIndexer",
-  "TypedIndexersToIndexers", "TypedIndexerFuncToIndexerFunc",
-  # object-names.go
-  "ObjectName", "NewObjectName", "ObjectName.*", "ParseObjectName", "NamespacedNameAsObjectName",
-  # listers.go (the listers' `ListAllByNamespace`)
-  "AppendFunc", "ListAll", "ListAllByNamespace", "GenericLister", "GenericNamespaceLister",
-  "NewGenericLister", "genericLister", "genericLister.*", "genericNamespaceLister",
-  "genericNamespaceLister.*",
-  # the store's metrics (informer_metrics.go, reflector_metrics.go, identity.go)
-  "globalInformerMetricsProvider", "setInformerMetricsProviderOnce", "noopInformerMetricsProvider",
-  "noopInformerMetricsProvider.*", "InformerMetricsProvider", "fifoMetrics", "storeMetrics",
-  "SetInformerMetricsProvider", "newFIFOMetrics", "newStoreMetrics", "GaugeMetric",
-  "CounterMetric", "SummaryMetric", "HistogramMetric", "noopMetric", "noopMetric.*",
-  "InformerNameAndResource", "InformerNameAndResource.*",
-  # DeletedFinalStateUnknown (delta_fifo.go), the deletion key functions (controller.go)
-  "DeletedFinalStateUnknown", "TransformFunc", "DeletionHandlingMetaNamespaceKeyFunc",
-  "DeletionHandlingObjectToName",
-  # the cache-sync wait (shared_informer.go)
-  "InformerSynced", "WaitForNamedCacheSyncWithContext", "WaitForCacheSync", "syncedPollPeriod"]
-imports = ["!*", "context", "errors", "fmt", "strconv", "strings", "sync", "sync/atomic", "time",
-  "k8s.io/apimachinery/pkg/api/errors", "k8s.io/apimachinery/pkg/api/meta",
-  "k8s.io/apimachinery/pkg/apis/meta/v1", "k8s.io/apimachinery/pkg/labels",
-  "k8s.io/apimachinery/pkg/runtime", "k8s.io/apimachinery/pkg/runtime/schema",
-  "k8s.io/apimachinery/pkg/types", "k8s.io/apimachinery/pkg/util/runtime",
-  "k8s.io/apimachinery/pkg/util/sets", "k8s.io/apimachinery/pkg/util/wait",
-  "k8s.io/client-go/features", "k8s.io/klog/v2", "k8s.io/utils/trace"]
+  # names only: the same `min` (the slow-batch trace's threshold), in the AtomicFIFO informers'
+  # batch pop (gap C4; notes/k8s-daemonset-goose.md, D3)
+  "!RealFIFO.PopBatch",
+  # names only: a labeled `break` out of the `select` loop (gap D4), the reflector's watch loop
+  "!handleAnyWatch",
+  # names only: package variables of anonymous struct types (gap D5), the informer-name registry
+  # (identity.go) and the reflector's metrics factory (reflector_metrics.go), and what uses them
+  "!informerNameRegistry", "!NewInformerName", "!InformerName.Release",
+  "!ResetInformerNamesForTesting", "!metricsFactory", "!SetReflectorMetricsProvider",
+  # excluded: the methods the generic structs `typedIndexer[T]` and `typedSharedIndexInformer[T]`
+  # promote from their embedded `Indexer` and `SharedIndexInformer` (gap C2, as in
+  # util/workqueue.toml: the pinned Goose's pointer-receiver unfolding names the generic struct
+  # without its type argument); the Perennial bump with C2's fix brings them back
+  "!typedIndexer.Add", "!typedIndexer.AddIndexers", "!typedIndexer.Bookmark",
+  "!typedIndexer.ByIndex", "!typedIndexer.Delete", "!typedIndexer.Get", "!typedIndexer.GetByKey",
+  "!typedIndexer.GetIndexers", "!typedIndexer.Index", "!typedIndexer.IndexKeys",
+  "!typedIndexer.LastStoreSyncResourceVersion", "!typedIndexer.List",
+  "!typedIndexer.ListIndexFuncValues", "!typedIndexer.ListKeys", "!typedIndexer.Replace",
+  "!typedIndexer.Resync", "!typedIndexer.Update",
+  "!typedSharedIndexInformer.AddEventHandler", "!typedSharedIndexInformer.AddEventHandlerWithOptions",
+  "!typedSharedIndexInformer.AddEventHandlerWithResyncPeriod",
+  "!typedSharedIndexInformer.AddIndexers", "!typedSharedIndexInformer.GetController",
+  "!typedSharedIndexInformer.GetIndexer", "!typedSharedIndexInformer.GetStore",
+  "!typedSharedIndexInformer.HasSynced", "!typedSharedIndexInformer.HasSyncedChecker",
+  "!typedSharedIndexInformer.IsStopped", "!typedSharedIndexInformer.LastSyncResourceVersion",
+  "!typedSharedIndexInformer.RemoveEventHandler", "!typedSharedIndexInformer.Run",
+  "!typedSharedIndexInformer.RunWithContext", "!typedSharedIndexInformer.SetShardSelector",
+  "!typedSharedIndexInformer.SetTransform", "!typedSharedIndexInformer.SetWatchErrorHandler",
+  "!typedSharedIndexInformer.SetWatchErrorHandlerWithContext",
+  # names only: the package variables whose initializers run calls or build maps (C7: a translated
+  # one needs hand-written steps in `etc/gen-init.py`'s `Init.lean`; names only, `opaqueInitsOk`
+  # says each runs): the FIFOs' errors, the reflector's stop error and backoff and watch-timeout
+  # constants, the batchable delta types, the mutation detector's switch, the table GVKs, the
+  # processor's test hook
+  "!ErrFIFOClosed", "!ErrZeroLengthDeltasObject", "!errorStopRequested", "!batchable",
+  "!sharedProcessorRunHook", "!unsupportedTableGVK", "!internalPackages", "!defaultBackoffJitter",
+  "!defaultBackoffFactor", "!defaultBackoffReset", "!defaultBackoffMax", "!defaultBackoffInit",
+  "!defaultMaxWatchTimeout", "!defaultMinWatchTimeout", "!mutationDetectionEnabled",
+  # names only: the handler's name for logs and metrics (`runtime.FuncForPC` of the function's
+  # pointer, `event_handler_name.go`), so that the package does not import `runtime`, which has no
+  # `wp_initialize'` at the pinned Perennial
+  "!nameForFunction"]
+imports = ["*", "!runtime"]
+# Not `translate_types`: `Object` (an interface embedding `comparable`, gap C6) stays axiomatized,
+# so the types are translated by `translate`'s "*" and `Object` excluded.

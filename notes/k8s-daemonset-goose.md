@@ -230,6 +230,109 @@ so they are hazards for the proofs, not for the translation:
 | `obj.(*apps.DaemonSet)` and friends | every event handler | the informers' delivery of objects of the handler's concrete type (phase 4's informer contract) |
 | `SetFromMap`, `Enabled` of component-base's feature gate; `pkg/features`' init (C7) | `Main`, the constructor, `LastStoreSyncResourceVersion` | a model of the gate's state: known features, set values read back; the init registering the tables (C7) |
 
+## The informers (phase 4, 2026-10-27, branch `k8s-daemonset-proof`)
+
+Phase 4's first step: client-go's informer layer translated with bodies, in project
+`k8s-apiserver` (which owns `client_go`, `apimachinery`, `utils`), from the same client-go
+(`569675c57fa3`). Perennial and the pinned translator unchanged.
+
+**Configuration.**
+- `tools/cache` (`cache.toml`): `translate = ["*", ...]` with exclusions (below), `imports = ["*"]`,
+  no `translate_types` (gap C6: `Object`, an interface embedding `comparable`, stays axiomatized; every
+  other type translates through `"*"`). Its translation is now split by Goose into
+  `Code/k8s_io/client_go/tools/cache/chunk{0..3}.lean` (and `GeneratedProof` `chunk{1..8}`).
+- New with bodies: `tools/pager`, `tools/cache/synctrack`, `k8s.io/utils/buffer` (owned now),
+  `informers/internalinterfaces` (types).
+- `informers` (the factory): `NewSharedInformerFactory{,WithOptions}`, the options,
+  `Start{,WithContext}`, `Shutdown`, `WaitForCacheSync{,WithContext}`, `InformerFor`,
+  `InformerName`, `Apps`, `Core`; the other groups' accessors and `ForResource` names only; the
+  interface `SharedInformerFactory` (it names all 20 groups) stays axiomatized, as do the groups'
+  `Interface`s in `informers/{apps,core}` (`New`, `group.V1` with bodies).
+- `informers/{apps,core}/v1`: everything but `NewTyped<R>InformerWithOptions` (D2 below).
+- New names-only packages (what the above name): apimachinery's `apis/meta/v1beta1`,
+  `apis/meta/internalversion`, `util/net`, `util/diff`, `util/cache`.
+- Package variables whose initializers run calls or build maps are names only (C7, as before for
+  `features`): `ErrFIFOClosed`, `ErrZeroLengthDeltasObject`, `errorStopRequested`, `batchable`,
+  `defaultBackoff*`, `default{Min,Max}WatchTimeout`, `mutationDetectionEnabled`,
+  `unsupportedTableGVK`, `internalPackages`, `sharedProcessorRunHook`; `buffer.ErrInvalidSize`; and
+  the `var _ I = &T{}` interface assertions (`!_`, as `util/workqueue.toml`).
+  Their values are unknown to the proofs (`opaqueInitsOk` says each initializer runs); the
+  informer contract needs none of them (partial correctness: `errors.Is(err, ErrFIFOClosed)` or
+  the batchable table being anything only changes which branch runs).
+- Package initialization: `tools/cache`'s instance (in the watch cache's
+  `Proof/k8s_io/apiserver/pkg/storage/cacher/Base.lean`) needs instances for its new imports:
+  added there (`rest`'s moved from `apimodel/Base.lean`, `math/rand`'s imported);
+  `etc/gen-init.py` regenerated the `Init.lean`s (11 new, and `tools/cache`'s).
+- `nameForFunction` (the handler's name for logs and metrics: `runtime.FuncForPC`) is names only and
+  `tools/cache` does not import Go's `runtime` (`imports = ["*", "!runtime"]`): Perennial's
+  `runtime` has no `wp_initialize'` at the pin, so `etc/gen-init.py` could not chain it.
+- `etc/k8s-worklist.py` reads the chunked translations and names the gaps below.
+
+**Result** (`etc/k8s-worklist.py`, 2026-10-27): of the 312 informer functions `Main` reaches, 288
+have bodies (3896 Go lines), 24 are names only: `RealFIFO.PopBatch` (D3), `handleAnyWatch` (D4),
+`threadSafeMap.Transaction` (C4), the typed informers' constructors (D2; 4 really reached, the rest
+the call graph's over-approximation), nothing untranslated (`synctrack`, `pager`, `buffer` have
+bodies). The C2 exclusions do not show in the call graph (it resolves promoted methods to their
+targets), but the Lean semantics resolves every call through a typed informer through them.
+
+### Gaps (continuing D1, D2)
+
+**D3. `min` of two `time.Duration`s again (C4), now in the AtomicFIFO informers' batch pop**
+(`the_real_fifo.go:554`, `RealFIFO.PopBatch`: `trace.LogIfLong(min(100*time.Millisecond*
+time.Duration(len(deltas)), time.Second))`, the slow-batch trace's threshold). Goose: `[unsupported]:
+comparison between non-assignable types`. Blocks: the informers' processing loop under `Main`'s
+gates. `controller.processLoop` calls `PopBatch` when the queue supports batches and
+`InOrderInformersBatchProcess` is on (beta, **on by default** since 1.35; `Main` does not set it),
+and the batch's handler `processDeltasInBatch` applies runs of Added/Updated/Deleted deltas through
+`threadSafeMap.Transaction` (C4 too). So the store's write path under `Main` is blocked twice by C4;
+the single-delta path (`Pop`, `processDeltas`, the store's `Add`/`Update`/`Delete`/`Replace`/
+`Bookmark`) translates. Options: (a) the C4 fix in Goose (`min`/`max` over a named numeric type:
+the operands are assignable to each other, Goose's `typeJoin` compares the wrong types), which
+unblocks `Backoff.Next`, `Transaction` and `PopBatch` at once; (b) `Main` turning
+`InOrderInformersBatchProcess` off (the single-delta path; a change to the theorem's program, a
+decision for the user: the default configuration is the one kube-controller-manager runs); (c)
+trusted models of the two. Not on Perennial's `lean` (checked 2026-10-27, `goose.go:692`).
+
+**D4. A labeled `break` out of a `select` inside a `for`** (`reflector.go:999`, `handleAnyWatch`:
+`loop: for { select { ... case event, ok := <-w.ResultChan(): if !ok { break loop } ... } }`).
+Goose: `[unsupported]: statement *ast.LabeledStmt`. Blocks: the reflector's watch loop (every watch
+event's path into the FIFO: `handleWatch`, `handleListWatch`, so `Reflector.watch` and
+`ListAndWatchWithContext` can be proved only over `handleAnyWatch`'s spec as a hypothesis). Options:
+(a) Goose support for labeled `break`/`continue` targeting an enclosing `for` (Goose's loops have
+`break`; the label only names which loop; general and small for this shape), (b) a fork of
+client-go with a flag variable (`closed := true; break` in the `select`, `if closed { break }` after
+it), a source change that keeps the semantics, (c) a trusted model of `handleAnyWatch`. Not on
+Perennial's `lean` (2026-10-27).
+
+**D5. Package variables of anonymous struct types** (`identity.go:37`, `informerNameRegistry =
+struct{ sync.Mutex; names map[string]*InformerName }{...}`; `reflector_metrics.go:83`,
+`metricsFactory = struct{ metricsProvider MetricsProvider; setProviders sync.Once }{...}`). Goose:
+`[unsupported]: anonymous struct`. Blocks: nothing `Main` reaches (`NewInformerName`,
+`InformerName.Release`, `ResetInformerNamesForTesting`, `SetReflectorMetricsProvider`: the factory
+has no informer name, `WithResource` on a nil name has a body). Names only. Fix: Goose support for
+an anonymous struct type (a generated named type), or leave it.
+
+**C2 again: the typed informers' promoted methods.** `typedIndexer[T]` embeds `Indexer` and
+`typedSharedIndexInformer[T]` embeds `SharedIndexInformer` (`shared_informer.go:329,381`); the
+pinned Goose's pointer-receiver unfolding of their promoted methods is ill-typed (C2), so the 17 and
+18 promoted methods are excluded (as `util/workqueue.toml` does). **Blocks every call the
+controller makes on an informer** (`dsInformer.Informer()` is a `typedSharedIndexInformer` value:
+`AddEventHandlerWithOptions`, `HasSynced`, `GetIndexer`, `AddIndexers`) until the Perennial bump with
+C2's fix (`ddb0a1239`); the informer contract is stated on the underlying `*sharedIndexInformer`,
+and the forwards are hypotheses until then.
+
+**D2 again: the typed informers' list-watch closures.** `NewTyped<R>InformerWithOptions`
+(`informers/{apps,core}/v1/<r>.go`) calls `client.AppsV1().DaemonSets(ns).List(ctx, opts)` in its
+`ListWatch` closures; the file imports `k8s.io/api/apps/v1` and client-go's listers (both Go name
+`v1`) but not `kubernetes/typed/apps/v1`, so the pinned Goose names the typed client interfaces
+through `k8s.io/api/apps/v1` (`Unknown identifier ...api.apps.v1.ControllerRevisionInterface.ty`).
+Names only for all 21 constructors. Blocks: the bridge from the reflector's `ListWatch` to the
+model's typed clients (the constructors' specs are hypotheses: "the informer's list-watch calls
+the clientset's `<R>s("").List/Watch`"). Same fix as D2 (option (a), the substitution removed).
+
+**C6, worked around**: `tools/cache.Object` stays axiomatized (no `translate_types`); the typed
+handler types (`TypedResourceEventHandler[T Object]`, ...) translate with `T` unconstrained.
+
 ## The call graph of `Main` (the worklist)
 
 `etc/k8s-worklist.py` (with `etc/k8s-callgraph`, a VTA call graph over RTA's, every package
@@ -250,16 +353,19 @@ What it says, per phase (2026-10-27):
 - **Phase 2 (leaf libraries)**: 109 reached, all with bodies but `Backoff.Next` (C4, the failed-pods
   backoff); the workqueue's promoted methods (C2) do not show (the call graph resolves them to their
   targets), but the Lean semantics resolves `queue.Get()` through them.
-- **Phase 4 (the informers)**: 312 reached, 74 with bodies (`tools/cache`'s local half), 234 names
-  only: the reflector (`ListAndWatch*`, `list`, `watch`, `handleAnyWatch`, ...), `RealFIFO`, the
-  shared informer and its processor and listeners, the informer factory and the four typed
-  informers; and 4 untranslated (`tools/cache/synctrack`). At the boundary they also need
-  `tools/pager` (the reflector's list), `k8s.io/utils/buffer` (the listener's ring buffer),
-  apimachinery's `util/net`, `meta`, `watch`, `wait` (names only or untranslated).
+- **Phase 4 (the informers)**: 312 reached. Before phase 4's translation (2026-10-27, first
+  survey) 74 had bodies (`tools/cache`'s local half), 234 were names only (the reflector, `RealFIFO`,
+  the shared informer, the factory, the typed informers) and 4 untranslated (`synctrack`); after it
+  (same day, "The informers" above) **288 have bodies**, 24 are names only: `RealFIFO.PopBatch` (D3),
+  `handleAnyWatch` (D4), `threadSafeMap.Transaction` (C4) and the typed informers' constructors (D2;
+  the rest of the 24 the over-approximation's other resources). `tools/pager`, `k8s.io/utils/buffer`
+  and `synctrack` have bodies now; apimachinery's `util/net`, `meta`, `watch`, `wait` stay names only
+  (boundary).
 - **Phase 3 (the model)**: 60 reached, all with bodies (and specs).
 - **Phase 6 (`Main`, the closed theorem)**: 8 functions, all with bodies; the boundary it adds: component-base's
   feature gate (`SetFromMap`), `context.WithCancel`, `time.Sleep`.
-- **The boundary**: 397 functions outside the verified layers are called from them: 70 with bodies
+- **The boundary** (the first survey's numbers; after phase 4's translation: 76 with bodies, 14
+  trusted models, 298 names only, 9 untranslated): 397 functions outside the verified layers are called from them: 70 with bodies
   (Perennial's or here: `sync`, `context`, apimachinery's `meta/v1` accessors, `api/errors`), 14
   trusted models (Perennial's `fmt`, `strings`, `sync`, ...), 293 names only (the API types'
   `DeepCopy` and accessors, apimachinery's `labels`, `fields`, `api/meta`, `wait`, `runtime`,
@@ -276,9 +382,9 @@ What it says, per phase (2026-10-27):
 | dsmain | 8 (128 lines) | - | - | - |
 | controller | 125 (2785 lines) | - | 9 (210 lines) | - |
 | leaf | 108 (959 lines) | - | 1 (14 lines) | - |
-| informers | 74 (732 lines) | - | 234 (4196 lines) | 4 (30 lines) |
+| informers | 288 (3896 lines) | - | 24 (1062 lines) | - |
 | apimodel | 60 (586 lines) | - | - | - |
-| boundary | 70 (562 lines) | 14 (122 lines) | 293 (2084 lines) | 20 (165 lines) |
+| boundary | 76 (619 lines) | 14 (122 lines) | 298 (2147 lines) | 9 (45 lines) |
 
 #### Main's package (phase 6)
 
@@ -310,13 +416,13 @@ What it says, per phase (2026-10-27):
 
 #### The informers (phase 4)
 
-- `k8s.io/client-go/informers`: names only (8): NewSharedInformerFactory, NewSharedInformerFactoryWithOptions, sharedInformerFactory.Apps, sharedInformerFactory.Core, sharedInformerFactory.InformerFor, sharedInformerFactory.InformerName, sharedInformerFactory.Start, sharedInformerFactory.StartWithContext.
-- `k8s.io/client-go/informers/apps`: names only (2): New, group.V1.
-- `k8s.io/client-go/informers/apps/v1`: names only (19): New, NewTypedControllerRevisionInformerWithOptions, NewTypedDaemonSetInformerWithOptions, NewTypedDeploymentInformerWithOptions, NewTypedReplicaSetInformerWithOptions, NewTypedStatefulSetInformerWithOptions, controllerRevisionInformer.Informer, controllerRevisionInformer.Lister, controllerRevisionInformer.TypedInformer, controllerRevisionInformer.defaultInformer, daemonSetInformer.Informer, daemonSetInformer.Lister, daemonSetInformer.TypedInformer, daemonSetInformer.defaultInformer, deploymentInformer.defaultInformer, replicaSetInformer.defaultInformer, statefulSetInformer.defaultInformer, version.ControllerRevisions, version.DaemonSets.
-- `k8s.io/client-go/informers/core`: names only (2): New, group.V1.
-- `k8s.io/client-go/informers/core/v1`: names only (41): New, NewTypedComponentStatusInformerWithOptions, NewTypedConfigMapInformerWithOptions, NewTypedEndpointsInformerWithOptions, NewTypedEventInformerWithOptions, NewTypedLimitRangeInformerWithOptions, NewTypedNamespaceInformerWithOptions, NewTypedNodeInformerWithOptions, NewTypedPersistentVolumeClaimInformerWithOptions, NewTypedPersistentVolumeInformerWithOptions, NewTypedPodInformerWithOptions, NewTypedPodTemplateInformerWithOptions, NewTypedReplicationControllerInformerWithOptions, NewTypedResourceQuotaInformerWithOptions, NewTypedSecretInformerWithOptions, NewTypedServiceAccountInformerWithOptions, NewTypedServiceInformerWithOptions, componentStatusInformer.defaultInformer, configMapInformer.defaultInformer, endpointsInformer.defaultInformer, eventInformer.defaultInformer, limitRangeInformer.defaultInformer, namespaceInformer.defaultInformer, nodeInformer.Informer, nodeInformer.Lister, nodeInformer.TypedInformer, nodeInformer.defaultInformer, persistentVolumeClaimInformer.defaultInformer, persistentVolumeInformer.defaultInformer, podInformer.Informer, podInformer.Lister, podInformer.TypedInformer, podInformer.defaultInformer, podTemplateInformer.defaultInformer, replicationControllerInformer.defaultInformer, resourceQuotaInformer.defaultInformer, secretInformer.defaultInformer, serviceAccountInformer.defaultInformer, serviceInformer.defaultInformer, version.Nodes, version.Pods.
-- `k8s.io/client-go/tools/cache`: bodies (74): DeletionHandlingMetaNamespaceKeyFunc, InformerNameAndResource.GroupVersionResource, InformerNameAndResource.Name, InformerNameAndResource.Reserved*, KeyError.Error^, KeyError.Unwrap^, ListAll, ListAllByNamespace, MetaNamespaceIndexFunc, MetaNamespaceKeyFunc, MetaObjectToName, NewIndexer, NewObjectName, NewStore, NewThreadSafeStore*, ObjectName.String*, ObjectToName, SplitMetaNamespaceKey*, TransactionError.Error, TypedIndexerFuncToIndexerFunc, WaitForCacheSync, WaitForNamedCacheSyncWithContext, WithStoreMetrics, WithThreadSafeStoreMetrics, WithTransformer, cache.Add, cache.AddIndexers, cache.Bookmark, cache.ByIndex, cache.Delete, cache.Get, cache.GetByKey, cache.GetIndexers, cache.Index, cache.LastStoreSyncResourceVersion, cache.List, cache.ListKeys, cache.Replace, cache.Transaction, cache.Update, genericLister.List, genericNamespaceLister.List, newFIFOMetrics, newStoreMetrics*, noopInformerMetricsProvider.NewProcessingLatencyMetric, noopInformerMetricsProvider.NewQueuedItemMetric, noopInformerMetricsProvider.NewStoreResourceVersionMetric, noopMetric.Observe, noopMetric.Set*, parseRVForMetricsWithTruncation*, rvFromObject*, storeIndex.addIndexers, storeIndex.addKeyToIndex*, storeIndex.deleteKeyFromIndex*, storeIndex.getKeysByIndex*, storeIndex.getKeysFromIndex, storeIndex.reset*, storeIndex.updateIndices*, storeIndex.updateSingleIndex*, threadSafeMap.Add*, threadSafeMap.AddIndexers, threadSafeMap.Bookmark*, threadSafeMap.ByIndex*, threadSafeMap.DeleteWithObject*, threadSafeMap.Get*, threadSafeMap.GetIndexers, threadSafeMap.Index, threadSafeMap.LastStoreSyncResourceVersion, threadSafeMap.List*, threadSafeMap.ListKeys*, threadSafeMap.Replace*, threadSafeMap.Update*, threadSafeMap.deleteLocked*, threadSafeMap.updateLocked*; names only (162): DefaultWatchErrorHandler, DeltaFIFO.Add, DeltaFIFO.Close, DeltaFIFO.Delete, DeltaFIFO.Done, DeltaFIFO.HasSyncedChecker, DeltaFIFO.KeyOf, DeltaFIFO.Pop, DeltaFIFO.Replace, DeltaFIFO.Resync, DeltaFIFO.Transformer, DeltaFIFO.Update, DeltaFIFO.checkSynced_locked, DeltaFIFO.hasSynced_locked, DeltaFIFO.queueActionInternalLocked, DeltaFIFO.queueActionLocked, DeltaFIFO.syncKeyLocked, Deltas.Newest, FIFO.Done, InformerName.WithResource, ListWatch.List, ListWatch.ListWithContext^, ListWatch.Watch, ListWatch.WatchWithContext, New, NewCacheMutationDetector, NewDeltaFIFOWithOptions, NewRealFIFOWithOptions, NewReflectorWithOptions, NewRetryWithDeadline, NewShardedListWatch, NewSharedIndexInformerWithOptions, NewTypedSharedIndexInformer, RealFIFO.Add, RealFIFO.Bookmark, RealFIFO.Close, RealFIFO.Delete, RealFIFO.Done, RealFIFO.HasSyncedChecker, RealFIFO.Pop, RealFIFO.PopBatch, RealFIFO.Replace, RealFIFO.Resync, RealFIFO.Transformer, RealFIFO.Update, RealFIFO.addReplaceToItemsLocked, RealFIFO.addResyncToItemsLocked, RealFIFO.addToItems_locked, RealFIFO.checkSynced_locked, RealFIFO.hasSynced_locked, RealFIFO.keyOf, RealFIFO.whileProcessing_locked, Reflector.LastSyncResourceVersion, Reflector.ListAndWatchWithContext, Reflector.RunWithContext^, Reflector.list, Reflector.relistResourceVersion, Reflector.resyncChan, Reflector.rewatchResourceVersion, Reflector.setIsLastSyncResourceVersionUnavailable, Reflector.setLastSyncResourceVersion, Reflector.startResync, Reflector.syncWith, Reflector.watch, Reflector.watchList, Reflector.watchWithResync^, ResourceEventHandlerFuncs.OnAdd, ResourceEventHandlerFuncs.OnDelete, ResourceEventHandlerFuncs.OnUpdate, ToListWatcherWithWatchListSemantics, ToListerWatcherWithContext, ToListerWithContext, ToWatcherWithContext, VeryShortWatchError.Error^, WaitFor^, checkWatchListDataConsistencyIfRequested, controller.HasSyncedChecker, controller.RunWithContext, controller.processLoop^, dedupDeltas, defaultCacheMutationDetector.AddObject, defaultCacheMutationDetector.CompareObjects, defaultCacheMutationDetector.Run^, determineResyncPeriod, dummyMutationDetector.AddObject, dummyMutationDetector.Run^, getExpectedGVKFromObject, getTypeDescriptionFromObject, handleAnyWatch, handleListWatch, handleWatch, initialEventsEndBookmarkTicker.observeLastEventTimeStamp, initialEventsEndBookmarkTicker.produceWarningIfExpired, initialEventsEndBookmarkTicker.warnIfExpired, isDeletionDup, isDup, isExpiredError, isTooLargeResourceVersionError, isUnsupportedTableListObject, isUnsupportedTableObject, isWatchErrorRetriable, listWatcherWithWatchListSemanticsWrapper.IsWatchListSemanticsUnSupported^, listerWrapper.ListWithContext^, nameForFunction, nameForFunctions, nameForHandler, nameForHandlerFuncs, newInitialEventsEndBookmarkTicker, newInitialEventsEndBookmarkTickerInternal, newProcessListener, newQueueFIFO, noopTicker.C, noopTicker.Stop, processDeltas, processDeltasInBatch, processReplacedAllInfo, processorListener.add, processorListener.determineNextResync, processorListener.pop^, processorListener.run^, processorListener.setResyncPeriod, processorListener.shouldResync, processorListener.watchSynced^, reconcileReplacement, retryWithDeadlineImpl.After, retryWithDeadlineImpl.ShouldRetry, retryWithDeadlineImpl.reset, shardedListWatch.IsWatchListSemanticsUnSupported^, shardedListWatch.List, shardedListWatch.ListWithContext^, shardedListWatch.Watch, shardedListWatch.WatchWithContext, shardedListWatch.logClientFallback^, sharedIndexInformer.AddEventHandlerWithOptions, sharedIndexInformer.AddIndexers, sharedIndexInformer.GetIndexer, sharedIndexInformer.GetStore, sharedIndexInformer.HasStarted, sharedIndexInformer.HasSynced, sharedIndexInformer.HasSyncedChecker, sharedIndexInformer.OnAdd, sharedIndexInformer.OnDelete, sharedIndexInformer.OnUpdate, sharedIndexInformer.RunWithContext^, sharedIndexInformer.SetShardSelector, sharedIndexInformer.SetTransform, sharedIndexInformer.SetWatchErrorHandler, sharedIndexInformer.handleBatchDeltas, sharedIndexInformer.handleDeltas, sharedIndexInformerDone.Done, sharedIndexInformerDone.Name, sharedProcessor.addListener, sharedProcessor.distribute, sharedProcessor.resyncCheckPeriodChanged, sharedProcessor.run^, sharedProcessor.shouldResync, threadSafeMap.Transaction (C4), typedIndexer.AddTypedIndexers, typedResourceEventHandler.OnAdd, typedResourceEventHandler.OnDelete, typedResourceEventHandler.OnUpdate, watcherWrapper.WatchWithContext.
-- `k8s.io/client-go/tools/cache/synctrack`: not translated (4): NewSingleFileTracker, SingleFileTracker.Finished, SingleFileTracker.Start, SingleFileTracker.UpstreamHasSynced.
+- `k8s.io/client-go/informers`: bodies (8): NewSharedInformerFactory, NewSharedInformerFactoryWithOptions, sharedInformerFactory.Apps, sharedInformerFactory.Core, sharedInformerFactory.InformerFor, sharedInformerFactory.InformerName, sharedInformerFactory.Start, sharedInformerFactory.StartWithContext.
+- `k8s.io/client-go/informers/apps`: bodies (2): New, group.V1.
+- `k8s.io/client-go/informers/apps/v1`: bodies (14): New, controllerRevisionInformer.Informer, controllerRevisionInformer.Lister, controllerRevisionInformer.TypedInformer, controllerRevisionInformer.defaultInformer, daemonSetInformer.Informer, daemonSetInformer.Lister, daemonSetInformer.TypedInformer, daemonSetInformer.defaultInformer, deploymentInformer.defaultInformer, replicaSetInformer.defaultInformer, statefulSetInformer.defaultInformer, version.ControllerRevisions, version.DaemonSets; names only (5): NewTypedControllerRevisionInformerWithOptions (D2), NewTypedDaemonSetInformerWithOptions (D2), NewTypedDeploymentInformerWithOptions (D2), NewTypedReplicaSetInformerWithOptions (D2), NewTypedStatefulSetInformerWithOptions (D2).
+- `k8s.io/client-go/informers/core`: bodies (2): New, group.V1.
+- `k8s.io/client-go/informers/core/v1`: bodies (25): New, componentStatusInformer.defaultInformer, configMapInformer.defaultInformer, endpointsInformer.defaultInformer, eventInformer.defaultInformer, limitRangeInformer.defaultInformer, namespaceInformer.defaultInformer, nodeInformer.Informer, nodeInformer.Lister, nodeInformer.TypedInformer, nodeInformer.defaultInformer, persistentVolumeClaimInformer.defaultInformer, persistentVolumeInformer.defaultInformer, podInformer.Informer, podInformer.Lister, podInformer.TypedInformer, podInformer.defaultInformer, podTemplateInformer.defaultInformer, replicationControllerInformer.defaultInformer, resourceQuotaInformer.defaultInformer, secretInformer.defaultInformer, serviceAccountInformer.defaultInformer, serviceInformer.defaultInformer, version.Nodes, version.Pods; names only (16): NewTypedComponentStatusInformerWithOptions, NewTypedConfigMapInformerWithOptions, NewTypedEndpointsInformerWithOptions, NewTypedEventInformerWithOptions, NewTypedLimitRangeInformerWithOptions, NewTypedNamespaceInformerWithOptions, NewTypedNodeInformerWithOptions (D2), NewTypedPersistentVolumeClaimInformerWithOptions, NewTypedPersistentVolumeInformerWithOptions, NewTypedPodInformerWithOptions (D2), NewTypedPodTemplateInformerWithOptions, NewTypedReplicationControllerInformerWithOptions, NewTypedResourceQuotaInformerWithOptions, NewTypedSecretInformerWithOptions, NewTypedServiceAccountInformerWithOptions, NewTypedServiceInformerWithOptions.
+- `k8s.io/client-go/tools/cache`: bodies (233): DefaultWatchErrorHandler, DeletionHandlingMetaNamespaceKeyFunc, DeltaFIFO.Add, DeltaFIFO.Close, DeltaFIFO.Delete, DeltaFIFO.Done, DeltaFIFO.HasSyncedChecker, DeltaFIFO.KeyOf, DeltaFIFO.Pop, DeltaFIFO.Replace, DeltaFIFO.Resync, DeltaFIFO.Transformer, DeltaFIFO.Update, DeltaFIFO.checkSynced_locked, DeltaFIFO.hasSynced_locked, DeltaFIFO.queueActionInternalLocked, DeltaFIFO.queueActionLocked, DeltaFIFO.syncKeyLocked, Deltas.Newest, FIFO.Done, InformerName.WithResource, InformerNameAndResource.GroupVersionResource, InformerNameAndResource.Name, InformerNameAndResource.Reserved*, KeyError.Error^, KeyError.Unwrap^, ListAll, ListAllByNamespace, ListWatch.List, ListWatch.ListWithContext^, ListWatch.Watch, ListWatch.WatchWithContext, MetaNamespaceIndexFunc, MetaNamespaceKeyFunc, MetaObjectToName, New, NewCacheMutationDetector, NewDeltaFIFOWithOptions, NewIndexer, NewObjectName, NewRealFIFOWithOptions, NewReflectorWithOptions, NewRetryWithDeadline, NewShardedListWatch, NewSharedIndexInformerWithOptions, NewStore, NewThreadSafeStore*, NewTypedSharedIndexInformer, ObjectName.String*, ObjectToName, RealFIFO.Add, RealFIFO.Bookmark, RealFIFO.Close, RealFIFO.Delete, RealFIFO.Done, RealFIFO.HasSyncedChecker, RealFIFO.Pop, RealFIFO.Replace, RealFIFO.Resync, RealFIFO.Transformer, RealFIFO.Update, RealFIFO.addReplaceToItemsLocked, RealFIFO.addResyncToItemsLocked, RealFIFO.addToItems_locked, RealFIFO.checkSynced_locked, RealFIFO.hasSynced_locked, RealFIFO.keyOf, RealFIFO.whileProcessing_locked, Reflector.LastSyncResourceVersion, Reflector.ListAndWatchWithContext, Reflector.RunWithContext^, Reflector.list, Reflector.relistResourceVersion, Reflector.resyncChan, Reflector.rewatchResourceVersion, Reflector.setIsLastSyncResourceVersionUnavailable, Reflector.setLastSyncResourceVersion, Reflector.startResync, Reflector.syncWith, Reflector.watch, Reflector.watchList, Reflector.watchWithResync^, ResourceEventHandlerFuncs.OnAdd, ResourceEventHandlerFuncs.OnDelete, ResourceEventHandlerFuncs.OnUpdate, SplitMetaNamespaceKey*, ToListWatcherWithWatchListSemantics, ToListerWatcherWithContext, ToListerWithContext, ToWatcherWithContext, TransactionError.Error, TypedIndexerFuncToIndexerFunc, VeryShortWatchError.Error^, WaitForCacheSync, WaitForNamedCacheSyncWithContext, WaitFor^, WithStoreMetrics, WithThreadSafeStoreMetrics, WithTransformer, cache.Add, cache.AddIndexers, cache.Bookmark, cache.ByIndex, cache.Delete, cache.Get, cache.GetByKey, cache.GetIndexers, cache.Index, cache.LastStoreSyncResourceVersion, cache.List, cache.ListKeys, cache.Replace, cache.Transaction, cache.Update, checkWatchListDataConsistencyIfRequested, controller.HasSyncedChecker, controller.RunWithContext, controller.processLoop^, dedupDeltas, defaultCacheMutationDetector.AddObject, defaultCacheMutationDetector.CompareObjects, defaultCacheMutationDetector.Run^, determineResyncPeriod, dummyMutationDetector.AddObject, dummyMutationDetector.Run^, genericLister.List, genericNamespaceLister.List, getExpectedGVKFromObject, getTypeDescriptionFromObject, handleListWatch, handleWatch, initialEventsEndBookmarkTicker.observeLastEventTimeStamp, initialEventsEndBookmarkTicker.produceWarningIfExpired, initialEventsEndBookmarkTicker.warnIfExpired, isDeletionDup, isDup, isExpiredError, isTooLargeResourceVersionError, isUnsupportedTableListObject, isUnsupportedTableObject, isWatchErrorRetriable, listWatcherWithWatchListSemanticsWrapper.IsWatchListSemanticsUnSupported^, listerWrapper.ListWithContext^, nameForFunction, nameForFunctions, nameForHandler, nameForHandlerFuncs, newFIFOMetrics, newInitialEventsEndBookmarkTicker, newInitialEventsEndBookmarkTickerInternal, newProcessListener, newQueueFIFO, newStoreMetrics*, noopInformerMetricsProvider.NewProcessingLatencyMetric, noopInformerMetricsProvider.NewQueuedItemMetric, noopInformerMetricsProvider.NewStoreResourceVersionMetric, noopMetric.Observe, noopMetric.Set*, noopTicker.C, noopTicker.Stop, parseRVForMetricsWithTruncation*, processDeltas, processDeltasInBatch, processReplacedAllInfo, processorListener.add, processorListener.determineNextResync, processorListener.pop^, processorListener.run^, processorListener.setResyncPeriod, processorListener.shouldResync, processorListener.watchSynced^, reconcileReplacement, retryWithDeadlineImpl.After, retryWithDeadlineImpl.ShouldRetry, retryWithDeadlineImpl.reset, rvFromObject*, shardedListWatch.IsWatchListSemanticsUnSupported^, shardedListWatch.List, shardedListWatch.ListWithContext^, shardedListWatch.Watch, shardedListWatch.WatchWithContext, shardedListWatch.logClientFallback^, sharedIndexInformer.AddEventHandlerWithOptions, sharedIndexInformer.AddIndexers, sharedIndexInformer.GetIndexer, sharedIndexInformer.GetStore, sharedIndexInformer.HasStarted, sharedIndexInformer.HasSynced, sharedIndexInformer.HasSyncedChecker, sharedIndexInformer.OnAdd, sharedIndexInformer.OnDelete, sharedIndexInformer.OnUpdate, sharedIndexInformer.RunWithContext^, sharedIndexInformer.SetShardSelector, sharedIndexInformer.SetTransform, sharedIndexInformer.SetWatchErrorHandler, sharedIndexInformer.handleBatchDeltas, sharedIndexInformer.handleDeltas, sharedIndexInformerDone.Done, sharedIndexInformerDone.Name, sharedProcessor.addListener, sharedProcessor.distribute, sharedProcessor.resyncCheckPeriodChanged, sharedProcessor.run^, sharedProcessor.shouldResync, storeIndex.addIndexers, storeIndex.addKeyToIndex*, storeIndex.deleteKeyFromIndex*, storeIndex.getKeysByIndex*, storeIndex.getKeysFromIndex, storeIndex.reset*, storeIndex.updateIndices*, storeIndex.updateSingleIndex*, threadSafeMap.Add*, threadSafeMap.AddIndexers, threadSafeMap.Bookmark*, threadSafeMap.ByIndex*, threadSafeMap.DeleteWithObject*, threadSafeMap.Get*, threadSafeMap.GetIndexers, threadSafeMap.Index, threadSafeMap.LastStoreSyncResourceVersion, threadSafeMap.List*, threadSafeMap.ListKeys*, threadSafeMap.Replace*, threadSafeMap.Update*, threadSafeMap.deleteLocked*, threadSafeMap.updateLocked*, typedIndexer.AddTypedIndexers, typedResourceEventHandler.OnAdd, typedResourceEventHandler.OnDelete, typedResourceEventHandler.OnUpdate, watcherWrapper.WatchWithContext; names only (3): RealFIFO.PopBatch (D3), handleAnyWatch (D4), threadSafeMap.Transaction (C4).
+- `k8s.io/client-go/tools/cache/synctrack`: bodies (4): NewSingleFileTracker, SingleFileTracker.Finished, SingleFileTracker.Start, SingleFileTracker.UpstreamHasSynced.
 
 #### The model API server (phase 3; trusted Go)
 
@@ -340,21 +446,21 @@ What it says, per phase (2026-10-27):
 - `k8s.io/apimachinery/pkg/api/errors`: bodies (5): NewAlreadyExists*, NewBadRequest*, NewNotFound*, NewResourceExpired*, NewTimeoutError*; names only (13): FromObject, HasStatusCause, IsAlreadyExists, IsGone, IsInternalError, IsInvalid, IsNotFound, IsResourceExpired, IsTimeout, IsTooManyRequests, NewConflict*, NewInternalError*, StatusError.Status.
 - `k8s.io/apimachinery/pkg/api/meta`: names only (6): Accessor, ExtractList, ExtractListWithAlloc, LenList, ListAccessor, SetList.
 - `k8s.io/apimachinery/pkg/api/validation`: not translated (1): NameIsDNSSubdomain.
-- `k8s.io/apimachinery/pkg/apis/meta/internalversion`: not translated (2): List.DeepCopyObject, ListOptions.DeepCopyObject.
+- `k8s.io/apimachinery/pkg/apis/meta/internalversion`: names only (2): List.DeepCopyObject, ListOptions.DeepCopyObject.
 - `k8s.io/apimachinery/pkg/apis/meta/v1`: bodies (19): Now*, ObjectMeta.GetAnnotations*, ObjectMeta.GetCreationTimestamp*, ObjectMeta.GetDeletionTimestamp*, ObjectMeta.GetFinalizers*, ObjectMeta.GetGenerateName*, ObjectMeta.GetLabels*, ObjectMeta.GetName*, ObjectMeta.GetNamespace*, ObjectMeta.GetResourceVersion*, ObjectMeta.GetUID*, ObjectMeta.SetCreationTimestamp*, ObjectMeta.SetDeletionGracePeriodSeconds*, ObjectMeta.SetDeletionTimestamp*, ObjectMeta.SetName*, ObjectMeta.SetNamespace*, ObjectMeta.SetResourceVersion*, ObjectMeta.SetUID*, Time.Equal*; names only (31): APIGroup.DeepCopyObject, APIGroupList.DeepCopyObject, APIResourceList.DeepCopyObject, APIVersions.DeepCopyObject, CreateOptions.DeepCopyObject, DeleteOptions.DeepCopyObject, GetControllerOf, GetControllerOfNoCopy, GetOptions.DeepCopyObject, InternalEvent.DeepCopyObject, InternalEvent.GetObjectKind, LabelSelectorAsSelector, List.DeepCopyObject, ListMeta.GetResourceVersion, ListMeta.GetShardInfo, ListMeta.SetRemainingItemCount, ListOptions.DeepCopyObject, NewControllerRef, PartialObjectMetadata.DeepCopyObject, PartialObjectMetadataList.DeepCopyObject, PatchOptions.DeepCopyObject, Status.DeepCopyObject, Table.DeepCopyObject, TableOptions.DeepCopyObject, Time.Before, Time.IsZero, TypeMeta.GetObjectKind, TypeMeta.GroupVersionKind, UpdateOptions.DeepCopyObject, WatchEvent.DeepCopyObject, WatchEvent.GetObjectKind.
 - `k8s.io/apimachinery/pkg/apis/meta/v1/unstructured`: names only (24): Unstructured.DeepCopyObject, Unstructured.GetAnnotations, Unstructured.GetCreationTimestamp, Unstructured.GetDeletionTimestamp, Unstructured.GetFinalizers, Unstructured.GetGenerateName, Unstructured.GetKind, Unstructured.GetLabels, Unstructured.GetName, Unstructured.GetNamespace, Unstructured.GetObjectKind, Unstructured.GetResourceVersion, Unstructured.GetUID, Unstructured.GroupVersionKind, Unstructured.SetCreationTimestamp, Unstructured.SetDeletionGracePeriodSeconds, Unstructured.SetDeletionTimestamp, Unstructured.SetName, Unstructured.SetNamespace, Unstructured.SetResourceVersion, Unstructured.SetUID, UnstructuredList.DeepCopyObject, UnstructuredList.GetObjectKind, UnstructuredList.GroupVersionKind.
-- `k8s.io/apimachinery/pkg/apis/meta/v1beta1`: not translated (1): PartialObjectMetadataList.DeepCopyObject.
+- `k8s.io/apimachinery/pkg/apis/meta/v1beta1`: names only (1): PartialObjectMetadataList.DeepCopyObject.
 - `k8s.io/apimachinery/pkg/fields`: names only (6): AndSelectors, Nothing, OneTermEqualSelector, OneTermNotEqualSelector, andTerm.Matches, nothingSelector.Matches.
 - `k8s.io/apimachinery/pkg/labels`: names only (12): Everything*, MatchesNothing, NewRequirement, NewSelector, Nothing, SelectorFromSet, internalSelector.Add, internalSelector.Empty, internalSelector.Matches, nothingSelector.Add, nothingSelector.Empty, nothingSelector.Matches.
 - `k8s.io/apimachinery/pkg/runtime`: names only (3): TypeMeta.GetObjectKind, TypeMeta.GroupVersionKind, Unknown.DeepCopyObject.
 - `k8s.io/apimachinery/pkg/runtime/schema`: names only (7): GroupResource.String, GroupVersion.String, GroupVersionKind.Empty, GroupVersionKind.GroupVersion, GroupVersionKind.String, GroupVersionResource.Empty, emptyObjectKind.GroupVersionKind.
 - `k8s.io/apimachinery/pkg/runtime/serializer/protobuf`: not translated (1): errNotMarshalable.Status.
-- `k8s.io/apimachinery/pkg/util/diff`: not translated (1): ObjectGoPrintSideBySide.
+- `k8s.io/apimachinery/pkg/util/diff`: names only (1): ObjectGoPrintSideBySide.
 - `k8s.io/apimachinery/pkg/util/errors`: names only (2): Flatten, NewAggregate.
 - `k8s.io/apimachinery/pkg/util/intstr`: names only (2): FromInt32*, GetScaledValueFromIntOrPercent.
 - `k8s.io/apimachinery/pkg/util/json`: names only (2): Marshal, Unmarshal.
 - `k8s.io/apimachinery/pkg/util/naming`: names only (1): GetNameFromCallsite.
-- `k8s.io/apimachinery/pkg/util/net`: not translated (1): IsConnectionRefused.
+- `k8s.io/apimachinery/pkg/util/net`: names only (1): IsConnectionRefused.
 - `k8s.io/apimachinery/pkg/util/rand`: names only (1): SafeEncodeString.
 - `k8s.io/apimachinery/pkg/util/resourceversion`: bodies (1): CompareResourceVersion*.
 - `k8s.io/apimachinery/pkg/util/runtime`: names only (5): HandleCrashWithContext, HandleCrashWithLogger*, HandleError, HandleErrorWithContext, HandleErrorWithLogger.
@@ -367,14 +473,14 @@ What it says, per phase (2026-10-27):
 - `k8s.io/client-go/pkg/apis/clientauthentication/v1`: not translated (1): ExecCredential.DeepCopyObject.
 - `k8s.io/client-go/pkg/apis/clientauthentication/v1beta1`: not translated (1): ExecCredential.DeepCopyObject.
 - `k8s.io/client-go/tools/clientcmd/api`: not translated (3): Config.DeepCopyObject, Config.GetObjectKind, Config.GroupVersionKind.
-- `k8s.io/client-go/tools/pager`: not translated (3): ListPager.ListWithAlloc, New, SimplePageFunc.
+- `k8s.io/client-go/tools/pager`: bodies (3): ListPager.ListWithAlloc, New, SimplePageFunc.
 - `k8s.io/client-go/tools/record`: names only (7): NewBroadcaster, WithContext, eventBroadcasterImpl.NewRecorder, eventBroadcasterImpl.Shutdown, eventBroadcasterImpl.StartRecordingToSink, eventBroadcasterImpl.StartStructuredLogging, recorderImplLogger.Eventf.
 - `k8s.io/client-go/util/consistencydetector`: names only (2): CheckDataConsistency, IsDataConsistencyDetectionForWatchListEnabled.
 - `k8s.io/client-go/util/watchlist`: names only (1): DoesClientNotSupportWatchListSemantics.
 - `k8s.io/component-base/featuregate`: names only (2): featureGate.Enabled, featureGate.SetFromMap.
 - `k8s.io/component-base/metrics`: names only (3): CounterVec.WithLabelValues, kubeRegistry.MustRegister, noopMetric.Inc.
 - `k8s.io/klog/v2`: names only (7): Background*, FromContext, KObj, KRef, LoggerWithName, TODO, Warningln.
-- `k8s.io/utils/buffer`: not translated (3): NewRingGrowing, TypedRingGrowing.ReadOne, TypedRingGrowing.WriteOne.
+- `k8s.io/utils/buffer`: bodies (3): NewRingGrowing, TypedRingGrowing.ReadOne, TypedRingGrowing.WriteOne.
 - `k8s.io/utils/clock`: names only (9): RealClock.After, RealClock.NewTicker*, RealClock.NewTimer*, RealClock.Now*, RealClock.Since, realTicker.C*, realTicker.Stop*, realTimer.C*, realTimer.Stop*.
 - `k8s.io/utils/dump`: names only (1): ForHash.
 - `k8s.io/utils/ptr`: names only (2): Deref, To.
