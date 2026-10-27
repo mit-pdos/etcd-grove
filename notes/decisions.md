@@ -23997,3 +23997,36 @@ through the `wp_join`), as the code checks after `linearizableReadNotify`; the r
 
 **Not done (in order).** The admin proposers (their answer, and `pubAfterM`), the Auth handlers,
 `setupAuthOk`; `examples/authkv` and the closed theorem.
+
+## E3w of the auth plan: the admin proposers with auth on (2026-10-27 · `notes/auth-plan.md`, E3v's first left item)
+
+`EtcdServer.{AuthEnable,UserAdd,RoleAdd,UserGrantRole}.specOn` (their `Spec/` files) and
+`wp_proofOn`, linked as `server_{auth_enable,user_add,role_add,user_grant_role}_on`
+(`Results.lean`). The four admin requests the mode `on` admits at the proposer (`adminPropOk`, E3m;
+`RoleGrantPermission` stays out, `grantPermFresh`). Each `wp_proofOn` is the entry point's `wp_proof`
+at its contract's instance, not a new proof of its code: `authRaftOk_on` (`AdminOn.lean`) proves
+`authRaftOk` from `raftRequest.specM true`, over `adminPreOn` (that spec's pre but the request and
+its permission, which an admitted admin request has for free: `reqPropOkM_true_admin`, the result
+`adminQh`, E3m's `adminPropRes`) and answering any `Q` that `adminOutOn` gives (that spec's post at
+the entry point's response). `UserAdd`'s contract is for every model of its request the handler may
+propose (the hashed password is the handler's), so its post is `userAddOutOn`: some model with the
+name and password choice, and `adminOutOn` of it.
+
+What it took: the entry point asserts its response's type (`resp.(*pb.AuthXResponse)`), so
+`raftRequest` must know it. `apply.dispatchAnswer` said `True` of an admin request's answer; it now
+says, for the five kinds `adminKindOk` admits, `∃ r, resp = mkOk (*AuthXResponse) #r` (what Go's
+`ar.Resp, ar.Err = a.applyV3.X(...)` stores, whether or not `X` fails). The mode-off dispatch never
+reaches those branches (`rqOk` refuses them); the mode-on ones (`DispatchAdmin.lean`) close it by
+`rfl`. `dispatchAnswer_admin` reads it back. `irrWireOf` keeps the kind, so it holds at the wire
+request. No statement of an existing result changed (`dispatchAnswer` is stronger, its users
+unchanged).
+
+Premises: a name (`UserAdd`, `RoleAdd`) or user (`UserGrantRole`) of at most `maxKeySize` bytes,
+`adminKindOk`'s. Success: the request applied at the committed prefix `L` before its entry
+(`appliedOkM true`), the auth state after it published (`pubAfterM true`) and the step determinate
+at the model's state there (`adminQh`).
+
+**Not done (in order).** An admin answer tied to the model (`authTie` covers KV requests only: a
+success says the entry was applied, not yet that the model's step admitted it; the client can
+unfold `kvRaftOfOn` at `L ++ [e]`); the Auth handlers, `setupAuthOk`; `examples/authkv` and the
+closed theorem.
