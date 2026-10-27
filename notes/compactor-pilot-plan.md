@@ -284,6 +284,29 @@ loop shape as `Periodic.Run`, with no window and no clock bound to chain); the h
 `Periodic.Run`. Each records its time and the spec problems it found that the reviews and the glue had
 not; the comparison says whether the hard proof was needed (`notes/spec-first-plan.md`, "Phase 3").
 
+**Step 3 results (2026-10-27).** Both proved, no `sorry`; neither changed a spec or a trust-boundary
+axiom:
+
+| proof | lines | time (wall, writing and checking) | spec problems found |
+|---|---|---|---|
+| `Revision.Run` (easy) | 252 | about 7 min | none |
+| `Periodic.Run` (hard) | 416 | about 14 min, plus the `Defs` lemmas | none |
+
+The hard proof's work was internal: the loop invariant (`windowOk`, `stampsOk`, `firstOk`, with their
+step lemmas) and `perPermit_of_window` (a full window, or the run's first sample, gives C1's periodic
+permit), all in `Defs.lean`, none in a statement a caller sees. It did exercise what the easy one
+could not: the clock's `After` bound chained across rounds (`n ≤ T`, the round-2 repair) and the
+first-sample ghost variable (round 2's once-only-resource repair). Both held as specified. So, on this
+pilot, the easy proof would have sufficed to confirm the specs; the hard one confirmed that the two
+round-2 repairs are usable, which no review could check. The three problems the reviews missed were
+all found by the glue (the translation gap, `isMutex`, `word`), before either Run proof.
+
+**Unfolds outside the package** (the caller-burden metric, measured): both Run proofs unfold
+`clockwork.clockOk`, `context.isContextDef`, and mvcc's package initializer (`mvccInit`, destructured
+at its 31st of 42 conjuncts, then `errorsNewVar`) to reach `ErrCompacted`. Each is a missing law
+(an accessor for the clock's `Now`/`After`, a law giving `ErrCompacted`'s `errors.New` value);
+`chan.blockingClausePre` is Perennial's `select` pattern, not a spec's.
+
 **Review checkpoints** (`notes/spec-first-plan.md`, "Phase 1b", the feedback loop): at the freeze, a
 retrospective of the revisions the review found against those the glue proofs found; at the end of
 phase 4, every revision after the freeze attributed to a review criterion or to "none", and the
