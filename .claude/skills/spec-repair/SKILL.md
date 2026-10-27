@@ -26,8 +26,8 @@ leaky or unusable. Check its findings against the source before acting on them. 
 - a statement that `interface/` does not show in full or that hides behind a wrapper.
 
 **Repair.** Fix what the review confirms. The vocabulary is in scope: replace or redefine the
-predicates the spec is written in, not only how the spec combines them. Afterwards, spawn a second fresh reviewer on the new
-`interface/` and iterate until it finds nothing you agree with.
+predicates the spec is written in, not only how the spec combines them. Afterwards, spawn a second
+fresh reviewer on the new `interface/` and iterate until it finds nothing you agree with.
 
 **Constraints:**
 
