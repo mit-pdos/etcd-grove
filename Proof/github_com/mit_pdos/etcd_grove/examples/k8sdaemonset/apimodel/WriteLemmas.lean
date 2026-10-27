@@ -25,6 +25,28 @@ variable [FfiSyntax]
     ({ σ with rev := a, uids := b } : St).tbl r = σ.tbl r := by
   cases r <;> rfl
 
+theorem createNs_res (r : Res) (ns : GoString) (o : Obj) : (createNs r ns o).res = o.res := by
+  unfold createNs
+  split
+  · split
+    · simp [Obj.modMeta]
+    · rfl
+  · simp [Obj.modMeta]
+
+@[simp] theorem Obj.res_modMeta (o : Obj) (f : kd.meta.ObjectMeta → kd.meta.ObjectMeta) :
+    (o.modMeta f).res = o.res := by
+  simp [Obj.modMeta]
+
+@[simp] theorem Obj.meta_modMeta (o : Obj) (f : kd.meta.ObjectMeta → kd.meta.ObjectMeta) :
+    (o.modMeta f).meta = f o.meta := by
+  simp [Obj.modMeta]
+
+theorem prepareD_res (o : Obj) : (prepareD o).res = o.res := by
+  cases o <;> rfl
+
+theorem prepareD_uid (o : Obj) : (prepareD o).meta.UID' = o.meta.UID' := by
+  cases o <;> rfl
+
 /-- **A write's new state**: `σ` with the change `c` recorded in `r`'s table, at the next
 version, `u` UIDs issued. -/
 def St.write (σ : St) (r : Res) (c : Change) (u : w64) : St :=

@@ -77,6 +77,11 @@ instance key_safeMapKey [ApiDeps] (k : Key) :
     wp_pures
     iapply HΦ
 
+/-- An object at a value equal to another. -/
+theorem objAt_cast {x : GoInterface} {q : DFrac} {a b : Obj} (h : a = b) :
+    objAt (GF := GF) x q a ⊢ objAt x q b := by
+  subst h; exact .rfl
+
 /-- The stored objects' relation. -/
 abbrev objsRel (M : GMap Key GoInterface) (O : GMap Key Obj) : IProp GF :=
   iprop([∗map] _k ↦ x;o ∈ M;O, objAt x (DFrac.own 1) o)

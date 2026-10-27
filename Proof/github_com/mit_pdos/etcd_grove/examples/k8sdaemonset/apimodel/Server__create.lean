@@ -104,28 +104,6 @@ theorem createErr_none {r : Res} {ns : GoString} {o : Obj} {σ : St}
   rw [h4]
   rfl
 
-theorem createNs_res (r : Res) (ns : GoString) (o : Obj) : (createNs r ns o).res = o.res := by
-  unfold createNs
-  split
-  · split
-    · simp [Obj.modMeta]
-    · rfl
-  · simp [Obj.modMeta]
-
-@[simp] theorem Obj.res_modMeta (o : Obj) (f : kd.meta.ObjectMeta → kd.meta.ObjectMeta) :
-    (o.modMeta f).res = o.res := by
-  simp [Obj.modMeta]
-
-@[simp] theorem Obj.meta_modMeta (o : Obj) (f : kd.meta.ObjectMeta → kd.meta.ObjectMeta) :
-    (o.modMeta f).meta = f o.meta := by
-  simp [Obj.modMeta]
-
-theorem prepareD_res (o : Obj) : (prepareD o).res = o.res := by
-  cases o <;> rfl
-
-theorem prepareD_uid (o : Obj) : (prepareD o).meta.UID' = o.meta.UID' := by
-  cases o <;> rfl
-
 /-- The object a create stores, as the calls build it. -/
 theorem createApply_fst (r : Res) (ns : GoString) (o : Obj) (σ : St)
     (tm : k8s_io.apimachinery.pkg.apis.«meta».v1.Time) :
@@ -155,10 +133,6 @@ theorem wp_prepare_call (r : Res) (f : GoFunc) (x : GoInterface) (o : Obj) :
   wp_apply Hp $$ Hx as Hx
   iapply HΦ
   iexact Hx
-
-theorem objAt_cast {x : GoInterface} {q : DFrac} {a b : Obj} (h : a = b) :
-    objAt (GF := GF) x q a ⊢ objAt x q b := by
-  subst h; exact .rfl
 
 theorem createErr_ns {r : Res} {ns : GoString} {o : Obj} {σ : St}
     (h : r.namespaced = true ∧ o.meta.Namespace' ≠ go!"" ∧ o.meta.Namespace' ≠ ns) :
