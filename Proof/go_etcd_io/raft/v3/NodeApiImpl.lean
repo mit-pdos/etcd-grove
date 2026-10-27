@@ -1887,6 +1887,90 @@ theorem node.wp_ReadIndex_impl (hR : EtcdGrove.node.ReadIndex.specReq (GF := GF)
 
 end read
 
+/-! ## Conf changes -/
+
+section cc
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+/-- The client's conf-change update, at the bytes raft marshaled. -/
+theorem au_cc_fix (γ : Cluster) (N : Namespace) (ty : w32) (o : ConfChangeIM) (bs : List w8)
+    (Hm : MarshalsConfChange (some o) bs) :
+    AU <{ ∃∃ (ops : List LogEntry), ownCommittedOps (GF := GF) γ ops }> @ ⊤ \ ↑N, ∅
+       <{ ∀∀ (t : w64) (bs' : List w8), ⌜MarshalsConfChange (some o) bs'⌝ ∗
+            ownCommittedOps γ (ops ++ [⟨t, ty, bs'⟩]), COMM True }> ⊢
+    AU <{ ∃∃ (ops : List LogEntry), ownCommittedOps (GF := GF) γ ops }> @ ⊤ \ ↑N, ∅
+       <{ ∀∀ (t : w64), ownCommittedOps γ (ops ++ [⟨t, ty, bs⟩]), COMM True }> := by
+  iintro Hau
+  iauintro
+  ihave Hacc := aupd_aacc $$ Hau
+  unfold atomic_acc
+  imod Hacc with Hacc
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hacc
+  isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+  icases Hacc with ⟨%ops, Hown, Hucl⟩
+  imodintro
+  iexists ops
+  iframe Hown
+  isplit
+  · iintro Hown
+    icases Hucl with ⟨Hab, -⟩
+    iapply Hab $$ Hown
+  · iintro %t Hown
+    icases Hucl with ⟨-, Hc⟩
+    iapply Hc $$ %t %bs [Hown]
+    iframe Hown
+    ipureintro; exact Hm
+
+/-- **`node.ProposeConfChange(ctx, cc)`** (the draft's). -/
+abbrev node.ProposeConfChange.spec : Prop :=
+  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (c : GoInterface) (o : ConfChangeIM)
+    (dq : DFrac) (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗ nodeCtx ctx cd ∗
+      ownConfChangeI c dq (some o) ∗
+      AU <{ ∃∃ (ops : List LogEntry), ownCommittedOps γ ops }> @ ⊤ \ ↑N, ∅
+         <{ ∀∀ (t : w64) (bs : List w8), ⌜MarshalsConfChange (some o) bs⌝ ∗
+              ownCommittedOps γ (ops ++ [⟨t, confChangeEntryType (some o), bs⟩]),
+            COMM True }> }}
+    (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"ProposeConfChange"))
+      (Val #(interface.ok ctx))) (Val #c))
+  {{ (err : GoInterface), RET #err; ownConfChangeI c dq (some o) ∗ nodeErr cd err }}
+
+theorem node.wp_ProposeConfChange_impl
+    (hP : EtcdGrove.node.ProposeConfChange.spec (GF := GF) (hG := hG)) :
+    node.ProposeConfChange.spec (GF := GF) (hG := hG) := by
+  intro n γ N id c o dq ctx cd
+  iintro %Φ ⟨#Hinit, #Hnode, #Hctx, Hcc, Hau⟩ HΦ
+  iunfold isNode at Hnode
+  icases Hnode with ⟨%γn, %Hf, #Hrn, #Hci⟩
+  obtain ⟨Hγr, -⟩ := Hf
+  ihave #Hci' := Hci
+  iunfold clusterInv at Hci'
+  icases Hci' with ⟨%HNs, #Hcinv, #Hinv, -⟩
+  iapply (hP γn id n c o dq ctx cd) $$ [Hcc Hau]
+  · iframe Hinit Hrn Hctx Hcc
+    unfold ccPropArg
+    iintro %bs %Hm
+    by_cases Hf : Filler (confChangeEntryType (some o)) bs
+    · imodintro; ileft; ipureintro; exact Hf
+    imod api_key_register γ N ⊤ CoPset.subseteq_top
+      (entKey (confChangeEntryType (some o)) bs) $$ Hci with #Hpi
+    ihave Hau1 := au_cc_fix γ N (confChangeEntryType (some o)) o bs Hm $$ Hau
+    ihave Hau1 := api_propAu1 γ N (confChangeEntryType (some o)) bs Hf HNs $$ Hinv Hau1
+    imodintro
+    iright
+    iexists (fun _ => iprop(True))
+    rw [Hγr]
+    iframe Hpi Hau1
+  iintro !> %err ⟨Hcc, #Herr⟩
+  iapply HΦ
+  iframe Hcc Herr
+
+end cc
+
 end ApiImpl
 end EtcdGrove
 end Perennial
