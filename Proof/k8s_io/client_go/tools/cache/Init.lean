@@ -2,11 +2,15 @@
 Package initialization of `k8s_io.client_go.tools.cache`
 (item 8, 2026-10-17): its `wp_initialize'`.
 
-Its fact is `True`. Its initializer allocates its translated variables (`informer_metrics.go`:
-`globalInformerMetricsProvider`, a `noopInformerMetricsProvider{}`, and the zero
-`setInformerMetricsProviderOnce`), initializes its imports, runs the other variables' untranslated
-initializers, which the trust-boundary axiom `opaqueInitsOk` says run without panicking, and the
-translated one, and its untranslated `init` functions, which `initFuncsOk` says return.
+Its fact (`k8sCacheInit`, `Proof/k8s_io/apiserver/pkg/storage/cacher/Base.lean`; phase 4
+of the DaemonSet plan, 2026-10-27): `ErrFIFOClosed` and `errorStopRequested` (untranslated
+`errors.New` calls, `fifo.go`, `reflector.go`) hold some error each, for good: the trust-boundary
+axioms `ErrFIFOClosed_init` and `errorStopRequested_init`. Its initializer allocates its translated
+variables (`informer_metrics.go`: `globalInformerMetricsProvider`, a
+`noopInformerMetricsProvider{}`, and the zero `setInformerMetricsProviderOnce`), initializes its
+imports, runs the other variables' untranslated initializers, which the trust-boundary axiom
+`opaqueInitsOk` says run without panicking, and the translated one, and its untranslated `init`
+functions, which `initFuncsOk` says return.
 -/
 module
 
@@ -93,7 +97,6 @@ axiom opaqueInitsOk :
         «_».init,
         ErrZeroLengthDeltasObject.init,
         «_».init,
-        ErrFIFOClosed.init,
         «_».init,
         «_».init,
         «_».init,
@@ -113,7 +116,6 @@ axiom opaqueInitsOk :
         defaultBackoffFactor.init,
         defaultBackoffJitter.init,
         internalPackages.init,
-        errorStopRequested.init,
         «_».init,
         unsupportedTableGVK.init,
         metricsFactory.init,
@@ -137,6 +139,16 @@ other names-only functions (`EtcdGrove.prometheus.MustRegister.wp_proof`). -/
 axiom initFuncsOk :
     ∀ f ∈ ([init.«0»] : List GoString),
     {{ (True : IProp GF) }} (App (Val (@! f)) (Val #())) {{ RET #(); True }}
+
+/-- `ErrFIFOClosed = errors.New("DeltaFIFO: manipulating with closed queue")` (`fifo.go`): an error. -/
+axiom ErrFIFOClosed_init :
+    {{ (True : IProp GF) }} (App (Val ErrFIFOClosed.init) (Val #()))
+    {{ RET #(); ∃ e : GoInterface, globalAddr ErrFIFOClosed ↦ e }}
+
+/-- `errorStopRequested = errors.New("stop requested")` (`reflector.go`): an error. -/
+axiom errorStopRequested_init :
+    {{ (True : IProp GF) }} (App (Val errorStopRequested.init) (Val #()))
+    {{ RET #(); ∃ e : GoInterface, globalAddr errorStopRequested ↦ e }}
 
 end k8s_io.client_go.tools.cache
 end opaqueInits
@@ -164,6 +176,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   iframe Hown
   iintro Hown
   wp_auto
+  iapply wp_fupd
   wp_apply wp_GlobalAlloc (V := _root_.Perennial.sync.Once) setInformerMetricsProviderOnce _ as HsetInformerMetricsProviderOnce
   wp_apply wp_GlobalAlloc (V := GoInterface) globalInformerMetricsProvider _ as HglobalInformerMetricsProvider
   wp_apply (_root_.Perennial.k8s_io.utils.buffer.wp_initialize'_lb _ Hinit.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.2.1) _ $$ Hown as ⟨Hown, #Hd45⟩
@@ -230,7 +243,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (opaqueInitsOk «_».init (by mem_tac))
   wp_apply (opaqueInitsOk ErrZeroLengthDeltasObject.init (by mem_tac))
   wp_apply (opaqueInitsOk «_».init (by mem_tac))
-  wp_apply (opaqueInitsOk ErrFIFOClosed.init (by mem_tac))
+  wp_apply ErrFIFOClosed_init as ⟨%eErrFIFOClosed, HErrFIFOClosed⟩
   wp_apply (opaqueInitsOk «_».init (by mem_tac))
   wp_apply (opaqueInitsOk «_».init (by mem_tac))
   wp_apply (opaqueInitsOk «_».init (by mem_tac))
@@ -251,7 +264,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (opaqueInitsOk defaultBackoffFactor.init (by mem_tac))
   wp_apply (opaqueInitsOk defaultBackoffJitter.init (by mem_tac))
   wp_apply (opaqueInitsOk internalPackages.init (by mem_tac))
-  wp_apply (opaqueInitsOk errorStopRequested.init (by mem_tac))
+  wp_apply errorStopRequested_init as ⟨%eerrorStopRequested, HerrorStopRequested⟩
   wp_apply (opaqueInitsOk «_».init (by mem_tac))
   wp_apply (opaqueInitsOk unsupportedTableGVK.init (by mem_tac))
   wp_apply (opaqueInitsOk metricsFactory.init (by mem_tac))
@@ -266,8 +279,18 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (opaqueInitsOk «_».init (by mem_tac))
   wp_apply (initFuncsOk init.«0» (by mem_tac))
   try wp_auto
+  ipersist HErrFIFOClosed
+  ipersist HerrorStopRequested
   iframe Hown
+  imodintro
+  isplitr
+  · ipureintro
+    exact isPanic_intoVal _
   is_pkg_init_finish
+  try (isplitl []; · (imodintro; itrivial))
+  imodintro
+  iexists _, _
+  iframe #
 
 /-- Perennial's form, from `wp_initialize'_lb`. -/
 theorem wp_initialize' (get_is_pkg_init : GoString → IProp GF)

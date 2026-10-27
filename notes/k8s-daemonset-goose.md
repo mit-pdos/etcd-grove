@@ -333,6 +333,24 @@ the clientset's `<R>s("").List/Watch`"). Same fix as D2 (option (a), the substit
 **C6, worked around**: `tools/cache.Object` stays axiomatized (no `translate_types`); the typed
 handler types (`TypedResourceEventHandler[T Object]`, ...) translate with `T` unconstrained.
 
+### What the informer proofs added to the trust base (2026-10-27)
+
+- **`tools/cache`'s package fact** is no longer `True`: `k8sCacheInit` (in the watch cache's
+  `Base.lean`) says `ErrFIFOClosed` and `errorStopRequested` hold some error each, persistently
+  (`RealFIFO.Pop` returns `ErrFIFOClosed` on a closed queue). Their initializers are untranslated
+  `errors.New` calls (C7), so `etc/gen-init.py`'s `custom` entries state them as two
+  trust-boundary axioms, `ErrFIFOClosed_init` and `errorStopRequested_init`
+  (`Proof/k8s_io/client_go/tools/cache/Init.lean`), each "the untranslated initializer stores some
+  interface value": no claim about which error.
+- **Trust-boundary axioms** for callees outside client-go's informer layer (names only in the
+  translation, each with a spec saying it returns and changes nothing the caller owns):
+  `k8s.io/utils/trace.New` and `(*Trace).LogIfLong` (`RealFIFO.Pop`'s slow-queue trace, `Spec/k8s_io/utils/trace/`),
+  `(*schema.GroupVersionResource).Empty` (`Spec/k8s_io/apimachinery/pkg/runtime/schema/`). Reused:
+  `time.Duration.Seconds` (etcd's), Perennial's `time.Now`/`time.Since`.
+- `go.NotInterface go.int64` is stated again (`RealFIFO__whileProcessing_locked.lean`, as in the
+  backend's proofs): `MethodResolve time.Duration` needs it and instance search does not unfold
+  `go.int64`.
+
 ## The call graph of `Main` (the worklist)
 
 `etc/k8s-worklist.py` (with `etc/k8s-callgraph`, a VTA call graph over RTA's, every package

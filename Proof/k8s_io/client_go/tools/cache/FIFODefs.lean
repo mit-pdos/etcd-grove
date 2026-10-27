@@ -84,6 +84,14 @@ theorem FQ.replace_synced [FfiSyntax] (objs : List GoInterface) (rv : GoString) 
     (q.replace objs rv).synced = q.synced := by
   unfold FQ.replace; split <;> rfl
 
+/-- `Pop`'s deferred step, after the delta's processing: one initial item fewer, synced once none
+is left (`checkSynced`). -/
+def FQ.popDone [FfiSyntax] (q : FQ) : FQ :=
+  if 0 < q.initCount then
+    { q with initCount := q.initCount - 1,
+             synced := q.synced || (q.populated && q.initCount - 1 == 0) }
+  else q
+
 /-- The FIFO's ghost names: its state's, its lock token's, its synced flag's. -/
 structure FifoNames where
   st : GName
@@ -102,7 +110,8 @@ variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
 /-- **A Go `Delta` is the abstract delta `d`.** -/
 def fdAt (OK : GoInterface → IProp GF) (d : FD) (v : Delta) : IProp GF :=
   match d with
-  | .obj t o => iprop(⌜v = Delta.mk t o⌝ ∗ □ OK o)
+  | .obj t o => iprop(⌜v = Delta.mk t o ∧
+      ∃ (ty : go.GoType) (w : val), o = interface.mkOk (go.GoType.PointerType ty) w⌝ ∗ □ OK o)
   | .replaced objs rv => iprop(∃ sl : GoSlice, ⌜v = Delta.mk go!"ReplacedAll"
       (interface.mkOk ReplacedAllInfo.ty #(ReplacedAllInfo.mk rv sl))⌝ ∗ sl ↦* objs ∗
       □ ([∗list] o ∈ objs, OK o))
@@ -160,12 +169,21 @@ def obsOk (h : HistogramMetric) : IProp GF :=
 instance obsOk_persistent (h : HistogramMetric) : Persistent (obsOk (GF := GF) h) := by
   cases h <;> unfold obsOk <;> infer_instance
 
+/-- **The key function returns** on any object (its slow-queue trace keys a delta of any kind;
+`MetaNamespaceKeyFunc`'s accessor fails on a non-object, an error the trace ignores). -/
+def keyAny (kf : GoFunc) : IProp GF :=
+  iprop(∀ o : GoInterface, {{ True }} (App (Val #kf) (Val #o))
+    {{ (k : GoString) (err : GoInterface), RET (PairV #k #err); True }})
+
+instance keyAny_persistent (kf : GoFunc) : Persistent (keyAny (GF := GF) kf) := by
+  unfold keyAny; infer_instance
+
 /-- **The FIFO** (persistent): its fixed fields (the informers' configuration), the lock's guard
 over the token, the condition variable over the lock, the invariant. -/
 def isFIFO (f : Loc) (γ : FifoNames) (OK : GoInterface → IProp GF) (KF : GoInterface → GoString) :
     IProp GF :=
   iprop(∃ (ch : GoChan) (kf : GoFunc) (mp : Loc) (g : GaugeMetric) (h : HistogramMetric)
-      (uwp : Bool),
+      (uwp : Bool) (idn : InformerNameAndResource),
     f.[RealFIFO, go!"keyFunc"] ↦□ kf ∗ keyOk OK kf KF ∗
     f.[RealFIFO, go!"transformer"] ↦□ func.nil ∗
     f.[RealFIFO, go!"emitAtomicEvents"] ↦□ true ∗
@@ -179,7 +197,8 @@ def isFIFO (f : Loc) (γ : FifoNames) (OK : GoInterface → IProp GF) (KF : GoIn
     sync.isRWMutexGuard (f.[RealFIFO, go!"lock"]) (fifoTok γ) ∗
     sync.isCond (f.[RealFIFO, go!"cond"])
       ⟨go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty, #(f.[RealFIFO, go!"lock"])⟩ ∗
-    fifoInv f γ OK ch)
+    fifoInv f γ OK ch ∗
+    f.[RealFIFO, go!"identifier"] ↦□ idn ∗ keyAny kf)
 
 set_option synthInstance.maxSize 512 in
 set_option synthInstance.maxHeartbeats 400000 in
@@ -230,6 +249,24 @@ theorem fifo_release (f : Loc) (γ : FifoNames) (OK : GoInterface → IProp GF) 
   · imod Hclose $$ [HR] with -
     · inext; ileft; iexact HR
     imodintro; inext; iexact Htok
+
+open Iris.ProofMode in
+/-- The FIFO's lock as the `Locker` its `Cond` waits on (`&f.lock`, a writer). -/
+theorem fifo_locker (rw : Loc) (P : Qp → IProp GF) :
+    isPkgInit (PROP := IProp GF) pkg_id.sync ∗ sync.isRWMutexGuard rw P ⊢
+      sync.isLocker ⟨go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty, #rw⟩
+        iprop(sync.ownRWMutexWLocked rw P ∗ ▷ P 1) := by
+  iintro ⟨#Hsync, #Hg⟩
+  unfold sync.isLocker
+  isplitl
+  · imodintro
+    iintro %Φ - HΦ
+    wp_apply sync.RWMutex.wp_Lock_guard $$ [$Hg] as H
+    iapply HΦ $$ H
+  · imodintro
+    iintro %Φ ⟨Hl, HP⟩ HΦ
+    wp_apply sync.RWMutex.wp_Unlock_guard $$ [$Hsync $Hl $HP]
+    iapply HΦ; itrivial
 
 open Iris.ProofMode in
 /-- A delta queued at the end. -/
@@ -312,6 +349,26 @@ theorem fifoSt_update_sy (γ : FifoNames) (q : FQ) (upd : FQ → FQ)
         iexact Hsy'
       imodintro
       iframe
+
+open Iris.ProofMode in
+/-- **Committing a caller's fancy update at the lock's state** `q`: its client half is `q`; the
+update gives back `upd q` (a step that keeps the synced flag) and `K`. -/
+theorem fifo_commit (γ : FifoNames) (q : FQ) (upd : FQ → FQ)
+    (hsy : (upd q).synced = q.synced) (K : IProp GF) :
+    ghostVar γ.st (1 : Qp).half q ∗
+      (|={⊤, ∅}=> ∃ q', fifoSt γ q' ∗ (⌜q' = q⌝ -∗ fifoSt γ (upd q') ={∅, ⊤}=∗ K)) ⊢
+      |={⊤}=> ghostVar γ.st (1 : Qp).half (upd q) ∗ K := by
+  iintro ⟨Hst, HAU⟩
+  imod HAU with ⟨%q', Hst', Hcl⟩
+  iunfold fifoSt at Hst'
+  icases Hst' with ⟨Hst', Hsy⟩
+  icombine Hst Hst' gives % ⟨_, heq⟩
+  subst heq
+  imod ghostVar_update_halves (upd q) $$ Hst Hst' with ⟨Hst, Hst'⟩
+  imod Hcl $$ %rfl [Hst' Hsy] with HK
+  · iunfold fifoSt; iframe; rw [hsy]; iexact Hsy
+  imodintro
+  iframe
 
 open Iris.ProofMode in
 /-- **A reader's linearization point**: the lock's half agrees with the client's. -/

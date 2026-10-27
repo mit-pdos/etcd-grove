@@ -29,12 +29,16 @@ theorem RealFIFO.addToItems_locked.wp_proof
     (wp_keyOf : RealFIFO.keyOf.spec (GF := GF) (hG := hG)) :
     RealFIFO.addToItems_locked.spec (GF := GF) (hG := hG) := by
   intro f OK KF kf mp g lk t skip obj ty v sl vs
-  wp_start as ⟨#Hkf, #Hkey, #Htr, #Hmp, #Hg, #Hgok, #Hcond, #HOK, %hobj, Hitems, Hsl, Hcap⟩
+  wp_start as ⟨#Hkf, #Hkey, #Hkany, #Htr, #Hmp, #Hg, #Hgok, #Hcond, #HOK, %hobj, Hitems, Hsl, Hcap⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   (try wp_auto)
-  wp_apply (wp_keyOf f OK KF kf obj ty v) $$ [$Hkf $Hkey $HOK]
-  · ipureintro; exact hobj
+  wp_apply (wp_keyOf f OK KF kf obj) $$ [$Hkf $Hkey $Hkany]
+  · isplitr
+    · ipureintro; exact Or.inl ⟨ty, v, hobj⟩
+    iintro -; iexact HOK
+  iintro %k %err %hk
+  obtain ⟨rfl, rfl⟩ := hk ⟨ty, v, hobj⟩
   (try wp_auto)
   wp_apply wp_slice_literal (V := Delta) [Delta.mk t obj]
   isplitr

@@ -36,8 +36,8 @@ theorem RealFIFO.Delete.wp_proof
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   iunfold isFIFO at Hf
-  icases Hf with ⟨%ch, %kf, %mp, %g, %h, %uwp, #Hkf, #Hkey, #Htr, #Hae, #Hbm, #Huwp, #Hbs,
-    #Hch, #Hmp, #Hg, #Hgok, #Hh, #Hhok, #Hguard, #Hcond, #Hinv⟩
+  icases Hf with ⟨%ch, %kf, %mp, %g, %h, %uwp, %idn, #Hkf, #Hkey, #Htr, #Hae, #Hbm, #Huwp, #Hbs,
+    #Hch, #Hmp, #Hg, #Hgok, #Hh, #Hhok, #Hguard, #Hcond, #Hinv, #Hid, #Hkany⟩
   wp_method_call
   wp_call
   wp_auto
@@ -67,11 +67,11 @@ theorem RealFIFO.Delete.wp_proof
   rw [hsy]
   (try wp_auto)
   wp_apply (wp_add f OK KF kf mp g _ go!"Deleted" false obj ty v sl vs)
-    $$ [$Hpkg $Hkf $Hkey $Htr $Hmp $Hg $Hgok $Hcond $HOK $Hitems $Hsl $Hcap]
+    $$ [$Hpkg $Hkf $Hkey $Hkany $Htr $Hmp $Hg $Hgok $Hcond $HOK $Hitems $Hsl $Hcap]
     as ⟨%sl', Hitems, Hsl, Hcap⟩
   · ipureintro; exact hobj
   ihave Hds := fifo_push OK q.items vs (.obj go!"Deleted" obj) _ $$ [$Hds]
-  · iunfold fdAt; dsimp only; iframe #; ipureintro; rfl
+  · iunfold fdAt; dsimp only; iframe #; ipureintro; exact ⟨rfl, ty, v, hobj⟩
   (try wp_auto)
   imod fifo_release f γ OK ch $$ Hinv Hlc3 [Hex Hst Hsy Hitems Hsl Hcap Hds Hpop Hinit Hsc Hcl Hbc]
     with Htok

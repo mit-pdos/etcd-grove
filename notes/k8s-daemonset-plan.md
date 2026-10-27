@@ -322,6 +322,28 @@ theorem's program runs with it off, the premise "a failed write had no effect" (
    gates select (`InOrderInformersBatchProcess` on by default); D4 (`handleAnyWatch`'s labeled
    `break`); C2 (the typed informers' promoted methods, every call the controller makes on an
    informer); D2 (the typed informers' list-watch closures).
+   *Status, proofs (2026-10-27, branch `k8s-daemonset-proof`):* linked in
+   `Proof/k8s_io/client_go/tools/cache/Link.lean` (results `Results.lean`, TCB
+   `etc/tcb-collections/clientgo-informers.txt`), no `sorry`. **The informer contract, pure**
+   (`InformerModel.lean`, proved): the store is `tableAt log v` at its version `v`; versions are
+   monotone across relists (a relist lists the model's current state, at a version at least the last
+   seen); a deletion keeps the version; `HasSynced` follows the first `Replace` popped and
+   processed. Its premise specific to the model: the model starts at version 1, so a list's version is
+   never `"0"` (a watch from `""`/`"0"` would replay synthetic `ADDED`s in map order). **The store**
+   (`store.go`'s `cache` over the thread-safe store): `Add`, `Update`, `Delete`, `Replace`,
+   `Bookmark`, `Get`, `GetByKey`, `List`, `ListKeys`, `ByIndex`, `Index`, `Resync`,
+   `LastStoreSyncResourceVersion` (premise: the `AtomicFIFO` gate on). **The FIFO** (`RealFIFO`,
+   atomic events; `FIFODefs.lean`: the queue's state `FQ` behind an invariant, the client's half
+   `fifoSt γ q`, the synced channel broadcasting `fifoSyncedLb`): the producers `Add`, `Update`,
+   `Delete`, `Replace`, `Bookmark`, `Close`, `IsClosed`, `HasSynced` logically atomic; the single
+   consumer's `Pop` with two linearization points (`popAU`: the head delta removed, or
+   `ErrFIFOClosed` on an empty closed queue; `doneAU`: one initial item fewer after processing,
+   `FQ.popDone`), the processing in between with the lock released when `unlockWhileProcessing`
+   (`whileProcessing_locked`). **Not done:** the reflector (`ListAndWatch`, its watch loop D4), the
+   controller's `processLoop`, the shared informer, processor and listeners (handlers' delivery),
+   `AddIndexers`/`GetIndexers`, the listers, the factory; `PopBatch`/`Transaction` (D3/C4: the
+   path `Main`'s default gates select, so either `Main` turns `InOrderInformersBatchProcess` off or
+   C4 is fixed in Perennial first).
 5. **The controller.** `Run`, the workers, `syncDaemonSet` and what it calls on this scenario's
    paths, the event handlers, `syncNodeUpdate`; S1's invariant.
 6. **The closed theorem.** `examples/dsonepod`'s `wp_Main`, its package table and init, and

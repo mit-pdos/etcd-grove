@@ -32,8 +32,8 @@ theorem RealFIFO.Bookmark.wp_proof :
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   iunfold isFIFO at Hf
-  icases Hf with ⟨%ch, %kf, %mp, %g, %h, %uwp, #Hkf, #Hkey, #Htr, #Hae, #Hbm, #Huwp, #Hbs,
-    #Hch, #Hmp, #Hg, #Hgok, #Hh, #Hhok, #Hguard, #Hcond, #Hinv⟩
+  icases Hf with ⟨%ch, %kf, %mp, %g, %h, %uwp, %idn, #Hkf, #Hkey, #Htr, #Hae, #Hbm, #Huwp, #Hbs,
+    #Hch, #Hmp, #Hg, #Hgok, #Hh, #Hhok, #Hguard, #Hcond, #Hinv, #Hid, #Hkany⟩
   wp_method_call
   wp_call
   wp_auto

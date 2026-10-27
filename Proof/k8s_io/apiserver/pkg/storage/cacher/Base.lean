@@ -197,9 +197,18 @@ instance k8s_io_utils_buffer_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.utils.buffer :=
   build_get_is_pkg_init_wf
 
+/-- client-go's `tools/cache` fact (phase 4 of the DaemonSet plan, 2026-10-27; `etc/gen-init.py`):
+its error variables `ErrFIFOClosed` (`RealFIFO.Pop` returns it once closed) and
+`errorStopRequested` (the reflector's watch returns it when stopped), untranslated `errors.New`
+calls, hold some error each, for good. -/
+abbrev k8sCacheInit : IProp GF :=
+  iprop(∃ e1 e2 : GoInterface,
+    globalAddr k8s_io.client_go.tools.cache.ErrFIFOClosed ↦□ e1 ∗
+    globalAddr k8s_io.client_go.tools.cache.errorStopRequested ↦□ e2)
+
 instance k8s_io_client_go_tools_cache_is_pkg_init_inst :
     IsPkgInit (IProp GF) pkg_id.k8s_io.client_go.tools.cache :=
-  define_is_pkg_init iprop(True)
+  define_is_pkg_init k8sCacheInit
 instance k8s_io_client_go_tools_cache_get_is_pkg_init_wf_inst :
     GetIsPkgInitWf (IProp GF) pkg_id.k8s_io.client_go.tools.cache :=
   build_get_is_pkg_init_wf

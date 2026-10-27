@@ -8,6 +8,8 @@ hand.
 -/
 module
 
+public import Proof.k8s_io.client_go.tools.cache.InformerNameAndResource__GroupVersionResource_ptr
+public import Proof.k8s_io.client_go.tools.cache.InformerNameAndResource__Name_ptr
 public import Proof.k8s_io.client_go.tools.cache.InformerNameAndResource__Reserved
 public import Proof.k8s_io.client_go.tools.cache.NewThreadSafeStore
 public import Proof.k8s_io.client_go.tools.cache.ObjectName__String
@@ -17,6 +19,7 @@ public import Proof.k8s_io.client_go.tools.cache.RealFIFO__Close
 public import Proof.k8s_io.client_go.tools.cache.RealFIFO__Delete
 public import Proof.k8s_io.client_go.tools.cache.RealFIFO__HasSynced
 public import Proof.k8s_io.client_go.tools.cache.RealFIFO__IsClosed
+public import Proof.k8s_io.client_go.tools.cache.RealFIFO__Pop
 public import Proof.k8s_io.client_go.tools.cache.RealFIFO__Replace
 public import Proof.k8s_io.client_go.tools.cache.RealFIFO__Update
 public import Proof.k8s_io.client_go.tools.cache.RealFIFO__addReplaceToItemsLocked
@@ -24,6 +27,7 @@ public import Proof.k8s_io.client_go.tools.cache.RealFIFO__addToItems_locked
 public import Proof.k8s_io.client_go.tools.cache.RealFIFO__checkSynced_locked
 public import Proof.k8s_io.client_go.tools.cache.RealFIFO__hasSynced_locked
 public import Proof.k8s_io.client_go.tools.cache.RealFIFO__keyOf
+public import Proof.k8s_io.client_go.tools.cache.RealFIFO__whileProcessing_locked
 public import Proof.k8s_io.apimachinery.pkg.util.sets.Set__Delete
 public import Proof.k8s_io.apimachinery.pkg.util.sets.Set__Insert
 public import Proof.k8s_io.client_go.tools.cache.SplitMetaNamespaceKey
@@ -44,6 +48,7 @@ public import Proof.k8s_io.client_go.tools.cache.newStoreMetrics
 public import Proof.k8s_io.client_go.tools.cache.noopMetric__Set
 public import Proof.k8s_io.client_go.tools.cache.parseRVForMetricsWithTruncation
 public import Proof.k8s_io.client_go.tools.cache.rvFromObject
+public import Proof.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource__Empty_ptr
 public import Proof.k8s_io.client_go.tools.cache.storeIndex__addKeyToIndex
 public import Proof.k8s_io.client_go.tools.cache.storeIndex__deleteKeyFromIndex
 public import Proof.k8s_io.client_go.tools.cache.storeIndex__getKeysByIndex
@@ -67,6 +72,9 @@ public import Proof.k8s_io.client_go.tools.cache.threadSafeMap__Resync
 public import Proof.k8s_io.client_go.tools.cache.threadSafeMap__Update
 public import Proof.k8s_io.client_go.tools.cache.threadSafeMap__deleteLocked
 public import Proof.k8s_io.client_go.tools.cache.threadSafeMap__updateLocked
+public import Proof.time.Duration__Seconds
+public import Proof.k8s_io.utils.trace.New
+public import Proof.k8s_io.utils.trace.Trace__LogIfLong
 
 @[expose] public section
 
@@ -85,6 +93,10 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
 
+theorem time.Duration.wp_Seconds :
+    EtcdGrove.time.Duration.Seconds.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.time.Duration.Seconds.wp_proof
+
 end links
 
 /-! The specs stated at `HeapGS HasLC.hasLC GF`: those using channels, `sync.Once` or
@@ -95,6 +107,14 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
+
+theorem cache.InformerNameAndResource.wp_GroupVersionResource_ptr :
+    EtcdGrove.cache.InformerNameAndResource.GroupVersionResource_ptr.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cache.InformerNameAndResource.GroupVersionResource_ptr.wp_proof
+
+theorem cache.InformerNameAndResource.wp_Name_ptr :
+    EtcdGrove.cache.InformerNameAndResource.Name_ptr.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cache.InformerNameAndResource.Name_ptr.wp_proof
 
 theorem cache.InformerNameAndResource.wp_Reserved :
     EtcdGrove.cache.InformerNameAndResource.Reserved.spec (GF := GF) (hG := hG) :=
@@ -155,6 +175,26 @@ theorem cache.RealFIFO.wp_HasSynced :
 theorem cache.RealFIFO.wp_IsClosed :
     EtcdGrove.cache.RealFIFO.IsClosed.spec (GF := GF) (hG := hG) :=
   EtcdGrove.cache.RealFIFO.IsClosed.wp_proof
+
+theorem schema.GroupVersionResource.wp_Empty_ptr :
+    EtcdGrove.schema.GroupVersionResource.Empty_ptr.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.schema.GroupVersionResource.Empty_ptr.wp_proof
+
+theorem trace.wp_New :
+    EtcdGrove.trace.New.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.trace.New.wp_proof
+
+theorem trace.Trace.wp_LogIfLong :
+    EtcdGrove.trace.Trace.LogIfLong.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.trace.Trace.LogIfLong.wp_proof
+
+theorem cache.RealFIFO.wp_whileProcessing_locked :
+    EtcdGrove.cache.RealFIFO.whileProcessing_locked.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cache.RealFIFO.whileProcessing_locked.wp_proof time.Duration.wp_Seconds
+
+theorem cache.RealFIFO.wp_Pop :
+    EtcdGrove.cache.RealFIFO.Pop.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cache.RealFIFO.Pop.wp_proof cache.RealFIFO.wp_checkSynced_locked cache.RealFIFO.wp_hasSynced_locked cache.RealFIFO.wp_keyOf cache.InformerNameAndResource.wp_Name_ptr cache.InformerNameAndResource.wp_GroupVersionResource_ptr schema.GroupVersionResource.wp_Empty_ptr trace.wp_New trace.Trace.wp_LogIfLong cache.RealFIFO.wp_whileProcessing_locked
 
 theorem cache.RealFIFO.wp_addReplaceToItemsLocked :
     EtcdGrove.cache.RealFIFO.addReplaceToItemsLocked.spec (GF := GF) (hG := hG) :=

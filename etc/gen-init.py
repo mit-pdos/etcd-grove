@@ -436,14 +436,26 @@ its imports and runs the translated initializers.''',
 # client-go's leaf libraries (2026-10-26, notes/k8s-clientgo-goose.md): their facts are `True`; their
 # translated initializers are composite literals (no call), which `wp_auto` runs.
 SPECIAL['k8s_io.client_go.tools.cache'] = dict(
-    doc='''Its fact is `True`. Its initializer allocates its translated variables (`informer_metrics.go`:
-`globalInformerMetricsProvider`, a `noopInformerMetricsProvider{}`, and the zero
-`setInformerMetricsProviderOnce`), initializes its imports, runs the other variables' untranslated
-initializers, which the trust-boundary axiom `opaqueInitsOk` says run without panicking, and the
-translated one, and its untranslated `init` functions, which `initFuncsOk` says return.''',
+    doc='''Its fact (`k8sCacheInit`, `Proof/k8s_io/apiserver/pkg/storage/cacher/Base.lean`; phase 4
+of the DaemonSet plan, 2026-10-27): `ErrFIFOClosed` and `errorStopRequested` (untranslated
+`errors.New` calls, `fifo.go`, `reflector.go`) hold some error each, for good: the trust-boundary
+axioms `ErrFIFOClosed_init` and `errorStopRequested_init`. Its initializer allocates its translated
+variables (`informer_metrics.go`: `globalInformerMetricsProvider`, a
+`noopInformerMetricsProvider{}`, and the zero `setInformerMetricsProviderOnce`), initializes its
+imports, runs the other variables' untranslated initializers, which the trust-boundary axiom
+`opaqueInitsOk` says run without panicking, and the translated one, and its untranslated `init`
+functions, which `initFuncsOk` says return.''',
     alloc_types={'setInformerMetricsProviderOnce': '_root_.Perennial.sync.Once',
                  'globalInformerMetricsProvider': 'GoInterface'},
+    custom={'ErrFIFOClosed': dict(
+                doc='/-- `ErrFIFOClosed = errors.New("DeltaFIFO: manipulating with closed queue")` (`fifo.go`): an error. -/',
+                post='∃ e : GoInterface, globalAddr ErrFIFOClosed ↦ e', pat='⟨%e@, H@⟩'),
+            'errorStopRequested': dict(
+                doc='/-- `errorStopRequested = errors.New("stop requested")` (`reflector.go`): an error. -/',
+                post='∃ e : GoInterface, globalAddr errorStopRequested ↦ e', pat='⟨%e@, H@⟩')},
     before={'$end': ['try wp_auto']},
+    finish=['ipersist HErrFIFOClosed', 'ipersist HerrorStopRequested'] + FIN_PRE[:7] + [
+            'imodintro', 'iexists _, _', 'iframe #'],
 )
 
 SPECIAL['k8s_io.client_go.util.workqueue'] = dict(

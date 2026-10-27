@@ -27,16 +27,36 @@ variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
 
 theorem RealFIFO.keyOf.wp_proof :
     RealFIFO.keyOf.spec (GF := GF) (hG := hG) := by
-  intro f OK KF kf obj t v
-  wp_start as ⟨#Hkf, #Hkey, #HOK, %hobj⟩
+  intro f OK KF kf obj
+  wp_start as ⟨#Hkf, #Hkey, #Hany, %harg, HOK⟩
   iunfold keyOk at Hkey
-  subst hobj
-  (try wp_auto)
-  wp_apply Hkey $$ [$HOK]
-  iintro %k %err %hk
-  obtain ⟨rfl, rfl⟩ := hk
-  (try wp_auto)
-  iapply HΦ; itrivial
+  iunfold keyAny at Hany
+  rcases harg with ⟨t, v, rfl⟩ | ⟨d, t, w, rfl, hd, ht⟩
+  · ihave #HOK' := HOK $$ %(⟨t, v, rfl⟩)
+    (try wp_auto)
+    wp_apply Hkey $$ [$HOK']
+    iintro %k %err %hk
+    obtain ⟨rfl, rfl⟩ := hk
+    (try wp_auto)
+    iapply HΦ
+    ipureintro; intro _; exact ⟨rfl, rfl⟩
+  · (try wp_auto)
+    rw [hd]
+    (try wp_auto)
+    simp only [ht, ↓reduceIte, decide_false]
+    (try wp_auto)
+    wp_apply Hany
+    iintro %k %err -
+    (try wp_auto)
+    iapply HΦ
+    ipureintro
+    rintro ⟨t', v', h⟩
+    simp only [interface.mkOk, GoInterface.ok.injEq] at h
+    exfalso
+    have h1 := congrArg GoInterfaceOk.ty h
+    simp only at h1
+    unfold Delta.ty at h1
+    cases h1
 
 end proof
 

@@ -31,7 +31,7 @@ abbrev RealFIFO.addToItems_locked.spec : Prop :=
     (mp : Loc) (g : GaugeMetric) (lk : GoInterfaceOk) (t : GoString) (skip : Bool)
     (obj : GoInterface) (ty : go.GoType) (v : val) (sl : GoSlice) (vs : List Delta),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗
-      f.[RealFIFO, go!"keyFunc"] ↦□ kf ∗ keyOk OK kf KF ∗
+      f.[RealFIFO, go!"keyFunc"] ↦□ kf ∗ keyOk OK kf KF ∗ keyAny kf ∗
       f.[RealFIFO, go!"transformer"] ↦□ func.nil ∗
       f.[RealFIFO, go!"metrics"] ↦□ mp ∗ mp.[fifoMetrics, go!"numberOfQueuedItem"] ↦□ g ∗ gaugeOk g ∗
       sync.isCond (f.[RealFIFO, go!"cond"]) lk ∗

@@ -5,6 +5,10 @@
 #
 # the trust boundary: names-only functions (axioms)
 strconv_ParseInt:
+time_Duration__Seconds:
+trace_New:
+trace_Trace__LogIfLong:
+schema_GroupVersionResource__Empty_ptr:
 #
 # k8s.io/apimachinery/pkg/util/sets (`Set[T]`'s methods the indices use)
 Set__Insert:
@@ -77,3 +81,7 @@ RealFIFO__Update: RealFIFO__checkSynced_locked RealFIFO__addToItems_locked
 RealFIFO__Delete: RealFIFO__checkSynced_locked RealFIFO__addToItems_locked
 RealFIFO__addReplaceToItemsLocked:
 RealFIFO__Replace: RealFIFO__checkSynced_locked RealFIFO__addReplaceToItemsLocked
+InformerNameAndResource__Name_ptr:
+InformerNameAndResource__GroupVersionResource_ptr:
+RealFIFO__whileProcessing_locked: time_Duration__Seconds
+RealFIFO__Pop: RealFIFO__checkSynced_locked RealFIFO__hasSynced_locked RealFIFO__keyOf InformerNameAndResource__Name_ptr InformerNameAndResource__GroupVersionResource_ptr schema_GroupVersionResource__Empty_ptr trace_New trace_Trace__LogIfLong RealFIFO__whileProcessing_locked

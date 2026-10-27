@@ -59,6 +59,7 @@ namespace k8scache
 #print axioms cache.RealFIFO.wp_Close
 #print axioms cache.RealFIFO.wp_IsClosed
 #print axioms cache.RealFIFO.wp_HasSynced
+#print axioms cache.RealFIFO.wp_Pop
 -- the store keys
 #print axioms cache.ObjectName.wp_String
 #print axioms cache.wp_SplitMetaNamespaceKey
