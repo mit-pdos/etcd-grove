@@ -23230,3 +23230,59 @@ parameters). New: `authStepsAtHook`, `authApplyResPre`, `authApplyResB_of_pre`, 
 `apply_admin_entry_on`, `server_admin_entry_on`. No closed theorem changed.
 
 **Trust base.** Unchanged (no axiom, no `sorry`); D22's named premise `authSchemaSrv` says more.
+
+## E3o of the auth plan: the apply thread's step on one normal entry with auth on (2026-10-27 · `notes/auth-plan.md`, E3n's first left item)
+
+`EtcdServer.applyEntryNormal.specOn` (`Spec/.../EtcdServer__applyEntryNormal.lean`) and its proof
+`wp_proofOn` (in `Proof/.../EtcdServer__applyEntryNormal.lean`, next to the mode-off `wp_proof`, as
+`Put`/`Txn` keep their `wp_proofOn`); restated `server_apply_entry_normal_on` (`Results.lean`, every
+callee linked; trust base unchanged). Pre: `isServerM true`, the apply thread's mode-`on` row
+`srvApplyKVOn s E γw x sa` (below), `kvAppliedOn … srvAuthSt0 A x sa`, the entry's premise
+`entryOkOn` (`entryOk`'s, an admitted admin request allowed), plus three premises the mode-off triple
+does not take: `srvLessorNil s` (`srv_uberKVL_on`'s), one receipt `⧗ 1` (`adminEntryOn`'s) and
+`receiptBound GF ≤ 2^48`. Post: `kvAppliedOn … (A ++ [m]) x' sa'` at the auth state `sa'` after the
+entry, and the waiter handed `resultΨOn` (the verdict tied to the model's state the entry met,
+`authTie`, and `entryWitOn`). The proof is the mode-off proof's, with three applications of an entry
+with data, chosen by the log's admission (`plainEntryOn`):
+- a KV request: `apply.Apply.kvSpecL` at the auth row's history (`srvAuthApplyResB_open`, the
+  history lent by `auth.ownFuT_lend`, the uber-applier's latest-state triples `srv_uberKVL_on` at the
+  same store), the certificates `kv_certPreVW_on`, the model's step `kvOn_after_kv`, the tie
+  `authTie_of_kvOutL`;
+- a cluster request: `apply.Apply.spec`, the log kept (`applyStep_keep`, `kv_certPre_keep`,
+  `kvEntryOn_keep`);
+- an admin request: `adminEntryOn.spec` over the row's admin steps (`srv_uberAuthStepsL_at`), the
+  model's step `outcomeOn_of_adminStateR` with `entryDetOn`, the rest unchanged (`srvRest_admin`).
+A replayed entry (`v3` false) leaves the model's state (`kvEntryOn_below`): a plain request through
+`apply.Apply.spec`, an admin one through `adminEntryOn.spec` at `v3 = false` (generalized to either
+`v3`: its hook and NOSPACE clauses under `if v3`, the auth state kept at `false`). The NOSPACE branch
+is dead in each case (`applyResultIs_notNoSpaceOn`; for an admin request, `adminEntryOn`'s post,
+`applyResultIs_notNoSpaceAdmin`).
+
+**Two gaps in this repository's mode-`on` model, closed.**
+- *A crafted admin request with a read field.* `plainEntryOn`'s admin case admitted an admin request
+  that also sets a field `noSideEffect` reads (a range, a user or role get, the status): `apply.Apply`
+  skips such a request on a member with no waiter and applies it on the member with one, so the
+  model's step (`adminStateR`) would not be every member's. Not reachable through etcd's API (each
+  proposer sets one field), so no `issues/` entry. `plainEntryOn`'s admin case and the proposer's
+  `adminPropOk` now carry `noSideEffect rq = false` (the proposers set one field; `commitOkOn_admin`).
+- *What the KV triple at the latest state asks of the log.* `apply.Apply.kvSpecL` asks `kvShapedL`
+  and `kv_certPreVW_on` asks `noZeroEnds`; the mode-`on` log did not keep either. `plainEntryOn`'s KV
+  case keeps `noZeroEnds rq ∧ kvShapeAll rq` (moved to `KVAuthModel.lean`), which the proposers give
+  (`noZeroEnds_of_irr` from the wire's `irrNoZeroEnd`); `kv_entry_pre_on` loses its `hz` premise.
+
+**`srvApplyKVOn` redefined** (unused until now): `srvApplyKV`'s row with the built part's base
+applier fact `srvUberBase s ua E` and the auth row `srvAuthApplyResB s E st` at the model's auth state
+`st` in place of `srvAuthApplyRes`. Mode-`on` lemmas in `ApplyNormalOn.lean`: `kvApplied_nextOn`,
+`appliedMono_of_invM`, `srvRest_admin`, `srvAuthApplyResB_open`, `srv_uberAuthStepsL_at`,
+`srvApplyKVOn_idxCert`, `kvAppliedLOn_cert`, and the pure facts on the admitted kinds.
+
+**Exported statements changed.** Definitions: `plainEntryOn` (both cases), `adminPropOk`
+(`noSideEffect`), `srvApplyKVOn`; `noZeroEnds`, `kvShapeAll` moved to `KVAuthModel.lean`. Theorems:
+`adminEntryOn.spec` (a `v3` parameter), `kv_entry_pre_on`/`apply_kv_entry_pre_on` (no `hz`, a longer
+post), `commitOkOn_plain` (`irrNoZeroEnd`). New: `entryOkOn`, `EtcdServer.applyEntryNormal.specOn`,
+`wp_proofOn`, `server_apply_entry_normal_on`. No closed theorem changed.
+
+**Not done (in order).** `applyAll`, `run`, `start` with auth on (over `specOn`; the readers'
+published lower bound `authPublishT` at the apply thread's admin steps is not in `specOn`'s post and
+is for them); then the admin proposers over `raftRequest.specM true`, the Auth handlers,
+`setupAuthOk`; then `examples/authkv` and the closed theorem.
