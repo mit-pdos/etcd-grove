@@ -474,13 +474,15 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   Perennial's `fix-semantics` workflow.
 - **Status.** Not started.
 
-### `os.Getenv`, `strconv.ParseBool` have no specs
+### `os.Getenv`, `strconv.ParseBool`, `strconv.ParseInt` have no specs
 
-- **Limitation.** Both are names-only in Perennial (no body, no spec).
+- **Limitation.** All three are names-only in Perennial (no body, no spec).
 - **Needed by.** `k8s.io/apiserver/pkg/storage/etcd3`'s `init` (`watcher.go`: whether
   `KUBE_PANIC_WATCH_DECODE_ERROR` parses as true), which the driver's initialization runs.
+  (2026-10-27, branch `k8s-leaf-cache`) `ParseInt`: client-go's thread-safe store
+  (`tools/cache`, `parseRVForMetricsWithTruncation`, the resource-version metric).
 - **Workaround here.** Trust-boundary specs (`Spec/os/Getenv.lean`, `Spec/strconv/ParseBool.lean`,
-  axioms in `Proof/`): each returns some value.
+  `Spec/strconv/ParseInt.lean`, axioms in `Proof/`): each returns some value.
 - **Proposed fix.** Specs in Perennial (`ParseBool` can be translated: it is pure).
 - **Status.** Not started.
 
