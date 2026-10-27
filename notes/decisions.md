@@ -23550,6 +23550,103 @@ conf changes clients propose; it only applies the voter-preserving ones). Its re
 committed filler is normal" needs `[]` to decode as the empty `ConfChangeV2` (`ccDecodeV2` is opaque)
 and a static-mode record of `stepLeader`'s acceptance; left to the user (a trust-base question).
 
+## Raft's node API for etcd's server (draft) (2026-10-27 · branch `server-port`; statements only, for the user's review)
+
+**What:** `NodeApiDraft.lean` extended (section "What etcd's server needs") with what porting etcd's
+server (`Proof/go_etcd_io/etcd/**`) onto the node API needs: raft's dynamic mode, the no-transfer
+mode, the hard state's commit witness, the snapshot the server builds, `ReportUnreachable`/
+`ReportSnapshot`. Statements only: new predicates sealed with `sorry` bodies, laws and the specs'
+placeholders `sorry` (none reached by any result); no existing statement changed. No port yet.
+
+**The inventory** (raft's declarations the server's files name today, `Proof/go_etcd_io/etcd/**`
+and `Spec/go_etcd_io/etcd/**`, rafthttp, the read-index loop, `NewServerAlloc*`, `InvBoot`
+included; name collisions with etcd's own `hist`, `rejected`, `Role`, `isLeader`, ... left out):
+
+- *Covered by the API as it is (both modes, once `ApiImpl.NodeOk` admits dynamic nodes):* the
+  committed log and the proposal registry (`raftCommitInv`, `raftLogInv(Body)`, `rLog`,
+  `isCommitted(_agree/_mono/_prefix)`, `ownCommitted_lb`, `committed_data`, `entsData_lookup`,
+  `entDataIs(_prop)`, `propDataIs`, `deposited`, `propIs(_deposited)`, `propFresh`, `propAu1`,
+  `prop_collect`, `node_prop_register`, `propArg`, `noopAu`, `raftLogN(_of)`, `raftN`, `raftRegInv`,
+  `raftRegN`, `rlq`, `logRest`) -> `ownCommittedOps`, `isCommittedLogLb`, `Propose`'s and
+  `ProposeConfChange`'s updates; the read index (`readReq`, `readReq_agree`, `read_collect`,
+  `readWit`, `readOk`, `isRead`, `readsReg`, `readSlot`, `readAu`, `rdFresh`, `regsOwn`, `rdCred`,
+  `rdCred_split`, `rdCred_zero_upd`, `rdCredInv`) -> `ownReadCtxs`, `readCtx_commit`,
+  `isReadCtx`, `readStateOk(_ctx/_used)`, `readCredits`; the node (`isNode`, `isReadyChan`,
+  `nodeDriver`, `nodeDriverBusy`, `readyP(_take/_take_ns)`, `readyData`, `readyDataL`,
+  `readySnapData`, `readStatesPts`, `readyDq`, `readyIdx`, `readyOut`, `softStateRO`, `QMsg`,
+  `SnapLoan`, `phsNext(_ne/_zero)`, `hsZero`, `dlvAfter`, `plogLast`, `base0`, `snapId`,
+  `snapLocal`, `lastRec_receipt`, `reqWit_none`) -> `node.readyRecv.spec`, `readyRest`,
+  `readySnap`, `node.Advance.spec`; messages (`stepP`, `fwdP`, `netP`, `stTks`, `tickCred(_zero)`,
+  `NetMsgOk.of_sent`, `isRaftMsg`, `isMessage(C)`, `isMessageC_isMessage`, `absMsg(From)`,
+  `mtypeOf*`, `termLB`, `BudgetNames`, `budgetInv`, `budgetN`) -> `sentMsg`, `msgCredits`,
+  `stepIn(_intro)`, `tickCredit(_intro/_zero)`, the cluster's budget; the allocation
+  (`ownRaftGhost_alloc_boot`, `allocClientBoot`, `bootPState`, `ownRaftGhost`, `bootInit`, `toMap`,
+  `BootLogOk`) -> `cluster_alloc`; the start (`StartNode.spec`, `bootMarshal`, `peersCtx`,
+  `ConfigValid`, `isLogger`, `certLink`) -> `StartNode.spec`, `nodeBoot`, `storageCertLink`;
+  `node.{Propose,ReadIndex,Ready,Step,Tick}.spec`, `nodeCtx`, `nodeErr`, `ctxErr`, `doneNilCtx`,
+  `bgCd` (ApiCtx, unchanged), `CCShrink`, `ccV2Of`, the static `node.ApplyConfChange.spec`.
+- *Static only in the API, the server needs them dynamic:* `node.ApplyConfChange.spec` (`nodeCfg`,
+  `dlvLb`, `DynCCPreOp`, `CCState`, `cfgState`, `ccApplyM(_single/_v1_noop)`, `ccStepB(_removeVoter/
+  _removeAbsent)`, `ccApplyM_overlap`, `CCNoop.shrink`, `simpleM_cfgState_addNode`,
+  `cfgState_empty_ids`, `CfgOk`, `CCOp`, `CCDec`, `IsConfEnt`, `addNodeCC`, `RNMode(.isDyn)`) ->
+  `Membership`, `Membership.applyChange` and its laws, `ConfChangeDecoder`, `ConfigView`,
+  `nodeConfig`, `deliveredLogLb`, `node.ApplyConfChange.dynamicSpec`; `node.Advance.spec`'s A1
+  (`NoConfIn`, `NoConfIn_prefix`) -> `NoConfChangeIn`, `node.Advance.dynamicSpec`;
+  `StartNode`/`RestartNode` at `md = .dyn` (`raft_dyn_alloc(_boot)`, `allocClient(Gen)`, `NsCap`)
+  -> `dynamicCluster_alloc(_empty)`, `nodeDynamicBoot`, `nodeDynamicRestartBoot`,
+  `StartNode.dynamicSpec`, `RestartNode.dynamicSpec`.
+- *Not in the API before:* the no-transfer mode (`RaftNames.reNoXfer = true`, `SentMsgOk`,
+  `SentMsgOk.ne_timeoutNow/_transferLeader`, `AppShape`) -> `leaderTransferOff`,
+  `sentMsg_transferOff`; the no-snapshot mode (`isRaftMsg_not_snap`, `readySnapData`'s clause) ->
+  `sentMsg_dynamic_notSnapshot`, `readySnap_dynamic` (dynamic clusters only, see Q5); the hard
+  state's witness (`hsWit`, `commitWit`) -> `committedAtTerm`, `committedAtTerm_committed`,
+  `nodeDriver_hardStateCommitted`; the merged snapshot (`isMessage_snap_recontent`, `msgCert`,
+  `raftSnapCert`, `snapDataOk`, `msgDat`, `absSnap`, `msgSnapTrip`, `Msg`, `SnapTrip`, `CSLists`)
+  -> `sentMsg_replaceSnapshot`, `msgCredits_snapshot`; `node.ReportUnreachable.spec`,
+  `node.ReportSnapshot.spec`.
+- *Raft's storage API and Go-value models, outside the node API (carried over, as for kv):*
+  `MemStorNames`, `memSnapTok(_split)`, `memStorEmpty`, `memSnapRO`, `memSnapN`, `memKey`,
+  `memFloorTok`, `memTokShared`, `MemoryStorage.{Snapshot,Compact}.spec`,
+  `MemoryStorage.Compact.wp_shared`, `MemStorReg`, `MemStorNamesRec`, `memStorReg(Auth)`,
+  `memStorIface`, `memStorage_Append`, `memStorFloor_at`, `memStorCap_intro`, `StorageModel`,
+  `StorState`, `isStorage`, `appendRight`, `appendReceipt`, `advReceipt`; raftpb's getters
+  (`Message.Get*`, `Entry.Get*`, `HardState.Get*`, `SnapshotMetadata.Get*`, `ConfChange.Get*`,
+  `*.Enum`, `MessageType.String`), `IsEmptySnap`, `IsEmptyHardState`, `wp_hsOpt_Get*`, `InvPb*`,
+  `PbModel`, `ConfChangeM`, `ccDecodeV1`, the message-type constants (`MsgApp`, ...), `Init`,
+  `FrameH`, `ProjSimps`.
+
+**Proposed changes to existing (proved) statements** (not made):
+1. `node.Advance.spec` takes no mode premise; it is true only of static nodes (`ApiImpl.NodeOk`
+   requires `γn.mode = .static`). Once `isNode`/`nodeDriver` cover dynamic nodes it needs
+   `isStaticCluster γ N vs snapOk` (kv has it in hand), the dynamic case being
+   `node.Advance.dynamicSpec`.
+2. `cluster_alloc`/`cluster_alloc_static` always give `leaderTransferOn`; the server runs in the
+   no-transfer mode (else its transport must hand `node.Step` a tick credit for every
+   `MsgTimeoutNow`). Proposed: the `transfer : Bool` of `dynamicCluster_alloc`.
+3. `sentMsg` forgets the sender (`∃ src, isRaftMsg γ.raft src st`): rafthttp's msgappv2 codec needs
+   a `MsgApp`'s `From` to be the sending node (`AppFrom`). Proposed: `readyRest`'s messages, or
+   `sentMsg`, name the node whose `Ready` handed them out.
+4. A static cluster is always outside raft's no-snapshot mode; the server today runs in it
+   (`reNoSnap = true`, `storCap 1`). The port can take `snapOk := fun _ _ => False` instead (a
+   snapshot `Ready` or `MsgSnap` is refuted by `snapshotCert_data`), or the static allocation gets a
+   no-snapshot variant.
+5. (implementation, no statement) `ApiImpl.nodeDriver` owns raft's `nodeCfg`; a dynamic node's view
+   must be separate (`nodeConfig`), since etcd's apply goroutine holds it while applying.
+
+**Open design questions (for the user):** Q1 the decoder fixed at allocation (raft's
+`DynCfg.ofFold dec c0`), over `LogEntry`s and the log before the entry, or something without it;
+Q2 `ConfigView` stores the membership (today's `nodeCfg`) though it is derivable from `c0`,
+`decode` and the log's prefix (a client would then prove a fold); Q3 `Membership` mirrors
+`tracker.Config`, with `applyChange` sealed and laws only for the simple v1 changes etcd makes
+(nothing for joint configurations), `Valid` sealed; Q4 the dynamic specs as separate `dynamicSpec`
+variants (four), or one spec per function over `isStaticCluster ∨ isDynamicCluster`; Q5 a dynamic
+cluster is in raft's no-snapshot mode (raft's dynamic mode with snapshots is not proved), so
+`StartNode.dynamicSpec` takes `storCap 1` in place of the certificate link; Q6 `SentMsgOk` exposed
+as the no-transfer mode's pure vocabulary; Q7 `committedAtTerm` and `sentMsg_replaceSnapshot` for
+the snapshot track (dead while the server is in the no-snapshot mode); Q8 `deliveredLogLb` (per
+node) as `ApplyConfChange`'s premise rather than `isCommittedLogLb`; Q9 `nodeDriver_hardStateCommitted`
+excludes a lent snapshot (then the witness bounds the log before it).
+
 ---
 
 ## Method-set facts are theorems of goose's method sets

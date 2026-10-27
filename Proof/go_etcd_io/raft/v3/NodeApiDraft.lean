@@ -480,6 +480,251 @@ private theorem readyRest_of_impl (γ : Cluster) (N : Namespace) (rd : Ready) (s
     ApiImpl.readyRest (GF := GF) γ N rd st ce es h L ⊢ readyRest γ N rd st ce es h L := by
   cases L <;> exact .rfl
 
+/-! ## What etcd's server needs (draft, 2026-10-27, branch `server-port`; `sorry` until implemented)
+
+The server runs raft's **dynamic** mode (its membership changes: `notes/membership-plan.md`), in
+raft's no-snapshot and no-transfer modes, and its transport (rafthttp) carries the messages a
+`Ready` hands out. What it uses of raft's tree today, and the statements below, are listed in
+`notes/decisions.md`, "Raft's node API for etcd's server (draft)". Every predicate here is sealed
+with a `sorry` body, every law a `sorry`; **(open)** marks what carries today's meaning unchanged
+(no redesign). -/
+
+/-! ### The configuration, abstractly -/
+
+/-- **A cluster's membership**, as raft's `ConfState` reports it (a `tracker.Config` without the
+progress map): the voters, the outgoing voters of a joint configuration, the learners, the learners
+to add when the joint configuration is left, and whether it is left automatically. -/
+structure Membership where
+  voters : GSet w64
+  votersOutgoing : GSet w64
+  learners : GSet w64
+  learnersNext : GSet w64
+  autoLeave : Bool
+
+/-- The membership of the voters `vs` only (not joint, no learners): every membership etcd's server
+uses. -/
+def Membership.simple (vs : GSet w64) : Membership := ⟨vs, ∅, ∅, ∅, false⟩
+
+/-- (open) **A membership raft accepts** (sealed; today `CfgOk` and `CCGood` of the configuration
+with its progress flags): what `checkInvariants` accepts, with some voter, within raft's bound on
+the tracked ids. -/
+@[no_expose] def Membership.Valid (m : Membership) : Prop := sorry
+
+/-- A non-empty set of non-zero voters, within raft's bound, is a valid membership. -/
+theorem Membership.simple_valid (vs : GSet w64) :
+    vs ≠ ∅ → W64 0 ∉ vs → GMap.size vs < 2 ^ 62 → (Membership.simple vs).Valid := sorry
+
+/-- (open) **What a conf change does to a membership** (sealed; today `ccStepB ∘ ccV2Of`: the
+change as `AsV2` makes it, applied by `confchange`'s `Changer`, within raft's bound on the tracked
+ids): `none` where `ApplyConfChange` would fail. The laws below give the simple changes etcd's
+server makes; nothing is said of joint configurations. -/
+@[no_expose] def Membership.applyChange (o : ConfChangeIM) (m : Membership) : Option Membership :=
+  sorry
+
+/-- A change keeps a membership valid. -/
+theorem Membership.applyChange_valid (o : ConfChangeIM) (m m' : Membership) :
+    m.Valid → Membership.applyChange o m = some m' → m'.Valid := sorry
+
+/-- A legacy change of the node `0` changes nothing (raft skips it): what etcd hands raft in place of
+a change it refuses (`applyConfChange`'s `NodeID = 0`). -/
+theorem Membership.applyChange_nodeZero (vs : GSet w64) (cm : ConfChangeM) :
+    cm.nodeId = W64 0 → (Membership.simple vs).Valid →
+    Membership.applyChange (.v1 cm) (Membership.simple vs) = some (Membership.simple vs) := sorry
+
+/-- A legacy `AddNode` of a voter changes nothing (what the bootstrap entries do when a node of a new
+dynamic cluster applies them again). -/
+theorem Membership.applyChange_addVoter (vs : GSet w64) (cm : ConfChangeM) :
+    cm.type = W32 0 → cm.nodeId ∈ vs → (Membership.simple vs).Valid →
+    Membership.applyChange (.v1 cm) (Membership.simple vs) = some (Membership.simple vs) := sorry
+
+/-- A legacy `RemoveNode` of a voter, not the last, removes it. -/
+theorem Membership.applyChange_removeVoter (vs : GSet w64) (cm : ConfChangeM) :
+    cm.type = W32 1 → cm.nodeId ≠ W64 0 → cm.nodeId ∈ vs →
+    (GMap.delete cm.nodeId vs : GSet w64) ≠ ∅ → (Membership.simple vs).Valid →
+    Membership.applyChange (.v1 cm) (Membership.simple vs) =
+      some (Membership.simple (GMap.delete cm.nodeId vs)) := sorry
+
+/-- A legacy `RemoveNode` of a node that is not a voter changes nothing. -/
+theorem Membership.applyChange_removeAbsent (vs : GSet w64) (cm : ConfChangeM) :
+    cm.type = W32 1 → cm.nodeId ≠ W64 0 → cm.nodeId ∉ vs → (Membership.simple vs).Valid →
+    Membership.applyChange (.v1 cm) (Membership.simple vs) = some (Membership.simple vs) := sorry
+
+/-- **A `ConfState` reports the membership `m`**: its four lists hold `m`'s four sets (in some
+order, without repeats), its `AutoLeave` is `m`'s. (Today `confstateOk`.) -/
+def confStateIs (cs : ConfStateM) (m : Membership) : Prop :=
+  cs.Voters' ≡ₚ elements m.voters ∧ cs.VotersOutgoing' ≡ₚ elements m.votersOutgoing ∧
+    cs.Learners' ≡ₚ elements m.learners ∧ cs.LearnersNext' ≡ₚ elements m.learnersNext ∧
+    cs.AutoLeave' = m.autoLeave
+
+/-- **A conf-change entry**: of type `EntryConfChange` (1) or `EntryConfChangeV2` (2). -/
+def LogEntry.isConfChange (e : LogEntry) : Prop := e.type = W32 1 ∨ e.type = W32 2
+
+/-- No conf-change entry at the positions `[lo, hi)` of the log `l`. (Today `NoConfIn`.) -/
+def NoConfChangeIn (l : List LogEntry) (lo hi : Nat) : Prop :=
+  ∀ (k : Nat) (e : LogEntry), lo ≤ k → k < hi → l[k]? = some e → ¬ e.isConfChange
+
+/-- **A conf-change decoder**: the change a conf-change entry makes, given the committed log before
+it (fillers included). Fixed when a dynamic cluster is allocated: every node must apply the same
+change for the same committed entry (raft's `CCDec`; etcd's server validates a change against the
+membership the log before it leaves, and hands raft a refused one with `NodeID = 0`). -/
+abbrev ConfChangeDecoder := List LogEntry → LogEntry → Option ConfChangeIM
+
+/-- **A node's view of its configuration**: the conf-change entries of the committed log below
+position `applied` are applied (`node.ApplyConfChange`), and the membership they give. (Today
+`nodeCfg`'s `(ca, cfg)`.) -/
+structure ConfigView where
+  applied : Nat
+  membership : Membership
+
+/-! ### A dynamic cluster -/
+
+/-- (open) **The cluster is dynamic** (persistent): raft's dynamic mode, from the membership `c0`,
+its conf-change entries meaning what `decode` says; and raft's no-snapshot mode (raft's dynamic mode
+does not take snapshots: its storages are never compacted past index `1`, `storCap`). -/
+@[no_expose] def isDynamicCluster (γ : Cluster) (N : Namespace) (c0 : Membership)
+    (decode : ConfChangeDecoder) : IProp GF := sorry
+
+instance isDynamicCluster_persistent (γ : Cluster) (N : Namespace) (c0 : Membership)
+    (decode : ConfChangeDecoder) : Persistent (isDynamicCluster (GF := GF) γ N c0 decode) := sorry
+
+/-- (open) **Leader transfer is off** in the cluster (persistent; today `RaftNames.reNoXfer =
+true`): `node.TransferLeadership` is not called, and the messages raft sends are what a receiver's
+`Step` takes without a tick credit (`sentMsg_transferOff`). -/
+@[no_expose] def leaderTransferOff (γ : Cluster) (N : Namespace) : IProp GF := sorry
+
+instance leaderTransferOff_persistent (γ : Cluster) (N : Namespace) :
+    Persistent (leaderTransferOff (GF := GF) γ N) := sorry
+
+/-- (open) **A message sent in a cluster with leader transfer off** has the shape `SentMsgOk` (no
+`MsgTimeoutNow`, no `MsgTransferLeader`, a `MsgApp` of raft's shape `AppShape`, ...): what a
+receiver's `NetMsgOk` needs (`NetMsgOk.of_sent`) and what rafthttp's msgappv2 codec carries
+whole. -/
+theorem sentMsg_transferOff (γ : Cluster) (N : Namespace) (st : MsgSt) :
+    leaderTransferOff (GF := GF) γ N ∗ sentMsg γ N st ⊢ ⌜SentMsgOk st⌝ := sorry
+
+/-- **A dynamic cluster sends no snapshot** (raft's no-snapshot mode; today `isRaftMsg_not_snap`). -/
+theorem sentMsg_dynamic_notSnapshot (γ : Cluster) (N : Namespace) (c0 : Membership)
+    (decode : ConfChangeDecoder) (st : MsgSt) :
+    isDynamicCluster (GF := GF) γ N c0 decode ∗ sentMsg γ N st ⊢ ⌜st.msg.Type' ≠ MsgSnap⌝ := sorry
+
+/-- **A dynamic cluster's `Ready`s carry no snapshot** (today `readySnapData`'s clause
+`reNoSnap = false`). -/
+theorem readySnap_dynamic (γ : Cluster) (N : Namespace) (c0 : Membership)
+    (decode : ConfChangeDecoder) (rd : Ready) (st : NodeDriverState) (ce : List LogEntry)
+    (es : List EntryM) (l : SnapLoan) :
+    isDynamicCluster (GF := GF) γ N c0 decode ∗ readySnap γ N rd st ce es (some l) ⊢ False := sorry
+
+/-- **A node's boot token** of a new dynamic cluster of the peers `ps` with the contexts `ctxs`,
+for node `id`'s `StartNode` (exclusive). -/
+@[no_expose] def nodeDynamicBoot (γ : Cluster) (N : Namespace) (ps : List w64)
+    (ctxs : List (List w8)) (id : w64) : IProp GF := sorry
+
+/-- **A new dynamic cluster** of the peers `ps`, in the caller's namespace `N`, as `cluster_alloc`
+(the client's committed requested entries at the bootstrap entries, the read contexts with none
+used, the read credits, the term budget the cluster's, one boot token per peer), dynamic from the
+peers' membership with the caller's decoder `decode`, and leader transfer on or off as the caller
+chooses (`transfer`). The bootstrap entries are committed but not applied: each node applies them
+again (`node.ApplyConfChange.dynamicSpec`, at the configuration index `0`), so `decode` should give
+them a change that leaves the peers' membership as it is (`Membership.applyChange_addVoter`).
+(Today `raft_dyn_alloc_boot` and `budget_alloc_boot`, with `allocClientGen`'s continuation.) -/
+theorem dynamicCluster_alloc (N : Namespace) (ps : List w64) (ctxs : List (List w8))
+    (boot : List LogEntry) (decode : ConfChangeDecoder) (transfer : Bool) (E : CoPset) :
+    receiptBound GF ≤ 2 ^ 64 - 2 →
+    BootLog ps ctxs boot → ps.Nodup → ps ≠ [] → W64 0 ∉ ps → (ps.length : Int) ≤ 2 ^ 62 →
+    ⊢ bootMarshal (GF := GF) ps ctxs (LogEntry.toEntries boot 0) -∗
+      |={E}=> ∃ γ, ownCommittedOps γ boot ∗ ownReadCtxs γ ∅ ∗ readCredits γ (2 ^ 64 - 2) ∗
+        isDynamicCluster γ N (Membership.simple (GMap.listToSet ps)) decode ∗
+        (if transfer then leaderTransferOn γ N else leaderTransferOff γ N) ∗
+        [∗list] id ∈ ps, nodeDynamicBoot γ N ps ctxs id := sorry
+
+/-- **A dynamic cluster's boot token** for node `id`, of the initial voters `vs` (exclusive): what
+its `RestartNode` takes. -/
+@[no_expose] def nodeDynamicRestartBoot (γ : Cluster) (N : Namespace) (vs : List w64) (id : w64) :
+    IProp GF := sorry
+
+/-- **A new dynamic cluster** of the voters `vs`, nothing committed: as `cluster_alloc_static`,
+dynamic from the voters' membership with the decoder `decode`. (Today `raft_dyn_alloc` and
+`budget_alloc`.) -/
+theorem dynamicCluster_alloc_empty (N : Namespace) (vs : List w64) (decode : ConfChangeDecoder)
+    (transfer : Bool) (E : CoPset) :
+    receiptBound GF ≤ 2 ^ 64 - 2 → vs ≠ [] → vs.Nodup → W64 0 ∉ vs → (vs.length : Int) ≤ 2 ^ 62 →
+    ⊢ |={E}=> ∃ γ, ownCommittedOps (GF := GF) γ [] ∗ ownReadCtxs γ ∅ ∗ readCredits γ (2 ^ 64 - 2) ∗
+        isDynamicCluster γ N (Membership.simple (GMap.listToSet vs)) decode ∗
+        (if transfer then leaderTransferOn γ N else leaderTransferOff γ N) ∗
+        [∗list] id ∈ vs, nodeDynamicRestartBoot γ N vs id := sorry
+
+/-- (open) **A node's configuration view** (exclusive, one per node; today `nodeCfg`): what
+`node.ApplyConfChange.dynamicSpec` moves and `node.Advance.dynamicSpec` checks. Separate from the
+`Ready` loop's token (`nodeDriver`): an application may apply the conf changes on another goroutine
+than its `Ready` loop (etcd's server applies them on its apply goroutine, and hands the view back
+before `Advance`). -/
+@[no_expose] def nodeConfig (n : Loc) (γ : Cluster) (N : Namespace) (v : ConfigView) : IProp GF :=
+  sorry
+
+/-- (open) **The committed log delivered to node `n` extends `l`** (persistent; today `dlvLb`): what
+`node.ApplyConfChange.dynamicSpec` takes of the entry it applies. -/
+@[no_expose] def deliveredLogLb (n : Loc) (γ : Cluster) (N : Namespace) (l : List LogEntry) :
+    IProp GF := sorry
+
+instance deliveredLogLb_persistent (n : Loc) (γ : Cluster) (N : Namespace) (l : List LogEntry) :
+    Persistent (deliveredLogLb (GF := GF) n γ N l) := sorry
+
+/-- The `Ready` loop knows what it was delivered. -/
+theorem nodeDriver_deliveredLogLb (n : Loc) (γ : Cluster) (N : Namespace) (st : NodeDriverState) :
+    nodeDriver (GF := GF) n γ N st ⊢ nodeDriver n γ N st ∗ deliveredLogLb n γ N st.delivered := sorry
+
+theorem deliveredLogLb_mono (n : Loc) (γ : Cluster) (N : Namespace) (l1 l2 : List LogEntry) :
+    l1 <+: l2 → deliveredLogLb (GF := GF) n γ N l2 ⊢ deliveredLogLb n γ N l1 := sorry
+
+/-- What was delivered is committed. -/
+theorem deliveredLogLb_committed (n : Loc) (γ : Cluster) (N : Namespace) (l : List LogEntry) :
+    deliveredLogLb (GF := GF) n γ N l ⊢ isCommittedLogLb γ l := sorry
+
+/-! ### A `Ready`'s hard state -/
+
+/-- (open) **The log through index `c` was committed at term `t`** (persistent; today `commitWit`): a
+leader of term `t` had committed the log through `c`. What the snapshot a server builds itself needs
+(`sentMsg_replaceSnapshot`), and etcd's apply batches record (`toApply.raftTerm`). -/
+@[no_expose] def committedAtTerm (γ : Cluster) (N : Namespace) (t c : w64) : IProp GF := sorry
+
+instance committedAtTerm_persistent (γ : Cluster) (N : Namespace) (t c : w64) :
+    Persistent (committedAtTerm (GF := GF) γ N t c) := sorry
+
+theorem committedAtTerm_committed (γ : Cluster) (N : Namespace) (t c : w64) :
+    committedAtTerm (GF := GF) γ N t c ⊢
+      ∃ l, isCommittedLogLb γ l ∗ ⌜l.length = uint.nat c⌝ := sorry
+
+/-- (open) **The hard state last handed out is a commit witness** (today `hsWit` of `prevHardSt`,
+handed out with each `Ready`): the zero record, or its term and commit index are a
+`committedAtTerm`, the commit index at least the committed log delivered -- but while a snapshot's
+loan is out (the bound is then of the log before the snapshot). -/
+theorem nodeDriver_hardStateCommitted (n : Loc) (γ : Cluster) (N : Namespace)
+    (st : NodeDriverState) :
+    (∀ es l, st.handling ≠ some (es, some l)) →
+    nodeDriver (GF := GF) n γ N st ⊢ nodeDriver n γ N st ∗
+      (⌜st.hardState = hsZero⌝ ∨
+        committedAtTerm γ N st.hardState.Term' st.hardState.Commit' ∗
+          ⌜(st.delivered.length : Int) ≤ uint.Z st.hardState.Commit'⌝) := sorry
+
+/-! ### A snapshot the client builds (the snapshot track; open) -/
+
+/-- (open) **A raft `MsgSnap` with the client's snapshot in place of raft's** (today
+`isMessage_snap_recontent`, D22 S-b; etcd's server sends the merged snapshot, its backend's image
+at its applied index, in place of the snapshot raft's `MsgSnap` names): sent, if the new snapshot
+is certified, at an index committed at the message's term, past raft's. -/
+theorem sentMsg_replaceSnapshot (γ : Cluster) (N : Namespace) (st : MsgSt) (sv sv' : SnapshotM)
+    (c : w64) (E : CoPset) :
+    ↑N ⊆ E → st.msg.Type' = MsgSnap → st.snap = some sv →
+    uint.Z sv.Metadata'.Index' ≤ uint.Z sv'.Metadata'.Index' →
+    uint.Z sv'.Metadata'.Index' ≤ uint.Z c →
+    ⊢ sentMsg (GF := GF) γ N st -∗ committedAtTerm γ N st.msg.Term' c -∗
+      snapshotCert γ N (snapTrip sv' sv'.Metadata'.ConfState'.lists) ={E}=∗
+      sentMsg γ N { st with snap := some sv' } := sorry
+
+/-- (open) A `MsgSnap` carries no read credit and no forwarded proposal's tickets. -/
+theorem msgCredits_snapshot (γ : Cluster) (N : Namespace) (st : MsgSt) :
+    st.msg.Type' = MsgSnap → ⊢ |==> msgCredits (GF := GF) γ N st := sorry
+
 end api
 
 /-! ## The specs -/
@@ -724,6 +969,151 @@ abbrev node.ApplyConfChange.spec : Prop :=
       ⌜cs.Voters' ≡ₚ vs ∧ (∀ k ∈ cs.Learners', k ∉ vs) ∧ cs.VotersOutgoing' = [] ∧
         cs.LearnersNext' = [] ∧ cs.AutoLeave' = false⌝ }}
 
+/-! ### What etcd's server needs (draft, 2026-10-27; `sorry` placeholders below)
+
+The dynamic specs are variants of the same Go functions' specs for a dynamic cluster
+(`isDynamicCluster`); `isNode`, `nodeDriver`, `node.Propose`, ..., `node.readyRecv` are meant for
+either kind of cluster (today's implementation, `ApiImpl.NodeOk`, is the static mode's). -/
+
+/-- **`node.ApplyConfChange(cc)`** in a dynamic cluster, from any goroutine: the change of the next
+conf-change entry `e` of the committed log delivered to the node, at position `k` past its view's
+configuration index (no conf-change entry between), as the decoder gives it (`o'`), or any change
+`o` with its effect on the view's membership; the result not left automatically (no auto-leave
+joint configuration). The view moves past the entry, to the membership the change gives; the answer
+is a fresh `ConfState` reporting it. (Today the dynamic case of `node__ApplyConfChange.lean`,
+`DynCCPreOp`, `nodeCfg`, `dlvLb`.) -/
+abbrev node.ApplyConfChange.dynamicSpec : Prop :=
+  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (c0 : Membership)
+    (decode : ConfChangeDecoder) (c : GoInterface) (o o' : ConfChangeIM) (l : List LogEntry)
+    (k : Nat) (e : LogEntry) (v : ConfigView) (m' : Membership),
+  v.applied ≤ k → l[k]? = some e → e.isConfChange → NoConfChangeIn l v.applied k →
+  decode (l.take k) e = some o' → Membership.applyChange o' v.membership = some m' →
+  Membership.applyChange o v.membership = some m' → m'.autoLeave = false →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id ∗
+      isDynamicCluster γ N c0 decode ∗ ownConfChangeI c DFrac.discard (some o) ∗
+      nodeConfig n γ N v ∗ deliveredLogLb n γ N l }}
+    (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"ApplyConfChange")) (Val #c))
+  {{ (csp : Loc) (cs : ConfStateM), RET #csp; csPts csp (DFrac.own 1) cs true ∗
+      nodeConfig n γ N ⟨k + 1, m'⟩ ∗ ⌜confStateIs cs m'⌝ }}
+
+/-- **`node.Advance()`** in a dynamic cluster: as `node.Advance.spec`, if every conf-change entry
+of the committed log delivered is applied (none past the view's configuration index:
+`issues/raft-advance-before-applyconfchange.md`, today's A1). The view is unchanged. -/
+abbrev node.Advance.dynamicSpec : Prop :=
+  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (c0 : Membership) (decode : ConfChangeDecoder)
+    (st : NodeDriverState) (es : List EntryM) (L : Option SnapLoan) (v : ConfigView),
+  st.handling = some (es, L) →
+  NoConfChangeIn st.delivered v.applied st.delivered.length →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isDynamicCluster γ N c0 decode ∗
+      nodeDriver n γ N st ∗ advReceipt st.storage es L ∗ nodeConfig n γ N v }}
+    (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Advance")) (Val #()))
+  {{ RET #(); nodeDriver n γ N { st with handling := none } ∗ nodeConfig n γ N v ∗
+      match L with
+      | none => ∃ x : w64, storFloor st.storage x ∗ ⌜(st.delivered.length : Int) ≤ uint.Z x⌝
+      | some _ => True }}
+
+/-- **`StartNode(c, peers)`** in a dynamic cluster: as `StartNode.spec`, from the dynamic boot
+token (`dynamicCluster_alloc`), on a storage never compacted past index `1` (raft's no-snapshot
+mode, `storCap`; in place of the certificate link), and the node's configuration view at index `0`
+and the peers' membership: the node applies the bootstrap entries again, through its first
+`Ready`s. (Today `StartNode.spec` at `md = .dyn …`.) -/
+abbrev StartNode.dynamicSpec : Prop :=
+  ∀ (γ : Cluster) (N : Namespace) (c : Loc) (cv : Config) (lok si : GoInterfaceOk)
+    (σ : StorState) (hs : HardStateM) (csm : ConfStateM) (R : IProp GF)
+    (peers : GoSlice) (dq : DFrac) (pv : List Peer) (ps : List w64) (ctxs : List (List w8)),
+  -- `NewRawNode`'s premises (unchanged)
+  ConfigValid cv →
+  cv.Logger' = interface.ok lok →
+  cv.Storage' = interface.ok si →
+  sint.Z cv.MaxInflightMsgs' < 2 ^ 62 →
+  cv.DisableProposalForwarding' = false →
+  cv.ReadOnlyOption' = W64 0 →
+  cv.DisableConfChangeValidation' = false →
+  (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) →
+  cv.AsyncStorageWrites' = false →
+  cv.Applied' = W64 0 →
+  -- an empty storage and conf state (unchanged)
+  σ.prev = entryID.mk (W64 0) (W64 0) → σ.ents = [] → (uint.Z σ.ss.index' = 0 ∨ σ.ss = σ.prev) →
+  σ.pend = [] → HsEmpty hs →
+  csm.Voters' = [] → csm.VotersOutgoing' = [] → csm.Learners' = [] → csm.LearnersNext' = [] →
+  csm.AutoLeave' = false →
+  -- the peers (unchanged)
+  ps = pv.map Peer.ID' → ps ≠ [] → ps.Nodup → W64 0 ∉ ps → (ps.length : Int) ≤ 2 ^ 62 →
+  cv.ID' ∈ ps →
+  σ.fl = W64 0 →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
+      isStorage (interface.ok si) ∗ ownStorage (interface.ok si) σ ∗
+      (∀ (Φ : val → IProp GF) (ss' : entryID), ownStorage (interface.ok si) { σ with ss := ss' } -∗
+           (∀ (hp cs : Loc) (al : Bool), ownStorage (interface.ok si) { σ with ss := ss' } -∗
+            R -∗ hsOpt hp hs -∗ csPts cs DFrac.discard csm al -∗
+            Φ (PairV (PairV #hp #cs) #interface.nil)) -∗
+           WP (App (Val #(methods si.ty go!"InitialState" si.v)) (Val #())) {{ Φ }}) ∗
+      peers ↦*{dq} pv ∗ peersCtx pv ctxs ∗
+      nodeDynamicBoot γ N ps ctxs cv.ID' ∗
+      -- raft's no-snapshot mode: the storage is never compacted past index `1`
+      storCap (interface.ok si) 1 }}
+    (App (App (Val #(functions StartNode [])) (Val #c)) (Val #peers))
+  {{ (nd : GoInterface), RET #nd;
+      R ∗ ∃ (n : Loc), ⌜nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗
+        isNode n γ N cv.ID' ∗ nodeDriver n γ N (NodeDriverState.init (interface.ok si)) ∗
+        nodeConfig n γ N ⟨0, Membership.simple (GMap.listToSet ps)⟩ }}
+
+/-- **`RestartNode(c)`** in a dynamic cluster of the initial voters `vs`: as `RestartNode.spec`,
+from the dynamic boot token (`dynamicCluster_alloc_empty`), on a storage never compacted past
+index `1`, and the node's configuration view at index `0` and the voters' membership. (Today
+`RestartNode.spec` at `md = .dyn …`.) -/
+abbrev RestartNode.dynamicSpec : Prop :=
+  ∀ (γ : Cluster) (N : Namespace) (vs : List w64) (c : Loc) (cv : Config) (lok si : GoInterfaceOk)
+    (σ : StorState) (hs : HardStateM) (csm : ConfStateM),
+  -- `NewRawNode`'s premises (unchanged)
+  ConfigValid cv →
+  cv.Logger' = interface.ok lok →
+  cv.Storage' = interface.ok si →
+  sint.Z cv.MaxInflightMsgs' < 2 ^ 62 →
+  cv.DisableProposalForwarding' = false →
+  cv.ReadOnlyOption' = W64 0 →
+  cv.DisableConfChangeValidation' = false →
+  (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) →
+  cv.AsyncStorageWrites' = false →
+  cv.Applied' = W64 0 →
+  -- an empty storage, the voters' conf state (unchanged)
+  σ.prev = entryID.mk (W64 0) (W64 0) → σ.ents = [] → (uint.Z σ.ss.index' = 0 ∨ σ.ss = σ.prev) →
+  σ.pend = [] → HsEmpty hs →
+  csm.Voters' = vs → csm.VotersOutgoing' = [] → csm.Learners' = [] → csm.LearnersNext' = [] →
+  csm.AutoLeave' = false →
+  cv.ID' ∈ vs →
+  σ.fl = W64 0 →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
+      isStorage (interface.ok si) ∗ ownStorage (interface.ok si) σ ∗
+      □ (∀ (Φ : val → IProp GF) (ss' : entryID), ownStorage (interface.ok si) { σ with ss := ss' } -∗
+           (∀ (hp cs : Loc) (al : Bool), ownStorage (interface.ok si) { σ with ss := ss' } -∗
+            hsOpt hp hs -∗ csPts cs DFrac.discard csm al -∗
+            Φ (PairV (PairV #hp #cs) #interface.nil)) -∗
+           WP (App (Val #(methods si.ty go!"InitialState" si.v)) (Val #())) {{ Φ }}) ∗
+      nodeDynamicRestartBoot γ N vs cv.ID' ∗ storCap (interface.ok si) 1 }}
+    (App (Val #(functions RestartNode [])) (Val #c))
+  {{ (nd : GoInterface), RET #nd;
+      ∃ (n : Loc), ⌜nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗
+        isNode n γ N cv.ID' ∗ nodeDriver n γ N (NodeDriverState.init (interface.ok si)) ∗
+        nodeConfig n γ N ⟨0, Membership.simple (GMap.listToSet vs)⟩ }}
+
+/-- **`node.ReportUnreachable(id)`**, from any goroutine (the transport's): a leader's progress of
+`id` only; nothing is promised. -/
+abbrev node.ReportUnreachable.spec : Prop :=
+  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (to : w64),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id }}
+    (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"ReportUnreachable")) (Val #to))
+  {{ RET #(); True }}
+
+/-- **`node.ReportSnapshot(id, status)`**, from any goroutine (the transport's); nothing is
+promised. -/
+abbrev node.ReportSnapshot.spec : Prop :=
+  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) (to : w64) (status : SnapshotStatus),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isNode n γ N id }}
+    (App (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"ReportSnapshot")) (Val #to))
+      (Val #status))
+  {{ RET #(); True }}
+
 end spec
 
 /-! ## The specs' placeholders (until raft's proof proves them: `sorry`)
@@ -774,6 +1164,15 @@ theorem wp_RestartNode : RestartNode.spec (GF := GF) (hG := hG) := by
   exact ApiImpl.wp_RestartNode_impl _root_.Perennial.EtcdGrove.wp_RestartNode
 theorem node.wp_ApplyConfChange : node.ApplyConfChange.spec (GF := GF) (hG := hG) := by
   exact ApiImpl.node.wp_ApplyConfChange_impl _root_.Perennial.EtcdGrove.node.wp_ApplyConfChange
+
+/- (draft, 2026-10-27: etcd's server's) -/
+theorem node.wp_ApplyConfChange_dynamic :
+    node.ApplyConfChange.dynamicSpec (GF := GF) (hG := hG) := sorry
+theorem node.wp_Advance_dynamic : node.Advance.dynamicSpec (GF := GF) (hG := hG) := sorry
+theorem wp_StartNode_dynamic : StartNode.dynamicSpec (GF := GF) (hG := hG) := sorry
+theorem wp_RestartNode_dynamic : RestartNode.dynamicSpec (GF := GF) (hG := hG) := sorry
+theorem node.wp_ReportUnreachable : node.ReportUnreachable.spec (GF := GF) (hG := hG) := sorry
+theorem node.wp_ReportSnapshot : node.ReportSnapshot.spec (GF := GF) (hG := hG) := sorry
 
 end links
 
