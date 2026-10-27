@@ -29,12 +29,13 @@ variable [package_sem : go_etcd_io.bbolt.Assumptions]
 /-- `tx.CreateBucketIfNotExists(name)` (a name of `1..MaxKeySize` bytes): the bucket, empty if
 it was absent, and its handle (bbolt copies the name). -/
 abbrev bbolt.Tx.CreateBucketIfNotExists_kv.spec : Prop :=
-  ∀ (tx : Loc) (γ : DBNames) (D S : Data) (name : GoSlice) (n : GoString) (dq : DFrac),
+  ∀ (tx : Loc) (γ : DBNames) (D S : Data) (G : GoString → Nat) (name : GoSlice) (n : GoString)
+    (dq : DFrac),
   0 < n.length → n.length ≤ maxKeySize →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ ownWTx tx γ D S ∗ name ↦*{dq} n }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.bbolt ∗ ownWTxG tx γ D S G ∗ name ↦*{dq} n }}
     (App (Val (tx @!! go.GoType.PointerType Tx.ty @!! go!"CreateBucketIfNotExists")) (Val #name))
   {{ (b : Loc) (err : GoInterface), RET (PairV #b #err); ⌜err = GoInterface.nil⌝ ∗
-      ownWTx tx γ D (if S.lookup n = none then S.insert n ∅ else S) ∗ wBkt tx b n ∗
+      ownWTxG tx γ D (if S.lookup n = none then S.insert n ∅ else S) G ∗ wBkt tx b n (G n) ∗
       name ↦*{dq} n }}
 
 end spec
