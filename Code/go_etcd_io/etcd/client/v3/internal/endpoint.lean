@@ -20,61 +20,61 @@ end pkg_id
 
 namespace go_etcd_io.etcd.client.v3.internal.endpoint
 
-noncomputable def CredsRequirement.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def CredsRequirement.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/client/v3/internal/endpoint.CredsRequirement" [])
 
 attribute [irreducible] CredsRequirement.ty
 
-@[reducible] noncomputable def CredsRequire [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def CredsRequire [GooseExts] [GoGlobalContext] : val :=
   #(W64 0)
 
-@[reducible] noncomputable def CredsDrop [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def CredsDrop [GooseExts] [GoGlobalContext] : val :=
   #(W64 1)
 
-@[reducible] noncomputable def CredsOptional [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def CredsOptional [GooseExts] [GoGlobalContext] : val :=
   #(W64 2)
 
-noncomputable def extractHostFromHostPort [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def extractHostFromHostPort [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3/internal/endpoint.extractHostFromHostPort"
 
-noncomputable def mustSplit2 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def mustSplit2 [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3/internal/endpoint.mustSplit2"
 
-noncomputable def schemeToCredsRequirement [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def schemeToCredsRequirement [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3/internal/endpoint.schemeToCredsRequirement"
 
-noncomputable def translateEndpoint [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def translateEndpoint [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3/internal/endpoint.translateEndpoint"
 
-noncomputable def RequiresCredentials [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def RequiresCredentials [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3/internal/endpoint.RequiresCredentials"
 
-noncomputable def Interpret [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Interpret [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/client/v3/internal/endpoint.Interpret"
 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.client.v3.internal.endpoint where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.client.v3.internal.endpoint)) (Lam BAnon
   (App (Val exceptionDo)
   (App (Val doExecute)
   (Val #()))))))
 
-abbrev CredsRequirement [FfiSyntax] : Type := w64
+abbrev CredsRequirement [GooseExts] : Type := w64
 
-@[reducible] noncomputable def CredsRequirement.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def CredsRequirement.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.int
 
-class CredsRequirement.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class CredsRequirement.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq CredsRequirement.ty CredsRequirement.underlying
 
 attribute [instance] CredsRequirement.TypeAssumptions.underlying
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   CredsRequirement_instance : CredsRequirement.TypeAssumptions
 
 attribute [instance] Assumptions.CredsRequirement_instance

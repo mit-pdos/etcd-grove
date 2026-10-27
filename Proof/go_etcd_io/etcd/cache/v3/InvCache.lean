@@ -112,7 +112,7 @@ def validRange (pfx start end_ : GoString) : Bool :=
 /-! ## The `Cache`'s fields -/
 
 section addrs
-variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
 /-- `&c.prefix` -/
 abbrev cachePrefixAddr (c : Loc) : Loc := structFieldRef Cache go!"prefix" c
@@ -135,7 +135,7 @@ end addrs
 
 /-- The values of the `Cache` fields `isCacheFields` covers (fixed by `newCache`), with the
 store's ghost names and history capacity. -/
-structure CacheFields [FfiSyntax] where
+structure CacheFields [GooseExts] where
   pfx : GoString
   cfg : Config
   ready : Loc
@@ -176,7 +176,7 @@ structure CacheFields [FfiSyntax] where
 /-! ## The watch loop and `Cache.Watch`: the cache's other fields -/
 
 section addrs2
-variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
 /-- `&c.watcher` -/
 abbrev cacheWatcherAddr (c : Loc) : Loc := structFieldRef Cache go!"watcher" c
@@ -204,7 +204,7 @@ that must not overflow). -/
 def cacheWgBudget : Nat := 2 ^ 31 - 1
 
 section clock
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [EM : EtcdModel GF]
@@ -371,7 +371,7 @@ structure CacheWatchNames where
   fwd : GName
 
 section prdefs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [EM : EtcdModel GF]
@@ -415,7 +415,7 @@ end prdefs
 /-! ## The watch loop and `Cache.Watch`: the cache's predicates -/
 
 section watchdefs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [EM : EtcdModel GF]
@@ -1263,7 +1263,7 @@ theorem demuxWriter_inv (d : Loc) (γd : DemuxNames) (cap : Nat) (C : DemuxCert 
 end watchdefs
 
 section cache
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [EM : EtcdModel GF]

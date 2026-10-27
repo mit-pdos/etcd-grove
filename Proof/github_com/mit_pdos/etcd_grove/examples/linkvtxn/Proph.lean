@@ -70,7 +70,7 @@ namespace linkv
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
 section decode
-variable [FfiSyntax] [GoGlobalContext]
+variable [GooseExts] [GoGlobalContext]
 variable (τ : Type)
 
 open Classical in
@@ -90,7 +90,7 @@ theorem prophDecode_cons (hinj : Function.Injective (intoVal (V := τ))) (x : τ
 end decode
 
 section specs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem_fn : GoSemanticsFunctions] [sem : go.PreSemantics]

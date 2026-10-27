@@ -19,7 +19,7 @@ namespace EtcdGrove
 open go_etcd_io.etcd.api.v3
 
 section clientErr
-variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
 /-- **An error etcd's client returns** (a gRPC status error, an `rpctypes.EtcdError`, a context
 error): a leaf of an error tree, without `Unwrap` or `As` methods (`errors.isLeafError`), whose

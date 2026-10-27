@@ -21,7 +21,7 @@ def initPState : PState :=
     base := { term' := W64 0, index' := W64 0 }, log := [], commit := W64 0, matched := ∅ }
 
 theorem ownRaftGhost_alloc_core [ReceiptGS GF] [InvGS GF] (E : CoPset) (cfg ids : GSet w64) (dyn :
-    Option ((e : FfiSyntax) → DynCfg)) (ccOk : w32 → List w8 → Prop) (L : List EntryM) (t : w64) (C
+    Option ((e : GooseExts) → DynCfg)) (ccOk : w32 → List w8 → Prop) (L : List EntryM) (t : w64) (C
     : RaftNames → IProp GF) (trk : Option (GSet w64)) (Htrk : ∀ (T : GSet w64), trk = some T → cfg ⊆
     T ∧ dyn = none) (ns : Bool) (Hns : ns = true → L ≠ []) (nx : Bool) (Hnx : nx = true → L ≠ [])
     (sok : List BootEntry → List w8 → Prop) (sl : w64 → Option GName) : cfg ≠ ∅ → ¬W64 0 ∈ ids →
@@ -61,7 +61,7 @@ def BootWf (ccOk : w32 → List w8 → Prop) (L : List EntryM) : Prop :=
         e.Term' = W64 1 ∧ uint.Z e.Index' = ↑k + 1 ∧ e.Type' ≠ W32 0 ∧ CCDecodes e.Type' e.Data' ∧ ccOk e.Type' e.Data'
 
 theorem allocClient_gen [ReceiptGS GF] [InvGS GF] (E : CoPset) (cfg : GSet w64) (dyn : Option ((e :
-    FfiSyntax) → DynCfg)) (ccOk : w32 → List w8 → Prop) (C : RaftNames → IProp GF) : allocClient E
+    GooseExts) → DynCfg)) (ccOk : w32 → List w8 → Prop) (C : RaftNames → IProp GF) : allocClient E
     cfg dyn C ⊢ allocClientGen E cfg dyn ccOk [] C
 
 theorem GMap.exists_fresh_nat {V : Type} (K : GMap Nat V) : ∃ k, K !! k = none
@@ -88,7 +88,7 @@ theorem entsData_none [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (L : List Entry
     entsData γ L ∗ [∗list] e ∈ L, entData γ e
 
 theorem ownRaftGhost_alloc_gen [ReceiptGS GF] [InvGS GF] (E : CoPset) (cfg ids : GSet w64) (dyn :
-    Option ((e : FfiSyntax) → DynCfg)) (ccOk : w32 → List w8 → Prop) (C : RaftNames → IProp GF) :
+    Option ((e : GooseExts) → DynCfg)) (ccOk : w32 → List w8 → Prop) (C : RaftNames → IProp GF) :
     cfg ≠ ∅ → ¬W64 0 ∈ ids → ⊢ allocClient E cfg dyn C ={E}=∗ ∃ γ, ⌜γ.reCfg = cfg ∧ γ.reDyn = dyn ∧
     γ.reCCOk = ccOk ∧ γ.reNoXfer = false⌝ ∗ raftCommitInv γ ∗ isCommitted γ [] ∗ ([∗map] id ↦ _u ∈
     toMap ids, ownRaftGhost γ id initPState dyn.isSome) ∗ C γ ∗ rdCred γ (2 ^ 64 - 2) ∗ rdCredInv γ
@@ -154,7 +154,7 @@ theorem entsData_lookup [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (l : List Ent
     (Option (List w8))) (m : Nat) (e : EntryM) (He : l[m]? = some e) : ⊢ ([∗list] e;o ∈ l;ods,
     entDataIs γ e o) -∗ ∃ o, ⌜ods[m]? = some o⌝ ∗ entDataIs γ e o
 
-def allocClientGen [InvGS GF] (E : CoPset) (cfg : GSet w64) (dyn : Option ((e : FfiSyntax) →
+def allocClientGen [InvGS GF] (E : CoPset) (cfg : GSet w64) (dyn : Option ((e : GooseExts) →
     DynCfg)) (ccOk : w32 → List w8 → Prop) (L : List EntryM) (C : RaftNames → IProp GF) : IProp GF
     :=
   iprop(∀ γ,
@@ -169,7 +169,7 @@ def bootPState (bootLog : List EntryM) : PState :=
 
 theorem bootPState_eq (bootLog : List EntryM) : bootPState bootLog = initPStateAt (W64 1) bootLog
 
-def allocClient [InvGS GF] (E : CoPset) (cfg : GSet w64) (dyn : Option ((e : FfiSyntax) → DynCfg))
+def allocClient [InvGS GF] (E : CoPset) (cfg : GSet w64) (dyn : Option ((e : GooseExts) → DynCfg))
     (C : RaftNames → IProp GF) : IProp GF :=
   iprop(∀ γ,
       ⌜γ.reCfg = cfg ∧ γ.reDyn = dyn⌝ -∗

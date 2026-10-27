@@ -20,116 +20,116 @@ end pkg_id
 
 namespace k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured
 
-noncomputable def unstructuredJSONScheme.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def unstructuredJSONScheme.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.unstructuredJSONScheme" [])
 
 attribute [irreducible] unstructuredJSONScheme.ty
 
-noncomputable def jsonFallbackEncoder.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def jsonFallbackEncoder.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.jsonFallbackEncoder" [])
 
 attribute [irreducible] jsonFallbackEncoder.ty
 
-noncomputable def Unstructured.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Unstructured.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.Unstructured" [])
 
 attribute [irreducible] Unstructured.ty
 
-noncomputable def UnstructuredList.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def UnstructuredList.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.UnstructuredList" [])
 
 attribute [irreducible] UnstructuredList.ty
 
-axiom jsonFallbackEncoder.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom jsonFallbackEncoder.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom unstructuredJSONSchemeIdentifier [FfiSyntax] [GoGlobalContext] : val
+axiom unstructuredJSONSchemeIdentifier [GooseExts] [GoGlobalContext] : val
 
-noncomputable def UnstructuredJSONScheme [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def UnstructuredJSONScheme [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.UnstructuredJSONScheme"
 
-axiom UnstructuredJSONScheme.init [FfiSyntax] [GoGlobalContext] : val
+axiom UnstructuredJSONScheme.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def NestedFieldCopy [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NestedFieldCopy [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.NestedFieldCopy"
 
-noncomputable def NestedFieldNoCopy [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NestedFieldNoCopy [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.NestedFieldNoCopy"
 
-noncomputable def NestedString [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NestedString [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.NestedString"
 
-noncomputable def NestedBool [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NestedBool [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.NestedBool"
 
-noncomputable def NestedFloat64 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NestedFloat64 [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.NestedFloat64"
 
-noncomputable def NestedInt64 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NestedInt64 [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.NestedInt64"
 
-noncomputable def NestedNumberAsFloat64 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NestedNumberAsFloat64 [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.NestedNumberAsFloat64"
 
-noncomputable def NestedStringSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NestedStringSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.NestedStringSlice"
 
-noncomputable def NestedSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NestedSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.NestedSlice"
 
-noncomputable def NestedStringMap [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NestedStringMap [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.NestedStringMap"
 
-noncomputable def NestedNullCoercingStringMap [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NestedNullCoercingStringMap [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.NestedNullCoercingStringMap"
 
-noncomputable def NestedMap [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NestedMap [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.NestedMap"
 
-noncomputable def nestedMapNoCopy [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def nestedMapNoCopy [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.nestedMapNoCopy"
 
-noncomputable def SetNestedField [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def SetNestedField [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.SetNestedField"
 
-noncomputable def setNestedFieldNoCopy [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def setNestedFieldNoCopy [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.setNestedFieldNoCopy"
 
-noncomputable def SetNestedStringSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def SetNestedStringSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.SetNestedStringSlice"
 
-noncomputable def SetNestedSlice [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def SetNestedSlice [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.SetNestedSlice"
 
-noncomputable def SetNestedStringMap [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def SetNestedStringMap [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.SetNestedStringMap"
 
-noncomputable def SetNestedMap [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def SetNestedMap [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.SetNestedMap"
 
-noncomputable def RemoveNestedField [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def RemoveNestedField [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.RemoveNestedField"
 
-noncomputable def getNestedString [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def getNestedString [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.getNestedString"
 
-noncomputable def getNestedInt64Pointer [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def getNestedInt64Pointer [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.getNestedInt64Pointer"
 
-noncomputable def jsonPath [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def jsonPath [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.jsonPath"
 
-noncomputable def extractOwnerReference [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def extractOwnerReference [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.extractOwnerReference"
 
-noncomputable def NewJSONFallbackEncoder [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewJSONFallbackEncoder [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured.NewJSONFallbackEncoder"
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.apimachinery.pkg.apis.«meta».v1.unstructured)) (Lam BAnon
   (App (Val exceptionDo)
@@ -154,26 +154,26 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val UnstructuredJSONScheme.init) (Val #()))))))))
 
-structure unstructuredJSONScheme [FfiSyntax] where
+structure unstructuredJSONScheme [GooseExts] where
   mk ::
 
-noncomputable instance unstructuredJSONScheme.zero_val [FfiSyntax] : ZeroVal unstructuredJSONScheme :=
+noncomputable instance unstructuredJSONScheme.zero_val [GooseExts] : ZeroVal unstructuredJSONScheme :=
   ⟨unstructuredJSONScheme.mk⟩
 
-@[reducible] noncomputable def unstructuredJSONScheme.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def unstructuredJSONScheme.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   []
 
-@[irreducible] noncomputable def unstructuredJSONScheme.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def unstructuredJSONScheme.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   unstructuredJSONScheme.fieldsUnsealed
 
-noncomputable instance equals_unfold_unstructuredJSONScheme [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_unstructuredJSONScheme [GooseExts] [GoGlobalContext] :
     EqualsUnfold unstructuredJSONScheme.fields unstructuredJSONScheme.fieldsUnsealed :=
   ⟨by unfold unstructuredJSONScheme.fields; rfl⟩
 
-@[reducible] noncomputable def unstructuredJSONScheme.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def unstructuredJSONScheme.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType unstructuredJSONScheme.fields)
 
-class unstructuredJSONScheme.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class unstructuredJSONScheme.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying unstructuredJSONScheme.underlying unstructuredJSONScheme
   underlying : go.UnderlyingDirectedEq unstructuredJSONScheme.ty unstructuredJSONScheme.underlying
 
@@ -184,7 +184,7 @@ axiom jsonFallbackEncoder : Type
 axiom jsonFallbackEncoder.zero_val : ZeroVal jsonFallbackEncoder
 attribute [instance] jsonFallbackEncoder.zero_val
 
-class jsonFallbackEncoder.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class jsonFallbackEncoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying jsonFallbackEncoder.underlying jsonFallbackEncoder
   underlying : go.UnderlyingDirectedEq jsonFallbackEncoder.ty jsonFallbackEncoder.underlying
   isUnderlying : go.IsUnderlying jsonFallbackEncoder.underlying jsonFallbackEncoder.underlying
@@ -193,27 +193,27 @@ attribute [instance] jsonFallbackEncoder.TypeAssumptions.type_repr
   jsonFallbackEncoder.TypeAssumptions.underlying
   jsonFallbackEncoder.TypeAssumptions.isUnderlying
 
-structure Unstructured [FfiSyntax] where
+structure Unstructured [GooseExts] where
   mk ::
   Object' : GoMap
 
-noncomputable instance Unstructured.zero_val [FfiSyntax] : ZeroVal Unstructured :=
+noncomputable instance Unstructured.zero_val [GooseExts] : ZeroVal Unstructured :=
   ⟨Unstructured.mk zeroValDef⟩
 
-@[reducible] noncomputable def Unstructured.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Unstructured.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Object" (go.GoType.MapType go.string (go.GoType.InterfaceType [])))]
 
-@[irreducible] noncomputable def Unstructured.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Unstructured.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Unstructured.fieldsUnsealed
 
-noncomputable instance equals_unfold_Unstructured [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Unstructured [GooseExts] [GoGlobalContext] :
     EqualsUnfold Unstructured.fields Unstructured.fieldsUnsealed :=
   ⟨by unfold Unstructured.fields; rfl⟩
 
-@[reducible] noncomputable def Unstructured.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Unstructured.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Unstructured.fields)
 
-class Unstructured.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Unstructured.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Unstructured.underlying Unstructured
   underlying : go.UnderlyingDirectedEq Unstructured.ty Unstructured.underlying
   get_Object : ∀ (x : Unstructured), go.IsGoStepPureDetTagged under (StructFieldGet Unstructured.underlying go!"Object") #x (Val #(x.Object'))
@@ -224,29 +224,29 @@ attribute [instance] Unstructured.TypeAssumptions.type_repr
   Unstructured.TypeAssumptions.get_Object
   Unstructured.TypeAssumptions.set_Object
 
-structure UnstructuredList [FfiSyntax] where
+structure UnstructuredList [GooseExts] where
   mk ::
   Object' : GoMap
   Items' : GoSlice
 
-noncomputable instance UnstructuredList.zero_val [FfiSyntax] : ZeroVal UnstructuredList :=
+noncomputable instance UnstructuredList.zero_val [GooseExts] : ZeroVal UnstructuredList :=
   ⟨UnstructuredList.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def UnstructuredList.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def UnstructuredList.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Object" (go.GoType.MapType go.string (go.GoType.InterfaceType []))),
 (go.field_decl.FieldDecl go!"Items" (go.GoType.SliceType Unstructured.ty))]
 
-@[irreducible] noncomputable def UnstructuredList.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def UnstructuredList.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   UnstructuredList.fieldsUnsealed
 
-noncomputable instance equals_unfold_UnstructuredList [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_UnstructuredList [GooseExts] [GoGlobalContext] :
     EqualsUnfold UnstructuredList.fields UnstructuredList.fieldsUnsealed :=
   ⟨by unfold UnstructuredList.fields; rfl⟩
 
-@[reducible] noncomputable def UnstructuredList.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def UnstructuredList.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType UnstructuredList.fields)
 
-class UnstructuredList.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class UnstructuredList.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying UnstructuredList.underlying UnstructuredList
   underlying : go.UnderlyingDirectedEq UnstructuredList.ty UnstructuredList.underlying
   get_Object : ∀ (x : UnstructuredList), go.IsGoStepPureDetTagged under (StructFieldGet UnstructuredList.underlying go!"Object") #x (Val #(x.Object'))
@@ -261,7 +261,7 @@ attribute [instance] UnstructuredList.TypeAssumptions.type_repr
   UnstructuredList.TypeAssumptions.get_Items
   UnstructuredList.TypeAssumptions.set_Items
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   unstructuredJSONScheme_instance : unstructuredJSONScheme.TypeAssumptions
   jsonFallbackEncoder_instance : jsonFallbackEncoder.TypeAssumptions
   Unstructured_instance : Unstructured.TypeAssumptions

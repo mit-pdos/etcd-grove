@@ -44,7 +44,7 @@ open go_etcd_io.etcd.server.v3.etcdserver
 /-! ## The inputs are countable (the pending writes' ghost map) -/
 
 section enc
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- An input, injectively. -/
 def encIn (x : Input) : w64 × GoString × GoString × GoString × Bool × Bool :=
@@ -69,7 +69,7 @@ instance KVState.inhabited : Inhabited KVState := ⟨{ compacted := 0, base := �
 /-! ## Pure part -/
 
 section pure
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- **An input `Gen` may return**, as far as the model needs: its name fits an object's. -/
 def InOk (x : Input) : Prop := x.Key'.length < 256
@@ -141,7 +141,7 @@ theorem pendIns_delete (M : GMap Nat Input) (n : Nat) (i : Input) (h : M !! n = 
 end pure
 
 section rel
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -254,7 +254,7 @@ end rel
 /-! ## The ghost state and the invariant -/
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

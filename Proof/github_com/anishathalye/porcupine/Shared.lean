@@ -37,7 +37,7 @@ open Iris Iris.BI Iris.ProofMode Iris.Std
 namespace github_com.anishathalye.porcupine
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [NaInvG GF]
 variable [sem : go.Semantics]
@@ -68,7 +68,7 @@ theorem shared_alloc (S : ModelSpec GF σ) (p : NaInvPoolName) (E : CoPset) (k :
 end defs
 
 section acc
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [NaInvG GF]
 variable [sem : go.Semantics]

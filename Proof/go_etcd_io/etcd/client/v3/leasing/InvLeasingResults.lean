@@ -179,8 +179,8 @@ variable [EM : EtcdModel GF]
 `e.rev` is `lv`, with the holder's lease) has, at every revision `b ≥ e.rev` at which the lease key
 is present with `lv`'s create revision and in `(e.rev, b]` of which the holder committed nothing,
 `key`'s record `e.acq`. -/
-theorem cached_get_stable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi]
-    [FfiSemantics ext ffi] [GoGlobalContext] [HeapGS HasLC.hasLC GF]
+theorem cached_get_stable [GooseExts] [GooseSemantics] [GooseInterp]
+    [GoGlobalContext] [HeapGS HasLC.hasLC GF]
     [go.Semantics]
     (pfx key : GoString) (h : LeasingHist) (e : LeaseEntry) (b : w64) (sb : List EtcdKv)
     (hk : LeasingDataKey pfx key) (hrev : sint.Z e.rev ≤ sint.Z b)
@@ -212,7 +212,7 @@ end logic
 /-! ## The cache's evaluation of comparisons (theorem 4) -/
 
 section evalcmp
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- **When the cache's comparison is etcd's** (`evalCmpM_agrees`): for a comparison of one key
 (`rangeEnd` empty) whose target is not the lease (`evalCmp` has no `LEASE` case), on the key's

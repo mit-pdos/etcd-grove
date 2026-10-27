@@ -45,7 +45,7 @@ namespace lease
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.lease
 
 section fields
-variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
 /-- `&le.<f>` -/
 abbrev lF (f : GoString) (lp : Loc) : Loc :=
@@ -70,7 +70,7 @@ abbrev lessorIface (lp : Loc) : GoInterface :=
 end fields
 
 section keys
-variable [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
 variable [LeaseItem.TypeAssumptions]
 
 /-- A `LeaseItem` is its key: its Go value determines it (the field read is deterministic). -/
@@ -92,7 +92,7 @@ instance leaseItem_intoValInj [go.BasicIntoValInj] : go.IntoValInj LeaseItem whe
 end keys
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

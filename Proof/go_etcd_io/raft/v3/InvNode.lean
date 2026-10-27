@@ -106,7 +106,7 @@ open Iris Iris.BI OFE CMRA Iris.ProofMode go_etcd_io.raft.v3
 /-! ## Countability of the channels' element types -/
 
 section countable
-variable [FfiSyntax]
+variable [GooseExts]
 
 -- (2026-10-16, stage R5) the instances for `raftpb.HardState`, `ConfState`,
 -- `SnapshotMetadata`, `Snapshot`, `Message`, `ConfChangeV2` are gone: the channels carry
@@ -162,7 +162,7 @@ def budgetN : Namespace := nroot.@"raft_budget"
 
 
 section budget
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 
@@ -351,7 +351,7 @@ end budget
 /-! ## The node's ghost names and channel payloads -/
 
 /-- Ghost names (and the storage) of one node. -/
-structure NodeNames [FfiSyntax] where
+structure NodeNames [GooseExts] where
   raft : RaftNames
   bud : BudgetNames
   /-- the node's `Storage` (`RNState.storage`), for the append right and its receipt -/
@@ -406,7 +406,7 @@ def tickN : Namespace := nroot.@"raft_tick"
 -- (2026-10-16, stage R5, D6) `propDataN`, the proposed slices' invariant's namespace, is gone.
 
 section node
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
@@ -1154,7 +1154,7 @@ theorem handshake_send_au_upd {V : Type} [Pos.Countable V] [ZeroVal V]
 end node
 
 section helpers
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -1201,7 +1201,7 @@ update deposited); and what the committed log's entries hold, for the applicatio
 record, `propDataInv` gone.) -/
 
 section props
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -1221,7 +1221,7 @@ def propArg (γ : RaftNames) (d : List w8) (Q : List EntryM → IProp GF) : IPro
 end props
 
 section nodeprops
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]

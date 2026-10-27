@@ -53,7 +53,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 /-- Rocq `w32_ne`: two distinct message-type constants differ. The goal left is literals only, so
-`decide` settles it (`of_decide_eq_true rfl`: the goal names the `FfiSyntax` instance, which
+`decide` settles it (`of_decide_eq_true rfl`: the goal names the `GooseExts` instance, which
 `decide` refuses); `word` simplifies every hypothesis too (2026-10-22). -/
 macro "w32_ne" : tactic =>
   `(tactic| (simp only [Perennial.EtcdGrove.MsgBeat, Perennial.EtcdGrove.MsgHup,
@@ -130,7 +130,7 @@ macro "rframe" : tactic =>
              Perennial.EtcdGrove.arriveState, Perennial.EtcdGrove.releasedState]; done)))
 
 section cfg_eq
-variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
 /-- Off a `MsgSnap`, `stepFollower` leaves the configuration. -/
 theorem FollowerStepResultC.cfg {c : CfgM} {scfg : CSLists} {id : w64} {s : NState}
@@ -148,15 +148,15 @@ theorem CandidateStepResultC.cfg {c : CfgM} {scfg : CSLists} {id : w64} {s : NSt
 
 end cfg_eq
 
-example [FfiSyntax] (m : MessageM)
+example [GooseExts] (m : MessageM)
     (Hty : m.Type' = MsgBeat ∨ m.Type' = MsgAppResp ∨ m.Type' = MsgHeartbeatResp ∨
     m.Type' = MsgCheckQuorum) :
     m.Type' ≠ MsgSnap := by nonsnap Hty
-example [FfiSyntax] (m : MessageM) (Hty : m.Type' = MsgHeartbeat) :
+example [GooseExts] (m : MessageM) (Hty : m.Type' = MsgHeartbeat) :
     m.Type' ≠ MsgSnap := by nonsnap Hty
 
 section base
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]

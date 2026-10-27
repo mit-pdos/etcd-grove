@@ -20,7 +20,7 @@ namespace mvcc
 open Iris Iris.BI go_etcd_io.etcd.server.v3.storage.mvcc
 
 section defs
-variable [ext : FfiSyntax] [GoGlobalContext]
+variable [GooseExts] [GoGlobalContext]
 
 /-- The model of a Go `Revision` value. -/
 def revOf (r : Revision) : Rev := ⟨r.Main', r.Sub'⟩
@@ -50,7 +50,7 @@ def kiGetVal (ki : KeyIndex) (atRev : w64) (e : GoInterface) (cs : w64) : val :=
 end defs
 
 section addrs
-variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
 /-- The pointer `findGeneration` returns: `nil`, or the address of the generation at `i`. -/
 def genPtr (gs : GoSlice) : Option Nat → Loc
@@ -60,7 +60,7 @@ def genPtr (gs : GoSlice) : Option Nat → Loc
 end addrs
 
 section inj
-variable [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions]
 variable [package_sem : go_etcd_io.etcd.server.v3.storage.mvcc.Assumptions]
 
 /-- A `Revision` value determines its fields (its fields' loads are deterministic): the
@@ -92,7 +92,7 @@ end inj
 /-! ## Key indexes (`key_index.go`) -/
 
 section reprs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -305,12 +305,28 @@ def ownKi (p : Loc) (gs : GoSlice) (ki : KeyIndex) (dq : DFrac) : IProp GF :=
   iprop(p.[keyIndex, go!"modified"] ↦{dq} revVal ki.modified ∗
     p.[keyIndex, go!"generations"] ↦{dq} gs ∗ ownGens gs ki.gens dq)
 
-/-- A `Revision` is a safe map key: comparing it with itself (field by field) does not panic. -/
+/-- `Revision`s are compared by their fields (the `available` map's keys). -/
+instance revision_decEq : DecidableEq Revision := fun a b =>
+  if h : a.Main' = b.Main' ∧ a.Sub' = b.Sub' then
+    isTrue (by cases a; cases b; simp only at h; rw [h.1, h.2])
+  else isFalse (by intro e; subst e; exact h ⟨rfl, rfl⟩)
+
+/-- A `Revision` is a safe map key: comparing it with another (field by field) does not panic and
+is equality of values. -/
 instance revision_safeMapKey (r : Revision) : SafeMapKey (GF := GF) Revision.ty r where
-  wp_go_eq_safe_map_key s E Φ := by
+  key_ok := trivial
+  wp_go_eq_map_key k' _ s E Φ := by
     iintro HΦ
     wp_pures
-    iapply HΦ
+    by_cases h1 : r.Main' = k'.Main'
+    · rw [decide_eq_true h1]
+      wp_pures
+      rw [show decide (r.Sub' = k'.Sub') = decide (r = k') by cases r; cases k'; simp_all]
+      iapply HΦ
+    · rw [decide_eq_false h1]
+      wp_pures
+      rw [show (false : Bool) = decide (r = k') by cases r; cases k'; simp_all]
+      iapply HΦ
 
 /-- The triple of the function `walk` is given (`get`'s closure): on a revision, it returns
 whether the predicate `p` holds of it. -/

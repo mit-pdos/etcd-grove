@@ -14,7 +14,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.raft.v3
 
 section defs
-variable [FfiSyntax]
+variable [GooseExts]
 
 -- (2026-10-26, raft's signature, stage 1) `ConfigValid` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
 
@@ -51,7 +51,7 @@ def ConfigPreserved (cv cv' : Config) : Prop :=
 end defs
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]

@@ -24,7 +24,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
 /-- A string argument of `fmt.Errorf` (`%q`) is well formed. -/
-theorem argWf_string [FfiSyntax] [GoGlobalContext] (x : GoString) :
+theorem argWf_string [GooseExts] [GoGlobalContext] (x : GoString) :
     _root_.Perennial.fmt.ArgWf ⟨go.string, #x⟩ := by
   refine ⟨fun _ => ⟨x, rfl⟩, fun h => ?_, Or.inl rfl⟩
   exfalso
@@ -33,7 +33,7 @@ theorem argWf_string [FfiSyntax] [GoGlobalContext] (x : GoString) :
   rcases h with h | h | h | h | h | h | h | h | h | h <;> cases h
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

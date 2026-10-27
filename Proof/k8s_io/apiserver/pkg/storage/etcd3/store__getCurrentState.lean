@@ -31,7 +31,7 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 open go_etcd_io.etcd.server.v3.etcdserver
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -89,7 +89,7 @@ theorem store.getCurrentState.wp_proof
     iexact Hmk
   (try wp_auto)
   wp_apply wp_RecordEtcdRequest
-  icases Hget with (⟨%Hgerr, %σ, #HR, %Hσ, #Hkv⟩ | ⟨%Hgerr, %Hgce, #Hgse⟩)
+  icases Hget with (⟨%Hgerr, %σ, #HR, %Hσ, #Hkv⟩ | ⟨%Hgerr, %Hgce, #Hgse, #Hgcl⟩)
   · subst Hgerr
     obtain ⟨hrevσ, hb⟩ := Hσ
     ihave %Hwf := (hR _ _ σ) $$ HR
@@ -114,7 +114,7 @@ theorem store.getCurrentState.wp_proof
       (try wp_auto)
       iapply HΨ
       ileft
-      iapply (unkErr_client c _ (by nofun) Hgce)
+      iapply (unkErr_client c _ (by nofun) Hgce) $$ Hgcl
       iexact Hgse
 
 end proof

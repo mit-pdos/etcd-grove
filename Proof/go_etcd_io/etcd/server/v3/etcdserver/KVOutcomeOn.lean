@@ -31,7 +31,7 @@ namespace Perennial
 namespace EtcdGrove
 
 section pure
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- A KV kind is dispatched through the chain (`dispatchLog`'s chain case). -/
 theorem dispatchLog_kv (c : apply.Chain) (rq : apply.IRRModel) (lt : LeaseTable) (log : mvcc.Log)

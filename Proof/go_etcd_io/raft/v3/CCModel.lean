@@ -26,7 +26,7 @@ open go_etcd_io.raft.v3
 
 /-- The content of a legacy `raftpb.ConfChange` (`raft.pb.go`: `ID`, `Type`, `NodeID`,
 `Context`). -/
-structure CCV1M [FfiSyntax] where
+structure CCV1M [GooseExts] where
   type : raftpb.ConfChangeType
   nodeId : w64
   context : List w8
@@ -34,7 +34,7 @@ structure CCV1M [FfiSyntax] where
 
 /-- The content of a `raftpb.ConfChangeV2` (`raft.pb.go`: `Transition`, `Changes`,
 `Context`). -/
-structure CCV2M [FfiSyntax] where
+structure CCV2M [GooseExts] where
   transition : raftpb.ConfChangeTransition
   changes : List ConfChangeSingleM
   context : List w8
@@ -44,20 +44,20 @@ retarget, gogoproto's generated `(*ConfChange).Unmarshal`): the decoded content 
 values), or `none` where it returns an error. Opaque: the trust-boundary specs of
 `proto.Marshal`/`proto.Unmarshal` (`Spec/google_golang_org/protobuf/proto/{Marshal,Unmarshal}ConfChange.lean`)
 are what is known of it. -/
-opaque ccDecodeV1 [FfiSyntax] : List w8 → Option CCV1M
+opaque ccDecodeV1 [GooseExts] : List w8 → Option CCV1M
 
 /-- What protobuf-go's `proto.Unmarshal` makes of `bs` into a `*ConfChangeV2` (until the
 retarget, gogoproto's generated `(*ConfChangeV2).Unmarshal`); `none` where it returns an error.
 Opaque, as `ccDecodeV1`. -/
-opaque ccDecodeV2 [FfiSyntax] : List w8 → Option CCV2M
+opaque ccDecodeV2 [GooseExts] : List w8 → Option CCV2M
 
 /-- A conf change as `MarshalConfChange` sees it: a legacy `ConfChange` or a `ConfChangeV2`. -/
-inductive CCMsg [FfiSyntax] where
+inductive CCMsg [GooseExts] where
   | v1 : CCV1M → CCMsg
   | v2 : CCV2M → CCMsg
 
 section pure
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- A configuration-change entry (2026-10-13): `EntryConfChange` (1) or
 `EntryConfChangeV2` (2), what `hasUnappliedConfChanges` and `stepLeader`'s proposal loop
@@ -226,7 +226,7 @@ end pure
 ownership predicates. -/
 
 section codec
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- The `EntryType` of an entry carrying a conf change (`MarshalConfChange`): `nil` and a
 `ConfChangeV2` are `EntryConfChangeV2` (2), a `ConfChange` is `EntryConfChange` (1). -/

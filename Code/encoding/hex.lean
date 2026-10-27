@@ -20,100 +20,100 @@ end pkg_id
 
 namespace encoding.hex
 
-noncomputable def InvalidByteError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def InvalidByteError.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"encoding/hex.InvalidByteError" [])
 
 attribute [irreducible] InvalidByteError.ty
 
-noncomputable def encoder.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def encoder.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"encoding/hex.encoder" [])
 
 attribute [irreducible] encoder.ty
 
-noncomputable def decoder.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def decoder.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"encoding/hex.decoder" [])
 
 attribute [irreducible] decoder.ty
 
-noncomputable def dumper.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def dumper.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"encoding/hex.dumper" [])
 
 attribute [irreducible] dumper.ty
 
-axiom encoder.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom encoder.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom decoder.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom decoder.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom dumper.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom dumper.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom hextable [FfiSyntax] [GoGlobalContext] : val
+axiom hextable [GooseExts] [GoGlobalContext] : val
 
-axiom reverseHexTable [FfiSyntax] [GoGlobalContext] : val
+axiom reverseHexTable [GooseExts] [GoGlobalContext] : val
 
-axiom bufferSize [FfiSyntax] [GoGlobalContext] : val
+axiom bufferSize [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrLength [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrLength [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/hex.ErrLength"
 
-axiom ErrLength.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrLength.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def EncodedLen [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def EncodedLen [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/hex.EncodedLen"
 
-noncomputable def Encode [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Encode [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/hex.Encode"
 
-noncomputable def AppendEncode [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def AppendEncode [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/hex.AppendEncode"
 
-noncomputable def DecodedLen [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def DecodedLen [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/hex.DecodedLen"
 
-noncomputable def Decode [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Decode [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/hex.Decode"
 
-noncomputable def AppendDecode [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def AppendDecode [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/hex.AppendDecode"
 
-noncomputable def EncodeToString [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def EncodeToString [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/hex.EncodeToString"
 
-noncomputable def DecodeString [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def DecodeString [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/hex.DecodeString"
 
-noncomputable def Dump [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Dump [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/hex.Dump"
 
-noncomputable def NewEncoder [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewEncoder [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/hex.NewEncoder"
 
-noncomputable def NewDecoder [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewDecoder [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/hex.NewDecoder"
 
-noncomputable def Dumper [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Dumper [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/hex.Dumper"
 
-noncomputable def toChar [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def toChar [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/hex.toChar"
 
 noncomputable instance info' : PkgInfo pkg_id.encoding.hex where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.encoding.hex)) (Lam BAnon
   (App (Val exceptionDo)
   (App (Val doExecute)
   (App (Val ErrLength.init) (Val #())))))))
 
-abbrev InvalidByteError [FfiSyntax] : Type := w8
+abbrev InvalidByteError [GooseExts] : Type := w8
 
-@[reducible] noncomputable def InvalidByteError.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def InvalidByteError.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.byte
 
-class InvalidByteError.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class InvalidByteError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq InvalidByteError.ty InvalidByteError.underlying
 
 attribute [instance] InvalidByteError.TypeAssumptions.underlying
@@ -122,7 +122,7 @@ axiom encoder : Type
 axiom encoder.zero_val : ZeroVal encoder
 attribute [instance] encoder.zero_val
 
-class encoder.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class encoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying encoder.underlying encoder
   underlying : go.UnderlyingDirectedEq encoder.ty encoder.underlying
   isUnderlying : go.IsUnderlying encoder.underlying encoder.underlying
@@ -135,7 +135,7 @@ axiom decoder : Type
 axiom decoder.zero_val : ZeroVal decoder
 attribute [instance] decoder.zero_val
 
-class decoder.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class decoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying decoder.underlying decoder
   underlying : go.UnderlyingDirectedEq decoder.ty decoder.underlying
   isUnderlying : go.IsUnderlying decoder.underlying decoder.underlying
@@ -148,7 +148,7 @@ axiom dumper : Type
 axiom dumper.zero_val : ZeroVal dumper
 attribute [instance] dumper.zero_val
 
-class dumper.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class dumper.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying dumper.underlying dumper
   underlying : go.UnderlyingDirectedEq dumper.ty dumper.underlying
   isUnderlying : go.IsUnderlying dumper.underlying dumper.underlying
@@ -157,7 +157,7 @@ attribute [instance] dumper.TypeAssumptions.type_repr
   dumper.TypeAssumptions.underlying
   dumper.TypeAssumptions.isUnderlying
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   InvalidByteError_instance : InvalidByteError.TypeAssumptions
   encoder_instance : encoder.TypeAssumptions
   decoder_instance : decoder.TypeAssumptions

@@ -21,195 +21,195 @@ end pkg_id
 
 namespace k8s_io.apiserver.pkg.storage.cacher.metrics
 
-noncomputable def DispatchPoint.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DispatchPoint.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/cacher/metrics.DispatchPoint" [])
 
 attribute [irreducible] DispatchPoint.ty
 
-noncomputable def DispatchTimeline.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def DispatchTimeline.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/cacher/metrics.DispatchTimeline" [])
 
 attribute [irreducible] DispatchTimeline.ty
 
-noncomputable def WatcherMetricsObservers.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def WatcherMetricsObservers.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/cacher/metrics.WatcherMetricsObservers" [])
 
 attribute [irreducible] WatcherMetricsObservers.ty
 
-noncomputable def noopObserver.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def noopObserver.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/apiserver/pkg/storage/cacher/metrics.noopObserver" [])
 
 attribute [irreducible] noopObserver.ty
 
-axiom DispatchTimeline.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom DispatchTimeline.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom «namespace» [FfiSyntax] [GoGlobalContext] : val
+axiom «namespace» [GooseExts] [GoGlobalContext] : val
 
-axiom subsystem [FfiSyntax] [GoGlobalContext] : val
+axiom subsystem [GooseExts] [GoGlobalContext] : val
 
-axiom PointStorageDecoded [FfiSyntax] [GoGlobalContext] : val
+axiom PointStorageDecoded [GooseExts] [GoGlobalContext] : val
 
-axiom PointCacheReceived [FfiSyntax] [GoGlobalContext] : val
+axiom PointCacheReceived [GooseExts] [GoGlobalContext] : val
 
-axiom PointDispatchStarted [FfiSyntax] [GoGlobalContext] : val
+axiom PointDispatchStarted [GooseExts] [GoGlobalContext] : val
 
-axiom PointWatcherEnqueued [FfiSyntax] [GoGlobalContext] : val
+axiom PointWatcherEnqueued [GooseExts] [GoGlobalContext] : val
 
-axiom PointWatcherDequeued [FfiSyntax] [GoGlobalContext] : val
+axiom PointWatcherDequeued [GooseExts] [GoGlobalContext] : val
 
-axiom PointEventBuilt [FfiSyntax] [GoGlobalContext] : val
+axiom PointEventBuilt [GooseExts] [GoGlobalContext] : val
 
-axiom PointSentToClient [FfiSyntax] [GoGlobalContext] : val
+axiom PointSentToClient [GooseExts] [GoGlobalContext] : val
 
-axiom numDispatchPoints [FfiSyntax] [GoGlobalContext] : val
+axiom numDispatchPoints [GooseExts] [GoGlobalContext] : val
 
-noncomputable def dispatchStages [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def dispatchStages [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher/metrics.dispatchStages"
 
-axiom dispatchStages.init [FfiSyntax] [GoGlobalContext] : val
+axiom dispatchStages.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def listCacheCount [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def listCacheCount [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher/metrics.listCacheCount"
 
-axiom listCacheCount.init [FfiSyntax] [GoGlobalContext] : val
+axiom listCacheCount.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def listCacheNumFetched [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def listCacheNumFetched [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher/metrics.listCacheNumFetched"
 
-axiom listCacheNumFetched.init [FfiSyntax] [GoGlobalContext] : val
+axiom listCacheNumFetched.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def listCacheNumReturned [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def listCacheNumReturned [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher/metrics.listCacheNumReturned"
 
-axiom listCacheNumReturned.init [FfiSyntax] [GoGlobalContext] : val
+axiom listCacheNumReturned.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def InitCounter [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def InitCounter [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher/metrics.InitCounter"
 
-axiom InitCounter.init [FfiSyntax] [GoGlobalContext] : val
+axiom InitCounter.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def EventsReceivedCounter [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def EventsReceivedCounter [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher/metrics.EventsReceivedCounter"
 
-axiom EventsReceivedCounter.init [FfiSyntax] [GoGlobalContext] : val
+axiom EventsReceivedCounter.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def EventsCounter [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def EventsCounter [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher/metrics.EventsCounter"
 
-axiom EventsCounter.init [FfiSyntax] [GoGlobalContext] : val
+axiom EventsCounter.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def TerminatedWatchersCounter [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def TerminatedWatchersCounter [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher/metrics.TerminatedWatchersCounter"
 
-axiom TerminatedWatchersCounter.init [FfiSyntax] [GoGlobalContext] : val
+axiom TerminatedWatchersCounter.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def watchCacheResourceVersion [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def watchCacheResourceVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher/metrics.watchCacheResourceVersion"
 
-axiom watchCacheResourceVersion.init [FfiSyntax] [GoGlobalContext] : val
+axiom watchCacheResourceVersion.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def watchCacheCapacityIncreaseTotal [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def watchCacheCapacityIncreaseTotal [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher/metrics.watchCacheCapacityIncreaseTotal"
 
-axiom watchCacheCapacityIncreaseTotal.init [FfiSyntax] [GoGlobalContext] : val
+axiom watchCacheCapacityIncreaseTotal.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def watchCacheCapacityDecreaseTotal [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def watchCacheCapacityDecreaseTotal [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher/metrics.watchCacheCapacityDecreaseTotal"
 
-axiom watchCacheCapacityDecreaseTotal.init [FfiSyntax] [GoGlobalContext] : val
+axiom watchCacheCapacityDecreaseTotal.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def WatchCacheCapacity [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WatchCacheCapacity [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher/metrics.WatchCacheCapacity"
 
-axiom WatchCacheCapacity.init [FfiSyntax] [GoGlobalContext] : val
+axiom WatchCacheCapacity.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def WatchCacheInitializations [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WatchCacheInitializations [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher/metrics.WatchCacheInitializations"
 
-axiom WatchCacheInitializations.init [FfiSyntax] [GoGlobalContext] : val
+axiom WatchCacheInitializations.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def WatchCacheInitializationErrors [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WatchCacheInitializationErrors [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher/metrics.WatchCacheInitializationErrors"
 
-axiom WatchCacheInitializationErrors.init [FfiSyntax] [GoGlobalContext] : val
+axiom WatchCacheInitializationErrors.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def WatchCacheInitializationDuration [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WatchCacheInitializationDuration [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher/metrics.WatchCacheInitializationDuration"
 
-axiom WatchCacheInitializationDuration.init [FfiSyntax] [GoGlobalContext] : val
+axiom WatchCacheInitializationDuration.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def WatchCacheReadWait [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WatchCacheReadWait [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher/metrics.WatchCacheReadWait"
 
-axiom WatchCacheReadWait.init [FfiSyntax] [GoGlobalContext] : val
+axiom WatchCacheReadWait.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ConsistentReadTotal [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ConsistentReadTotal [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher/metrics.ConsistentReadTotal"
 
-axiom ConsistentReadTotal.init [FfiSyntax] [GoGlobalContext] : val
+axiom ConsistentReadTotal.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def StorageConsistencyCheckTotal [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def StorageConsistencyCheckTotal [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher/metrics.StorageConsistencyCheckTotal"
 
-axiom StorageConsistencyCheckTotal.init [FfiSyntax] [GoGlobalContext] : val
+axiom StorageConsistencyCheckTotal.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def WatchShardsTotal [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WatchShardsTotal [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher/metrics.WatchShardsTotal"
 
-axiom WatchShardsTotal.init [FfiSyntax] [GoGlobalContext] : val
+axiom WatchShardsTotal.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def WatchFilteredEventsTotal [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def WatchFilteredEventsTotal [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher/metrics.WatchFilteredEventsTotal"
 
-axiom WatchFilteredEventsTotal.init [FfiSyntax] [GoGlobalContext] : val
+axiom WatchFilteredEventsTotal.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def DispatchStageDuration [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def DispatchStageDuration [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher/metrics.DispatchStageDuration"
 
-axiom DispatchStageDuration.init [FfiSyntax] [GoGlobalContext] : val
+axiom DispatchStageDuration.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def registerMetrics [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def registerMetrics [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher/metrics.registerMetrics"
 
-noncomputable def noopObs [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def noopObs [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher/metrics.noopObs"
 
-noncomputable def Register [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Register [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher/metrics.Register"
 
-noncomputable def RecordListCacheMetrics [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def RecordListCacheMetrics [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher/metrics.RecordListCacheMetrics"
 
-noncomputable def RecordResourceVersion [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def RecordResourceVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher/metrics.RecordResourceVersion"
 
-noncomputable def RecordShardedWatchStarted [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def RecordShardedWatchStarted [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher/metrics.RecordShardedWatchStarted"
 
-noncomputable def RecordShardedWatchStopped [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def RecordShardedWatchStopped [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher/metrics.RecordShardedWatchStopped"
 
-noncomputable def RecordWatchFilteredEvent [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def RecordWatchFilteredEvent [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher/metrics.RecordWatchFilteredEvent"
 
-noncomputable def RecordsWatchCacheCapacityChange [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def RecordsWatchCacheCapacityChange [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher/metrics.RecordsWatchCacheCapacityChange"
 
-noncomputable def NewWatcherMetricsObservers [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewWatcherMetricsObservers [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher/metrics.NewWatcherMetricsObservers"
 
-noncomputable def observe [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def observe [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher/metrics.observe"
 
-noncomputable def NewNoopWatcherMetricsObservers [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewNoopWatcherMetricsObservers [GooseExts] [GoGlobalContext] : GoString :=
   go!"k8s.io/apiserver/pkg/storage/cacher/metrics.NewNoopWatcherMetricsObservers"
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apiserver.pkg.storage.cacher.metrics where
   pkgImportedPkgs := [pkg_id.k8s_io.component_base.metrics]
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.apiserver.pkg.storage.cacher.metrics)) (Lam BAnon
   (App (Val exceptionDo)
@@ -279,12 +279,12 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.k8s_io.component_base.metrics.initialize') (Val #()))))))))
 
-abbrev DispatchPoint [FfiSyntax] : Type := w64
+abbrev DispatchPoint [GooseExts] : Type := w64
 
-@[reducible] noncomputable def DispatchPoint.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def DispatchPoint.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.int
 
-class DispatchPoint.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DispatchPoint.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq DispatchPoint.ty DispatchPoint.underlying
 
 attribute [instance] DispatchPoint.TypeAssumptions.underlying
@@ -293,7 +293,7 @@ axiom DispatchTimeline : Type
 axiom DispatchTimeline.zero_val : ZeroVal DispatchTimeline
 attribute [instance] DispatchTimeline.zero_val
 
-class DispatchTimeline.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class DispatchTimeline.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying DispatchTimeline.underlying DispatchTimeline
   underlying : go.UnderlyingDirectedEq DispatchTimeline.ty DispatchTimeline.underlying
   isUnderlying : go.IsUnderlying DispatchTimeline.underlying DispatchTimeline.underlying
@@ -302,27 +302,27 @@ attribute [instance] DispatchTimeline.TypeAssumptions.type_repr
   DispatchTimeline.TypeAssumptions.underlying
   DispatchTimeline.TypeAssumptions.isUnderlying
 
-structure WatcherMetricsObservers [FfiSyntax] where
+structure WatcherMetricsObservers [GooseExts] where
   mk ::
   stageDurations' : GoSlice
 
-noncomputable instance WatcherMetricsObservers.zero_val [FfiSyntax] : ZeroVal WatcherMetricsObservers :=
+noncomputable instance WatcherMetricsObservers.zero_val [GooseExts] : ZeroVal WatcherMetricsObservers :=
   ⟨WatcherMetricsObservers.mk zeroValDef⟩
 
-@[reducible] noncomputable def WatcherMetricsObservers.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def WatcherMetricsObservers.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"stageDurations" (go.GoType.SliceType _root_.Perennial.k8s_io.component_base.metrics.ObserverMetric.ty))]
 
-@[irreducible] noncomputable def WatcherMetricsObservers.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def WatcherMetricsObservers.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   WatcherMetricsObservers.fieldsUnsealed
 
-noncomputable instance equals_unfold_WatcherMetricsObservers [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_WatcherMetricsObservers [GooseExts] [GoGlobalContext] :
     EqualsUnfold WatcherMetricsObservers.fields WatcherMetricsObservers.fieldsUnsealed :=
   ⟨by unfold WatcherMetricsObservers.fields; rfl⟩
 
-@[reducible] noncomputable def WatcherMetricsObservers.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def WatcherMetricsObservers.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType WatcherMetricsObservers.fields)
 
-class WatcherMetricsObservers.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class WatcherMetricsObservers.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying WatcherMetricsObservers.underlying WatcherMetricsObservers
   underlying : go.UnderlyingDirectedEq WatcherMetricsObservers.ty WatcherMetricsObservers.underlying
   get_stageDurations : ∀ (x : WatcherMetricsObservers), go.IsGoStepPureDetTagged under (StructFieldGet WatcherMetricsObservers.underlying go!"stageDurations") #x (Val #(x.stageDurations'))
@@ -333,33 +333,33 @@ attribute [instance] WatcherMetricsObservers.TypeAssumptions.type_repr
   WatcherMetricsObservers.TypeAssumptions.get_stageDurations
   WatcherMetricsObservers.TypeAssumptions.set_stageDurations
 
-structure noopObserver [FfiSyntax] where
+structure noopObserver [GooseExts] where
   mk ::
 
-noncomputable instance noopObserver.zero_val [FfiSyntax] : ZeroVal noopObserver :=
+noncomputable instance noopObserver.zero_val [GooseExts] : ZeroVal noopObserver :=
   ⟨noopObserver.mk⟩
 
-@[reducible] noncomputable def noopObserver.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def noopObserver.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   []
 
-@[irreducible] noncomputable def noopObserver.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def noopObserver.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   noopObserver.fieldsUnsealed
 
-noncomputable instance equals_unfold_noopObserver [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_noopObserver [GooseExts] [GoGlobalContext] :
     EqualsUnfold noopObserver.fields noopObserver.fieldsUnsealed :=
   ⟨by unfold noopObserver.fields; rfl⟩
 
-@[reducible] noncomputable def noopObserver.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def noopObserver.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType noopObserver.fields)
 
-class noopObserver.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class noopObserver.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying noopObserver.underlying noopObserver
   underlying : go.UnderlyingDirectedEq noopObserver.ty noopObserver.underlying
 
 attribute [instance] noopObserver.TypeAssumptions.type_repr
   noopObserver.TypeAssumptions.underlying
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   DispatchPoint_instance : DispatchPoint.TypeAssumptions
   DispatchTimeline_instance : DispatchTimeline.TypeAssumptions
   WatcherMetricsObservers_instance : WatcherMetricsObservers.TypeAssumptions

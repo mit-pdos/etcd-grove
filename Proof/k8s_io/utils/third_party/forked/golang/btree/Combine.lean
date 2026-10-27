@@ -60,7 +60,7 @@ theorem Tree.child_elems_subset_elems {E : Type} (is : List E) (cs : List (Tree 
   Tree.elems_node is cs ▸ Tree.mem_elemsAux_of_mem_child is cs hc h
 
 section combine
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

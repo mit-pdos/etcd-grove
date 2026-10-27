@@ -50,7 +50,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.Link
 public import Proof.github_com.mit_pdos.etcd_grove.examples.linkv3p.PkgTable
 public import Proof.runtime.Start
 public import Proof.runtime.Threads
-public import Perennial.GooseLang.Ffi.DiskFfi.Adequacy
+public import Proof.github_com.mit_pdos.etcd_grove.examples.common.TrivialExt
 public import Perennial.Golang.Theory.ArrayLit
 
 @[expose] public section
@@ -66,12 +66,12 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode go_etcd_io.raft.v3
 
-attribute [local instance] disk_op disk_model disk_semantics disk_interp
+attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp
 
 /-! ## The ghost-state bundle -/
 
 /-- The functors: putget's (`putgetGF`: the universal camera `AllG` at slot 0, then invariants,
-later credits, GooseLang's heap, prophecies and package state, and the disk FFI's heap), and
+later credits, GooseLang's heap, prophecies and package state), and
 iris-lean's non-atomic invariants at slot 11 (as the counter's `counterGF`). Every other slot is
 the unit functor. -/
 def linkvGF : BundledGFunctors := fun i =>
@@ -85,20 +85,17 @@ def linkvGF : BundledGFunctors := fun i =>
   | 6 => ⟨constOF (HeapView proph_id (Agree (DiscreteO (List val))) (GMap proph_id)),
           inferInstance⟩
   | 7 => ⟨GhostVarF (GMap GoString Bool), inferInstance⟩
-  | 8 => ⟨constOF (HeapView Int (Agree (DiscreteO Block)) (GMap Int)), inferInstance⟩
-  | 9 => ⟨constOF (HeapView Int (Agree (DiscreteO GName)) (GMap Int)), inferInstance⟩
-  | 10 => ⟨constOF MetaUR, inferInstance⟩
   | 11 => ⟨NaInvF, inferInstance⟩
   | _ => ⟨constOF Unit, inferInstance⟩
 
 /-- The universal camera at slot 0. -/
 def linkvGF_allG : AllG linkvGF := ⟨⟨0, rfl⟩⟩
 
-instance linkvGF_gooseGpreS : GooseGpreS disk_model linkvGF where
+instance linkvGF_gooseGpreS : GooseGpreS linkvGF where
   goose_preG_iris := ⟨⟨⟨1, rfl⟩, ⟨2, rfl⟩, ⟨3, rfl⟩⟩, ⟨⟨4, rfl⟩⟩⟩
   goose_preG_heap := ⟨⟨5, rfl⟩⟩
   goose_preG_proph := ⟨⟨⟨6, rfl⟩⟩⟩
-  goosePreGFfi := (⟨⟨⟨⟨8, rfl⟩⟩, ⟨⟨9, rfl⟩⟩, ⟨10, rfl⟩⟩⟩ : DiskPreG linkvGF)
+  goosePreGExts := ((), PUnit.unit)
   goose_preG_go_state := ⟨@GhostVarG.mk _ _ ⟨7, rfl⟩⟩
   goosePreGAllG := linkvGF_allG
 
@@ -108,13 +105,12 @@ instance linkvGF_naInvG : NaInvG linkvGF := ⟨⟨11, rfl⟩⟩
 
 /-- **A ghost-state instance at the local context `lctx`** (as putget's `heapAt`). -/
 abbrev linkvHeapAt (hG : HeapGS .hasLC linkvGF) (lctx : GoLocalContext) : HeapGS .hasLC linkvGF :=
-  ⟨hG.goose_globalGS, ⟨hG.goose_localGS.gooseFfiLocalGS, lctx,
-    hG.goose_localGS.goose_na_heapGS, hG.goose_localGS.goose_go_stateGS⟩⟩
+  ⟨hG.goose_globalGS, { hG.goose_localGS with goose_go_local_context := lctx }⟩
 
 /-! ## The schedule as a slice literal -/
 
 section lit
-variable [ext : FfiSyntax] [go_gctx : GoGlobalContext]
+variable [GooseExts] [go_gctx : GoGlobalContext]
 
 /-- The fold of `go.arrayLiteralSize` over the keyed elements of values counts them. -/
 theorem foldl_arrayLitKE {V : Type} (t : go.GoType) (F : Int × Int → keyed_element → Int × Int)
@@ -199,7 +195,7 @@ theorem linkv3p_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (Hprem : ∀ hG : HeapGS .hasLC linkvGF,
       ⊢ linkv3p.premises (GF := linkvGF) (hG := linkvHeapAt hG lctx) n id₁ id₂ id₃ bootLog)
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
-    (Hthreads : g.threads = 1)
+    (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps' : RealNsteps n ([linkv3pProgram clients ops steps], ((σ, g) : CfgState)) κs (t2, σ2))
     (Hn : n + 2 ≤ 2 ^ 29) (Hwb : n + 7 ≤ backend.wbInit) :
@@ -210,7 +206,7 @@ theorem linkv3p_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.linkv3p.Main)) (Val #clients))
       (Val #ops)) (schedLit steps))
     (fun v => v = #(go!"Ok") ∨ v = #(go!"Unknown")) (fun p h => h.elim (fun h => intoVal_ne_PanicV _ p h.symm)
-      (fun h => intoVal_ne_PanicV _ p h.symm)) linkv3pAddrs (by decide) σ g trivial trivial Hlctx Hinit Hthreads HNs HAs
+      (fun h => intoVal_ne_PanicV _ p h.symm)) linkv3pAddrs (by decide) σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit Hthreads HNs HAs
     n κs t2 σ2 Hsteps' fun hG HN HT => ?_
   letI : HeapGS .hasLC linkvGF := linkvHeapAt hG lctx
   haveI := Hctx hG

@@ -63,7 +63,7 @@ open Iris Iris.BI go_etcd_io.etcd.client.v3.leasing go_etcd_io.etcd.api.v3
 /-! ## The model -/
 
 section model
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- A cache entry: the `*leaseKey` `li` (`response`, `rev`, `waitc`) and its `*GetResponse`
 `resp` (`Header`, `Kvs`, `More`, `Count`); `lease` and `acq` are ghost (the holder's lease and
@@ -280,13 +280,13 @@ instance LeaseEntry.countable : Pos.Countable LeaseEntry :=
       have := Pos.encode_inj h
       cases a; cases b; simp_all)
 
-instance time.Time.countable [FfiSyntax] : Pos.Countable time.Time :=
+instance time.Time.countable [GooseExts] : Pos.Countable time.Time :=
   .ofInjective (fun t => Pos.Countable.encode (t.wall', t.ext', t.loc'))
     (fun a b h => by
       have := Pos.encode_inj h
       cases a; cases b; simp_all)
 
-instance LeaseCacheSt.countable [FfiSyntax] : Pos.Countable LeaseCacheSt :=
+instance LeaseCacheSt.countable [GooseExts] : Pos.Countable LeaseCacheSt :=
   .ofInjective (fun st => Pos.Countable.encode (st.emap, st.entries, st.rmap, st.revokes,
     st.header, st.hm, st.frozen, st.installed))
     (fun a b h => by
@@ -296,7 +296,7 @@ instance LeaseCacheSt.countable [FfiSyntax] : Pos.Countable LeaseCacheSt :=
 /-! ## Ownership -/
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [EM : EtcdModel GF]

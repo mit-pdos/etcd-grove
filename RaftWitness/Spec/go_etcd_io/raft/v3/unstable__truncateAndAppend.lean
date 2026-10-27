@@ -27,13 +27,13 @@ open Iris Iris.BI go_etcd_io.raft.v3
 the new offset `fromIndex` in arm 2, `min(offsetInProgress, fromIndex)` in arm 3. A
 definition so that the proof's case splits on the arms do not reach into it. (On the
 state record since 2026-10-08; before, on the Goose value and the entries' number.) -/
-def truncOffsetInProgress [FfiSyntax] (us : UnstableSt) (f : w64) : w64 :=
+def truncOffsetInProgress [GooseExts] (us : UnstableSt) (f : w64) : w64 :=
   if uint.Z f = uint.Z us.offset + (us.ents.length : Int) then us.inprogress
   else if uint.Z f ≤ uint.Z us.offset then f
   else w64Min us.inprogress f
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]

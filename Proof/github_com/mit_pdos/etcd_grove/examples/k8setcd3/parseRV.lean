@@ -15,7 +15,7 @@ namespace k8setcd3
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -35,7 +35,7 @@ theorem parseRV.wp_proof : parseRV.spec (GF := GF) (hG := hG) := by
   wp_start
   ihave #Hi : (github_com.mit_pdos.etcd_grove.examples.k8setcd3.drvInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hi with ⟨-, -, ⟨%eB, #HeB, #HsB⟩, -⟩
+  icases Hi with ⟨-, -, ⟨%eB, #HeB, #HsB, -⟩, -⟩
   (try wp_auto)
   wp_apply github_com.mit_pdos.perennial.goose.model.strings.wp_string_len as %Hl
   wp_if_destruct

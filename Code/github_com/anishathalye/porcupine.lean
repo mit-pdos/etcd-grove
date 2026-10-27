@@ -25,238 +25,238 @@ end pkg_id
 
 namespace github_com.anishathalye.porcupine
 
-noncomputable def bitset.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def bitset.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/anishathalye/porcupine.bitset" [])
 
 attribute [irreducible] bitset.ty
 
-noncomputable def entryKind.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def entryKind.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/anishathalye/porcupine.entryKind" [])
 
 attribute [irreducible] entryKind.ty
 
-noncomputable def entry.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def entry.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/anishathalye/porcupine.entry" [])
 
 attribute [irreducible] entry.ty
 
-noncomputable def LinearizationInfo.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def LinearizationInfo.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/anishathalye/porcupine.LinearizationInfo" [])
 
 attribute [irreducible] LinearizationInfo.ty
 
-noncomputable def byTime.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def byTime.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/anishathalye/porcupine.byTime" [])
 
 attribute [irreducible] byTime.ty
 
-noncomputable def node.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def node.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/anishathalye/porcupine.node" [])
 
 attribute [irreducible] node.ty
 
-noncomputable def cacheEntry.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def cacheEntry.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/anishathalye/porcupine.cacheEntry" [])
 
 attribute [irreducible] cacheEntry.ty
 
-noncomputable def callsEntry.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def callsEntry.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/anishathalye/porcupine.callsEntry" [])
 
 attribute [irreducible] callsEntry.ty
 
-noncomputable def Operation.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Operation.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/anishathalye/porcupine.Operation" [])
 
 attribute [irreducible] Operation.ty
 
-noncomputable def EventKind.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def EventKind.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/anishathalye/porcupine.EventKind" [])
 
 attribute [irreducible] EventKind.ty
 
-noncomputable def Event.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Event.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/anishathalye/porcupine.Event" [])
 
 attribute [irreducible] Event.ty
 
-noncomputable def Model.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Model.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/anishathalye/porcupine.Model" [])
 
 attribute [irreducible] Model.ty
 
-noncomputable def NondeterministicModel.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def NondeterministicModel.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/anishathalye/porcupine.NondeterministicModel" [])
 
 attribute [irreducible] NondeterministicModel.ty
 
-noncomputable def CheckResult.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def CheckResult.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/anishathalye/porcupine.CheckResult" [])
 
 attribute [irreducible] CheckResult.ty
 
-noncomputable def historyElement.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def historyElement.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/anishathalye/porcupine.historyElement" [])
 
 attribute [irreducible] historyElement.ty
 
-noncomputable def annotation.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def annotation.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/anishathalye/porcupine.annotation" [])
 
 attribute [irreducible] annotation.ty
 
-noncomputable def linearizationStep.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def linearizationStep.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/anishathalye/porcupine.linearizationStep" [])
 
 attribute [irreducible] linearizationStep.ty
 
-noncomputable def partitionVisualizationData.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def partitionVisualizationData.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/anishathalye/porcupine.partitionVisualizationData" [])
 
 attribute [irreducible] partitionVisualizationData.ty
 
-noncomputable def visualizationData.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def visualizationData.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/anishathalye/porcupine.visualizationData" [])
 
 attribute [irreducible] visualizationData.ty
 
-noncomputable def Annotation.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Annotation.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/anishathalye/porcupine.Annotation" [])
 
 attribute [irreducible] Annotation.ty
 
-@[reducible] noncomputable def partialLinearization.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def partialLinearization.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.SliceType linearizationStep.ty)
 
-@[reducible] noncomputable def prime [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def prime [GooseExts] [GoGlobalContext] : val :=
   #(W64 18397679294719823053)
 
-@[reducible] noncomputable def callEntry [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def callEntry [GooseExts] [GoGlobalContext] : val :=
   #false
 
-@[reducible] noncomputable def returnEntry [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def returnEntry [GooseExts] [GoGlobalContext] : val :=
   #true
 
-@[reducible] noncomputable def CallEvent [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def CallEvent [GooseExts] [GoGlobalContext] : val :=
   #false
 
-@[reducible] noncomputable def ReturnEvent [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def ReturnEvent [GooseExts] [GoGlobalContext] : val :=
   #true
 
 /-- timed out -/
-@[reducible] noncomputable def Unknown [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def Unknown [GooseExts] [GoGlobalContext] : val :=
   #(go!"Unknown")
 
-@[reducible] noncomputable def Ok [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def Ok [GooseExts] [GoGlobalContext] : val :=
   #(go!"Ok")
 
-@[reducible] noncomputable def Illegal [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def Illegal [GooseExts] [GoGlobalContext] : val :=
   #(go!"Illegal")
 
-noncomputable def visualizationFS [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def visualizationFS [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/anishathalye/porcupine.visualizationFS"
 
-noncomputable def newBitset [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newBitset [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/anishathalye/porcupine.newBitset"
 
-noncomputable def bitsetIndex [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def bitsetIndex [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/anishathalye/porcupine.bitsetIndex"
 
-noncomputable def makeEntries [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def makeEntries [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/anishathalye/porcupine.makeEntries"
 
-noncomputable def insertBefore [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def insertBefore [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/anishathalye/porcupine.insertBefore"
 
-noncomputable def renumber [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def renumber [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/anishathalye/porcupine.renumber"
 
-noncomputable def convertEntries [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def convertEntries [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/anishathalye/porcupine.convertEntries"
 
-noncomputable def makeLinkedEntries [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def makeLinkedEntries [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/anishathalye/porcupine.makeLinkedEntries"
 
-noncomputable def cacheKey [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def cacheKey [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/anishathalye/porcupine.cacheKey"
 
-noncomputable def cacheContains [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def cacheContains [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/anishathalye/porcupine.cacheContains"
 
-noncomputable def lift [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def lift [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/anishathalye/porcupine.lift"
 
-noncomputable def unlift [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def unlift [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/anishathalye/porcupine.unlift"
 
-noncomputable def checkSingle [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def checkSingle [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/anishathalye/porcupine.checkSingle"
 
-noncomputable def fillDefault [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def fillDefault [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/anishathalye/porcupine.fillDefault"
 
-noncomputable def checkParallel [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def checkParallel [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/anishathalye/porcupine.checkParallel"
 
-noncomputable def checkEvents [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def checkEvents [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/anishathalye/porcupine.checkEvents"
 
-noncomputable def checkOperations [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def checkOperations [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/anishathalye/porcupine.checkOperations"
 
-noncomputable def merge [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def merge [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/anishathalye/porcupine.merge"
 
-noncomputable def noPartition [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def noPartition [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/anishathalye/porcupine.noPartition"
 
-noncomputable def noPartitionEvent [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def noPartitionEvent [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/anishathalye/porcupine.noPartitionEvent"
 
-noncomputable def shallowEqual [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def shallowEqual [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/anishathalye/porcupine.shallowEqual"
 
-noncomputable def defaultDescribeOperation [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def defaultDescribeOperation [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/anishathalye/porcupine.defaultDescribeOperation"
 
-noncomputable def defaultDescribeState [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def defaultDescribeState [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/anishathalye/porcupine.defaultDescribeState"
 
-noncomputable def defaultDescribeOperationMetadata [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def defaultDescribeOperationMetadata [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/anishathalye/porcupine.defaultDescribeOperationMetadata"
 
-noncomputable def CheckOperations [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def CheckOperations [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/anishathalye/porcupine.CheckOperations"
 
-noncomputable def CheckOperationsTimeout [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def CheckOperationsTimeout [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/anishathalye/porcupine.CheckOperationsTimeout"
 
-noncomputable def CheckOperationsVerbose [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def CheckOperationsVerbose [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/anishathalye/porcupine.CheckOperationsVerbose"
 
-noncomputable def CheckEvents [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def CheckEvents [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/anishathalye/porcupine.CheckEvents"
 
-noncomputable def CheckEventsTimeout [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def CheckEventsTimeout [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/anishathalye/porcupine.CheckEventsTimeout"
 
-noncomputable def CheckEventsVerbose [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def CheckEventsVerbose [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/anishathalye/porcupine.CheckEventsVerbose"
 
-noncomputable def timestampMapping [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def timestampMapping [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/anishathalye/porcupine.timestampMapping"
 
-noncomputable def computeVisualizationData [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def computeVisualizationData [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/anishathalye/porcupine.computeVisualizationData"
 
-noncomputable def Visualize [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Visualize [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/anishathalye/porcupine.Visualize"
 
-noncomputable def VisualizePath [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def VisualizePath [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/anishathalye/porcupine.VisualizePath"
 
 /-- go: bitset.go:11:6 -/
-noncomputable def newBitset.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def newBitset.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "bits"
   (App (Val exceptionDo)
   (Let "bits" (App (Val (GoInstruction (GoAlloc go.uint))) (Var "bits"))
@@ -281,7 +281,7 @@ noncomputable def newBitset.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.uint))) (Pair (Var "extra") (Var "$r0"))))))))))
 
 /-- go: bitset.go:20:17 -/
-noncomputable def bitset.clone.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def bitset.clone.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -301,7 +301,7 @@ noncomputable def bitset.clone.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.uint64)))) (Pair (Var "dataCopy") (Var "$r0")))))))))))
 
 /-- go: bitset.go:26:6 -/
-noncomputable def bitsetIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def bitsetIndex.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "pos"
   (App (Val exceptionDo)
   (Let "pos" (App (Val (GoInstruction (GoAlloc go.uint))) (Var "pos"))
@@ -309,7 +309,7 @@ noncomputable def bitsetIndex.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Pair (App (Val (GoInstruction (GoOp GoDiv go.uint))) (Pair (App (Val (GoInstruction (GoLoad go.uint))) (Var "pos")) (Val #(W64 64)))) (App (Val (GoInstruction (GoOp GoRemainder go.uint))) (Pair (App (Val (GoInstruction (GoLoad go.uint))) (Var "pos")) (Val #(W64 64)))))))))
 
 /-- go: bitset.go:30:17 -/
-noncomputable def bitset.set.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def bitset.set.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "pos"
   (App (Val exceptionDo)
@@ -336,7 +336,7 @@ noncomputable def bitset.set.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.uint))) (Pair (Var "major") (Var "$r0")))))))))))))))))
 
 /-- go: bitset.go:36:17 -/
-noncomputable def bitset.clear.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def bitset.clear.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "pos"
   (App (Val exceptionDo)
@@ -363,7 +363,7 @@ noncomputable def bitset.clear.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.uint))) (Pair (Var "major") (Var "$r0")))))))))))))))))
 
 /-- go: bitset.go:42:17 -/
-noncomputable def bitset.hash.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def bitset.hash.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -390,7 +390,7 @@ noncomputable def bitset.hash.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "v") (Var "$value"))))))))))))))))
 
 /-- go: bitset.go:51:17 -/
-noncomputable def bitset.equal.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def bitset.equal.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "b2"
   (App (Val exceptionDo)
@@ -430,7 +430,7 @@ noncomputable def bitset.equal.impl [FfiSyntax] [GoGlobalContext] : val :=
     linearizable, it contains the maximal partial linearizations found.
 
     go: checker.go:38:30 -/
-noncomputable def LinearizationInfo.PartialLinearizations.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def LinearizationInfo.PartialLinearizations.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "li"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -439,7 +439,7 @@ noncomputable def LinearizationInfo.PartialLinearizations.impl [FfiSyntax] [GoGl
   (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.SliceType (go.GoType.SliceType go.int)))))) (App (Val (GoInstruction (StructFieldRef LinearizationInfo.ty go!"partialLinearizations"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType LinearizationInfo.ty)))) (Var "li")))))))))
 
 /-- go: checker.go:109:17 -/
-noncomputable def byTime.Len.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def byTime.Len.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -449,7 +449,7 @@ noncomputable def byTime.Len.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val (GoInstruction (FuncResolve go.len [byTime.ty]))) (Val #())) (Var "$a0"))))))))
 
 /-- go: checker.go:113:17 -/
-noncomputable def byTime.Swap.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def byTime.Swap.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "i"
   (Lam "j"
@@ -471,7 +471,7 @@ noncomputable def byTime.Swap.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore entry.ty))) (Pair (Var "$l0") (Var "$r0")))))))))))))))))
 
 /-- go: checker.go:117:17 -/
-noncomputable def byTime.Less.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def byTime.Less.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "i"
   (Lam "j"
@@ -489,7 +489,7 @@ noncomputable def byTime.Less.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #())))))))))))
 
 /-- go: checker.go:126:6 -/
-noncomputable def makeEntries.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def makeEntries.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "history"
   (App (Val exceptionDo)
   (Let "history" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType Operation.ty)))) (Var "history"))
@@ -551,7 +551,7 @@ noncomputable def makeEntries.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType entry.ty)))) (Pair (Var "entries") (Var "$r0"))))))))))
 
 /-- go: checker.go:148:6 -/
-noncomputable def insertBefore.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def insertBefore.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam "mark"
   (App (Val exceptionDo)
@@ -588,7 +588,7 @@ noncomputable def insertBefore.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #())))))))))
 
 /-- go: checker.go:190:6 -/
-noncomputable def makeLinkedEntries.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def makeLinkedEntries.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "entries"
   (App (Val exceptionDo)
   (Let "entries" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType entry.ty)))) (Var "entries"))
@@ -660,7 +660,7 @@ noncomputable def makeLinkedEntries.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType node.ty)))) (Pair (Var "root") (Var "$r0"))))))))))
 
 /-- go: checker.go:214:6 -/
-noncomputable def cacheKey.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def cacheKey.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "model"
   (Lam "linearized"
   (Lam "state"
@@ -684,7 +684,7 @@ noncomputable def cacheKey.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore go.uint64))) (Pair (Var "h") (Var "$r0"))))))))))))))
 
 /-- go: checker.go:222:6 -/
-noncomputable def cacheContains.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def cacheContains.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "model"
   (Lam "bucket"
   (Lam "linearized"
@@ -718,7 +718,7 @@ noncomputable def cacheContains.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore cacheEntry.ty))) (Pair (Var "elem") (Var "$value"))))))))))))))))))))
 
 /-- go: checker.go:236:6 -/
-noncomputable def lift.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def lift.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "entry"
   (App (Val exceptionDo)
   (Let "entry" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType node.ty)))) (Var "entry"))
@@ -750,7 +750,7 @@ noncomputable def lift.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType node.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef node.ty go!"next"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType node.ty)))) (App (Val (GoInstruction (StructFieldRef node.ty go!"prev"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType node.ty)))) (Var "entry"))))) (Var "$r0"))))))))))
 
 /-- go: checker.go:246:6 -/
-noncomputable def unlift.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def unlift.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "entry"
   (App (Val exceptionDo)
   (Let "entry" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType node.ty)))) (Var "entry"))
@@ -782,7 +782,7 @@ noncomputable def unlift.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType node.ty)))) (Pair (Var "match") (Var "$r0")))))))))))
 
 /-- go: checker.go:256:6 -/
-noncomputable def checkSingle.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def checkSingle.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ctx"
   (Lam "model"
   (Lam "history"
@@ -1073,7 +1073,7 @@ noncomputable def checkSingle.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType node.ty)))) (Pair (Var "entry") (Var "$r0"))))))))))))))))
 
 /-- go: checker.go:335:6 -/
-noncomputable def fillDefault.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def fillDefault.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "model"
   (App (Val exceptionDo)
   (Let "model" (App (Val (GoInstruction (GoAlloc Model.ty))) (Var "model"))
@@ -1175,7 +1175,7 @@ noncomputable def fillDefault.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #())))))))
 
 /-- go: checker.go:370:6 -/
-noncomputable def checkParallel.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def checkParallel.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "model"
   (Lam "history"
   (Lam "computeInfo"
@@ -1462,7 +1462,7 @@ noncomputable def checkParallel.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #()))))))))))))))
 
 /-- go: checker.go:462:6 -/
-noncomputable def checkOperations.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def checkOperations.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "model"
   (Lam "history"
   (Lam "verbose"
@@ -1517,7 +1517,7 @@ noncomputable def checkOperations.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore Model.ty))) (Pair (Var "model") (Var "$r0")))))))))))))))
 
 /-- go: model.go:189:6 -/
-noncomputable def merge.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def merge.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "states"
   (Lam "eq"
   (App (Val exceptionDo)
@@ -1585,7 +1585,7 @@ noncomputable def merge.impl [FfiSyntax] [GoGlobalContext] : val :=
     implementing a Model directly.
 
     go: model.go:214:34 -/
-noncomputable def NondeterministicModel.ToModel.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def NondeterministicModel.ToModel.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "nm"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -1909,7 +1909,7 @@ noncomputable def NondeterministicModel.ToModel.impl [FfiSyntax] [GoGlobalContex
     into a single partition containing all of the operations.
 
     go: model.go:322:6 -/
-noncomputable def noPartition.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def noPartition.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "history"
   (App (Val exceptionDo)
   (Let "history" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType Operation.ty)))) (Var "history"))
@@ -1921,7 +1921,7 @@ noncomputable def noPartition.impl [FfiSyntax] [GoGlobalContext] : val :=
     history into a single partition containing all of the events.
 
     go: model.go:328:6 -/
-noncomputable def noPartitionEvent.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def noPartitionEvent.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "history"
   (App (Val exceptionDo)
   (Let "history" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType Event.ty)))) (Var "history"))
@@ -1933,7 +1933,7 @@ noncomputable def noPartitionEvent.impl [FfiSyntax] [GoGlobalContext] : val :=
     ==.
 
     go: model.go:334:6 -/
-noncomputable def shallowEqual.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def shallowEqual.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "state1"
   (Lam "state2"
   (App (Val exceptionDo)
@@ -1946,7 +1946,7 @@ noncomputable def shallowEqual.impl [FfiSyntax] [GoGlobalContext] : val :=
     It renders inputs and outputs using the "%v" format specifier.
 
     go: model.go:340:6 -/
-noncomputable def defaultDescribeOperation.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def defaultDescribeOperation.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "input"
   (Lam "output"
   (App (Val exceptionDo)
@@ -1963,7 +1963,7 @@ noncomputable def defaultDescribeOperation.impl [FfiSyntax] [GoGlobalContext] : 
     renders the state using the "%v" format specifier.
 
     go: model.go:346:6 -/
-noncomputable def defaultDescribeState.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def defaultDescribeState.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "state"
   (App (Val exceptionDo)
   (Let "state" (App (Val (GoInstruction (GoAlloc (go.GoType.InterfaceType [])))) (Var "state"))
@@ -1977,7 +1977,7 @@ noncomputable def defaultDescribeState.impl [FfiSyntax] [GoGlobalContext] : val 
     string. It renders the metadata using the "%v" format specifier.
 
     go: model.go:352:6 -/
-noncomputable def defaultDescribeOperationMetadata.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def defaultDescribeOperationMetadata.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "info"
   (App (Val exceptionDo)
   (Let "info" (App (Val (GoInstruction (GoAlloc (go.GoType.InterfaceType [])))) (Var "info"))
@@ -1996,7 +1996,7 @@ noncomputable def defaultDescribeOperationMetadata.impl [FfiSyntax] [GoGlobalCon
 /-- CheckOperations checks whether a history is linearizable.
 
     go: porcupine.go:6:6 -/
-noncomputable def CheckOperations.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def CheckOperations.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "model"
   (Lam "history"
   (App (Val exceptionDo)
@@ -2027,7 +2027,7 @@ noncomputable def CheckOperations.impl [FfiSyntax] [GoGlobalContext] : val :=
     A timeout of 0 is interpreted as an unlimited timeout.
 
     go: porcupine.go:15:6 -/
-noncomputable def CheckOperationsTimeout.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def CheckOperationsTimeout.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "model"
   (Lam "history"
   (Lam "timeout"
@@ -2060,7 +2060,7 @@ noncomputable def CheckOperationsTimeout.impl [FfiSyntax] [GoGlobalContext] : va
     The returned LinearizationInfo can be used with [Visualize].
 
     go: porcupine.go:24:6 -/
-noncomputable def CheckOperationsVerbose.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def CheckOperationsVerbose.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "model"
   (Lam "history"
   (Lam "timeout"
@@ -2081,9 +2081,9 @@ noncomputable def CheckOperationsVerbose.impl [FfiSyntax] [GoGlobalContext] : va
 noncomputable instance info' : PkgInfo pkg_id.github_com.anishathalye.porcupine where
   pkgImportedPkgs := [pkg_id.context, pkg_id.sort, pkg_id.time, pkg_id.fmt, pkg_id.strings]
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.github_com.anishathalye.porcupine)) (Lam BAnon
   (App (Val exceptionDo)
@@ -2102,12 +2102,12 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.strings.initialize') (Val #()))))))))
 
-abbrev bitset [FfiSyntax] : Type := GoSlice
+abbrev bitset [GooseExts] : Type := GoSlice
 
-@[reducible] noncomputable def bitset.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def bitset.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.SliceType go.uint64)
 
-class bitset.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class bitset.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq bitset.ty bitset.underlying
   clear_unfold : MethodUnfold bitset.ty go!"clear" bitset.clear.impl
   clone_unfold : MethodUnfold bitset.ty go!"clone" bitset.clone.impl
@@ -2137,17 +2137,17 @@ attribute [instance] bitset.TypeAssumptions.underlying
   bitset.TypeAssumptions.ptr_hash_unfold
   bitset.TypeAssumptions.ptr_set_unfold
 
-abbrev entryKind [FfiSyntax] : Type := Bool
+abbrev entryKind [GooseExts] : Type := Bool
 
-@[reducible] noncomputable def entryKind.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def entryKind.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.bool
 
-class entryKind.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class entryKind.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq entryKind.ty entryKind.underlying
 
 attribute [instance] entryKind.TypeAssumptions.underlying
 
-structure entry [FfiSyntax] where
+structure entry [GooseExts] where
   mk ::
   kind' : entryKind
   value' : GoInterface
@@ -2156,10 +2156,10 @@ structure entry [FfiSyntax] where
   clientId' : w64
   metadata' : GoInterface
 
-noncomputable instance entry.zero_val [FfiSyntax] : ZeroVal entry :=
+noncomputable instance entry.zero_val [GooseExts] : ZeroVal entry :=
   ⟨entry.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def entry.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def entry.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"kind" entryKind.ty),
 (go.field_decl.FieldDecl go!"value" (go.GoType.InterfaceType [])),
 (go.field_decl.FieldDecl go!"id" go.int),
@@ -2167,17 +2167,17 @@ noncomputable instance entry.zero_val [FfiSyntax] : ZeroVal entry :=
 (go.field_decl.FieldDecl go!"clientId" go.int),
 (go.field_decl.FieldDecl go!"metadata" (go.GoType.InterfaceType []))]
 
-@[irreducible] noncomputable def entry.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def entry.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   entry.fieldsUnsealed
 
-noncomputable instance equals_unfold_entry [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_entry [GooseExts] [GoGlobalContext] :
     EqualsUnfold entry.fields entry.fieldsUnsealed :=
   ⟨by unfold entry.fields; rfl⟩
 
-@[reducible] noncomputable def entry.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def entry.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType entry.fields)
 
-class entry.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class entry.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying entry.underlying entry
   underlying : go.UnderlyingDirectedEq entry.ty entry.underlying
   get_kind : ∀ (x : entry), go.IsGoStepPureDetTagged under (StructFieldGet entry.underlying go!"kind") #x (Val #(x.kind'))
@@ -2208,31 +2208,31 @@ attribute [instance] entry.TypeAssumptions.type_repr
   entry.TypeAssumptions.get_metadata
   entry.TypeAssumptions.set_metadata
 
-structure LinearizationInfo [FfiSyntax] where
+structure LinearizationInfo [GooseExts] where
   mk ::
   history' : GoSlice
   partialLinearizations' : GoSlice
   annotations' : GoSlice
 
-noncomputable instance LinearizationInfo.zero_val [FfiSyntax] : ZeroVal LinearizationInfo :=
+noncomputable instance LinearizationInfo.zero_val [GooseExts] : ZeroVal LinearizationInfo :=
   ⟨LinearizationInfo.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def LinearizationInfo.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def LinearizationInfo.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"history" (go.GoType.SliceType (go.GoType.SliceType entry.ty))),
 (go.field_decl.FieldDecl go!"partialLinearizations" (go.GoType.SliceType (go.GoType.SliceType (go.GoType.SliceType go.int)))),
 (go.field_decl.FieldDecl go!"annotations" (go.GoType.SliceType Annotation.ty))]
 
-@[irreducible] noncomputable def LinearizationInfo.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def LinearizationInfo.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   LinearizationInfo.fieldsUnsealed
 
-noncomputable instance equals_unfold_LinearizationInfo [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_LinearizationInfo [GooseExts] [GoGlobalContext] :
     EqualsUnfold LinearizationInfo.fields LinearizationInfo.fieldsUnsealed :=
   ⟨by unfold LinearizationInfo.fields; rfl⟩
 
-@[reducible] noncomputable def LinearizationInfo.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def LinearizationInfo.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType LinearizationInfo.fields)
 
-class LinearizationInfo.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class LinearizationInfo.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying LinearizationInfo.underlying LinearizationInfo
   underlying : go.UnderlyingDirectedEq LinearizationInfo.ty LinearizationInfo.underlying
   get_history : ∀ (x : LinearizationInfo), go.IsGoStepPureDetTagged under (StructFieldGet LinearizationInfo.underlying go!"history") #x (Val #(x.history'))
@@ -2253,12 +2253,12 @@ attribute [instance] LinearizationInfo.TypeAssumptions.type_repr
   LinearizationInfo.TypeAssumptions.set_annotations
   LinearizationInfo.TypeAssumptions.ptr_PartialLinearizations_unfold
 
-abbrev byTime [FfiSyntax] : Type := GoSlice
+abbrev byTime [GooseExts] : Type := GoSlice
 
-@[reducible] noncomputable def byTime.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def byTime.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.SliceType entry.ty)
 
-class byTime.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class byTime.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq byTime.ty byTime.underlying
   Len_unfold : MethodUnfold byTime.ty go!"Len" byTime.Len.impl
   Less_unfold : MethodUnfold byTime.ty go!"Less" byTime.Less.impl
@@ -2278,7 +2278,7 @@ attribute [instance] byTime.TypeAssumptions.underlying
   byTime.TypeAssumptions.ptr_Less_unfold
   byTime.TypeAssumptions.ptr_Swap_unfold
 
-structure node [FfiSyntax] where
+structure node [GooseExts] where
   mk ::
   value' : GoInterface
   match' : Loc
@@ -2286,27 +2286,27 @@ structure node [FfiSyntax] where
   next' : Loc
   prev' : Loc
 
-noncomputable instance node.zero_val [FfiSyntax] : ZeroVal node :=
+noncomputable instance node.zero_val [GooseExts] : ZeroVal node :=
   ⟨node.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def node.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def node.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"value" (go.GoType.InterfaceType [])),
 (go.field_decl.FieldDecl go!"match" (go.GoType.PointerType node.ty)),
 (go.field_decl.FieldDecl go!"id" go.int),
 (go.field_decl.FieldDecl go!"next" (go.GoType.PointerType node.ty)),
 (go.field_decl.FieldDecl go!"prev" (go.GoType.PointerType node.ty))]
 
-@[irreducible] noncomputable def node.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def node.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   node.fieldsUnsealed
 
-noncomputable instance equals_unfold_node [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_node [GooseExts] [GoGlobalContext] :
     EqualsUnfold node.fields node.fieldsUnsealed :=
   ⟨by unfold node.fields; rfl⟩
 
-@[reducible] noncomputable def node.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def node.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType node.fields)
 
-class node.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class node.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying node.underlying node
   underlying : go.UnderlyingDirectedEq node.ty node.underlying
   get_value : ∀ (x : node), go.IsGoStepPureDetTagged under (StructFieldGet node.underlying go!"value") #x (Val #(x.value'))
@@ -2333,29 +2333,29 @@ attribute [instance] node.TypeAssumptions.type_repr
   node.TypeAssumptions.get_prev
   node.TypeAssumptions.set_prev
 
-structure cacheEntry [FfiSyntax] where
+structure cacheEntry [GooseExts] where
   mk ::
   linearized' : bitset
   state' : GoInterface
 
-noncomputable instance cacheEntry.zero_val [FfiSyntax] : ZeroVal cacheEntry :=
+noncomputable instance cacheEntry.zero_val [GooseExts] : ZeroVal cacheEntry :=
   ⟨cacheEntry.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def cacheEntry.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def cacheEntry.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"linearized" bitset.ty),
 (go.field_decl.FieldDecl go!"state" (go.GoType.InterfaceType []))]
 
-@[irreducible] noncomputable def cacheEntry.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def cacheEntry.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   cacheEntry.fieldsUnsealed
 
-noncomputable instance equals_unfold_cacheEntry [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_cacheEntry [GooseExts] [GoGlobalContext] :
     EqualsUnfold cacheEntry.fields cacheEntry.fieldsUnsealed :=
   ⟨by unfold cacheEntry.fields; rfl⟩
 
-@[reducible] noncomputable def cacheEntry.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def cacheEntry.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType cacheEntry.fields)
 
-class cacheEntry.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class cacheEntry.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying cacheEntry.underlying cacheEntry
   underlying : go.UnderlyingDirectedEq cacheEntry.ty cacheEntry.underlying
   get_linearized : ∀ (x : cacheEntry), go.IsGoStepPureDetTagged under (StructFieldGet cacheEntry.underlying go!"linearized") #x (Val #(x.linearized'))
@@ -2370,29 +2370,29 @@ attribute [instance] cacheEntry.TypeAssumptions.type_repr
   cacheEntry.TypeAssumptions.get_state
   cacheEntry.TypeAssumptions.set_state
 
-structure callsEntry [FfiSyntax] where
+structure callsEntry [GooseExts] where
   mk ::
   entry' : Loc
   state' : GoInterface
 
-noncomputable instance callsEntry.zero_val [FfiSyntax] : ZeroVal callsEntry :=
+noncomputable instance callsEntry.zero_val [GooseExts] : ZeroVal callsEntry :=
   ⟨callsEntry.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def callsEntry.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def callsEntry.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"entry" (go.GoType.PointerType node.ty)),
 (go.field_decl.FieldDecl go!"state" (go.GoType.InterfaceType []))]
 
-@[irreducible] noncomputable def callsEntry.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def callsEntry.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   callsEntry.fieldsUnsealed
 
-noncomputable instance equals_unfold_callsEntry [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_callsEntry [GooseExts] [GoGlobalContext] :
     EqualsUnfold callsEntry.fields callsEntry.fieldsUnsealed :=
   ⟨by unfold callsEntry.fields; rfl⟩
 
-@[reducible] noncomputable def callsEntry.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def callsEntry.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType callsEntry.fields)
 
-class callsEntry.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class callsEntry.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying callsEntry.underlying callsEntry
   underlying : go.UnderlyingDirectedEq callsEntry.ty callsEntry.underlying
   get_entry : ∀ (x : callsEntry), go.IsGoStepPureDetTagged under (StructFieldGet callsEntry.underlying go!"entry") #x (Val #(x.entry'))
@@ -2407,7 +2407,7 @@ attribute [instance] callsEntry.TypeAssumptions.type_repr
   callsEntry.TypeAssumptions.get_state
   callsEntry.TypeAssumptions.set_state
 
-structure Operation [FfiSyntax] where
+structure Operation [GooseExts] where
   mk ::
   ClientId' : w64
   Input' : GoInterface
@@ -2415,31 +2415,31 @@ structure Operation [FfiSyntax] where
   Output' : GoInterface
   Return' : w64
   Metadata' : GoInterface
-  _6' : Unit
+  «_#6'» : Unit
 
-noncomputable instance Operation.zero_val [FfiSyntax] : ZeroVal Operation :=
+noncomputable instance Operation.zero_val [GooseExts] : ZeroVal Operation :=
   ⟨Operation.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Operation.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Operation.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"ClientId" go.int),
 (go.field_decl.FieldDecl go!"Input" (go.GoType.InterfaceType [])),
 (go.field_decl.FieldDecl go!"Call" go.int64),
 (go.field_decl.FieldDecl go!"Output" (go.GoType.InterfaceType [])),
 (go.field_decl.FieldDecl go!"Return" go.int64),
 (go.field_decl.FieldDecl go!"Metadata" (go.GoType.InterfaceType [])),
-(go.field_decl.FieldDecl go!"_6" (go.GoType.StructType []))]
+(go.field_decl.FieldDecl go!"_#6" (go.GoType.StructType []))]
 
-@[irreducible] noncomputable def Operation.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Operation.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Operation.fieldsUnsealed
 
-noncomputable instance equals_unfold_Operation [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Operation [GooseExts] [GoGlobalContext] :
     EqualsUnfold Operation.fields Operation.fieldsUnsealed :=
   ⟨by unfold Operation.fields; rfl⟩
 
-@[reducible] noncomputable def Operation.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Operation.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Operation.fields)
 
-class Operation.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Operation.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Operation.underlying Operation
   underlying : go.UnderlyingDirectedEq Operation.ty Operation.underlying
   get_ClientId : ∀ (x : Operation), go.IsGoStepPureDetTagged under (StructFieldGet Operation.underlying go!"ClientId") #x (Val #(x.ClientId'))
@@ -2454,8 +2454,8 @@ class Operation.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [
   set_Return : ∀ (x : Operation) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Operation.underlying go!"Return") (PairV #x #y) (Val #(({ x with Return' := y } : Operation)))
   get_Metadata : ∀ (x : Operation), go.IsGoStepPureDetTagged under (StructFieldGet Operation.underlying go!"Metadata") #x (Val #(x.Metadata'))
   set_Metadata : ∀ (x : Operation) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet Operation.underlying go!"Metadata") (PairV #x #y) (Val #(({ x with Metadata' := y } : Operation)))
-  get__6 : ∀ (x : Operation), go.IsGoStepPureDetTagged under (StructFieldGet Operation.underlying go!"_6") #x (Val #(x._6'))
-  set__6 : ∀ (x : Operation) (y : Unit), go.IsGoStepPureDetTagged under (StructFieldSet Operation.underlying go!"_6") (PairV #x #y) (Val #(({ x with _6' := y } : Operation)))
+  «get__#6» : ∀ (x : Operation), go.IsGoStepPureDetTagged under (StructFieldGet Operation.underlying go!"_#6") #x (Val #(x.«_#6'»))
+  «set__#6» : ∀ (x : Operation) (y : Unit), go.IsGoStepPureDetTagged under (StructFieldSet Operation.underlying go!"_#6") (PairV #x #y) (Val #(({ x with «_#6'» := y } : Operation)))
 
 attribute [instance] Operation.TypeAssumptions.type_repr
   Operation.TypeAssumptions.underlying
@@ -2471,50 +2471,50 @@ attribute [instance] Operation.TypeAssumptions.type_repr
   Operation.TypeAssumptions.set_Return
   Operation.TypeAssumptions.get_Metadata
   Operation.TypeAssumptions.set_Metadata
-  Operation.TypeAssumptions.get__6
-  Operation.TypeAssumptions.set__6
+  Operation.TypeAssumptions.«get__#6»
+  Operation.TypeAssumptions.«set__#6»
 
-abbrev EventKind [FfiSyntax] : Type := Bool
+abbrev EventKind [GooseExts] : Type := Bool
 
-@[reducible] noncomputable def EventKind.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def EventKind.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.bool
 
-class EventKind.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class EventKind.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq EventKind.ty EventKind.underlying
 
 attribute [instance] EventKind.TypeAssumptions.underlying
 
-structure Event [FfiSyntax] where
+structure Event [GooseExts] where
   mk ::
   ClientId' : w64
   Kind' : EventKind
   Value' : GoInterface
   Id' : w64
   Metadata' : GoInterface
-  _5' : Unit
+  «_#5'» : Unit
 
-noncomputable instance Event.zero_val [FfiSyntax] : ZeroVal Event :=
+noncomputable instance Event.zero_val [GooseExts] : ZeroVal Event :=
   ⟨Event.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Event.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Event.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"ClientId" go.int),
 (go.field_decl.FieldDecl go!"Kind" EventKind.ty),
 (go.field_decl.FieldDecl go!"Value" (go.GoType.InterfaceType [])),
 (go.field_decl.FieldDecl go!"Id" go.int),
 (go.field_decl.FieldDecl go!"Metadata" (go.GoType.InterfaceType [])),
-(go.field_decl.FieldDecl go!"_5" (go.GoType.StructType []))]
+(go.field_decl.FieldDecl go!"_#5" (go.GoType.StructType []))]
 
-@[irreducible] noncomputable def Event.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Event.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Event.fieldsUnsealed
 
-noncomputable instance equals_unfold_Event [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Event [GooseExts] [GoGlobalContext] :
     EqualsUnfold Event.fields Event.fieldsUnsealed :=
   ⟨by unfold Event.fields; rfl⟩
 
-@[reducible] noncomputable def Event.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Event.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Event.fields)
 
-class Event.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Event.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Event.underlying Event
   underlying : go.UnderlyingDirectedEq Event.ty Event.underlying
   get_ClientId : ∀ (x : Event), go.IsGoStepPureDetTagged under (StructFieldGet Event.underlying go!"ClientId") #x (Val #(x.ClientId'))
@@ -2527,8 +2527,8 @@ class Event.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSe
   set_Id : ∀ (x : Event) (y : w64), go.IsGoStepPureDetTagged under (StructFieldSet Event.underlying go!"Id") (PairV #x #y) (Val #(({ x with Id' := y } : Event)))
   get_Metadata : ∀ (x : Event), go.IsGoStepPureDetTagged under (StructFieldGet Event.underlying go!"Metadata") #x (Val #(x.Metadata'))
   set_Metadata : ∀ (x : Event) (y : GoInterface), go.IsGoStepPureDetTagged under (StructFieldSet Event.underlying go!"Metadata") (PairV #x #y) (Val #(({ x with Metadata' := y } : Event)))
-  get__5 : ∀ (x : Event), go.IsGoStepPureDetTagged under (StructFieldGet Event.underlying go!"_5") #x (Val #(x._5'))
-  set__5 : ∀ (x : Event) (y : Unit), go.IsGoStepPureDetTagged under (StructFieldSet Event.underlying go!"_5") (PairV #x #y) (Val #(({ x with _5' := y } : Event)))
+  «get__#5» : ∀ (x : Event), go.IsGoStepPureDetTagged under (StructFieldGet Event.underlying go!"_#5") #x (Val #(x.«_#5'»))
+  «set__#5» : ∀ (x : Event) (y : Unit), go.IsGoStepPureDetTagged under (StructFieldSet Event.underlying go!"_#5") (PairV #x #y) (Val #(({ x with «_#5'» := y } : Event)))
 
 attribute [instance] Event.TypeAssumptions.type_repr
   Event.TypeAssumptions.underlying
@@ -2542,10 +2542,10 @@ attribute [instance] Event.TypeAssumptions.type_repr
   Event.TypeAssumptions.set_Id
   Event.TypeAssumptions.get_Metadata
   Event.TypeAssumptions.set_Metadata
-  Event.TypeAssumptions.get__5
-  Event.TypeAssumptions.set__5
+  Event.TypeAssumptions.«get__#5»
+  Event.TypeAssumptions.«set__#5»
 
-structure Model [FfiSyntax] where
+structure Model [GooseExts] where
   mk ::
   Partition' : GoFunc
   PartitionEvent' : GoFunc
@@ -2557,12 +2557,12 @@ structure Model [FfiSyntax] where
   DescribeOperation' : GoFunc
   DescribeState' : GoFunc
   DescribeOperationMetadata' : GoFunc
-  _10' : Unit
+  «_#10'» : Unit
 
-noncomputable instance Model.zero_val [FfiSyntax] : ZeroVal Model :=
+noncomputable instance Model.zero_val [GooseExts] : ZeroVal Model :=
   ⟨Model.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Model.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Model.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Partition" (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType Operation.ty)] false [(go.GoType.SliceType (go.GoType.SliceType Operation.ty))]))),
 (go.field_decl.FieldDecl go!"PartitionEvent" (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType Event.ty)] false [(go.GoType.SliceType (go.GoType.SliceType Event.ty))]))),
 (go.field_decl.FieldDecl go!"Init" (go.GoType.FunctionType (go.signature.Signature [] false [(go.GoType.InterfaceType [])]))),
@@ -2573,19 +2573,19 @@ noncomputable instance Model.zero_val [FfiSyntax] : ZeroVal Model :=
 (go.field_decl.FieldDecl go!"DescribeOperation" (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType [])] false [go.string]))),
 (go.field_decl.FieldDecl go!"DescribeState" (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.string]))),
 (go.field_decl.FieldDecl go!"DescribeOperationMetadata" (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.string]))),
-(go.field_decl.FieldDecl go!"_10" (go.GoType.StructType []))]
+(go.field_decl.FieldDecl go!"_#10" (go.GoType.StructType []))]
 
-@[irreducible] noncomputable def Model.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Model.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Model.fieldsUnsealed
 
-noncomputable instance equals_unfold_Model [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Model [GooseExts] [GoGlobalContext] :
     EqualsUnfold Model.fields Model.fieldsUnsealed :=
   ⟨by unfold Model.fields; rfl⟩
 
-@[reducible] noncomputable def Model.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Model.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Model.fields)
 
-class Model.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Model.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Model.underlying Model
   underlying : go.UnderlyingDirectedEq Model.ty Model.underlying
   get_Partition : ∀ (x : Model), go.IsGoStepPureDetTagged under (StructFieldGet Model.underlying go!"Partition") #x (Val #(x.Partition'))
@@ -2608,8 +2608,8 @@ class Model.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSe
   set_DescribeState : ∀ (x : Model) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Model.underlying go!"DescribeState") (PairV #x #y) (Val #(({ x with DescribeState' := y } : Model)))
   get_DescribeOperationMetadata : ∀ (x : Model), go.IsGoStepPureDetTagged under (StructFieldGet Model.underlying go!"DescribeOperationMetadata") #x (Val #(x.DescribeOperationMetadata'))
   set_DescribeOperationMetadata : ∀ (x : Model) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet Model.underlying go!"DescribeOperationMetadata") (PairV #x #y) (Val #(({ x with DescribeOperationMetadata' := y } : Model)))
-  get__10 : ∀ (x : Model), go.IsGoStepPureDetTagged under (StructFieldGet Model.underlying go!"_10") #x (Val #(x._10'))
-  set__10 : ∀ (x : Model) (y : Unit), go.IsGoStepPureDetTagged under (StructFieldSet Model.underlying go!"_10") (PairV #x #y) (Val #(({ x with _10' := y } : Model)))
+  «get__#10» : ∀ (x : Model), go.IsGoStepPureDetTagged under (StructFieldGet Model.underlying go!"_#10") #x (Val #(x.«_#10'»))
+  «set__#10» : ∀ (x : Model) (y : Unit), go.IsGoStepPureDetTagged under (StructFieldSet Model.underlying go!"_#10") (PairV #x #y) (Val #(({ x with «_#10'» := y } : Model)))
 
 attribute [instance] Model.TypeAssumptions.type_repr
   Model.TypeAssumptions.underlying
@@ -2633,10 +2633,10 @@ attribute [instance] Model.TypeAssumptions.type_repr
   Model.TypeAssumptions.set_DescribeState
   Model.TypeAssumptions.get_DescribeOperationMetadata
   Model.TypeAssumptions.set_DescribeOperationMetadata
-  Model.TypeAssumptions.get__10
-  Model.TypeAssumptions.set__10
+  Model.TypeAssumptions.«get__#10»
+  Model.TypeAssumptions.«set__#10»
 
-structure NondeterministicModel [FfiSyntax] where
+structure NondeterministicModel [GooseExts] where
   mk ::
   Partition' : GoFunc
   PartitionEvent' : GoFunc
@@ -2648,12 +2648,12 @@ structure NondeterministicModel [FfiSyntax] where
   DescribeOperation' : GoFunc
   DescribeState' : GoFunc
   DescribeOperationMetadata' : GoFunc
-  _10' : Unit
+  «_#10'» : Unit
 
-noncomputable instance NondeterministicModel.zero_val [FfiSyntax] : ZeroVal NondeterministicModel :=
+noncomputable instance NondeterministicModel.zero_val [GooseExts] : ZeroVal NondeterministicModel :=
   ⟨NondeterministicModel.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def NondeterministicModel.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def NondeterministicModel.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Partition" (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType Operation.ty)] false [(go.GoType.SliceType (go.GoType.SliceType Operation.ty))]))),
 (go.field_decl.FieldDecl go!"PartitionEvent" (go.GoType.FunctionType (go.signature.Signature [(go.GoType.SliceType Event.ty)] false [(go.GoType.SliceType (go.GoType.SliceType Event.ty))]))),
 (go.field_decl.FieldDecl go!"Init" (go.GoType.FunctionType (go.signature.Signature [] false [(go.GoType.SliceType (go.GoType.InterfaceType []))]))),
@@ -2664,19 +2664,19 @@ noncomputable instance NondeterministicModel.zero_val [FfiSyntax] : ZeroVal Nond
 (go.field_decl.FieldDecl go!"DescribeOperation" (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType []), (go.GoType.InterfaceType [])] false [go.string]))),
 (go.field_decl.FieldDecl go!"DescribeState" (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.string]))),
 (go.field_decl.FieldDecl go!"DescribeOperationMetadata" (go.GoType.FunctionType (go.signature.Signature [(go.GoType.InterfaceType [])] false [go.string]))),
-(go.field_decl.FieldDecl go!"_10" (go.GoType.StructType []))]
+(go.field_decl.FieldDecl go!"_#10" (go.GoType.StructType []))]
 
-@[irreducible] noncomputable def NondeterministicModel.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def NondeterministicModel.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   NondeterministicModel.fieldsUnsealed
 
-noncomputable instance equals_unfold_NondeterministicModel [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_NondeterministicModel [GooseExts] [GoGlobalContext] :
     EqualsUnfold NondeterministicModel.fields NondeterministicModel.fieldsUnsealed :=
   ⟨by unfold NondeterministicModel.fields; rfl⟩
 
-@[reducible] noncomputable def NondeterministicModel.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def NondeterministicModel.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType NondeterministicModel.fields)
 
-class NondeterministicModel.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class NondeterministicModel.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying NondeterministicModel.underlying NondeterministicModel
   underlying : go.UnderlyingDirectedEq NondeterministicModel.ty NondeterministicModel.underlying
   get_Partition : ∀ (x : NondeterministicModel), go.IsGoStepPureDetTagged under (StructFieldGet NondeterministicModel.underlying go!"Partition") #x (Val #(x.Partition'))
@@ -2699,8 +2699,8 @@ class NondeterministicModel.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLoc
   set_DescribeState : ∀ (x : NondeterministicModel) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet NondeterministicModel.underlying go!"DescribeState") (PairV #x #y) (Val #(({ x with DescribeState' := y } : NondeterministicModel)))
   get_DescribeOperationMetadata : ∀ (x : NondeterministicModel), go.IsGoStepPureDetTagged under (StructFieldGet NondeterministicModel.underlying go!"DescribeOperationMetadata") #x (Val #(x.DescribeOperationMetadata'))
   set_DescribeOperationMetadata : ∀ (x : NondeterministicModel) (y : GoFunc), go.IsGoStepPureDetTagged under (StructFieldSet NondeterministicModel.underlying go!"DescribeOperationMetadata") (PairV #x #y) (Val #(({ x with DescribeOperationMetadata' := y } : NondeterministicModel)))
-  get__10 : ∀ (x : NondeterministicModel), go.IsGoStepPureDetTagged under (StructFieldGet NondeterministicModel.underlying go!"_10") #x (Val #(x._10'))
-  set__10 : ∀ (x : NondeterministicModel) (y : Unit), go.IsGoStepPureDetTagged under (StructFieldSet NondeterministicModel.underlying go!"_10") (PairV #x #y) (Val #(({ x with _10' := y } : NondeterministicModel)))
+  «get__#10» : ∀ (x : NondeterministicModel), go.IsGoStepPureDetTagged under (StructFieldGet NondeterministicModel.underlying go!"_#10") #x (Val #(x.«_#10'»))
+  «set__#10» : ∀ (x : NondeterministicModel) (y : Unit), go.IsGoStepPureDetTagged under (StructFieldSet NondeterministicModel.underlying go!"_#10") (PairV #x #y) (Val #(({ x with «_#10'» := y } : NondeterministicModel)))
   ptr_ToModel_unfold : MethodUnfold (go.GoType.PointerType NondeterministicModel.ty) go!"ToModel" NondeterministicModel.ToModel.impl
 
 attribute [instance] NondeterministicModel.TypeAssumptions.type_repr
@@ -2725,21 +2725,21 @@ attribute [instance] NondeterministicModel.TypeAssumptions.type_repr
   NondeterministicModel.TypeAssumptions.set_DescribeState
   NondeterministicModel.TypeAssumptions.get_DescribeOperationMetadata
   NondeterministicModel.TypeAssumptions.set_DescribeOperationMetadata
-  NondeterministicModel.TypeAssumptions.get__10
-  NondeterministicModel.TypeAssumptions.set__10
+  NondeterministicModel.TypeAssumptions.«get__#10»
+  NondeterministicModel.TypeAssumptions.«set__#10»
   NondeterministicModel.TypeAssumptions.ptr_ToModel_unfold
 
-abbrev CheckResult [FfiSyntax] : Type := GoString
+abbrev CheckResult [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def CheckResult.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def CheckResult.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-class CheckResult.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class CheckResult.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq CheckResult.ty CheckResult.underlying
 
 attribute [instance] CheckResult.TypeAssumptions.underlying
 
-structure historyElement [FfiSyntax] where
+structure historyElement [GooseExts] where
   mk ::
   ClientId' : w64
   Start' : w64
@@ -2749,10 +2749,10 @@ structure historyElement [FfiSyntax] where
   Description' : GoString
   Metadata' : GoString
 
-noncomputable instance historyElement.zero_val [FfiSyntax] : ZeroVal historyElement :=
+noncomputable instance historyElement.zero_val [GooseExts] : ZeroVal historyElement :=
   ⟨historyElement.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def historyElement.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def historyElement.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"ClientId" go.int),
 (go.field_decl.FieldDecl go!"Start" go.int),
 (go.field_decl.FieldDecl go!"OriginalStart" go.string),
@@ -2761,17 +2761,17 @@ noncomputable instance historyElement.zero_val [FfiSyntax] : ZeroVal historyElem
 (go.field_decl.FieldDecl go!"Description" go.string),
 (go.field_decl.FieldDecl go!"Metadata" go.string)]
 
-@[irreducible] noncomputable def historyElement.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def historyElement.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   historyElement.fieldsUnsealed
 
-noncomputable instance equals_unfold_historyElement [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_historyElement [GooseExts] [GoGlobalContext] :
     EqualsUnfold historyElement.fields historyElement.fieldsUnsealed :=
   ⟨by unfold historyElement.fields; rfl⟩
 
-@[reducible] noncomputable def historyElement.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def historyElement.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType historyElement.fields)
 
-class historyElement.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class historyElement.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying historyElement.underlying historyElement
   underlying : go.UnderlyingDirectedEq historyElement.ty historyElement.underlying
   get_ClientId : ∀ (x : historyElement), go.IsGoStepPureDetTagged under (StructFieldGet historyElement.underlying go!"ClientId") #x (Val #(x.ClientId'))
@@ -2806,7 +2806,7 @@ attribute [instance] historyElement.TypeAssumptions.type_repr
   historyElement.TypeAssumptions.get_Metadata
   historyElement.TypeAssumptions.set_Metadata
 
-structure annotation [FfiSyntax] where
+structure annotation [GooseExts] where
   mk ::
   ClientId' : w64
   Tag' : GoString
@@ -2818,10 +2818,10 @@ structure annotation [FfiSyntax] where
   TextColor' : GoString
   BackgroundColor' : GoString
 
-noncomputable instance annotation.zero_val [FfiSyntax] : ZeroVal annotation :=
+noncomputable instance annotation.zero_val [GooseExts] : ZeroVal annotation :=
   ⟨annotation.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def annotation.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def annotation.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"ClientId" go.int),
 (go.field_decl.FieldDecl go!"Tag" go.string),
 (go.field_decl.FieldDecl go!"Start" go.int),
@@ -2832,17 +2832,17 @@ noncomputable instance annotation.zero_val [FfiSyntax] : ZeroVal annotation :=
 (go.field_decl.FieldDecl go!"TextColor" go.string),
 (go.field_decl.FieldDecl go!"BackgroundColor" go.string)]
 
-@[irreducible] noncomputable def annotation.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def annotation.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   annotation.fieldsUnsealed
 
-noncomputable instance equals_unfold_annotation [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_annotation [GooseExts] [GoGlobalContext] :
     EqualsUnfold annotation.fields annotation.fieldsUnsealed :=
   ⟨by unfold annotation.fields; rfl⟩
 
-@[reducible] noncomputable def annotation.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def annotation.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType annotation.fields)
 
-class annotation.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class annotation.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying annotation.underlying annotation
   underlying : go.UnderlyingDirectedEq annotation.ty annotation.underlying
   get_ClientId : ∀ (x : annotation), go.IsGoStepPureDetTagged under (StructFieldGet annotation.underlying go!"ClientId") #x (Val #(x.ClientId'))
@@ -2885,29 +2885,29 @@ attribute [instance] annotation.TypeAssumptions.type_repr
   annotation.TypeAssumptions.get_BackgroundColor
   annotation.TypeAssumptions.set_BackgroundColor
 
-structure linearizationStep [FfiSyntax] where
+structure linearizationStep [GooseExts] where
   mk ::
   Index' : w64
   StateDescription' : GoString
 
-noncomputable instance linearizationStep.zero_val [FfiSyntax] : ZeroVal linearizationStep :=
+noncomputable instance linearizationStep.zero_val [GooseExts] : ZeroVal linearizationStep :=
   ⟨linearizationStep.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def linearizationStep.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def linearizationStep.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Index" go.int),
 (go.field_decl.FieldDecl go!"StateDescription" go.string)]
 
-@[irreducible] noncomputable def linearizationStep.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def linearizationStep.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   linearizationStep.fieldsUnsealed
 
-noncomputable instance equals_unfold_linearizationStep [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_linearizationStep [GooseExts] [GoGlobalContext] :
     EqualsUnfold linearizationStep.fields linearizationStep.fieldsUnsealed :=
   ⟨by unfold linearizationStep.fields; rfl⟩
 
-@[reducible] noncomputable def linearizationStep.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def linearizationStep.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType linearizationStep.fields)
 
-class linearizationStep.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class linearizationStep.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying linearizationStep.underlying linearizationStep
   underlying : go.UnderlyingDirectedEq linearizationStep.ty linearizationStep.underlying
   get_Index : ∀ (x : linearizationStep), go.IsGoStepPureDetTagged under (StructFieldGet linearizationStep.underlying go!"Index") #x (Val #(x.Index'))
@@ -2922,31 +2922,31 @@ attribute [instance] linearizationStep.TypeAssumptions.type_repr
   linearizationStep.TypeAssumptions.get_StateDescription
   linearizationStep.TypeAssumptions.set_StateDescription
 
-structure partitionVisualizationData [FfiSyntax] where
+structure partitionVisualizationData [GooseExts] where
   mk ::
   History' : GoSlice
   PartialLinearizations' : GoSlice
   Largest' : GoMap
 
-noncomputable instance partitionVisualizationData.zero_val [FfiSyntax] : ZeroVal partitionVisualizationData :=
+noncomputable instance partitionVisualizationData.zero_val [GooseExts] : ZeroVal partitionVisualizationData :=
   ⟨partitionVisualizationData.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def partitionVisualizationData.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def partitionVisualizationData.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"History" (go.GoType.SliceType historyElement.ty)),
 (go.field_decl.FieldDecl go!"PartialLinearizations" (go.GoType.SliceType partialLinearization.ty)),
 (go.field_decl.FieldDecl go!"Largest" (go.GoType.MapType go.int go.int))]
 
-@[irreducible] noncomputable def partitionVisualizationData.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def partitionVisualizationData.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   partitionVisualizationData.fieldsUnsealed
 
-noncomputable instance equals_unfold_partitionVisualizationData [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_partitionVisualizationData [GooseExts] [GoGlobalContext] :
     EqualsUnfold partitionVisualizationData.fields partitionVisualizationData.fieldsUnsealed :=
   ⟨by unfold partitionVisualizationData.fields; rfl⟩
 
-@[reducible] noncomputable def partitionVisualizationData.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def partitionVisualizationData.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType partitionVisualizationData.fields)
 
-class partitionVisualizationData.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class partitionVisualizationData.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying partitionVisualizationData.underlying partitionVisualizationData
   underlying : go.UnderlyingDirectedEq partitionVisualizationData.ty partitionVisualizationData.underlying
   get_History : ∀ (x : partitionVisualizationData), go.IsGoStepPureDetTagged under (StructFieldGet partitionVisualizationData.underlying go!"History") #x (Val #(x.History'))
@@ -2965,29 +2965,29 @@ attribute [instance] partitionVisualizationData.TypeAssumptions.type_repr
   partitionVisualizationData.TypeAssumptions.get_Largest
   partitionVisualizationData.TypeAssumptions.set_Largest
 
-structure visualizationData [FfiSyntax] where
+structure visualizationData [GooseExts] where
   mk ::
   Partitions' : GoSlice
   Annotations' : GoSlice
 
-noncomputable instance visualizationData.zero_val [FfiSyntax] : ZeroVal visualizationData :=
+noncomputable instance visualizationData.zero_val [GooseExts] : ZeroVal visualizationData :=
   ⟨visualizationData.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def visualizationData.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def visualizationData.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Partitions" (go.GoType.SliceType partitionVisualizationData.ty)),
 (go.field_decl.FieldDecl go!"Annotations" (go.GoType.SliceType annotation.ty))]
 
-@[irreducible] noncomputable def visualizationData.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def visualizationData.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   visualizationData.fieldsUnsealed
 
-noncomputable instance equals_unfold_visualizationData [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_visualizationData [GooseExts] [GoGlobalContext] :
     EqualsUnfold visualizationData.fields visualizationData.fieldsUnsealed :=
   ⟨by unfold visualizationData.fields; rfl⟩
 
-@[reducible] noncomputable def visualizationData.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def visualizationData.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType visualizationData.fields)
 
-class visualizationData.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class visualizationData.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying visualizationData.underlying visualizationData
   underlying : go.UnderlyingDirectedEq visualizationData.ty visualizationData.underlying
   get_Partitions : ∀ (x : visualizationData), go.IsGoStepPureDetTagged under (StructFieldGet visualizationData.underlying go!"Partitions") #x (Val #(x.Partitions'))
@@ -3002,7 +3002,7 @@ attribute [instance] visualizationData.TypeAssumptions.type_repr
   visualizationData.TypeAssumptions.get_Annotations
   visualizationData.TypeAssumptions.set_Annotations
 
-structure Annotation [FfiSyntax] where
+structure Annotation [GooseExts] where
   mk ::
   ClientId' : w64
   Tag' : GoString
@@ -3012,12 +3012,12 @@ structure Annotation [FfiSyntax] where
   Details' : GoString
   TextColor' : GoString
   BackgroundColor' : GoString
-  _8' : Unit
+  «_#8'» : Unit
 
-noncomputable instance Annotation.zero_val [FfiSyntax] : ZeroVal Annotation :=
+noncomputable instance Annotation.zero_val [GooseExts] : ZeroVal Annotation :=
   ⟨Annotation.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Annotation.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Annotation.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"ClientId" go.int),
 (go.field_decl.FieldDecl go!"Tag" go.string),
 (go.field_decl.FieldDecl go!"Start" go.int64),
@@ -3026,19 +3026,19 @@ noncomputable instance Annotation.zero_val [FfiSyntax] : ZeroVal Annotation :=
 (go.field_decl.FieldDecl go!"Details" go.string),
 (go.field_decl.FieldDecl go!"TextColor" go.string),
 (go.field_decl.FieldDecl go!"BackgroundColor" go.string),
-(go.field_decl.FieldDecl go!"_8" (go.GoType.StructType []))]
+(go.field_decl.FieldDecl go!"_#8" (go.GoType.StructType []))]
 
-@[irreducible] noncomputable def Annotation.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Annotation.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Annotation.fieldsUnsealed
 
-noncomputable instance equals_unfold_Annotation [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Annotation [GooseExts] [GoGlobalContext] :
     EqualsUnfold Annotation.fields Annotation.fieldsUnsealed :=
   ⟨by unfold Annotation.fields; rfl⟩
 
-@[reducible] noncomputable def Annotation.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Annotation.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Annotation.fields)
 
-class Annotation.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Annotation.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Annotation.underlying Annotation
   underlying : go.UnderlyingDirectedEq Annotation.ty Annotation.underlying
   get_ClientId : ∀ (x : Annotation), go.IsGoStepPureDetTagged under (StructFieldGet Annotation.underlying go!"ClientId") #x (Val #(x.ClientId'))
@@ -3057,8 +3057,8 @@ class Annotation.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] 
   set_TextColor : ∀ (x : Annotation) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Annotation.underlying go!"TextColor") (PairV #x #y) (Val #(({ x with TextColor' := y } : Annotation)))
   get_BackgroundColor : ∀ (x : Annotation), go.IsGoStepPureDetTagged under (StructFieldGet Annotation.underlying go!"BackgroundColor") #x (Val #(x.BackgroundColor'))
   set_BackgroundColor : ∀ (x : Annotation) (y : GoString), go.IsGoStepPureDetTagged under (StructFieldSet Annotation.underlying go!"BackgroundColor") (PairV #x #y) (Val #(({ x with BackgroundColor' := y } : Annotation)))
-  get__8 : ∀ (x : Annotation), go.IsGoStepPureDetTagged under (StructFieldGet Annotation.underlying go!"_8") #x (Val #(x._8'))
-  set__8 : ∀ (x : Annotation) (y : Unit), go.IsGoStepPureDetTagged under (StructFieldSet Annotation.underlying go!"_8") (PairV #x #y) (Val #(({ x with _8' := y } : Annotation)))
+  «get__#8» : ∀ (x : Annotation), go.IsGoStepPureDetTagged under (StructFieldGet Annotation.underlying go!"_#8") #x (Val #(x.«_#8'»))
+  «set__#8» : ∀ (x : Annotation) (y : Unit), go.IsGoStepPureDetTagged under (StructFieldSet Annotation.underlying go!"_#8") (PairV #x #y) (Val #(({ x with «_#8'» := y } : Annotation)))
 
 attribute [instance] Annotation.TypeAssumptions.type_repr
   Annotation.TypeAssumptions.underlying
@@ -3078,10 +3078,10 @@ attribute [instance] Annotation.TypeAssumptions.type_repr
   Annotation.TypeAssumptions.set_TextColor
   Annotation.TypeAssumptions.get_BackgroundColor
   Annotation.TypeAssumptions.set_BackgroundColor
-  Annotation.TypeAssumptions.get__8
-  Annotation.TypeAssumptions.set__8
+  Annotation.TypeAssumptions.«get__#8»
+  Annotation.TypeAssumptions.«set__#8»
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   bitset_instance : bitset.TypeAssumptions
   entryKind_instance : entryKind.TypeAssumptions
   entry_instance : entry.TypeAssumptions

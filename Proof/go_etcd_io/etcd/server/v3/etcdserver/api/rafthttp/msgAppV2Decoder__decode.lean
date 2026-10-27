@@ -29,7 +29,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -432,8 +432,11 @@ theorem rafthttp.msgAppV2Decoder.decode.wp_proof
       iframe Hsl HRd HB HerrS
       ipureintro
       exact ⟨by omega, fun h => by have := Hys.2.2 h; omega⟩
+    ihave #Hbin : isPkgInit (PROP := IProp GF) pkg_id.encoding.binary $$ []
+    · iPkgInit
+    ihave %Hbe := bigEndian_ne_null $$ Hbin
     wp_apply (encoding.binary.wp_load_struct_nofields (V := encoding.binary.bigEndian)
-      (globalAddr encoding.binary.BigEndian))
+      (globalAddr encoding.binary.BigEndian) Hbe)
     iintro -
     wp_auto
     wp_apply Hbr $$ [$HRd $size] as %err ⟨%ys8, %n, ⟨HRd, #HB8, #HerrS⟩, Hsz⟩

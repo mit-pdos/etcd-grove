@@ -29,7 +29,7 @@ private theorem drop_set_self {α : Type} (l : List α) (k : Nat) (a : α) (hk :
     | succ k => simp only [List.set_cons_succ, List.drop_succ_cons]; exact ih k (by simp at hk; omega)
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

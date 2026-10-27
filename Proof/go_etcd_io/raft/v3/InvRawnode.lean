@@ -118,7 +118,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 -- (2026-10-26, raft's signature, stage 1) `RNState` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
 
 section defs
-variable [FfiSyntax]
+variable [GooseExts]
 
 -- (2026-10-26, raft's signature, stage 1) `RNMode.isDyn` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
 
@@ -463,12 +463,12 @@ Moved here from the old specs (`RawNode__Step.lean`, `RawNode__ApplyConfChange.l
 
 -- (2026-10-26, raft's signature, stage 1) `NetMsgOk.resps` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
 
-omit [FfiSyntax] in
+omit [GooseExts] in
 theorem netStepTypes_nonneg {t : w32} (h : t ∈ netStepTypes) : 0 ≤ sint.Z t := by
   simp only [netStepTypes, List.mem_cons, List.not_mem_nil, _root_.or_false] at h
   rcases h with h | h | h | h | h | h | h | h | h | h | h | h | h | h | h | h <;> rw [h] <;> decide
 
-omit [FfiSyntax] in
+omit [GooseExts] in
 theorem netStepTypes_ne_prop {t : w32} (h : t ∈ netStepTypes) : t ≠ MsgProp := by
   intro he
   rw [he] at h
@@ -546,7 +546,7 @@ def ccEntryM (o : Option CCMsg) (bs : List w8) : EntryM := ⟨W64 0, W64 0, ccEn
 end defs
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
@@ -1023,7 +1023,7 @@ theorem ownRaftPhysC_preFacts (c : CfgM) {V : GSet w64} (r : Loc) (id : w64) (s 
 end proof
 
 section rawnode
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 -- `hlc := HasLC.hasLC`: the predicate holds the ghost state (`ownRaftGhost`), as in
 -- `Spec/raft__Step.lean`
@@ -1198,7 +1198,7 @@ theorem isEntryR_term_nz (γ : RaftNames) (e : EntryM) (pt : w64) :
     obtain ⟨-, -, Ht, -⟩ := Hb
     rw [Ht]; word
 
-omit [FfiSemantics ext ffi] go_gctx [StorageModel GF] sem package_sem in
+omit [GooseSemantics] go_gctx [StorageModel GF] sem package_sem in
 /-- (Lean helper, as `StepGhost.lean`'s.) -/
 private theorem ite_pos_elim' {PROP : Type _} [BI PROP] {c : Prop} [Decidable c] (P Q : PROP)
     (h : c) : (if c then P else Q) ⊢ P := by

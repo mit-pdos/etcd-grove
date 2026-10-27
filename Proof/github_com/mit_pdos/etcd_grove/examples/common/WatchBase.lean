@@ -31,7 +31,7 @@ namespace common
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver
 
 section pure
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- The program's structs (`KV`, `Event`, `PutRec`), by short names. -/
 abbrev wkv := github_com.mit_pdos.etcd_grove.examples.common.KV
@@ -67,7 +67,7 @@ theorem Cur_zero : Cur 0 (W64 0) := Or.inl ⟨rfl, by decide, by decide⟩
 end pure
 
 section rev
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -105,7 +105,7 @@ theorem revAt_agree (E : apply.AEnv GF) (r : Nat) (k v k' v' : GoString) :
 end rev
 
 section facts
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

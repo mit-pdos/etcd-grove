@@ -22,7 +22,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.client.v3.leasing go_etcd_io.et
 /-! ## The reset -/
 
 section pure
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- **The session monitor's reset** of the cache (`lkv.leases.entries = make(map...)`): the
 entries map becomes the fresh map `m`, empty, and every entry is frozen (a `Get` that found one
@@ -46,7 +46,7 @@ theorem reset_wf {st : LeaseCacheSt} (hwf : LeaseCacheWf st) (m : GoMap) :
 end pure
 
 section lemmas
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [EM : EtcdModel GF]

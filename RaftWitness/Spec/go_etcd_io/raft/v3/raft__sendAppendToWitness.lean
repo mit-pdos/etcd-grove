@@ -17,11 +17,11 @@ open Iris Iris.BI go_etcd_io.raft.v3
 /-- The request `sendAppendToWitness` queues: a `MsgApp` from `id` to the witness `w` at the
 term `tm`, of the entry `i` of the term `tm` and subterm `st`, with the replication set's
 non-witness voters `vs0`, `vs1` of each half. -/
-def wappMsg [FfiSyntax] (id w tm st i : w64) (vs0 vs1 : List w64) : WMsg :=
+def wappMsg [GooseExts] (id w tm st i : w64) (vs0 vs1 : List w64) : WMsg :=
   ⟨MsgApp, id, w, tm, tm, st, i, vs0, vs1, ∅, []⟩
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]

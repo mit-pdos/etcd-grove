@@ -21,87 +21,87 @@ end pkg_id
 
 namespace go_etcd_io.etcd.api.v3.mvccpb
 
-noncomputable def Event_EventType.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Event_EventType.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/api/v3/mvccpb.Event_EventType" [])
 
 attribute [irreducible] Event_EventType.ty
 
-noncomputable def KeyValue.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def KeyValue.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/api/v3/mvccpb.KeyValue" [])
 
 attribute [irreducible] KeyValue.ty
 
-noncomputable def Event.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Event.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/api/v3/mvccpb.Event" [])
 
 attribute [irreducible] Event.ty
 
-axiom PUT [FfiSyntax] [GoGlobalContext] : val
+axiom PUT [GooseExts] [GoGlobalContext] : val
 
-axiom DELETE [FfiSyntax] [GoGlobalContext] : val
+axiom DELETE [GooseExts] [GoGlobalContext] : val
 
-@[reducible] noncomputable def Event_PUT [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def Event_PUT [GooseExts] [GoGlobalContext] : val :=
   #(W32 0)
 
-@[reducible] noncomputable def Event_DELETE [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def Event_DELETE [GooseExts] [GoGlobalContext] : val :=
   #(W32 1)
 
-axiom file_kv_proto_rawDesc [FfiSyntax] [GoGlobalContext] : val
+axiom file_kv_proto_rawDesc [GooseExts] [GoGlobalContext] : val
 
-noncomputable def Event_EventType_name [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Event_EventType_name [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/mvccpb.Event_EventType_name"
 
-axiom Event_EventType_name.init [FfiSyntax] [GoGlobalContext] : val
+axiom Event_EventType_name.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def Event_EventType_value [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Event_EventType_value [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/mvccpb.Event_EventType_value"
 
-axiom Event_EventType_value.init [FfiSyntax] [GoGlobalContext] : val
+axiom Event_EventType_value.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def File_kv_proto [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def File_kv_proto [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/mvccpb.File_kv_proto"
 
-noncomputable def file_kv_proto_rawDescOnce [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def file_kv_proto_rawDescOnce [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/mvccpb.file_kv_proto_rawDescOnce"
 
-noncomputable def file_kv_proto_rawDescData [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def file_kv_proto_rawDescData [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/mvccpb.file_kv_proto_rawDescData"
 
-noncomputable def file_kv_proto_enumTypes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def file_kv_proto_enumTypes [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/mvccpb.file_kv_proto_enumTypes"
 
-axiom file_kv_proto_enumTypes.init [FfiSyntax] [GoGlobalContext] : val
+axiom file_kv_proto_enumTypes.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def file_kv_proto_msgTypes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def file_kv_proto_msgTypes [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/mvccpb.file_kv_proto_msgTypes"
 
-axiom file_kv_proto_msgTypes.init [FfiSyntax] [GoGlobalContext] : val
+axiom file_kv_proto_msgTypes.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def file_kv_proto_goTypes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def file_kv_proto_goTypes [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/mvccpb.file_kv_proto_goTypes"
 
-axiom file_kv_proto_goTypes.init [FfiSyntax] [GoGlobalContext] : val
+axiom file_kv_proto_goTypes.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def file_kv_proto_depIdxs [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def file_kv_proto_depIdxs [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/mvccpb.file_kv_proto_depIdxs"
 
-axiom file_kv_proto_depIdxs.init [FfiSyntax] [GoGlobalContext] : val
+axiom file_kv_proto_depIdxs.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def file_kv_proto_rawDescGZIP [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def file_kv_proto_rawDescGZIP [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/mvccpb.file_kv_proto_rawDescGZIP"
 
-noncomputable def init.«0» [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def init.«0» [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/mvccpb.init.0"
 
-noncomputable def file_kv_proto_init [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def file_kv_proto_init [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/mvccpb.file_kv_proto_init"
 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.api.v3.mvccpb where
   pkgImportedPkgs := [pkg_id.google_golang_org.protobuf.runtime.protoimpl]
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.api.v3.mvccpb)) (Lam BAnon
   (App (Val exceptionDo)
@@ -129,17 +129,17 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.initialize') (Val #()))))))))
 
-abbrev Event_EventType [FfiSyntax] : Type := w32
+abbrev Event_EventType [GooseExts] : Type := w32
 
-@[reducible] noncomputable def Event_EventType.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Event_EventType.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.int32
 
-class Event_EventType.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Event_EventType.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Event_EventType.ty Event_EventType.underlying
 
 attribute [instance] Event_EventType.TypeAssumptions.underlying
 
-structure KeyValue [FfiSyntax] where
+structure KeyValue [GooseExts] where
   mk ::
   state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
   Key' : GoSlice
@@ -151,10 +151,10 @@ structure KeyValue [FfiSyntax] where
   unknownFields' : GoSlice
   sizeCache' : w32
 
-noncomputable instance KeyValue.zero_val [FfiSyntax] : ZeroVal KeyValue :=
+noncomputable instance KeyValue.zero_val [GooseExts] : ZeroVal KeyValue :=
   ⟨KeyValue.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def KeyValue.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def KeyValue.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
 (go.field_decl.FieldDecl go!"Key" (go.GoType.SliceType go.byte)),
 (go.field_decl.FieldDecl go!"CreateRevision" go.int64),
@@ -165,17 +165,17 @@ noncomputable instance KeyValue.zero_val [FfiSyntax] : ZeroVal KeyValue :=
 (go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
 (go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
 
-@[irreducible] noncomputable def KeyValue.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def KeyValue.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   KeyValue.fieldsUnsealed
 
-noncomputable instance equals_unfold_KeyValue [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_KeyValue [GooseExts] [GoGlobalContext] :
     EqualsUnfold KeyValue.fields KeyValue.fieldsUnsealed :=
   ⟨by unfold KeyValue.fields; rfl⟩
 
-@[reducible] noncomputable def KeyValue.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def KeyValue.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType KeyValue.fields)
 
-class KeyValue.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class KeyValue.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying KeyValue.underlying KeyValue
   underlying : go.UnderlyingDirectedEq KeyValue.ty KeyValue.underlying
   get_state : ∀ (x : KeyValue), go.IsGoStepPureDetTagged under (StructFieldGet KeyValue.underlying go!"state") #x (Val #(x.state'))
@@ -218,7 +218,7 @@ attribute [instance] KeyValue.TypeAssumptions.type_repr
   KeyValue.TypeAssumptions.get_sizeCache
   KeyValue.TypeAssumptions.set_sizeCache
 
-structure Event [FfiSyntax] where
+structure Event [GooseExts] where
   mk ::
   state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
   Type' : Event_EventType
@@ -227,10 +227,10 @@ structure Event [FfiSyntax] where
   unknownFields' : GoSlice
   sizeCache' : w32
 
-noncomputable instance Event.zero_val [FfiSyntax] : ZeroVal Event :=
+noncomputable instance Event.zero_val [GooseExts] : ZeroVal Event :=
   ⟨Event.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Event.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Event.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
 (go.field_decl.FieldDecl go!"Type" Event_EventType.ty),
 (go.field_decl.FieldDecl go!"Kv" (go.GoType.PointerType KeyValue.ty)),
@@ -238,17 +238,17 @@ noncomputable instance Event.zero_val [FfiSyntax] : ZeroVal Event :=
 (go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
 (go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
 
-@[irreducible] noncomputable def Event.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Event.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Event.fieldsUnsealed
 
-noncomputable instance equals_unfold_Event [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Event [GooseExts] [GoGlobalContext] :
     EqualsUnfold Event.fields Event.fieldsUnsealed :=
   ⟨by unfold Event.fields; rfl⟩
 
-@[reducible] noncomputable def Event.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Event.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Event.fields)
 
-class Event.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Event.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Event.underlying Event
   underlying : go.UnderlyingDirectedEq Event.ty Event.underlying
   get_state : ∀ (x : Event), go.IsGoStepPureDetTagged under (StructFieldGet Event.underlying go!"state") #x (Val #(x.state'))
@@ -279,7 +279,7 @@ attribute [instance] Event.TypeAssumptions.type_repr
   Event.TypeAssumptions.get_sizeCache
   Event.TypeAssumptions.set_sizeCache
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Event_EventType_instance : Event_EventType.TypeAssumptions
   KeyValue_instance : KeyValue.TypeAssumptions
   Event_instance : Event.TypeAssumptions

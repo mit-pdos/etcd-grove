@@ -11,8 +11,8 @@ thread's result, if it has one, is `#()`, no thread is stuck, and no thread has 
 
 It follows from `EtcdGrove.goose_adequacy_start` (through `common/Adequacy.lean`'s `etcd_adequate`) (`Proof/runtime/Start.lean`: Perennial's
 `goose_adequacy` whose WP proof also receives program start's rights, D19d) with the read
-package's two metric names and the client address `127.0.0.1:23790`, instantiated with the disk
-FFI (the proofs are generic over the FFI) and a ghost-state bundle `putgetGF`, from `putget`'s
+package's two metric names and the client address `127.0.0.1:23790`, instantiated with the
+trivial extension (`common/TrivialExt.lean`; the proofs are generic over the extensions) and a ghost-state bundle `putgetGF`, from `putget`'s
 `wp_initialize'` (`Init.lean`, over the program's package table `PkgTable.lean`) and
 `putget_Main` (`Results.lean`).
 
@@ -43,7 +43,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.putget.MainLinked
 public import Proof.github_com.mit_pdos.etcd_grove.examples.putget.PkgTable
 public import Proof.runtime.Start
 public import Proof.runtime.Threads
-public import Perennial.GooseLang.Ffi.DiskFfi.Adequacy
+public import Proof.github_com.mit_pdos.etcd_grove.examples.common.TrivialExt
 
 @[expose] public section
 
@@ -58,13 +58,12 @@ namespace EtcdGrove
 
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode go_etcd_io.raft.v3
 
-attribute [local instance] disk_op disk_model disk_semantics disk_interp
+attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp
 
 /-! ## The ghost-state bundle -/
 
 /-- The functors (as the register's `registerGF`): the universal camera (`AllG`) at slot 0, then
-invariants, later credits, GooseLang's heap, prophecies and package state, and the disk FFI's
-heap. Every other slot is the unit functor. -/
+invariants, later credits, GooseLang's heap, prophecies and package state. Every other slot is the unit functor. -/
 def putgetGF : BundledGFunctors := fun i =>
   match i with
   | 0 => ⟨AllURF, inferInstance⟩
@@ -76,27 +75,23 @@ def putgetGF : BundledGFunctors := fun i =>
   | 6 => ⟨constOF (HeapView proph_id (Agree (DiscreteO (List val))) (GMap proph_id)),
           inferInstance⟩
   | 7 => ⟨GhostVarF (GMap GoString Bool), inferInstance⟩
-  | 8 => ⟨constOF (HeapView Int (Agree (DiscreteO Block)) (GMap Int)), inferInstance⟩
-  | 9 => ⟨constOF (HeapView Int (Agree (DiscreteO GName)) (GMap Int)), inferInstance⟩
-  | 10 => ⟨constOF MetaUR, inferInstance⟩
   | _ => ⟨constOF Unit, inferInstance⟩
 
 /-- The universal camera at slot 0. -/
 def putgetGF_allG : AllG putgetGF := ⟨⟨0, rfl⟩⟩
 
-instance putgetGF_gooseGpreS : GooseGpreS disk_model putgetGF where
+instance putgetGF_gooseGpreS : GooseGpreS putgetGF where
   goose_preG_iris := ⟨⟨⟨1, rfl⟩, ⟨2, rfl⟩, ⟨3, rfl⟩⟩, ⟨⟨4, rfl⟩⟩⟩
   goose_preG_heap := ⟨⟨5, rfl⟩⟩
   goose_preG_proph := ⟨⟨⟨6, rfl⟩⟩⟩
-  goosePreGFfi := (⟨⟨⟨⟨8, rfl⟩⟩, ⟨⟨9, rfl⟩⟩, ⟨10, rfl⟩⟩⟩ : DiskPreG putgetGF)
+  goosePreGExts := ((), PUnit.unit)
   goose_preG_go_state := ⟨@GhostVarG.mk _ _ ⟨7, rfl⟩⟩
   goosePreGAllG := putgetGF_allG
 
 /-- **A ghost-state instance at the local context `lctx`** (the hypotheses below are stated over
 every instance of the ghost state whose Go local context is the semantics' own). -/
 abbrev heapAt (hG : HeapGS .hasLC putgetGF) (lctx : GoLocalContext) : HeapGS .hasLC putgetGF :=
-  ⟨hG.goose_globalGS, ⟨hG.goose_localGS.gooseFfiLocalGS, lctx,
-    hG.goose_localGS.goose_na_heapGS, hG.goose_localGS.goose_go_stateGS⟩⟩
+  ⟨hG.goose_globalGS, { hG.goose_localGS with goose_go_local_context := lctx }⟩
 
 /-! ## The closed theorem -/
 
@@ -135,7 +130,7 @@ theorem putget_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (Hprem : ∀ hG : HeapGS .hasLC putgetGF,
       ⊢ putget.premises (GF := putgetGF) (hG := heapAt hG lctx) n id bootLog)
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
-    (Hthreads : g.threads = 1)
+    (Hthreads : σ.threads = 1)
     (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([putgetProgram], ((σ, g) : CfgState)) κs (t2, σ2))
     (Hn : n + 2 ≤ 2 ^ 31) (Hwb : n + 7 ≤ backend.wbInit) :
@@ -144,7 +139,7 @@ theorem putget_adequate [lctx : GoLocalContext] [sem : go.Semantics]
     (∀ v, Val v ∈ t2 → v.isPanic = false) := by
   refine etcd_adequate (GF := putgetGF) github_com.mit_pdos.etcd_grove.examples.putget.initialize'
     ((@! github_com.mit_pdos.etcd_grove.examples.putget.Main) #())
-    (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) [go!"127.0.0.1:23790"] (by decide) σ g trivial trivial Hlctx Hinit Hthreads HNs HAs
+    (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) [go!"127.0.0.1:23790"] (by decide) σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit Hthreads HNs HAs
     n κs t2 σ2 Hsteps fun hG HN HT => ?_
   letI : HeapGS .hasLC putgetGF := heapAt hG lctx
   haveI := Hctx hG

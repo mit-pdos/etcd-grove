@@ -20,35 +20,35 @@ end pkg_id
 
 namespace go_opentelemetry_io.otel.codes
 
-noncomputable def Code.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Code.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.opentelemetry.io/otel/codes.Code" [])
 
 attribute [irreducible] Code.ty
 
-axiom Unset [FfiSyntax] [GoGlobalContext] : val
+axiom Unset [GooseExts] [GoGlobalContext] : val
 
-axiom Error [FfiSyntax] [GoGlobalContext] : val
+axiom Error [GooseExts] [GoGlobalContext] : val
 
-axiom Ok [FfiSyntax] [GoGlobalContext] : val
+axiom Ok [GooseExts] [GoGlobalContext] : val
 
-axiom maxCode [FfiSyntax] [GoGlobalContext] : val
+axiom maxCode [GooseExts] [GoGlobalContext] : val
 
-noncomputable def codeToStr [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def codeToStr [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.opentelemetry.io/otel/codes.codeToStr"
 
-axiom codeToStr.init [FfiSyntax] [GoGlobalContext] : val
+axiom codeToStr.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def strToCode [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def strToCode [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.opentelemetry.io/otel/codes.strToCode"
 
-axiom strToCode.init [FfiSyntax] [GoGlobalContext] : val
+axiom strToCode.init [GooseExts] [GoGlobalContext] : val
 
 noncomputable instance info' : PkgInfo pkg_id.go_opentelemetry_io.otel.codes where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_opentelemetry_io.otel.codes)) (Lam BAnon
   (App (Val exceptionDo)
@@ -58,17 +58,17 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val codeToStr.init) (Val #()))))))))
 
-abbrev Code [FfiSyntax] : Type := w32
+abbrev Code [GooseExts] : Type := w32
 
-@[reducible] noncomputable def Code.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Code.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.uint32
 
-class Code.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Code.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Code.ty Code.underlying
 
 attribute [instance] Code.TypeAssumptions.underlying
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Code_instance : Code.TypeAssumptions
 
 attribute [instance] Assumptions.Code_instance

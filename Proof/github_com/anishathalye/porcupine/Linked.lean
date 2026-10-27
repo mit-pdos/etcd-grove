@@ -28,7 +28,7 @@ namespace github_com.anishathalye.porcupine
 open Theory
 
 section defs
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- What the node of entry `e` holds: its operation's input (a call) or output (a return). -/
 def valOf (h : List (Op OpV)) (e : Entry) : GoInterface :=
@@ -98,7 +98,7 @@ theorem entriesOk_retClosed_drop {α : Type} {h : List (Op α)} {es : List Entry
 end defs
 
 section heap
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

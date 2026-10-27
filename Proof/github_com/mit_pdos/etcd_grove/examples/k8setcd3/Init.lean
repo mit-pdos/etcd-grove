@@ -4,8 +4,9 @@ Package initialization of `github_com.mit_pdos.etcd_grove.examples.k8setcd3`
 
 Its fact (`drvInit`, `Base.lean`): its error variables (`k8setcd3.go`: `errNotObj`,
 `errBadData`, `errBadRV`, `errNoList`, `errDeleteRejected`, `errUpdateRejected`, translated
-`errors.New` calls) each hold a fixed `*errorString` whose `Error()` returns. Its initializer
-allocates them, initializes its imports and runs their translated initializers.
+`errors.New` calls) each hold a fixed `*errorString` whose `Error()` returns and whose cell holds
+its message (`wp_New_errorString_cell`). Its initializer allocates them, initializes its imports
+and runs their translated initializers.
 -/
 module
 
@@ -26,7 +27,7 @@ public import Proof.k8s_io.apimachinery.pkg.runtime.schema.Init
 public import Proof.k8s_io.apiserver.pkg.storage.Init
 public import Proof.k8s_io.apiserver.pkg.storage.etcd3.Init
 public import Proof.k8s_io.apiserver.pkg.storage.value.Init
-public import Perennial.Proof.context.NewErrorString
+public import Proof.errors.NewVarCell
 public import Proof.runtime.PkgInitExt
 
 @[expose] public section
@@ -46,7 +47,7 @@ local macro "mem_tac" : tactic =>
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
 section init
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -121,17 +122,17 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   -- translated initializer of errDeleteRejected))
   -- translated initializer of errUpdateRejected))
   try wp_auto
-  wp_apply _root_.Perennial.context.wp_New_errorString as %xNO #MNO
+  wp_apply EtcdGrove.wp_New_errorString_cell as %xNO ⟨#MNO, #CNO⟩
   try wp_auto
-  wp_apply _root_.Perennial.context.wp_New_errorString as %xBD #MBD
+  wp_apply EtcdGrove.wp_New_errorString_cell as %xBD ⟨#MBD, #CBD⟩
   try wp_auto
-  wp_apply _root_.Perennial.context.wp_New_errorString as %xBR #MBR
+  wp_apply EtcdGrove.wp_New_errorString_cell as %xBR ⟨#MBR, #CBR⟩
   try wp_auto
-  wp_apply _root_.Perennial.context.wp_New_errorString as %xNL #MNL
+  wp_apply EtcdGrove.wp_New_errorString_cell as %xNL ⟨#MNL, #CNL⟩
   try wp_auto
-  wp_apply _root_.Perennial.context.wp_New_errorString as %xDR #MDR
+  wp_apply EtcdGrove.wp_New_errorString_cell as %xDR ⟨#MDR, #CDR⟩
   try wp_auto
-  wp_apply _root_.Perennial.context.wp_New_errorString as %xUR #MUR
+  wp_apply EtcdGrove.wp_New_errorString_cell as %xUR ⟨#MUR, #CUR⟩
   try wp_auto
   ipersist HerrNotObj
   ipersist HerrBadData
@@ -149,7 +150,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
   unfold drvInit
   isplitr
   · iexists xNO
-    iframe HerrNotObj
+    iframe HerrNotObj CNO
     unfold _root_.Perennial.go_etcd_io.etcd.cache.v3.errorStringSpec
     iintro !> %Φ HΦ
     iapply MNO
@@ -157,7 +158,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
     iapply HΦ
   isplitr
   · iexists xBD
-    iframe HerrBadData
+    iframe HerrBadData CBD
     unfold _root_.Perennial.go_etcd_io.etcd.cache.v3.errorStringSpec
     iintro !> %Φ HΦ
     iapply MBD
@@ -165,7 +166,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
     iapply HΦ
   isplitr
   · iexists xBR
-    iframe HerrBadRV
+    iframe HerrBadRV CBR
     unfold _root_.Perennial.go_etcd_io.etcd.cache.v3.errorStringSpec
     iintro !> %Φ HΦ
     iapply MBR
@@ -173,7 +174,7 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
     iapply HΦ
   isplitr
   · iexists xNL
-    iframe HerrNoList
+    iframe HerrNoList CNL
     unfold _root_.Perennial.go_etcd_io.etcd.cache.v3.errorStringSpec
     iintro !> %Φ HΦ
     iapply MNL
@@ -181,14 +182,14 @@ theorem wp_initialize'_res (get_is_pkg_init : GoString → IProp GF)
     iapply HΦ
   isplitr
   · iexists xDR
-    iframe HerrDeleteRejected
+    iframe HerrDeleteRejected CDR
     unfold _root_.Perennial.go_etcd_io.etcd.cache.v3.errorStringSpec
     iintro !> %Φ HΦ
     iapply MDR
     inext
     iapply HΦ
   iexists xUR
-  iframe HerrUpdateRejected
+  iframe HerrUpdateRejected CUR
   unfold _root_.Perennial.go_etcd_io.etcd.cache.v3.errorStringSpec
   iintro !> %Φ HΦ
   iapply MUR

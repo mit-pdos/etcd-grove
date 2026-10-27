@@ -33,7 +33,7 @@ namespace EtcdGrove
 open Iris Iris.BI go_etcd_io.raft.v3
 
 section model
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- `pb.ConfChangeSingle{Type: pb.ConfChangeRemoveNode, NodeId: id}`. -/
 abbrev removeNodeCC (id : w64) : ConfChangeSingleM :=

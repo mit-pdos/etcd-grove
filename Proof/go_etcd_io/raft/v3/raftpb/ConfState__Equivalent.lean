@@ -55,7 +55,7 @@ theorem sortedOf_eq {c1 c2 c1' c2' : ConfStateM} (hp : c1.lists.Perm c2.lists)
 end pure
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

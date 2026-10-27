@@ -41,7 +41,7 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 namespace github_com.mit_pdos.etcd_grove.examples.lintest.counter
 
 section init
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -64,7 +64,7 @@ namespace counter
 
 open github_com.anishathalye.porcupine github_com.anishathalye.porcupine.Theory
 section model
-variable [ext : FfiSyntax] [go_gctx : GoGlobalContext]
+variable [GooseExts] [go_gctx : GoGlobalContext]
 
 /-- The boxed `int64` `x` (`any(x)`). -/
 abbrev boxI (x : w64) : GoInterface := interface.mkOk go.int64 #x
@@ -113,7 +113,7 @@ theorem counterM_step_box (s x : w64) (i : GoInterface) :
 end model
 
 section addrs
-variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
 /-- The address of `c.mu`. -/
 abbrev muAddr (c : Loc) : Loc :=
@@ -126,7 +126,7 @@ abbrev nAddr (c : Loc) : Loc :=
 end addrs
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

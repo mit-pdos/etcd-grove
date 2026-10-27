@@ -66,7 +66,7 @@ namespace EtcdGrove
 open Iris Iris.BI
 
 section defs
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- **What a dial option does** (see the file header). -/
 inductive GrpcDialOpt where
@@ -105,20 +105,20 @@ end defs
 
 /-- **The dial option `o` does `d`** (an axiomatized property: introduced only by the axioms of
 grpc's option constructors; see the file header). -/
-axiom grpcDialOptIs [FfiSyntax] (o : GoInterface) (d : GrpcDialOpt) : Prop
+axiom grpcDialOptIs [GooseExts] (o : GoInterface) (d : GrpcDialOpt) : Prop
 
 /-- **`si` is etcd's client stream interceptor** (an axiomatized property: introduced only by the
 client's `streamClientInterceptor` axiom; what grpc's `ClientConn.NewStream` axiom assumes of a
 connection's stream interceptor). -/
-axiom etcdStreamInterceptor [FfiSyntax] (si : GoFunc) : Prop
+axiom etcdStreamInterceptor [GooseExts] (si : GoFunc) : Prop
 
 /-- **The resolver builder `rb` resolves the scheme `scheme` to the addresses `addrs`** (exclusive; an
 axiomatized predicate; see the file header). -/
-axiom grpcResolverAt {GF : BundledGFunctors} [FfiSyntax] (rb : GoInterface) (scheme : GoString)
+axiom grpcResolverAt {GF : BundledGFunctors} [GooseExts] (rb : GoInterface) (scheme : GoString)
   (addrs : List GoString) : IProp GF
 
 section defs2
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

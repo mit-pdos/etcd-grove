@@ -21,52 +21,52 @@ end pkg_id
 
 namespace k8s_io.utils.clock
 
-noncomputable def PassiveClock.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def PassiveClock.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/utils/clock.PassiveClock" [])
 
 attribute [irreducible] PassiveClock.ty
 
-noncomputable def Clock.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Clock.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/utils/clock.Clock" [])
 
 attribute [irreducible] Clock.ty
 
-noncomputable def WithTicker.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def WithTicker.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/utils/clock.WithTicker" [])
 
 attribute [irreducible] WithTicker.ty
 
-noncomputable def WithDelayedExecution.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def WithDelayedExecution.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/utils/clock.WithDelayedExecution" [])
 
 attribute [irreducible] WithDelayedExecution.ty
 
-noncomputable def WithTickerAndDelayedExecution.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def WithTickerAndDelayedExecution.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/utils/clock.WithTickerAndDelayedExecution" [])
 
 attribute [irreducible] WithTickerAndDelayedExecution.ty
 
-noncomputable def Ticker.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Ticker.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/utils/clock.Ticker" [])
 
 attribute [irreducible] Ticker.ty
 
-noncomputable def RealClock.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def RealClock.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/utils/clock.RealClock" [])
 
 attribute [irreducible] RealClock.ty
 
-noncomputable def Timer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Timer.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/utils/clock.Timer" [])
 
 attribute [irreducible] Timer.ty
 
-noncomputable def realTimer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def realTimer.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/utils/clock.realTimer" [])
 
 attribute [irreducible] realTimer.ty
 
-noncomputable def realTicker.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def realTicker.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"k8s.io/utils/clock.realTicker" [])
 
 attribute [irreducible] realTicker.ty
@@ -74,9 +74,9 @@ attribute [irreducible] realTicker.ty
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.utils.clock where
   pkgImportedPkgs := [pkg_id.time]
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.utils.clock)) (Lam BAnon
   (App (Val exceptionDo)
@@ -89,123 +89,123 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.time.initialize') (Val #()))))))))
 
-abbrev PassiveClock [FfiSyntax] : Type := GoInterface
+abbrev PassiveClock [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def PassiveClock.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def PassiveClock.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Now" (go.signature.Signature [] false [_root_.Perennial.time.Time.ty])), (go.InterfaceElem.MethodElem go!"Since" (go.signature.Signature [_root_.Perennial.time.Time.ty] false [_root_.Perennial.time.Duration.ty]))])
 
-class PassiveClock.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class PassiveClock.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq PassiveClock.ty PassiveClock.underlying
 
 attribute [instance] PassiveClock.TypeAssumptions.underlying
 
-abbrev Clock [FfiSyntax] : Type := GoInterface
+abbrev Clock [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def Clock.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Clock.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"After" (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [(go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty)])), (go.InterfaceElem.MethodElem go!"NewTimer" (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [Timer.ty])), (go.InterfaceElem.MethodElem go!"Sleep" (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [])), (go.InterfaceElem.MethodElem go!"Tick" (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [(go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty)])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm PassiveClock.ty)])])
 
-class Clock.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Clock.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Clock.ty Clock.underlying
 
 attribute [instance] Clock.TypeAssumptions.underlying
 
-abbrev WithTicker [FfiSyntax] : Type := GoInterface
+abbrev WithTicker [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def WithTicker.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def WithTicker.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"NewTicker" (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [Ticker.ty])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm Clock.ty)])])
 
-class WithTicker.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class WithTicker.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq WithTicker.ty WithTicker.underlying
 
 attribute [instance] WithTicker.TypeAssumptions.underlying
 
-abbrev WithDelayedExecution [FfiSyntax] : Type := GoInterface
+abbrev WithDelayedExecution [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def WithDelayedExecution.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def WithDelayedExecution.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"AfterFunc" (go.signature.Signature [_root_.Perennial.time.Duration.ty, (go.GoType.FunctionType (go.signature.Signature [] false []))] false [Timer.ty])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm Clock.ty)])])
 
-class WithDelayedExecution.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class WithDelayedExecution.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq WithDelayedExecution.ty WithDelayedExecution.underlying
 
 attribute [instance] WithDelayedExecution.TypeAssumptions.underlying
 
-abbrev WithTickerAndDelayedExecution [FfiSyntax] : Type := GoInterface
+abbrev WithTickerAndDelayedExecution [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def WithTickerAndDelayedExecution.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def WithTickerAndDelayedExecution.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"AfterFunc" (go.signature.Signature [_root_.Perennial.time.Duration.ty, (go.GoType.FunctionType (go.signature.Signature [] false []))] false [Timer.ty])), (go.InterfaceElem.TypeElem [(go.type_term.TypeTerm WithTicker.ty)])])
 
-class WithTickerAndDelayedExecution.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class WithTickerAndDelayedExecution.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq WithTickerAndDelayedExecution.ty WithTickerAndDelayedExecution.underlying
 
 attribute [instance] WithTickerAndDelayedExecution.TypeAssumptions.underlying
 
-abbrev Ticker [FfiSyntax] : Type := GoInterface
+abbrev Ticker [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def Ticker.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Ticker.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"C" (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty)])), (go.InterfaceElem.MethodElem go!"Stop" (go.signature.Signature [] false []))])
 
-class Ticker.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Ticker.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Ticker.ty Ticker.underlying
 
 attribute [instance] Ticker.TypeAssumptions.underlying
 
-structure RealClock [FfiSyntax] where
+structure RealClock [GooseExts] where
   mk ::
 
-noncomputable instance RealClock.zero_val [FfiSyntax] : ZeroVal RealClock :=
+noncomputable instance RealClock.zero_val [GooseExts] : ZeroVal RealClock :=
   ⟨RealClock.mk⟩
 
-@[reducible] noncomputable def RealClock.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def RealClock.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   []
 
-@[irreducible] noncomputable def RealClock.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def RealClock.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   RealClock.fieldsUnsealed
 
-noncomputable instance equals_unfold_RealClock [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_RealClock [GooseExts] [GoGlobalContext] :
     EqualsUnfold RealClock.fields RealClock.fieldsUnsealed :=
   ⟨by unfold RealClock.fields; rfl⟩
 
-@[reducible] noncomputable def RealClock.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def RealClock.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType RealClock.fields)
 
-class RealClock.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class RealClock.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying RealClock.underlying RealClock
   underlying : go.UnderlyingDirectedEq RealClock.ty RealClock.underlying
 
 attribute [instance] RealClock.TypeAssumptions.type_repr
   RealClock.TypeAssumptions.underlying
 
-abbrev Timer [FfiSyntax] : Type := GoInterface
+abbrev Timer [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def Timer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Timer.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"C" (go.signature.Signature [] false [(go.GoType.ChannelType go.ChanDir.recvonly _root_.Perennial.time.Time.ty)])), (go.InterfaceElem.MethodElem go!"Reset" (go.signature.Signature [_root_.Perennial.time.Duration.ty] false [go.bool])), (go.InterfaceElem.MethodElem go!"Stop" (go.signature.Signature [] false [go.bool]))])
 
-class Timer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Timer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Timer.ty Timer.underlying
 
 attribute [instance] Timer.TypeAssumptions.underlying
 
-structure realTimer [FfiSyntax] where
+structure realTimer [GooseExts] where
   mk ::
   timer' : Loc
 
-noncomputable instance realTimer.zero_val [FfiSyntax] : ZeroVal realTimer :=
+noncomputable instance realTimer.zero_val [GooseExts] : ZeroVal realTimer :=
   ⟨realTimer.mk zeroValDef⟩
 
-@[reducible] noncomputable def realTimer.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def realTimer.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"timer" (go.GoType.PointerType _root_.Perennial.time.Timer.ty))]
 
-@[irreducible] noncomputable def realTimer.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def realTimer.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   realTimer.fieldsUnsealed
 
-noncomputable instance equals_unfold_realTimer [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_realTimer [GooseExts] [GoGlobalContext] :
     EqualsUnfold realTimer.fields realTimer.fieldsUnsealed :=
   ⟨by unfold realTimer.fields; rfl⟩
 
-@[reducible] noncomputable def realTimer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def realTimer.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType realTimer.fields)
 
-class realTimer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class realTimer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying realTimer.underlying realTimer
   underlying : go.UnderlyingDirectedEq realTimer.ty realTimer.underlying
   get_timer : ∀ (x : realTimer), go.IsGoStepPureDetTagged under (StructFieldGet realTimer.underlying go!"timer") #x (Val #(x.timer'))
@@ -216,27 +216,27 @@ attribute [instance] realTimer.TypeAssumptions.type_repr
   realTimer.TypeAssumptions.get_timer
   realTimer.TypeAssumptions.set_timer
 
-structure realTicker [FfiSyntax] where
+structure realTicker [GooseExts] where
   mk ::
   ticker' : Loc
 
-noncomputable instance realTicker.zero_val [FfiSyntax] : ZeroVal realTicker :=
+noncomputable instance realTicker.zero_val [GooseExts] : ZeroVal realTicker :=
   ⟨realTicker.mk zeroValDef⟩
 
-@[reducible] noncomputable def realTicker.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def realTicker.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"ticker" (go.GoType.PointerType _root_.Perennial.time.Ticker.ty))]
 
-@[irreducible] noncomputable def realTicker.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def realTicker.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   realTicker.fieldsUnsealed
 
-noncomputable instance equals_unfold_realTicker [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_realTicker [GooseExts] [GoGlobalContext] :
     EqualsUnfold realTicker.fields realTicker.fieldsUnsealed :=
   ⟨by unfold realTicker.fields; rfl⟩
 
-@[reducible] noncomputable def realTicker.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def realTicker.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType realTicker.fields)
 
-class realTicker.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class realTicker.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying realTicker.underlying realTicker
   underlying : go.UnderlyingDirectedEq realTicker.ty realTicker.underlying
   get_ticker : ∀ (x : realTicker), go.IsGoStepPureDetTagged under (StructFieldGet realTicker.underlying go!"ticker") #x (Val #(x.ticker'))
@@ -247,7 +247,7 @@ attribute [instance] realTicker.TypeAssumptions.type_repr
   realTicker.TypeAssumptions.get_ticker
   realTicker.TypeAssumptions.set_ticker
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   PassiveClock_instance : PassiveClock.TypeAssumptions
   Clock_instance : Clock.TypeAssumptions
   WithTicker_instance : WithTicker.TypeAssumptions

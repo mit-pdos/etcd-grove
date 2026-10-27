@@ -50,7 +50,7 @@ open RawNodeOwnAccess
 set_option linter.unusedSectionVars false
 
 section helpers
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- The `Ready` `readyWithoutAccept` builds, field by field (D22 S-d3a: `Snapshot` `sn`, `nil`
 unless a snapshot is pending and not in progress). -/
@@ -60,7 +60,7 @@ abbrev readyVal (sp hp : Loc) (rs ents : GoSlice) (sn : Loc) (ce msgs : GoSlice)
 end helpers
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]

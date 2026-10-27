@@ -17,13 +17,13 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-omit ffi [FfiInterp ffi] [FfiSemantics ext ffi] [GoGlobalContext] in
+omit [GooseInterp] [GooseSemantics] [GoGlobalContext] in
 /-- Rocq `plog_last_eq`: on a well-formed log, the id read off `lastIndex()` and the
 term there is `plogLast`. -/
 private theorem plogLast_eq (b : entryID) (es : List EntryM) (t li : w64)

@@ -51,7 +51,7 @@ of a local read, and a forwarded request's response carries `req.Entries` whole)
 message's other fields are never read after queueing. The entries are held read-only,
 like a queued message's (`msgAbs`). -/
 section records
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- `recvAck` changes only the acks, so not the heartbeat context. -/
 theorem hbCtx_recvAck (r : ReadOnly) (src : w64) (ctx : List w8) :
@@ -68,7 +68,7 @@ theorem hbCtx_add (r : ReadOnly) (q : ReadReq) :
 end records
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]

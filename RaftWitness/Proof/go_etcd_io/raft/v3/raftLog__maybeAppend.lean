@@ -20,7 +20,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 section pure
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- Pure facts about `plogFindConflict` the proof needs: it is `0` exactly when every
 entry matches (for a batch with no index `0`), and otherwise it is the index of the
@@ -73,7 +73,7 @@ private theorem matches_le_last (b : entryID) (es : List EntryM) (id : entryID) 
 end pure
 
 section proof0
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
@@ -81,7 +81,7 @@ variable [sem : go.Semantics]
 end proof0
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]

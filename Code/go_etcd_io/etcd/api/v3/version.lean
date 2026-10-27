@@ -20,112 +20,112 @@ end pkg_id
 
 namespace go_etcd_io.etcd.api.v3.version
 
-noncomputable def Versions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Versions.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/api/v3/version.Versions" [])
 
 attribute [irreducible] Versions.ty
 
-noncomputable def MinClusterVersion [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def MinClusterVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/version.MinClusterVersion"
 
-axiom MinClusterVersion.init [FfiSyntax] [GoGlobalContext] : val
+axiom MinClusterVersion.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def Version [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Version [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/version.Version"
 
-axiom Version.init [FfiSyntax] [GoGlobalContext] : val
+axiom Version.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def APIVersion [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def APIVersion [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/version.APIVersion"
 
-axiom APIVersion.init [FfiSyntax] [GoGlobalContext] : val
+axiom APIVersion.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def GitSHA [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def GitSHA [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/version.GitSHA"
 
-axiom GitSHA.init [FfiSyntax] [GoGlobalContext] : val
+axiom GitSHA.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def V3_0 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def V3_0 [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/version.V3_0"
 
-axiom V3_0.init [FfiSyntax] [GoGlobalContext] : val
+axiom V3_0.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def V3_1 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def V3_1 [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/version.V3_1"
 
-axiom V3_1.init [FfiSyntax] [GoGlobalContext] : val
+axiom V3_1.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def V3_2 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def V3_2 [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/version.V3_2"
 
-axiom V3_2.init [FfiSyntax] [GoGlobalContext] : val
+axiom V3_2.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def V3_3 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def V3_3 [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/version.V3_3"
 
-axiom V3_3.init [FfiSyntax] [GoGlobalContext] : val
+axiom V3_3.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def V3_4 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def V3_4 [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/version.V3_4"
 
-axiom V3_4.init [FfiSyntax] [GoGlobalContext] : val
+axiom V3_4.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def V3_5 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def V3_5 [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/version.V3_5"
 
-axiom V3_5.init [FfiSyntax] [GoGlobalContext] : val
+axiom V3_5.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def V3_6 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def V3_6 [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/version.V3_6"
 
-axiom V3_6.init [FfiSyntax] [GoGlobalContext] : val
+axiom V3_6.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def V3_7 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def V3_7 [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/version.V3_7"
 
-axiom V3_7.init [FfiSyntax] [GoGlobalContext] : val
+axiom V3_7.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def V3_8 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def V3_8 [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/version.V3_8"
 
-axiom V3_8.init [FfiSyntax] [GoGlobalContext] : val
+axiom V3_8.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def V3_9 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def V3_9 [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/version.V3_9"
 
-axiom V3_9.init [FfiSyntax] [GoGlobalContext] : val
+axiom V3_9.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def V4_0 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def V4_0 [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/version.V4_0"
 
-axiom V4_0.init [FfiSyntax] [GoGlobalContext] : val
+axiom V4_0.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def AllVersions [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def AllVersions [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/version.AllVersions"
 
-axiom AllVersions.init [FfiSyntax] [GoGlobalContext] : val
+axiom AllVersions.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def init.«0» [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def init.«0» [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/version.init.0"
 
-noncomputable def Cluster [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Cluster [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/version.Cluster"
 
-noncomputable def Compare [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Compare [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/version.Compare"
 
-noncomputable def LessThan [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def LessThan [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/version.LessThan"
 
-noncomputable def Equal [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Equal [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/api/v3/version.Equal"
 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.api.v3.version where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.api.v3.version)) (Lam BAnon
   (App (Val exceptionDo)
@@ -180,31 +180,31 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val MinClusterVersion.init) (Val #()))))))))
 
-structure Versions [FfiSyntax] where
+structure Versions [GooseExts] where
   mk ::
   Server' : GoString
   Cluster' : GoString
   Storage' : GoString
 
-noncomputable instance Versions.zero_val [FfiSyntax] : ZeroVal Versions :=
+noncomputable instance Versions.zero_val [GooseExts] : ZeroVal Versions :=
   ⟨Versions.mk zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Versions.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Versions.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Server" go.string),
 (go.field_decl.FieldDecl go!"Cluster" go.string),
 (go.field_decl.FieldDecl go!"Storage" go.string)]
 
-@[irreducible] noncomputable def Versions.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Versions.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Versions.fieldsUnsealed
 
-noncomputable instance equals_unfold_Versions [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Versions [GooseExts] [GoGlobalContext] :
     EqualsUnfold Versions.fields Versions.fieldsUnsealed :=
   ⟨by unfold Versions.fields; rfl⟩
 
-@[reducible] noncomputable def Versions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Versions.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Versions.fields)
 
-class Versions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Versions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Versions.underlying Versions
   underlying : go.UnderlyingDirectedEq Versions.ty Versions.underlying
   get_Server : ∀ (x : Versions), go.IsGoStepPureDetTagged under (StructFieldGet Versions.underlying go!"Server") #x (Val #(x.Server'))
@@ -223,7 +223,7 @@ attribute [instance] Versions.TypeAssumptions.type_repr
   Versions.TypeAssumptions.get_Storage
   Versions.TypeAssumptions.set_Storage
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Versions_instance : Versions.TypeAssumptions
 
 attribute [instance] Assumptions.Versions_instance

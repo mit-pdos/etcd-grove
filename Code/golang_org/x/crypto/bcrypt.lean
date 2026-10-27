@@ -20,115 +20,115 @@ end pkg_id
 
 namespace golang_org.x.crypto.bcrypt
 
-noncomputable def HashVersionTooNewError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def HashVersionTooNewError.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"golang.org/x/crypto/bcrypt.HashVersionTooNewError" [])
 
 attribute [irreducible] HashVersionTooNewError.ty
 
-noncomputable def InvalidHashPrefixError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def InvalidHashPrefixError.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"golang.org/x/crypto/bcrypt.InvalidHashPrefixError" [])
 
 attribute [irreducible] InvalidHashPrefixError.ty
 
-noncomputable def InvalidCostError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def InvalidCostError.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"golang.org/x/crypto/bcrypt.InvalidCostError" [])
 
 attribute [irreducible] InvalidCostError.ty
 
-noncomputable def hashed.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def hashed.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"golang.org/x/crypto/bcrypt.hashed" [])
 
 attribute [irreducible] hashed.ty
 
-axiom alphabet [FfiSyntax] [GoGlobalContext] : val
+axiom alphabet [GooseExts] [GoGlobalContext] : val
 
 /-- the minimum allowable cost as passed in to GenerateFromPassword -/
-@[reducible] noncomputable def MinCost [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def MinCost [GooseExts] [GoGlobalContext] : val :=
   #(W64 4)
 
 /-- the maximum allowable cost as passed in to GenerateFromPassword -/
-@[reducible] noncomputable def MaxCost [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def MaxCost [GooseExts] [GoGlobalContext] : val :=
   #(W64 31)
 
 /-- the cost that will actually be set if a cost below MinCost is passed into GenerateFromPassword -/
-@[reducible] noncomputable def DefaultCost [FfiSyntax] [GoGlobalContext] : val :=
+@[reducible] noncomputable def DefaultCost [GooseExts] [GoGlobalContext] : val :=
   #(W64 10)
 
-axiom majorVersion [FfiSyntax] [GoGlobalContext] : val
+axiom majorVersion [GooseExts] [GoGlobalContext] : val
 
-axiom minorVersion [FfiSyntax] [GoGlobalContext] : val
+axiom minorVersion [GooseExts] [GoGlobalContext] : val
 
-axiom maxSaltSize [FfiSyntax] [GoGlobalContext] : val
+axiom maxSaltSize [GooseExts] [GoGlobalContext] : val
 
-axiom maxCryptedHashSize [FfiSyntax] [GoGlobalContext] : val
+axiom maxCryptedHashSize [GooseExts] [GoGlobalContext] : val
 
-axiom encodedSaltSize [FfiSyntax] [GoGlobalContext] : val
+axiom encodedSaltSize [GooseExts] [GoGlobalContext] : val
 
-axiom encodedHashSize [FfiSyntax] [GoGlobalContext] : val
+axiom encodedHashSize [GooseExts] [GoGlobalContext] : val
 
-axiom minHashSize [FfiSyntax] [GoGlobalContext] : val
+axiom minHashSize [GooseExts] [GoGlobalContext] : val
 
-noncomputable def bcEncoding [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def bcEncoding [GooseExts] [GoGlobalContext] : GoString :=
   go!"golang.org/x/crypto/bcrypt.bcEncoding"
 
-axiom bcEncoding.init [FfiSyntax] [GoGlobalContext] : val
+axiom bcEncoding.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrMismatchedHashAndPassword [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrMismatchedHashAndPassword [GooseExts] [GoGlobalContext] : GoString :=
   go!"golang.org/x/crypto/bcrypt.ErrMismatchedHashAndPassword"
 
-axiom ErrMismatchedHashAndPassword.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrMismatchedHashAndPassword.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrHashTooShort [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrHashTooShort [GooseExts] [GoGlobalContext] : GoString :=
   go!"golang.org/x/crypto/bcrypt.ErrHashTooShort"
 
-axiom ErrHashTooShort.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrHashTooShort.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def magicCipherData [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def magicCipherData [GooseExts] [GoGlobalContext] : GoString :=
   go!"golang.org/x/crypto/bcrypt.magicCipherData"
 
-axiom magicCipherData.init [FfiSyntax] [GoGlobalContext] : val
+axiom magicCipherData.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def ErrPasswordTooLong [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrPasswordTooLong [GooseExts] [GoGlobalContext] : GoString :=
   go!"golang.org/x/crypto/bcrypt.ErrPasswordTooLong"
 
-axiom ErrPasswordTooLong.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrPasswordTooLong.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def base64Encode [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def base64Encode [GooseExts] [GoGlobalContext] : GoString :=
   go!"golang.org/x/crypto/bcrypt.base64Encode"
 
-noncomputable def base64Decode [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def base64Decode [GooseExts] [GoGlobalContext] : GoString :=
   go!"golang.org/x/crypto/bcrypt.base64Decode"
 
-noncomputable def GenerateFromPassword [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def GenerateFromPassword [GooseExts] [GoGlobalContext] : GoString :=
   go!"golang.org/x/crypto/bcrypt.GenerateFromPassword"
 
-noncomputable def CompareHashAndPassword [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def CompareHashAndPassword [GooseExts] [GoGlobalContext] : GoString :=
   go!"golang.org/x/crypto/bcrypt.CompareHashAndPassword"
 
-noncomputable def Cost [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Cost [GooseExts] [GoGlobalContext] : GoString :=
   go!"golang.org/x/crypto/bcrypt.Cost"
 
-noncomputable def newFromPassword [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newFromPassword [GooseExts] [GoGlobalContext] : GoString :=
   go!"golang.org/x/crypto/bcrypt.newFromPassword"
 
-noncomputable def newFromHash [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def newFromHash [GooseExts] [GoGlobalContext] : GoString :=
   go!"golang.org/x/crypto/bcrypt.newFromHash"
 
-noncomputable def bcrypt [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def bcrypt [GooseExts] [GoGlobalContext] : GoString :=
   go!"golang.org/x/crypto/bcrypt.bcrypt"
 
-noncomputable def expensiveBlowfishSetup [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def expensiveBlowfishSetup [GooseExts] [GoGlobalContext] : GoString :=
   go!"golang.org/x/crypto/bcrypt.expensiveBlowfishSetup"
 
-noncomputable def checkCost [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def checkCost [GooseExts] [GoGlobalContext] : GoString :=
   go!"golang.org/x/crypto/bcrypt.checkCost"
 
 noncomputable instance info' : PkgInfo pkg_id.golang_org.x.crypto.bcrypt where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.golang_org.x.crypto.bcrypt)) (Lam BAnon
   (App (Val exceptionDo)
@@ -147,37 +147,37 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val bcEncoding.init) (Val #()))))))))
 
-abbrev HashVersionTooNewError [FfiSyntax] : Type := w8
+abbrev HashVersionTooNewError [GooseExts] : Type := w8
 
-@[reducible] noncomputable def HashVersionTooNewError.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def HashVersionTooNewError.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.byte
 
-class HashVersionTooNewError.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class HashVersionTooNewError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq HashVersionTooNewError.ty HashVersionTooNewError.underlying
 
 attribute [instance] HashVersionTooNewError.TypeAssumptions.underlying
 
-abbrev InvalidHashPrefixError [FfiSyntax] : Type := w8
+abbrev InvalidHashPrefixError [GooseExts] : Type := w8
 
-@[reducible] noncomputable def InvalidHashPrefixError.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def InvalidHashPrefixError.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.byte
 
-class InvalidHashPrefixError.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class InvalidHashPrefixError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq InvalidHashPrefixError.ty InvalidHashPrefixError.underlying
 
 attribute [instance] InvalidHashPrefixError.TypeAssumptions.underlying
 
-abbrev InvalidCostError [FfiSyntax] : Type := w64
+abbrev InvalidCostError [GooseExts] : Type := w64
 
-@[reducible] noncomputable def InvalidCostError.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def InvalidCostError.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.int
 
-class InvalidCostError.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class InvalidCostError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq InvalidCostError.ty InvalidCostError.underlying
 
 attribute [instance] InvalidCostError.TypeAssumptions.underlying
 
-structure hashed [FfiSyntax] where
+structure hashed [GooseExts] where
   mk ::
   hash' : GoSlice
   salt' : GoSlice
@@ -185,27 +185,27 @@ structure hashed [FfiSyntax] where
   major' : w8
   minor' : w8
 
-noncomputable instance hashed.zero_val [FfiSyntax] : ZeroVal hashed :=
+noncomputable instance hashed.zero_val [GooseExts] : ZeroVal hashed :=
   ⟨hashed.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def hashed.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def hashed.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"hash" (go.GoType.SliceType go.byte)),
 (go.field_decl.FieldDecl go!"salt" (go.GoType.SliceType go.byte)),
 (go.field_decl.FieldDecl go!"cost" go.int),
 (go.field_decl.FieldDecl go!"major" go.byte),
 (go.field_decl.FieldDecl go!"minor" go.byte)]
 
-@[irreducible] noncomputable def hashed.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def hashed.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   hashed.fieldsUnsealed
 
-noncomputable instance equals_unfold_hashed [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_hashed [GooseExts] [GoGlobalContext] :
     EqualsUnfold hashed.fields hashed.fieldsUnsealed :=
   ⟨by unfold hashed.fields; rfl⟩
 
-@[reducible] noncomputable def hashed.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def hashed.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType hashed.fields)
 
-class hashed.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class hashed.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying hashed.underlying hashed
   underlying : go.UnderlyingDirectedEq hashed.ty hashed.underlying
   get_hash : ∀ (x : hashed), go.IsGoStepPureDetTagged under (StructFieldGet hashed.underlying go!"hash") #x (Val #(x.hash'))
@@ -232,7 +232,7 @@ attribute [instance] hashed.TypeAssumptions.type_repr
   hashed.TypeAssumptions.get_minor
   hashed.TypeAssumptions.set_minor
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   HashVersionTooNewError_instance : HashVersionTooNewError.TypeAssumptions
   InvalidHashPrefixError_instance : InvalidHashPrefixError.TypeAssumptions
   InvalidCostError_instance : InvalidCostError.TypeAssumptions

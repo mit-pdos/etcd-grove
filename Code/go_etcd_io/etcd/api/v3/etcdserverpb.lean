@@ -19,7 +19,7 @@ noncomputable section
 
 namespace go_etcd_io.etcd.api.v3.etcdserverpb
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Metadata_instance : Metadata.TypeAssumptions
   RequestHeader_instance : RequestHeader.TypeAssumptions
   InternalRaftRequest_instance : InternalRaftRequest.TypeAssumptions

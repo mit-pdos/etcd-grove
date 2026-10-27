@@ -24,158 +24,158 @@ end pkg_id
 
 namespace go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb
 
-noncomputable def CampaignRequest.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def CampaignRequest.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3election/v3electionpb.CampaignRequest" [])
 
 attribute [irreducible] CampaignRequest.ty
 
-noncomputable def CampaignResponse.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def CampaignResponse.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3election/v3electionpb.CampaignResponse" [])
 
 attribute [irreducible] CampaignResponse.ty
 
-noncomputable def LeaderKey.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def LeaderKey.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3election/v3electionpb.LeaderKey" [])
 
 attribute [irreducible] LeaderKey.ty
 
-noncomputable def LeaderRequest.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def LeaderRequest.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3election/v3electionpb.LeaderRequest" [])
 
 attribute [irreducible] LeaderRequest.ty
 
-noncomputable def LeaderResponse.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def LeaderResponse.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3election/v3electionpb.LeaderResponse" [])
 
 attribute [irreducible] LeaderResponse.ty
 
-noncomputable def ResignRequest.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ResignRequest.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3election/v3electionpb.ResignRequest" [])
 
 attribute [irreducible] ResignRequest.ty
 
-noncomputable def ResignResponse.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ResignResponse.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3election/v3electionpb.ResignResponse" [])
 
 attribute [irreducible] ResignResponse.ty
 
-noncomputable def ProclaimRequest.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ProclaimRequest.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3election/v3electionpb.ProclaimRequest" [])
 
 attribute [irreducible] ProclaimRequest.ty
 
-noncomputable def ProclaimResponse.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ProclaimResponse.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3election/v3electionpb.ProclaimResponse" [])
 
 attribute [irreducible] ProclaimResponse.ty
 
-noncomputable def ElectionClient.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ElectionClient.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3election/v3electionpb.ElectionClient" [])
 
 attribute [irreducible] ElectionClient.ty
 
-noncomputable def electionClient.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def electionClient.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3election/v3electionpb.electionClient" [])
 
 attribute [irreducible] electionClient.ty
 
-noncomputable def ElectionServer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ElectionServer.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3election/v3electionpb.ElectionServer" [])
 
 attribute [irreducible] ElectionServer.ty
 
-noncomputable def UnimplementedElectionServer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def UnimplementedElectionServer.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3election/v3electionpb.UnimplementedElectionServer" [])
 
 attribute [irreducible] UnimplementedElectionServer.ty
 
-noncomputable def UnsafeElectionServer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def UnsafeElectionServer.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3election/v3electionpb.UnsafeElectionServer" [])
 
 attribute [irreducible] UnsafeElectionServer.ty
 
-axiom ElectionClient.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ElectionClient.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom electionClient.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom electionClient.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Election_ObserveClient [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Election_ObserveClient [GooseExts] [GoGlobalContext] : go.GoType
 
-@[reducible] noncomputable def Election_ObserveServer.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Election_ObserveServer.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (_root_.Perennial.google_golang_org.grpc.ServerStreamingServer.ty LeaderResponse.ty)
 
-axiom file_v3election_proto_rawDesc [FfiSyntax] [GoGlobalContext] : val
+axiom file_v3election_proto_rawDesc [GooseExts] [GoGlobalContext] : val
 
-axiom Election_Campaign_FullMethodName [FfiSyntax] [GoGlobalContext] : val
+axiom Election_Campaign_FullMethodName [GooseExts] [GoGlobalContext] : val
 
-axiom Election_Proclaim_FullMethodName [FfiSyntax] [GoGlobalContext] : val
+axiom Election_Proclaim_FullMethodName [GooseExts] [GoGlobalContext] : val
 
-axiom Election_Leader_FullMethodName [FfiSyntax] [GoGlobalContext] : val
+axiom Election_Leader_FullMethodName [GooseExts] [GoGlobalContext] : val
 
-axiom Election_Observe_FullMethodName [FfiSyntax] [GoGlobalContext] : val
+axiom Election_Observe_FullMethodName [GooseExts] [GoGlobalContext] : val
 
-axiom Election_Resign_FullMethodName [FfiSyntax] [GoGlobalContext] : val
+axiom Election_Resign_FullMethodName [GooseExts] [GoGlobalContext] : val
 
-noncomputable def File_v3election_proto [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def File_v3election_proto [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3election/v3electionpb.File_v3election_proto"
 
-noncomputable def file_v3election_proto_rawDescOnce [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def file_v3election_proto_rawDescOnce [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3election/v3electionpb.file_v3election_proto_rawDescOnce"
 
-noncomputable def file_v3election_proto_rawDescData [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def file_v3election_proto_rawDescData [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3election/v3electionpb.file_v3election_proto_rawDescData"
 
-noncomputable def file_v3election_proto_msgTypes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def file_v3election_proto_msgTypes [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3election/v3electionpb.file_v3election_proto_msgTypes"
 
-axiom file_v3election_proto_msgTypes.init [FfiSyntax] [GoGlobalContext] : val
+axiom file_v3election_proto_msgTypes.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def file_v3election_proto_goTypes [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def file_v3election_proto_goTypes [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3election/v3electionpb.file_v3election_proto_goTypes"
 
-axiom file_v3election_proto_goTypes.init [FfiSyntax] [GoGlobalContext] : val
+axiom file_v3election_proto_goTypes.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def file_v3election_proto_depIdxs [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def file_v3election_proto_depIdxs [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3election/v3electionpb.file_v3election_proto_depIdxs"
 
-axiom file_v3election_proto_depIdxs.init [FfiSyntax] [GoGlobalContext] : val
+axiom file_v3election_proto_depIdxs.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def Election_ServiceDesc [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Election_ServiceDesc [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3election/v3electionpb.Election_ServiceDesc"
 
-axiom Election_ServiceDesc.init [FfiSyntax] [GoGlobalContext] : val
+axiom Election_ServiceDesc.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def file_v3election_proto_rawDescGZIP [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def file_v3election_proto_rawDescGZIP [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3election/v3electionpb.file_v3election_proto_rawDescGZIP"
 
-noncomputable def init.«0» [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def init.«0» [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3election/v3electionpb.init.0"
 
-noncomputable def file_v3election_proto_init [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def file_v3election_proto_init [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3election/v3electionpb.file_v3election_proto_init"
 
-noncomputable def NewElectionClient [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewElectionClient [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3election/v3electionpb.NewElectionClient"
 
-noncomputable def RegisterElectionServer [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def RegisterElectionServer [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3election/v3electionpb.RegisterElectionServer"
 
-noncomputable def _Election_Campaign_Handler [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def _Election_Campaign_Handler [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3election/v3electionpb._Election_Campaign_Handler"
 
-noncomputable def _Election_Proclaim_Handler [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def _Election_Proclaim_Handler [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3election/v3electionpb._Election_Proclaim_Handler"
 
-noncomputable def _Election_Leader_Handler [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def _Election_Leader_Handler [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3election/v3electionpb._Election_Leader_Handler"
 
-noncomputable def _Election_Observe_Handler [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def _Election_Observe_Handler [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3election/v3electionpb._Election_Observe_Handler"
 
-noncomputable def _Election_Resign_Handler [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def _Election_Resign_Handler [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/v3election/v3electionpb._Election_Resign_Handler"
 
 /-- go: v3election.pb.go:73:27 -/
-noncomputable def CampaignRequest.GetName.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def CampaignRequest.GetName.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -190,7 +190,7 @@ noncomputable def CampaignRequest.GetName.impl [FfiSyntax] [GoGlobalContext] : v
   (Val #()))))))))
 
 /-- go: v3election.pb.go:80:27 -/
-noncomputable def CampaignRequest.GetLease.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def CampaignRequest.GetLease.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -205,7 +205,7 @@ noncomputable def CampaignRequest.GetLease.impl [FfiSyntax] [GoGlobalContext] : 
   (Val #()))))))))
 
 /-- go: v3election.pb.go:87:27 -/
-noncomputable def CampaignRequest.GetValue.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def CampaignRequest.GetValue.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -220,7 +220,7 @@ noncomputable def CampaignRequest.GetValue.impl [FfiSyntax] [GoGlobalContext] : 
   (Val #()))))))))
 
 /-- go: v3election.pb.go:133:28 -/
-noncomputable def CampaignResponse.GetHeader.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def CampaignResponse.GetHeader.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -235,7 +235,7 @@ noncomputable def CampaignResponse.GetHeader.impl [FfiSyntax] [GoGlobalContext] 
   (Val #()))))))))
 
 /-- go: v3election.pb.go:140:28 -/
-noncomputable def CampaignResponse.GetLeader.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def CampaignResponse.GetLeader.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -250,7 +250,7 @@ noncomputable def CampaignResponse.GetLeader.impl [FfiSyntax] [GoGlobalContext] 
   (Val #()))))))))
 
 /-- go: v3election.pb.go:194:21 -/
-noncomputable def LeaderKey.GetName.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def LeaderKey.GetName.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -265,7 +265,7 @@ noncomputable def LeaderKey.GetName.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #()))))))))
 
 /-- go: v3election.pb.go:201:21 -/
-noncomputable def LeaderKey.GetKey.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def LeaderKey.GetKey.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -280,7 +280,7 @@ noncomputable def LeaderKey.GetKey.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #()))))))))
 
 /-- go: v3election.pb.go:208:21 -/
-noncomputable def LeaderKey.GetRev.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def LeaderKey.GetRev.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -295,7 +295,7 @@ noncomputable def LeaderKey.GetRev.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #()))))))))
 
 /-- go: v3election.pb.go:215:21 -/
-noncomputable def LeaderKey.GetLease.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def LeaderKey.GetLease.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -310,7 +310,7 @@ noncomputable def LeaderKey.GetLease.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #()))))))))
 
 /-- go: v3election.pb.go:260:25 -/
-noncomputable def LeaderRequest.GetName.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def LeaderRequest.GetName.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -325,7 +325,7 @@ noncomputable def LeaderRequest.GetName.impl [FfiSyntax] [GoGlobalContext] : val
   (Val #()))))))))
 
 /-- go: v3election.pb.go:306:26 -/
-noncomputable def LeaderResponse.GetHeader.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def LeaderResponse.GetHeader.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -340,7 +340,7 @@ noncomputable def LeaderResponse.GetHeader.impl [FfiSyntax] [GoGlobalContext] : 
   (Val #()))))))))
 
 /-- go: v3election.pb.go:313:26 -/
-noncomputable def LeaderResponse.GetKv.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def LeaderResponse.GetKv.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -355,7 +355,7 @@ noncomputable def LeaderResponse.GetKv.impl [FfiSyntax] [GoGlobalContext] : val 
   (Val #()))))))))
 
 /-- go: v3election.pb.go:358:25 -/
-noncomputable def ResignRequest.GetLeader.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def ResignRequest.GetLeader.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -370,7 +370,7 @@ noncomputable def ResignRequest.GetLeader.impl [FfiSyntax] [GoGlobalContext] : v
   (Val #()))))))))
 
 /-- go: v3election.pb.go:402:26 -/
-noncomputable def ResignResponse.GetHeader.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def ResignResponse.GetHeader.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -385,7 +385,7 @@ noncomputable def ResignResponse.GetHeader.impl [FfiSyntax] [GoGlobalContext] : 
   (Val #()))))))))
 
 /-- go: v3election.pb.go:449:27 -/
-noncomputable def ProclaimRequest.GetLeader.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def ProclaimRequest.GetLeader.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -400,7 +400,7 @@ noncomputable def ProclaimRequest.GetLeader.impl [FfiSyntax] [GoGlobalContext] :
   (Val #()))))))))
 
 /-- go: v3election.pb.go:456:27 -/
-noncomputable def ProclaimRequest.GetValue.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def ProclaimRequest.GetValue.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -415,7 +415,7 @@ noncomputable def ProclaimRequest.GetValue.impl [FfiSyntax] [GoGlobalContext] : 
   (Val #()))))))))
 
 /-- go: v3election.pb.go:500:28 -/
-noncomputable def ProclaimResponse.GetHeader.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def ProclaimResponse.GetHeader.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam BAnon
   (App (Val exceptionDo)
@@ -432,7 +432,7 @@ noncomputable def ProclaimResponse.GetHeader.impl [FfiSyntax] [GoGlobalContext] 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb where
   pkgImportedPkgs := [pkg_id.go_etcd_io.etcd.api.v3.etcdserverpb, pkg_id.go_etcd_io.etcd.api.v3.mvccpb, pkg_id.google_golang_org.protobuf.reflect.protoreflect, pkg_id.google_golang_org.protobuf.runtime.protoimpl]
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3election.v3electionpb)) (Lam BAnon
   (App (Val exceptionDo)
@@ -463,7 +463,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.initialize') (Val #()))))))))
 
-structure CampaignRequest [FfiSyntax] where
+structure CampaignRequest [GooseExts] where
   mk ::
   state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
   Name' : GoSlice
@@ -472,10 +472,10 @@ structure CampaignRequest [FfiSyntax] where
   unknownFields' : GoSlice
   sizeCache' : w32
 
-noncomputable instance CampaignRequest.zero_val [FfiSyntax] : ZeroVal CampaignRequest :=
+noncomputable instance CampaignRequest.zero_val [GooseExts] : ZeroVal CampaignRequest :=
   ⟨CampaignRequest.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def CampaignRequest.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def CampaignRequest.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
 (go.field_decl.FieldDecl go!"Name" (go.GoType.SliceType go.byte)),
 (go.field_decl.FieldDecl go!"Lease" go.int64),
@@ -483,17 +483,17 @@ noncomputable instance CampaignRequest.zero_val [FfiSyntax] : ZeroVal CampaignRe
 (go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
 (go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
 
-@[irreducible] noncomputable def CampaignRequest.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def CampaignRequest.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   CampaignRequest.fieldsUnsealed
 
-noncomputable instance equals_unfold_CampaignRequest [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_CampaignRequest [GooseExts] [GoGlobalContext] :
     EqualsUnfold CampaignRequest.fields CampaignRequest.fieldsUnsealed :=
   ⟨by unfold CampaignRequest.fields; rfl⟩
 
-@[reducible] noncomputable def CampaignRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def CampaignRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType CampaignRequest.fields)
 
-class CampaignRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class CampaignRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying CampaignRequest.underlying CampaignRequest
   underlying : go.UnderlyingDirectedEq CampaignRequest.ty CampaignRequest.underlying
   get_state : ∀ (x : CampaignRequest), go.IsGoStepPureDetTagged under (StructFieldGet CampaignRequest.underlying go!"state") #x (Val #(x.state'))
@@ -530,7 +530,7 @@ attribute [instance] CampaignRequest.TypeAssumptions.type_repr
   CampaignRequest.TypeAssumptions.ptr_GetName_unfold
   CampaignRequest.TypeAssumptions.ptr_GetValue_unfold
 
-structure CampaignResponse [FfiSyntax] where
+structure CampaignResponse [GooseExts] where
   mk ::
   state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
   Header' : Loc
@@ -538,27 +538,27 @@ structure CampaignResponse [FfiSyntax] where
   unknownFields' : GoSlice
   sizeCache' : w32
 
-noncomputable instance CampaignResponse.zero_val [FfiSyntax] : ZeroVal CampaignResponse :=
+noncomputable instance CampaignResponse.zero_val [GooseExts] : ZeroVal CampaignResponse :=
   ⟨CampaignResponse.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def CampaignResponse.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def CampaignResponse.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
 (go.field_decl.FieldDecl go!"Header" (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)),
 (go.field_decl.FieldDecl go!"Leader" (go.GoType.PointerType LeaderKey.ty)),
 (go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
 (go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
 
-@[irreducible] noncomputable def CampaignResponse.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def CampaignResponse.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   CampaignResponse.fieldsUnsealed
 
-noncomputable instance equals_unfold_CampaignResponse [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_CampaignResponse [GooseExts] [GoGlobalContext] :
     EqualsUnfold CampaignResponse.fields CampaignResponse.fieldsUnsealed :=
   ⟨by unfold CampaignResponse.fields; rfl⟩
 
-@[reducible] noncomputable def CampaignResponse.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def CampaignResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType CampaignResponse.fields)
 
-class CampaignResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class CampaignResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying CampaignResponse.underlying CampaignResponse
   underlying : go.UnderlyingDirectedEq CampaignResponse.ty CampaignResponse.underlying
   get_state : ∀ (x : CampaignResponse), go.IsGoStepPureDetTagged under (StructFieldGet CampaignResponse.underlying go!"state") #x (Val #(x.state'))
@@ -589,7 +589,7 @@ attribute [instance] CampaignResponse.TypeAssumptions.type_repr
   CampaignResponse.TypeAssumptions.ptr_GetHeader_unfold
   CampaignResponse.TypeAssumptions.ptr_GetLeader_unfold
 
-structure LeaderKey [FfiSyntax] where
+structure LeaderKey [GooseExts] where
   mk ::
   state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
   Name' : GoSlice
@@ -599,10 +599,10 @@ structure LeaderKey [FfiSyntax] where
   unknownFields' : GoSlice
   sizeCache' : w32
 
-noncomputable instance LeaderKey.zero_val [FfiSyntax] : ZeroVal LeaderKey :=
+noncomputable instance LeaderKey.zero_val [GooseExts] : ZeroVal LeaderKey :=
   ⟨LeaderKey.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def LeaderKey.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def LeaderKey.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
 (go.field_decl.FieldDecl go!"Name" (go.GoType.SliceType go.byte)),
 (go.field_decl.FieldDecl go!"Key" (go.GoType.SliceType go.byte)),
@@ -611,17 +611,17 @@ noncomputable instance LeaderKey.zero_val [FfiSyntax] : ZeroVal LeaderKey :=
 (go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
 (go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
 
-@[irreducible] noncomputable def LeaderKey.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def LeaderKey.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   LeaderKey.fieldsUnsealed
 
-noncomputable instance equals_unfold_LeaderKey [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_LeaderKey [GooseExts] [GoGlobalContext] :
     EqualsUnfold LeaderKey.fields LeaderKey.fieldsUnsealed :=
   ⟨by unfold LeaderKey.fields; rfl⟩
 
-@[reducible] noncomputable def LeaderKey.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def LeaderKey.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType LeaderKey.fields)
 
-class LeaderKey.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class LeaderKey.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying LeaderKey.underlying LeaderKey
   underlying : go.UnderlyingDirectedEq LeaderKey.ty LeaderKey.underlying
   get_state : ∀ (x : LeaderKey), go.IsGoStepPureDetTagged under (StructFieldGet LeaderKey.underlying go!"state") #x (Val #(x.state'))
@@ -664,33 +664,33 @@ attribute [instance] LeaderKey.TypeAssumptions.type_repr
   LeaderKey.TypeAssumptions.ptr_GetName_unfold
   LeaderKey.TypeAssumptions.ptr_GetRev_unfold
 
-structure LeaderRequest [FfiSyntax] where
+structure LeaderRequest [GooseExts] where
   mk ::
   state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
   Name' : GoSlice
   unknownFields' : GoSlice
   sizeCache' : w32
 
-noncomputable instance LeaderRequest.zero_val [FfiSyntax] : ZeroVal LeaderRequest :=
+noncomputable instance LeaderRequest.zero_val [GooseExts] : ZeroVal LeaderRequest :=
   ⟨LeaderRequest.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def LeaderRequest.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def LeaderRequest.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
 (go.field_decl.FieldDecl go!"Name" (go.GoType.SliceType go.byte)),
 (go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
 (go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
 
-@[irreducible] noncomputable def LeaderRequest.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def LeaderRequest.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   LeaderRequest.fieldsUnsealed
 
-noncomputable instance equals_unfold_LeaderRequest [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_LeaderRequest [GooseExts] [GoGlobalContext] :
     EqualsUnfold LeaderRequest.fields LeaderRequest.fieldsUnsealed :=
   ⟨by unfold LeaderRequest.fields; rfl⟩
 
-@[reducible] noncomputable def LeaderRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def LeaderRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType LeaderRequest.fields)
 
-class LeaderRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class LeaderRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying LeaderRequest.underlying LeaderRequest
   underlying : go.UnderlyingDirectedEq LeaderRequest.ty LeaderRequest.underlying
   get_state : ∀ (x : LeaderRequest), go.IsGoStepPureDetTagged under (StructFieldGet LeaderRequest.underlying go!"state") #x (Val #(x.state'))
@@ -715,7 +715,7 @@ attribute [instance] LeaderRequest.TypeAssumptions.type_repr
   LeaderRequest.TypeAssumptions.set_sizeCache
   LeaderRequest.TypeAssumptions.ptr_GetName_unfold
 
-structure LeaderResponse [FfiSyntax] where
+structure LeaderResponse [GooseExts] where
   mk ::
   state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
   Header' : Loc
@@ -723,27 +723,27 @@ structure LeaderResponse [FfiSyntax] where
   unknownFields' : GoSlice
   sizeCache' : w32
 
-noncomputable instance LeaderResponse.zero_val [FfiSyntax] : ZeroVal LeaderResponse :=
+noncomputable instance LeaderResponse.zero_val [GooseExts] : ZeroVal LeaderResponse :=
   ⟨LeaderResponse.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def LeaderResponse.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def LeaderResponse.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
 (go.field_decl.FieldDecl go!"Header" (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)),
 (go.field_decl.FieldDecl go!"Kv" (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.mvccpb.KeyValue.ty)),
 (go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
 (go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
 
-@[irreducible] noncomputable def LeaderResponse.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def LeaderResponse.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   LeaderResponse.fieldsUnsealed
 
-noncomputable instance equals_unfold_LeaderResponse [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_LeaderResponse [GooseExts] [GoGlobalContext] :
     EqualsUnfold LeaderResponse.fields LeaderResponse.fieldsUnsealed :=
   ⟨by unfold LeaderResponse.fields; rfl⟩
 
-@[reducible] noncomputable def LeaderResponse.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def LeaderResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType LeaderResponse.fields)
 
-class LeaderResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class LeaderResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying LeaderResponse.underlying LeaderResponse
   underlying : go.UnderlyingDirectedEq LeaderResponse.ty LeaderResponse.underlying
   get_state : ∀ (x : LeaderResponse), go.IsGoStepPureDetTagged under (StructFieldGet LeaderResponse.underlying go!"state") #x (Val #(x.state'))
@@ -774,33 +774,33 @@ attribute [instance] LeaderResponse.TypeAssumptions.type_repr
   LeaderResponse.TypeAssumptions.ptr_GetHeader_unfold
   LeaderResponse.TypeAssumptions.ptr_GetKv_unfold
 
-structure ResignRequest [FfiSyntax] where
+structure ResignRequest [GooseExts] where
   mk ::
   state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
   Leader' : Loc
   unknownFields' : GoSlice
   sizeCache' : w32
 
-noncomputable instance ResignRequest.zero_val [FfiSyntax] : ZeroVal ResignRequest :=
+noncomputable instance ResignRequest.zero_val [GooseExts] : ZeroVal ResignRequest :=
   ⟨ResignRequest.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ResignRequest.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ResignRequest.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
 (go.field_decl.FieldDecl go!"Leader" (go.GoType.PointerType LeaderKey.ty)),
 (go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
 (go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
 
-@[irreducible] noncomputable def ResignRequest.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ResignRequest.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ResignRequest.fieldsUnsealed
 
-noncomputable instance equals_unfold_ResignRequest [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ResignRequest [GooseExts] [GoGlobalContext] :
     EqualsUnfold ResignRequest.fields ResignRequest.fieldsUnsealed :=
   ⟨by unfold ResignRequest.fields; rfl⟩
 
-@[reducible] noncomputable def ResignRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ResignRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ResignRequest.fields)
 
-class ResignRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ResignRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ResignRequest.underlying ResignRequest
   underlying : go.UnderlyingDirectedEq ResignRequest.ty ResignRequest.underlying
   get_state : ∀ (x : ResignRequest), go.IsGoStepPureDetTagged under (StructFieldGet ResignRequest.underlying go!"state") #x (Val #(x.state'))
@@ -825,33 +825,33 @@ attribute [instance] ResignRequest.TypeAssumptions.type_repr
   ResignRequest.TypeAssumptions.set_sizeCache
   ResignRequest.TypeAssumptions.ptr_GetLeader_unfold
 
-structure ResignResponse [FfiSyntax] where
+structure ResignResponse [GooseExts] where
   mk ::
   state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
   Header' : Loc
   unknownFields' : GoSlice
   sizeCache' : w32
 
-noncomputable instance ResignResponse.zero_val [FfiSyntax] : ZeroVal ResignResponse :=
+noncomputable instance ResignResponse.zero_val [GooseExts] : ZeroVal ResignResponse :=
   ⟨ResignResponse.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ResignResponse.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ResignResponse.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
 (go.field_decl.FieldDecl go!"Header" (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)),
 (go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
 (go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
 
-@[irreducible] noncomputable def ResignResponse.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ResignResponse.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ResignResponse.fieldsUnsealed
 
-noncomputable instance equals_unfold_ResignResponse [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ResignResponse [GooseExts] [GoGlobalContext] :
     EqualsUnfold ResignResponse.fields ResignResponse.fieldsUnsealed :=
   ⟨by unfold ResignResponse.fields; rfl⟩
 
-@[reducible] noncomputable def ResignResponse.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ResignResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ResignResponse.fields)
 
-class ResignResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ResignResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ResignResponse.underlying ResignResponse
   underlying : go.UnderlyingDirectedEq ResignResponse.ty ResignResponse.underlying
   get_state : ∀ (x : ResignResponse), go.IsGoStepPureDetTagged under (StructFieldGet ResignResponse.underlying go!"state") #x (Val #(x.state'))
@@ -876,7 +876,7 @@ attribute [instance] ResignResponse.TypeAssumptions.type_repr
   ResignResponse.TypeAssumptions.set_sizeCache
   ResignResponse.TypeAssumptions.ptr_GetHeader_unfold
 
-structure ProclaimRequest [FfiSyntax] where
+structure ProclaimRequest [GooseExts] where
   mk ::
   state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
   Leader' : Loc
@@ -884,27 +884,27 @@ structure ProclaimRequest [FfiSyntax] where
   unknownFields' : GoSlice
   sizeCache' : w32
 
-noncomputable instance ProclaimRequest.zero_val [FfiSyntax] : ZeroVal ProclaimRequest :=
+noncomputable instance ProclaimRequest.zero_val [GooseExts] : ZeroVal ProclaimRequest :=
   ⟨ProclaimRequest.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ProclaimRequest.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ProclaimRequest.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
 (go.field_decl.FieldDecl go!"Leader" (go.GoType.PointerType LeaderKey.ty)),
 (go.field_decl.FieldDecl go!"Value" (go.GoType.SliceType go.byte)),
 (go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
 (go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
 
-@[irreducible] noncomputable def ProclaimRequest.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ProclaimRequest.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ProclaimRequest.fieldsUnsealed
 
-noncomputable instance equals_unfold_ProclaimRequest [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ProclaimRequest [GooseExts] [GoGlobalContext] :
     EqualsUnfold ProclaimRequest.fields ProclaimRequest.fieldsUnsealed :=
   ⟨by unfold ProclaimRequest.fields; rfl⟩
 
-@[reducible] noncomputable def ProclaimRequest.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ProclaimRequest.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ProclaimRequest.fields)
 
-class ProclaimRequest.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ProclaimRequest.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ProclaimRequest.underlying ProclaimRequest
   underlying : go.UnderlyingDirectedEq ProclaimRequest.ty ProclaimRequest.underlying
   get_state : ∀ (x : ProclaimRequest), go.IsGoStepPureDetTagged under (StructFieldGet ProclaimRequest.underlying go!"state") #x (Val #(x.state'))
@@ -935,33 +935,33 @@ attribute [instance] ProclaimRequest.TypeAssumptions.type_repr
   ProclaimRequest.TypeAssumptions.ptr_GetLeader_unfold
   ProclaimRequest.TypeAssumptions.ptr_GetValue_unfold
 
-structure ProclaimResponse [FfiSyntax] where
+structure ProclaimResponse [GooseExts] where
   mk ::
   state' : _root_.Perennial.google_golang_org.protobuf.internal.impl.MessageState
   Header' : Loc
   unknownFields' : GoSlice
   sizeCache' : w32
 
-noncomputable instance ProclaimResponse.zero_val [FfiSyntax] : ZeroVal ProclaimResponse :=
+noncomputable instance ProclaimResponse.zero_val [GooseExts] : ZeroVal ProclaimResponse :=
   ⟨ProclaimResponse.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def ProclaimResponse.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ProclaimResponse.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"state" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.MessageState.ty),
 (go.field_decl.FieldDecl go!"Header" (go.GoType.PointerType _root_.Perennial.go_etcd_io.etcd.api.v3.etcdserverpb.ResponseHeader.ty)),
 (go.field_decl.FieldDecl go!"unknownFields" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.UnknownFields.ty),
 (go.field_decl.FieldDecl go!"sizeCache" _root_.Perennial.google_golang_org.protobuf.runtime.protoimpl.SizeCache.ty)]
 
-@[irreducible] noncomputable def ProclaimResponse.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ProclaimResponse.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ProclaimResponse.fieldsUnsealed
 
-noncomputable instance equals_unfold_ProclaimResponse [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ProclaimResponse [GooseExts] [GoGlobalContext] :
     EqualsUnfold ProclaimResponse.fields ProclaimResponse.fieldsUnsealed :=
   ⟨by unfold ProclaimResponse.fields; rfl⟩
 
-@[reducible] noncomputable def ProclaimResponse.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ProclaimResponse.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ProclaimResponse.fields)
 
-class ProclaimResponse.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ProclaimResponse.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ProclaimResponse.underlying ProclaimResponse
   underlying : go.UnderlyingDirectedEq ProclaimResponse.ty ProclaimResponse.underlying
   get_state : ∀ (x : ProclaimResponse), go.IsGoStepPureDetTagged under (StructFieldGet ProclaimResponse.underlying go!"state") #x (Val #(x.state'))
@@ -990,7 +990,7 @@ axiom ElectionClient : Type
 axiom ElectionClient.zero_val : ZeroVal ElectionClient
 attribute [instance] ElectionClient.zero_val
 
-class ElectionClient.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ElectionClient.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ElectionClient.underlying ElectionClient
   underlying : go.UnderlyingDirectedEq ElectionClient.ty ElectionClient.underlying
   isUnderlying : go.IsUnderlying ElectionClient.underlying ElectionClient.underlying
@@ -1003,7 +1003,7 @@ axiom electionClient : Type
 axiom electionClient.zero_val : ZeroVal electionClient
 attribute [instance] electionClient.zero_val
 
-class electionClient.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class electionClient.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying electionClient.underlying electionClient
   underlying : go.UnderlyingDirectedEq electionClient.ty electionClient.underlying
   isUnderlying : go.IsUnderlying electionClient.underlying electionClient.underlying
@@ -1012,53 +1012,53 @@ attribute [instance] electionClient.TypeAssumptions.type_repr
   electionClient.TypeAssumptions.underlying
   electionClient.TypeAssumptions.isUnderlying
 
-abbrev ElectionServer [FfiSyntax] : Type := GoInterface
+abbrev ElectionServer [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def ElectionServer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ElectionServer.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Campaign" (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType CampaignRequest.ty)] false [(go.GoType.PointerType CampaignResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"Leader" (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType LeaderRequest.ty)] false [(go.GoType.PointerType LeaderResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"Observe" (go.signature.Signature [(go.GoType.PointerType LeaderRequest.ty), (_root_.Perennial.google_golang_org.grpc.ServerStreamingServer.ty LeaderResponse.ty)] false [go.error])), (go.InterfaceElem.MethodElem go!"Proclaim" (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType ProclaimRequest.ty)] false [(go.GoType.PointerType ProclaimResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"Resign" (go.signature.Signature [_root_.Perennial.context.Context.ty, (go.GoType.PointerType ResignRequest.ty)] false [(go.GoType.PointerType ResignResponse.ty), go.error])), (go.InterfaceElem.MethodElem go!"mustEmbedUnimplementedElectionServer" (go.signature.Signature [] false []))])
 
-class ElectionServer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ElectionServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq ElectionServer.ty ElectionServer.underlying
 
 attribute [instance] ElectionServer.TypeAssumptions.underlying
 
-structure UnimplementedElectionServer [FfiSyntax] where
+structure UnimplementedElectionServer [GooseExts] where
   mk ::
 
-noncomputable instance UnimplementedElectionServer.zero_val [FfiSyntax] : ZeroVal UnimplementedElectionServer :=
+noncomputable instance UnimplementedElectionServer.zero_val [GooseExts] : ZeroVal UnimplementedElectionServer :=
   ⟨UnimplementedElectionServer.mk⟩
 
-@[reducible] noncomputable def UnimplementedElectionServer.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def UnimplementedElectionServer.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   []
 
-@[irreducible] noncomputable def UnimplementedElectionServer.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def UnimplementedElectionServer.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   UnimplementedElectionServer.fieldsUnsealed
 
-noncomputable instance equals_unfold_UnimplementedElectionServer [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_UnimplementedElectionServer [GooseExts] [GoGlobalContext] :
     EqualsUnfold UnimplementedElectionServer.fields UnimplementedElectionServer.fieldsUnsealed :=
   ⟨by unfold UnimplementedElectionServer.fields; rfl⟩
 
-@[reducible] noncomputable def UnimplementedElectionServer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def UnimplementedElectionServer.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType UnimplementedElectionServer.fields)
 
-class UnimplementedElectionServer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class UnimplementedElectionServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying UnimplementedElectionServer.underlying UnimplementedElectionServer
   underlying : go.UnderlyingDirectedEq UnimplementedElectionServer.ty UnimplementedElectionServer.underlying
 
 attribute [instance] UnimplementedElectionServer.TypeAssumptions.type_repr
   UnimplementedElectionServer.TypeAssumptions.underlying
 
-abbrev UnsafeElectionServer [FfiSyntax] : Type := GoInterface
+abbrev UnsafeElectionServer [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def UnsafeElectionServer.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def UnsafeElectionServer.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"mustEmbedUnimplementedElectionServer" (go.signature.Signature [] false []))])
 
-class UnsafeElectionServer.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class UnsafeElectionServer.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq UnsafeElectionServer.ty UnsafeElectionServer.underlying
 
 attribute [instance] UnsafeElectionServer.TypeAssumptions.underlying
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   CampaignRequest_instance : CampaignRequest.TypeAssumptions
   CampaignResponse_instance : CampaignResponse.TypeAssumptions
   LeaderKey_instance : LeaderKey.TypeAssumptions

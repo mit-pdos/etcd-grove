@@ -20,147 +20,147 @@ end pkg_id
 
 namespace google_golang_org.grpc.resolver
 
-noncomputable def addressMapEntry.ty [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+noncomputable def addressMapEntry.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/resolver.addressMapEntry" [T])
 
 attribute [irreducible] addressMapEntry.ty
 
-noncomputable def AddressMapV2.ty [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+noncomputable def AddressMapV2.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/resolver.AddressMapV2" [T])
 
 attribute [irreducible] AddressMapV2.ty
 
-noncomputable def addressMapEntryList.ty [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+noncomputable def addressMapEntryList.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/resolver.addressMapEntryList" [T])
 
 attribute [irreducible] addressMapEntryList.ty
 
-noncomputable def endpointMapKey.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def endpointMapKey.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/resolver.endpointMapKey" [])
 
 attribute [irreducible] endpointMapKey.ty
 
-noncomputable def EndpointMap.ty [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+noncomputable def EndpointMap.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/resolver.EndpointMap" [T])
 
 attribute [irreducible] EndpointMap.ty
 
-noncomputable def endpointData.ty [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+noncomputable def endpointData.ty [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/resolver.endpointData" [T])
 
 attribute [irreducible] endpointData.ty
 
-noncomputable def Address.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Address.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/resolver.Address" [])
 
 attribute [irreducible] Address.ty
 
-noncomputable def BuildOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def BuildOptions.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/resolver.BuildOptions" [])
 
 attribute [irreducible] BuildOptions.ty
 
-noncomputable def Endpoint.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Endpoint.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/resolver.Endpoint" [])
 
 attribute [irreducible] Endpoint.ty
 
-noncomputable def State.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def State.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/resolver.State" [])
 
 attribute [irreducible] State.ty
 
-noncomputable def ClientConn.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ClientConn.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/resolver.ClientConn" [])
 
 attribute [irreducible] ClientConn.ty
 
-noncomputable def Target.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Target.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/resolver.Target" [])
 
 attribute [irreducible] Target.ty
 
-noncomputable def Builder.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Builder.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/resolver.Builder" [])
 
 attribute [irreducible] Builder.ty
 
-noncomputable def ResolveNowOptions.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def ResolveNowOptions.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/resolver.ResolveNowOptions" [])
 
 attribute [irreducible] ResolveNowOptions.ty
 
-noncomputable def Resolver.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Resolver.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/resolver.Resolver" [])
 
 attribute [irreducible] Resolver.ty
 
-noncomputable def AuthorityOverrider.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def AuthorityOverrider.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"google.golang.org/grpc/resolver.AuthorityOverrider" [])
 
 attribute [irreducible] AuthorityOverrider.ty
 
-@[reducible] noncomputable def AddressMap.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def AddressMap.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (AddressMapV2.ty go.any)
 
-axiom Address.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Address.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom BuildOptions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom BuildOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Endpoint.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Endpoint.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom State.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom State.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom ClientConn.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom ClientConn.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Target.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Target.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-noncomputable def m [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def m [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/resolver.m"
 
-axiom m.init [FfiSyntax] [GoGlobalContext] : val
+axiom m.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def defaultScheme [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def defaultScheme [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/resolver.defaultScheme"
 
-axiom defaultScheme.init [FfiSyntax] [GoGlobalContext] : val
+axiom defaultScheme.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def toMapKey [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def toMapKey [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/resolver.toMapKey"
 
-noncomputable def NewAddressMap [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewAddressMap [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/resolver.NewAddressMap"
 
-noncomputable def NewAddressMapV2 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewAddressMapV2 [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/resolver.NewAddressMapV2"
 
-noncomputable def NewEndpointMap [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewEndpointMap [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/resolver.NewEndpointMap"
 
-noncomputable def encodeEndpoint [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def encodeEndpoint [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/resolver.encodeEndpoint"
 
-noncomputable def Register [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Register [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/resolver.Register"
 
-noncomputable def Get [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Get [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/resolver.Get"
 
-noncomputable def SetDefaultScheme [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def SetDefaultScheme [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/resolver.SetDefaultScheme"
 
-noncomputable def GetDefaultScheme [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def GetDefaultScheme [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/resolver.GetDefaultScheme"
 
-noncomputable def ValidateEndpoints [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ValidateEndpoints [GooseExts] [GoGlobalContext] : GoString :=
   go!"google.golang.org/grpc/resolver.ValidateEndpoints"
 
 noncomputable instance info' : PkgInfo pkg_id.google_golang_org.grpc.resolver where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.google_golang_org.grpc.resolver)) (Lam BAnon
   (App (Val exceptionDo)
@@ -174,7 +174,7 @@ axiom Address : Type
 axiom Address.zero_val : ZeroVal Address
 attribute [instance] Address.zero_val
 
-class Address.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Address.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Address.underlying Address
   underlying : go.UnderlyingDirectedEq Address.ty Address.underlying
   isUnderlying : go.IsUnderlying Address.underlying Address.underlying
@@ -183,29 +183,29 @@ attribute [instance] Address.TypeAssumptions.type_repr
   Address.TypeAssumptions.underlying
   Address.TypeAssumptions.isUnderlying
 
-structure addressMapEntry [FfiSyntax] (T : Type) where
+structure addressMapEntry [GooseExts] (T : Type) where
   mk ::
   addr' : Address
   value' : T
 
-noncomputable instance addressMapEntry.zero_val [FfiSyntax] {T : Type} [ZeroVal T] : ZeroVal (addressMapEntry T) :=
+noncomputable instance addressMapEntry.zero_val [GooseExts] {T : Type} [ZeroVal T] : ZeroVal (addressMapEntry T) :=
   ⟨addressMapEntry.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def addressMapEntry.fieldsUnsealed [FfiSyntax] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
+@[reducible] noncomputable def addressMapEntry.fieldsUnsealed [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"addr" Address.ty),
 (go.field_decl.FieldDecl go!"value" T)]
 
-@[irreducible] noncomputable def addressMapEntry.fields [FfiSyntax] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
+@[irreducible] noncomputable def addressMapEntry.fields [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
   (addressMapEntry.fieldsUnsealed T)
 
-noncomputable instance equals_unfold_addressMapEntry [FfiSyntax] [GoGlobalContext] (T : go.GoType) :
+noncomputable instance equals_unfold_addressMapEntry [GooseExts] [GoGlobalContext] (T : go.GoType) :
     EqualsUnfold (addressMapEntry.fields T) (addressMapEntry.fieldsUnsealed T) :=
   ⟨by unfold addressMapEntry.fields; rfl⟩
 
-@[reducible] noncomputable def addressMapEntry.underlying [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+@[reducible] noncomputable def addressMapEntry.underlying [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.StructType (addressMapEntry.fields T))
 
-class addressMapEntry.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class addressMapEntry.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : ∀ (T : go.GoType) (T' : Type) [ZeroVal T'] [TypeRepr T T'], go.TypeReprUnderlying (addressMapEntry.underlying T) (addressMapEntry T')
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (addressMapEntry.ty T) (addressMapEntry.underlying T)
   get_addr : ∀ (T : go.GoType) (T' : Type) (x : (addressMapEntry T')), go.IsGoStepPureDetTagged under (StructFieldGet (addressMapEntry.underlying T) go!"addr") #x (Val #(x.addr'))
@@ -220,27 +220,27 @@ attribute [instance] addressMapEntry.TypeAssumptions.type_repr
   addressMapEntry.TypeAssumptions.get_value
   addressMapEntry.TypeAssumptions.set_value
 
-structure AddressMapV2 [FfiSyntax] (T : Type) where
+structure AddressMapV2 [GooseExts] (T : Type) where
   mk ::
   m' : GoMap
 
-noncomputable instance AddressMapV2.zero_val [FfiSyntax] {T : Type} [ZeroVal T] : ZeroVal (AddressMapV2 T) :=
+noncomputable instance AddressMapV2.zero_val [GooseExts] {T : Type} [ZeroVal T] : ZeroVal (AddressMapV2 T) :=
   ⟨AddressMapV2.mk zeroValDef⟩
 
-@[reducible] noncomputable def AddressMapV2.fieldsUnsealed [FfiSyntax] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
+@[reducible] noncomputable def AddressMapV2.fieldsUnsealed [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"m" (go.GoType.MapType Address.ty (addressMapEntryList.ty T)))]
 
-@[irreducible] noncomputable def AddressMapV2.fields [FfiSyntax] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
+@[irreducible] noncomputable def AddressMapV2.fields [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
   (AddressMapV2.fieldsUnsealed T)
 
-noncomputable instance equals_unfold_AddressMapV2 [FfiSyntax] [GoGlobalContext] (T : go.GoType) :
+noncomputable instance equals_unfold_AddressMapV2 [GooseExts] [GoGlobalContext] (T : go.GoType) :
     EqualsUnfold (AddressMapV2.fields T) (AddressMapV2.fieldsUnsealed T) :=
   ⟨by unfold AddressMapV2.fields; rfl⟩
 
-@[reducible] noncomputable def AddressMapV2.underlying [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+@[reducible] noncomputable def AddressMapV2.underlying [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.StructType (AddressMapV2.fields T))
 
-class AddressMapV2.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class AddressMapV2.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : ∀ (T : go.GoType) (T' : Type) [ZeroVal T'] [TypeRepr T T'], go.TypeReprUnderlying (AddressMapV2.underlying T) (AddressMapV2 T')
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (AddressMapV2.ty T) (AddressMapV2.underlying T)
   get_m : ∀ (T : go.GoType) (T' : Type) (x : (AddressMapV2 T')), go.IsGoStepPureDetTagged under (StructFieldGet (AddressMapV2.underlying T) go!"m") #x (Val #(x.m'))
@@ -251,47 +251,47 @@ attribute [instance] AddressMapV2.TypeAssumptions.type_repr
   AddressMapV2.TypeAssumptions.get_m
   AddressMapV2.TypeAssumptions.set_m
 
-abbrev addressMapEntryList [FfiSyntax] (T : Type) : Type := GoSlice
+abbrev addressMapEntryList [GooseExts] (T : Type) : Type := GoSlice
 
-@[reducible] noncomputable def addressMapEntryList.underlying [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+@[reducible] noncomputable def addressMapEntryList.underlying [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.SliceType (go.GoType.PointerType (addressMapEntry.ty T)))
 
-class addressMapEntryList.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class addressMapEntryList.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (addressMapEntryList.ty T) (addressMapEntryList.underlying T)
 
 attribute [instance] addressMapEntryList.TypeAssumptions.underlying
 
-abbrev endpointMapKey [FfiSyntax] : Type := GoString
+abbrev endpointMapKey [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def endpointMapKey.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def endpointMapKey.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-class endpointMapKey.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class endpointMapKey.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq endpointMapKey.ty endpointMapKey.underlying
 
 attribute [instance] endpointMapKey.TypeAssumptions.underlying
 
-structure EndpointMap [FfiSyntax] (T : Type) where
+structure EndpointMap [GooseExts] (T : Type) where
   mk ::
   endpoints' : GoMap
 
-noncomputable instance EndpointMap.zero_val [FfiSyntax] {T : Type} [ZeroVal T] : ZeroVal (EndpointMap T) :=
+noncomputable instance EndpointMap.zero_val [GooseExts] {T : Type} [ZeroVal T] : ZeroVal (EndpointMap T) :=
   ⟨EndpointMap.mk zeroValDef⟩
 
-@[reducible] noncomputable def EndpointMap.fieldsUnsealed [FfiSyntax] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
+@[reducible] noncomputable def EndpointMap.fieldsUnsealed [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"endpoints" (go.GoType.MapType endpointMapKey.ty (endpointData.ty T)))]
 
-@[irreducible] noncomputable def EndpointMap.fields [FfiSyntax] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
+@[irreducible] noncomputable def EndpointMap.fields [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
   (EndpointMap.fieldsUnsealed T)
 
-noncomputable instance equals_unfold_EndpointMap [FfiSyntax] [GoGlobalContext] (T : go.GoType) :
+noncomputable instance equals_unfold_EndpointMap [GooseExts] [GoGlobalContext] (T : go.GoType) :
     EqualsUnfold (EndpointMap.fields T) (EndpointMap.fieldsUnsealed T) :=
   ⟨by unfold EndpointMap.fields; rfl⟩
 
-@[reducible] noncomputable def EndpointMap.underlying [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+@[reducible] noncomputable def EndpointMap.underlying [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.StructType (EndpointMap.fields T))
 
-class EndpointMap.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class EndpointMap.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : ∀ (T : go.GoType) (T' : Type) [ZeroVal T'] [TypeRepr T T'], go.TypeReprUnderlying (EndpointMap.underlying T) (EndpointMap T')
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (EndpointMap.ty T) (EndpointMap.underlying T)
   get_endpoints : ∀ (T : go.GoType) (T' : Type) (x : (EndpointMap T')), go.IsGoStepPureDetTagged under (StructFieldGet (EndpointMap.underlying T) go!"endpoints") #x (Val #(x.endpoints'))
@@ -306,7 +306,7 @@ axiom Endpoint : Type
 axiom Endpoint.zero_val : ZeroVal Endpoint
 attribute [instance] Endpoint.zero_val
 
-class Endpoint.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Endpoint.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Endpoint.underlying Endpoint
   underlying : go.UnderlyingDirectedEq Endpoint.ty Endpoint.underlying
   isUnderlying : go.IsUnderlying Endpoint.underlying Endpoint.underlying
@@ -315,29 +315,29 @@ attribute [instance] Endpoint.TypeAssumptions.type_repr
   Endpoint.TypeAssumptions.underlying
   Endpoint.TypeAssumptions.isUnderlying
 
-structure endpointData [FfiSyntax] (T : Type) where
+structure endpointData [GooseExts] (T : Type) where
   mk ::
   decodedKey' : Endpoint
   value' : T
 
-noncomputable instance endpointData.zero_val [FfiSyntax] {T : Type} [ZeroVal T] : ZeroVal (endpointData T) :=
+noncomputable instance endpointData.zero_val [GooseExts] {T : Type} [ZeroVal T] : ZeroVal (endpointData T) :=
   ⟨endpointData.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def endpointData.fieldsUnsealed [FfiSyntax] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
+@[reducible] noncomputable def endpointData.fieldsUnsealed [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"decodedKey" Endpoint.ty),
 (go.field_decl.FieldDecl go!"value" T)]
 
-@[irreducible] noncomputable def endpointData.fields [FfiSyntax] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
+@[irreducible] noncomputable def endpointData.fields [GooseExts] [GoGlobalContext] (T : go.GoType) : List go.field_decl :=
   (endpointData.fieldsUnsealed T)
 
-noncomputable instance equals_unfold_endpointData [FfiSyntax] [GoGlobalContext] (T : go.GoType) :
+noncomputable instance equals_unfold_endpointData [GooseExts] [GoGlobalContext] (T : go.GoType) :
     EqualsUnfold (endpointData.fields T) (endpointData.fieldsUnsealed T) :=
   ⟨by unfold endpointData.fields; rfl⟩
 
-@[reducible] noncomputable def endpointData.underlying [FfiSyntax] [GoGlobalContext] (T : go.GoType) : go.GoType :=
+@[reducible] noncomputable def endpointData.underlying [GooseExts] [GoGlobalContext] (T : go.GoType) : go.GoType :=
   (go.GoType.StructType (endpointData.fields T))
 
-class endpointData.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class endpointData.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : ∀ (T : go.GoType) (T' : Type) [ZeroVal T'] [TypeRepr T T'], go.TypeReprUnderlying (endpointData.underlying T) (endpointData T')
   underlying : ∀ (T : go.GoType), go.UnderlyingDirectedEq (endpointData.ty T) (endpointData.underlying T)
   get_decodedKey : ∀ (T : go.GoType) (T' : Type) (x : (endpointData T')), go.IsGoStepPureDetTagged under (StructFieldGet (endpointData.underlying T) go!"decodedKey") #x (Val #(x.decodedKey'))
@@ -356,7 +356,7 @@ axiom BuildOptions : Type
 axiom BuildOptions.zero_val : ZeroVal BuildOptions
 attribute [instance] BuildOptions.zero_val
 
-class BuildOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class BuildOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying BuildOptions.underlying BuildOptions
   underlying : go.UnderlyingDirectedEq BuildOptions.ty BuildOptions.underlying
   isUnderlying : go.IsUnderlying BuildOptions.underlying BuildOptions.underlying
@@ -369,7 +369,7 @@ axiom State : Type
 axiom State.zero_val : ZeroVal State
 attribute [instance] State.zero_val
 
-class State.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class State.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying State.underlying State
   underlying : go.UnderlyingDirectedEq State.ty State.underlying
   isUnderlying : go.IsUnderlying State.underlying State.underlying
@@ -382,7 +382,7 @@ axiom ClientConn : Type
 axiom ClientConn.zero_val : ZeroVal ClientConn
 attribute [instance] ClientConn.zero_val
 
-class ClientConn.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ClientConn.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ClientConn.underlying ClientConn
   underlying : go.UnderlyingDirectedEq ClientConn.ty ClientConn.underlying
   isUnderlying : go.IsUnderlying ClientConn.underlying ClientConn.underlying
@@ -395,7 +395,7 @@ axiom Target : Type
 axiom Target.zero_val : ZeroVal Target
 attribute [instance] Target.zero_val
 
-class Target.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Target.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Target.underlying Target
   underlying : go.UnderlyingDirectedEq Target.ty Target.underlying
   isUnderlying : go.IsUnderlying Target.underlying Target.underlying
@@ -404,63 +404,63 @@ attribute [instance] Target.TypeAssumptions.type_repr
   Target.TypeAssumptions.underlying
   Target.TypeAssumptions.isUnderlying
 
-abbrev Builder [FfiSyntax] : Type := GoInterface
+abbrev Builder [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def Builder.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Builder.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Build" (go.signature.Signature [Target.ty, ClientConn.ty, BuildOptions.ty] false [Resolver.ty, go.error])), (go.InterfaceElem.MethodElem go!"Scheme" (go.signature.Signature [] false [go.string]))])
 
-class Builder.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Builder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Builder.ty Builder.underlying
 
 attribute [instance] Builder.TypeAssumptions.underlying
 
-structure ResolveNowOptions [FfiSyntax] where
+structure ResolveNowOptions [GooseExts] where
   mk ::
 
-noncomputable instance ResolveNowOptions.zero_val [FfiSyntax] : ZeroVal ResolveNowOptions :=
+noncomputable instance ResolveNowOptions.zero_val [GooseExts] : ZeroVal ResolveNowOptions :=
   ⟨ResolveNowOptions.mk⟩
 
-@[reducible] noncomputable def ResolveNowOptions.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def ResolveNowOptions.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   []
 
-@[irreducible] noncomputable def ResolveNowOptions.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def ResolveNowOptions.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   ResolveNowOptions.fieldsUnsealed
 
-noncomputable instance equals_unfold_ResolveNowOptions [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_ResolveNowOptions [GooseExts] [GoGlobalContext] :
     EqualsUnfold ResolveNowOptions.fields ResolveNowOptions.fieldsUnsealed :=
   ⟨by unfold ResolveNowOptions.fields; rfl⟩
 
-@[reducible] noncomputable def ResolveNowOptions.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def ResolveNowOptions.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType ResolveNowOptions.fields)
 
-class ResolveNowOptions.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class ResolveNowOptions.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying ResolveNowOptions.underlying ResolveNowOptions
   underlying : go.UnderlyingDirectedEq ResolveNowOptions.ty ResolveNowOptions.underlying
 
 attribute [instance] ResolveNowOptions.TypeAssumptions.type_repr
   ResolveNowOptions.TypeAssumptions.underlying
 
-abbrev Resolver [FfiSyntax] : Type := GoInterface
+abbrev Resolver [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def Resolver.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Resolver.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"Close" (go.signature.Signature [] false [])), (go.InterfaceElem.MethodElem go!"ResolveNow" (go.signature.Signature [ResolveNowOptions.ty] false []))])
 
-class Resolver.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Resolver.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Resolver.ty Resolver.underlying
 
 attribute [instance] Resolver.TypeAssumptions.underlying
 
-abbrev AuthorityOverrider [FfiSyntax] : Type := GoInterface
+abbrev AuthorityOverrider [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def AuthorityOverrider.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def AuthorityOverrider.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.InterfaceType [(go.InterfaceElem.MethodElem go!"OverrideAuthority" (go.signature.Signature [Target.ty] false [go.string]))])
 
-class AuthorityOverrider.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class AuthorityOverrider.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq AuthorityOverrider.ty AuthorityOverrider.underlying
 
 attribute [instance] AuthorityOverrider.TypeAssumptions.underlying
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   addressMapEntry_instance : addressMapEntry.TypeAssumptions
   AddressMapV2_instance : AddressMapV2.TypeAssumptions
   addressMapEntryList_instance : addressMapEntryList.TypeAssumptions

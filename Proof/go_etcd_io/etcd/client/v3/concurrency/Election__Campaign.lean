@@ -104,7 +104,7 @@ theorem campaignTxn_else (key val : GoString) (lease r : w64) (s : List EtcdKv)
   exact ⟨hpres, rfl, rfl, rfl⟩
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [EM : EtcdModel GF]

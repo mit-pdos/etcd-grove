@@ -84,7 +84,7 @@ local macro "mem_tac" : tactic =>
 open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
 section toLoggerV2
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -103,7 +103,7 @@ axiom k8s_io.apiserver.pkg.storage.etcd3.klogWrapper_toLoggerV2 (v : val) :
 end toLoggerV2
 
 section init
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -228,7 +228,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   · rw [_root_.Perennial.sync.atomic.ownBool_unseal]
     unfold _root_.Perennial.sync.atomic.ownBoolDef
     have e : (zero_val _root_.Perennial.sync.atomic.Bool') =
-        ({ _0' := zero_val _, v' := _root_.Perennial.sync.atomic.b32w false } :
+        ({ «_#0'» := zero_val _, v' := _root_.Perennial.sync.atomic.b32w false } :
           _root_.Perennial.sync.atomic.Bool') := rfl
     rw [← e]; iexact HfatalOnDecodeError
   wp_apply_core _root_.Perennial.sync.atomic.Bool.wp_Store $$ [] [-]

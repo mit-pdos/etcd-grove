@@ -180,7 +180,7 @@ theorem entryStep_rejected_no_write (m : EntryModel) (v3 : Bool) (y y' : apply.A
 /-! ## The apply loop -/
 
 section triples
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -418,7 +418,7 @@ uber-applier's chain (`alarmChain`), the outcome is `alarmPut`/`alarmDelete` (th
 (`apply.apply_kv`). The writing `Txn` and the read side: unit 3b's, below. -/
 
 section request
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -597,7 +597,7 @@ error. **`txn_applied_model`** (pure): through the uber-applier's chain the outc
 (the txn package's `txnModel` or a layer's rejection), the log after the outcome's. -/
 
 section read
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -793,7 +793,7 @@ given up (`crevFrozen_alloc`), so its readers are those of a never-compacted sto
 and the right to close the store holds its scheduler's stop token (D19m (C)). -/
 
 section backend
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -1269,7 +1269,7 @@ end backend
 #print axioms Perennial.EtcdGrove.server_kv_watchable
 
 section latest
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -1310,7 +1310,7 @@ end latest
 #print axioms Perennial.EtcdGrove.auth_delete_range_permitted_latest
 
 section readLb
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -1367,7 +1367,7 @@ end readLb
 #print axioms Perennial.EtcdGrove.auth_delete_range_permitted_lb
 
 section latestApply
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -1539,7 +1539,7 @@ end latestApply
 #print axioms Perennial.EtcdGrove.auth_role_revoke_permission_tie
 
 section userAddSure
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -1559,7 +1559,7 @@ end userAddSure
 #print axioms Perennial.EtcdGrove.auth_user_add_sure
 
 section kvLatest
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -1640,7 +1640,7 @@ end kvLatest
 gives E2t's `outcomeOn`, for a plain KV request at the start chain with auth on and no alarm,
 without `"\x00"` range ends (a transaction's verdict on its own permissions a theorem since E3e,
 `txnVerdictOwn_of`). -/
-theorem kv_outcome_on_latest [ext : FfiSyntax] (c₀ : w64) (s : auth.AuthState × mvcc.Log)
+theorem kv_outcome_on_latest [GooseExts] (c₀ : w64) (s : auth.AuthState × mvcc.Log)
     (m : EntryModel) (rq : EtcdGrove.apply.IRRModel) (ht : m.typ = W32 0) (hd : m.data ≠ [])
     (hdec : EtcdGrove.apply.irrDecode m.data = some rq) (hv : uint.Z c₀ < uint.Z m.index)
     (hna : EtcdGrove.apply.needAdminPermission rq = false)
@@ -1660,7 +1660,7 @@ theorem kv_outcome_on_latest [ext : FfiSyntax] (c₀ : w64) (s : auth.AuthState 
 #print axioms Perennial.EtcdGrove.kv_outcome_on_latest
 
 section adminLatest
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -1719,7 +1719,7 @@ end adminLatest
 
 /-- **A refused admin check keeps the model's auth state; a passed one admits the principal** (the
 auth plan's E3c, `ApplyTieOn.lean`): `adminStateR`'s two cases from the latest-state verdicts. -/
-theorem admin_state_of_latest [ext : FfiSyntax] (γa : auth.AuthNames) (hs : List auth.AuthState)
+theorem admin_state_of_latest [GooseExts] (γa : auth.AuthNames) (hs : List auth.AuthState)
     (st : auth.AuthState) (rq : EtcdGrove.apply.IRRModel) (hl : hs.getLast? = some st) :
     (EtcdGrove.apply.adminRejL (.on γa) hs rq → adminStateR rq st st) ∧
       (EtcdGrove.apply.needAdminPermission rq = true → EtcdGrove.apply.adminPassL (.on γa) hs rq →
@@ -1728,7 +1728,7 @@ theorem admin_state_of_latest [ext : FfiSyntax] (γa : auth.AuthNames) (hs : Lis
 
 /-- **`AuthEnable`'s result is the model's step at the latest state's flag** (the auth plan's E3c,
 `ApplyTieOn.lean`): `AdminReq.result`'s relation `authEnableR` in the mode `on`. -/
-theorem admin_state_auth_enable [ext : FfiSyntax] (γa : auth.AuthNames) (rq : EtcdGrove.apply.IRRModel)
+theorem admin_state_auth_enable [GooseExts] (γa : auth.AuthNames) (rq : EtcdGrove.apply.IRRModel)
     (st : auth.AuthState) (en : Bool) (o : auth.Outcome)
     (ha : auth.adminOk st (some (auth.authInfoM (EtcdGrove.apply.principalOf rq))))
     (hk : EtcdGrove.apply.dispatchKind rq = .authEnable) (h : EtcdGrove.apply.authEnableR (.on γa) en st o) :
@@ -1745,7 +1745,7 @@ theorem admin_state_auth_enable [ext : FfiSyntax] (γa : auth.AuthNames) (rq : E
 #print axioms Perennial.EtcdGrove.admin_state_of_latest
 
 section userAddHandler
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -1765,7 +1765,7 @@ end userAddHandler
 #print axioms Perennial.EtcdGrove.server_user_add_sure
 
 section tokens
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -1864,7 +1864,7 @@ end tokens
 #print axioms Perennial.EtcdGrove.srv_auth_bound_of_inv
 
 section serverAuth
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -1960,7 +1960,7 @@ end serverAuth
 #print axioms Perennial.EtcdGrove.server_new_auth_on
 
 section serverAuthAlloc
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -2028,7 +2028,7 @@ end serverAuthAlloc
 #print axioms Perennial.EtcdGrove.server_built_gap_on
 
 section goroutines
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -2121,7 +2121,7 @@ end goroutines
 #print axioms Perennial.EtcdGrove.idutil_next
 
 section serverProposeOn
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -2174,7 +2174,7 @@ theorem server_txn_on : EtcdServer.Txn.specOn (GF := GF) (hG := hG) :=
 end serverProposeOn
 
 section applyEntryOn
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -2219,7 +2219,7 @@ theorem apply_kv_after_on (c₀ : w64) (st : auth.AuthState) (x x' : EtcdGrove.a
 end applyEntryOn
 
 section applyStateOn
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -2273,7 +2273,7 @@ theorem server_apply_admin_not_nospace_on
 end applyStateOn
 
 section readTxnLb
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

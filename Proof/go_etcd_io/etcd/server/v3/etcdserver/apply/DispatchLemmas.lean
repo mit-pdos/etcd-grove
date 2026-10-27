@@ -31,7 +31,7 @@ theorem preV3Kind_dispatchKind (rq : IRRModel) (h1 : rq.clusterVersionSet = none
   simp only [preV3Kind, ite_self]
 
 section lemmas
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -125,7 +125,7 @@ Each KV answer (`putOutcomeIs`, ...) names its error: `nil`, an error variable (
 contracts': `applyErrIs`). So the error is one `errors.Is` can take (`applyErrIs`). -/
 
 section errIs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics] [_root_.Perennial.errors.Assumptions]

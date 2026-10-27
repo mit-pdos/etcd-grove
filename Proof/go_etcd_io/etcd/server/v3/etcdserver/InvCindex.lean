@@ -90,7 +90,7 @@ def metaAfterSave (m : MetaCI) (k t : w64) : MetaCI :=
 
 -- The field addresses of a `consistentIndex`.
 section addrs
-variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
 abbrev ciIdxAddr (ci : Loc) : Loc := structFieldRef consistentIndex go!"consistentIndex" ci
 abbrev ciTermAddr (ci : Loc) : Loc := structFieldRef consistentIndex go!"term" ci
@@ -110,7 +110,7 @@ structure CINames where
   idx : GName
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -327,7 +327,7 @@ end defs
 /-! ## Atomics on owned fields -/
 
 section atomics
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

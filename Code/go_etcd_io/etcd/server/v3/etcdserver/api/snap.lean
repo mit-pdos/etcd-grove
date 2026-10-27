@@ -22,66 +22,66 @@ end pkg_id
 
 namespace go_etcd_io.etcd.server.v3.etcdserver.api.snap
 
-noncomputable def Message.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Message.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/snap.Message" [])
 
 attribute [irreducible] Message.ty
 
-noncomputable def Snapshotter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Snapshotter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/snap.Snapshotter" [])
 
 attribute [irreducible] Snapshotter.ty
 
-axiom Snapshotter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Snapshotter.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-noncomputable def ErrNoDBSnapshot [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ErrNoDBSnapshot [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/snap.ErrNoDBSnapshot"
 
-axiom ErrNoDBSnapshot.init [FfiSyntax] [GoGlobalContext] : val
+axiom ErrNoDBSnapshot.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def snapMarshallingSec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def snapMarshallingSec [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/snap.snapMarshallingSec"
 
-axiom snapMarshallingSec.init [FfiSyntax] [GoGlobalContext] : val
+axiom snapMarshallingSec.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def snapSaveSec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def snapSaveSec [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/snap.snapSaveSec"
 
-axiom snapSaveSec.init [FfiSyntax] [GoGlobalContext] : val
+axiom snapSaveSec.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def snapFsyncSec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def snapFsyncSec [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/snap.snapFsyncSec"
 
-axiom snapFsyncSec.init [FfiSyntax] [GoGlobalContext] : val
+axiom snapFsyncSec.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def snapDBSaveSec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def snapDBSaveSec [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/snap.snapDBSaveSec"
 
-axiom snapDBSaveSec.init [FfiSyntax] [GoGlobalContext] : val
+axiom snapDBSaveSec.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def snapDBFsyncSec [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def snapDBFsyncSec [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/snap.snapDBFsyncSec"
 
-axiom snapDBFsyncSec.init [FfiSyntax] [GoGlobalContext] : val
+axiom snapDBFsyncSec.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def fsyncSnapDir [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def fsyncSnapDir [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/snap.fsyncSnapDir"
 
-noncomputable def NewMessage [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewMessage [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/snap.NewMessage"
 
-noncomputable def init.«0» [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def init.«0» [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/snap.init.0"
 
-noncomputable def New [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def New [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/snap.New"
 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap where
   pkgImportedPkgs := [pkg_id.io, pkg_id.go_etcd_io.raft.v3.raftpb]
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.snap)) (Lam BAnon
   (App (Val exceptionDo)
@@ -112,33 +112,33 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.go_etcd_io.raft.v3.raftpb.initialize') (Val #()))))))))
 
-structure Message [FfiSyntax] where
+structure Message [GooseExts] where
   mk ::
   Message' : Loc
   ReadCloser' : _root_.Perennial.io.ReadCloser
   TotalSize' : w64
   closeC' : GoChan
 
-noncomputable instance Message.zero_val [FfiSyntax] : ZeroVal Message :=
+noncomputable instance Message.zero_val [GooseExts] : ZeroVal Message :=
   ⟨Message.mk zeroValDef zeroValDef zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Message.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Message.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.EmbeddedField go!"Message" (go.GoType.PointerType _root_.Perennial.go_etcd_io.raft.v3.raftpb.Message.ty)),
 (go.field_decl.FieldDecl go!"ReadCloser" _root_.Perennial.io.ReadCloser.ty),
 (go.field_decl.FieldDecl go!"TotalSize" go.int64),
 (go.field_decl.FieldDecl go!"closeC" (go.GoType.ChannelType go.ChanDir.sendrecv go.bool))]
 
-@[irreducible] noncomputable def Message.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Message.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Message.fieldsUnsealed
 
-noncomputable instance equals_unfold_Message [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Message [GooseExts] [GoGlobalContext] :
     EqualsUnfold Message.fields Message.fieldsUnsealed :=
   ⟨by unfold Message.fields; rfl⟩
 
-@[reducible] noncomputable def Message.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Message.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Message.fields)
 
-class Message.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Message.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Message.underlying Message
   underlying : go.UnderlyingDirectedEq Message.ty Message.underlying
   get_Message : ∀ (x : Message), go.IsGoStepPureDetTagged under (StructFieldGet Message.underlying go!"Message") #x (Val #(x.Message'))
@@ -171,7 +171,7 @@ axiom Snapshotter : Type
 axiom Snapshotter.zero_val : ZeroVal Snapshotter
 attribute [instance] Snapshotter.zero_val
 
-class Snapshotter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Snapshotter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Snapshotter.underlying Snapshotter
   underlying : go.UnderlyingDirectedEq Snapshotter.ty Snapshotter.underlying
   isUnderlying : go.IsUnderlying Snapshotter.underlying Snapshotter.underlying
@@ -180,7 +180,7 @@ attribute [instance] Snapshotter.TypeAssumptions.type_repr
   Snapshotter.TypeAssumptions.underlying
   Snapshotter.TypeAssumptions.isUnderlying
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Message_instance : Message.TypeAssumptions
   Snapshotter_instance : Snapshotter.TypeAssumptions
   import_io_Assumption : _root_.Perennial.io.Assumptions

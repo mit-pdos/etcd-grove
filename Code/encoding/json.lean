@@ -20,215 +20,215 @@ end pkg_id
 
 namespace encoding.json
 
-noncomputable def UnmarshalTypeError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def UnmarshalTypeError.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"encoding/json.UnmarshalTypeError" [])
 
 attribute [irreducible] UnmarshalTypeError.ty
 
-noncomputable def UnmarshalFieldError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def UnmarshalFieldError.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"encoding/json.UnmarshalFieldError" [])
 
 attribute [irreducible] UnmarshalFieldError.ty
 
-noncomputable def InvalidUnmarshalError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def InvalidUnmarshalError.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"encoding/json.InvalidUnmarshalError" [])
 
 attribute [irreducible] InvalidUnmarshalError.ty
 
-noncomputable def Number.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Number.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"encoding/json.Number" [])
 
 attribute [irreducible] Number.ty
 
-noncomputable def UnsupportedTypeError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def UnsupportedTypeError.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"encoding/json.UnsupportedTypeError" [])
 
 attribute [irreducible] UnsupportedTypeError.ty
 
-noncomputable def UnsupportedValueError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def UnsupportedValueError.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"encoding/json.UnsupportedValueError" [])
 
 attribute [irreducible] UnsupportedValueError.ty
 
-noncomputable def InvalidUTF8Error.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def InvalidUTF8Error.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"encoding/json.InvalidUTF8Error" [])
 
 attribute [irreducible] InvalidUTF8Error.ty
 
-noncomputable def MarshalerError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def MarshalerError.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"encoding/json.MarshalerError" [])
 
 attribute [irreducible] MarshalerError.ty
 
-noncomputable def SyntaxError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def SyntaxError.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"encoding/json.SyntaxError" [])
 
 attribute [irreducible] SyntaxError.ty
 
-noncomputable def Decoder.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Decoder.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"encoding/json.Decoder" [])
 
 attribute [irreducible] Decoder.ty
 
-noncomputable def Encoder.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Encoder.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"encoding/json.Encoder" [])
 
 attribute [irreducible] Encoder.ty
 
-noncomputable def Token.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Token.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"encoding/json.Token" [])
 
 attribute [irreducible] Token.ty
 
-noncomputable def Delim.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Delim.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"encoding/json.Delim" [])
 
 attribute [irreducible] Delim.ty
 
-axiom Unmarshaler [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Unmarshaler [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom UnmarshalTypeError.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom UnmarshalTypeError.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom UnmarshalFieldError.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom UnmarshalFieldError.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom InvalidUnmarshalError.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom InvalidUnmarshalError.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Marshaler [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Marshaler [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom UnsupportedTypeError.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom UnsupportedTypeError.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom UnsupportedValueError.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom UnsupportedValueError.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom MarshalerError.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom MarshalerError.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Options [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Options [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Decoder.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Decoder.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Encoder.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Encoder.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom RawMessage [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom RawMessage [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom Delim.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Delim.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom indentGrowthFactor [FfiSyntax] [GoGlobalContext] : val
+axiom indentGrowthFactor [GooseExts] [GoGlobalContext] : val
 
-noncomputable def numberType [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def numberType [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/json.numberType"
 
-axiom numberType.init [FfiSyntax] [GoGlobalContext] : val
+axiom numberType.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def «export» [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def «export» [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/json.export"
 
-axiom «export».init [FfiSyntax] [GoGlobalContext] : val
+axiom «export».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def errUnexpectedEnd [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def errUnexpectedEnd [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/json.errUnexpectedEnd"
 
-axiom errUnexpectedEnd.init [FfiSyntax] [GoGlobalContext] : val
+axiom errUnexpectedEnd.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def syntaxErrorReplacer [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def syntaxErrorReplacer [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/json.syntaxErrorReplacer"
 
-axiom syntaxErrorReplacer.init [FfiSyntax] [GoGlobalContext] : val
+axiom syntaxErrorReplacer.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def Unmarshal [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Unmarshal [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/json.Unmarshal"
 
-noncomputable def Marshal [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Marshal [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/json.Marshal"
 
-noncomputable def MarshalIndent [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def MarshalIndent [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/json.MarshalIndent"
 
-noncomputable def HTMLEscape [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def HTMLEscape [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/json.HTMLEscape"
 
-noncomputable def appendHTMLEscape [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendHTMLEscape [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/json.appendHTMLEscape"
 
-noncomputable def Compact [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Compact [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/json.Compact"
 
-noncomputable def Indent [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Indent [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/json.Indent"
 
-noncomputable def appendIndent [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def appendIndent [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/json.appendIndent"
 
-noncomputable def init.«0» [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def init.«0» [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/json.init.0"
 
-noncomputable def transformMarshalError [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def transformMarshalError [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/json.transformMarshalError"
 
-noncomputable def transformUnmarshalError [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def transformUnmarshalError [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/json.transformUnmarshalError"
 
-noncomputable def DefaultOptionsV1 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def DefaultOptionsV1 [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/json.DefaultOptionsV1"
 
-noncomputable def CallMethodsWithLegacySemantics [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def CallMethodsWithLegacySemantics [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/json.CallMethodsWithLegacySemantics"
 
-noncomputable def FormatByteArrayAsArray [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def FormatByteArrayAsArray [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/json.FormatByteArrayAsArray"
 
-noncomputable def FormatBytesWithLegacySemantics [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def FormatBytesWithLegacySemantics [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/json.FormatBytesWithLegacySemantics"
 
-noncomputable def FormatDurationAsNano [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def FormatDurationAsNano [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/json.FormatDurationAsNano"
 
-noncomputable def MatchCaseSensitiveDelimiter [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def MatchCaseSensitiveDelimiter [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/json.MatchCaseSensitiveDelimiter"
 
-noncomputable def MergeWithLegacySemantics [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def MergeWithLegacySemantics [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/json.MergeWithLegacySemantics"
 
-noncomputable def OmitEmptyWithLegacySemantics [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def OmitEmptyWithLegacySemantics [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/json.OmitEmptyWithLegacySemantics"
 
-noncomputable def ParseBytesWithLooseRFC4648 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ParseBytesWithLooseRFC4648 [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/json.ParseBytesWithLooseRFC4648"
 
-noncomputable def ParseTimeWithLooseRFC3339 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ParseTimeWithLooseRFC3339 [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/json.ParseTimeWithLooseRFC3339"
 
-noncomputable def ReportErrorsWithLegacySemantics [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def ReportErrorsWithLegacySemantics [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/json.ReportErrorsWithLegacySemantics"
 
-noncomputable def StringifyWithLegacySemantics [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def StringifyWithLegacySemantics [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/json.StringifyWithLegacySemantics"
 
-noncomputable def UnmarshalArrayFromAnyLength [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def UnmarshalArrayFromAnyLength [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/json.UnmarshalArrayFromAnyLength"
 
-noncomputable def unmarshalAnyWithRawNumber [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def unmarshalAnyWithRawNumber [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/json.unmarshalAnyWithRawNumber"
 
-noncomputable def Valid [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Valid [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/json.Valid"
 
-noncomputable def checkValid [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def checkValid [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/json.checkValid"
 
-noncomputable def transformSyntacticError [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def transformSyntacticError [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/json.transformSyntacticError"
 
-noncomputable def NewDecoder [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewDecoder [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/json.NewDecoder"
 
-noncomputable def NewEncoder [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewEncoder [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/json.NewEncoder"
 
 noncomputable instance info' : PkgInfo pkg_id.encoding.json where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.encoding.json)) (Lam BAnon
   (App (Val exceptionDo)
@@ -251,7 +251,7 @@ axiom UnmarshalTypeError : Type
 axiom UnmarshalTypeError.zero_val : ZeroVal UnmarshalTypeError
 attribute [instance] UnmarshalTypeError.zero_val
 
-class UnmarshalTypeError.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class UnmarshalTypeError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying UnmarshalTypeError.underlying UnmarshalTypeError
   underlying : go.UnderlyingDirectedEq UnmarshalTypeError.ty UnmarshalTypeError.underlying
   isUnderlying : go.IsUnderlying UnmarshalTypeError.underlying UnmarshalTypeError.underlying
@@ -264,7 +264,7 @@ axiom UnmarshalFieldError : Type
 axiom UnmarshalFieldError.zero_val : ZeroVal UnmarshalFieldError
 attribute [instance] UnmarshalFieldError.zero_val
 
-class UnmarshalFieldError.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class UnmarshalFieldError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying UnmarshalFieldError.underlying UnmarshalFieldError
   underlying : go.UnderlyingDirectedEq UnmarshalFieldError.ty UnmarshalFieldError.underlying
   isUnderlying : go.IsUnderlying UnmarshalFieldError.underlying UnmarshalFieldError.underlying
@@ -277,7 +277,7 @@ axiom InvalidUnmarshalError : Type
 axiom InvalidUnmarshalError.zero_val : ZeroVal InvalidUnmarshalError
 attribute [instance] InvalidUnmarshalError.zero_val
 
-class InvalidUnmarshalError.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class InvalidUnmarshalError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying InvalidUnmarshalError.underlying InvalidUnmarshalError
   underlying : go.UnderlyingDirectedEq InvalidUnmarshalError.ty InvalidUnmarshalError.underlying
   isUnderlying : go.IsUnderlying InvalidUnmarshalError.underlying InvalidUnmarshalError.underlying
@@ -286,12 +286,12 @@ attribute [instance] InvalidUnmarshalError.TypeAssumptions.type_repr
   InvalidUnmarshalError.TypeAssumptions.underlying
   InvalidUnmarshalError.TypeAssumptions.isUnderlying
 
-abbrev Number [FfiSyntax] : Type := GoString
+abbrev Number [GooseExts] : Type := GoString
 
-@[reducible] noncomputable def Number.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Number.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.string
 
-class Number.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Number.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Number.ty Number.underlying
 
 attribute [instance] Number.TypeAssumptions.underlying
@@ -300,7 +300,7 @@ axiom UnsupportedTypeError : Type
 axiom UnsupportedTypeError.zero_val : ZeroVal UnsupportedTypeError
 attribute [instance] UnsupportedTypeError.zero_val
 
-class UnsupportedTypeError.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class UnsupportedTypeError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying UnsupportedTypeError.underlying UnsupportedTypeError
   underlying : go.UnderlyingDirectedEq UnsupportedTypeError.ty UnsupportedTypeError.underlying
   isUnderlying : go.IsUnderlying UnsupportedTypeError.underlying UnsupportedTypeError.underlying
@@ -313,7 +313,7 @@ axiom UnsupportedValueError : Type
 axiom UnsupportedValueError.zero_val : ZeroVal UnsupportedValueError
 attribute [instance] UnsupportedValueError.zero_val
 
-class UnsupportedValueError.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class UnsupportedValueError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying UnsupportedValueError.underlying UnsupportedValueError
   underlying : go.UnderlyingDirectedEq UnsupportedValueError.ty UnsupportedValueError.underlying
   isUnderlying : go.IsUnderlying UnsupportedValueError.underlying UnsupportedValueError.underlying
@@ -322,27 +322,27 @@ attribute [instance] UnsupportedValueError.TypeAssumptions.type_repr
   UnsupportedValueError.TypeAssumptions.underlying
   UnsupportedValueError.TypeAssumptions.isUnderlying
 
-structure InvalidUTF8Error [FfiSyntax] where
+structure InvalidUTF8Error [GooseExts] where
   mk ::
   S' : GoString
 
-noncomputable instance InvalidUTF8Error.zero_val [FfiSyntax] : ZeroVal InvalidUTF8Error :=
+noncomputable instance InvalidUTF8Error.zero_val [GooseExts] : ZeroVal InvalidUTF8Error :=
   ⟨InvalidUTF8Error.mk zeroValDef⟩
 
-@[reducible] noncomputable def InvalidUTF8Error.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def InvalidUTF8Error.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"S" go.string)]
 
-@[irreducible] noncomputable def InvalidUTF8Error.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def InvalidUTF8Error.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   InvalidUTF8Error.fieldsUnsealed
 
-noncomputable instance equals_unfold_InvalidUTF8Error [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_InvalidUTF8Error [GooseExts] [GoGlobalContext] :
     EqualsUnfold InvalidUTF8Error.fields InvalidUTF8Error.fieldsUnsealed :=
   ⟨by unfold InvalidUTF8Error.fields; rfl⟩
 
-@[reducible] noncomputable def InvalidUTF8Error.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def InvalidUTF8Error.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType InvalidUTF8Error.fields)
 
-class InvalidUTF8Error.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class InvalidUTF8Error.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying InvalidUTF8Error.underlying InvalidUTF8Error
   underlying : go.UnderlyingDirectedEq InvalidUTF8Error.ty InvalidUTF8Error.underlying
   get_S : ∀ (x : InvalidUTF8Error), go.IsGoStepPureDetTagged under (StructFieldGet InvalidUTF8Error.underlying go!"S") #x (Val #(x.S'))
@@ -357,7 +357,7 @@ axiom MarshalerError : Type
 axiom MarshalerError.zero_val : ZeroVal MarshalerError
 attribute [instance] MarshalerError.zero_val
 
-class MarshalerError.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class MarshalerError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying MarshalerError.underlying MarshalerError
   underlying : go.UnderlyingDirectedEq MarshalerError.ty MarshalerError.underlying
   isUnderlying : go.IsUnderlying MarshalerError.underlying MarshalerError.underlying
@@ -366,29 +366,29 @@ attribute [instance] MarshalerError.TypeAssumptions.type_repr
   MarshalerError.TypeAssumptions.underlying
   MarshalerError.TypeAssumptions.isUnderlying
 
-structure SyntaxError [FfiSyntax] where
+structure SyntaxError [GooseExts] where
   mk ::
   msg' : GoString
   Offset' : w64
 
-noncomputable instance SyntaxError.zero_val [FfiSyntax] : ZeroVal SyntaxError :=
+noncomputable instance SyntaxError.zero_val [GooseExts] : ZeroVal SyntaxError :=
   ⟨SyntaxError.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def SyntaxError.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def SyntaxError.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"msg" go.string),
 (go.field_decl.FieldDecl go!"Offset" go.int64)]
 
-@[irreducible] noncomputable def SyntaxError.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def SyntaxError.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   SyntaxError.fieldsUnsealed
 
-noncomputable instance equals_unfold_SyntaxError [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_SyntaxError [GooseExts] [GoGlobalContext] :
     EqualsUnfold SyntaxError.fields SyntaxError.fieldsUnsealed :=
   ⟨by unfold SyntaxError.fields; rfl⟩
 
-@[reducible] noncomputable def SyntaxError.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def SyntaxError.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType SyntaxError.fields)
 
-class SyntaxError.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class SyntaxError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying SyntaxError.underlying SyntaxError
   underlying : go.UnderlyingDirectedEq SyntaxError.ty SyntaxError.underlying
   get_msg : ∀ (x : SyntaxError), go.IsGoStepPureDetTagged under (StructFieldGet SyntaxError.underlying go!"msg") #x (Val #(x.msg'))
@@ -407,7 +407,7 @@ axiom Decoder : Type
 axiom Decoder.zero_val : ZeroVal Decoder
 attribute [instance] Decoder.zero_val
 
-class Decoder.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Decoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Decoder.underlying Decoder
   underlying : go.UnderlyingDirectedEq Decoder.ty Decoder.underlying
   isUnderlying : go.IsUnderlying Decoder.underlying Decoder.underlying
@@ -420,7 +420,7 @@ axiom Encoder : Type
 axiom Encoder.zero_val : ZeroVal Encoder
 attribute [instance] Encoder.zero_val
 
-class Encoder.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Encoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Encoder.underlying Encoder
   underlying : go.UnderlyingDirectedEq Encoder.ty Encoder.underlying
   isUnderlying : go.IsUnderlying Encoder.underlying Encoder.underlying
@@ -429,12 +429,12 @@ attribute [instance] Encoder.TypeAssumptions.type_repr
   Encoder.TypeAssumptions.underlying
   Encoder.TypeAssumptions.isUnderlying
 
-abbrev Token [FfiSyntax] : Type := GoInterface
+abbrev Token [GooseExts] : Type := GoInterface
 
-@[reducible] noncomputable def Token.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Token.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.any
 
-class Token.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Token.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq Token.ty Token.underlying
 
 attribute [instance] Token.TypeAssumptions.underlying
@@ -443,7 +443,7 @@ axiom Delim : Type
 axiom Delim.zero_val : ZeroVal Delim
 attribute [instance] Delim.zero_val
 
-class Delim.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Delim.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Delim.underlying Delim
   underlying : go.UnderlyingDirectedEq Delim.ty Delim.underlying
   isUnderlying : go.IsUnderlying Delim.underlying Delim.underlying
@@ -452,7 +452,7 @@ attribute [instance] Delim.TypeAssumptions.type_repr
   Delim.TypeAssumptions.underlying
   Delim.TypeAssumptions.isUnderlying
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   UnmarshalTypeError_instance : UnmarshalTypeError.TypeAssumptions
   UnmarshalFieldError_instance : UnmarshalFieldError.TypeAssumptions
   InvalidUnmarshalError_instance : InvalidUnmarshalError.TypeAssumptions

@@ -37,7 +37,7 @@ theorem mapM_txnOpOf : ∀ (os : List OpFull) (ops : List TxnOp),
         simp [h1, mapM_txnOpOf os l h2]
 
 section pure
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- A state reached from `st0` by changing entries in place (keeping their `*leaseKey`s): well
 formed, with `st0`'s installed list, readiness, map contents and map. -/
@@ -124,7 +124,7 @@ theorem runTxn_outer (r : w64) (s : List EtcdKv) (m : TxnModel) (ms : List CmpMo
 end pure
 
 section lemmas
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [EM : EtcdModel GF]

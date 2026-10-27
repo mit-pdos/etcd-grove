@@ -24,28 +24,28 @@ end pkg_id
 
 namespace github_com.mit_pdos.etcd_grove.examples.lintest.counter
 
-noncomputable def Counter.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Counter.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"github.com/mit-pdos/etcd-grove/examples/lintest/counter.Counter" [])
 
 attribute [irreducible] Counter.ty
 
-noncomputable def Model [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Model [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/lintest/counter.Model"
 
-noncomputable def New [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def New [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/lintest/counter.New"
 
-noncomputable def Check [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Check [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/lintest/counter.Check"
 
-noncomputable def Main [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def Main [GooseExts] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/lintest/counter.Main"
 
 /-- Model is the counter's sequential specification: the state is an int64; the input true
     increments it and outputs the new value, false outputs it.
 
     go: counter.go:17:6 -/
-noncomputable def Model.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Model.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val exceptionDo)
   (App (Val doReturn)
@@ -83,7 +83,7 @@ noncomputable def Model.impl [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.anishathalye.porcupine.Model.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Init")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [] false [go.any])) (Var "$v0"))), (KeyedElement (some (KeyField go!"Step")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [go.any, go.any, go.any] false [go.bool, go.any])) (Var "$v1"))), (KeyedElement (some (KeyField go!"Equal")) (ElementExpression (go.GoType.FunctionType (go.signature.Signature [go.any, go.any] false [go.bool])) (Var "$v2")))]))))))))
 
 /-- go: counter.go:37:6 -/
-noncomputable def New.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def New.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val exceptionDo)
   (App (Val doReturn)
@@ -93,7 +93,7 @@ noncomputable def New.impl [FfiSyntax] [GoGlobalContext] : val :=
     false returns it.
 
     go: counter.go:43:19 -/
-noncomputable def Counter.Apply.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Counter.Apply.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "c"
   (Lam "input"
   (App (Val exceptionDo)
@@ -125,7 +125,7 @@ noncomputable def Counter.Apply.impl [FfiSyntax] [GoGlobalContext] : val :=
     trace with porcupine.
 
     go: counter.go:56:6 -/
-noncomputable def Check.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Check.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "clock"
   (Lam "clients"
   (Lam "ops"
@@ -164,7 +164,7 @@ noncomputable def Check.impl [FfiSyntax] [GoGlobalContext] : val :=
     answers Ok.
 
     go: counter.go:65:6 -/
-noncomputable def Main.impl [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def Main.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val exceptionDo)
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -189,7 +189,7 @@ noncomputable def Main.impl [FfiSyntax] [GoGlobalContext] : val :=
 noncomputable instance info' : PkgInfo pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest.counter where
   pkgImportedPkgs := [pkg_id.sync, pkg_id.time, pkg_id.github_com.anishathalye.porcupine, pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest]
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.github_com.mit_pdos.etcd_grove.examples.lintest.counter)) (Lam BAnon
   (App (Val exceptionDo)
@@ -205,29 +205,29 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.lintest.initialize') (Val #()))))))))
 
-structure Counter [FfiSyntax] where
+structure Counter [GooseExts] where
   mk ::
   mu' : _root_.Perennial.sync.Mutex
   n' : w64
 
-noncomputable instance Counter.zero_val [FfiSyntax] : ZeroVal Counter :=
+noncomputable instance Counter.zero_val [GooseExts] : ZeroVal Counter :=
   ⟨Counter.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def Counter.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def Counter.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"mu" _root_.Perennial.sync.Mutex.ty),
 (go.field_decl.FieldDecl go!"n" go.int64)]
 
-@[irreducible] noncomputable def Counter.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def Counter.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   Counter.fieldsUnsealed
 
-noncomputable instance equals_unfold_Counter [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_Counter [GooseExts] [GoGlobalContext] :
     EqualsUnfold Counter.fields Counter.fieldsUnsealed :=
   ⟨by unfold Counter.fields; rfl⟩
 
-@[reducible] noncomputable def Counter.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def Counter.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType Counter.fields)
 
-class Counter.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Counter.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Counter.underlying Counter
   underlying : go.UnderlyingDirectedEq Counter.ty Counter.underlying
   get_mu : ∀ (x : Counter), go.IsGoStepPureDetTagged under (StructFieldGet Counter.underlying go!"mu") #x (Val #(x.mu'))
@@ -244,7 +244,7 @@ attribute [instance] Counter.TypeAssumptions.type_repr
   Counter.TypeAssumptions.set_n
   Counter.TypeAssumptions.ptr_Apply_unfold
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Counter_instance : Counter.TypeAssumptions
   Model_unfold : FuncUnfold Model [] Model.impl
   New_unfold : FuncUnfold New [] New.impl

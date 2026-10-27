@@ -28,7 +28,7 @@ namespace EtcdGrove
 open Iris Iris.BI GMap go_etcd_io.raft.v3
 
 section ghost
-variable [FfiSyntax]
+variable [GooseExts]
 variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 
 /-! ### Leader Completeness, over the vote table (2026-10-05)
@@ -42,7 +42,7 @@ voter's ghost state: the vote record from the vote table in `raftCommitInv`
 which `Step.commit` has, inside the invariant, and which is what lets the global
 committed log be extended there. -/
 
-omit [FfiSyntax] in
+omit [GooseExts] in
 /-- Two subsets of `S` with more members than `S` meet. -/
 theorem gset_meet (S A B : GSet w64) (hA : A ⊆ S) (hB : B ⊆ S)
     (h : size S < size A + size B) : ∃ x, x ∈ A ∧ x ∈ B := by
@@ -63,7 +63,7 @@ theorem gset_meet (S A B : GSet w64) (hA : A ⊆ S) (hB : B ⊆ S)
   rw [GMap.size_union_alt, hBA] at this
   omega
 
-omit [FfiSyntax] in
+omit [GooseExts] in
 /-- A set without two of its members has two members fewer. -/
 theorem gset_size_minus2 (S : GSet w64) (w x : w64) (hw : w ∈ S) (hx : x ∈ S) (hne : x ≠ w) :
     size (S \ ({[w]} ∪ {[x]})) + 2 = size S := by
@@ -83,7 +83,7 @@ theorem gset_size_minus2 (S : GSet w64) (w x : w64) (hw : w ∈ S) (hx : x ∈ S
   have := GMap.subseteq_size hsub
   omega
 
-omit [FfiSyntax] in
+omit [GooseExts] in
 /-- (2026-10-20, witness support in the dynamic mode, W5) The counting lemma behind the
 witness case of Leader Completeness across a configuration change (`notes/raft-witness-reconfig.md`,
 (Count)): the witness's write and the candidate's votes meet in a regular voter even when the

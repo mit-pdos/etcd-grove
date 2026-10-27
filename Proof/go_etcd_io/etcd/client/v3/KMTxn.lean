@@ -123,7 +123,7 @@ theorem prefix_longer {α : Type _} {a b : List α} (h : a <+: b ∨ b <+: a) :
   · exact ⟨a, List.prefix_refl _, h, Or.inl rfl⟩
 
 section proofs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

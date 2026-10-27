@@ -79,7 +79,7 @@ theorem firstOcc_prefix_of_prefix (a b : List (Option (List w8))) (h : a <+: b) 
 /-! ## Minting, pure -/
 
 /-- A new sequence number's key is fresh: no datum, token, read token or slot has it. -/
-theorem mintOk_fresh [FfiSyntax] (M F : GMap (List w8) Unit) (S : GMap w64 w64)
+theorem mintOk_fresh [GooseExts] (M F : GMap (List w8) Unit) (S : GMap w64 w64)
     (Mi : GMap (w64 × w64) (List w8)) (O : GMap (List w8) (GName × GName)) (id ns : w64)
     (d : List w8) (Hok : MintOk M F S Mi O) (HS : S !! id = some ns)
     (Hkey : opKey d = some (id, ns + W64 1)) (Hns : uint.Z ns + 1 < 2 ^ 64) :
@@ -115,7 +115,7 @@ theorem mintOk_fresh [FfiSyntax] (M F : GMap (List w8) Unit) (S : GMap w64 w64)
       rw [HM0] at this; cases this
 
 /-- Minting `d` at a new sequence number, with new tokens only of `d` and slots of minted data. -/
-theorem mintOk_step [FfiSyntax] (M M' F F' : GMap (List w8) Unit) (S : GMap w64 w64)
+theorem mintOk_step [GooseExts] (M M' F F' : GMap (List w8) Unit) (S : GMap w64 w64)
     (Mi : GMap (w64 × w64) (List w8)) (O O' : GMap (List w8) (GName × GName)) (id ns : w64)
     (d : List w8)
     (Hok : MintOk M F S Mi O) (HS : S !! id = some ns) (Hkey : opKey d = some (id, ns + W64 1))
@@ -158,7 +158,7 @@ theorem mintOk_step [FfiSyntax] (M M' F F' : GMap (List w8) Unit) (S : GMap w64 
     · exact ⟨_, Hkey, GMap.lookup_insert_eq _ _ _⟩
 
 section lemmas
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -827,7 +827,7 @@ end lemmas
 /-! ## Conf-change entries, at the applier (2026-10-15, stage N) -/
 
 section confs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
@@ -936,7 +936,7 @@ The store's own view of a `Ready`'s read states (`rsOk`). What the store needed 
 (`InvPb.lean`). -/
 
 section pb
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

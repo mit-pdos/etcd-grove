@@ -469,7 +469,7 @@ end RbCtx
 /-! ## The descent -/
 
 section entries
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- `Insert`'s descent and link: the new entry as a red leaf where the descent ends (left when
 its interval is below the node's, by begin then end; right otherwise). -/

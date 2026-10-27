@@ -65,7 +65,7 @@ instance NotifyCur.countable : Pos.Countable NotifyCur :=
     (fun _ _ h => NotifyCur.enc_inj (Pos.encode_inj h))
 
 section addrs
-variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
 /-- The address of `n.mu`. -/
 abbrev notifyMuAddr (n : Loc) : Loc := structFieldRef notify.Notifier go!"mu" n
@@ -76,7 +76,7 @@ abbrev notifyChAddr (n : Loc) : Loc := structFieldRef notify.Notifier go!"channe
 end addrs
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

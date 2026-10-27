@@ -9,7 +9,7 @@ for each function's proof file (`Proof/<pkg>/<F>.lean` of a spec file `Spec/<pkg
 system exports it (`etc/interface.lean`: an ordinary `import`, `importModules (level :=
 .exported)`): its kind and signature, and the body of a definition only when it is exported
 (`@[expose]`). `private` declarations, proofs and sealed bodies are absent. The ambient section
-variables every declaration takes (`[ext : FfiSyntax] ... [sem : go.Semantics]`) are left out of
+variables every declaration takes (`[GooseExts] ... [sem : go.Semantics]`) are left out of
 the signatures and listed once at the top. Commit the output: a change to what a package exposes
 is then a diff to review.
 
@@ -35,11 +35,11 @@ import textwrap
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 OUT = ROOT / "interface"
-AMBIENT = [r"\[ext : FfiSyntax\]", r"\[ffi : FfiModel\]", r"\[FfiInterp ffi\]",
-           r"\[FfiSemantics ext ffi\]", r"\[go_gctx : GoGlobalContext\]", r"\{hlc : HasLC\}",
+AMBIENT = [r"\[GooseExts\]", r"\[GooseSemantics\]", r"\[GooseInterp\]",
+           r"\[go_gctx : GoGlobalContext\]", r"\{hlc : HasLC\}",
            r"\{GF : BundledGFunctors\}", r"\[hG : HeapGS (?:HasLC\.hasLC|hlc) GF\]",
            r"\[sem : go\.Semantics\]", r"\[package_sem : [\w.]+\.Assumptions\]",
-           r"\[StorageModel GF\]", r"\[AllG GF\]", r"\[FfiSyntax\]"]
+           r"\[StorageModel GF\]", r"\[AllG GF\]"]
 AMBIENT_RE = re.compile(r"\s*(?:" + "|".join(AMBIENT) + r")")
 PREFIX = "Perennial.EtcdGrove."
 WIDTH = 100

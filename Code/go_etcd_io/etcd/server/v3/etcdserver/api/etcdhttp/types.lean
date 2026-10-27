@@ -20,49 +20,49 @@ end pkg_id
 
 namespace go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types
 
-noncomputable def HTTPError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def HTTPError.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"go.etcd.io/etcd/server/v3/etcdserver/api/etcdhttp/types.HTTPError" [])
 
 attribute [irreducible] HTTPError.ty
 
-noncomputable def NewHTTPError [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewHTTPError [GooseExts] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/etcdserver/api/etcdhttp/types.NewHTTPError"
 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.etcdhttp.types)) (Lam BAnon
   (App (Val exceptionDo)
   (App (Val doExecute)
   (Val #()))))))
 
-structure HTTPError [FfiSyntax] where
+structure HTTPError [GooseExts] where
   mk ::
   Message' : GoString
   Code' : w64
 
-noncomputable instance HTTPError.zero_val [FfiSyntax] : ZeroVal HTTPError :=
+noncomputable instance HTTPError.zero_val [GooseExts] : ZeroVal HTTPError :=
   ⟨HTTPError.mk zeroValDef zeroValDef⟩
 
-@[reducible] noncomputable def HTTPError.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[reducible] noncomputable def HTTPError.fieldsUnsealed [GooseExts] [GoGlobalContext] : List go.field_decl :=
   [(go.field_decl.FieldDecl go!"Message" go.string),
 (go.field_decl.FieldDecl go!"Code" go.int)]
 
-@[irreducible] noncomputable def HTTPError.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+@[irreducible] noncomputable def HTTPError.fields [GooseExts] [GoGlobalContext] : List go.field_decl :=
   HTTPError.fieldsUnsealed
 
-noncomputable instance equals_unfold_HTTPError [FfiSyntax] [GoGlobalContext] :
+noncomputable instance equals_unfold_HTTPError [GooseExts] [GoGlobalContext] :
     EqualsUnfold HTTPError.fields HTTPError.fieldsUnsealed :=
   ⟨by unfold HTTPError.fields; rfl⟩
 
-@[reducible] noncomputable def HTTPError.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def HTTPError.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.StructType HTTPError.fields)
 
-class HTTPError.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class HTTPError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying HTTPError.underlying HTTPError
   underlying : go.UnderlyingDirectedEq HTTPError.ty HTTPError.underlying
   get_Message : ∀ (x : HTTPError), go.IsGoStepPureDetTagged under (StructFieldGet HTTPError.underlying go!"Message") #x (Val #(x.Message'))
@@ -77,7 +77,7 @@ attribute [instance] HTTPError.TypeAssumptions.type_repr
   HTTPError.TypeAssumptions.get_Code
   HTTPError.TypeAssumptions.set_Code
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   HTTPError_instance : HTTPError.TypeAssumptions
 
 attribute [instance] Assumptions.HTTPError_instance

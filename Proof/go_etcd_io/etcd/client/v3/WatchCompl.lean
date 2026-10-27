@@ -214,7 +214,7 @@ theorem cmpl_prog_none (L Lp : Log) (hc : L <+: Lp ∨ Lp <+: L) (rg : WatchRang
 
 section chain
 open Iris Iris.BI Iris.ProofMode
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

@@ -17,13 +17,13 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-omit ffi [FfiInterp ffi] [FfiSemantics ext ffi] [GoGlobalContext] in
+omit [GooseInterp] [GooseSemantics] [GoGlobalContext] in
 /-- The entry at the last index of a well-formed log, past its boundary, is its last: its subterm
 is `plogLastSub`. -/
 theorem entry_last_sub (b : entryID) (es : List EntryM) (i : w64) (e : EntryM)

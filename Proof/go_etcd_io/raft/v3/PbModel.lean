@@ -51,19 +51,19 @@ open go_etcd_io.raft.v3
 
 /-- A log entry as the model sees it: what `GetTerm()`, `GetIndex()`, `GetType()`,
 `GetData()` of a `*pb.Entry` return (a nil field reads as zero). -/
-structure EntryM [FfiSyntax] where
+structure EntryM [GooseExts] where
   mk ::
   Term' : w64
   Index' : w64
   Type' : raftpb.EntryType
   Data' : List w8
 
-instance EntryM.zero_val [FfiSyntax] : ZeroVal EntryM :=
+instance EntryM.zero_val [GooseExts] : ZeroVal EntryM :=
   ⟨EntryM.mk zeroValDef zeroValDef zeroValDef []⟩
 
 /-- A message's scalar fields as the model sees them: what `GetType()`, `GetTo()`, ...,
 `GetRejectHint()` of a `*pb.Message` return. -/
-structure MessageM [FfiSyntax] where
+structure MessageM [GooseExts] where
   mk ::
   Type' : raftpb.MessageType
   To' : w64
@@ -76,13 +76,13 @@ structure MessageM [FfiSyntax] where
   Reject' : Bool
   RejectHint' : w64
 
-instance MessageM.zero_val [FfiSyntax] : ZeroVal MessageM :=
+instance MessageM.zero_val [GooseExts] : ZeroVal MessageM :=
   ⟨MessageM.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef
     zeroValDef zeroValDef zeroValDef⟩
 
 /-- One conf change as the model sees it: `GetType()`, `GetNodeId()` of a
 `*pb.ConfChangeSingle`. -/
-structure ConfChangeSingleM [FfiSyntax] where
+structure ConfChangeSingleM [GooseExts] where
   mk ::
   Type' : raftpb.ConfChangeType
   NodeId' : w64
@@ -112,7 +112,7 @@ structure SnapshotM where
   Data' : List w8
   Metadata' : SnapshotMetadataM
 
-instance SnapshotM.zero_val [FfiSyntax] : ZeroVal SnapshotM :=
+instance SnapshotM.zero_val [GooseExts] : ZeroVal SnapshotM :=
   ⟨SnapshotM.mk [] (SnapshotMetadataM.mk (ConfStateM.mk [] [] [] [] false) zeroValDef zeroValDef)⟩
 
 /-- A hard state as the model sees it: `GetTerm()`, `GetVote()`, `GetCommit()` of a

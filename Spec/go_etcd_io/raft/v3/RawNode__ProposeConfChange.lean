@@ -49,7 +49,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
@@ -58,14 +58,14 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 -- (2026-10-16, stage R5, D6) `propRegister` (recording a slice as proposed, `isPropData`) is
 -- gone with the proposed slices: a conf-change entry holds its bytes.
 
-omit ffi [FfiInterp ffi] [FfiSemantics ext ffi] go_gctx [StorageModel GF] sem package_sem in
+omit [GooseInterp] [GooseSemantics] go_gctx [StorageModel GF] sem package_sem in
 theorem ccEntryType_some (o : CCMsg) :
     ccEntryType (some o) = W32 1 ∨ ccEntryType (some o) = W32 2 := by
   rcases o with m | m
   · left; rfl
   · right; rfl
 
-omit ffi [FfiInterp ffi] [FfiSemantics ext ffi] go_gctx [StorageModel GF] sem package_sem in
+omit [GooseInterp] [GooseSemantics] go_gctx [StorageModel GF] sem package_sem in
 theorem ccData_decodes (o : CCMsg) (bs : List w8) (H : CCData (some o) bs) :
     CCDecodes (ccEntryType (some o)) bs := by
   rcases o with m | m
@@ -76,7 +76,7 @@ theorem ccData_decodes (o : CCMsg) (bs : List w8) (H : CCData (some o) bs) :
 
 -- (2026-10-26, raft's signature, stage 1) `CCAllowed` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
 
-omit [FfiSemantics ext ffi] go_gctx [StorageModel GF] sem package_sem in
+omit [GooseSemantics] go_gctx [StorageModel GF] sem package_sem in
 /-- A conf change's entry is no client operation: its data are bytes that decode.
 (2026-10-16, stage R5, D6: over the entry's record `ccEntryM`, which holds the bytes; until then
 over a proposed slice, `isPropData`.) -/
@@ -92,7 +92,7 @@ theorem entData_cc (γ : RaftNames) (o : CCMsg) (bs : List w8)
   show ccEntryType (some o) ≠ W32 0
   rcases ccEntryType_some o with h | h <;> rw [h] <;> word
 
-omit [FfiSemantics ext ffi] go_gctx [StorageModel GF] sem package_sem in
+omit [GooseSemantics] go_gctx [StorageModel GF] sem package_sem in
 /-- A conf change's entry carries no ticket (D21 M6). -/
 theorem entTk_cc (γ : RaftNames) (o : CCMsg) (bs : List w8) :
     ⊢ entTk (GF := GF) γ (ccEntryM (some o) bs) := by
@@ -103,7 +103,7 @@ theorem entTk_cc (γ : RaftNames) (o : CCMsg) (bs : List w8) :
     have h1 : ccEntryType (some o) = W32 0 := h.1
     rcases ccEntryType_some o with h' | h' <;> rw [h'] at h1 <;> revert h1 <;> word
 
-omit ffi [FfiInterp ffi] [FfiSemantics ext ffi] go_gctx hG [StorageModel GF] sem package_sem in
+omit [GooseInterp] [GooseSemantics] go_gctx hG [StorageModel GF] sem package_sem in
 /-- What `Step` needs of the conf change's entry: its bytes decode (pure since D6). -/
 theorem ccEntsOk_cc (o : CCMsg) (bs : List w8) (H : CCData (some o) bs) :
     ⊢ ccEntsOk (GF := GF) [ccEntryM (some o) bs] [some o] := by

@@ -515,7 +515,7 @@ end RbCtx
 /-! ## The `max` augmentation through a context -/
 
 section entries
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- The max of the context's top subtree, given its hole's subtree's max `mh` (what the frames'
 `max` fields hold, `ownCtx`'s). -/

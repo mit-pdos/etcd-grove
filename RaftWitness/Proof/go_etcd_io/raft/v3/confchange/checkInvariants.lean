@@ -27,7 +27,7 @@ local macro "raft_args_wf" : tactic => `(tactic| (
     | refine _root_.Perennial.fmt.ArgsWf.cons_int _ _ _ (.uint64 _) ?_))
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

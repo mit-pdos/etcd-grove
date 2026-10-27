@@ -26,7 +26,7 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 section helpers
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- The state once the first `k` pending requests were released, before the heartbeats. -/
 def relState (id : w64) (s : NState) (k : Nat) : NState :=
@@ -83,7 +83,7 @@ theorem heartbeatOk_transfer (id : w64) (s t : NState) (m : Msg)
 end helpers
 
 section proof
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF] [StorageModel GF]
 variable [sem : go.Semantics]

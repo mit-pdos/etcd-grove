@@ -65,7 +65,7 @@ theorem initLe_finish {σ0 σ : GMap GoString Bool} (p : GoString) (h : initLe �
   · exact h q hq
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 
@@ -159,7 +159,7 @@ theorem initRes_finish (q : GoString) (R : IProp GF) (σ : GMap GoString Bool) (
 end defs
 
 section package_init
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [GoSemanticsFunctions] [go.PreSemantics]

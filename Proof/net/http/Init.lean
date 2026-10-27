@@ -30,7 +30,7 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
 section opaqueInits
 namespace net.http
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -60,6 +60,7 @@ axiom opaqueInitsOk :
         unixEpochTime.init,
         errMissingSeek.init,
         errMissingReadDir.init,
+        httpservecontentmaxranges.init,
         timeFormats.init,
         headerNewlineToSpace.init,
         headerSorterPool.init,
@@ -139,6 +140,7 @@ axiom opaqueInitsOk :
         testHookProxyConnectTimeout.init,
         «_».init,
         errCallerOwnsConn.init,
+        errClosedEarly.init,
         maxWriteWaitBeforeConnReuse.init,
         errTimeout.init,
         errRequestCanceled.init,
@@ -170,7 +172,7 @@ end net.http
 end opaqueInits
 
 section init
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -210,6 +212,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (opaqueInitsOk unixEpochTime.init (by mem_tac))
   wp_apply (opaqueInitsOk errMissingSeek.init (by mem_tac))
   wp_apply (opaqueInitsOk errMissingReadDir.init (by mem_tac))
+  wp_apply (opaqueInitsOk httpservecontentmaxranges.init (by mem_tac))
   wp_apply (opaqueInitsOk timeFormats.init (by mem_tac))
   wp_apply (opaqueInitsOk headerNewlineToSpace.init (by mem_tac))
   wp_apply (opaqueInitsOk headerSorterPool.init (by mem_tac))
@@ -289,6 +292,7 @@ theorem wp_initialize'_lb (get_is_pkg_init : GoString → IProp GF)
   wp_apply (opaqueInitsOk testHookProxyConnectTimeout.init (by mem_tac))
   wp_apply (opaqueInitsOk «_».init (by mem_tac))
   wp_apply (opaqueInitsOk errCallerOwnsConn.init (by mem_tac))
+  wp_apply (opaqueInitsOk errClosedEarly.init (by mem_tac))
   wp_apply (opaqueInitsOk maxWriteWaitBeforeConnReuse.init (by mem_tac))
   wp_apply (opaqueInitsOk errTimeout.init (by mem_tac))
   wp_apply (opaqueInitsOk errRequestCanceled.init (by mem_tac))

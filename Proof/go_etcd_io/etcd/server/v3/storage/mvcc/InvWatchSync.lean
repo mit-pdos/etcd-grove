@@ -79,7 +79,7 @@ def entsEvents (W : GMap Loc WatchRange) (ents : List KvEnt) : List EvM :=
   (ents.map KvEnt.ev).filter fun ev => wgCovers W ev.kv.key
 
 section addrs
-variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
 /-- The address of the watchable store's wait group. -/
 abbrev wsWgAddr (s : Loc) : Loc := structFieldRef watchableStore go!"wg" s
@@ -93,7 +93,7 @@ def wsWgWGN : Namespace := nroot.@"mvccWaitGroup"
 def wsWgN : Namespace := nroot.@"mvccWgCounter"
 
 section reprs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

@@ -67,7 +67,7 @@ theorem LexLe_of_not {a b c d : w64} (h : ¬ LexLe a b c d) :
   · rintro ⟨e1, e2⟩; subst e1 e2; exact hbd rfl (Int.le_refl _)
 
 section model
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- The witness's first state (an empty storage object). -/
 def wInit : WState := ⟨W64 0, W64 0, W64 0, W64 0, W64 0, []⟩
@@ -95,7 +95,7 @@ end model
 /-! ### The witness's ghost state -/
 
 section ghost
-variable [FfiSyntax]
+variable [GooseExts]
 variable {GF : BundledGFunctors} [AllG GF] [ReceiptGS GF] [InvGS GF]
 
 /-- The witness's vote map follows its state (`VoteHistOk`'s, of a `WState`). -/
@@ -111,7 +111,7 @@ def wGhost (γ : RaftNames) (st : WState) : IProp GF :=
     ⌜γ.reVotes !! γ.reWit = some γv ∧ WVoteHistOk voted st⌝ ∗
     ghostMapAuth γv (1 : Qp).half voted ∗ [∗map] t ↦ c ∈ voted, t ↪[γv]□ c)
 
-omit [FfiSyntax] in
+omit [GooseExts] in
 /-- The last state of a history is at least each of its states. -/
 theorem hist_last_ge (L : List WState) (st x : WState) :
     wHistOk L → L.getLast? = some st → x ∈ L →
@@ -124,7 +124,7 @@ theorem hist_last_ge (L : List WState) (st x : WState) :
   · subst h; rw [Ha] at Hl; cases Hl; exact ⟨Int.le_refl _, LexLe_refl _ _⟩
   · exact HL.1 a (L.length - 1) x st (by omega) Ha Hl
 
-omit [FfiSyntax] in
+omit [GooseExts] in
 theorem hist_push (L : List WState) (st st' : WState) :
     L.getLast? = some st → wHistOk L →
     uint.Z st.term ≤ uint.Z st'.term → LexLe st.lt st.ls st'.lt st'.ls →

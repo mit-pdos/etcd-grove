@@ -36,16 +36,16 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 /-- The store's witness storage struct and one read of it. -/
-abbrev RWStore [FfiSyntax] := github_com.mit_pdos.etcd_grove.examples.kvwitness.WitnessStore
-abbrev RWRead [FfiSyntax] := github_com.mit_pdos.etcd_grove.examples.kvwitness.witnessRead
+abbrev RWStore [GooseExts] := github_com.mit_pdos.etcd_grove.examples.kvwitness.WitnessStore
+abbrev RWRead [GooseExts] := github_com.mit_pdos.etcd_grove.examples.kvwitness.witnessRead
 
-abbrev rWStoreTy [FfiSyntax] [GoGlobalContext] : go.GoType :=
+abbrev rWStoreTy [GooseExts] [GoGlobalContext] : go.GoType :=
   github_com.mit_pdos.etcd_grove.examples.kvwitness.WitnessStore.ty
-abbrev rWReadTy [FfiSyntax] [GoGlobalContext] : go.GoType :=
+abbrev rWReadTy [GooseExts] [GoGlobalContext] : go.GoType :=
   github_com.mit_pdos.etcd_grove.examples.kvwitness.witnessRead.ty
 
 section wstore
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

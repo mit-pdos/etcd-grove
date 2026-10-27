@@ -16,7 +16,7 @@ against the store's model -- and panics unless the answer is `Ok`. So no panic m
 never rejects the store's trace.
 
 It follows from Perennial's `goose_adequacy` (through `examples/common/Adequacy.lean`'s `init_adequate`), as the register's and the counter's
-(`lintest/counter/Adequacy.lean`): the disk FFI (the proofs are generic over the FFI), a
+(`lintest/counter/Adequacy.lean`): the trivial extension (`common/TrivialExt.lean`; the proofs are generic over the extensions), a
 concrete ghost-state bundle `kvGF`, the bounds `N = n + 1` (time receipts) and `T = n + 2`
 (threads, `Proof/runtime/Threads.lean`), the package initialization (`Init.lean`, at the program's table
 `PkgTable.lean`, both generated; `context`'s `isClosedchanInit`, which `Main.spec` takes, from
@@ -44,7 +44,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.Init
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.PkgTable
 public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.Main
 public import Proof.runtime.Threads
-public import Perennial.GooseLang.Ffi.DiskFfi.Adequacy
+public import Proof.github_com.mit_pdos.etcd_grove.examples.common.TrivialExt
 
 @[expose] public section
 
@@ -59,10 +59,10 @@ open Iris Iris.BI Iris.ProgramLogic Iris.Std Iris.ProofMode
 
 /-! ## The ghost-state bundle -/
 
-attribute [local instance] disk_op disk_model disk_semantics disk_interp
+attribute [local instance] trivialExts trivialExtsSemantics trivialExtsInterp
 
 /-- The functors: the universal camera (`AllG`) at slot 0, then invariants, later credits,
-GooseLang's heap, prophecies and package state, and the disk FFI's heap (the register's), and
+GooseLang's heap, prophecies and package state, and
 iris-lean's non-atomic invariants at slot 11 (the counter's). Every other slot is the unit
 functor. -/
 def kvGF : BundledGFunctors := fun i =>
@@ -76,9 +76,6 @@ def kvGF : BundledGFunctors := fun i =>
   | 6 => ⟨constOF (HeapView proph_id (Agree (DiscreteO (List val))) (GMap proph_id)),
           inferInstance⟩
   | 7 => ⟨GhostVarF (GMap GoString Bool), inferInstance⟩
-  | 8 => ⟨constOF (HeapView Int (Agree (DiscreteO Block)) (GMap Int)), inferInstance⟩
-  | 9 => ⟨constOF (HeapView Int (Agree (DiscreteO GName)) (GMap Int)), inferInstance⟩
-  | 10 => ⟨constOF MetaUR, inferInstance⟩
   | 11 => ⟨NaInvF, inferInstance⟩
   | _ => ⟨constOF Unit, inferInstance⟩
 
@@ -86,11 +83,11 @@ def kvGF : BundledGFunctors := fun i =>
 it carries, `GooseGlobalGS.gooseAllG`). -/
 @[instance_reducible] def kvGF_allG : AllG kvGF := ⟨⟨0, rfl⟩⟩
 
-instance kvGF_gooseGpreS : GooseGpreS disk_model kvGF where
+instance kvGF_gooseGpreS : GooseGpreS kvGF where
   goose_preG_iris := ⟨⟨⟨1, rfl⟩, ⟨2, rfl⟩, ⟨3, rfl⟩⟩, ⟨⟨4, rfl⟩⟩⟩
   goose_preG_heap := ⟨⟨5, rfl⟩⟩
   goose_preG_proph := ⟨⟨⟨6, rfl⟩⟩⟩
-  goosePreGFfi := (⟨⟨⟨⟨8, rfl⟩⟩, ⟨⟨9, rfl⟩⟩, ⟨10, rfl⟩⟩⟩ : DiskPreG kvGF)
+  goosePreGExts := ((), PUnit.unit)
   goose_preG_go_state := ⟨@GhostVarG.mk _ _ ⟨7, rfl⟩⟩
   goosePreGAllG := kvGF_allG
 
@@ -135,14 +132,14 @@ theorem kv_adequate_of [lctx : GoLocalContext] [sem : go.Semantics]
     [hLog : log.NewModel]
     (wp_Main : kvMainSpec)
     (σ : state) (g : GlobalState) (Hlctx : σ.goState.goLctx = lctx) (Hinit : IsInit σ)
-    (Hthreads : g.threads = 1)
+    (Hthreads : σ.threads = 1)
     (n : Nat) (Hn : n < 2 ^ 63) (κs : List Observation) (t2 : List Expr) (σ2 : CfgState)
     (Hsteps : RealNsteps n ([kvProgram], ((σ, g) : CfgState)) κs (t2, σ2)) :
     (∀ v t2', t2 = Val v :: t2' → v = #()) ∧
     (∀ e2, e2 ∈ t2 → RealNotStuck e2 σ2) ∧
     (∀ v, Val v ∈ t2 → v.isPanic = false) := by
   refine init_adequate (GF := kvGF) github_com.mit_pdos.etcd_grove.examples.kv.initialize' ((@! github_com.mit_pdos.etcd_grove.examples.kv.Main) #())
-    (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) σ g trivial trivial Hlctx Hinit
+    (fun v => v = #()) (fun p h => intoVal_ne_PanicV () p h.symm) σ g ⟨trivial, trivial⟩ ⟨trivial, trivial⟩ Hlctx Hinit
     Hthreads n κs t2 σ2 Hsteps fun hG HN _ => ?_
   letI : HeapGS .hasLC kvGF := heapWith hG lctx
   have Hbound : receiptBound kvGF ≤ 2 ^ 63 := by rw [HN]; omega

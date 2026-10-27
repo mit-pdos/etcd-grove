@@ -42,7 +42,7 @@ def fmt.scanInt (s : GoString) : Option Int :=
   if ds ≠ [] ∧ -2 ^ 63 ≤ z ∧ z < 2 ^ 63 then some z else none
 
 section spec
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

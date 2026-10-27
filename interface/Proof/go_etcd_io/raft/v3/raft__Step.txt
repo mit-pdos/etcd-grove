@@ -112,7 +112,11 @@ theorem raft.Step.wp_proof [package_sem : Assumptions] (wp_raft_hup : raft.hup.s
                                                                                       uint.Z e.Index' ≤
                                                                                         uint.Z s.logst.applying⌝ ∗
                                                                           "#Hmsg" ∷
-                                                                            □ ∀ ty, ⌜mtypeOf m.Type' = some ty⌝ -∗ ⋯) ∗
+                                                                            □
+                                                                              ∀ ty,
+                                                                                ⌜mtypeOf m.Type' = some ty⌝ -∗
+                                                                                  ⌜ty ≠ MsgType.snap⌝ -∗
+                                                                                    isMessage γ (absMsg ty m ents ctx)) ∗
                                                               "Hcred" ∷
                                                                   rdCred γ (if m.Type' = MsgReadIndex then 1 else 0) ∗
                                                                 "Hlc" ∷ £ 1 ∗

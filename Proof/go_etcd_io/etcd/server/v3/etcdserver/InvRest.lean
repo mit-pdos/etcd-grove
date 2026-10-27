@@ -52,7 +52,7 @@ open Iris Iris.BI go_etcd_io.raft.v3
 /-- **The member a conf change's context unmarshals to** (`json.Unmarshal` into a
 `membership.ConfigChangeContext`'s embedded `Member`; opaque, as `ccContextOf`, a function of the
 bytes): what `applyConfChange`'s `AddMember` saves. -/
-opaque membership.ccMemberOf [FfiSyntax] : List w8 → apply.MemberM
+opaque membership.ccMemberOf [GooseExts] : List w8 → apply.MemberM
 
 /-- A peer URL some member of `mems` (each member's peer URLs) has. -/
 def membership.urlTaken (mems : GMap w64 (List GoString)) (u : GoString) : Prop :=
@@ -62,7 +62,7 @@ def membership.urlTaken (mems : GMap w64 (List GoString)) (u : GoString) : Prop 
 `mems` and the removed members `rmv` the backend holds: not a removed id; an `AddNode` (not a
 promotion: the scope's) of an id not a member, whose peer URLs (the context's member's) no member
 has; a `RemoveNode` of a member. -/
-def membership.ccValidM [FfiSyntax] (mems : GMap w64 (List GoString)) (rmv : GMap w64 Bool) (m : CCV1M) : Prop :=
+def membership.ccValidM [GooseExts] (mems : GMap w64 (List GoString)) (rmv : GMap w64 Bool) (m : CCV1M) : Prop :=
   (rmv !! m.nodeId).getD false = false ∧
   (if m.type = W32 0 then mems !! m.nodeId = none ∧
       ∀ u, u ∈ (membership.ccMemberOf m.context).peerURLs → ¬ membership.urlTaken mems u
@@ -73,31 +73,31 @@ def membership.ccValidM [FfiSyntax] (mems : GMap w64 (List GoString)) (rmv : GMa
 `MustReadMembersFromBackend`'s answer -- each member's id (its key, `mustParseMemberIDFromBytes`)
 with the peer URLs its JSON value unmarshals to, and the ids under `members_removed` -- as its
 read contract states it (`schema.membershipBackend.MustReadMembersFromBackend.spec`). -/
-opaque membership.membersOfBk [FfiSyntax] :
+opaque membership.membersOfBk [GooseExts] :
     GMap GoString backend.BktData → GMap w64 (List GoString) × GMap w64 Bool
 
 open Classical in
 /-- **`ValidateConfigurationChange`'s verdict with `shouldApplyV3`** (D43 M5b′, 2026-10-26, the
 user's decision: defined, until then opaque): `ccValidM` of what the backend's read returns at the
 tracked buckets `bk` (`membersOfBk`); `true` when it returns `nil`. -/
-def membership.ccValidOn [FfiSyntax] (bk : GMap GoString backend.BktData) (m : CCV1M) : Bool :=
+def membership.ccValidOn [GooseExts] (bk : GMap GoString backend.BktData) (m : CCV1M) : Bool :=
   decide (membership.ccValidM (membership.membersOfBk bk).1 (membership.membersOfBk bk).2 m)
 
 /-- **The member an `AddNode`'s `AddMember` adds** (D43 M5e, 2026-10-26): the context's member
 (`ccMemberOf`) with the change's node as its id (`json.Unmarshal`'s `ID` field, which
 `applyConfChange` checks against the change's `NodeId`). -/
-def membership.ccMemberAt [FfiSyntax] (m : CCV1M) : apply.MemberM :=
+def membership.ccMemberAt [GooseExts] (m : CCV1M) : apply.MemberM :=
   { membership.ccMemberOf m.context with id := m.nodeId }
 
 /-- **The change `applyConfChange` hands raft for `m`** (with `v3`; D43 M5d, 2026-10-26): the change
 itself when it validates against the tracked buckets `bk` (`ccValidOn`), else the change with
 `NodeId` `0` (`cc.NodeId = raft.None`), which raft's `confchange` skips. -/
-def membership.ccRaftEff [FfiSyntax] (bk : GMap GoString backend.BktData) (m : CCV1M) : CCV1M :=
+def membership.ccRaftEff [GooseExts] (bk : GMap GoString backend.BktData) (m : CCV1M) : CCV1M :=
   if membership.ccValidOn bk m = true then m else { m with nodeId := W64 0 }
 
 /-- The value `MustDeleteMemberFromBackend` puts under a removed member's key in
 `members_removed` (`[]byte("removed")`). -/
-def membership.removedVal [FfiSyntax] : GoString := go!"removed"
+def membership.removedVal [GooseExts] : GoString := go!"removed"
 
 /-- **What `applyConfChange(cc, ep, v3)` does to the rest buckets and the members** (D22,
 2026-10-23; D43 M5b′, 2026-10-26: with `RemoveNode`): with `v3`, a change that validates
@@ -106,7 +106,7 @@ def membership.removedVal [FfiSyntax] : GoString := go!"removed"
 `members` and records it in `members_removed` (`RemoveMember`'s `MustDeleteMemberFromBackend`)
 and from memory (`delete(c.members, id)`). Anything else nothing (a failed validation; without
 `v3`, the writers write nothing; the server's policy admits no other change, `ccApplyOk`). -/
-def ccRest [FfiSyntax] (v3 : Bool) (m : CCV1M) (r : apply.RestM) : apply.RestM :=
+def ccRest [GooseExts] (v3 : Bool) (m : CCV1M) (r : apply.RestM) : apply.RestM :=
   if v3 = true ∧ membership.ccValidOn r.bk m = true then
     if m.type = W32 0 then
       ({ r with mem := r.mem.insert m.nodeId (membership.ccMemberAt m) } : apply.RestM).putIn
@@ -122,26 +122,26 @@ def ccRest [FfiSyntax] (v3 : Bool) (m : CCV1M) (r : apply.RestM) : apply.RestM :
 
 /-- The auth bucket `NewAuthStore` leaves on a fresh backend: the revision `1`
 (`commitRevision`), auth disabled (no `authEnabled` key). -/
-def authBoot [FfiSyntax] : backend.BktData := GMap.insert go!"authRevision" (u64Be (W64 1)) ∅
+def authBoot [GooseExts] : backend.BktData := GMap.insert go!"authRevision" (u64Be (W64 1)) ∅
 
 /-- **The rest buckets after `NewServer`'s constructors on a fresh data directory**. -/
-def restBootBk [FfiSyntax] : GMap GoString backend.BktData :=
+def restBootBk [GooseExts] : GMap GoString backend.BktData :=
   ((((((((∅ : GMap GoString backend.BktData).insert go!"lease" ∅).insert go!"alarm" ∅).insert
     go!"auth" authBoot).insert go!"authUsers" ∅).insert go!"authRoles" ∅).insert go!"members" ∅).insert
     go!"members_removed" ∅).insert go!"cluster" ∅
 
 /-- **The in-memory members `bootstrap` makes** for the boot log `bootLog`: each bootstrap
 entry's change's node, the member its context (the member's JSON) unmarshals to. -/
-def memBoot [FfiSyntax] (bootLog : List EntryM) : GMap w64 apply.MemberM :=
+def memBoot [GooseExts] (bootLog : List EntryM) : GMap w64 apply.MemberM :=
   bootLog.foldl (fun mem e => match ccDecodeV1 e.Data' with
     | some cc => mem.insert cc.nodeId (membership.ccMemberOf cc.context)
     | none => mem) ∅
 
 /-- **The rest buckets and members at the start** (see the file header). -/
-def restBoot [FfiSyntax] (bootLog : List EntryM) : apply.RestM := ⟨restBootBk, memBoot bootLog⟩
+def restBoot [GooseExts] (bootLog : List EntryM) : apply.RestM := ⟨restBootBk, memBoot bootLog⟩
 
 /-- **One committed entry's effect** (see the file header): `v3` iff above `c0`. -/
-def restEntry [FfiSyntax] (c0 : w64) (m : EntryModel) (r : apply.RestM) : apply.RestM :=
+def restEntry [GooseExts] (c0 : w64) (m : EntryModel) (r : apply.RestM) : apply.RestM :=
   if m.typ = W32 0 then
     if m.data = [] then r
     else match apply.irrDecode m.data with
@@ -152,7 +152,7 @@ def restEntry [FfiSyntax] (c0 : w64) (m : EntryModel) (r : apply.RestM) : apply.
     | none => r
 
 /-- **The rest buckets and members at the committed log `L`** (see the file header). -/
-def restModel [FfiSyntax] (c0 : w64) (bootLog : List EntryM) (L : List EntryModel) : apply.RestM :=
+def restModel [GooseExts] (c0 : w64) (bootLog : List EntryM) (L : List EntryModel) : apply.RestM :=
   L.foldl (fun r m => restEntry c0 m r) (restBoot bootLog)
 
 /-- A put in another bucket leaves a bucket. -/
@@ -166,7 +166,7 @@ theorem delIn_other (r : apply.RestM) (n k n' : GoString) (h : n ≠ n') :
   simp [apply.RestM.delIn, GMap.lookup_insert_eq_iff, h]
 
 /-- **An entry changes only the `members`, `members_removed` and `cluster` buckets.** -/
-theorem restEntry_keep [FfiSyntax] (c0 : w64) (m : EntryModel) (r : apply.RestM) (n : GoString)
+theorem restEntry_keep [GooseExts] (c0 : w64) (m : EntryModel) (r : apply.RestM) (n : GoString)
     (h1 : go!"members" ≠ n) (h2 : go!"cluster" ≠ n) (h3 : go!"members_removed" ≠ n) :
     (restEntry c0 m r).bk.lookup n = r.bk.lookup n := by
   have hsv : ∀ v3 s r', (apply.restSetVersion v3 s r').bk.lookup n = r'.bk.lookup n := by
@@ -204,7 +204,7 @@ theorem restEntry_keep [FfiSyntax] (c0 : w64) (m : EntryModel) (r : apply.RestM)
     · exact hcc _ _ _
     · rfl
 
-theorem restModel_keep [FfiSyntax] (c0 : w64) (bootLog : List EntryM) (L : List EntryModel)
+theorem restModel_keep [GooseExts] (c0 : w64) (bootLog : List EntryM) (L : List EntryModel)
     (n : GoString) (h1 : go!"members" ≠ n) (h2 : go!"cluster" ≠ n)
     (h3 : go!"members_removed" ≠ n) :
     (restModel c0 bootLog L).bk.lookup n = (restBoot bootLog).bk.lookup n := by
@@ -214,10 +214,10 @@ theorem restModel_keep [FfiSyntax] (c0 : w64) (bootLog : List EntryM) (L : List 
   | nil => rfl
   | cons m L ih => rw [List.foldl_cons, ih, restEntry_keep _ _ _ _ h1 h2 h3]
 
-theorem restModel_nil [FfiSyntax] (c0 : w64) (bootLog : List EntryM) :
+theorem restModel_nil [GooseExts] (c0 : w64) (bootLog : List EntryM) :
     restModel c0 bootLog [] = restBoot bootLog := rfl
 
-theorem restModel_append [FfiSyntax] (c0 : w64) (bootLog : List EntryM) (L : List EntryModel)
+theorem restModel_append [GooseExts] (c0 : w64) (bootLog : List EntryM) (L : List EntryModel)
     (m : EntryModel) :
     restModel c0 bootLog (L ++ [m]) = restEntry c0 m (restModel c0 bootLog L) := by
   unfold restModel; rw [List.foldl_append]; rfl
@@ -227,7 +227,7 @@ theorem restModel_append [FfiSyntax] (c0 : w64) (bootLog : List EntryM) (L : Lis
 /-- **`apply.Apply`'s effect on a covered request** (`plainCover`): it is neither skipped nor
 rejected (a covered request has no side-effect-free and no admin field), so the effect is
 `dispatch`'s. -/
-theorem restOut_plain [FfiSyntax] (rq : apply.IRRModel) (v3 : Bool) (x x' : apply.ApplyKV)
+theorem restOut_plain [GooseExts] (rq : apply.IRRModel) (v3 : Bool) (x x' : apply.ApplyKV)
     (out : apply.ApplyOut) (r : apply.RestM) (hp : plainCover rq)
     (h : apply.applyStep rq v3 x x' out) :
     apply.restOut rq v3 out r = apply.restAfter rq v3 r := by
@@ -244,18 +244,18 @@ theorem restOut_plain [FfiSyntax] (rq : apply.IRRModel) (v3 : Bool) (x x' : appl
   | dispatched o skip => rfl
 
 /-- A normal entry with a request: its effect is `dispatch`'s. -/
-theorem restEntry_normal [FfiSyntax] (c0 : w64) (m : EntryModel) (rq : apply.IRRModel)
+theorem restEntry_normal [GooseExts] (c0 : w64) (m : EntryModel) (rq : apply.IRRModel)
     (r : apply.RestM) (ht : m.typ = W32 0) (hd : m.data ≠ []) (hdec : apply.irrDecode m.data = some rq) :
     restEntry c0 m r = apply.restAfter rq (decide (uint.Z c0 < uint.Z m.index)) r := by
   unfold restEntry; rw [if_pos ht, if_neg hd, hdec]
 
 /-- A normal entry with no data does nothing. -/
-theorem restEntry_nodata [FfiSyntax] (c0 : w64) (m : EntryModel) (r : apply.RestM)
+theorem restEntry_nodata [GooseExts] (c0 : w64) (m : EntryModel) (r : apply.RestM)
     (ht : m.typ = W32 0) (hd : m.data = []) : restEntry c0 m r = r := by
   unfold restEntry; rw [if_pos ht, if_pos hd]
 
 /-- A conf change: `applyConfChange`'s effect. -/
-theorem restEntry_cc [FfiSyntax] (c0 : w64) (m : EntryModel) (cc : CCV1M) (r : apply.RestM)
+theorem restEntry_cc [GooseExts] (c0 : w64) (m : EntryModel) (cc : CCV1M) (r : apply.RestM)
     (ht : m.typ ≠ W32 0) (hdec : ccDecodeV1 m.data = some cc) :
     restEntry c0 m r = ccRest (decide (uint.Z c0 < uint.Z m.index)) cc r := by
   unfold restEntry; rw [if_neg ht, hdec]
@@ -272,7 +272,7 @@ theorem rbData_real_lookup (d : mvcc.KBReal) (D : backend.Data) (n : GoString)
 /-- **The constructors' rest buckets on a fresh data directory** (`bootOk`'s facts): the lessor's,
 the auth store's and the alarm store's created (the auth bucket at `authBoot`), the membership's
 as `bootstrap` left them: `restBootBk`. -/
-theorem restBootBk_of_fresh [FfiSyntax] (d : mvcc.KBReal) (D : backend.Data)
+theorem restBootBk_of_fresh [GooseExts] (d : mvcc.KBReal) (D : backend.Data)
     (h : (∀ n ∈ mvcc.restBuckets, (D.lookup n).getD ∅ = ∅) ∧ D.lookup go!"members" = some ∅ ∧
       D.lookup go!"members_removed" = some ∅ ∧ D.lookup go!"cluster" = some ∅) :
     ((((((backend.rbData d.P D).insert go!"lease" ∅).insert go!"auth" authBoot).insert
@@ -294,7 +294,7 @@ theorem restBootBk_of_fresh [FfiSyntax] (d : mvcc.KBReal) (D : backend.Data)
       Ne.symm h8]
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

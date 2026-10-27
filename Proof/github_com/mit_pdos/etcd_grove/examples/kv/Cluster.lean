@@ -54,15 +54,15 @@ namespace EtcdGrove
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 
 /-- The store's `quietLogger` type. -/
-abbrev qLoggerTy [FfiSyntax] [GoGlobalContext] : go.GoType :=
+abbrev qLoggerTy [GooseExts] [GoGlobalContext] : go.GoType :=
   github_com.mit_pdos.etcd_grove.examples.kv.quietLogger.ty
 
 /-- `quietLogger{}`. -/
-abbrev qLoggerV [FfiSyntax] : github_com.mit_pdos.etcd_grove.examples.kv.quietLogger :=
+abbrev qLoggerV [GooseExts] : github_com.mit_pdos.etcd_grove.examples.kv.quietLogger :=
   github_com.mit_pdos.etcd_grove.examples.kv.quietLogger.mk
 
 /-- `quietLogger{}` as a `raft.Logger`. -/
-def qLogger [FfiSyntax] [GoGlobalContext] : GoInterfaceOk := interface.mk qLoggerTy #qLoggerV
+def qLogger [GooseExts] [GoGlobalContext] : GoInterfaceOk := interface.mk qLoggerTy #qLoggerV
 
 /-- The message types `deliverable` delivers, of a term, besides the forwarded proposals and
 read-index requests and (2026-10-13) `MsgTimeoutNow`: replication, leader election and the
@@ -74,7 +74,7 @@ def kvNetTypes : List w32 :=
 /-- What `deliverable` checks of a message holding `st` (see the file header; raft v3.7, stage
 R6b: over the message's state, `m.Entries != nil` and `m.Context == nil` read as its entries and
 context bytes being empty, `msgPtsC_fields_acc`). -/
-def Deliverable [FfiSyntax] (st : MsgSt) : Prop :=
+def Deliverable [GooseExts] (st : MsgSt) : Prop :=
   (st.msg.Type' = MsgProp ∨ (st.msg.Type' = MsgReadIndex ∧ st.msg.Term' = W64 0) ∨
     (st.msg.Type' ∈ kvNetTypes ∧ st.msg.Term' ≠ W64 0) ∨
     (st.msg.Type' = MsgTimeoutNow ∧ st.msg.Term' ≠ W64 0 ∧ st.ents = []) ∨
@@ -89,13 +89,13 @@ def Deliverable [FfiSyntax] (st : MsgSt) : Prop :=
 def ticksN : Nat := 2 ^ 20
 
 /-- The store's `transfers` struct. -/
-abbrev RTransfers [FfiSyntax] := github_com.mit_pdos.etcd_grove.examples.kv.transfers
+abbrev RTransfers [GooseExts] := github_com.mit_pdos.etcd_grove.examples.kv.transfers
 
-abbrev rTransfersTy [FfiSyntax] [GoGlobalContext] : go.GoType :=
+abbrev rTransfersTy [GooseExts] [GoGlobalContext] : go.GoType :=
   github_com.mit_pdos.etcd_grove.examples.kv.transfers.ty
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

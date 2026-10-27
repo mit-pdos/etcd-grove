@@ -48,7 +48,7 @@ theorem clientRecs_append (c : Nat) (Lc : List (α × Int)) (p : α × Int) :
 end pure
 
 section ghost
-variable [ext : FfiSyntax] {σ : Type} {M : SeqModel σ OpV} {n : Nat} {s : σ} {t : w64}
+variable [GooseExts] {σ : Type} {M : SeqModel σ OpV} {n : Nat} {s : σ} {t : w64}
   {L : List (LinRec OpV)} {Ls : GMap Nat ClientV}
 
 theorem toRecs_append (c : Nat) (Lc : List (OpV × w64)) (p : OpV × w64) :

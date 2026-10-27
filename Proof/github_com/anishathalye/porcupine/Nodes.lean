@@ -31,7 +31,7 @@ namespace github_com.anishathalye.porcupine
 open Theory
 
 section defs
-variable [ext : FfiSyntax]
+variable [GooseExts]
 
 /-- Where a slot's node is. -/
 def slotLoc (hd : Loc) (loc : Entry → Loc) : Slot → Loc
@@ -124,7 +124,7 @@ theorem slotLoc_ne_null {hd : Loc} {loc : Entry → Loc} {es : List Entry}
 end defs
 
 section heap
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]

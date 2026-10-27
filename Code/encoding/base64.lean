@@ -20,91 +20,91 @@ end pkg_id
 
 namespace encoding.base64
 
-noncomputable def Encoding.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def Encoding.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"encoding/base64.Encoding" [])
 
 attribute [irreducible] Encoding.ty
 
-noncomputable def encoder.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def encoder.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"encoding/base64.encoder" [])
 
 attribute [irreducible] encoder.ty
 
-noncomputable def CorruptInputError.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def CorruptInputError.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"encoding/base64.CorruptInputError" [])
 
 attribute [irreducible] CorruptInputError.ty
 
-noncomputable def decoder.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def decoder.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"encoding/base64.decoder" [])
 
 attribute [irreducible] decoder.ty
 
-noncomputable def newlineFilteringReader.ty [FfiSyntax] [GoGlobalContext] : go.GoType :=
+noncomputable def newlineFilteringReader.ty [GooseExts] [GoGlobalContext] : go.GoType :=
   (go.GoType.Named go!"encoding/base64.newlineFilteringReader" [])
 
 attribute [irreducible] newlineFilteringReader.ty
 
-axiom Encoding.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom Encoding.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom encoder.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom encoder.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom decoder.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom decoder.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom newlineFilteringReader.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
+axiom newlineFilteringReader.underlying [GooseExts] [GoGlobalContext] : go.GoType
 
-axiom StdPadding [FfiSyntax] [GoGlobalContext] : val
+axiom StdPadding [GooseExts] [GoGlobalContext] : val
 
-axiom NoPadding [FfiSyntax] [GoGlobalContext] : val
+axiom NoPadding [GooseExts] [GoGlobalContext] : val
 
-axiom decodeMapInitialize [FfiSyntax] [GoGlobalContext] : val
+axiom decodeMapInitialize [GooseExts] [GoGlobalContext] : val
 
-axiom invalidIndex [FfiSyntax] [GoGlobalContext] : val
+axiom invalidIndex [GooseExts] [GoGlobalContext] : val
 
-noncomputable def StdEncoding [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def StdEncoding [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/base64.StdEncoding"
 
-axiom StdEncoding.init [FfiSyntax] [GoGlobalContext] : val
+axiom StdEncoding.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def URLEncoding [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def URLEncoding [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/base64.URLEncoding"
 
-axiom URLEncoding.init [FfiSyntax] [GoGlobalContext] : val
+axiom URLEncoding.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def RawStdEncoding [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def RawStdEncoding [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/base64.RawStdEncoding"
 
-axiom RawStdEncoding.init [FfiSyntax] [GoGlobalContext] : val
+axiom RawStdEncoding.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def RawURLEncoding [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def RawURLEncoding [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/base64.RawURLEncoding"
 
-axiom RawURLEncoding.init [FfiSyntax] [GoGlobalContext] : val
+axiom RawURLEncoding.init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def NewEncoding [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewEncoding [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/base64.NewEncoding"
 
-noncomputable def NewEncoder [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewEncoder [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/base64.NewEncoder"
 
-noncomputable def assemble32 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def assemble32 [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/base64.assemble32"
 
-noncomputable def assemble64 [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def assemble64 [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/base64.assemble64"
 
-noncomputable def NewDecoder [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def NewDecoder [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/base64.NewDecoder"
 
-noncomputable def decodedLen [FfiSyntax] [GoGlobalContext] : GoString :=
+noncomputable def decodedLen [GooseExts] [GoGlobalContext] : GoString :=
   go!"encoding/base64.decodedLen"
 
 noncomputable instance info' : PkgInfo pkg_id.encoding.base64 where
   pkgImportedPkgs := []
 
-axiom «_».init [FfiSyntax] [GoGlobalContext] : val
+axiom «_».init [GooseExts] [GoGlobalContext] : val
 
-noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
+noncomputable def initialize' [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.encoding.base64)) (Lam BAnon
   (App (Val exceptionDo)
@@ -124,7 +124,7 @@ axiom Encoding : Type
 axiom Encoding.zero_val : ZeroVal Encoding
 attribute [instance] Encoding.zero_val
 
-class Encoding.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Encoding.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Encoding.underlying Encoding
   underlying : go.UnderlyingDirectedEq Encoding.ty Encoding.underlying
   isUnderlying : go.IsUnderlying Encoding.underlying Encoding.underlying
@@ -137,7 +137,7 @@ axiom encoder : Type
 axiom encoder.zero_val : ZeroVal encoder
 attribute [instance] encoder.zero_val
 
-class encoder.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class encoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying encoder.underlying encoder
   underlying : go.UnderlyingDirectedEq encoder.ty encoder.underlying
   isUnderlying : go.IsUnderlying encoder.underlying encoder.underlying
@@ -146,12 +146,12 @@ attribute [instance] encoder.TypeAssumptions.type_repr
   encoder.TypeAssumptions.underlying
   encoder.TypeAssumptions.isUnderlying
 
-abbrev CorruptInputError [FfiSyntax] : Type := w64
+abbrev CorruptInputError [GooseExts] : Type := w64
 
-@[reducible] noncomputable def CorruptInputError.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+@[reducible] noncomputable def CorruptInputError.underlying [GooseExts] [GoGlobalContext] : go.GoType :=
   go.int64
 
-class CorruptInputError.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class CorruptInputError.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   underlying : go.UnderlyingDirectedEq CorruptInputError.ty CorruptInputError.underlying
 
 attribute [instance] CorruptInputError.TypeAssumptions.underlying
@@ -160,7 +160,7 @@ axiom decoder : Type
 axiom decoder.zero_val : ZeroVal decoder
 attribute [instance] decoder.zero_val
 
-class decoder.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class decoder.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying decoder.underlying decoder
   underlying : go.UnderlyingDirectedEq decoder.ty decoder.underlying
   isUnderlying : go.IsUnderlying decoder.underlying decoder.underlying
@@ -173,7 +173,7 @@ axiom newlineFilteringReader : Type
 axiom newlineFilteringReader.zero_val : ZeroVal newlineFilteringReader
 attribute [instance] newlineFilteringReader.zero_val
 
-class newlineFilteringReader.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class newlineFilteringReader.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying newlineFilteringReader.underlying newlineFilteringReader
   underlying : go.UnderlyingDirectedEq newlineFilteringReader.ty newlineFilteringReader.underlying
   isUnderlying : go.IsUnderlying newlineFilteringReader.underlying newlineFilteringReader.underlying
@@ -182,7 +182,7 @@ attribute [instance] newlineFilteringReader.TypeAssumptions.type_repr
   newlineFilteringReader.TypeAssumptions.underlying
   newlineFilteringReader.TypeAssumptions.isUnderlying
 
-class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
+class Assumptions [GooseExts] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   Encoding_instance : Encoding.TypeAssumptions
   encoder_instance : encoder.TypeAssumptions
   CorruptInputError_instance : CorruptInputError.TypeAssumptions

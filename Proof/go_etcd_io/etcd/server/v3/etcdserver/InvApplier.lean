@@ -55,7 +55,7 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver.cindex
   go_etcd_io.etcd.server.v3.etcdserver
 
 section addrs
-variable [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions]
+variable [GooseExts] [GoGlobalContext] [GoSemanticsFunctions]
 
 abbrev srvLgAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"lg" s
 abbrev srvWAddr (s : Loc) : Loc := structFieldRef EtcdServer go!"w" s
@@ -90,7 +90,7 @@ end addrs
 /-- A batch of committed entries as raft hands them to the apply thread: consecutive indices
 from `f0` (not 0), with no overflow past the last; each a normal entry or a (v1) conf change
 (etcd proposes no others: `apply` panics on any other type). -/
-def entriesFrom [FfiSyntax] (f0 : w64) (ms : List EntryModel) : Prop :=
+def entriesFrom [GooseExts] (f0 : w64) (ms : List EntryModel) : Prop :=
   0 < uint.Z f0 ∧ uint.Z f0 + ms.length < 2 ^ 64 ∧
   ∀ (n : Nat) (m : EntryModel), ms[n]? = some m →
     uint.Z m.index = uint.Z f0 + n ∧
@@ -117,7 +117,7 @@ def entryOk (x : apply.ApplyKV) (m : EntryModel) : Prop :=
 /-- **An entry's premise at a small log, from its shape** (D19c's move, 2026-10-18): the KV
 invariant keeps every committed entry's shape (`entryShape`), and the apply thread's log is
 small (`srvApplyKV_small`), so the size clauses hold there (`rqSmall_of_small`). -/
-theorem entryOk_of_shape [FfiSyntax] (x : apply.ApplyKV) (m : EntryModel) (hs : entryShape m)
+theorem entryOk_of_shape [GooseExts] (x : apply.ApplyKV) (m : EntryModel) (hs : entryShape m)
     (ht : m.typ = W32 0) (hl : x.log.length ≤ mvcc.logCh x.log + 2)
     (hc : mvcc.logCh x.log < 2 ^ 48) : entryOk x m := by
   rcases hs.1 ht with hd | ⟨rq, hdec, hid, hsh⟩
@@ -288,7 +288,7 @@ theorem entriesStep_trace (c : w64) (ms : List EntryModel) (x x' : apply.ApplyKV
 -- The server's atomics' invariants' namespace `srvN`: `InvRequest.lean` (2026-10-13).
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
@@ -416,7 +416,7 @@ def epConfState (ep cs : Loc) : IProp GF :=
 end defs
 
 section defs_lc
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

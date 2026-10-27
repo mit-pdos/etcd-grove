@@ -464,20 +464,22 @@ _K8E = [('errNotObj', 'NO'), ('errBadData', 'BD'), ('errBadRV', 'BR'), ('errNoLi
         ('errDeleteRejected', 'DR'), ('errUpdateRejected', 'UR')]
 
 def _errVarOk(x, t):
-    """`errVarOk x` (the driver's `Base.lean`) of the `errors.New` result `x<t>` (`#M<t>`)."""
-    return [f'iexists x{t}', f'iframe H{x}',
+    """`errVarOk x msg` (the driver's `Base.lean`) of the `errors.New` result `x<t>` (`#M<t>`,
+    its cell `#C<t>`)."""
+    return [f'iexists x{t}', f'iframe H{x} C{t}',
             'unfold _root_.Perennial.go_etcd_io.etcd.cache.v3.errorStringSpec',
             'iintro !> %Φ HΦ', f'iapply M{t}', 'inext', 'iapply HΦ']
 
 SPECIAL['github_com.mit_pdos.etcd_grove.examples.k8setcd3'] = dict(
     doc='''Its fact (`drvInit`, `Base.lean`): its error variables (`k8setcd3.go`: `errNotObj`,
 `errBadData`, `errBadRV`, `errNoList`, `errDeleteRejected`, `errUpdateRejected`, translated
-`errors.New` calls) each hold a fixed `*errorString` whose `Error()` returns. Its initializer
-allocates them, initializes its imports and runs their translated initializers.''',
-    imports=['Perennial.Proof.context.NewErrorString'],
+`errors.New` calls) each hold a fixed `*errorString` whose `Error()` returns and whose cell holds
+its message (`wp_New_errorString_cell`). Its initializer allocates them, initializes its imports
+and runs their translated initializers.''',
+    imports=['Proof.errors.NewVarCell'],
     alloc_types={x: 'GoInterface' for x, _ in _K8E},
     before={'$end': ['try wp_auto'] + [l for _, t in _K8E for l in [
-        f'wp_apply _root_.Perennial.context.wp_New_errorString as %x{t} #M{t}', 'try wp_auto']]},
+        f'wp_apply EtcdGrove.wp_New_errorString_cell as %x{t} ⟨#M{t}, #C{t}⟩', 'try wp_auto']]},
     finish=[f'ipersist H{x}' for x, _ in _K8E] + FIN_PRE[:6] + ['imodintro', 'unfold drvInit'] +
            [l for x, t in _K8E[:-1] for l in ['isplitr'] + ['· ' + m if j == 0 else '  ' + m
                                                      for j, m in enumerate(_errVarOk(x, t))]] +
@@ -494,7 +496,7 @@ trust-boundary axiom `grpclog.SetLoggerV2.wp_proof`), `watcher.go`'s stores in
 `strconv.ParseBool`, names-only in Perennial: the trust-boundary axioms `os.Getenv.wp_proof` and
 `strconv.ParseBool.wp_proof`).''',
     pre=['section toLoggerV2',
-         'variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]',
+         'variable [GooseExts] [GooseSemantics] [GooseInterp]',
          'variable [go_gctx : GoGlobalContext]',
          'variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]',
          'variable [sem : go.Semantics]',
@@ -538,7 +540,7 @@ trust-boundary axiom `grpclog.SetLoggerV2.wp_proof`), `watcher.go`'s stores in
                      '· rw [_root_.Perennial.sync.atomic.ownBool_unseal]',
                      '  unfold _root_.Perennial.sync.atomic.ownBoolDef',
                      "  have e : (zero_val _root_.Perennial.sync.atomic.Bool') =",
-                     "      ({ _0' := zero_val _, v' := _root_.Perennial.sync.atomic.b32w false } :",
+                     "      ({ «_#0'» := zero_val _, v' := _root_.Perennial.sync.atomic.b32w false } :",
                      "        _root_.Perennial.sync.atomic.Bool') := rfl",
                      '  rw [← e]; iexact HfatalOnDecodeError',
                      'wp_apply_core _root_.Perennial.sync.atomic.Bool.wp_Store $$ [] [-]',
@@ -772,7 +774,7 @@ initializers (`error.go`, `metadatafields.go`) are untranslated: the trust-bound
     pre=['/-- **The method set of `rpctypes.EtcdError`** is `{Code, Error}` (`error.go`): no `As`,',
          '`Unwrap`, `GRPCStatus` or `Is` method. A fact about the method sets, which the semantics leaves',
          'uninterpreted: a premise, as `EtcdGrove.ErrorStringLeaf`. -/',
-         'class EtcdGrove.RpctypesEtcdErrorMethods [FfiSyntax] [GoGlobalContext] [GoSemanticsFunctions] : Prop where',
+         'class EtcdGrove.RpctypesEtcdErrorMethods [GooseExts] [GoGlobalContext] [GoSemanticsFunctions] : Prop where',
          '  leaf : ∀ v : val, errors.isLeafError ⟨go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty, v⟩',
          '  noGRPCStatus : methodSet go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty !! go!"GRPCStatus" = none',
          '  noIs : methodSet go_etcd_io.etcd.api.v3.v3rpc.rpctypes.EtcdError.ty !! go!"Is" = none',
@@ -1187,7 +1189,7 @@ initializers run.""",
 
 _ERRLEAF_PRE = [
     'section errVarLeafOfNew',
-    'variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]',
+    'variable [GooseExts] [GooseSemantics] [GooseInterp]',
     'variable [go_gctx : GoGlobalContext]',
     'variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]',
     'variable [sem : go.Semantics] [_root_.Perennial.errors.Assumptions] [EtcdGrove.ErrorStringLeaf]',
@@ -1453,7 +1455,7 @@ names) and the four
 _RD = 'go_etcd_io.etcd.server.v3.etcdserver.read'
 _RD_CTX_PRE = [
     'section ctxFacts',
-    'variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]',
+    'variable [GooseExts] [GooseSemantics] [GooseInterp]',
     'variable [go_gctx : GoGlobalContext]',
     'variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]',
     'variable [sem : go.Semantics]',
@@ -1716,7 +1718,7 @@ def gen(p, cfg=None):
     if opq or opqf or newvars or custom:
         A('section opaqueInits')
         A(f'namespace {p}')
-        A('variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]')
+        A('variable [GooseExts] [GooseSemantics] [GooseInterp]')
         A('variable [go_gctx : GoGlobalContext]')
         A('variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]')
         A('variable [sem : go.Semantics]')
@@ -1761,7 +1763,7 @@ def gen(p, cfg=None):
     for l in cfg.get('pre', []):
         A(l)
     A('section init')
-    A('variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]')
+    A('variable [GooseExts] [GooseSemantics] [GooseInterp]')
     A('variable [go_gctx : GoGlobalContext]')
     A('variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]')
     A('variable [sem : go.Semantics]')
@@ -1960,12 +1962,12 @@ def gen_ext():
           'noncomputable section', '', 'namespace Perennial', 'namespace EtcdGrove', '',
           'open Iris Iris.BI Iris.ProgramLogic Iris.Std', '',
           '/-- The initializers of the packages whose `wp_initialize\'` is not generated here. -/',
-          'inductive ExternalInit [FfiSyntax] [GoGlobalContext] : GoString → val → Prop where']
+          'inductive ExternalInit [GooseExts] [GoGlobalContext] : GoString → val → Prop where']
     for q in exts:
         L.append(f'  | {ext_ctor(q)} : ExternalInit pkg_id.{q} _root_.Perennial.{q}.initialize\'')
     L += ['',
           'section ax',
-          'variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]',
+          'variable [GooseExts] [GooseSemantics] [GooseInterp]',
           'variable [go_gctx : GoGlobalContext]',
           'variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]',
           'variable [sem : go.Semantics]',
@@ -2042,7 +2044,7 @@ def gen_table(p, path):
          'noncomputable section', '', 'namespace Perennial', f'namespace {p}', '',
          'open Iris Iris.BI Iris.ProgramLogic Iris.Std', '',
          'section table',
-         'variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]',
+         'variable [GooseExts] [GooseSemantics] [GooseInterp]',
          'variable [go_gctx : GoGlobalContext]',
          'variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]',
          'variable [sem : go.Semantics]',

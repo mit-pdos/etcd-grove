@@ -63,7 +63,7 @@ def soleLog (log : Log) : Prop := 2 ≤ log.length ∧ log.length ≤ logCh log 
 theorem soleLog_boot : soleLog [[], []] := by unfold soleLog logCh; simp
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
@@ -194,7 +194,7 @@ theorem soleWriter_pins_read (log log' : Log) (hlen : log.length + 3 ≤ 2 ^ 63)
 end defs
 
 section wp
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

@@ -227,7 +227,7 @@ def fwdIdx (L : List WatchRespM) (r : mvcc.RespM) : Prop :=
     (r.id = W64 (-1) ∨ idLive (L.take i) r.id) → y.idx < r.idx
 
 section defs
-variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]

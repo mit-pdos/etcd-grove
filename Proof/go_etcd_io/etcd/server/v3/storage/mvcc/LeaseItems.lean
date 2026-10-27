@@ -23,7 +23,7 @@ namespace mvcc
 open go_etcd_io.etcd.server.v3.lease
 
 section items
-variable [FfiSyntax]
+variable [GooseExts]
 
 /-- The lease of the key-value `kv`, as an item map's entry: none for `0` (no lease). -/
 def kvLease (kv : EtcdKv) : Option w64 := if kv.lease = W64 0 then none else some kv.lease
