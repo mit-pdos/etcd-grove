@@ -139,7 +139,7 @@ def proposed (id : w64) (s : NState) (ents : List EntryM) : NState :=
 /-- `stepLeader`'s conf-change loop at `s` (2026-10-13): the batch it leaves and
 `pendingConfIndex` (`propConf`, `CCModel.lean`), for the decoded conf changes `cs`; `joint`
 (2026-10-14, reconfiguration stage A3) is whether the configuration in use is joint. -/
-def leaderPropConf (s : NState) (ents : List EntryM) (cs : List (Option CCMsg))
+def leaderPropConf (s : NState) (ents : List EntryM) (cs : List (Option ConfChangeIM))
     (joint : Bool := false) : List EntryM × w64 :=
   propConf s.logst.applied (logLast s.logst) s.pci ents cs joint
 
@@ -154,7 +154,7 @@ R4) What is appended is `appendEntry`'s clones of the loop's batch, which hold t
 (D6). -/
 def LeaderProposeResult (id : w64) (s : NState) (ents : List EntryM)
     (dropped : Bool) (s' : NState) (joint : Bool := false) : Prop :=
-  ∃ cs : List (Option CCMsg), CCTypesOk ents cs ∧
+  ∃ cs : List (Option ConfChangeIM), CCTypesOk ents cs ∧
   if dropped then s' = s ∨ s' = { s with pci := (leaderPropConf s ents cs joint).2 }
   else ∃ (ms : List Msg) (pvs : GMap w64 Progress),
     s' = { sendMsgs (proposed id { s with pci := (leaderPropConf s ents cs joint).2 }

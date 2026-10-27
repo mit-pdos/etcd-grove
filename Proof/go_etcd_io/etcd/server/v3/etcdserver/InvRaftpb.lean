@@ -57,7 +57,7 @@ def ccIdOf [GooseExts] (bs : List w8) : w64 :=
   | some m => m.id
   | none => W64 0
 
-theorem ccIdOf_of_decode [GooseExts] {bs : List w8} {m : CCV1M} (h : ccDecodeV1 bs = some m) :
+theorem ccIdOf_of_decode [GooseExts] {bs : List w8} {m : ConfChangeM} (h : ccDecodeV1 bs = some m) :
     ccIdOf bs = m.id := by
   unfold ccIdOf; rw [h]
 
@@ -196,14 +196,14 @@ theorem wp_entryAt_GetType (wp_GetType : raftpb.Entry.GetType.spec (GF := GF) (h
   iExactEq HΦ
   rfl
 
-/-- `cc.GetId()` of a conf change holding `m` (raft's `ownCCV1`, at any fraction) whose id is
+/-- `cc.GetId()` of a conf change holding `m` (raft's `ownConfChange`, at any fraction) whose id is
 `id`: what the apply thread triggers the wait with (`ccIdOf`, stated by
 `pbutil.MustUnmarshalMessage`'s spec and kept by `applyConfChange`'s). -/
 theorem wp_ownCCV1_GetId (wp_GetId : raftpb.ConfChange.GetId.spec (GF := GF) (hG := hG))
-    (cc : Loc) (dq : DFrac) (m : CCV1M) (id : w64) (hid : m.id = id) :
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ ownCCV1 cc dq m }}
+    (cc : Loc) (dq : DFrac) (m : ConfChangeM) (id : w64) (hid : m.id = id) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ ownConfChange cc dq m }}
       (App (Val (cc @!! go.GoType.PointerType raftpb.ConfChange.ty @!! go!"GetId")) (Val #()))
-    {{ RET #id; ownCCV1 cc dq m }} := by
+    {{ RET #id; ownConfChange cc dq m }} := by
   subst hid
   iintro %Φ ⟨#Hi, H⟩ HΦ
   iapply wp_GetId.1 cc dq m $$ [$Hi $H] HΦ

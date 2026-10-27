@@ -2,6 +2,7 @@
 # don't add to them.
 Proof.go_etcd_io.raft.v3.RawNode__Advance Perennial.EtcdGrove.ackSnapLog_facts  # exposed by a proof file (theorem)
 Proof.go_etcd_io.raft.v3.RawNode__Advance Perennial.EtcdGrove.ackSnapLog_facts_miss  # exposed by a proof file (theorem)
+Proof.go_etcd_io.raft.v3.RawNode__Advance Perennial.EtcdGrove.ackSnapLog_snap  # exposed by a proof file (theorem)
 Proof.go_etcd_io.raft.v3.RawNode__acceptReady Perennial.EtcdGrove.accept_fields  # exposed by a proof file (theorem)
 Proof.go_etcd_io.raft.v3.RawNode__acceptReady Perennial.EtcdGrove.loanTrip  # exposed by a proof file (def)
 Proof.go_etcd_io.raft.v3.RawNode__acceptReady Perennial.EtcdGrove.rdyLog_true  # exposed by a proof file (theorem)
@@ -105,8 +106,8 @@ Proof.go_etcd_io.raft.v3.tracker.ProgressTracker__TallyVotes Perennial.EtcdGrove
 Spec.go_etcd_io.raft.v3.Config__validate Perennial.EtcdGrove.ConfigPreserved  # exposed by a spec file (def)
 Spec.go_etcd_io.raft.v3.NewRawNode Perennial.EtcdGrove.newRaft_post_init  # exposed by a spec file (theorem)
 Spec.go_etcd_io.raft.v3.RawNode__ProposeConfChange Perennial.EtcdGrove.ccData_decodes  # exposed by a spec file (theorem)
-Spec.go_etcd_io.raft.v3.RawNode__ProposeConfChange Perennial.EtcdGrove.ccEntryType_some  # exposed by a spec file (theorem)
 Spec.go_etcd_io.raft.v3.RawNode__ProposeConfChange Perennial.EtcdGrove.ccEntsOk_cc  # exposed by a spec file (theorem)
+Spec.go_etcd_io.raft.v3.RawNode__ProposeConfChange Perennial.EtcdGrove.confChangeEntryType_some  # exposed by a spec file (theorem)
 Spec.go_etcd_io.raft.v3.RawNode__ProposeConfChange Perennial.EtcdGrove.entData_cc  # exposed by a spec file (theorem)
 Spec.go_etcd_io.raft.v3.RawNode__ProposeConfChange Perennial.EtcdGrove.entTk_cc  # exposed by a spec file (theorem)
 Spec.go_etcd_io.raft.v3.confchange.Restore Perennial.EtcdGrove.restoreSimpleOps_ne_nil_of_voters  # exposed by a spec file (theorem)
@@ -210,4 +211,3 @@ Spec.go_etcd_io.raft.v3.stepLeader Perennial.EtcdGrove.leaderPropConf  # exposed
 Spec.go_etcd_io.raft.v3.stepLeader Perennial.EtcdGrove.proposed  # exposed by a spec file (def)
 Spec.go_etcd_io.raft.v3.unstable__stableTo Perennial.EtcdGrove.UnstableHit  # exposed by a spec file (def)
 Spec.go_etcd_io.raft.v3.unstable__truncateAndAppend Perennial.EtcdGrove.truncOffsetInProgress  # exposed by a spec file (def)
-Proof.go_etcd_io.raft.v3.RawNode__Advance Perennial.EtcdGrove.ackSnapLog_snap  # exposed by a proof file (theorem)

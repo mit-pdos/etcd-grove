@@ -35,7 +35,7 @@ theorem raftpb.ConfChangeV2.GetTransition.wp_proof :
       wp_auto
       rw [show raftpb.ConfChangeTransition_ConfChangeTransitionAuto = #m.transition by rw [Hv]; rfl]
       iapply HΦ
-      iunfold ownCCV2
+      iunfold ownConfChangeV2
       iframe
       iexists uf
       isplitr
@@ -44,7 +44,7 @@ theorem raftpb.ConfChangeV2.GetTransition.wp_proof :
     · wp_if_destruct
       · exact absurd rfl Hpn
       · iapply HΦ
-        iunfold ownCCV2
+        iunfold ownConfChangeV2
         iframe
         iexists uf
         isplitr

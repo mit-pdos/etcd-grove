@@ -150,7 +150,7 @@ local macro "apply_cc_send" : tactic => `(tactic| (
 /-- `cc.AsV2()` on `confc` (`confcP`, by the mode; the driver keeps the answer slot's other
 half), then the `*ConfState` from `confstatec` (`confstateP`); `n.done` never fires. (Raft v3.7,
 stage R5: `confc` carries `AsV2`'s pointer: a `ConfChange`'s fresh `ConfChangeV2`
-(`m.asV2`), frozen (`ownCCV2_persist`), or a `ConfChangeV2` itself, read-only already; the
+(`m.asV2`), frozen (`ownConfChangeV2_persist`), or a `ConfChangeV2` itself, read-only already; the
 answer a `*pb.ConfState` owned, `csPts csp 1 cs true`.) -/
 theorem node.ApplyConfChange.wp_proof
     (wp_ConfChange_AsV2 : raftpb.ConfChange.AsV2.spec (GF := GF) (hG := hG))
@@ -165,16 +165,16 @@ theorem node.ApplyConfChange.wp_proof
     | static => exact .inl rfl
     | dyn dec c0 h0 h1 => exact .inr ⟨dec, c0, h0, h1, rfl⟩
   rcases o with m | m
-  · simp only [ownCCI]
+  · simp only [ownConfChangeI]
     icases Hc with ⟨%p, %Hcv, Hc⟩
     subst Hcv
     wp_auto
     wp_apply +noauto wp_ConfChange_AsV2 p DFrac.discard m $$ [Hc] as %v2 ⟨-, Hch⟩
     · iexact Hc
-    imod ownCCV2_persist $$ Hch with #Hch
+    imod ownConfChangeV2_persist $$ Hch with #Hch
     -- the payload, by the mode; the driver keeps the answer slot's other half
     apply_cc_send
-  · simp only [ownCCI]
+  · simp only [ownConfChangeI]
     icases Hc with ⟨%v2, %Hcv, #Hch⟩
     subst Hcv
     wp_auto

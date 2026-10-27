@@ -12,7 +12,7 @@ The predicates of a new cluster's start (raft v3.7 retarget, stage R8b, D12: `no
   static mode, its configuration with the node among the voters): `RestartNode` closes it with
   the ghost state; `Bootstrap` installs the peers first.
 * `peersCtx pv ctxs`: the `Context` bytes of the `Peer` values, read-only (the `ConfChange`
-  literal shares the slice, and `ownCCV1` holds the bytes at `□`).
+  literal shares the slice, and `ownConfChange` holds the bytes at `□`).
 * `bootMarshal ps ctxs bootLog`: `proto.Marshal` of the `k`-th peer's `ConfChange`
   (`{Type: AddNode, NodeId: ps[k], Context: ctxs[k]}`, `Id` unset) returns the bytes of
   `bootLog[k]` -- the premise of `Bootstrap`/`StartNode` that ties the bytes the Go code

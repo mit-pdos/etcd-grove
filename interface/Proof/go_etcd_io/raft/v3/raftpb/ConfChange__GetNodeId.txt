@@ -5,11 +5,11 @@
 theorem raftpb.ConfChange.GetNodeId.wp_proof [package_sem : Assumptions] :
     raftpb.ConfChange.GetNodeId.spec
   -- `Perennial.EtcdGrove.raftpb.ConfChange.GetNodeId.spec`, unfolded:
-  (∀ (p : Loc) (dq : DFrac) (m : CCV1M),
+  (∀ (p : Loc) (dq : DFrac) (m : ConfChangeM),
       ⊢
         ∀ Φ,
-          isPkgInit pkg_id.go_etcd_io.raft.v3.raftpb ∗ ownCCV1 p dq m -∗
-            ▷ (ownCCV1 p dq m -∗ Φ (intoVal m.nodeId)) -∗
+          isPkgInit pkg_id.go_etcd_io.raft.v3.raftpb ∗ ownConfChange p dq m -∗
+            ▷ (ownConfChange p dq m -∗ Φ (intoVal m.nodeId)) -∗
               WP
                 ((intoVal
                     (methods raftpb.ConfChange.ty.PointerType go!"GetNodeId"

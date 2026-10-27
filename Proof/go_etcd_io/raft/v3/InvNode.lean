@@ -63,7 +63,7 @@ pointers (`recvc`, `confc`, `confstatec` a `Loc`; `propc` a `msgWithResult` whos
 `*pb.Message`), so the payloads are over the pointed-to objects: `fwdP γ ml`/`netP γ id ml` an
 owned message (`msgIn`) and its state's facts (`NetMsgOk` on the state, `InvRawnode.lean`),
 `propP γ pm` the message `Propose` builds (`propMsgM`, one entry `propEntryM d` holding the
-data's bytes, D6), `confcP γ v` a read-only `*pb.ConfChangeV2` (`ownCCV2 v □ ccm`, the changes
+data's bytes, D6), `confcP γ v` a read-only `*pb.ConfChangeV2` (`ownConfChangeV2 v □ ccm`, the changes
 `ccm.changes`), `confstateP γ cs` the fresh `*pb.ConfState` `applyConfChange` returns (`csPts cs
 1 c true`), with `confstateOk`/`confstateS` pure over its record; `readyData` hands out the
 messages (D8, at `readyDq`), the hard state (`hsOpt`), the entries `entsRO`, the read states
@@ -900,9 +900,9 @@ static mode, one that keeps the voters and only drops learners (`CCShrink`,
 view of the configuration (`cap`'s half at `(ca, cfg)`), the answer it expects (`ccq`'s half at
 `(k + 1, cs')`), a lower bound `ds` of the committed log handed out, and that the change is that
 of the next conf entry of `ds`, at position `k` (`DynCCPreOp`). (2026-10-16, stage R5: a
-`*pb.ConfChangeV2` at `v`, read-only (`ownCCV2 v □ ccm`, R1), its content `ccm`.) -/
+`*pb.ConfChangeV2` at `v`, read-only (`ownConfChangeV2 v □ ccm`, R1), its content `ccm`.) -/
 @[no_expose] def confcP (γ : NodeNames) (v : Loc) : IProp GF :=
-  iprop(∃ ccm : CCV2M, ownCCV2 v DFrac.discard ccm ∗
+  iprop(∃ ccm : ConfChangeV2M, ownConfChangeV2 v DFrac.discard ccm ∗
     ((⌜γ.mode = .static ∧ CCShrink γ.raft.reCfg ccm.transition ccm.changes⌝) ∨
      (∃ (ds : List EntryM) (ca : Nat) (cfg : CCState) (k : Nat) (e : EntryM)
         (cs' : CCState),

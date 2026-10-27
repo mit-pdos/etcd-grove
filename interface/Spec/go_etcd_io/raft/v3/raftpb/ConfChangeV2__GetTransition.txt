@@ -3,11 +3,11 @@
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
 def raftpb.ConfChangeV2.GetTransition.spec : Prop :=
-  (∀ (p : Loc) (dq : DFrac) (m : CCV2M),
+  (∀ (p : Loc) (dq : DFrac) (m : ConfChangeV2M),
       ⊢
         ∀ Φ,
-          isPkgInit pkg_id.go_etcd_io.raft.v3.raftpb ∗ ownCCV2 p dq m -∗
-            ▷ (ownCCV2 p dq m -∗ Φ (intoVal m.transition)) -∗
+          isPkgInit pkg_id.go_etcd_io.raft.v3.raftpb ∗ ownConfChangeV2 p dq m -∗
+            ▷ (ownConfChangeV2 p dq m -∗ Φ (intoVal m.transition)) -∗
               WP
                 ((intoVal
                     (methods raftpb.ConfChangeV2.ty.PointerType

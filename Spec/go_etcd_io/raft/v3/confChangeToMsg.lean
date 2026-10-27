@@ -37,13 +37,13 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 `ccEntryM o bs` (the entry type of `o` and the bytes carrying it, as `MarshalConfChange`
 returns them), and a `nil` error. (2026-10-16, stage R5: the message at `ml`, `msgIn ml 1`.) -/
 abbrev confChangeToMsg.spec : Prop :=
-  ∀ (c : GoInterface) (o : Option CCMsg) (dq : DFrac),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownCCI c dq o }}
+  ∀ (c : GoInterface) (o : Option ConfChangeIM) (dq : DFrac),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownConfChangeI c dq o }}
     (App (Val #(functions confChangeToMsg [])) (Val #c))
   {{ (ml : Loc) (bs : List w8), RET (PairV #ml #interface.nil);
-      ownCCI c dq o ∗
+      ownConfChangeI c dq o ∗
       msgIn ml (DFrac.own 1) ⟨propMsgM, [ccEntryM o bs], none, [], []⟩ ∗
-      ⌜CCData o bs⌝ }}
+      ⌜MarshalsConfChange o bs⌝ }}
 
 end spec
 

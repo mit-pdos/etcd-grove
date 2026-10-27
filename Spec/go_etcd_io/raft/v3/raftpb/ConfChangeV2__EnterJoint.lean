@@ -29,11 +29,11 @@ m.changes.length`, the pair `(autoLeave, ok)`. Its panic (`panic(fmt.Sprintf("un
 premise, as in the old spec: the panic formats `c`, which Perennial's `fmt.wp_Sprintf` does not
 admit, and the one caller (`raft.applyConfChange`) excludes it anyway. -/
 abbrev raftpb.ConfChangeV2.EnterJoint.spec : Prop :=
-  ∀ (c : Loc) (dq : DFrac) (m : CCV2M),
+  ∀ (c : Loc) (dq : DFrac) (m : ConfChangeV2M),
   enterJointOf m.transition m.changes.length ≠ none →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ ownCCV2 c dq m }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ ownConfChangeV2 c dq m }}
     (App (Val (c @!! go.GoType.PointerType raftpb.ConfChangeV2.ty @!! go!"EnterJoint")) (Val #()))
-  {{ (r : val), RET r; ownCCV2 c dq m ∗
+  {{ (r : val), RET r; ownConfChangeV2 c dq m ∗
       match enterJointOf m.transition m.changes.length with
       | some (autoLeave, ok) => ⌜r = PairV #autoLeave #ok⌝
       | none => ⌜∃ p, r = PanicV p⌝ }}

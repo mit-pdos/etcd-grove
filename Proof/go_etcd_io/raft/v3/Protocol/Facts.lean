@@ -1286,7 +1286,7 @@ def BootLogOk (ccOk : w32 → List w8 → Prop) (ps : List w64) (bootLog : List 
   bootLog.length = ps.length ∧ (bootLog.length : Int) < 2 ^ 61 ∧
   ∀ (k : Nat) (e : EntryM), bootLog[k]? = some e →
     e.Term' = W64 1 ∧ uint.Z e.Index' = (k : Int) + 1 ∧ e.Type' = W32 1 ∧
-    (∃ m : CCV1M, ccDecodeV1 e.Data' = some m ∧ m.type = W32 0 ∧ ps[k]? = some m.nodeId) ∧
+    (∃ m : ConfChangeM, ccDecodeV1 e.Data' = some m ∧ m.type = W32 0 ∧ ps[k]? = some m.nodeId) ∧
     ccOk (W32 1) e.Data'
 
 theorem bootPState_eq (bootLog : List EntryM) : bootPState bootLog = initPStateAt (W64 1) bootLog :=

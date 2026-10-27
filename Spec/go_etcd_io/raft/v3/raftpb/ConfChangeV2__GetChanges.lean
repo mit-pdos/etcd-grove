@@ -26,12 +26,12 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 pointers at the conf change's `dq` (each change read-only), until the caller gives the slice back;
 of a nil `*ConfChangeV2`, the nil slice. -/
 abbrev raftpb.ConfChangeV2.GetChanges.spec : Prop :=
-  (∀ (p : Loc) (dq : DFrac) (m : CCV2M),
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ ownCCV2 p dq m }}
+  (∀ (p : Loc) (dq : DFrac) (m : ConfChangeV2M),
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ ownConfChangeV2 p dq m }}
       (App (Val (p @!! go.GoType.PointerType raftpb.ConfChangeV2.ty @!! go!"GetChanges")) (Val #()))
     {{ (chs : GoSlice) (ls : List Loc), RET #chs;
         chs ↦*{dq} ls ∗ ([∗list] q;c ∈ ls;m.changes, ccsRO q c) ∗
-        (chs ↦*{dq} ls -∗ ownCCV2 p dq m) }}) ∧
+        (chs ↦*{dq} ls -∗ ownConfChangeV2 p dq m) }}) ∧
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb }}
     (App (Val ((null : Loc) @!! go.GoType.PointerType raftpb.ConfChangeV2.ty @!! go!"GetChanges"))
       (Val #()))

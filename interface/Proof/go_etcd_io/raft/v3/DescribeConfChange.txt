@@ -4,20 +4,20 @@
 
 axiom DescribeConfChange.wp_proof : DescribeConfChange.spec
   -- `Perennial.EtcdGrove.DescribeConfChange.spec`, unfolded:
-  (∀ (p : Loc) (dq : DFrac) (m : CCV1M),
+  (∀ (p : Loc) (dq : DFrac) (m : ConfChangeM),
       ⊢
         ∀ Φ,
-          isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ ownCCV1 p dq m -∗
-            (▷ ∀ str, ownCCV1 p dq m -∗ Φ (intoVal str)) -∗
+          isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ ownConfChange p dq m -∗
+            (▷ ∀ str, ownConfChange p dq m -∗ Φ (intoVal str)) -∗
               WP
                 ((intoVal (functions DescribeConfChange []))
                   (intoVal (interface.mkOk raftpb.ConfChange.ty.PointerType (intoVal p))))
                 {{ Φ }}) ∧
-    ∀ (p : Loc) (dq : DFrac) (m : CCV2M),
+    ∀ (p : Loc) (dq : DFrac) (m : ConfChangeV2M),
       ⊢
         ∀ Φ,
-          isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ ownCCV2 p dq m -∗
-            (▷ ∀ str, ownCCV2 p dq m -∗ Φ (intoVal str)) -∗
+          isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ ownConfChangeV2 p dq m -∗
+            (▷ ∀ str, ownConfChangeV2 p dq m -∗ Φ (intoVal str)) -∗
               WP
                 ((intoVal (functions DescribeConfChange []))
                   (intoVal (interface.mkOk raftpb.ConfChangeV2.ty.PointerType (intoVal p))))

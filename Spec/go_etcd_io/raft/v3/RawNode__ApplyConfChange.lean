@@ -90,7 +90,7 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- See the file header. -/
 abbrev RawNode.ApplyConfChange.spec : Prop :=
-  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (c : GoInterface) (o : CCMsg)
+  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (c : GoInterface) (o : ConfChangeIM)
     (dq : DFrac)
     -- (2026-10-14, stage B7 part 2) the dynamic mode's: the conf entry applied (at position `k`),
     -- and the configuration it gives
@@ -101,10 +101,10 @@ abbrev RawNode.ApplyConfChange.spec : Prop :=
   (∀ dec c0 h0 h1, rs.mode = .dyn dec c0 h0 h1 → DynCCPre dec rs o k e cs') →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
       "Hrn" ∷ ownRawNode γ rn id rs ∗
-      "Hc" ∷ ownCCI c dq (some o) }}
+      "Hc" ∷ ownConfChangeI c dq (some o) }}
     (App (Val (rn @!! go.GoType.PointerType RawNode.ty @!! go!"ApplyConfChange")) (Val #c))
   {{ (csp : Loc) (cs : ConfStateM), RET #csp;
-      "Hc" ∷ ownCCI c dq (some o) ∗
+      "Hc" ∷ ownConfChangeI c dq (some o) ∗
       -- (2026-10-16, stage R5) the fresh `*pb.ConfState` `applyConfChange` returns, owned, its
       -- `AutoLeave` cell set (until then `csp ↦ cs` with the voters' and learners' slices)
       "Hcs" ∷ csPts csp (DFrac.own 1) cs true ∗
