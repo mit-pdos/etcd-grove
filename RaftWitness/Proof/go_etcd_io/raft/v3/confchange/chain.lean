@@ -53,7 +53,7 @@ theorem confchange.chain.wp_proof : confchange.chain.spec (GF := GF) (hG := hG) 
     wp_apply Hop $$ %cfg %prs [$HI] as %cfg' %prs' HI
     -- no error: `chg.Tracker.Config`/`.Progress` take the op's result
     wp_for_post
-    iframe Hops HΦ
+    iframe Hops HΦ «$res0» «$res1» «$res2»
     iexists n + W64 1, cfg', prs', f
     rw [show sint.nat (n + W64 1) = sint.nat n + 1 by word]
     simp only [named]

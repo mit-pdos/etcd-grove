@@ -48,6 +48,7 @@ theorem copyKeyValue.wp_proof : copyKeyValue.spec (GF := GF) (hG := hG) := by
     ihave %HlenV := ownSlice_len _ _ _ $$ HVs
     wp_apply wp_slice_make2 (V := w8) $$ [] as %vs ⟨Hvs, -⟩
     · ipureintro; exact HlenV.2
+    iapply wp_fupd
     wp_apply wp_slice_copy $$ [$Hvs $HVs] as %n2 ⟨%Hn2, Hvs, -⟩
     have hv : (c.kv.value.take (List.replicate (sint.nat c.valSl.len) (zero_val w8)).length ++
         (List.replicate (sint.nat c.valSl.len) (zero_val w8)).drop c.kv.value.length) =
@@ -55,10 +56,11 @@ theorem copyKeyValue.wp_proof : copyKeyValue.spec (GF := GF) (hG := hG) := by
       simp [List.length_replicate, ← HlenV.1]
     rw [hv]
     ipersist Hvs
-    wp_alloc p as Hp
+    irename «$r0» => Hp
+    generalize «$r0_ptr» = p at *
     ihave %Hpnn := typedPointsto_not_null $$ Hp
     iStructNamed Hp
-    wp_auto
+    imodintro
     iapply HΦ
     isplitl [HK HC HM HV HVal HL]
     · iframe; iframe #; ipureintro; exact Hnn
@@ -70,10 +72,10 @@ theorem copyKeyValue.wp_proof : copyKeyValue.spec (GF := GF) (hG := hG) := by
   · simp only [Bool.not_true]
     wp_auto
     ihave #Hnil := ownSlice_nil (V := w8) (GF := GF) DFrac.discard
-    wp_alloc p as Hp
+    irename «$r0» => Hp
+    generalize «$r0_ptr» = p at *
     ihave %Hpnn := typedPointsto_not_null $$ Hp
     iStructNamed Hp
-    wp_auto
     iapply HΦ
     isplitl [HK HC HM HV HVal HL]
     · iframe; iframe #; ipureintro; exact Hnn

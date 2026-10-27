@@ -118,9 +118,11 @@ theorem newSequentialKV.wp_proof (hWLK : EtcdGrove.WithLastKey.spec (GF := GF) (
   wp_auto
   wp_join (Q := fun v => iprop(
       (⌜v = executeVal⌝ ∗ ∃ n : w64, "newSeqNum" ∷ newSeqNum_ptr ↦ n ∗
-        "resp" ∷ resp_ptr ↦ gresp ∗ "%Hn" ∷ ⌜SeqNum kp sg n⌝) ∨
-      (∃ e : GoInterfaceOk, ⌜v = returnVal (PairV #Loc.null #(GoInterface.ok e))⌝)))
-    with [newSeqNum resp]
+        "resp" ∷ resp_ptr ↦ gresp ∗ "%Hn" ∷ ⌜SeqNum kp sg n⌝ ∗
+        "«$res0»" ∷ «$res0_ptr» ↦ Loc.null ∗ "«$res1»" ∷ «$res1_ptr» ↦ GoInterface.nil) ∨
+      (∃ e : GoInterfaceOk, ⌜v = returnVal #()⌝ ∗ «$res0_ptr» ↦ Loc.null ∗
+        «$res1_ptr» ↦ GoInterface.ok e)))
+    with [newSeqNum resp «$res0» «$res1»]
   · -- the range is empty
     ileft
     isplitr
@@ -203,8 +205,9 @@ theorem newSequentialKV.wp_proof (hWLK : EtcdGrove.WithLastKey.spec (GF := GF) (
       wp_auto
       iright
       iexists e
+      iframe
       ipureintro; first | rfl | trivial
-  iintro (⟨%Hv, %n, newSeqNum, resp, %Hn⟩ | ⟨%e, %Hv⟩)
+  iintro (⟨%Hv, %n, newSeqNum, resp, %Hn, «$res0», «$res1»⟩ | ⟨%e, %Hv, «$res0», «$res1»⟩)
   rotate_left
   · subst Hv
     wp_auto
@@ -335,8 +338,8 @@ theorem newSequentialKV.wp_proof (hWLK : EtcdGrove.WithLastKey.spec (GF := GF) (
     ihave ⟨#Hs0, #Hs1⟩ := txnStates_wrote pfx r s0 _ _ _ h2 h1 $$ Hts
     (try rw [hok])
     wp_auto
-    wp_alloc rk as Hrk
-    wp_auto
+    irename «$r0» => Hrk
+    generalize «$r0_ptr» = rk at *
     iapply HΦ
     ileft
     isplitr

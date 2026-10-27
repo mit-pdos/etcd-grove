@@ -96,6 +96,7 @@ theorem auth.authStore.UserAdd.wp_tieSureB
   iunfold authWBackendOk at Hbeok'
   icases Hbeok' with ⟨%bi, %Hbi, #HBatch, #HFC, -⟩
   subst Hbi
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   wp_apply github_com.mit_pdos.perennial.goose.model.strings.wp_string_len as %Hnl
@@ -300,7 +301,8 @@ theorem auth.authStore.UserAdd.wp_tieSureB
       wp_apply h_Info
       · ipureintro; exact Hlgnn
       (try wp_auto)
-      wp_alloc resp as Hresp
+      irename «$r0» => Hresp
+      generalize «$r0_ptr» = resp at *
       ihave %Hrespnn := typedPointsto_not_null _ _ _ $$ Hresp
       icases typedPointsto_split _ _ _ $$ Hresp with Hresp
       simp only [TypedPointsto.typedPointstoDef]
@@ -393,7 +395,8 @@ theorem auth.authStore.UserAdd.wp_tieSureB
     wp_apply h_Info
     · ipureintro; exact Hlgnn
     (try wp_auto)
-    wp_alloc resp as Hresp
+    irename «$r0» => Hresp
+    generalize «$r0_ptr» = resp at *
     ihave %Hrespnn := typedPointsto_not_null _ _ _ $$ Hresp
     icases typedPointsto_split _ _ _ $$ Hresp with Hresp
     simp only [TypedPointsto.typedPointstoDef]

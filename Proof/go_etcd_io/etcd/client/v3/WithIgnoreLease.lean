@@ -24,7 +24,7 @@ variable [package_sem : go_etcd_io.etcd.client.v3.Assumptions]
 
 theorem WithIgnoreLease.wp_proof : WithIgnoreLease.spec (GF := GF) (hG := hG) := by
   wp_start
-  simp only [recv_eq_func_mk]
+  wp_auto
   iapply HΦ
   unfold optSpec
   imodintro

@@ -34,10 +34,16 @@ noncomputable def NewNotifier [GooseExts] [GoGlobalContext] : GoString :=
     go: notify.go:29:6 -/
 noncomputable def NewNotifier.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Notifier.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType Notifier.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc Notifier.ty))) (Let "$v0" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #())) (Val #()))
+  (App (Val (GoInstruction (CompositeLiteral Notifier.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"channel")) (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])) (Var "$v0")))]))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoAlloc Notifier.ty))) (Let "$v0" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #())) (Val #()))
-  (App (Val (GoInstruction (CompositeLiteral Notifier.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"channel")) (ElementExpression (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])) (Var "$v0")))])))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Notifier.ty)))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Notifier.ty)))) (Var "$res0")))))
 
 /-- Receive returns channel that can be used to wait for notification.
     Consumers will be informed by closing the channel.
@@ -46,13 +52,18 @@ noncomputable def NewNotifier.impl [GooseExts] [GoGlobalContext] : val :=
 noncomputable def Notifier.Receive.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam BAnon
-  (App (Val wrapDefer)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (Val #())))
+  (Seq (App (Val wrapDefer)
   (Lam "$defer"
   (Let "n" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Notifier.ty)))) (Var "n"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])) (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef Notifier.ty go!"channel"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Notifier.ty)))) (Var "n")))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType [])) (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (StructFieldRef Notifier.ty go!"channel"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Notifier.ty)))) (Var "n"))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RUnlock"))) (App (Val (GoInstruction (StructFieldRef Notifier.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Notifier.ty)))) (Var "n"))))
   (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
@@ -60,7 +71,8 @@ noncomputable def Notifier.Receive.impl [GooseExts] [GoGlobalContext] : val :=
   (Seq (App (Var "$f") (Val #()))
   (App (Var "$oldf") (Val #()))))))))))))
   (App (Val doExecute)
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef Notifier.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Notifier.ty)))) (Var "n")))) (Val #())))))))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"RLock"))) (App (Val (GoInstruction (StructFieldRef Notifier.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Notifier.ty)))) (Var "n")))) (Val #())))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.ChannelType go.ChanDir.recvonly (go.GoType.StructType []))))) (Var "$res0"))))))
 
 /-- Notify closes the channel passed to consumers and creates new channel to used
     for next notification.
@@ -69,11 +81,8 @@ noncomputable def Notifier.Receive.impl [GooseExts] [GoGlobalContext] : val :=
 noncomputable def Notifier.Notify.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "n"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "n" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Notifier.ty)))) (Var "n"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make1 [(go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))]))) (Val #())) (Val #()))
   (Let "newChannel" (App (Val (GoInstruction (GoAlloc (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -96,7 +105,8 @@ noncomputable def Notifier.Notify.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.RWMutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef Notifier.ty go!"mu"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Notifier.ty)))) (Var "n")))) (Val #()))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (Pair (Var "newChannel") (Var "$r0"))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.ChannelType go.ChanDir.sendrecv (go.GoType.StructType []))))) (Pair (Var "newChannel") (Var "$r0")))))))))
+  (Val #()))))
 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.pkg.v3.notify where
   pkgImportedPkgs := [pkg_id.sync]

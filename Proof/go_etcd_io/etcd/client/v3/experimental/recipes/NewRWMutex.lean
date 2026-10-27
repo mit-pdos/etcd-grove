@@ -33,9 +33,9 @@ theorem NewRWMutex.wp_proof (hTODO : EtcdGrove.context.TODO.spec (GF := GF) (hG 
   wp_auto
   wp_apply hTODO
   (try wp_auto)
-  wp_alloc m as Hm
+  irename «$r0» => Hm
+  generalize «$r0_ptr» = m at *
   iStructNamed Hm
-  wp_auto
   ipersist s
   ipersist ctx
   ipersist pfx

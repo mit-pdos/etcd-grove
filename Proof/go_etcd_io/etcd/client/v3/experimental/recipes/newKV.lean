@@ -35,8 +35,8 @@ theorem newKV.wp_proof (hPNK : putNewKV.spec (GF := GF) (hG := hG)) :
   icases Hres with (⟨%Heq, #Hr, #Hc, -, %Hrr⟩ | ⟨#Herr, %Hrev, %r, #Hr, #Hp, %Hlr⟩ | ⟨%Hne, #Hce⟩)
   · subst Heq
     wp_auto
-    wp_alloc rk as Hrk
-    wp_auto
+    irename «$r0» => Hrk
+    generalize «$r0_ptr» = rk at *
     iapply HΦ
     ileft
     isplitr

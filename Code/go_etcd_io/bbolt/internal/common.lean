@@ -207,24 +207,27 @@ noncomputable def Assert [GooseExts] [GoGlobalContext] : GoString :=
 noncomputable def Pgids.Len.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "s" (App (Val (GoInstruction (GoAlloc Pgids.ty))) (Var "s"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad Pgids.ty))) (Var "s"))
+  (App (App (Val (GoInstruction (FuncResolve go.len [Pgids.ty]))) (Val #())) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad Pgids.ty))) (Var "s"))
-  (App (App (Val (GoInstruction (FuncResolve go.len [Pgids.ty]))) (Val #())) (Var "$a0"))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0"))))))
 
 /-- go: page.go:346:16 -/
 noncomputable def Pgids.Swap.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "i"
   (Lam "j"
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "s" (App (Val (GoInstruction (GoAlloc Pgids.ty))) (Var "s"))
   (Let "j" (App (Val (GoInstruction (GoAlloc go.int))) (Var "j"))
   (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (Var "i"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (Let "$l0" (App (Val (GoInstruction (IndexRef Pgids.ty))) (Pair (App (Val (GoInstruction (GoLoad Pgids.ty))) (Var "s")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))
   (Let "$l1" (App (Val (GoInstruction (IndexRef Pgids.ty))) (Pair (App (Val (GoInstruction (GoLoad Pgids.ty))) (Var "s")) (App (Val (GoInstruction (GoLoad go.int))) (Var "j"))))
   (Let "$r0" (App (Val (GoInstruction (GoLoad Pgid.ty))) (App (Val (GoInstruction (IndexRef Pgids.ty))) (Pair (App (Val (GoInstruction (GoLoad Pgids.ty))) (Var "s")) (App (Val (GoInstruction (GoLoad go.int))) (Var "j")))))
@@ -233,19 +236,26 @@ noncomputable def Pgids.Swap.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore Pgid.ty))) (Pair (Var "$l1") (Var "$r1"))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Pgid.ty))) (Pair (Var "$l0") (Var "$r0")))))))))))))))))
+  (App (Val (GoInstruction (GoStore Pgid.ty))) (Pair (Var "$l0") (Var "$r0")))))))))))))
+  (Val #())))))
 
 /-- go: page.go:347:16 -/
 noncomputable def Pgids.Less.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "i"
   (Lam "j"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "s" (App (Val (GoInstruction (GoAlloc Pgids.ty))) (Var "s"))
   (Let "j" (App (Val (GoInstruction (GoAlloc go.int))) (Var "j"))
   (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (Var "i"))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoLt Pgid.ty))) (Pair (App (Val (GoInstruction (GoLoad Pgid.ty))) (App (Val (GoInstruction (IndexRef Pgids.ty))) (Pair (App (Val (GoInstruction (GoLoad Pgids.ty))) (Var "s")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))) (App (Val (GoInstruction (GoLoad Pgid.ty))) (App (Val (GoInstruction (IndexRef Pgids.ty))) (Pair (App (Val (GoInstruction (GoLoad Pgids.ty))) (Var "s")) (App (Val (GoInstruction (GoLoad go.int))) (Var "j")))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoOp GoLt Pgid.ty))) (Pair (App (Val (GoInstruction (GoLoad Pgid.ty))) (App (Val (GoInstruction (IndexRef Pgids.ty))) (Pair (App (Val (GoInstruction (GoLoad Pgids.ty))) (Var "s")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))) (App (Val (GoInstruction (GoLoad Pgid.ty))) (App (Val (GoInstruction (IndexRef Pgids.ty))) (Pair (App (Val (GoInstruction (GoLoad Pgids.ty))) (Var "s")) (App (Val (GoInstruction (GoLoad go.int))) (Var "j")))))))))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))))
 
 /-- Merge returns the sorted union of a and b.
 
@@ -253,7 +263,8 @@ noncomputable def Pgids.Less.impl [GooseExts] [GoGlobalContext] : val :=
 noncomputable def Pgids.Merge.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "b"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc Pgids.ty))) (App (Val (GoInstruction (GoZeroVal Pgids.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "s" (App (Val (GoInstruction (GoAlloc Pgids.ty))) (Var "s"))
   (Let "b" (App (Val (GoInstruction (GoAlloc Pgids.ty))) (Var "b"))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -264,8 +275,12 @@ noncomputable def Pgids.Merge.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "merged" (App (Val (GoInstruction (GoAlloc Pgids.ty))) (App (Val (GoInstruction (GoZeroVal Pgids.ty))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad Pgids.ty))) (Var "merged"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad Pgids.ty))) (Var "merged")))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Pgids.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad Pgids.ty))) (Var "merged"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad Pgids.ty))) (Var "s"))
@@ -275,16 +290,25 @@ noncomputable def Pgids.Merge.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (GoStore Pgids.ty))) (Pair (Var "merged") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad Pgids.ty))) (Var "b"))
   (App (App (Val (GoInstruction (FuncResolve go.len [Pgids.ty]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad Pgids.ty))) (Var "s"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad Pgids.ty))) (Var "s")))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Pgids.ty))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad Pgids.ty))) (Var "s"))
   (App (App (Val (GoInstruction (FuncResolve go.len [Pgids.ty]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad Pgids.ty))) (Var "b"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad Pgids.ty))) (Var "b")))
+  (Val #()))))
   (App (Val doExecute)
-  (Val #())))))))))
+  (App (Val (GoInstruction (GoStore Pgids.ty))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))))
+  (App (Val (GoInstruction (GoLoad Pgids.ty))) (Var "$res0"))))))
 
 /-- Mergepgids copies the sorted union of a and b into dst.
     If dst is too small, it panics.
@@ -294,13 +318,10 @@ noncomputable def Mergepgids.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "dst"
   (Lam "a"
   (Lam "b"
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "b" (App (Val (GoInstruction (GoAlloc Pgids.ty))) (Var "b"))
   (Let "a" (App (Val (GoInstruction (GoAlloc Pgids.ty))) (Var "a"))
   (Let "dst" (App (Val (GoInstruction (GoAlloc Pgids.ty))) (Var "dst"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -327,10 +348,16 @@ noncomputable def Mergepgids.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$r0" (Let "$a0" (Let "$a0" (App (Val (GoInstruction (GoLoad Pgids.ty))) (Var "lead"))
   (App (App (Val (GoInstruction (FuncResolve go.len [Pgids.ty]))) (Val #())) (Var "$a0")))
   (Let "$a1" (Lam "i"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "i" (App (Val (GoInstruction (GoAlloc go.int))) (Var "i"))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoGt Pgid.ty))) (Pair (App (Val (GoInstruction (GoLoad Pgid.ty))) (App (Val (GoInstruction (IndexRef Pgids.ty))) (Pair (App (Val (GoInstruction (GoLoad Pgids.ty))) (Var "lead")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))) (App (Val (GoInstruction (GoLoad Pgid.ty))) (App (Val (GoInstruction (IndexRef Pgids.ty))) (Pair (App (Val (GoInstruction (GoLoad Pgids.ty))) (Var "follow")) (Val #(W64 0)))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoOp GoGt Pgid.ty))) (Pair (App (Val (GoInstruction (GoLoad Pgid.ty))) (App (Val (GoInstruction (IndexRef Pgids.ty))) (Pair (App (Val (GoInstruction (GoLoad Pgids.ty))) (Var "lead")) (App (Val (GoInstruction (GoLoad go.int))) (Var "i"))))) (App (Val (GoInstruction (GoLoad Pgid.ty))) (App (Val (GoInstruction (IndexRef Pgids.ty))) (Pair (App (Val (GoInstruction (GoLoad Pgids.ty))) (Var "follow")) (Val #(W64 0)))))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.sort.Search []))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (Let "n" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -413,7 +440,8 @@ noncomputable def Mergepgids.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.fmt.Errorf []))) (Val #())) (Var "$a0")) (Var "$a1")))))
   (App (App (Val (GoInstruction (FuncResolve go.panic []))) (Val #())) (Var "$a0"))))
   (App (Val doExecute)
-  (Val #()))))))))))))
+  (Val #()))))))))
+  (Val #())))))
 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.bbolt.internal.common where
   pkgImportedPkgs := [pkg_id.fmt, pkg_id.sort]

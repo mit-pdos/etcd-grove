@@ -35,6 +35,9 @@ theorem confchange.toConfChangeSingle.wp_proof
   wp_start as Hcs
   iNamed Hcs
   -- `in` is a Lean keyword: name its cell by hand before `wp_auto` names the others
+  -- (the named result `out` is allocated before it)
+  wp_pures
+  wp_alloc out_ptr as out
   wp_pures
   wp_alloc in_ptr as Hin
   wp_auto

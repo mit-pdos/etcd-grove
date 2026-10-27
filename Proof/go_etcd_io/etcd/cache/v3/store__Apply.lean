@@ -78,6 +78,7 @@ theorem store.Apply.wp_proof
     store.Apply.spec (GF := GF) (hG := hG) := by
   intro s γ cap E R lo resp r
   wp_start as ⟨#Hs, #Hguard, #Hresp, %Hsorted, #Hlo, %Hlo0, #Hcert⟩
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit

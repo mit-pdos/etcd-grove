@@ -47,9 +47,9 @@ theorem newEphemeralKV.wp_proof (hCl : concurrency.Session.Client.spec (GF := GF
   · subst Heq
     unfold ownRemoteKV RemoteKVSt.val'
     wp_auto
-    wp_alloc ek as Hek
+    irename «$r0» => Hek
+    generalize «$r0_ptr» = ek at *
     iStructNamed Hek
-    wp_auto
     iapply HΦ
     ileft
     isplitr

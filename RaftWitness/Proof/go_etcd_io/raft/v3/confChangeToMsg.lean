@@ -68,8 +68,10 @@ theorem confChangeToMsg.wp_proof
     repeat (isplitr; · iunfold cellRO; ileft; ipureintro; exact ⟨rfl, rfl⟩)
     iunfold cellRO; ileft; ipureintro; exact ⟨rfl, rfl⟩
   imod entOwn_freeze $$ He with #He
+  iapply wp_fupd
   wp_auto
-  wp_alloc ml as Hml
+  irename «$r0» => Hml
+  generalize «$r0_ptr» = ml at *
   ihave #Hnilb := ownSlice_nil (V := w8) (GF := GF) DFrac.discard
   imod msgPtsC_of_struct ml (⟨zero_val _, pty, null, null, null, null, null,
       slice.mk slp (W64 1) (W64 1), null, null, null, null, null, slice.nil, slice.nil, slice.nil,
@@ -84,7 +86,7 @@ theorem confChangeToMsg.wp_proof
     isplitl []; · iempintro
     isplitl []; · ipureintro; trivial
     iapply ownSlice_nil
-  wp_auto
+  imodintro
   iapply HΦ $$ %ml %bs
   iframe Hc
   simp only [msgIn, show needsCap propMsgM = false from rfl]

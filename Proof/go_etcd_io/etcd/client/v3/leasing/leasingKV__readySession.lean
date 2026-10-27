@@ -31,6 +31,7 @@ theorem leasingKV.readySession.wp_proof
     leasingKV.readySession.spec (GF := GF) (hG := hG) := by
   intro lkv γ pfx
   wp_start as ⟨#Hlkv, Hrd⟩
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
@@ -69,12 +70,13 @@ theorem leasingKV.readySession.wp_proof
         iprop((sync.ownRWMutexRLocked (lkvLeases lkv).[leaseCache, go!"mu"]
           (leaseCacheInv (lkvLeases lkv) γ.lc pfx (leasingX lkv γ)) ∗
           leaseCacheInv (lkvLeases lkv) γ.lc pfx (leasingX lkv γ) sync.rfrac) ∗
+          «$res0_ptr» ↦ false ∗
           (∀ b : Bool, (sync.ownRWMutex (lkvLeases lkv).[leaseCache, go!"mu"]
             (leaseCacheInv (lkvLeases lkv) γ.lc pfx (leasingX lkv γ)) ∗
             (if b = true then sessionReady γ else iprop(True))) -∗ Φ #b))
-        $$ [] [HR HΦ] []
+        $$ [] [HR «$res0» HΦ] []
     · iapply BigSepL2.bigSepL2_singleton.2
-      iintro ⟨⟨Hrl, HP⟩, HΦ⟩
+      iintro ⟨⟨Hrl, HP⟩, Hres, HΦ⟩
       simp only [chan.nonblockingAltClausePre]
       iunfold concurrency.sessionDoneChan at Hdch
       iexists Unit, inferInstance, inferInstance, inferInstance, inferInstance, dch, γs.done
@@ -94,7 +96,7 @@ theorem leasingKV.readySession.wp_proof
       · iintro -
         iframe
     · iframe
-    · iintro ⟨⟨Hrl, HP⟩, HΦ⟩ -
+    · iintro ⟨⟨Hrl, HP⟩, Hres, HΦ⟩ -
       wp_auto
       wp_apply sync.RWMutex.wp_RUnlock $$ [$Hrl $HP] as Hrd
       iapply HΦ

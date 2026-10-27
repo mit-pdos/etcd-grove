@@ -35,11 +35,13 @@ theorem rafthttp.newSnapshotSender.wp_proof :
     #Hlg, %Hlgnn, #Hlid, #HtURLs, #Htuvs, #Hcid, #Hr, #Hraft, #Hec, #Hsrt, #Hsrtok, #Hprt, #Hprtok,
     #Hdrf, #Hls, %Hlsnn, #Hss, %Hssnn, #Hppr, #Hspr, #Hreg, #Hpreg, #HPfx, %HmemU⟩
   obtain ⟨Hmem, Hturls⟩ := HmemU
+  iapply wp_fupd
   (try wp_auto)
   wp_apply chan.wp_make1 (V := Unit) as %sc %γs ⟨#Hscc, %-, Hsco⟩
   imod alloc_broadcast_chan (E := ⊤) iprop(True) γs sc $$ Hscc Hsco with Hbc
   (try wp_auto)
-  wp_alloc s as Hs
+  irename «$r0» => Hs
+  generalize «$r0_ptr» = s at *
   iStructNamed Hs
   ipersist from'; ipersist to; ipersist cid; ipersist tr; ipersist picker; ipersist status
   ipersist r; ipersist errorc; ipersist stopc
@@ -50,7 +52,7 @@ theorem rafthttp.newSnapshotSender.wp_proof :
     · iexact Hint
     · itrivial
   ihave Hbc := ownBroadcastChan_close sc γs iprop(True) .Pending γch $$ [$Hint $Hown]
-  (try wp_auto)
+  imodintro
   iapply HΦ
   isplitr
   · iunfold snapSenderOk

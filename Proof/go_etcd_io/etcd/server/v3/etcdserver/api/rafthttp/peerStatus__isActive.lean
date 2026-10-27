@@ -32,6 +32,7 @@ theorem rafthttp.peerStatus.isActive.wp_proof :
   icases Hs with ⟨%lg, %lid, %id, -, -, -, -, #Hmu⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   wp_apply sync.Mutex.wp_Lock _ (peerStatusInv s) $$ [$Hmu] as ⟨Hlocked, Hinv⟩
   iunfold peerStatusInv at Hinv

@@ -527,7 +527,8 @@ theorem auth.authStore.RoleGrantPermission.wp_tieB
       wp_apply h_Info
       · ipureintro; exact Hlgnn
       (try wp_auto)
-      wp_alloc resp as Hresp
+      irename «$r0» => Hresp
+      generalize «$r0_ptr» = resp at *
       icases typedPointsto_split _ _ _ $$ Hresp with Hresp
       simp only [TypedPointsto.typedPointstoDef]
       iNamed Hresp
@@ -701,7 +702,8 @@ theorem auth.authStore.RoleGrantPermission.wp_tieB
       wp_apply h_Info
       · ipureintro; exact Hlgnn
       (try wp_auto)
-      wp_alloc resp as Hresp
+      irename «$r0» => Hresp
+      generalize «$r0_ptr» = resp at *
       icases typedPointsto_split _ _ _ $$ Hresp with Hresp
       simp only [TypedPointsto.typedPointstoDef]
       iNamed Hresp

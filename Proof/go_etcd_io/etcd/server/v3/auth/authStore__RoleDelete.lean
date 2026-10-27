@@ -127,6 +127,7 @@ theorem auth.authStore.RoleDelete.wp_tie
   iunfold authWBackendOk at Hbeok'
   icases Hbeok' with ⟨%bi, %Hbi, #HBatch, #HFC, -⟩
   subst Hbi
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   wp_join (Q := fun v => iprop(⌜v = #(decide (en = true ∧ role = go!"root"))⌝ ∗
@@ -505,7 +506,8 @@ theorem auth.authStore.RoleDelete.wp_tie
   wp_apply h_Info
   · ipureintro; exact Hlgnn
   (try wp_auto)
-  wp_alloc resp as Hresp
+  irename «$r0» => Hresp
+  generalize «$r0_ptr» = resp at *
   icases typedPointsto_split _ _ _ $$ Hresp with Hresp
   simp only [TypedPointsto.typedPointstoDef]
   iNamed Hresp

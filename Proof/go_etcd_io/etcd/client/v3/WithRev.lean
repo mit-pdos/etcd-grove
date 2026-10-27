@@ -29,7 +29,6 @@ theorem WithRev.wp_proof : WithRev.spec (GF := GF) (hG := hG) := by
   wp_auto
   ipersist rev
   imodintro
-  simp only [recv_eq_func_mk]
   iapply HΦ
   unfold optSpec
   imodintro

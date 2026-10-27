@@ -860,7 +860,6 @@ theorem mvcc.watchableStore.watch.wp_proof
       ipersist s
       wp_apply HgwI
       (try wp_auto)
-      simp only [recv_eq_func_mk]
       iapply HΦ
       isplitr
       · ipureintro; exact Hwnn
@@ -975,7 +974,6 @@ theorem mvcc.watchableStore.watch.wp_proof
       ipersist s
       wp_apply HgwI
       (try wp_auto)
-      simp only [recv_eq_func_mk]
       iapply HΦ
       isplitr
       · ipureintro; exact Hwnn
@@ -1100,7 +1098,6 @@ theorem mvcc.watchableStore.watch.wp_proof
         ipersist s
         wp_apply HgwI
         (try wp_auto)
-        simp only [recv_eq_func_mk]
         iapply HΦ
         isplitr
         · ipureintro; exact Hwnn
@@ -1216,7 +1213,6 @@ theorem mvcc.watchableStore.watch.wp_proof
       ipersist s
       wp_apply HgwI
       (try wp_auto)
-      simp only [recv_eq_func_mk]
       iapply HΦ
       isplitr
       · ipureintro; exact Hwnn

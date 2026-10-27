@@ -204,11 +204,11 @@ noncomputable def NewClientErrorReporter [GooseExts] [GoGlobalContext] : GoStrin
 noncomputable def NewTimeoutError.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "message"
   (Lam "retryAfterSeconds"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType StatusError.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType StatusError.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "retryAfterSeconds" (App (Val (GoInstruction (GoAlloc go.int))) (Var "retryAfterSeconds"))
   (Let "message" (App (Val (GoInstruction (GoAlloc go.string))) (Var "message"))
-  (App (Val doReturn)
-  (App (Val (GoInstruction (GoAlloc StatusError.ty))) (Let "$v0" (Let "$v0" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusFailure))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc StatusError.ty))) (Let "$v0" (Let "$v0" (App (Val (GoInstruction (Convert go.untypedString go.string))) (Val _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusFailure))
   (Let "$v1" (App (Val (GoInstruction (Convert go.untypedInt go.int32))) (Val _root_.Perennial.net.http.StatusGatewayTimeout))
   (Let "$v2" (Val _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusReasonTimeout)
   (Let "$v3" (Let "$a0" (Val #(go!"Timeout: %s"))
@@ -218,7 +218,13 @@ noncomputable def NewTimeoutError.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$v4" (App (Val (GoInstruction (GoAlloc _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusDetails.ty))) (Let "$v0" (App (Val (GoInstruction (Convert go.int go.int32))) (App (Val (GoInstruction (GoLoad go.int))) (Var "retryAfterSeconds")))
   (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusDetails.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"RetryAfterSeconds")) (ElementExpression go.int32 (Var "$v0")))]))))
   (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Status")) (ElementExpression go.string (Var "$v0"))), (KeyedElement (some (KeyField go!"Code")) (ElementExpression go.int32 (Var "$v1"))), (KeyedElement (some (KeyField go!"Reason")) (ElementExpression _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusReason.ty (Var "$v2"))), (KeyedElement (some (KeyField go!"Message")) (ElementExpression go.string (Var "$v3"))), (KeyedElement (some (KeyField go!"Details")) (ElementExpression (go.GoType.PointerType _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.StatusDetails.ty) (Var "$v4")))])))))))
-  (App (Val (GoInstruction (CompositeLiteral StatusError.ty))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status.ty (Var "$v0")))]))))))))))
+  (App (Val (GoInstruction (CompositeLiteral StatusError.ty))) (LiteralValue [(KeyedElement none (ElementExpression _root_.Perennial.k8s_io.apimachinery.pkg.apis.«meta».v1.Status.ty (Var "$v0")))]))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType StatusError.ty)))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType StatusError.ty)))) (Var "$res0"))))))
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.api.errors where
   pkgImportedPkgs := [pkg_id.fmt, pkg_id.net.http, pkg_id.k8s_io.apimachinery.pkg.apis.«meta».v1]

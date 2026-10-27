@@ -33,6 +33,7 @@ theorem auth.authStore.IsAuthEnabled.wp_proof :
   iunfold authInv at Hinv
   icases Hinv with ⟨%Hst, -, -, -, -, -, -⟩
   iunfold enabledRd at Hrd
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   wp_apply sync.RWMutex.wp_RLock $$ [$Hrd] as ⟨Hlk, HP⟩

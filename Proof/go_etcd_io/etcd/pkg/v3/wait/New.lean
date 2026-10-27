@@ -124,6 +124,7 @@ theorem wait.New.wp_proof
   wp_start
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
+  wp_auto
   wp_apply wp_slice_make2 (V := wait.listElement) (W64 64) as %sl ⟨Hsl, Hcap⟩
   · ipureintro; decide
   ihave %Hsllen := ownSlice_len _ _ _ $$ Hsl

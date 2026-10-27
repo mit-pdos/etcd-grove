@@ -60,9 +60,11 @@ theorem copyHeader.wp_proof
     · unfold hdrAt; iright; iframe #; ipureintro; exact hn
     wp_apply hraft $$ [$Ht]
     · ipureintro; exact hn
+    iapply wp_fupd
     wp_apply hlead $$ [$Hl]
     · ipureintro; exact hn
-    wp_alloc h' as Hh'
+    irename «$r0» => Hh'
+    generalize «$r0_ptr» = h' at *
     ihave %Hnn' := typedPointsto_not_null $$ Hh'
     iStructNamed Hh'
     ipersist ClusterId
@@ -70,7 +72,7 @@ theorem copyHeader.wp_proof
     ipersist Revision
     ipersist RaftTerm
     ipersist LeaderId
-    wp_auto
+    imodintro
     iapply HΦ
     iright
     iframe #

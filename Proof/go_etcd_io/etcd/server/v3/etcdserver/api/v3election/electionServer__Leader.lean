@@ -76,7 +76,8 @@ theorem electionServer.Leader.wp_proof
     icases ownSlice_elem_acc (sint.Z (W64 0)) kp sl DFrac.discard [kp] (by word) (by simp)
       $$ Hsl with ⟨#Hpe, -⟩
     (try wp_auto)
-    wp_alloc r0 as Hr
+    irename «$r0» => Hr
+    generalize «$r0_ptr» = r0 at *
     (try wp_auto)
     iapply HΦ
     ileft

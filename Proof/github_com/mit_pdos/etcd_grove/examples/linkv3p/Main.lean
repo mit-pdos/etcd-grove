@@ -73,6 +73,7 @@ theorem Main.wp_proof
   · iframe; iframe #
   icases Hup with (%Hok | ⟨%Hok, Htok, Hup⟩)
   · subst Hok
+    simp only [github_com.anishathalye.porcupine.Unknown]
     wp_auto
     iapply HΦ; ipureintro; right; rfl
   subst Hok

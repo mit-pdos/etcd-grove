@@ -94,7 +94,6 @@ theorem Client.unaryClientInterceptor.wp_proof
   wp_store
   ipersist intOpts
   wp_auto
-  rw [recv_eq_func_mk]
   iapply HΦ
   -- (D29) both modes: any precondition persistent, or an ordinary one for a write on a
   -- refusal-free connection

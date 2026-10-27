@@ -475,6 +475,7 @@ theorem rafthttp.snapshotHandler.ServeHTTP.wp_proof
               wp_apply Hmet
               run_dec
               imodintro
+              wp_pures
               iframe HRs; unfold http.handlerDone; ileft; iexists _, _; iexact Hw
             · -- `ErrStopped`: not a `writerToResponse`; `500`
               ihave #Hpraft : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
@@ -502,6 +503,7 @@ theorem rafthttp.snapshotHandler.ServeHTTP.wp_proof
               cnt_inc
               run_dec
               imodintro
+              wp_pures
               iframe HRs; unfold http.handlerDone; ileft; iexists _, _; iexact Hw
             · -- a context error: none, `TODO()`'s context is never done
               iunfold ctxErr at Hpc

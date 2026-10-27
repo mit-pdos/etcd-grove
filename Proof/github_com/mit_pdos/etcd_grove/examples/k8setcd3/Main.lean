@@ -131,6 +131,7 @@ theorem Main.wp_proof
   · cases err with
     | nil => exact absurd rfl Herr
     | ok ei => ?_
+    simp only [github_com.anishathalye.porcupine.Unknown]
     wp_auto
     iapply HΦ; ipureintro; right; rfl
   subst Herr
@@ -162,6 +163,7 @@ theorem Main.wp_proof
   · cases serr with
     | nil => exact absurd rfl Hserr
     | ok ei => ?_
+    simp only [github_com.anishathalye.porcupine.Unknown]
     wp_auto
     iapply HΦ; ipureintro; right; rfl
   subst Hserr
@@ -196,6 +198,7 @@ theorem Main.wp_proof
   · cases cerr with
     | nil => exact absurd rfl Hcfail
     | ok ei => ?_
+    simp only [github_com.anishathalye.porcupine.Unknown]
     wp_auto
     iapply HΦ; ipureintro; right; rfl
   subst Hcerr
@@ -226,6 +229,7 @@ theorem Main.wp_proof
     iframe Hs
   icases Hsd with (%Hok | ⟨%Hok, Hs, #Hst0⟩)
   · subst Hok
+    simp only [github_com.anishathalye.porcupine.Unknown]
     wp_auto
     iapply HΦ; ipureintro; right; rfl
   subst Hok

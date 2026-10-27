@@ -561,7 +561,7 @@ theorem Cache.watchEvents.wp_proof
       icases Ha with ⟨#Hwo', #Hkc', #Hk0c', %Hle'⟩
       wp_auto
       wp_for_post
-      iframe HΦ
+      iframe HΦ «$res0»
       iexists k', n + 1, updResp cap cc r
       simp only [named]
       iframe Hcons Hdw Haec

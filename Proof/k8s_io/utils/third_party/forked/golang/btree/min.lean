@@ -26,7 +26,7 @@ theorem min.wp_proof : min.spec (GF := GF) (hG := hG) := by
   wp_pures
   wp_alloc_anon
   wp_auto
-  rename_i lf lz
+  rename_i lz lf
   irename : (lf ↦ zero_val Bool : IProp GF) => Hfound
   irename : (lz ↦ zero_val V : IProp GF) => Hzero
   unfold ownRoot

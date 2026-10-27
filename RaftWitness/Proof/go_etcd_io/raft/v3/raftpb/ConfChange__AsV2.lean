@@ -59,10 +59,8 @@ theorem raftpb.ConfChange.AsV2.wp_proof
   ihave Hsl := slice_array tmp_ptr 1 (array.mk 1 [q]) (by simp) $$ tmp
   iNamed Hm
   wp_auto
-  wp_alloc_auto
-  rename_i v
-  irename : (v ↦ ({ state' := zeroValDef, Transition' := null, Changes' := slice.mk tmp_ptr (W64 1) (W64 1), Context' := cs, unknownFields' := slice.nil, sizeCache' := 0 } : raftpb.ConfChangeV2) : IProp GF) => Hv
-  wp_auto
+  irename «$r0» => Hv
+  generalize «$r0_ptr» = v at *
   -- freeze the fresh cells and objects
   imod cellRO_alloc _ _ $$ Hpt with #cty
   imod cellRO_alloc _ _ $$ «$v1» with #cnd

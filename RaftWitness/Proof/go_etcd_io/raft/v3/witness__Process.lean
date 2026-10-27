@@ -416,7 +416,7 @@ theorem witness.Process.wp_proof
       subst Hp'
       wp_auto
       wp_for_post
-      iframe HΦ
+      iframe HΦ «$res0» «$res1»
       iexists σ, p, interface.nil, mlw, false
       iframe Hstate Hp HlastError HLbσ resp handled w m
     · -- another error: returned, recorded

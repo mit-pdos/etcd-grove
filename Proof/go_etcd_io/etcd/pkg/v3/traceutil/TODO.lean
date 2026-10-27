@@ -26,7 +26,8 @@ variable [package_sem : go_etcd_io.etcd.pkg.v3.traceutil.Assumptions]
 theorem traceutil.TODO.wp_proof : traceutil.TODO.spec (GF := GF) (hG := hG) := by
   wp_start as -
   (try wp_auto)
-  wp_alloc t as Ht
+  irename «$r0» => Ht
+  generalize «$r0_ptr» = t at *
   ihave %Hnn := typedPointsto_not_null _ _ _ $$ Ht
   (try wp_auto)
   iapply HΦ

@@ -28,7 +28,6 @@ theorem WithProgressRequestInterval.wp_proof : WithProgressRequestInterval.spec 
   wp_auto
   ipersist d
   imodintro
-  simp only [recv_eq_func_mk]
   iapply HΦ
   unfold cfgOptSpec
   imodintro

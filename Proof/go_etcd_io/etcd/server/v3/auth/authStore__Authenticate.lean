@@ -136,7 +136,8 @@ theorem auth.authStore.Authenticate.wp_proof
       wp_if_destruct
       · -- no entry to write
         (try wp_auto)
-        wp_alloc rl as Hrl
+        irename «$r0» => Hrl
+        generalize «$r0_ptr» = rl at *
         (try wp_auto)
         iapply HΦ
         isplitl [HPost]
@@ -168,7 +169,8 @@ theorem auth.authStore.Authenticate.wp_proof
         wp_apply h_Write
         · ipureintro; exact Hif
         (try wp_auto)
-        wp_alloc rl as Hrl
+        irename «$r0» => Hrl
+        generalize «$r0_ptr» = rl at *
         (try wp_auto)
         iapply HΦ
         isplitl [HPost]
@@ -240,7 +242,8 @@ theorem auth.authStore.Authenticate.wp_proof
       wp_if_destruct
       · -- no entry to write
         (try wp_auto)
-        wp_alloc rl as Hrl
+        irename «$r0» => Hrl
+        generalize «$r0_ptr» = rl at *
         (try wp_auto)
         iapply HΦ
         isplitl [HPost]
@@ -272,7 +275,8 @@ theorem auth.authStore.Authenticate.wp_proof
         wp_apply h_Write
         · ipureintro; exact Hif
         (try wp_auto)
-        wp_alloc rl as Hrl
+        irename «$r0» => Hrl
+        generalize «$r0_ptr» = rl at *
         (try wp_auto)
         iapply HΦ
         isplitl [HPost]

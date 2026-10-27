@@ -136,7 +136,8 @@ noncomputable def NewBytesAffinePoint [GooseExts] [GoGlobalContext] : GoString :
 noncomputable def Interval.Compare.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ivl"
   (Lam "c"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "ivl" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType Interval.ty)))) (Var "ivl"))
   (Let "c" (App (Val (GoInstruction (GoAlloc Comparable.ty))) (Var "c"))
   (Let "$r0" (App (Val (GoInstruction (TypeAssert (go.GoType.PointerType Interval.ty)))) (App (Val (GoInstruction (GoLoad Comparable.ty))) (Var "c")))
@@ -156,16 +157,28 @@ noncomputable def Interval.Compare.impl [GooseExts] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(W64 0))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Val #(W64 0)))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGe go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "ivbCmpEnd")) (Val #(W64 0)))))
+  (Let "$r0" (Val #(W64 1))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Val #(W64 1)))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "ivbCmpBegin")) (Val #(W64 0)))) (App (Val (GoInstruction (GoOp GoLe go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "iveCmpBegin")) (Val #(W64 0)))) (Val #false)))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (App (Val (GoInstruction (GoUnOp GoNeg go.untypedInt))) (Val #(1 : Int))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert go.untypedInt go.int))) (App (Val (GoInstruction (GoUnOp GoNeg go.untypedInt))) (Val #(1 : Int)))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
@@ -175,29 +188,41 @@ noncomputable def Interval.Compare.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "ivbCmpBegin") (Var "$r0")))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Interval.ty)))) (Pair (Var "ivl2") (Var "$r0"))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType Interval.ty)))) (Pair (Var "ivl2") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0"))))))
 
 /-- go: interval_tree.go:90:24 -/
 noncomputable def intervalNode.color.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "sentinel"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc rbcolor.ty))) (App (Val (GoInstruction (GoZeroVal rbcolor.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "x" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType intervalNode.ty)))) (Var "x"))
   (Let "sentinel" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType intervalNode.ty)))) (Var "sentinel"))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad rbcolor.ty))) (App (Val (GoInstruction (StructFieldRef intervalNode.ty go!"c"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (Var "x"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad rbcolor.ty))) (App (Val (GoInstruction (StructFieldRef intervalNode.ty go!"c"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (Var "x")))))))
-  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType intervalNode.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (Var "x")) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (Var "sentinel")))))
-  (App (Val doReturn)
-  (Val black))
+  (Val #()))))
   (App (Val doExecute)
-  (Val #())))))))))
+  (App (Val (GoInstruction (GoStore rbcolor.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType intervalNode.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (Var "x")) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (Var "sentinel")))))
+  (Let "$r0" (Val black)
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore rbcolor.ty))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))))
+  (App (Val (GoInstruction (GoLoad rbcolor.ty))) (Var "$res0"))))))
 
 /-- go: interval_tree.go:97:24 -/
 noncomputable def intervalNode.height.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "sentinel"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "x" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType intervalNode.ty)))) (Var "x"))
   (Let "sentinel" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType intervalNode.ty)))) (Var "sentinel"))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -210,11 +235,19 @@ noncomputable def intervalNode.height.impl [GooseExts] [GoGlobalContext] : val :
   (Let "rd" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "ld")) (Val #(W64 1))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "ld")) (Val #(W64 1)))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "ld")) (App (Val (GoInstruction (GoLoad go.int))) (Var "rd")))))
+  (Let "$r0" (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "rd")) (Val #(W64 1))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "rd")) (Val #(W64 1)))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
@@ -222,28 +255,39 @@ noncomputable def intervalNode.height.impl [GooseExts] [GoGlobalContext] : val :
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "ld") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType intervalNode.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (Var "x")) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (Var "sentinel")))))
+  (Let "$r0" (Val #(W64 0))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Val #(W64 0)))
+  (Val #()))))
   (App (Val doExecute)
-  (Val #())))))))))
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))))
+  (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0"))))))
 
 /-- go: interval_tree.go:109:24 -/
 noncomputable def intervalNode.min.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "sentinel"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType intervalNode.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType intervalNode.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "x" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType intervalNode.ty)))) (Var "x"))
   (Let "sentinel" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType intervalNode.ty)))) (Var "sentinel"))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (Var "x"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (Var "x")))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType intervalNode.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (App (App (Val doFor) (Lam BAnon
   (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType intervalNode.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (App (Val (GoInstruction (StructFieldRef intervalNode.ty go!"left"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (Var "x")))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (Var "sentinel"))))))) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (App (Val (GoInstruction (StructFieldRef intervalNode.ty go!"left"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (Var "x"))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType intervalNode.ty)))) (Pair (Var "x") (Var "$r0")))))))
   (Lam BAnon
-  (Val #())))))))))
+  (Val #())))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (Var "$res0"))))))
 
 /-- successor is the next in-order node in the tree
 
@@ -251,7 +295,8 @@ noncomputable def intervalNode.min.impl [GooseExts] [GoGlobalContext] : val :=
 noncomputable def intervalNode.successor.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "sentinel"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType intervalNode.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType intervalNode.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "x" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType intervalNode.ty)))) (Var "x"))
   (Let "sentinel" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType intervalNode.ty)))) (Var "sentinel"))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -259,8 +304,12 @@ noncomputable def intervalNode.successor.impl [GooseExts] [GoGlobalContext] : va
   (Let "y" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType intervalNode.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType intervalNode.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (Var "y"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (Var "y")))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType intervalNode.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (App (App (Val doFor) (Lam BAnon
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType intervalNode.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (Var "y")) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (Var "sentinel"))))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType intervalNode.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (Var "x")) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (App (Val (GoInstruction (StructFieldRef intervalNode.ty go!"right"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (Var "y")))))) (Val #false)))) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (Var "y"))
@@ -275,11 +324,16 @@ noncomputable def intervalNode.successor.impl [GooseExts] [GoGlobalContext] : va
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType intervalNode.ty)))) (Pair (Var "y") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType intervalNode.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (App (Val (GoInstruction (StructFieldRef intervalNode.ty go!"right"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (Var "x")))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (Var "sentinel"))))))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (Var "sentinel"))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType intervalNode.ty) go!"min"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (App (Val (GoInstruction (StructFieldRef intervalNode.ty go!"right"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (Var "x"))))) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (Var "sentinel"))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType intervalNode.ty) go!"min"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (App (Val (GoInstruction (StructFieldRef intervalNode.ty go!"right"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (Var "x"))))) (Var "$a0"))))
+  (Val #()))))
   (App (Val doExecute)
-  (Val #())))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType intervalNode.ty)))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (Var "$res0"))))))
 
 /-- updateMax updates the maximum values for a node and its ancestors
 
@@ -287,12 +341,9 @@ noncomputable def intervalNode.successor.impl [GooseExts] [GoGlobalContext] : va
 noncomputable def intervalNode.updateMax.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "x"
   (Lam "sentinel"
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "x" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType intervalNode.ty)))) (Var "x"))
   (Let "sentinel" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType intervalNode.ty)))) (Var "sentinel"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (App (App (Val doFor) (Lam BAnon
   (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType intervalNode.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (Var "x")) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (Var "sentinel"))))))) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad Comparable.ty))) (App (Val (GoInstruction (StructFieldRef intervalNode.ty go!"max"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (Var "x"))))
@@ -335,7 +386,8 @@ noncomputable def intervalNode.updateMax.impl [GooseExts] [GoGlobalContext] : va
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore Comparable.ty))) (Pair (Var "oldmax") (Var "$r0")))))))))
   (Lam BAnon
-  (Val #())))))))))
+  (Val #()))))))
+  (Val #()))))
 
 /-- visit will call a node visitor on each node that overlaps the given interval
 
@@ -345,7 +397,8 @@ noncomputable def intervalNode.visit.impl [GooseExts] [GoGlobalContext] : val :=
   (Lam "iv"
   (Lam "sentinel"
   (Lam "nv"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "x" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType intervalNode.ty)))) (Var "x"))
   (Let "nv" (App (Val (GoInstruction (GoAlloc nodeVisitor.ty))) (Var "nv"))
   (Let "sentinel" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType intervalNode.ty)))) (Var "sentinel"))
@@ -356,16 +409,24 @@ noncomputable def intervalNode.visit.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "v" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Val #true))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
   (Let "$sw" (Val #true)
   (If (App (Val (GoInstruction (GoOp GoEquals go.bool))) (Pair (Var "$sw") (App (Val (GoInstruction (GoOp GoLt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "v")) (Val #(W64 0))))))
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType Interval.ty)))) (Var "iv"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (Var "sentinel"))
   (Let "$a2" (App (Val (GoInstruction (GoLoad nodeVisitor.ty))) (Var "nv"))
   (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType intervalNode.ty) go!"visit"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (App (Val (GoInstruction (StructFieldRef intervalNode.ty go!"left"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (Var "x"))))) (Var "$a0")) (Var "$a1")) (Var "$a2"))))))
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Val #false))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #())))
   (If (App (Val (GoInstruction (GoOp GoEquals go.bool))) (Pair (Var "$sw") (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "v")) (Val #(W64 0))))))
@@ -383,8 +444,12 @@ noncomputable def intervalNode.visit.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (Var "sentinel"))
   (Let "$a2" (App (Val (GoInstruction (GoLoad nodeVisitor.ty))) (Var "nv"))
   (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType intervalNode.ty) go!"visit"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (App (Val (GoInstruction (StructFieldRef intervalNode.ty go!"right"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (Var "x"))))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Val #false))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #())))
   (App (Val doExecute)
@@ -399,24 +464,34 @@ noncomputable def intervalNode.visit.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (Var "sentinel"))
   (Let "$a2" (App (Val (GoInstruction (GoLoad nodeVisitor.ty))) (Var "nv"))
   (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType intervalNode.ty) go!"visit"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (App (Val (GoInstruction (StructFieldRef intervalNode.ty go!"right"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (Var "x"))))) (Var "$a0")) (Var "$a1")) (Var "$a2")))))))
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Val #false))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #())))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "v") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType intervalNode.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (Var "x")) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (Var "sentinel")))))
+  (Let "$r0" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Val #true))
+  (Val #()))))
   (App (Val doExecute)
-  (Val #())))))))))))))
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))))
 
 /-- NewIntervalTree returns a new interval tree.
 
     go: interval_tree.go:213:6 -/
 noncomputable def NewIntervalTree.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc IntervalTree.ty))) (App (Val (GoInstruction (GoZeroVal IntervalTree.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "$r0" (App (Val (GoInstruction (GoAlloc intervalNode.ty))) (Let "$v0" (App (Val (GoInstruction (CompositeLiteral IntervalValue.ty))) (LiteralValue []))
   (Let "$v1" (Val UntypedNil)
   (Let "$v2" (Val UntypedNil)
@@ -426,13 +501,18 @@ noncomputable def NewIntervalTree.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val (GoInstruction (CompositeLiteral intervalNode.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"iv")) (ElementExpression IntervalValue.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"max")) (ElementExpression go.untypedNil (Var "$v1"))), (KeyedElement (some (KeyField go!"left")) (ElementExpression go.untypedNil (Var "$v2"))), (KeyedElement (some (KeyField go!"right")) (ElementExpression go.untypedNil (Var "$v3"))), (KeyedElement (some (KeyField go!"parent")) (ElementExpression go.untypedNil (Var "$v4"))), (KeyedElement (some (KeyField go!"c")) (ElementExpression rbcolor.ty (Var "$v5")))])))))))))
   (Let "sentinel" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType intervalNode.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType intervalNode.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (App (Val (GoInstruction (Convert (go.GoType.PointerType intervalTree.ty) IntervalTree.ty))) (App (Val (GoInstruction (GoAlloc intervalTree.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (Var "sentinel"))
+  (Let "$r0" (App (Val (GoInstruction (Convert (go.GoType.PointerType intervalTree.ty) IntervalTree.ty))) (App (Val (GoInstruction (GoAlloc intervalTree.ty))) (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (Var "sentinel"))
   (Let "$v1" (Val #(W64 0))
   (Let "$v2" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (Var "sentinel"))
-  (App (Val (GoInstruction (CompositeLiteral intervalTree.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"root")) (ElementExpression (go.GoType.PointerType intervalNode.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"count")) (ElementExpression go.int (Var "$v1"))), (KeyedElement (some (KeyField go!"sentinel")) (ElementExpression (go.GoType.PointerType intervalNode.ty) (Var "$v2")))]))))))))))
+  (App (Val (GoInstruction (CompositeLiteral intervalTree.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"root")) (ElementExpression (go.GoType.PointerType intervalNode.ty) (Var "$v0"))), (KeyedElement (some (KeyField go!"count")) (ElementExpression go.int (Var "$v1"))), (KeyedElement (some (KeyField go!"sentinel")) (ElementExpression (go.GoType.PointerType intervalNode.ty) (Var "$v2")))])))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType intervalNode.ty)))) (Pair (Var "sentinel") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore IntervalTree.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType intervalNode.ty)))) (Pair (Var "sentinel") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad IntervalTree.ty))) (Var "$res0")))))
 
 /-- Delete removes the node with the given interval from the tree, returning
     true if a node is in fact removed.
@@ -441,7 +521,8 @@ noncomputable def NewIntervalTree.impl [GooseExts] [GoGlobalContext] : val :=
 noncomputable def intervalTree.Delete.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ivt"
   (Lam "ivl"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "ivt" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType intervalTree.ty)))) (Var "ivt"))
   (Let "ivl" (App (Val (GoInstruction (GoAlloc Interval.ty))) (Var "ivl"))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad Interval.ty))) (Var "ivl"))
@@ -463,8 +544,12 @@ noncomputable def intervalTree.Delete.impl [GooseExts] [GoGlobalContext] : val :
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Val #true))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.int))) (Pair (App (Val (GoInstruction (StructFieldRef intervalTree.ty go!"count"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalTree.ty)))) (Var "ivt"))) (App (Val (GoInstruction (GoOp GoSub go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef intervalTree.ty go!"count"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalTree.ty)))) (Var "ivt")))) (Val #(W64 1))))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals rbcolor.ty))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (App (Val (GoInstruction (StructFieldRef intervalTree.ty go!"sentinel"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalTree.ty)))) (Var "ivt"))))
@@ -523,12 +608,17 @@ noncomputable def intervalTree.Delete.impl [GooseExts] [GoGlobalContext] : val :
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType intervalNode.ty)))) (Pair (Var "y") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType intervalNode.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (Var "z")) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (App (Val (GoInstruction (StructFieldRef intervalTree.ty go!"sentinel"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalTree.ty)))) (Var "ivt")))))))
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Val #false))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType intervalNode.ty)))) (Pair (Var "z") (Var "$r0"))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType intervalNode.ty)))) (Pair (Var "z") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
 
 /-- "Introduction to Algorithms" (Cormen et al, 3rd ed.), chapter 13.4, p326
 
@@ -578,12 +668,9 @@ noncomputable def intervalTree.Delete.impl [GooseExts] [GoGlobalContext] : val :
 noncomputable def intervalTree.deleteFixup.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ivt"
   (Lam "x"
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "ivt" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType intervalTree.ty)))) (Var "ivt"))
   (Let "x" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType intervalNode.ty)))) (Var "x"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType intervalNode.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (Var "x")) (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType intervalNode.ty)))) (Val UntypedNil))))))
   (Let "$r0" (Val black)
@@ -756,19 +843,20 @@ noncomputable def intervalTree.deleteFixup.impl [GooseExts] [GoGlobalContext] : 
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType intervalNode.ty)))) (Pair (Var "w") (Var "$r0"))))))))))
   (Lam BAnon
-  (Val #()))))))))))
+  (Val #())))))))
+  (Val #()))))
 
 /-- go: interval_tree.go:426:26 -/
 noncomputable def intervalTree.createIntervalNode.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ivt"
   (Lam "ivl"
   (Lam "val"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType intervalNode.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType intervalNode.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "ivt" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType intervalTree.ty)))) (Var "ivt"))
   (Let "val" (App (Val (GoInstruction (GoAlloc go.any))) (Var "val"))
   (Let "ivl" (App (Val (GoInstruction (GoAlloc Interval.ty))) (Var "ivl"))
-  (App (Val doReturn)
-  (App (Val (GoInstruction (GoAlloc intervalNode.ty))) (Let "$v0" (Let "$v0" (App (Val (GoInstruction (GoLoad Interval.ty))) (Var "ivl"))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc intervalNode.ty))) (Let "$v0" (Let "$v0" (App (Val (GoInstruction (GoLoad Interval.ty))) (Var "ivl"))
   (Let "$v1" (App (Val (GoInstruction (GoLoad go.any))) (Var "val"))
   (App (Val (GoInstruction (CompositeLiteral IntervalValue.ty))) (LiteralValue [(KeyedElement none (ElementExpression Interval.ty (Var "$v0"))), (KeyedElement none (ElementExpression go.any (Var "$v1")))]))))
   (Let "$v1" (App (Val (GoInstruction (GoLoad Comparable.ty))) (App (Val (GoInstruction (StructFieldRef Interval.ty go!"End"))) (Var "ivl")))
@@ -776,7 +864,13 @@ noncomputable def intervalTree.createIntervalNode.impl [GooseExts] [GoGlobalCont
   (Let "$v3" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (App (Val (GoInstruction (StructFieldRef intervalTree.ty go!"sentinel"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalTree.ty)))) (Var "ivt"))))
   (Let "$v4" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (App (Val (GoInstruction (StructFieldRef intervalTree.ty go!"sentinel"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalTree.ty)))) (Var "ivt"))))
   (Let "$v5" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (App (Val (GoInstruction (StructFieldRef intervalTree.ty go!"sentinel"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalTree.ty)))) (Var "ivt"))))
-  (App (Val (GoInstruction (CompositeLiteral intervalNode.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"iv")) (ElementExpression IntervalValue.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"max")) (ElementExpression Comparable.ty (Var "$v1"))), (KeyedElement (some (KeyField go!"c")) (ElementExpression rbcolor.ty (Var "$v2"))), (KeyedElement (some (KeyField go!"left")) (ElementExpression (go.GoType.PointerType intervalNode.ty) (Var "$v3"))), (KeyedElement (some (KeyField go!"right")) (ElementExpression (go.GoType.PointerType intervalNode.ty) (Var "$v4"))), (KeyedElement (some (KeyField go!"parent")) (ElementExpression (go.GoType.PointerType intervalNode.ty) (Var "$v5")))])))))))))))))))))
+  (App (Val (GoInstruction (CompositeLiteral intervalNode.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"iv")) (ElementExpression IntervalValue.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"max")) (ElementExpression Comparable.ty (Var "$v1"))), (KeyedElement (some (KeyField go!"c")) (ElementExpression rbcolor.ty (Var "$v2"))), (KeyedElement (some (KeyField go!"left")) (ElementExpression (go.GoType.PointerType intervalNode.ty) (Var "$v3"))), (KeyedElement (some (KeyField go!"right")) (ElementExpression (go.GoType.PointerType intervalNode.ty) (Var "$v4"))), (KeyedElement (some (KeyField go!"parent")) (ElementExpression (go.GoType.PointerType intervalNode.ty) (Var "$v5")))])))))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType intervalNode.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (Var "$res0")))))))
 
 /-- Insert adds a node with the given interval into the tree.
 
@@ -789,13 +883,10 @@ noncomputable def intervalTree.Insert.impl [GooseExts] [GoGlobalContext] : val :
   (LamV "ivt"
   (Lam "ivl"
   (Lam "val"
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "ivt" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType intervalTree.ty)))) (Var "ivt"))
   (Let "val" (App (Val (GoInstruction (GoAlloc go.any))) (Var "val"))
   (Let "ivl" (App (Val (GoInstruction (GoAlloc Interval.ty))) (Var "ivl"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (App (Val (GoInstruction (StructFieldRef intervalTree.ty go!"sentinel"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalTree.ty)))) (Var "ivt"))))
   (Let "y" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType intervalNode.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType intervalNode.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -888,7 +979,8 @@ noncomputable def intervalTree.Insert.impl [GooseExts] [GoGlobalContext] : val :
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType intervalNode.ty)))) (Pair (Var "z") (Var "$r0")))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType intervalNode.ty)))) (Pair (Var "y") (Var "$r0")))))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType intervalNode.ty)))) (Pair (Var "y") (Var "$r0")))))))))))
+  (Val #())))))
 
 /-- "Introduction to Algorithms" (Cormen et al, 3rd ed.), chapter 13.3, p316
 
@@ -928,12 +1020,9 @@ noncomputable def intervalTree.Insert.impl [GooseExts] [GoGlobalContext] : val :
 noncomputable def intervalTree.insertFixup.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ivt"
   (Lam "z"
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "ivt" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType intervalTree.ty)))) (Var "ivt"))
   (Let "z" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType intervalNode.ty)))) (Var "z"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val black)
   (App (Val doExecute)
@@ -1031,7 +1120,8 @@ noncomputable def intervalTree.insertFixup.impl [GooseExts] [GoGlobalContext] : 
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType intervalNode.ty)))) (Pair (Var "y") (Var "$r0"))))))))))
   (Lam BAnon
-  (Val #()))))))))))
+  (Val #())))))))
+  (Val #()))))
 
 /-- rotateLeft moves x so it is left of its right child
 
@@ -1061,12 +1151,9 @@ noncomputable def intervalTree.insertFixup.impl [GooseExts] [GoGlobalContext] : 
 noncomputable def intervalTree.rotateLeft.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ivt"
   (Lam "x"
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "ivt" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType intervalTree.ty)))) (Var "ivt"))
   (Let "x" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType intervalNode.ty)))) (Var "x"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (App (Val (GoInstruction (StructFieldRef intervalNode.ty go!"right"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (Var "x"))))
   (Let "y" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType intervalNode.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType intervalNode.ty)))) (Val #())))
@@ -1104,7 +1191,8 @@ noncomputable def intervalTree.rotateLeft.impl [GooseExts] [GoGlobalContext] : v
   (App (Val doReturn)
   (Val #()))
   (App (Val doExecute)
-  (Val #()))))))))))
+  (Val #())))))))
+  (Val #()))))
 
 /-- rotateRight moves x so it is right of its left child
 
@@ -1132,12 +1220,9 @@ noncomputable def intervalTree.rotateLeft.impl [GooseExts] [GoGlobalContext] : v
 noncomputable def intervalTree.rotateRight.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ivt"
   (Lam "x"
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "ivt" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType intervalTree.ty)))) (Var "ivt"))
   (Let "x" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType intervalNode.ty)))) (Var "x"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (App (Val (GoInstruction (StructFieldRef intervalNode.ty go!"left"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (Var "x"))))
   (Let "y" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType intervalNode.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType intervalNode.ty)))) (Val #())))
@@ -1175,7 +1260,8 @@ noncomputable def intervalTree.rotateRight.impl [GooseExts] [GoGlobalContext] : 
   (App (Val doReturn)
   (Val #()))
   (App (Val doExecute)
-  (Val #()))))))))))
+  (Val #())))))))
+  (Val #()))))
 
 /-- replaceParent replaces x's parent with y
 
@@ -1184,13 +1270,10 @@ noncomputable def intervalTree.replaceParent.impl [GooseExts] [GoGlobalContext] 
   (LamV "ivt"
   (Lam "x"
   (Lam "y"
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "ivt" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType intervalTree.ty)))) (Var "ivt"))
   (Let "y" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType intervalNode.ty)))) (Var "y"))
   (Let "x" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType intervalNode.ty)))) (Var "x"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (App (Val (GoInstruction (StructFieldRef intervalNode.ty go!"parent"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (Var "x"))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1213,7 +1296,8 @@ noncomputable def intervalTree.replaceParent.impl [GooseExts] [GoGlobalContext] 
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType intervalNode.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef intervalNode.ty go!"right"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (App (Val (GoInstruction (StructFieldRef intervalNode.ty go!"parent"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (Var "x"))))) (Var "$r0")))))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType intervalNode.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef intervalNode.ty go!"parent"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (Var "y"))) (Var "$r0"))))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType intervalNode.ty)))) (Pair (App (Val (GoInstruction (StructFieldRef intervalNode.ty go!"parent"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (Var "y"))) (Var "$r0"))))))))))
+  (Val #())))))
 
 /-- Len gives the number of elements in the tree
 
@@ -1221,10 +1305,16 @@ noncomputable def intervalTree.replaceParent.impl [GooseExts] [GoGlobalContext] 
 noncomputable def intervalTree.Len.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ivt"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "ivt" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType intervalTree.ty)))) (Var "ivt"))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef intervalTree.ty go!"count"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalTree.ty)))) (Var "ivt"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef intervalTree.ty go!"count"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalTree.ty)))) (Var "ivt")))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0"))))))
 
 /-- Height is the number of levels in the tree; one node has height 1.
 
@@ -1232,11 +1322,17 @@ noncomputable def intervalTree.Len.impl [GooseExts] [GoGlobalContext] : val :=
 noncomputable def intervalTree.Height.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ivt"
   (Lam BAnon
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "ivt" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType intervalTree.ty)))) (Var "ivt"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (App (Val (GoInstruction (StructFieldRef intervalTree.ty go!"sentinel"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalTree.ty)))) (Var "ivt"))))
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType intervalNode.ty) go!"height"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (App (Val (GoInstruction (StructFieldRef intervalTree.ty go!"root"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalTree.ty)))) (Var "ivt"))))) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (App (Val (GoInstruction (StructFieldRef intervalTree.ty go!"sentinel"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalTree.ty)))) (Var "ivt"))))
-  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType intervalNode.ty) go!"height"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (App (Val (GoInstruction (StructFieldRef intervalTree.ty go!"root"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalTree.ty)))) (Var "ivt"))))) (Var "$a0"))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0"))))))
 
 /-- Visit calls a visitor function on every tree node intersecting the given interval.
     It will visit each interval [x, y) in ascending order sorted on x.
@@ -1246,23 +1342,27 @@ noncomputable def intervalTree.Visit.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ivt"
   (Lam "ivl"
   (Lam "ivv"
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "ivt" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType intervalTree.ty)))) (Var "ivt"))
   (Let "ivv" (App (Val (GoInstruction (GoAlloc IntervalVisitor.ty))) (Var "ivv"))
   (Let "ivl" (App (Val (GoInstruction (GoAlloc Interval.ty))) (Var "ivl"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #()))))
   (App (Val doExecute)
   (Let "$a0" (Var "ivl")
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (App (Val (GoInstruction (StructFieldRef intervalTree.ty go!"sentinel"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalTree.ty)))) (Var "ivt"))))
   (Let "$a2" (Lam "n"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "n" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType intervalNode.ty)))) (Var "n"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (StructFieldRef intervalNode.ty go!"iv"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (Var "n")))
+  (App (App (Val (GoInstruction (GoLoad IntervalVisitor.ty))) (Var "ivv")) (Var "$a0")))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (StructFieldRef intervalNode.ty go!"iv"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (Var "n")))
-  (App (App (Val (GoInstruction (GoLoad IntervalVisitor.ty))) (Var "ivv")) (Var "$a0")))))))
-  (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType intervalNode.ty) go!"visit"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (App (Val (GoInstruction (StructFieldRef intervalTree.ty go!"root"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalTree.ty)))) (Var "ivt"))))) (Var "$a0")) (Var "$a1")) (Var "$a2"))))))))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
+  (App (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType intervalNode.ty) go!"visit"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (App (Val (GoInstruction (StructFieldRef intervalTree.ty go!"root"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalTree.ty)))) (Var "ivt"))))) (Var "$a0")) (Var "$a1")) (Var "$a2"))))))))))
+  (Val #())))))
 
 /-- find the exact node for a given interval. The implementation follows
     Cormen "Introduction to Algorithms", Chapter 14 Exercise 14.3.5. for
@@ -1273,15 +1373,20 @@ noncomputable def intervalTree.Visit.impl [GooseExts] [GoGlobalContext] : val :=
 noncomputable def intervalTree.find.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ivt"
   (Lam "ivl"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType intervalNode.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType intervalNode.ty)))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "ivt" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType intervalTree.ty)))) (Var "ivt"))
   (Let "ivl" (App (Val (GoInstruction (GoAlloc Interval.ty))) (Var "ivl"))
   (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (App (Val (GoInstruction (StructFieldRef intervalTree.ty go!"root"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalTree.ty)))) (Var "ivt"))))
   (Let "x" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType intervalNode.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType intervalNode.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (Var "x"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (Var "x")))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType intervalNode.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (App (App (Val doFor) (Lam BAnon
   (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType intervalNode.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (Var "x")) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (App (Val (GoInstruction (StructFieldRef intervalTree.ty go!"sentinel"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalTree.ty)))) (Var "ivt"))))))))) (Lam BAnon
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad Comparable.ty))) (App (Val (GoInstruction (StructFieldRef Interval.ty go!"Begin"))) (App (Val (GoInstruction (StructFieldRef IntervalValue.ty go!"Ivl"))) (App (Val (GoInstruction (StructFieldRef intervalNode.ty go!"iv"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (Var "x"))))))
@@ -1309,8 +1414,12 @@ noncomputable def intervalTree.find.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.PointerType intervalNode.ty)))) (Pair (Var "x") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (If (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "beginCompare")) (Val #(W64 0)))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (Var "endCompare")) (Val #(W64 0)))) (Val #false)))
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (Var "x"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (Var "x")))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType intervalNode.ty)))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
@@ -1320,7 +1429,8 @@ noncomputable def intervalTree.find.impl [GooseExts] [GoGlobalContext] : val :=
   (Lam BAnon
   (Val #()))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType intervalNode.ty)))) (Pair (Var "x") (Var "$r0"))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType intervalNode.ty)))) (Pair (Var "x") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (Var "$res0"))))))
 
 /-- Find gets the IntervalValue for the node matching the given interval
 
@@ -1328,8 +1438,9 @@ noncomputable def intervalTree.find.impl [GooseExts] [GoGlobalContext] : val :=
 noncomputable def intervalTree.Find.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ivt"
   (Lam "ivl"
-  (App (Val exceptionDo)
   (Let "ret" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType IntervalValue.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType IntervalValue.ty)))) (Val #())))
+  (Let "$res0" (Var "ret")
+  (Seq (App (Val exceptionDo)
   (Let "ivt" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType intervalTree.ty)))) (Var "ivt"))
   (Let "ivl" (App (Val (GoInstruction (GoAlloc Interval.ty))) (Var "ivl"))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad Interval.ty))) (Var "ivl"))
@@ -1337,15 +1448,24 @@ noncomputable def intervalTree.Find.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "n" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType intervalNode.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType intervalNode.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (StructFieldRef intervalNode.ty go!"iv"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (Var "n")))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (StructFieldRef intervalNode.ty go!"iv"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (Var "n"))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType IntervalValue.ty)))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType intervalNode.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (Var "n")) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (App (Val (GoInstruction (StructFieldRef intervalTree.ty go!"sentinel"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalTree.ty)))) (Var "ivt")))))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType IntervalValue.ty)))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.PointerType IntervalValue.ty)))) (Val UntypedNil)))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType IntervalValue.ty)))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType intervalNode.ty)))) (Pair (Var "n") (Var "$r0")))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType intervalNode.ty)))) (Pair (Var "n") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType IntervalValue.ty)))) (Var "$res0")))))))
 
 /-- Intersects returns true if there is some tree node intersecting the given interval.
 
@@ -1353,15 +1473,20 @@ noncomputable def intervalTree.Find.impl [GooseExts] [GoGlobalContext] : val :=
 noncomputable def intervalTree.Intersects.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ivt"
   (Lam "iv"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "ivt" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType intervalTree.ty)))) (Var "ivt"))
   (Let "iv" (App (Val (GoInstruction (GoAlloc Interval.ty))) (Var "iv"))
   (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (App (Val (GoInstruction (StructFieldRef intervalTree.ty go!"root"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalTree.ty)))) (Var "ivt"))))
   (Let "x" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType intervalNode.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType intervalNode.ty)))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType intervalNode.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (Var "x")) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (App (Val (GoInstruction (StructFieldRef intervalTree.ty go!"sentinel"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalTree.ty)))) (Var "ivt")))))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType intervalNode.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (Var "x")) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (App (Val (GoInstruction (StructFieldRef intervalTree.ty go!"sentinel"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalTree.ty)))) (Var "ivt"))))))))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (App (App (Val doFor) (Lam BAnon
   (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals (go.GoType.PointerType intervalNode.ty)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (Var "x")) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (App (Val (GoInstruction (StructFieldRef intervalTree.ty go!"sentinel"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalTree.ty)))) (Var "ivt"))))))) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (Convert (go.GoType.PointerType Interval.ty) Comparable.ty))) (App (Val (GoInstruction (StructFieldRef IntervalValue.ty go!"Ivl"))) (App (Val (GoInstruction (StructFieldRef intervalNode.ty go!"iv"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalNode.ty)))) (Var "x")))))
   (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType Interval.ty) go!"Compare"))) (Var "iv")) (Var "$a0"))) (Val #(W64 0))))) (Val #false)))) (Lam BAnon
@@ -1376,7 +1501,8 @@ noncomputable def intervalTree.Intersects.impl [GooseExts] [GoGlobalContext] : v
   (Lam BAnon
   (Val #()))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.PointerType intervalNode.ty)))) (Pair (Var "x") (Var "$r0"))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType intervalNode.ty)))) (Pair (Var "x") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
 
 /-- Contains returns true if the interval tree's keys cover the entire given interval.
 
@@ -1384,7 +1510,8 @@ noncomputable def intervalTree.Intersects.impl [GooseExts] [GoGlobalContext] : v
 noncomputable def intervalTree.Contains.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ivt"
   (Lam "ivl"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "ivt" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType intervalTree.ty)))) (Var "ivt"))
   (Let "ivl" (App (Val (GoInstruction (GoAlloc Interval.ty))) (Var "ivl"))
   (Let "minBegin" (App (Val (GoInstruction (GoAlloc Comparable.ty))) (App (Val (GoInstruction (GoZeroVal Comparable.ty))) (Val #())))
@@ -1393,20 +1520,29 @@ noncomputable def intervalTree.Contains.impl [GooseExts] [GoGlobalContext] : val
   (Let "isContiguous" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (If (If (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "isContiguous")) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals Comparable.ty))) (Pair (App (Val (GoInstruction (GoLoad Comparable.ty))) (Var "minBegin")) (App (Val (GoInstruction (Convert go.untypedNil Comparable.ty))) (Val UntypedNil))))) (Val #false)) (App (Val (GoInstruction (GoOp GoGe go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad Comparable.ty))) (App (Val (GoInstruction (StructFieldRef Interval.ty go!"End"))) (Var "ivl")))
+  (Let "$r0" (If (If (If (App (Val (GoInstruction (GoLoad go.bool))) (Var "isContiguous")) (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoOp GoEquals Comparable.ty))) (Pair (App (Val (GoInstruction (GoLoad Comparable.ty))) (Var "minBegin")) (App (Val (GoInstruction (Convert go.untypedNil Comparable.ty))) (Val UntypedNil))))) (Val #false)) (App (Val (GoInstruction (GoOp GoGe go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad Comparable.ty))) (App (Val (GoInstruction (StructFieldRef Interval.ty go!"End"))) (Var "ivl")))
   (App (App (Val (GoInstruction (MethodResolve Comparable.ty go!"Compare"))) (App (Val (GoInstruction (GoLoad Comparable.ty))) (Var "maxEnd"))) (Var "$a0"))) (Val #(W64 0)))) (Val #false)) (App (Val (GoInstruction (GoOp GoLe go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad Comparable.ty))) (App (Val (GoInstruction (StructFieldRef Interval.ty go!"Begin"))) (Var "ivl")))
-  (App (App (Val (GoInstruction (MethodResolve Comparable.ty go!"Compare"))) (App (Val (GoInstruction (GoLoad Comparable.ty))) (Var "minBegin"))) (Var "$a0"))) (Val #(W64 0)))) (Val #false)))))
+  (App (App (Val (GoInstruction (MethodResolve Comparable.ty go!"Compare"))) (App (Val (GoInstruction (GoLoad Comparable.ty))) (Var "minBegin"))) (Var "$a0"))) (Val #(W64 0)))) (Val #false))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad Interval.ty))) (Var "ivl"))
   (Let "$a1" (Lam "n"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "n" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType IntervalValue.ty)))) (Var "n"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Val #true))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad Comparable.ty))) (Var "maxEnd"))
   (App (App (Val (GoInstruction (MethodResolve Comparable.ty go!"Compare"))) (App (Val (GoInstruction (GoLoad Comparable.ty))) (App (Val (GoInstruction (StructFieldRef Interval.ty go!"End"))) (App (Val (GoInstruction (StructFieldRef IntervalValue.ty go!"Ivl"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType IntervalValue.ty)))) (Var "n")))))) (Var "$a0"))) (Val #(W64 0)))))
   (Let "$r0" (App (Val (GoInstruction (GoLoad Comparable.ty))) (App (Val (GoInstruction (StructFieldRef Interval.ty go!"End"))) (App (Val (GoInstruction (StructFieldRef IntervalValue.ty go!"Ivl"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType IntervalValue.ty)))) (Var "n")))))
@@ -1418,8 +1554,12 @@ noncomputable def intervalTree.Contains.impl [GooseExts] [GoGlobalContext] : val
   (App (App (Val (GoInstruction (MethodResolve Comparable.ty go!"Compare"))) (App (Val (GoInstruction (GoLoad Comparable.ty))) (Var "maxEnd"))) (Var "$a0"))) (Val #(W64 0)))))
   (Let "$r0" (Val #false)
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #false)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Val #false))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "isContiguous") (Var "$r0"))))))
   (App (Val doExecute)
@@ -1429,17 +1569,23 @@ noncomputable def intervalTree.Contains.impl [GooseExts] [GoGlobalContext] : val
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (GoLoad Comparable.ty))) (App (Val (GoInstruction (StructFieldRef Interval.ty go!"End"))) (App (Val (GoInstruction (StructFieldRef IntervalValue.ty go!"Ivl"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType IntervalValue.ty)))) (Var "n")))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Val #true))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore Comparable.ty))) (Pair (Var "maxEnd") (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore Comparable.ty))) (Pair (Var "minBegin") (Var "$r0"))))))
   (App (Val doExecute)
-  (Val #())))))))
+  (Val #()))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
   (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType intervalTree.ty) go!"Visit"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalTree.ty)))) (Var "ivt"))) (Var "$a0")) (Var "$a1"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "isContiguous") (Var "$r0"))))))))))))))
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "isContiguous") (Var "$r0"))))))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0"))))))
 
 /-- Stab returns a slice with all elements in the tree intersecting the interval.
 
@@ -1447,28 +1593,39 @@ noncomputable def intervalTree.Contains.impl [GooseExts] [GoGlobalContext] : val
 noncomputable def intervalTree.Stab.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ivt"
   (Lam "iv"
-  (App (Val exceptionDo)
   (Let "ivs" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType (go.GoType.PointerType IntervalValue.ty))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.SliceType (go.GoType.PointerType IntervalValue.ty))))) (Val #())))
+  (Let "$res0" (Var "ivs")
+  (Seq (App (Val exceptionDo)
   (Let "ivt" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType intervalTree.ty)))) (Var "ivt"))
   (Let "iv" (App (Val (GoInstruction (GoAlloc Interval.ty))) (Var "iv"))
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Lam "n"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "n" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType IntervalValue.ty)))) (Var "n"))
   (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType IntervalValue.ty))))) (Var "ivs"))
   (Let "$a1" (Let "$sl0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType IntervalValue.ty)))) (Var "n"))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType (go.GoType.PointerType IntervalValue.ty))))) (LiteralValue [(KeyedElement none (ElementExpression (go.GoType.PointerType IntervalValue.ty) (Var "$sl0")))])))
   (App (App (App (Val (GoInstruction (FuncResolve go.append [(go.GoType.SliceType (go.GoType.PointerType IntervalValue.ty))]))) (Val #())) (Var "$a0")) (Var "$a1"))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #true)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Val #true))))
+  (Val #()))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType IntervalValue.ty))))) (Pair (Var "ivs") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType IntervalValue.ty))))) (Pair (Var "ivs") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
   (Let "f" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType IntervalValue.ty)] false [go.bool]))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType IntervalValue.ty)] false [go.bool]))))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType IntervalValue.ty))))) (Var "ivs"))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType IntervalValue.ty))))) (Var "ivs")))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType IntervalValue.ty))))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad Interval.ty))) (Var "iv"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType IntervalValue.ty)] false [go.bool]))))) (Var "f"))
@@ -1476,10 +1633,15 @@ noncomputable def intervalTree.Stab.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType IntervalValue.ty)] false [go.bool]))))) (Pair (Var "f") (Var "$r0")))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (App (Val (GoInstruction (GoLoad go.int))) (App (Val (GoInstruction (StructFieldRef intervalTree.ty go!"count"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalTree.ty)))) (Var "ivt")))) (Val #(W64 0)))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType (go.GoType.PointerType IntervalValue.ty))))) (Val UntypedNil))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert go.untypedNil (go.GoType.SliceType (go.GoType.PointerType IntervalValue.ty))))) (Val UntypedNil)))
+  (Val #()))))
   (App (Val doExecute)
-  (Val #()))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType (go.GoType.PointerType IntervalValue.ty))))) (Pair (Var "$res0") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #())))))))
+  (App (Val (GoInstruction (GoLoad (go.GoType.SliceType (go.GoType.PointerType IntervalValue.ty))))) (Var "$res0")))))))
 
 /-- Union merges a given interval tree into the receiver.
 
@@ -1488,23 +1650,26 @@ noncomputable def intervalTree.Union.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "ivt"
   (Lam "inIvt"
   (Lam "ivl"
-  (App (Val exceptionDo)
+  (Seq (App (Val exceptionDo)
   (Let "ivt" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType intervalTree.ty)))) (Var "ivt"))
   (Let "ivl" (App (Val (GoInstruction (GoAlloc Interval.ty))) (Var "ivl"))
   (Let "inIvt" (App (Val (GoInstruction (GoAlloc IntervalTree.ty))) (Var "inIvt"))
+  (Let "$r0" (Lam "n"
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "n" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType IntervalValue.ty)))) (Var "n"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #true)
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
   (Val #()))))
-  (Let "$r0" (Lam "n"
-  (App (Val exceptionDo)
-  (Let "n" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType IntervalValue.ty)))) (Var "n"))
-  (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Val #true))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (Let "$a0" (App (Val (GoInstruction (GoLoad Interval.ty))) (App (Val (GoInstruction (StructFieldRef IntervalValue.ty go!"Ivl"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType IntervalValue.ty)))) (Var "n"))))
   (Let "$a1" (App (Val (GoInstruction (GoLoad go.any))) (App (Val (GoInstruction (StructFieldRef IntervalValue.ty go!"Val"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType IntervalValue.ty)))) (Var "n"))))
-  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType intervalTree.ty) go!"Insert"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalTree.ty)))) (Var "ivt"))) (Var "$a0")) (Var "$a1")))))))))
+  (App (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType intervalTree.ty) go!"Insert"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType intervalTree.ty)))) (Var "ivt"))) (Var "$a0")) (Var "$a1"))))))))
+  (App (Val (GoInstruction (GoLoad go.bool))) (Var "$res0")))))
   (Let "f" (App (Val (GoInstruction (GoAlloc (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType IntervalValue.ty)] false [go.bool]))))) (App (Val (GoInstruction (GoZeroVal (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType IntervalValue.ty)] false [go.bool]))))) (Val #())))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doExecute)
@@ -1512,13 +1677,15 @@ noncomputable def intervalTree.Union.impl [GooseExts] [GoGlobalContext] : val :=
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType IntervalValue.ty)] false [go.bool]))))) (Var "f"))
   (App (App (App (Val (GoInstruction (MethodResolve IntervalTree.ty go!"Visit"))) (App (Val (GoInstruction (GoLoad IntervalTree.ty))) (Var "inIvt"))) (Var "$a0")) (Var "$a1")))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType IntervalValue.ty)] false [go.bool]))))) (Pair (Var "f") (Var "$r0")))))))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.FunctionType (go.signature.Signature [(go.GoType.PointerType IntervalValue.ty)] false [go.bool]))))) (Pair (Var "f") (Var "$r0")))))))))))
+  (Val #())))))
 
 /-- go: interval_tree.go:844:27 -/
 noncomputable def StringComparable.Compare.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "c"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "s" (App (Val (GoInstruction (GoAlloc StringComparable.ty))) (Var "s"))
   (Let "c" (App (Val (GoInstruction (GoAlloc Comparable.ty))) (Var "c"))
   (Let "$r0" (App (Val (GoInstruction (TypeAssert StringComparable.ty))) (App (Val (GoInstruction (GoLoad Comparable.ty))) (Var "c")))
@@ -1526,48 +1693,74 @@ noncomputable def StringComparable.Compare.impl [GooseExts] [GoGlobalContext] : 
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(W64 0))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Val #(W64 0)))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt StringComparable.ty))) (Pair (App (Val (GoInstruction (GoLoad StringComparable.ty))) (Var "s")) (App (Val (GoInstruction (GoLoad StringComparable.ty))) (Var "sc")))))
+  (Let "$r0" (Val #(W64 1))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Val #(W64 1)))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt StringComparable.ty))) (Pair (App (Val (GoInstruction (GoLoad StringComparable.ty))) (Var "s")) (App (Val (GoInstruction (GoLoad StringComparable.ty))) (Var "sc")))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (App (Val (GoInstruction (GoUnOp GoNeg go.untypedInt))) (Val #(1 : Int))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert go.untypedInt go.int))) (App (Val (GoInstruction (GoUnOp GoNeg go.untypedInt))) (Val #(1 : Int)))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore StringComparable.ty))) (Pair (Var "sc") (Var "$r0"))))))))))))
+  (App (Val (GoInstruction (GoStore StringComparable.ty))) (Pair (Var "sc") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0"))))))
 
 /-- go: interval_tree.go:855:6 -/
 noncomputable def NewStringInterval.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "begin"
   (Lam "end"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc Interval.ty))) (App (Val (GoInstruction (GoZeroVal Interval.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "end" (App (Val (GoInstruction (GoAlloc go.string))) (Var "end"))
   (Let "begin" (App (Val (GoInstruction (GoAlloc go.string))) (Var "begin"))
-  (App (Val doReturn)
-  (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (Var "begin"))
+  (Let "$r0" (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (Var "begin"))
   (Let "$v1" (App (Val (GoInstruction (GoLoad go.string))) (Var "end"))
-  (App (Val (GoInstruction (CompositeLiteral Interval.ty))) (LiteralValue [(KeyedElement none (ElementExpression StringComparable.ty (Var "$v0"))), (KeyedElement none (ElementExpression StringComparable.ty (Var "$v1")))]))))))))))
+  (App (Val (GoInstruction (CompositeLiteral Interval.ty))) (LiteralValue [(KeyedElement none (ElementExpression StringComparable.ty (Var "$v0"))), (KeyedElement none (ElementExpression StringComparable.ty (Var "$v1")))]))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Interval.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad Interval.ty))) (Var "$res0"))))))
 
 /-- go: interval_tree.go:859:6 -/
 noncomputable def NewStringPoint.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc Interval.ty))) (App (Val (GoInstruction (GoZeroVal Interval.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "s" (App (Val (GoInstruction (GoAlloc go.string))) (Var "s"))
-  (App (Val doReturn)
-  (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (Var "s"))
+  (Let "$r0" (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (Var "s"))
   (Let "$v1" (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "s")) (Val #(go!"\x00"))))
-  (App (Val (GoInstruction (CompositeLiteral Interval.ty))) (LiteralValue [(KeyedElement none (ElementExpression StringComparable.ty (Var "$v0"))), (KeyedElement none (ElementExpression StringComparable.ty (Var "$v1")))]))))))))
+  (App (Val (GoInstruction (CompositeLiteral Interval.ty))) (LiteralValue [(KeyedElement none (ElementExpression StringComparable.ty (Var "$v0"))), (KeyedElement none (ElementExpression StringComparable.ty (Var "$v1")))]))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Interval.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad Interval.ty))) (Var "$res0")))))
 
 /-- go: interval_tree.go:866:33 -/
 noncomputable def StringAffineComparable.Compare.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
   (Lam "c"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "s" (App (Val (GoInstruction (GoAlloc StringAffineComparable.ty))) (Var "s"))
   (Let "c" (App (Val (GoInstruction (GoAlloc Comparable.ty))) (Var "c"))
   (Let "$r0" (App (Val (GoInstruction (TypeAssert StringAffineComparable.ty))) (App (Val (GoInstruction (GoLoad Comparable.ty))) (Var "c")))
@@ -1577,98 +1770,154 @@ noncomputable def StringAffineComparable.Compare.impl [GooseExts] [GoGlobalConte
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(W64 0))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Val #(W64 0)))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt StringAffineComparable.ty))) (Pair (App (Val (GoInstruction (GoLoad StringAffineComparable.ty))) (Var "s")) (App (Val (GoInstruction (GoLoad StringAffineComparable.ty))) (Var "sc")))))
+  (Let "$r0" (Val #(W64 1))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Val #(W64 1)))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt StringAffineComparable.ty))) (Pair (App (Val (GoInstruction (GoLoad StringAffineComparable.ty))) (Var "s")) (App (Val (GoInstruction (GoLoad StringAffineComparable.ty))) (Var "sc")))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (App (Val (GoInstruction (GoUnOp GoNeg go.untypedInt))) (Val #(1 : Int))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert go.untypedInt go.int))) (App (Val (GoInstruction (GoUnOp GoNeg go.untypedInt))) (Val #(1 : Int)))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad StringAffineComparable.ty))) (Var "sc"))
   (App (App (Val (GoInstruction (FuncResolve go.len [StringAffineComparable.ty]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (App (Val (GoInstruction (GoUnOp GoNeg go.untypedInt))) (Val #(1 : Int))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert go.untypedInt go.int))) (App (Val (GoInstruction (GoUnOp GoNeg go.untypedInt))) (Val #(1 : Int)))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad StringAffineComparable.ty))) (Var "s"))
   (App (App (Val (GoInstruction (FuncResolve go.len [StringAffineComparable.ty]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(W64 1))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Val #(W64 1)))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad StringAffineComparable.ty))) (Var "sc"))
   (App (App (Val (GoInstruction (FuncResolve go.len [StringAffineComparable.ty]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
+  (Let "$r0" (Val #(W64 0))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Val #(W64 0)))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore StringAffineComparable.ty))) (Pair (Var "sc") (Var "$r0"))))))))))))
+  (App (Val (GoInstruction (GoStore StringAffineComparable.ty))) (Pair (Var "sc") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0"))))))
 
 /-- go: interval_tree.go:888:6 -/
 noncomputable def NewStringAffineInterval.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "begin"
   (Lam "end"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc Interval.ty))) (App (Val (GoInstruction (GoZeroVal Interval.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "end" (App (Val (GoInstruction (GoAlloc go.string))) (Var "end"))
   (Let "begin" (App (Val (GoInstruction (GoAlloc go.string))) (Var "begin"))
-  (App (Val doReturn)
-  (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (Var "begin"))
+  (Let "$r0" (Let "$v0" (App (Val (GoInstruction (GoLoad go.string))) (Var "begin"))
   (Let "$v1" (App (Val (GoInstruction (GoLoad go.string))) (Var "end"))
-  (App (Val (GoInstruction (CompositeLiteral Interval.ty))) (LiteralValue [(KeyedElement none (ElementExpression StringAffineComparable.ty (Var "$v0"))), (KeyedElement none (ElementExpression StringAffineComparable.ty (Var "$v1")))]))))))))))
+  (App (Val (GoInstruction (CompositeLiteral Interval.ty))) (LiteralValue [(KeyedElement none (ElementExpression StringAffineComparable.ty (Var "$v0"))), (KeyedElement none (ElementExpression StringAffineComparable.ty (Var "$v1")))]))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Interval.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad Interval.ty))) (Var "$res0"))))))
 
 /-- go: interval_tree.go:892:6 -/
 noncomputable def NewStringAffinePoint.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "s"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc Interval.ty))) (App (Val (GoInstruction (GoZeroVal Interval.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "s" (App (Val (GoInstruction (GoAlloc go.string))) (Var "s"))
-  (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "s"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad go.string))) (Var "s"))
   (Let "$a1" (App (Val (GoInstruction (GoOp GoPlus go.string))) (Pair (App (Val (GoInstruction (GoLoad go.string))) (Var "s")) (Val #(go!"\x00"))))
-  (App (App (App (Val (GoInstruction (FuncResolve NewStringAffineInterval []))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
+  (App (App (App (Val (GoInstruction (FuncResolve NewStringAffineInterval []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Interval.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad Interval.ty))) (Var "$res0")))))
 
 /-- go: interval_tree.go:896:6 -/
 noncomputable def NewInt64Interval.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
   (Lam "b"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc Interval.ty))) (App (Val (GoInstruction (GoZeroVal Interval.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "b" (App (Val (GoInstruction (GoAlloc go.int64))) (Var "b"))
   (Let "a" (App (Val (GoInstruction (GoAlloc go.int64))) (Var "a"))
-  (App (Val doReturn)
-  (Let "$v0" (App (Val (GoInstruction (GoLoad go.int64))) (Var "a"))
+  (Let "$r0" (Let "$v0" (App (Val (GoInstruction (GoLoad go.int64))) (Var "a"))
   (Let "$v1" (App (Val (GoInstruction (GoLoad go.int64))) (Var "b"))
-  (App (Val (GoInstruction (CompositeLiteral Interval.ty))) (LiteralValue [(KeyedElement none (ElementExpression Int64Comparable.ty (Var "$v0"))), (KeyedElement none (ElementExpression Int64Comparable.ty (Var "$v1")))]))))))))))
+  (App (Val (GoInstruction (CompositeLiteral Interval.ty))) (LiteralValue [(KeyedElement none (ElementExpression Int64Comparable.ty (Var "$v0"))), (KeyedElement none (ElementExpression Int64Comparable.ty (Var "$v1")))]))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Interval.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad Interval.ty))) (Var "$res0"))))))
 
 /-- go: interval_tree.go:900:6 -/
 noncomputable def newInt64EmptyInterval.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV BAnon
-  (App (Val exceptionDo)
-  (App (Val doReturn)
-  (Let "$v0" (Val UntypedNil)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc Interval.ty))) (App (Val (GoInstruction (GoZeroVal Interval.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
+  (Let "$r0" (Let "$v0" (Val UntypedNil)
   (Let "$v1" (Val UntypedNil)
-  (App (Val (GoInstruction (CompositeLiteral Interval.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Begin")) (ElementExpression go.untypedNil (Var "$v0"))), (KeyedElement (some (KeyField go!"End")) (ElementExpression go.untypedNil (Var "$v1")))])))))))
+  (App (Val (GoInstruction (CompositeLiteral Interval.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"Begin")) (ElementExpression go.untypedNil (Var "$v0"))), (KeyedElement (some (KeyField go!"End")) (ElementExpression go.untypedNil (Var "$v1")))]))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Interval.ty))) (Pair (Var "$res0") (Var "$r0")))))))
+  (App (Val (GoInstruction (GoLoad Interval.ty))) (Var "$res0")))))
 
 /-- go: interval_tree.go:904:6 -/
 noncomputable def NewInt64Point.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "a"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc Interval.ty))) (App (Val (GoInstruction (GoZeroVal Interval.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "a" (App (Val (GoInstruction (GoAlloc go.int64))) (Var "a"))
-  (App (Val doReturn)
-  (Let "$v0" (App (Val (GoInstruction (GoLoad go.int64))) (Var "a"))
+  (Let "$r0" (Let "$v0" (App (Val (GoInstruction (GoLoad go.int64))) (Var "a"))
   (Let "$v1" (App (Val (GoInstruction (GoOp GoPlus go.int64))) (Pair (App (Val (GoInstruction (GoLoad go.int64))) (Var "a")) (Val #(W64 1))))
-  (App (Val (GoInstruction (CompositeLiteral Interval.ty))) (LiteralValue [(KeyedElement none (ElementExpression Int64Comparable.ty (Var "$v0"))), (KeyedElement none (ElementExpression Int64Comparable.ty (Var "$v1")))]))))))))
+  (App (Val (GoInstruction (CompositeLiteral Interval.ty))) (LiteralValue [(KeyedElement none (ElementExpression Int64Comparable.ty (Var "$v0"))), (KeyedElement none (ElementExpression Int64Comparable.ty (Var "$v1")))]))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Interval.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
+  (App (Val (GoInstruction (GoLoad Interval.ty))) (Var "$res0")))))
 
 /-- go: interval_tree.go:910:26 -/
 noncomputable def Int64Comparable.Compare.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "v"
   (Lam "c"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "v" (App (Val (GoInstruction (GoAlloc Int64Comparable.ty))) (Var "v"))
   (Let "c" (App (Val (GoInstruction (GoAlloc Comparable.ty))) (Var "c"))
   (Let "$r0" (App (Val (GoInstruction (TypeAssert Int64Comparable.ty))) (App (Val (GoInstruction (GoLoad Comparable.ty))) (Var "c")))
@@ -1679,28 +1928,42 @@ noncomputable def Int64Comparable.Compare.impl [GooseExts] [GoGlobalContext] : v
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(W64 0))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Val #(W64 0)))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoGt Int64Comparable.ty))) (Pair (App (Val (GoInstruction (GoLoad Int64Comparable.ty))) (Var "cmp")) (Val #(W64 0)))))
+  (Let "$r0" (Val #(W64 1))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Val #(W64 1)))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoLt Int64Comparable.ty))) (Pair (App (Val (GoInstruction (GoLoad Int64Comparable.ty))) (Var "cmp")) (Val #(W64 0)))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (App (Val (GoInstruction (GoUnOp GoNeg go.untypedInt))) (Val #(1 : Int))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert go.untypedInt go.int))) (App (Val (GoInstruction (GoUnOp GoNeg go.untypedInt))) (Val #(1 : Int)))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore Int64Comparable.ty))) (Pair (Var "cmp") (Var "$r0")))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore Int64Comparable.ty))) (Pair (Var "vc") (Var "$r0"))))))))))))
+  (App (Val (GoInstruction (GoStore Int64Comparable.ty))) (Pair (Var "vc") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0"))))))
 
 /-- go: interval_tree.go:925:32 -/
 noncomputable def BytesAffineComparable.Compare.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
   (Lam "c"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc go.int))) (App (Val (GoInstruction (GoZeroVal go.int))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "b" (App (Val (GoInstruction (GoAlloc BytesAffineComparable.ty))) (Var "b"))
   (Let "c" (App (Val (GoInstruction (GoAlloc Comparable.ty))) (Var "c"))
   (Let "$r0" (App (Val (GoInstruction (TypeAssert BytesAffineComparable.ty))) (App (Val (GoInstruction (GoLoad Comparable.ty))) (Var "c")))
@@ -1708,48 +1971,72 @@ noncomputable def BytesAffineComparable.Compare.impl [GooseExts] [GoGlobalContex
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad BytesAffineComparable.ty))) (Var "b"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad BytesAffineComparable.ty))) (Var "b"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad BytesAffineComparable.ty))) (Var "bc"))
-  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.bytes.Compare []))) (Val #())) (Var "$a0")) (Var "$a1")))))))
+  (App (App (App (Val (GoInstruction (FuncResolve _root_.Perennial.bytes.Compare []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad BytesAffineComparable.ty))) (Var "bc"))
   (App (App (Val (GoInstruction (FuncResolve go.len [BytesAffineComparable.ty]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
+  (Let "$r0" (App (Val (GoInstruction (Convert go.untypedInt go.int))) (App (Val (GoInstruction (GoUnOp GoNeg go.untypedInt))) (Val #(1 : Int))))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (App (Val (GoInstruction (Convert go.untypedInt go.int))) (App (Val (GoInstruction (GoUnOp GoNeg go.untypedInt))) (Val #(1 : Int)))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad BytesAffineComparable.ty))) (Var "b"))
   (App (App (Val (GoInstruction (FuncResolve go.len [BytesAffineComparable.ty]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(W64 1))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Val #(W64 1)))))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))))
   (If (App (Val (GoInstruction (Convert go.untypedBool go.bool))) (App (Val (GoInstruction (GoOp GoEquals go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad BytesAffineComparable.ty))) (Var "bc"))
   (App (App (Val (GoInstruction (FuncResolve go.len [BytesAffineComparable.ty]))) (Val #())) (Var "$a0"))) (Val #(W64 0)))))
+  (Let "$r0" (Val #(W64 0))
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (Val doReturn)
-  (Val #(W64 0)))
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.int))) (Pair (Var "$res0") (Var "$r0"))))))
   (App (Val doExecute)
   (Val #()))))
   (App (Val doExecute)
   (Val #()))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore BytesAffineComparable.ty))) (Pair (Var "bc") (Var "$r0"))))))))))))
+  (App (Val (GoInstruction (GoStore BytesAffineComparable.ty))) (Pair (Var "bc") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoLoad go.int))) (Var "$res0"))))))
 
 /-- go: interval_tree.go:941:6 -/
 noncomputable def NewBytesAffineInterval.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "begin"
   (Lam "end"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc Interval.ty))) (App (Val (GoInstruction (GoZeroVal Interval.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "end" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "end"))
   (Let "begin" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "begin"))
-  (App (Val doReturn)
-  (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "begin"))
+  (Let "$r0" (Let "$v0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "begin"))
   (Let "$v1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "end"))
-  (App (Val (GoInstruction (CompositeLiteral Interval.ty))) (LiteralValue [(KeyedElement none (ElementExpression BytesAffineComparable.ty (Var "$v0"))), (KeyedElement none (ElementExpression BytesAffineComparable.ty (Var "$v1")))]))))))))))
+  (App (Val (GoInstruction (CompositeLiteral Interval.ty))) (LiteralValue [(KeyedElement none (ElementExpression BytesAffineComparable.ty (Var "$v0"))), (KeyedElement none (ElementExpression BytesAffineComparable.ty (Var "$v1")))]))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Interval.ty))) (Pair (Var "$res0") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad Interval.ty))) (Var "$res0"))))))
 
 /-- go: interval_tree.go:945:6 -/
 noncomputable def NewBytesAffinePoint.impl [GooseExts] [GoGlobalContext] : val :=
   (LamV "b"
-  (App (Val exceptionDo)
+  (Let "$res0" (App (Val (GoInstruction (GoAlloc Interval.ty))) (App (Val (GoInstruction (GoZeroVal Interval.ty))) (Val #())))
+  (Seq (App (Val exceptionDo)
   (Let "b" (App (Val (GoInstruction (GoAlloc (go.GoType.SliceType go.byte)))) (Var "b"))
   (Let "$r0" (App (App (Val (GoInstruction (FuncResolve go.make2 [(go.GoType.SliceType go.byte)]))) (Val #())) (App (Val (GoInstruction (GoOp GoPlus go.int))) (Pair (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "b"))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0"))) (Val #(W64 1)))))
@@ -1758,10 +2045,14 @@ noncomputable def NewBytesAffinePoint.impl [GooseExts] [GoGlobalContext] : val :
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Val #(W8 0))
   (App (App (Val exceptionSeq) (Lam BAnon
-  (App (Val doReturn)
-  (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "b"))
+  (Let "$r0" (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "b"))
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "be"))
-  (App (App (App (Val (GoInstruction (FuncResolve NewBytesAffineInterval []))) (Val #())) (Var "$a0")) (Var "$a1")))))))
+  (App (App (App (Val (GoInstruction (FuncResolve NewBytesAffineInterval []))) (Val #())) (Var "$a0")) (Var "$a1"))))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (Val #()))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore Interval.ty))) (Pair (Var "$res0") (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore go.byte))) (Pair (App (Val (GoInstruction (IndexRef (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "be")) (Let "$a0" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "b"))
   (App (App (Val (GoInstruction (FuncResolve go.len [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0"))))) (Var "$r0"))))))))
@@ -1770,7 +2061,8 @@ noncomputable def NewBytesAffinePoint.impl [GooseExts] [GoGlobalContext] : val :
   (Let "$a1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (Var "b"))
   (App (App (App (Val (GoInstruction (FuncResolve go.copy [(go.GoType.SliceType go.byte)]))) (Val #())) (Var "$a0")) (Var "$a1"))))))))
   (App (Val doExecute)
-  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "be") (Var "$r0"))))))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (Var "be") (Var "$r0")))))))))
+  (App (Val (GoInstruction (GoLoad Interval.ty))) (Var "$res0")))))
 
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.pkg.v3.adt where
   pkgImportedPkgs := [pkg_id.bytes, pkg_id.fmt, pkg_id.math, pkg_id.strings]

@@ -406,7 +406,7 @@ theorem remove_grow (wp_find : items.find.spec (GF := GF) (hG := hG))
     wp_join iprop(∃ t'' : Tree (V × K), ownedNode o c f less (DFrac.own 1) n t'' ∗
         n_ptr ↦ n ∗ typ_ptr ↦ typ ∗ minItems_ptr ↦ minItems ∗ item_ptr ↦ item ∗
         ⌜GrowMid o.lt d (h + 1) tgt (Tree.node is cs) t''⌝)
-      at next with [-HΦ] as ⟨%t'', Hn, n, typ, minItems, item, %Hmid⟩
+      at next with [-HΦ «$res0» «$res1»] as ⟨%t'', Hn, n, typ, minItems, item, %Hmid⟩
     · wp_join (Q := fun v => iprop(∃ b : Bool,
           ⌜v = #b ∧ (b = true ↔ (0 < sint.Z i ∧
             ∃ cl, cs[sint.nat i - 1]? = some cl ∧ d ≤ cl.items.length))⌝ ∗

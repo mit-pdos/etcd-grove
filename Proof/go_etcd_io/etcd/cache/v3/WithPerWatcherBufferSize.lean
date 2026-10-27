@@ -28,7 +28,6 @@ theorem WithPerWatcherBufferSize.wp_proof : WithPerWatcherBufferSize.spec (GF :=
   wp_auto
   ipersist n
   imodintro
-  simp only [recv_eq_func_mk]
   iapply HΦ
   unfold cfgOptSpec
   imodintro

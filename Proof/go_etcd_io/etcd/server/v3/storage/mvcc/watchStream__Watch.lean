@@ -37,6 +37,7 @@ theorem mvcc.watchStream.Watch.wp_proof (hspan : trace.SpanFromContext.spec (GF 
   iunfold mvcc.isWatchable at Hwable
   icases Hwable with ⟨%wi, %hwa, #Hwatch, #Hprog, #HprogAll, #Hrev⟩
   subst hwa
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit

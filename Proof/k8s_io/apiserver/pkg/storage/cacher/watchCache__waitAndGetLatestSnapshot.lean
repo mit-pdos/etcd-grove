@@ -47,6 +47,7 @@ theorem watchCache.waitAndGetLatestSnapshot.wp_proof
   · iPkgInit
   ihave #Ptr : isPkgInit (PROP := IProp GF) pkg_id.k8s_io.component_base.tracing $$ []
   · iPkgInit
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   wp_apply (wp_SpanFromContext ctx) $$ [] as %sp %Hsp

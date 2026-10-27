@@ -32,16 +32,18 @@ variable [KVStor GF]
 theorem Storage.InitialState.wp_proof : Storage.InitialState.spec (GF := GF) (hG := hG) := by
   intro s vsl voters
   wp_start as ⟨#Hv, #Hvs⟩
+  iapply wp_fupd
   wp_auto
-  wp_alloc hp as Hhp
+  irename «$r0» => Hhp
+  generalize «$r0_ptr» = hp at *
   -- `&pb.HardState{}`: every cell `nil`, the zero record, frozen
   imod hsRO_of_struct hp (zero_val raftpb.HardState) (HardStateM.mk (W64 0) (W64 0) (W64 0)) ⊤ rfl
     $$ [Hhp] with #Hhs
   · iframe Hhp
     repeat (isplitr; · iunfold cellRO; ileft; ipureintro; exact ⟨rfl, rfl⟩)
     iunfold cellRO; ileft; ipureintro; exact ⟨rfl, rfl⟩
-  wp_auto
-  wp_alloc cs as Hcs
+  irename «$r1» => Hcs
+  generalize «$r1_ptr» = cs at *
   -- `&pb.ConfState{Voters: s.voters}`: the voters read-only, the other slices `nil`, `AutoLeave`
   -- `nil`, frozen
   imod csPts_of_struct_ro cs
@@ -52,7 +54,7 @@ theorem Storage.InitialState.wp_proof : Storage.InitialState.spec (GF := GF) (hG
     iframe Hvs
     repeat (isplitr; · iapply ownSlice_nil)
     iunfold cellRO; ileft; ipureintro; exact ⟨rfl, rfl⟩
-  wp_auto
+  imodintro
   iapply HΦ
   isplitl []
   · iunfold hsOpt; iright; iexact Hhs

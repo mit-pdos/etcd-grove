@@ -30,7 +30,6 @@ theorem WithSort.wp_proof : WithSort.spec (GF := GF) (hG := hG) := by
   ipersist target
   ipersist order
   imodintro
-  simp only [recv_eq_func_mk]
   iapply HΦ
   unfold optSpec
   imodintro

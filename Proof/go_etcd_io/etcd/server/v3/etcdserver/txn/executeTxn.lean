@@ -316,15 +316,17 @@ theorem txn.executeTxn.wp_proof
           (⌜v = executeVal⌝ ∗ ∃ (rr0 : Loc) (e1 : GoInterface), resp_ptr ↦ rr0 ∗ err_ptr ↦ e1 ∗
           txnWrite_ptr ↦ GoInterface.ok twi ∗ ctx_ptr ↦ GoInterface.ok ctx ∗ lg_ptr ↦ lg ∗
           tv_ptr ↦ w' ∗
+          txns_ptr ↦ (W64 ((opsPath s0 (ops.take (sint.nat n))).length : Int) : w64) ∗
           txnWriteIs (GoInterface.ok twi) s γ trace ro ilog (pend ++ (srvOps s0 r st (ops.take (sint.nat n))).1) ∗
           ∃ rev : w64, if skip then rangeResponseIs rr0 rev [] false (W64 0)
             else ∃ (kvs : List EtcdKv) (more : Bool),
               rangeResponseIs rr0 rev kvs more (W64 ((rangeIn stn o).length : Int)) ∗
               ⌜∃ kvs', rangeKvsOk o (rangeSel stn o) kvs' ∧ kvs = kvs'.map (leaseZ (fastKeysOnly o))⌝) ∨
-          (∃ e' : GoInterface, ⌜v = returnVal (PairV #(W64 0) #e')⌝ ∗ ⌜nd = false⌝ ∗
+          (∃ e' : GoInterface, ⌜v = returnVal #()⌝ ∗ ⌜nd = false⌝ ∗
+            txns_ptr ↦ (W64 0 : w64) ∗ err_ptr ↦ e' ∗
             mvcc.errorfIs e' ∗ ∃ pend' : List mvcc.Change,
               txnWriteIs (GoInterface.ok twi) s γ trace ro ilog pend')))
-        with [resp err txnWrite ctx lg tv Htw]
+        with [resp err txnWrite ctx lg tv txns Htw]
       · -- the range, at the transaction's state
         icases txnWriteIs_kind _ s γ ro ilog _ $$ Htw with ⟨%kind, Hv, %Hk⟩
         obtain ⟨hkis, hkok, hkst, hne, hlen⟩ := Hk
@@ -372,7 +374,7 @@ theorem txn.executeTxn.wp_proof
           · ipureintro; rfl
           isplitr
           · ipureintro; exact hndf
-          iframe He'
+          iframe He' txns err
           iexists _
           iapply txnWriteIs_of_view _ s γ ro ilog _ kind hkis $$ Hv
         subst Herr
@@ -380,7 +382,7 @@ theorem txn.executeTxn.wp_proof
         ileft
         isplitl []; · ipureintro; rfl
         iexists resp, GoInterface.nil
-        iframe resp err txnWrite ctx lg tv
+        iframe resp err txnWrite ctx lg tv txns
         isplitl [Hv]
         · iapply txnWriteIs_of_view _ s γ ro ilog _ kind hkis $$ Hv
         iexists kind.readRev
@@ -409,7 +411,7 @@ theorem txn.executeTxn.wp_proof
         ileft
         isplitl []; · itrivial
         iexists «$r0_ptr», e
-        iframe resp err txnWrite ctx lg tv Htw
+        iframe resp err txnWrite ctx lg tv txns Htw
         iexists rv
         iunfold rangeResponseIs
         isplitl []; · ipureintro; exact Hrn
@@ -419,7 +421,7 @@ theorem txn.executeTxn.wp_proof
         isplitl []; · ipureintro; exact Hhn
         isplitl []; · iapply ownSlice_nil
         iapply kvsIs_nil
-      iintro (⟨%Hv0, %rr0, %e1, resp, err, txnWrite, ctx, lg, tv, Htw, %rev1, Hrr0⟩ | ⟨%e', %Hv0, %Hndf, #He', %pend', Htw⟩)
+      iintro (⟨%Hv0, %rr0, %e1, resp, err, txnWrite, ctx, lg, tv, txns, Htw, %rev1, Hrr0⟩ | ⟨%e', %Hv0, %Hndf, txns, err, #He', %pend', Htw⟩)
       rotate_left
       · -- the context error, returned, with the responses so far (read-only: `roRespsRd`)
         subst Hv0

@@ -28,7 +28,6 @@ theorem WithGetTimeout.wp_proof : WithGetTimeout.spec (GF := GF) (hG := hG) := b
   wp_auto
   ipersist d
   imodintro
-  simp only [recv_eq_func_mk]
   iapply HΦ
   unfold cfgOptSpec
   imodintro

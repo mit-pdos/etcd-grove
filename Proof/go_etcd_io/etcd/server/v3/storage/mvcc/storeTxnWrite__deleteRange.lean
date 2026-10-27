@@ -140,7 +140,7 @@ local macro "del_range_tail" : tactic => `(tactic| (
         wp_for_post
         (try wp_auto)
         (try simp only [named])
-        iframe HΦ tw Hmod Hmodcap Hcre Hcrecap Hvers Hverscap keys Hkss Hkscap
+        iframe HΦ tw Hmod Hmodcap Hcre Hcrecap Hvers Hverscap keys Hkss Hkscap «$res0»
         iexists (j + 1), kw
         (try simp only [named])
         rw [List.take_add_one, hkj, Option.toList_some, List.map_append, List.map_singleton,

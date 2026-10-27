@@ -394,6 +394,7 @@ theorem EtcdServer.applyEntryNormal.wp_proof
       imod applied_predeposit s E γr v m.index x.log x'.log Hvi
         (applyStep_prefix rq false x x' out Hstep) $$ Hainv Hao HLv HkL with Hpre
       imodintro
+      wp_pures
       iapply HΦ
       iframe Hbe Hst Hlr Hgr HFS
       iexists x', out
@@ -767,7 +768,7 @@ local macro "tail_off" : tactic => `(tactic| (
   imod applied_predepositM true s E γr v m.index x.log x'.log Hvi
     (applyStep_prefix rq false x x' out Hstep) $$ Hainv Hao HLv HkL with Hpre
   imodintro
-  iapply HΦ
+  first | iapply HΦ | (wp_pure; wp_pure; iapply HΦ)
   iframe Hbe Hst Hlr Hgr HFS
   iexists x', out, sa
   iframe Hpre Hka HRS

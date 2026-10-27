@@ -56,6 +56,7 @@ theorem WatchCacheStorage.UpdateStore.wp_proof
   ihave %Hnn := typedPointsto_not_null $$ Hel
   unfold isWCS
   icases Hw with ⟨#Hinv, #Hguard⟩
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   (try wp_auto)
   wp_if_destruct

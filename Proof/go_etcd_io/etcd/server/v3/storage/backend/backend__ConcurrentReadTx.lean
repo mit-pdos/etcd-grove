@@ -97,6 +97,7 @@ theorem backend.backend.ConcurrentReadTx.wp_proof
     #Hcm, #Hci, -, -, -, %HPwf⟩
   icombine Hrt Hrt2 gives %Heq
   subst Heq
+  wp_auto
   wp_apply wp_with_defer as %defer defer
   -- `b.readTx.RLock()`
   wp_method_call

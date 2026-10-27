@@ -56,7 +56,7 @@ set_option hygiene false in
 stream's producer at its sends). -/
 macro "recv_next" : tactic => `(tactic| (
   wp_for_post
-  iframe HΦ HRD HR sws
+  iframe HΦ HRD HR sws «$res0»
   iexists _, _
   iframe Hrt Hprod Hpool))
 
