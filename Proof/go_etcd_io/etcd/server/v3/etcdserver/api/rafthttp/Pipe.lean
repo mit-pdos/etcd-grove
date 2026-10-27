@@ -167,7 +167,7 @@ theorem splitAux_field (c : w8) (x r field : GoString) (hx : c ∉ x) :
   | cons a x ih =>
     have ha : a ≠ c := fun h => hx (h ▸ List.mem_cons_self)
     have hx' : c ∉ x := fun h => hx (List.mem_cons_of_mem _ h)
-    rw [List.cons_append, _root_.Perennial.strings.splitAux, ite_cond_eq_false]
+    rw [List.cons_append, _root_.Perennial.strings.splitAux, ite_eq_right_of_eq_false]
     · rw [ih (field ++ [a]) hx']; simp
     · apply eq_false
       rintro ⟨-, hp⟩
@@ -191,7 +191,7 @@ theorem split_intercalate1 (c : w8) :
     rw [List.intercalate_cons_cons, _root_.Perennial.strings.split, List.append_assoc,
       splitAux_field c x _ [] (h x List.mem_cons_self)]
     rw [List.singleton_append, _root_.Perennial.strings.splitAux,
-      ite_cond_eq_true _ _ (eq_true ⟨by simp, by simp⟩)]
+      ite_eq_left_of_eq_true _ _ (eq_true ⟨by simp, by simp⟩)]
     simp only [List.nil_append, List.length_singleton, List.drop_succ_cons, List.drop_zero]
     congr 1
     exact ih y (fun z hz => h z (List.mem_cons_of_mem _ hz))

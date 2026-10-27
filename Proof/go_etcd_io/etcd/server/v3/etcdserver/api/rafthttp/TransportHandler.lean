@@ -312,7 +312,8 @@ theorem rafthttp.Transport.Handler_core
   iunfold trFixed at Htr'
   icases Htr' with ⟨%lg, %ls, %ss0, %turls, %tuvs, %cid, %r, %ec, %srt, %prt, %drf, %ppr, %spr,
     #Hlg, %Hlgnn, #Hlid, #HtURLs, #Htuvs, #Hcid, #Hr, #Hraft, #Hec, #Hsrt, #Hsrtok, #Hprt, #Hprtok,
-    #Hdrf, #Hls, %Hlsnn, #Hss0, %Hssnn, #Hppr, #Hspr, #Hreg, #Hpreg, #HPfx, %⟨Hmem, Hturls⟩⟩
+    #Hdrf, #Hls, %Hlsnn, #Hss0, %Hssnn, #Hppr, #Hspr, #Hreg, #Hpreg, #HPfx, %HmemU⟩
+  obtain ⟨Hmem, Hturls⟩ := HmemU
   ihave Hri : (go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.rafthttpInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
   icases Hri with ⟨-, -, #HRP, #HPP, -, #HSP, -⟩

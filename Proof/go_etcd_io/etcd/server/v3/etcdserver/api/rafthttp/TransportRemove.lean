@@ -141,7 +141,8 @@ theorem rafthttp.Transport.removePeer_core
   iunfold trFixed at Htr'
   icases Htr' with ⟨%lg, %ls, %ss0, %turls, %tuvs, %cid, %r, %ec, %srt, %prt, %drf, %ppr, %spr,
     #Hlg, %Hlgnn, #Hlid, #HtURLs, #Htuvs, #Hcid, #Hr, #Hraft, #Hec, #Hsrt, #Hsrtok, #Hprt, #Hprtok,
-    #Hdrf, #Hls, %Hlsnn, #Hss, %Hssnn, #Hppr, #Hspr, #Hreg, #Hpreg, #HPfx, %⟨Hmem, Hturls⟩⟩
+    #Hdrf, #Hls, %Hlsnn, #Hss, %Hssnn, #Hppr, #Hspr, #Hreg, #Hpreg, #HPfx, %HmemU⟩
+  obtain ⟨Hmem, Hturls⟩ := HmemU
   iunfold trProbers at Hprb
   icases Hprb with ⟨%pp, %sp, #Hppf, #Hppok, #Hspf, #Hspok⟩
   iunfold probing.proberOk at Hppok Hspok
@@ -178,7 +179,7 @@ theorem rafthttp.Transport.removePeer_core
     iframe
     isplitl
     · iunfold trStats; iexists ls; iframe; iframe #
-    ileft; ipureintro; rfl
+    ileft; ipureintro; first | exact hp | trivial
   | some pi =>
     simp only [Option.getD_some, Option.isSome_some, _root_.decide_true]
     iunfold peersOk at Hpo
@@ -190,13 +191,13 @@ theorem rafthttp.Transport.removePeer_core
     · icases Htk with (%Hc | Htok)
       · rcases Hc with Hc | Hc
         · ileft; ipureintro; exact Hc
-        · rw [hp] at Hc; cases Hc
+        · simp at Hc
       · iright; iexact Htok
     imod trStop_remove_peer Rh R γs L γk γo pm rm PM RM T id pi hp $$ Hst Hg Htk Hlc1 with
       ⟨Hg, %p', %Hp', Hps⟩
     subst Hpp
     have hpp : p' = p := by
-      simp only [interface.mkOk, GoInterface.ok.injEq, GoInterfaceOk.mk.injEq, true_and] at Hp'
+      simp only [interface.mkOk, GoInterface.ok.injEq, GoInterfaceOk.mk.injEq, _root_.true_and] at Hp'
       exact (GoGlobalContext.intoVal_inj_loc Hp').symm
     subst hpp
     simp only [interface.mkOk]
@@ -228,13 +229,14 @@ theorem rafthttp.Transport.removePeer_core
       | (wp_if_destruct; (try (exfalso; exact Hlgnn rfl)))
       | wp_auto)
     iapply HΦ
-    iframe HR1 HR2 HR3 HR4
-    iframe
-    iunfold trStats; iexists ls; iframe #
-    iunfold v2stats.lsFollowers; iexists fm, _; iframe #; iframe
-    ipureintro
-    intro k v hk
-    exact Hfnn k v ((GMap.lookup_delete_Some FM ids k v).1 hk).2
+    iframe Hp Hpm Hg
+    isplitr [HR1 HR2 HR3 HR4]
+    · iunfold trStats; iexists ls; iframe #
+      iunfold v2stats.lsFollowers; iexists fm, _; iframe #; iframe
+      ipureintro
+      intro k v hk
+      exact Hfnn k v ((GMap.lookup_delete_Some FM ids k v).1 hk).2
+    iright; iframe
 
 set_option maxRecDepth 8000 in
 set_option maxHeartbeats 8000000 in
@@ -304,7 +306,7 @@ theorem rafthttp.Transport.RemovePeer_core
       by_cases hne : k = id
       · subst hne; simp
       · rw [GMap.lookup_delete_ne _ (Ne.symm hne)]
-        simp only [hne, bne_iff_ne, ne_eq, not_false_eq_true, decide_true, and_true]
+        simp only [hne, bne_iff_ne, ne_eq, not_false_eq_true, and_true]
         exact Hcov hr k
     isplitr
     · imodintro; iapply peersOk_delete $$ Hpo
@@ -374,8 +376,6 @@ theorem rafthttp.Transport.RemoveAllPeers_core
     exact (Hcov Hrmnn k).symm
   isplitl [Hp Hg Hts t id Htks]
   · iframe; iframe #
-    isplitl [id]
-    · iexists _; iexact id
     isplitr
     · ipureintro
       refine ⟨fun _ _ _ _ => rfl, fun k hk => ?_⟩
@@ -387,7 +387,8 @@ theorem rafthttp.Transport.RemoveAllPeers_core
     iapply BigSepL.bigSepL_nil.2; itrivial
   isplitr
   · imodintro
-    iintro %i %key %v %m' %Hiv ⟨Hp, Hg, #Hpo', Hts, Ht, ⟨%x, Hid⟩, %⟨Hagr, Hsub⟩, Hdr, Htk⟩ Hpm
+    iintro %i %key %v %m' %Hiv ⟨Hp, Hg, #Hpo', Hts, Ht, ⟨%x, Hid⟩, %Hags, Hdr, Htk⟩ Hpm
+    obtain ⟨Hagr, Hsub⟩ := Hags
     obtain ⟨hk, hv⟩ := Hiv
     obtain ⟨hlt, hget⟩ := List.getElem?_eq_some_iff.1 hk
     have hdrop : keys.drop i = key :: keys.drop (i + 1) := by
@@ -412,8 +413,6 @@ theorem rafthttp.Transport.RemoveAllPeers_core
     iframe
     isplitr
     · imodintro; iapply peersOk_delete $$ Hpo'
-    isplitl [Hid]
-    · iexists _; iexact Hid
     isplitr
     · ipureintro
       refine ⟨fun j k hj hkj => ?_, fun k hk' => ?_⟩
@@ -431,7 +430,7 @@ theorem rafthttp.Transport.RemoveAllPeers_core
           rcases List.mem_cons.1 this with h | h
           · exact absurd h hne
           · exact h
-    rw [List.take_succ, hget]
+    rw [List.take_add_one, hk]
     simp only [Option.toList_some]
     iapply BigSepL.bigSepL_append.2
     iframe Htk
@@ -439,13 +438,15 @@ theorem rafthttp.Transport.RemoveAllPeers_core
     iexact HR
   isplitr
   · imodintro
-    iintro %i %key %m' %Hin ⟨-, -, -, -, -, -, %⟨Hagr, -⟩, -, -⟩
+    iintro %i %key %m' %Hin ⟨-, -, -, -, -, -, %Hags, -, -⟩
+    obtain ⟨Hagr, -⟩ := Hags
     obtain ⟨hk, hnone⟩ := Hin
     exfalso
     have := (Hkeys key).1 (List.mem_of_getElem? hk)
     rw [← Hagr i key (Nat.le_refl _) hk, hnone] at this
     exact Bool.false_ne_true this
-  iintro %m' ⟨Hp, Hg, #Hpo', Hts, Ht, -, %⟨-, Hsub⟩, -, HRs⟩ Hpm
+  iintro %m' ⟨Hp, Hg, #Hpo', Hts, Ht, -, %Hags, -, HRs⟩ Hpm
+  obtain ⟨-, Hsub⟩ := Hags
   (try wp_auto)
   wp_apply sync.RWMutex.wp_Unlock_guard $$ [Hwl Hp Hr Hpm Hrm Hg Hgr Hts]
   · iframe #; iframe Hwl

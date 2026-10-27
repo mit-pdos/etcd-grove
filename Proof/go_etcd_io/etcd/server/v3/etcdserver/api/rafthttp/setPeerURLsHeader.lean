@@ -109,12 +109,12 @@ theorem rafthttp.setPeerURLsHeader.wp_proof
     rw [List.getElem?_set]
     by_cases hjk : sint.nat k = j
     · subst hjk
-      rw [ite_cond_eq_true _ _ (eq_true rfl),
-        ite_cond_eq_true _ _ (eq_true (by rw [Hk3]; exact (List.getElem?_eq_some_iff.1 hv).1))]
+      rw [ite_eq_left_of_eq_true _ _ (eq_true rfl),
+        ite_eq_left_of_eq_true _ _ (eq_true (by rw [Hk3]; exact (List.getElem?_eq_some_iff.1 hv).1))]
       have : v = u := by rw [hv] at Hu_lookup; exact Option.some.inj Hu_lookup
       subst this
       rw [Hus hvr]
-    · rw [ite_cond_eq_false _ _ (eq_false hjk)]
+    · rw [ite_eq_right_of_eq_false _ _ (eq_false hjk)]
       exact Hk4 j v (by omega) hv hvr
   -- `req.Header.Set("X-PeerURLs", strings.Join(peerURLs, ","))`
   ihave #Hspkg : isPkgInit (PROP := IProp GF) pkg_id.strings $$ []
@@ -127,25 +127,27 @@ theorem rafthttp.setPeerURLsHeader.wp_proof
   · iframe; iframe #
   (try wp_auto)
   iapply HΦ
-  iexists _
+  iexists (http.hdrSet R.hdr go!"X-PeerURLs" (go!",".intercalate xs))
   isplitr
-  · ipureintro; intro k hk; exact http.hdrGet_hdrSet_ne R.hdr _ k _ (Ne.symm hk)
+  · ipureintro; intro k hk
+    exact http.hdrGet_hdrSet_ne R.hdr _ k (go!",".intercalate xs) (Ne.symm hk)
   isplitr
   · ipureintro
     intro _ hall
     rw [http.hdrGet_hdrSet_eq]
     unfold peerURLsHdr
-    congr 1
-    apply List.ext_getElem?
-    intro j
-    rw [List.getElem?_map]
-    cases hj : uvs[j]? with
-    | none =>
-      have : uvs.length ≤ j := List.getElem?_eq_none_iff.1 hj
-      exact List.getElem?_eq_none_iff.2 (by omega)
-    | some v =>
-      have hjl : j < uvs.length := (List.getElem?_eq_some_iff.1 hj).1
-      exact Hk4 j v (by unfold sint.nat at *; word) hj (hall v (List.mem_of_getElem? hj))
+    have hxs : xs = uvs.map fun u => go!"http://" ++ u.Host' := by
+      apply List.ext_getElem?
+      intro j
+      rw [List.getElem?_map]
+      cases hj : uvs[j]? with
+      | none =>
+        have : uvs.length ≤ j := List.getElem?_eq_none_iff.1 hj
+        exact List.getElem?_eq_none_iff.2 (by omega)
+      | some v =>
+        have hjl : j < uvs.length := (List.getElem?_eq_some_iff.1 hj).1
+        exact Hk4 j v (by unfold sint.nat at *; word) hj (hall v (List.mem_of_getElem? hj))
+    rw [hxs]
   iunfold http.reqOwn
   iexists hm
   iframe; iframe #

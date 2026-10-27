@@ -176,7 +176,8 @@ theorem rafthttp.startPeer.wp_proof
   iunfold trFixed at Htr'
   icases Htr' with ⟨%lg, %ls, %ss, %turls, %tuvs, %cid, %r, %ec, %srt, %prt, %drf, %ppr, %spr, #Hlg, %Hlgnn,
     #Hlid, #HtURLs, #Htuvs, #Hcid, #Hr, #Hraft, #Hec, #Hsrt, #Hsrtok, #Hprt, #Hprtok, #Hdrf, #Hls,
-    %Hlsnn, #Hss, %Hssnn, #Hppr, #Hspr, #Hreg, #Hpreg0, #HPfx, %⟨Hmem, Hturls⟩⟩
+    %Hlsnn, #Hss, %Hssnn, #Hppr, #Hspr, #Hreg, #Hpreg0, #HPfx, %HmemU⟩
+  obtain ⟨Hmem, Hturls⟩ := HmemU
   have Hpp : Rh.member pid ∧ pid ≠ lid := ⟨Hpm, fun h => Hnp h.symm⟩
   ihave #Hpreg := Hpreg0 $$ %pid %Hpp
   wp_apply wp_with_defer as %defer defer

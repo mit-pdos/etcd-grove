@@ -44,9 +44,16 @@ theorem rafthttp.Transport.Handler.wp_proof
     (hPServe : rafthttp.pipelineHandler.ServeHTTP.spec (GF := GF) (hG := hG))
     (hSServe : rafthttp.streamHandler.ServeHTTP.spec (GF := GF) (hG := hG))
     (hSnServe : rafthttp.snapshotHandler.ServeHTTP.spec (GF := GF) (hG := hG))
-    (hARR : rafthttp.addRemoteFromRequest.spec (GF := GF) (hG := hG)) :
+    (hARR : rafthttp.addRemoteFromRequest.spec (GF := GF) (hG := hG))
+    (hNewURLs : types.NewURLs.spec (GF := GF) (hG := hG))
+    (hStartRemote : rafthttp.startRemote.spec (GF := GF) (hG := hG))
+    (hIDStringPtr : types.ID.String_ptr.spec (GF := GF) (hG := hG))
+    (hInfo : zap.Logger.Info.spec (GF := GF) (hG := hG))
+    (hZString : zap.String.spec (GF := GF) (hG := hG))
+    (hZStrings : zap.Strings.spec (GF := GF) (hG := hG)) :
     rafthttp.Transport.Handler.spec (GF := GF) (hG := hG) :=
   rafthttp.Transport.Handler_ok hNPH hNSH hNSnH hNewHandler hGet hPServe hSServe hSnServe hARR
+    hNewURLs hStartRemote hIDStringPtr hInfo hZString hZStrings
 
 end proof
 

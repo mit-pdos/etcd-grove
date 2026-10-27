@@ -77,7 +77,8 @@ theorem rafthttp.Transport.AddPeer_core
   iunfold trFixed at Htr'
   icases Htr' with ⟨%lg, %ls, %ss0, %turls, %tuvs, %cid, %r, %ec, %srt, %prt, %drf, %ppr, %spr,
     #Hlg, %Hlgnn, #Hlid, #HtURLs, #Htuvs, #Hcid, #Hr, #Hraft, #Hec, #Hsrt, #Hsrtok, #Hprt, #Hprtok,
-    #Hdrf, #Hls, %Hlsnn, #Hss, %Hssnn, #Hppr, #Hspr, #Hreg, #Hpreg, #HPfx, %⟨Hmem, Hturls⟩⟩
+    #Hdrf, #Hls, %Hlsnn, #Hss, %Hssnn, #Hppr, #Hspr, #Hreg, #Hpreg, #HPfx, %HmemU⟩
+  obtain ⟨Hmem, Hturls⟩ := HmemU
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   wp_apply wp_with_defer as %defer defer
@@ -150,9 +151,9 @@ theorem rafthttp.Transport.AddPeer_core
   iunfold mapOrNil at Hpm
   icases Hpm with (⟨%Hpn, -⟩ | Hpm)
   · exact absurd Hpn Hpmnn
-  wp_apply wp_mapInsert $$ [Hpm] as Hpm
+  wp_apply (lc := 1) wp_mapInsert $$ [Hpm] as Hpm
   · iframe Hpm
-  imod trStop_add_peer Rh R γs L γk γo pm rm PM RM T id pp hp $$ Hst Hg Hpstop with ⟨Hg, Htk⟩
+  imod trStop_add_peer Rh R γs L γk γo pm rm PM RM T id pp hp $$ Hst Hg Hpstop Hlc1 with ⟨Hg, Htk⟩
   (try wp_auto)
   -- the probers, the log
   ihave Hri : (go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.rafthttpInit : IProp GF) $$ []
@@ -245,7 +246,8 @@ theorem rafthttp.Transport.AddRemote_core
   iunfold trFixed at Htr'
   icases Htr' with ⟨%lg, %ls, %ss0, %turls, %tuvs, %cid, %r, %ec, %srt, %prt, %drf, %ppr, %spr,
     #Hlg, %Hlgnn, #Hlid, #HtURLs, #Htuvs, #Hcid, #Hr, #Hraft, #Hec, #Hsrt, #Hsrtok, #Hprt, #Hprtok,
-    #Hdrf, #Hls, %Hlsnn, #Hss, %Hssnn, #Hppr, #Hspr, #Hreg, #Hpreg, #HPfx, %⟨Hmem, Hturls⟩⟩
+    #Hdrf, #Hls, %Hlsnn, #Hss, %Hssnn, #Hppr, #Hspr, #Hreg, #Hpreg, #HPfx, %HmemU⟩
+  obtain ⟨Hmem, Hturls⟩ := HmemU
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   wp_apply wp_with_defer as %defer defer

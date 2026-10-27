@@ -176,6 +176,127 @@ def trOpened (c : TrN GF) : IProp GF := trOpenedAt c.γo
 instance trOpened_persistent (c : TrN GF) : Persistent (trOpened c) := by
   unfold trOpened; infer_instance
 
+/-- **The transport opened** (D22 J-T; the owner's ghost step once its `AddPeer`s are done). -/
+theorem trOpen_state (γn : NetNames GF) (t : Loc) (c : TrN GF) :
+    ⊢ trState γn t c -∗ trUnopened c ={⊤}=∗ trOpened c := by
+  iintro #Hst Hu
+  iunfold trState at Hst
+  icases Hst with ⟨-, -, #Hinv, -⟩
+  iunfold trUnopened at Hu
+  iunfold trOpened
+  iapply trOpen (netRh γn) c.R c.γs c.L c.γk c.γo $$ Hinv Hu
+
+/-- Not opened and opened: impossible. -/
+theorem trUnopened_opened (c : TrN GF) : trUnopened c ∗ trOpened c ⊢ False := by
+  iintro ⟨Hu, Ho⟩
+  iunfold trUnopened at Hu; iunfold trOpened at Ho
+  iunfold trUnopenedAt at Hu; iunfold trOpenedAt at Ho
+  ihave %Hag := dghostVar_agree c.γo _ _ _ _ $$ Hu Ho
+  cases Hag
+
+/-- **The peers' no-remote facts** (D22 J-T): for each peer id of `rs` (without repeats), not
+budgeted or its token: what `RemoveAllPeers` takes back. -/
+def trPeersNoRem (c : TrN GF) (rs : trIds) : IProp GF :=
+  iprop(∃ Q : List w64, ⌜Q.Nodup ∧ ∀ f, f ∈ Q ↔ f ∈ rs⌝ ∗ [∗list] f ∈ Q, trNoRemOr c f)
+
+/-- **The no-remote tokens collected** while adding the peers `L` (D22 J-T; `NewServer`'s
+`AddPeer` loop, before opening): one for each id of `L` the pool budgets. -/
+def trNoRemAcc (c : TrN GF) (L : List w64) : IProp GF :=
+  iprop(∃ Q : List w64, ⌜Q.Nodup ∧ ∀ f, f ∈ Q ↔ f ∈ L ∧ f ∈ c.L⌝ ∗ [∗list] f ∈ Q, trNoRem c f)
+
+theorem trNoRemAcc_nil (c : TrN GF) : ⊢ trNoRemAcc c [] := by
+  iunfold trNoRemAcc
+  iexists []
+  isplitr
+  · ipureintro; exact ⟨List.nodup_nil, fun f => by simp⟩
+  iapply BigSepL.bigSepL_nil.2; itrivial
+
+/-- A step of the collection: what `AddPeer` gives (`AddPeer.spec`'s last conjunct), the
+transport not opened. -/
+theorem trNoRemAcc_snoc (c : TrN GF) (L : List w64) (id : w64) :
+    ⊢ trUnopened c -∗ trNoRemAcc c L -∗
+      (⌜id ∈ L ∨ id ∉ c.L⌝ ∨ trNoRem c id ∨ trOpened c) -∗
+      trUnopened c ∗ trNoRemAcc c (L ++ [id]) := by
+  iintro Hu HL Hr
+  iunfold trNoRemAcc at HL
+  icases HL with ⟨%Q, %HQ, HQs⟩
+  iunfold trNoRemAcc
+  icases Hr with (%Hc | Htok | #Hop)
+  · iframe Hu
+    iexists Q
+    iframe HQs
+    ipureintro
+    refine ⟨HQ.1, fun f => ?_⟩
+    rw [HQ.2 f, List.mem_append, List.mem_singleton]
+    rcases Hc with Hc | Hc
+    · constructor
+      · rintro ⟨h1, h2⟩; exact ⟨Or.inl h1, h2⟩
+      · rintro ⟨h1 | rfl, h2⟩
+        · exact ⟨h1, h2⟩
+        · exact ⟨Hc, h2⟩
+    · constructor
+      · rintro ⟨h1, h2⟩; exact ⟨Or.inl h1, h2⟩
+      · rintro ⟨h1 | rfl, h2⟩
+        · exact ⟨h1, h2⟩
+        · exact absurd h2 Hc
+  · iframe Hu
+    by_cases hin : id ∈ L ∨ id ∉ c.L
+    · iexists Q
+      iframe HQs
+      ipureintro
+      refine ⟨HQ.1, fun f => ?_⟩
+      rw [HQ.2 f, List.mem_append, List.mem_singleton]
+      rcases hin with Hc | Hc
+      · constructor
+        · rintro ⟨h1, h2⟩; exact ⟨Or.inl h1, h2⟩
+        · rintro ⟨h1 | rfl, h2⟩
+          · exact ⟨h1, h2⟩
+          · exact ⟨Hc, h2⟩
+      · constructor
+        · rintro ⟨h1, h2⟩; exact ⟨Or.inl h1, h2⟩
+        · rintro ⟨h1 | rfl, h2⟩
+          · exact ⟨h1, h2⟩
+          · exact absurd h2 Hc
+    · have hnL : id ∉ L := fun h => hin (Or.inl h)
+      have hcL : id ∈ c.L := Classical.byContradiction fun h => hin (Or.inr h)
+      have hnQ : id ∉ Q := fun h => hnL ((HQ.2 id).1 h).1
+      iexists Q ++ [id]
+      isplitr
+      · ipureintro
+        refine ⟨List.nodup_append.2 ⟨HQ.1, List.nodup_cons.2 ⟨by simp, List.nodup_nil⟩,
+          fun a ha b hb => by rw [List.mem_singleton.1 hb]; exact fun e => hnQ (e ▸ ha)⟩,
+          fun f => ?_⟩
+        rw [List.mem_append, List.mem_singleton, HQ.2 f, List.mem_append, List.mem_singleton]
+        constructor
+        · rintro (⟨h1, h2⟩ | rfl)
+          · exact ⟨Or.inl h1, h2⟩
+          · exact ⟨Or.inr rfl, hcL⟩
+        · rintro ⟨h1 | rfl, h2⟩
+          · exact Or.inl ⟨h1, h2⟩
+          · exact Or.inr rfl
+      iapply BigSepL.bigSepL_append.2
+      iframe HQs
+      iapply BigSepL.bigSepL_singleton.2
+      iexact Htok
+  · iexfalso
+    iapply trUnopened_opened c $$ [Hu Hop]
+    iframe; iframe #
+
+/-- **The collected tokens are the pool's** once every id of the pool is added. -/
+theorem trNoRemAcc_full (c : TrN GF) (L : List w64) (hnd : c.L.Nodup)
+    (hcov : ∀ f ∈ c.L, f ∈ L) :
+    trNoRemAcc c L ⊢ [∗list] f ∈ c.L, trNoRem c f := by
+  iintro H
+  iunfold trNoRemAcc at H
+  icases H with ⟨%Q, %HQ, HQs⟩
+  have hp : Q.Perm c.L := by
+    rw [List.perm_ext_iff_of_nodup HQ.1 hnd]
+    intro f
+    rw [HQ.2 f]
+    exact ⟨fun h => h.2, fun h => ⟨hcov f h, h⟩⟩
+  iapply (BigSepL.bigSepL_perm (Φ := fun f => trNoRem c f) hp).1
+  iexact HQs
+
 /-- **The freeze**: a live transport given up for good, with the stop token (D43 M5e). -/
 theorem trLive_freeze (γn : NetNames GF) (t : Loc) (c : TrN GF) (rs : trIds) (E : CoPset) :
     ⊢ trLive γn t c rs ={E}=∗ trFrozen γn t c rs ∗ trFrozenTok c.γr rs := by
@@ -327,14 +448,15 @@ theorem rafthttp.Transport.Start_full
     · iunfold trPool
       isplitr
       · ipureintro; exact ⟨fun _ h => by simp at h, HLnd⟩
-      ihave H := BigSepL.bigSepL_sep_eqv.2 $$ [HRL Htks]
-      · iframe
-      iapply BigSepL.bigSepL_mono_of_forall (Φ := fun _ x => iprop((R ∗ R ∗ R ∗ R) ∗ trTokAt γk x 1))
-        (fun {_ x} => by
+      ihave H : iprop([∗list] x ∈ L, (R ∗ R ∗ R ∗ R) ∗ trTokAt γk x 1) $$ [HRL Htks]
+      · iapply BigSepL.bigSepL_sep_eqv.2
+        iframe
+      iapply BigSepL.bigSepL_mono_of_forall
+        (fun {_ x} => (show iprop((R ∗ R ∗ R ∗ R) ∗ trTokAt γk x 1) ⊢ trPoolE R γk rm ∅ [] x by
           iintro ⟨⟨H1, H2, H3, H4⟩, Ht⟩; iunfold trPoolE; iright
           isplitr
           · ipureintro; simp
-          ileft; iframe) $$ H
+          ileft; iframe)) $$ H
     isplitr
     · ipureintro; intro _; rfl
     simp only [Bool.false_eq_true, ↓reduceIte]

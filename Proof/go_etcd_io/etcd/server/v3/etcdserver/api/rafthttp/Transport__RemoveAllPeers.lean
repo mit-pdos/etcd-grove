@@ -43,8 +43,6 @@ theorem rafthttp.Transport.RemoveAllPeers.wp_proof
   wp_apply (rafthttp.Transport.RemoveAllPeers_core hPeerStop hIDStringPtr hInfo hWarn hZString (netRh γn) t c.lid
       c.γd c.R c.γs c.γr c.L c.γk c.γo rs Q hQn hQ) $$ [Hg Htks] as ⟨Hg, HRs⟩
   · iframe; iframe #
-    iapply BigSepL.bigSepL_mono (fun {_ x} _ => by
-      iintro H; iunfold trNoRemOr at H; iunfold trNoRem at H; iexact H) $$ Htks
   iapply HΦ
   iframe HRs
   iunfold trLive
