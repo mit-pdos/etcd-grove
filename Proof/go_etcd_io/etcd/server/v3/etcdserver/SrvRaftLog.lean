@@ -1547,5 +1547,85 @@ theorem srvReadCtx_commit (γ : ServerRaftNames) (issued : GName) (c : List w8)
 
 end mint
 
+/-! ## Allocation -/
+
+section alloc
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
+/-- **The server's log invariant, allocated** (2026-10-27) over the node API's cluster `cl`, from
+the requested entries committed so far (the bootstrap log's `Lf0`: consecutive from index `1`, no
+filler, no normal entry), the server's start at index `0`: the server's names (the cluster's kind
+as given), the log invariant, the KV invariant's half of `Lf0`, and the authorities of the
+proposals' and the read contexts' fresh tokens (for the mints). -/
+theorem srvLogInv_alloc (cl : Draft.Cluster) (vs : List w64) (dyn : Bool)
+    (dec : Draft.ConfChangeDecoder) (Lf0 : List EntryModel) (E : CoPset)
+    (hidx : srvIdxOkW (W64 0) Lf0) (hnf : ∀ m ∈ Lf0, ¬ m.toLE.isFiller)
+    (hnn : ∀ m ∈ Lf0, m.typ ≠ W32 0) :
+    ⊢ Draft.ownCommittedOps (GF := GF) cl (Lf0.map EntryModel.toLE) ={E}=∗
+      ∃ γr : SrvRaft, ⌜γr.cl = cl ∧ γr.vs = vs ∧ γr.dyn = dyn ∧ γr.dec = dec⌝ ∗
+        srvLogInv (⟨γr, [], W64 0⟩ : ServerRaftNames) ∗ srvRLog ⟨γr, [], W64 0⟩ Lf0 ∗
+        srvRLogLb (⟨γr, [], W64 0⟩ : ServerRaftNames) [] ∗
+        ghostMapAuth γr.fresh 1 (∅ : GMap (List w8) Unit) ∗
+        ghostMapAuth γr.rdFresh 1 (∅ : GMap (List w8) Unit) := by
+  letI := srvAnyStor (GF := GF)
+  iintro Hown
+  imod mono_list_own_alloc (GF := GF) Lf0 with ⟨%γlog, Hlog, -⟩
+  imod ghost_map_alloc_empty (GF := GF) (K := List w8) (V := Unit) with ⟨%γfresh, Hfresh⟩
+  imod ghost_map_alloc_empty (GF := GF) (K := List w8) (V := GName × GName) with ⟨%γprops, HP⟩
+  imod ghost_map_alloc_empty (GF := GF) (K := List w8) (V := List EntryModel) with ⟨%γfired, HF⟩
+  imod ghost_map_alloc_empty (GF := GF) (K := List w8) (V := Unit) with ⟨%γrd, Hrd⟩
+  imod mono_list_own_alloc (GF := GF) ([] : List (GName × Nat)) with ⟨%γpend, HR, -⟩
+  let γr : SrvRaft := ⟨cl, vs, dyn, dec, γlog, γfresh, γprops, γfired, γrd, γpend⟩
+  icases ((monoListAuthOwn_fractional (GF := GF) γlog Lf0).fractional
+      (1 : Qp).half (1 : Qp).half).1 $$ [Hlog] with ⟨Hlog, HL⟩
+  · rw [Qp.half_add_half]; iexact Hlog
+  have Hops : Draft.opsOf (srvLE (⟨γr, [], W64 0⟩ : ServerRaftNames) Lf0) =
+      Lf0.map EntryModel.toLE := by
+    rw [opsOf_nofill]
+    · rfl
+    · intro e he
+      obtain ⟨m, hm, rfl⟩ := List.mem_map.1 (by simpa [srvLE] using he)
+      exact hnf m hm
+  imod inv_alloc srvLogN E iprop(∃ (Lf : List EntryModel) (P : GMap (List w8) (GName × GName))
+      (F : GMap (List w8) (List EntryModel)) (R : List (GName × Nat)),
+    srvLogCore (⟨γr, [], W64 0⟩ : ServerRaftNames) Lf P F R ∗
+      srvLogRegs (⟨γr, [], W64 0⟩ : ServerRaftNames) Lf F R) $$ [Hown Hlog HP HF HR] with #Hli
+  · inext
+    iexists Lf0, ∅, ∅, []
+    iunfold srvLogCore
+    iunfold srvLogRegs
+    rw [Hops]
+    iframe Hown Hlog HP HF HR
+    isplitr
+    · isplitr
+      · iapply (BigSepM.bigSepM_empty (PROP := IProp GF)).2; itrivial
+      ipureintro
+      refine ⟨hidx, hnf, ?_, by simp⟩
+      intro j m hm ht
+      exact absurd ht (hnn m (List.mem_of_getElem? hm))
+    isplitr
+    · iapply (BigSepM.bigSepM_empty (PROP := IProp GF)).2; itrivial
+    iapply (BigSepL.bigSepL_nil (PROP := IProp GF)).2; itrivial
+  ihave #Hnil := Draft.isCommittedLogLb_nil (GF := GF) cl
+  imodintro
+  iexists γr
+  isplitr
+  · ipureintro; exact ⟨rfl, rfl, rfl, rfl⟩
+  iunfold srvLogInv
+  iframe Hli Hfresh Hrd
+  iunfold srvRLog
+  iframe HL
+  iunfold srvRLogLb
+  have Hn : srvLE (⟨γr, [], W64 0⟩ : ServerRaftNames) [] = [] := rfl
+  rw [Hn]
+  iframe Hnil
+  ipureintro; intro n m hm; simp at hm
+
+end alloc
+
 end EtcdGrove
 end Perennial
