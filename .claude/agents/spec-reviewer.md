@@ -70,6 +70,16 @@ Each found by a past review (`notes/spec-first-study/pilot-review-1.md`, the com
   two of them.
 - **A mode variant missing.** The repository's server specs come in modes (auth off/on: `spec` and
   `specOn`/`specM`); a new spec over only one mode fails the callers in the other.
+- **A once-only resource consumed per call.** A token meant to be used once per run (or per object)
+  but spent by each call that uses it: check the code's retry and loop paths (a failed call retried
+  with the same argument spends it again). Make the exceptional case depend on the value (a
+  persistent one-shot fact), not on the call. (Second review of the compactor pilot.)
+- **A resource whose invariant contradicts the function's purpose.** A predicate chosen for a
+  precondition because it gives the needed access, but which also asserts something the function
+  breaks (a store reader asserting "never compacted" in a compaction's spec). Read the definitions of
+  the resources a spec takes, not only their names.
+- **Repairs introduce defects.** In a second or later round, look hardest at what changed since the
+  previous round: two of the compactor pilot's three round-2 blockers came from round-1 repairs.
 - **A premise stricter than the Go parser.** Compare a configuration premise with what the Go code
   accepts (`time.ParseDuration` accepts negative durations; an integer flag may be parsed elsewhere).
 

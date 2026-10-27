@@ -13,3 +13,12 @@ chained with what the caller holds; check every mode variant; compare configurat
 what the Go parser accepts. And: give the review to a fresh reviewer, not the author (the author's
 review missed the vacuous disjunct it had itself written).
 
+## 2026-10-27, the compactor pilot's specs (second review, `notes/spec-first-study/pilot-review-2.md`)
+
+Three blockers, two of them introduced by the first round's repairs (a once-per-run token spent by a
+retried call; a reader resource asserting "never compacted" in `Compact`'s spec), and one false
+positive (a Go issue reported as unrecorded that `issues/` already had). Rules (in the reviewer's
+"Failure patterns"): check retry paths for once-only resources; read the definitions of the resources
+a spec takes; in later rounds, look hardest at what changed. For the orchestrator: always run another
+round after repairs.
+

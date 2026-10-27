@@ -21,7 +21,12 @@ they mean is the trust boundary, stated here.
 trivial model (`clockLb := True`, `stampAt P T := P`): no Lean result can rule out that model. A
 result's time content (a revision "at least `period` old") holds under the intended reading, that
 `clockLb` and `stampAt` speak of the real clock; that reading is the trust boundary, as the meaning
-of any environment axiom is (2026-10-27, the pilot's first spec review).
+of any environment axiom is (2026-10-27, the pilot's first spec review). What survives the trivial model is
+what does not mention the clock: in the compactor's C1, that the store had reached the compacted
+revision. The intended reading is what phase 2 tests (`notes/spec-first-plan.md`): a run under an
+instrumented clock, checking each stamp against the clock's readings. `Now()` gives nothing usable
+(Perennial's `Time.Sub` has no meaningful spec), which is why the compactor's first sample, timed only
+by `Now()`, gets the weaker bound (`v3compactor.perPermit`).
 
 Why this is true of clockwork v0.5.0's real clock (`clockwork.NewRealClock()`, the compactor's):
 `realClock.Now` is `time.Now()` and `realClock.After` is `time.After`; Go's `time.After(d)` fires

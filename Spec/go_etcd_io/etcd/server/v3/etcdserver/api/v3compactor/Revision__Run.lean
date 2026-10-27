@@ -22,11 +22,11 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- `rc.Run()`: starts the goroutine that, every 5 minutes, compacts at `Rev() - retention`, and returns.
-The goroutine keeps the server's `E.R`, and calls `Compact` only at revisions C1's revision permit
-allows. -/
+The goroutine keeps `runPre`'s resources, and calls `Compact` only at revisions C1's revision permit
+allows (`runPre`'s `compactableOk`). -/
 abbrev v3compactor.Revision.Run.spec : Prop :=
   ∀ (rc : Loc) (E : CompactEnv GF) (ret : Int),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor ∗ isRevision rc E ret ∗ E.R }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor ∗ isRevision rc E ret ∗ runPre E (revPermit E.RevLb ret) }}
     (App (Val (rc @!! go.GoType.PointerType v3compactor.Revision.ty @!! go!"Run")) (Val #()))
   {{ RET #(); True }}
 

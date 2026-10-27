@@ -25,8 +25,7 @@ variable [sem : go.Semantics]
 whose `Compact` takes C1's revision permit. -/
 abbrev v3compactor.newRevision.spec : Prop :=
   ∀ (lg : Loc) (clk : GoInterface) (ret : w64) (E : CompactEnv GF),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor ∗ ⌜lg ≠ null⌝ ∗ clockwork.clockOk clockwork.realClock clk ∗
-      revGetterOk E.RevLb E.rg E.R ∗ compactableOk E.c (revPermit E.RevLb (sint.Z ret)) E.R }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor ∗ ⌜lg ≠ null⌝ ∗ clockwork.clockOk clockwork.realClock clk }}
     (App (App (App (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.newRevision)) (Val #lg)) (Val #clk)) (Val #ret)) (Val #E.rg)) (Val #E.c))
   {{ (rc : Loc), RET #rc; isRevision rc E (sint.Z ret) }}
 

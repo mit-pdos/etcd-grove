@@ -19,18 +19,20 @@ skeleton").
 **C1, the permits.**
 - revision mode (`revPermit RevLb ret r`): `0 < r` and the store has reached `r + ret`
   (`Revision.Run` compacts at `Rev() - retention`).
-- periodic mode (`perPermit RevLb period First r`): `0 < r` and the store had reached `r` by a
-  clock time `T` the clock is now `period` past (a full window: `revs[0]`'s sample is `retentions`
-  waits of `retry` old); or, the run's first compaction only, consuming `First`, `retry` past (its
-  sample is the run's first, taken at an unknown time after `start`; the plan's "C1 restated").
+- periodic mode (`perPermit RevLb period γf r`): `0 < r` and the store had reached `r` by a clock
+  time `T` the clock is now `period` past (a full window: `revs[0]`'s sample is `retentions` waits
+  of `retry` old); or `r` is the run's first sample (`firstSample γf r`, one revision per run, retried
+  at the same revision if its compaction fails) and the clock is `retry` past `T` (that sample is
+  taken at an unknown time after `start`; the plan's "C1 restated").
 
 **The objects.** `isPeriodic pc E period` (persistent): the fields `New` set, read-only from then
-on, with their contracts, and the `RWMutex` guard over `paused` (`Pause`/`Resume` write-lock it);
+on, the clock's contract, and the `RWMutex` guard over `paused` (`Pause`/`Resume` write-lock it);
 `periodicRunTok pc` (exclusive, consumed by `Run`): the `revs` field, which only `Run`'s goroutine
 touches, and a reader slot of the mutex. `isRevision rc E ret` likewise, over a `sync.Mutex` (its
-`Run` keeps nothing of the object). `Run` also takes the server's resource `E.R`, which its
-goroutine passes to every `Compact`. `compactorOk cp RunTok R` (persistent): the interface value
-`New` returns, with its four methods' contracts.
+`Run` keeps nothing of the object). `Run` also takes `runPre E P`: the revision getter's and the
+server's contracts (only `Run` needs them: `New` calls neither), the resource they thread, and the
+first sample's ghost variable. `compactorOk cp RunTok RunPre` (persistent): the interface value `New`
+returns, with its four methods' contracts.
 -/
 module
 
@@ -40,6 +42,7 @@ public import GeneratedProof.go_etcd_io.etcd.server.v3.etcdserver.api.v3compacto
 public import Perennial.Proof.context
 public import Perennial.Proof.sync.RWMutexGuard
 public import Perennial.Golang.Theory.Lock
+public import Perennial.Ghost.DGhostVar
 
 @[expose] public section
 
@@ -79,11 +82,13 @@ instance revLb_persistent (γi : mvcc.IdxNames) (r : Int) : Persistent (revLb (G
 
 /-- **The revision getter** (`RevGetter`, the server's `srv.kv`): `Rev()`, given and giving back the
 caller's resource `R` (the store's `Rev` needs a reader slot), returns a non-negative `v` the store
-has reached (`RevLb v`: the caller's lower-bound predicate; the server's is `revLb`). -/
+has reached (`RevLb v`: the caller's lower-bound predicate; the server's is `revLb`), and no smaller
+than any revision `n` the caller knows the store had reached (the revision never decreases: the
+periodic mode's `0 < r` rests on it, `periodic.go` having no `rev <= 0` check). -/
 def revGetterOk (RevLb : Int → IProp GF) (rg : GoInterface) (R : IProp GF) : IProp GF :=
   iprop(∃ ri : GoInterfaceOk, ⌜rg = GoInterface.ok ri⌝ ∗
-    □ ({{ R }} (App (Val #(methods ri.ty go!"Rev" ri.v)) (Val #()))
-        {{ (v : w64), RET #v; R ∗ □ RevLb (sint.Z v) ∗ ⌜0 ≤ sint.Z v⌝ }}))
+    □ (∀ n : Int, {{ R ∗ □ RevLb n }} (App (Val #(methods ri.ty go!"Rev" ri.v)) (Val #()))
+        {{ (v : w64), RET #v; R ∗ □ RevLb (sint.Z v) ∗ ⌜n ≤ sint.Z v ∧ 0 ≤ sint.Z v⌝ }}))
 
 instance revGetterOk_persistent (RevLb : Int → IProp GF) (rg : GoInterface) (R : IProp GF) :
     Persistent (revGetterOk (GF := GF) RevLb rg R) := by
@@ -125,40 +130,59 @@ instance compactableOk_persistent (c : GoInterface) (P : Int → IProp GF) (R : 
 def revPermit (RevLb : Int → IProp GF) (ret : Int) (r : Int) : IProp GF :=
   iprop(⌜0 < r⌝ ∗ □ RevLb (r + ret))
 
+/-- **The run's first sample** was `r` (persistent, and the same for every use: a ghost variable the
+server allocates unset, `firstUnset`, and `Run`'s goroutine sets once to its first `Rev()`). -/
+def firstSample (γf : GName) (r : Int) : IProp GF := dghostVar γf DFrac.discard (some r)
+
+/-- The run's first sample, not taken yet (what the server gives `Run`). -/
+def firstUnset (γf : GName) : IProp GF := dghostVar γf (DFrac.own 1) (none : Option Int)
+
 /-- **C1, periodic mode**: `0 < r`, and the store had reached `r` by a clock time `T` that the clock
-is now `period` past; except the run's first compaction, which consumes the token `First` and is
-only `retry` past (its sample is the run's first, taken at an unknown time after the run's start:
-the plan's "C1 restated", the user's choice 2026-10-27). The server gives `Run` one `First`, so at
-most one compaction per run is younger than the period. -/
-def perPermit (RevLb : Int → IProp GF) (period : Int) (First : IProp GF) (r : Int) : IProp GF :=
+is now `period` past; or `r` is the run's first sample (`firstSample γf r`) and the clock is `retry`
+past `T` (that sample is taken at an unknown time after the run's start: the plan's "C1 restated",
+the user's choices 2026-10-27). So at most one revision per run, its first sample, is compacted
+younger than the period (a failed compaction of it is retried at the same revision). -/
+def perPermit (RevLb : Int → IProp GF) (period : Int) (γf : GName) (r : Int) : IProp GF :=
   iprop(⌜0 < r⌝ ∗ ∃ T : Int, clockwork.stampAt clockwork.realClock iprop(□ RevLb r) T ∗
     (clockwork.clockLb clockwork.realClock (T + period) ∨
-     (First ∗ clockwork.clockLb clockwork.realClock (T + retryOf period))))
+     (firstSample γf r ∗ clockwork.clockLb clockwork.realClock (T + retryOf period))))
+
+instance perPermit_persistent (RevLb : Int → IProp GF) (period : Int) (γf : GName) (r : Int) :
+    Persistent (perPermit (GF := GF) RevLb period γf r) := by
+  unfold perPermit firstSample; infer_instance
 
 /-- The permit of a mode (`New`'s `mode`; `ret` the retention's nanoseconds or revisions). -/
-def modePermit (mode : GoString) (RevLb : Int → IProp GF) (ret : Int) (First : IProp GF) :
+def modePermit (mode : GoString) (RevLb : Int → IProp GF) (ret : Int) (γf : GName) :
     Int → IProp GF :=
-  if mode = go!"revision" then revPermit RevLb ret else perPermit RevLb ret First
+  if mode = go!"revision" then revPermit RevLb ret else perPermit RevLb ret γf
 
 /-! ### The objects -/
 
 /-- What `New`'s caller supplies: the store's revision lower bounds (`RevLb r`: the store has
 reached `r`; the server's is `revLb`), the revision getter, the server, and the resource the
-getter's `Rev` and the server's `Compact` take and give back, and the periodic mode's once-per-run
-token `First` (`perPermit`). -/
+getter's `Rev` and the server's `Compact` take and give back, and the ghost name of the periodic
+mode's first sample (`firstSample`, `perPermit`). -/
 structure CompactEnv (GF : BundledGFunctors) where
   RevLb : Int → IProp GF
   rg : GoInterface
   c : GoInterface
   R : IProp GF
-  First : IProp GF
+  γf : GName
+
+/-- **What `Run` takes from its caller** (besides the object's run token), for a compactor whose
+`Compact` calls take the permit `P`: the revision getter's and the server's contracts (needed only
+from `Run` on: `New` calls neither), the resource they thread, a revision the store has reached (`0`,
+the getter's first lower bound), and the periodic mode's unset first sample. -/
+def runPre (E : CompactEnv GF) (P : Int → IProp GF) : IProp GF :=
+  iprop(revGetterOk E.RevLb E.rg E.R ∗ compactableOk E.c P E.R ∗ E.R ∗ □ E.RevLb 0 ∗
+    firstUnset E.γf)
 
 /-- `paused` under the periodic compactor's `RWMutex`: a fraction of its cell. -/
 def perPausedInv (pc : Loc) (q : Qp) : IProp GF :=
   iprop(∃ b : Bool, structFieldRef v3compactor.Periodic go!"paused" pc ↦{DFrac.own q} b)
 
 /-- **A periodic compactor** (`*Periodic`, from `newPeriodic`) of `period`: its fields, read-only,
-with their contracts; the mutex's writer guard. -/
+the clock's contract, the mutex's writer guard. -/
 def isPeriodic (pc : Loc) (E : CompactEnv GF) (period : Int) : IProp GF :=
   iprop(∃ (lg : Loc) (clk : GoInterface) (pd : time.Duration) (ctx : GoInterfaceOk)
       (cd : context.ContextDesc (IProp GF)) (γctx : context.ContextNames) (cancel : GoFunc),
@@ -166,9 +190,8 @@ def isPeriodic (pc : Loc) (E : CompactEnv GF) (period : Int) : IProp GF :=
     structFieldRef v3compactor.Periodic go!"clock" pc ↦□ clk ∗
     clockwork.clockOk clockwork.realClock clk ∗
     structFieldRef v3compactor.Periodic go!"period" pc ↦□ pd ∗ ⌜sint.Z pd = period ∧ 10 ≤ period⌝ ∗
-    structFieldRef v3compactor.Periodic go!"rg" pc ↦□ E.rg ∗ revGetterOk E.RevLb E.rg E.R ∗
+    structFieldRef v3compactor.Periodic go!"rg" pc ↦□ E.rg ∗
     structFieldRef v3compactor.Periodic go!"c" pc ↦□ E.c ∗
-    compactableOk E.c (perPermit E.RevLb period E.First) E.R ∗
     structFieldRef v3compactor.Periodic go!"ctx" pc ↦□ GoInterface.ok ctx ∗
     context.isContext ctx cd ∗
     structFieldRef v3compactor.Periodic go!"cancel" pc ↦□ cancel ∗
@@ -198,9 +221,8 @@ def isRevision (rc : Loc) (E : CompactEnv GF) (ret : Int) : IProp GF :=
     structFieldRef v3compactor.Revision go!"clock" rc ↦□ clk ∗
     clockwork.clockOk clockwork.realClock clk ∗
     structFieldRef v3compactor.Revision go!"retention" rc ↦□ rt ∗ ⌜sint.Z rt = ret⌝ ∗
-    structFieldRef v3compactor.Revision go!"rg" rc ↦□ E.rg ∗ revGetterOk E.RevLb E.rg E.R ∗
+    structFieldRef v3compactor.Revision go!"rg" rc ↦□ E.rg ∗
     structFieldRef v3compactor.Revision go!"c" rc ↦□ E.c ∗
-    compactableOk E.c (revPermit E.RevLb ret) E.R ∗
     structFieldRef v3compactor.Revision go!"ctx" rc ↦□ GoInterface.ok ctx ∗
     context.isContext ctx cd ∗
     structFieldRef v3compactor.Revision go!"cancel" rc ↦□ cancel ∗
@@ -213,18 +235,18 @@ instance isRevision_persistent (rc : Loc) (E : CompactEnv GF) (ret : Int) :
   unfold isRevision; infer_instance
 
 /-- **A compactor** (`Compactor`, the interface value `New` returns): `Stop`, `Pause` and `Resume`
-return; `Run` returns, taking the run token `RunTok` (so it runs once), the server's resource `R`
-and the token `First` (`perPermit`), which its goroutine keeps. -/
-def compactorOk (cp : GoInterface) (RunTok R First : IProp GF) : IProp GF :=
+return; `Run` returns, taking the run token `RunTok` (so it runs once) and `RunPre` (`runPre`: the
+environment's contracts and resources, which its goroutine keeps). -/
+def compactorOk (cp : GoInterface) (RunTok RunPre : IProp GF) : IProp GF :=
   iprop(∃ ci : GoInterfaceOk, ⌜cp = GoInterface.ok ci⌝ ∗
-    □ ({{ RunTok ∗ R ∗ First }} (App (Val #(methods ci.ty go!"Run" ci.v)) (Val #()))
+    □ ({{ RunTok ∗ RunPre }} (App (Val #(methods ci.ty go!"Run" ci.v)) (Val #()))
       {{ RET #(); True }}) ∗
     □ ({{ True }} (App (Val #(methods ci.ty go!"Stop" ci.v)) (Val #())) {{ RET #(); True }}) ∗
     □ ({{ True }} (App (Val #(methods ci.ty go!"Pause" ci.v)) (Val #())) {{ RET #(); True }}) ∗
     □ ({{ True }} (App (Val #(methods ci.ty go!"Resume" ci.v)) (Val #())) {{ RET #(); True }}))
 
-instance compactorOk_persistent (cp : GoInterface) (RunTok R First : IProp GF) :
-    Persistent (compactorOk (GF := GF) cp RunTok R First) := by
+instance compactorOk_persistent (cp : GoInterface) (RunTok RunPre : IProp GF) :
+    Persistent (compactorOk (GF := GF) cp RunTok RunPre) := by
   unfold compactorOk; infer_instance
 
 end defs

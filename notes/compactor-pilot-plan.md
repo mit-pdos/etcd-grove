@@ -227,6 +227,24 @@ exact age where a simpler bound may be all C3 needs.
 | `New`'s `10 ≤ ret` stricter than the code | requirement | kept as the pilot's configuration (phase 0), cited in the docstring |
 | name clash with the server's `compactorOk` | preference | left for the glue (the server's becomes a corollary) |
 
+**Step 2b, round 2: the findings and the repairs** (`notes/spec-first-study/pilot-review-2.md`; two
+of its three blockers came from round 1's repairs; one finding a false positive):
+
+| finding | repair |
+|---|---|
+| the token `First` is spent by a retried first compaction (`periodic.go`: a failed `Compact` leaves `lastRevision` and retries the same sample) | the young case depends on the revision: `firstSample γf r`, a ghost variable set once to the run's first sample (`runPre`'s `firstUnset`); C1: at most one *revision* per run younger than the period (the user's choice) |
+| periodic `0 < r` needs the revision never to decrease | `revGetterOk`: from a bound `RevLb n` the caller holds, `Rev()` returns `v ≥ n` (`runPre` gives `RevLb 0`) |
+| `Compact` took `storeReader`, which asserts "never compacted" | `storeReaderC` |
+| `Compact` dropped the compactor's permit | a permit `Pc r` travels with the proposal (the compactor's C1 permit; the gRPC caller's `True`) |
+| `New` asked for contracts it never uses | moved to `Run`'s precondition (`runPre`); `New` and the constructors take none |
+| `New`'s `10 ≤ ret` uncited for negative periods | the docstring cites the busy loop (`issues/etcd-compactor-periodic-tiny-retention.md`, etcd-io/etcd#22396) |
+| the clock: what survives the trivial model, a phase-2 test | in its docstring |
+| "possible Go issue": a negative retention busy-loops | false positive: already in `issues/` |
+| `Compact` unprovable today (`dispatchOk` excludes compactions) | expected: the server side's model step (step 3) |
+
+New failure patterns (the reviewer's and `LESSONS.md`): once-only resources spent per call; a resource
+whose invariant contradicts the function; repairs introduce defects.
+
 **Review checkpoints** (`notes/spec-first-plan.md`, "Phase 1b", the feedback loop): at the freeze, a
 retrospective of the revisions the review found against those the glue proofs found; at the end of
 phase 4, every revision after the freeze attributed to a review criterion or to "none", and the
