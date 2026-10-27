@@ -659,7 +659,7 @@ storage_OpenBackend:
 storage_storage__Release:
 storage_OpenSnapshotBackend: SnapshotMetadata__GetIndex snap_Snapshotter__DBFilePath fmt_Errorf os_Rename config_ServerConfig__BackendPath storage_OpenBackend
 # (D22 S-h, 2026-10-20) the merged snapshot's sender (snapshot_merge.go, server.go; InvSnapSend.lean,
-# SnapSendBundle.lean, SnapSendBranch.lean): `newSnapshotReaderCloser`, `createMergedSnapshotMessage`
+# SnapSendBranch.lean): `newSnapshotReaderCloser`, `createMergedSnapshotMessage`
 # and `sendMergedSnap` with their bodies; the trust boundary: `io.Pipe` and its writer's
 # `CloseWithError` (names-only in Perennial), snap's `NewMessage`, `CloseNotify` and the promoted
 # `GetTo` (snap is names-only); the backend snapshot's `WriteTo`, `Size` and `Close` and raft's
