@@ -278,7 +278,7 @@ theorem dynamicCluster_alloc_impl (N : Namespace) (ps : List w64) (ctxs : List (
     receiptBound GF ≤ 2 ^ 64 - 2 →
     BootLog ps ctxs boot → ps.Nodup → ps ≠ [] → W64 0 ∉ ps → (ps.length : Int) ≤ 2 ^ 62 →
     ⊢ bootMarshal (GF := GF) ps ctxs (LogEntry.toEntries boot 0) -∗
-      |={E}=> ∃ γ, ownCommittedOps γ boot ∗ ownReadCtxs γ ∅ ∗ readCredits γ (2 ^ 64 - 2) ∗
+      |={E}=> ∃ γ, ⌜γ.raft.reBoot.length = boot.length⌝ ∗ ownCommittedOps γ boot ∗ ownReadCtxs γ ∅ ∗ readCredits γ (2 ^ 64 - 2) ∗
         isDynamicCluster γ N (Membership.simple (GMap.listToSet ps)) decode ∗
         (if transfer then leaderTransferOn γ N else leaderTransferOff γ N) ∗
         [∗list] id ∈ ps, nodeDynamicBoot γ N ps ctxs id := by
@@ -323,6 +323,8 @@ theorem dynamicCluster_alloc_impl (N : Namespace) (ps : List w64) (ctxs : List (
     exact ⟨⟨Hv.1, Hv.2, Hγm, Hns, Hsl⟩, HNs⟩
   imodintro
   iexists γ
+  isplitr
+  · ipureintro; rw [Hboot, toEntries_length]
   iframe Hops Hctx Hdc
   isplitl [Hcr]
   · unfold readCredits; iexact Hcr

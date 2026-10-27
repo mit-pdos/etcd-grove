@@ -82,7 +82,7 @@ theorem stepIn_of_recv (γn : NetNames GF) (γ : RNNames) (HN : γn.N = srvNet �
   · iframe Hcl Hrm
   ihave #Hcl' := Hcl
   iunfold srvClusterOk at Hcl'
-  icases Hcl' with ⟨-, #Hxo, -, -, #Hbt⟩
+  icases Hcl' with ⟨-, #Hxo, -, #Hbt⟩
   ihave %Hsent := Draft.sentMsg_transferOff γ.node.cl srvClusterN sid st $$ [Hxo Hrm]
   · iframe Hxo Hrm
   have Htn := SentMsgOk.ne_timeoutNow Hsent

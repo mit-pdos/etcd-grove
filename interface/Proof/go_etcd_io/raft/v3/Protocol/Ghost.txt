@@ -96,7 +96,7 @@ theorem ackAgree_term [ReceiptGS GF] (γ : RaftNames) (b : entryID) (es : List E
     plogTermAt bL l' j⌝
 
 def Filler (ty : w32) (d : List w8) : Prop :=
-  d = [] ∧ (ty = W32 0 ∨ ty = W32 2)
+  d = [] ∧ ty = W32 0
 
 theorem logRecs_boot_take [ReceiptGS GF] (γ : RaftNames) (F : List EntryM) : PlogWf base0 F → ⊢
     logRecs γ base0 F -∗ ⌜∀ (n : Nat), n ≤ γ.reBoot.length → n ≤ F.length → List.take n F =

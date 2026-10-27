@@ -23,9 +23,13 @@ def ownRaftGhost [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (s : PSta
                               "%Hrole_ok" ∷ ⌜RoleOk id s⌝ ∗
                                 "Hlcm" ∷ lcmOwn γ id s ∗ "Hrd" ∷ rdOwn γ id s ∗ "%Hmode" ∷ ⌜γ.reDyn.isSome = md⌝)
 
-def propAu1 [InvGS GF] (γ : RaftNames) (d : List w8) (Q : List EntryM → IProp GF) : IProp GF :=
+def propAu1 [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (d : List w8) (Q : List EntryM → IProp GF) :
+    IProp GF :=
   iprop(AU <{ ∃∃ L, rLog γ L }> @ ⊤ \ ↑(raftN γ), ∅ <{ ∀∀ e,
-        rLog γ (L ++ [e]) ∗ entDataIs γ e (some d) ∗ ⌜uint.Z e.Index' = ↑L.length + 1⌝, COMM □ Q L }>)
+        rLog γ (L ++ [e]) ∗
+          entDataIs γ e (some d) ∗
+            ⌜uint.Z e.Index' = ↑L.length + 1 ∧ uint.Z e.Index' < ↑(receiptBound GF) + ↑γ.reBoot.length⌝,
+        COMM □ Q L }>)
 
 theorem readAu_persistent [InvGS GF] (γ : RaftNames) (Qr : List EntryM → IProp GF) : Persistent
     (readAu γ Qr)
@@ -153,7 +157,7 @@ theorem entsData_timeless (γ : RaftNames) (l : List EntryM) : Timeless (entsDat
 
 theorem raftRegN_sub {γ : RaftNames} : ↑(raftRegN γ) ⊆ ⊤ \ ↑(raftLogN γ)
 
-def regsAt [InvGS GF] (γ : RaftNames) (l : List EntryM) : IProp GF :=
+def regsAt [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (l : List EntryM) : IProp GF :=
   iprop(∃ R RR, propsOwn γ l R ∗ readsReg γ l RR ∗ noopAu γ)
 
 def HbAckOk (v : w64) (q : Nat) (recs : List RqRec) : Prop :=
@@ -176,8 +180,9 @@ theorem ev_pair [ReceiptGS GF] (γ : RaftNames) (v t i T : w64) (d : Bool) (F : 
     t < uint.Z T → ⊢ ackEv γ v t i -∗ voteEv γ v T d F -∗ hist γ F t i (vbnd T d)
 
 theorem noopAu_fire [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (l : List EntryM) (e : EntryM) (Hidx :
-    uint.Z e.Index' = ↑l.length + 1) : ⊢ noopAu γ -∗ entDataIs γ e none -∗ ghostVar γ.reRLog
-    (Qp.half 1) l ={⊤ \ ↑(raftN γ)}=∗ ghostVar γ.reRLog (Qp.half 1) (l ++ [e])
+    uint.Z e.Index' = ↑l.length + 1) (Hrb : uint.Z e.Index' < ↑(receiptBound GF) + ↑γ.reBoot.length)
+    : ⊢ noopAu γ -∗ entDataIs γ e none -∗ ghostVar γ.reRLog (Qp.half 1) l ={⊤ \ ↑(raftN γ)}=∗
+    ghostVar γ.reRLog (Qp.half 1) (l ++ [e])
 
 theorem isMessage_grant [ReceiptGS GF] (γ : RaftNames) (src dst term : w64) : isVote γ src term dst
     ⊢ isMessage γ (Msg.plain MsgType.voteResp src dst term false)
@@ -427,7 +432,8 @@ def voteJust [ReceiptGS GF] (γ : RaftNames) (v T c : w64) : IProp GF :=
               (if d = true then ∃ ldr q, isWin γ ldr T q ∗ ⌜¬v ∈ q⌝ else True) ∗
                 voteEv γ v T d Fv ∗ dynOn γ (campDyn γ c T Fc))
 
-def propsOwn [InvGS GF] (γ : RaftNames) (l : List EntryM) (R : GMap (List w8) PropRec) : IProp GF :=
+def propsOwn [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (l : List EntryM) (R : GMap (List w8)
+    PropRec) : IProp GF :=
   iprop(ghostMapAuth γ.reProps 1 R ∗ [∗map] d ↦ p ∈ R, iprop(propSlot γ d p l ∗ propFresh γ d))
 
 def lcmLead (s : PState) (lcm : GMap w64 GName) : IProp GF :=
@@ -437,11 +443,12 @@ def lcmLead (s : PState) (lcm : GMap w64 GName) : IProp GF :=
 
 theorem raftLogN_of {γ : RaftNames} {E : CoPset} (HE : ↑(raftN γ) ⊆ E) : ↑(raftLogN γ) ⊆ E
 
-def depSlot [InvGS GF] (γ : RaftNames) (d : List w8) (γq γt : GName) (l : List EntryM) : IProp GF :=
+def depSlot [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (d : List w8) (γq γt : GName) (l : List
+    EntryM) : IProp GF :=
   iprop((∃ Q, savedPredOwn γq DFrac.discard Q ∗ propAu1 γ d Q) ∨
       ∃ i, dghostVar γt DFrac.discard (some i) ∗ ⌜uint.Z i ≤ ↑l.length⌝)
 
-theorem raftRegInv_persistent [InvGS GF] (γ : RaftNames) : Persistent (raftRegInv γ)
+theorem raftRegInv_persistent [ReceiptGS GF] [InvGS GF] (γ : RaftNames) : Persistent (raftRegInv γ)
 
 def rqRecOk [ReceiptGS GF] (γ : RaftNames) (T : w64) (r : RqRec) : IProp GF :=
   match r.snd with
@@ -534,7 +541,8 @@ def rdCount (ms : List Msg) : Nat :=
 theorem ownEvs_ack [ReceiptGS GF] (γ : RaftNames) (id T : w64) (acks : GMap (w64 × w64) Unit) (i :
     w64) : ⊢ ownEvs γ id T acks ==∗ ownEvs γ id T <[(T, i) := ()]>acks ∗ ackEv γ id T i
 
-def propSlot [InvGS GF] (γ : RaftNames) (d : List w8) (p : PropRec) (l : List EntryM) : IProp GF :=
+def propSlot [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (d : List w8) (p : PropRec) (l : List EntryM)
+    : IProp GF :=
   iprop(propSlotRes γ d p l ∗ ∃ K, ghostMapAuth p.snd 1 K ∗ [∗map] γt ∈ K, depSlot γ d p.fst γt l)
 
 def RqRec : Type :=
@@ -627,7 +635,7 @@ theorem readSlot_persistent [InvGS GF] (γ : RaftNames) (r : GName × List Entry
 
 theorem uint_nat_eq (w : w64) : ↑(uint.nat w) = uint.Z w
 
-def regsOwn [InvGS GF] (γ : RaftNames) : IProp GF :=
+def regsOwn [ReceiptGS GF] [InvGS GF] (γ : RaftNames) : IProp GF :=
   iprop(∃ l, ghostVar γ.reRLog rlq l ∗ regsAt γ l)
 
 def LcmOk (lcm : GMap w64 GName) (s : PState) : Prop :=
@@ -749,9 +757,10 @@ theorem rdOwn_win [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : w64) (s s' : 
     |==> rdOwn γ id s'
 
 theorem propAu1_fire [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (d : List w8) (Q : List EntryM →
-    IProp GF) (l : List EntryM) (e : EntryM) (Hidx : uint.Z e.Index' = ↑l.length + 1) : ⊢ propAu1 γ
-    d Q -∗ entDataIs γ e (some d) -∗ ghostVar γ.reRLog (Qp.half 1) l ={⊤ \ ↑(raftN γ)}=∗ ghostVar
-    γ.reRLog (Qp.half 1) (l ++ [e]) ∗ □ Q l
+    IProp GF) (l : List EntryM) (e : EntryM) (Hidx : uint.Z e.Index' = ↑l.length + 1) (Hrb : uint.Z
+    e.Index' < ↑(receiptBound GF) + ↑γ.reBoot.length) : ⊢ propAu1 γ d Q -∗ entDataIs γ e (some d) -∗
+    ghostVar γ.reRLog (Qp.half 1) l ={⊤ \ ↑(raftN γ)}=∗ ghostVar γ.reRLog (Qp.half 1) (l ++ [e]) ∗ □
+    Q l
 
 def isVlog (γ : RaftNames) (v : w64) (k : Nat) (T : w64) (d : Bool) (F : List EntryM) : IProp GF :=
   iprop(∃ γl, ⌜γ.reVlogs !! v = some γl⌝ ∗ k ↪[γl]□ ((T, d), F))
@@ -772,7 +781,7 @@ theorem ownRaftGhost_outbox [ReceiptGS GF] {md : Bool} [InvGS GF] (γ : RaftName
 def rLog (γ : RaftNames) (L : List EntryM) : IProp GF :=
   ghostVar γ.reRLog (Qp.half 1) L
 
-theorem noopAu_persistent [InvGS GF] (γ : RaftNames) : Persistent (noopAu γ)
+theorem noopAu_persistent [ReceiptGS GF] [InvGS GF] (γ : RaftNames) : Persistent (noopAu γ)
 
 def klOk (γ : RaftNames) (id : w64) (s : PState) (kl : Option w64) : IProp GF :=
   match kl with
@@ -817,7 +826,7 @@ theorem isMessage_appResp_ackIn [ReceiptGS GF] (γ : RaftNames) (m : Msg) : m.ty
 def propSlotRes (γ : RaftNames) (d : List w8) (p : PropRec) (l : List EntryM) : IProp GF :=
   iprop(□ ∀ m e, ⌜l[m]? = some e⌝ -∗ entDataIs γ e (some d) -∗ qRes p.fst (List.take m l))
 
-def raftRegInv [InvGS GF] (γ : RaftNames) : IProp GF :=
+def raftRegInv [ReceiptGS GF] [InvGS GF] (γ : RaftNames) : IProp GF :=
   inv (raftRegN γ) (regsOwn γ)
 
 theorem isRead_persistent (γ : RaftNames) (c : List w8) (Qr : List EntryM → IProp GF) : Persistent
@@ -840,10 +849,13 @@ def AcksTerm (s : PState) (acks : GMap (w64 × w64) Unit) : Prop :=
 theorem isVlog_persistent (γ : RaftNames) (v : w64) (k : Nat) (T : w64) (d : Bool) (F : List EntryM)
     : Persistent (isVlog γ v k T d F)
 
-def noopAu [InvGS GF] (γ : RaftNames) : IProp GF :=
+def noopAu [ReceiptGS GF] [InvGS GF] (γ : RaftNames) : IProp GF :=
   iprop(□
       AU <{ ∃∃ L, rLog γ L }> @ ⊤ \ ↑(raftN γ), ∅ <{ ∀∀ e,
-          rLog γ (L ++ [e]) ∗ entDataIs γ e none ∗ ⌜uint.Z e.Index' = ↑L.length + 1⌝, COMM True }>)
+          rLog γ (L ++ [e]) ∗
+            entDataIs γ e none ∗
+              ⌜uint.Z e.Index' = ↑L.length + 1 ∧ uint.Z e.Index' < ↑(receiptBound GF) + ↑γ.reBoot.length⌝,
+          COMM True }>)
 
 def LeadAcksOk (s : PState) (acks : GMap (w64 × w64) Unit) : Prop :=
   (s.role = Role.candidate → ∀ (i : w64), acks !! (s.term, i) = none) ∧

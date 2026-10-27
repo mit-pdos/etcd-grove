@@ -943,7 +943,8 @@ committed log, and raft fires its update at most once (`fire_one`). -/
 def propAu1 (γ : RaftNames) (d : List w8) (Q : List EntryM → IProp GF) : IProp GF :=
   iprop(AU <{ ∃∃ (L : List EntryM), rLog γ L }> @ ⊤ \ ↑(raftN γ), ∅
               <{ ∀∀ (e : EntryM), rLog γ (L ++ [e]) ∗ entDataIs γ e (some d) ∗
-                   ⌜uint.Z e.Index' = (L.length : Int) + 1⌝,
+                   ⌜uint.Z e.Index' = (L.length : Int) + 1 ∧
+                     uint.Z e.Index' < (receiptBound GF : Int) + γ.reBoot.length⌝,
                  COMM □ Q L }>)
 
 /-- The standing update for the fillers (see the section header; `entDataIs γ e none` is
@@ -952,7 +953,8 @@ in `raftCommitInv`. -/
 def noopAu (γ : RaftNames) : IProp GF :=
   iprop(□ AU <{ ∃∃ (L : List EntryM), rLog γ L }> @ ⊤ \ ↑(raftN γ), ∅
               <{ ∀∀ (e : EntryM), rLog γ (L ++ [e]) ∗ entDataIs γ e none ∗
-                   ⌜uint.Z e.Index' = (L.length : Int) + 1⌝, COMM True }>)
+                   ⌜uint.Z e.Index' = (L.length : Int) + 1 ∧
+                     uint.Z e.Index' < (receiptBound GF : Int) + γ.reBoot.length⌝, COMM True }>)
 
 instance noopAu_persistent (γ : RaftNames) : Persistent (noopAu (GF := GF) γ) := by
   unfold noopAu; infer_instance
@@ -982,7 +984,8 @@ theorem readAu_fire (γ : RaftNames) (Qr : List EntryM → IProp GF) (l : List E
 half of the client's log, at `l`, moves to `l ++ [e]` with the client's half, and the result
 at `l` comes out. -/
 theorem propAu1_fire (γ : RaftNames) (d : List w8) (Q : List EntryM → IProp GF)
-    (l : List EntryM) (e : EntryM) (Hidx : uint.Z e.Index' = (l.length : Int) + 1) :
+    (l : List EntryM) (e : EntryM) (Hidx : uint.Z e.Index' = (l.length : Int) + 1)
+    (Hrb : uint.Z e.Index' < (receiptBound GF : Int) + γ.reBoot.length) :
     ⊢ propAu1 γ d Q -∗ entDataIs γ e (some d) -∗ ghostVar γ.reRLog (1 : Qp).half l ={⊤ \ ↑(raftN γ)}=∗
       ghostVar γ.reRLog (1 : Qp).half (l ++ [e]) ∗ □ Q l := by
   iintro Hau #He Hv
@@ -1000,13 +1003,14 @@ theorem propAu1_fire (γ : RaftNames) (d : List w8) (Q : List EntryM → IProp G
   isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcomm
   imod Hcomm $$ %e [HcL] with HQ
   · iframe HcL He
-    ipureintro; exact Hidx
+    ipureintro; exact ⟨Hidx, Hrb⟩
   imodintro
   iframe Hv HQ
 
 /-- Firing the standing update at an entry `e` of raft's own, at the next index. -/
 theorem noopAu_fire (γ : RaftNames) (l : List EntryM) (e : EntryM)
-    (Hidx : uint.Z e.Index' = (l.length : Int) + 1) :
+    (Hidx : uint.Z e.Index' = (l.length : Int) + 1)
+    (Hrb : uint.Z e.Index' < (receiptBound GF : Int) + γ.reBoot.length) :
     ⊢ noopAu γ -∗ entDataIs γ e none -∗ ghostVar γ.reRLog (1 : Qp).half l ={⊤ \ ↑(raftN γ)}=∗
       ghostVar γ.reRLog (1 : Qp).half (l ++ [e]) := by
   iintro #Hau #He Hv
@@ -1024,7 +1028,7 @@ theorem noopAu_fire (γ : RaftNames) (l : List EntryM) (e : EntryM)
   isimp only [tforall_cons, tforall_nil, Std.Tele.app, ULift.down] at Hcomm
   imod Hcomm $$ %e [HcL] with -
   · iframe HcL He
-    ipureintro; exact Hidx
+    ipureintro; exact ⟨Hidx, Hrb⟩
   imodintro
   iexact Hv
 

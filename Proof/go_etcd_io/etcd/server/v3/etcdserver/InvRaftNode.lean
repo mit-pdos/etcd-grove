@@ -582,13 +582,13 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
     iframe Hcl Hsn
   | none =>
   ihave #Hfits : Draft.readyFits γ.node.cl srvClusterN $$ []
-  · iunfold srvClusterOk at Hcl; icases Hcl with ⟨-, -, -, #H, -⟩; rw [Hraft]; iexact H
+  · iunfold srvClusterOk at Hcl; icases Hcl with ⟨-, -, #H, -⟩; rw [Hraft]; iexact H
   icases Draft.readyRest_fits γ.node.cl srvClusterN γ.id rd _ ce es h none $$ [Hfits Hrest]
     with ⟨Hrest, %Hfit61⟩
   · iframe Hfits Hrest
   simp only [Draft.readyRest, Draft.readySnap]
   icases Hrest with ⟨%ms, #Hes, Hmsgs, Hmo, #Hhs, #Hss, %Hbnd, ⟨%Hsnap, Happ⟩⟩
-  obtain ⟨Lx, HLx, Hes0, Hdl⟩ := Hbnd
+  obtain ⟨Lx, HLx, Hes0, Hdl, -⟩ := Hbnd
   obtain ⟨ce', Hce'def⟩ : ∃ ce', ce' = rnCe (srvLE γ.srv L).length ce := ⟨_, rfl⟩
   have Hce'LE : ce'.map EntryModel.toLE = ce := by rw [Hce'def]; exact rnCe_toLE _ ce
   have Hce'len : ce'.length = ce.length := by rw [Hce'def]; exact rnCe_length _ ce
@@ -609,7 +609,10 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
   -- `E.C (L ++ ce)` from the committed log, the next index fitting
   ihave #Hcom' : Draft.isCommittedLogLb E.γr.raft.raft.cl (srvLE E.γr.raft (L ++ ce')) $$ []
   · rw [HsrvLE, Hdel, Hraft]; iexact Hcom
-  ihave %Hnext := Draft.isCommittedLogLb_length E.γr.raft.raft.cl _ $$ Hcom'
+  ihave #Hfits' : Draft.readyFits E.γr.raft.raft.cl srvClusterN $$ []
+  · first | (rw [Hraft]; iexact Hfits) | (rw [← Hraft]; iexact Hfits)
+  ihave %Hnext := Draft.isCommittedLogLb_length E.γr.raft.raft.cl srvClusterN _ $$ [Hfits' Hcom']
+  · iframe Hfits' Hcom'
   have HLi' : ∀ (n : Nat) (m : EntryModel), (L ++ ce')[n]? = some m →
       uint.Z m.index = uint.Z E.γr.raft.ai0 + 1 + n := by
     intro n m hm

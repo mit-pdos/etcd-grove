@@ -278,7 +278,7 @@ theorem srvEqv_refl (γ : ServerRaftNames) (A : List EntryModel) (h : srvIdxOkW 
     srvEqv γ A A := ⟨h, h, rfl⟩
 
 theorem toLE_isFiller (m : EntryModel) :
-    m.toLE.isFiller ↔ (m.data = [] ∧ (m.typ = W32 0 ∨ m.typ = W32 2)) := Iff.rfl
+    m.toLE.isFiller ↔ (m.data = [] ∧ m.typ = W32 0) := Iff.rfl
 
 end pure
 
@@ -296,17 +296,9 @@ theorem srv_entry_transfer (ai₀ : w64) (A L : List EntryModel) (P : EntryModel
     (hL : ∀ m ∈ L, P m) : ∀ m ∈ A, P m := by
   intro m hm
   by_cases hf : m.toLE.isFiller
-  · obtain ⟨n, hn⟩ := List.getElem?_of_mem hm
-    have ht := (hA n m hn).2
-    obtain ⟨hd, hty⟩ := hf
+  · obtain ⟨hd, hty⟩ := hf
     simp only [EntryModel.toLE] at hd hty
-    refine hfill m ?_ hd
-    rcases ht with ht | ⟨ht, -⟩
-    · exact ht
-    · rcases hty with h0 | h2
-      · exact h0
-      · have h12 : (W32 1 : w32) = W32 2 := ht.symm.trans h2
-        exact absurd h12 (by decide)
+    exact hfill m hty hd
   · have hin : m.toLE ∈ Draft.opsOf (A.map EntryModel.toLE) := by
       unfold Draft.opsOf
       rw [List.mem_filter]
@@ -322,17 +314,9 @@ theorem srv_entry_src (ai₀ : w64) (A L : List EntryModel) (hA : srvIdxOkW ai�
     ∀ m ∈ A, (m.typ = W32 0 ∧ m.data = []) ∨ ∃ m' ∈ L, m'.toLE = m.toLE := by
   intro m hm
   by_cases hf : m.toLE.isFiller
-  · obtain ⟨n, hn⟩ := List.getElem?_of_mem hm
-    have ht := (hA n m hn).2
-    obtain ⟨hd, hty⟩ := hf
+  · obtain ⟨hd, hty⟩ := hf
     simp only [EntryModel.toLE] at hd hty
-    refine .inl ⟨?_, hd⟩
-    rcases ht with ht | ⟨ht, -⟩
-    · exact ht
-    · rcases hty with h0 | h2
-      · exact h0
-      · have h12 : (W32 1 : w32) = W32 2 := ht.symm.trans h2
-        exact absurd h12 (by decide)
+    exact .inl ⟨hty, hd⟩
   · have hin : m.toLE ∈ Draft.opsOf (A.map EntryModel.toLE) := by
       unfold Draft.opsOf
       rw [List.mem_filter]
@@ -656,14 +640,13 @@ instance srvLogInv_persistent (γ : ServerRaftNames) : Persistent (srvLogInv (GF
 
 /-- **The cluster's kind** (persistent): static or dynamic (`γ.raft.dyn`) at the voters it started
 with, no snapshot (a static cluster vouches for no snapshot's data: `snapOk` false), leader
-transfer off, no `ConfChangeV2` proposed (so every filler is an empty normal entry), the
-`Ready`s' entries within `MemoryStorage.Append`'s bound. -/
+transfer off, the `Ready`s' entries within `MemoryStorage.Append`'s bound. (2026-10-27: no
+`noConfChangeV2` any more: every filler is an empty normal entry, `LogEntry.isFiller_normal`.) -/
 def srvClusterOk (γ : ServerRaftNames) : IProp GF :=
   iprop((if γ.raft.dyn then
       Draft.isDynamicCluster γ.raft.cl srvClusterN (Draft.Membership.simple γ.raft.cfg) γ.raft.dec
     else Draft.isStaticCluster γ.raft.cl srvClusterN γ.raft.vs (fun _ _ => False)) ∗
-    Draft.leaderTransferOff γ.raft.cl srvClusterN ∗ Draft.noConfChangeV2 γ.raft.cl srvClusterN ∗
-    Draft.readyFits γ.raft.cl srvClusterN ∗
+    Draft.leaderTransferOff γ.raft.cl srvClusterN ∗ Draft.readyFits γ.raft.cl srvClusterN ∗
     -- (2026-10-27) started from a bootstrap log: its nodes step a pre-vote request
     Draft.bootedCluster γ.raft.cl)
 
@@ -783,7 +766,8 @@ theorem srvRLog_lb (γ : ServerRaftNames) (E : CoPset) (hE0 : ↑srvRaftN ⊆ E)
 
 /-- **A committed log, as the server's** (2026-10-27): a committed log after the start log whose
 indices are consecutive is a `srvRLogLb`: its entries are normal or v1 conf changes, its requested
-entries being the server's (whose are), its fillers empty normal entries (`noConfChangeV2`). -/
+entries being the server's (whose are), its fillers empty normal entries
+(`LogEntry.isFiller_normal`). -/
 theorem srvRLogLb_intro (γ : ServerRaftNames) (E : CoPset) (hE : ↑srvLogN ⊆ E)
     (L : List EntryModel)
     (hidx : ∀ (n : Nat) (m : EntryModel), L[n]? = some m → uint.Z m.index = uint.Z γ.ai0 + 1 + n) :
@@ -791,11 +775,7 @@ theorem srvRLogLb_intro (γ : ServerRaftNames) (E : CoPset) (hE : ↑srvLogN ⊆
       srvRLogLb γ L := by
   iintro #Hinv #HL
   iunfold srvRaftLogInv at Hinv
-  icases Hinv with ⟨#Hli, #Hcl, -, -⟩
-  iunfold srvClusterOk at Hcl
-  icases Hcl with ⟨-, -, #Hnv2, -⟩
-  ihave %Hfill := Draft.noConfChangeV2_filler γ.raft.cl srvClusterN _ $$ [Hnv2 HL]
-  · iframe Hnv2 HL
+  icases Hinv with ⟨#Hli, -, -, -⟩
   iunfold srvLogInv at Hli
   iinv Hli with ⟨%Lf, %P, %F, %R, >Hcore, Hregs⟩ Hclose
   iunfold srvLogCore at Hcore
@@ -820,7 +800,7 @@ theorem srvRLogLb_intro (γ : ServerRaftNames) (E : CoPset) (hE : ↑srvLogN ⊆
   · have : m.toLE ∈ srvLE γ L := by
       unfold srvLE; rw [List.map_append]
       exact List.mem_append_right _ (List.mem_map_of_mem (List.mem_of_getElem? hm))
-    exact .inl (Hfill _ this hf)
+    exact .inl (Draft.LogEntry.isFiller_normal _ hf)
   · -- a requested entry: one of the server's
     have hin : m.toLE ∈ Draft.opsOf (L.map EntryModel.toLE) := by
       unfold Draft.opsOf
@@ -981,7 +961,7 @@ theorem srvPropAu_api (γ : ServerRaftNames) (d : List w8) (Q : List EntryModel 
   letI := srvAnyStor (GF := GF)
   iintro #Hinv #Hp #HQ Htk Hlc Hau
   iunfold srvRaftLogInv at Hinv
-  icases Hinv with ⟨#Hli, -, #Hlb0, %Hai0⟩
+  icases Hinv with ⟨#Hli, #Hcl, #Hlb0, %Hai0⟩
   iauintro
   unfold atomic_acc
   iunfold srvLogInv at Hli
@@ -1027,7 +1007,11 @@ theorem srvPropAu_api (γ : ServerRaftNames) (d : List w8) (Q : List EntryModel 
       iapply srvPropTk_excl γt $$ Htk Htk'
     -- the next index fits
     ihave ⟨Hown, %l, #Hl, %Hlops⟩ := Draft.ownCommittedOps_get_lb γ.raft.cl _ $$ Hown
-    ihave %Hllen := Draft.isCommittedLogLb_length γ.raft.cl l $$ Hl
+    ihave #Hcl' := Hcl
+    iunfold srvClusterOk at Hcl'
+    icases Hcl' with ⟨-, -, #Hfits, -⟩
+    ihave %Hllen := Draft.isCommittedLogLb_length γ.raft.cl srvClusterN l $$ [Hfits Hl]
+    · iframe Hfits Hl
     iunfold srvRLogLb at Hlb0
     icases Hlb0 with ⟨#Hl0, -⟩
     ihave %Hag0 := Draft.isCommittedLogLb_agree γ.raft.cl (srvLE γ []) l $$ [Hl0 Hl]

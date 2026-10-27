@@ -14,11 +14,13 @@ def Draft.instDecidableIsFiller (e : Draft.LogEntry) : Decidable e.isFiller :=
 def Draft.NoConfChangeIn (l : List Draft.LogEntry) (lo hi : Nat) : Prop :=
   ∀ (k : Nat) (e : Draft.LogEntry), lo ≤ k → k < hi → l[k]? = some e → ¬e.isConfChange
 
+theorem Draft.LogEntry.isFiller_normal (e : Draft.LogEntry) (h : e.isFiller) : e.type = W32 0
+
 def Draft.LogEntry.toEntryM (idx : w64) (e : Draft.LogEntry) : EntryM :=
   { Term' := e.term, Index' := idx, Type' := e.type, Data' := e.data }
 
 def Draft.LogEntry.isFiller (e : Draft.LogEntry) : Prop :=
-  e.data = [] ∧ (e.type = W32 0 ∨ e.type = W32 2)
+  e.data = [] ∧ e.type = W32 0
 
 def Draft.strip (L : List EntryM) : List Draft.LogEntry :=
   List.map Draft.LogEntry.ofEntryM L

@@ -111,9 +111,7 @@ theorem kvEntrySt_filler (c₀ : w64) (ch : apply.Chain) (s : mvcc.Log × LeaseT
   obtain ⟨hd, ht⟩ := h
   simp only [EntryModel.toLE] at hd ht
   unfold kvEntrySt kvEntry kvTable
-  rcases ht with ht | ht
-  · simp [ht, hd]
-  · simp [ht]
+  simp [ht, hd]
 
 theorem kvRaftSt_ops (c₀ : w64) (ch : apply.Chain) :
     ∀ (A : List EntryModel) (s : mvcc.Log × LeaseTable),

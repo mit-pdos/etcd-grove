@@ -886,6 +886,10 @@ theorem fire_one (γ : RaftNames) (G : List EntryM) (m : Nat) (e : EntryM) :
   have Hlt := (List.getElem?_eq_some_iff.mp He).1
   icases logRecs_lookup γ G m e He (by omega) $$ Hr with ⟨%pt, -, #Her⟩
   ihave #Hed := isEntryR_data γ e pt $$ Her
+  -- (2026-10-27) the entry's index is covered by a time receipt
+  imod isEntryR_receipt γ e pt $$ Her with #Hrc
+  ihave %Hrlt := preceipt_lt _ $$ Hrc
+  have Hrb : uint.Z e.Index' < (receiptBound GF : Int) + γ.reBoot.length := by omega
   unfold entData
   icases Hed with ⟨%o, #Ho⟩
   have Htk : G.take (m + 1) = G.take m ++ [e] := by rw [List.take_add_one, He]; rfl
@@ -910,7 +914,7 @@ theorem fire_one (γ : RaftNames) (G : List EntryM) (m : Nat) (e : EntryM) :
       [∗map] d ↦ p ∈ R, propSlot γ d p (G.take m ++ [e]) ∗ propFresh γ d $$ [Hv Hra Hs]
   · cases o with
     | none =>
-      imod noopAu_fire γ (G.take m) e Hidx $$ Hnoop Ho Hv with Hv
+      imod noopAu_fire γ (G.take m) e Hidx Hrb $$ Hnoop Ho Hv with Hv
       imodintro
       iframe Hv Hra
       iapply BigSepM.bigSepM_impl $$ Hs
@@ -940,7 +944,7 @@ theorem fire_one (γ : RaftNames) (G : List EntryM) (m : Nat) (e : EntryM) :
           DFrac.discard $$ Hvi Hv0
         cases Hii
         exfalso; omega
-      imod propAu1_fire γ d Qk (G.take m) e Hidx $$ Hau Ho Hv with ⟨Hv, #HQ⟩
+      imod propAu1_fire γ d Qk (G.take m) e Hidx Hrb $$ Hau Ho Hv with ⟨Hv, #HQ⟩
       imodintro
       iframe Hv Hra
       iapply (BigSepM.bigSepM_delete (Φ := fun d (p : PropRec) =>

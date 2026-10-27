@@ -43,7 +43,7 @@ over raft's node API): a static cluster of the peers `ps` from the bootstrap log
 (`cluster_alloc` with leader transfer off and no snapshot's data vouched for), the server's raft
 names over it (`srvLogInv_alloc`, at the `MemoryStorage` registry `reg` and the members' snapshot
 directories) with the server's raft invariant (`srvRaftLogInv`: the cluster's kind, its allocation
-companions `noConfChangeV2_alloc`, `readyFits_alloc`, started from the bootstrap log), the KV
+`readyFits`, started from the bootstrap log), the KV
 invariant at the bootstrap log (`kvInv_alloc_boot`), the cluster's claims at the claimers' facts
 `Φs` (the caller's: a member's at its prefix), with the reserved id `0`, the proposals' mint, the
 read contexts, and each member's share: its prefix's entry of the claims, `2 ^ 48` of the
@@ -88,10 +88,7 @@ theorem srvClusterBootOn_alloc (ps : List w64) (ctxs : List (List w8)) (boot : L
     simp only [EntryModel.toLE] at h
     rw [hty m hm] at h
     have h10 : (W32 1 : w32) ≠ W32 0 := by decide
-    have h12 : (W32 1 : w32) ≠ W32 2 := by decide
-    rcases h with h | h
-    · exact h10 h
-    · exact h12 h
+    exact h10 h
   have hnn : ∀ m ∈ bootEntries (Draft.LogEntry.toEntries boot 0), m.typ ≠ W32 0 := by
     intro m hm
     rw [hty m hm]
@@ -101,9 +98,9 @@ theorem srvClusterBootOn_alloc (ps : List w64) (ctxs : List (List w8)) (boot : L
   imod (idWait_alloc_list (GF := GF) (idPfxsOf ps) Hpnd) with ⟨%wn, Hwns⟩
   imod (snapDirs_alloc (GF := GF) ps Hnd) with ⟨%sl, Hsd⟩
   -- the node API's static cluster, leader transfer off, no snapshot's data vouched for
-  imod (Draft.cluster_alloc (GF := GF) srvClusterN ps ctxs boot (fun _ _ => False) false ⊤ Hrb HB
-      Hnd Hne Hnz) $$ Hmarsh
-    with ⟨%cl, Hops, Hctxs, HrdC, #Hst, #Hxo, Hboots⟩
+  imod (Draft.cluster_alloc (GF := GF) srvClusterN ps ctxs boot (fun _ _ => False) false ⊤ Hrb
+      Hrb2 HB Hnd Hne Hnz) $$ Hmarsh
+    with ⟨%cl, Hops, Hctxs, HrdC, #Hst, #Hxo, #Hfits, Hboots⟩
   -- the server's raft names over it, its log of requested entries at the bootstrap log
   imod (srvLogInv_alloc (GF := GF) cl ps false (srvDec (W64 0) (Draft.LogEntry.toEntries boot 0))
       (Draft.LogEntry.toEntries boot 0) reg sl (bootEntries (Draft.LogEntry.toEntries boot 0)) ⊤
@@ -112,9 +109,6 @@ theorem srvClusterBootOn_alloc (ps : List w64) (ctxs : List (List w8)) (boot : L
   · rw [bootEntries_toLE]; iexact Hops
   obtain ⟨hcl, hvs, hdyn, -, hbt, hreg, hsl⟩ := Hγ
   -- the cluster's kind: the allocation's facts, its companions, started from the bootstrap log
-  imod (Draft.noConfChangeV2_alloc cl srvClusterN ps (fun _ _ => False) ⊤) $$ Hst with #Hnv2
-  imod (Draft.readyFits_alloc cl srvClusterN ps (fun _ _ => False) boot.length ⊤ Hrb2) $$ Hst
-    with #Hfits
   ihave Hboots2 := BigSepL.bigSepL_mono (PROP := IProp GF)
     (Φ := fun _ id => Draft.nodeBoot (GF := GF) cl srvClusterN ps ctxs id)
     (Ψ := fun _ id => iprop(Draft.nodeBoot (GF := GF) cl srvClusterN ps ctxs id ∗
@@ -127,7 +121,7 @@ theorem srvClusterBootOn_alloc (ps : List w64) (ctxs : List (List w8)) (boot : L
   · iunfold srvClusterOk
     simp only [hdyn, Bool.false_eq_true, ↓reduceIte]
     rw [hcl, hvs]
-    iframe Hst Hxo Hnv2 Hfits Hbt
+    iframe Hst Hxo Hfits Hbt
   ihave #Hsrl : srvRaftLogInv (⟨γ, [], W64 0⟩ : ServerRaftNames) $$ []
   · iunfold srvRaftLogInv
     iframe Hli Hcok Hlb0
