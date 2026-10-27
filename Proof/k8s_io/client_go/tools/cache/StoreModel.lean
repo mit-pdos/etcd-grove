@@ -202,6 +202,39 @@ theorem updN_same {F : Fn} {it it' : Items} {key : GoString} {V : GoString → K
   · subst hk; unfold inIdx; rw [hold, hnew]
   · unfold inIdx; rw [hsame k hk]
 
+/-- The items at some keys (`Replace`'s re-indexing, the keys visited so far). -/
+def restrictK (it : Items) (ks : List GoString) : Items :=
+  GMap.filter (fun k _ => decide (k ∈ ks)) it
+
+theorem objAt_restrictK (it : Items) (ks : List GoString) (k : GoString) :
+    objAt (restrictK it ks) k = if k ∈ ks then objAt it k else interface.nil := by
+  unfold objAt restrictK
+  rw [GMap.lookup_filter]
+  cases it !! k <;> by_cases h : k ∈ ks <;> simp [h, Option.filter]
+
+theorem restrictK_all (it : Items) (ks : List GoString) (h : ∀ k, k ∈ it → k ∈ ks) :
+    restrictK it ks = it := by
+  ext k
+  unfold restrictK
+  rw [GMap.lookup_filter]
+  cases hk : it !! k with
+  | none => rfl
+  | some o =>
+    have : k ∈ ks := h k (by rw [GMap.mem_iff, hk]; rfl)
+    simp [Option.filter, this]
+
+theorem restrictK_nil (it : Items) : restrictK it [] = ∅ := by
+  ext k
+  unfold restrictK
+  rw [GMap.lookup_filter]
+  cases it !! k <;> simp [Option.filter]
+
+/-- No index for no items. -/
+theorem ixOk_empty (fns : GMap GoString Fn) : ixOk fns ∅ ∅ := by
+  refine ⟨fun n hn => by simp [GMap.mem_iff] at hn, fun n F _ v k => ?_⟩
+  unfold ixAt viewN inIdx objAt valsOf
+  simp [GMap.mem_iff]
+
 /-- What `updateSingleIndex` leaves in the indexer's index: the key deleted from the sets of the
 old object's values and added to those of the new object's, or (the optimized case: both objects
 index under the same single value) the index unchanged. -/
