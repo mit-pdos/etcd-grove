@@ -371,6 +371,63 @@ and `compactReqIs`'s pure parts). Results:
     the three is in a spec (`Pause`/`Stop` return `True`; C1's draft had the third).
 - **Not covered**: the resource part of the specs (the proofs check it), and `Stop` racing a round.
 
+**Review round 5, before the freeze** (`notes/spec-first-study/pilot-review-5.md`): nothing in the
+first tier; the API changes since round 4 (the clock's laws, `compactReqIs` moved, mvcc's
+`ErrCompacted_target`, the package-init instances moved) say what they replaced. Repaired: a second
+cross-package unfold the author's list had missed (`New`'s `fmt.argsOk`/`argOk`: now the fmt spec's
+own `fmt_args_ok`); `Periodic.Run`'s loop invariant moved out of the public `Defs.lean` into
+`PeriodicWindow.lean`, which only that proof imports; an unused import. Reported, not the
+compactor's: older cross-package unfolds in the server's proofs (`NewServer`, `start`, `run`, and
+`mvccInit` by position in `txn/checkRange` and `v3rpc`'s `recvLoop`), for the server's own freeze.
+
+**The freeze (2026-10-27).** Frozen: the compactor's 14 specs, its vocabulary (`Defs.lean`), the
+clock's trust boundary (`clockwork/Defs.lean`, `NewRealClock`) and `compactReqIs`. Not frozen:
+`EtcdServer.Compact.spec` (the server side, M2, changes it). A change to a frozen statement needs a
+`notes/decisions.md` entry with its cause (step 1's rubric) and the review criterion that should
+have caught it, or "none". Its checks:
+- every caller's glue proves (the server's only over a nil compactor until M2); the last review
+  round leaves nothing in the first tier;
+- one cross-package unfold, justified (`notes/decisions.md`, "The compactor pilot's freeze"):
+  `context.isContextDef`, until the Perennial pin brings `isContext_Done`;
+- phase 2 refutes nothing, and refutes the wrong permits.
+
+**The retrospective at the freeze** (the feedback loop's checkpoint): where each revision was found.
+
+| found by | spec revisions | what |
+|---|---|---|
+| review, round 1 | 13 first-tier | a vacuous permit, resource-free contracts, results ignored, chainable clock bounds, a missing mode variant, ... |
+| review, rounds 2-3 | 5 first-tier (3 caused by the previous repair) | a once-only token spent per call, a reader asserting "never compacted", a vacuous per-call permit, the run token's slice, the compactor run before `Start` (a Go bug: the fork fix) |
+| review, rounds 4-5 | 0 first-tier | second tier: the nil-only `compactorOk`, the first sample's ghost, the invariant's home, an unused import |
+| glue (step 3) | 1 | `isRevision`'s lock (`isLock` for `sync.isMutex`); plus a translation gap (the clock axiomatized: INFRA) and a tactic bug (`word`'s cache: INFRA) |
+| phase 3 (`Run`, easy and hard) | 0 | 3 missing laws (the clock, mvcc's `ErrCompacted`, context's `Done`), under the rule the user added then |
+| phase 2 (the tester) | 0 | strength margins only |
+| scope | 1 | the server side deferred (M2 is bigger than phase 0 assumed: the frozen-store readers) |
+
+So the review found nearly every spec revision before any proof (18 of 19 first-tier ones), at the
+cost of five rounds; the glue found one the reviews missed; the full proofs and the tester found no
+spec revision, only laws (an API gap the reviews had no criterion for until round 5, which then
+found one more). Phase 4 measures what the freeze bought: revisions after it.
+
+**Phase 4 (2026-10-27): done, no spec revision.** `Periodic`/`Revision`'s `Stop`, `Pause` and
+`Resume` proved against the frozen specs, each on the first check (10-20 lines: the write side of
+`Periodic`'s `RWMutex` through the persistent guard, `sync.RWMutex.wp_Lock_guard`, which the specs'
+`isRWMutexGuard` already gives; `Revision`'s `Mutex`; the context's cancel function). The compactor's
+proofs have no `sorry` left; the pilot's only one is `EtcdServer.Compact` (the server side,
+deferred). One more cross-package unfold, justified with the first: `context.cancelSpec` (no
+Perennial law for the call; `notes/perennial-changes.md`).
+
+**The end-of-phase-4 checkpoint.** Spec revisions after the freeze: **0** (the success bar: at most
+2 not INFRA, none FALSE-BEH). The baseline, the read-index loop done the current way: after the
+commit that translated and proved it (`190ad33227`, 2026-10-13), 8 commits touched its specs by
+2026-10-27, by their subjects about 5 revisions (callers' needs: `start`, `Put`/`Get` as atomic
+updates; scope: auth on; a missing resource: raft's read credit; coupling: raft's own predicates)
+and 3 INFRA (package initialization twice, a Perennial pin). The comparison is not yet fair: the
+pilot's frozen specs have had hours of later work, the baseline's two weeks of it, and the pilot's
+first test of the freeze is M2, which will change `EtcdServer.Compact`'s spec (not frozen) and
+must not need to change the compactor's. Measured so far, per Go function: the review rounds (5,
+about 5-9 minutes each) and the tester cost less than the proofs they preceded (the glue, the two
+`Run` proofs), and every spec revision but one came before any proof.
+
 **Review checkpoints** (`notes/spec-first-plan.md`, "Phase 1b", the feedback loop): at the freeze, a
 retrospective of the revisions the review found against those the glue proofs found; at the end of
 phase 4, every revision after the freeze attributed to a review criterion or to "none", and the

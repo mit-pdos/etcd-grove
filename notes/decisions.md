@@ -23909,3 +23909,29 @@ proof. What changed and why:
   of mvcc's `IdxNames`.
 - **`EtcdServer.Compact`**: any revision (was: one the store has reached), the store reader in its pre
   and post (its `s.kv.Rev()`), a result (`compactOutIs`), and `specOn`; `Physical` stays out, as scope.
+
+## The compactor pilot's freeze: the API laws, the request predicate's home, one unfold left (2026-10-27)
+
+**2026-10-27 · taken (the user for the rule; the rest by it)**
+
+The spec-first recipe's rule (`notes/spec-first-plan.md`, phase 3; the user's): a client of a good
+spec does not unfold another package's definitions, and the freeze needs the list of such unfolds
+empty or justified here. For the compactor:
+- **Laws added** where the `Run` proofs unfolded: `clockwork.clockOk_ok`/`clockOk_Now`/
+  `clockOk_After` (the clock's methods as triples), `mvcc.ErrCompacted_target` (`mvcc/ErrLaws.lean`:
+  mvcc's error variable as `errors.Is` takes it, instead of `mvccInit`'s 31st conjunct, which moves
+  when mvcc gains a variable), and `compactReqIs_of`.
+- **`compactReqIs` moved to the request type's package** (`api/v3/etcdserverpb/CompactReq.lean`;
+  was `v3compactor.compactReqIs`): the server's `Compact` spec imported the compactor's `Defs` for
+  it, so the server depended on its client's vocabulary.
+- **The clock's and the compactor's package-init instances moved to their packages' `Base.lean`**
+  (were in the server's `BaseApply.lean`), so the clock's `Defs` no longer imports the server
+  (round 3's coupling finding).
+- **Left, justified: `context.isContextDef`**, unfolded by both `Run` proofs for `Done()`. The law
+  (`context.isContext_Done`) landed in Perennial (`3c384b081`) past the pin's stopping point (its
+  uniform function results, a repository-wide migration); the proofs switch to it at that pin bump
+  (`notes/perennial-changes.md`). The unfold is of Perennial's documented, unsealed `abbrev`, so it
+  does not break when Perennial's internals change, only if `isContextDef`'s fields do.
+- **Left, justified (phase 4): `context.cancelSpec`**, unfolded by `Periodic.Stop`/`Revision.Stop` to
+  call the cancel function; no Perennial law yet (`notes/perennial-changes.md`, "a law for calling a
+  `cancelSpec` cancel function"). Not a statement change: the frozen specs are unchanged.

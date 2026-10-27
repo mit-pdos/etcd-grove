@@ -40,3 +40,12 @@ Perennial's `isContextDef`), each a missing law. The user's rule: a client of a 
 unfold its definitions. Rule (the reviewer's "Failure patterns", and phase 3 of
 `notes/spec-first-plan.md`): list every cross-package unfold in the callers' proofs, add the law to
 the owning package, and freeze only with the list empty.
+
+## 2026-10-27, the compactor pilot's round 5 (before the freeze, `notes/spec-first-study/pilot-review-5.md`)
+
+The author's list of cross-package unfolds (made by grepping for the definitions the author had in
+mind) missed one (`fmt.argsOk` in `New`); the fresh reviewer found it by reading every caller's
+`unfold`/`simp only [...]`. Rule: build the list mechanically (every `unfold`, `iunfold`, `simp only
+[...]` and positional `icases` of a package fact in the callers' proofs, filtered by the defining
+module), not from memory; and a package's proof-only definitions (a loop invariant) go in a module
+only that proof imports, not the package's public `Defs`.

@@ -1,7 +1,7 @@
 /-
 Proof of `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3compactor/Revision__Stop.lean`. Lean-first (no Rocq
 counterpart). The spec-first pilot's phase 1 (`notes/compactor-pilot-plan.md`): the spec is written,
-the proof is phase 4's (`sorry` until then).
+the proof is phase 4's (after the freeze, 2026-10-27).
 -/
 module
 
@@ -27,7 +27,22 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Ass
 
 theorem v3compactor.Revision.Stop.wp_proof :
     v3compactor.Revision.Stop.spec (GF := GF) (hG := hG) := by
-  sorry
+  intro rc E ret
+  wp_start as #Hcp
+  iunfold isRevision at Hcp
+  icases Hcp with ⟨%lg, %clk, %rt, %ctx, %cd, %γctx, %cancel, #Hlg, %Hlgnn, #Hclkf, #Hclk, #Hrt, %Hrt, #Hrg, #Hc, #Hctxf, #Hctx, #Hcancelf, #Hcs, #Hmu⟩
+  wp_auto
+  -- `cancel()`: the context's cancel function (`context.cancelSpec`, unfolded: Perennial has no law
+  -- for calling it yet, `notes/perennial-changes.md`)
+  ihave #Hcs' := Hcs
+  iunfold context.cancelSpec at Hcs'
+  wp_bind (App (Val #cancel) (Val #()))
+  iapply Hcs'
+  · itrivial
+  inext
+  iintro -
+  (try wp_auto)
+  iapply HΦ; itrivial
 
 end proof
 

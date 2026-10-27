@@ -155,12 +155,7 @@ theorem v3compactor.New.wp_proof
       iintro %asl ⟨Hasl, -⟩
       wp_apply hErrorf _ _ _ _ $$ [Hasl] as %e -
       · iframe #; iframe Hasl
-        simp only [fmt.argsOk, fmt.argOk]
-        isplitr
-        · ileft; ipureintro
-          apply fmt.argWf_of_argsWf
-          exact .cons_string _ _ .nil
-        itrivial
+        fmt_args_ok
       (try wp_auto)
       iapply HΦ
       iright

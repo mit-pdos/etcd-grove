@@ -204,13 +204,13 @@ theorem v3compactor.Revision.Run.wp_proof
         word
       wp_apply +noauto HC1 $$ [HR «$a1»] as %resp %err ⟨HR, #Herr⟩
       · iframe HR #
-        unfold revPermit compactReqIs
+        unfold revPermit
         isplitr
         · isplitr
           · ipureintro; have h0 : ¬ sint.Z (v - rt) ≤ 0 := by simpa using Hpos
             omega
           rw [hsum]; iexact Hv
-        iexists _; iframe; ipureintro; exact ⟨rfl, rfl⟩
+        iapply compactReqIs_of _ _ _ ⟨rfl, rfl⟩ $$ «$a1»
       (try wp_auto)
       -- `err == nil || errors.Is(err, mvcc.ErrCompacted)`: `ErrCompacted` is an `errors.New` error
       ihave #Pmvcc : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []

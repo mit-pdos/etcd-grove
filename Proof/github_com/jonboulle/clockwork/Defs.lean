@@ -34,8 +34,7 @@ no earlier than `d` after the call by the monotonic clock, which never goes back
 -/
 module
 
-public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BaseApply
-public import GeneratedProof.github_com.jonboulle.clockwork
+public import Proof.github_com.jonboulle.clockwork.Base
 public import Perennial.Golang.Theory.Chan.Idioms.Bag
 public import Perennial.Proof.time.Base
 

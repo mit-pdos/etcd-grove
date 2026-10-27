@@ -6,6 +6,7 @@ the proof is phase 3's hard full proof.
 module
 
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic__Run
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.PeriodicWindow
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic__getCompactInterval
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic__getRetryInterval
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Periodic__getRetentions
@@ -372,8 +373,7 @@ theorem v3compactor.Periodic.Run.wp_proof
         ihave #HC1 := HCT $$ %(sint.Z y0) %ctx %cd %«$a1_ptr»
         wp_apply +noauto HC1 $$ [HR «$a1»] as %resp %err ⟨HR, #Herr⟩
         · iframe HR #
-          unfold compactReqIs
-          iexists _; iframe; ipureintro; exact ⟨rfl, rfl⟩
+          iapply compactReqIs_of _ _ _ ⟨rfl, rfl⟩ $$ «$a1»
         (try wp_auto)
         -- `err == nil || errors.Is(err, mvcc.ErrCompacted)`: `ErrCompacted` is an `errors.New` error
         ihave #Pmvcc : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []

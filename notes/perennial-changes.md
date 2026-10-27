@@ -125,6 +125,20 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   runs a translated function (the pin `6b58510f9` stops before it on purpose). The compactor's
   `Run` proofs switch to the law at the pin bump that does that migration.
 
+### Specs: a law for calling a `cancelSpec` cancel function (2026-10-27, the compactor pilot's phase 4)
+
+- **Missing.** `context.cancelSpec cancel γ P` (a `def`: `□ ∀ Φ, □ P -∗ ▷ (ContextClosed γ -∗ Φ #()) -∗
+  WP cancel #() {{ Φ }}`) has no law for the call: clients `iunfold context.cancelSpec` and apply it
+  (the compactor's `Periodic.Stop`/`Revision.Stop`, the client's `newClient`, `lessor.resetRecv`).
+- **Needed by.** The spec-first recipe's rule against cross-package unfolds (`notes/spec-first-plan.md`,
+  phase 3).
+- **Workaround here.** The unfold, justified at the compactor's freeze with `isContextDef`'s
+  (`notes/decisions.md`, "The compactor pilot's freeze").
+- **Proposed change.** `context.cancelSpec_call : cancelSpec cancel γ P ⊢ {{ □ P }} cancel #() {{ RET #();
+  ContextClosed γ }}`, next to `cancelSpec_weaken`.
+- **Status.** Not started; to land with the next Perennial change (the compactor's proofs switch at the
+  pin bump that brings `isContext_Done`).
+
 ### Specs: `context.WithCancel`'s cancel function not `nil`
 
 - **Missing.** `context.WithCancel`'s specs (`context.WithCancel.spec`, `wp_WithCancel_Background`,

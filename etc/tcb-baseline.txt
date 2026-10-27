@@ -736,9 +736,3 @@ sorry authkv.Main.wp_proof
 sorry k8setcd3.client_ctx_field
 sorry k8setcd3.revRoom
 sorry kubernetes.kvIs_ne_null
-sorry v3compactor.Periodic.Pause.wp_proof
-sorry v3compactor.Periodic.Resume.wp_proof
-sorry v3compactor.Periodic.Stop.wp_proof
-sorry v3compactor.Revision.Pause.wp_proof
-sorry v3compactor.Revision.Resume.wp_proof
-sorry v3compactor.Revision.Stop.wp_proof

@@ -1,7 +1,7 @@
 /-
 Proof of `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3compactor/Revision__Resume.lean`. Lean-first (no Rocq
 counterpart). The spec-first pilot's phase 1 (`notes/compactor-pilot-plan.md`): the spec is written,
-the proof is phase 4's (`sorry` until then).
+the proof is phase 4's (after the freeze, 2026-10-27).
 -/
 module
 
@@ -27,7 +27,19 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Ass
 
 theorem v3compactor.Revision.Resume.wp_proof :
     v3compactor.Revision.Resume.spec (GF := GF) (hG := hG) := by
-  sorry
+  intro rc E ret
+  wp_start as #Hcp
+  iunfold isRevision at Hcp
+  icases Hcp with ⟨%lg, %clk, %rt, %ctx, %cd, %γctx, %cancel, #Hlg, %Hlgnn, #Hclkf, #Hclk, #Hrt, %Hrt, #Hrg, #Hc, #Hctxf, #Hctx, #Hcancelf, #Hcs, #Hmu⟩
+  wp_auto
+  wp_apply sync.Mutex.wp_Lock $$ [$Hmu] as ⟨Hlocked, Hinv⟩
+  iunfold revPausedInv at Hinv
+  icases Hinv with ⟨%pz, Hpz⟩
+  (try wp_auto)
+  wp_apply sync.Mutex.wp_Unlock $$ [$Hmu $Hlocked Hpz]
+  · inext; iunfold revPausedInv; iexists false; iframe
+  (try wp_auto)
+  iapply HΦ; itrivial
 
 end proof
 
