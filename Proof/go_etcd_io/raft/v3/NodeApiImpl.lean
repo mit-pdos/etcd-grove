@@ -694,10 +694,11 @@ theorem cluster_alloc_impl (N : Namespace) (ps : List w64) (ctxs : List (List w8
   imod ownRaftGhost_alloc_core E (GMap.listToSet ps) (GMap.listToSet ps) none (fun _ _ => True)
     (LogEntry.toEntries boot 0) (W64 1) (allocOut N boot bud) (some (GMap.listToSet ps))
     (fun T hT => by cases hT; exact ⟨GMap.subseteq_refl _, rfl⟩) true (fun _ => Hbne)
-    false (fun h => by cases h) (fun _ _ => True) (fun _ => none) (N .@ "raft") Hcne Hnz' Hwf
+    false (fun h => by cases h) (fun _ _ => True) (fun _ => none) (N .@ "raft") (N .@ "cert") Hcne
+    Hnz' Hwf
     (fun _ => by rw [show uint.Z (W64 1) = 1 from rfl]; exact Int.le_refl _)
     $$ Hcl with ⟨%γr, %Hγ, #Hcinv, #Hc0, Hnodes, Hout, Hcr, -⟩
-  obtain ⟨Hcfg, Hdyn, -, Hboot, -, Hns, Hnx, -, -, HNs⟩ := Hγ
+  obtain ⟨Hcfg, Hdyn, -, Hboot, -, Hns, Hnx, -, -, HNs, -⟩ := Hγ
   iunfold allocOut at Hout
   icases Hout with ⟨%γ, %Hγr, #HspT, #Hinv, Hops, Hctx⟩
   obtain ⟨Hγr, Hγb⟩ := Hγr

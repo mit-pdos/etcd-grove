@@ -575,7 +575,7 @@ theorem qCerts_nil (γ : RaftNames) : ⊢ qCerts (GF := GF) γ [] := by
 
 /-- A queued message's certificate's source, through the certificate link. -/
 theorem qCert_of_src (γ : RaftNames) (st : Storage) (q : QMsg)
-    (E : CoPset) (hE : ↑raftCertN ⊆ E) :
+    (E : CoPset) (hE : ↑(raftCertN γ) ⊆ E) :
     ⊢ certLink (GF := GF) γ st -∗ qSrc st q ={E}=∗ qCert γ q := by
   iintro #Hl #Hs
   unfold qCert
@@ -596,7 +596,7 @@ theorem qCert_of_src (γ : RaftNames) (st : Storage) (q : QMsg)
   ipureintro; exact Hsv
 
 theorem qCerts_of_srcs (γ : RaftNames) (st : Storage) (l : List QMsg)
-    (E : CoPset) (hE : ↑raftCertN ⊆ E) :
+    (E : CoPset) (hE : ↑(raftCertN γ) ⊆ E) :
     ⊢ certLink (GF := GF) γ st -∗ qSrcs st l ={E}=∗ qCerts γ l := by
   induction l with
   | nil => iintro _ _; imodintro; iapply qCerts_nil

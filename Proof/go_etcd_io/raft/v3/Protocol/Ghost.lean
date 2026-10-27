@@ -352,6 +352,11 @@ structure RaftNames where
   client update's outer mask leaves it out (`raftN γ`). The node API's allocation puts it inside the
   caller's namespace; the default is the fixed one the commit invariant had until then. -/
   reNs : Namespace := nroot .@ "raft_commit"
+  /-- The namespace of the storages' snapshot-certificate registries (2026-10-27, the node API over
+  an abstract log; `raftCertN γ`, `storCertOk`, `memCertInv`): the node API's allocation puts it
+  inside the caller's namespace, apart from the commit invariant's; the default is the fixed one it
+  had until then. -/
+  reCertNs : Namespace := nroot .@ "raft_snapcert"
 
 /-- The configuration a step is taken at is the ghost state's (2026-10-14, reconfiguration
 stage B2): its incoming voters are `γ.reCfg` and it is not joint (learners, staged

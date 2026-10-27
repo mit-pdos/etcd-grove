@@ -1199,7 +1199,9 @@ theorem ownRaftGhost_alloc_core (E : CoPset) (cfg ids : GSet w64)
     -- (2026-10-26, D22 J2) the nodes' snapshot directories (`RaftNames.reSnapLoc`)
     (sl : w64 → Option GName)
     -- (2026-10-27) the commit invariant's namespace (`RaftNames.reNs`)
-    (nsN : Namespace) :
+    (nsN : Namespace)
+    -- (2026-10-27) the snapshot-certificate registries' namespace (`RaftNames.reCertNs`)
+    (certN : Namespace) :
     -- (2026-10-14, reconfiguration stage B2) the voters are not empty: `RaftNames.reCfg_ne`
     cfg ≠ ∅ →
     W64 0 ∉ ids →
@@ -1207,7 +1209,7 @@ theorem ownRaftGhost_alloc_core (E : CoPset) (cfg ids : GSet w64)
     ⊢ allocClientGen E cfg dyn ccOk L C nsN -∗
       |={E}=> ∃ γ : RaftNames, ⌜γ.reCfg = cfg ∧ γ.reDyn = dyn ∧ γ.reCCOk = ccOk ∧ γ.reBoot = L ∧
           γ.reTracked = trk ∧ γ.reNoSnap = ns ∧ γ.reNoXfer = nx ∧ γ.reSnapOkRaw = sok ∧
-          γ.reSnapLoc = sl ∧ γ.reNs = nsN⌝ ∗
+          γ.reSnapLoc = sl ∧ γ.reNs = nsN ∧ γ.reCertNs = certN⌝ ∗
         raftCommitInv (GF := GF) γ ∗
         isCommitted γ L ∗
         ([∗map] id ↦ _u ∈ toMap ids, ownRaftGhost γ id (initPStateAt t L) dyn.isSome) ∗
@@ -1248,7 +1250,7 @@ theorem ownRaftGhost_alloc_core (E : CoPset) (cfg ids : GSet w64)
       γ0 = ⟨cfg, nv, nt, na, nc, nl, nw, ne, γc, γpr, γcl, γfr, nlc, nrq, γrd, γrf, γrc, γtb,
         dyn, ccOk, L.map BootEntry.ofEntry, Hcne, trk, Htrk, ns,
         fun h he => Hns h (List.map_eq_nil_iff.1 he), nx,
-        fun h he => Hnx h (List.map_eq_nil_iff.1 he), sok, sl, nsN⟩ :=
+        fun h he => Hnx h (List.map_eq_nil_iff.1 he), sok, sl, nsN, certN⟩ :=
     ⟨_, rfl⟩
   have e1 : γ0.reVotes = nv := by rw [Hγ0]
   have e2 : γ0.reTerms = nt := by rw [Hγ0]
@@ -1373,7 +1375,7 @@ theorem ownRaftGhost_alloc_core (E : CoPset) (cfg ids : GSet w64)
   imodintro
   iexists γ0
   isplitr; · ipureintro; exact ⟨e0, eD, eCC, eB, by rw [Hγ0], by rw [Hγ0], by rw [Hγ0], by rw [Hγ0],
-    by rw [Hγ0], by rw [Hγ0]⟩
+    by rw [Hγ0], by rw [Hγ0], by rw [Hγ0]⟩
   isplitr; · iexact Hinv'
   isplitr; · iexact Hc0
   isplitl [Hv Ht Ha Hc Hl Hw He Hlc Hrq Hcr0]
@@ -1408,7 +1410,7 @@ theorem ownRaftGhost_alloc_gen (E : CoPset) (cfg ids : GSet w64)
   ihave Hcl' := allocClient_gen E cfg dyn ccOk C $$ Hcl
   imod ownRaftGhost_alloc_core E cfg ids dyn ccOk [] (W64 0) C none (fun _ h => by cases h)
     false (fun h => by cases h) false (fun h => by cases h) (fun _ _ => True) (fun _ => none)
-    (nroot .@ "raft_commit") Hcne Hnz
+    (nroot .@ "raft_commit") (nroot .@ "raft_snapcert") Hcne Hnz
     BootWf_nil
     (fun h => absurd rfl h) $$ Hcl' with ⟨%γ, %Hγ, H⟩
   imodintro
@@ -1440,7 +1442,7 @@ theorem ownRaftGhost_alloc_snap (E : CoPset) (cfg ids : GSet w64)
   iintro Hcl
   ihave Hcl' := allocClient_gen E cfg none ccOk C $$ Hcl
   imod ownRaftGhost_alloc_core E cfg ids none ccOk [] (W64 0) C none (fun _ h => by cases h)
-    false (fun h => by cases h) false (fun h => by cases h) sok (fun _ => none) (nroot .@ "raft_commit") Hcne Hnz
+    false (fun h => by cases h) false (fun h => by cases h) sok (fun _ => none) (nroot .@ "raft_commit") (nroot .@ "raft_snapcert") Hcne Hnz
     BootWf_nil
     (fun h => absurd rfl h) $$ Hcl' with ⟨%γ, %Hγ, H⟩
   imodintro
@@ -1555,7 +1557,7 @@ theorem ownRaftGhost_alloc_boot (E : CoPset) (cfg ids : GSet w64) (ccOk : w32 �
     iapply Hcl $$ %γ %(⟨Hγ.1, Hγ.2.1, Hγ.2.2.1, Hγ.2.2.2.1⟩) Hc HrL Hf Hrf
   imod ownRaftGhost_alloc_core E cfg ids none ccOk bootLog (W64 1) C (some cfg)
     (fun T hT => by cases hT; exact ⟨GMap.subseteq_refl _, rfl⟩) ns (fun _ => Hbne) nx (fun _ => Hbne)
-    (fun _ _ => True) sl (nroot .@ "raft_commit") Hcne Hnz (Hok.wf Hnd)
+    (fun _ _ => True) sl (nroot .@ "raft_commit") (nroot .@ "raft_snapcert") Hcne Hnz (Hok.wf Hnd)
     (fun _ => by rw [show uint.Z (W64 1) = 1 from rfl]; exact Int.le_refl _)
     $$ Hcl' with ⟨%γ, %Hγ, H⟩
   imodintro
