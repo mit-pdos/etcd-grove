@@ -628,7 +628,9 @@ axiom reflectM.value_typed_pointsto
 axiom resolver.EtcdManualResolver.Close.wp_proof
 axiom resolver.EtcdManualResolver.SetEndpoints.wp_proof
 axiom resolver.New.wp_proof
+axiom resourceversion.isWellFormed.wp_proof
 axiom rpctypes.errDesc_etcdError
+axiom schema.GroupResource.String_ptr.wp_proof
 axiom schema.MustUnsafePutLease.wp_proof
 axiom schema.MustUnsafeSaveConfStateToBackend.wp_proof
 axiom semver.MustParse.wp_proof
