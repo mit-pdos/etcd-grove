@@ -191,6 +191,7 @@ PROJECTS = [
         lean_roots=["go.etcd.io/etcd=", "k8s.io=", "google.golang.org=", "go.uber.org=",
                     "go.etcd.io/bbolt=", "go.opentelemetry.io=",
                     "github.com/dustin/go-humanize=", "github.com/prometheus/client_golang=", "net/http=",
+                    "github.com/jonboulle/clockwork=",
                     "net=", "hash=", "path=", "internal/bytealg=",
                     "encoding/hex=", "container/heap=", "unicode/utf8=",
                     "github.com/Masterminds/semver=", "go.etcd.io/raft/v3=",
@@ -252,6 +253,8 @@ PROJECTS = [
             # names only (D21 M2): `Process`'s `403` errors (`httptypes.NewHTTPError`)
             "go.etcd.io/etcd/server/v3/etcdserver/api/etcdhttp/types",
             "go.etcd.io/etcd/server/v3/etcdserver/api/v3alarm",
+            # with bodies (etcdserver/api/v3compactor.toml): the auto-compactor (the spec-first
+            # pilot, notes/compactor-pilot-plan.md)
             "go.etcd.io/etcd/server/v3/etcdserver/api/v3compactor",
             # names only: what the apply package names (api.UpdateCapability,
             # version.DowngradeInfo, the membership requests, semver)
@@ -308,6 +311,8 @@ PROJECTS = [
             "google.golang.org/protobuf/reflect/protoreflect",
             "go.uber.org/zap",
             "go.uber.org/zap/zapcore",
+            # names only: the auto-compactor's clock (the spec-first pilot)
+            "github.com/jonboulle/clockwork",
             "github.com/dustin/go-humanize",
             # names only: the metrics mvcc's transactions and key index update
             "github.com/prometheus/client_golang/prometheus",
@@ -400,7 +405,8 @@ PROJECTS = [
                "net", "hash", "path", os.path.join("internal", "bytealg"), os.path.join("encoding", "hex"),
                os.path.join("crypto", "tls"),
                os.path.join("container", "heap"), os.path.join("unicode", "utf8"),
-               os.path.join("github_com", "dustin"), os.path.join("golang_org", "x", "time"),
+               os.path.join("github_com", "dustin"), os.path.join("github_com", "jonboulle"),
+               os.path.join("golang_org", "x", "time"),
                os.path.join("golang_org", "x", "crypto"),
                os.path.join("github_com", "xiang90"),
                os.path.join("github_com", "grpc_ecosystem")],

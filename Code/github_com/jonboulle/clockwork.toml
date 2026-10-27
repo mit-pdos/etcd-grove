@@ -1,0 +1,7 @@
+# Types and names only: the auto-compactor's clock (`Clock`, `NewRealClock`; the spec-first pilot,
+# notes/compactor-pilot-plan.md). Its methods are a trust boundary.
+translate = ["!*"]
+imports = ["!*"]
+
+# translate the definitions of all type declarations goose supports
+translate_types = true
