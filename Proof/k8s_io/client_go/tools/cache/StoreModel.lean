@@ -64,11 +64,23 @@ def ixAt (ix : Ix) (n : GoString) : IxN := ((ix !! n).map Prod.snd).getD ∅
 def ixOk (fns : GMap GoString Fn) (it : Items) (ix : Ix) : Prop :=
   (∀ n, n ∈ ix → n ∈ fns) ∧ ∀ n F, fns !! n = some F → nameOk F it (ixAt ix n)
 
-/-- **The store's abstract state**: its items, its resource version and its indexers. -/
+/-- **The store's abstract state**: its items, its resource version and its indexers, each named
+by its index in the client's family of index functions (`Fam : Nat → Fn`, a parameter of the
+store's specs; a function is not a countable value, so the ghost state holds the index). -/
 structure St where
   items : Items
   rv : GoString
-  fns : GMap GoString Fn
+  fnIds : GMap GoString Nat
+
+/-- The indexers' functions. -/
+def St.fns (Fam : Nat → Fn) (σ : St) : GMap GoString Fn := GMap.fmap Fam σ.fnIds
+
+instance St.countable : Pos.Countable St :=
+  .ofInjective (fun σ => Pos.Countable.encode (σ.items, σ.rv, σ.fnIds)) (by
+    rintro ⟨a, b, c⟩ ⟨a', b', c'⟩ h
+    simp only [Pos.encode_eq_iff, Prod.mk.injEq] at h
+    obtain ⟨rfl, rfl, rfl⟩ := h
+    rfl)
 
 /-- `Update(key, obj)`/`Add`: the object stored; the resource version becomes the object's when
 its accessor has one (`rvo`). -/
