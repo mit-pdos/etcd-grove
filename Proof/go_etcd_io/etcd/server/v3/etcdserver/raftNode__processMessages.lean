@@ -35,7 +35,7 @@ it is for the transport (any but a `MsgSnap`) or for `msgSnapC` (a `MsgSnap`). -
 theorem rnMsgR_open (E : RNEnv GF) (γ : NodeNames) (m : Loc) :
     rnMsgR E γ m ⊢ ∃ (dq : DFrac) (st : MsgSt), msgOwn m dq st ∗
       ((⌜st.msg.Type' ≠ MsgSnap⌝ -∗ msgOwn m dq st -∗ rnMsgOk E m) ∧
-       (⌜st.msg.Type' = MsgSnap⌝ -∗ msgOwn m dq st -∗ rnSnapMsg γ m)) := by
+       (⌜st.msg.Type' = MsgSnap⌝ -∗ msgOwn m dq st -∗ rnSnapMsg m)) := by
   iintro H
   iunfold rnMsgR at H
   icases H with (⟨%to, %ty, #Hat, %Hty, HM⟩ | Hs)
@@ -126,7 +126,7 @@ theorem raftNode.processMessages.wp_proof
       "Hcap" ∷ ownSliceCap Loc out (DFrac.own 1) ∗ "Houtok" ∷ ([∗list] m ∈ outL, rnMsgOk E m) ∗
       "sentAppResp" ∷ sentAppResp_ptr ↦ b ∗
       -- (D21 stage M1) the messages not yet looked at, each with its bundle
-      "Hall" ∷ ([∗list] m ∈ msL.take (sint.Z k + 1).toNat, rnMsgR E γ.node m) ∗
+      "Hall" ∷ ([∗list] m ∈ msL.take (sint.Z k + 1).toNat, rnMsgR E γ m) ∗
       "%Hk" ∷ ⌜-1 ≤ sint.Z k ∧ sint.Z k < sint.Z sl.len⌝) $$ [r ms i messages sentAppResp Hall]
   · iexists sl.len - W64 1, slice.nil, [], false
     iframe r ms i sentAppResp
@@ -220,12 +220,12 @@ theorem raftNode.processMessages.wp_proof
         -- (D22 S-l sender) owned, with its protocol facts
         have hsn : st.msg.Type' = MsgSnap := hty
         icases HK with ⟨-, HK⟩
-        ihave HmS : rnSnapMsg γ.node m $$ [HK Hmat]
+        ihave HmS : rnSnapMsg m $$ [HK Hmat]
         · iapply HK $$ %hsn Hmat
         iunfold isRNMsgSnapC at Hmsci
         icases Hmsci with ⟨%γc, #Hbag⟩
         ihave #Hbagch := is_bag_is_chan γc msc
-          (rnSnapMsg γ.node) $$ Hbag
+          rnSnapMsg $$ Hbag
         rw [isChanBag_unseal]
         iunfold isChanBagDef at Hbag
         icases Hbag with ⟨#Hch, #Hinv⟩

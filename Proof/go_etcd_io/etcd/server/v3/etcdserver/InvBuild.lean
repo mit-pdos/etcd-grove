@@ -236,7 +236,7 @@ theorem isRaftMsg_not_snap (γ : RaftNames) (hns : γ.reNoSnap = true) (sid : w6
 `processMessages` hands it is an owned `MsgSnap` with its protocol facts (`rnSnapMsg`, D22 S-l
 sender, 2026-10-22), which raft never sends in that mode (`isRaftMsg_not_snap`). -/
 theorem rnSnapMsg_false (γ : NodeNames) (hns : γ.raft.reNoSnap = true) (m : Loc) :
-    rnSnapMsg γ m ⊢ (False : IProp GF) := by
+    rnSnapMsg m ⊢ (False : IProp GF) := by
   iintro H
   iunfold rnSnapMsg at H
   icases H with ⟨%st, -, %Hty, #Hrm, -⟩

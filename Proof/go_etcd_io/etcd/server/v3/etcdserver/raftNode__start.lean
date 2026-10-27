@@ -467,7 +467,7 @@ theorem raftNode.start.wp_proof
         -- `if islead { r.transport.Send(r.processMessages(rd.Messages)) }`
         -- (D21 stage M1) the messages' bundles go to the transport here, or stay for a follower's
         wp_join iprop(rh_ptr ↦ rh ∗ rd_ptr ↦ rd ∗ r_ptr ↦ r ∗ islead_ptr ↦ b' ∗ E.S ∗
-            (⌜b' = true⌝ ∨ [∗list] m ∈ msL, rnMsgR E γ.node m))
+            (⌜b' = true⌝ ∨ [∗list] m ∈ msL, rnMsgR E γ m))
           with [rh rd r islead HS Hmsok] as ⟨rh, rd, r, islead, HS, Hmsok⟩
         -- the cases that reach the join with nothing sent close by framing (`ileft` once the
         -- bundles went to the transport)

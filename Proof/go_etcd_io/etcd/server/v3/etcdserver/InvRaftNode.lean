@@ -165,14 +165,14 @@ def rnMsgOk (E : RNEnv GF) (m : Loc) : IProp GF :=
 /-- (D22 S-l sender, 2026-10-22; 2026-10-27: `False`) **A `MsgSnap` raft handed out, owned**: the
 server's clusters send none (a dynamic cluster sends none, a static one vouches for no snapshot's
 data: `srv_sentMsg_notSnap`), so the snapshot sender's path is unreachable; kept for its shape. -/
-def rnSnapMsg (_γ : RNNames) (_m : Loc) : IProp GF := iprop(False)
+def rnSnapMsg (_m : Loc) : IProp GF := iprop(False)
 
 /-- (D22 S-l sender) **A message of a `Ready`, as the server receives it**: any but a `MsgSnap`
 read-only with `E.M` (`rnMsgOk`'s, with its type not `MsgSnap`), a `MsgSnap` owned
 (`rnSnapMsg`). `processMessages` turns the first into `rnMsgOk` for the transport and hands the
 second to `msgSnapC`. -/
 def rnMsgR (E : RNEnv GF) (γ : RNNames) (m : Loc) : IProp GF :=
-  iprop((∃ (to : w64) (ty : w32), msgAt m to ty ∗ ⌜ty ≠ MsgSnap⌝ ∗ E.M m) ∨ rnSnapMsg γ m)
+  iprop((∃ (to : w64) (ty : w32), msgAt m to ty ∗ ⌜ty ≠ MsgSnap⌝ ∗ E.M m) ∨ rnSnapMsg m)
 
 /-! ## The node's `Ready`/`Advance` exchange -/
 
@@ -988,7 +988,7 @@ def rnApplyTok (γ : RNNames) (A : List EntryModel) : IProp GF :=
 a server whose raft sends none knows the channel never delivers); (D22 S-l sender, 2026-10-22)
 each owned with its protocol facts (`rnSnapMsg`), for `applyAll`'s merge, which writes it. -/
 def isRNMsgSnapC (γ : RNNames) (c : Loc) : IProp GF :=
-  iprop(∃ γc : ChanNames, isChanBag γc c (V := Loc) (rnSnapMsg γ))
+  iprop(∃ γc : ChanNames, isChanBag γc c (V := Loc) rnSnapMsg)
 
 instance isRNMsgSnapC_persistent (γ : RNNames) (c : Loc) :
     Persistent (isRNMsgSnapC (GF := GF) γ c) := by
