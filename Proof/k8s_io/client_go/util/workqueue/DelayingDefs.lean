@@ -129,6 +129,65 @@ def wqElem (x : GoInterface) (a : Loc × K) : IProp GF :=
 def byDataOk (mm : GMap K Loc) (ws : List (Loc × K)) : Prop :=
   (ws.map Prod.snd).Nodup ∧ ∀ (k : K) (w : Loc), mm !! k = some w ↔ (w, k) ∈ ws
 
+/-- `byDataOk` holds of a permutation of the entries. -/
+theorem byDataOk_perm {mm : GMap K Loc} {ws ws' : List (Loc × K)} (h : byDataOk mm ws)
+    (hp : ws'.Perm ws) : byDataOk mm ws' :=
+  ⟨(hp.map Prod.snd).nodup_iff.2 h.1, fun k w => (h.2 k w).trans hp.mem_iff.symm⟩
+
+/-- `byDataOk` of an entry `(w, k)` added under a new item `k`. -/
+theorem byDataOk_insert {mm : GMap K Loc} {ws ws' : List (Loc × K)} (w : Loc) (k : K)
+    (h : byDataOk mm ws) (hk : mm !! k = none) (hp : ws'.Perm (ws ++ [(w, k)])) :
+    byDataOk (<[k := w]> mm) ws' := by
+  obtain ⟨hnd, hmem⟩ := h
+  have hkn : k ∉ ws.map Prod.snd := by
+    intro hk'
+    obtain ⟨⟨w', k'⟩, hin, he⟩ := List.mem_map.1 hk'
+    have := (hmem k' w').2 hin
+    simp only at he
+    rw [he, hk] at this; cases this
+  refine byDataOk_perm ⟨?_, fun k' w' => ?_⟩ hp
+  · simp only [List.map_append, List.map_cons, List.map_nil]
+    exact List.nodup_append.2 ⟨hnd, List.nodup_cons.2 ⟨List.not_mem_nil, List.nodup_nil⟩,
+      fun a ha b hb e => by simp at hb; subst hb; subst e; exact hkn ha⟩
+  · by_cases e : k = k'
+    · subst e
+      rw [GMap.lookup_insert]
+      constructor
+      · intro h; simp only [Option.some.injEq] at h; subst h
+        exact List.mem_append.2 (Or.inr (List.mem_singleton.2 rfl))
+      · intro h
+        rcases List.mem_append.1 h with h | h
+        · exact absurd (List.mem_map.2 ⟨_, h, rfl⟩) hkn
+        · rw [List.mem_singleton] at h; cases h; rfl
+    · rw [GMap.lookup_insert_ne _ _ e, hmem k' w']
+      constructor
+      · intro h; exact List.mem_append.2 (Or.inl h)
+      · intro h
+        rcases List.mem_append.1 h with h | h
+        · exact h
+        · rw [List.mem_singleton] at h; cases h; exact absurd rfl e
+
+/-- `byDataOk` of the entries but the last, `(w, k)`, after `delete(m, k)`. -/
+theorem byDataOk_delete {mm : GMap K Loc} {ws ws' : List (Loc × K)} (a : Loc × K)
+    (h : byDataOk mm ws) (hp : (ws' ++ [a]).Perm ws) : byDataOk (GMap.delete a.2 mm) ws' := by
+  obtain ⟨hnd, hmem⟩ := byDataOk_perm h hp
+  simp only [List.map_append, List.map_cons, List.map_nil] at hnd
+  obtain ⟨hnd', -, hdis⟩ := List.nodup_append.1 hnd
+  refine ⟨hnd', fun k w => ?_⟩
+  by_cases e : a.2 = k
+  · subst e
+    rw [GMap.lookup_delete]
+    simp only [reduceCtorEq, false_iff]
+    intro hin
+    exact hdis _ (List.mem_map.2 ⟨_, hin, rfl⟩) _ (List.mem_singleton_self _) rfl
+  · rw [GMap.lookup_delete_ne _ e, hmem k w]
+    simp only [List.mem_append, List.mem_singleton]
+    constructor
+    · rintro (h | h)
+      · exact h
+      · subst h; exact absurd rfl e
+    · exact Or.inl
+
 /-- An entry sent on `waitingForAddCh`: a `*waitFor[T]` owned by its holder. -/
 def entryOk (w : Loc) : IProp GF :=
   iprop(∃ wf : waitFor K, w ↦ wf)
