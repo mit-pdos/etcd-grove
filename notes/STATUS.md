@@ -413,6 +413,39 @@ Other notes in use: `notes/snapshot-receiver-epochs.md` (S5's plan),
 
 In status-history.md: the raft v3.7 retarget ("Retargeting raft to v3.7, stage R0" to "stage R8b"), reconfiguration (stages 0, A1-A3, B1-B8, D, L, N), the read index and proposals (stage R, stage F), CheckQuorum and PreVote, the multi-member stages "D21 M0" to "D21 M6", and the witness stages W1-W3b-A and W5.
 
+## The node API over an abstract log, implemented (2026-10-27, branch `raft-api`)
+
+`Proof/go_etcd_io/raft/v3/NodeApiImpl.lean` (namespace `ApiImpl`) implements the drafted API
+(`NodeApiDraft.lean`) over raft's internals; the draft's bodies and proofs are swapped in (sealed),
+its pure vocabulary moved unchanged to `NodeApiVocab.lean`.
+
+- **Ghost state** (`Cluster`): raft's names, two monotone lists of `LogEntry` (`full`, the committed
+  log; `ops`, its requested entries, halved between the client and the adapter), the read contexts
+  (`ctxs`, ghost map `c ↦ γq`), the cluster's term budget, the trivial predicate's name (`trueQ`).
+  The adapter's invariant `apiInv` (at `N .@ "api"`; raft's commit invariant at `N .@ "raft"`) holds
+  raft's client half `rLog`, the authorities, and the fresh-token authorities with what the adapter
+  registered (`propIsAt … trueQ`) and deposited (read contexts). `isCommittedLogLb` is `l = []` or
+  the two lower bounds.
+- **Proved, as drafted:** the four laws and `isCommittedLogLb_nil`, read contexts (`readCtx_commit`,
+  `readStateOk_used`), `node.Propose`, `node.ProposeConfChange`, `node.ReadIndex` (the adapter
+  deposits a context's read once, firing the client's update itself, `read_deposit_with`; retries
+  reuse it, `node__ReadIndexReq.lean`), `node.Ready`, the `Ready` receive (no-snapshot nodes),
+  `node.Advance`, `node.Step` (given `stepIn`), `node.Tick`, `node.TransferLeadership`, `tickCredit`'s
+  laws; the instances.
+- **Proved with changed statements** (in `ApiImpl`; the draft keeps `sorry`): `readStateOk_ctx_impl`
+  (a ghost update within `N`, given a committed lower bound at least `idx` long, the result under
+  two laters: raft does not know the read index committed when it hands the read state out);
+  `cluster_alloc_impl` (`|={E}=>`, the receipts' bound, `ps ≠ []`, `0 ∉ ps`, `bootMarshal` premise,
+  read credits out; `nodeBoot` names the peers and contexts); `wp_StartNode_impl` (budget the
+  cluster's, `storCap si 1` premise: raft's no-snapshot mode).
+- **Not done:** the static cluster (`isStaticCluster`, `_normal`, `cluster_alloc_static`,
+  `nodeRestartBoot`, `RestartNode`), the snapshot certificates' laws (`snapshotCert` is raft's
+  `raftSnapCertD`; `raftCertN` is a fixed namespace, not the cluster's), `stepIn_intro`, a snapshot
+  `Ready` (`readySnap`'s snapshot case is `False` in the implementation: no implemented node takes
+  snapshots).
+- Raft: the allocation's continuation learns `reNs` and the boot registrations (`propIsAt`,
+  `prop_register_at`). Trust base unchanged (13 axioms, 0 sorries).
+
 ## Proposals keyed by type and data; fillers only fire `noopAu` (2026-10-27, branch `raft-api`)
 
 For the node API redesign (`Proof/go_etcd_io/raft/v3/NodeApiDraft.lean`), where the client gives an
