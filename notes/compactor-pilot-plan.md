@@ -337,6 +337,40 @@ keeps). Two designs:
 Either changes definitions the closed results are stated in (the trust base's statements): the
 user's decision.
 
+**The scope narrowed for now (the user's, 2026-10-27): the compactor first.** M2 (above, the
+user's choice of design) needs more than the note said: the server's readers (txn, apply, the
+request path, the watchable store, the cache's and the examples' glue) are stated over mvcc's
+`storeReader`, which carries `crevFrozen` (the store never compacted; `NewServer` freezes the
+compaction right), so compaction on means moving about 66 files' statements to `storeReaderC` with
+`ErrCompacted` answers. The pilot finishes the compactor first (phase 2, the freeze, phase 4) with
+`EtcdServer.Compact`'s proof as its boundary (a `sorry`), and M2 runs afterwards as its own
+spec-first stage (S1 the readers, S2 the apply's compaction arm and `reqPropOk`'s compaction form,
+S3 `Compact`'s glue, S4 `NewServer` with the compactor on, `putget_safe` first). A deviation from
+phase 0's scope (A): counted as the pilot's first scope revision (found in phase 1, not phase 4).
+
+**Phase 2 (2026-10-27): the specs tested against the Go code** (`etc/spec-test/v3compactor/`, an
+in-package test at the pin, clockwork's fake clock; the checks transcribe `revPermit`, `perPermit`
+and `compactReqIs`'s pure parts). Results:
+- **No refutation**: 1000 runs per mode (about 3700 revision-mode and 24 000 periodic compactions,
+  periods 10ns to 3h, random outcomes `nil`/`ErrCompacted`/failure, random pauses), and on the real
+  clock (162 compactions, period 20ms; `After(d)` never early in 200 calls).
+- **The tester refutes wrong permits**: `r + ret + 1 ≤ rev` (revision mode: the bound is tight);
+  periodic `T + period + retry ≤ now` or `T + retentions·retry ≤ now` once the first-sample case is
+  dropped.
+- **Strength margins** (where the code guarantees more than the specs say; strengthen only when a
+  caller needs it):
+  - periodic, a sample other than the run's first: the code compacts it at least
+    `retentions·retry` after its stamp (slack 2ns past it at the least), the spec says `period`;
+  - the run's first sample: the first-sample case (`T + retry`) was never needed, on the fake clock
+    (compacted exactly `period` after the stamp) or the real one (at least 105µs past `period`). It
+    exists because the model's `Now` is unrelated to `clockLb` and Perennial's `Time.Sub` returns
+    any duration; the real gap is the scheduling delay between `Run`'s `Now()` and its first
+    `Rev()`, which `After`'s overshoot hid in every run;
+  - no compaction while paused, none after `Stop` (the test does not race `Stop` with a firing
+    `After`, where Go's `select` may pick either), and request revisions never decreasing: none of
+    the three is in a spec (`Pause`/`Stop` return `True`; C1's draft had the third).
+- **Not covered**: the resource part of the specs (the proofs check it), and `Stop` racing a round.
+
 **Review checkpoints** (`notes/spec-first-plan.md`, "Phase 1b", the feedback loop): at the freeze, a
 retrospective of the revisions the review found against those the glue proofs found; at the end of
 phase 4, every revision after the freeze attributed to a review criterion or to "none", and the
