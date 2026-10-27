@@ -8,9 +8,8 @@ theorem Draft.isReadCtx_persistent (γ : Draft.Cluster) (N : Namespace) (c : Lis
 def (sealed) Draft.Membership.applyChange (o : ConfChangeIM) (m : Draft.Membership) : Option
     Draft.Membership
 
-theorem Draft.isCommittedLogLb_agree [package_sem : Assumptions] (γ : Draft.Cluster) (l1 l2 : List
-    Draft.LogEntry) : Draft.isCommittedLogLb γ l1 ∗ Draft.isCommittedLogLb γ l2 ⊢ ⌜l1 <+: l2 ∨ l2
-    <+: l1⌝
+theorem Draft.isCommittedLogLb_agree (γ : Draft.Cluster) (l1 l2 : List Draft.LogEntry) :
+    Draft.isCommittedLogLb γ l1 ∗ Draft.isCommittedLogLb γ l2 ⊢ ⌜l1 <+: l2 ∨ l2 <+: l1⌝
 
 theorem Draft.node.wp_readyRecv [package_sem : Assumptions] : Draft.node.readyRecv.spec
   -- `Perennial.EtcdGrove.Draft.node.readyRecv.spec`, unfolded:
@@ -39,6 +38,8 @@ theorem Draft.node.wp_readyRecv [package_sem : Assumptions] : Draft.node.readyRe
                     Φ (intoVal rd, intoVal true)) -∗
               WP ((chan.receive Ready.ty) (intoVal ch)) {{ Φ }}
 
+theorem Draft.readCredits_timeless (γ : Draft.Cluster) (n : Nat) : Timeless (Draft.readCredits γ n)
+
 theorem Draft.snapshotCert_persistent (γ : Draft.Cluster) (N : Namespace) (k : SnapTrip) :
     Persistent (Draft.snapshotCert γ N k)
 
@@ -46,17 +47,18 @@ theorem Draft.deliveredLogLb_committed [package_sem : Assumptions] (n : Loc) (γ
     : Namespace) (l : List Draft.LogEntry) : Draft.deliveredLogLb n γ N l ⊢ Draft.isCommittedLogLb γ
     l
 
-theorem Draft.isCommittedLogLb_mono [package_sem : Assumptions] (γ : Draft.Cluster) (l1 l2 : List
-    Draft.LogEntry) : l1 <+: l2 → Draft.isCommittedLogLb γ l2 ⊢ Draft.isCommittedLogLb γ l1
+theorem Draft.isCommittedLogLb_mono (γ : Draft.Cluster) (l1 l2 : List Draft.LogEntry) : l1 <+: l2 →
+    Draft.isCommittedLogLb γ l2 ⊢ Draft.isCommittedLogLb γ l1
 
 theorem Draft.dynamicCluster_alloc [package_sem : Assumptions] (N : Namespace) (ps : List w64) (ctxs
     : List (List w8)) (boot : List Draft.LogEntry) (decode : Draft.ConfChangeDecoder) (transfer :
-    Bool) (E : CoPset) : receiptBound GF ≤ 2 ^ 64 - 2 → Draft.BootLog ps ctxs boot → ps.Nodup → ps ≠
-    [] → ¬W64 0 ∈ ps → ↑ps.length ≤ 2 ^ 62 → ⊢ bootMarshal ps ctxs (Draft.LogEntry.toEntries boot 0)
-    ={E}=∗ ∃ γ, Draft.ownCommittedOps γ boot ∗ Draft.ownReadCtxs γ ∅ ∗ Draft.readCredits γ (2 ^ 64 -
-    2) ∗ Draft.isDynamicCluster γ N (Draft.Membership.simple (listToSet ps)) decode ∗ (if transfer =
-    true then Draft.leaderTransferOn γ N else Draft.leaderTransferOff γ N) ∗ [∗list] id ∈ ps,
-    Draft.nodeDynamicBoot γ N ps ctxs id
+    Bool) (E : CoPset) : receiptBound GF ≤ 2 ^ 64 - 2 → receiptBound GF + boot.length ≤ 2 ^ 61 →
+    Draft.BootLog ps ctxs boot → ps.Nodup → ps ≠ [] → ¬W64 0 ∈ ps → ↑ps.length ≤ 2 ^ 62 → ⊢
+    bootMarshal ps ctxs (Draft.LogEntry.toEntries boot 0) ={E}=∗ ∃ γ, Draft.ownCommittedOps γ boot ∗
+    Draft.ownReadCtxs γ ∅ ∗ Draft.readCredits γ (2 ^ 64 - 2) ∗ Draft.isDynamicCluster γ N
+    (Draft.Membership.simple (listToSet ps)) decode ∗ (if transfer = true then
+    Draft.leaderTransferOn γ N else Draft.leaderTransferOff γ N) ∗ Draft.readyFits γ N ∗ [∗list] id
+    ∈ ps, Draft.nodeDynamicBoot γ N ps ctxs id
 
 theorem Draft.leaderTransferOn_persistent (γ : Draft.Cluster) (N : Namespace) : Persistent
     (Draft.leaderTransferOn γ N)
@@ -64,8 +66,13 @@ theorem Draft.leaderTransferOn_persistent (γ : Draft.Cluster) (N : Namespace) :
 theorem Draft.leaderTransferOff_persistent (γ : Draft.Cluster) (N : Namespace) : Persistent
     (Draft.leaderTransferOff γ N)
 
-theorem Draft.readCredit_eq [package_sem : Assumptions] (γ : Draft.Cluster) : Draft.readCredit γ ⊣⊢
-    Draft.readCredits γ 1
+theorem Draft.readCredit_eq (γ : Draft.Cluster) : Draft.readCredit γ ⊣⊢ Draft.readCredits γ 1
+
+theorem Draft.isCommittedLogLb_length [package_sem : Assumptions] (γ : Draft.Cluster) (N :
+    Namespace) (l : List Draft.LogEntry) : Draft.readyFits γ N ∗ Draft.isCommittedLogLb γ l ⊢
+    ⌜↑l.length + 1 < 2 ^ 64⌝
+
+def (sealed) Draft.Cluster.bootLen (γ : Draft.Cluster) : Nat
 
 theorem Draft.wp_RestartNode [package_sem : Assumptions] : Draft.RestartNode.spec
   -- `Perennial.EtcdGrove.Draft.RestartNode.spec`, unfolded:
@@ -174,8 +181,8 @@ theorem Draft.node.wp_Propose [package_sem : Assumptions] : Draft.node.Propose.s
                 (intoVal data_sl))
               {{ Φ }}
 
-theorem Draft.readCredits_split [package_sem : Assumptions] (γ : Draft.Cluster) (a b : Nat) :
-    Draft.readCredits γ (a + b) ⊣⊢ Draft.readCredits γ a ∗ Draft.readCredits γ b
+theorem Draft.readCredits_split (γ : Draft.Cluster) (a b : Nat) : Draft.readCredits γ (a + b) ⊣⊢
+    Draft.readCredits γ a ∗ Draft.readCredits γ b
 
 def Draft.StartNode.dynamicSpec : Prop :=
   ∀ (γ : Draft.Cluster) (N : Namespace) (c : Loc) (cv : Config) (lok si : GoInterfaceOk) (σ : StorState) (hs : HardStateM)
@@ -293,14 +300,24 @@ def Draft.node.readyRecv.spec : Prop :=
                     Φ (intoVal rd, intoVal true)) -∗
               WP ((chan.receive Ready.ty) (intoVal ch)) {{ Φ }}
 
+theorem Draft.readCtx_commit_after (γ : Draft.Cluster) (N : Namespace) (U : GSet (List w8)) (c :
+    List w8) (Q : List Draft.LogEntry → IProp GF) (l0 : List Draft.LogEntry) : ¬c ∈ U →
+    Draft.ownReadCtxs γ U ∗ Draft.isCommittedLogLb γ l0 ∗ □ AU <{ ∃∃ ops, Draft.ownCommittedOps γ
+    ops }> @ ⊤ \ ↑N, ∅ <{ Draft.ownCommittedOps γ ops, COMM □ Q ops }> ⊢ |==> (Draft.ownReadCtxs γ
+    (insert c U) ∗ Draft.isReadCtx γ N c Q ∗ Draft.readCtxAfter γ N c l0)
+
 theorem Draft.nodeDriver_deliveredLogLb [package_sem : Assumptions] (n : Loc) (γ : Draft.Cluster) (N
     : Namespace) (st : Draft.NodeDriverState) : Draft.nodeDriver n γ N st ⊢ Draft.nodeDriver n γ N
     st ∗ Draft.deliveredLogLb n γ N st.delivered
 
-theorem Draft.readCtx_commit [package_sem : Assumptions] (γ : Draft.Cluster) (N : Namespace) (U :
-    GSet (List w8)) (c : List w8) (Q : List Draft.LogEntry → IProp GF) : ¬c ∈ U → Draft.ownReadCtxs
-    γ U ∗ □ AU <{ ∃∃ ops, Draft.ownCommittedOps γ ops }> @ ⊤ \ ↑N, ∅ <{ Draft.ownCommittedOps γ ops,
-    COMM □ Q ops }> ⊢ |==> (Draft.ownReadCtxs γ (insert c U) ∗ Draft.isReadCtx γ N c Q)
+theorem Draft.readCtx_commit (γ : Draft.Cluster) (N : Namespace) (U : GSet (List w8)) (c : List w8)
+    (Q : List Draft.LogEntry → IProp GF) : ¬c ∈ U → Draft.ownReadCtxs γ U ∗ □ AU <{ ∃∃ ops,
+    Draft.ownCommittedOps γ ops }> @ ⊤ \ ↑N, ∅ <{ Draft.ownCommittedOps γ ops, COMM □ Q ops }> ⊢
+    |==> (Draft.ownReadCtxs γ (insert c U) ∗ Draft.isReadCtx γ N c Q)
+
+theorem Draft.ccShrink_addVoter (cfg : GSet w64) (cm : ConfChangeM) (ht : cm.type = W32 0) (hk' : ∃
+    k, k ∈ cfg ∧ (cm.nodeId = k ∨ cm.nodeId = W64 0)) : CCShrink cfg (ccV2Of (ConfChangeIM.v1
+    cm)).fst (ccV2Of (ConfChangeIM.v1 cm)).snd
 
 def Draft.node.Advance.spec : Prop :=
   ∀ (n : Loc) (γ : Draft.Cluster) (N : Namespace) (vs : List w64) (snapOk : List Draft.LogEntry → List w8 → Prop)
@@ -363,15 +380,20 @@ theorem Draft.Membership.applyChange_removeAbsent (vs : GSet w64) (cm : ConfChan
 
 theorem Draft.cluster_alloc [package_sem : Assumptions] (N : Namespace) (ps : List w64) (ctxs : List
     (List w8)) (boot : List Draft.LogEntry) (snapOk : List Draft.LogEntry → List w8 → Prop)
-    (transfer : Bool) (E : CoPset) : receiptBound GF ≤ 2 ^ 64 - 2 → Draft.BootLog ps ctxs boot →
-    ps.Nodup → ps ≠ [] → ¬W64 0 ∈ ps → ⊢ bootMarshal ps ctxs (Draft.LogEntry.toEntries boot 0)
-    ={E}=∗ ∃ γ, Draft.ownCommittedOps γ boot ∗ Draft.ownReadCtxs γ ∅ ∗ Draft.readCredits γ (2 ^ 64 -
-    2) ∗ Draft.isStaticCluster γ N ps snapOk ∗ (if transfer = true then Draft.leaderTransferOn γ N
-    else Draft.leaderTransferOff γ N) ∗ [∗list] id ∈ ps, Draft.nodeBoot γ N ps ctxs id
+    (transfer : Bool) (E : CoPset) : receiptBound GF ≤ 2 ^ 64 - 2 → receiptBound GF + boot.length ≤
+    2 ^ 61 → Draft.BootLog ps ctxs boot → ps.Nodup → ps ≠ [] → ¬W64 0 ∈ ps → ⊢ bootMarshal ps ctxs
+    (Draft.LogEntry.toEntries boot 0) ={E}=∗ ∃ γ, Draft.ownCommittedOps γ boot ∗ Draft.ownReadCtxs γ
+    ∅ ∗ Draft.readCredits γ (2 ^ 64 - 2) ∗ Draft.isStaticCluster γ N ps snapOk ∗ (if transfer = true
+    then Draft.leaderTransferOn γ N else Draft.leaderTransferOff γ N) ∗ Draft.readyFits γ N ∗
+    [∗list] id ∈ ps, Draft.nodeBoot γ N ps ctxs id
 
-theorem Draft.ownCommittedOps_get_lb [package_sem : Assumptions] (γ : Draft.Cluster) (ops : List
-    Draft.LogEntry) : Draft.ownCommittedOps γ ops ⊢ Draft.ownCommittedOps γ ops ∗ ∃ l,
-    Draft.isCommittedLogLb γ l ∗ ⌜Draft.opsOf l = ops⌝
+theorem Draft.sentMsg_snapshot (γ : Draft.Cluster) (N : Namespace) (src : w64) (st : MsgSt) :
+    st.msg.Type' = MsgSnap → Draft.sentMsg γ N src st ⊢ ∃ sv, ⌜st.snap = some sv⌝ ∗
+    Draft.snapshotCert γ N (snapTrip sv sv.Metadata'.ConfState'.lists)
+
+theorem Draft.ownCommittedOps_get_lb (γ : Draft.Cluster) (ops : List Draft.LogEntry) :
+    Draft.ownCommittedOps γ ops ⊢ Draft.ownCommittedOps γ ops ∗ ∃ l, Draft.isCommittedLogLb γ l ∗
+    ⌜Draft.opsOf l = ops⌝
 
 theorem Draft.isNode_persistent (n : Loc) (γ : Draft.Cluster) (N : Namespace) (id : w64) :
     Persistent (Draft.isNode n γ N id)
@@ -410,8 +432,7 @@ def Draft.node.Advance.dynamicSpec : Prop :=
                     (intoVal ()))
                   {{ Φ }}
 
-theorem Draft.isCommittedLogLb_nil [package_sem : Assumptions] (γ : Draft.Cluster) : ⊢
-    Draft.isCommittedLogLb γ []
+theorem Draft.isCommittedLogLb_nil (γ : Draft.Cluster) : ⊢ Draft.isCommittedLogLb γ []
 
 def (sealed) Draft.nodeDynamicBoot (γ : Draft.Cluster) (N : Namespace) (ps : List w64) (ctxs : List
     (List w8)) (id : w64) : IProp GF
@@ -448,7 +469,7 @@ def Draft.readyRest (γ : Draft.Cluster) (N : Namespace) (id : w64) (rd : Ready)
                 ⌜∃ Lx,
                       Lx < 2 ^ 64 ∧
                         (∀ (e0 : EntryM), es.head? = some e0 → uint.Z e0.Index' + ↑es.length ≤ Lx + 1) ∧
-                          ↑(st.delivered ++ ce).length ≤ Lx⌝ ∗
+                          ↑(st.delivered ++ ce).length ≤ Lx ∧ Lx < ↑(receiptBound GF) + ↑γ.bootLen⌝ ∗
                   Draft.readySnap γ N rd st ce es L)
 
 theorem Draft.storageCertInv_alloc [package_sem : Assumptions] (γ : Draft.Cluster) (N : Namespace)
@@ -457,6 +478,12 @@ theorem Draft.storageCertInv_alloc [package_sem : Assumptions] (γ : Draft.Clust
 def (sealed) Draft.isNode (n : Loc) (γ : Draft.Cluster) (N : Namespace) (id : w64) : IProp GF
 
 theorem Draft.wp_StartNode_dynamic [package_sem : Assumptions] : Draft.StartNode.dynamicSpec
+
+theorem Draft.readyRest_fits [go.Semantics] (γ : Draft.Cluster) (N : Namespace) (id : w64) (rd :
+    Ready) (st : Draft.NodeDriverState) (ce : List Draft.LogEntry) (es : List EntryM) (h :
+    HardStateM) (L : Option SnapLoan) : Draft.readyFits γ N ∗ Draft.readyRest γ N id rd st ce es h L
+    ⊢ Draft.readyRest γ N id rd st ce es h L ∗ ⌜∀ (e0 : EntryM), es.head? = some e0 → uint.Z
+    e0.Index' + ↑es.length ≤ 2 ^ 61⌝
 
 theorem Draft.msgCredits_snapshot [package_sem : Assumptions] (γ : Draft.Cluster) (N : Namespace)
     (st : MsgSt) : st.msg.Type' = MsgSnap → ⊢ |==> Draft.msgCredits γ N st
@@ -535,6 +562,10 @@ def Draft.node.ReportUnreachable.spec : Prop :=
 theorem Draft.isCommittedLogLb_timeless (γ : Draft.Cluster) (l : List Draft.LogEntry) : Timeless
     (Draft.isCommittedLogLb γ l)
 
+theorem Draft.nodeBoot_booted [package_sem : Assumptions] (γ : Draft.Cluster) (N : Namespace) (ps :
+    List w64) (ctxs : List (List w8)) (id : w64) : ps ≠ [] → Draft.nodeBoot γ N ps ctxs id ⊢
+    Draft.nodeBoot γ N ps ctxs id ∗ Draft.bootedCluster γ
+
 def Draft.node.Propose.spec : Prop :=
   ∀ (n : Loc) (γ : Draft.Cluster) (N : Namespace) (id : w64) (data_sl : GoSlice) (data : List w8) (ctx : GoInterfaceOk)
     (cd : context.ContextDesc (IProp GF)),
@@ -588,14 +619,25 @@ def Draft.node.ApplyConfChange.dynamicSpec : Prop :=
                                 (intoVal c))
                               {{ Φ }}
 
-theorem Draft.ownCommittedOps_lb_prefix [package_sem : Assumptions] (γ : Draft.Cluster) (ops l :
-    List Draft.LogEntry) : Draft.ownCommittedOps γ ops ∗ Draft.isCommittedLogLb γ l ⊢ ⌜Draft.opsOf l
-    <+: ops⌝
+theorem Draft.readCtxAfter_persistent (γ : Draft.Cluster) (N : Namespace) (c : List w8) (l0 : List
+    Draft.LogEntry) : Persistent (Draft.readCtxAfter γ N c l0)
+
+theorem Draft.ownCommittedOps_lb_prefix (γ : Draft.Cluster) (ops l : List Draft.LogEntry) :
+    Draft.ownCommittedOps γ ops ∗ Draft.isCommittedLogLb γ l ⊢ ⌜Draft.opsOf l <+: ops⌝
 
 theorem Draft.readStateOk_persistent (γ : Draft.Cluster) (N : Namespace) (c : List w8) (idx : w64) :
     Persistent (Draft.readStateOk γ N c idx)
 
+theorem Draft.bootedCluster_persistent (γ : Draft.Cluster) : Persistent (Draft.bootedCluster γ)
+
 def (sealed) Draft.readCredits (γ : Draft.Cluster) (n : Nat) : IProp GF
+
+def (sealed) Draft.readCtxAfter (γ : Draft.Cluster) (N : Namespace) (c : List w8) (l0 : List
+    Draft.LogEntry) : IProp GF
+
+theorem Draft.nodeDynamicBoot_booted [package_sem : Assumptions] (γ : Draft.Cluster) (N : Namespace)
+    (ps : List w64) (ctxs : List (List w8)) (id : w64) : ps ≠ [] → Draft.nodeDynamicBoot γ N ps ctxs
+    id ⊢ Draft.nodeDynamicBoot γ N ps ctxs id ∗ Draft.bootedCluster γ
 
 theorem Draft.committedAtTerm_persistent (γ : Draft.Cluster) (N : Namespace) (t c : w64) :
     Persistent (Draft.committedAtTerm γ N t c)
@@ -732,14 +774,14 @@ theorem Draft.storageCert_register [package_sem : Assumptions] (γ : Draft.Clust
     Draft.snapshotCert γ N k ={E}=∗ memStorCert γs k
 
 theorem Draft.stepIn_intro [package_sem : Assumptions] (γ : Draft.Cluster) (N : Namespace) (id :
-    w64) (ml : Loc) (src : w64) (st : MsgSt) : (st.msg.Type' = MsgProp → st.ctx = []) →
-    (st.msg.Type' ≠ MsgProp → NetMsgOk id { msg := st.msg, ents := st.ents, snap := st.snap, ctx :=
-    st.ctx, resps := [] } ∧ st.msg.Type' ≠ MsgPreVote ∧ st.msg.Type' ≠ MsgTransferLeader) →
-    (st.msg.Type' = MsgSnap → ∃ sv, st.snap = some sv ∧ uint.Z sv.Metadata'.Index' < 2 ^ 61) →
-    st.msg.To' = id → Draft.sentMsg γ N src st ∗ msgPtsC ml (DFrac.own 1) (DFrac.own 1) true { msg
-    := st.msg, ents := st.ents, snap := st.snap, ctx := st.ctx, resps := [] } ∗ Draft.msgCredits γ N
-    st ∗ Draft.tickCredit γ (if st.msg.Type' = MsgTimeoutNow then 1 else 0) ⊢ |==> Draft.stepIn γ N
-    id ml
+    w64) (ml : Loc) (src : w64) (st : MsgSt) : (st.msg.Type' ≠ MsgProp → NetMsgOk id { msg :=
+    st.msg, ents := st.ents, snap := st.snap, ctx := st.ctx, resps := [] } ∧ st.msg.Type' ≠
+    MsgTransferLeader) → (st.msg.Type' = MsgSnap → ∃ sv, st.snap = some sv ∧ uint.Z
+    sv.Metadata'.Index' < 2 ^ 61) → st.msg.To' = id → (⌜st.msg.Type' ≠ MsgPreVote⌝ ∨
+    Draft.bootedCluster γ) ∗ Draft.sentMsg γ N src st ∗ msgPtsC ml (DFrac.own 1) (DFrac.own 1) true
+    { msg := st.msg, ents := st.ents, snap := st.snap, ctx := st.ctx, resps := [] } ∗
+    Draft.msgCredits γ N st ∗ Draft.tickCredit γ (if st.msg.Type' = MsgTimeoutNow then 1 else 0) ⊢
+    |==> Draft.stepIn γ N id ml
 
 theorem Draft.node.wp_ProposeConfChange [package_sem : Assumptions] :
     Draft.node.ProposeConfChange.spec
@@ -850,6 +892,8 @@ def (sealed) Draft.nodeConfig (n : Loc) (γ : Draft.Cluster) (N : Namespace) (v 
 
 def (sealed) Draft.stepIn (γ : Draft.Cluster) (N : Namespace) (id : w64) (ml : Loc) : IProp GF
 
+def (sealed) Draft.readyFits (γ : Draft.Cluster) (_N : Namespace) : IProp GF
+
 theorem Draft.node.wp_ReadIndex [package_sem : Assumptions] : Draft.node.ReadIndex.spec
   -- `Perennial.EtcdGrove.Draft.node.ReadIndex.spec`, unfolded:
   ∀ (n : Loc) (γ : Draft.Cluster) (N : Namespace) (id : w64) (rctx : GoSlice) (c : List w8)
@@ -953,9 +997,8 @@ def Draft.node.ReportSnapshot.spec : Prop :=
                 (intoVal status))
               {{ Φ }}
 
-theorem Draft.readStateOk_used [package_sem : Assumptions] (γ : Draft.Cluster) (N : Namespace) (c :
-    List w8) (idx : w64) (U : GSet (List w8)) : Draft.readStateOk γ N c idx ∗ Draft.ownReadCtxs γ U
-    ⊢ ⌜c ∈ U⌝
+theorem Draft.readStateOk_used (γ : Draft.Cluster) (N : Namespace) (c : List w8) (idx : w64) (U :
+    GSet (List w8)) : Draft.readStateOk γ N c idx ∗ Draft.ownReadCtxs γ U ⊢ ⌜c ∈ U⌝
 
 theorem Draft.nodeDriver_hardStateCommitted [package_sem : Assumptions] (n : Loc) (γ :
     Draft.Cluster) (N : Namespace) (c0 : Draft.Membership) (decode : Draft.ConfChangeDecoder) (st :
@@ -1052,6 +1095,9 @@ theorem Draft.node.wp_Step [package_sem : Assumptions] : Draft.node.Step.spec
                   (intoVal (GoInterface.ok ctx)))
                 (intoVal ml))
               {{ Φ }}
+
+theorem Draft.readyFits_persistent (γ : Draft.Cluster) (N : Namespace) : Persistent (Draft.readyFits
+    γ N)
 
 theorem Draft.isStaticCluster_persistent (γ : Draft.Cluster) (N : Namespace) (vs : List w64) (snapOk
     : List Draft.LogEntry → List w8 → Prop) : Persistent (Draft.isStaticCluster γ N vs snapOk)
@@ -1153,6 +1199,18 @@ def (sealed) Draft.sentMsg (γ : Draft.Cluster) (N : Namespace) (src : w64) (st 
 theorem Draft.storageCertLink_persistent (γ : Draft.Cluster) (N : Namespace) (st : Storage) :
     Persistent (Draft.storageCertLink γ N st)
 
+theorem Draft.isReadyChan_recvAu [package_sem : Assumptions] (n ch : Loc) (γ : Draft.Cluster) (N :
+    Namespace) (id : w64) (st : Draft.NodeDriverState) (Φ : Ready → Bool → IProp GF) : st.handling =
+    none → ⊢ Draft.isReadyChan n γ N ch -∗ Draft.isNode n γ N id -∗ Draft.nodeDriver n γ N st -∗ ∃
+    γc, isChan ch γc Ready ∗ (£ 1 ∗ £ 1 -∗ (▷ ∀ rd, (∃ ce es h L, Draft.committedEntriesAt
+    rd.CommittedEntries' st.delivered.length ce ∗ Draft.isCommittedLogLb γ (st.delivered ++ ce) ∗ (∃
+    rs, readStatesPts rd.ReadStates' rs ∗ [∗list] s ∈ rs, Draft.readStateOk γ N s.RequestCtx'
+    s.Index') ∗ Draft.readyRest γ N id rd st ce es h L ∗ Draft.nodeDriver n γ N (match L with | none
+    => { storage := st.storage, delivered := st.delivered ++ ce, hardState := phsNext st.hardState
+    h, handling := some (es, none) } | some l => { storage := st.storage, delivered := Draft.strip
+    l.dlv, hardState := phsNext st.hardState h, handling := some (es, some l) })) -∗ Φ rd true) -∗
+    recvAu γc Ready Φ)
+
 def (sealed) Draft.nodeBoot (γ : Draft.Cluster) (N : Namespace) (ps : List w64) (ctxs : List (List
     w8)) (id : w64) : IProp GF
 
@@ -1169,10 +1227,17 @@ theorem Draft.snapshotCert_static [package_sem : Assumptions] (γ : Draft.Cluste
     cl := { voters := vs, learners := [], outgoing := [], learnersNext := [] }, al := false, dat :=
     d }
 
+theorem Draft.msgCredits_none (γ : Draft.Cluster) (N : Namespace) (st : MsgSt) : st.msg.Type' ≠
+    MsgReadIndex → st.msg.Type' ≠ MsgProp → ⊢ |==> Draft.msgCredits γ N st
+
 def (sealed) Draft.nodeDriver (n : Loc) (γ : Draft.Cluster) (N : Namespace) (st :
     Draft.NodeDriverState) : IProp GF
 
 def (sealed) Draft.isCommittedLogLb (γ : Draft.Cluster) (l : List Draft.LogEntry) : IProp GF
+
+theorem Draft.readStateOk_after (γ : Draft.Cluster) (N : Namespace) (c : List w8) (idx : w64) (l0 :
+    List Draft.LogEntry) : Draft.readStateOk γ N c idx ∗ Draft.readCtxAfter γ N c l0 ⊢ ⌜l0.length ≤
+    uint.nat idx⌝
 
 theorem Draft.ownReadCtxs_timeless (γ : Draft.Cluster) (U : GSet (List w8)) : Timeless
     (Draft.ownReadCtxs γ U)
@@ -1201,6 +1266,8 @@ def Draft.node.Step.spec : Prop :=
 
 def (sealed) Draft.nodeRestartBoot (γ : Draft.Cluster) (N : Namespace) (vs : List w64) (id : w64) :
     IProp GF
+
+def (sealed) Draft.bootedCluster (γ : Draft.Cluster) : IProp GF
 
 theorem Draft.deliveredLogLb_mono [package_sem : Assumptions] (n : Loc) (γ : Draft.Cluster) (N :
     Namespace) (l1 l2 : List Draft.LogEntry) : l1 <+: l2 → Draft.deliveredLogLb n γ N l2 ⊢

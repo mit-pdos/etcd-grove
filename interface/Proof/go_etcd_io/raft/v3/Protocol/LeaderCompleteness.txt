@@ -32,7 +32,7 @@ theorem commit_extend [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (t n : w64) (G 
     w64) : ⊢ raftCommitInv γ -∗ regsOwn γ -∗ cq γ t n G -∗ isLeader γ ldr t -∗ cmtLb γ ldr t n ={⊤ \
     ↑(raftRegN γ)}=∗ regsOwn γ ∗ isCommitted γ (List.take (uint.Z n).toNat G)
 
-def commitSt [InvGS GF] (γ : RaftNames) (l : List EntryM) : IProp GF :=
+def commitSt [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (l : List EntryM) : IProp GF :=
   iprop(ownCommitted γ l ∗ entsData γ l ∗ ghostVar γ.reRLog (Qp.half 1) l ∗ regsAt γ l)
 
 theorem cq_agree [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (t1 n1 t2 n2 i : w64) (G1 G2 : List

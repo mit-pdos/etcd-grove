@@ -79,8 +79,8 @@ theorem entDataIs_list_prefix [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (l P : 
     List (Option (List w8))) (Hp : l <+: P) : ⊢ ([∗list] e;o ∈ l;o, entDataIs γ e o) -∗ ([∗list] e;o
     ∈ P;oP, entDataIs γ e o) -∗ ⌜o <+: oP⌝
 
-def allocClientBoot [InvGS GF] (E : CoPset) (cfg : GSet w64) (ccOk : w32 → List w8 → Prop) (bootLog
-    : List EntryM) (C : RaftNames → IProp GF) : IProp GF :=
+def allocClientBoot [ReceiptGS GF] [InvGS GF] (E : CoPset) (cfg : GSet w64) (ccOk : w32 → List w8 →
+    Prop) (bootLog : List EntryM) (C : RaftNames → IProp GF) : IProp GF :=
   iprop(∀ γ,
       ⌜γ.reCfg = cfg ∧ γ.reDyn = none ∧ γ.reCCOk = ccOk ∧ γ.reBoot = bootLog⌝ -∗
         isCommitted γ bootLog -∗
@@ -181,9 +181,9 @@ theorem entsData_lookup [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (l : List Ent
     (Option (List w8))) (m : Nat) (e : EntryM) (He : l[m]? = some e) : ⊢ ([∗list] e;o ∈ l;ods,
     entDataIs γ e o) -∗ ∃ o, ⌜ods[m]? = some o⌝ ∗ entDataIs γ e o
 
-def allocClientGen [InvGS GF] (E : CoPset) (cfg : GSet w64) (dyn : Option ((e : GooseExts) →
-    DynCfg)) (ccOk : w32 → List w8 → Prop) (L : List EntryM) (C : RaftNames → IProp GF) (nsN :
-    Namespace := nroot.@"raft_commit") : IProp GF :=
+def allocClientGen [ReceiptGS GF] [InvGS GF] (E : CoPset) (cfg : GSet w64) (dyn : Option ((e :
+    GooseExts) → DynCfg)) (ccOk : w32 → List w8 → Prop) (L : List EntryM) (C : RaftNames → IProp GF)
+    (nsN : Namespace := nroot.@"raft_commit") : IProp GF :=
   iprop(∀ γ,
       ⌜γ.reCfg = cfg ∧ γ.reDyn = dyn ∧ γ.reCCOk = ccOk ∧ γ.reBoot = L ∧ γ.reNs = nsN⌝ -∗
         isCommitted γ L -∗
@@ -203,8 +203,8 @@ def bootPState (bootLog : List EntryM) : PState :=
 
 theorem bootPState_eq (bootLog : List EntryM) : bootPState bootLog = initPStateAt (W64 1) bootLog
 
-def allocClient [InvGS GF] (E : CoPset) (cfg : GSet w64) (dyn : Option ((e : GooseExts) → DynCfg))
-    (C : RaftNames → IProp GF) : IProp GF :=
+def allocClient [ReceiptGS GF] [InvGS GF] (E : CoPset) (cfg : GSet w64) (dyn : Option ((e :
+    GooseExts) → DynCfg)) (C : RaftNames → IProp GF) : IProp GF :=
   iprop(∀ γ,
       ⌜γ.reCfg = cfg ∧ γ.reDyn = dyn⌝ -∗
         isCommitted γ [] -∗ rLog γ [] -∗ ghostMapAuth γ.reFresh 1 ∅ -∗ ghostMapAuth γ.reRdFresh 1 ∅ ={E}=∗ noopAu γ ∗ C γ)
