@@ -514,10 +514,12 @@ theorem kv_fire_reads (γk : KVNames) (L : List EntryModel) (hpl : plainLog L) :
       iexact HQ0
     · iexact Hrest
 
-/-- The clients' results at two logs of the same KV model (2026-10-27). -/
-theorem readQs_eqv (γk : KVNames) (A B : List EntryModel) (h : kvModel γk A = kvModel γk B) :
+/-- The clients' results at two logs of the same KV state (2026-10-27; the deposits' state
+function `F`, the auth plan's E3r). -/
+theorem readQs_eqv (γk : KVNames) (F : List EntryModel → KVState) (A B : List EntryModel)
+    (h : F A = F B) :
     ∀ gs : List GName,
-      ⊢ ([∗list] g ∈ gs, regOk (GF := GF) γk g) -∗ readQs gs A -∗ ▷ readQs gs B
+      ⊢ ([∗list] g ∈ gs, regOk (GF := GF) γk g F) -∗ readQs gs A -∗ ▷ readQs gs B
   | [] => by
     iintro - -
     inext
@@ -526,21 +528,21 @@ theorem readQs_eqv (γk : KVNames) (A B : List EntryModel) (h : kvModel γk A = 
     itrivial
   | g :: gs => by
     iintro #Hgs #HA
-    icases (BigSepL.bigSepL_cons (Φ := fun _ g => regOk (GF := GF) γk g)).1 $$ Hgs with
+    icases (BigSepL.bigSepL_cons (Φ := fun _ g => regOk (GF := GF) γk g F)).1 $$ Hgs with
       ⟨#Hg, #Hgs'⟩
     iunfold readQs at HA
     icases (BigSepL.bigSepL_cons (Φ := fun _ g => iprop(∃ Q : List EntryModel → IProp GF,
       savedPredOwn (GF := GF) g DFrac.discard Q ∗ □ Q A))).1 $$ HA with ⟨⟨%Q, #HQ, #HQA⟩, #HA'⟩
     ihave #HA'' : readQs gs A $$ []
     · iunfold readQs; iexact HA'
-    ihave Hrest := readQs_eqv γk A B h gs $$ Hgs' HA''
+    ihave Hrest := readQs_eqv γk F A B h gs $$ Hgs' HA''
     iunfold regOk at Hg
     icases Hg with ⟨%Q', #HQ', #Hd⟩
     ihave #Hag := saved_pred_agree g DFrac.discard DFrac.discard Q Q' A $$ HQ HQ'
     ihave %HQ'AB : ⌜Q' A = Q' B⌝ $$ [Hd]
     · iunfold kvDep at Hd
       icases Hd with (⟨%Q0, %HQeq, -⟩ | %HQeq)
-      · ipureintro; rw [HQeq]; simp only [kvStOff, h]
+      · ipureintro; rw [HQeq]; simp only [h]
       · ipureintro; rw [HQeq]
     inext
     unfold readQs
@@ -566,7 +568,8 @@ theorem readQs_qinv (γ : ServerRaftNames) (γk : KVNames) (gs : List GName) :
   icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw⟩
   imod Hclose $$ [HL Hσ] with -
   · inext; iexists L; iframe HL Hσ Hw; ipureintro; exact Hok
-  ihave HB := readQs_eqv γk A B (kvModel_eqv γ γk A B Hab Hok.2.2.1).1 gs $$ Hgs HA
+  ihave HB := readQs_eqv γk (kvStOff γk) A B
+    (by simp only [kvStOff, (kvModel_eqv γ γk A B Hab Hok.2.2.1).1]) gs $$ Hgs HA
   imodintro
   inext
   iintro !>

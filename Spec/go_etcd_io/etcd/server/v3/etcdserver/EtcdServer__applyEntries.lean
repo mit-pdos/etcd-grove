@@ -94,7 +94,7 @@ abbrev EtcdServer.applyEntries.specOn : Prop :=
   ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF) (ρ : ReqNames)
     (b : GoInterface) (ep ap : Loc) (es : GoSlice) (ents : List Loc) (ms : List EntryModel) (f0 : w64)
     (rac : GoChan) (st : ApplyState) (ai at0 a t : w64) (cs : Loc)
-    (x : apply.ApplyKV) (γr : ReadNames) (A : List EntryModel) (γp : GName) (dv : Option NodeNames) (w : Nat)
+    (x : apply.ApplyKV) (γr : ReadNames) (A : List EntryModel) (γp : GName) (dv : Option Loc) (w : Nat)
     (γa : auth.AuthNames) (sa : auth.AuthState),
   E.authMode = .on γa → receiptBound GF ≤ 2 ^ 48 →
   (ms = [] ∨ (entriesFrom f0 ms ∧ uint.Z f0 ≤ uint.Z ai + 1)) → uint.Z ai + 1 < 2 ^ 64 →

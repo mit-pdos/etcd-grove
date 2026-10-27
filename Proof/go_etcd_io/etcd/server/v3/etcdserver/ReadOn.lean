@@ -226,6 +226,28 @@ theorem kv_fire_reads_on (γk : KVNames) (st₀ : auth.AuthState) (L : List Entr
       iexact HQ0
     · iexact Hrest
 
+/-- The clients' results are ones the server's two logs agree on, in the mode `on`
+(`readQs_qinv`'s, through `kvRaftOfOn_eqv`). -/
+theorem readQs_qinv_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState)
+    (gs : List GName) :
+    ⊢ kvInvOn (GF := GF) γ γk st₀ -∗ ([∗list] g ∈ gs, regOk γk g (kvStOn γk st₀)) -∗
+      srvQInv γ (readQs gs) := by
+  iintro #Hinv #Hgs
+  iunfold srvQInv
+  iintro !> %A %B %Hab #HA
+  iunfold kvInvOn at Hinv
+  iinv Hinv with >Hi Hclose
+  icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw⟩
+  imod Hclose $$ [HL Hσ] with -
+  · inext; iexists L; iframe HL Hσ Hw; ipureintro; exact Hok
+  ihave HB := readQs_eqv γk (kvStOn γk st₀) A B
+    (by simp only [kvStOn, kvModelOn,
+      kvRaftOfOn_eqv γ γk.c0 γk.ch0 (st₀, γk.log0) A B Hab Hok.2.2.2.1]) gs $$ Hgs HA
+  imodintro
+  inext
+  iintro !>
+  iexact HB
+
 /-- **One read update for the registered clients `gs`, from the KV invariant in the mode `on`**
 (`kv_read_compose`'s): at every firing, every client's read update is fired in turn at the state of
 the mode-`on` model. -/
@@ -236,6 +258,9 @@ theorem kv_read_compose_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.
   have Hdisj := kvN_raftN
   iintro #Hinv #Hgs
   unfold srvReadAu
+  isplitr
+  rotate_left
+  · iapply readQs_qinv_on γ γk st₀ gs $$ Hinv Hgs
   iintro !>
   iauintro
   unfold atomic_acc
@@ -479,7 +504,7 @@ mode-`on` model of a committed raft log `L`, and raft's witness gives the client
 theorem readWit_fireOn (s : Loc) (E : apply.AEnv GF) (γr : ReadNames)
     (Q : List EntryModel → IProp GF) (g : GName) (l : mvcc.Log) :
     ⊢ srvAppliedInvM (GF := GF) true s E γr -∗ srvKVInvsM true E γr -∗ readWitAt γr Q g l -∗
-      mvcc.certOk E.γ l -∗ £ 3
+      mvcc.certOk E.γ l -∗ £ 6
       ={⊤}=∗ ∃ L : List EntryModel, srvRLogLb γr.raft L ∗ ⌜kvModelM true γr.kv L = l⌝ ∗ □ Q L := by
   rw [srvKVInvsM_true]
   iintro #Hainv #Hkvi #Hw #Hc Hlc
@@ -491,7 +516,7 @@ theorem readWit_fireOn (s : Loc) (E : apply.AEnv GF) (γr : ReadNames)
   imod kv_read_logOn γr E.γ Hcok ⊤ (fun _ _ => CoPset.mem_full) ci₀ L₀ l Hp.2.2 $$ HcI HkL Hc
     with ⟨%A, #HA, %HAp⟩
   iunfold srvReadWit at HW
-  icases (lc_split (n := 2) (m := 1)).1 $$ Hlc with ⟨Hlc2, Hlc1⟩
+  icases (lc_split (n := 5) (m := 1)).1 $$ Hlc with ⟨Hlc2, Hlc1⟩
   imod HW $$ %A HA %(by omega) Hlc2 with #HQs
   ihave HQL := readQs_get gs A k g Q Hp.2.1 $$ HQs HQ
   imod lc_fupd_elim_later $$ Hlc1 HQL with #HQL

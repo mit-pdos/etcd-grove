@@ -1000,8 +1000,7 @@ theorem EtcdServer.apply.wp_proofOn
   ihave #Hkvi2 := Hkvi
   iunfold srvKVInvsOn at Hkvi2
   icases Hkvi2 with ⟨-, -, #Hrli, -⟩
-  iunfold srvRaftLogInv at Hrli
-  icases Hrli with ⟨-, -, %Hai0⟩
+  ihave %Hai0 := srvRaftLogInv_facts _ $$ Hrli
   iunfold kvBatch at Hkb
   icases Hkb with ⟨#HlbB, %HkB⟩
   iunfold batchCommittedIdx at Hbc
@@ -1373,12 +1372,13 @@ theorem EtcdServer.apply.wp_proofOn
             obtain ⟨_, hm⟩ := List.getElem?_eq_some_iff.1 Hm_lookup
             rw [hm]
           rw [List.append_assoc, ← hdj, List.take_append_drop]
-        ihave #Hdvr' : iprop(dvRes s ρ.raft dv (A ++ ms.take (sint.nat j) ++
+        ihave #Hdvr' : iprop(dvRes s ρ.raft dv ((A ++ ms.take (sint.nat j)) ++
             m :: ms.drop (sint.nat j + 1))) $$ []
-        · rw [← hrest]; iexact Hdvr
+        · rw [List.append_assoc, ← hrest]; iexact Hdvr
+        ihave %HidxJ := srvRLogLb_idx _ _ $$ HlbJ
         -- (D43 M5e) the apply thread's membership resource around the conf change
         have hidxA : uint.Z m.index = (γr.raft.pre ++ (A ++ ms.take (sint.nat j))).length + 1 := by
-          rw [hiA, Hai0.1]; simp
+          rw [hiA, Hai0]; simp
         have hρr : ρ.raft = γr.raft := by rw [← Hrd]
         icases srvApRes_cc s γr (A ++ ms.take (sint.nat j)) m cm ρ.raft hρr (by rw [h1]; decide) Hdec
           (by rw [← hρr]; exact Hcb cm Hdec) hidxA $$ [HAR HlbJ] with
@@ -1389,13 +1389,20 @@ theorem EtcdServer.apply.wp_proofOn
         subst Hcleq
         obtain ⟨Hpeer, Hloc, Hsz, Hdynp⟩ := Hprem
         icases dvView_cc s ρ.raft dv γr.kv.c0 lid (A ++ ms.take (sint.nat j)) (ms.drop (sint.nat j + 1))
-          m cm h1 Hdec (fun γn h => (hdv.2 γn h).2.1) (fun γn h => by
-            have hs := (hdv.2 γn h).2.2.1
-            rw [hρr] at hs ⊢
-            exact ⟨by rw [← hρr]; exact Hcb cm Hdec, Hdynp hs⟩) $$ [Hdv] with
-          ⟨%ca, %cfg, %cs'', Hdvp, %Hdvf, Hdvc⟩
+          m cm h1 Hdec (fun γn h => by
+            obtain ⟨-, hd, -, hpre, hai⟩ := hdv.2 γn h
+            have hd' : γr.raft.raft.dyn = true := by rw [← hρr]; exact hd
+            obtain ⟨hpol, hlid⟩ := Hdynp hd'
+            refine ⟨Hcb cm Hdec, ?_, by rw [hρr]; exact hlid, ?_⟩
+            · rw [hρr]; simpa only [List.append_assoc] using hpol
+            · apply withIdx_toLE
+              rw [hpre, List.nil_append]
+              have := srvIdxOkW_prefix _ _ _ HidxJ (List.prefix_append _ _)
+              rw [← hρr, hai] at this
+              exact this) $$ [Hdv] with
+          ⟨%v, %m', Hdvp, %Hdvf, Hdvc⟩
         · iframe Hdv Hdvr'
-        have hmm := restModel_members γr.kv.c0 γr.raft.raft.reBoot (γr.raft.pre ++ (A ++ ms.take (sint.nat j)))
+        have hmm := restModel_members γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ (A ++ ms.take (sint.nat j)))
         wp_apply (hACC s cc_ptr ep cm csl true ci ua E ρ.raft
           iprop(applyThread γ (stLoaded γ st') ∗ ciApplying ci m.index m.term ∗
             applyBackend γ ci b ∗
@@ -1409,16 +1416,15 @@ theorem EtcdServer.apply.wp_proofOn
           iprop(applyThread γ { { stLoaded γ st' with p := m.index } with k := m.index } ∗
             ciApplying ci m.index m.term ∗ applyBackend γ ci b)
           m.index m.term γB sv.cluster _ dB alB stB lpB dv
-          (srvLogOf ρ.raft (A ++ ms.take (sint.nat j) ++ m :: ms.drop (sint.nat j + 1))) ca
-          (srvLogOf ρ.raft (A ++ ms.take (sint.nat j))).length cfg cs'' m.toM
+          (srvLE ρ.raft ((A ++ ms.take (sint.nat j)) ++ m :: ms.drop (sint.nat j + 1))) v
+          (ρ.raft.pre ++ (A ++ ms.take (sint.nat j))).length m' m.toLE
           sv.lg bh ix lgh tl lid prs lgc cid
           (Hcb cm Hdec) HROeq hkbB hgbB
           (fun h => (hdv.1 h).resolve_right (fun hn => hn m hmem h1))
-          (fun γn h => ⟨rfl, fun dec c0 hh0 hh1 hmd => by
-            obtain ⟨-, -, -, c0', hh0', hh1', hmd'⟩ := hdv.2 γn h
-            rw [hmd'] at hmd
-            cases hmd
+          (fun γn h => ⟨rfl, by
+            obtain ⟨-, -, hdec, -, -⟩ := hdv.2 γn h
             have := Hdvf γn h
+            rw [hdec]
             simp only [hρr] at this ⊢
             exact this⟩) Hpeer Hloc Hsz hmm.1 hmm.2)
           $$ [Hcc Hcs Hst Happ Hbe HRS Hua Hdvp Hlr Hmr Hrt Hwt]
@@ -1639,7 +1645,7 @@ theorem EtcdServer.apply.wp_proofOn
           omega
         -- (D43 M5e) the apply thread's membership resource around the conf change
         have hidxA : uint.Z m.index = (γr.raft.pre ++ (A ++ ms.take (sint.nat j))).length + 1 := by
-          rw [hiA, Hai0.1]; simp
+          rw [hiA, Hai0]; simp
         have hρr : ρ.raft = γr.raft := by rw [← Hrd]
         icases srvApRes_cc s γr (A ++ ms.take (sint.nat j)) m cm ρ.raft hρr (by rw [h1]; decide) Hdec
           (by rw [← hρr]; exact Hcb cm Hdec) hidxA $$ [HAR HlbJ] with
@@ -1649,10 +1655,10 @@ theorem EtcdServer.apply.wp_proofOn
         ihave %Hcleq := typedPointsto_agree_wand _ _ _ _ _ $$ Hcl' Hcl
         subst Hcleq
         obtain ⟨Hpeer, Hloc, Hsz, -⟩ := Hprem
-        have hmm := restModel_members γr.kv.c0 γr.raft.raft.reBoot (γr.raft.pre ++ (A ++ ms.take (sint.nat j)))
+        have hmm := restModel_members γr.kv.c0 γr.raft.raft.boot (γr.raft.pre ++ (A ++ ms.take (sint.nat j)))
         wp_apply (hACC s cc_ptr ep cm csl false ci ua E ρ.raft
           iprop(True) iprop(True) iprop(True) iprop(True) m.index m.term γB sv.cluster _ dB alB stB lpB
-          none [] 0 0 (cfgState ∅ ∅) (cfgState ∅ ∅) m.toM sv.lg bh ix lgh tl lid prs lgc cid
+          none [] ⟨0, Draft.Membership.simple ∅⟩ 0 (Draft.Membership.simple ∅) m.toLE sv.lg bh ix lgh tl lid prs lgc cid
           (Hcb cm Hdec)
           HROeq hkbB hgbB (fun h => (hdv.1 h).resolve_right (fun hn => hn m hmem h1))
           (fun γn h => by cases h) Hpeer Hloc Hsz hmm.1 hmm.2)
@@ -1737,7 +1743,6 @@ theorem EtcdServer.apply.wp_proofOn
     refine ⟨by rw [hgl]; simp [hmi], by rw [hgl]; simp [hmt], ⟨hpend', ?_⟩, ?_, Hsb⟩
     · rw [hp', hc', ← hmi, hidx, hjZ]; omega
     · rw [hc', ← hmi, hidx, hjZ]; omega
-
 end proof
 
 end EtcdGrove
