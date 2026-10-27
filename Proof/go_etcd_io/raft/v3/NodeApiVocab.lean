@@ -85,6 +85,50 @@ structure NodeDriverState where
 /-- The state a node's `Ready` loop starts in, at the storage `stor`. -/
 def NodeDriverState.init (stor : Storage) : NodeDriverState := ⟨stor, [], hsZero, none⟩
 
+/-! ### The configuration, abstractly (2026-10-27, for etcd's server: moved from the draft) -/
+
+/-- **A cluster's membership**, as raft's `ConfState` reports it (a `tracker.Config` without the
+progress map): the voters, the outgoing voters of a joint configuration, the learners, the learners
+to add when the joint configuration is left, and whether it is left automatically. -/
+structure Membership where
+  voters : GSet w64
+  votersOutgoing : GSet w64
+  learners : GSet w64
+  learnersNext : GSet w64
+  autoLeave : Bool
+
+/-- The membership of the voters `vs` only (not joint, no learners): every membership etcd's server
+uses. -/
+def Membership.simple (vs : GSet w64) : Membership := ⟨vs, ∅, ∅, ∅, false⟩
+
+/-- **A `ConfState` reports the membership `m`**: its four lists hold `m`'s four sets (in some
+order, without repeats), its `AutoLeave` is `m`'s. (Today `confstateOk`.) -/
+def confStateIs (cs : ConfStateM) (m : Membership) : Prop :=
+  cs.Voters' ≡ₚ elements m.voters ∧ cs.VotersOutgoing' ≡ₚ elements m.votersOutgoing ∧
+    cs.Learners' ≡ₚ elements m.learners ∧ cs.LearnersNext' ≡ₚ elements m.learnersNext ∧
+    cs.AutoLeave' = m.autoLeave
+
+/-- **A conf-change entry**: of type `EntryConfChange` (1) or `EntryConfChangeV2` (2). -/
+def LogEntry.isConfChange (e : LogEntry) : Prop := e.type = W32 1 ∨ e.type = W32 2
+
+/-- No conf-change entry at the positions `[lo, hi)` of the log `l`. (Today `NoConfIn`.) -/
+def NoConfChangeIn (l : List LogEntry) (lo hi : Nat) : Prop :=
+  ∀ (k : Nat) (e : LogEntry), lo ≤ k → k < hi → l[k]? = some e → ¬ e.isConfChange
+
+/-- **A conf-change decoder**: the change a conf-change entry makes, given the committed log before
+it (fillers included). Fixed when a dynamic cluster is allocated: every node must apply the same
+change for the same committed entry (raft's `CCDec`; etcd's server validates a change against the
+membership the log before it leaves, and hands raft a refused one with `NodeID = 0`). -/
+abbrev ConfChangeDecoder := List LogEntry → LogEntry → Option ConfChangeIM
+
+/-- **A node's view of its configuration**: the conf-change entries of the committed log below
+position `applied` are applied (`node.ApplyConfChange`), and the membership they give. (Today
+`nodeCfg`'s `(ca, cfg)`.) -/
+structure ConfigView where
+  applied : Nat
+  membership : Membership
+
+
 end pure
 
 section iprop

@@ -2,11 +2,17 @@
 -- Every declaration also takes the ambient section variables (left out below): the Go semantics
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
+def Draft.LogEntry.isConfChange (e : Draft.LogEntry) : Prop :=
+  e.type = W32 1 ∨ e.type = W32 2
+
 def Draft.NodeDriverState.init (stor : Storage) : Draft.NodeDriverState :=
   { storage := stor, delivered := [], hardState := hsZero, handling := none }
 
 def Draft.instDecidableIsFiller (e : Draft.LogEntry) : Decidable e.isFiller :=
   id inferInstance
+
+def Draft.NoConfChangeIn (l : List Draft.LogEntry) (lo hi : Nat) : Prop :=
+  ∀ (k : Nat) (e : Draft.LogEntry), lo ≤ k → k < hi → l[k]? = some e → ¬e.isConfChange
 
 def Draft.LogEntry.toEntryM (idx : w64) (e : Draft.LogEntry) : EntryM :=
   { Term' := e.term, Index' := idx, Type' := e.type, Data' := e.data }
@@ -26,6 +32,10 @@ def Draft.opsOf (l : List Draft.LogEntry) : List Draft.LogEntry :=
 def Draft.committedEntriesAt (sl : GoSlice) (base : Nat) (ce : List Draft.LogEntry) : IProp GF :=
   entsRO sl (Draft.LogEntry.toEntries ce base)
 
+structure Draft.ConfigView : Type where
+  applied : Nat
+  membership : Draft.Membership
+
 theorem Draft.committedEntriesAt_persistent (sl : GoSlice) (base : Nat) (ce : List Draft.LogEntry) :
     Persistent (Draft.committedEntriesAt sl base ce)
 
@@ -42,13 +52,29 @@ def Draft.BootLog (ps : List w64) (ctxs : List (List w8)) (boot : List Draft.Log
                     MarshalsConfChange
                       (some (ConfChangeIM.v1 { type := W32 0, nodeId := id, context := ctx, id := W64 0 })) e.data
 
+def Draft.confStateIs (cs : ConfStateM) (m : Draft.Membership) : Prop :=
+  cs.Voters'.Perm (elements m.voters) ∧
+    cs.VotersOutgoing'.Perm (elements m.votersOutgoing) ∧
+      cs.Learners'.Perm (elements m.learners) ∧
+        cs.LearnersNext'.Perm (elements m.learnersNext) ∧ cs.AutoLeave' = m.autoLeave
+
 structure Draft.LogEntry : Type where
   term : w64
   type : raftpb.EntryType
   data : List w8
 
+structure Draft.Membership : Type where
+  voters : GSet w64
+  votersOutgoing : GSet w64
+  learners : GSet w64
+  learnersNext : GSet w64
+  autoLeave : Bool
+
 def Draft.LogEntry.toEntries (l : List Draft.LogEntry) (base : Nat) : List EntryM :=
   List.mapIdx (fun i e => Draft.LogEntry.toEntryM (W64 (↑base + ↑i + 1)) e) l
+
+def Draft.ConfChangeDecoder : Type :=
+  List Draft.LogEntry → Draft.LogEntry → Option ConfChangeIM
 
 structure Draft.NodeDriverState : Type where
   storage : Storage
@@ -56,3 +82,5 @@ structure Draft.NodeDriverState : Type where
   hardState : HardStateM
   handling : Option (List EntryM × Option SnapLoan)
 
+def Draft.Membership.simple (vs : GSet w64) : Draft.Membership :=
+  { voters := vs, votersOutgoing := ∅, learners := ∅, learnersNext := ∅, autoLeave := false }
