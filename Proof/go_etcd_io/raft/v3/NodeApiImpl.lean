@@ -136,10 +136,11 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-! ## The client's views of the committed log, and their laws -/
 
-/-- **A lower bound of the committed log**, fillers included (persistent): `l` is a prefix of the
-full log (`full`), and its requested entries of the requested entries (`ops`). -/
+/-- **A lower bound of the committed log**, fillers included (persistent): `l` is empty, or a
+prefix of the full log (`full`) whose requested entries are a prefix of the requested entries
+(`ops`). -/
 def isCommittedLogLb (γ : Cluster) (l : List LogEntry) : IProp GF :=
-  iprop(monoListLbOwn γ.full l ∗ monoListLbOwn γ.ops (opsOf l))
+  iprop(⌜l = []⌝ ∨ (monoListLbOwn γ.full l ∗ monoListLbOwn γ.ops (opsOf l)))
 
 /-- **The committed requested entries, the client's** (exclusive): half of `ops`' authority, and
 a committed log whose requested entries they are. -/
@@ -171,15 +172,22 @@ theorem ownCommittedOps_get_lb_impl (γ : Cluster) (ops : List LogEntry) :
 theorem ownCommittedOps_lb_prefix_impl (γ : Cluster) (ops l : List LogEntry) :
     ownCommittedOps (GF := GF) γ ops ∗ isCommittedLogLb γ l ⊢ ⌜opsOf l <+: ops⌝ := by
   unfold ownCommittedOps isCommittedLogLb
-  iintro ⟨⟨Ha, -⟩, -, #Hlb⟩
+  iintro ⟨⟨Ha, -⟩, (%Hnil | ⟨-, #Hlb⟩)⟩
+  · ipureintro; subst Hnil; exact List.nil_prefix
   icases mono_list_auth_lb_valid $$ Ha Hlb with %H
   ipureintro; exact H.2
+
+theorem isCommittedLogLb_nil_impl (γ : Cluster) : ⊢ isCommittedLogLb (GF := GF) γ [] := by
+  unfold isCommittedLogLb
+  ileft; ipureintro; rfl
 
 theorem isCommittedLogLb_mono_impl (γ : Cluster) (l1 l2 : List LogEntry) :
     l1 <+: l2 → isCommittedLogLb (GF := GF) γ l2 ⊢ isCommittedLogLb γ l1 := by
   intro Hp
   unfold isCommittedLogLb
-  iintro ⟨#H1, #H2⟩
+  iintro (%Hnil | ⟨#H1, #H2⟩)
+  · ileft; ipureintro; subst Hnil; exact List.prefix_nil.mp Hp
+  iright
   isplitl []
   · iapply monoListLbOwn_le _ Hp $$ H1
   · iapply monoListLbOwn_le _ (opsOf_prefix Hp) $$ H2
@@ -187,7 +195,10 @@ theorem isCommittedLogLb_mono_impl (γ : Cluster) (l1 l2 : List LogEntry) :
 theorem isCommittedLogLb_agree_impl (γ : Cluster) (l1 l2 : List LogEntry) :
     isCommittedLogLb (GF := GF) γ l1 ∗ isCommittedLogLb γ l2 ⊢ ⌜l1 <+: l2 ∨ l2 <+: l1⌝ := by
   unfold isCommittedLogLb
-  iintro ⟨⟨#H1, -⟩, #H2, -⟩
+  iintro ⟨(%H1 | ⟨#H1, -⟩), (%H2 | ⟨#H2, -⟩)⟩
+  · ipureintro; subst H1; exact .inl List.nil_prefix
+  · ipureintro; subst H1; exact .inl List.nil_prefix
+  · ipureintro; subst H2; exact .inr List.nil_prefix
   iapply mono_list_lb_valid $$ H1 H2
 
 end api
@@ -673,7 +684,8 @@ theorem api_alloc_client (N : Namespace) (E : CoPset) (cfg : GSet w64) (ps : Lis
     iexists boot
     unfold isCommittedLogLb
     rw [HB.opsOf]
-    iframe Hflb Holb
+    isplitl []
+    · iright; iframe Hflb Holb
     ipureintro; rfl
   · unfold ownReadCtxs
     iexists ∅
@@ -793,6 +805,7 @@ theorem api_committed_lb (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N 
   imodintro
   isplitl []
   · unfold isCommittedLogLb
+    iright
     isplitl []
     · iapply monoListLbOwn_le _ (strip_prefix HDP) $$ Hflb
     · iapply monoListLbOwn_le _ (opsOf_prefix (strip_prefix HDP)) $$ Holb
@@ -930,8 +943,18 @@ theorem api_lb_committed (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N 
   have Hl : (↑(raftLogN γ.raft) : CoPset) ⊆ E \ ↑(apiN N) := by
     unfold raftLogN raftN; rw [HNs]; exact raftN_api N HE "log"
   imod rLog_committed γ.raft L (E \ ↑(apiN N)) Hl $$ Hcinv HrL with ⟨HrL, #HLc⟩
-  unfold isCommittedLogLb
-  icases Hl with ⟨#Hfl, -⟩
+  iunfold isCommittedLogLb at Hl
+  icases Hl with (%Hnil | ⟨#Hfl, -⟩)
+  · imod Hclose $$ [HrL Hfull Hops HF HRF] with -
+    · inext
+      iexists L, F, RF
+      iframe HrL Hfull Hops HF HFok HRF HRk HRFok
+      ipureintro; exact Hidx
+    imodintro
+    iexists []
+    isplitr
+    · ipureintro; rw [Hnil]; rfl
+    · iapply isCommitted_mono γ.raft _ _ List.nil_prefix $$ HLc
   icases mono_list_auth_lb_valid $$ Hfull Hfl with %Hpre
   imod Hclose $$ [HrL Hfull Hops HF HRF] with -
   · inext
@@ -1512,7 +1535,8 @@ theorem api_propAu1 (γ : Cluster) (N : Namespace) (ty : w32) (data : List w8)
       iexists strip (L ++ [e])
       unfold isCommittedLogLb
       rw [Hopsn, Hstrip]
-      iframe Hflb Holb
+      isplitl []
+      · iright; iframe Hflb Holb
       ipureintro; rfl
     imod Hback with -
     imod Hclose $$ [HrL Hfull Hops HF HRF] with -
