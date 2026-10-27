@@ -556,6 +556,27 @@ theorem clear_keep_commit (γ : ConsNames) (T : Owner → Qp → IProp GF) {W : 
   imodintro
   iframe
 
+/-- A record is registered once. -/
+theorem isRec_agree (γ : ConsNames) {r : Loc} {s s' : RecS} :
+    (isRec γ r s : IProp GF) ∗ isRec γ r s' ⊢ ⌜s = s'⌝ := by
+  iintro ⟨H1, H2⟩
+  iunfold isRec at H1 H2
+  icases H1 with ⟨H1, -⟩
+  icases H2 with ⟨H2, -⟩
+  iapply ghostMapElem_agree $$ H1 H2
+
+/-- Firing an atomic update that changes nothing (`Clear`'s, from `EnsureReady`). -/
+theorem fire_trivial (K : IProp GF) :
+    (|={⊤ \ ↑consN, ∅}=> ∃ _M : GMap Owner Rec, (True : IProp GF) ∗
+      ((True : IProp GF) -∗ |={∅, ⊤ \ ↑consN}=> K)) ⊢ |={⊤}=> K := by
+  iintro HAU
+  imod (fupd_mask_subseteq (E1 := ⊤) (E2 := ⊤ \ ↑consN) (by simp)) with Hclose
+  imod HAU with ⟨%M, -, Hcl⟩
+  imod Hcl $$ %trivial with HK
+  imod Hclose
+  imodintro
+  iexact HK
+
 /-- `EnsureReady`'s own `Clear`: the map holds its slot's record or none for the owner. -/
 theorem ens_clear_info (γ : ConsNames) (T : Owner → Qp → IProp GF) {W : GMap Owner Loc}
     {o : Owner} {r : Loc} {V : Vs} (qw : Qp) :

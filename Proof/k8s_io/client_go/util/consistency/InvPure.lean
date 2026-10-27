@@ -26,6 +26,15 @@ open Iris resourceversion
 section pure
 variable [FfiSyntax]
 
+/-- Deleting a key a map lacks. -/
+theorem delete_none {K V : Type} [DecidableEq K] (m : GMap K V) (k : K) (h : m !! k = none) :
+    GMap.delete k m = m := by
+  apply GMap.ext; intro k'
+  rw [GMap.lookup_delete_iff]
+  split
+  · rename_i e; subst e; exact h.symm
+  · rfl
+
 theorem absVsOk_congr {V Va : Vs} {pin pin' : GR → GoString → Prop}
     (h : ∀ gr y, pin gr y ↔ pin' gr y) (hok : absVsOk V pin Va) : absVsOk V pin' Va := by
   have e : pin = pin' := funext fun gr => funext fun y => propext (h gr y)
