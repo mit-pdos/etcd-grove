@@ -19,3 +19,7 @@ One entry per critique of a run: date, target, what the user said, the rule it b
   server's RWMutex reader slots, "linear is the safe choice"): "Why is kvCaller needed? Would the
   spec be unprovable without it?" It was not needed: the caller's `threadTok` bounds the readers.
   Rule (`SKILL.md`, review list): question every bookkeeping resource a caller threads through.
+- 2026-10-27, `EtcdServer.Put.spec` (candidate 4 took the AU as `kvOpAu1 γ (.put op) Q`): "get rid
+  of kvOpAu1 as a helper definition, and just write the AU directly in the hoare triple. It should
+  look like the client Put spec." Rule (`SKILL.md`, the wrapper item): AUs in the triple, and the
+  closest sibling spec's shape.

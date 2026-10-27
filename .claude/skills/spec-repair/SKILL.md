@@ -26,7 +26,9 @@ leaky or unusable. Check its findings against the source before acting on them. 
   (`threadTok`)?
 - a client that unfolds the spec's predicates or opens the package's invariants: a missing law;
 - a spec that no client uses;
-- a statement that `interface/` does not show in full or that hides behind a wrapper.
+- a statement that `interface/` does not show in full or that hides behind a wrapper (an atomic
+  update behind a helper like `kvOpAu1`: write it in the triple), or whose shape differs from
+  its closest sibling's for no reason (the server's `Put` and the client's `kv.Put`).
 
 **Repair.** Fix what the review confirms. The vocabulary is in scope: replace or redefine the
 predicates the spec is written in, not only how the spec combines them. Afterwards, spawn a second
