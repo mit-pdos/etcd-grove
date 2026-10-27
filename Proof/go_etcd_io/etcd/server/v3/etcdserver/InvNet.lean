@@ -60,7 +60,7 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **A delivered message is what `node.Step` takes** (see the file header; 2026-10-27: the node
-API's `stepIn`, by `stepIn_intro_booted`): at the node `γ.id` whose network payload is the
+API's `stepIn`, by `stepIn_intro` with `bootedCluster`): at the node `γ.id` whose network payload is the
 server's. The message was sent in the server's cluster (`sentMsg`): no snapshot, and with leader
 transfer off of raft's shape (`SentMsgOk`), so a network message is one its receiver takes
 (`NetMsgOk.of_sent`), never a `MsgTimeoutNow` or `MsgTransferLeader`. -/
@@ -95,11 +95,12 @@ theorem stepIn_of_recv (γn : NetNames GF) (γ : RNNames) (HN : γn.N = srvNet �
     cases st; simp only at Hsr ⊢; rw [Hsr]
   rw [Hst']
   imod Draft.tickCredit_zero γ.node.cl with Htc
-  iapply Draft.stepIn_intro_booted γ.node.cl srvClusterN γ.id ml sid st
+  iapply Draft.stepIn_intro γ.node.cl srvClusterN γ.id ml sid st
     (fun Hp => ⟨by rw [Hcopy]; exact NetMsgOk.of_sent Hsent Hto Hp, Htl⟩)
     (fun h => absurd h Hns) Hto
   rw [ite_eq_right Htn]
-  iframe Hbt Hrm Hm HO Htc
+  iframe Hrm Hm HO Htc
+  iright; iexact Hbt
 
 end lemmas
 

@@ -88,6 +88,7 @@ instance isCommittedLogLb_timeless (γ : Cluster) (l : List LogEntry) :
     Timeless (isCommittedLogLb (GF := GF) γ l) := by
   unfold isCommittedLogLb; exact ApiImpl.isCommittedLogLb_timeless γ l
 
+omit [StorageModel GF] sem package_sem in
 /-- The committed requested entries are those of a committed log. (2026-10-27, for kv: the
 client's resource kept, which a persistent conclusion alone does not give back.) -/
 theorem ownCommittedOps_get_lb (γ : Cluster) (ops : List LogEntry) :
@@ -95,19 +96,23 @@ theorem ownCommittedOps_get_lb (γ : Cluster) (ops : List LogEntry) :
       ownCommittedOps γ ops ∗ ∃ l, isCommittedLogLb γ l ∗ ⌜opsOf l = ops⌝ := by
   unfold ownCommittedOps isCommittedLogLb; exact ApiImpl.ownCommittedOps_get_lb_impl γ ops
 
+omit [StorageModel GF] sem package_sem in
 /-- The requested entries of a committed log are a prefix of those committed now. -/
 theorem ownCommittedOps_lb_prefix (γ : Cluster) (ops l : List LogEntry) :
     ownCommittedOps (GF := GF) γ ops ∗ isCommittedLogLb γ l ⊢ ⌜opsOf l <+: ops⌝ := by
   unfold ownCommittedOps isCommittedLogLb; exact ApiImpl.ownCommittedOps_lb_prefix_impl γ ops l
 
+omit [StorageModel GF] sem package_sem in
 /-- Every committed log extends the empty one. -/
 theorem isCommittedLogLb_nil (γ : Cluster) : ⊢ isCommittedLogLb (GF := GF) γ [] := by
   unfold isCommittedLogLb; exact ApiImpl.isCommittedLogLb_nil_impl γ
 
+omit [StorageModel GF] sem package_sem in
 theorem isCommittedLogLb_mono (γ : Cluster) (l1 l2 : List LogEntry) :
     l1 <+: l2 → isCommittedLogLb (GF := GF) γ l2 ⊢ isCommittedLogLb γ l1 := by
   unfold isCommittedLogLb; exact ApiImpl.isCommittedLogLb_mono_impl γ l1 l2
 
+omit [StorageModel GF] sem package_sem in
 theorem isCommittedLogLb_agree (γ : Cluster) (l1 l2 : List LogEntry) :
     isCommittedLogLb (GF := GF) γ l1 ∗ isCommittedLogLb γ l2 ⊢ ⌜l1 <+: l2 ∨ l2 <+: l1⌝ := by
   unfold isCommittedLogLb; exact ApiImpl.isCommittedLogLb_agree_impl γ l1 l2
@@ -138,6 +143,7 @@ instance isReadCtx_persistent (γ : Cluster) (N : Namespace) (c : List w8)
     (Q : List LogEntry → IProp GF) : Persistent (isReadCtx (GF := GF) γ N c Q) := by
   unfold isReadCtx; exact ApiImpl.isReadCtx_persistent γ N c Q
 
+omit [StorageModel GF] sem package_sem in
 /-- **Committing an unused context `c` to `Q`**, once: with an update that, at the moment a read
 takes effect, proves `□ Q ops` of the committed requested entries `ops` (leaving them unchanged). A
 client that wants its read to see what it knew to be committed (`isCommittedLogLb γ l0`) chooses
@@ -156,6 +162,7 @@ theorem readCtx_commit (γ : Cluster) (N : Namespace) (U : GSet (List w8)) (c : 
 `2 ^ 64 - 2` of them (`cluster_alloc`). -/
 @[no_expose] def readCredits (γ : Cluster) (n : Nat) : IProp GF := ApiImpl.readCredits γ n
 
+omit [StorageModel GF] sem package_sem in
 theorem readCredits_split (γ : Cluster) (a b : Nat) :
     readCredits (GF := GF) γ (a + b) ⊣⊢ readCredits γ a ∗ readCredits γ b := by
   unfold readCredits; exact ApiImpl.readCredits_split γ a b
@@ -163,6 +170,7 @@ theorem readCredits_split (γ : Cluster) (a b : Nat) :
 /-- (open) **A read request's credit**: one of `readCredits`. -/
 @[no_expose] def readCredit (γ : Cluster) : IProp GF := ApiImpl.readCredit γ
 
+omit [StorageModel GF] sem package_sem in
 theorem readCredit_eq (γ : Cluster) : readCredit (GF := GF) γ ⊣⊢ readCredits γ 1 := by
   unfold readCredit readCredits ApiImpl.readCredit; exact .rfl
 
@@ -190,6 +198,7 @@ theorem readStateOk_ctx (γ : Cluster) (N : Namespace) (c : List w8) (idx : w64)
   unfold readStateOk isReadCtx isCommittedLogLb
   exact ApiImpl.readStateOk_ctx_impl γ N c idx Q l' E HE Hle
 
+omit [StorageModel GF] sem package_sem in
 /-- **A read state's context was committed** (`readCtx_commit`): a read is requested only with a
 committed context (`node.ReadIndex`). (2026-10-27, for kv: the applier tells its own reader's
 context from another's by it.) -/
@@ -441,24 +450,38 @@ theorem tickCredit_zero (γ : Cluster) : ⊢ |==> tickCredit (GF := GF) γ 0 := 
 @[no_expose] def stepIn (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) : IProp GF :=
   ApiImpl.stepIn γ N id ml
 
+/-- **The cluster was started from a bootstrap log** (persistent; raft's `RaftNames.reBoot ≠ []`):
+what `cluster_alloc` and `dynamicCluster_alloc` allocate (`nodeBoot_booted`,
+`nodeDynamicBoot_booted`), and `cluster_alloc_static` does not. Its nodes are past term `0`, so
+they step a pre-vote request (`stepIn_intro`). (2026-10-27, the server port's addition.) -/
+@[no_expose] def bootedCluster (γ : Cluster) : IProp GF := iprop(⌜γ.raft.reBoot ≠ []⌝)
+
+instance bootedCluster_persistent (γ : Cluster) : Persistent (bootedCluster (GF := GF) γ) := by
+  unfold bootedCluster; infer_instance
+
 /-- (open) **Stepping a sent message**: a copy of it (its fields, entries and snapshot; no local
 responses), owned with its entries slice fresh, addressed to `id`, with its credits and, for a
-`MsgTimeoutNow`, a tick credit: a forwarded proposal with no context, or what a node steps from the
-network (`NetMsgOk`, no pre-vote, no leader transfer; a snapshot below `2^61`). (Today kv's
-`stepP_deliverable`.) -/
+`MsgTimeoutNow`, a tick credit: a forwarded proposal (of any context: its abstraction ignores it),
+or what a node steps from the network (`NetMsgOk`, no leader transfer; a snapshot below `2^61`); a
+pre-vote request only in a cluster started from a bootstrap log (`bootedCluster`: raft's `netP`
+takes one only there). (Today kv's `stepP_deliverable`. 2026-10-27, for etcd's server, whose nodes
+run with `PreVote`: the pre-vote premise `bootedCluster` in place of excluding it, and no premise on a
+forwarded proposal's context; until then `stepIn_intro_booted` beside it.) -/
 theorem stepIn_intro (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) (src : w64) (st : MsgSt) :
-    (st.msg.Type' = MsgProp → st.ctx = []) →
     (st.msg.Type' ≠ MsgProp → NetMsgOk id ⟨st.msg, st.ents, st.snap, st.ctx, []⟩ ∧
-      st.msg.Type' ≠ MsgPreVote ∧ st.msg.Type' ≠ MsgTransferLeader) →
+      st.msg.Type' ≠ MsgTransferLeader) →
     (st.msg.Type' = MsgSnap → ∃ sv, st.snap = some sv ∧ uint.Z sv.Metadata'.Index' < 2 ^ 61) →
     st.msg.To' = id →
-    sentMsg (GF := GF) γ N src st ∗
+    (⌜st.msg.Type' ≠ MsgPreVote⌝ ∨ bootedCluster γ) ∗ sentMsg (GF := GF) γ N src st ∗
       msgPtsC ml (DFrac.own 1) (DFrac.own 1) true ⟨st.msg, st.ents, st.snap, st.ctx, []⟩ ∗
       msgCredits γ N st ∗ tickCredit γ (if st.msg.Type' = MsgTimeoutNow then 1 else 0) ⊢
     |==> stepIn γ N id ml := by
-  intro H1 H2 H3 H4
-  unfold sentMsg msgCredits tickCredit stepIn
-  exact ApiImpl.stepIn_intro_impl γ N id ml src st H1 H2 H3 H4
+  intro H1 H2 H3
+  unfold bootedCluster sentMsg msgCredits tickCredit stepIn
+  iintro ⟨Hpv, Hrest⟩
+  icases Hpv with (%Hpv | %Hpv)
+  · iapply ApiImpl.stepIn_intro_impl γ N id ml src st H1 H2 H3 (.inl Hpv) $$ Hrest
+  · iapply ApiImpl.stepIn_intro_impl γ N id ml src st H1 H2 H3 (.inr Hpv) $$ Hrest
 
 /-! ## The rest of a `Ready` -/
 
@@ -750,11 +773,13 @@ the leader's commit index once it has committed in its term, after the request: 
 log committed before the context was (raft's `readReq` registered the committed log at the
 deposit, and `readOk`'s index bounds it). -/
 @[no_expose] def readCtxAfter (γ : Cluster) (N : Namespace) (c : List w8) (l0 : List LogEntry) :
-    IProp GF := sorry
+    IProp GF := ApiImpl.readCtxAfter γ N c l0
 
 instance readCtxAfter_persistent (γ : Cluster) (N : Namespace) (c : List w8) (l0 : List LogEntry) :
-    Persistent (readCtxAfter (GF := GF) γ N c l0) := sorry
+    Persistent (readCtxAfter (GF := GF) γ N c l0) := by
+  unfold readCtxAfter; exact ApiImpl.readCtxAfter_persistent γ N c l0
 
+omit [StorageModel GF] sem package_sem in
 /-- (the server port's addition) **Committing a context after a committed log** `l0`:
 `readCtx_commit`, and the context's lower bound. -/
 theorem readCtx_commit_after (γ : Cluster) (N : Namespace) (U : GSet (List w8)) (c : List w8)
@@ -763,25 +788,36 @@ theorem readCtx_commit_after (γ : Cluster) (N : Namespace) (U : GSet (List w8))
     ownReadCtxs (GF := GF) γ U ∗ isCommittedLogLb γ l0 ∗
       □ AU <{ ∃∃ (ops : List LogEntry), ownCommittedOps γ ops }> @ ⊤ \ ↑N, ∅
            <{ ownCommittedOps γ ops, COMM □ Q ops }> ⊢
-    |==> (ownReadCtxs γ (insert c U) ∗ isReadCtx γ N c Q ∗ readCtxAfter γ N c l0) := sorry
+    |==> (ownReadCtxs γ (insert c U) ∗ isReadCtx γ N c Q ∗ readCtxAfter γ N c l0) := by
+  intro Hc
+  unfold ownReadCtxs isCommittedLogLb ownCommittedOps isReadCtx readCtxAfter
+  exact ApiImpl.readCtx_commit_after_impl γ N U c Q l0 Hc
 
+omit [StorageModel GF] sem package_sem in
 /-- (the server port's addition) **A read state's index is past what was committed before its
 context** (the read-index guarantee etcd's `LinearizableReadNotify` states in indices: the applied
 index reaches the committed index the caller knew of). -/
 theorem readStateOk_after (γ : Cluster) (N : Namespace) (c : List w8) (idx : w64)
     (l0 : List LogEntry) :
-    readStateOk (GF := GF) γ N c idx ∗ readCtxAfter γ N c l0 ⊢ ⌜l0.length ≤ uint.nat idx⌝ := sorry
+    readStateOk (GF := GF) γ N c idx ∗ readCtxAfter γ N c l0 ⊢ ⌜l0.length ≤ uint.nat idx⌝ := by
+  unfold readStateOk readCtxAfter ApiImpl.readStateOk ApiImpl.readCtxAfter
+  iintro ⟨⟨-, -, %γq, %l1, #Hel, %Hl1⟩, %γq', #Hel'⟩
+  ihave %Hag := ghostMapElem_agree $$ Hel Hel'
+  ipureintro
+  simp only [Prod.mk.injEq] at Hag
+  rw [← Hag.2]; exact Hl1
 
 /-- (2026-10-27, the server port's addition) **Receiving a `Ready` as a channel's receive**, for a
-`select` (etcd's `raftNode.start` receives it among a ticker's and a stop channel's): the node's
-`Ready` channel is a channel of `Ready`s whose receive, by the loop's token at rest, gives
-`node.readyRecv.spec`'s postcondition (two later credits, as a handshake's receive). -/
+`select` (etcd's `raftNode.start` receives it among a ticker's and a stop channel's): with the loop's
+token at rest, the node's `Ready` channel is a channel of `Ready`s whose receive gives
+`node.readyRecv.spec`'s postcondition (two later credits, as a handshake's receive). (Changed from
+the draft: the token is taken before the channel's names, which are its node's.) -/
 theorem isReadyChan_recvAu (n ch : Loc) (γ : Cluster) (N : Namespace) (id : w64)
     (st : NodeDriverState) (Φ : Ready → Bool → IProp GF) :
     st.handling = none →
-    ⊢ isReadyChan (GF := GF) n γ N ch -∗ isNode n γ N id -∗
+    ⊢ isReadyChan (GF := GF) n γ N ch -∗ isNode n γ N id -∗ nodeDriver n γ N st -∗
       ∃ γc : ChanNames, isChan ch γc Ready ∗
-        (£ 1 ∗ £ 1 -∗ nodeDriver n γ N st -∗
+        (£ 1 ∗ £ 1 -∗
           ▷ (∀ rd : Ready, (∃ (ce : List LogEntry) (es : List EntryM) (h : HardStateM)
               (L : Option SnapLoan),
               committedEntriesAt rd.CommittedEntries' st.delivered.length ce ∗
@@ -798,88 +834,63 @@ theorem isReadyChan_recvAu (n ch : Loc) (γ : Cluster) (N : Namespace) (id : w64
                     delivered := strip l.dlv
                     hardState := phsNext st.hardState h
                     handling := some (es, some l) })) -∗ Φ rd true) -∗
-          recvAu γc Ready Φ) := sorry
-
-/-- (2026-10-27, the server port's addition) **The cluster was started from a bootstrap log**
-(persistent; today `RaftNames.reBoot ≠ []`): what `cluster_alloc` and `dynamicCluster_alloc`
-allocate, and `cluster_alloc_static` does not. Its nodes are past term `0`, so they step a
-pre-vote request (`stepIn_intro_booted`). -/
-@[no_expose] def bootedCluster (γ : Cluster) : IProp GF := iprop(⌜γ.raft.reBoot ≠ []⌝)
-
-instance bootedCluster_persistent (γ : Cluster) : Persistent (bootedCluster (GF := GF) γ) := by
-  unfold bootedCluster; infer_instance
+          recvAu γc Ready Φ) := by
+  intro Hh
+  unfold isReadyChan isNode nodeDriver
+  iintro Hrc Hn Hdrv
+  icases ApiImpl.isReadyChan_recvAu_impl n ch γ N id st Φ Hh $$ Hrc Hn Hdrv
+    with ⟨%γc, #Hch, Hau⟩
+  iexists γc
+  iframe Hch
+  iintro Hlc HΦ
+  iapply Hau $$ Hlc
+  inext
+  iintro %rd ⟨%ce, %es, %h, %L, Hce, Hlb, Hrs, Hrest, Hdrv⟩
+  iapply HΦ
+  iexists ce, es, h, L
+  unfold isCommittedLogLb readStateOk
+  iframe Hce Hlb Hrs Hdrv
+  iapply readyRest_of_impl $$ Hrest
 
 /-- (the server port's addition) A boot token of `cluster_alloc` (of peers `ps`, not empty) is of
 a cluster started from a bootstrap log. -/
 theorem nodeBoot_booted (γ : Cluster) (N : Namespace) (ps : List w64) (ctxs : List (List w8))
     (id : w64) : ps ≠ [] →
-    nodeBoot (GF := GF) γ N ps ctxs id ⊢ nodeBoot γ N ps ctxs id ∗ bootedCluster γ := sorry
+    nodeBoot (GF := GF) γ N ps ctxs id ⊢ nodeBoot γ N ps ctxs id ∗ bootedCluster γ := by
+  intro Hne
+  unfold nodeBoot bootedCluster ApiImpl.nodeBoot
+  iintro ⟨Hs, %Hb, Hrest⟩
+  ihave %Hnb : ⌜γ.raft.reBoot ≠ []⌝ $$ []
+  · ipureintro; intro h; rw [h] at Hb; exact Hne (List.length_eq_zero_iff.mp Hb.1.symm)
+  iframe Hs Hrest
+  isplitl <;> ipureintro <;> first | exact Hb | exact Hnb
 
 /-- (the server port's addition) A boot token of `dynamicCluster_alloc` (of peers `ps`, not empty)
 is of a cluster started from a bootstrap log. -/
 theorem nodeDynamicBoot_booted (γ : Cluster) (N : Namespace) (ps : List w64)
     (ctxs : List (List w8)) (id : w64) : ps ≠ [] →
     nodeDynamicBoot (GF := GF) γ N ps ctxs id ⊢
-      nodeDynamicBoot γ N ps ctxs id ∗ bootedCluster γ := sorry
-
-/-- (2026-10-27, the server port's addition) **Stepping a sent message in a cluster started from
-a bootstrap log** (`stepIn_intro`'s, with a pre-vote request allowed, and a forwarded proposal of
-any context): what etcd's server needs, whose nodes run with `PreVote` (etcd's default) and whose
-transport delivers a forwarded `MsgProp` as sent. (Raft's `netP` takes a `MsgPreVote` at a cluster
-with `reBoot ≠ []`, and `fwdP` a proposal of any context, its abstraction `absMsg .propose`
-ignoring it.) Proposed change: `stepIn_intro` with these premises in place of its own. -/
-theorem stepIn_intro_booted (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) (src : w64)
-    (st : MsgSt) :
-    (st.msg.Type' ≠ MsgProp → NetMsgOk id ⟨st.msg, st.ents, st.snap, st.ctx, []⟩ ∧
-      st.msg.Type' ≠ MsgTransferLeader) →
-    (st.msg.Type' = MsgSnap → ∃ sv, st.snap = some sv ∧ uint.Z sv.Metadata'.Index' < 2 ^ 61) →
-    st.msg.To' = id →
-    bootedCluster (GF := GF) γ ∗ sentMsg γ N src st ∗
-      msgPtsC ml (DFrac.own 1) (DFrac.own 1) true ⟨st.msg, st.ents, st.snap, st.ctx, []⟩ ∗
-      msgCredits γ N st ∗ tickCredit γ (if st.msg.Type' = MsgTimeoutNow then 1 else 0) ⊢
-    |==> stepIn γ N id ml := sorry
+      nodeDynamicBoot γ N ps ctxs id ∗ bootedCluster γ := by
+  intro Hne
+  unfold nodeDynamicBoot bootedCluster ApiImpl.nodeDynamicBoot
+  iintro ⟨Hs, %Hb, Hrest⟩
+  ihave %Hnb : ⌜γ.raft.reBoot ≠ []⌝ $$ []
+  · ipureintro; intro h; rw [h] at Hb; exact Hne (List.length_eq_zero_iff.mp Hb.1.1.symm)
+  iframe Hs Hrest
+  isplitl <;> ipureintro <;> first | exact Hb | exact Hnb
 
 end api
 
-/-! ### The committed log's laws without the section's unused instances (2026-10-27, the server
-port's addition; proved)
+/-! ### Laws free of raft's instances (2026-10-27, the server port's addition; proved)
 
-The laws above take `[StorageModel GF]` and raft's `Assumptions` (the section's variables), which
-they do not use; a client whose own statements are free of them (etcd's server, whose committed-log
-predicates are used across hundreds of its modules) uses these. Proposed change: drop the unused
-instances from the laws above (`omit ... in`), and these with them. -/
+For a client whose own statements are free of `[StorageModel GF]` and raft's `Assumptions` (etcd's
+server, whose committed-log predicates are used across hundreds of its modules). (The laws above
+that do not use them omit them, `omit ... in`; until 2026-10-27 the server used primed copies of
+them here.) -/
 
 section lawsPure
 variable [GooseExts] [GooseInterp]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-
-theorem isCommittedLogLb_mono' (γ : Cluster) (l1 l2 : List LogEntry) :
-    l1 <+: l2 → isCommittedLogLb (GF := GF) γ l2 ⊢ isCommittedLogLb γ l1 := by
-  intro Hp
-  unfold isCommittedLogLb ApiImpl.isCommittedLogLb
-  iintro (%Hnil | ⟨#H1, #H2⟩)
-  · ileft; ipureintro; subst Hnil; exact List.prefix_nil.mp Hp
-  iright
-  isplitl []
-  · iapply monoListLbOwn_le _ Hp $$ H1
-  · iapply monoListLbOwn_le _ (ApiImpl.opsOf_prefix Hp) $$ H2
-
-theorem isCommittedLogLb_agree' (γ : Cluster) (l1 l2 : List LogEntry) :
-    isCommittedLogLb (GF := GF) γ l1 ∗ isCommittedLogLb γ l2 ⊢ ⌜l1 <+: l2 ∨ l2 <+: l1⌝ := by
-  unfold isCommittedLogLb ApiImpl.isCommittedLogLb
-  iintro ⟨(%H1 | ⟨#H1, -⟩), (%H2 | ⟨#H2, -⟩)⟩
-  · ipureintro; subst H1; exact .inl List.nil_prefix
-  · ipureintro; subst H1; exact .inl List.nil_prefix
-  · ipureintro; subst H2; exact .inr List.nil_prefix
-  iapply mono_list_lb_valid $$ H1 H2
-
-theorem ownCommittedOps_lb_prefix' (γ : Cluster) (ops l : List LogEntry) :
-    ownCommittedOps (GF := GF) γ ops ∗ isCommittedLogLb γ l ⊢ ⌜opsOf l <+: ops⌝ := by
-  unfold ownCommittedOps isCommittedLogLb ApiImpl.ownCommittedOps ApiImpl.isCommittedLogLb
-  iintro ⟨⟨Ha, -⟩, (%Hnil | ⟨-, #Hlb⟩)⟩
-  · ipureintro; subst Hnil; exact List.nil_prefix
-  icases mono_list_auth_lb_valid $$ Ha Hlb with %H
-  ipureintro; exact H.2
 
 /-- (2026-10-27, the server port's addition; proved: the server's `ccShrink_of_raftOk`, moved
 here) **An `AddNode` of a voter, or of the node `0`, keeps a static cluster's voters**
@@ -919,25 +930,6 @@ section lawsPure2
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
-
-theorem readStateOk_used' (γ : Cluster) (N : Namespace) (c : List w8) (idx : w64)
-    (U : GSet (List w8)) :
-    readStateOk (GF := GF) γ N c idx ∗ ownReadCtxs γ U ⊢ ⌜c ∈ U⌝ := by
-  unfold readStateOk ownReadCtxs ApiImpl.readStateOk ApiImpl.ownReadCtxs
-  iintro ⟨⟨-, -, %γq, #Hel⟩, %M, HM, %HU⟩
-  icases ghost_map_lookup $$ HM Hel with %HMc
-  ipureintro
-  apply (HU c).mpr
-  show (M.lookup c).isSome = true
-  show (M !! c).isSome = true
-  rw [HMc]; rfl
-
-theorem readCredits_split' (γ : Cluster) (a b : Nat) :
-    readCredits (GF := GF) γ (a + b) ⊣⊢ readCredits γ a ∗ readCredits γ b := by
-  unfold readCredits ApiImpl.readCredits; exact rdCred_split γ.raft a b
-
-theorem readCredit_eq' (γ : Cluster) : readCredit (GF := GF) γ ⊣⊢ readCredits γ 1 := by
-  unfold readCredit readCredits ApiImpl.readCredit; exact .rfl
 
 /-- (2026-10-27, the server port's addition) **No empty `ConfChangeV2` is proposed in the
 cluster** (persistent): the client renounces `ConfChangeV2` proposals (etcd's server proposes only
@@ -998,8 +990,10 @@ cluster's): with `snapshotCert_data`, a static cluster that vouches for no snaps
 theorem sentMsg_snapshot (γ : Cluster) (N : Namespace) (src : w64) (st : MsgSt) :
     st.msg.Type' = MsgSnap →
     sentMsg (GF := GF) γ N src st ⊢
-      ∃ sv, ⌜st.snap = some sv⌝ ∗ snapshotCert γ N (snapTrip sv sv.Metadata'.ConfState'.lists) :=
-  sorry
+      ∃ sv, ⌜st.snap = some sv⌝ ∗ snapshotCert γ N (snapTrip sv sv.Metadata'.ConfState'.lists) := by
+  intro Hty
+  unfold sentMsg snapshotCert
+  exact ApiImpl.sentMsg_snapshot_impl γ N src st Hty
 
 /-- (2026-10-27, the server port's addition; proved) **A message that carries no credit**: one
 neither a `MsgReadIndex` (a read credit) nor a `MsgProp` (a forwarded proposal's tickets) carries
