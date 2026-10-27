@@ -638,6 +638,8 @@ theorem NewServer.wp_proofM (on : Bool)
     · rw [GMap.lookup_insert_ne _ _ (by decide)]; exact hDl go!"authUsers" (by decide)
     · rw [GMap.lookup_insert_ne _ _ (by decide)]; exact hDl go!"authRoles" (by decide)
   (try wp_auto)
+  -- (E3u) the start's auth state published, for the applied index's invariant
+  imod authApplyResPre_publish M astl _ _ $$ HstPub HAres with ⟨HAres, #Hpub0⟩
   -- the compactor is off (`AutoCompactionRetention = 0`)
   rw [Hacr]
   (try wp_auto)
@@ -1010,12 +1012,15 @@ theorem NewServer.wp_proofM (on : Bool)
   imod (srvIndices_allocM on s
       ⟨kst, γw.st, batchLockInv γA (metaTM d.γB d.P), #hook, RD, E₀.γrev, M, srvFS s, srvCiC γA cil, srvRestOwnH d.γB bc.cl' (srvObjsOn alst astl lp bc.cl' d.be), srvRestRWH d.γB (srvObjsOn alst astl lp bc.cl' d.be), γbe⟩ ρ.rd ⊤
       (by rw [HρRaft]))
-    $$ [appliedIndex] [committedIndex] [term] Hap Hcm Hlogs Hpend [] Hrlb
+    $$ [appliedIndex] [committedIndex] [term] Hap Hcm Hlogs Hpend [] Hrlb []
     with ⟨#Hai, Haown, #Hal0, #Hcmi, Hcmown, #Hti⟩
   · iapply hU64; iexact appliedIndex
   · iapply hU64; iexact committedIndex
   · iapply hU64; iexact term
   · simp only [Hlog0]; rw [Hγw.2.2.2.1]; iexact Hcert0
+  · iapply appliedPubM_zero on _ ρ.rd (by rw [HρRaft]) $$ Hrlb
+    iExactEq Hpub0
+    rfl
   -- the KV invariants
   imod (kvCertInvM_alloc on ρ.rd.raft ρ.rd.kv srvAuthSt0 ⊤ (by rw [Hlog0]; simp)) $$ [Hcok] Hkhi1 Hrlb
     with #Hkci

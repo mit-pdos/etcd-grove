@@ -105,3 +105,51 @@ Write every spec of the chosen scope (the compactor's 14; the clock's; under (A)
 glue: `New`'s dispatch, `NewServer` and `run` over `New.spec` (the compactor's goroutine's
 proposals with `Compact`'s contract before `Start`), and under (A) `EtcdServer.Compact` over
 `processInternalRaftRequestOnce`. Record the freeze candidates' state for phase 2.
+
+## Phase 1: the design of the skeleton (2026-10-27)
+
+**Translation (done).** `v3compactor` with bodies (`Code/.../api/v3compactor.toml`, all 14
+functions, no axiom left); `EtcdServer.Compact` with its body (`etcdserver.toml`);
+`github.com/jonboulle/clockwork` names only (a new package of the `etcd` project: its `-lean-root`
+and owned path in `etc/goose.py`; `Clock` is axiomatized by Goose, the compactor only calls its
+methods through the interface); the apply package's `applierV3backend.Compaction` was translated
+already. Initializers regenerated (`etc/gen-init.py`; clockwork's `IsPkgInit` in `BaseApply.lean`,
+before `v3compactor`'s, which now imports it).
+
+**The compactor's environment as contracts** (persistent, as `compactorOk` is for the server):
+- `revGetterOk rg γ`: `rg.Rev()` returns `v` with `idxCert γ.idx log` and `v = |log| - 1` (what
+  `mvcc.store.Rev` gives; the server passes `srv.kv`): a revision lower bound that only grows.
+- `compactableOk c P`: for every `r` with `P r`, `c.Compact(ctx, &CompactionRequest{Revision: r})`
+  returns. `P` is the permit the compactor's proof must establish at each call: **C1 is `P`.**
+- `clockOk clk γc` (trust boundary, `clockwork.NewRealClock`): `Now()` returns `t` with `clockLb γc
+  t` (the clock is at least `t`, persistent); `After(d)` returns a channel whose value comes once the
+  clock is at least the clock at the call plus `d`. The clock is a ghost monotone counter in an
+  invariant (`clockInv γc`), advanced only by the environment: the trust boundary is that real time
+  is monotone and `After` does not fire early (clockwork's real clock uses Go's monotonic reading).
+
+**C1 as permits.**
+- revision mode: `P r := 0 < r ∧ revLb γ (r + retention)` (`revLb` from `idxCert`).
+- periodic mode: `P r := 0 < r ∧ ∃ T, revLbBy γ γc r T ∗ clockLb γc (T + K)` with
+  `K = ⌊period / retry⌋ · retry`: the store's revision was at least `r` by clock time `T`, and the
+  clock is now past `T + K`. `revLbBy` is a persistent fact stamped from a `revLb` and a clock
+  reading taken after it (`stamp`: `revLb γ r ∗ clockNow γc t ⊢ revLbBy γ γc r t`, at an atomic
+  clock step; the `After` call after each `Rev()` sample is that step). The loop invariant of
+  `Periodic.Run`: each `revs[i]` has its stamp `Tᵢ`, and the clock is past
+  `Tᵢ + (len - 1 - i) · retry`.
+
+**The server side.**
+- `putgetKind` (or its successor) admits `.compaction`; `dispatchOk` stops excluding it; the KV
+  model's compaction step (`KVState.compacted := r`, the base and changes re-cut) at the apply of a
+  `Compaction` request; `applierV3backend.Compaction` over mvcc's `store.Compact` (which needs
+  `NoDelPutAt`, the workload premise).
+- `reqPropOk`'s compaction form: a compaction at `r ≤` a revision the proposer has seen
+  (`idxCert`); the compactor's `P r` implies it in both modes.
+- `EtcdServer.Compact.spec` over `processInternalRaftRequestOnce` (glue), from `NewServer` on
+  (the compactor runs before `Start`: `issues/etcd-compactor-started-before-start.md`); its
+  `Physc` wait only when `r.Physical` (the compactor never sets it).
+- `NewServer`: the premise `AutoCompactionRetention = 0` replaced by the mode/retention premises;
+  `compactorOk` derived from `New.spec` instead of assumed.
+
+**Glue proofs of phase 1:** `New` (the mode dispatch, `newPeriodic`, `newRevision`, the getters),
+`EtcdServer.Compact`, and `NewServer`/`run` over the new contracts. `Periodic.Run` and
+`Revision.Run` are phase 3's full proofs (`Periodic.Run` first, the riskiest), `sorry` until then.

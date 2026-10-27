@@ -212,6 +212,10 @@ instance authPubAt_persistent (M : auth.AuthMode) (st : auth.AuthState) :
     Persistent (authPubAt (GF := GF) M st) := by
   cases M <;> unfold authPubAt <;> infer_instance
 
+instance authPubAt_timeless (M : auth.AuthMode) (st : auth.AuthState) :
+    Timeless (authPubAt (GF := GF) M st) := by
+  cases M <;> unfold authPubAt <;> (try unfold auth.authPubLb auth.authStateAt) <;> infer_instance
+
 /-- A published index's lower bound, forgetting its state. -/
 theorem authPubLbM_of_pubAt (γa : auth.AuthNames) (st : auth.AuthState) :
     authPubAt (GF := GF) (.on γa) st ⊢ ∃ i : Nat, auth.authPubLbM (.on γa) i := by
@@ -301,6 +305,33 @@ theorem authPubAt_publish (γa : auth.AuthNames) (stl : Loc) (hs : List auth.Aut
   unfold authPubAt
   iexists i
   iframe Hlb' Hst
+
+omit auth_sem in
+/-- **The construction's apply resource publishes its latest state** (E3u): `authPubAt_publish` at
+`authApplyResPre`, before the server's applied index's invariant is allocated. -/
+theorem authApplyResPre_publish (M : auth.AuthMode) (stl : Loc) (st : auth.AuthState)
+    (d : mvcc.KBReal) :
+    authPublishM (GF := GF) M stl ⊢ authApplyResPre M stl st d ={⊤}=∗
+      authApplyResPre M stl st d ∗ authPubAt M st := by
+  cases M with
+  | on γa =>
+    iintro #Hp H
+    unfold authApplyResPre
+    icases H with ⟨%hs, %P, %f0, %T, %be, Hfu, Ht, Hwb, HT, Htp, %Hl, Hhk⟩
+    iunfold auth.authOwnFu at Hfu
+    icases Hfu with ⟨Ho, Hfuel⟩
+    imod authPubAt_publish γa stl hs st Hl $$ Hp Ho Ht with ⟨Ho, Ht, #Hpa⟩
+    imodintro
+    iframe Hpa
+    iexists hs, P, f0, T, be
+    iunfold auth.authOwnFu
+    iframe Ho Hfuel Ht Hwb HT Htp Hhk
+    ipureintro; exact Hl
+  | _ =>
+    iintro - H
+    imodintro
+    iframe H
+    unfold authPubAt; itrivial
 
 end publish
 

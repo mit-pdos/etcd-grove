@@ -28,7 +28,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 theorem EtcdServer.setAppliedIndex.wp_proofM (on : Bool) :
     EtcdServer.setAppliedIndex.specM (GF := GF) (hG := hG) on := by
   intro s E γr v v' L
-  wp_start as ⟨#Hinv, Hpre, #Hc⟩
+  wp_start as ⟨#Hinv, Hpre, #Hc, #Hpub⟩
   iunfold srvAppliedPre at Hpre
   icases Hpre with ⟨Hown, Hpo, #HLv', %hv⟩
   ihave #Hatomic : isPkgInit (PROP := IProp GF) pkg_id.sync.atomic $$ []
@@ -59,11 +59,13 @@ theorem EtcdServer.setAppliedIndex.wp_proofM (on : Bool) :
   imod monoNat_halves_update γr.applied (uint.nat v0) (uint.nat v') (by word) $$ Hown Hauth
     with ⟨Hown, Hauth, #Hlb⟩
   imod ghostVar_update_halves false γr.pend true true $$ Hpo Hp with ⟨Hpo, Hp⟩
+  ihave #Hkl' := kvLogsPubM_move on E γr M v0 v' $$ [Hkl Hpub]
+  · iframe Hkl Hpub
   imod Hclose $$ [Hv Hauth HM Hp] with -
   · inext
     iunfold srvAppliedBodyM
     iexists v', v', L, M, false
-    iframe Hv Hauth HM Hp Hc HLv' Hkl
+    iframe Hv Hauth HM Hp Hc HLv' Hkl'
     ipureintro
     refine ⟨Int.le_refl _, ?_, HMk.2.2⟩
     intro k L' hk
@@ -78,8 +80,15 @@ theorem EtcdServer.setAppliedIndex.wp_proofM (on : Bool) :
   iframe Hlb HLv'
 
 theorem EtcdServer.setAppliedIndex.wp_proof :
-    EtcdServer.setAppliedIndex.spec (GF := GF) (hG := hG) :=
-  EtcdServer.setAppliedIndex.wp_proofM false
+    EtcdServer.setAppliedIndex.spec (GF := GF) (hG := hG) := by
+  intro s E γr v v' L
+  iintro %Φ ⟨Ha, Hb, Hc, Hd⟩ HΦ
+  iapply (EtcdServer.setAppliedIndex.wp_proofM false s E γr v v' L) $$ [Ha Hb Hc Hd] HΦ
+  isplitl [Ha]; · iexact Ha
+  isplitl [Hb]; · rw [srvAppliedInvM_false]; iexact Hb
+  isplitl [Hc]; · iexact Hc
+  isplitl [Hd]; · iexact Hd
+  unfold appliedPubM; itrivial
 
 end proof
 
