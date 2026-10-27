@@ -69,7 +69,7 @@ theorem threadSafeMap.DeleteWithObject.wp_proof
     (wp_parse : parseRVForMetricsWithTruncation.spec (GF := GF) (hG := hG))
     (wp_del : threadSafeMap.deleteLocked.spec (GF := GF) (hG := hG)) :
     threadSafeMap.DeleteWithObject.spec (GF := GF) (hG := hG) := by
-  intro c γ OK Fam rvOf key obj
+  intro c γ OK Fam D rvOf key obj
   iintro %Φ ⟨#Hpkg, #Hc, #Hobj, #Hacc⟩ HAU
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit

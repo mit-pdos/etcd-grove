@@ -23,14 +23,17 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
 
-/-- **`c.DeleteWithObject(key, obj)`**, logically atomic, for `obj` `nil` or meeting `OK` (with
+/-- **`c.DeleteWithObject(key, obj)`**, logically atomic, for `obj` `nil` or meeting a contract `D`
+(not necessarily the stored objects' `OK`: the object is neither stored nor indexed, only its
+resource version read, and informers pass tombstones here, which index functions reject; with
 the accessor's contract if not `nil`): the key is not in the items, and the resource version
 becomes the object's if it is not `nil` and its accessor has one (`rvOfObj`). -/
 abbrev threadSafeMap.DeleteWithObject.spec : Prop :=
   ∀ (c : Loc) (γ : TsNames) (OK : GoInterface → IProp GF) (Fam : Nat → Fn)
-    (rvOf : GoInterface → Option GoString) (key : GoString) (obj : GoInterface),
+    (D : GoInterface → IProp GF) (rvOf : GoInterface → Option GoString) (key : GoString)
+    (obj : GoInterface),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.tools.cache ∗ isTS c γ OK Fam ∗
-      okNil OK obj ∗ □ (⌜obj ≠ interface.nil⌝ -∗ rvAcc OK rvOf) }}
+      okNil D obj ∗ □ (⌜obj ≠ interface.nil⌝ -∗ rvAcc D rvOf) }}
   <<{ ∀∀ σ, storeSt γ σ }>>
     (App (App (Val (c @!! go.GoType.PointerType threadSafeMap.ty @!! go!"DeleteWithObject"))
       (Val #key)) (Val #obj))

@@ -34,7 +34,7 @@ theorem threadSafeMap.Delete.wp_proof
   wp_call
   wp_auto
   wp_bind
-  iapply (wp_DWO c γ OK Fam (fun _ => none) key GoInterface.nil) $$ [$Hpkg $Hc]
+  iapply (wp_DWO c γ OK Fam OK (fun _ => none) key GoInterface.nil) $$ [$Hpkg $Hc]
   · isplitr
     · iunfold okNil; ileft; ipureintro; rfl
     · imodintro; iintro %h; exact absurd rfl h
