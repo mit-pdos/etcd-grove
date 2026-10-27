@@ -314,6 +314,29 @@ a Perennial branch, landed (`3c384b081`) but past the pin's stopping point (Pere
 function results, `notes/perennial-changes.md`); until the pin moves there, the `isContextDef`
 unfold stays, the one cross-package unfold left, and the freeze records it as pending.
 
+**The server side (phase 1's remaining glue, 2026-10-27): what it needs.** `EtcdServer.Compact`'s
+glue goes through `processInternalRaftRequestOnce`, whose precondition `reqPropOk` has no compaction
+form, because the server's model excludes compactions: `apply.dispatchOk` has `dispatchKind rq ≠
+.compaction` (`apply/InvUber.lean`), `KVModelDefs.lean` lists compaction as excluded, and reads
+answer `ErrCompacted` only below revision `-1` (`txn.checkRangeErr`: the store is never compacted,
+`storeReader`). mvcc's side is done: `store.Compact.spec` (`compactRight`, `crevLb`, `NoDelPutAt`).
+What the model already gets right: compaction is not a `storeKind`, so `dispatchLog` leaves the log
+unchanged at a compaction entry, which is true (a compaction changes no value at a revision it
+keeps). Two designs:
+- **M2, a compaction bound beside the log** (recommended): the log stays the model; a server-wide,
+  monotone ghost bound `compactLb` (raised by a compaction's apply, at mvcc's `crevLb`); a read or
+  watch at a revision at or below it may answer `ErrCompacted`. Changes: `dispatchOk` loses its
+  compaction conjunct (a premise of the closed results removed); the range and watch answers gain
+  the `ErrCompacted` case below `compactLb`; `reqPropOk` gets a compaction form carrying the C1
+  permit, fixed at `NewServer` (C3: `compactLb` at most what C1 allows). `putget_safe`'s workload
+  (latest reads) never meets the new case.
+- **M1, compaction in the KV state** (`KVState.compacted`, D47's design): the model's state
+  becomes a `KVState` whose `compacted` a compaction raises, folding the dropped revisions into
+  `base`. Closer to mvcc's storage, but every relation over `kvModel`'s `mvcc.Log` moves to
+  `KVState`: far larger.
+Either changes definitions the closed results are stated in (the trust base's statements): the
+user's decision.
+
 **Review checkpoints** (`notes/spec-first-plan.md`, "Phase 1b", the feedback loop): at the freeze, a
 retrospective of the revisions the review found against those the glue proofs found; at the end of
 phase 4, every revision after the freeze attributed to a review criterion or to "none", and the
