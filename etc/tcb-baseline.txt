@@ -277,6 +277,7 @@ axiom addrsUnclaimed
 axiom api.IsCapabilityEnabled.wp_proof
 axiom apierrors.NewConflict.wp_proof
 axiom apierrors.NewInternalError.wp_proof
+axiom appsv1.Resource.wp_proof
 axiom attribute.Bool.wp_proof
 axiom attribute.Int.wp_proof
 axiom attribute.Int64.wp_proof
@@ -391,6 +392,7 @@ axiom context.WithCancelTodo.wp_proof
 axiom context.WithCancelValCtx.wp_proof
 axiom context.WithValue.wp_proof
 axiom conversion.EnforcePtr.wp_proof
+axiom corev1.Resource.wp_proof
 axiom encoding.json.Unmarshal.wp_proof
 axiom endpoint.RequiresCredentials.wp_proof
 axiom errors.AsLeaf.wp_proof
