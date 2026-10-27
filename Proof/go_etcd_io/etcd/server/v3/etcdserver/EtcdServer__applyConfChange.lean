@@ -891,7 +891,7 @@ theorem EtcdServer.applyConfChange.wp_proof
         rcases Hok with ⟨h0, hin, -⟩ | ⟨h1, -⟩
         · exact ⟨h0, m.nodeId, hin, .inl rfl⟩
         · rw [hs] at h1; cases h1
-      have hdynS : ∀ γn, dv = some γn → DynCCPre γs.raft.dec ds vw (.v1 m) k e mb :=
+      have hdynS : ∀ γn, dv = some γn → srvDynCCPre γs.raft.dec ds vw (.v1 m) k e mb :=
         fun γn h => by
           have := (Hdyn γn h).2
           unfold membership.ccRaftEff at this; rw [if_pos hv] at this; exact this
@@ -926,7 +926,7 @@ theorem EtcdServer.applyConfChange.wp_proof
           · exact ⟨h0, m.nodeId, hin, .inr rfl⟩
           · rw [hs] at h1; cases h1
         have hdyn0 : ∀ γn, dv = some γn →
-            DynCCPre γs.raft.dec ds vw (.v1 { m with nodeId := W64 0 }) k e mb :=
+            srvDynCCPre γs.raft.dec ds vw (.v1 { m with nodeId := W64 0 }) k e mb :=
           fun γn h => by
             have := (Hdyn γn h).2
             unfold membership.ccRaftEff at this; rw [if_neg hv] at this; exact this

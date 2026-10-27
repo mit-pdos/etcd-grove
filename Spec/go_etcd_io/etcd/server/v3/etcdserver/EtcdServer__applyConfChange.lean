@@ -67,7 +67,7 @@ abbrev EtcdServer.applyConfChange.spec : Prop :=
   E.γ.kb = some d → d.γB = γB →
   (dv = none → γs.raft.dyn = false) →
   (∀ n, dv = some n → v3 = true ∧
-    DynCCPre γs.raft.dec ds v (.v1 (membership.ccRaftEff rs.bk m)) k e m') →
+    srvDynCCPre γs.raft.dec ds v (.v1 (membership.ccRaftEff rs.bk m)) k e m') →
   (m.type = W32 0 → m.nodeId ≠ lid → m.nodeId ∈ prs) →
   (m.type = W32 1 → m.nodeId ≠ lid) →
   (m.type = W32 0 →

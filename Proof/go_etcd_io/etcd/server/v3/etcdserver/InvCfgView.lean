@@ -108,7 +108,7 @@ theorem gset_size_delete_le (W : GSet w64) (y : w64) :
 /-- **The node API's dynamic `ApplyConfChange`'s premise** (`node.ApplyConfChange.dynamicSpec`'s,
 at the decoder `dec`): the change of the next conf entry `e` at position `k` of the committed log
 `l` past the view, as the decoder gives it or `o`, its effect on the view's membership `m'`. -/
-def DynCCPre (dec : Draft.ConfChangeDecoder) (l : List Draft.LogEntry) (v : Draft.ConfigView)
+def srvDynCCPre (dec : Draft.ConfChangeDecoder) (l : List Draft.LogEntry) (v : Draft.ConfigView)
     (o : ConfChangeIM) (k : Nat) (e : Draft.LogEntry) (m' : Draft.Membership) : Prop :=
   v.applied ≤ k ∧ l[k]? = some e ∧ e.isConfChange ∧ Draft.NoConfChangeIn l v.applied k ∧
   ∃ o', dec (l.take k) e = some o' ∧ Draft.Membership.applyChange o' v.membership = some m' ∧
@@ -160,7 +160,7 @@ theorem srvCfgOk_cc {V : GSet w64} {D : List EntryModel} {v : Draft.ConfigView}
     (Hcm : ccApplyOk V cm ∨ (cm.type = W32 1 ∧ cm.nodeId ∈ V))
     (Hwi : withIdx (D.map EntryModel.toLE) = D) :
     ∃ m' : Draft.Membership,
-      DynCCPre (srvDec c0 boot) ((D ++ m :: rest).map EntryModel.toLE) v
+      srvDynCCPre (srvDec c0 boot) ((D ++ m :: rest).map EntryModel.toLE) v
         (.v1 (membership.ccRaftEff (restModel c0 boot D).bk cm)) D.length m.toLE m' ∧
       srvCfgOk V (D ++ [m]) ⟨D.length + 1, m'⟩ := by
   obtain ⟨h1, h2, ⟨W, hcfg, hWV, hrem, hW0, hsz⟩⟩ := h
@@ -263,14 +263,14 @@ def srvCfgView (γs : ServerRaftNames) (n : Loc) (pre L : List EntryModel) : IPr
 
 /-- **The node API's `ApplyConfChange` in a dynamic cluster, as the server calls it** (persistent;
 `node.ApplyConfChange.dynamicSpec` of the node `n`): of a v1 change, read-only, the next conf
-entry's at position `k` of the committed log `l` delivered (`DynCCPre`, at the cluster's decoder),
+entry's at position `k` of the committed log `l` delivered (`srvDynCCPre`, at the cluster's decoder),
 with the driver's view, it returns the new `*ConfState`, owned, and the view at `⟨k + 1, m'⟩`. -/
 def raftApplyCCDyn (γs : ServerRaftNames) (n : Loc) (nd : GoInterface) : IProp GF :=
   letI := srvStor (GF := GF) γs.raft
   iprop(∃ ni : GoInterfaceOk, ⌜nd = GoInterface.ok ni⌝ ∗ ⌜γs.raft.dyn = true⌝ ∗
     □ (∀ (c : GoInterface) (cm : ConfChangeM) (l : List Draft.LogEntry) (v : Draft.ConfigView)
         (k : Nat) (e : Draft.LogEntry) (m' : Draft.Membership),
-      ⌜DynCCPre γs.raft.dec l v (.v1 cm) k e m'⌝ -∗
+      ⌜srvDynCCPre γs.raft.dec l v (.v1 cm) k e m'⌝ -∗
       {{ ownConfChangeI c DFrac.discard (some (.v1 cm)) ∗
           Draft.nodeConfig n γs.raft.cl srvClusterN v ∗
           Draft.deliveredLogLb n γs.raft.cl srvClusterN l }}
@@ -393,7 +393,7 @@ theorem dvView_cc (s : Loc) (γs : ServerRaftNames) (dv : Option Loc) (kc0 lid :
       ∃ (v : Draft.ConfigView) (m' : Draft.Membership),
         dvCCPre s γs dv v (srvLE γs (L ++ m :: rest)) ∗
         ⌜∀ n, dv = some n →
-          DynCCPre (srvDec kc0 γs.raft.boot) (srvLE γs (L ++ m :: rest)) v
+          srvDynCCPre (srvDec kc0 γs.raft.boot) (srvLE γs (L ++ m :: rest)) v
             (.v1 (membership.ccRaftEff (restModel kc0 γs.raft.boot (γs.pre ++ L)).bk cm))
             (γs.pre ++ L).length m.toLE m'⌝ ∗
         (dvCCPost γs dv (γs.pre ++ L).length m' -∗ dvView γs dv (L ++ [m])) := by
