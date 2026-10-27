@@ -24,13 +24,14 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-theorem EtcdServer.setTerm.wp_proof :
-    EtcdServer.setTerm.spec (GF := GF) (hG := hG) := by
+/-- In either auth mode (E3p): only the term's invariant is used. -/
+theorem EtcdServer.setTerm.wp_proofM (on : Bool) :
+    EtcdServer.setTerm.specM (GF := GF) (hG := hG) on := by
   intro s E γr v
   wp_start as #Hat
   ihave #Hatomic : isPkgInit (PROP := IProp GF) pkg_id.sync.atomic $$ []
   · iPkgInit
-  iunfold srvAtomics at Hat
+  iunfold srvAtomicsM at Hat
   icases Hat with ⟨#Hai, #Ht, -⟩
   wp_auto
   wp_apply_core sync.atomic.Uint64.wp_Store (srvTermAddr s) v $$ [] [HΦ]
@@ -50,6 +51,10 @@ theorem EtcdServer.setTerm.wp_proof :
   wp_auto
   iapply HΦ
   itrivial
+
+theorem EtcdServer.setTerm.wp_proof :
+    EtcdServer.setTerm.spec (GF := GF) (hG := hG) :=
+  EtcdServer.setTerm.wp_proofM false
 
 end proof
 

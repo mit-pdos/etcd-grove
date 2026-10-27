@@ -6,6 +6,12 @@ public import Spec.go_etcd_io.raft.v3.raftpb.ConfChange__AsV2
 public import Spec.go_etcd_io.raft.v3.raftpb.ConfChangeV2__AsV2
 public import Proof.go_etcd_io.raft.v3.LemmasNodeR
 public import Proof.go_etcd_io.raft.v3.FrameH
+import all Proof.go_etcd_io.raft.v3.InvNode
+public import Proof.go_etcd_io.raft.v3.InvRawnodeReady
+public import Proof.go_etcd_io.raft.v3.InvApplyConf
+public import Proof.go_etcd_io.raft.v3.InvBoot
+public import Spec.go_etcd_io.raft.v3.RawNode__ProposeConfChange
+public import Spec.go_etcd_io.raft.v3.NewRawNode
 
 @[expose] public section
 

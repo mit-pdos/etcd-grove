@@ -162,7 +162,7 @@ theorem KV.answer.wp_proof (wp_decode : kv.decode.spec (GF := GF) (hG := hG)) :
               icases Hok'' with ⟨%Lc', #Hrq', -⟩
               rw [Hif] at Hkey
               ihave #Hcinv : raftCommitInv γr.raft $$ []
-              · rw [← Hraft]; open_node HisNode; iexact Hcinv
+              · rw [← Hraft]; iapply isNode_commitInv $$ HisNode
               imod kv_read_minted γr cx c0 Lc' (id, sq) ⊤ CoPset.subseteq_top raftN_regN Hkey
                 $$ Hinv Hcinv Hrq' Hmint with %Hc0
               subst Hc0

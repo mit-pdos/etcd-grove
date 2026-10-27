@@ -1236,10 +1236,19 @@ theorem NewServer.wp_proofM (on : Bool)
     rw [← Hastl]
     iframe authStore
     isplitl [HAres]
-    · iExactEq HAres
-      rfl
+    · -- (E3n) the construction's resource at the server's frozen hook
+      iapply (authApplyResB_of_pre M astl srvAuthSt0 d (mvcc.lateW d.gx)
+        (batchLockInv γA (metaTM d.γB d.P)) hook)
+      iframe HB Hhook
+      isplitl [HAres]
+      · iExactEq HAres
+        rfl
+      ipureintro; exact Hhknn
     -- (E3l) the equation of the backend names: the write right lends the store's half on `d.be`
-    iapply rwLens_authBeOn
+    isplitr
+    · iapply rwLens_authBeOn
+    -- (E3n) and so does the rest resource, at the same rest value
+    iapply roLends_authBeOn
   imodintro
   iapply HΦ
   iright

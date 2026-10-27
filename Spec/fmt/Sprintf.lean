@@ -1,7 +1,7 @@
 /- Port of election_proof/spec_fmt_Sprintf.v (feb5c73d4). -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvRaftPhys
+public import Proof.go_etcd_io.raft.v3.InvStorage
 
 @[expose] public section
 

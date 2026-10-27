@@ -79,7 +79,7 @@ def authStoreKit (M : auth.AuthMode) (tp : GoInterface) : IProp GF :=
         ∃ (RD : IProp GF) (stl : Loc), ⌜st = auth.authIface stl⌝ ∗ authBeOn stl d.be ∗
         ([∗list] _x ∈ List.replicate (Int.toNat sync.rwmutex.actualMaxReaders) (), RD) ∗
         isReqAuth st RD ∗ authApplyOkM M stl RD ∗ authStoreLatestM M st RD stl ∗
-        authApplyResB M stl (auth.bump auth.bootState) d.be }})
+        authApplyResPre M stl (auth.bump auth.bootState) d }})
 
 /-- **`NewTokenProvider` at the server, with auth on or off** (see the file header): with auth on
 (`on = true`) its options `"simple"` and its TTL positive; with no error, a mode `M` with
@@ -98,7 +98,9 @@ abbrev authSrvTP (on : Bool) : Prop :=
 see the file header; the server's form of `auth.authSchemaBoot`): for any auth names, given the
 batch lock's half of the history at the boot state, schema's auth backend `abl` over the server's
 backend `d` meets the store's backend contracts (the write contract also at every schema auth
-backend on `d`'s backend, E3l: the methods read only the struct's `be` and `lg` fields), for some
+backend on `d`'s backend, E3l: the methods read only the struct's `be` and `lg` fields; and there
+at the post-lock hook the server freezes later, E3n, which is the hook an admin entry's
+application runs under), for some
 reader resource `R` (one per reader),
 batch lock contract `P f`, write token `T` and constructor's critical section `Pre Q Post`, from
 the backend resources `NewAuthStore`'s axiom takes, given back with its post's buckets after
@@ -119,13 +121,15 @@ def authSchemaSrv : IProp GF :=
     |==> ∃ (R P : IProp GF) (f : val) (T Pre Q Post : IProp GF),
       auth.authBackendOk (authBkIface abl) R (.on γa) ∗
       auth.authWBackendOkR (authBkIface abl) (.on γa) P f T ∗
-      -- (E3l) the same contract at every schema auth backend on the server's backend
-      (□ ∀ (abl' lg' : Loc),
+      -- (E3l) the contract at every schema auth backend on the server's backend, (E3n) at the
+      -- post-lock hook the server freezes (`f'` at the batch lock `Pk'`), the same write token
+      (□ ∀ (abl' lg' : Loc) (W' Pk' : IProp GF) (f' : GoFunc),
         structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authBackend go!"be" abl' ↦□
           (interface.mkOk (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty)
             #d.be : GoInterface) -∗
         structFieldRef go_etcd_io.etcd.server.v3.storage.schema.authBackend go!"lg" abl' ↦□ lg' -∗
-        auth.authWBackendOkR (authBkIface abl') (.on γa) P f T) ∗
+        backend.isBackend d.γB d.P W' Pk' d.be -∗ backend.plHookRO d.γB f' -∗ ⌜f' ≠ func.nil⌝ -∗
+        auth.authWBackendOkR (authBkIface abl') (.on γa) Pk' #f' T) ∗
       □ ({{ T }} (App (Val #(methods
           (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.schema.authBackend.ty)
           go!"CreateAuthBuckets" #abl)) (Val #())) {{ RET #(); T }}) ∗
@@ -167,7 +171,7 @@ theorem authStoreKit_off (h30 : auth.NewAuthStore.spec (GF := GF) (hG := hG)) (t
   · iExactEq Hok; rfl
   isplitr
   · unfold authStoreLatestM; itrivial
-  unfold authApplyResB
+  unfold authApplyResPre
   itrivial
 
 /-- **`authSrvTP false`**, of `NewTokenProvider`'s proof and `NewAuthStore`'s axiom. -/
@@ -274,23 +278,26 @@ theorem authStoreKit_on
     (by intro s hs s' hs'; simp only [List.mem_cons, List.not_mem_nil, or_false] at hs hs'
         rcases hs with rfl | rfl <;> rcases hs' with rfl | rfl <;> rfl) $$ [Hown' Hen Hca]
   · iframe Hown' Hen Hca
-  -- (E3l) the store's admin steps, keeping its backend, at the server's admin resource
-  ihave #Hsteps := apply.isAuthStepsX_of_authInvTB hEnableB hUserAddB hRoleAddB hUserGrantRoleB
-    hRoleGrantPermissionB stp R (.on γa) P f T (beOn d.be) $$ [$Hpkg $Hinv]
-  ihave HAR : authApplyResB (.on γa) stp (auth.bump auth.bootState) d.be $$ [Hown' Hfu HT' HX HtpAd]
-  · unfold authApplyResB
+  -- (E3l) the store's admin steps, keeping its backend, at the server's admin resource; (E3n) at
+  -- whichever post-lock hook the server freezes
+  ihave HAR : authApplyResPre (.on γa) stp (auth.bump auth.bootState) d $$ [Hown' Hfu HT' HX HtpAd]
+  · unfold authApplyResPre
     iexists [auth.bootState, auth.bump auth.bootState], P, f, T, (authBkIface abl)
     iunfold auth.authOwnFu
     iframe Hown' Hfu HT' HX HtpAd Hwok
     isplitr
     · ipureintro; rfl
+    iunfold authStepsAtHook
+    iintro !> %W' %Pk' %f' #HB' #Hhk' %Hf'
     isplitr
     · iunfold authWBackendAt
       iintro !> %abl' %lg' #Hb #Hl
       iapply auth.authWBackendOk_of_R
-      iapply HwokAll $$ %abl' %lg' Hb Hl
+      iapply HwokAll $$ %abl' %lg' %W' %Pk' %f' Hb Hl HB' Hhk' []
+      ipureintro; exact Hf'
     iunfold adminW
-    iexact Hsteps
+    iapply apply.isAuthStepsX_of_authInvTB hEnableB hUserAddB hRoleAddB hUserGrantRoleB
+      hRoleGrantPermissionB stp R (.on γa) Pk' #f' T (beOn d.be) $$ [$Hpkg $Hinv]
   iapply HΦ
   iframe Hopen Hhook Hrbo
   iexists (auth.authRd stp R (.on γa)), stp

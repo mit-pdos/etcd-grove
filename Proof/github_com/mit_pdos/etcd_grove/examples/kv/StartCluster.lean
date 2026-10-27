@@ -32,6 +32,7 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.quietLogger__Warni
 public import Spec.go_etcd_io.raft.v3.RestartNode
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.KVStorageInstance
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.Alloc
+public import Proof.go_etcd_io.raft.v3.Linked
 
 @[expose] public section
 
@@ -39,6 +40,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
+
+open RaftLink
 namespace kv
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
