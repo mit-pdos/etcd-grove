@@ -748,6 +748,11 @@ requested entries of its own log (`SrvRaftLog.lean`, `srvPropAu_api`). -/
 theorem isCommittedLogLb_length (γ : Cluster) (l : List LogEntry) :
     isCommittedLogLb (GF := GF) γ l ⊢ ⌜(l.length : Int) < 2 ^ 64⌝ := sorry
 
+/-- (2026-10-27, the server port's addition; proved) The read credits are timeless: the server
+keeps its share in an invariant, opened without a later credit. -/
+instance readCredits_timeless (γ : Cluster) (n : Nat) : Timeless (readCredits (GF := GF) γ n) := by
+  unfold readCredits ApiImpl.readCredits rdCred; infer_instance
+
 end api
 
 /-! ## The specs -/
