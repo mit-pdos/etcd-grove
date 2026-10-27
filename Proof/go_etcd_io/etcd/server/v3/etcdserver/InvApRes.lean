@@ -59,14 +59,14 @@ def ccPeersAfter (v3 : Bool) (m : ConfChangeM) (bk : GMap GoString backend.BktDa
 good, in the dynamic mode until the boot entries are applied (after them a `RemoveNode` may remove
 one; an `AddNode` comes only before, the dynamic policy's `srvDynLog`). -/
 def srvPeersCover (γs : ServerRaftNames) (lid : w64) (A : List EntryModel) (prs : trIds) : Prop :=
-  (γs.raft.reDyn = none ∨ (γs.pre ++ A).length < γs.raft.reBoot.length) →
+  (γs.raft.reDyn = none ∨ (γs.pre ++ A).length < γs.raft.boot.length) →
     ∀ f, f ∈ γs.raft.reCfg → f ≠ lid → f ∈ prs
 
 /-- **The in-memory members stay among the boot configuration's** (D43 M5e: what keeps
 `AddMember`'s bound, `size ≤ 2 ^ 62`): the members of the rest model at the applied log are
 members of raft's boot configuration, of at most `2 ^ 62` members. -/
 def srvMemOk (γs : ServerRaftNames) (c0 : w64) (A : List EntryModel) : Prop :=
-  (∀ k, ((restModel c0 γs.raft.reBoot (γs.pre ++ A)).mem !! k).isSome = true → k ∈ γs.raft.reCfg) ∧
+  (∀ k, ((restModel c0 γs.raft.boot (γs.pre ++ A)).mem !! k).isSome = true → k ∈ γs.raft.reCfg) ∧
     GMap.size γs.raft.reCfg ≤ 2 ^ 62
 
 /-- A normal entry keeps the members' ids. -/
@@ -188,7 +188,7 @@ theorem memBoot_keys (bootLog : List EntryM) (S : GSet w64)
 /-- **The rest model's members at the start of a new cluster** are the boot peers (`BootLogOk`). -/
 theorem srvMemOk_boot (γs : ServerRaftNames) (c0 : w64) (ccOk : w32 → List w8 → Prop)
     (ps : List w64) (hpre : γs.pre = []) (hcfg : γs.raft.reCfg = GMap.listToSet ps)
-    (hnd : ps.Nodup) (hlen : (ps.length : Int) ≤ 2 ^ 62) (hb : BootLogOk ccOk ps γs.raft.reBoot) :
+    (hnd : ps.Nodup) (hlen : (ps.length : Int) ≤ 2 ^ 62) (hb : BootLogOk ccOk ps γs.raft.boot) :
     srvMemOk γs c0 [] := by
   unfold srvMemOk
   rw [hpre, List.append_nil, restModel_nil, hcfg]
@@ -240,7 +240,7 @@ def srvDynLog (γs : ServerRaftNames) (lid : w64) : IProp GF :=
   match γs.raft.reDyn with
   | none => iprop(True)
   | some _ => iprop(⌜lid ∈ γs.raft.reCfg⌝ ∗ □ ∀ L : List EntryModel, srvRLogLb γs L -∗
-      ⌜srvDynPol γs.raft.reBoot.length lid (srvLogOf γs L)⌝)
+      ⌜srvDynPol γs.raft.boot.length lid (srvLogOf γs L)⌝)
 
 instance srvDynLog_persistent (γs : ServerRaftNames) (lid : w64) :
     Persistent (srvDynLog (GF := GF) γs lid) := by

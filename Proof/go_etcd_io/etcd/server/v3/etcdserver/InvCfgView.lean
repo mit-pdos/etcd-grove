@@ -354,7 +354,7 @@ def dvOk (γs : ServerRaftNames) (kc0 : w64) (dv : Option NodeNames) (c f0 : w64
     (ms : List EntryModel) : Prop :=
   (dv = none → γs.raft.reDyn = none ∨ ∀ m, m ∈ ms → m.typ ≠ W32 1) ∧
   ∀ γn, dv = some γn → uint.Z c < uint.Z f0 ∧ γn.raft = γs.raft ∧ γs.raft.reDyn.isSome = true ∧
-    ∃ c0 h0 h1, γn.mode = .dyn (srvDec kc0 γs.raft.reBoot) c0 h0 h1
+    ∃ c0 h0 h1, γn.mode = .dyn (srvDec kc0 γs.raft.boot) c0 h0 h1
 
 /-- The axiom `applyConfChange`'s dynamic resources (its precondition's): with a view, the node's
 dynamic contract, the driver's `nodeCfg γn ca cfg` and the committed log `ds` handed out. -/
@@ -399,13 +399,13 @@ theorem dvView_cc (s : Loc) (γs : ServerRaftNames) (dv : Option NodeNames) (kc0
     (Hty : m.typ = W32 1) (Hdec : ccDecodeV1 m.data = some cm)
     (Hraft : ∀ γn, dv = some γn → γn.raft = γs.raft)
     (Hdyn : ∀ γn, dv = some γn → ccApplyOkR γs.raft cm ∧
-      srvDynPol γs.raft.reBoot.length lid (srvLogOf γs (L ++ [m])) ∧ lid ∈ γs.raft.reCfg) :
+      srvDynPol γs.raft.boot.length lid (srvLogOf γs (L ++ [m])) ∧ lid ∈ γs.raft.reCfg) :
     dvView (GF := GF) γs dv L ∗ dvRes s γs dv (L ++ m :: rest) ⊢
       ∃ (ca : Nat) (cfg cs' : CCState), dvCCPre s dv ca cfg (srvLogOf γs (L ++ m :: rest)) ∗
         ⌜∀ γn, dv = some γn →
-          DynCCPreOp (srvDec kc0 γs.raft.reBoot) (srvLogOf γs (L ++ m :: rest)) ca cfg
+          DynCCPreOp (srvDec kc0 γs.raft.boot) (srvLogOf γs (L ++ m :: rest)) ca cfg
             (ccV2Of (.v1 (membership.ccRaftEff
-              (restModel kc0 γs.raft.reBoot (γs.pre ++ L)).bk cm)))
+              (restModel kc0 γs.raft.boot (γs.pre ++ L)).bk cm)))
             (srvLogOf γs L).length m.toM cs'⌝ ∗
         (dvCCPost dv (srvLogOf γs L).length cs' -∗ dvView γs dv (L ++ [m])) := by
   unfold dvView dvRes dvCCPre dvCCPost
@@ -434,7 +434,7 @@ theorem dvView_cc (s : Loc) (γs : ServerRaftNames) (dv : Option NodeNames) (kc0
       · exact .inl h
       · exact .inr h
     rw [hlog1] at Hpol
-    obtain ⟨cs', Hpre, Hpost⟩ := srvCfgOk_cc Hok kc0 γs.raft.reBoot m.toM
+    obtain ⟨cs', Hpre, Hpost⟩ := srvCfgOk_cc Hok kc0 γs.raft.boot m.toM
       (rest.map EntryModel.toM) cm Hty Hdec _ lid Hpol (by rw [Hr]; exact Hlid) Hcm'
     rw [EntryModel.map_ofM_toM] at Hpre
     iexists ca, cfg, cs'

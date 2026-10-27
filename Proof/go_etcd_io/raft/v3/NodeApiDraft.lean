@@ -742,6 +742,86 @@ requested entries of its own log (`SrvRaftLog.lean`, `srvPropAu_api`). -/
 theorem isCommittedLogLb_length (γ : Cluster) (l : List LogEntry) :
     isCommittedLogLb (GF := GF) γ l ⊢ ⌜(l.length : Int) < 2 ^ 64⌝ := sorry
 
+/-- (2026-10-27, the server port's addition) **The read context `c` was committed after the log
+`l0` was** (persistent): what `readCtx_commit_after` gives with the context. Raft's read index is
+the leader's commit index once it has committed in its term, after the request: at least every
+log committed before the context was (raft's `readReq` registered the committed log at the
+deposit, and `readOk`'s index bounds it). -/
+@[no_expose] def readCtxAfter (γ : Cluster) (N : Namespace) (c : List w8) (l0 : List LogEntry) :
+    IProp GF := sorry
+
+instance readCtxAfter_persistent (γ : Cluster) (N : Namespace) (c : List w8) (l0 : List LogEntry) :
+    Persistent (readCtxAfter (GF := GF) γ N c l0) := sorry
+
+/-- (the server port's addition) **Committing a context after a committed log** `l0`:
+`readCtx_commit`, and the context's lower bound. -/
+theorem readCtx_commit_after (γ : Cluster) (N : Namespace) (U : GSet (List w8)) (c : List w8)
+    (Q : List LogEntry → IProp GF) (l0 : List LogEntry) :
+    c ∉ U →
+    ownReadCtxs (GF := GF) γ U ∗ isCommittedLogLb γ l0 ∗
+      □ AU <{ ∃∃ (ops : List LogEntry), ownCommittedOps γ ops }> @ ⊤ \ ↑N, ∅
+           <{ ownCommittedOps γ ops, COMM □ Q ops }> ⊢
+    |==> (ownReadCtxs γ (insert c U) ∗ isReadCtx γ N c Q ∗ readCtxAfter γ N c l0) := sorry
+
+/-- (the server port's addition) **A read state's index is past what was committed before its
+context** (the read-index guarantee etcd's `LinearizableReadNotify` states in indices: the applied
+index reaches the committed index the caller knew of). -/
+theorem readStateOk_after (γ : Cluster) (N : Namespace) (c : List w8) (idx : w64)
+    (l0 : List LogEntry) :
+    readStateOk (GF := GF) γ N c idx ∗ readCtxAfter γ N c l0 ⊢ ⌜l0.length ≤ uint.nat idx⌝ := sorry
+
+/-- (2026-10-27, the server port's addition) **No empty `ConfChangeV2` is proposed in the
+cluster** (persistent): the client renounces `ConfChangeV2` proposals (etcd's server proposes only
+v1 changes, and none of its own). Proposed change: `cluster_alloc`/`dynamicCluster_alloc` give it
+on request, `node.ProposeConfChange` then taking only v1 changes. -/
+@[no_expose] def noConfChangeV2 (γ : Cluster) (N : Namespace) : IProp GF := sorry
+
+instance noConfChangeV2_persistent (γ : Cluster) (N : Namespace) :
+    Persistent (noConfChangeV2 (GF := GF) γ N) := sorry
+
+/-- (the server port's addition) **Every committed filler is an empty normal entry** when no
+`ConfChangeV2` is proposed and the configuration is never joint (no auto-leave entry): a refused
+conf change is replaced by an empty normal entry (`raft.go:1341`), a new leader's entry is an empty
+normal one (`raft.go:961`). What etcd's apply loop needs: it panics on an entry of type
+`EntryConfChangeV2`. -/
+theorem noConfChangeV2_filler (γ : Cluster) (N : Namespace) (l : List LogEntry) :
+    noConfChangeV2 (GF := GF) γ N ∗ isCommittedLogLb γ l ⊢
+      ⌜∀ e ∈ l, e.isFiller → e.type = W32 0⌝ := sorry
+
+/-- (2026-10-27, the server port's addition) **Receiving a `Ready` as a channel's receive**, for a
+`select` (etcd's `raftNode.start` receives it among a ticker's and a stop channel's): the node's
+`Ready` channel is a channel of `Ready`s whose receive, by the loop's token at rest, gives
+`node.readyRecv.spec`'s postcondition (two later credits, as a handshake's receive). -/
+theorem isReadyChan_recvAu (n ch : Loc) (γ : Cluster) (N : Namespace) (id : w64)
+    (st : NodeDriverState) (Φ : Ready → Bool → IProp GF) :
+    st.handling = none →
+    ⊢ isReadyChan (GF := GF) n γ N ch -∗ isNode n γ N id -∗
+      ∃ γc : ChanNames, isChan ch γc Ready ∗
+        (£ 1 ∗ £ 1 -∗ nodeDriver n γ N st -∗
+          ▷ (∀ rd : Ready, (∃ (ce : List LogEntry) (es : List EntryM) (h : HardStateM)
+              (L : Option SnapLoan),
+              committedEntriesAt rd.CommittedEntries' st.delivered.length ce ∗
+              isCommittedLogLb γ (st.delivered ++ ce) ∗
+              (∃ rs, readStatesPts rd.ReadStates' rs ∗
+                [∗list] s ∈ rs, readStateOk γ N s.RequestCtx' s.Index') ∗
+              readyRest γ N id rd st ce es h L ∗
+              nodeDriver n γ N (match L with
+                | none => { st with
+                    delivered := st.delivered ++ ce
+                    hardState := phsNext st.hardState h
+                    handling := some (es, none) }
+                | some l => { st with
+                    delivered := strip l.dlv
+                    hardState := phsNext st.hardState h
+                    handling := some (es, some l) })) -∗ Φ rd true) -∗
+          recvAu γc Ready Φ) := sorry
+
+/-- (the server port's addition) The allocations' companion: a cluster allocated without any
+`ConfChangeV2` proposal yet may renounce them (see `noConfChangeV2`'s proposed change). -/
+theorem noConfChangeV2_alloc (γ : Cluster) (N : Namespace) (vs : List w64) (snapOk : List LogEntry → List w8 → Prop)
+    (E : CoPset) :
+    ⊢ isStaticCluster (GF := GF) γ N vs snapOk ={E}=∗ noConfChangeV2 γ N := sorry
+
 /-- (2026-10-27, the server port's addition; proved) The read credits are timeless: the server
 keeps its share in an invariant, opened without a later credit. -/
 instance readCredits_timeless (γ : Cluster) (n : Nat) : Timeless (readCredits (GF := GF) γ n) := by

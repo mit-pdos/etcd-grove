@@ -441,6 +441,46 @@ Other notes in use: `notes/snapshot-receiver-epochs.md` (S5's plan),
 
 In status-history.md: the raft v3.7 retarget ("Retargeting raft to v3.7, stage R0" to "stage R8b"), reconfiguration (stages 0, A1-A3, B1-B8, D, L, N), the read index and proposals (stage R, stage F), CheckQuorum and PreVote, the multi-member stages "D21 M0" to "D21 M6", and the witness stages W1-W3b-A and W5.
 
+## etcd's server on raft's node API: the port, in progress (2026-10-27, branch `server-port`)
+
+Porting `Proof/go_etcd_io/etcd/**` off raft's internals onto the node API (`NodeApiDraft.lean`).
+Design: `notes/decisions.md`, "etcd's server on raft's node API". **The build is not green**: the
+server was broken on `raft-api` already (raft's proposal-registry changes); the port has moved the
+frontier past the server's raft contract.
+
+**Done (compiling):**
+- `SrvRaftLog.lean` (new; moved out of `InvRequest.lean`): the server's raft contract over the API.
+  `ServerRaftNames.raft : SrvRaft` (the API `Draft.Cluster`, the voters `vs`, `dyn`, the decoder
+  `dec`, the boot log `boot`, and the server's own ghost names); `srvRLogLb` = the API's
+  `isCommittedLogLb` (with the indices consecutive); `srvRLog` = half of the server's **log of
+  requested entries** (a mono list, the other half in the server's log invariant `srvLogInv` with
+  the API's `ownCommittedOps`). The proposals' registry and the reads' re-firing are the server's own
+  (`srvLogCore`/`srvLogRegs`): `srvPropAu_api` (a proposal's update as `Propose`'s, firing the
+  registered reads again), `srvProp_register`, `srvPropWits_of`, `srvReadAu_api` (a read's update as
+  a read context's), `srvReadWit_of`, `srvReadCtx_commit`, the read contexts' mint
+  (`srvRdCtxInv` keeps `ownReadCtxs`), `srvCtxDeposited_minted`, `srvLogInv_alloc`. Result
+  predicates must be invariant under `srvEqv` (same requested entries): `srvQInv`, in `srvPropArg`
+  and `srvReadAu`; `kvModel_eqv`, `kv_qinv`, `reqPropOk_qinv`, `readQs_qinv` (`KVLemmas.lean`).
+- `InvRequest.lean` (kvInv: `c0 ≤ ai0` in place of `c0 ≤ ai0 + |L|`; `raftPropose` takes `£ 1`),
+  `KVLemmas.lean` (`kv_noop_au` gone), `InvProposer.lean`, `read/Inv.lean`, `InvRest.lean`,
+  `InvImage.lean`, `ProposerLemmas.lean`.
+
+**Draft items added to `NodeApiDraft.lean`** (sealed, `sorry` unless noted): `isCommittedLogLb_length`,
+`readCredits_timeless` (proved), the instance-free laws `isCommittedLogLb_mono'`/`_agree'`,
+`ownCommittedOps_lb_prefix'`, `readStateOk_used'`, `readCredits_split'`, `readCredit_eq'` (proved),
+`readCtxAfter`/`readCtx_commit_after`/`readStateOk_after`, `noConfChangeV2`/`noConfChangeV2_filler`/
+`noConfChangeV2_alloc`, `isReadyChan_recvAu`.
+
+**Next (the build's frontier, in dependency order):** `InvCfgView.lean` (the dynamic configuration
+view onto `Draft.Membership`/`nodeConfig`/`deliveredLogLb`), `InvRaftNode.lean` (`RNNames.node` off
+`NodeNames`; `rnDrv`/`rnBusy` as `Draft.nodeDriver`; `rnReadyP` → `isReadyChan_recvAu`; `rnEnvOk`'s
+messages as `sentMsg`/`msgCredits`; `srvRQ` as a read context with `readCtxAfter`; `hsWit` →
+`committedAtTerm`), `NodeBridge.lean`, `raftNode__start.lean`, `EtcdServer__applyConfChange.lean`,
+`EtcdServer__run.lean`, `NodeStart.lean`, the allocation (`NewServerAlloc*`, `BuildAlloc`,
+`InvBuild`, `NewServer` spec: `cluster_alloc` with `transfer := false`, `snapOk := False`, then
+`srvLogInv_alloc`), rafthttp (`InvNet`, `InvRaftMsg`, `api/rafthttp/*`: `sentMsg`, `stepIn_intro`),
+the snapshot track (`SnapSendBundle`: `sentMsg_replaceSnapshot`), then the examples.
+
 ## Raft's node API for etcd's server, implemented (2026-10-27, branch `raft-api`)
 
 The draft's section "What etcd's server needs" (`NodeApiDraft.lean`; the draft:
