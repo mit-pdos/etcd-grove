@@ -79,7 +79,7 @@ private theorem ite_neg {α : Sort _} {c : Prop} [Decidable c] {a b : α} (h : �
 /-- A proposal the leader drops after the conf-change loop moved `pendingConfIndex`
 (2026-10-14, stage B7): nothing the protocol sees, `StepR.propDrop` in the dynamic model. -/
 private theorem stepCD_propDrop (c : CfgM) (id : w64) (m : MessageM) (s : NState)
-    (ents : List EntryM) (cs : List (Option CCMsg)) (ctx : List w8)
+    (ents : List EntryM) (cs : List (Option ConfChangeIM)) (ctx : List w8)
     (Hty : m.Type' = MsgProp) (Hr : s.role = .leader) (Hct : CCTypesOk ents cs)
     (Hlen : (ents.length : Int) < 2 ^ 61) :
     StepCD c id B m s [] { s with pci := (leaderPropConf s ents cs c.joint).2 } := by
@@ -124,7 +124,7 @@ theorem wp_Step_MsgProp (_P : raft.Step.Postulates (GF := GF) (hG := hG))
     (_Q : raft.Step.ReplPbPostulates (GF := GF) (hG := hG))
     (c : CfgM) (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM)
     (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc)
-    (ents : List EntryM) (cs : List (Option CCMsg)) (k0 : Nat) :
+    (ents : List EntryM) (cs : List (Option ConfChangeIM)) (k0 : Nat) :
     m.Type' = MsgProp →
     m.Term' = W64 0 →
     (m.From' = W64 0 ∨ m.From' = id) →

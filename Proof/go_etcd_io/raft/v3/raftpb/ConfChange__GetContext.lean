@@ -32,7 +32,7 @@ theorem raftpb.ConfChange.GetContext.wp_proof :
     · exact absurd rfl Hnn
     · iapply HΦ
       iframe Hcs
-      iunfold ownCCV1
+      iunfold ownConfChange
       iexists pt, pn, pi, cs, uf
       isplitr
       · ipureintro; exact Hnn

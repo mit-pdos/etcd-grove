@@ -36,7 +36,7 @@ theorem raftpb.MarshalConfChange.wp_proof
   intro c o dq
   wp_start as Hc
   rcases o with _ | (m | m)
-  · simp only [ownCCI, ccEntryType]
+  · simp only [ownConfChangeI, confChangeEntryType]
     icases Hc with %Hc
     subst Hc
     wp_auto
@@ -47,7 +47,7 @@ theorem raftpb.MarshalConfChange.wp_proof
     iapply HΦ $$ %slice.nil %([] : List w8)
     iframe
     ipureintro; rfl
-  · simp only [ownCCI, ccEntryType]
+  · simp only [ownConfChangeI, confChangeEntryType]
     icases Hc with ⟨%v, %Hc, Hown⟩
     subst Hc
     wp_auto
@@ -60,7 +60,7 @@ theorem raftpb.MarshalConfChange.wp_proof
     isplitl
     · ipureintro; rfl
     · ipureintro; exact Hdec
-  · simp only [ownCCI, ccEntryType]
+  · simp only [ownConfChangeI, confChangeEntryType]
     icases Hc with ⟨%v, %Hc, Hown⟩
     subst Hc
     wp_auto

@@ -3,11 +3,11 @@
 -- (`ext`, `ffi`, `go_gctx`, `sem`, the package's `Assumptions`), `GF`, `hG`, `StorageModel GF`, `AllG GF`.
 
 def raftpb.ConfChangeV2.LeaveJoint.spec : Prop :=
-  ∀ (c : Loc) (dq : DFrac) (m : CCV2M),
+  ∀ (c : Loc) (dq : DFrac) (m : ConfChangeV2M),
     ⊢
       ∀ Φ,
-        isPkgInit pkg_id.go_etcd_io.raft.v3.raftpb ∗ ownCCV2 c dq m -∗
-          ▷ (ownCCV2 c dq m -∗ Φ (intoVal (decide (m.transition = W32 0 ∧ m.changes = [])))) -∗
+        isPkgInit pkg_id.go_etcd_io.raft.v3.raftpb ∗ ownConfChangeV2 c dq m -∗
+          ▷ (ownConfChangeV2 c dq m -∗ Φ (intoVal (decide (m.transition = W32 0 ∧ m.changes = [])))) -∗
             WP
               ((intoVal
                   (methods raftpb.ConfChangeV2.ty.PointerType

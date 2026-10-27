@@ -50,8 +50,8 @@ the model records of `PbModel.lean` as indices:
   its `AutoLeave` set (`MemoryStorage.InitialState` freezes the storage's, which `newRaft` keeps;
   nothing writes a conf state in place once its `AutoLeave` is set).
 * `hsRO p hs`: a hard state, persistent (fresh per `hardState()`, never written after).
-* `ccsPts`/`ccsRO`: a `*pb.ConfChangeSingle`; `ownCCV1`, `ownCCV2`: a `*pb.ConfChange`,
-  `*pb.ConfChangeV2` (their `Context` bytes read-only, shared by `ConfChange.AsV2`); `ownCCI`: a
+* `ccsPts`/`ccsRO`: a `*pb.ConfChangeSingle`; `ownConfChange`, `ownConfChangeV2`: a `*pb.ConfChange`,
+  `*pb.ConfChangeV2` (their `Context` bytes read-only, shared by `ConfChange.AsV2`); `ownConfChangeI`: a
   `ConfChangeI` interface holding a pointer to either.
 -/
 module
@@ -150,7 +150,7 @@ theorem sorted_perm_eq : ∀ (xs ys : List w64), xs ≡ₚ ys →
 
 /-- What `(*ConfChange).AsV2` makes of a `ConfChange` holding `m`: the one change
 `{Type, NodeId}`, the `Auto` transition, the same context (`raftpb/confchange.go:58`). -/
-def CCV1M.asV2 [GooseExts] (m : CCV1M) : CCV2M :=
+def ConfChangeM.asV2 [GooseExts] (m : ConfChangeM) : ConfChangeV2M :=
   { transition := W32 0, changes := [ConfChangeSingleM.mk m.type m.nodeId], context := m.context }
 
 end pure
@@ -364,7 +364,7 @@ def ccsPts (p : Loc) (dq : DFrac) (c : ConfChangeSingleM) : IProp GF :=
 abbrev ccsRO (p : Loc) (c : ConfChangeSingleM) : IProp GF := ccsPts p DFrac.discard c
 
 /-- A `*pb.ConfChange` at `p` holding `m`, at `dq`; its `Context` bytes read-only. -/
-def ownCCV1 (p : Loc) (dq : DFrac) (m : CCV1M) : IProp GF :=
+def ownConfChange (p : Loc) (dq : DFrac) (m : ConfChangeM) : IProp GF :=
   iprop(∃ (pt pn pi : Loc) (cs : GoSlice) (uf : List w8),
     "%Hnn" ∷ ⌜p ≠ null⌝ ∗
     "HT" ∷ p.[raftpb.ConfChange, go!"Type"] ↦{dq} pt ∗ "#cT" ∷ cellRO pt m.type ∗
@@ -375,7 +375,7 @@ def ownCCV1 (p : Loc) (dq : DFrac) (m : CCV1M) : IProp GF :=
 
 /-- A `*pb.ConfChangeV2` at `p` holding `m`, at `dq`: its changes read-only, its `Context`
 bytes read-only. -/
-def ownCCV2 (p : Loc) (dq : DFrac) (m : CCV2M) : IProp GF :=
+def ownConfChangeV2 (p : Loc) (dq : DFrac) (m : ConfChangeV2M) : IProp GF :=
   iprop(∃ (pt : Loc) (chs : GoSlice) (ls : List Loc) (cs : GoSlice) (uf : List w8),
     "%Hnn" ∷ ⌜p ≠ null⌝ ∗
     "HT" ∷ p.[raftpb.ConfChangeV2, go!"Transition"] ↦{dq} pt ∗ "#cT" ∷ cellRO pt m.transition ∗
@@ -386,12 +386,12 @@ def ownCCV2 (p : Loc) (dq : DFrac) (m : CCV2M) : IProp GF :=
 
 /-- A `ConfChangeI` interface value `c` holding `o` (`MarshalConfChange`'s argument): `nil`
 (`none`), or a non-`nil` `*ConfChange` or `*ConfChangeV2` holding the content, at `dq`. -/
-def ownCCI (c : GoInterface) (dq : DFrac) : Option CCMsg → IProp GF
+def ownConfChangeI (c : GoInterface) (dq : DFrac) : Option ConfChangeIM → IProp GF
   | none => iprop(⌜c = interface.nil⌝)
   | some (.v1 m) => iprop(∃ p : Loc,
-      ⌜c = interface.mkOk (go.GoType.PointerType raftpb.ConfChange.ty) #p⌝ ∗ ownCCV1 p dq m)
+      ⌜c = interface.mkOk (go.GoType.PointerType raftpb.ConfChange.ty) #p⌝ ∗ ownConfChange p dq m)
   | some (.v2 m) => iprop(∃ p : Loc,
-      ⌜c = interface.mkOk (go.GoType.PointerType raftpb.ConfChangeV2.ty) #p⌝ ∗ ownCCV2 p dq m)
+      ⌜c = interface.mkOk (go.GoType.PointerType raftpb.ConfChangeV2.ty) #p⌝ ∗ ownConfChangeV2 p dq m)
 
 end defs
 
@@ -418,9 +418,9 @@ instance ccsRO_persistent (p : Loc) (c : ConfChangeSingleM) :
     Persistent (ccsRO (GF := GF) p c) := by
   unfold ccsRO ccsPts; infer_instance
 
-instance ownCCV1_persistent (p : Loc) (m : CCV1M) :
-    Persistent (ownCCV1 (GF := GF) p DFrac.discard m) := by
-  unfold ownCCV1; infer_instance
+instance ownConfChange_persistent (p : Loc) (m : ConfChangeM) :
+    Persistent (ownConfChange (GF := GF) p DFrac.discard m) := by
+  unfold ownConfChange; infer_instance
 
 theorem cellRO_agree {V : Type} [ZeroVal V] [TypedPointsto (GF := GF) V] (p : Loc) (v1 v2 : V) :
     cellRO (GF := GF) p v1 ∗ cellRO p v2 ⊢ ⌜v1 = v2⌝ := by
@@ -731,11 +731,11 @@ theorem ccsRO_of_struct (p : Loc) (v : raftpb.ConfChangeSingle) (c : ConfChangeS
 
 /-- A freshly allocated `*pb.ConfChangeV2` (hidden fields zero): its transition cell, its
 changes (read-only) and its context bytes holding `m`'s. -/
-theorem ownCCV2_of_struct (p : Loc) (v : raftpb.ConfChangeV2) (m : CCV2M) (ls : List Loc)
+theorem ownConfChangeV2_of_struct (p : Loc) (v : raftpb.ConfChangeV2) (m : ConfChangeV2M) (ls : List Loc)
     (E : CoPset) (Hu : v.unknownFields' = slice.nil) :
     (p ↦ v ∗ cellRO v.Transition' m.transition ∗ v.Changes' ↦* ls ∗
       ([∗list] q;c ∈ ls;m.changes, ccsRO q c) ∗ v.Context' ↦*□ m.context : IProp GF) ⊢
-      |={E}=> ownCCV2 p (DFrac.own 1) m := by
+      |={E}=> ownConfChangeV2 p (DFrac.own 1) m := by
   iintro ⟨Hp, #cT, Hch, #Hccs, #Hcs⟩
   ihave %Hnn := typedPointsto_not_null $$ Hp
   icases typedPointsto_split _ _ _ $$ Hp with Hp
@@ -747,7 +747,7 @@ theorem ownCCV2_of_struct (p : Loc) (v : raftpb.ConfChangeV2) (m : CCV2M) (ls : 
   imod pbMsg_alloc raftpb.ConfChangeV2 p v.state' v.sizeCache' slice.nil [] E $$ [state sizeCache unknownFields Hnil] with #Hpb
   · iframe
   imodintro
-  iunfold ownCCV2
+  iunfold ownConfChangeV2
   iexists v.Transition', v.Changes', ls, v.Context', []
   isplitr
   · ipureintro; exact Hnn
@@ -755,10 +755,10 @@ theorem ownCCV2_of_struct (p : Loc) (v : raftpb.ConfChangeV2) (m : CCV2M) (ls : 
   iframe cT Hccs Hcs Hpb
 
 /-- A freshly allocated `*pb.ConfChange` (hidden fields zero) holding `m`. -/
-theorem ownCCV1_of_struct (p : Loc) (v : raftpb.ConfChange) (m : CCV1M) (E : CoPset)
+theorem ownConfChange_of_struct (p : Loc) (v : raftpb.ConfChange) (m : ConfChangeM) (E : CoPset)
     (Hu : v.unknownFields' = slice.nil) :
     (p ↦ v ∗ cellRO v.Type' m.type ∗ cellRO v.NodeId' m.nodeId ∗ cellRO v.Id' m.id ∗
-      v.Context' ↦*□ m.context : IProp GF) ⊢ |={E}=> ownCCV1 p (DFrac.own 1) m := by
+      v.Context' ↦*□ m.context : IProp GF) ⊢ |={E}=> ownConfChange p (DFrac.own 1) m := by
   iintro ⟨Hp, #cT, #cN, #cI, #Hcs⟩
   ihave %Hnn := typedPointsto_not_null $$ Hp
   icases typedPointsto_split _ _ _ $$ Hp with Hp
@@ -770,7 +770,7 @@ theorem ownCCV1_of_struct (p : Loc) (v : raftpb.ConfChange) (m : CCV1M) (E : CoP
   imod pbMsg_alloc raftpb.ConfChange p v.state' v.sizeCache' slice.nil [] E $$ [state sizeCache unknownFields Hnil] with #Hpb
   · iframe
   imodintro
-  iunfold ownCCV1
+  iunfold ownConfChange
   iexists v.Type', v.NodeId', v.Id', v.Context', []
   isplitr
   · ipureintro; exact Hnn
@@ -780,8 +780,8 @@ theorem ownCCV1_of_struct (p : Loc) (v : raftpb.ConfChange) (m : CCV1M) (E : CoP
 /-- A `*pb.ConfChange` frozen read-only for good (what the register's `run` sends on `confc`
 through `node.ApplyConfChange`: raft reads it on its own goroutine). (2026-10-16, from the
 register's `Lemmas.lean`.) -/
-theorem ownCCV1_persist (p : Loc) (dq : DFrac) (m : CCV1M) :
-    ownCCV1 (GF := GF) p dq m ⊢ |==> ownCCV1 p DFrac.discard m := by
+theorem ownConfChange_persist (p : Loc) (dq : DFrac) (m : ConfChangeM) :
+    ownConfChange (GF := GF) p dq m ⊢ |==> ownConfChange p DFrac.discard m := by
   iintro H
   iNamed H
   imod (typedPointsto_dfractional (GF := GF) _ pt).dfractional_persist _ $$ HT with #HT
@@ -789,7 +789,7 @@ theorem ownCCV1_persist (p : Loc) (dq : DFrac) (m : CCV1M) :
   imod (typedPointsto_dfractional (GF := GF) _ pi).dfractional_persist _ $$ HI with #HI
   imod (typedPointsto_dfractional (GF := GF) _ cs).dfractional_persist _ $$ HC with #HC
   imodintro
-  iunfold ownCCV1
+  iunfold ownConfChange
   iexists pt, pn, pi, cs, uf
   isplitr
   · ipureintro; exact Hnn

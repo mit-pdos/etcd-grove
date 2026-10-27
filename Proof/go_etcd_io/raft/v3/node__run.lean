@@ -4,7 +4,7 @@
 the proposal from `propc` is a message pointer, owned (`propP`: `msgIn`), stamped by `run`
 (`m.From = new(r.id)`: `cellRO_alloc`, `msgPtsC_store_From`) before `r.Step(m)`; a `recvc`
 message is a pointer (`netP`: `msgIn ml □ st`) whose type and sender `run` reads through the
-getters (`GetType`, `GetFrom`); `confc` carries a `*pb.ConfChangeV2` (`ownCCV2 v □ ccm`) and
+getters (`GetType`, `GetFrom`); `confc` carries a `*pb.ConfChangeV2` (`ownConfChangeV2 v □ ccm`) and
 `applyConfChange` returns a fresh `*pb.ConfState` (`csPts cs 1 c true`), whose `Voters` and
 `VotersOutgoing` fields the removed-node check reads directly, and which goes to `confstatec`
 whole (`confstateP`); a `Ready`'s messages are handed out (`QMsg`, D8).

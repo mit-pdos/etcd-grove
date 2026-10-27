@@ -62,7 +62,7 @@ def membership.urlTaken (mems : GMap w64 (List GoString)) (u : GoString) : Prop 
 `mems` and the removed members `rmv` the backend holds: not a removed id; an `AddNode` (not a
 promotion: the scope's) of an id not a member, whose peer URLs (the context's member's) no member
 has; a `RemoveNode` of a member. -/
-def membership.ccValidM [GooseExts] (mems : GMap w64 (List GoString)) (rmv : GMap w64 Bool) (m : CCV1M) : Prop :=
+def membership.ccValidM [GooseExts] (mems : GMap w64 (List GoString)) (rmv : GMap w64 Bool) (m : ConfChangeM) : Prop :=
   (rmv !! m.nodeId).getD false = false ∧
   (if m.type = W32 0 then mems !! m.nodeId = none ∧
       ∀ u, u ∈ (membership.ccMemberOf m.context).peerURLs → ¬ membership.urlTaken mems u
@@ -80,19 +80,19 @@ open Classical in
 /-- **`ValidateConfigurationChange`'s verdict with `shouldApplyV3`** (D43 M5b′, 2026-10-26, the
 user's decision: defined, until then opaque): `ccValidM` of what the backend's read returns at the
 tracked buckets `bk` (`membersOfBk`); `true` when it returns `nil`. -/
-def membership.ccValidOn [GooseExts] (bk : GMap GoString backend.BktData) (m : CCV1M) : Bool :=
+def membership.ccValidOn [GooseExts] (bk : GMap GoString backend.BktData) (m : ConfChangeM) : Bool :=
   decide (membership.ccValidM (membership.membersOfBk bk).1 (membership.membersOfBk bk).2 m)
 
 /-- **The member an `AddNode`'s `AddMember` adds** (D43 M5e, 2026-10-26): the context's member
 (`ccMemberOf`) with the change's node as its id (`json.Unmarshal`'s `ID` field, which
 `applyConfChange` checks against the change's `NodeId`). -/
-def membership.ccMemberAt [GooseExts] (m : CCV1M) : apply.MemberM :=
+def membership.ccMemberAt [GooseExts] (m : ConfChangeM) : apply.MemberM :=
   { membership.ccMemberOf m.context with id := m.nodeId }
 
 /-- **The change `applyConfChange` hands raft for `m`** (with `v3`; D43 M5d, 2026-10-26): the change
 itself when it validates against the tracked buckets `bk` (`ccValidOn`), else the change with
 `NodeId` `0` (`cc.NodeId = raft.None`), which raft's `confchange` skips. -/
-def membership.ccRaftEff [GooseExts] (bk : GMap GoString backend.BktData) (m : CCV1M) : CCV1M :=
+def membership.ccRaftEff [GooseExts] (bk : GMap GoString backend.BktData) (m : ConfChangeM) : ConfChangeM :=
   if membership.ccValidOn bk m = true then m else { m with nodeId := W64 0 }
 
 /-- The value `MustDeleteMemberFromBackend` puts under a removed member's key in
@@ -106,7 +106,7 @@ def membership.removedVal [GooseExts] : GoString := go!"removed"
 `members` and records it in `members_removed` (`RemoveMember`'s `MustDeleteMemberFromBackend`)
 and from memory (`delete(c.members, id)`). Anything else nothing (a failed validation; without
 `v3`, the writers write nothing; the server's policy admits no other change, `ccApplyOk`). -/
-def ccRest [GooseExts] (v3 : Bool) (m : CCV1M) (r : apply.RestM) : apply.RestM :=
+def ccRest [GooseExts] (v3 : Bool) (m : ConfChangeM) (r : apply.RestM) : apply.RestM :=
   if v3 = true ∧ membership.ccValidOn r.bk m = true then
     if m.type = W32 0 then
       ({ r with mem := r.mem.insert m.nodeId (membership.ccMemberAt m) } : apply.RestM).putIn
@@ -255,7 +255,7 @@ theorem restEntry_nodata [GooseExts] (c0 : w64) (m : EntryModel) (r : apply.Rest
   unfold restEntry; rw [if_pos ht, if_pos hd]
 
 /-- A conf change: `applyConfChange`'s effect. -/
-theorem restEntry_cc [GooseExts] (c0 : w64) (m : EntryModel) (cc : CCV1M) (r : apply.RestM)
+theorem restEntry_cc [GooseExts] (c0 : w64) (m : EntryModel) (cc : ConfChangeM) (r : apply.RestM)
     (ht : m.typ ≠ W32 0) (hdec : ccDecodeV1 m.data = some cc) :
     restEntry c0 m r = ccRest (decide (uint.Z c0 < uint.Z m.index)) cc r := by
   unfold restEntry; rw [if_neg ht, hdec]

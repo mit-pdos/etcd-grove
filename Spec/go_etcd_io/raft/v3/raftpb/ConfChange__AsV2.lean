@@ -28,10 +28,10 @@ change `{Type: c.GetType().Enum(), NodeId: new(c.GetNodeId())}` (a fresh slice h
 `*ConfChangeSingle`), `c`'s `Context` (the same slice, its bytes read-only, shared) and the
 `Auto` transition (a nil field). -/
 abbrev raftpb.ConfChange.AsV2.spec : Prop :=
-  ∀ (c : Loc) (dq : DFrac) (m : CCV1M),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ ownCCV1 c dq m }}
+  ∀ (c : Loc) (dq : DFrac) (m : ConfChangeM),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ ownConfChange c dq m }}
     (App (Val (c @!! go.GoType.PointerType raftpb.ConfChange.ty @!! go!"AsV2")) (Val #()))
-  {{ (v : Loc), RET #v; ownCCV1 c dq m ∗ ownCCV2 v (DFrac.own 1) m.asV2 }}
+  {{ (v : Loc), RET #v; ownConfChange c dq m ∗ ownConfChangeV2 v (DFrac.own 1) m.asV2 }}
 
 end spec
 

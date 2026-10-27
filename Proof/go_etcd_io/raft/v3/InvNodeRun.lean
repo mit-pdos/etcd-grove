@@ -19,7 +19,7 @@ pointer messages").** Ported from the old proof's file. What changed: `ownRawNod
 a message pointer, owned (`msgIn`), with the facts over its state (`wp_rn_raft_Step_net`: `NetMsgOk
 id st`; `wp_rn_raft_Step_prop`: a stamped proposal, `st.msg.From' = id`, no proposed slices'
 invariant: a conf-change entry's bytes are on the record, `propData_ccEnts` pure);
-`r.applyConfChange` takes a `*pb.ConfChangeV2` (`ownCCV2`, given back) and returns a fresh
+`r.applyConfChange` takes a `*pb.ConfChangeV2` (`ownConfChangeV2`, given back) and returns a fresh
 `*pb.ConfState` (`csPts cs 1 … true`); the run loop's states over the new `Ready` fields
 (`staleOk`/`freshOk`: `hsOpt`, `entsRO`, `readStatesPts`, `rd.Snapshot' = null`, the messages
 handed out owned).
@@ -1043,7 +1043,7 @@ theorem wp_applyConf_dyn
     (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (dec : CCDec) (c0 : CCState)
     (h0 : CfgOk c0) (h1 : CCGood c0) (hm : rs.mode = .dyn dec c0 h0 h1) (k : Nat)
     (e : EntryM) (cs' : CCState)
-    (cc : Loc) (ccm : CCV2M) (dq : DFrac)
+    (cc : Loc) (ccm : ConfChangeV2M) (dq : DFrac)
     (Hpre : DynCCPreOp dec rs.delivered rs.capplied rs.cfg (ccm.transition, ccm.changes) k e cs')
     (s : NState) (cf : CfgM) (fp : List EntryM) (rnv : RawNode) (sv : SoftState)
     (hprev : HardStateM) (steps : List Loc)
@@ -1064,11 +1064,11 @@ theorem wp_applyConf_dyn
         ownSliceCap Loc rnv.stepsOnAdvance' (DFrac.own 1) ∗
         lentPend rs.slent (pendList γ id steps rs.steps) ∗
         isCommitted γ rs.delivered ∗ ackInv γ rs s ∗
-        loanCom γ rs.slent ∗ snapLocOk γ id s.logst.snap ∗ ownCCV2 cc dq ccm ∗ £ 1 }}
+        loanCom γ rs.slent ∗ snapLocOk γ id s.logst.snap ∗ ownConfChangeV2 cc dq ccm ∗ £ 1 }}
       (App (Val (rnv.raft' @!! go.GoType.PointerType raft.ty @!! go!"applyConfChange")) (Val #cc))
     {{ (cs : Loc) (xs os ls lns : List w64), RET #cs;
         ownRawNode γ rn id { rs with cfg := cs', capplied := k + 1 } ∗
-        ownCCV2 cc dq ccm ∗
+        ownConfChangeV2 cc dq ccm ∗
         csPts cs (DFrac.own 1) (ConfStateM.mk xs ls os lns cs'.cfg.autoLeave) true ∗
         ⌜xs ≡ₚ elements cs'.cfg.incoming ∧ os ≡ₚ elements cs'.cfg.outgoing ∧
           ls ≡ₚ elements cs'.cfg.learners ∧ lns ≡ₚ elements cs'.cfg.learnersNext⌝ }} := by
@@ -1290,15 +1290,15 @@ theorem rawNode_applyCC_reseal (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNSt
 configuration unchanged (`node.run`'s `confc` arm); the ghost step inside. -/
 theorem wp_rn_raft_applyConfChange
     (wp_raft_applyConfChange : raft.applyConfChange.spec (GF := GF) (hG := hG))
-    (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : Loc) (cc : Loc) (ccm : CCV2M)
+    (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : Loc) (cc : Loc) (ccm : ConfChangeV2M)
     (Hst : γ.reDyn = none)
     (Hn : CCShrink γ.reCfg ccm.transition ccm.changes) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-        ownRawNode γ rn id rs ∗ rn.[RawNode, go!"raft"] ↦□ r ∗ ownCCV2 cc DFrac.discard ccm ∗
+        ownRawNode γ rn id rs ∗ rn.[RawNode, go!"raft"] ↦□ r ∗ ownConfChangeV2 cc DFrac.discard ccm ∗
         £ 1 }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"applyConfChange")) (Val #cc))
     {{ (cs : Loc) (xs ls : List w64), RET #cs;
-        ownRawNode γ rn id rs ∗ ownCCV2 cc DFrac.discard ccm ∗
+        ownRawNode γ rn id rs ∗ ownConfChangeV2 cc DFrac.discard ccm ∗
         csPts cs (DFrac.own 1) (ConfStateM.mk xs ls [] [] false) true ∗
           ⌜xs ≡ₚ elements γ.reCfg ∧ (∀ k ∈ ls, k ∉ γ.reCfg)⌝ }} := by
   iintro %Φ ⟨#Hpkg, Hrn, #Hr, Hccs, Hlc⟩ HΦ
@@ -1363,18 +1363,18 @@ theorem ownRawNode_borrow_in (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNStat
 `node.run`'s `confc` arm): `wp_applyConf_dyn` on `ownRawNode`, the changes read-only. -/
 theorem wp_rn_raft_applyConfChange_dyn
     (wp_raft_applyConfChange : raft.applyConfChange.spec (GF := GF) (hG := hG))
-    (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : Loc) (cc : Loc) (ccm : CCV2M)
+    (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (r : Loc) (cc : Loc) (ccm : ConfChangeV2M)
     (dec : CCDec) (c0 : CCState) (h0 : CfgOk c0)
     (h1 : CCGood c0) (hm : rs.mode = .dyn dec c0 h0 h1) (k : Nat) (e : EntryM)
     (cs' : CCState)
     (Hpre : DynCCPreOp dec rs.delivered rs.capplied rs.cfg (ccm.transition, ccm.changes) k e cs') :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗
-        ownRawNode γ rn id rs ∗ rn.[RawNode, go!"raft"] ↦□ r ∗ ownCCV2 cc DFrac.discard ccm ∗
+        ownRawNode γ rn id rs ∗ rn.[RawNode, go!"raft"] ↦□ r ∗ ownConfChangeV2 cc DFrac.discard ccm ∗
         £ 1 }}
       (App (Val (r @!! go.GoType.PointerType raft.ty @!! go!"applyConfChange")) (Val #cc))
     {{ (cs : Loc) (xs os ls lns : List w64), RET #cs;
         ownRawNode γ rn id { rs with cfg := cs', capplied := k + 1 } ∗
-        ownCCV2 cc DFrac.discard ccm ∗
+        ownConfChangeV2 cc DFrac.discard ccm ∗
         csPts cs (DFrac.own 1) (ConfStateM.mk xs ls os lns cs'.cfg.autoLeave) true ∗
         ⌜xs ≡ₚ elements cs'.cfg.incoming ∧ os ≡ₚ elements cs'.cfg.outgoing ∧
           ls ≡ₚ elements cs'.cfg.learners ∧ lns ≡ₚ elements cs'.cfg.learnersNext⌝ }} := by

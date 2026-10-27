@@ -25,10 +25,10 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- `x.GetType()` of a `*ConfChange` holding `m` (at any fraction) is its `Type` (a nil field reads
 as `0`, `cellRO`); of a nil `*ConfChange`, `ConfChangeAddNode`, i.e. `0`. -/
 abbrev raftpb.ConfChange.GetType.spec : Prop :=
-  (∀ (p : Loc) (dq : DFrac) (m : CCV1M),
-    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ ownCCV1 p dq m }}
+  (∀ (p : Loc) (dq : DFrac) (m : ConfChangeM),
+    {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb ∗ ownConfChange p dq m }}
       (App (Val (p @!! go.GoType.PointerType raftpb.ConfChange.ty @!! go!"GetType")) (Val #()))
-    {{ RET #m.type; ownCCV1 p dq m }}) ∧
+    {{ RET #m.type; ownConfChange p dq m }}) ∧
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb }}
     (App (Val ((null : Loc) @!! go.GoType.PointerType raftpb.ConfChange.ty @!! go!"GetType"))
       (Val #()))

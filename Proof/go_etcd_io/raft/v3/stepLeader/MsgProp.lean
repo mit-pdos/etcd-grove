@@ -293,7 +293,7 @@ theorem wp_stepLeader_prop
     (wp_EntryType_Enum : raftpb.EntryType.Enum.spec (GF := GF) (hG := hG))
     (wp_DescribeConfChange : DescribeConfChange.spec (GF := GF) (hG := hG))
     (r : Loc) (id : w64) (s : NState) (ml : Loc) (m : MessageM) (ents : List EntryM)
-    (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) (cs : List (Option CCMsg)) (k0 : Nat)
+    (sn : Option SnapshotM) (ctx : List w8) (rs : List Loc) (cs : List (Option ConfChangeIM)) (k0 : Nat)
     (Hty : m.Type' = MsgProp) (Hne : ents ≠ [])
     (Hsmall : (ents.length : Int) < 2^61) (Hnz : s.term ≠ W64 0) (Hlead : s.role = .leader) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ ownRaftPhysCV c c.voters r id s ∗
@@ -504,7 +504,7 @@ theorem wp_stepLeader_prop
       cc_checks
       -- `wantsLeaveJoint := len(cc.AsV2().Changes) == 0`: a `ConfChange` has one change
       wp_apply wp_ConfChange_AsV2 _ _ _ $$ [$Hown] as %v2 ⟨Hown, Hv2⟩
-      icases ownCCV2_changes _ _ _ $$ Hv2 with ⟨%chs, HCh, %Hchl, -⟩
+      icases ownConfChangeV2_changes _ _ _ $$ Hv2 with ⟨%chs, HCh, %Hchl, -⟩
       try wp_auto
       have Happ : lv.applied' = s.logst.applied := Hlv.2
       cc_join (.v1 c1)
@@ -514,7 +514,7 @@ theorem wp_stepLeader_prop
         have Hnp : ¬ uint.Z s.logst.applied < uint.Z (lpc (sint.nat n)).2 := by
           rw [← Happ]; exact Hif
         have Hch0 : chs.len ≠ W64 0 := by
-          intro h; have h1 := Hchl.1; rw [h] at h1; simp [CCV1M.asV2, sint.nat] at h1
+          intro h; have h1 := Hchl.1; rw [h] at h1; simp [ConfChangeM.asV2, sint.nat] at h1
         rw [decide_eq_false Hch0]
         try wp_auto
         rcases Bool.eq_false_or_eq_true c.joint with Hjv | Hjv
@@ -550,7 +550,7 @@ theorem wp_stepLeader_prop
       rw [Hdec]
       icases Hm with ⟨%Herr, Hown⟩
       subst Herr
-      icases ownCCV2_changes _ _ _ $$ Hown with ⟨%chs, HCh, %Hchl, Hownback⟩
+      icases ownConfChangeV2_changes _ _ _ $$ Hown with ⟨%chs, HCh, %Hchl, Hownback⟩
       cc_checks
       -- `wantsLeaveJoint := len(cc.AsV2().Changes) == 0`: `AsV2` is the change itself
       wp_apply wp_ConfChangeV2_AsV2

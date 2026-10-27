@@ -6,17 +6,17 @@ theorem RawNode.ApplyConfChange.wp_proof [package_sem : Assumptions] (wp_ConfCha
     raftpb.ConfChange.AsV2.spec) (wp_ConfChangeV2_AsV2 : raftpb.ConfChangeV2.AsV2.spec)
     (wp_raft_applyConfChange : raft.applyConfChange.spec) : RawNode.ApplyConfChange.spec
   -- `Perennial.EtcdGrove.RawNode.ApplyConfChange.spec`, unfolded:
-  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (c : GoInterface) (o : CCMsg) (dq : DFrac) (k : Nat) (e : EntryM)
-    (cs' : CCState),
+  ∀ (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState) (c : GoInterface) (o : ConfChangeIM) (dq : DFrac) (k : Nat)
+    (e : EntryM) (cs' : CCState),
     (rs.mode = RNMode.static → CCApplies γ.reCfg id (ccV2Of o).fst (ccV2Of o).snd) →
       (∀ (dec : CCDec) (c0 : CCState) (h0 : CfgOk c0) (h1 : CCGood c0),
           rs.mode = RNMode.dyn dec c0 h0 h1 → DynCCPre dec rs o k e cs') →
         ⊢
           ∀ Φ,
-            isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ "Hrn" ∷ ownRawNode γ rn id rs ∗ "Hc" ∷ ownCCI c dq (some o) -∗
+            isPkgInit pkg_id.go_etcd_io.raft.v3 ∗ "Hrn" ∷ ownRawNode γ rn id rs ∗ "Hc" ∷ ownConfChangeI c dq (some o) -∗
               (▷
                   ∀ csp cs,
-                    "Hc" ∷ ownCCI c dq (some o) ∗
+                    "Hc" ∷ ownConfChangeI c dq (some o) ∗
                         "Hcs" ∷ csPts csp (DFrac.own 1) cs true ∗
                           "Hres" ∷
                             (⌜rs.mode = RNMode.static⌝ ∗

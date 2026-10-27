@@ -940,7 +940,7 @@ end confs
 The store's own view of a `Ready`'s read states (`rsOk`). What the store needed of
 `InvPb.lean`'s message predicates moved to raft's shared files on 2026-10-16 (stage R7a):
 `msgPtsC_persist_els`, `msgPtsC_store_Entries`, `msgPtsC_fields_acc`, `entsPts_elim`
-(`InvPbMsg.lean`), `csPts_of_struct_ro`, `ownCCV1_persistent`, `ownCCV1_persist`
+(`InvPbMsg.lean`), `csPts_of_struct_ro`, `ownConfChange_persistent`, `ownConfChange_persist`
 (`InvPb.lean`). -/
 
 section pb

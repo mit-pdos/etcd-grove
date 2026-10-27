@@ -350,7 +350,7 @@ theorem PCInv.snoc_nonconf {applied li pci : w64} {acc : List EntryM × w64}
     rw [this] at he; simp at he; subst he; exact absurd hce hx
 
 theorem propConfStep_inv (joint : Bool) {applied li pci : w64} {acc : List EntryM × w64}
-    {x : EntryM × Option CCMsg} (h : PCInv applied li pci acc)
+    {x : EntryM × Option ConfChangeIM} (h : PCInv applied li pci acc)
     (hx : x.2.isSome = decide (IsConfEnt x.1)) (hal : uint.Z applied ≤ uint.Z li)
     (hb : uint.Z li + (acc.1.length : Int) + 1 < 2 ^ 64) :
     PCInv applied li pci (propConfStep joint applied li acc x) := by
@@ -396,7 +396,7 @@ theorem propConfStep_inv (joint : Bool) {applied li pci : w64} {acc : List Entry
       · intro _; simp only; rw [hnew]; rw [hp] at hle; exact ⟨hle, by omega⟩
 
 theorem propConf_foldl_inv (joint : Bool) {applied li pci : w64}
-    (hal : uint.Z applied ≤ uint.Z li) (xs : List (EntryM × Option CCMsg))
+    (hal : uint.Z applied ≤ uint.Z li) (xs : List (EntryM × Option ConfChangeIM))
     (hx : ∀ x ∈ xs, x.2.isSome = decide (IsConfEnt x.1)) :
     ∀ acc : List EntryM × w64, PCInv applied li pci acc →
       uint.Z li + (acc.1.length : Int) + (xs.length : Int) < 2 ^ 64 →
@@ -411,7 +411,7 @@ theorem propConf_foldl_inv (joint : Bool) {applied li pci : w64}
         (by simp only [List.length_cons] at hb; omega)
     · rw [propConfStep_length]; simp only [List.length_cons] at hb; push_cast; omega
 
-theorem cctypes_iff {ents : List EntryM} {cs : List (Option CCMsg)}
+theorem cctypes_iff {ents : List EntryM} {cs : List (Option ConfChangeIM)}
     (H : CCTypesOk ents cs) : ∀ x ∈ ents.zip cs, x.2.isSome = decide (IsConfEnt x.1) := by
   induction H with
   | nil => intro x hx; simp at hx
@@ -424,7 +424,7 @@ theorem cctypes_iff {ents : List EntryM} {cs : List (Option CCMsg)}
 
 /-- What the loop's result says (`PCInv` of the whole batch). -/
 theorem propConf_inv (joint : Bool) {applied li pci : w64} {ents : List EntryM}
-    {cs : List (Option CCMsg)} (hcs : CCTypesOk ents cs) (hal : uint.Z applied ≤ uint.Z li)
+    {cs : List (Option ConfChangeIM)} (hcs : CCTypesOk ents cs) (hal : uint.Z applied ≤ uint.Z li)
     (hnw : uint.Z li + (ents.length : Int) < 2 ^ 64) :
     PCInv applied li pci (propConf applied li pci ents cs joint) := by
   unfold propConf
@@ -504,7 +504,7 @@ theorem RInv_win {r : RState} (id : w64) (mt : GMap w64 w64) (ms : List Msg)
       have := H.i1.confCount_drop hg
       omega
 
-theorem RInv_propose {r : RState} (id : w64) (m : Msg) (cs : List (Option CCMsg))
+theorem RInv_propose {r : RState} (id : w64) (m : Msg) (cs : List (Option ConfChangeIM))
     (ms : List Msg) (H : RInv dec c0 r) (hrole : r.p.role = .leader)
     (hcs : CCTypesOk m.entries cs)
     (hnw : plogLastIndexZ r.p.base r.p.log + (m.entries.length : Int) < 2 ^ 64) :
@@ -573,7 +573,7 @@ theorem RInv_propose {r : RState} (id : w64) (m : Msg) (cs : List (Option CCMsg)
       have := H.applied_cidx; have := H.cidx_commit; omega)
   · intro _; rw [hfull]; exact i3'
 
-theorem RInv_propDrop {r : RState} (m : Msg) (cs : List (Option CCMsg))
+theorem RInv_propDrop {r : RState} (m : Msg) (cs : List (Option ConfChangeIM))
     (H : RInv dec c0 r) (hrole : r.p.role = .leader) (hcs : CCTypesOk m.entries cs)
     (hnw : plogLastIndexZ r.p.base r.p.log + (m.entries.length : Int) < 2 ^ 64) :
     RInv dec c0 { r with pci := (propBatch r m.entries cs).2 } := by

@@ -501,11 +501,11 @@ instance peersCtx_persistent (pv : List Peer) (ctxs : List (List w8)) :
 `e.Data'` for `bootLog[k] = e`, with a `nil` error, and gives the message back. Persistent (one
 call per peer). -/
 def bootMarshal (ps : List w64) (ctxs : List (List w8)) (bootLog : List EntryM) : IProp GF :=
-  iprop(□ ∀ (k : Nat) (p : Loc) (dq : DFrac) (m : CCV1M) (e : EntryM)
+  iprop(□ ∀ (k : Nat) (p : Loc) (dq : DFrac) (m : ConfChangeM) (e : EntryM)
     (_ : ps[k]? = some m.nodeId ∧ ctxs[k]? = some m.context ∧ bootLog[k]? = some e ∧
       m.type = W32 0 ∧ m.id = W64 0) (Φ : val → IProp GF),
-    ownCCV1 p dq m -∗
-    (∀ (d : GoSlice), ownCCV1 p dq m -∗ d ↦* e.Data' -∗ Φ (PairV #d #interface.nil)) -∗
+    ownConfChange p dq m -∗
+    (∀ (d : GoSlice), ownConfChange p dq m -∗ d ↦* e.Data' -∗ Φ (PairV #d #interface.nil)) -∗
     WP (App (Val (@! google_golang_org.protobuf.proto.Marshal))
           (Val #(interface.mkOk (go.GoType.PointerType raftpb.ConfChange.ty) #p))) {{ Φ }})
 
@@ -592,8 +592,8 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 /-- The conf change `o` is one the cluster admits (2026-10-15, stage N): the bytes it is
 marshaled to satisfy `γ.reCCOk` (`RaftNames.reCCOk`; always, for a cluster that admits every
 change). -/
-def CCAllowed (γ : RaftNames) (o : CCMsg) : Prop :=
-  ∀ bs, CCData (some o) bs → γ.reCCOk (ccEntryType (some o)) bs
+def CCAllowed (γ : RaftNames) (o : ConfChangeIM) : Prop :=
+  ∀ bs, MarshalsConfChange (some o) bs → γ.reCCOk (confChangeEntryType (some o)) bs
 
 end
 

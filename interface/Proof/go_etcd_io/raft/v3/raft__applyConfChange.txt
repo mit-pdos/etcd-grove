@@ -9,7 +9,7 @@ theorem raft.applyConfChange.wp_proof [package_sem : Assumptions] (wp_raftLog_la
     (wp_Changer_Simple : confchange.Changer.Simple.spec) (wp_raft_switchToConfig :
     raft.switchToConfig.spec) : raft.applyConfChange.spec
   -- `Perennial.EtcdGrove.raft.applyConfChange.spec`, unfolded:
-  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (cc : Loc) (ccm : CCV2M) (dq : DFrac) (c' : CCState),
+  ∀ (c : CfgM) (r : Loc) (id : w64) (s : NState) (cc : Loc) (ccm : ConfChangeV2M) (dq : DFrac) (c' : CCState),
     ccApplyM ccm.transition ccm.changes (cfgStateC c) = some c' →
       ↑(GMap.size c'.cfg.ids) ≤ 2 ^ 62 →
         (s.role = PRole.candidate ∨ s.role = PRole.preCandidate → id ∈ c'.cfg.voters) →
@@ -17,11 +17,11 @@ theorem raft.applyConfChange.wp_proof [package_sem : Assumptions] (wp_raftLog_la
             ⊢
               ∀ Φ,
                 isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
-                    "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗ "Hcc" ∷ ownCCV2 cc dq ccm -∗
+                    "Hphys" ∷ ownRaftPhysCV c c.voters r id s ∗ "Hcc" ∷ ownConfChangeV2 cc dq ccm -∗
                   (▷
                       ∀ cs xs os ls lns s',
                         ownRaftPhysCV c'.cfg c'.cfg.voters r id s' ∗
-                            ownCCV2 cc dq ccm ∗
+                            ownConfChangeV2 cc dq ccm ∗
                               csPts cs (DFrac.own 1)
                                   { Voters' := xs, Learners' := ls, VotersOutgoing' := os, LearnersNext' := lns,
                                     AutoLeave' := c'.cfg.autoLeave }
