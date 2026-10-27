@@ -441,47 +441,39 @@ Other notes in use: `notes/snapshot-receiver-epochs.md` (S5's plan),
 
 In status-history.md: the raft v3.7 retarget ("Retargeting raft to v3.7, stage R0" to "stage R8b"), reconfiguration (stages 0, A1-A3, B1-B8, D, L, N), the read index and proposals (stage R, stage F), CheckQuorum and PreVote, the multi-member stages "D21 M0" to "D21 M6", and the witness stages W1-W3b-A and W5.
 
-## etcd's server on raft's node API: the port, in progress (2026-10-27, branch `server-port`)
+## etcd's server on raft's node API: the port (2026-10-27, branch `server-port`)
 
 Porting `Proof/go_etcd_io/etcd/**` off raft's internals onto the node API (`NodeApiDraft.lean`).
-Design: `notes/decisions.md`, "etcd's server on raft's node API". **The build is not green**: the
-server was broken on `raft-api` already (raft's proposal-registry changes); the port has moved the
-frontier past the server's raft contract.
+Design: `notes/decisions.md`, "etcd's server on raft's node API".
 
-**Done (compiling, `etc/lean-check.py`):**
-- `SrvRaftLog.lean` (new; the raft section moved out of `InvRequest.lean`): the server's raft
-  contract over the API. `ServerRaftNames.raft : SrvRaft` (the API `Draft.Cluster`, the voters `vs`,
-  `dyn`, the decoder `dec`, the boot log `boot`, the storage registry `reg`, and the server's own
-  ghost names); `srvRLogLb` = the API's `isCommittedLogLb` (indices consecutive); `srvRLog` = half of
-  the server's **log of requested entries**; the server's own proposals' registry and reads'
-  re-firing (`srvLogInv`): `srvPropAu_api`, `srvProp_register`, `srvPropWits_of`, `srvReadAu_api`,
-  `srvReadWit_of`, `srvReadCtx_commit`, the read contexts' mint, `srvLogInv_alloc`,
-  `srvRLogLb_intro`, `srv_sentMsg_notSnap`, `srv_readySnap_none`, `srv_entry_transfer`,
-  `srv_eqv_prefix`, `srvBootLogOk` (+ `_of_BootLog`), `srvStor` (the storage model the node
-  predicates are stated at). Result predicates invariant under `srvEqv` (`srvQInv`).
-- `InvRequest`, `KVLemmas` (`kvModel_eqv`, `kv_qinv`, `reqPropOk_qinv`, `readQs_qinv`; `kv_noop_au`
-  gone), `InvProposer`, `ProposerLemmas`, `read/Inv`, `InvRest`, `InvImage`, `InvCfgView` (over
-  `Draft.Membership`/`nodeConfig`/`deliveredLogLb`; `srvDec` over `Draft.LogEntry`), `InvRaftNode`
-  (`RNNames.node : SrvRaft`; `rnDrv`/`rnBusyN` as `Draft.nodeDriver`; `rn_ready_recv` from the API's
-  receive; `srvRQ` a read context with `readCtxAfter`; the snapshot predicates `False`, `rnRtOk`
-  `True`), `NodeBridge` (all discharges over the API's specs), `InvRaftLoop`, `InvApRes`, `KVApply`,
-  `KVRead` (six credits), `newRaftNode` (spec and proof), `bootstrappedRaft.newRaftNode` (spec and
-  proof: the API's `StartNode`, static or dynamic; the peers' slice not given back).
+**State:** every server module builds, the server's `Link.lean` and `Results.lean` included (`lake
+build`: everything but the examples). `etc/api-check.py etc/api/raft.txt --check`: 0 errors. No
+server module names raft's internals (`rLog`, `isCommitted`, `raftCommitInv`, `RaftNames`,
+`NodeNames`, `isRaftMsg`, `termLB`, `rdCred`, `stepP`, ...) but in history comments; the server's
+modules that read them were ported or deleted (`SnapSendBundle.lean`, `snapBranch_send`,
+`srvRLogLb_dlv`, `snapLocal_of_saved`, raft's allocation continuation `srvBootClient*`/
+`srvRaftBoot*_alloc` and its standing update `kv_noop_au*`/`srvNoopAu_to_noopAu_of`). The node
+API's linked results enter through `NodeApiLink.lean` (`srvApi_wp_*`, a linking module: it imports
+raft's `Link.lean` for `MemoryStorage.wp_Snapshot`).
 
-Also ported since (compiling): `KVAuthModel` (`detLogOn_transfer`, `kvRaftOfOn_eqv`,
-`kvRaftOfOn_of_lb`), `KVReadOn`, `ProposeOn` (`kvOn_qinv`, `reqPropOkOn_qinv`), `ReqOn`
-(`kv_prop_au_M` gives the result's invariance), `EtcdServer__apply` (the dynamic view's
-`DynCCPre`), `raftNode__processMessages`, `SnapRO` (`SrvRaft.snapLoc`, the members' snapshot
-directories, in place of raft's `reSnapLoc`), `raftNode__start` (the `Ready` receive by
-`isReadyChan_recvAu`; the loop token carries the log's indices; `isRaftNodeIfc` carries `isNode`),
-`NodeStart` (`NodeStartSpec` quantifies the server's `SrvRaft`; `srvRaftLogInv` a premise; the read
-contexts' invariant in the installer; the peers' slice not given back), `EtcdServer__run` (the
-dynamic premise `γn.pre = [] ∧ ai₀ = 0`, in `isServerRun`/`srvBuilt`/... `HEr`), `InvBuild` (the
-network payload `srvNet γ` over `sentMsg`/`msgCredits`; `srvEr` without budget names), `InvNet`
-(`stepIn_of_recv`), `Process` and the reports, `InvBoot` (`bootOk` over `SrvRaft`: the peers'
-contexts a parameter, the certificate registry's authority `memCertAuth`, `(ps.length) < 2^62`, no
-raft modes), `BuildAlloc`, `BuildGap` (`srv_entry_src`, `entryClaims_transfer`), `ServerOn`,
-`processInternalRaftRequestOnce` (a credit for `Propose`, three for the witnesses).
+**Not done: the examples** (`examples/common`, `putget`, `putget3`, `authkv`, `cachekv`, `watchkv`,
+`k8setcd3`, `linkv3p`, `linkvtxn`): their adequacy theorems' named premises are stated over raft's
+names (`bootstrap`'s contract "at every raft names of the cluster", `γ.reCfg`/`reCCOk`/`reBoot`/
+`reNoSnap`/`reNoXfer`; `BootFacts` as `srvBootLogOk (ccOk id) ...`). Porting them changes those
+trusted statements: `bootstrap`'s contract at every `SrvRaft` of the cluster (`γ.vs = ps`,
+`γ.dyn = false`, `γ.boot = toEntries boot 0`, the peers' contexts `ctxs` a parameter), the boot
+facts as the node API's `BootLog ps ctxs boot` with each entry a `ccBootOk` conf change of id `0`,
+and `bootMarshal` (now the cluster allocation's premise, `srvClusterBoot_alloc`). A decision for the
+user (the examples' top-level premises), not taken here.
+
+**The server's statements that changed** (beyond the node API vocabulary): `NewServer.spec`/`specM`
+(over `SrvRaft`, static clusters, the node's boot token, `srvRaftLogInv`, the cluster's read
+credits, `MemStorReg ⟨γ.reg⟩` inside); `bootOk`/`bootstrapContract` (the peers' contexts a
+parameter, `memCertAuth`, fewer than `2^62` peers, no raft modes); `NodeStartSpec` (over `SrvRaft`,
+the peers' slice not given back, the installer takes the read contexts' invariant);
+`isServerRun`/`srvBuilt`/`isServerBuilt*`'s `HEr` (a dynamic cluster's start: `γn.pre = []`,
+`ai₀ = 0`); `srvEr`/`srvErM` (no budget names); `node_contract_ifc` (the read contexts' invariant,
+not `srvRaftLogInv`); `server_cluster_alloc_on`/`server_member_alloc_on`.
 
 **Draft items added to `NodeApiDraft.lean`** (sealed, `sorry` unless noted): `isCommittedLogLb_length`,
 `readCredits_timeless` (proved), the instance-free laws `isCommittedLogLb_mono'`/`_agree'`,
@@ -491,13 +483,6 @@ raft modes), `BuildAlloc`, `BuildGap` (`srv_entry_src`, `entryClaims_transfer`),
 `sentMsg_snapshot`, `msgCredits_none` (proved), `bootedCluster` (sealed, defined) with
 `nodeBoot_booted`/`nodeDynamicBoot_booted`, `stepIn_intro_booted` (a pre-vote request and a
 forwarded proposal of any context: etcd runs with `PreVote`).
-
-**Next (the build's frontier):** `NewServer` (spec and proof), `NewServerAlloc`/`NewServerAllocOn`
-(the cluster's allocation: `cluster_alloc`/`dynamicCluster_alloc` with `transfer := false`,
-`snapOk := False`, then `srvLogInv_alloc`, `noConfChangeV2_alloc`, `readyFits_alloc`,
-`bootedCluster` from a boot token; a static storage's `storageCertLink` from `memCertAuth`),
-`StartOn`/`InvStart`, the snapshot sender (`SnapSend*`, `SnapRecvFacts`), `Results`/`Link`, then
-the examples.
 
 ## Raft's node API for etcd's server, implemented (2026-10-27, branch `raft-api`)
 
