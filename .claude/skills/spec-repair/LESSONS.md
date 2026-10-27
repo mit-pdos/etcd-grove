@@ -34,3 +34,8 @@ One entry per critique of a run: date, target, what the user said, the rule it b
   serializable reads when they took no AU, after making every read take one): "What's the point of
   having Q = true in the precondition for the Range spec?" Rule (`SKILL.md`, "Repair"): after a
   change, drop what existed only for what it changed.
+- 2026-10-27, same (the reason behind the last entry): "A spec that always requires the AU is a
+  stronger spec, because the True ∨ AU spec can be proven as a layer on top by putting kvState in
+  an invariant. In general, we should avoid specs that are really the disjunction of two alternate
+  specifications, especially if one of those specs is strictly stronger than the others." Rule
+  (`SKILL.md`, review list): no disjunction of alternative specs; keep the stronger.

@@ -31,6 +31,9 @@ leaky or unusable. Check its findings against the source before acting on them. 
 - a witness or history predicate beside an atomic update's `Q` (`kvWas γ σ`): the caller's `Q`
   keeps what it needs; a stale read can still fire the update at the current state, its
   answer a past state of it;
+- a spec that is really the disjunction of two alternative specs (a precondition
+  `⌜Q = fun _ => True⌝ ∨ AU …`): keep the stronger one, of which the other is a layer on top
+  (here: `kvState` in an invariant gives the trivial AU); a case split on the input is fine;
 - a spec that no client uses;
 - a statement that `interface/` does not show in full or that hides behind a wrapper (an atomic
   update behind a helper like `kvOpAu1`: write it in the triple), or whose shape differs from
