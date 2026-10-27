@@ -123,7 +123,8 @@ theorem Main.wp_proof
     dirOne_ok id _ (by intro h; apply Hbf.idLow; rw [h]; decide) (by decide)
   wp_apply (wp_StartServer N go!"k8setcd3" go!"127.0.0.1:23906" go!"127.0.0.1:23896" lg (Draft.LogEntry.toEntries boot 0) ctxs
       (k8setcd3Dir id) id γ ρ E₀ Φs γn Htb Hrb48 HrbN hvs
-      hdyn hboot hblen hγn1 hγn2 Hdirok Hlg Hck Haf Hbuq Hdbo) $$ [Htok Hmb]
+      hdyn hboot hblen hγn1 hγn2 Hdirok
+      (by simp [k8setcd3Dir, dirOne]) Hlg Hck Haf Hbuq Hdbo) $$ [Htok Hmb]
     as %srv %err Hr
   · iframe; iframe #
   icases Hr with (⟨%Herr, -⟩ | ⟨%Herr, Hup⟩)

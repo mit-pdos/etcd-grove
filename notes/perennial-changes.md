@@ -17,6 +17,16 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 
 ## Open
 
+### Lemmas: `strings.split` of `strings.Join` (2026-10-27, D22 J-T)
+
+Perennial's `Proof/strings/Base.lean` has `intercalate_split` (joining the fields of a split gives
+the string back) but not the converse. J-T proves it locally for a one-byte separator no field
+contains (`split_intercalate1`, with `splitAux_field`, in
+`Proof/go_etcd_io/etcd/server/v3/etcdserver/api/rafthttp/Pipe.lean`: the `X-PeerURLs` header,
+`setPeerURLsHeader`'s `Join` read back by the handlers' `Split`). Proposed: the general lemma (any
+non-empty separator that is no infix of a field and does not overlap them) in Perennial's
+`strings` proofs, and this repository's local copy removed.
+
 ### Channels: `recvAu_wand` with a fancy update in the wand (2026-10-27, branch `raft-api`)
 
 - **Missing.** `recvAu_wand` (`Chan/AuSpec/ChanAuBase.lean`) turns a receive's update for `Φ1`

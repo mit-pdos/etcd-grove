@@ -36,7 +36,7 @@ abbrev rafthttp.Transport.AddRemote.spec : Prop :=
   (∀ h, go!"http://" ++ h ∈ ss → (netRh γn).owner h = id) → c.lid ≠ id → (netRh γn).member id →
   id ∈ c.L →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
-      trState γn t c ∗ us ↦*{dq} ss }}
+      trState γn t c ∗ trOpened c ∗ us ↦*{dq} ss }}
     (App (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"AddRemote"))
       (Val #id)) (Val #us))
   {{ RET #(); us ↦*{dq} ss }}

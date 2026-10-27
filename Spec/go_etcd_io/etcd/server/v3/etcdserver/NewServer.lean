@@ -163,6 +163,9 @@ abbrev NewServer.spec : Prop :=
     (go.GoType.PointerType go_etcd_io.etcd.pkg.v3.featuregate.featureGate.ty) #p) →
   -- (2026-10-24, rafthttp stage 6d) the network's directory well formed
   netDirOk dir →
+  -- (2026-10-27, D22 J-T, W8) the member's configured peer URLs its directory URLs (what its
+  -- transport sends in `X-PeerURLs`)
+  peerURLsDir dir id U.peer →
   -- (2026-10-27) the `MemoryStorage` registry the cluster's storage model's (`srvStor γ`)
   letI : MemStorReg GF := ⟨γ.reg⟩
   {{ "#Hpkg" ∷ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
@@ -308,6 +311,9 @@ abbrev NewServer.specM (on : Bool) : Prop :=
     (go.GoType.PointerType go_etcd_io.etcd.pkg.v3.featuregate.featureGate.ty) #p) →
   -- (2026-10-24, rafthttp stage 6d) the network's directory well formed
   netDirOk dir →
+  -- (2026-10-27, D22 J-T, W8) the member's configured peer URLs its directory URLs (what its
+  -- transport sends in `X-PeerURLs`)
+  peerURLsDir dir id U.peer →
   -- (the auth plan's E2i) with auth on, the simple token provider with a positive TTL that fits
   -- `time.Duration(cfg.TokenTTL) * time.Second`
   (on = true → cfg.AuthToken' = go!"simple" ∧ 0 < uint.Z cfg.TokenTTL' ∧

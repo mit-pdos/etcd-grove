@@ -45,7 +45,7 @@ abbrev newServer.spec : Prop :=
     (Φs : w64 → w64 → List w8 → GName → IProp GF) (γn : NetNames GF),
   threadBound GF ≤ 2 ^ 31 → receiptBound GF ≤ 2 ^ 48 → receiptBound GF ≤ N + 1 →
   γ.vs = ps → γ.dyn = false → γ.boot = bootLog → bootLog.length ≤ 2 ^ 60 →
-  γn.N = srvNet γ → γn.dir = dir → netDirOk dir →
+  γn.N = srvNet γ → γn.dir = dir → netDirOk dir → go!"http://" ++ peerAddr ∈ dir id →
   Uok ⟨[httpURL peerAddr], [httpURL client], M, iu⟩ →
   lg ≠ null →
   ckptEffectsOk → authRecordsFit → apply.backendUnderQuota → storage.dbOpensOk →

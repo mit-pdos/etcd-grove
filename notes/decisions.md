@@ -24325,6 +24325,105 @@ the read-index lemmas' posts, `Range.specOn`'s post.
 `apply_check_txn_auth_lb`, which can take the same floor); the admin proposers, the Auth handlers,
 `setupAuthOk`; `examples/authkv` and the closed theorem.
 
+## D22 J-T: the transport handed over unfrozen, with W8 (2026-10-27 · decided by the orchestrator while the user was away (J-T))
+
+Stage J-T of `notes/snapshot-sj-plan.md` (gap 7, J0 item 7), on top of the membership track's M5
+(D43 "M5c carried out", "M5 merged into `lean`"), which had already done part of it: peers-only
+`trIds`, the live right `trLive` and `Stop_live` (`netTransport`'s `Stop` gated, `RNEnv.ST`, the
+`stopped` bag's payload), the readers (`Send`, `CutPeer`, `MendPeer`, `SendSnapshot`,
+`ActiveSince`) over `trState`, a pool of four `R`s per id of `TrN.L` for the remotes, and
+`RemoveAllPeers` proved. What J-T adds, each choice true of the Go code at the etcd pin and adding
+nothing to the trust base:
+
+- **`NewServer` no longer freezes the transport.** Its pool is every other member
+  (`L = ps.filter (· ≠ id)`, four of `lgMu`'s reader slots each, `2 ^ 22` taken beside the peers'
+  `2 ^ 23`); the live right goes to the apply thread (`srvApRes`'s `ccMembRes`, whose static branch
+  is now `trLive`, as the dynamic one: `applyConfChange`'s known-peer `AddPeer` is `AddPeer_known`,
+  no stop token). The raft node's stop right stays `False` (`srvEr`'s `ST`: nothing sends on
+  `stopped` until M6, which hands the apply thread's `trLive` to `raftNode.stop`).
+  `trLive_freeze`, `trFrozen`, `Stop_full`, `AddPeer_frozen` stay (lemmas no result uses now).
+- **`CutPeer`/`MendPeer`: a no-remote token per budgeted member** (J0's `trNoRem`), so that
+  `linkv3p_safe`'s statement survives with every other member budgeted (M5's `id ∉ c.L` would need
+  `L = []`, which W8 rules out). The stop invariant holds, per id of `L`, its pool entry
+  (`trPoolE`): once a remote took its `R`s, the id's token; until then the four `R`s and the token
+  unless the id is a peer (or the transport stopped). The token's holder knows the id has no remote
+  (`trTok_noRemote`). Tokens are allocated by `Start` (inside the entries) and given out by
+  `AddPeer` of a new peer while the transport is **not opened**: `Start` gives `trUnopened`
+  (exclusive), under which no remote can take its `R`s (the invariant: not opened → `T = []`;
+  `AddRemote` needs `trOpened`, persistent, `trOpen_state`). `NewServer` collects the tokens of all
+  other members in its `AddPeer` loop (`trNoRemAcc`), opens the transport, and puts the tokens in
+  `srvTrTok` (now the transport's peer control: a reader's token and the tokens), which linkv3p's
+  partitioner already holds (`srvPeerCtl`): `EtcdServer.CutPeer.spec`, `peerStep.spec`,
+  `partitioner.spec` and `linkv3p_safe` keep their text. Rejected: M5c's option (ii), a fork fix
+  making `remote.Pause` idempotent (a Go change for a test hook); keeping the freeze (the snapshot
+  path's `RemoveAllPeers`/`AddPeer` need the live right).
+- **`RemoveAllPeers` returns the removed peers' `c.R` slots: four each** (`peer.stop` waits for
+  its pipeline's four goroutines; the two stream writers' and two readers' are not joined), and
+  takes back the no-remote facts of the peers it removes (`trNoRemOr` of each of `Q`, the peers'
+  ids without repeats): a budgeted peer whose token is out must get it back into its entry before
+  it stops being a peer, else a window remote could take the budget while the holder believes
+  there is none. `RemovePeer` likewise (`⌜id ∉ rs⌝ ∨ trNoRemOr c id`; the dynamic `ccMembRes`
+  gains `c.L = []`, so its `RemovePeer` needs no token: M8's dynamic `NewServer` is to restate it).
+  The lock's coverage became `id ∈ rs ↔ peers[id]` (was `→`), so `AddPeer`'s post can say whether
+  the id was a peer.
+- **W8: the protocol carries the sender's peer URLs.** `fromOkAt` (pipeline and snapshot requests)
+  and `streamReq` (stream requests) gain `peerURLsHdrOk Rh f hs`: the `X-PeerURLs` header split at
+  `,` is `f`'s peer URL strings (`peerURLsOk`: non-empty, plain, each host `f`'s). The handlers'
+  `AddRemote` (any time, any lock holder) of a sender that is no peer then meets `AddRemote_core`'s
+  premises with the pool's `R`s, and `Handler` is proved over `trState`, `trOpened` and the
+  coverage `∀ f, member f → f ≠ lid → f ∈ c.L` (was: frozen, every other member a peer). The
+  sender's side: `setPeerURLsHeader.spec` states the header's value (`peerURLsHdr`, the URLs'
+  `http://host` strings joined by `,`), `createPostRequest.spec` passes it on, the pipeline, the
+  snapshot sender and the stream reader prove the protocol fact from the transport's configured
+  URLs (`trURLsOk`, now in `trFixed` and the pipeline's, stream reader's and snapshot sender's
+  views), which `Start` takes and `NewServer` derives from a new premise `peerURLsDir dir id
+  U.peer` (the configured peer URLs are the member's directory URLs). Lemmas:
+  `split_intercalate1` (`strings.Split` of a `strings.Join` at a one-byte separator no field holds:
+  a Perennial candidate, `notes/perennial-changes.md`), `types.plainPeerURL_noComma`,
+  `types.plainHostPort_noEscape`. The one restated axiom: `http.URLStringAny_ok`, whose post gains
+  `urlRootPlain u → s = "http://" ++ u.Host'` (Go's `URL.String` of a URL of only `http` and a
+  host of letters, digits, `.`, `-`, `:`: `escape(host, encodeHost)` keeps those bytes, the path
+  and query are empty). This also discharges, for members, the panic of
+  `issues/etcd-rafthttp-addremote-bad-peerurls-panic.md` (a member's header always parses).
+
+**Statement changes** (every closed theorem's statement unchanged; the example-level specs below
+are discharged by their callers):
+1. `rafthttp.Transport.Start.spec`: premise `L.Nodup ∧ trURLsOk (netRh γn) tv.ID' uvs`; post gains
+   `trUnopened c`.
+2. `AddPeer.spec`: post gains `⌜id ∈ rs ∨ id ∉ c.L⌝ ∨ trNoRem c id ∨ trOpened c`.
+3. `AddRemote.spec`: premise `trOpened c`.
+4. `CutPeer.spec`, `MendPeer.spec`: `id ∉ c.L` → `trNoRemOr c id` (taken and returned).
+5. `Handler.spec`: over `trState ∗ trOpened c` and the coverage by `c.L` (was `trFrozen` and the
+   coverage by the frozen peers).
+6. `RemovePeer.spec`: premise `⌜id ∉ rs⌝ ∨ trNoRemOr c id`. `RemoveAllPeers.spec`: `Q` with
+   `Q.Nodup`, `∀ f, f ∈ Q ↔ f ∈ rs`, premise `[∗list] f ∈ Q, trNoRemOr c f`, post
+   `[∗list] _ ∈ Q, c.R ∗ c.R ∗ c.R ∗ c.R`.
+7. `setPeerURLsHeader.spec`, `createPostRequest.spec`: posts gain the `X-PeerURLs` value.
+   `addRemoteFromRequest.spec`, `newStreamHandler.spec`, `streamHandlerOk`: the `AddRemote`
+   premise also gets `peerURLsOk Rh pid us`. `fromOkAt`, `streamReq` (the raft protocol, untrusted
+   definitions): `peerURLsHdrOk`.
+8. `http.URLStringAny_spec` (axiom `URLStringAny_ok`): restated as above.
+9. `NewServer.spec`, `NewServer.specM`: premise `peerURLsDir dir id U.peer`; `srvNetMember`
+   (persistent) is now `trState ∗ trOpened ∗ coverage by c.L`; `srvTrTok` the peer control
+   (reader token and tokens); `ccMembRes`'s static branch `trLive`, its dynamic one with `c.L = []`.
+10. `common.newServer.spec`, `common.StartServer.spec`: premise `"http://" ++ peerAddr ∈ dir id`
+   (their callers: putget, watchkv, cachekv, k8setcd3, linkvtxn, by `simp`; `NewMember` had it).
+11. `EtcdServer.applySnapshot.specSnap` (not linked): `trLive γn t c rs` → `trLive γn t c rs ∗
+   trPeersNoRem c rs` (the walk gives the peers' facts to `RemoveAllPeers` and drops the four `R`s
+   it returns: the `AddPeer`s take the premise's eight each).
+
+**For J1b/J8a**: the apply thread holds `trLive` (in `srvApRes`); the no-remote tokens are in
+`srvTrTok`, which the examples hold (linkv3p's partitioner), so `applySnapshot`'s
+`trPeersNoRem c rs` has no source in the run yet: for an example without a partitioner J1b can
+hand `srvTrTok`'s tokens to the apply thread; with one (linkv3p) the snapshot branch is dead in the
+examples' mode (J0). After a snapshot's `AddPeer`s (opened), `AddPeer` gives no token back (its
+post's `trOpened` branch): a second `RemoveAllPeers` needs a token or `id ∉ L` for each peer, so
+J8a must either restate `AddPeer` to give the token back when its entry holds one (true: the id
+newly a peer and no remote took its `R`s) or add a persistent "remote taken" witness
+(`id ∈ T`) to `trNoRemOr`. `RemoveAllPeers` returns four `R`s per peer, the `AddPeer`s take
+eight: two `lgMu` slots per peer per snapshot... four per peer leak per snapshot (J0's count with
+the stream writers'), the reader-slot Perennial change (J0 item 5) still gates J8b.
+
 ## E3v of the auth plan: the read-only `Txn` with auth on (2026-10-27 · `notes/auth-plan.md`, E3u's first left item)
 
 `EtcdServer.Txn.specOnR` (`Spec/.../EtcdServer__Txn.lean`) and `wp_proofOnR`, linked as
