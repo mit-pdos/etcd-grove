@@ -34,13 +34,13 @@ variable [StorageModel GF]
 
 /-- See the file header. -/
 abbrev deliver.spec : Prop :=
-  ∀ (γ : Draft.Cluster) (peers tr : Loc) (P : GMap w64 GoInterface)
+  ∀ (γ : Draft.Cluster) (peers tr : Loc) (P : GMap w64 GoInterface) (src : w64)
     (msl : GoSlice) (ms : List QMsg),
   {{ isPkgInit (PROP := IProp GF) pkg_id.github_com.mit_pdos.etcd_grove.examples.kv ∗
       peers ↦${DFrac.discard} P ∗ ([∗map] id ↦ nd ∈ P, kvPeerOk γ id nd) ∗
       isTransfers γ tr ∗
       msl ↦* ms.map QMsg.loc ∗
-      [∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ Draft.sentMsg γ kvRaftN q.st ∗
+      [∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ Draft.sentMsg γ kvRaftN src q.st ∗
         Draft.msgCredits γ kvRaftN q.st }}
     (App (App (App (Val (@! github_com.mit_pdos.etcd_grove.examples.kv.deliver))
       (Val #peers)) (Val #tr)) (Val #msl))

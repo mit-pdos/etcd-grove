@@ -186,7 +186,7 @@ theorem KV.run.wp_proof
     refine ⟨rfl, rfl, Int.le_refl _, Int.le_refl _, rfl, rfl⟩
   wp_for IH
   try wp_auto
-  wp_apply wp_readyRecv n ch γr.cluster kvRaftN dv Ha.2.2.2.2.1 $$ [$Hch $Hdrv]
+  wp_apply wp_readyRecv n ch γr.cluster kvRaftN id dv Ha.2.2.2.2.1 $$ [$Hch $HisNode $Hdrv]
     as %rdv' ⟨%ce, %es, %hh, %L, #Hce, #Hcomm, ⟨%sts, #Hsts, #Hstsok⟩, Hrest, Hdrv⟩
   unfold Draft.readyRest
   icases Hrest with ⟨%msgs, #Hes, Hms, Hmsok, -, -, %Hidx, HS⟩
@@ -528,8 +528,8 @@ theorem KV.run.wp_proof
     wp_apply wp_answer γr γp r id n st (D0 ++ ce) pv' (ps ++ vls) (DFrac.own 1) a' (Int.le_of_eq Ha)
       $$ [$Hpkg $Hrep $Hrun $Hpv $Hps] as %rest ⟨Hrun, %ps', Hrest, Hcap2, Hps'⟩
     rw [show advReceipt (kvStorIface st) es L = advReceipt dv'.storage es L by rw [HstorEq]]
-    wp_apply wp_node_Advance n γr.cluster kvRaftN dv' es L Hdv'.2.1
-      $$ [$Hraftinit $Hdrv $Hrcpt] as ⟨Hdrv, Hreq⟩
+    wp_apply wp_node_Advance n γr.cluster kvRaftN kvVoters kvSnapOk dv' es L Hdv'.2.1
+      $$ [$Hraftinit $Hstatic $Hdrv $Hrcpt] as ⟨Hdrv, Hreq⟩
     try wp_auto
     -- (D22 S-r) `if !reconf && applied-snapIndex >= snapEvery`: a snapshot
     have Hsa : uint.Z sI0 ≤ uint.Z a' := by

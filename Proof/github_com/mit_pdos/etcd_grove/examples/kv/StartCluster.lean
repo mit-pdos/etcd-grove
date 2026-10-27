@@ -443,11 +443,11 @@ theorem StartCluster.wp_proof
       · iframe Hreg HisNode Hnode Hstatic Hxfer Hsrec Hseq Hrs
         unfold sendSpec
         imodintro
-        iintro %msl %ms %Φ'
+        iintro %src %msl %ms %Φ'
         imodintro
         iintro ⟨Hmsl, Hmsok⟩ HΦ'
         wp_auto
-        wp_apply (wp_deliver γr.cluster mP «$r0_ptr» M msl ms)
+        wp_apply (wp_deliver γr.cluster mP «$r0_ptr» M src msl ms)
           $$ [$Hmsl $Hmsok]
         · iframe #
         iapply HΦ'

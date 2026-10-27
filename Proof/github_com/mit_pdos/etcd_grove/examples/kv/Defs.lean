@@ -450,9 +450,9 @@ hands them out: the slice of their pointers, owned, each message owned at `ready
 (`Draft.sentMsg`), with its credits (`Draft.msgCredits`). Delivering them to the peers'
 `Node.Step` is the transport's. -/
 def sendSpec (f : GoFunc) (γ : Draft.Cluster) : IProp GF :=
-  iprop(□ ∀ (msl : GoSlice) (ms : List QMsg),
+  iprop(□ ∀ (src : w64) (msl : GoSlice) (ms : List QMsg),
     {{ msl ↦* ms.map QMsg.loc ∗
-        [∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ Draft.sentMsg γ kvRaftN q.st ∗
+        [∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ Draft.sentMsg γ kvRaftN src q.st ∗
           Draft.msgCredits γ kvRaftN q.st }}
       (App (Val #f) (Val #msl))
     {{ RET #(); True }})

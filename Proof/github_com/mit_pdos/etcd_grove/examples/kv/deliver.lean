@@ -87,7 +87,7 @@ local macro "deliver_tail " snc:term : tactic =>
     wp_apply context.wp_Background
     ihave #Hbg := nodeCtx_background (GF := GF) bgCd
     have Hsteps := deliverable_step q.st.msg.To' q.st Hd rfl
-    imod Draft.stepIn_intro γ kvRaftN q.st.msg.To' «$r0_ptr» q.st Hsteps.1 Hsteps.2.1 Hsteps.2.2 rfl
+    imod Draft.stepIn_intro γ kvRaftN q.st.msg.To' «$r0_ptr» src q.st Hsteps.1 Hsteps.2.1 Hsteps.2.2 rfl
       $$ [Hmok Hmc Hc1 Htc] with Hstep
     · iframe Hmok Hmc Hc1 Htc
     wp_apply +noauto wp_node_Step n γ kvRaftN q.st.msg.To' «$r0_ptr» context.backgroundCtxVal bgCd
@@ -118,7 +118,7 @@ theorem deliver.wp_proof (wp_deliverable : deliverable.spec (GF := GF) (hG := hG
     (wp_GetTo : raftpb.Message.GetTo.spec (GF := GF) (hG := hG))
     (wp_CloneSnapshot : proto.CloneSnapshot.spec (GF := GF) (hG := hG)) :
     deliver.spec (GF := GF) (hG := hG) := by
-  intro γ peers tr P msl ms
+  intro γ peers tr P src msl ms
   wp_start as ⟨#Hpeers, #HP, #Htr, Hms, Hmsok⟩
   ihave #Hraftinit : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
   · iPkgInit
@@ -130,7 +130,7 @@ theorem deliver.wp_proof (wp_deliverable : deliverable.spec (GF := GF) (hG := hG
   ihave IH : iprop(∃ (k : w64) (mv : Loc),
       "i" ∷ i_ptr ↦ k ∗ "m" ∷ m_ptr ↦ mv ∗ "Hms" ∷ msl ↦* ms.map QMsg.loc ∗
       "Hmsok" ∷ ([∗list] q ∈ ms.drop (sint.nat k),
-        msgOwn q.loc (readyDq q.st) q.st ∗ Draft.sentMsg γ kvRaftN q.st ∗
+        msgOwn q.loc (readyDq q.st) q.st ∗ Draft.sentMsg γ kvRaftN src q.st ∗
           Draft.msgCredits γ kvRaftN q.st) ∗
       "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ (ms.length : Int)⌝) $$ [i m Hms Hmsok]
   · iexists W64 0, _

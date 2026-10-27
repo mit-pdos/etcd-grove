@@ -587,7 +587,7 @@ no snapshot directory, the certificates' namespace `N`, the tracked bound (if an
 def StaticNames (γ : Cluster) (N : Namespace) (vs : List w64)
     (snapOk : List LogEntry → List w8 → Prop) : Prop :=
   γ.raft.reCfg = GMap.listToSet vs ∧ γ.raft.reDyn = none ∧ γ.raft.reNoSnap = false ∧
-  γ.raft.reNoXfer = false ∧ γ.raft.reSnapOkRaw = sokOf snapOk ∧
+  γ.raft.reSnapOkRaw = sokOf snapOk ∧
   γ.raft.reSnapLoc = (fun _ => none) ∧ γ.raft.reCertNs = N ∧
   (γ.raft.reTracked = none ∨ γ.raft.reTracked = some (GMap.listToSet vs)) ∧
   vs ≠ [] ∧ vs.Nodup ∧ W64 0 ∉ vs ∧ (vs.length : Int) ≤ 2 ^ 62
@@ -610,6 +610,24 @@ def leaderTransferOn (γ : Cluster) (_N : Namespace) : IProp GF :=
 instance leaderTransferOn_persistent (γ : Cluster) (N : Namespace) :
     Persistent (leaderTransferOn (GF := GF) γ N) := by
   unfold leaderTransferOn; infer_instance
+
+/-- **Leader transfer is off** in the cluster (persistent): raft's no-transfer mode. -/
+def leaderTransferOff (γ : Cluster) (_N : Namespace) : IProp GF :=
+  iprop(⌜γ.raft.reNoXfer = true⌝)
+
+instance leaderTransferOff_persistent (γ : Cluster) (N : Namespace) :
+    Persistent (leaderTransferOff (GF := GF) γ N) := by
+  unfold leaderTransferOff; infer_instance
+
+/-- Leader transfer on or off, by `transfer`. -/
+theorem leaderTransfer_of (γ : Cluster) (N : Namespace) (transfer : Bool)
+    (h : γ.raft.reNoXfer = !transfer) :
+    ⊢ if transfer then leaderTransferOn (GF := GF) γ N else leaderTransferOff γ N := by
+  cases transfer
+  · simp only [Bool.false_eq_true, ↓reduceIte]
+    unfold leaderTransferOff; ipureintro; exact h
+  · simp only [↓reduceIte]
+    unfold leaderTransferOn; ipureintro; exact h
 
 /-- **A node's boot token** of a new cluster of the peers `ps` with the contexts `ctxs`: the cluster
 static (of the peers), its raft ghost state at the bootstrap state, the committed bootstrap log, the
@@ -713,12 +731,14 @@ theorem listToSet_ne_empty (ps : List w64) (Hne : ps ≠ []) : GMap.listToSet ps
 
 /-- **A new cluster** (the draft's `cluster_alloc`). -/
 theorem cluster_alloc_impl (N : Namespace) (ps : List w64) (ctxs : List (List w8))
-    (boot : List LogEntry) (snapOk : List LogEntry → List w8 → Prop) (E : CoPset) :
+    (boot : List LogEntry) (snapOk : List LogEntry → List w8 → Prop) (transfer : Bool)
+    (E : CoPset) :
     receiptBound GF ≤ 2 ^ 64 - 2 →
     BootLog ps ctxs boot → ps.Nodup → ps ≠ [] → W64 0 ∉ ps →
     ⊢ bootMarshal (GF := GF) ps ctxs (LogEntry.toEntries boot 0) -∗
       |={E}=> ∃ γ, ownCommittedOps γ boot ∗ ownReadCtxs γ ∅ ∗ readCredits γ (2 ^ 64 - 2) ∗
-        isStaticCluster γ N ps snapOk ∗ leaderTransferOn γ N ∗
+        isStaticCluster γ N ps snapOk ∗
+        (if transfer then leaderTransferOn γ N else leaderTransferOff γ N) ∗
         [∗list] id ∈ ps, nodeBoot γ N ps ctxs id := by
   intro Hrb HB Hnd Hne Hnz
   iintro #Hm
@@ -737,7 +757,7 @@ theorem cluster_alloc_impl (N : Namespace) (ps : List w64) (ctxs : List (List w8
   imod ownRaftGhost_alloc_core E (GMap.listToSet ps) (GMap.listToSet ps) none (fun _ _ => True)
     (LogEntry.toEntries boot 0) (W64 1) (allocOut N boot bud) (some (GMap.listToSet ps))
     (fun T hT => by cases hT; exact ⟨GMap.subseteq_refl _, rfl⟩) false (fun h => by cases h)
-    false (fun h => by cases h) (sokOf snapOk) (fun _ => none) (N .@ "raft") N Hcne
+    (!transfer) (fun _ => Hbne) (sokOf snapOk) (fun _ => none) (N .@ "raft") N Hcne
     Hnz' Hwf
     (fun _ => by rw [show uint.Z (W64 1) = 1 from rfl]; exact Int.le_refl _)
     $$ Hcl with ⟨%γr, %Hγ, #Hcinv, #Hc0, Hnodes, Hout, Hcr, -⟩
@@ -750,14 +770,14 @@ theorem cluster_alloc_impl (N : Namespace) (ps : List w64) (ctxs : List (List w8
   · unfold isStaticCluster clusterInv
     iframe Hcinv Hinv HspT
     ipureintro
-    exact ⟨⟨Hcfg, Hdyn, Hns, Hnx, Hsok, Hsl, Hcert, .inr Htrk, Hne, Hnd, Hnz, Hlen⟩, HNs⟩
+    exact ⟨⟨Hcfg, Hdyn, Hns, Hsok, Hsl, Hcert, .inr Htrk, Hne, Hnd, Hnz, Hlen⟩, HNs⟩
   imodintro
   iexists γ
   iframe Hops Hctx Hst
   isplitl [Hcr]
   · unfold readCredits; iexact Hcr
   isplitr
-  · unfold leaderTransferOn; ipureintro; exact Hnx
+  · iapply leaderTransfer_of γ N transfer Hnx
   simp only [Option.isSome_none]
   rw [← bootPState_eq]
   iapply bigSepM_listToSet _ ps Hnd
@@ -802,7 +822,7 @@ theorem cluster_alloc_static_impl (N : Namespace) (vs : List w64)
   · unfold isStaticCluster clusterInv
     iframe Hcinv Hinv HspT
     ipureintro
-    exact ⟨⟨Hcfg, Hdyn, Hns, Hnx, Hsok, Hsl, Hcert, .inl Htrk, Hne, Hnd, Hnz, Hlen⟩, HNs⟩
+    exact ⟨⟨Hcfg, Hdyn, Hns, Hsok, Hsl, Hcert, .inl Htrk, Hne, Hnd, Hnz, Hlen⟩, HNs⟩
   imodintro
   iexists γ
   iframe Hops Hctx Hst
@@ -1413,7 +1433,7 @@ theorem snapshotCert_data_impl (γ : Cluster) (N : Namespace) (vs : List w64)
   iframe Hlb
   ipureintro
   exact ⟨by rw [strip_length]; exact HL.2.1,
-    (reSnapOk_sokOf γ.raft snapOk Hst.2.2.2.2.1 L k.dat).1 HL.2.2⟩
+    (reSnapOk_sokOf γ.raft snapOk Hst.2.2.2.1 L k.dat).1 HL.2.2⟩
 
 theorem toEntries_idx (l : List LogEntry) (Hl : l.length < 2 ^ 64) :
     IdxOk (LogEntry.toEntries l 0) := by
@@ -1441,7 +1461,7 @@ theorem snapshotCert_static_impl (γ : Cluster) (N : Namespace) (vs : List w64)
   intro Hok Hl Hso
   unfold isStaticCluster
   iintro ⟨⟨%Hst, -⟩, #Hlb⟩
-  obtain ⟨Hcfg, Hdyn, -, -, Hsok, -, -, Htrk, -⟩ := Hst
+  obtain ⟨Hcfg, Hdyn, -, Hsok, -, -, Htrk, -⟩ := Hst
   have Hlen : l.length < 2 ^ 64 := by have := word.unsigned_range i; rw [Hl]; word
   imodintro
   iintro %t
@@ -1482,6 +1502,22 @@ def NodeOk (γ : Cluster) (γn : NodeNames) : Prop :=
   γn.raft = γ.raft ∧ γn.bud = γ.bud ∧ γn.snapIn = true ∧ γn.mode = .static ∧
     γ.raft.reSnapLoc = (fun _ => none)
 
+/-- Raft's nodes at one location have one id (`isNode`'s persistent points-to's). -/
+theorem isNode_id_agree (γ1 γ2 : NodeNames) (id1 id2 : w64) (n : Loc) :
+    ⊢ EtcdGrove.isNode (GF := GF) γ1 id1 n -∗ EtcdGrove.isNode γ2 id2 n -∗ ⌜id1 = id2⌝ := by
+  iintro H1 H2
+  iunfold EtcdGrove.isNode at H1 H2
+  icases H1 with ⟨%nv1, %r1, %lok1, H1⟩
+  icases H2 with ⟨%nv2, %r2, %lok2, H2⟩
+  icases H1 with ⟨#Hn1, #Hr1, #Hi1, -⟩
+  icases H2 with ⟨#Hn2, #Hr2, #Hi2, -⟩
+  icombine Hn1 Hn2 gives %Hnv
+  subst Hnv
+  icombine Hr1 Hr2 gives %Hr
+  subst Hr
+  icombine Hi1 Hi2 gives %Hi
+  ipureintro; exact Hi
+
 /-- **A running node** `n` of id `id` in the cluster `γ` (persistent): raft's node, of the
 cluster's names and budget (`NodeOk`), and the cluster's invariants. -/
 def isNode (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) : IProp GF :=
@@ -1510,14 +1546,28 @@ def nodeDriver (n : Loc) (γ : Cluster) (N : Namespace) (st : NodeDriverState) :
      (∃ (es : List EntryM) (L : Option SnapLoan), ⌜st.handling = some (es, L)⌝ ∗
        nodeDriverBusy γn id n ds es st.hardState L)))
 
-/-- (open) **A message a `Ready` handed out**: sent by a node of the cluster, of a term within the
-cluster's budget. -/
-def sentMsg (γ : Cluster) (N : Namespace) (st : MsgSt) : IProp GF :=
-  iprop(clusterInv γ N ∗ (∃ src : w64, isRaftMsg γ.raft src st) ∗ termLB γ.bud st.msg.Term')
+/-- (open) **A message node `src`'s `Ready` handed out**: sent by that node of the cluster, of a
+term within the cluster's budget. -/
+def sentMsg (γ : Cluster) (N : Namespace) (src : w64) (st : MsgSt) : IProp GF :=
+  iprop(clusterInv γ N ∗ isRaftMsg γ.raft src st ∗ termLB γ.bud st.msg.Term')
 
-instance sentMsg_persistent (γ : Cluster) (N : Namespace) (st : MsgSt) :
-    Persistent (sentMsg (GF := GF) γ N st) := by
+instance sentMsg_persistent (γ : Cluster) (N : Namespace) (src : w64) (st : MsgSt) :
+    Persistent (sentMsg (GF := GF) γ N src st) := by
   unfold sentMsg; infer_instance
+
+/-- In the no-transfer mode, a sent message has the shape `SentMsgOk`. -/
+theorem sentMsg_transferOff_impl (γ : Cluster) (N : Namespace) (src : w64) (st : MsgSt) :
+    leaderTransferOff (GF := GF) γ N ∗ sentMsg γ N src st ⊢ ⌜SentMsgOk st⌝ := by
+  unfold leaderTransferOff sentMsg isRaftMsg
+  iintro ⟨%Hx, -, ⟨-, %Hok, -⟩, -⟩
+  ipureintro; exact Hok Hx
+
+/-- A `MsgApp` is from the node that sent it (`AppFrom`). -/
+theorem sentMsg_appFrom_impl (γ : Cluster) (N : Namespace) (src : w64) (st : MsgSt) :
+    sentMsg (GF := GF) γ N src st ⊢ ⌜AppFrom src st⌝ := by
+  unfold sentMsg isRaftMsg
+  iintro ⟨-, ⟨-, -, -, -, %H⟩, -⟩
+  ipureintro; exact H.2
 
 /-- (open) **What a sent message carries for its receiver's `Step`.** -/
 def msgCredits (γ : Cluster) (_N : Namespace) (st : MsgSt) : IProp GF :=
@@ -1538,12 +1588,13 @@ def readySnap (γ : Cluster) (N : Namespace) (rd : Ready) (st : NodeDriverState)
       readyOut st.storage es (some l))
 
 /-- (open) **The rest of a `Ready`** (the draft's `readyRest`). -/
-def readyRest (γ : Cluster) (N : Namespace) (rd : Ready) (st : NodeDriverState)
+def readyRest (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeDriverState)
     (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (L : Option SnapLoan) : IProp GF :=
   iprop(∃ ms : List QMsg,
     entsRO rd.Entries' es ∗
     rd.Messages' ↦* ms.map QMsg.loc ∗
-    ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ sentMsg γ N q.st ∗ msgCredits γ N q.st) ∗
+    ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ sentMsg γ N id q.st ∗
+      msgCredits γ N q.st) ∗
     hsOpt rd.HardState' h ∗ softStateRO rd.SoftState' ∗
     ⌜∃ Lx : Int, Lx < 2 ^ 64 ∧
       (∀ e0, es.head? = some e0 → uint.Z e0.Index' + (es.length : Int) ≤ Lx + 1) ∧
@@ -1576,9 +1627,9 @@ theorem node.wp_Ready_impl : node.Ready.spec (GF := GF) (hG := hG) := by
 
 /-- **Receiving a `Ready`** (the draft's `node.readyRecv`). -/
 abbrev node.readyRecv.spec : Prop :=
-  ∀ (n ch : Loc) (γ : Cluster) (N : Namespace) (st : NodeDriverState),
+  ∀ (n ch : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDriverState),
   st.handling = none →
-  {{ isReadyChan (GF := GF) n γ N ch ∗ nodeDriver n γ N st }}
+  {{ isReadyChan (GF := GF) n γ N ch ∗ isNode n γ N id ∗ nodeDriver n γ N st }}
     (App (Val (chan.receive Ready.ty)) (Val #ch))
   {{ (rd : Ready), RET (PairV #rd #true);
       ∃ (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (L : Option SnapLoan),
@@ -1586,7 +1637,7 @@ abbrev node.readyRecv.spec : Prop :=
         isCommittedLogLb γ (st.delivered ++ ce) ∗
         (∃ rs, readStatesPts rd.ReadStates' rs ∗
           [∗list] s ∈ rs, readStateOk γ N s.RequestCtx' s.Index') ∗
-        readyRest γ N rd st ce es h L ∗
+        readyRest γ N id rd st ce es h L ∗
         nodeDriver n γ N (match L with
           | none => { st with
               delivered := st.delivered ++ ce
@@ -1605,7 +1656,8 @@ theorem api_msgs (γ : Cluster) (N : Namespace) (γn : NodeNames) (Hγr : γn.ra
         termLB γn.bud q.st.msg.Term') -∗
       ([∗list] q ∈ ms, rdCred γn.raft (if q.st.msg.Type' = MsgReadIndex then 1 else 0)) -∗
       ([∗list] q ∈ ms, stTks γn.raft q.st) -∗
-      [∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ sentMsg γ N q.st ∗ msgCredits γ N q.st := by
+      [∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ sentMsg γ N γn.id q.st ∗
+        msgCredits γ N q.st := by
   iintro #Hci Hmo Hcr Htks
   ihave H := (BigSepL.bigSepL_sep_eqv).2 $$ [Hcr Htks]
   · iframe Hcr Htks
@@ -1617,9 +1669,7 @@ theorem api_msgs (γ : Cluster) (N : Namespace) (γn : NodeNames) (Hγr : γn.ra
   iframe Ho
   unfold sentMsg msgCredits
   rw [← Hγr, ← Hγb]
-  iframe Hci Htlb Hcr Htk
-  iexists γn.id
-  iexact Hraft
+  iframe Hci Htlb Hcr Htk Hraft
 
 theorem readyOut_cert (st : Storage) (es : List EntryM) (l : SnapLoan) :
     readyOut (GF := GF) st es (some l) ⊢
@@ -1631,8 +1681,8 @@ theorem readyOut_cert (st : Storage) (es : List EntryM) (l : SnapLoan) :
   · iexact Hc
 
 theorem node.wp_readyRecv_impl : node.readyRecv.spec (GF := GF) (hG := hG) := by
-  intro n ch γ N st Hh
-  iintro %Φ ⟨#Hrc, Hdrv⟩ HΦ
+  intro n ch γ N id0 st Hh
+  iintro %Φ ⟨#Hrc, #Hnode0, Hdrv⟩ HΦ
   iunfold nodeDriver at Hdrv
   icases Hdrv with ⟨%γn, %id, %ds, %Hf, #Hci, #Hlink, Hcfg, Htok⟩
   obtain ⟨Hnok, Hγs, Hds⟩ := Hf
@@ -1642,6 +1692,15 @@ theorem node.wp_readyRecv_impl : node.readyRecv.spec (GF := GF) (hG := hG) := by
   rotate_left
   · rw [Hh] at Hh'; cases Hh'
   ihave ⟨Htok, #Hnode⟩ := nodeDriver_isNode γn id n ds st.hardState $$ Htok
+  ihave %Hid0 : ⌜γn.id = id0⌝ $$ []
+  · iunfold isNode at Hnode0
+    icases Hnode0 with ⟨%γn0, -, #Hn0', -⟩
+    icases isNode_id_agree γn γn0 id id0 n $$ Hnode Hn0' with %He
+    ihave #Hn1 := Hnode
+    iunfold EtcdGrove.isNode at Hn1
+    icases Hn1 with ⟨%nv1, %r1, %lok1, #Hn1⟩
+    iNamed Hn1
+    ipureintro; rw [Hgid]; exact He
   iunfold isReadyChan at Hrc
   icases Hrc with ⟨%nv, #Hn0, %Hch⟩
   ihave #Hnode' := Hnode
@@ -1668,6 +1727,7 @@ theorem node.wp_readyRecv_impl : node.readyRecv.spec (GF := GF) (hG := hG) := by
     imod api_readStates γ N ⊤ CoPset.subseteq_top sts $$ Hci [Hrs] with Hrs
     · rw [← Hγr]; iexact Hrs
     ihave Hms := api_msgs γ N γn Hγr Hγb ms $$ Hci Hmo Hcr Htks
+    rw [Hid0]
     iunfold readyIdx at Hidx
     icases Hidx with ⟨%Lx, -, %HLx⟩
     imodintro
@@ -1725,6 +1785,7 @@ theorem node.wp_readyRecv_impl : node.readyRecv.spec (GF := GF) (hG := hG) := by
     imod api_readStates γ N ⊤ CoPset.subseteq_top sts $$ Hci [Hrs] with Hrs
     · rw [← Hγr]; iexact Hrs
     ihave Hms := api_msgs γ N γn Hγr Hγb ms $$ Hci Hmo Hcr Htks
+    rw [Hid0]
     ihave ⟨Hout, #Hsc⟩ := readyOut_cert _ es l $$ Hout
     ihave #Hlink' := Hlink
     iunfold storageCertLink at Hlink'
@@ -1822,7 +1883,7 @@ theorem wp_StartNode_impl (hS : EtcdGrove.StartNode.spec (GF := GF) (hG := hG)) 
   icases Hboot with ⟨⟨%so, #Hst⟩, %Hok, Hg, #Hc0, #Hm, #Hbinv, #Htlb⟩
   iunfold isStaticCluster at Hst
   icases Hst with ⟨%Hsn, #Hci⟩
-  obtain ⟨Hcfg, Hdyn, Hns, Hnx, -, Hsl, Hcert, -⟩ := Hsn
+  obtain ⟨Hcfg, Hdyn, Hns, -, Hsl, Hcert, -⟩ := Hsn
   ihave #Hok' := storCertOk_of_link γ N _ Hcert $$ Hci Hlink
   iapply (hS γ.raft .static γ.bud c cv lok si σ hs csm R peers dq pv ps ctxs γ.raft.reBoot true
     H1 H2 H3 H4 H5 H6 H7 H8 H9 H10 Hp He Hss Hpe Hhs Hv Hvo Hl Hln Hal Hps Hne Hnd Hnz Hlen Hid
@@ -1900,7 +1961,7 @@ theorem wp_RestartNode_impl (hS : EtcdGrove.RestartNode.spec (GF := GF) (hG := h
   icases Hboot with ⟨⟨%so, #Hst⟩, Hg, #Hc0, #Hbinv, #Htlb⟩
   iunfold isStaticCluster at Hst
   icases Hst with ⟨%Hsn, #Hci⟩
-  obtain ⟨Hcfg, Hdyn, Hns, Hnx, -, Hsl, Hcert, -, Hne, Hnd, Hnz, Hlen⟩ := Hsn
+  obtain ⟨Hcfg, Hdyn, Hns, -, Hsl, Hcert, -, Hne, Hnd, Hnz, Hlen⟩ := Hsn
   subst Hv
   ihave #Hok' := storCertOk_of_link γ N _ Hcert $$ Hci Hlink
   iapply (hS γ.raft .static γ.bud c cv lok si σ hs csm true
@@ -2520,11 +2581,12 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-- **`node.Advance()`** (the draft's). -/
 abbrev node.Advance.spec : Prop :=
-  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (st : NodeDriverState) (es : List EntryM)
+  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (vs : List w64)
+    (snapOk : List LogEntry → List w8 → Prop) (st : NodeDriverState) (es : List EntryM)
     (L : Option SnapLoan),
   st.handling = some (es, L) →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ nodeDriver n γ N st ∗
-      advReceipt st.storage es L }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isStaticCluster γ N vs snapOk ∗
+      nodeDriver n γ N st ∗ advReceipt st.storage es L }}
     (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Advance")) (Val #()))
   {{ RET #(); nodeDriver n γ N { st with handling := none } ∗
       match L with
@@ -2533,8 +2595,8 @@ abbrev node.Advance.spec : Prop :=
 
 theorem node.wp_Advance_impl (hA : EtcdGrove.node.Advance.spec (GF := GF) (hG := hG)) :
     node.Advance.spec (GF := GF) (hG := hG) := by
-  intro n γ N st es L Hh
-  iintro %Φ ⟨#Hinit, Hdrv, Hrc⟩ HΦ
+  intro n γ N vs so st es L Hh
+  iintro %Φ ⟨#Hinit, #Hst, Hdrv, Hrc⟩ HΦ
   iunfold nodeDriver at Hdrv
   icases Hdrv with ⟨%γn, %id, %ds, %Hf, #Hci, #Hlink, ⟨%ca, %cfg, Hcfg⟩, Htok⟩
   obtain ⟨Hnok, Hγs, Hds⟩ := Hf
@@ -2679,7 +2741,7 @@ theorem node.wp_ApplyConfChange_impl
   iintro %Φ ⟨#Hinit, #Hnode, #Hst, Hcc⟩ HΦ
   iunfold isStaticCluster at Hst
   icases Hst with ⟨%Hsn, -⟩
-  obtain ⟨Hcfg, -, -, -, -, -, -, -, -, Hnd, -⟩ := Hsn
+  obtain ⟨Hcfg, -, -, -, -, -, -, -, Hnd, -⟩ := Hsn
   iunfold isNode at Hnode
   icases Hnode with ⟨%γn, %Hnok, #Hrn, -⟩
   obtain ⟨Hγr, -, -, Hmd, -⟩ := Hnok
@@ -2700,20 +2762,21 @@ theorem node.wp_ApplyConfChange_impl
   · exfalso; rw [Hmd] at Hd; cases Hd
 
 /-- **Stepping a sent message** (the draft's `stepIn_intro`). -/
-theorem stepIn_intro_impl (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) (st : MsgSt) :
+theorem stepIn_intro_impl (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) (src : w64)
+    (st : MsgSt) :
     (st.msg.Type' = MsgProp → st.ctx = []) →
     (st.msg.Type' ≠ MsgProp → NetMsgOk id ⟨st.msg, st.ents, st.snap, st.ctx, []⟩ ∧
       st.msg.Type' ≠ MsgPreVote ∧ st.msg.Type' ≠ MsgTransferLeader) →
     (st.msg.Type' = MsgSnap → ∃ sv, st.snap = some sv ∧ uint.Z sv.Metadata'.Index' < 2 ^ 61) →
     st.msg.To' = id →
-    sentMsg (GF := GF) γ N st ∗
+    sentMsg (GF := GF) γ N src st ∗
       msgPtsC ml (DFrac.own 1) (DFrac.own 1) true ⟨st.msg, st.ents, st.snap, st.ctx, []⟩ ∗
       msgCredits γ N st ∗ tickCredit γ (if st.msg.Type' = MsgTimeoutNow then 1 else 0) ⊢
     |==> stepIn γ N id ml := by
   intro Hpc Hnet Hsnap _
   iintro ⟨#Hsent, Hm, Hcr, Htc⟩
   iunfold sentMsg at Hsent
-  icases Hsent with ⟨-, ⟨%src, #Hraft⟩, #Hlb⟩
+  icases Hsent with ⟨-, #Hraft, #Hlb⟩
   ihave #Hdat := isRaftMsg_dat γ.raft src st $$ Hraft
   iunfold isRaftMsg at Hraft
   icases Hraft with ⟨-, -, ⟨%a, %Habs, #Hl⟩, -, %Hra⟩

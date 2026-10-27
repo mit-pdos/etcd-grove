@@ -226,6 +226,16 @@ instance leaderTransferOn_persistent (γ : Cluster) (N : Namespace) :
     Persistent (leaderTransferOn (GF := GF) γ N) := by
   unfold leaderTransferOn; exact ApiImpl.leaderTransferOn_persistent γ N
 
+/-- (open) **Leader transfer is off** in the cluster (persistent; today `RaftNames.reNoXfer =
+true`): `node.TransferLeadership` is not called, and the messages raft sends are what a receiver's
+`Step` takes without a tick credit (`sentMsg_transferOff`). (2026-10-27, for etcd's server.) -/
+@[no_expose] def leaderTransferOff (γ : Cluster) (N : Namespace) : IProp GF :=
+  ApiImpl.leaderTransferOff γ N
+
+instance leaderTransferOff_persistent (γ : Cluster) (N : Namespace) :
+    Persistent (leaderTransferOff (GF := GF) γ N) := by
+  unfold leaderTransferOff; exact ApiImpl.leaderTransferOff_persistent γ N
+
 /-- **A node's boot token** of a new cluster of the peers `ps` with the contexts `ctxs`, for node
 `id`'s `StartNode` (exclusive). -/
 @[no_expose] def nodeBoot (γ : Cluster) (N : Namespace) (ps : List w64) (ctxs : List (List w8))
@@ -242,18 +252,23 @@ Replaces the allocation variants (`ownRaftGhost_alloc_*`, `raft_dyn_alloc*`, `al
 (2026-10-27: changed from the first draft: a fancy update at any mask, the receipts' bound, the
 peers non-empty and non-zero, `bootMarshal`, the read credits; `nodeBoot` names the peers and their
 contexts; the cluster takes snapshots, `snapOk`. A client that takes none chooses
-`snapOk := fun _ _ => False`, and refutes a snapshot `Ready` by `snapshotCert_data`.) -/
+`snapOk := fun _ _ => False`, and refutes a snapshot `Ready` by `snapshotCert_data`.) (2026-10-27,
+for etcd's server: leader transfer on or off, `transfer`, as `dynamicCluster_alloc`. Not so for
+`cluster_alloc_static`: raft's no-transfer mode needs a bootstrap log, whose term-`1` entries stamp
+every message's term past `0`, `ownRaftGhost_alloc_core`'s `Hnx`.) -/
 theorem cluster_alloc (N : Namespace) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
-    (snapOk : List LogEntry → List w8 → Prop) (E : CoPset) :
+    (snapOk : List LogEntry → List w8 → Prop) (transfer : Bool) (E : CoPset) :
     receiptBound GF ≤ 2 ^ 64 - 2 →
     BootLog ps ctxs boot → ps.Nodup → ps ≠ [] → W64 0 ∉ ps →
     ⊢ bootMarshal (GF := GF) ps ctxs (LogEntry.toEntries boot 0) -∗
       |={E}=> ∃ γ, ownCommittedOps γ boot ∗ ownReadCtxs γ ∅ ∗ readCredits γ (2 ^ 64 - 2) ∗
-        isStaticCluster γ N ps snapOk ∗ leaderTransferOn γ N ∗
+        isStaticCluster γ N ps snapOk ∗
+        (if transfer then leaderTransferOn γ N else leaderTransferOff γ N) ∗
         [∗list] id ∈ ps, nodeBoot γ N ps ctxs id := by
   intro Hrb HB Hnd Hne Hnz
   unfold ownCommittedOps ownReadCtxs readCredits nodeBoot isStaticCluster leaderTransferOn
-  exact ApiImpl.cluster_alloc_impl N ps ctxs boot snapOk E Hrb HB Hnd Hne Hnz
+    leaderTransferOff
+  exact ApiImpl.cluster_alloc_impl N ps ctxs boot snapOk transfer E Hrb HB Hnd Hne Hnz
 
 /-- **A static cluster's boot token** for node `id` (exclusive): what its `RestartNode` takes. -/
 @[no_expose] def nodeRestartBoot (γ : Cluster) (N : Namespace) (vs : List w64) (id : w64) : IProp GF :=
@@ -390,14 +405,21 @@ theorem storageCertLink_intro (γ : Cluster) (N : Namespace) (st : Storage) :
 
 /-! ## Messages and the term budget (open: carried over) -/
 
-/-- (open) **A message a `Ready` handed out** (persistent; today `isRaftMsg` and `termLB`): sent by
-a node of the cluster, legitimately, of a term within the cluster's budget. -/
-@[no_expose] def sentMsg (γ : Cluster) (N : Namespace) (st : MsgSt) : IProp GF :=
-  ApiImpl.sentMsg γ N st
+/-- (open) **A message node `src`'s `Ready` handed out** (persistent; today `isRaftMsg` and
+`termLB`): sent by the node `src` of the cluster, legitimately, of a term within the cluster's
+budget. (2026-10-27, for etcd's server: names its sender, `sentMsg_appFrom`.) -/
+@[no_expose] def sentMsg (γ : Cluster) (N : Namespace) (src : w64) (st : MsgSt) : IProp GF :=
+  ApiImpl.sentMsg γ N src st
 
-instance sentMsg_persistent (γ : Cluster) (N : Namespace) (st : MsgSt) :
-    Persistent (sentMsg (GF := GF) γ N st) := by
-  unfold sentMsg; exact ApiImpl.sentMsg_persistent γ N st
+instance sentMsg_persistent (γ : Cluster) (N : Namespace) (src : w64) (st : MsgSt) :
+    Persistent (sentMsg (GF := GF) γ N src st) := by
+  unfold sentMsg; exact ApiImpl.sentMsg_persistent γ N src st
+
+/-- **A `MsgApp` is from the node that sent it** (`AppFrom`: its `From` is `src`): what rafthttp's
+msgappv2 codec needs, whose frames carry no sender. -/
+theorem sentMsg_appFrom (γ : Cluster) (N : Namespace) (src : w64) (st : MsgSt) :
+    sentMsg (GF := GF) γ N src st ⊢ ⌜AppFrom src st⌝ := by
+  unfold sentMsg; exact ApiImpl.sentMsg_appFrom_impl γ N src st
 
 /-- (open) **What a sent message carries for its receiver's `Step`** (today `rdCred`, one for a
 `MsgReadIndex`, and `stTks`, a forwarded proposal's tickets). -/
@@ -423,19 +445,19 @@ responses), owned with its entries slice fresh, addressed to `id`, with its cred
 `MsgTimeoutNow`, a tick credit: a forwarded proposal with no context, or what a node steps from the
 network (`NetMsgOk`, no pre-vote, no leader transfer; a snapshot below `2^61`). (Today kv's
 `stepP_deliverable`.) -/
-theorem stepIn_intro (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) (st : MsgSt) :
+theorem stepIn_intro (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) (src : w64) (st : MsgSt) :
     (st.msg.Type' = MsgProp → st.ctx = []) →
     (st.msg.Type' ≠ MsgProp → NetMsgOk id ⟨st.msg, st.ents, st.snap, st.ctx, []⟩ ∧
       st.msg.Type' ≠ MsgPreVote ∧ st.msg.Type' ≠ MsgTransferLeader) →
     (st.msg.Type' = MsgSnap → ∃ sv, st.snap = some sv ∧ uint.Z sv.Metadata'.Index' < 2 ^ 61) →
     st.msg.To' = id →
-    sentMsg (GF := GF) γ N st ∗
+    sentMsg (GF := GF) γ N src st ∗
       msgPtsC ml (DFrac.own 1) (DFrac.own 1) true ⟨st.msg, st.ents, st.snap, st.ctx, []⟩ ∗
       msgCredits γ N st ∗ tickCredit γ (if st.msg.Type' = MsgTimeoutNow then 1 else 0) ⊢
     |==> stepIn γ N id ml := by
   intro H1 H2 H3 H4
   unfold sentMsg msgCredits tickCredit stepIn
-  exact ApiImpl.stepIn_intro_impl γ N id ml st H1 H2 H3 H4
+  exact ApiImpl.stepIn_intro_impl γ N id ml src st H1 H2 H3 H4
 
 /-! ## The rest of a `Ready` -/
 
@@ -461,13 +483,14 @@ state `st` (today's `readyDataL` without them; the storage's part in the storage
 vocabulary, `appendRight`, `readyOut`): the entries `es` to persist, the messages (each owned as
 `Ready` hands it out, `readyDq`, sent, with its credits), the hard state `h` (`nil` or not:
 `hsOpt`) and the soft state, the indices' bound, and the storage's part (`readySnap`, by the
-snapshot's loan `L`). -/
-def readyRest (γ : Cluster) (N : Namespace) (rd : Ready) (st : NodeDriverState)
+snapshot's loan `L`). (2026-10-27, for etcd's server: the messages are the node `id`'s, `sentMsg`.) -/
+def readyRest (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready) (st : NodeDriverState)
     (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (L : Option SnapLoan) : IProp GF :=
   iprop(∃ ms : List QMsg,
     entsRO rd.Entries' es ∗
     rd.Messages' ↦* ms.map QMsg.loc ∗
-    ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ sentMsg γ N q.st ∗ msgCredits γ N q.st) ∗
+    ([∗list] q ∈ ms, msgOwn q.loc (readyDq q.st) q.st ∗ sentMsg γ N id q.st ∗
+      msgCredits γ N q.st) ∗
     hsOpt rd.HardState' h ∗ softStateRO rd.SoftState' ∗
     ⌜∃ Lx : Int, Lx < 2 ^ 64 ∧
       (∀ e0, es.head? = some e0 → uint.Z e0.Index' + (es.length : Int) ≤ Lx + 1) ∧
@@ -475,9 +498,10 @@ def readyRest (γ : Cluster) (N : Namespace) (rd : Ready) (st : NodeDriverState)
     readySnap γ N rd st ce es L)
 
 /-- The implementation's rest of a `Ready` is the draft's. -/
-private theorem readyRest_of_impl (γ : Cluster) (N : Namespace) (rd : Ready) (st : NodeDriverState)
-    (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (L : Option SnapLoan) :
-    ApiImpl.readyRest (GF := GF) γ N rd st ce es h L ⊢ readyRest γ N rd st ce es h L := by
+private theorem readyRest_of_impl (γ : Cluster) (N : Namespace) (id : w64) (rd : Ready)
+    (st : NodeDriverState) (ce : List LogEntry) (es : List EntryM) (h : HardStateM)
+    (L : Option SnapLoan) :
+    ApiImpl.readyRest (GF := GF) γ N id rd st ce es h L ⊢ readyRest γ N id rd st ce es h L := by
   cases L <;> exact .rfl
 
 /-! ## What etcd's server needs (draft, 2026-10-27, branch `server-port`; `sorry` until implemented)
@@ -587,25 +611,19 @@ does not take snapshots: its storages are never compacted past index `1`, `storC
 instance isDynamicCluster_persistent (γ : Cluster) (N : Namespace) (c0 : Membership)
     (decode : ConfChangeDecoder) : Persistent (isDynamicCluster (GF := GF) γ N c0 decode) := sorry
 
-/-- (open) **Leader transfer is off** in the cluster (persistent; today `RaftNames.reNoXfer =
-true`): `node.TransferLeadership` is not called, and the messages raft sends are what a receiver's
-`Step` takes without a tick credit (`sentMsg_transferOff`). -/
-@[no_expose] def leaderTransferOff (γ : Cluster) (N : Namespace) : IProp GF := sorry
-
-instance leaderTransferOff_persistent (γ : Cluster) (N : Namespace) :
-    Persistent (leaderTransferOff (GF := GF) γ N) := sorry
-
 /-- (open) **A message sent in a cluster with leader transfer off** has the shape `SentMsgOk` (no
 `MsgTimeoutNow`, no `MsgTransferLeader`, a `MsgApp` of raft's shape `AppShape`, ...): what a
 receiver's `NetMsgOk` needs (`NetMsgOk.of_sent`) and what rafthttp's msgappv2 codec carries
 whole. -/
-theorem sentMsg_transferOff (γ : Cluster) (N : Namespace) (st : MsgSt) :
-    leaderTransferOff (GF := GF) γ N ∗ sentMsg γ N st ⊢ ⌜SentMsgOk st⌝ := sorry
+theorem sentMsg_transferOff (γ : Cluster) (N : Namespace) (src : w64) (st : MsgSt) :
+    leaderTransferOff (GF := GF) γ N ∗ sentMsg γ N src st ⊢ ⌜SentMsgOk st⌝ := by
+  unfold leaderTransferOff sentMsg; exact ApiImpl.sentMsg_transferOff_impl γ N src st
 
 /-- **A dynamic cluster sends no snapshot** (raft's no-snapshot mode; today `isRaftMsg_not_snap`). -/
 theorem sentMsg_dynamic_notSnapshot (γ : Cluster) (N : Namespace) (c0 : Membership)
-    (decode : ConfChangeDecoder) (st : MsgSt) :
-    isDynamicCluster (GF := GF) γ N c0 decode ∗ sentMsg γ N st ⊢ ⌜st.msg.Type' ≠ MsgSnap⌝ := sorry
+    (decode : ConfChangeDecoder) (src : w64) (st : MsgSt) :
+    isDynamicCluster (GF := GF) γ N c0 decode ∗ sentMsg γ N src st ⊢ ⌜st.msg.Type' ≠ MsgSnap⌝ :=
+  sorry
 
 /-- **A dynamic cluster's `Ready`s carry no snapshot** (today `readySnapData`'s clause
 `reNoSnap = false`). -/
@@ -637,21 +655,13 @@ theorem dynamicCluster_alloc (N : Namespace) (ps : List w64) (ctxs : List (List 
         (if transfer then leaderTransferOn γ N else leaderTransferOff γ N) ∗
         [∗list] id ∈ ps, nodeDynamicBoot γ N ps ctxs id := sorry
 
-/-- **A dynamic cluster's boot token** for node `id`, of the initial voters `vs` (exclusive): what
-its `RestartNode` takes. -/
-@[no_expose] def nodeDynamicRestartBoot (γ : Cluster) (N : Namespace) (vs : List w64) (id : w64) :
-    IProp GF := sorry
-
-/-- **A new dynamic cluster** of the voters `vs`, nothing committed: as `cluster_alloc_static`,
-dynamic from the voters' membership with the decoder `decode`. (Today `raft_dyn_alloc` and
-`budget_alloc`.) -/
-theorem dynamicCluster_alloc_empty (N : Namespace) (vs : List w64) (decode : ConfChangeDecoder)
-    (transfer : Bool) (E : CoPset) :
-    receiptBound GF ≤ 2 ^ 64 - 2 → vs ≠ [] → vs.Nodup → W64 0 ∉ vs → (vs.length : Int) ≤ 2 ^ 62 →
-    ⊢ |={E}=> ∃ γ, ownCommittedOps (GF := GF) γ [] ∗ ownReadCtxs γ ∅ ∗ readCredits γ (2 ^ 64 - 2) ∗
-        isDynamicCluster γ N (Membership.simple (GMap.listToSet vs)) decode ∗
-        (if transfer then leaderTransferOn γ N else leaderTransferOff γ N) ∗
-        [∗list] id ∈ vs, nodeDynamicRestartBoot γ N vs id := sorry
+/- (2026-10-27) No empty dynamic cluster (the draft's `dynamicCluster_alloc_empty`,
+`nodeDynamicRestartBoot`, `RestartNode.dynamicSpec`): a dynamic cluster is in raft's no-snapshot
+mode (`isDynamicCluster`), which raft allocates only with a bootstrap log
+(`ownRaftGhost_alloc_core`'s `Hns`: the storage is never compacted past the bootstrap entries), as
+its no-transfer mode (`Hnx`). Without it a dynamic node could be sent a `MsgSnap` it does not take
+(raft's dynamic mode takes none, `NodeNames.snapIn`). etcd's server starts its nodes with
+`StartNode`. -/
 
 /-- (open) **A node's configuration view** (exclusive, one per node; today `nodeCfg`): what
 `node.ApplyConfChange.dynamicSpec` moves and `node.Advance.dynamicSpec` checks. Separate from the
@@ -695,13 +705,14 @@ theorem committedAtTerm_committed (γ : Cluster) (N : Namespace) (t c : w64) :
       ∃ l, isCommittedLogLb γ l ∗ ⌜l.length = uint.nat c⌝ := sorry
 
 /-- (open) **The hard state last handed out is a commit witness** (today `hsWit` of `prevHardSt`,
-handed out with each `Ready`): the zero record, or its term and commit index are a
-`committedAtTerm`, the commit index at least the committed log delivered -- but while a snapshot's
-loan is out (the bound is then of the log before the snapshot). -/
-theorem nodeDriver_hardStateCommitted (n : Loc) (γ : Cluster) (N : Namespace)
-    (st : NodeDriverState) :
-    (∀ es l, st.handling ≠ some (es, some l)) →
-    nodeDriver (GF := GF) n γ N st ⊢ nodeDriver n γ N st ∗
+handed out with each `Ready`), in a dynamic cluster: the zero record, or its term and commit index
+are a `committedAtTerm`, the commit index at least the committed log delivered. (2026-10-27: in a
+dynamic cluster, which takes no snapshot, in place of the draft's "but while a snapshot's loan is
+out": after a snapshot `Ready`, raft's witness bounds the log before the snapshot, and `Advance`
+then hands over the log up to it, which the witness does not bound.) -/
+theorem nodeDriver_hardStateCommitted (n : Loc) (γ : Cluster) (N : Namespace) (c0 : Membership)
+    (decode : ConfChangeDecoder) (st : NodeDriverState) :
+    isDynamicCluster (GF := GF) γ N c0 decode ∗ nodeDriver n γ N st ⊢ nodeDriver n γ N st ∗
       (⌜st.hardState = hsZero⌝ ∨
         committedAtTerm γ N st.hardState.Term' st.hardState.Commit' ∗
           ⌜(st.delivered.length : Int) ≤ uint.Z st.hardState.Commit'⌝) := sorry
@@ -712,14 +723,14 @@ theorem nodeDriver_hardStateCommitted (n : Loc) (γ : Cluster) (N : Namespace)
 `isMessage_snap_recontent`, D22 S-b; etcd's server sends the merged snapshot, its backend's image
 at its applied index, in place of the snapshot raft's `MsgSnap` names): sent, if the new snapshot
 is certified, at an index committed at the message's term, past raft's. -/
-theorem sentMsg_replaceSnapshot (γ : Cluster) (N : Namespace) (st : MsgSt) (sv sv' : SnapshotM)
-    (c : w64) (E : CoPset) :
+theorem sentMsg_replaceSnapshot (γ : Cluster) (N : Namespace) (src : w64) (st : MsgSt)
+    (sv sv' : SnapshotM) (c : w64) (E : CoPset) :
     ↑N ⊆ E → st.msg.Type' = MsgSnap → st.snap = some sv →
     uint.Z sv.Metadata'.Index' ≤ uint.Z sv'.Metadata'.Index' →
     uint.Z sv'.Metadata'.Index' ≤ uint.Z c →
-    ⊢ sentMsg (GF := GF) γ N st -∗ committedAtTerm γ N st.msg.Term' c -∗
+    ⊢ sentMsg (GF := GF) γ N src st -∗ committedAtTerm γ N st.msg.Term' c -∗
       snapshotCert γ N (snapTrip sv' sv'.Metadata'.ConfState'.lists) ={E}=∗
-      sentMsg γ N { st with snap := some sv' } := sorry
+      sentMsg γ N src { st with snap := some sv' } := sorry
 
 /-- (open) A `MsgSnap` carries no read credit and no forwarded proposal's tickets. -/
 theorem msgCredits_snapshot (γ : Cluster) (N : Namespace) (st : MsgSt) :
@@ -798,11 +809,12 @@ the entries `es` to persist, the messages, the hard state `h` and soft state, an
 loan `L`, if any. The loop's new state, by whether the `Ready` carries a snapshot: without one, the
 committed log delivered grows by `ce`; with one, it is the committed log up to the snapshot
 (`strip l.dlv`); either way the hard state after `h` (`phsNext`), busy with `es` and the loan.
-(2026-10-27: the new state stated, not an existential.) -/
+(2026-10-27: the new state stated, not an existential. For etcd's server: the node's `isNode` taken,
+so that its messages are the node `id`'s, `readyRest`.) -/
 abbrev node.readyRecv.spec : Prop :=
-  ∀ (n ch : Loc) (γ : Cluster) (N : Namespace) (st : NodeDriverState),
+  ∀ (n ch : Loc) (γ : Cluster) (N : Namespace) (id : w64) (st : NodeDriverState),
   st.handling = none →
-  {{ isReadyChan (GF := GF) n γ N ch ∗ nodeDriver n γ N st }}
+  {{ isReadyChan (GF := GF) n γ N ch ∗ isNode n γ N id ∗ nodeDriver n γ N st }}
     (App (Val (chan.receive Ready.ty)) (Val #ch))
   {{ (rd : Ready), RET (PairV #rd #true);
       ∃ (ce : List LogEntry) (es : List EntryM) (h : HardStateM) (L : Option SnapLoan),
@@ -810,7 +822,7 @@ abbrev node.readyRecv.spec : Prop :=
         isCommittedLogLb γ (st.delivered ++ ce) ∗
         (∃ rs, readStatesPts rd.ReadStates' rs ∗
           [∗list] s ∈ rs, readStateOk γ N s.RequestCtx' s.Index') ∗
-        readyRest γ N rd st ce es h L ∗
+        readyRest γ N id rd st ce es h L ∗
         nodeDriver n γ N (match L with
           | none => { st with
               delivered := st.delivered ++ ce
@@ -826,13 +838,15 @@ snapshot installed: the storage contract's receipt, `advReceipt`), hands it back
 again. After a `Ready` without a snapshot, the storage's floor is at least the committed log
 delivered (`storFloor`, today `reqWit`). (2026-10-27: the premise that no conf-change entry was
 delivered is gone: the nodes are in raft's static mode, which needs none -- a conf change the client
-applies keeps the voters, `node.ApplyConfChange`.) -/
+applies keeps the voters, `node.ApplyConfChange`. For etcd's server: in a static cluster,
+`isStaticCluster`; a dynamic cluster's is `node.Advance.dynamicSpec`.) -/
 abbrev node.Advance.spec : Prop :=
-  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (st : NodeDriverState) (es : List EntryM)
+  ∀ (n : Loc) (γ : Cluster) (N : Namespace) (vs : List w64)
+    (snapOk : List LogEntry → List w8 → Prop) (st : NodeDriverState) (es : List EntryM)
     (L : Option SnapLoan),
   st.handling = some (es, L) →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ nodeDriver n γ N st ∗
-      advReceipt st.storage es L }}
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ isStaticCluster γ N vs snapOk ∗
+      nodeDriver n γ N st ∗ advReceipt st.storage es L }}
     (App (Val (n @!! go.GoType.PointerType node.ty @!! go!"Advance")) (Val #()))
   {{ RET #(); nodeDriver n γ N { st with handling := none } ∗
       match L with
@@ -1058,45 +1072,6 @@ abbrev StartNode.dynamicSpec : Prop :=
         isNode n γ N cv.ID' ∗ nodeDriver n γ N (NodeDriverState.init (interface.ok si)) ∗
         nodeConfig n γ N ⟨0, Membership.simple (GMap.listToSet ps)⟩ }}
 
-/-- **`RestartNode(c)`** in a dynamic cluster of the initial voters `vs`: as `RestartNode.spec`,
-from the dynamic boot token (`dynamicCluster_alloc_empty`), on a storage never compacted past
-index `1`, and the node's configuration view at index `0` and the voters' membership. (Today
-`RestartNode.spec` at `md = .dyn …`.) -/
-abbrev RestartNode.dynamicSpec : Prop :=
-  ∀ (γ : Cluster) (N : Namespace) (vs : List w64) (c : Loc) (cv : Config) (lok si : GoInterfaceOk)
-    (σ : StorState) (hs : HardStateM) (csm : ConfStateM),
-  -- `NewRawNode`'s premises (unchanged)
-  ConfigValid cv →
-  cv.Logger' = interface.ok lok →
-  cv.Storage' = interface.ok si →
-  sint.Z cv.MaxInflightMsgs' < 2 ^ 62 →
-  cv.DisableProposalForwarding' = false →
-  cv.ReadOnlyOption' = W64 0 →
-  cv.DisableConfChangeValidation' = false →
-  (cv.MaxCommittedSizePerReady' ≠ W64 0 ∨ cv.MaxSizePerMsg' ≠ W64 0) →
-  cv.AsyncStorageWrites' = false →
-  cv.Applied' = W64 0 →
-  -- an empty storage, the voters' conf state (unchanged)
-  σ.prev = entryID.mk (W64 0) (W64 0) → σ.ents = [] → (uint.Z σ.ss.index' = 0 ∨ σ.ss = σ.prev) →
-  σ.pend = [] → HsEmpty hs →
-  csm.Voters' = vs → csm.VotersOutgoing' = [] → csm.Learners' = [] → csm.LearnersNext' = [] →
-  csm.AutoLeave' = false →
-  cv.ID' ∈ vs →
-  σ.fl = W64 0 →
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 ∗ c ↦ cv ∗ isLogger lok ∗
-      isStorage (interface.ok si) ∗ ownStorage (interface.ok si) σ ∗
-      □ (∀ (Φ : val → IProp GF) (ss' : entryID), ownStorage (interface.ok si) { σ with ss := ss' } -∗
-           (∀ (hp cs : Loc) (al : Bool), ownStorage (interface.ok si) { σ with ss := ss' } -∗
-            hsOpt hp hs -∗ csPts cs DFrac.discard csm al -∗
-            Φ (PairV (PairV #hp #cs) #interface.nil)) -∗
-           WP (App (Val #(methods si.ty go!"InitialState" si.v)) (Val #())) {{ Φ }}) ∗
-      nodeDynamicRestartBoot γ N vs cv.ID' ∗ storCap (interface.ok si) 1 }}
-    (App (Val #(functions RestartNode [])) (Val #c))
-  {{ (nd : GoInterface), RET #nd;
-      ∃ (n : Loc), ⌜nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗
-        isNode n γ N cv.ID' ∗ nodeDriver n γ N (NodeDriverState.init (interface.ok si)) ∗
-        nodeConfig n γ N ⟨0, Membership.simple (GMap.listToSet vs)⟩ }}
-
 /-- **`node.ReportUnreachable(id)`**, from any goroutine (the transport's): a leader's progress of
 `id` only; nothing is promised. -/
 abbrev node.ReportUnreachable.spec : Prop :=
@@ -1139,10 +1114,10 @@ theorem node.wp_ReadIndex : node.ReadIndex.spec (GF := GF) (hG := hG) := by
 theorem node.wp_Ready : node.Ready.spec (GF := GF) (hG := hG) := by
   exact ApiImpl.node.wp_Ready_impl
 theorem node.wp_readyRecv : node.readyRecv.spec (GF := GF) (hG := hG) := by
-  intro n ch γ N st Hh
+  intro n ch γ N id st Hh
   iintro %Φ Hpre HΦ
-  unfold isReadyChan nodeDriver
-  iapply (ApiImpl.node.wp_readyRecv_impl n ch γ N st Hh) $$ Hpre
+  unfold isReadyChan isNode nodeDriver
+  iapply (ApiImpl.node.wp_readyRecv_impl n ch γ N id st Hh) $$ Hpre
   iintro !> %rd ⟨%ce, %es, %h, %L, Hce, Hlb, Hrs, Hrest, Hdrv⟩
   iapply HΦ
   iexists ce, es, h, L
@@ -1170,7 +1145,6 @@ theorem node.wp_ApplyConfChange_dynamic :
     node.ApplyConfChange.dynamicSpec (GF := GF) (hG := hG) := sorry
 theorem node.wp_Advance_dynamic : node.Advance.dynamicSpec (GF := GF) (hG := hG) := sorry
 theorem wp_StartNode_dynamic : StartNode.dynamicSpec (GF := GF) (hG := hG) := sorry
-theorem wp_RestartNode_dynamic : RestartNode.dynamicSpec (GF := GF) (hG := hG) := sorry
 theorem node.wp_ReportUnreachable : node.ReportUnreachable.spec (GF := GF) (hG := hG) := sorry
 theorem node.wp_ReportSnapshot : node.ReportSnapshot.spec (GF := GF) (hG := hG) := sorry
 
