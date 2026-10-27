@@ -119,6 +119,8 @@ structure Cluster where
   full : GName
   ops : GName
   ctxs : GName
+  /-- the cluster's term budget (raft's `BudgetNames`) -/
+  bud : BudgetNames
 
 section api
 variable [GooseExts] [GooseSemantics] [GooseInterp]
@@ -211,22 +213,28 @@ theorem raftN_sub (N : Namespace) {E : CoPset} (HE : ↑N ⊆ E) :
     (↑(N .@ "raft") : CoPset) ⊆ E :=
   fun p hp => HE p (nclose_subseteq N "raft" p hp)
 
-/-- A read context's result predicate, as raft's read records it: the context's predicate (named
-by `γq`) holds of the requested entries of the log. -/
-def qrOf (γq : GName) (L : List EntryM) : IProp GF :=
-  iprop(∃ Q : List LogEntry → IProp GF, savedPredOwn γq DFrac.discard Q ∗ □ Q (opsOf (strip L)))
+/-- A read context's result predicate, as raft's read records it: the context's predicate `Q` of
+the requested entries of the log. -/
+def qrOf (Q : List LogEntry → IProp GF) (L : List EntryM) : IProp GF := Q (opsOf (strip L))
 
-instance qrOf_persistent (γq : GName) (L : List EntryM) : Persistent (qrOf (GF := GF) γq L) := by
-  unfold qrOf; infer_instance
-
-/-- A read context deposited in raft: committed (`γ.ctxs`) to the predicate `γq` names, its read
-deposited at `Lc` with the result predicate `qrOf γq`. -/
+/-- **A read context deposited in raft** (the part under a later): committed (`γ.ctxs`) to the
+predicate `Q` (named `γq`), its read deposited with the result predicate `qrOf Q`. -/
 def readDep (γ : Cluster) (c : List w8) : IProp GF :=
-  iprop(∃ (γq : GName) (Lc : List EntryM), c ↪[γ.ctxs]□ γq ∗ readReq γ.raft c Lc ∗
-    isRead γ.raft c (qrOf γq))
+  iprop(∃ (γq : GName) (Q : List LogEntry → IProp GF), c ↪[γ.ctxs]□ γq ∗
+    savedPredOwn γq DFrac.discard Q ∗ isRead γ.raft c (qrOf Q))
 
 instance readDep_persistent (γ : Cluster) (c : List w8) : Persistent (readDep (GF := GF) γ c) := by
   unfold readDep; infer_instance
+
+/-- **A read context deposited in raft** (timeless): its entry in `γ.ctxs` and raft's record. -/
+def readKey (γ : Cluster) (c : List w8) : IProp GF :=
+  iprop(∃ (γq : GName) (Lc : List EntryM), c ↪[γ.ctxs]□ γq ∗ readReq γ.raft c Lc)
+
+instance readKey_persistent (γ : Cluster) (c : List w8) : Persistent (readKey (GF := GF) γ c) := by
+  unfold readKey; infer_instance
+
+instance readKey_timeless (γ : Cluster) (c : List w8) : Timeless (readKey (GF := GF) γ c) := by
+  unfold readKey readReq; infer_instance
 
 /-- The entries of a committed log are at their positions. -/
 def IdxOk (L : List EntryM) : Prop :=
@@ -255,6 +263,18 @@ instance freshOk_persistent (γ : Cluster) (F : GMap (List w8) Unit) :
 def rdFreshOk (γ : Cluster) (RF : GMap (List w8) Unit) : IProp GF :=
   iprop(□ ∀ c : List w8, ⌜RF !! c = some ()⌝ -∗ readDep γ c)
 
+/-- ... their timeless part. -/
+def rdKeys (γ : Cluster) (RF : GMap (List w8) Unit) : IProp GF :=
+  iprop(□ ∀ c : List w8, ⌜RF !! c = some ()⌝ -∗ readKey γ c)
+
+instance rdKeys_persistent (γ : Cluster) (RF : GMap (List w8) Unit) :
+    Persistent (rdKeys (GF := GF) γ RF) := by
+  unfold rdKeys; infer_instance
+
+instance rdKeys_timeless (γ : Cluster) (RF : GMap (List w8) Unit) :
+    Timeless (rdKeys (GF := GF) γ RF) := by
+  unfold rdKeys; infer_instance
+
 instance rdFreshOk_persistent (γ : Cluster) (RF : GMap (List w8) Unit) :
     Persistent (rdFreshOk (GF := GF) γ RF) := by
   unfold rdFreshOk; infer_instance
@@ -265,7 +285,7 @@ def apiInvBody (γ : Cluster) : IProp GF :=
     rLog γ.raft L ∗ ⌜IdxOk L⌝ ∗
     monoListAuthOwn γ.full 1 (strip L) ∗ monoListAuthOwn γ.ops (1 : Qp).half (opsOf (strip L)) ∗
     ghostMapAuth γ.raft.reFresh 1 F ∗ freshOk γ F ∗
-    ghostMapAuth γ.raft.reRdFresh 1 RF ∗ rdFreshOk γ RF)
+    ghostMapAuth γ.raft.reRdFresh 1 RF ∗ rdKeys γ RF ∗ rdFreshOk γ RF)
 
 def apiInv (γ : Cluster) (N : Namespace) : IProp GF := inv (apiN N) (apiInvBody γ)
 
@@ -293,7 +313,7 @@ theorem api_noopAu (γ : Cluster) (N : Namespace) (HN : γ.raft.reNs = N .@ "raf
   unfold atomic_acc apiInv apiInvBody
   have Hsub : (↑(apiN N) : CoPset) ⊆ ⊤ \ ↑(raftN γ.raft) := by
     unfold raftN; rw [HN]; exact apiN_sub_raft N
-  iinv Hinv with ⟨%L, %F, %RF, >HrL, >%Hidx, >Hfull, >Hops, >HF, #HFok, >HRF, #HRFok⟩ Hclose
+  iinv Hinv with ⟨%L, %F, %RF, >HrL, >%Hidx, >Hfull, >Hops, >HF, #HFok, >HRF, >#HRk, #HRFok⟩ Hclose
   iapply fupd_mask_intro (show (∅ : CoPset) ⊆ (⊤ \ ↑(raftN γ.raft)) \ ↑(apiN N) from
     Std.LawfulSet.empty_subset)
   iintro Hclose2
@@ -306,7 +326,7 @@ theorem api_noopAu (γ : Cluster) (N : Namespace) (HN : γ.raft.reNs = N .@ "raf
     imod Hclose $$ [HrL Hfull Hops HF HRF] with -
     · inext
       iexists L, F, RF
-      iframe HrL Hfull Hops HF HFok HRF HRFok
+      iframe HrL Hfull Hops HF HFok HRF HRk HRFok
       ipureintro; exact Hidx
     imodintro
     iempintro
@@ -323,7 +343,7 @@ theorem api_noopAu (γ : Cluster) (N : Namespace) (HN : γ.raft.reNs = N .@ "raf
     · inext
       iexists L ++ [e], F, RF
       rw [Hstrip, opsOf_snoc_filler _ _ Hf]
-      iframe HrL Hfull Hops HF HFok HRF HRFok
+      iframe HrL Hfull Hops HF HFok HRF HRk HRFok
       ipureintro; exact IdxOk_snoc Hidx HeIdx
     imodintro
     itrivial
@@ -574,18 +594,20 @@ def nodeBoot (γ : Cluster) (N : Namespace) (ps : List w64) (ctxs : List (List w
   iprop(⌜γ.raft.reCfg = GMap.listToSet ps ∧ γ.raft.reDyn = none ∧ BootLogOk ps γ.raft.reBoot ∧
       γ.raft.reNoSnap = true ∧ γ.raft.reNoXfer = false⌝ ∗
     clusterInv γ N ∗ ownRaftGhost γ.raft id (bootPState γ.raft.reBoot) ∗
-    isCommitted γ.raft γ.raft.reBoot ∗ bootMarshal ps ctxs γ.raft.reBoot)
+    isCommitted γ.raft γ.raft.reBoot ∗ bootMarshal ps ctxs γ.raft.reBoot ∗
+    inv budgetN (budgetInv γ.bud) ∗ termLB γ.bud (W64 1))
 
 /-- The client's part of a new cluster, built in raft's allocation (`allocClientGen`). -/
-def allocOut (N : Namespace) (boot : List LogEntry) (γr : RaftNames) : IProp GF :=
-  iprop(∃ γ : Cluster, ⌜γ.raft = γr⌝ ∗ apiInv γ N ∗ ownCommittedOps γ boot ∗ ownReadCtxs γ ∅)
+def allocOut (N : Namespace) (boot : List LogEntry) (bud : BudgetNames) (γr : RaftNames) :
+    IProp GF :=
+  iprop(∃ γ : Cluster, ⌜γ.raft = γr ∧ γ.bud = bud⌝ ∗ apiInv γ N ∗ ownCommittedOps γ boot ∗ ownReadCtxs γ ∅)
 
 /-- The adapter's part of raft's allocation: its ghost state and invariant, raft's standing update
 from it. -/
 theorem api_alloc_client (N : Namespace) (E : CoPset) (cfg : GSet w64) (ps : List w64)
-    (ctxs : List (List w8)) (boot : List LogEntry) (HB : BootLog ps ctxs boot) :
+    (ctxs : List (List w8)) (boot : List LogEntry) (bud : BudgetNames) (HB : BootLog ps ctxs boot) :
     ⊢ allocClientGen (GF := GF) E cfg none (fun _ _ => True) (LogEntry.toEntries boot 0)
-        (allocOut N boot) (N .@ "raft") := by
+        (allocOut N boot bud) (N .@ "raft") := by
   unfold allocClientGen
   iintro %γr %Hγr #Hc HrL Hfa Hrfa #Hpis
   obtain ⟨-, -, -, -, HNs⟩ := Hγr
@@ -596,7 +618,7 @@ theorem api_alloc_client (N : Namespace) (E : CoPset) (cfg : GSet w64) (ps : Lis
       boot).fractional (1 : Qp).half (1 : Qp).half).1
     $$ [Ho] with ⟨Ho1, Ho2⟩
   · rw [Qp.half_add_half]; iexact Ho
-  let γ : Cluster := ⟨γr, γf, γo, γc⟩
+  let γ : Cluster := ⟨γr, γf, γo, γc, bud⟩
   imod inv_alloc (apiN N) E (apiInvBody (GF := GF) γ) $$ [HrL Hf Ho1 Hfa Hrfa] with #Hinv
   · inext
     unfold apiInvBody
@@ -616,6 +638,11 @@ theorem api_alloc_client (N : Namespace) (E : CoPset) (cfg : GSet w64) (ps : Lis
         subst hek
         iapply (BigSepL.bigSepL_lookup (Φ := fun _ (e : EntryM) =>
           propIs (GF := GF) γr (entKey e.Type' e.Data') (fun _ => iprop(True))) hj) $$ Hpis
+    isplitr
+    · unfold rdKeys
+      imodintro
+      iintro %c %Hc
+      exact absurd Hc (by simp [GMap.lookup_empty])
     · unfold rdFreshOk
       imodintro
       iintro %c %Hc
@@ -627,7 +654,7 @@ theorem api_alloc_client (N : Namespace) (E : CoPset) (cfg : GSet w64) (ps : Lis
   iframe Hnoop
   unfold allocOut
   iexists γ
-  isplitr; · ipureintro; rfl
+  isplitr; · ipureintro; exact ⟨rfl, rfl⟩
   iframe Hinv'
   isplitl [Ho2]
   · unfold ownCommittedOps
@@ -647,12 +674,14 @@ theorem api_alloc_client (N : Namespace) (E : CoPset) (cfg : GSet w64) (ps : Lis
 /-- **A new cluster** (the draft's `cluster_alloc`; see the report for the differences). -/
 theorem cluster_alloc_impl (N : Namespace) (ps : List w64) (ctxs : List (List w8))
     (boot : List LogEntry) (E : CoPset) :
+    receiptBound GF ≤ 2 ^ 64 - 2 →
     BootLog ps ctxs boot → ps.Nodup → ps ≠ [] → W64 0 ∉ ps →
     ⊢ bootMarshal (GF := GF) ps ctxs (LogEntry.toEntries boot 0) -∗
       |={E}=> ∃ γ, ownCommittedOps γ boot ∗ ownReadCtxs γ ∅ ∗ readCredits γ (2 ^ 64 - 2) ∗
         [∗list] id ∈ ps, nodeBoot γ N ps ctxs id := by
-  intro HB Hnd Hne Hnz
+  intro Hrb HB Hnd Hne Hnz
   iintro #Hm
+  imod budget_alloc_boot (GF := GF) Hrb E with ⟨%bud, #Hbinv, #Htlb⟩
   have Hok := HB.ok
   have Hwf := Hok.wf Hnd
   have Hbne : LogEntry.toEntries boot 0 ≠ [] := by
@@ -667,9 +696,9 @@ theorem cluster_alloc_impl (N : Namespace) (ps : List w64) (ctxs : List (List w8
     rw [h] at this
     exact (GMap.not_elem_of_empty p) this
   have Hnz' : W64 0 ∉ GMap.listToSet ps := fun h => Hnz ((GMap.elem_of_list_to_set _ _).1 h)
-  ihave Hcl := api_alloc_client (GF := GF) N E (GMap.listToSet ps) ps ctxs boot HB
+  ihave Hcl := api_alloc_client (GF := GF) N E (GMap.listToSet ps) ps ctxs boot bud HB
   imod ownRaftGhost_alloc_core E (GMap.listToSet ps) (GMap.listToSet ps) none (fun _ _ => True)
-    (LogEntry.toEntries boot 0) (W64 1) (allocOut N boot) (some (GMap.listToSet ps))
+    (LogEntry.toEntries boot 0) (W64 1) (allocOut N boot bud) (some (GMap.listToSet ps))
     (fun T hT => by cases hT; exact ⟨GMap.subseteq_refl _, rfl⟩) true (fun _ => Hbne)
     false (fun h => by cases h) (fun _ _ => True) (fun _ => none) (N .@ "raft") Hcne Hnz' Hwf
     (fun _ => by rw [show uint.Z (W64 1) = 1 from rfl]; exact Int.le_refl _)
@@ -677,6 +706,7 @@ theorem cluster_alloc_impl (N : Namespace) (ps : List w64) (ctxs : List (List w8
   obtain ⟨Hcfg, Hdyn, -, Hboot, -, Hns, Hnx, -, -, HNs⟩ := Hγ
   iunfold allocOut at Hout
   icases Hout with ⟨%γ, %Hγr, #Hinv, Hops, Hctx⟩
+  obtain ⟨Hγr, Hγb⟩ := Hγr
   subst Hγr
   imodintro
   iexists γ
@@ -691,12 +721,349 @@ theorem cluster_alloc_impl (N : Namespace) (ps : List w64) (ctxs : List (List w8
   iintro %id %u %_ Hg
   unfold nodeBoot clusterInv
   rw [Hboot]
-  iframe Hg Hc0 Hm Hcinv Hinv
+  rw [Hγb]
+  iframe Hg Hc0 Hm Hcinv Hinv Hbinv Htlb
   isplitr
   · ipureintro; exact ⟨Hcfg, Hdyn, Hok, Hns, Hnx⟩
   ipureintro; exact HNs
 
 end alloc
+
+/-! ## What raft's commit facts and read states give the client -/
+
+section facts
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
+variable [sem : go.Semantics]
+variable [package_sem : go_etcd_io.raft.v3.Assumptions]
+
+theorem raftN_api (N : Namespace) {E : CoPset} (HE : ↑N ⊆ E) (x : String) :
+    (↑((N .@ "raft") .@ x) : CoPset) ⊆ E \ ↑(apiN N) := by
+  intro p hp
+  have h1 : p ∈ (↑(N .@ "raft") : CoPset) := nclose_subseteq (N .@ "raft") x p hp
+  rw [Iris.Std.LawfulSet.mem_diff]
+  exact ⟨HE p (nclose_subseteq N "raft" p h1),
+    fun h => ndot_ne_disjoint N (show "raft" ≠ "api" by decide) p ⟨h1, h⟩⟩
+
+/-- **A raft commit fact, as the client sees it**: a lower bound of the full log (and so of the
+requested entries), whose entries are at their positions. -/
+theorem api_committed_lb (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N ⊆ E)
+    (D : List EntryM) :
+    ⊢ clusterInv (GF := GF) γ N -∗ isCommitted γ.raft D ={E}=∗
+      isCommittedLogLb γ (strip D) ∗ ⌜IdxOk D⌝ := by
+  iintro #Hci #HD
+  unfold clusterInv
+  icases Hci with ⟨%HNs, #Hcinv, #Hinv⟩
+  unfold apiInv apiInvBody
+  have Ha := apiN_sub N HE
+  iinv Hinv with ⟨%L, %F, %RF, >HrL, >%Hidx, >Hfull, >Hops, >HF, #HFok, >HRF, >#HRk, #HRFok⟩ Hclose
+  ihave #Hli := raftCommitInv_log γ.raft $$ Hcinv
+  have Hl : (↑(raftLogN γ.raft) : CoPset) ⊆ E \ ↑(apiN N) := by
+    unfold raftLogN raftN; rw [HNs]; exact raftN_api N HE "log"
+  unfold raftLogInv raftLogInvBody logRest
+  iinv Hli with ⟨%P, >HP, >#Hj, >Htbl, >Hwt, >#Hds, >Hq1⟩ Hclose1
+  iunfold rLog at HrL
+  ihave %HLeq := ghostVar_agree γ.raft.reRLog P rlq L (1 : Qp).half $$ Hq1 HrL
+  subst HLeq
+  ihave %HDP := isCommitted_prefix γ.raft D P $$ HD HP
+  imod Hclose1 $$ [HP Htbl Hwt Hq1] with -
+  · inext
+    iexists P
+    iframe HP Hj Htbl Hwt Hds Hq1
+  ihave #Hflb := monoListLbOwn_get γ.full 1 (strip P) $$ Hfull
+  ihave #Holb := monoListLbOwn_get γ.ops (1 : Qp).half (opsOf (strip P)) $$ Hops
+  imod Hclose $$ [HrL Hfull Hops HF HRF] with -
+  · inext
+    iexists P, F, RF
+    unfold rLog
+    iframe HrL Hfull Hops HF HFok HRF HRk HRFok
+    ipureintro; exact Hidx
+  imodintro
+  isplitl []
+  · unfold isCommittedLogLb
+    isplitl []
+    · iapply monoListLbOwn_le _ (strip_prefix HDP) $$ Hflb
+    · iapply monoListLbOwn_le _ (opsOf_prefix (strip_prefix HDP)) $$ Holb
+  ipureintro
+  intro k e Hk
+  obtain ⟨r, rfl⟩ := HDP
+  exact Hidx k e (by rw [List.getElem?_append_left (List.getElem?_eq_some_iff.mp Hk).1]; exact Hk)
+
+/-- **A read state** (persistent): raft's (`readOk`), its context committed (`γ.ctxs`). -/
+def readStateOk (γ : Cluster) (N : Namespace) (c : List w8) (idx : w64) : IProp GF :=
+  iprop(clusterInv γ N ∗ readOk γ.raft c idx ∗ ∃ γq : GName, c ↪[γ.ctxs]□ γq)
+
+instance readStateOk_persistent (γ : Cluster) (N : Namespace) (c : List w8) (idx : w64) :
+    Persistent (readStateOk (GF := GF) γ N c idx) := by
+  unfold readStateOk; infer_instance
+
+/-- A context with a raft read was deposited by the adapter: its fresh token is in raft's
+registry, so the adapter minted it. -/
+theorem api_readReq_dep (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N ⊆ E)
+    (c : List w8) (Lc : List EntryM) :
+    ⊢ clusterInv (GF := GF) γ N -∗ readReq γ.raft c Lc ={E}=∗ readKey γ c ∗ ▷ readDep γ c := by
+  iintro #Hci #Hrq
+  unfold clusterInv
+  icases Hci with ⟨%HNs, #Hcinv, #Hinv⟩
+  unfold readReq
+  icases Hrq with ⟨%γq, #Hel, -⟩
+  unfold apiInv apiInvBody
+  have Ha := apiN_sub N HE
+  iinv Hinv with ⟨%L, %F, %RF, >HrL, >%Hidx, >Hfull, >Hops, >HF, #HFok, >HRF, >#HRk, #HRFok⟩ Hclose
+  ihave #Hri := raftCommitInv_reg γ.raft $$ Hcinv
+  have Hr : (↑(raftRegN γ.raft) : CoPset) ⊆ E \ ↑(apiN N) := by
+    unfold raftRegN raftN; rw [HNs]; exact raftN_api N HE "reg"
+  unfold raftRegInv regsOwn
+  iinv Hri with ⟨%l, >Hq2, Hregs⟩ Hclose2
+  iunfold regsAt at Hregs
+  icases Hregs with ⟨%R, %RR, Hprops, Hreads, #Hnoop⟩
+  iunfold readsReg at Hreads
+  icases Hreads with ⟨>Hra, Hs⟩
+  icases ghost_map_lookup $$ Hra Hel with %HRc
+  ihave Hs := (BigSepM.bigSepM_later).1 $$ Hs
+  icases (BigSepM.bigSepM_lookup_acc (Φ := fun c r =>
+      iprop(▷ (readSlot (GF := GF) γ.raft r l ∗ rdFresh γ.raft c))) HRc).1 $$ Hs
+    with ⟨⟨Hsl, >Hfr⟩, Hsback⟩
+  iunfold rdFresh at Hfr
+  icases ghost_map_lookup $$ HRF Hfr with %HRFc
+  ihave Hs := Hsback $$ [Hsl Hfr]
+  · inext; iframe Hsl; unfold rdFresh; iexact Hfr
+  imod Hclose2 $$ [Hq2 Hprops Hra Hs] with -
+  · iexists l
+    iframe Hq2
+    unfold regsAt readsReg
+    inext
+    iexists R, RR
+    iframe Hprops Hnoop Hra
+    iexact Hs
+  imod Hclose $$ [HrL Hfull Hops HF HRF] with -
+  · inext
+    iexists L, F, RF
+    iframe HrL Hfull Hops HF HFok HRF HRk HRFok
+    ipureintro; exact Hidx
+  imodintro
+  iunfold rdKeys at HRk
+  isplitl []
+  · iapply HRk $$ %c %HRFc
+  · inext
+    iunfold rdFreshOk at HRFok
+    iapply HRFok $$ %c %HRFc
+
+/-- **A raft read state, as the client sees it.** -/
+theorem api_readState (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N ⊆ E)
+    (st : ReadStateM) :
+    ⊢ clusterInv (GF := GF) γ N -∗ EtcdGrove.readStateOk γ.raft st ={E}=∗
+      readStateOk γ N st.RequestCtx' st.Index' := by
+  iintro #Hci #Hst
+  iunfold EtcdGrove.readStateOk at Hst
+  icases Hst with ⟨%c, %Hc, #Hok⟩
+  rw [Hc]
+  ihave #Hok' := Hok
+  iunfold readOk at Hok'
+  icases Hok' with ⟨%Lc, #Hrq, -⟩
+  imod api_readReq_dep γ N E HE c Lc $$ Hci Hrq with ⟨#Hdep, -⟩
+  iunfold readKey at Hdep
+  icases Hdep with ⟨%γq, %Lc', #Hel, -⟩
+  imodintro
+  unfold readStateOk
+  iframe Hci Hok
+  iexists γq
+  iframe Hel
+
+theorem api_readStates (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N ⊆ E)
+    (sts : List ReadStateM) :
+    ⊢ clusterInv (GF := GF) γ N -∗ ([∗list] st ∈ sts, EtcdGrove.readStateOk γ.raft st) ={E}=∗
+      [∗list] st ∈ sts, readStateOk γ N st.RequestCtx' st.Index' := by
+  induction sts with
+  | nil =>
+    iintro #_ -
+    imodintro
+    iapply (BigSepL.bigSepL_nil (Φ := fun _ (st : ReadStateM) =>
+      readStateOk (GF := GF) γ N st.RequestCtx' st.Index')).2
+    iempintro
+  | cons st sts ih =>
+    iintro #Hci H
+    icases (BigSepL.bigSepL_cons (Φ := fun _ (st : ReadStateM) =>
+      EtcdGrove.readStateOk (GF := GF) γ.raft st)).1 $$ H with ⟨H1, H⟩
+    imod api_readState γ N E HE st $$ Hci H1 with #H1
+    imod ih $$ Hci H with H
+    imodintro
+    iapply (BigSepL.bigSepL_cons (Φ := fun _ (st : ReadStateM) =>
+      readStateOk (GF := GF) γ N st.RequestCtx' st.Index')).2
+    iframe H1 H
+
+theorem readStateOk_used_impl (γ : Cluster) (N : Namespace) (c : List w8) (idx : w64)
+    (U : GSet (List w8)) :
+    readStateOk (GF := GF) γ N c idx ∗ ownReadCtxs γ U ⊢ ⌜c ∈ U⌝ := by
+  unfold readStateOk ownReadCtxs
+  iintro ⟨⟨-, -, %γq, #Hel⟩, %M, HM, %HU⟩
+  icases ghost_map_lookup $$ HM Hel with %HMc
+  ipureintro
+  apply (HU c).mpr
+  show (M.lookup c).isSome = true
+  show (M !! c).isSome = true
+  rw [HMc]; rfl
+
+/-- A client's lower bound is a raft commit fact. -/
+theorem api_lb_committed (γ : Cluster) (N : Namespace) (E : CoPset) (HE : ↑N ⊆ E)
+    (l : List LogEntry) :
+    ⊢ clusterInv (GF := GF) γ N -∗ isCommittedLogLb γ l ={E}=∗
+      ∃ D : List EntryM, ⌜strip D = l⌝ ∗ isCommitted γ.raft D := by
+  iintro #Hci #Hl
+  unfold clusterInv
+  icases Hci with ⟨%HNs, #Hcinv, #Hinv⟩
+  unfold apiInv apiInvBody
+  have Ha := apiN_sub N HE
+  iinv Hinv with ⟨%L, %F, %RF, >HrL, >%Hidx, >Hfull, >Hops, >HF, #HFok, >HRF, >#HRk, #HRFok⟩ Hclose
+  have Hl : (↑(raftLogN γ.raft) : CoPset) ⊆ E \ ↑(apiN N) := by
+    unfold raftLogN raftN; rw [HNs]; exact raftN_api N HE "log"
+  imod rLog_committed γ.raft L (E \ ↑(apiN N)) Hl $$ Hcinv HrL with ⟨HrL, #HLc⟩
+  unfold isCommittedLogLb
+  icases Hl with ⟨#Hfl, -⟩
+  icases mono_list_auth_lb_valid $$ Hfull Hfl with %Hpre
+  imod Hclose $$ [HrL Hfull Hops HF HRF] with -
+  · inext
+    iexists L, F, RF
+    iframe HrL Hfull Hops HF HFok HRF HRk HRFok
+    ipureintro; exact Hidx
+  imodintro
+  iexists L.take l.length
+  isplitr
+  · ipureintro
+    obtain ⟨r, hr⟩ := Hpre.2
+    unfold strip
+    rw [List.map_take]
+    show List.take l.length (strip L) = l
+    rw [← hr]; exact List.take_left
+  · iapply isCommitted_mono γ.raft _ _ (List.take_prefix _ _) $$ HLc
+
+/-- Collecting a read's result at a committed log `L` at least as long as the deposit's: the
+result predicate the read was deposited with (named `γq`) holds of `L`, under the invariant's
+later. (`read_collect` without the comparison with a predicate of the client's.) -/
+theorem read_collect_raw (γr : RaftNames) (E : CoPset) (c : List w8) (γq : GName)
+    (Lc L : List EntryM) :
+    ↑(raftN γr) ⊆ E → Lc.length ≤ L.length →
+    ⊢ raftCommitInv (GF := GF) γr -∗ c ↪[γr.reReads]□ ((γq, Lc) : GName × List EntryM) -∗
+      isCommitted γr L ={E}=∗
+      ▷ ∃ Qr : List EntryM → IProp GF, savedPredOwn γq DFrac.discard Qr ∗ □ Qr L := by
+  intro HE Hlen
+  iintro #Hinv #Hel #HL
+  ihave #Hri := raftCommitInv_reg γr $$ Hinv
+  ihave #Hli := raftCommitInv_log γr $$ Hinv
+  have HE1 := raftRegN_of HE
+  unfold raftRegInv regsOwn
+  iinv Hri with ⟨%l, >Hq2, Hregs⟩ Hclose2
+  have HE2 := raftLogN_of_diff HE
+  unfold raftLogInv raftLogInvBody logRest
+  iinv Hli with ⟨%P, >HP, >#Hj, >Htbl, >Hwt, >#Hds, >Hq1⟩ Hclose1
+  ihave %Heq := ghostVar_agree γr.reRLog P rlq l rlq $$ Hq1 Hq2
+  subst Heq
+  ihave %HLP := isCommitted_prefix γr L P $$ HL HP
+  iunfold regsAt at Hregs
+  icases Hregs with ⟨%R, %RR, Hprops, Hreads, #Hnoop⟩
+  iunfold readsReg at Hreads
+  icases Hreads with ⟨>Hra, Hs⟩
+  icases ghost_map_lookup $$ Hra Hel with %HRc
+  ihave Hs := (BigSepM.bigSepM_later).1 $$ Hs
+  ihave #Hslot : ▷ readSlot γr (γq, Lc) P $$ [Hs]
+  · ihave ⟨⟨#Hsl, -⟩, -⟩ := (BigSepM.bigSepM_delete (Φ := fun c r =>
+      iprop(▷ (readSlot (GF := GF) γr r P ∗ rdFresh γr c))) HRc).1 $$ Hs
+    iexact Hsl
+  imod Hclose1 $$ [HP Htbl Hwt Hq1] with -
+  · inext
+    iexists P
+    iframe HP Hj Htbl Hwt Hds Hq1
+  imod Hclose2 $$ [Hq2 Hprops Hra Hs] with -
+  · iexists P
+    iframe Hq2
+    unfold regsAt readsReg
+    inext
+    iexists R, RR
+    iframe Hprops Hnoop Hra
+    iexact Hs
+  imodintro
+  inext
+  iunfold readSlot at Hslot
+  icases Hslot with ⟨%Qr', #Hsp', #-, %Hpre, #Hres⟩
+  have HlenP : L.length ≤ P.length := HLP.length_le
+  have Hn : Lc.length ≤ L.length ∧ L.length ≤ P.length := ⟨Hlen, HlenP⟩
+  ihave #HQ' := Hres $$ %L.length %Hn
+  have HtL : P.take L.length = L := by
+    obtain ⟨r, rfl⟩ := HLP; exact List.take_left
+  rw [HtL]
+  iexists Qr'
+  iframe Hsp' HQ'
+
+/-- **What a read state tells the client** of a context it committed: the read took effect when
+the committed log was `l`, of length `idx`, and gave `Q` of its requested entries. (Changed from
+the draft: a ghost update within `N`, given a committed log at least `idx` long, the result
+under two laters; see the report.) -/
+theorem readStateOk_ctx_impl (γ : Cluster) (N : Namespace) (c : List w8) (idx : w64)
+    (Q : List LogEntry → IProp GF) (l' : List LogEntry) (E : CoPset) (HE : ↑N ⊆ E) :
+    uint.nat idx ≤ l'.length →
+    ⊢ readStateOk γ N c idx -∗ isReadCtx γ N c Q -∗ isCommittedLogLb γ l' ={E}=∗
+      ∃ l, ⌜l.length = uint.nat idx⌝ ∗ isCommittedLogLb γ l ∗ ▷ ▷ □ Q (opsOf l) := by
+  intro Hle
+  iintro #Hst #Hctx #Hl'
+  unfold readStateOk
+  icases Hst with ⟨#Hci, #Hok, %γq0, #Hel0⟩
+  ihave #Hci' := Hci
+  iunfold clusterInv at Hci'
+  icases Hci' with ⟨%HNs, #Hcinv, -⟩
+  iunfold readOk at Hok
+  icases Hok with ⟨%Lc, #Hrq, %HLc⟩
+  imod api_readReq_dep γ N E HE c Lc $$ Hci Hrq with ⟨-, #Hdep⟩
+  imod api_lb_committed γ N E HE l' $$ Hci Hl' with ⟨%D, %HD, #HDc⟩
+  have HDlen : D.length = l'.length := by rw [← HD, strip_length]
+  have Hn : uint.nat idx ≤ D.length := by rw [HDlen]; exact Hle
+  ihave #HL := isCommitted_mono γ.raft (D.take (uint.nat idx)) D (List.take_prefix _ _) $$ HDc
+  have HLlen : (D.take (uint.nat idx)).length = uint.nat idx := by
+    rw [List.length_take]; omega
+  unfold readReq
+  icases Hrq with ⟨%γr, #Hrel, -⟩
+  have HrN : ↑(raftN γ.raft) ⊆ E := by unfold raftN; rw [HNs]; exact raftN_sub N HE
+  have HLc' : Lc.length ≤ (D.take (uint.nat idx)).length := by
+    rw [HLlen]; have := uint_nat_eq idx; omega
+  imod read_collect_raw γ.raft E c γr Lc (D.take (uint.nat idx)) HrN HLc' $$ Hcinv Hrel HL
+    with HX
+  have Hsl : strip (D.take (uint.nat idx)) = l'.take (uint.nat idx) := by
+    unfold strip; rw [List.map_take]; show List.take _ (strip D) = _; rw [HD]
+  imodintro
+  iexists l'.take (uint.nat idx)
+  isplitr
+  · ipureintro; rw [List.length_take]; omega
+  isplitr
+  · iapply isCommittedLogLb_mono_impl γ _ _ (List.take_prefix _ _) $$ Hl'
+  inext
+  icases HX with ⟨%Qr, #Hsp, #HQr⟩
+  iunfold readDep at Hdep
+  icases Hdep with ⟨%γq, %Q0, #Hel, #HspQ, #Hrd⟩
+  iunfold isRead at Hrd
+  icases Hrd with ⟨%γr', %Lc', #Hrel', #Hspr⟩
+  ihave %Hagr := ghostMapElem_agree $$ Hrel Hrel'
+  cases Hagr
+  unfold isReadCtx
+  icases Hctx with ⟨%γq1, #Hel1, #Hsp1, -⟩
+  ihave %Hag1 := ghostMapElem_agree $$ Hel Hel1
+  cases Hag1
+  ihave #Heq1 := saved_pred_agree γr DFrac.discard DFrac.discard Qr (qrOf Q0)
+    (D.take (uint.nat idx)) $$ Hsp Hspr
+  ihave #Heq2 := saved_pred_agree γq DFrac.discard DFrac.discard Q0 Q
+    (opsOf (l'.take (uint.nat idx))) $$ HspQ Hsp1
+  inext
+  ihave Hiff1 := internalEq_iff _ _ $$ Heq1
+  icases Hiff1 with ⟨Hiff1, -⟩
+  ihave Hiff2 := internalEq_iff _ _ $$ Heq2
+  icases Hiff2 with ⟨Hiff2, -⟩
+  imodintro
+  iapply Hiff2
+  ihave HQ0 := Hiff1 $$ HQr
+  unfold qrOf
+  rw [Hsl]
+  iexact HQ0
+
+end facts
 
 end ApiImpl
 end EtcdGrove
