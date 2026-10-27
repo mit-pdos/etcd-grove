@@ -42,9 +42,10 @@ const (
 )
 
 // newServer builds member name of a new cluster whose initial members' peer URLs are cluster and
-// whose token is token: the member's peer URLs are peer, its one client URL http://client.
+// whose token is token: the member's peer URLs are peer, its one client URL http://client; the
+// auto-compactor in revision mode keeping retention revisions, or off if retention is zero.
 func newServer(name string, peer types.URLs, client string, cluster types.URLsMap, token string,
-	lg *zap.Logger) (*etcdserver.EtcdServer, error) {
+	retention int64, lg *zap.Logger) (*etcdserver.EtcdServer, error) {
 	cfg := config.ServerConfig{
 		Name:    name,
 		DataDir: name + ".etcd",
@@ -65,9 +66,13 @@ func newServer(name string, peer types.URLs, client string, cluster types.URLsMa
 		SnapshotCatchUpEntries: 1 << 48,
 		MaxTxnOps:              128,
 		MaxRequestBytes:        1536 * 1024,
-		// NewServer's premises: a logger, the compactor off (AutoCompactionRetention zero),
-		// pre-vote off (PreVote false, its zero value), a non-negative compaction batch limit
-		// (zero), the server's feature gate (a *featuregate.featureGate)
+		// the auto-compactor (v3compactor.ModeRevision): in revision mode, the retention is a
+		// number of revisions, as a time.Duration (etcd's --auto-compaction-retention)
+		AutoCompactionMode:      "revision",
+		AutoCompactionRetention: time.Duration(retention),
+		// NewServer's premises: a logger, pre-vote off (PreVote false, its zero value), a
+		// non-negative compaction batch limit (zero), the server's feature gate (a
+		// *featuregate.featureGate)
 		Logger:            lg,
 		ServerFeatureGate: features.NewDefaultServerFeatureGate(name, lg),
 	}
@@ -80,7 +85,20 @@ func newServer(name string, peer types.URLs, client string, cluster types.URLsMa
 func StartServer(name string, peerAddr string, clientAddr string,
 	lg *zap.Logger) (*etcdserver.EtcdServer, error) {
 	peer := types.URLs{{Scheme: "http", Host: peerAddr}}
-	s, err := newServer(name, peer, clientAddr, types.URLsMap{name: peer}, name, lg)
+	s, err := newServer(name, peer, clientAddr, types.URLsMap{name: peer}, name, 0, lg)
+	if err != nil {
+		return nil, err
+	}
+	s.Start()
+	return s, nil
+}
+
+// StartCompactingServer is StartServer with the auto-compactor on, in revision mode, keeping
+// retention revisions (retention positive).
+func StartCompactingServer(name string, peerAddr string, clientAddr string, retention int64,
+	lg *zap.Logger) (*etcdserver.EtcdServer, error) {
+	peer := types.URLs{{Scheme: "http", Host: peerAddr}}
+	s, err := newServer(name, peer, clientAddr, types.URLsMap{name: peer}, name, retention, lg)
 	if err != nil {
 		return nil, err
 	}
@@ -93,7 +111,7 @@ func StartServer(name string, peerAddr string, clientAddr string,
 // http://client, and serves its raft handler on a listener at peerAddr; it does not start it.
 func NewMember(name string, peer types.URLs, peerAddr string, client string,
 	cluster types.URLsMap, token string, lg *zap.Logger) (*etcdserver.EtcdServer, error) {
-	s, err := newServer(name, peer, client, cluster, token, lg)
+	s, err := newServer(name, peer, client, cluster, token, 0, lg)
 	if err != nil {
 		return nil, err
 	}

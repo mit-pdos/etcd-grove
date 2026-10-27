@@ -41,8 +41,10 @@ theorem newServer.wp_proof
     (wp_NewServer : ∀ [go_etcd_io.etcd.cache.v3.Assumptions],
       NewServer.spec (GF := GF) (hG := hG)) :
     newServer.spec (GF := GF) (hG := hG) := by
-  intro CS N name peerAddr client token peer cluster lg M iu Uok ps bootLog ctxs dir id γ ρ E₀ Φs
-    γn Htb Hrb48 HrbN hvs hdyn hboot hblen Hγn1 Hγn2 Hdirok Hdir HU Hlg Hck Haf Hbuq Hdbo
+  intro CS N name peerAddr client token retention peer cluster lg M iu Uok ps bootLog ctxs dir id γ
+    ρ E₀ Φs γn Htb Hrb48 HrbN hvs hdyn hboot hblen Hγn1 Hγn2 Hdirok Hdir HU Hlg Hret Hck Haf Hbuq
+    Hdbo
+  subst Hret
   wp_start as ⟨#Hpeer, #Hcl, #Hsls, #Hboot, #Hcom, #Hcci, Hmb, #Hnet⟩
   iunfold bootPremise at Hboot
   iunfold commonPremises at Hcom
@@ -132,6 +134,15 @@ theorem newServer.wp_proof
   iframe #
   ipureintro
   exact ⟨HE.1, HE.2, rfl, rfl, rfl⟩
+
+/-- `newServer` with the auto-compactor on (M2's S4, `notes/m2-plan.md`: `NewServer` with the
+compactor). -/
+theorem newServer.wp_proofCompact
+    (wp_FG : features.NewDefaultServerFeatureGate.spec (GF := GF) (hG := hG))
+    (wp_NewServer : ∀ [go_etcd_io.etcd.cache.v3.Assumptions],
+      NewServer.spec (GF := GF) (hG := hG)) :
+    newServer.specCompact (GF := GF) (hG := hG) := by
+  sorry
 
 end proof
 

@@ -9,7 +9,7 @@ usage: etc/goose.py [--check] [--project NAME]... [--src NAME=DIR]... [--perenni
                produces from the pinned Go source.  Also exit 1 if the examples'
                go.mod files replace etcd or raft by another revision than the
                projects' pins (GO_MOD_PINS; without --check, only a warning).
-  --project    only this project (raft, etcd, kv, putget, putget3, linkvtxn, porcupine, bridge,
+  --project    only this project (raft, etcd, kv, putget, putgetc, putget3, linkvtxn, porcupine, bridge,
                lintest, raft-witness, kvwitness or k8s-apiserver; repeatable; default: all).
   --src        translate project NAME from the local checkout DIR instead of
                cloning its pinned revision (default: $<NAME>_SRC, e.g. $ETCD_SRC,
@@ -479,6 +479,19 @@ PROJECTS = [
                     "go.uber.org=", "google.golang.org=", "net="],
         packages=["."],
         owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "putget")],
+    ),
+    Project(
+        name="putgetc",
+        # putget with the auto-compactor on (notes/m2-plan.md, M2's first result): one member
+        # started in-process with the compactor in revision mode (common.StartCompactingServer),
+        # a client's Put and Get of one key.
+        repo=None,
+        rev=None,
+        local=os.path.join("examples", "putgetc"),
+        lean_roots=["github.com/mit-pdos/etcd-grove=", "go.etcd.io/etcd=", "go.etcd.io/raft/v3=",
+                    "go.uber.org=", "google.golang.org=", "net="],
+        packages=["."],
+        owned=[os.path.join("github_com", "mit_pdos", "etcd_grove", "examples", "putgetc")],
     ),
     Project(
         name="linkvtxn",

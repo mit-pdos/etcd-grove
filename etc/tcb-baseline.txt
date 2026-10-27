@@ -733,6 +733,7 @@ axiom zap.Uint64.wp_proof
 axiom zapcore.CheckedEntry.Write.wp_proof
 sorry EtcdServer.Compact.wp_proof
 sorry authkv.Main.wp_proof
+sorry common.newServer.wp_proofCompact
 sorry k8setcd3.client_ctx_field
 sorry k8setcd3.revRoom
 sorry kubernetes.kvIs_ne_null

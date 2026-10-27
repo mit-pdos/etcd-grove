@@ -42,6 +42,8 @@ ROOTS = ['go_etcd_io.etcd.server.v3.etcdserver.api.v3rpc',
          'go_etcd_io.etcd.server.v3.etcdserver.api.v3election', 'go_etcd_io.etcd.server.v3.etcdserver',
          'go_etcd_io.etcd.client.v3', 'go_etcd_io.etcd.server.v3.etcdserver.read',
          'github_com.mit_pdos.etcd_grove.examples.putget',
+         # M2 (2026-10-27, notes/m2-plan.md): putget with the auto-compactor on
+         'github_com.mit_pdos.etcd_grove.examples.putgetc',
          'github_com.mit_pdos.etcd_grove.examples.putget3',
          'github_com.mit_pdos.etcd_grove.examples.lintest.counter',
          'github_com.mit_pdos.etcd_grove.examples.kv',
@@ -2005,6 +2007,8 @@ def gen_ext():
 # D19r, 2026-10-18): the root package and the module of the generated table.
 PROGRAMS = {'github_com.mit_pdos.etcd_grove.examples.putget':
             'Proof/github_com/mit_pdos/etcd_grove/examples/putget/PkgTable.lean',
+            'github_com.mit_pdos.etcd_grove.examples.putgetc':
+            'Proof/github_com/mit_pdos/etcd_grove/examples/putgetc/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.putget3':
             'Proof/github_com/mit_pdos/etcd_grove/examples/putget3/PkgTable.lean',
             'github_com.mit_pdos.etcd_grove.examples.linkv3p':

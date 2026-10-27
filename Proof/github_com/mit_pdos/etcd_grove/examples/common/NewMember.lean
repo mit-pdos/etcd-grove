@@ -47,10 +47,10 @@ theorem NewMember.wp_proof
   ihave #Psrv : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver $$ []
   · iPkgInit
   (try wp_auto)
-  -- `newServer(name, peer, client, cluster, token, lg)`
-  wp_apply (wp_newServer N name peerAddr client token peer cluster lg M iu Uok ps bootLog ctxs dir id
-      γ ρ E₀ Φs γn Htb Hrb48 HrbN hvs hdyn hboot hblen Hγn1 Hγn2 Hdirok Hdir HU Hlg
-      Hck Haf Hbuq Hdbo) $$ [Hmb] as %s %err Hres
+  -- `newServer(name, peer, client, cluster, token, 0, lg)`: the compactor off
+  wp_apply (wp_newServer N name peerAddr client token (W64 0) peer cluster lg M iu Uok ps bootLog
+      ctxs dir id γ ρ E₀ Φs γn Htb Hrb48 HrbN hvs hdyn hboot hblen Hγn1 Hγn2 Hdirok Hdir HU Hlg
+      (by decide) Hck Haf Hbuq Hdbo) $$ [Hmb] as %s %err Hres
   · iframe; iframe #
   icases Hres with (%Herr | ⟨%Herr, Hmb⟩)
   · -- `newServer` failed: the error returned

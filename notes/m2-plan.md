@@ -67,3 +67,78 @@ example theorem.
   reader kind), or must be generalized now because `storeReader` is shared.
 - Whether `Restore` is unreachable for one member (then it keeps its premise).
 - Whether the client's error predicate admits gRPC's compacted status (the read path's error answer).
+
+## Phase 1: the design of the skeleton (2026-10-27)
+
+**The reader, redefined** (phase 0's decision): `storeReader s γ` loses `crevFrozen` and becomes
+`storeReaderC` plus what a read needs of the compaction revision `c` it observes. What a read needs
+depends on the result:
+- **For `putgetc` (latest reads only), nothing tied to the compactor.** mvcc's `rangeOutcomeC`
+  answers `ErrCompacted` exactly when the revision read at is below `c`
+  (`mvcc/InvStore.lean`, `rangeOutcomeC`); a latest read is at the store's current revision, and
+  `c` never exceeds it (a compaction's revision is one of the committed log, `store.Compact`'s
+  premise). So the reader's statements change from "`c = -1`" (the frozen corollaries, the
+  transactions' `crev := -1` defaults) to "`c` the observed revision, `c ≤` the transaction's
+  revision", and a latest read's outcome is still `rangeOutcome` (a lemma like
+  `rangeOutcomeC_neg`, for `c ≤ rev`).
+- **For C3 (phase 0's library result: `ErrCompacted` only at or below a server-wide `compactLb`,
+  itself at most what the compactor's permit allows), an mvcc change.** A reader learns `c` only
+  as a lower bound (`crevLb`); bounding it from above needs a share of the revision's authority in a
+  server invariant beside `compactLb`. The authority is split between the store's lock invariant
+  and `compactRight` (half each), and `store.Compact` takes the right's whole half for the call
+  (non-atomic), so no invariant can keep a share. The general fix is mvcc's: `store.Compact` with
+  a logically atomic update at its linearization point (`updateCompactRev`, under `s.mu`; TaDa
+  style, the caller's invariant over a share of the right); a respecification of a proved mvcc
+  function (`store.Compact` 157 proof lines, `store.updateCompactRev` 341) and its one caller
+  (the apply's compaction arm).
+
+**The stages** (phase 0's S1-S4, refined):
+- **S0, the program**: `examples/putgetc` (Go: `putget` with `AutoCompactionMode: "revision"` and a
+  fixed retention; `examples/common` gains the configuration as a parameter of `newServer`, zero
+  for every existing caller), its Goose project, and `putgetc_safe`'s statement over it.
+- **S1, the readers**: `storeReader`'s new definition; txn's read specs (`Range`, `Txn`, `Count`,
+  `checkRange`, `checkTxn`, `isTxnRead`'s default) over the observed `c`; `rangeEvents`,
+  `store.Restore`, `watchableStore.Restore`, the watchable store's `compacted = false` (kept on the
+  watch path as a premise while watches are out of scope, if the shared reader allows it: open).
+- **S2, the apply's compaction arm**: `apply.dispatchOk` without the compaction conjunct; the arm's
+  spec over `store.Compact` (`compactRight` held by the apply thread, `NoDelPutAt` from the
+  workload); `reqPropOk`'s compaction form carrying `revPermit`; `applyEntries_model` without
+  "neither a compaction".
+- **S3, `EtcdServer.Compact`'s glue** over `processInternalRaftRequestOnce` (the pilot's last
+  `sorry`), against the frozen compactor specs (the freeze's test).
+- **S4, `NewServer` with the compactor on**: the `AutoCompactionRetention = 0` premise replaced by
+  revision mode's; `crevFrozen_alloc` replaced by the apply thread's `compactRight`; then
+  `putgetc`'s `Main` and `putgetc_safe`.
+- **S4's contract** (designed 2026-10-27): the server's `compactorOk c` (`etcdserver/InvRun.lean`,
+  persistent, nil until now) becomes `c = nil ∨ ∃ T P, v3compactor.compactorOk c T P` (what `run`
+  uses: `Pause`/`Resume`, persistent triples), and a new one-shot `compactorRun c` in what `start`
+  takes (`c = nil ∨` the run token and `runPre E (revPermit E.RevLb ret)`), spent by `start`'s
+  `s.compactor.Run()`. `NewServer` builds both from the frozen `v3compactor.New.spec`: `E.rg` the
+  store (`srv.kv`, mvcc's `Rev`), `E.c` the server (`EtcdServer.Compact.spec`, S3: a callee
+  hypothesis of `NewServer`'s proof, which builds the closure without calling it), `E.R` a store
+  reader of the 64, `E.RevLb` mvcc's revision lower bound. The compactor's specs are used as
+  frozen (the freeze's test).
+- **S5 (only with C3)**: mvcc's atomic `store.Compact`, `compactLb`, and the bound's statement.
+
+**C3 deferred** (the user's, 2026-10-27): the first result is `putgetc_safe`, with reads answering
+`ErrCompacted` exactly below the observed compaction revision (mvcc's statement); C3 and S5 are a
+later stage. A scope revision of phase 0 (decision 4), found in phase 1's design, before any spec.
+
+## Phase 1, S0: the program and the top-level statement (2026-10-27)
+
+- **Go**: `examples/putgetc` (putget with `common.StartCompactingServer(..., retention = 1, ...)`:
+  revision mode, the most aggressive retention, every compaction at the revision before the
+  store's); `examples/common`'s `newServer` takes the retention (`AutoCompactionMode: "revision"`,
+  `AutoCompactionRetention: time.Duration(retention)`), zero from every existing caller. Its Go
+  test passes; Goose project `putgetc`; `gen-init.py` roots and package table.
+- **Statements**: `putgetc.Main.spec` and the closed `putgetc_safe` (putget's, at putgetc's
+  addresses and name: `Proof/.../examples/putgetc/`), `common.StartCompactingServer.spec`
+  (`StartServer`'s, `0 < retention`), `common.newServer.spec` with the retention (`= 0`) and its
+  compacting variant `newServer.specCompact` (`0 < retention`).
+- **The one gap**: `newServer.wp_proofCompact` (`sorry`: S4's `NewServer` with the compactor).
+  **Why a variant, not one spec with `0 ≤ retention`**: Lean tracks axioms per declaration, so one
+  proof with a `sorry` in its compactor-on case would put the `sorry` under `putget_safe` and every
+  example built on `newServer`. The variant keeps it under `putgetc` alone
+  (`etc/tcb-collections/m2.txt`); S4 merges the two. The same applies to every generalized
+  statement of S1-S4: a generalization's unproved case goes in a variant, linked by hand
+  (`putgetc/MainLinked.lean`), until it is proved.
