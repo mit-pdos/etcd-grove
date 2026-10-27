@@ -41,7 +41,7 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 good shapes whose ids are claimed meets `entryWaitOk` (a normal entry's request's id claimed for
 its data; a conf change's id `0`, which no request claims). -/
 theorem batchWaitOk_of_work (ρ : ReqNames) (E : apply.AEnv GF) (L : List EntryModel)
-    (hs : logShape L) (hcl : ccLogOk ρ.raft.raft.reCfg L) :
+    (hs : logShape L) (hcl : ccLogOk ρ.raft.raft L) :
     ⊢ ([∗list] m ∈ L, entryClaim ρ.ids m) -∗ idNoZero ρ.ids -∗ srvRLogLb ρ.raft L -∗
       batchWaitOk ρ E L := by
   iintro #Hcl #HNZ #HL
@@ -125,7 +125,8 @@ theorem rnEnvOk_of_cluster (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64
     -- (D43 M3, 2026-10-25) the node's mode, static exactly when raft's names are; in the dynamic
     -- mode at the server's decoder
     (hmode : γw.node.mode = RNMode.static ↔ γw.node.raft.reDyn = none)
-    (hdec : ∀ dec c0 h0 h1, γw.node.mode = .dyn dec c0 h0 h1 → dec = srvDec)
+    (hdec : ∀ dec c0 h0 h1, γw.node.mode = .dyn dec c0 h0 h1 →
+      dec = srvDec ρ.rd.kv.c0 ρ.rd.raft.raft.reBoot)
     (hstor : γw.node.stor = memStorIface γw.ms)
     (hbud : γw.node.bud = bud)
     -- (D21 M3, 2026-10-19; until then, D19p, a one-member cluster) raft's no-snapshot mode

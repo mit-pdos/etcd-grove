@@ -23,16 +23,17 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- **`t.MendPeer(id)`** on a frozen transport with one of its lock's reader tokens, `id` no
-remote: it returns the token. It resumes the peer of `id` (`peer.Resume`, if one is added): the transport
+/-- **`t.MendPeer(id)`** on a started transport with one of its lock's reader tokens, `id` never a
+remote (D43 M5c: not among the ids `c.L` the pool has `R`s for, the only ids a remote is started
+for; until then, not among the frozen ids `AddRemote` was called for): it returns the token. It resumes the peer of `id` (`peer.Resume`, if one is added): the transport
 delivers again (until the next `CutPeer`); a dropped message is one the network may lose. `id` is no remote: a remote's `Pause` stops
 its pipeline, a second one panics (`issues/nonissues/etcd-rafthttp-cutpeer-twice-remote-panic.md`). The
 method set's premise `PeerPausable` (`*peer` implements `Pausable`). -/
 abbrev rafthttp.Transport.MendPeer.spec : Prop :=
-  PeerPausable → ∀ (γn : NetNames GF) (t : Loc) (c : TrN GF) (rs : trIds) (id : w64),
-  id ∉ rs.1 →
+  PeerPausable → ∀ (γn : NetNames GF) (t : Loc) (c : TrN GF) (id : w64),
+  id ∉ c.L →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
-      trFrozen γn t c rs ∗ trTok γn t c }}
+      trState γn t c ∗ trTok γn t c }}
     (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"MendPeer")) (Val #id))
   {{ RET #(); trTok γn t c }}
 

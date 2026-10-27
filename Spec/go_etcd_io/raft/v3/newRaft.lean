@@ -81,6 +81,7 @@ tracked ids `GMap.listToSet csm.Voters'`.
 -/
 module
 
+public import Proof.go_etcd_io.raft.v3.ApiVocab
 public import Proof.go_etcd_io.raft.v3.InvRaftPhys
 public import Spec.go_etcd_io.raft.v3.Config__validate
 
@@ -96,8 +97,7 @@ open Iris Iris.BI go_etcd_io.raft.v3
 section defs
 variable [FfiSyntax]
 
-def HsEmpty (hs : HardStateM) : Prop :=
-  hs.Term' = W64 0 ∧ hs.Vote' = W64 0 ∧ hs.Commit' = W64 0
+-- (2026-10-26, raft's signature, stage 1) `HsEmpty` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
 
 instance HsEmpty.decidable (hs : HardStateM) : Decidable (HsEmpty hs) := by
   unfold HsEmpty; infer_instance

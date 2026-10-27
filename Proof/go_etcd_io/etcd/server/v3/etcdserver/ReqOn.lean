@@ -46,19 +46,6 @@ open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver
 section pure
 variable [ext : FfiSyntax]
 
-/-- **The KV model of the committed log `L` in the auth mode `on`**: `kvModel` off, the mode-`on`
-model from the server's start state (`kvModelOn … srvAuthSt0`) on. -/
-def kvModelM (on : Bool) (γk : KVNames) (L : List EntryModel) : mvcc.Log :=
-  match on with
-  | false => kvModel γk L
-  | true => kvModelOn γk srvAuthSt0 L
-
-theorem kvModelM_false (γk : KVNames) (L : List EntryModel) :
-    kvModelM false γk L = kvModel γk L := rfl
-
-theorem kvModelM_true (γk : KVNames) (L : List EntryModel) :
-    kvModelM true γk L = kvModelOn γk srvAuthSt0 L := rfl
-
 /-- The header the server stamps is all `withHeader` changes: its kind, its KV operation, its
 permissions and its shape facts are the request's. -/
 theorem irrNoZeroEnd_withHeader (rq : apply.IRRModel) (hm : apply.HeaderModel) :
@@ -287,6 +274,7 @@ theorem reqPropOkM_true_write (γk : KVNames) (rq : apply.IRRModel) (op : KVOp)
   iintro %hm
   iunfold reqPropOkOn
   iright
+  ileft
   iexists op, Q, γc
   iframe Hau
   ipureintro
@@ -318,13 +306,16 @@ theorem reqPropOkOn_noZero (γk : KVNames) (st₀ : auth.AuthState) (rq : apply.
     (Qr : List EntryModel → IProp GF) :
     reqPropOkOn (GF := GF) γk st₀ rq Qr ⊢ ⌜irrNoZeroEnd rq⌝ ∗ reqPropOkOn γk st₀ rq Qr := by
   iunfold reqPropOkOn
-  iintro (%Hno | ⟨%op, %Q, %γc, %Hop, Hau⟩)
+  iintro (%Hno | ⟨%op, %Q, %γc, %Hop, Hau⟩ | %Had)
   · isplitr
     · ipureintro; exact Hno.2.2.1
     · ileft; ipureintro; exact Hno
   · isplitr
     · ipureintro; exact Hop.2.2.1
-    · iright; iexists op, Q, γc; iframe Hau; ipureintro; exact Hop
+    · iright; ileft; iexists op, Q, γc; iframe Hau; ipureintro; exact Hop
+  · isplitr
+    · ipureintro; exact Had.2.1
+    · iright; iright; ipureintro; exact Had
 
 /-- **A proposal's update in the auth mode `on`, at the request the wire decodes** (`kv_prop_au`
 off, `kv_prop_au_on` on; see the file header): for data `d` decoding to `rq'`, the encoding of `rq`

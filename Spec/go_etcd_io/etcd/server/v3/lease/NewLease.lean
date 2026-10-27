@@ -34,7 +34,7 @@ abbrev lease.NewLease.spec : Prop :=
       lsF go!"expiry" l ↦ (zero_val _root_.Perennial.time.Time) ∗
       lsF go!"mu" l ↦ (zero_val _root_.Perennial.sync.RWMutex) ∗
       (∃ sm : Loc, lsF go!"itemSet" l ↦ sm ∗ sm ↦$ (∅ : GMap LeaseItem Unit)) ∗
-      (∃ c : GoChan, lsF go!"revokec" l ↦ c) }}
+      (∃ c : GoChan, lsF go!"revokec" l ↦ c ∗ revokeCloser c) }}
 
 end spec
 

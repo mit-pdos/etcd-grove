@@ -72,7 +72,9 @@ of different versions; the premises exclude the first two, the deployment the th
 abbrev membership.clusterImageOk_restModel.spec : Prop :=
   ∀ (c : Loc) (γ : ServerRaftNames) (c0 : w64) (L L' : List EntryModel),
     γ.pre = [] → c0 = W64 0 → L <+: L' → γ.raft.reBoot.length ≤ L'.length →
-    ccLogOk γ.raft.reCfg L' →
+    -- (merge of D43 M5, 2026-10-27) `ccLogOk`'s static form, which `ccLogOk` was before M5d made it
+    -- mode-aware (the same statement as before the merge)
+    (∀ m ∈ L', m.typ ≠ W32 0 → ccBootOk γ.raft.reCfg m.data) →
     ⊢ membership.isRaftCluster (GF := GF) c -∗ srvRLogLb γ L' -∗
       membership.clusterMem c (restModel c0 γ.raft.reBoot L).mem -∗
       membership.clusterMem c (restModel c0 γ.raft.reBoot L).mem ∗

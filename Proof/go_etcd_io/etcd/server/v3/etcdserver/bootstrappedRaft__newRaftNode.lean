@@ -10,6 +10,7 @@ module
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.bootstrappedRaft__newRaftNode
 public import Spec.go_etcd_io.etcd.server.v3.etcdserver.newRaftNode
 public import Perennial.Proof.sync
+public import Proof.go_etcd_io.raft.v3.Linked
 
 @[expose] public section
 
@@ -19,6 +20,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
+
+open RaftLink
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.raft.v3
 

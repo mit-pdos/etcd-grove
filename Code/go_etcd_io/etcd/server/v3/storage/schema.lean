@@ -128,8 +128,6 @@ noncomputable def metaBucketName [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def leaseBucketName [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.leaseBucketName"
 
-axiom leaseBucketName.init [FfiSyntax] [GoGlobalContext] : val
-
 noncomputable def alarmBucketName [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.alarmBucketName"
 
@@ -172,8 +170,6 @@ noncomputable def Meta [FfiSyntax] [GoGlobalContext] : GoString :=
 
 noncomputable def Lease [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.Lease"
-
-axiom Lease.init [FfiSyntax] [GoGlobalContext] : val
 
 noncomputable def Alarm [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"go.etcd.io/etcd/server/v3/storage/schema.Alarm"
@@ -1634,6 +1630,8 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (Let "$v0" (Val #(W8 1))
   (App (Val (GoInstruction (CompositeLiteral (go.GoType.SliceType go.byte)))) (LiteralValue [(KeyedElement none (ElementExpression go.byte (Var "$v0")))])))
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1647,6 +1645,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (App (Val exceptionSeq) (Lam BAnon
   (Let "$r0" (App (Val (GoInstruction (Convert go.string (go.GoType.SliceType go.byte)))) (Val #(go!"meta")))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert go.string (go.GoType.SliceType go.byte)))) (Val #(go!"lease")))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1669,6 +1668,10 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$v2" (Val #false)
   (App (Val (GoInstruction (CompositeLiteral bucket.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"id")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BucketID.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"name")) (ElementExpression (go.GoType.SliceType go.byte) (Var "$v1"))), (KeyedElement (some (KeyField go!"safeRangeBucket")) (ElementExpression go.bool (Var "$v2")))]))))))
   (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (Convert bucket.ty _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty))) (Let "$v0" (Val #(W64 3))
+  (Let "$v1" (App (Val (GoInstruction (GoLoad (go.GoType.SliceType go.byte)))) (App (Val (GoInstruction (GlobalVarAddr leaseBucketName))) (Val #())))
+  (Let "$v2" (Val #false)
+  (App (Val (GoInstruction (CompositeLiteral bucket.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"id")) (ElementExpression _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.BucketID.ty (Var "$v0"))), (KeyedElement (some (KeyField go!"name")) (ElementExpression (go.GoType.SliceType go.byte) (Var "$v1"))), (KeyedElement (some (KeyField go!"safeRangeBucket")) (ElementExpression go.bool (Var "$v2")))]))))))
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -1752,7 +1755,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val Alarm.init) (Val #()))))))
   (App (Val doExecute)
-  (App (Val Lease.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr Lease))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty))) (Pair (App (Val (GoInstruction (GlobalVarAddr Meta))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -1774,7 +1777,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val alarmBucketName.init) (Val #()))))))
   (App (Val doExecute)
-  (App (Val leaseBucketName.init) (Val #()))))))
+  (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GlobalVarAddr leaseBucketName))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
   (App (Val (GoInstruction (GoStore (go.GoType.SliceType go.byte)))) (Pair (App (Val (GoInstruction (GlobalVarAddr metaBucketName))) (Val #())) (Var "$r0"))))))))
   (App (Val doExecute)
@@ -1816,6 +1819,8 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc metaBucketName (go.GoType.SliceType go.byte))) (Val #()))))))
   (App (Val doExecute)
+  (App (Val (go.GlobalAlloc leaseBucketName (go.GoType.SliceType go.byte))) (Val #()))))))
+  (App (Val doExecute)
   (App (Val (go.GlobalAlloc authBucketName (go.GoType.SliceType go.byte))) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc authUsersBucketName (go.GoType.SliceType go.byte))) (Val #()))))))
@@ -1825,6 +1830,8 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val (go.GlobalAlloc Key _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty)) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc Meta _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty)) (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (go.GlobalAlloc Lease _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty)) (Val #()))))))
   (App (Val doExecute)
   (App (Val (go.GlobalAlloc Auth _root_.Perennial.go_etcd_io.etcd.server.v3.storage.backend.Bucket.ty)) (Val #()))))))
   (App (Val doExecute)

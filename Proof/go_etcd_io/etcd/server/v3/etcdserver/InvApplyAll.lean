@@ -24,6 +24,7 @@ module
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRead
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftNode
 public import Proof.go_etcd_io.raft.v3.MemstorageAU
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvApRes
 
 @[expose] public section
 

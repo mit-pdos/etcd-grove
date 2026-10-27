@@ -30,6 +30,8 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVApplyOn
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BuildGap
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BuildAlloc
 public import Proof.go_etcd_io.etcd.server.v3.auth.Boot
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.BaseAuth
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.StoreLatest
 
 @[expose] public section
 
@@ -69,7 +71,83 @@ theorem logShapeM_append (on : Bool) (A B : List EntryModel) (h : logShapeM on (
   · exact fun m hm => h m (List.mem_append_left _ hm)
   · exact fun m hm => h m (List.mem_append_left _ hm)
 
+/-- **The KV model of the committed log `L` in the auth mode `on`**: `kvModel` off, the mode-`on`
+model from the server's start state (`kvModelOn … srvAuthSt0`) on. -/
+def kvModelM (on : Bool) (γk : KVNames) (L : List EntryModel) : mvcc.Log :=
+  match on with
+  | false => kvModel γk L
+  | true => kvModelOn γk srvAuthSt0 L
+
+theorem kvModelM_false (γk : KVNames) (L : List EntryModel) :
+    kvModelM false γk L = kvModel γk L := rfl
+
+theorem kvModelM_true (γk : KVNames) (L : List EntryModel) :
+    kvModelM true γk L = kvModelOn γk srvAuthSt0 L := rfl
+
 end pure
+
+section appliedM
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+/-- **The KV log `L` applied through the index `i` is the mode's KV model of a committed raft
+log** (persistent; `kvLogAt` at `false`). -/
+def kvLogAtM (on : Bool) (γr : ReadNames) (i : w64) (L : mvcc.Log) : IProp GF :=
+  iprop(∃ A : List EntryModel, srvRLogLb γr.raft A ∗
+    ⌜uint.Z i = uint.Z γr.raft.ai0 + A.length ∧ L = kvModelM on γr.kv A⌝)
+
+instance kvLogAtM_persistent (on : Bool) (γr : ReadNames) (i : w64) (L : mvcc.Log) :
+    Persistent (kvLogAtM (GF := GF) on γr i L) := by
+  unfold kvLogAtM; infer_instance
+
+theorem kvLogAtM_false (γr : ReadNames) (i : w64) (L : mvcc.Log) :
+    kvLogAtM (GF := GF) false γr i L = kvLogAt γr i L := rfl
+
+/-- **The applied logs are the mode's KV models of committed raft logs** (`kvLogsOk` at
+`false`). -/
+def kvLogsOkM (on : Bool) (γr : ReadNames) (M : GMap w64 mvcc.Log) : IProp GF :=
+  iprop(∃ Lb : List EntryModel, srvRLogLb γr.raft Lb ∗
+    ⌜∀ k L, M.lookup k = some L → ∃ A, A <+: Lb ∧
+      uint.Z k = uint.Z γr.raft.ai0 + A.length ∧ L = kvModelM on γr.kv A⌝)
+
+instance kvLogsOkM_persistent (on : Bool) (γr : ReadNames) (M : GMap w64 mvcc.Log) :
+    Persistent (kvLogsOkM (GF := GF) on γr M) := by
+  unfold kvLogsOkM; infer_instance
+
+instance kvLogsOkM_timeless (on : Bool) (γr : ReadNames) (M : GMap w64 mvcc.Log) :
+    Timeless (kvLogsOkM (GF := GF) on γr M) := by
+  unfold kvLogsOkM; infer_instance
+
+theorem kvLogsOkM_false (γr : ReadNames) (M : GMap w64 mvcc.Log) :
+    kvLogsOkM (GF := GF) false γr M = kvLogsOk γr M := rfl
+
+/-- **The applied index's invariant's body in the mode `on`** (`srvAppliedBody` at `false`): its
+applied logs the mode's KV models (`kvLogsOkM`). -/
+def srvAppliedBodyM (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) : IProp GF :=
+  iprop(∃ (v a : w64) (L : mvcc.Log) (M : GMap w64 mvcc.Log) (p : Bool),
+    sync.atomic.ownUint64 (srvAppliedIndexAddr s) (DFrac.own 1) v ∗
+    monoNatAuthOwn γr.applied (1 : Qp).half (uint.nat a) ∗
+    ghostMapAuth γr.logs 1 M ∗ ghostVar γr.pend (1 : Qp).half p ∗
+    ⌜uint.Z v ≤ uint.Z a ∧ appliedKeysOk M a p ∧ appliedMonoMap M⌝ ∗
+    appliedLogAt γr a L ∗ mvcc.idxCert E.γ.idx L ∗ kvLogsOkM on γr M)
+
+theorem srvAppliedBodyM_false (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
+    srvAppliedBodyM (GF := GF) false s E γr = srvAppliedBody s E γr := rfl
+
+/-- **The applied index's invariant in the mode `on`** (`srvAppliedInv` at `false`). -/
+def srvAppliedInvM (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) : IProp GF :=
+  inv srvN (srvAppliedBodyM on s E γr)
+
+instance srvAppliedInvM_persistent (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
+    Persistent (srvAppliedInvM on s E γr) := by
+  unfold srvAppliedInvM; infer_instance
+
+theorem srvAppliedInvM_false (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) :
+    srvAppliedInvM (GF := GF) false s E γr = srvAppliedInv s E γr := rfl
+
+end appliedM
 
 section defs
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -106,7 +184,7 @@ theorem srvCM_false (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64) (x₀
 def srvErM (on : Bool) (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV)
     (bud : BudgetNames) (id : w64) (S : IProp GF) : RNEnv GF :=
   ⟨srvCM on ρ E ai₀ c₀ x₀, fun m => iprop(srvMsgNet ρ.raft.raft bud id m ∗ srvMsgNoSnap m),
-    iprop(True), ρ.rd, srvRQ ρ.rd.raft, S⟩
+    iprop(True), ρ.rd, srvRQ ρ.rd.raft, S, iprop(False)⟩
 
 theorem srvErM_false (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV)
     (bud : BudgetNames) (id : w64) (S : IProp GF) :
@@ -165,7 +243,7 @@ theorem srvKVInvsM_true (E : apply.AEnv GF) (γr : ReadNames) :
     srvKVInvsM (GF := GF) true E γr = srvKVInvsOn E γr srvAuthSt0 := rfl
 
 /-- **`applyBuiltNA` in the auth mode `on`** (the auth plan's E3c): the apply thread's auth
-resource at the store's start state (`srvAuthApplyResAt` at `srvAuthSt0`, the latest state of the
+resource at the store's start state (`srvAuthApplyResB` at `srvAuthSt0`, the latest state of the
 store's history `[bootState, bump bootState]`), what ties the apply thread's auth state to the
 model's from the start (`applyBuiltOn`). -/
 def applyBuiltNAOn (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (E : apply.AEnv GF)
@@ -173,9 +251,9 @@ def applyBuiltNAOn (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (E :
   iprop(∃ (st₀ : ApplyState) (a t : w64) (f : Bool),
     applyThread γ st₀ ∗ ⌜loopOk γ st₀ ai₀ ∧ c₀ = ciEff γ st₀.k⌝ ∗ applyBackend γ ci b ∗
     ciApplying ci a t ∗ srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗ srvBeOwn s E ∗
-    revAuth E x₀.log ∗ srvAuthApplyResAt s E srvAuthSt0 ∗
+    revAuth E x₀.log ∗ srvAuthApplyResB s E srvAuthSt0 ∗
     srvAppliedOwn γr ai₀ ∗ appliedLogAt γr ai₀ x₀.log ∗ kvRun γr ai₀ c₀ [] x₀ ∗ srvRest E γr [] ∗
-    srvForceSnapAddr s ↦ f)
+    srvApRes s γr [] ∗ srvForceSnapAddr s ↦ f)
 
 /-- **`applyBuiltNA` in the auth mode `on`**: `applyBuiltNA` at `on = false` (by definition),
 `applyBuiltNAOn` at `on = true`. -/
@@ -184,6 +262,29 @@ def applyBuiltNAM (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInte
   match on with
   | false => applyBuiltNA s γ ci b E γr ai₀ c₀ x₀
   | true => applyBuiltNAOn s γ ci b E γr ai₀ c₀ x₀
+
+/-- **The server's uber-applier's base applier's auth layer** (the auth plan's E3k; persistent):
+its store and lessor the server's `authStore` and `lessor` fields' (`apply.uberBaseAuth`), what the
+apply thread's latest-state KV triples come from (`apply.uberKVL_of_base`); with the store's
+checks at the latest state in the environment's mode (`authStoreLatestM`, E3l: with auth on, of the
+store's invariant). -/
+def srvUberBase (s : Loc) (ua : GoInterface) (E : apply.AEnv GF) : IProp GF :=
+  iprop(∃ au le : GoInterface, srvAuthStoreAddr s ↦□ au ∗ srvLessorAddr s ↦□ le ∗
+    apply.uberBaseAuth ua E au le ∗
+    ∃ stl : Loc, ⌜au = auth.authIface stl⌝ ∗ authStoreLatestM E.authMode au E.RD stl)
+
+instance srvUberBase_persistent (s : Loc) (ua : GoInterface) (E : apply.AEnv GF) :
+    Persistent (srvUberBase s ua E) := by
+  unfold srvUberBase; infer_instance
+
+/-- **The built part's uber-applier row in the auth mode `on`** (E3k): `srvBuilt`'s at `false`
+(by definition), with the base applier's auth layer (`srvUberBase`) at `true`. -/
+def srvUberRowM (on : Bool) (s : Loc) (E : apply.AEnv GF) (x₀ : apply.ApplyKV) : IProp GF :=
+  match on with
+  | false => iprop(∃ ua : GoInterface, srvUberApplyAddr s ↦ ua ∗ apply.applierFor ua E ∗
+      apply.applyKV E ua x₀)
+  | true => iprop(∃ ua : GoInterface, srvUberApplyAddr s ↦ ua ∗ srvUberBase s ua E ∗
+      apply.applierFor ua E ∗ apply.applyKV E ua x₀)
 
 /-- **The built part in the auth mode `on`** (`srvBuilt` with `srvReqBuiltM`, `srvKVInvsM` and
 `srvCM`; the other rows `srvBuilt`'s). -/
@@ -196,7 +297,7 @@ def srvBuiltG (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
     "#Hrdb" ∷ (∃ v : ReadFields, srvReadBuiltNK s E v) ∗
     "#Hrunb" ∷ (∃ v : RunFields, srvRunBuilt s v) ∗
     "#Hsab" ∷ srvApplyAllBuilt s ∗
-    "#Hai" ∷ srvAppliedInv s E γr ∗
+    "#Hai" ∷ srvAppliedInvM on s E γr ∗
     "#Hkvi" ∷ srvKVInvsM on E γr ∗
     "#Hti" ∷ inv srvN (∃ t : w64, sync.atomic.ownUint64 (srvTermAddr s) (DFrac.own 1) t) ∗
     "#Hci'" ∷ srvCommittedInv s γr ∗
@@ -237,8 +338,7 @@ def srvBuiltG (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI �
     "#HNR" ∷ □ (|==> idCred ρ.ids 1) ∗
     "#Hcv" ∷ clusterVersionOk s ∗
     "%Hbound" ∷ ⌜threadBound GF ≤ 2 ^ 31⌝ ∗
-    "Hua" ∷ (∃ ua : GoInterface, srvUberApplyAddr s ↦ ua ∗ apply.applierFor ua E ∗
-      apply.applyKV E ua x₀) ∗
+    "Hua" ∷ srvUberRowM on s E x₀ ∗
     "Hwtok" ∷ idWaitTok ρ.ids ∗
     -- (2026-10-26, D22 J1a) what the snapshot path takes of the construction (`SnapRO.lean`)
     "Hsnapb" ∷ srvSnapBoot s ci E γr)
@@ -257,20 +357,31 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-open Iris.ProofMode in
 /-- **`applyBuiltNAM` from the mode-`on` row** (E3c): the mode-`on` row is the mode-off one with
-the auth resource at its latest state, which the mode-off row forgets (`srvAuthApplyRes_of_At`). -/
+the auth resource at its latest state, which the mode-off row forgets (`srvAuthApplyResAt_of_B`, `srvAuthApplyRes_of_At`). -/
+theorem srvUberRowM_of_On (on : Bool) (s : Loc) (E : apply.AEnv GF) (x₀ : apply.ApplyKV) :
+    (∃ ua : GoInterface, srvUberApplyAddr s ↦ ua ∗ srvUberBase s ua E ∗ apply.applierFor ua E ∗
+      apply.applyKV E ua x₀) ⊢ srvUberRowM (GF := GF) on s E x₀ := by
+  cases on
+  · unfold srvUberRowM
+    iintro ⟨%ua, Hua, -, #Hfor, Hakv⟩
+    iexists ua
+    iframe Hua Hfor Hakv
+  · unfold srvUberRowM
+    iintro H; iexact H
+
 theorem applyBuiltNAM_of_On (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface)
     (E : apply.AEnv GF) (γr : ReadNames) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV) :
     applyBuiltNAOn (GF := GF) s γ ci b E γr ai₀ c₀ x₀ ⊢ applyBuiltNAM on s γ ci b E γr ai₀ c₀ x₀ := by
   cases on
   · unfold applyBuiltNAM applyBuiltNAOn applyBuiltNA
-    iintro ⟨%st₀, %a, %t, %f, Hth, %Hok, Hbe, Hca, Hlg, Hbm, Hbo, Hra, Har, Hao, Hal, Hkr, Hrs, Hfs⟩
+    iintro ⟨%st₀, %a, %t, %f, Hth, %Hok, Hbe, Hca, Hlg, Hbm, Hbo, Hra, Har, Hao, Hal, Hkr, Hrs, Hap, Hfs⟩
     iexists st₀, a, t, f
-    iframe Hth Hbe Hca Hlg Hbm Hbo Hra Hao Hal Hkr Hrs Hfs
+    iframe Hth Hbe Hca Hlg Hbm Hbo Hra Hao Hal Hkr Hrs Hap Hfs
     isplitr
     · ipureintro; exact Hok
-    iapply srvAuthApplyRes_of_At $$ Har
+    iapply srvAuthApplyRes_of_At
+    iapply srvAuthApplyResAt_of_B $$ Har
   · unfold applyBuiltNAM
     iintro H; iexact H
 
@@ -282,6 +393,86 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
+
+/-- **The indices' invariants at index `0`, the applied index's in the auth mode `on`**
+(`srvIndices_alloc` with `srvAppliedInvM on`, E3k): the start log is the mode's model of the empty
+log either way (`kvModelM on γk [] = γk.log0`), so the allocation is `srvIndices_alloc`'s. -/
+theorem srvIndices_allocM (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : ReadNames) (Ec : CoPset)
+    (hai : γr.raft.ai0 = W64 0) :
+    ⊢ sync.atomic.ownUint64 (srvAppliedIndexAddr s) (DFrac.own 1) (W64 0) -∗
+      sync.atomic.ownUint64 (srvCommittedIndexAddr s) (DFrac.own 1) (W64 0) -∗
+      sync.atomic.ownUint64 (srvTermAddr s) (DFrac.own 1) (W64 0) -∗
+      monoNatAuthOwn γr.applied 1 0 -∗ monoNatAuthOwn γr.committed 1 0 -∗
+      ghostMapAuth γr.logs 1 (∅ : GMap w64 mvcc.Log) -∗ ghostVar γr.pend 1 false -∗
+      mvcc.idxCert E.γ.idx γr.kv.log0 -∗ srvRLogLb γr.raft [] ={Ec}=∗
+      srvAppliedInvM on s E γr ∗ srvAppliedOwn γr (W64 0) ∗ appliedLogAt γr (W64 0) γr.kv.log0 ∗
+      srvCommittedInv s γr ∗ srvCommittedOwn γr (W64 0) ∗
+      inv srvN (∃ t : w64, sync.atomic.ownUint64 (srvTermAddr s) (DFrac.own 1) t) := by
+  iintro Hai Hci Hti Hap Hcm Hlogs Hpend #Hcert #HL
+  have h0 : uint.nat (W64 0) = 0 := rfl
+  icases buildMonoNatHalves γr.applied 0 $$ Hap with ⟨Hap1, Hap2⟩
+  icases buildMonoNatHalves γr.committed 0 $$ Hcm with ⟨Hcm1, Hcm2⟩
+  icases buildGhostVarHalves γr.pend false $$ Hpend with ⟨Hp1, Hp2⟩
+  imod ghost_map_insert_persist (W64 0) γr.kv.log0 (GMap.lookup_empty _) $$ Hlogs with ⟨Hlogs, #Hlog0⟩
+  imod inv_alloc srvN Ec (iprop(∃ t : w64,
+      sync.atomic.ownUint64 (srvTermAddr s) (DFrac.own 1) t)) $$ [Hti] with #Hterm
+  · inext; iexists W64 0; iexact Hti
+  imod inv_alloc srvN Ec (iprop(∃ v : w64,
+      sync.atomic.ownUint64 (srvCommittedIndexAddr s) (DFrac.own 1) v ∗
+      monoNatAuthOwn γr.committed (1 : Qp).half (uint.nat v) ∗
+      (∃ L : List EntryModel, srvRLogLb γr.raft L ∗ ⌜uint.Z v ≤ uint.Z γr.raft.ai0 + L.length⌝)))
+    $$ [Hci Hcm1] with #Hcinv
+  · inext
+    iexists W64 0
+    rw [h0]
+    iframe Hci Hcm1
+    iexists []
+    iframe HL
+    ipureintro; rw [hai]; simp
+  imod inv_alloc srvN Ec (srvAppliedBodyM on s E γr)
+    $$ [Hai Hap1 Hlogs Hp1] with #Hainv
+  · inext
+    iunfold srvAppliedBodyM
+    iexists W64 0, W64 0, γr.kv.log0, (∅ : GMap w64 mvcc.Log).insert (W64 0) γr.kv.log0, false
+    rw [h0]
+    iframe Hai Hap1 Hlogs Hp1 Hcert
+    isplitr
+    · ipureintro
+      refine ⟨Int.le_refl _, ?_⟩
+      constructor
+      · intro k L' hk
+        rw [GMap.lookup_insert_Some] at hk
+        rcases hk with ⟨rfl, -⟩ | ⟨-, hk⟩
+        · left; exact Int.le_refl _
+        · simp at hk
+      · intro k k' L1 L2 h1 h2 _
+        rw [GMap.lookup_insert_Some] at h1 h2
+        rcases h1 with ⟨-, rfl⟩ | ⟨-, h1⟩
+        · rcases h2 with ⟨-, rfl⟩ | ⟨-, h2⟩
+          · exact List.prefix_refl _
+          · simp at h2
+        · simp at h1
+    isplitr
+    · iunfold appliedLogAt; iexact Hlog0
+    iunfold kvLogsOkM
+    iexists []
+    iframe HL
+    ipureintro
+    intro k L' hk
+    rw [GMap.lookup_insert_Some] at hk
+    rcases hk with ⟨rfl, rfl⟩ | ⟨-, hk⟩
+    · refine ⟨[], List.prefix_refl _, ?_, by cases on <;> rfl⟩
+      rw [hai]; simp
+    · simp at hk
+  imodintro
+  unfold srvAppliedInvM srvCommittedInv srvAppliedOwn srvCommittedOwn
+  iframe Hainv Hcinv Hterm
+  rw [h0]
+  iframe Hap2 Hp2 Hcm2
+  iunfold appliedLogAt; iexact Hlog0
+
+
+open Iris.ProofMode in
 
 /-- `srvCM` does not read the environment's names but through `envAgree` (`srvC_agree`'s). -/
 theorem srvCM_agree (on : Bool) (ρ : ReqNames) (E E' : apply.AEnv GF) (ai₀ c₀ : w64)
@@ -308,7 +499,7 @@ theorem rnTickerOk_srvErM_S (on : Bool) (ρ : ReqNames) (E : apply.AEnv GF) (ai�
 what both modes' shapes give, `logShapeM_cc`). -/
 theorem batchWaitOk_of_claims (ρ : ReqNames) (E : apply.AEnv GF) (L : List EntryModel)
     (hcc : ∀ m ∈ L, m.typ ≠ W32 0 → ccIdOf m.data = W64 0)
-    (hcl : ccLogOk ρ.raft.raft.reCfg L) :
+    (hcl : ccLogOk ρ.raft.raft L) :
     ⊢ ([∗list] m ∈ L, entryClaim ρ.ids m) -∗ idNoZero ρ.ids -∗ srvRLogLb ρ.raft L -∗
       batchWaitOk ρ E L := by
   iintro #Hcl #HNZ #HL
@@ -390,7 +581,8 @@ theorem rnEnvOk_of_clusterOn (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w
     (hraft : γw.node.raft = ρ.raft.raft) (hpre : γw.pre = ρ.raft.pre)
     (hai : uint.Z ρ.raft.ai0 = γw.pre.length) (hai0 : ρ.raft.ai0 = ai₀)
     (hmode : γw.node.mode = RNMode.static ↔ γw.node.raft.reDyn = none)
-    (hdec : ∀ dec c0 h0 h1, γw.node.mode = .dyn dec c0 h0 h1 → dec = srvDec)
+    (hdec : ∀ dec c0 h0 h1, γw.node.mode = .dyn dec c0 h0 h1 →
+      dec = srvDec ρ.rd.kv.c0 ρ.rd.raft.raft.reBoot)
     (hstor : γw.node.stor = memStorIface γw.ms)
     (hbud : γw.node.bud = bud)
     (hns : ρ.raft.raft.reNoSnap = true)
@@ -455,7 +647,8 @@ theorem rnEnvOk_of_clusterM (on : Bool) (ρ : ReqNames) (E : apply.AEnv GF) (ai�
     (hraft : γw.node.raft = ρ.raft.raft) (hpre : γw.pre = ρ.raft.pre)
     (hai : uint.Z ρ.raft.ai0 = γw.pre.length) (hai0 : ρ.raft.ai0 = ai₀)
     (hmode : γw.node.mode = RNMode.static ↔ γw.node.raft.reDyn = none)
-    (hdec : ∀ dec c0 h0 h1, γw.node.mode = .dyn dec c0 h0 h1 → dec = srvDec)
+    (hdec : ∀ dec c0 h0 h1, γw.node.mode = .dyn dec c0 h0 h1 →
+      dec = srvDec ρ.rd.kv.c0 ρ.rd.raft.raft.reBoot)
     (hstor : γw.node.stor = memStorIface γw.ms)
     (hbud : γw.node.bud = bud)
     (hns : ρ.raft.raft.reNoSnap = true)
@@ -569,7 +762,7 @@ theorem kvInvOn_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (st₀ : auth
     obtain ⟨-, ht, -, hid⟩ := hent n m hn
     refine ⟨fun h0 => ?_, fun _ => hid⟩
     rw [ht] at h0; exact absurd h0 (by decide)
-  have hccl : ccLogOk γs.raft.reCfg (bootEntries bootLog) := by
+  have hccl : ccLogOk γs.raft (bootEntries bootLog) := by
     intro m hm _
     obtain ⟨n, hn⟩ := List.getElem?_of_mem hm
     obtain ⟨-, -, hk⟩ := hboot
@@ -582,7 +775,7 @@ theorem kvInvOn_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (st₀ : auth
       simp only [Option.map_some, Option.some.injEq] at hn
       subst hn
       obtain ⟨-, -, -, -, hok⟩ := hk n e he
-      exact (hcc _ _ hok).2
+      exact ccPolOk_of_boot _ _ (hcc _ _ hok).2
   ihave #Hcl := entryClaims_conf (GF := GF) γk.ids (bootEntries bootLog) (fun m hm => by
     rw [hty m hm]; decide)
   iunfold kvInvOn
@@ -590,7 +783,7 @@ theorem kvInvOn_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (st₀ : auth
       srvRLog γs L ∗ ghostVar γk.st (1 : Qp).half (kvStateOf (kvModelOn γk st₀ L)) ∗
       ⌜plainLogOn L ∧ detLogOn γk.c0 γk.ch0 (st₀, γk.log0) L ∧ srvIdxOkW γs.ai0 L ∧
         uint.Z γk.c0 ≤ uint.Z γs.ai0 + L.length ∧
-        γk.ch0 = apply.alarmChain true false false ∧ γk.log0 ≠ []⌝ ∗ kvWorkOn γs.raft.reCfg γk L))
+        γk.ch0 = apply.alarmChain true false false ∧ γk.log0 ≠ []⌝ ∗ kvWorkOn γs.raft γk L))
     $$ [HL Hv1] with #Hinv
   · inext
     iexists bootEntries bootLog

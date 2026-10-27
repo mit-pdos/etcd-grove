@@ -28,10 +28,10 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp.Assump
 variable [PeerPausable]
 
 set_option hygiene false in
-/-- `CutPeer`'s and `MendPeer`'s body: the read-locked lookups (no remote: `id ∉ rs.1`), then the
-peer's `M` (`hM`), if any. -/
+/-- `CutPeer`'s and `MendPeer`'s body: the read-locked lookups (no remote: `id ∉ L`, so no remote
+of `id` ever took its `R`s from the pool), then the peer's `M` (`hM`), if any. -/
 local macro "cut_body" : tactic => `(tactic| (
-  wp_start as ⟨Htok, #Hfr⟩
+  wp_start as ⟨Htok, #Hst⟩
   ihave #Hsync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
   · iPkgInit
   wp_auto
@@ -39,13 +39,18 @@ local macro "cut_body" : tactic => `(tactic| (
   wp_apply sync.RWMutex.wp_RLock $$ [Htok] as ⟨Hrl, HP⟩
   · iframe Htok
   iunfold trLockP at HP
-  icases HP with ⟨%pm, %rm, %PM, %RM, %rs', %sb, Hp, Hr, Hpm, Hrm, Hg, Hgr, %Hrs, #Hpo, #Hro⟩
-  imod trRemotes_agree γr rs rs' sb _ $$ Hfr Hgr with ⟨Hgr, %Heq⟩
-  subst Heq
+  icases HP with ⟨%pm, %rm, %PM, %RM, %T, %rs', %sb, Hp, Hr, Hpm, Hrm, Hg, Hgr, %Hrs, #Hpo, #Hro,
+    Hts⟩
+  imod trStop_taken_sub Rh R γs L _ _ $$ Hst Hg with ⟨Hg, %HTL⟩
+  ihave %HRM0 := mapOrNil_null_empty rm _ RM $$ Hrm
+  have HTL' : ∀ x ∈ T, x ∈ L := HTL
   have Hnone : RM !! id = none := by
     cases h : RM !! id with
     | none => rfl
-    | some _ => exact absurd (Hrs.1 id (by simp [h])) Hid
+    | some _ =>
+      by_cases hrm : rm = null
+      · rw [HRM0 hrm] at h; simp at h
+      · exact absurd (HTL' id ((Hrs.2.2 hrm id).1 (by simp [h]))) Hid
   (try wp_auto)
   wp_apply wp_lookup2_mapOrNil _ pm _ PM id $$ [Hpm] as Hpm
   · iframe Hpm
@@ -53,9 +58,9 @@ local macro "cut_body" : tactic => `(tactic| (
   wp_apply wp_lookup2_mapOrNil _ rm _ RM id $$ [Hrm] as Hrm
   · iframe Hrm
   (try wp_auto)
-  wp_apply sync.RWMutex.wp_RUnlock $$ [Hrl Hp Hr Hpm Hrm Hg Hgr] as Htok
+  wp_apply sync.RWMutex.wp_RUnlock $$ [Hrl Hp Hr Hpm Hrm Hg Hgr Hts] as Htok
   · iframe Hrl
-    iunfold trLockP; iexists pm, rm, PM, RM, rs', sb; iframe; iframe #
+    iunfold trLockP; iexists pm, rm, PM, RM, T, rs', sb; iframe; iframe #
     (try inext)
     ipureintro; exact Hrs
   (try wp_auto)
@@ -82,14 +87,14 @@ local macro "cut_body" : tactic => `(tactic| (
     (try wp_auto)
     iapply HΦ; iunfold trReadTok; iexact Htok))
 
-/-- **`t.CutPeer(id)`** with a reader's token, `id` no remote (`id ∉ rs.1`, the ids `AddRemote` was
-called for, frozen): it returns, the peer of `id`, if any, paused. -/
+/-- **`t.CutPeer(id)`** with a reader's token, `id` no remote (`id ∉ L`: no remote of `id` can be
+started, D43 M5c): it returns, the peer of `id`, if any, paused. -/
 theorem rafthttp.Transport.CutPeer_core
     (hM : rafthttp.peer.Pause.spec (GF := GF) (hG := hG))
     (Rh : RaftHttp GF) (t : Loc) (lid : w64) (γd : GName) (R : IProp GF) (γs γr : GName)
-    (rs : trIds) (id : w64) (Hid : id ∉ rs.1) :
+    (L : List w64) (id : w64) (Hid : id ∉ L) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
-        trReadTok Rh t lid γd R γs γr ∗ trRemotesFrozen γr rs }}
+        trReadTok Rh t lid γd R γs γr ∗ trStopInv Rh R γs L }}
       (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"CutPeer")) (Val #id))
     {{ RET #(); trReadTok Rh t lid γd R γs γr }} := by
   cut_body
@@ -98,9 +103,9 @@ theorem rafthttp.Transport.CutPeer_core
 theorem rafthttp.Transport.MendPeer_core
     (hM : rafthttp.peer.Resume.spec (GF := GF) (hG := hG))
     (Rh : RaftHttp GF) (t : Loc) (lid : w64) (γd : GName) (R : IProp GF) (γs γr : GName)
-    (rs : trIds) (id : w64) (Hid : id ∉ rs.1) :
+    (L : List w64) (id : w64) (Hid : id ∉ L) :
     {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
-        trReadTok Rh t lid γd R γs γr ∗ trRemotesFrozen γr rs }}
+        trReadTok Rh t lid γd R γs γr ∗ trStopInv Rh R γs L }}
       (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"MendPeer")) (Val #id))
     {{ RET #(); trReadTok Rh t lid γd R γs γr }} := by
   cut_body

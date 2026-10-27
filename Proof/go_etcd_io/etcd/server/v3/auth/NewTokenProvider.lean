@@ -47,7 +47,7 @@ theorem auth.NewTokenProvider.wp_proof
   wp_start as %Hlg
   ihave Hai : (authInit : IProp GF) $$ []
   · iapply isPkgInit_access $$ Hpkg
-  icases Hai with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #HIO⟩
+  icases Hai with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #HIO, -⟩
   iunfold authErrVar at HIO
   icases HIO with ⟨%eIO, #HeIO, -⟩
   ihave #Hzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []

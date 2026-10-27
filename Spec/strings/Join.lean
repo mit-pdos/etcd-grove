@@ -3,7 +3,7 @@ Port of `election_proof/spec_strings_Join.v` (feb5c73d4) (stage R4 of the raft v
 -/
 module
 
-public import Proof.go_etcd_io.raft.v3.InvRaftPhys
+public import Proof.go_etcd_io.raft.v3.InvStorage
 
 @[expose] public section
 

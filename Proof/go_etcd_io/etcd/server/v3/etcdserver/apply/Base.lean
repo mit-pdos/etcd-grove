@@ -243,6 +243,39 @@ theorem errVarLeaf_get [_root_.Perennial.errors.Assumptions] (g : GoString) :
   iframe He
   iapply applyErrIs_leaf e hl $$ Hm
 
+/-- **`nil` or one of the auth package's error variables** (persistent; the auth plan's E3i,
+2026-10-27): what the auth store's checks return (`auth.authErrIs`, its request side's five), stated
+over the package's message list (`auth.authErrMsgs`), a leaf error (`errLeaf`), so that an error the
+auth layer refuses with is told apart from `etcdserver/errors.ErrNoSpace` (`applyErrVars`'
+`authErrsApart`) and `errors.Is` of it and `ErrNoSpace` is false. -/
+def authErrVarIs (err : GoInterface) : IProp GF :=
+  iprop(⌜err = GoInterface.nil⌝ ∨ ∃ (g : GoString) (e : GoInterfaceOk),
+    ⌜g ∈ (go_etcd_io.etcd.server.v3.auth.authErrMsgs).map Prod.fst ∧ errLeaf e⌝ ∗
+    globalAddr g ↦□ GoInterface.ok e ∗ ⌜err = GoInterface.ok e⌝)
+
+instance authErrVarIs_persistent (err : GoInterface) :
+    Persistent (authErrVarIs (GF := GF) err) := by
+  unfold authErrVarIs; infer_instance
+
+/-- **An auth check's error** (persistent; E3i): one `errors.Is` can take (`applyErrIs`) and `nil` or
+one of the auth package's error variables (`authErrVarIs`). -/
+def authApplyErrIs (err : GoInterface) : IProp GF :=
+  iprop(applyErrIs err ∗ authErrVarIs err)
+
+instance authApplyErrIs_persistent (err : GoInterface) :
+    Persistent (authApplyErrIs (GF := GF) err) := by
+  unfold authApplyErrIs; infer_instance
+
+theorem authApplyErrIs_apply (err : GoInterface) :
+    authApplyErrIs (GF := GF) err ⊢ applyErrIs err := by
+  iunfold authApplyErrIs; iintro ⟨#H, -⟩; iexact H
+
+theorem authApplyErrIs_nil : ⊢ authApplyErrIs (GF := GF) GoInterface.nil := by
+  iunfold authApplyErrIs
+  isplitl
+  · iapply applyErrIs_nil
+  iunfold authErrVarIs; ileft; ipureintro; rfl
+
 end errIsIProp
 
 end EtcdGrove
@@ -478,6 +511,16 @@ end go_etcd_io.etcd.server.v3.storage
 
 namespace go_etcd_io.etcd.server.v3.etcdserver.apply
 
+/-- **`ErrNoSpace` holds an error other than every auth error variable's** (persistent; the auth
+plan's E3i, 2026-10-27): from the variables' message cells (`auth.authErrMsgs`). What makes
+`applyEntryNormal`'s `errors.Is(ar.Err, ErrNoSpace)` false for an entry the auth layer refuses. -/
+def authErrsApart : IProp GF :=
+  iprop(□ ∀ g : GoString, ⌜g ∈ (go_etcd_io.etcd.server.v3.auth.authErrMsgs).map Prod.fst⌝ -∗
+    EtcdGrove.errVarApart go_etcd_io.etcd.server.v3.etcdserver.errors.ErrNoSpace g)
+
+instance authErrsApart_persistent : Persistent (authErrsApart (GF := GF)) := by
+  unfold authErrsApart; infer_instance
+
 /-- **The error variables the applier returns, or compares its result's error with, hold
 `errors.New` errors** (`EtcdGrove.errVarLeaf`: leaves of an error tree, pointer errors): its own
 wrappers' `ErrCorrupt` and `ErrNoSpace` (`etcdserver/errors`), the txn package's checks'
@@ -503,7 +546,9 @@ abbrev applyErrVars : IProp GF :=
     EtcdGrove.errVarApart go_etcd_io.etcd.server.v3.etcdserver.errors.ErrNoSpace
       go_etcd_io.etcd.server.v3.storage.mvcc.ErrFutureRev ∗
     EtcdGrove.errVarApart go_etcd_io.etcd.server.v3.etcdserver.errors.ErrNoSpace
-      go_etcd_io.etcd.server.v3.storage.mvcc.ErrCompacted)
+      go_etcd_io.etcd.server.v3.storage.mvcc.ErrCompacted ∗
+    -- (the auth plan's E3i, 2026-10-27) and from the auth package's error variables
+    authErrsApart)
 
 /-- The apply package's facts: its gauge `alarms` holds a fixed `*prometheus.GaugeVec` (whose
 `WithLabelValues` is the trust boundary, `Spec/github_com/prometheus/client_golang/prometheus/

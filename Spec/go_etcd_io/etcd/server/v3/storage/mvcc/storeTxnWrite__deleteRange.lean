@@ -26,14 +26,17 @@ revision at the transaction's revision (`writeRev`: the pending one if it has a 
 the committed log's last), `delKeys`, in key order, each deleted; their number. -/
 abbrev mvcc.storeTxnWrite.deleteRange.spec : Prop :=
   ∀ (trace : Loc) (tw s : Loc) (γ : mvcc.StoreNames) (ilog : mvcc.Log) (pend : List mvcc.Change)
-    (key endk : GoSlice) (k e : GoString) (crev : Int) (Z : IProp GF),
+    (key endk : GoSlice) (k e : GoString) (L : List w64) (crev : Int) (Z : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc ∗
-      mvcc.storeTxnWriteIs tw s γ trace ilog pend crev Z ∗ key ↦*□ k ∗ endk ↦*□ e }}
+      mvcc.storeTxnWriteIs tw s γ trace ilog pend crev Z ∗ key ↦*□ k ∗ endk ↦*□ e ∗
+      lease.leaseOwn γ.leases L (mvcc.pendItems ilog pend) }}
     (App (App (Val (tw @!! go.GoType.PointerType storeTxnWrite.ty @!! go!"deleteRange"))
       (Val #key)) (Val #endk))
   {{ RET #(W64 ((mvcc.delKeys ilog pend (decide (endk = slice.nil)) k e).length : Int) : w64);
       mvcc.storeTxnWriteIs tw s γ trace ilog
-        (pend ++ (mvcc.delKeys ilog pend (decide (endk = slice.nil)) k e).map .del) crev Z }}
+        (pend ++ (mvcc.delKeys ilog pend (decide (endk = slice.nil)) k e).map .del) crev Z ∗
+      lease.leaseOwn γ.leases L
+        (mvcc.pendItems ilog (pend ++ (mvcc.delKeys ilog pend (decide (endk = slice.nil)) k e).map .del)) }}
 
 end spec
 

@@ -202,8 +202,8 @@ theorem Main.wp_proof
   obtain ⟨hcfg, hdyn, hcc, hboot, htr, htx, hγn1, hγn2, hlog⟩ := Hal
   -- (D48) the adapter's invariant over the KV state's half, at the plan's fact: the bootstrap log
   -- changes no KV state (`linkv.kvRaftOf_boot`), so the start state's changes are `[[]]`
-  have hσ0 : (kvStateOf (kvModel ρ.rd.kv (bootEntries bootLog))).changes = [[]] := by
-    unfold kvModel
+  have hσ0 : (kvModelSt ρ.rd.kv (bootEntries bootLog)).changes = [[]] := by
+    unfold kvModelSt kvModel
     rw [linkv.kvRaftOf_boot _ _ _ _ _ bootLog Hbf.boot, hlog]
     rfl
   imod (client.kmInv_alloc ρ.rd.kv _ (watchkv.wkW (trs.map pairOf))

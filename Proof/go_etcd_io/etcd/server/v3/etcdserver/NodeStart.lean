@@ -253,7 +253,8 @@ abbrev NodeStartSpec (reg : GName) : Prop :=
     γ.reBoot = bootLog → BootLogOk γ.reCCOk ps bootLog →
     -- (D43 M3, 2026-10-25) raft's mode `md`: in the dynamic mode at the server's decoder, from the
     -- peers' configuration
-    (∀ dec c0 h0 h1, md = .dyn dec c0 h0 h1 → dec = srvDec ∧ c0 = cfgState (GMap.listToSet ps) ∅) →
+    (∀ dec c0 h0 h1, md = .dyn dec c0 h0 h1 →
+      dec = srvDec E.γr.kv.c0 bootLog ∧ c0 = cfgState (GMap.listToSet ps) ∅) →
     -- the server's names: the raft names, the start log empty, the policy
     E.γr.raft.raft = γ → E.γr.raft.pre = [] → E.γr.raft.ai0 = W64 0 → srvCCPolicy E.γr.raft →
     -- (2026-10-19, D21 M3) in raft's no-snapshot mode, the storage at the cap `1`
@@ -420,10 +421,7 @@ theorem raftNode_of_StartNode (reg : GName)
   ihave %Hnid : ⌜γw.node.id = γw.id⌝ $$ []
   · ihave #Hisnode' := Hisnode
     iunfold rnIsNode at Hisnode'
-    iunfold isNode at Hisnode'
-    icases Hisnode' with ⟨%nv, %r, %lok, Hrest⟩
-    iNamed Hrest
-    ipureintro; exact Hgid
+    iapply isNode_id $$ Hisnode'
   iapply HΦ
   iexists γw, rv
   isplitr

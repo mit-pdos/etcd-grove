@@ -35,6 +35,11 @@ abbrev apply.newAuthApplierV3.spec : Prop :=
   {{ (p : Loc), RET #p;
       -- (the auth plan's E2m) its shape: an auth applier over `base`, read-only
       structFieldRef authApplierV3 go!"applierV3" p ↦□ base ∗
+      -- (the auth plan's E3k) its store and lessor, read-only, and its structure (`authIs`)
+      structFieldRef authApplierV3 go!"as" p ↦□ st ∗ structFieldRef authApplierV3 go!"lessor" p ↦□ le ∗
+      □ (∀ E : AEnv GF, ⌜E.RD = RD⌝ -∗
+        apply.isAuthStore st E.γ E.P E.f E.RD E.authMode E.RW -∗ apply.isApplyLessor le E.s E.γ E.P E.f E.RW -∗
+        apply.authIs E p base) ∗
       □ (∀ (E : AEnv GF) (c : apply.Chain), ⌜E.RD = RD⌝ -∗
         apply.isAuthStore st E.γ E.P E.f E.RD E.authMode E.RW -∗ apply.isApplyLessor le E.s E.γ E.P E.f E.RW -∗
         apply.applierSpec E c base -∗

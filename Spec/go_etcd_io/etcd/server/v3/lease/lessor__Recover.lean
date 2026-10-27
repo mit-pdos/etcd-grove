@@ -27,9 +27,10 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- **`le.Recover(b, rd)`** of the lessor `lp` on the real backend at `oldbe` (its user's half of
-`le.b`, `lessorBeOn`), the user's half of the live set at some `L` (`leaseOwn γl L`), onto the
+`le.b`, `lessorBeOn`), the user's half of the live set at some `L` with its item map `I` and its
+close rights (`leaseOwn γl L I`, `leaseRevokers γl L`), onto the
 real backend `d` whose lease bucket is empty (absent or empty: the image's, under the workload,
-which grants no lease): the lessor on `d`, no lease live (`leaseOwn γl []`), the lease bucket of `d`
+which grants no lease): the lessor on `d`, no lease live (`leaseOwn γl [] ∅`, `leaseRevokers γl []`), the lease bucket of `d`
 present and empty, at two write-back tokens. (D22 receiver epochs, S8d, 2026-10-25, the user's
 decision: any `L` before, until then `[]`; the apply thread holds the live set existentially.)
 
@@ -46,16 +47,19 @@ pre-commit hook runs at the new backend's registered names: `applySnapshot` call
 (`lessorApplyOk`, for whichever backend the user's half of `le.b` names) stay true. -/
 abbrev lease.lessor.Recover.spec : Prop :=
   ∀ (lp : Loc) (γl : GName) (oldbe : Loc) (d : mvcc.KBReal) (W Pk : IProp GF) (qo : Qp)
-    (r : GMap GoString backend.BktData) (rd : GoFunc) (L : List w64),
+    (r : GMap GoString backend.BktData) (rd : GoFunc) (L : List w64)
+    (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.lease ∗
-      lease.lessorInv lp γl ∗ lease.lessorBeOn lp oldbe ∗ lease.leaseOwn γl L ∗
+      lease.lessorInv lp γl ∗ lease.lessorBeOn lp oldbe ∗ lease.leaseOwn γl L I ∗
+      lease.leaseRevokers γl L ∗
       backend.isBackend d.γB d.P W Pk d.be ∗ backend.bOpen d.γB qo ∗ ownToks d.γB.wb 2 ∗
       backend.rbOwn d.γB r ∗ ⌜(r.lookup go!"lease").getD ∅ = ∅⌝ }}
     (App (App (Val (lp @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.lease.lessor.ty @!!
       go!"Recover")) (Val #(interface.mkOk
         (go.GoType.PointerType go_etcd_io.etcd.server.v3.storage.backend.backend.ty) #d.be)))
       (Val #rd))
-  {{ RET #(); lease.lessorBeOn lp d.be ∗ lease.leaseOwn γl [] ∗ backend.bOpen d.γB qo ∗
+  {{ RET #(); lease.lessorBeOn lp d.be ∗ lease.leaseOwn γl [] ∅ ∗ lease.leaseRevokers γl [] ∗
+      backend.bOpen d.γB qo ∗
       backend.rbOwn d.γB (r.insert go!"lease" ∅) }}
 
 end spec

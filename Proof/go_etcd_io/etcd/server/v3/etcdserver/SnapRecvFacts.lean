@@ -55,6 +55,13 @@ theorem putIn_isSome (r : apply.RestM) (n k v n' : GoString) (h : (r.bk.lookup n
   · subst e; simp [apply.RestM.putIn]
   · rw [putIn_other _ _ _ _ _ e]; exact h
 
+/-- A delete keeps a bucket present. -/
+theorem delIn_isSome (r : apply.RestM) (n k n' : GoString) (h : (r.bk.lookup n').isSome) :
+    ((r.delIn n k).bk.lookup n').isSome := by
+  by_cases e : n = n'
+  · subst e; simp [apply.RestM.delIn]
+  · rw [delIn_other _ _ _ _ e]; exact h
+
 /-- **An entry keeps every present bucket present.** -/
 theorem restEntry_isSome [FfiSyntax] (c0 : w64) (m : EntryModel) (r : apply.RestM) (n : GoString)
     (h : (r.bk.lookup n).isSome) : ((restEntry c0 m r).bk.lookup n).isSome := by
@@ -80,7 +87,11 @@ theorem restEntry_isSome [FfiSyntax] (c0 : w64) (m : EntryModel) (r : apply.Rest
   have hcc : ∀ v3 cc (r' : apply.RestM), (r'.bk.lookup n).isSome →
       ((ccRest v3 cc r').bk.lookup n).isSome := by
     intro v3 cc r' h'; unfold ccRest; split
-    · exact putIn_isSome _ _ _ _ _ h'
+    · split
+      · exact putIn_isSome _ _ _ _ _ h'
+      · split
+        · exact putIn_isSome _ _ _ _ _ (delIn_isSome _ _ _ _ h')
+        · exact h'
     · exact h'
   unfold restEntry
   split
@@ -108,7 +119,8 @@ theorem restModel_bk_none [FfiSyntax] (c0 : w64) (bootLog : List EntryM) (L : Li
     (n : GoString) (hn : n ∉ mvcc.restBuckets) : (restModel c0 bootLog L).bk.lookup n = none := by
   have h1 : go!"members" ≠ n := fun e => hn (e ▸ by decide)
   have h2 : go!"cluster" ≠ n := fun e => hn (e ▸ by decide)
-  rw [restModel_keep _ _ _ _ h1 h2]
+  have h3 : go!"members_removed" ≠ n := fun e => hn (e ▸ by decide)
+  rw [restModel_keep _ _ _ _ h1 h2 h3]
   simp only [mvcc.restBuckets, List.mem_cons, List.not_mem_nil, or_false, not_or] at hn
   obtain ⟨e1, e2, e3, e4, e5, e6, e7, e8⟩ := hn
   simp [restBoot, restBootBk, Ne.symm e1, Ne.symm e2, Ne.symm e3, Ne.symm e4, Ne.symm e5,
@@ -123,7 +135,7 @@ theorem bkRestAt_boot' [FfiSyntax] {c0 : w64} {bootLog : List EntryM} {L : List 
       D.lookup go!"auth" = some authBoot ∧ D.lookup go!"authUsers" = some ∅ ∧
       D.lookup go!"authRoles" = some ∅ := by
   refine ⟨?_, ?_, ?_, ?_, ?_⟩ <;>
-    (rw [h _ (by decide), bkRestOf, restModel_keep _ _ _ _ (by decide) (by decide)]
+    (rw [h _ (by decide), bkRestOf, restModel_keep _ _ _ _ (by decide) (by decide) (by decide)]
      simp [restBoot, restBootBk])
 
 /-- **The rest model at an image's log is the image's tracked buckets** with the lessor's and the
@@ -264,14 +276,14 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 (`ccLogOk`, the KV invariant's workload fact `kvWork`; as `kv_log_plain` for `plainLog`). -/
 theorem kv_log_ccOk (γ : ServerRaftNames) (γk : KVNames) (B : List EntryModel) :
     ⊢ kvInv (GF := GF) γ γk -∗ srvRaftLogInv γ -∗ srvRLogLb γ B ={⊤}=∗
-      ⌜ccLogOk γ.raft.reCfg B⌝ := by
+      ⌜ccLogOk γ.raft B⌝ := by
   iintro #Hinv #Hr #HB
   iunfold kvInv at Hinv
   iinv Hinv with >Hi Hclose
   icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw⟩
   imod srvRLog_lb γ (⊤ \ ↑kvN) (mask_ndot_ne' nroot "raft_commit" "server_kv" (by decide))
     L B $$ Hr HL HB with ⟨HL, -, %Hp⟩
-  ihave %Hcc : iprop(⌜ccLogOk γ.raft.reCfg L⌝) $$ []
+  ihave %Hcc : iprop(⌜ccLogOk γ.raft L⌝) $$ []
   · iunfold kvWork at Hw; icases Hw with ⟨%h, -⟩; ipureintro; exact h.2
   imod Hclose $$ [HL Hσ] with -
   · inext; iexists L; iframe HL Hσ Hw; ipureintro; exact Hok
@@ -308,7 +320,9 @@ theorem snapRecv_image (γ : RaftNames) (γr : ReadNames) (E : apply.AEnv GF) (i
     (hch : γr.kv.ch0 = apply.alarmChain false false false) (hlog0 : γr.kv.log0 = [[], []])
     (hai : uint.Z ai = uint.Z γr.raft.ai0 + A.length) (hi : uint.Z ai < uint.Z i)
     (hboot : (γ.reBoot.length : Int) ≤ uint.Z i)
-    (hRO : E.RO = srvRestOwnH d.γB cl H) :
+    (hRO : E.RO = srvRestOwnH d.γB cl H)
+    -- (merge of D43 M5, 2026-10-27) raft's static mode (the image axiom's `ccBootOk` log)
+    (hstat : γ.reDyn = none) :
     ⊢ srvKVInvs E γr -∗ srvImage γ i D -∗ kvApplied γr.raft γr.kv A x -∗ srvRest E γr A -∗
       membership.isRaftCluster cl ={⊤}=∗
       kvApplied γr.raft γr.kv A x ∗ srvRest E γr A ∗
@@ -353,8 +367,10 @@ theorem snapRecv_image (γ : RaftNames) (γr : ReadNames) (E : apply.AEnv GF) (i
   have hLL : γr.raft.pre ++ A <+: γr.raft.pre ++ A' := (List.prefix_append_right_inj _).2 hAA'
   have hbl : γr.raft.raft.reBoot.length ≤ (γr.raft.pre ++ A').length := by
     rw [hpre0, hrr, List.nil_append]; omega
-  have hcc' : ccLogOk γr.raft.raft.reCfg (γr.raft.pre ++ A') := by
-    rw [hpre0, List.nil_append]; exact Hcc
+  have hcc' : ∀ m ∈ γr.raft.pre ++ A', m.typ ≠ W32 0 → ccBootOk γr.raft.raft.reCfg m.data := by
+    rw [hpre0, List.nil_append]
+    intro m hm ht
+    exact ccPolOk_static _ _ (by rw [hrr]; exact hstat) (Hcc m hm ht)
   ihave Hax := membership.clusterImageOk_restModel.wp_proof cl γr.raft γr.kv.c0
     (γr.raft.pre ++ A) (γr.raft.pre ++ A') hpre0 hc0 hLL hbl hcc' $$ Hrc HA'' Hmem
   icases Hax with ⟨Hmem, %Himg⟩

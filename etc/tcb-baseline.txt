@@ -6,7 +6,6 @@ axiom Client.roundRobinQuorumBackoff.wp_proof
 axiom Client.streamClientInterceptor.wp_proof
 axiom DescribeConfChange.wp_proof
 axiom EtcdServer.adjustTicks.wp_proof
-axiom EtcdServer.applyConfChange.wp_proof
 axiom EtcdServer.monitorClusterVersions.wp_proof
 axiom EtcdServer.monitorCompactHash.wp_proof
 axiom EtcdServer.monitorDowngrade.wp_proof
@@ -524,6 +523,7 @@ axiom membership.RaftCluster.SetBackend.wp_proof
 axiom membership.RaftCluster.SetVersionChangedNotifier.wp_proof
 axiom membership.RaftCluster.String.wp_proof
 axiom membership.RaftCluster.updateMembershipMetric.wp_proof
+axiom membership.setIsLearnerMetric.wp_proof
 axiom metadata.AppendToOutgoingContext.wp_proof
 axiom metadata.FromIncomingContext.wp_proof
 axiom metadata.FromOutgoingContext.wp_proof
@@ -616,6 +616,10 @@ axiom resolver.New.wp_proof
 axiom rpctypes.errDesc_etcdError
 axiom schema.MustUnsafePutLease.wp_proof
 axiom schema.MustUnsafeSaveConfStateToBackend.wp_proof
+axiom schema.UnsafeDeleteLease.wp_proof
+axiom schema.membershipBackend.MustDeleteMemberFromBackend.wp_proof
+axiom schema.membershipBackend.MustReadMembersFromBackend.wp_proof
+axiom schema.membershipBackend.MustSaveMemberToBackend.wp_proof
 axiom semver.MustParse.wp_proof
 axiom semver.New.wp_proof
 axiom semver.Version.LessThan.wp_proof
@@ -631,6 +635,7 @@ axiom snap.NewMessage.wp_proof
 axiom snap.Snapshotter.DBFilePath.wp_proof
 axiom snap.Snapshotter.SaveDBFrom.wp_proof
 axiom sort.Stable.wp_proof
+axiom sort.StringSlice.Sort.wp_proof
 axiom status.Code.wp_proof
 axiom status.Error.wp_proof
 axiom status.Errorf.wp_proof
@@ -679,7 +684,6 @@ axiom types.NewURLs.wp_proof
 axiom types.URLs.StringSlice.wp_proof
 axiom v2stats.FollowerStats.Fail.wp_proof
 axiom v2stats.FollowerStats.Succ.wp_proof
-axiom v2stats.LeaderStats.Follower.wp_proof
 axiom v2stats.NewServerStats.wp_proof
 axiom v2stats.ServerStats.BecomeLeader.wp_proof
 axiom v2stats.ServerStats.RecvAppendReq.wp_proof
@@ -724,4 +728,3 @@ sorry k8setcd3.clientErr_other
 sorry k8setcd3.client_ctx_field
 sorry k8setcd3.revRoom
 sorry kubernetes.kvIs_ne_null
-sorry rafthttp.Transport.RemoveAllPeers.wp_proof

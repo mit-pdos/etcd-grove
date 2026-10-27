@@ -90,7 +90,8 @@ abbrev bootstrappedRaft.newRaftNode.spec : Prop :=
   BootLogOk γ.reCCOk ps bootLog →
   -- (D43 M3, 2026-10-25) raft's mode `md`: in the dynamic mode at the server's decoder, from the
   -- peers' configuration
-  (∀ dec c0 h0 h1, md = .dyn dec c0 h0 h1 → dec = srvDec ∧ c0 = cfgState (GMap.listToSet ps) ∅) →
+  (∀ dec c0 h0 h1, md = .dyn dec c0 h0 h1 →
+    dec = srvDec E.γr.kv.c0 bootLog ∧ c0 = cfgState (GMap.listToSet ps) ∅) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
       "Hb" ∷ b ↦{dq} bv ∗ "Hc" ∷ bv.config' ↦ cv ∗ "#Hlok" ∷ isLogger lok ∗
       -- the fresh `MemoryStorage` `b.storage` as raft's `Storage` (`memOwnStorage_empty`,

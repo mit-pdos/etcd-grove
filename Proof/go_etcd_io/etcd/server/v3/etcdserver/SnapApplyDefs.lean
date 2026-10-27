@@ -135,14 +135,14 @@ def snapWalkPost (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E :
     srvBeAddr s ↦{DFrac.own (1 : Qp).half} srvBeIface d'.be ∗
     monoNatAuthOwn γt 1 (uint.nat sv.Metadata'.Index') ∗
     alarmBeOn al d'.be ∗ authBeOn ast d'.be ∗ clusterBeOn cl d'.be ∗ lease.lessorBeOn lp d'.be ∗
-    lease.leaseOwn E.γ.leases [] ∗ lease.lessorRdOf E.γ.leases ∗
+    lease.leaseOwn E.γ.leases [] ∅ ∗ lease.lessorRdOf E.γ.leases ∗ lease.leaseRevokers E.γ.leases [] ∗
     mvcc.bkRTx d'.γB d'.P d'.be ∗
     backend.rbOwn d'.γB (<[go!"alarm" := ∅]> (<[go!"lease" := ∅]> (backend.rbData d.P D))) ∗
     membership.clusterMem cl memI ∗ backend.bOpen d'.γB (1 : Qp).half ∗
     mvcc.storeCloser E.s (γw.st.withPhys p') ∗ mvcc.writerFrag (γw.st.withPhys p') ∗
     mvcc.watchWriter γw ([[], []] ++ R) ∗
     (mvcc.storeRT (γw.st.withPhys p') -∗ mvcc.writerOwn (γw.st.withPhys p')) ∗
-    mvcc.storeReader E.s E.γ ∗ trLive γn t c (rs.1, L) ∗ srvLgReader s ∗
+    mvcc.storeReader E.s E.γ ∗ trLive γn t c L ∗ srvLgReader s ∗
     epAppliedIAddr ep ↦ sv.Metadata'.Index' ∗ epAppliedTAddr ep ↦ sv.Metadata'.Term' ∗
     epDiskSnapAddr ep ↦ sv.Metadata'.Index' ∗ epMemSnapAddr ep ↦ sv.Metadata'.Index' ∗
     epConfStateAddr ep ↦ spc ∗ csOptA spc DFrac.discard sv.Metadata'.ConfState' ∗
@@ -188,7 +188,7 @@ def srvSnapApplied (s ep : Loc) (sv : SnapshotM) (γ : ApplyNames) (ci : Loc) (E
     backend.isStopChans d'.γB d'.be ∗ backend.bOpen d'.γB (1 : Qp).half ∗
     monoNatAuthOwn γt 1 (uint.nat sv.Metadata'.Index') ∗
     backend.pathOwn (snap.snapDBPath ss sv.Metadata'.Index') ∗
-    trLive γn t c (rs.1, L) ∗ Tal)
+    trLive γn t c L ∗ Tal)
 
 end proof
 end EtcdGrove

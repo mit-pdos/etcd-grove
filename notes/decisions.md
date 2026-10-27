@@ -18786,6 +18786,350 @@ writers of a removal, and the validation, proved; the static examples unchanged.
   package imports `raftpb` and `encoding/json` (the k8s-apiserver project's names-only translation,
   its package instance moved to `etcdserver/apply/Base.lean`).
 
+**M5 scoped (2026-10-26; the user's decisions).** `applyConfChange` for an `AddNode` of a known
+member and a `RemoveNode`, in sub-stages M5a-M5e (`notes/membership-plan.md`).
+- `AddMember` proved, with `json.Marshal` of a `*Member` an axiom over the opaque `memberEnc`
+  (alternative: `AddMember` itself an axiom, rejected: the writer would stay opaque).
+- Until M6 the server admits a `RemoveNode` of another member only: removing the local member
+  returns `removed = true`, which only M6's stopping server handles. `applyConfChange`'s spec covers
+  both cases.
+- `probing.NewProber` restated: `proberOk` also promises `Remove(id)` (alternative: translate
+  xiang90/probing, a new concurrent package, rejected as a detour).
+- `removePeer`'s unlocked `delete(t.LeaderStats.Followers, ...)`: not a race in the server (both of
+  the map's writers run under the transport's write lock; `LeaderStats.JSON`, the unlocked reader,
+  has no caller in the server; a `-race` test of `JSON` against `Follower` does report one, dead
+  code), so the map is owned through `trLockP`, `NewLeaderStats` hands it out and `Follower` is
+  translated and proved over it (one axiom fewer), its own mutex guarding nothing the proof needs.
+
+**M5 scoped further (2026-10-26; the user's decisions).** (i) `membership.clusterMem` (opaque: the
+cluster's in-memory members, which the axioms of `bootstrap`'s contract, `UpdateAttributes`,
+`Recover` and `applyConfChange` take) becomes **defined** from the cluster's lock invariant: a ghost
+model of the members map in the invariant (each owned member agreeing with it), the apply thread
+holding the other half; the axioms that mention it restated with the cluster's ghost name
+(alternative: coupling axioms per writer, rejected). (ii) `MustReadMembersFromBackend` (what
+`ValidateConfigurationChange`'s `beReadOk` needs) a **contract axiom** over the backend's tracked
+buckets (the members and removed map they decode to), replacing the opaque `ccValidOn`
+(alternative: translate `readMembersFromBackend` with a read transaction's `UnsafeForEach` spec and
+a `json.Unmarshal` axiom, rejected as a detour).
+
+**M5c scoping: the handlers' `AddRemote` (2026-10-26; the user's decision).** W3 (above) did not
+consider that the pipeline and snapshot handlers call `addRemoteFromRequest` → `AddRemote` on every
+request (`http.go:117,226`), which really starts a remote for a sender that is not a peer -- a
+just-removed member, which keeps sending until it learns. On the frozen transport every member is
+a peer, so `AddRemote` is a no-op (`AddRemote_frozen`); on a live one it is not. Decided: the
+owner's right (`trLive`) tracks the **peer ids only** (the owner's `AddPeer`/`RemovePeer` change
+them); the remote ids live only in the lock's resource, which any lock holder (a handler's
+`AddRemote`) may extend. Open, found while scoping: a remote's goroutines borrow four `R`s for
+good (`startRemote`), and a handler invocation is lent one; where the handler's `AddRemote` gets
+them is a design question (a pool in the lock per network member, refilled by `Stop`s?), raised
+with the user before M5c goes on.
+
+**M5a carried out (2026-10-26, branch `membership-m5`).** rafthttp's peer removal.
+- The leader stats' followers' map (`v2stats.lsFollowers`: the `Followers` field read-only, the map
+  fractional, its values non-nil) is the transport's lock's (`trStats` in `trLockP`, from
+  `Transport.Start`'s precondition, which `NewServer` gets from `NewLeaderStats`' post, now with the
+  stats' mutex, `v2stats.isLeaderStats`). `LeaderStats.Follower` translated and proved over it (its
+  axiom goes); `AddPeer` hands it the map.
+- `removePeer_core` (`TransportRemove.lean`): a known peer's stop right leaves the stop invariant
+  (`trStop_remove_peer`), the peer stopped (`peer.stop`), deleted from the peers' map, the record
+  and the followers' map, removed from both probers (`proberOk`'s new `Remove`, `NewProber`
+  restated); an unknown id only logs. `RemovePeer` (new spec: `trLive` to `trLive` with
+  `rs.2.filter (· != id)`) and `RemoveAllPeers` (ranging over the map it deletes from,
+  `wp_map_for_range_gen`) proved over the write lock; `RemoveAllPeers`' `sorry` goes.
+- Trust base: −1 axiom (`Follower`), −1 `sorry` (`RemoveAllPeers`): 720 axioms, 5 `sorry`s.
+- Proof note: the write lock's `▷ trLockP` does not destructure while `trStats` (not timeless) is in
+  it unless a later credit strips it first (`wp_apply (lc := 1)` on the step before the lock, then
+  `lc_fupd_elim_later`); `AddPeer_core`'s direct `icases` still works, for reasons not pinned down.
+
+**M5b carried out (2026-10-26, branch `membership-m5`; the user's decisions of "M5 scoped
+further", and: the member backend's writers are contract axioms, not proved through the batch
+lock's hook, as the cluster's other writers are).** The cluster's in-memory members and `AddMember`.
+- `clusterMem` defined **without a ghost name**: the cluster's lock invariant (`rcLockInv`,
+  `rcLockInvG`) holds **half** of the members map (`memAt c ½ ms mem`: the `members` field, the map,
+  and each member's fields at half, `memberAt m q mm`, its value from `mem`, the two maps with the
+  same keys and size, `memDom`), and `clusterMem c mem` is the other half. Readers under the lock
+  (`Members` with `Member.Clone` over a member share, `IsIDRemoved`, `IsLocalMemberLearner`,
+  `IsMemberExist`) need only theirs; the apply thread's writers join both (`memAt_join`), write
+  the whole map and split it again (`memAt_halve`). The user's decision said "a ghost model ...
+  restated with the cluster's ghost name"; the fractional split reaches the same (no opaque
+  predicate, no new axiom) with no ghost name to thread, so no statement that names `clusterMem`
+  (bootstrap's contract, `UpdateAttributes`, `Recover`, `applyConfChange`) changed its signature;
+  their meaning did (still axioms; `bootstrap`'s now asserts both halves).
+- `RemoveMember`'s spec takes and gives back `clusterMem` (without `id` after, with `v3`).
+- `AddMember` translated and proved over any side condition an insert keeps: the learner metric
+  for the local member (`setIsLearnerMetric`, names only: **+1 axiom**, a prometheus gauge, as
+  `updateMembershipMetric`), with `v3` the backend's save by the caller's triple (`beSaveOk`),
+  the member into the map (replacing a member of its id: the boot `AddNode`s re-add known members),
+  the metric, the log line; `clusterMem` at `mem` with the member's value at its id.
+
+**M5c blocked (2026-10-26, branch `membership-m5`; for the user).** Starting M5c (W3 with the
+decisions of "M5c scoping": peers-only ids, a pool of four `R`s per other member in the lock), two
+statements the server's proofs rest on turn out incompatible with handing `trLive` to the apply
+thread; nothing was changed in Lean.
+- *`Stop` is persistent.* `netTransport` (`Net.lean:221`) and the raft wrapper's
+  `isRNTransport` (`InvRaftNode.lean:738`) promise `□ {{ True }} Stop {{ True }}`, and
+  `raftNode.onStop` uses it on `<-r.stopped`, a unit bag anyone may send to (`isUnitBag`). Go's
+  `AddPeer` panics on a stopped transport (`transport.go:300-301`), so a `Stop` callable at any time
+  and an `AddPeer` the apply thread may call are unsound together: `Stop` cannot be proved from
+  `trState`, and `trFrozen_net`'s proof of it uses the freeze (`trRemotesFrozen` sets the flag).
+  This bites in the static mode too once `applyConfChange` is proved (M5e): a boot `AddNode`'s
+  re-application calls `AddPeer` of a known peer, which still checks `t.peers == nil` first.
+  Options: (A) gate `Stop` by a resource: `netTransport`'s `Stop` clause (and `isRNTransport`'s)
+  takes it, the `stopped` bag carries it (nobody sends on `stopped` in the verified code until M6,
+  whose `raftNode.stop` sends the apply thread's `trLive`, Go's order `server.go:818-825`); a
+  statement change of `netTransport` (D22's) and of `RNEnv`; (B) as (A) but `Stop` moved out of
+  `netTransport` into a separate transport fact; (C) keep the freeze until M6 and do the hand-off
+  there (M5e then cannot prove `applyConfChange`'s `RemovePeer`/`AddPeer`).
+- *`CutPeer`/`MendPeer` need "no remote".* `remote.Pause` closes the pipeline's `stopc`
+  (`nonissues/etcd-rafthttp-cutpeer-twice-remote-panic.md`: a second `CutPeer`, or `Stop` after
+  one, panics), so their specs take `id ∉ rs.1`, which the server's `srvNetMember` gives by
+  `rs.1 = []` on the frozen transport (a new cluster has no remote). With the handlers' `AddRemote`
+  adding a remote for any non-peer member (a removed one), that fact has no basis once the peers
+  change, and dropping `rs.1` from the owner's record (the decision) leaves nothing to state it
+  over. Options: (i) the static mode keeps the freeze for `CutPeer`'s fact (every member a peer
+  for good, so no remote is ever added: the lock's coverage of the frozen peers), the dynamic mode
+  hands `trLive` to the apply thread, and `EtcdServer.CutPeer`/`MendPeer` stay static-only (the
+  partition example is static); (ii) a fork fix making `remote.Pause`/`Resume` idempotent (a
+  `paused` flag, as `peer` has; the nonissue's suggested hardening), so `CutPeer`/`MendPeer` are
+  proved over `trState` for any id; (iii) `CutPeer`/`MendPeer` over `trState` with a premise "no
+  remote for `id`" that only a frozen transport can give (as (i), stated per call).
+
+**M5c carried out (2026-10-26, branch `membership-m5`; the user's decisions on "M5c blocked":
+(A) for `Stop`, (i) for `CutPeer`).** The transport's live right and its readers, the trust base
+unchanged (721 axioms, 5 `sorry`s).
+- *`Stop` gated (A).* `netTransport γn lid tr T TS` (`Net.lean`, D22's, the user approved): `Stop`
+  takes `TS`. The raft wrapper's environment has `E.ST` (`RNEnv.ST`), `isRNTransport`'s `Stop`
+  takes it, and `stopped` carries it (`rnStopBag E`, was `isUnitBag`): `raftNode.stop` sends it,
+  the loop's `<-r.stopped` hands it to `onStop` (both specs take `E.ST`). The static server's
+  `srvEr` has `ST := True` (its transport frozen: `trFrozen_net`, `TS := True`); a started
+  transport's view with the live right is `trState_net` (`TS := ∃ rs, trLive …`, `Stop_live`),
+  and `isRNTransport_of_live` is the dynamic mode's hand-off (`E.ST` the live right; the apply
+  thread hands it to `raftNode.stop`, M6). `Stop_core` takes the right to set the stopped flag
+  as a wand (the frozen record's invariant, or the owner's half).
+- *Peers only.* `trIds := List w64`, the peers' ids; `trLive`/`trFrozen` over them; `AddPeer`
+  appends, `RemovePeer` filters, `RemoveAllPeers` empties.
+- *The pool* (the user's decision 3). `TrN` gains `L`: `Start` takes four `R`s for each id of `L`
+  (`[∗list] _ ∈ L, R ∗ R ∗ R ∗ R`), kept in the stop invariant (`trPool R L T`, an entry per id, its
+  `R`s or taken); the record `γs` (`trRec`) gains `T`, the ids whose remotes took theirs, the
+  remotes' keys exactly while not stopped (`trLockP`). `AddRemote_core` is any lock holder's: of
+  an id of `L` that is neither peer nor remote, it takes the four `R`s (`trStop_pool_take`) before
+  `startRemote`. A remote is only ever started for an id of `L` (`trStop_taken_sub`), which is what
+  `CutPeer`/`MendPeer` need now (`id ∉ c.L`, was `id ∉ rs.1` of the frozen record).
+- *Blocker 2 (i).* The static server passes `L = []` and freezes as before: `srvNetMember`'s
+  `rs.1 = []` became `τ.c.L = []` (no remote ever), so `EtcdServer.CutPeer`/`MendPeer` and linkv3p
+  are unchanged. `NewServer` is the static instance; the dynamic one is M8's.
+- *Readers over `trState`:* `Send_full`, `CutPeer`/`MendPeer` (with `id ∉ c.L`),
+  `SendSnapshot` (its spec), `ActiveSince` (its axiom restated: `trState` for `trFrozen`, a weaker
+  precondition; the Go reads the peers under the read lock, which `AddPeer`/`RemovePeer` write
+  under). `Handler` stays over the frozen transport: on a live one the handlers' `AddRemote` runs
+  `NewURLs` on the request's `X-PeerURLs` header, which the raft protocol (`fromOkAt`) does not
+  constrain, and Go panics on a malformed one (`issues/etcd-rafthttp-addremote-bad-peerurls-panic.md`,
+  found here); the dynamic handler (M8) needs that header fact in the protocol, then
+  `AddRemote_full` with the cover `∀ f, member f → f ≠ lid → f ∈ c.L`.
+- Left for M8: the dynamic `NewServer` (a key for `E.ST`, as `srvTrKey` for `E.S`, with `L` in
+  the key, `SrvKey` has none) and the dynamic handler.
+
+**M5b′ carried out (2026-10-26, branch `membership-m5`; the user's decisions).** The member
+backend's writers and read as contract axioms over the tracked buckets; `ccValidOn` defined; `ccRest`
+with `RemoveNode`.
+- *The contracts* (`Spec/.../storage/schema/membershipBackend__*.lean`, three axioms, the trust
+  boundary): on a `*membershipBackend` `mb` over the real backend `d` of the store's names `γ`
+  (`mb.be`, `mb.lg` read-only): `MustSaveMemberToBackend(m)` and `MustDeleteMemberFromBackend(id)`
+  take the caller's critical-section contract at the store's batch lock and hook (`mvcc.hookOk γ P
+  f`, which ties `P`, `f` to the backend, and `mvcc.csContract P f Pre Q Post`, as the cluster's other
+  writers' in `apply.isCluster`), a write session's token (spent: the `Unlock`'s write-back,
+  `storeWT`), the reader's token (lent, `storeRT`) and the writer's half of the tracked buckets
+  (`rbOwn d.γB bk`), and return `Post` with the buckets at `bkPut bk "members" (memberKey id)
+  (memberEnc mm)`, resp. `bkPut (bkDel bk "members" k) "members_removed" k "removed"` (the buckets
+  present: `UnsafePut`/`UnsafeDelete` into a missing bucket is fatal);
+  `MustReadMembersFromBackend()` takes the reader's token and the half (read only) and returns the
+  members' map and the removed map `membership.membersOfBk bk` decodes to (opaque, not an axiom).
+  The shape is what the caller inside the apply thread can supply: `hookOk` is in the uber
+  applier's options (`backendOptsOk`), the tokens in its KV resources; the backend's `isBackend` at
+  the batch lock's resource is not held by the apply thread, so the contracts do not ask it.
+  They are not linked yet (no proof calls them until `applyConfChange`'s).
+- *The verdict.* `membership.ccValidOn bk m` is now defined: `ccValidM` of `membersOfBk bk`
+  (`decide`, classical); `urlTaken`, `ccValidM` moved to `InvRest.lean`, `memberURLsAt`,
+  `membersRead` to the membership package's `Defs.lean` (the read contract names them).
+- *`ccRest`* has the `RemoveNode` case (validated, with `v3`: `members/<id>` deleted,
+  `members_removed/<id> := "removed"`, the member out of memory; `RestM.delIn`, `bkPut`, `bkDel`);
+  `restEntry_keep`/`restModel_keep` now also exclude `members_removed`.
+- Trust base: the check counts the axioms the results reach, so unchanged until `applyConfChange`'s
+  proof links them (721 axioms, 5 `sorry`s; +3 then). Meaning changed: the `applyConfChange` axiom's
+  `ccRest` (its `RemoveNode` case, outside its scope `ccApplyOk`) and `ccValidOn` (no longer
+  opaque).
+
+**M5e blocked (2026-10-26, branch `membership-m5`; for the user).** Starting `applyConfChange`'s
+proof (after M5b′), three statements it needs are missing or false as the trust boundary and the
+static server stand; nothing was changed for M5d/M5e in Lean.
+- *The `AddNode`'s member.* `AddMember` takes the member whole (`memberAt m 1 mm`: its name, its
+  client URLs owned, `peerURLsOk` of its peer URLs, the lock invariant's form, which `Members()`'
+  consumers -- `NewServer`'s `AddPeer` loop -- need), with `mm = ccMemberOf ctx` (`ccRest`'s
+  in-memory value). M4d's `json.Unmarshal` axiom (into a `*ConfigChangeContext`) gives only the
+  member's `ID`, `IsPromote`, its peer URLs (owned) and `IsLearner`; nothing of `Name`, nothing
+  owned of `ClientURLs`, and no `peerURLsOk` (a JSON decode does not parse URLs). Options: (a)
+  restate the `Unmarshal` axiom with `Name' = (ccMemberOf bs).name` and `ClientURLs' ↦*
+  (ccMemberOf bs).clientURLs` (true of the JSON decode; a stronger axiom, needed in every option:
+  `ccRest`'s in-memory member is `ccMemberOf ctx`, a function of the log) and drop `peerURLsOk` from
+  `memberAt`/`memberIs` (no consumer reads it: `NewServer`'s `AddPeer` loop uses the bootstrap
+  contract's directory facts, `InvBoot.lean`; a weakening of the lock invariant, so of what the
+  bootstrap contract asserts); (b) as (a), keeping `peerURLsOk` and adding `peerURLsOk (ccMemberOf
+  m.context).peerURLs` to the policy (`ccApplyOk`, so `ccBootOk` and the examples' `ccOk`), which
+  the boot entries must meet (their contexts are the boot members' JSON: a pure fact the bootstrap
+  contract does not state today); (c) as (a) with `peerURLsOk` asserted by the axiom (false in
+  general: a JSON decode does not parse URLs; not recommended).
+- *The static mode's `AddPeer`.* Go's `AddPeer` panics on a stopped transport before its
+  known-peer check (`transport.go:300-305`), and the static server's frozen transport's `Stop` is
+  free (`trFrozen_net`, `TS := True`, `E.ST := True`, M5c). A boot `AddNode` of another member,
+  re-applied above the consistent index, calls `AddPeer`, so `applyConfChange` is not provable in the
+  static mode as it stands (putget3 and the other multi-member examples reach it). Options: (A) a
+  stop token in the static mode too: the frozen transport's `Stop` takes a token (`trFrozen_net`
+  restated, D22's statement), the apply thread holds it (threaded through `apply`, `applyAll`,
+  `run_job_body`, `run` as an apply-thread resource; `raftNode.stop` takes it in M6), and `AddPeer_frozen` (a known peer, not stopped: returns at once); (B) the same
+  apply-thread resource carrying the dynamic mode's `trLive` and `rcRemovedOwn` (one threading for
+  both modes; M5d's), the static instance its token.
+- *The dynamic mode's `AddNode`.* `AddPeer.spec` (over `trLive`) is for a new peer and needs its
+  URLs' facts (`plainPeerURL`, the network's owner map, the member's id) and eight `R`s; a known peer
+  returns at once, but that the id is a peer follows from nothing the apply thread has: the
+  validation's verdict is over the backend's opaque decode (`membersOfBk`), not over the
+  transport's peers or the cluster's removed map. Options: (a) `AddPeer_known` (an id among the
+  live peers: returns, `trLive` unchanged) plus a policy fact for the contexts' members' URLs (owned
+  by the id in the network's map, `plainPeerURL`) so the unknown case meets `AddPeer.spec` (and a
+  pool of `R`s, M5c's, for it); (b) a coupling of `membersOfBk` with the model (`membersOfBk` of
+  `restModel`'s buckets the model's members and removed map: a fact about the opaque decode, i.e. an
+  axiom, against the user's decision for M5b′); (c) the dynamic policy's `AddNode` limited to the
+  boot entries' data, whose members are the boot peers, all known while not removed, with the
+  apply thread's invariant relating the live peers to the cluster's removed map (and the backend's
+  removed map to it: again (b)).
+- Smaller, no decision needed: the cluster's `be` field is the apply thread's (`clusterBeOn`,
+  owned), while `ValidateConfigurationChange`, `AddMember` and `RemoveMember` take it read-only
+  (`↦□`): their specs take it at a fraction and give it back (no trust change); `AddMember`'s size
+  bound (`size (insert id mm mem) ≤ 2 ^ 62`) from an apply-thread fact `dom mem ⊆ reCfg` with
+  `|reCfg| ≤ |ps| ≤ 2 ^ 62` (the boot facts), carried with `srvRest`.
+
+**M5e started, then blocked again (2026-10-26, branch `membership-m5`; the user's decisions on
+"M5e blocked": `Unmarshal` restated, (B) one apply-thread resource, `AddPeer_known` with a policy
+fact).** Done, the trust base unchanged (721 axioms, 5 `sorry`s):
+- `json.Unmarshal`'s axiom restated (approved): it also gives the member's `Name` and its
+  `ClientURLs` owned, both `ccMemberOf`'s; `peerURLsOk` left `memberAt`/`memberIs` (no reader used
+  it; a weakening of the lock invariant and of what the bootstrap contract asserts).
+- The cluster's `be` field at a fraction in `ValidateConfigurationChange`, `AddMember` and
+  `RemoveMember` (given back), so the apply thread's owned field (`clusterBeOn`) serves.
+- `EtcdServer.applyConfChange` and the wrappers `raftNode.ApplyConfChange`,
+  `raftNodeConfig.ApplyConfChange` translated (the package now imports `encoding/json`); the
+  axiom stays until its proof.
+**The new blocker: `s.beHooks`.** On the success branch Go calls `s.beHooks.SetConfState(...)`
+(proved in M5b′, over `storage.isBackendHooks bh ix lg`). Nothing the server's proofs hold says
+anything of `s.beHooks`: `NewServer` stores `b.storage.backend.beHooks`, and `bootstrap`'s contract
+(`bootOk`, inside `bootstrapContract`, a premise of every server example's closed theorem) does not
+describe that field. Options: (a) `bootOk` states it: `bk.beHooks'` is `NewBackendHooks(cfg.Logger,
+ci)`'s, `storage.isBackendHooks bk.beHooks' ⟨*consistentIndex, cil⟩ lg` (true of Go's
+`bootstrapBackend`, `bootstrap.go:258`); `NewServer` puts `s.beHooks ↦□ bh` with it in
+`srvFieldsAt`. A stronger premise of every server example's closed theorem (their statements'
+text unchanged, `bootOk`'s meaning stronger); (b) translate `bootstrapBackend`'s hooks creation
+(`bootstrap` is untranslated: a large detour); (c) an axiom for `SetConfState` with no hooks
+premise (false for a nil `bh`; not recommended).
+Planned once unblocked (for the record): the static stop token through `trFrozen`'s invariant
+(`TS` a token, `Stop` depositing it, `AddPeer_frozen` for a known peer while not stopped), the
+apply-thread resource `srvApRes` (static: the token; dynamic: `trLive`, `isRaftClusterG`
+(`rcDyn`), `rcRemovedOwn`) through `apply`/`applyAll`/`run_job_body`/`run`; in the dynamic mode the
+known-peer fact from the policy as "an `AddNode` only at the boot entries' indices, a `RemoveNode`
+only after them and never of the local member" (raft's committed log begins with the boot log),
+with the resource's invariant "below the boot log's length, every other boot member is a live
+peer"; M5d's raft side: the view's configuration shrinks at each validated `RemoveNode`
+(`ccValidOn` of the model's buckets: a function of the log), so `srvCfgOk` takes the voters as a
+function of the log.
+
+**M5e blocked a third time (2026-10-26, branch `membership-m5`; for the user).** Carrying out
+(a) and the positional policy: `AddMember` and `RemoveMember` log through the cluster's `c.lg`
+(their specs take `rcLgAddr c ↦□ lg ∗ ⌜lg ≠ null⌝`), and nothing the server holds describes that
+field: `bootOk` gives the cluster's id (`clusterCid`) but not its logger. Option (recommended):
+`bootOk` also states `rcLgAddr bc.cl' ↦□ lg ∗ ⌜lg ≠ null⌝` (true of Go: `NewClusterFromURLsMap`
+sets `lg` from the configuration's logger, which `bootstrap` requires non-nil), as the approved
+`beHooks` fact, another strengthening of every server example's boot premise. Work in progress,
+uncommitted (in the worktree; a copy `/shared/etcd-fork-m3/tmp/m5e-wip.patch`): the frozen
+transport's stop token (`trFrozenTok`, `Stop_full`, `trLive_freeze`, `Transport.Start`'s post),
+`AddPeer_known_core`/`AddPeer_frozen`/`AddPeer_known` (proved), `ccApplyOkM`, `ccMemberAt` in
+`ccRest`, `InvApRes.lean` (`ccMembRes`, `ccPeersAfter`), `applyConfChange`'s restated spec and its
+proof through the `v3 = false` branch's `AddMember` call.
+
+**M5e carried out (2026-10-26, branch `membership-m5`; the user's decisions on the three
+blockers: `Unmarshal` restated, (B) one apply-thread resource, `AddPeer_known` with the positional
+policy, `beHooks` and the cluster's logger in `bootOk`, `ccMemberAt` in `ccRest`).** The trust base
+721 → 723 axioms (5 `sorry`s): the member backend's three contracts linked, the
+`applyConfChange` axiom gone.
+- `EtcdServer.applyConfChange` proved (`Proof/.../EtcdServer__applyConfChange.lean`) from its
+  translation, over `ValidateConfigurationChange`, `AddMember`, `RemoveMember`, the three backend
+  contracts, `BackendHooks.SetConfState`, `ConsistentApplyingIndex`, `Transport.RemovePeer`,
+  `json.Unmarshal`, raft's getters and zap; its spec restated: the policy `ccApplyOkM` (the boot
+  `AddNode`s, and in raft's dynamic mode a `RemoveNode` of a member of the configuration), the
+  local member never removed, an `AddNode`'s node local or a known peer, the members map within
+  `2^62` (`ccMemberAt`), the two buckets present; it takes the server's `beHooks`, transport,
+  member id, the cluster's logger and id, the logger's reader and the apply thread's membership
+  resource (`ccMembRes`), and gives the transport's peers after (`ccPeersAfter`).
+- `ccRest`'s `AddNode` adds `ccMemberAt m` (the context's member with the change's node as its
+  id: `applyConfChange` checks the decoded `ID` against `NodeId`, so the member `AddMember` adds
+  is that), approved. `AddMember`'s post locates the member (`clusterMemIn`, new in
+  `membership/Defs.lean`).
+- The static transport's stop token: `trRemotesFrozen` holds a quarter of `γr` at "not stopped"
+  (and another once stopped); `trFrozenTok γr rs` is the other quarter, which `trLive_freeze`
+  returns, `Stop_full` consumes and `AddPeer_frozen` (a known peer, while not stopped) lends
+  back; `Transport.Start`'s post restated (`trFrozen_net`'s `TS` is the token). The static raft
+  wrapper's stop right `srvEr`'s `ST` is `False`: only the apply thread holds the token (M6's
+  stopping server will route it). `AddPeer_known` (live transport, known id) proved.
+- The apply-thread resource `srvApRes s γr A` (`InvApRes.lean`): the server's `beHooks`,
+  transport, member id, cluster (its logger, its id) fields; `ccMembRes` (static: the cluster's
+  `isRaftCluster`, `trFrozen` and the token; dynamic: `trLive`, `isRaftClusterG (rcDyn γ)`,
+  `rcRemovedOwn`); the peers covering every other member of raft's configuration not yet
+  removed (`srvPeersCover`); the members model's keys (`srvMemOk`); and the dynamic mode's
+  positional policy (`srvDynLog`, an assumption of the dynamic mode, M8's to establish). Threaded
+  through `apply`/`applyEntries`/`applyAll` (`A` to `A ++ ms`), `run`'s job body and `run`;
+  `NewServer` produces it at `[]` (`srvMemOk_boot`, the static token from `trLive_freeze`).
+- `bootOk` states the backend hooks (`isBackendHooks` of `NewBackendHooks(cfg.Logger, ci)`) and
+  the boot cluster's logger (approved), stronger premises of every server example's closed
+  theorem whose statement text is unchanged; `netTransport_noStop` (any `TS`, `False`).
+
+**M5d carried out (2026-10-26, branch `membership-m5`; the user's decisions: the positional
+dynamic policy an assumption of the dynamic mode, the log-aware decoder).** The trust base
+unchanged (723 axioms, 5 `sorry`s); no example's statement text changed.
+- The policy mode-aware: `ccApplyOkR γ m` (`ccApplyOk`, or in raft's dynamic mode a `RemoveNode`
+  of a member of the configuration), `ccPolOk γ d` its decoded form; `srvCCPolicy`, `ccLogOk`,
+  `kvWork`/`kvWorkOn`, `srvNoopEntry` and `entryWaitOk` take raft's names in place of its
+  configuration (`ccPolOk_of_boot`: the static examples' `ccBootOk` gives it). `ccApplyOkM` is
+  `ccApplyOkR` at the server's raft.
+- The decoder log-aware: `srvDec c0 boot pre e` is the change `applyConfChange` hands raft for
+  the entry after the log `pre`, `ccRaftEff` (the change if it validates against the member
+  buckets `restModel c0 boot pre` leaves, else with `NodeId` `0`). The node's mode names it with
+  the start's consistent index and the boot log (`rnEnvOk`, `newRaftNode`'s premise,
+  `rnEnvOk_of_cluster`, `dvOk`, which now also takes `kc0` and states raft's names dynamic).
+  `applyConfChange`'s dynamic premise is one `DynCCPreOp`, of `ccRaftEff rs.bk m` (until then
+  both forms had to leave the configuration, false of a validated `RemoveNode`).
+- The view `srvCfgOk V D ca cfg`: `cfg` the simple configuration of voters `W ⊆ V`, each voter of
+  `V` out of `W` removed by a `RemoveNode` of `D` (`RemovedIn`); `srvCfgOk_cc` steps it through an
+  `AddNode` (among the boot entries: no removal before it, so `W = V` and a no-op) or a
+  `RemoveNode` (`W` loses the node if it validates and is a voter), under the positional policy
+  `srvDynPol` (by position in raft's log, the local member never removed, so `W` never empties:
+  raft's `confchange` would panic removing the last voter). `srvDynLog` restated over
+  `srvDynPol`, with the local member in raft's configuration; `srvApRes_cc` hands both to
+  `apply`, whose conf branch now takes the resource before the view (`dvView_cc`).
+- Not done: the dynamic `NewServer` (M8) that establishes the positional policy and a dynamic
+  mode at `srvDec`; the stopping server (M6, a `RemoveNode` of the local member).
+
+**M5 merged into `lean` (2026-10-27).** The merge's semantic resolutions, where `lean`'s new work
+(auth E3, D22 J5/J7/S8d) met M5's restatements: (i) the mode-`on` copies of the server's rows take
+M5's changes as their mode-off originals did (`applyBuiltNAOn`, `applyBuiltOn` with `srvApRes`;
+`srvErM` with the stop field `ST := False`; `kvWorkOn`, `kvWorkOn_snoc`, `kvEntryOn_noop`,
+`commitOkOn_noop`, `batchWaitOk_of_claims`, `kvInvOn_alloc_boot` at raft's names with `ccPolOk`;
+the decoder premises at `srvDec ρ.rd.kv.c0 ρ.rd.raft.raft.reBoot`). (ii) D22 J7's trust-boundary
+axiom `membership.clusterImageOk_restModel` keeps its statement: its premise, `ccLogOk cfg L'` before
+M5d made `ccLogOk` mode-aware, is written out (`∀ m ∈ L', m.typ ≠ W32 0 → ccBootOk γ.raft.reCfg
+m.data`), since with M5d's `ccLogOk` it would admit a dynamic `RemoveNode`, for which the axiom is
+false (`members_removed` no longer empty); its one user, `snapRecv_image` (not yet linked), gains
+the static premise `γ.reDyn = none` (`ccPolOk_static`). (iii) S8d's walk (`SnapApplyDefs`,
+`SnapApplyWalk`) over M5c's peers-only `trIds`: `trLive γn t c L` for `(rs.1, L)`. (iv) The rest
+model's bucket lemmas (`restEntry_isSome`, `restModel_bk_none`, `bkRestAt_boot'`) through `ccRest`'s
+`RemoveNode` case (`delIn_isSome`; `restModel_keep`'s `members_removed` premise). Trust base: `lean`'s
+plus M5's change exactly (724 axioms, 5 `sorry`s).
 ## S5e of the auth plan: the simple token provider with no hypothesis (2026-10-25 · `notes/auth-plan.md`, branch `auth-s5e`)
 
 **Problem.** S5d left the simple provider meeting the token contract over two hypotheses: the TTL
@@ -19796,6 +20140,88 @@ Auth service's contracts discharging `setupAuthOk`, and `Work` (E2b's, E2f's lis
 **Trust base.** 721 → 720 axioms (-1, `NewAuth.wp_proof` gone), sorries unchanged (6); the nine
 collections that listed it updated, and `authkv` gains the client's existing gRPC trust-boundary axioms
 (`StaticMethod`, `grpcConn`, `status.FromError`, ...) that `SetUp` reaches.
+
+## Package signatures, enforced by Lean's module system: raft's node API first (2026-10-26 · the user's request, carried out)
+
+**The problem** (`notes/raft-spec-review.md`, "Modularity review"): nothing in raft's proof was
+sealed but `ownRaftPhys`, so clients proved things by opening raft's predicates (`isNode`'s
+channels, `nodeDriver`'s ghost halves, `readyP`), re-proved raft's lemmas (the server's
+`rn_ready_recv`), and reached raft's internals through any import (1099 modules outside raft
+reached `InvNode`'s or `InvRaftPhys`'s). A change inside raft rippled into the server and the
+examples. The user asked for a module signature per package, as a Rocq `Module Type`, which
+proofs above are written against and cannot see past "even if they wanted".
+
+**Decision: the signature is enforced by the module system, in place.** A package's API module
+is a public module (`@[expose] public section`) whose imports of the package's internals are
+non-public (`import`, not `public import`): its statements can mention only public names (Lean
+refuses a public statement over a privately imported name), the bodies of its `@[no_expose]`
+definitions are invisible to importers (they cannot `unfold`, `delta` or reduce them), and the
+internal modules are not loaded downstream. The package's own proofs `import all` the API module
+to see the bodies. Checked on Lean v4.34.1 (`$CLAUDE_JOB_DIR/tmp/sigtest`, 2026-10-26): a client
+cannot unfold a `@[no_expose]` predicate nor name a privately imported declaration; `import all`
+unseals; a sealed body may use a `private` helper, but a public statement in another module may
+not mention one, even with `import all` (so helpers that raft's internal specs mention stay
+public, sealed).
+
+`etc/sig-check.py etc/sigs/<pkg>.txt --check` closes the one gap Lean leaves (it cannot forbid a
+client from importing an internal module directly): no module outside the package may import a
+module the configuration marks `internal`, directly or through a chain of public imports; linking
+files (`Link`, `Results`, `Adequacy*`, `MainLinked`) are exempt, and a chain stops at them. A
+non-linking module that imports a linking file is a warning (`--strict`: an error).
+
+**This is not the 2026-10-14 attempt (branch `raft-sig`, never merged).** That one listed the API in
+`raftSig` structures and checked clients' constant uses with a script (`etc/api-check.py`), and
+rejected `@[no_expose]` because "the package's own proofs are other modules, and need the bodies
+too". `import all` answers that: here Lean itself rejects a client that opens a sealed predicate.
+Its open item, the vocabulary mixed with internal lemmas in `Proof/` files, is what stage 1 had to
+untangle (`ApiVocab.lean`).
+
+**Raft, stage 1: the node API** (what the server, rafthttp and the examples use).
+- `Spec/go_etcd_io/raft/v3/Api.lean` (until the class prototype below, `Sig.lean`): the module a client imports (the node specs, the API
+  modules), with the signature's description.
+- `InvNode.lean` and `InvNodeCtx.lean` are the API modules: `InvNode` imports `InvRawnodeReady`
+  and `InvApplyConf` non-publicly; the channel and ghost machinery is `@[no_expose]` (`isNode`,
+  `nodeDriver`, `nodeDriverBusy`, `readyP`, `propP`, `advanceP`, `confcP`, `confstateP`,
+  `isAdvChan`/`advInv`/`advDep`/`advRet`, `tickInv`, `nodeCfg`, `runCfg`, `dlvLb`); what a client
+  receives or builds stays transparent (`readyData`, `netP`/`fwdP`/`stepP`, `propArg`, the term
+  budget, the errors). New laws, for what clients opened the predicates for: `isNode_id`,
+  `isNode_commitInv`, `nodeDriver_isNode`, `readyP_take`, `readyP_take_ns` (the server's
+  `rn_ready_recv` now uses it instead of re-deriving `node_ready_receive`'s ghost step).
+- `ApiVocab.lean`: the records and pure predicates the API's statements use that lived in the
+  internal modules, moved unchanged (same names): from `InvRaftPhys` (`QMsg`, `msgAbs`, `SentMsgOk`,
+  `AppShape`, `AppFrom`, `NsCap`), `InvRawnode` (`Pending`, `RNMode`, `SnapLoan`, `RNState`,
+  `NetMsgOk`, `DynCCPreOp`, `isRaftMsg`, `msgDat`, `propEntryM`), `InvRawnodeReady` (`readyDq`,
+  `stTks`, `readyIdx`, `readyOut`, `softStateRO`, `snapReceipt`), `InvBoot` (`bootInit`,
+  `bootMarshal`, `peersCtx`) and the `RawNode`-level specs (`rnInit`, `HsEmpty`, `ConfigValid`,
+  `CCAllowed`).
+- `Linked.lean` (`RaftLink`): the linked results proofs outside the linking files use as lemmas
+  (`wp_StartNode`, `wp_RestartNode`, the `MemoryStorage` ones, `wp_IsEmpty*`), restated over raft's
+  `Link.lean` imported non-publicly. `MemstorageInstance` imports `Link` non-publicly; kv's `Base`
+  imports the facade and the signature instead of raft's `Link`.
+- Sealed below the API (`etc/sigs/raft.txt`): `InvRawnode`, `InvRawnodeReady`, `InvRawnodeC`,
+  `InvNodeRun`, `InvBoot`, `InvRaftPhys` and everything importing them.
+
+**No statement changed**: every spec, law and closed theorem says what it said; definitions moved
+under their names, and `@[no_expose]` changes only who may unfold. The trust base is unchanged
+(`etc/tcb-report.py --check`).
+
+**Debt, in the open** (for later stages):
+- still public and transparent: the protocol's ghost vocabulary (`Protocol/*`), the protobuf model
+  (`InvPb*`), the `Storage` contract and `MemoryStorage`'s predicates (`InvStorage`,
+  `InvMemstorage`), and in `ApiVocab` records that encode internals (`RNState.steps : List Pending`,
+  `readyDq`'s half fractions; `notes/raft-spec-review.md`, leaks 3 and 5);
+- `NodeNames` is a public structure: its channel fields are visible, though useless without the
+  sealed predicates' bodies (a later stage makes it abstract);
+- the `RawNode` API's specs are stated over the internals and are not in the signature;
+- other packages' non-linking modules that import a linking file (`sig-check` warnings: the client
+  library's `ReplyValues`/`InvServerKV`/`ServeFromStart` import `client/v3/Results`, `InvAuth`
+  imports `adt`'s `Link`, ...) reach every package's internals through it.
+
+**How to extend it** (the next package, or raft's next stage): mark the internals in
+`etc/sigs/<pkg>.txt`; make the API module's imports of them non-public; move the vocabulary its
+statements need into a public module; seal what clients must not see inside; give the package's
+proofs `import all`; let the compiler list the client sites that open a sealed predicate, and give
+each a law.
 
 ## D44: one stated spec per KV method; the client's KV calls specified over one KV, its members hidden (2026-10-25 · the user; branch `kv-stated-specs`)
 
@@ -21063,6 +21489,95 @@ lose their workload parameter, with the same meaning: `plainEntryOn m`, `plainLo
 became a record of compaction, base and changes). After the merge: 718 axioms, 6 sorries (lean's 721
 less the three server axioms `origin/lean` proved).
 
+## Raft's signature as a class: the specs over abstract predicates (2026-10-26 · the user's clarification, prototype)
+
+**The user's correction** of "Package signatures" (above): sealing keeps the predicates' definitions
+in the specs' trust base -- `node.Propose.spec` still imports `InvNode`, and its meaning is
+`rLog`'s and `isCommitted`'s definitions. What is wanted is a module type: the spec says "there is
+an `rLog` and an `rLogLb`, satisfying these laws, and `Propose`'s update moves `rLog`", without
+defining them, in a file other proofs build against that holds no definitions or proofs they are
+not to see.
+
+**Decision: a class of abstract fields and laws** (Lean has no module types; a structure or class
+is their analogue, as for functors in Rocq). `Spec/go_etcd_io/raft/v3/Sig.lean`: `class RaftSig`
+-- abstract `Names`/`NodeNames` (`Type 1`, as raft's are), the invariant `inv` and its namespace
+`N`, `isNode`, the committed log `rLog` and its lower bound `rLogLb`, `entData`, `propFresh`,
+`propReg`, `isReadyChan`, `nodeDriver`, `nodeDriverBusy`, `readyData`, `noSnap` -- with the laws
+(persistence, `rLogLb_mono`, `rLogLb_agree`, `rLog_lb`, `isNode_inv`, `prop_register`,
+`prop_collect`, `readyData_committed`); and `node.Propose.specS`, `node.Ready.specS`,
+`node.readyRecv.specS` over `[S : RaftSig GF]`, `Propose`'s update written over `S.rLog`. Its
+imports: the Go code and the generated declarations, `Base` (the package facts `isPkgInit`
+means), `PbModel` (the records' pure models) and `SigBase` (contexts and errors, concrete: they
+are facts of Go values, moved out of `InvNode`/`InvNodeCtx`). None of raft's proofs or ghost
+state: checked on the import closure. `Proof/go_etcd_io/raft/v3/SigImpl.lean`: `instance
+raftSigImpl` (`rLog` the invariant's ghost variable, `rLogLb` `isCommitted`, ...), its laws from the
+protocol's lemmas, the three specs from raft's at the instance.
+
+**Rejected:** `opaque` constants with the laws as axioms (the laws would join the trust base
+unproved); `@[no_expose]` alone (the definition stays in the specs' meaning: what "Package
+signatures" did, kept as the interim boundary, `Api.lean`).
+
+**Open (the user's choices, asked 2026-10-26):** how abstract a `Ready`'s payload is (one
+abstract `readyData` with one law, or its pieces concrete); whether `Base` and `PbModel` move to
+`Spec/`; `[S : RaftSig GF]` or an explicit `(S : RaftSig GF)`. Then: the other specs over the
+signature, clients generic in `S`, closed theorems at `raftSigImpl`.
+
+## Package APIs: an importable list and a generated interface (2026-10-26 · the user's choice; supersedes "Raft's signature as a class")
+
+**Why not the class** (the user's objection, 2026-10-26): every library that wraps raft and states
+some of raft's predicates in its specs would need a signature that includes `RaftSig`, and an
+instance that carries raft's; a proof importing both raft and the library then sees two instances
+(`raftSigImpl`, and the library's through its own) that typeclass resolution cannot identify --
+Lean has no sharing constraints. The class prototype (`Sig.lean`, `SigImpl.lean`) is removed;
+`SigBase.lean` stays, as `Proof/go_etcd_io/raft/v3/ApiCtx.lean` (the node API's contexts and errors).
+
+**Decision: generate the interface from the proofs, and enforce an importable list.**
+- **What a module exposes** is what Lean's module system exports: an ordinary `import` loads it
+  at `OLeanLevel.exported` -- `private` declarations absent, theorems as statements, definitions
+  with their bodies only when exported (`@[expose]`). `etc/interface.lean` loads the modules that
+  way (`importModules (level := .exported)`; the private view too, only to tell a theorem from an
+  `axiom`, which look alike to a client) and prints each declaration; `etc/gen-interface.py`
+  writes `interface/<module path>.txt` for every importable module and commits it, so the API is
+  reviewed as a diff (checked 2026-10-26 on a scratch module: a sealed body is absent, a private
+  helper too, a theorem shows its statement). `--layout` checks the file layout from the same
+  dump (a spec file exposes its `<F>.spec`, its proof file `<F>.wp_proof`), against a baseline of
+  the known violations.
+- **Package-private visibility does not exist** (Lean v4.34.1): a declaration is private to its
+  module or public to every importer, and `import all` is unrestricted -- Lake has an
+  `allowImportAll` option meant to forbid it across packages, but the check is commented out
+  ("We've decided to disable this check for now", `Lake/Build/Module.lean`), and this repository
+  is one Lake package anyway. So definitions raft's own files share are public to every
+  directory. `etc/api/<pkg>.txt` lists the modules other directories may import, and
+  `etc/api-check.py` enforces it (in place of "Package signatures"' denylist, `etc/sig-check.py`,
+  removed): outside modules import only listed modules, never with `import all`; a listed module
+  publicly imports only listed modules.
+- **Spec stubs** (the user's suggestion): with the dump, a spec needs no definition -- the proof
+  file states the theorem (an `axiom` while unproven), and the interface shows its statement.
+  Not adopted yet: raft's specs stay `<F>.spec` definitions with `<F>.wp_proof` over the callees'
+  specs and `Link.lean`. The interface is for review, not compiled: Lean's printer does not
+  guarantee its output parses back.
+
+**Raft's list** (`etc/api/raft.txt`, 144 modules with `raftpb`'s specs): what clients imported on
+2026-10-26 and what those publicly import, grouped -- the node API, `MemoryStorage` and the
+`Storage` contract, `raftpb`, the protocol's client vocabulary, the models it is stated in -- and,
+as debt to remove, the proof internals clients reach (`FrameH`, `ProjSimps`, `LemmasMiscR`,
+`raft__Step.Dispatch`, and through public imports `StepLemmas*`, `LemmasSendRD`, `SpecResults`,
+`Protocol.LeaderCompleteness`, `RefinementDyn`, `StepRInv`).
+
+**Amendment (2026-10-26, the user's): the functions' statements in the interface.** The user asked
+for the stub idea (specs gone, the interface showing each function's statement from its proof
+file), then judged the generated interface enough if it covers the per-function proof files. It
+does now: `etc/gen-interface.py` also writes the interface of every `Proof/<pkg>/<F>.lean` that has
+a spec (raft: 311 of them), where `<F>.wp_proof` -- or the `axiom` in its place -- is printed with
+`<F>.spec` unfolded (`etc/interface.lean`, `deltaExpand` of the conclusion's `….spec`), so the Hoare
+triple and the callees' specs it takes are read off the interface. The `Spec/` files and
+`Link.lean` stay: removing them (each proof stating its theorem and using its callees' theorems
+directly) would also rework `etc/proof_roots.py`, `etc/tcb-report.py`, `etc/verified-code.py` and
+`etc/gen-link.py` (their roots are `Link.lean`'s theorems), and 238 modules import raft's spec
+files besides their own proofs and the linking files (helper definitions in spec files that the
+invariants use would have to move first). Go strings, which Lean prints as byte lists, are printed
+back as `go!"..."`.
+
 ## D22 J2: R-loc implemented (2026-10-26 · decided by the orchestrator while the user was away (J2))
 
 J0's item 1 (`notes/snapshot-sj-plan.md`, "J0 decisions"), implemented. No axiom, no `sorry`.
@@ -22022,6 +22537,56 @@ what blocks it, in order:
    receipt at an apply-thread step); the result to the waiter (`resultΨOn`: `authTie` from the
    outcome, `entryWitOn`); replays (`v3 = false`). Then `applyAll`, `run`, `start`.
 
+## E3h of the auth plan: the store's in-memory fields fresh; publication; the checks' lower-bound specs (2026-10-27 · `notes/auth-plan.md`, E3g's "Not done")
+
+E3g's design, carried out (`auth/InvAuth.lean`, `auth/Fresh.lean`, `auth/FreshCheck.lean`).
+
+**Done.**
+1. *The freshness invariant inside `revInv`* (`revFresh`; `authInv` keeps its text): in `on γa`,
+   the published index `p`'s authority (`authPubAuth`), `p` an index of the history, the atomic
+   `revision` the revision of a state at an index `≥ p`, a quarter of the field `enabled`'s ghost
+   variable (`AuthNames.fen`, `enG`) at the flag of such a state, and a quarter of the cache's ghost
+   variable (`AuthNames.fca`, `caG`) at `(mp, j)`, the state at `j` having the permissions
+   (`permView`) of a state at an index `≥ p`. The guards hold halves (`enabledP`: `enG`; `cacheP`:
+   `caGM`, the map the cache of the state at `j`), the admin side a quarter (`flagAt`, `cacheAt`,
+   both now taking the mode: `caA` with the state at `j` of `sc`'s permissions).
+   - *Why `(mp, j)` and `permView`, not the cache's state.* `RoleAdd` keeps the map though the
+     state changes (`cacheAt_congr`): what is invariant is the map and its users' permissions. And
+     `cacheOf` is not timeless (the interval trees), so the invariant states the permissions'
+     equality purely (`permView`) and the map's model stays in the guard.
+2. *The writers* update the ghost variables with all three shares: `AuthEnable`, `AuthDisable`,
+   `Recover` (`enG_update`, over the admin side's authority: the new state is at the last index,
+   `≥ p`); `refreshRangePermCache` (`caG_update`) -- its spec now takes the whole authority at
+   `hs` whose latest state is the one refreshed from, and its eleven callers pass it;
+   `commitRevision`, `setRevision` (`authOwnF_revFresh`); the constructor allocates them
+   (`authStoreInit`: the half of the latest state's ghost variable, `authPubAuth γa 0`, the two
+   ghost variables; `authHist_alloc` allocates them, `authBoot_alloc` passes them).
+3. *Not done: the tie strengthened* to "the cache's permissions are the latest state's always"
+   (across E2s's `specT`s). Publication takes it as a hypothesis (`hc`) instead: true of Go (every
+   step changing a user's permissions refreshes the cache; `AuthDisable` changes none; `RoleAdd`
+   keeps them, `cacheAt_congr`); to add it to `latestTie`, `tieStep_set`/`_keep`/`_keep'` gain a
+   permissions premise, and `tieRes_of_disabled` (the boot) needs the cache's state, which
+   `newAuthStore_on`'s post would have to expose (the refreshed latest).
+4. *Publication* (`authPublish`, `Fresh.lean`): the apply thread with the admin side's authority,
+   its flag and cache halves with the latest state's flag and permissions, raises the published
+   index to the latest one and gets `authPubLbM M (hs.length - 1)`. Its call site (after an admin
+   step's batch `Unlock`, the waiter's reply carrying the bound) is the apply loop's.
+5. *The checks' lower-bound specs*, beside today's: `Revision.specLb`, `IsAuthEnabled.specLb`
+   (`Fresh.lean`), `isRangeOpPermitted.specLb` (`cacheFresh`), `isOpPermitted.specLb`, the verdict
+   `permVerdictFrom` (S3's, each recorded state at an index `≥ n`; `permVerdictFrom_verdict` gives
+   S3's) with its lemmas (`FreshCheck.lean`); restated in `etcdserver/Results.lean`
+   (`auth_revision_lb`, `auth_enabled_lb`, `auth_range_op_permitted_lb`, `auth_op_permitted_lb`).
+   Not done: the read wrappers (`IsRangePermitted` & co.) and the auth applier's read checks at
+   the lower bound (each a wrapper over `isOpPermitted.specLb`).
+
+**Exported statements changed.** `AuthNames` (fields `fen`, `fca`), `AuthMode.enc`/`dec`;
+`authHist_alloc`'s post; `authStoreInit` (new) in `newAuthStore_on`'s precondition and
+`authBoot_alloc`'s post, `AuthSrv.authStoreKit_on`, `Results.auth_store_new_on`; the definitions
+`revInv`, `enabledP`, `cacheP`, `flagAt`, `cacheAt` (each with the mode), `enabledHalf`, `cacheHalf`;
+`refreshRangePermCache.spec` (the authority); `cacheAt_congr` (the mode). No closed theorem changed.
+
+**Trust base.** Unchanged: no axiom or `sorry` added.
+
 ## E3g of the auth plan: the reads' freshness, a lower bound of the published index (2026-10-27 · the user's decision; `notes/auth-plan.md`, E3d's "Not done" (2))
 
 **The decision (the user's, 2026-10-27, as recommended).** With auth on, a read's check gives its
@@ -22154,6 +22719,60 @@ text and say what they said of a heap-determined model (now with each put's `Pre
 
 **Left.** `noZeroEnds` stays the workload's premise (a range end `"\x00"` is where a check can see
 another range than the model's). The read path and the handlers (E3d's (2), (3)).
+
+## E3i of the auth plan: an auth rejection told apart from `ErrNoSpace`; the apply thread's state with auth on (2026-10-27 · `notes/auth-plan.md`, E3f's blockers 2 and 3)
+
+**Blocker 2: done for a covered (KV or monitor) entry.** `applyEntryNormal` raises the NOSPACE alarm
+when `errors.Is(ar.Err, ErrNoSpace)`. With auth on, a refused entry's error was only `err ≠ nil ∗
+applyErrIs err` (`rejErrIs .auth`), which does not rule `ErrNoSpace` out.
+- *The auth package's error variables with their message cells.* `auth.authErrMsgs` (the 19
+  translated `errors.New` variables of `store.go` with their messages) and `authErrTexts`;
+  `authInit` gains `errVarCells authErrMsgs` as its last conjunct (gen-init's auth recipe now uses
+  `wp_New_errorString_cell`); `errVarApart_cells` (`errors/NewVarCell.lean`): one variable apart
+  from each of a list's whose messages differ.
+- *The apply package's fact.* `applyErrVars` gains `authErrsApart` (last conjunct): `ErrNoSpace`
+  apart from each auth error variable, from the cells (gen-init's apply recipe).
+- *The rejection's error.* `authErrVarIs err` (`nil`, or a leaf error some variable of
+  `authErrMsgs` holds) and `authApplyErrIs err := applyErrIs err ∗ authErrVarIs err`
+  (`apply/Base.lean`); `rejErrIs .auth err := ⌜err ≠ nil⌝ ∗ authApplyErrIs err`. The permission
+  checks' contracts state `authApplyErrIs` instead of `applyErrIs` (`permCheck2`/`permCheck3`,
+  `permCheck2L`/`permCheck3L`, and the specs of `checkPutAuth`, `checkLeasePuts`,
+  `checkLeasePutsKeys`, `checkTxnPermission`, `checkTxnReqsPermission`, `CheckTxnAuth` and their
+  latest-state forms); the real store meets them (`authErrIs_authApplyErrIs`, `AuthDerive.lean`:
+  the store's five request-side errors are among `authErrMsgs`, with `authInit`'s leafness).
+  `IsAdminPermitted`'s and the admin requests' clauses keep `applyErrIs`.
+- *The branch dead* (`NoSpaceDeadOn.lean`): `dispatchStep_on_off` (a dispatch at the auth-on start
+  chain is the auth layer's refusal or the auth-off chain's), `authErrVarIs_notNoSpace`,
+  `dispatchAnswer_notNoSpaceOn`, `applyResultIs_notNoSpaceOn` (restated
+  `server_apply_not_nospace_on`).
+- *Not covered:* an admin entry's result error (`apply.Apply.adminSpecL`'s), which the admin case
+  of `applyEntryNormal` with auth on will need: the admin requests' errors are the auth store's
+  (`authErrMsgs`'s variables) or the backend's, so the same device applies once the admin
+  clauses state `authApplyErrIs`.
+
+**Blocker 3: the definitions and the deposit; their construction left** (`AppliedOn.lean`; each
+today's at `false` by `rfl`): `kvLogAtM`, `kvLogsOkM` (`kvLogsOkM_insert`), `srvAppliedBodyM`/`srvAppliedInvM` (D22
+J5's body, the atomic lagging the ghost index; the applied logs the mode's model, `kvModelM`), `applied_predepositM` (restated
+`server_applied_predeposit_on`), `appliedLogAt_kvLogAtM`; `srvAtomicsM` (with `srvKVInvsM`),
+`srvFieldsAtM` (with `waitInvM`), `isServerM`; and `srvApplyKVOn s E γw x st ci L W Own`
+(`srvApplyKV`'s with `srvAuthApplyResAt s E st` in place of `srvAuthApplyRes`, and the server
+applier's `apply.uberKVL ua E ci L` and `apply.uberAuthStepsL ua E W Own L`). Left:
+- `isServerBuiltOn` still carries the mode-off `srvAppliedInv` (E2z's row): the boot must allocate
+  `srvAppliedInvM true` (its log map `{ai₀ ↦ log0}` is `kvModelOn`'s at `[]`, as `kvModel`'s), and
+  `isServerBuilt_of_gapM` give `isServerM true`;
+- the construction handing over `uberKVL`/`uberAuthStepsL` for the store's families (`latestRes`,
+  the admin steps' `W`, which is blocker 1's decision, and `Own`);
+- with D22's integration (2026-10-26): `srvApplyKVOn` holds `srvAuthApplyResAt` where `srvApplyKV`
+  holds `srvAuthApplyRes`; a mode-on `applySnapshot` would hand it on as D22's notes say for
+  `srvAuthApplyRes` (not now: `specSnap` stays at `hoff`).
+
+**Exported statements changed.** Definitions: `apply.rejErrIs` (its `.auth` case),
+`apply.permCheck2`, `apply.permCheck3`, `apply.permCheck2L`, `apply.permCheck3L`, `apply.txnPermT`,
+`applyErrVars` (a last conjunct), `auth.authInit` (a last conjunct). Specs (their posts state
+`authApplyErrIs`): `apply.checkPutAuth.spec`, `apply.checkLeasePuts.spec`,
+`apply.checkLeasePutsKeys.spec`, `apply.checkTxnPermission.spec`, `apply.checkTxnReqsPermission.spec`,
+`apply.CheckTxnAuth.spec`, and the latest-state forms in `AuthApplyLatestPut.lean`/`AuthApplyLatestTxn.lean`;
+the theorem `apply.checkTxnReqs_of`. No closed theorem's statement changed; trust base unchanged.
 
 ## D22 J5: the applied index lags its ghost; the write counter decoupled (2026-10-26 · decided by the orchestrator while the user was away (J5/J4))
 
@@ -22383,3 +23002,336 @@ removed; one axiom restated (weaker premise), one restated through its predicate
   configuration (`raftSnapCert`: static, the boot configuration; dynamic, the fold of the prefix)
   and the data's (`snapDataOk`, trivial for the servers): a new obligation on `applyConfChange`'s
   and `run`'s `ep.confState`, not in the plan until now.
+
+## E3j of the auth plan: the cache's permissions in the tie, the read wrappers at the lower bound, the admin path's errors (2026-10-27 · `notes/auth-plan.md`)
+
+E3h's "Left" (the stronger tie, the read wrappers) and E3i's first "Left" item (an admin entry's
+error), in `auth/` and `apply/`; no exported statement of a closed theorem changed, the trust base
+unchanged (724 axioms, 6 sorries).
+
+**(1) The tie carries the cache's permissions always.** `auth.latestTie` (`Latest.lean`) gains a
+third conjunct, `permView sc = permView stl`: whatever the flag, the cache's state has the latest
+state's permissions. True of Go: every admin operation but `RoleAdd` (a role without permissions,
+`permView_putRole_empty`) and `AuthDisable` (no user or role changes) calls
+`refreshRangePermCache(tx)` unconditionally (`store.go`: `AuthEnable`, `Recover`, `UserAdd`,
+`UserDelete`, `UserChangePassword`, `UserGrantRole`, `UserRevokeRole`, `RoleRevokePermission`,
+`RoleDelete`, `RoleGrantPermission`, `NewAuthStore`). The tie lemmas (`LatestTie.lean`):
+`tieStep_refresh` unchanged in statement; `tieStep_set` gains `hp : permView sc = permView s'`;
+`tieStep_keep`, `tieStep_keep'` gain `hp : permView s' = permView st0` (the step keeps the
+permissions); new `tieStep_setKeep` (the flag set, the cache kept: `AuthDisable`), `permView_bump`,
+`permView_putRole_empty`. `tieRes_of_disabled` (`TieRes.lean`) gains
+`hpv : ∀ s ∈ hs, ∀ s' ∈ hs, permView s = permView s'` (the cache's state is a recorded one, in `hs`
+by `authHistHalf_lookup`); its one caller (`etcdserver/AuthSrv.lean`, the boot's
+`[bootState, bump bootState]`) proves it by `rfl`. `authPublishT` (`FreshWrap.lean`): E3h's
+`authPublish` with its hypotheses `hb`, `hc` from the tie.
+
+**(2) The read wrappers at the lower bound** (`auth/FreshWrap.lean`): `IsPutPermitted`,
+`IsRangePermitted`, `IsDeleteRangePermitted` `.specLb`, thin wrappers over E3h's
+`isOpPermitted.specLb` (verdict `permVerdictFrom M n info k e op err`), restated linked as
+`auth_put_permitted_lb`, `auth_range_permitted_lb`, `auth_delete_range_permitted_lb`.
+`IsRangePermitted` is what the read path checks for `Range` (`doSerialize`'s `chk`). Not done: a
+lower-bound `CheckTxnAuth` (the read-only `Txn`'s check), which would repeat E2s's latest-state
+proof of `checkTxnPermission`/`checkTxnReqsPermission` (Löb induction over the requests) at
+`permVerdictFrom`.
+
+**(3) The admin path's errors are the auth package's.** `isAuthStoreL`'s `IsAdminPermitted`
+clause (`apply/AuthLatest.lean`) states `authApplyErrIs err` (was `applyErrIs`), from
+`authErrIs_authApplyErrIs`. The auth applier's rejection on the latest-state path is
+`apply.rejectResultIsA` (`rejectResultIs` with `authApplyErrIs`) in `authApplierV3.Apply.specL`
+and `applierAdmL` (`apply/ApplyAdminL.lean`); `uberApplier.Apply.adminSpecL` and
+`apply.Apply.adminSpecL` (`ApplyFnAdminL.lean`) gain a last conjunct `apply.adminRejErr ar out`
+(for a rejection, the result's error read-only and `authApplyErrIs`). New `authErrVar_authApplyErrIs`
+and `authErrOf_authApplyErrIs` (`apply/AuthDerive.lean`: each `AuthErr`'s variable, by its package
+fact `authErrVar`). New `etcdserver/NoSpaceDeadAdminOn.lean`: `adminOutX_authApplyErrIs`,
+`adminReqResult_authApplyErrIs`, and `applyResultIs_notNoSpaceAdmin` (restated as
+`server_apply_admin_not_nospace_on`): with `apply.Apply.adminSpecL`'s post, an admin entry's result
+is `nil` or its error not `ErrNoSpace`'s, so `applyEntryNormal`'s NOSPACE branch is dead for admin
+entries too.
+
+**Exported statements changed.** Definitions: `auth.latestTie`, `apply.isAuthStoreL` (its admin
+clause), `apply.applierAdmL`. Specs: `apply.authApplierV3.Apply.specL`,
+`apply.uberApplier.Apply.adminSpecL`, `apply.Apply.adminSpecL` (posts). Lemmas: `tieStep_set`,
+`tieStep_keep`, `tieStep_keep'`, `tieRes_of_disabled` (a premise each), `latestTie_flag`
+(unchanged statement). New: `tieStep_setKeep`, `permView_bump`, `permView_putRole_empty`,
+`authPublishT`, the three `*.specLb`/`wp_lb`, `rejectResultIsA`, `adminRejErr`, the lemmas above.
+
+**Left.** A lower-bound `CheckTxnAuth` (the read-only `Txn`); `authPublishT`'s call site in the
+apply loop (with the waiter's reply carrying the lower bound); the apply loop itself
+(`applyEntryNormal.specOn`, E3a's blocker 4).
+
+## E3k of the auth plan: the boot's mode-on applied invariant; the apply thread's latest-state KV triples from the construction (2026-10-27 · `notes/auth-plan.md`, E3i's left items 2-3)
+
+**(1) The applied index's invariant in the mode `on`, allocated at the boot.** `kvModelM` (from
+`ReqOn`) and the applied invariant's mode-indexed definitions (`kvLogAtM`, `kvLogsOkM`,
+`srvAppliedBodyM`, `srvAppliedInvM`, from `AppliedOn`) move to `ServerOn` (the built part's file,
+which `ReqOn`/`AppliedOn` import), each still today's at `false` by `rfl`. `srvIndices_allocM on`
+(`ServerOn`) is `srvIndices_alloc` with `srvAppliedInvM on`: the start log is the mode's model of
+the empty log either way (`kvModelM on γk [] = γk.log0`, `cases on <;> rfl`); `NewServer.wp_proofM`
+calls it. `srvBuiltG on`'s `#Hai` row is `srvAppliedInvM on` (`srvBuiltG_false` still `rfl`) and
+`isServerBuiltOn`'s is `srvAppliedInvM true`; `srvAtomicsM_of_builtOn` (`AppliedOn`) gives the
+apply thread's mode-`on` atomics from `start`'s mode-`on` premise. `isServerM true` itself (its
+`srvFieldsAtM` with `waitInvM true`) is `start`'s to build: the wait is created in `start`
+(`s.w = wait.New()`), so it is not derivable from the construction premise; it comes with
+`start`'s mode-`on` spec. `BuildAlloc`'s `buildGhostVarHalves`/`buildMonoNatHalves` are no longer
+`private` (used by `srvIndices_allocM`).
+
+**(2) The server applier's latest-state KV triples from its construction.**
+- **The base applier's auth layer in `uberIs`** (`apply/InvUber.lean`, `baseAuth E opts base`):
+  the base applier is an `*authApplierV3` `pa` with `authIs E pa inner`, its inner applier an
+  applier of `quota` over `backend`, and its `as`/`lessor` fields the options' store and lessor.
+  Chosen over a new conjunct of `NewUberApplier`'s post (first tried): D22's snapshot walk restates
+  that post's shape (`SnapApplyDefs`, `SnapApplyKV`: `apply.uberIs E1 up' opts' ∗ ∃ ns cr, …`), so a
+  change there would change D22's statements; `uberIs` is opaque to them. `uberIs`'s five
+  destructuring sites end in `-` but `AdminChain`'s (`#Hsh` → `#Hsh, -`).
+- **Its source:** `newAuthApplierV3`'s post gives its `as`/`lessor` fields read-only and, for any
+  environment, `authIs E p base`; `newApplierV3`'s post gives `baseAuth E opts a` for every
+  environment meeting the options' contracts; `NewUberApplier` frames it into `uberIs`.
+- **`apply.uberKVL_of_base`** (`apply/UberKVLBase.lean`): `uberBaseAuth ua E au le` (the
+  `UberApplier` whose base's store is `au` and lessor `le`, `apply/BaseAuth.lean`), the store's
+  checks at the latest state (`isAuthStoreL au …`) and the lessor finding no lease (`lookupNil le`)
+  give `uberKVL ua E (.quota .backend) L`, through E2y's `applierKVL_auth`.
+- **The server's row** (`ServerOn`): `srvUberRowM on` is the built part's uber-applier row, today's
+  at `false` (`rfl`), with `srvUberBase s ua E` (the base auth layer at the server's `authStore`
+  and `lessor` fields) at `true`; `NewServer.wp_proofM` builds it from `NewUberApplier`'s `uberIs`
+  and the fields (`srvUberRowM_of_On`); `applyBuiltOn`'s uber-applier row carries `srvUberBase`.
+- **`srv_uberKVL`** (`UberOn.lean`; restated linked as `server_uber_kvl`): `srvUberBase` with two
+  named premises gives the apply thread's `uberKVL`:
+  - `srvStoreLatest s E L`: the server's store meets `isAuthStoreL` for `L`; the real store does
+    from its invariant (`isAuthStoreL_of_authInv`, with `E.RD = authRd …` and `L = latestRes …`),
+    but the server's rows do not carry the store's invariant yet;
+  - `srvLessorNil s`: the server's lessor finds no lease. A premise: the real lessor finds a lease
+    once one is granted; `examples/authkv` grants none.
+- **The admin side** (`uberAuthStepsL`'s `W`, the store's `be` half) stays a hypothesis of
+  `srvApplyKVOn`'s users; E3k did not reach it.
+
+**E3f's blocker 1, decided (2026-10-27, the user):** the store's half of its `be` field
+(`authBeOn`, which stays in the server's rest and is borrowed by an admin application, E2m) is tied
+to the apply thread's `authWBackendOk` backend by a **separate row** (an equation of the backend
+names, or a persistent agreement fact), leaving `srvObjsOn`'s text and D22's `Recover` premise (a)
+unchanged. The admin entry's `W` (in `uberAuthStepsL`, `applyEntryNormal`'s admin case) is to be
+built from that row, not taken as a named hypothesis.
+
+**Exported statements changed.** Specs: `apply.newAuthApplierV3.spec` (post: the `as`/`lessor`
+fields and an `authIs` clause), `apply.newApplierV3.spec` (post: a `baseAuth` clause). Definitions:
+`apply.uberIs` (a `baseAuth` conjunct), `srvBuiltG` (`#Hai` the mode's, `Hua` `srvUberRowM on`),
+`isServerBuiltOn` (`#Hai`), `applyBuiltOn` (`srvUberBase` in its uber row). Moved (same text):
+`kvModelM`, `kvLogAtM`, `kvLogsOkM`, `srvAppliedBodyM`, `srvAppliedInvM` with their lemmas. New:
+`srvIndices_allocM`, `srvUberBase`, `srvUberRowM`, `srvUberRowM_of_On`, `srvAtomicsM_of_builtOn`,
+`apply.baseAuth`, `apply.uberBaseAuth`, `apply.uberKVL_of_base`, `srvStoreLatest`, `srvLessorNil`,
+`srv_uberKVL`, `server_uber_kvl`. No closed theorem changed; `NewServer.spec`,
+`EtcdServer.NewUberApplier.spec` and `apply.NewUberApplier.spec` keep their text.
+
+**Left.** `start`'s mode-`on` spec (building `isServerM true`: the wait in the mode, `waitInvM
+true`); the server's rows carrying the store's invariant (discharging `srvStoreLatest`); the admin
+facts (the separate row of blocker 1's decision, then `uberAuthStepsL`'s `W`); `applyEntryNormal.specOn` (no-data, KV, cluster; admin entries) handing
+`resultΨOn` to the waiter, then `applyAll`, `run`.
+
+**Trust base.** Unchanged.
+
+## E3l of the auth plan: the server keeps its store's checks at the latest state; the admin steps' row (blocker 1's separate row) (2026-10-27 · `notes/auth-plan.md`, E3k's left items)
+
+**(1) The store's checks at the latest state, kept by the server.** `authStoreLatestM M st RD stl`
+(`etcdserver/StoreLatest.lean`; persistent): with auth on, `apply.isAuthStoreL st RD M
+(auth.latestRes stl M)`; `True` in the other modes. `authStoreKit`'s post gains it; the mode-`on`
+kit proves it of the store's invariant (`apply.isAuthStoreL_of_authInv`, with the four `specL`
+checks as new hypotheses of `authStoreKit_on`/`authSrvTP_on`, linked in `srv_auth_tp_on`);
+`srvUberBase` (the built part's uber-applier row, E3k) gains `∃ stl, ⌜au = authIface stl⌝ ∗
+authStoreLatestM E.authMode au E.RD stl`, which `NewServer.wp_proofM` builds from the kit.
+`srv_uberKVL_on` (`UberOn.lean`; restated `server_uber_kvl_on`): with `E.authMode = .on γa`,
+`srvUberBase` and the lessor finding no lease give the apply thread's `uberKVL` at
+`auth.latestRes stl (.on γa)` for the store `stl` of the `authStore` field: E3k's
+`srvStoreLatest` premise is discharged (`srvLessorNil` stays a named premise).
+
+**(2) The admin steps' resource: blocker 1's separate row** (the user's decision, recorded in
+"E3k of the auth plan"). Two gaps had to be closed:
+- *The value of `be` was lost across an admin step.* The admin steps' write resource (`authWRx`,
+  `authWB`) holds the store's half of its `be` field under an existential, so a caller lending the
+  rest's half (`authBeOn stl bel`, `∃ abl …`) could not rebuild `authBeOn` after the step. E3l
+  adds `auth.authWRxB … be` (`authWRx` at a fixed backend) and, for `SetUp`'s five operations,
+  `X.specTB` (`AuthEnable`, `RoleAdd`, `UserGrantRole`, `RoleGrantPermission`; `UserAdd.specTSureB`):
+  `X.specT` with the backend kept (true of Go: no admin operation but `Recover` writes `be`). The
+  proofs are `X.wp_tieB` (each `X.wp_tie`'s, with `be` a parameter); `X.wp_tie` is derived
+  (`X.specT_of_TB`), its statement unchanged. `apply.isAuthStepsX_of_authInvTB` gives the store's
+  `isAuthStepsX` at `W = (∃ be, ((be ↦½ ∗ authWBackendOk be) ∗ T) ∗ Ψ be) ∗ tpAdmin` for a
+  persistent `Ψ`, from the `specTB`s.
+- *The agreement of the backend contract with the rest's half.* `authBeOn stl bel` hides which
+  `*authBackend` `abl` the field holds, and the apply thread's contract was at one specific `abl`.
+  E3l's persistent agreement: `authWBackendAt bel M P f T`, the write contract at *every* schema
+  auth backend whose `be` field is `bel` (the `*authBackend` methods read only the struct's `be` and
+  `lg` fields). D22's named premise `authSchemaSrv` gains this clause (one more item for D22's
+  list: the contract uniform over `*authBackend` structs on the server's backend).
+
+The row. `authApplyResB M stl st bel` (`StoreLatest.lean`): `authApplyResAt`'s, with in the mode
+`on` `authWBackendAt bel` and the store's `isAuthStepsX` at `adminW stl bel` (`Ψ = beOn bel`: the
+backend a schema auth backend on `bel`). `srvAuthApplyResB s E st`: the `authStore` field's store,
+`authApplyResB E.authMode stl st bel`, and the **equation of the backend names**, `rwLens E.RW
+(authBeOn stl bel)` (the environment's write right lends the store's half on `bel`;
+`rwLens_authBeOn`, of `srvRestRWH … (srvObjsOn … bel)`). `srvObjsOn`'s text, `authBeOn`'s and
+D22's `Recover` premise (a) are unchanged. The kit's post gives `authApplyResB M stl (bump
+bootState) d.be`; `NewServer` builds `srvAuthApplyResB` with the lens at `d.be`; the mode-`on`
+rows (`applyBuiltNAOn`, `applyBuiltOn`, `srvApplyKVOn`) hold `srvAuthApplyResB` in place of
+`srvAuthApplyResAt` (`srvAuthApplyResAt_of_B` forgets back, for the mode-off rows). The borrow:
+`adminW_of_beOn` turns `authBeOn stl bel ∗ authWBackendAt bel ∗ T` into the admin steps' write
+resource, `beOn_of_adminW` turns it back after the step.
+
+**Exported statements changed.** Definitions: `authStoreKit` (post: `authStoreLatestM`,
+`authApplyResB` in place of `authApplyResAt`), `authSchemaSrv` (the uniform write contract),
+`srvUberBase` (the store fact), `applyBuiltNAOn`, `applyBuiltOn`, `srvApplyKVOn` (`srvAuthApplyResB`).
+Theorem hypotheses: `authStoreKit_on`, `authSrvTP_on` (the four `specL` checks and the five
+`specTB`s). New: `authStoreLatestM`, `authWBackendAt`, `beOn`, `adminW`, `authApplyResB`,
+`srvAuthApplyResB`, `authApplyResAt_of_B`, `srvAuthApplyResAt_of_B`, `adminW_of_beOn`,
+`beOn_of_adminW`, `rwLens_authBeOn`, `srv_uberKVL_on`, `server_uber_kvl_on`, `auth.authWRxB`,
+`authWRx_B`, `authWRx_of_B`, the five `specTB`/`wp_tieB`/`specT_of_TB`,
+`apply.isAuthStepsX_of_authInvTB`. Unchanged: every `X.specT`, `X.spec`, `NewServer.spec`, the
+closed theorems.
+
+**Left.** `start`'s mode-`on` spec (its `isServerM true`) needs `run`'s, which needs
+`applyAll`'s and `applyEntryNormal.specOn`'s: the loop is one chain, not begun here.
+`applyEntryNormal.specOn`: no data; KV entries (`kv_entry_pre_on`, `apply.Apply.kvSpecL` with
+`srv_uberKVL_on`, `kvOn_after_kv`); cluster entries; admin entries (the receipt at an
+apply-thread step, the borrow through `srvAuthApplyResB`'s lens and `adminW_of_beOn`,
+`apply.Apply.adminSpecL` with `uberAuthStepsL` at `adminW` from `authApplyResB`'s
+`isAuthStepsX`, `adminStateR_of_*`, `authPublishT`); replays; `resultΨOn` to the waiter. The
+`uberAuthStepsL` at `adminW` itself (the base applier's `applierAdmin`/`applierAdmL` from
+`authApplyResB`'s `isAuthStepsX`, as `srv_uberKVL_on` does for the KV side).
+
+**Trust base.** Unchanged (no axiom, no `sorry`).
+
+
+## Features without re-proving: state records, named conjuncts, bundled callees, lifted wrappers (2026-10-26 · proposed; the user asked for it written up)
+
+**Status: proposed**, not yet adopted. It is the first step of L3b part 2 of `notes/leases-plan.md`
+if the user adopts it; the auth and snapshot tracks work in the same apply-layer files, so it is
+recorded here for them to weigh first.
+
+**The problem.** Over the last sessions most of the cost of a new feature has not been new
+reasoning but the mechanical breakage it causes in proofs that do not use it. In the leases unit
+(T3), sessions of 2026-10-24 to 2026-10-26:
+
+- *L3b part 2 needs the lessor's live set in the apply relation* (a leased put is rejected iff its
+  lease is not live), and the apply layer's specs take the state's components one by one
+  (`(log : mvcc.Log)`, `kvOwn E log`, `mPre E c a info log …`, `chainStep backendStep c rq log o`).
+  Adding one component (the lease table) touches about 130 files, 45 of them specs, though only
+  the put, transaction, grant and revoke appliers read it. The apply thread already has a record
+  (`apply.ApplyKV`: `log`, `chain`); the specs do not take it.
+- *Positional destructuring.* Adding a conjunct to a pre- or postcondition breaks every
+  `icases … ⟨H1, …, -, H11⟩` downstream: in this unit's merges, mvcc's `retiredAt` (`Hret`, from
+  the snapshot track) against the deleter (`Hro`, from leases) in `New`, `newWatchableStore`,
+  `StoreBackend`, `BuildLemmas`, `Results`, `NewServer`; the revoke rights in `lessorUser` in five
+  of the snapshot track's files; the lease check in `Txn`'s success. Each is a one-token fix found
+  only by a full build.
+- *Positional hypothesis lists.* `NewServer.wp_proofM` takes `h0 … h94`; its wrapper, `Results`'
+  restatements, and the snapshot walk (`applySnapshot_walk`, `wp_proof_snap`) list them again.
+  Adding the backend's `UnsafeDelete` spec (L2) meant editing each list by hand.
+- *Wrappers restate the inner relation.* Each applier layer (corrupt, capped, auth, quota,
+  `dispatch`, `Apply`) states its own copy of the relation (`chainStep backendStep (.corrupt c) …`),
+  so changing the backend's relation reaches every layer's spec.
+- *Merges.* `lean` moved 3 to 80 commits between this branch's merges, mostly in the same apply
+  files; each of the patterns above turns a parallel change into a conflict.
+
+**The proposal** (four changes, each local in its effect once made):
+
+1. **Specs over state records** (CLAUDE.md's "Records", applied to the apply layer). The applier
+   specs, `kvOwn`, `mPre`/`mPost`/`kvPostF` and the relations (`backendStep`, `dispatchStep`,
+   `applyStep`) take `x : apply.ApplyKV` (or a record of what the KV side of the apply thread
+   holds) instead of `log`; a spec that reads only the log uses `x.log`. A new component (the
+   lease table now; an auth state or alarm set later) is then a field: only its readers change.
+2. **Named conjuncts in the large resources** (`"Hx" ∷ P`, destructured with `iNamed`, as
+   Perennial's struct predicates are): `kvOwn`, `lessorUser`, the mvcc constructors' posts
+   (`New`, `newWatchableStore`, `server_kv_watchable_of`), `snapWalkPost`, the server's built rows.
+   A new conjunct then breaks only the proofs that use it.
+3. **Bundled callee specs.** A structure per linking theorem (e.g. `ServerCallees` for
+   `NewServer`'s 95 hypotheses), one argument instead of the list; `etc/gen-link.py` fills it from
+   the linked names. A new callee is one field and one line of the generated link.
+4. **Wrappers as lifts.** A wrapper layer's spec states the inner layer's spec lifted (its own
+   rejections, else the inner outcome), with one lifting lemma per layer; changing the backend's
+   relation then touches the backend and the lemmas only.
+
+Two practices go with it: a **default argument at a definition** where the default is honestly
+the old meaning (L3a's `kvStateOf l (lt := [])` kept about 135 call sites unchanged), and
+**module-level checking while editing** (`lake build <module>`, `etc/lean-check.py`), keeping full
+builds (15 to 25 minutes each in these sessions) for the end of a step.
+
+**Cost and order.** (1) for the apply layer is the same set of files L3b part 2 would edit anyway
+to thread the table through today's signatures, so doing it first costs about the same and leaves
+the next feature local. (2) to (4) can be done file by file when a file is next touched. Merge into
+`lean` in small steps, so the other tracks build on the new signatures early.
+
+**Rejected.** Hiding the lease table in ghost state so the specs keep their text (the relation is
+pure, and its outcome must be exact for the model's step: the table has to appear in it); a
+degenerate L3b over an always-empty live set (correct today, since no grant is admitted, but L3c
+would redo the threading).
+
+
+## E3m of the auth plan: a read-only transaction's checks at a reader's lower bound; the model's users' roles sorted, so admin entries determinate; the admin proposal (2026-10-27 · `notes/auth-plan.md`, E3j's left first item, E2z's Found 3 and Left 3, E3b's Left 4)
+
+**(1) A read-only transaction's `CheckTxnAuth` no older than a reader's lower bound**
+(`apply/AuthCheckTxnLb.lean`). The read path checks a read-only transaction outside the apply
+thread (`v3_server.go`'s `Txn`: `doSerialize`'s check `apply2.CheckTxnAuth(s.authStore, ai,
+s.lessor, r)`). A read-only transaction (`txn.IsTxnReadonly`: every operation of both branches a
+range; `apply.readonlyW`, from the model's `txnReadonly` by `readonlyW_of_txnReadonly`) makes only
+`IsRangePermitted` checks, and has no nested transaction (a nested transaction is not a range), so
+E2s's Löb induction is not needed: the comparisons' loop, then each branch's loop, whose put,
+delete and nested-transaction cases are dead. Each check reads the store afresh, so each verdict is
+`IsRangePermitted.specLb`'s (E3j) at states no older than the reader's bound `n`, each possibly at
+a different state:
+- the store as the apply package sees it at the lower bound: `apply.isAuthStoreRangeLb st RD M n`
+  (`permCheck3Lb`: the verdict `auth.permVerdictFrom M n`), met by the real store from `authInv`
+  and `authPubLbM M n` (`isAuthStoreRangeLb_of_authInv`, restated `apply_auth_store_range_lb`);
+- `checkTxnPermission.specLb`/`CheckTxnAuth.specLb` (proved, restated `apply_check_txn_auth_lb`):
+  a pass is every checked permission's verdict passed no older than `n` (`verdictsFrom`, a big
+  separating conjunction of `permVerdictFrom … nil` over `txnChecked t`), with `txnClass`; a
+  refusal one checkable permission (`txnMay t`) refused there; in the mode `off` a pass.
+No lessor premise: the read-only transaction's checks never reach `checkPutAuth`.
+
+**(2) The model's auth states keep their users' roles sorted, so its admin entries are
+determinate** (`KVAuthShape.lean`). E2z found that admin determinacy needs a shape invariant of the
+model's states. The invariant is `rolesSorted st`: every user's roles strictly ascending
+(`GoStringLt`), what `UserGrantRole` writes (`sort.Strings`) and `UserAdd`'s empty list; not E2l's
+`authSmall` (its bounds are the fuel's, not determinacy's). `rolesSorted_adminStateR`: every admin
+step keeps it; `rolesSorted_adminNext` (a successor, or the state kept) and so
+`rolesSorted_kvRaftOfOn`: kept along the whole model of any log, whether or not its entries were
+determinate, from a sorted start (the server's `bump bootState`, `rolesSorted_model_boot`).
+`authDet_of_sorted`: at a sorted state an admin entry is determinate when it is a `UserAdd` with a
+password choice that cannot fail (`pwSure`), `RoleAdd`, `UserGrantRole` (its successor unique:
+two strictly sorted permutations of one list are equal, `eq_of_perm_sorted`; and existing: the
+sorted insertion `insLt`), `AuthEnable`, any other kind, or a `RoleGrantPermission` to a fresh
+role (`grantPermFresh`: the role has no permission at that state).
+
+**Found (a limit of S4's model, not a Go bug): `RoleGrantPermission` is determinate only to a
+fresh role.** `roleGrantPermissionR` lets the role's permissions after the append and `sort.Sort`
+be any permutation of the old ones with the new one (Go's `permSlice` compares keys only and
+`sort.Sort` is not stable, so the model does not pin the order), and also allows the append where
+Go updates an existing permission in place. Its successor is unique only when that list has one
+element. No invariant of the states gives that; the proposer must know it of the state its entry
+meets (`examples/authkv`'s `SetUp`: one grant to the role `r` it just added). The options: tighten
+`roleGrantPermissionR` (sorted by key, Go's update branch; then still ambiguous for two permissions
+with one key and different range ends), or the client's knowledge of the auth state (a ghost
+variable of the model's auth state in `kvInvOn`, which the sequential `SetUp` would hold).
+
+**(3) An admin proposal in the mode `on`** (`ProposeOn.lean`). `reqPropOkOn` gains a third case
+(appended: `A ∨ (B ∨ C)`): an admin request meeting `adminPropOk st₀ rq` (admitted, `adminKindOk`;
+needing the admin permission; its `UserAdd`, if any, `pwSure`; no `RoleGrantPermission`, which the
+proposer cannot know determinate; a sorted start), its result `adminPropRes`: at the commit the users'
+roles sorted and the step determinate, so the auth state after the entry is the model's
+`adminNext rq` of the state after the committed prefix. `commitOkOn_admin`: the committer's
+obligation for such an entry (admitted, determinate by `authDet_of_sorted`, not a KV kind).
+`kv_prop_au_on`'s admin case: the KV state kept (`kvModelOn_snoc_admin`), the invariant extended
+(`kvInvOn_facts_snoc`, the entry's shape the admin disjunct of `entryShapeOn`), `adminPropRes` at the
+commit. `ReqOn`'s `reqPropOkM_true_write` and `reqPropOkOn_noZero` adapted to the third case.
+
+**Not done.** The admin proposers over `processInternalRaftRequestOnce.specM true`
+(`EtcdServer.UserAdd`, `RoleAdd`, `UserGrantRole`, `AuthEnable` with `authRaftOk` discharged from
+`raftRequest.specM true`): `raftRequest`'s success post gives `appliedOkM`, whose
+`dispatchAnswer` says nothing of an admin kind's response (`| _ => True`), so `authRaftOk`'s
+`resp = *T` cannot follow; it needs the apply thread's admin answer handed to the waiter (E2n's
+`adminDone`, E3l's `applyEntryNormal` admin case) in `resultΨOn`/`appliedOkM`. Then the v3rpc Auth
+handlers and `setupAuthOk`. `RoleGrantPermission`'s determinacy (above).
+
+**Exported statements changed.** The definition `reqPropOkOn` (a third disjunct). Everything else
+is new: `apply.opW_isGet`, `readonlyW`, `readonlyW_of_txnReadonly`, `permCheck3Lb`,
+`isAuthStoreRangeLb`, `verdictsFrom`, `permVerdictFrom_isOn`, `isAuthStoreRangeLb_of_authInv`,
+`checkTxnReqs_lb`, `checkTxnPermission.specLb`/`wp_lb`, `CheckTxnAuth.specLb`/`wp_lb`;
+`insLt`, `eq_of_perm_sorted`, `rolesSorted` and its lemmas, `authDet_of_sorted`, `grantPermFresh`,
+`adminDetReq`; `adminPropOk`, `adminPropRes`, `commitOkOn_admin`; restated `apply_auth_store_range_lb`,
+`apply_check_txn_auth_lb`. No closed theorem changed. Trust base unchanged.
