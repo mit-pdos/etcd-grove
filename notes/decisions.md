@@ -24591,3 +24591,48 @@ up to order.**
 **Not done (in order).** The gRPC Auth layer (`_Auth_X_Handler`, the gRPC specs,
 `etcd_auth_served`); a member started with auth on (`grpcUp`'s Auth registration); `setupAuthOk`;
 `examples/authkv` and the closed theorem.
+
+## E3za of the auth plan: the gRPC Auth layer (2026-10-27 · `notes/auth-plan.md`, E3z's first left item, `setupAuthOk`'s second prerequisite)
+
+`setupAuthOk` asks, for each of the five admin methods `SetUp` calls, `isGrpcRpc ep method Spec`:
+the generated handler served at the member's address, meeting a spec over the client's wire
+models (`client/v3/InvAuthConn.lean`). E3y proved the `AuthServer` methods below the handlers
+with auth on (`*_end_to_end_on`); this stage puts grpc above them.
+
+- **The handlers.** `_Auth_{UserAdd,UserGrantRole,RoleAdd,RoleGrantPermission,AuthEnable}_Handler`
+  translated (`etcdserverpb.toml`) and proved by the generic unary handler lemma, as the KV
+  service's (`UnaryHandlerLemmas.lean`; the build checks each body is `unaryHandlerImpl`), linked in
+  the v3rpc `Link.lean`.
+- **A decoded request a handler writes.** `EtcdServer.UserAdd` replaces the decoded request's
+  `Password` by `""` and sets `HashedPassword`; the wire model gave a decoded request only a
+  read-only predicate (`ProtoMsg.recv`, persistent), so E3y's `UserAdd` result, which takes the
+  two fields exclusively, could not be met. Considered: making `recv` non-persistent (every
+  generic grpc lemma and the KV proofs rely on its persistence; a large change), and a `UserAdd`
+  model that never writes (false to the Go code). Chosen: an exclusive part beside it,
+  `ProtoMsg.recvOwn` (default `True`), which grpc's decode also hands the caller (`grpcDecOk`):
+  decoding fills a fresh message the handler owns, so this states more of what the runtime does
+  and changes no axiom's count; only `pbAuthUserAddRequest` sets it (its `Password` at the sent
+  password, `HashedPassword` at `""`, which the client sends; its name and options stay
+  read-only). Handlers that may write their request meet `grpcHandlerOwnOk` (`recvOwn` in the
+  precondition); `wp_unaryHandlerOwn` proves the generic handler for them and `wp_unaryHandler`
+  (the KV and Lease handlers', unchanged) follows from it (`grpcHandlerOk_own`). All five Auth
+  handlers use the `Own` form.
+- **The specs** (`v3rpc/AuthService.lean`): `etcdUserAddSpec E ρ m Φ` = the name's bound
+  (`maxKeySize`, what the admission needs) and `userAddReplied E ρ m.name -∗ Φ ()`; likewise for
+  the others (`adminReplied E ρ rq`: the request applied at the committed prefix before its entry,
+  its admin step succeeding there, the auth state after it published, its step determinate:
+  `adminOutOn`'s success less the response's memory and the store's certificates). The client
+  gives no resource: the run's slot is the server's (`authSlot`: a reader slot of `leadTimeMu` and
+  `E.RD`, back on every answer, `adminOutOn_reply`), the id budget `□ |==> idCred` the server's
+  start, the index certificate minted (`idxCert_nil`). Each spec is a predicate on a persistent
+  reply, so `setupAuthOk`'s `□ ▷ Spec m (fun _ => Q)` holds with `Q` the reply.
+- **Serving** (`api/v3rpc/Results.lean`): `etcd_*HandlerOk` (each E3y result under the slot,
+  `authWrapOut_admin`/`authWrapOut_userAdd`), `etcd_*MethodOk` (the handler under any chain of
+  transparent interceptors, `authServer_isAuthServer` the method-set fact), `etcd_auth_served`
+  (as `etcd_kv_served`: `grpc_serve_rpcs` over the five; trust base unchanged).
+
+Left for the next step: `etcd_auth_served`, like `etcd_kv_served`, consumes the server object
+`grpcServerAt` (one `grpc.serve` per server), so a member serving both needs one serve of the KV
+and Auth methods together, under one run slot; and the start's registration of the Auth service
+(`RegisterAuthServer` in `v3rpc.Server`, the Auth `ServiceDesc`'s methods in `etcdserverpbDescs`,
+now only `pbDescOk`).

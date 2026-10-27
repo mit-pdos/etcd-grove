@@ -116,7 +116,10 @@ translate = ["!*", "ResponseHeader", "ResponseHeader.GetRevision", "Compare.GetK
   "authClient.RoleAdd", "authClient.RoleGrantPermission", "authClient.AuthEnable",
   "Auth_UserAdd_FullMethodName", "Auth_UserGrantRole_FullMethodName",
   "Auth_RoleAdd_FullMethodName", "Auth_RoleGrantPermission_FullMethodName",
-  "Auth_AuthEnable_FullMethodName", "AuthEnableRequest"]
+  "Auth_AuthEnable_FullMethodName", "AuthEnableRequest",
+  # the auth plan's E3za (2026-10-27): the generated server-side handlers of those five methods
+  "_Auth_UserAdd_Handler", "_Auth_UserGrantRole_Handler", "_Auth_RoleAdd_Handler",
+  "_Auth_RoleGrantPermission_Handler", "_Auth_AuthEnable_Handler"]
 imports = ["!*", "go.etcd.io/etcd/api/v3/mvccpb", "go.etcd.io/etcd/api/v3/membershippb",
   "go.etcd.io/etcd/api/v3/authpb",
   "google.golang.org/protobuf/runtime/protoimpl", "google.golang.org/grpc", "context"]
