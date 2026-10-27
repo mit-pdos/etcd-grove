@@ -80,6 +80,9 @@ names only; a trust-boundary spec (`true` iff `s` is non-empty, all ASCII digits
 is the cheapest. Options: (a) Goose support for range over a string (decode UTF-8 per step: a
 model of `utf8.DecodeRuneInString`), the general fix; (b) a trusted model (`TrustedCode/`) of
 `isWellFormed` as the byte loop, faithful by the argument above; (c) the trust-boundary spec.
+*Taken (2026-10-27, branch `k8s-leaf-cache`):* (c),
+`Spec/k8s_io/apimachinery/pkg/util/resourceversion/isWellFormed.lean` (`wellFormed`), an axiom in
+the consistency store's TCB; `CompareResourceVersion` is proved over it.
 
 **C2. A promoted method of a generic struct, through a pointer** (Lean: `Application type mismatch:
 StructFieldRef ty` with `ty : go.GoType → go.GoType`). For a type `S[T]` whose method set gets a

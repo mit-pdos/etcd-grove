@@ -289,6 +289,23 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   parameter count for a variadic call); a Goose test of `defer f(x)` with `f(x int, ys ...int)`.
 - **Status.** Not started.
 
+### Tactics: `wp_apply` after an atomic spec applied with `iapply` (2026-10-27, client-go consistency)
+
+- **Missing.** In a proof that applies a logically atomic spec (the `<<{ … }>>` triples of
+  `Perennial/ProgramLogic/AtomicFupd.lean`) with `wp_bind; iapply spec $$ [...]`, a later
+  `wp_apply lem $$ [...]` in the continuation (after the atomic update is closed) silently does
+  nothing: no error at the tactic, the declaration reports only "unsolved goals" at its `by`, and
+  `wp_apply_core` there fails with "unknown free variable" and "declaration has metavariables".
+  Seen in `Proof/k8s_io/client_go/util/consistency/consistencyStore__WroteAt.lean` (the call of
+  `ownerRecord.WroteAt` after `ensureWrittenRecord`'s atomic spec). `wp_apply` directly on the
+  atomic spec has the same symptom.
+- **Workaround here.** `wp_bind; iapply lem $$ [...]` for the later call too, then `inext; iintro`
+  its postcondition.
+- **Proposed.** Find the metavariable `wp_apply` leaves (probably the continuation `Φ` of the
+  atomic spec, instantiated late, whose context then loses a local cleared by `wp_auto`), and make
+  `wp_apply` support atomic specs directly.
+- **Status.** Not started.
+
 ### Semantics: `sync.Mutex{}` (2026-10-26, client-go workqueue)
 
 - **Missing.** `sync.Mutex`'s model has underlying type `go.bool` (`TrustedCode/sync.lean`), and a

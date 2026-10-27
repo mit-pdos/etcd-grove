@@ -25,8 +25,11 @@ variable [package_sem : k8s_io.client_go.util.consistency.Assumptions]
 
 /-- **`c.WroteAt(o, uid, gr, rv)`**, logically atomic: the owner's record (a new empty one if
 there is none or it is for another UID) takes `rv` for `gr` if `rv` is well formed and newer
-than the version there (`wroteAtM`). The caller holds some permission `T o q` for the owner (so no
-`EnsureReady(o)` runs meanwhile) and one of the map lock's reader slots. -/
+than the version there (`wroteAtM`). A version that is not well formed (`""`, `"0"`, ...) is not
+recorded, though the record is still created or replaced: `EnsureReady` then has nothing to wait
+for (`issues/nonissues/k8s-consistency-malformed-rv-ready.md`). The caller holds some permission
+`T o q` for the owner (so no `EnsureReady(o)` runs meanwhile) and one of the map lock's reader
+slots. -/
 abbrev consistencyStore.WroteAt.spec : Prop :=
   ∀ (c : Loc) (γ : ConsNames) (T : Owner → Qp → IProp GF) (S : GMap GR LastSyncRVGetter)
     (G : GR → GoString → IProp GF) (o : Owner) (uid : GoString) (gr : GR) (rv : GoString) (q : Qp),

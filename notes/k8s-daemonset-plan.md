@@ -214,6 +214,23 @@ theorem's program runs with it off, the premise "a failed write had no effect" (
    `issues/k8s-workqueue-done-without-get-duplicates.md`,
    `issues/k8s-workqueue-exponential-backoff-2to63.md`. Not done: `TypedWithMaxWaitRateLimiter`,
    metrics other than the no-op ones, `SetProvider`, `parallelizer.go`.
+   *Status, `util/consistency` (2026-10-27, branch `k8s-leaf-cache`):* every function proved, linked
+   in `Proof/k8s_io/client_go/util/consistency/Link.lean` (results `Results.lean`, TCB
+   `etc/tcb-collections/clientgo-consistency.txt`), over two trust-boundary axioms
+   (`resourceversion.isWellFormed`, gap C1; `schema.GroupResource.String`). The store is logically
+   atomic over `consState γ M` (`Proof/k8s_io/client_go/util/consistency/Model.lean`): `WroteAt`
+   is `wroteAtM` (the newest well-formed version per group resource; a malformed one ignored),
+   `Clear` is `clearM`, and `EnsureReady(o)` returns `nil` only with `readyRec S G (M !! o)`, the
+   record then deleted: for every recorded `gr ↦ wroteRV`, a registered store's
+   `LastStoreSyncResourceVersion()` returned `readRV ≠ ""` with the caller's contract `G gr readRV`
+   and, **if `readRV` is well formed**, `wroteRV ≤ readRV` by value. What S1's proof must bring:
+   permissions `T o q` with `tokExcl T` (from the work queue's `keyTok`: the worker holds `T o 1`
+   for `EnsureReady`, and splits it for the create goroutines' `WroteAt`, rejoined at
+   `createWait.Wait`), reader slots, a `G` that implies `readRV` well formed and "the informer has
+   seen every change up to `readRV`" (stable, the informer contract), and that every recorded
+   version is a created object's (well formed). `Clear` needs no permission (the delete handler's)
+   and forgets the owner's writes: an invariant "every write is seen or recorded" holds for live
+   owners only.
 3. **The model API server's spec and proof.** Logically atomic triples over an abstract state of
    resources and its change log (compare D44-D48's KV state and its watches: a watch is repeated
    reads of the log).
