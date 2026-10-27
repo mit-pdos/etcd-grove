@@ -10,9 +10,11 @@ best contract its clients can have: true of the Go code, as strong as the code a
 need, stated in abstract terms, with the laws its clients need, and readable in `interface/`. Start
 from whatever exists, including nothing. How to get there is up to you. Read `LESSONS.md` first.
 
-**Review.** Spawn a fresh subagent that sees the target's `interface/` files (where its package has
-none, the spec file and the definitions it names), the Go source, and the clients' proofs, but not
-your conclusions. Ask it where the contract is wrong, weak, too strong,
+**Review.** Spawn a fresh `spec-reviewer` agent (`.claude/agents/spec-reviewer.md`: the rubric, the
+metrics, the failure patterns past reviews found, the report's form; it reads `LESSONS.md` itself).
+Give it the targets (the `interface/` files; where the package has none, the spec file and the
+definitions it names), the Go source and the clients (call sites and their proofs or contracts), but
+not your conclusions. Ask it where the contract is wrong, weak, too strong,
 leaky or unusable. Check its findings against the source before acting on them. Look at least for:
 
 - a claim the Go code does not support, or one it supports but the spec omits;
@@ -23,8 +25,11 @@ leaky or unusable. Check its findings against the source before acting on them. 
 - a spec that no client uses;
 - a statement that `interface/` does not show in full or that hides behind a wrapper.
 
-**Repair.** Fix what the review confirms. Afterwards, spawn a second fresh reviewer on the new
-`interface/` and iterate until it finds nothing you agree with.
+**Repair.** Fix what the review confirms. Afterwards, spawn a second fresh `spec-reviewer` on the new
+`interface/` and iterate until it finds nothing you agree with. **Feed the reviewer:** a later
+revision of a reviewed spec that no review criterion caught (or a review finding later reverted) goes
+into `LESSONS.md`, and its rule into the reviewer's "Failure patterns" (`notes/spec-first-plan.md`,
+"Phase 1b", the feedback loop).
 
 **Constraints:**
 
