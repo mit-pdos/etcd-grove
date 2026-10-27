@@ -65,6 +65,30 @@ mirror the code) in two tiers:
 The pilot measures whether the review pays: spec revisions found by the review, by the glue proofs,
 and after the freeze.
 
+*Measured alongside the tiers* (mechanical where possible):
+
+| metric | what it catches | how |
+|---|---|---|
+| scope premises | premises restricting the configuration or workload (`AutoCompactionRetention = 0`): each a future SCOPE revision, step 1's first cause | count per spec; each must cite a phase-0 decision or an `issues/` file |
+| caller burden | a missing law: callers unfold the spec's predicates or open its invariants | `unfold`/`iunfold` of the callee's definitions in callers' proofs; glue lines per call |
+| law coverage | persistence, timelessness, fractions, agreement callers need and the API lacks | the laws exported next to each predicate against those callers use |
+| trust exposure | axioms the spec rests on, and whether each is tested | `etc/tcb-report.py --roots`; phase 2's tester coverage of them |
+| testability | how much of the spec phase 2 can check | the pure, decidable share of the pre/post; opaque predicates needing a test interpretation |
+| strength margin | a post weaker than the code guarantees: a future CALLER revision, step 1's second cause | phase 2's tester with a strengthened post: if no execution refutes it, note it (strengthen only when a caller needs it) |
+
+*The feedback loop.* The review's criteria are themselves under test:
+1. every spec revision after the review (glue, phase 3, phase 4, after the freeze) records its cause
+   (step 1's rubric) and the review criterion that should have caught it, or "none";
+2. a "none" becomes a new or sharper criterion; a miss of an existing criterion adds an example to
+   the reviewer's brief;
+3. false positives count against a criterion: a finding whose change was later reverted, or that
+   made a spec stronger than any caller used;
+4. the criteria are re-weighted by the revisions each would have prevented, weighted by the proof
+   lines those revisions touched (step 1's `proof_lines_changed`); one that never catches anything
+   is dropped.
+Each attributed miss becomes an entry of the `spec-repair` skill's `LESSONS.md` (one per critique, with
+the rule it became in `SKILL.md`), so later reviews in the repository start from it.
+
 **Phase 2: test the specs against the Go code** (no proof).
 - Canonical form: `own σ ∗ ⌜Pre σ args⌝ -∗ WP f args {r, ∃ σ', own σ' ∗ ⌜Post σ args r σ'⌝ ∗ …}`
   with `Pre`, `Post` decidable definitions on the pure records the predicates are indexed by

@@ -205,6 +205,12 @@ excludes clients that compact a future revision (Go answers `ErrFutureRev`); `re
 compactor to mvcc's `idxCert` where any monotone lower bound would do; `perPermit` fixes the window's
 exact age where a simpler bound may be all C3 needs.
 
+**Review checkpoints** (`notes/spec-first-plan.md`, "Phase 1b", the feedback loop): at the freeze, a
+retrospective of the revisions the review found against those the glue proofs found; at the end of
+phase 4, every revision after the freeze attributed to a review criterion or to "none", and the
+`spec-repair` `LESSONS.md` entries written from them. The first review (step 2b) ran on the phase-1b
+tiers; its findings are scored on the added metrics afterwards.
+
 **Next (step 3, the glue):** `New`, `newPeriodic`, `newRevision`, the getters; `EtcdServer.Compact`
 over `processInternalRaftRequestOnce` (needs the compaction permit: `reqPropOk`'s compaction form,
 `dispatchOk` and the KV model's compaction step); `NewServer`/`run` over the new `New.spec`
