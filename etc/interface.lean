@@ -58,6 +58,9 @@ def runMeta (env : Environment) (x : MetaM α) : IO α := do
   let opts : Options := ({} : Options)
     |>.setBool `pp.universes false |>.setBool `pp.proofs false
     |>.setBool `pp.fieldNotation true
+    -- print whole statements: by default terms nested deeper than 50 are elided as `⋯`
+    |>.setBool `pp.deepTerms true
+    |>.insert `pp.maxSteps (.ofNat 10000000)
   let ctx : Core.Context := { fileName := "<interface>", fileMap := default, options := opts,
                               maxHeartbeats := 0, currNamespace := `Perennial.EtcdGrove,
                               openDecls := [`Perennial, `Iris, `Iris.BI, `Perennial.go_etcd_io.raft.v3].map

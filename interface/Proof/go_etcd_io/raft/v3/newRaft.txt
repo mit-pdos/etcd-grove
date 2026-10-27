@@ -66,7 +66,8 @@ theorem newRaft.wp_proof [package_sem : Assumptions] (wp_Config_validate : Confi
                                                                       WP
                                                                         ((intoVal
                                                                             (methods si.ty
-                                                                              [73#8, 110#8, 105#8, 116#8, 105#8, ⋯] si.v))
+                                                                              go!"InitialState"
+                                                                              si.v))
                                                                           (intoVal ()))
                                                                         {{ Φ }}) -∗
                                                     (▷
@@ -83,7 +84,36 @@ theorem newRaft.wp_proof [package_sem : Assumptions] (wp_Config_validate : Confi
                                                                                 s.votes = ∅ ∧
                                                                                   s.outbox = [] ∧
                                                                                     s.prevote = cv.PreVote' ∧
-                                                                                      s.logst.prev = σ.prev ∧ ⋯⌝ -∗
+                                                                                      s.logst.prev = σ.prev ∧
+                                                                                        s.logst.sents = σ.ents ∧
+                                                                                          s.logst.uents = [] ∧
+                                                                                            s.logst.stored = σ.ents ∧
+                                                                                              s.logst.committed =
+                                                                                                  committedAfter σ.prev
+                                                                                                    hs ∧
+                                                                                                s.logst.applying =
+                                                                                                    w64Max σ.prev.index'
+                                                                                                      (if
+                                                                                                          cv.Applied' =
+                                                                                                            W64 0 then
+                                                                                                        σ.prev.index'
+                                                                                                      else cv.Applied') ∧
+                                                                                                  s.logst.unpersisted =
+                                                                                                      [] ∧
+                                                                                                    s.logst.snap = none ∧
+                                                                                                      s.logst.storage =
+                                                                                                          GoInterface.ok
+                                                                                                            si ∧
+                                                                                                        s.gh = { } ∧
+                                                                                                          s.rd.states =
+                                                                                                              [] ∧
+                                                                                                            s.rd.pend =
+                                                                                                                [] ∧
+                                                                                                              s.sdr =
+                                                                                                                  cv.StepDownOnRemoval' ∧
+                                                                                                                s.progress.domSet =
+                                                                                                                  listToSet
+                                                                                                                    csm.Voters'⌝ -∗
                                                             Φ (intoVal r)) -∗
                                                       WP ((intoVal (functions newRaft [])) (intoVal c)) {{ Φ }}
 

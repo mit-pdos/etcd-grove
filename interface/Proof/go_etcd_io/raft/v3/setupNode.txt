@@ -42,5 +42,71 @@ theorem setupNode.wp_proof [package_sem : Assumptions] (wp_NewRawNode : NewRawNo
                                                                   ∀ Φ,
                                                                     isPkgInit pkg_id.go_etcd_io.raft.v3 ∗
                                                                         typedPointsto c cv (DFrac.own 1) ∗
-                                                                          isLogger lok ∗ ⋯ -∗
-                                                                      (▷ ∀ n, ⋯) -∗ WP (⋯ (intoVal peers)) {{ Φ }}
+                                                                          isLogger lok ∗
+                                                                            isStorage (GoInterface.ok si) ∗
+                                                                              ownStorage (GoInterface.ok si) σ ∗
+                                                                                (∀ Φ ss',
+                                                                                    ownStorage (GoInterface.ok si)
+                                                                                        { prev := σ.prev, ents := σ.ents,
+                                                                                          ss := ss', pend := σ.pend,
+                                                                                          scs := σ.scs, sal := σ.sal,
+                                                                                          sdat := σ.sdat, fl := σ.fl } -∗
+                                                                                      (∀ hp cs al,
+                                                                                          ownStorage (GoInterface.ok si)
+                                                                                              { prev := σ.prev,
+                                                                                                ents := σ.ents, ss := ss',
+                                                                                                pend := σ.pend,
+                                                                                                scs := σ.scs,
+                                                                                                sal := σ.sal,
+                                                                                                sdat := σ.sdat,
+                                                                                                fl := σ.fl } -∗
+                                                                                            R -∗
+                                                                                              hsOpt hp hs -∗
+                                                                                                csPts cs DFrac.discard csm
+                                                                                                    al -∗
+                                                                                                  Φ
+                                                                                                    ((intoVal hp,
+                                                                                                        intoVal cs),
+                                                                                                      intoVal
+                                                                                                        GoInterface.nil)) -∗
+                                                                                        WP
+                                                                                          ((intoVal
+                                                                                              (methods si.ty
+                                                                                                go!"InitialState"
+                                                                                                si.v))
+                                                                                            (intoVal ()))
+                                                                                          {{ Φ }}) ∗
+                                                                                  ownSlice peers pv dq ∗
+                                                                                    peersCtx pv ctxs ∗
+                                                                                      bootMarshal ps ctxs bootLog ∗
+                                                                                        bootInit γ md cv.ID'
+                                                                                            (listToSet ps) bootLog ∗
+                                                                                          isCommitted γ bootLog ∗
+                                                                                            NsCap γ.reNoSnap
+                                                                                                (GoInterface.ok si) ∗
+                                                                                              certLink γ
+                                                                                                (GoInterface.ok si) -∗
+                                                                      (▷
+                                                                          ∀ n,
+                                                                            (R ∗
+                                                                                ∃ nv rn,
+                                                                                  typedPointsto n nv (DFrac.own 1) ∗
+                                                                                    ⌜nv.rn' = rn⌝ ∗
+                                                                                      newNodeChans nv ∗
+                                                                                        ownRawNode γ rn cv.ID'
+                                                                                            { delivered := [],
+                                                                                              unpersisted := [],
+                                                                                              steps := [], term := W64 1,
+                                                                                              storage :=
+                                                                                                GoInterface.ok si,
+                                                                                              tc := W64 1, mode := md,
+                                                                                              cfg :=
+                                                                                                cfgState (listToSet ps)
+                                                                                                  ∅ } ∗
+                                                                                          ownSlice peers pv dq) -∗
+                                                                              Φ (intoVal n)) -∗
+                                                                        WP
+                                                                          (((intoVal (functions setupNode []))
+                                                                              (intoVal c))
+                                                                            (intoVal peers))
+                                                                          {{ Φ }}

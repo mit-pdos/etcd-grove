@@ -23443,3 +23443,34 @@ statement was weakened, none was dropped.
   no-snapshot case by `rn_ready_recv_of` (new: `rn_ready_recv`'s body after the take, which
   `rn_ready_recv` now calls); `updateCommittedIndex.lean` imports `SnapshotMetadata.GetIndex`'s spec.
 - No axiom or `sorry` added or removed by the integration (724 axioms; 4 `sorry`s, lean having removed one); every collection matches its baseline. Built against Perennial f73703285 (the pin lean moved to during the integration; `SnapRO.lean`'s binders converted).
+
+## Raft's node API over an abstract log (2026-10-27 · the user's decisions; draft statements)
+
+**Why:** locality. Raft's specs are sound (proved) and complete enough (kv and etcd are built on
+them); what is slow is evolving proofs on top, because clients depend on raft's internals: they open
+`raftLogInv`/`raftRegInv`, unfold `propDataIs`, `rLog`, `propArg`, track minted data, and avoid
+`raftN` in their masks.
+
+**Decisions (the user's, 2026-10-27):**
+- The abstract state is the committed log as clients see it, `List Ent` with `Ent = (term, type,
+  data)`: what clients observe (`Ready.CommittedEntries`' fields) and cannot derive. The index is the
+  position, not stored; the term is raft's choice, stored (updates give raft the choice, `∀∀ t`).
+- `ownCommitted γ L` (exclusive, the client's; was `rLog`) and `isCommittedLb γ l` (persistent; was
+  `isCommitted`), an authority and a fragment of one log; plain laws relate them (no invariant, no
+  mask): `ownCommitted_lb_prefix`, `ownCommitted_get_lb`, `isCommittedLb_mono`, `isCommittedLb_agree`.
+- Proposals are atomic updates only, `COMM True`: no registry of the client's operations (`propIs`,
+  `propFresh`, `deposited`, `prop_register`, `prop_collect`), no `entDataIs`, no `committed_data`, no
+  `reCCOk`. Whatever the client needs, its update puts into its own invariant. `Propose` appends
+  `⟨t, normal, data⟩` (no `data ≠ []` premise); `ProposeConfChange` appends `⟨t, ccEntryType o, bs⟩`
+  with `CCData o bs`, or the empty normal entry a leader puts in place of a conf change it refuses
+  (`raft.go:1341`); the client authorizes raft's own entries once (`ownEntsAu`: the leader's empty
+  entry, `raft.go:961`; the auto-leave `ConfChangeV2`, `raft.go:742`).
+- The namespace is the caller's: the cluster is allocated in `N`, every mask is `⊤ \ ↑N`, raft divides
+  `N` privately. One allocation law (`cluster_alloc`) replaces the six variants.
+- `propErr` (used by one public spec) is inlined into `Propose`'s postcondition; `nodeCtx` (general,
+  kept so) and `nodeErr` stay named (shared by 6 and 5 public specs).
+
+**Draft:** `Proof/go_etcd_io/raft/v3/NodeApiDraft.lean` (namespace `Draft`): the statements, with the
+predicates' bodies and the laws' proofs `sorry` until step 2; nothing imports it. Open, carried over
+unchanged: `ReadIndex`, the rest of a `Ready`, `Step`/the network, `Tick`/the term budget,
+`Advance`/the storage contract, `ApplyConfChange`'s modes.

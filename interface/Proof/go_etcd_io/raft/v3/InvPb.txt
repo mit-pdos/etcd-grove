@@ -153,7 +153,9 @@ def msgPtsC (l : Loc) (dq dqe : DFrac) (cap : Bool) (ms : MsgSt) : IProp GF :=
                                                               "#Hcs" ∷ ownSlice cs ms.ctx DFrac.discard ∗
                                                                 "HRs" ∷
                                                                     typedPointsto
-                                                                      (structFieldRef raftpb.Message [82#8, 101#8, ⋯] l)
+                                                                      (structFieldRef raftpb.Message
+                                                                        go!"Responses"
+                                                                        l)
                                                                       rs dq ∗
                                                                   "Hrs" ∷ ownSlice rs ms.resps dq ∗
                                                                     "#Hpb" ∷ pbMsg raftpb.Message l uf)
