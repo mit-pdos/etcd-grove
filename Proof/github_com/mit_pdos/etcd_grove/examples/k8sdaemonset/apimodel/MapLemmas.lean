@@ -27,6 +27,41 @@ open Iris Iris.BI Iris.ProofMode
 theorem pm_get_key {V : Type} [FfiSyntax] (m : GMap Key V) (k : Key) :
     Iris.Std.PartialMap.get? m k = m !! k := rfl
 
+/-- What a map's range in key order `keys` collects (`filterMap`) is a list of the map's values
+of the selected keys, in some order. -/
+theorem perm_keys_filterMap [FfiSyntax] {V : Type} (O : GMap Key V) (keys : List Key)
+    (hnd : keys.Nodup) (hmem : ∀ k, k ∈ keys ↔ (O !! k).isSome) (p : Key → Bool) :
+    List.Perm (keys.filterMap (fun k => if p k then O !! k else none))
+      ((O.toList.filter (fun kv => p kv.1)).map Prod.snd) := by
+  have hperm : List.Perm keys (O.toList.map Prod.fst) := by
+    rw [List.perm_ext_iff_of_nodup hnd (GMap.toList_keys_nodup O)]
+    intro k
+    rw [hmem k]
+    constructor
+    · intro h
+      obtain ⟨v, hv⟩ := Option.isSome_iff_exists.mp h
+      exact List.mem_map.mpr ⟨(k, v), (GMap.mem_toList O k v).mpr hv, rfl⟩
+    · intro h
+      obtain ⟨⟨k', v⟩, hkv, rfl⟩ := List.mem_map.mp h
+      simp [(GMap.mem_toList O k' v).mp hkv]
+  have h1 := hperm.filterMap (fun k => if p k then O !! k else none)
+  refine h1.trans ?_
+  rw [List.filterMap_map]
+  have key : ∀ l : List (Key × V), (∀ kv ∈ l, O !! kv.1 = some kv.2) →
+      l.filterMap ((fun k => if p k then O !! k else none) ∘ Prod.fst) =
+        (l.filter (fun kv => p kv.1)).map Prod.snd := by
+    intro l hl
+    induction l with
+    | nil => rfl
+    | cons kv l ih =>
+      have hkv := hl kv (by simp)
+      have ih' := ih (fun x hx => hl x (by simp [hx]))
+      by_cases hp : p kv.1 = true
+      · simp [Function.comp, hp, hkv, ih']
+      · simp [Function.comp, hp]
+        simpa [Function.comp] using ih'
+  rw [key O.toList (fun kv h => (GMap.mem_toList O kv.1 kv.2).mp h)]
+
 section lemmas
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
 variable [go_gctx : GoGlobalContext]
