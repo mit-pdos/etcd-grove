@@ -736,6 +736,18 @@ theorem sentMsg_replaceSnapshot (γ : Cluster) (N : Namespace) (src : w64) (st :
 theorem msgCredits_snapshot (γ : Cluster) (N : Namespace) (st : MsgSt) :
     st.msg.Type' = MsgSnap → ⊢ |==> msgCredits (GF := GF) γ N st := sorry
 
+/-! ### The server port's additions (draft, 2026-10-27, branch `server-port`; `sorry` until raft
+proves them)
+
+What porting etcd's server onto this API needed beyond the section above (`notes/decisions.md`,
+"etcd's server on raft's node API"). -/
+
+/-- **A committed log fits raft's 64-bit indices** (2026-10-27, the server port's addition): its
+entries are at the indices `1 .. l.length`, each a `uint64`. What the server needs to number the
+requested entries of its own log (`SrvRaftLog.lean`, `srvPropAu_api`). -/
+theorem isCommittedLogLb_length (γ : Cluster) (l : List LogEntry) :
+    isCommittedLogLb (GF := GF) γ l ⊢ ⌜(l.length : Int) < 2 ^ 64⌝ := sorry
+
 end api
 
 /-! ## The specs -/

@@ -71,6 +71,8 @@ import time
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 STATE = os.path.join(ROOT, ".lake", "lean-check")
 SOCK = os.path.join(STATE, "sock")
+if len(SOCK.encode()) > 100:  # AF_UNIX's limit (a deeply nested worktree): a short path in /tmp
+    SOCK = os.path.join("/tmp", "lean-check-" + hashlib.sha1(STATE.encode()).hexdigest()[:12] + ".sock")
 LOG = os.path.join(STATE, "log")
 
 
