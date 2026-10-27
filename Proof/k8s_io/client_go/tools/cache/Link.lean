@@ -11,6 +11,19 @@ module
 public import Proof.k8s_io.client_go.tools.cache.InformerNameAndResource__Reserved
 public import Proof.k8s_io.client_go.tools.cache.NewThreadSafeStore
 public import Proof.k8s_io.client_go.tools.cache.ObjectName__String
+public import Proof.k8s_io.client_go.tools.cache.RealFIFO__Add
+public import Proof.k8s_io.client_go.tools.cache.RealFIFO__Bookmark
+public import Proof.k8s_io.client_go.tools.cache.RealFIFO__Close
+public import Proof.k8s_io.client_go.tools.cache.RealFIFO__Delete
+public import Proof.k8s_io.client_go.tools.cache.RealFIFO__HasSynced
+public import Proof.k8s_io.client_go.tools.cache.RealFIFO__IsClosed
+public import Proof.k8s_io.client_go.tools.cache.RealFIFO__Replace
+public import Proof.k8s_io.client_go.tools.cache.RealFIFO__Update
+public import Proof.k8s_io.client_go.tools.cache.RealFIFO__addReplaceToItemsLocked
+public import Proof.k8s_io.client_go.tools.cache.RealFIFO__addToItems_locked
+public import Proof.k8s_io.client_go.tools.cache.RealFIFO__checkSynced_locked
+public import Proof.k8s_io.client_go.tools.cache.RealFIFO__hasSynced_locked
+public import Proof.k8s_io.client_go.tools.cache.RealFIFO__keyOf
 public import Proof.k8s_io.apimachinery.pkg.util.sets.Set__Delete
 public import Proof.k8s_io.apimachinery.pkg.util.sets.Set__Insert
 public import Proof.k8s_io.client_go.tools.cache.SplitMetaNamespaceKey
@@ -102,6 +115,58 @@ theorem cache.wp_NewThreadSafeStore :
 theorem cache.ObjectName.wp_String :
     EtcdGrove.cache.ObjectName.String.spec (GF := GF) (hG := hG) :=
   EtcdGrove.cache.ObjectName.String.wp_proof
+
+theorem cache.RealFIFO.wp_checkSynced_locked :
+    EtcdGrove.cache.RealFIFO.checkSynced_locked.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cache.RealFIFO.checkSynced_locked.wp_proof
+
+theorem cache.RealFIFO.wp_keyOf :
+    EtcdGrove.cache.RealFIFO.keyOf.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cache.RealFIFO.keyOf.wp_proof
+
+theorem cache.RealFIFO.wp_addToItems_locked :
+    EtcdGrove.cache.RealFIFO.addToItems_locked.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cache.RealFIFO.addToItems_locked.wp_proof cache.RealFIFO.wp_keyOf
+
+theorem cache.RealFIFO.wp_Add :
+    EtcdGrove.cache.RealFIFO.Add.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cache.RealFIFO.Add.wp_proof cache.RealFIFO.wp_checkSynced_locked cache.RealFIFO.wp_addToItems_locked
+
+theorem cache.RealFIFO.wp_Bookmark :
+    EtcdGrove.cache.RealFIFO.Bookmark.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cache.RealFIFO.Bookmark.wp_proof
+
+theorem cache.RealFIFO.wp_Close :
+    EtcdGrove.cache.RealFIFO.Close.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cache.RealFIFO.Close.wp_proof
+
+theorem cache.RealFIFO.wp_Delete :
+    EtcdGrove.cache.RealFIFO.Delete.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cache.RealFIFO.Delete.wp_proof cache.RealFIFO.wp_checkSynced_locked cache.RealFIFO.wp_addToItems_locked
+
+theorem cache.RealFIFO.wp_hasSynced_locked :
+    EtcdGrove.cache.RealFIFO.hasSynced_locked.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cache.RealFIFO.hasSynced_locked.wp_proof
+
+theorem cache.RealFIFO.wp_HasSynced :
+    EtcdGrove.cache.RealFIFO.HasSynced.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cache.RealFIFO.HasSynced.wp_proof cache.RealFIFO.wp_hasSynced_locked
+
+theorem cache.RealFIFO.wp_IsClosed :
+    EtcdGrove.cache.RealFIFO.IsClosed.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cache.RealFIFO.IsClosed.wp_proof
+
+theorem cache.RealFIFO.wp_addReplaceToItemsLocked :
+    EtcdGrove.cache.RealFIFO.addReplaceToItemsLocked.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cache.RealFIFO.addReplaceToItemsLocked.wp_proof
+
+theorem cache.RealFIFO.wp_Replace :
+    EtcdGrove.cache.RealFIFO.Replace.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cache.RealFIFO.Replace.wp_proof cache.RealFIFO.wp_checkSynced_locked cache.RealFIFO.wp_addReplaceToItemsLocked
+
+theorem cache.RealFIFO.wp_Update :
+    EtcdGrove.cache.RealFIFO.Update.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cache.RealFIFO.Update.wp_proof cache.RealFIFO.wp_checkSynced_locked cache.RealFIFO.wp_addToItems_locked
 
 theorem sets.Set.wp_Delete :
     EtcdGrove.sets.Set.Delete.spec (GF := GF) (hG := hG) :=
