@@ -218,9 +218,12 @@ abbrev node.readyRecv.spec : Prop :=
   {{ isReadyChan (GF := GF) n γ N ch ∗ nodeDriver n γ N st }}
     (App (Val (chan.receive Ready.ty)) (Val #ch))
   {{ (rd : Ready), RET (PairV #rd #true);
-      ∃ (ce : List Ent) (st' : DriverSt), ⌜st'.dlv = st.dlv ++ ce ∧ st'.busy.isSome⌝ ∗
-        committedEntsRO rd.CommittedEntries' st.dlv.length ce ∗ isCommittedLb γ st'.dlv ∗
-        readyRest n γ N rd st st' ∗ nodeDriver n γ N st' }}
+      -- `es`, `hs'`: (open) the entries to persist and the hard state handed out, from the rest of
+      -- the `Ready`
+      ∃ (ce : List Ent) (es : List EntryM) (hs' : HardStateM),
+        committedEntsRO rd.CommittedEntries' st.dlv.length ce ∗ isCommittedLb γ (st.dlv ++ ce) ∗
+        readyRest n γ N rd st ⟨st.dlv ++ ce, hs', some es⟩ ∗
+        nodeDriver n γ N ⟨st.dlv ++ ce, hs', some es⟩ }}
 
 /-- **`StartNode(c, peers)`**: starts a node of the cluster `γ` from its boot token. The ghost
 premises of today's spec (`bootInit`, `isCommitted γ bootLog`, `BootLogOk γ.reCCOk`, the
