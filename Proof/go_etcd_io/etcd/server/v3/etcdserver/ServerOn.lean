@@ -182,13 +182,13 @@ theorem srvCM_false (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64) (x₀
 
 /-- **The server's raft environment in the auth mode `on`** (`srvEr` with `srvCM`). -/
 def srvErM (on : Bool) (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV)
-    (bud : BudgetNames) (id : w64) (S : IProp GF) : RNEnv GF :=
-  ⟨srvCM on ρ E ai₀ c₀ x₀, fun m => iprop(srvMsgNet ρ.raft.raft bud id m ∗ srvMsgNoSnap m),
+    (id : w64) (S : IProp GF) : RNEnv GF :=
+  ⟨srvCM on ρ E ai₀ c₀ x₀, fun m => iprop(srvMsgNet ρ.raft.raft id m ∗ srvMsgNoSnap m),
     iprop(True), ρ.rd, srvRQ ρ.rd.raft, S, iprop(False)⟩
 
 theorem srvErM_false (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV)
-    (bud : BudgetNames) (id : w64) (S : IProp GF) :
-    srvErM (GF := GF) false ρ E ai₀ c₀ x₀ bud id S = srvEr ρ E ai₀ c₀ x₀ bud id S := rfl
+    (id : w64) (S : IProp GF) :
+    srvErM (GF := GF) false ρ E ai₀ c₀ x₀ id S = srvEr ρ E ai₀ c₀ x₀ id S := rfl
 
 /-- **The cluster's workload in the auth mode `on`** (`clusterWorkloadOk` with the mode's
 shapes). -/
@@ -489,9 +489,9 @@ theorem srvCM_agree (on : Bool) (ρ : ReqNames) (E E' : apply.AEnv GF) (ai₀ c�
 
 /-- The ticker's contract does not read the transport's borrow (`rnTickerOk_srvEr_S`'s). -/
 theorem rnTickerOk_srvErM_S (on : Bool) (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64)
-    (x₀ : apply.ApplyKV) (bud : BudgetNames) (id : w64) (S S' : IProp GF) :
-    rnTickerOk (srvErM on ρ E ai₀ c₀ x₀ bud id S) ⊢
-      rnTickerOk (srvErM on ρ E ai₀ c₀ x₀ bud id S') := by
+    (x₀ : apply.ApplyKV) (id : w64) (S S' : IProp GF) :
+    rnTickerOk (srvErM on ρ E ai₀ c₀ x₀ id S) ⊢
+      rnTickerOk (srvErM on ρ E ai₀ c₀ x₀ id S') := by
   unfold rnTickerOk isRNTicker srvErM
   exact .rfl
 
@@ -551,20 +551,34 @@ theorem clusterWorkloadOkOn_of (ρ : ReqNames) (E : apply.AEnv GF) (st₀ : auth
   iinv Hkv with >Hi Hclose
   icases Hi with ⟨%L', HL', Hσ, %Hok, #Hw⟩
   imod srvRLog_lb ρ.raft (⊤ \ ↑kvN) (mask_ndot_ne' nroot "raft_commit" "server_kv" (by decide))
-    L' L $$ Hr HL' HL with ⟨HL', -, %Hp⟩
+    L' L $$ Hr HL' HL with ⟨HL', %Hp⟩
+  ihave %HLi := srvRLogLb_idx ρ.raft L $$ HL
   imod Hclose $$ [HL' Hσ] with -
   · inext; iexists L'; iframe HL' Hσ Hw; ipureintro; exact Hok
   iunfold kvWorkOn at Hw
   icases Hw with ⟨%Hsh, #Hcl⟩
   obtain ⟨Hsh, Hccl⟩ := Hsh
-  obtain ⟨R, rfl⟩ := Hp
-  icases BigSepL.bigSepL_append.1 $$ Hcl with ⟨#HclL, -⟩
-  have HshL : logShapeOn L := fun m hm => Hsh m (List.mem_append_left _ hm)
+  -- (2026-10-27) the committed log's entries are the server's log's or fillers
+  have HshL : logShapeOn L := srv_entry_transfer _ L L' entryShapeOn
+    (fun m m' he h => by
+      have h1 := congrArg Draft.LogEntry.type he
+      have h2 := congrArg Draft.LogEntry.data he
+      simp only [EntryModel.toLE] at h1 h2
+      unfold entryShapeOn at h ⊢; rw [h1, h2]; exact h)
+    (fun m ht hd => ⟨fun _ => .inl hd, fun h => absurd ht h⟩) HLi Hp.2.2 Hsh
+  have HcclL : ccLogOk ρ.raft.raft L := srv_entry_transfer _ L L'
+    (fun m => m.typ ≠ W32 0 → ccPolOk ρ.raft.raft m.data)
+    (fun m m' he h => by
+      have h1 := congrArg Draft.LogEntry.type he
+      have h2 := congrArg Draft.LogEntry.data he
+      simp only [EntryModel.toLE] at h1 h2
+      rw [h1, h2]; exact h)
+    (fun m ht _ h => absurd ht h) HLi Hp.2.2 Hccl
+  ihave #HclL := entryClaims_transfer ρ.ids _ L L' HLi Hp.2.2 $$ Hcl
   imodintro
   isplitr
   · ipureintro; exact HshL
-  iapply batchWaitOk_of_claims ρ E L (logShapeM_cc true L HshL)
-    (fun m hm => Hccl m (List.mem_append_left _ hm)) $$ HclL HNZ HL
+  iapply batchWaitOk_of_claims ρ E L (logShapeM_cc true L HshL) HcclL $$ HclL HNZ HL
 
 /-- **The workload clause in the auth mode `on`**, from the mode's KV invariant. -/
 theorem clusterWorkloadOkM_of (on : Bool) (ρ : ReqNames) (E : apply.AEnv GF) :
@@ -577,19 +591,14 @@ theorem clusterWorkloadOkM_of (on : Bool) (ρ : ReqNames) (E : apply.AEnv GF) :
 /-- **The server's raft environment meets the wrapper's discharge in the mode `on`**
 (`rnEnvOk_of_cluster`'s, from `kvInvOn`). -/
 theorem rnEnvOk_of_clusterOn (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64)
-    (x₀ : apply.ApplyKV) (bud : BudgetNames) (γw : RNNames) (st₀ : auth.AuthState)
-    (hraft : γw.node.raft = ρ.raft.raft) (hpre : γw.pre = ρ.raft.pre)
+    (x₀ : apply.ApplyKV) (γw : RNNames) (st₀ : auth.AuthState)
+    (hraft : γw.node = ρ.raft.raft) (hpre : γw.pre = ρ.raft.pre)
     (hai : uint.Z ρ.raft.ai0 = γw.pre.length) (hai0 : ρ.raft.ai0 = ai₀)
-    (hmode : γw.node.mode = RNMode.static ↔ γw.node.raft.dyn = false)
-    (hdec : ∀ dec c0 h0 h1, γw.node.mode = .dyn dec c0 h0 h1 →
-      dec = srvDec ρ.rd.kv.c0 ρ.rd.raft.raft.boot)
-    (hstor : γw.node.stor = memStorIface γw.ms)
-    (hbud : γw.node.bud = bud)
-    (hns : ρ.raft.raft.reNoSnap = true)
+    (hdec : γw.node.dyn = true → γw.node.dec = srvDec ρ.rd.kv.c0 γw.node.boot)
     (hcap : 1 ≤ γw.γs.cap)
-    (id : w64) (S : IProp GF) (hid : γw.node.id = id) :
+    (id : w64) (S : IProp GF) (hid : γw.id = id) :
     kvInvOn (GF := GF) ρ.raft ρ.kv st₀ ∗ srvRaftLogInv ρ.raft ∗ clusterWorkloadOkM true ρ E ⊢
-      rnEnvOk (srvErM true ρ E ai₀ c₀ x₀ bud id S) γw := by
+      rnEnvOk (srvErM true ρ E ai₀ c₀ x₀ id S) γw := by
   iintro ⟨#Hkv, #Hr, #Hwl⟩
   unfold rnEnvOk srvErM
   simp only
@@ -598,32 +607,31 @@ theorem rnEnvOk_of_clusterOn (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w
   isplitr
   · ipureintro; exact ⟨hraft.symm, hpre.symm, hai⟩
   isplitr
-  · ipureintro; exact ⟨hmode, hdec, hstor, by rw [hraft]; exact hns⟩
+  · ipureintro; exact hdec
   isplitr
   · ipureintro; exact hcap
   isplitr
-  · iintro !> %m %st ⟨#Hmo, #Hrm, #Htl, Hc, Htk⟩
-    rw [hraft, hbud] at *
-    isplitl [Hc Htk]
+  · iexact Hr
+  isplitr
+  · iintro !> %m %st ⟨#Hmo, #Hrm, Hc⟩
+    ihave #Hcl : srvClusterOk ρ.raft $$ []
+    · iunfold srvRaftLogInv at Hr; icases Hr with ⟨-, #H, -⟩; iexact H
+    rw [hraft, hid] at *
+    ihave %Hns := srv_sentMsg_notSnap ρ.raft id st $$ [Hcl Hrm]
+    · iframe Hcl Hrm
+    isplitl [Hc]
     · iunfold srvMsgNet
       iexists st
-      iframe Hmo Htl Hc Htk
-      rw [← hid]; iexact Hrm
+      iframe Hmo Hrm Hc
     iunfold srvMsgNoSnap
     iexists st
     iframe Hmo
-    iapply isRaftMsg_not_snap ρ.raft.raft hns _ st $$ Hrm
+    ipureintro; exact Hns
   isplitr
   · iintro !> %L #HL %Hfit
     iunfold clusterWorkloadOkM at Hwl
     imod Hwl $$ HL with ⟨%Hent, #Hbw⟩
-    iunfold kvInvOn at Hkv
-    iinv Hkv with >Hi Hclose
-    icases Hi with ⟨%L', HL', Hσ, %Hok, #Hw⟩
-    imod srvRLog_lb ρ.raft (⊤ \ ↑kvN) (mask_ndot_ne' nroot "raft_commit" "server_kv" (by decide))
-      L' L $$ Hr HL' HL with ⟨HL', -, %Hp⟩
-    imod Hclose $$ [HL' Hσ] with -
-    · inext; iexists L'; iframe HL' Hσ Hw; ipureintro; exact Hok
+    ihave %HLi := srvRLogLb_idx ρ.raft L $$ HL
     imodintro
     imodintro
     unfold srvCM
@@ -631,7 +639,7 @@ theorem rnEnvOk_of_clusterOn (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w
     ipureintro
     refine ⟨?_, Hent⟩
     rw [← hai0]
-    exact srvIdxOk_of_W _ _ (srvIdxOkW_prefix _ _ _ Hok.2.2.1 Hp) Hfit
+    exact srvIdxOk_of_W _ _ HLi Hfit
   isplitr
   · iintro !> %L #HC
     unfold srvCM
@@ -643,25 +651,18 @@ theorem rnEnvOk_of_clusterOn (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w
 
 /-- **The server's raft environment meets the wrapper's discharge in the auth mode `on`**. -/
 theorem rnEnvOk_of_clusterM (on : Bool) (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64)
-    (x₀ : apply.ApplyKV) (bud : BudgetNames) (γw : RNNames)
-    (hraft : γw.node.raft = ρ.raft.raft) (hpre : γw.pre = ρ.raft.pre)
+    (x₀ : apply.ApplyKV) (γw : RNNames)
+    (hraft : γw.node = ρ.raft.raft) (hpre : γw.pre = ρ.raft.pre)
     (hai : uint.Z ρ.raft.ai0 = γw.pre.length) (hai0 : ρ.raft.ai0 = ai₀)
-    (hmode : γw.node.mode = RNMode.static ↔ γw.node.raft.dyn = false)
-    (hdec : ∀ dec c0 h0 h1, γw.node.mode = .dyn dec c0 h0 h1 →
-      dec = srvDec ρ.rd.kv.c0 ρ.rd.raft.raft.boot)
-    (hstor : γw.node.stor = memStorIface γw.ms)
-    (hbud : γw.node.bud = bud)
-    (hns : ρ.raft.raft.reNoSnap = true)
+    (hdec : γw.node.dyn = true → γw.node.dec = srvDec ρ.rd.kv.c0 γw.node.boot)
     (hcap : 1 ≤ γw.γs.cap)
-    (id : w64) (S : IProp GF) (hid : γw.node.id = id) :
+    (id : w64) (S : IProp GF) (hid : γw.id = id) :
     kvInvM (GF := GF) on ρ.raft ρ.kv srvAuthSt0 ∗ srvRaftLogInv ρ.raft ∗
         clusterWorkloadOkM on ρ E ⊢
-      rnEnvOk (srvErM on ρ E ai₀ c₀ x₀ bud id S) γw := by
+      rnEnvOk (srvErM on ρ E ai₀ c₀ x₀ id S) γw := by
   cases on
-  · exact rnEnvOk_of_cluster ρ E ai₀ c₀ x₀ bud γw hraft hpre hai hai0 hmode hdec hstor hbud hns
-      hcap id S hid
-  · exact rnEnvOk_of_clusterOn ρ E ai₀ c₀ x₀ bud γw srvAuthSt0 hraft hpre hai hai0 hmode hdec
-      hstor hbud hns hcap id S hid
+  · exact rnEnvOk_of_cluster ρ E ai₀ c₀ x₀ γw hraft hpre hai hai0 hdec hcap id S hid
+  · exact rnEnvOk_of_clusterOn ρ E ai₀ c₀ x₀ γw srvAuthSt0 hraft hpre hai hai0 hdec hcap id S hid
 
 /-- **The certificates' invariant in the mode `on`** (`kvCertInv_alloc`'s). -/
 theorem kvCertInvOn_alloc (γs : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState)
@@ -705,18 +706,18 @@ KV state's variable at the bootstrap log's mode-`on` model, the invariant and th
 vacuously (both ask of normal entries only). So `NewServer.specM true`'s KV invariant is
 satisfiable. -/
 theorem kvInvOn_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState)
-    (ccOk : w32 → List w8 → Prop) (ps : List w64) (bootLog : List EntryM) (E : CoPset)
-    (hpre : γs.pre = []) (hai : γs.ai0 = W64 0) (hboot : srvBootLogOk ps bootLog)
-    (hcc : ∀ ty d, ccOk ty d → ccIdOf d = W64 0 ∧ ccBootOk γs.raft.cfg d)
+    (ps : List w64) (E : CoPset)
+    (hpre : γs.pre = []) (hai : γs.ai0 = W64 0) (hboot : srvBootLogOk ps γs.raft.boot)
+    (hcc : ∀ e ∈ γs.raft.boot, ccIdOf e.Data' = W64 0 ∧ ccBootOk γs.raft.cfg e.Data')
     (hc0 : γk.c0 = W64 0) (hch : γk.ch0 = apply.alarmChain true false false)
     (hlog : γk.log0 ≠ []) :
-    ⊢ rLog (GF := GF) γs.raft bootLog -∗
-      ghostVar γk.st 1 (kvStateOf (kvModelOn γk st₀ (bootEntries bootLog))) ={E}=∗
-      kvInvOn γs γk st₀ ∗ etcdKV γk (kvStateOf (kvModelOn γk st₀ (bootEntries bootLog))) := by
+    ⊢ srvRLog (GF := GF) γs (bootEntries γs.raft.boot) -∗
+      ghostVar γk.st 1 (kvStateOf (kvModelOn γk st₀ (bootEntries γs.raft.boot))) ={E}=∗
+      kvInvOn γs γk st₀ ∗
+        etcdKV γk (kvStateOf (kvModelOn γk st₀ (bootEntries γs.raft.boot))) := by
+  generalize hbl : γs.raft.boot = bootLog at hboot hcc ⊢
   iintro HL Hv
   icases onGhostVarHalves γk.st _ $$ Hv with ⟨Hv1, Hv2⟩
-  have hsl : srvLogOf γs (bootEntries bootLog) = bootLog := by
-    unfold srvLogOf bootEntries; rw [hpre, List.nil_append, EntryModel.map_toM_ofM]
   have hent : ∀ (n : Nat) (m : EntryModel), (bootEntries bootLog)[n]? = some m →
       uint.Z m.index = (n : Int) + 1 ∧ m.typ = W32 1 ∧ isConfChangeEncoding m.data ∧
         ccIdOf m.data = W64 0 := by
@@ -730,8 +731,8 @@ theorem kvInvOn_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (st₀ : auth
       rw [he] at hm
       simp only [Option.map_some, Option.some.injEq] at hm
       subst hm
-      obtain ⟨-, hi, ht, ⟨cm, hd, -⟩, hok⟩ := hk n e he
-      refine ⟨hi, ht, ?_, (hcc _ _ hok).1⟩
+      obtain ⟨-, hi, ht, ⟨cm, hd, -⟩⟩ := hk n e he
+      refine ⟨hi, ht, ?_, (hcc e (List.mem_of_getElem? he)).1⟩
       unfold isConfChangeEncoding
       show (ccDecodeV1 e.Data').isSome = true
       rw [hd]; rfl
@@ -742,7 +743,7 @@ theorem kvInvOn_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (st₀ : auth
   have hok : plainLogOn (bootEntries bootLog) ∧
       detLogOn γk.c0 γk.ch0 (st₀, γk.log0) (bootEntries bootLog) ∧
       srvIdxOkW γs.ai0 (bootEntries bootLog) ∧
-      uint.Z γk.c0 ≤ uint.Z γs.ai0 + (bootEntries bootLog).length ∧
+      uint.Z γk.c0 ≤ uint.Z γs.ai0 ∧
       γk.ch0 = apply.alarmChain true false false ∧ γk.log0 ≠ [] := by
     refine ⟨?_, ?_, ?_, ?_, hch, hlog⟩
     · intro m hm h0
@@ -774,22 +775,21 @@ theorem kvInvOn_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (st₀ : auth
       rw [he] at hn
       simp only [Option.map_some, Option.some.injEq] at hn
       subst hn
-      obtain ⟨-, -, -, -, hok⟩ := hk n e he
-      exact ccPolOk_of_boot _ _ (hcc _ _ hok).2
+      exact ccPolOk_of_boot _ _ (hcc e (List.mem_of_getElem? he)).2
   ihave #Hcl := entryClaims_conf (GF := GF) γk.ids (bootEntries bootLog) (fun m hm => by
     rw [hty m hm]; decide)
   iunfold kvInvOn
   imod inv_alloc kvN E (iprop(∃ L : List EntryModel,
       srvRLog γs L ∗ ghostVar γk.st (1 : Qp).half (kvStateOf (kvModelOn γk st₀ L)) ∗
       ⌜plainLogOn L ∧ detLogOn γk.c0 γk.ch0 (st₀, γk.log0) L ∧ srvIdxOkW γs.ai0 L ∧
-        uint.Z γk.c0 ≤ uint.Z γs.ai0 + L.length ∧
+        uint.Z γk.c0 ≤ uint.Z γs.ai0 ∧
         γk.ch0 = apply.alarmChain true false false ∧ γk.log0 ≠ []⌝ ∗ kvWorkOn γs.raft γk L))
     $$ [HL Hv1] with #Hinv
   · inext
     iexists bootEntries bootLog
     iframe Hv1
     isplitl [HL]
-    · iunfold srvRLog; rw [hsl]; iexact HL
+    · iexact HL
     isplitr
     · ipureintro; exact hok
     iunfold kvWorkOn
