@@ -53,8 +53,7 @@ findings is the deliverable and nothing is changed.
 
 **Iterating with the user:** keep the current candidate, in full (every premise, conjunct and
 new definition, with a header listing its changes), in a scratch file outside the repository
-(never committed), and point to it: no
-abbreviated sketch in chat.
+(never committed), and point to it: no abbreviated sketch in chat.
 
 **Evals** (`evals/`, when added): one small target each, whose review the user can read and
 critique in one sitting.
