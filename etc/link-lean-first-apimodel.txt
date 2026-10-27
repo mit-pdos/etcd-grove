@@ -14,6 +14,7 @@ NewAlreadyExists: GroupResource__String_ptr
 NewBadRequest:
 NewConflict:
 NewNotFound: GroupResource__String_ptr
+NewResourceExpired:
 NewTimeoutError:
 Now: =_root_.Perennial.time.wp_Now
 ObjectMeta__GetCreationTimestamp:
@@ -41,9 +42,9 @@ Server__nextRV: rvString
 Server__record: ObjectMeta__GetNamespace ObjectMeta__GetName copyObject =_root_.Perennial.sync.Cond.wp_Broadcast
 Server__remove: Server__chance copyObject Server__nextRV Server__record ObjectMeta__GetResourceVersion ObjectMeta__SetResourceVersion ObjectMeta__GetUID ObjectMeta__GetDeletionTimestamp ObjectMeta__SetDeletionTimestamp ObjectMeta__SetDeletionGracePeriodSeconds ObjectMeta__GetFinalizers ObjectMeta__GetNamespace ObjectMeta__GetName Now errors_NewInternalError NewNotFound NewConflict NewTimeoutError =_root_.Perennial.errors.wp_New =_root_.Perennial.sync.Mutex.wp_Lock =_root_.Perennial.sync.Mutex.wp_Unlock
 Server__update: Server__chance copyObject Server__nextRV Server__record ObjectMeta__GetNamespace ObjectMeta__SetNamespace ObjectMeta__GetName ObjectMeta__SetName ObjectMeta__GetResourceVersion ObjectMeta__SetResourceVersion ObjectMeta__GetUID ObjectMeta__SetUID ObjectMeta__GetCreationTimestamp ObjectMeta__SetCreationTimestamp errors_NewInternalError NewBadRequest NewNotFound NewConflict NewTimeoutError =_root_.Perennial.errors.wp_New =_root_.Perennial.sync.Mutex.wp_Lock =_root_.Perennial.sync.Mutex.wp_Unlock
-Server__watch: ?
-apimodel_NewServer: ?
-apimodel_watcher__Stop: ?
+Server__watch: Server__chance copyObject watcher__run errors_NewInternalError NewBadRequest NewResourceExpired =_root_.Perennial.sync.Mutex.wp_Lock =_root_.Perennial.sync.Mutex.wp_Unlock
+apimodel_NewServer: newTable emptyPod emptyNode emptyDaemonSet emptyRevision =_root_.Perennial.sync.wp_NewCond
+apimodel_watcher__Stop: =_root_.Perennial.sync.Mutex.wp_Lock =_root_.Perennial.sync.Mutex.wp_Unlock =_root_.Perennial.sync.Cond.wp_Broadcast
 appsV1__ControllerRevisions:
 appsV1__DaemonSets:
 copyObject:
@@ -67,7 +68,8 @@ eventClient__PatchWithEventNamespace:
 eventClient__PatchWithEventNamespaceWithContext:
 eventClient__UpdateWithEventNamespace:
 eventClient__UpdateWithEventNamespaceWithContext:
-int32PtrEqual: ?
+int32PtrEqual:
+newTable:
 noGrace:
 nodeClient__Create: Server__create prepareNode
 nodeClient__Get: Server__get
@@ -78,7 +80,7 @@ podClient__Delete: Server__remove podGrace
 podClient__Get: Server__get
 podClient__List: Server__list
 podClient__Watch: Server__watch
-podGrace: ?
+podGrace:
 prepareDaemonSet: ?
 prepareNode:
 preparePod: ?
@@ -93,3 +95,4 @@ revisionClient__Watch: Server__watch
 rvString: FormatUint
 updateDaemonSetStatus: ?
 watcher__ResultChan:
+watcher__run: ?

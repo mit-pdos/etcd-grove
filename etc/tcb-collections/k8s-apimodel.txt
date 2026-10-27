@@ -7,3 +7,9 @@
 # `roots PATTERN`: regular expressions selecting roots (etc/tcb-report.py --help);
 # `axiom X`/`sorry X`: the baseline, written by --check --update.
 roots ^Proof/github_com/mit_pdos/etcd_grove/examples/k8sdaemonset/apimodel/Link\.lean$
+axiom apierrors.NewConflict.wp_proof
+axiom apierrors.NewInternalError.wp_proof
+axiom rand.Int63n.wp_proof
+axiom schema.GroupResource.String_ptr.wp_proof
+axiom strconv.FormatUint.wp_proof
+sorry apimodel.copyObject.wp_proof

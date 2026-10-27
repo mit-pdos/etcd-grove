@@ -17,6 +17,7 @@ public import Proof.k8s_io.apimachinery.pkg.api.errors.NewAlreadyExists
 public import Proof.k8s_io.apimachinery.pkg.api.errors.NewBadRequest
 public import Proof.k8s_io.apimachinery.pkg.api.errors.NewConflict
 public import Proof.k8s_io.apimachinery.pkg.api.errors.NewNotFound
+public import Proof.k8s_io.apimachinery.pkg.api.errors.NewResourceExpired
 public import Proof.k8s_io.apimachinery.pkg.api.errors.NewTimeoutError
 public import Proof.k8s_io.apimachinery.pkg.apis.meta.v1.Now
 public import Proof.k8s_io.apimachinery.pkg.apis.meta.v1.ObjectMeta__GetCreationTimestamp
@@ -44,6 +45,9 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimode
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Server__record
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Server__remove
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Server__update
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Server__watch
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.NewServer
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.watcher__Stop
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.appsV1__ControllerRevisions
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.appsV1__DaemonSets
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.copyObject
@@ -66,6 +70,8 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimode
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.eventClient__PatchWithEventNamespaceWithContext
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.eventClient__UpdateWithEventNamespace
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.eventClient__UpdateWithEventNamespaceWithContext
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.int32PtrEqual
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.newTable
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.noGrace
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.nodeClient__Create
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.nodeClient__Get
@@ -76,6 +82,7 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimode
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.podClient__Get
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.podClient__List
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.podClient__Watch
+public import Proof.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.podGrace
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.prepareNode
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.prepareRevision
 public import Proof.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.replaceRevision
@@ -90,15 +97,11 @@ public import Proof.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimode
 public import Perennial.Proof.sync.Link
 public import Perennial.Proof.errors.Link
 public import Perennial.Proof.time.Link
-public import Spec.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Server__watch
-public import Spec.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.NewServer
-public import Spec.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.watcher__Stop
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.daemonSetStatusEqual
-public import Spec.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.int32PtrEqual
-public import Spec.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.podGrace
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.prepareDaemonSet
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.preparePod
 public import Spec.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.updateDaemonSetStatus
+public import Spec.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.watcher__run
 
 @[expose] public section
 
@@ -163,6 +166,10 @@ theorem apierrors.wp_NewConflict :
 theorem apierrors.wp_NewNotFound :
     EtcdGrove.apierrors.NewNotFound.spec (GF := GF) (hG := hG) :=
   EtcdGrove.apierrors.NewNotFound.wp_proof schema.GroupResource.wp_String_ptr
+
+theorem apierrors.wp_NewResourceExpired :
+    EtcdGrove.apierrors.NewResourceExpired.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.apierrors.NewResourceExpired.wp_proof
 
 theorem apierrors.wp_NewTimeoutError :
     EtcdGrove.apierrors.NewTimeoutError.spec (GF := GF) (hG := hG) :=
@@ -284,6 +291,34 @@ theorem Server.wp_update :
     EtcdGrove.apimodel.Server.update.spec (GF := GF) (hG := hG) :=
   EtcdGrove.apimodel.Server.update.wp_proof Server.wp_chance wp_copyObject Server.wp_nextRV Server.wp_record metav1.ObjectMeta.wp_GetNamespace metav1.ObjectMeta.wp_SetNamespace metav1.ObjectMeta.wp_GetName metav1.ObjectMeta.wp_SetName metav1.ObjectMeta.wp_GetResourceVersion metav1.ObjectMeta.wp_SetResourceVersion metav1.ObjectMeta.wp_GetUID metav1.ObjectMeta.wp_SetUID metav1.ObjectMeta.wp_GetCreationTimestamp metav1.ObjectMeta.wp_SetCreationTimestamp apierrors.wp_NewInternalError apierrors.wp_NewBadRequest apierrors.wp_NewNotFound apierrors.wp_NewConflict apierrors.wp_NewTimeoutError _root_.Perennial.errors.wp_New _root_.Perennial.sync.Mutex.wp_Lock _root_.Perennial.sync.Mutex.wp_Unlock
 
+theorem wp_newTable :
+    EtcdGrove.apimodel.newTable.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.apimodel.newTable.wp_proof
+
+theorem wp_emptyPod :
+    EtcdGrove.apimodel.emptyPod.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.apimodel.emptyPod.wp_proof
+
+theorem wp_emptyNode :
+    EtcdGrove.apimodel.emptyNode.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.apimodel.emptyNode.wp_proof
+
+theorem wp_emptyDaemonSet :
+    EtcdGrove.apimodel.emptyDaemonSet.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.apimodel.emptyDaemonSet.wp_proof
+
+theorem wp_emptyRevision :
+    EtcdGrove.apimodel.emptyRevision.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.apimodel.emptyRevision.wp_proof
+
+theorem wp_NewServer :
+    EtcdGrove.apimodel.NewServer.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.apimodel.NewServer.wp_proof wp_newTable wp_emptyPod wp_emptyNode wp_emptyDaemonSet wp_emptyRevision _root_.Perennial.sync.wp_NewCond
+
+theorem watcher.wp_Stop :
+    EtcdGrove.apimodel.watcher.Stop.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.apimodel.watcher.Stop.wp_proof _root_.Perennial.sync.Mutex.wp_Lock _root_.Perennial.sync.Mutex.wp_Unlock _root_.Perennial.sync.Cond.wp_Broadcast
+
 theorem appsV1.wp_ControllerRevisions :
     EtcdGrove.apimodel.appsV1.ControllerRevisions.spec (GF := GF) (hG := hG) :=
   EtcdGrove.apimodel.appsV1.ControllerRevisions.wp_proof
@@ -312,22 +347,6 @@ theorem daemonSetClient.wp_List :
     EtcdGrove.apimodel.daemonSetClient.List.spec (GF := GF) (hG := hG) :=
   EtcdGrove.apimodel.daemonSetClient.List.wp_proof Server.wp_list
 
-theorem wp_emptyDaemonSet :
-    EtcdGrove.apimodel.emptyDaemonSet.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.apimodel.emptyDaemonSet.wp_proof
-
-theorem wp_emptyNode :
-    EtcdGrove.apimodel.emptyNode.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.apimodel.emptyNode.wp_proof
-
-theorem wp_emptyPod :
-    EtcdGrove.apimodel.emptyPod.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.apimodel.emptyPod.wp_proof
-
-theorem wp_emptyRevision :
-    EtcdGrove.apimodel.emptyRevision.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.apimodel.emptyRevision.wp_proof
-
 theorem eventClient.wp_CreateWithEventNamespace :
     EtcdGrove.apimodel.eventClient.CreateWithEventNamespace.spec (GF := GF) (hG := hG) :=
   EtcdGrove.apimodel.eventClient.CreateWithEventNamespace.wp_proof
@@ -352,6 +371,10 @@ theorem eventClient.wp_UpdateWithEventNamespaceWithContext :
     EtcdGrove.apimodel.eventClient.UpdateWithEventNamespaceWithContext.spec (GF := GF) (hG := hG) :=
   EtcdGrove.apimodel.eventClient.UpdateWithEventNamespaceWithContext.wp_proof
 
+theorem wp_int32PtrEqual :
+    EtcdGrove.apimodel.int32PtrEqual.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.apimodel.int32PtrEqual.wp_proof
+
 theorem wp_noGrace :
     EtcdGrove.apimodel.noGrace.spec (GF := GF) (hG := hG) :=
   EtcdGrove.apimodel.noGrace.wp_proof
@@ -371,6 +394,14 @@ theorem nodeClient.wp_Get :
 theorem nodeClient.wp_List :
     EtcdGrove.apimodel.nodeClient.List.spec (GF := GF) (hG := hG) :=
   EtcdGrove.apimodel.nodeClient.List.wp_proof Server.wp_list
+
+theorem wp_podGrace :
+    EtcdGrove.apimodel.podGrace.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.apimodel.podGrace.wp_proof
+
+theorem podClient.wp_Delete :
+    EtcdGrove.apimodel.podClient.Delete.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.apimodel.podClient.Delete.wp_proof Server.wp_remove wp_podGrace
 
 theorem podClient.wp_Get :
     EtcdGrove.apimodel.podClient.Get.spec (GF := GF) (hG := hG) :=
@@ -422,16 +453,16 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Assumptions]
-variable (h_Server__watch : EtcdGrove.apimodel.Server.watch.spec (GF := GF) (hG := hG))
-variable (h_apimodel_NewServer : EtcdGrove.apimodel.NewServer.spec (GF := GF) (hG := hG))
-variable (h_apimodel_watcher__Stop : EtcdGrove.apimodel.watcher.Stop.spec (GF := GF) (hG := hG))
 variable (h_daemonSetStatusEqual : EtcdGrove.apimodel.daemonSetStatusEqual.spec (GF := GF) (hG := hG))
-variable (h_int32PtrEqual : EtcdGrove.apimodel.int32PtrEqual.spec (GF := GF) (hG := hG))
-variable (h_podGrace : EtcdGrove.apimodel.podGrace.spec (GF := GF) (hG := hG))
 variable (h_prepareDaemonSet : EtcdGrove.apimodel.prepareDaemonSet.spec (GF := GF) (hG := hG))
 variable (h_preparePod : EtcdGrove.apimodel.preparePod.spec (GF := GF) (hG := hG))
 variable (h_updateDaemonSetStatus : EtcdGrove.apimodel.updateDaemonSetStatus.spec (GF := GF) (hG := hG))
-include h_Server__watch h_apimodel_NewServer h_apimodel_watcher__Stop h_daemonSetStatusEqual h_int32PtrEqual h_podGrace h_prepareDaemonSet h_preparePod h_updateDaemonSetStatus
+variable (h_watcher__run : EtcdGrove.apimodel.watcher.run.spec (GF := GF) (hG := hG))
+include h_daemonSetStatusEqual h_prepareDaemonSet h_preparePod h_updateDaemonSetStatus h_watcher__run
+
+theorem Server.wp_watch :
+    EtcdGrove.apimodel.Server.watch.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.apimodel.Server.watch.wp_proof Server.wp_chance wp_copyObject h_watcher__run apierrors.wp_NewInternalError apierrors.wp_NewBadRequest apierrors.wp_NewResourceExpired _root_.Perennial.sync.Mutex.wp_Lock _root_.Perennial.sync.Mutex.wp_Unlock
 
 theorem daemonSetClient.wp_Create :
     EtcdGrove.apimodel.daemonSetClient.Create.spec (GF := GF) (hG := hG) :=
@@ -443,27 +474,23 @@ theorem daemonSetClient.wp_UpdateStatus :
 
 theorem daemonSetClient.wp_Watch :
     EtcdGrove.apimodel.daemonSetClient.Watch.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.apimodel.daemonSetClient.Watch.wp_proof h_Server__watch
+  EtcdGrove.apimodel.daemonSetClient.Watch.wp_proof (Server.wp_watch h_daemonSetStatusEqual h_prepareDaemonSet h_preparePod h_updateDaemonSetStatus h_watcher__run)
 
 theorem nodeClient.wp_Watch :
     EtcdGrove.apimodel.nodeClient.Watch.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.apimodel.nodeClient.Watch.wp_proof h_Server__watch
+  EtcdGrove.apimodel.nodeClient.Watch.wp_proof (Server.wp_watch h_daemonSetStatusEqual h_prepareDaemonSet h_preparePod h_updateDaemonSetStatus h_watcher__run)
 
 theorem podClient.wp_Create :
     EtcdGrove.apimodel.podClient.Create.spec (GF := GF) (hG := hG) :=
   EtcdGrove.apimodel.podClient.Create.wp_proof Server.wp_create h_preparePod
 
-theorem podClient.wp_Delete :
-    EtcdGrove.apimodel.podClient.Delete.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.apimodel.podClient.Delete.wp_proof Server.wp_remove h_podGrace
-
 theorem podClient.wp_Watch :
     EtcdGrove.apimodel.podClient.Watch.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.apimodel.podClient.Watch.wp_proof h_Server__watch
+  EtcdGrove.apimodel.podClient.Watch.wp_proof (Server.wp_watch h_daemonSetStatusEqual h_prepareDaemonSet h_preparePod h_updateDaemonSetStatus h_watcher__run)
 
 theorem revisionClient.wp_Watch :
     EtcdGrove.apimodel.revisionClient.Watch.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.apimodel.revisionClient.Watch.wp_proof h_Server__watch
+  EtcdGrove.apimodel.revisionClient.Watch.wp_proof (Server.wp_watch h_daemonSetStatusEqual h_prepareDaemonSet h_preparePod h_updateDaemonSetStatus h_watcher__run)
 
 end links_pending
 
