@@ -37,6 +37,9 @@ theorem Draft.isCommittedLogLb_mono [package_sem : Assumptions] (γ : Draft.Clus
 theorem Draft.leaderTransferOn_persistent (γ : Draft.Cluster) (N : Namespace) : Persistent
     (Draft.leaderTransferOn γ N)
 
+theorem Draft.readCredit_eq [package_sem : Assumptions] (γ : Draft.Cluster) : Draft.readCredit γ ⊣⊢
+    Draft.readCredits γ 1
+
 theorem Draft.isStaticCluster_normal [package_sem : Assumptions] (γ : Draft.Cluster) (N : Namespace)
     (vs : List w64) (snapOk : List Draft.LogEntry → List w8 → Prop) (l : List Draft.LogEntry) :
     Draft.isStaticCluster γ N vs snapOk ∗ Draft.isCommittedLogLb γ l ⊢ ⌜∀ (e : Draft.LogEntry), e ∈
@@ -149,6 +152,9 @@ theorem Draft.node.wp_Propose [package_sem : Assumptions] : Draft.node.Propose.s
                 (intoVal data_sl))
               {{ Φ }}
 
+theorem Draft.readCredits_split [package_sem : Assumptions] (γ : Draft.Cluster) (a b : Nat) :
+    Draft.readCredits γ (a + b) ⊣⊢ Draft.readCredits γ a ∗ Draft.readCredits γ b
+
 def Draft.node.readyRecv.spec : Prop :=
   ∀ (n ch : Loc) (γ : Draft.Cluster) (N : Namespace) (st : Draft.NodeDriverState),
     st.handling = none →
@@ -219,8 +225,10 @@ theorem Draft.storageCertInv_persistent (γ : Draft.Cluster) (N : Namespace) (γ
     Persistent (Draft.storageCertInv γ N γs)
 
 theorem Draft.cluster_alloc [package_sem : Assumptions] (N : Namespace) (ps : List w64) (ctxs : List
-    (List w8)) (boot : List Draft.LogEntry) : Draft.BootLog ps ctxs boot → ps.Nodup → ⊢ |==> ∃ γ,
-    Draft.ownCommittedOps γ boot ∗ Draft.ownReadCtxs γ ∅ ∗ [∗list] id ∈ ps, Draft.nodeBoot γ N id
+    (List w8)) (boot : List Draft.LogEntry) (E : CoPset) : receiptBound GF ≤ 2 ^ 64 - 2 →
+    Draft.BootLog ps ctxs boot → ps.Nodup → ps ≠ [] → ¬W64 0 ∈ ps → ⊢ bootMarshal ps ctxs
+    (Draft.LogEntry.toEntries boot 0) ={E}=∗ ∃ γ, Draft.ownCommittedOps γ boot ∗ Draft.ownReadCtxs γ
+    ∅ ∗ Draft.readCredits γ (2 ^ 64 - 2) ∗ [∗list] id ∈ ps, Draft.nodeBoot γ N ps ctxs id
 
 theorem Draft.ownCommittedOps_get_lb [package_sem : Assumptions] (γ : Draft.Cluster) (ops : List
     Draft.LogEntry) : Draft.ownCommittedOps γ ops ⊢ Draft.ownCommittedOps γ ops ∗ ∃ l,
@@ -354,6 +362,8 @@ theorem Draft.ownCommittedOps_lb_prefix [package_sem : Assumptions] (γ : Draft.
 theorem Draft.readStateOk_persistent (γ : Draft.Cluster) (N : Namespace) (c : List w8) (idx : w64) :
     Persistent (Draft.readStateOk γ N c idx)
 
+def (sealed) Draft.readCredits (γ : Draft.Cluster) (n : Nat) : IProp GF
+
 theorem Draft.storageCert_registerAny [package_sem : Assumptions] (γ : Draft.Cluster) (N :
     Namespace) (γs : MemStorNames) (i : w64) (cl : CSLists) (al : Bool) (d : List w8) (E : CoPset) :
     ↑N ⊆ E → ⊢ Draft.storageCertInv γ N γs -∗ (□ ∀ t, Draft.snapshotCert γ N { sid := { term' := t,
@@ -379,7 +389,7 @@ theorem Draft.wp_StartNode [package_sem : Assumptions] : Draft.StartNode.spec
   -- `Perennial.EtcdGrove.Draft.StartNode.spec`, unfolded:
   ∀ (γ : Draft.Cluster) (N : Namespace) (c : Loc) (cv : Config) (lok si : GoInterfaceOk) (σ : StorState) (hs : HardStateM)
     (csm : ConfStateM) (R : IProp GF) (peers : GoSlice) (dq : DFrac) (pv : List Peer) (ps : List w64)
-    (ctxs : List (List w8)) (bud : BudgetNames),
+    (ctxs : List (List w8)),
     ConfigValid cv →
       cv.Logger' = GoInterface.ok lok →
         cv.Storage' = GoInterface.ok si →
@@ -442,9 +452,8 @@ theorem Draft.wp_StartNode [package_sem : Assumptions] : Draft.StartNode.spec
                                                                                     {{ Φ }}) ∗
                                                                             ownSlice peers pv dq ∗
                                                                               peersCtx pv ctxs ∗
-                                                                                Draft.nodeBoot γ N cv.ID' ∗
-                                                                                  inv budgetN (budgetInv bud) ∗
-                                                                                    termLB bud (W64 1) -∗
+                                                                                Draft.nodeBoot γ N ps ctxs cv.ID' ∗
+                                                                                  storCap (GoInterface.ok si) 1 -∗
                                                                 (▷
                                                                     ∀ nd,
                                                                       (R ∗
@@ -666,9 +675,10 @@ theorem Draft.tickCredit_intro [package_sem : Assumptions] (γ : Draft.Cluster) 
     Draft.tickCredit γ n
 
 theorem Draft.readStateOk_ctx [package_sem : Assumptions] (γ : Draft.Cluster) (N : Namespace) (c :
-    List w8) (idx : w64) (Q : List Draft.LogEntry → IProp GF) : Draft.readStateOk γ N c idx ∗
-    Draft.isReadCtx γ N c Q ⊢ ∃ l, ⌜l.length = uint.nat idx⌝ ∗ Draft.isCommittedLogLb γ l ∗ ▷ □ Q
-    (Draft.opsOf l)
+    List w8) (idx : w64) (Q : List Draft.LogEntry → IProp GF) (l' : List Draft.LogEntry) (E :
+    CoPset) : ↑N ⊆ E → uint.nat idx ≤ l'.length → ⊢ Draft.readStateOk γ N c idx -∗ Draft.isReadCtx γ
+    N c Q -∗ Draft.isCommittedLogLb γ l' ={E}=∗ ∃ l, ⌜l.length = uint.nat idx⌝ ∗
+    Draft.isCommittedLogLb γ l ∗ ▷ ▷ □ Q (Draft.opsOf l)
 
 theorem Draft.sentMsg_persistent (γ : Draft.Cluster) (N : Namespace) (st : MsgSt) : Persistent
     (Draft.sentMsg γ N st)
@@ -705,7 +715,7 @@ theorem Draft.isStaticCluster_persistent (γ : Draft.Cluster) (N : Namespace) (v
 def Draft.StartNode.spec : Prop :=
   ∀ (γ : Draft.Cluster) (N : Namespace) (c : Loc) (cv : Config) (lok si : GoInterfaceOk) (σ : StorState) (hs : HardStateM)
     (csm : ConfStateM) (R : IProp GF) (peers : GoSlice) (dq : DFrac) (pv : List Peer) (ps : List w64)
-    (ctxs : List (List w8)) (bud : BudgetNames),
+    (ctxs : List (List w8)),
     ConfigValid cv →
       cv.Logger' = GoInterface.ok lok →
         cv.Storage' = GoInterface.ok si →
@@ -768,9 +778,8 @@ def Draft.StartNode.spec : Prop :=
                                                                                     {{ Φ }}) ∗
                                                                             ownSlice peers pv dq ∗
                                                                               peersCtx pv ctxs ∗
-                                                                                Draft.nodeBoot γ N cv.ID' ∗
-                                                                                  inv budgetN (budgetInv bud) ∗
-                                                                                    termLB bud (W64 1) -∗
+                                                                                Draft.nodeBoot γ N ps ctxs cv.ID' ∗
+                                                                                  storCap (GoInterface.ok si) 1 -∗
                                                                 (▷
                                                                     ∀ nd,
                                                                       (R ∗
@@ -796,7 +805,8 @@ def (sealed) Draft.sentMsg (γ : Draft.Cluster) (N : Namespace) (st : MsgSt) : I
 theorem Draft.storageCertLink_persistent (γ : Draft.Cluster) (N : Namespace) (st : Storage) :
     Persistent (Draft.storageCertLink γ N st)
 
-def (sealed) Draft.nodeBoot (γ : Draft.Cluster) (N : Namespace) (id : w64) : IProp GF
+def (sealed) Draft.nodeBoot (γ : Draft.Cluster) (N : Namespace) (ps : List w64) (ctxs : List (List
+    w8)) (id : w64) : IProp GF
 
 theorem Draft.snapshotCert_static [package_sem : Assumptions] (γ : Draft.Cluster) (N : Namespace)
     (vs : List w64) (snapOk : List Draft.LogEntry → List w8 → Prop) (l : List Draft.LogEntry) (i :

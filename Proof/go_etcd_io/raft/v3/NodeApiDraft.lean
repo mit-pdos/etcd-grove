@@ -149,9 +149,20 @@ theorem readCtx_commit (γ : Cluster) (N : Namespace) (U : GSet (List w8)) (c : 
     |==> (ownReadCtxs γ (insert c U) ∗ isReadCtx γ N c Q) := by
   unfold ownReadCtxs isReadCtx ownCommittedOps; exact ApiImpl.readCtx_commit_impl γ N U c Q
 
-/-- (open) **A read request's credit**: raft counts read requests in a 64-bit counter (today's
-`rdCred`); carried over until the read path's bounds are redesigned. -/
+/-- (open) **Read requests' credits**: raft counts read requests in a 64-bit counter (today's
+`rdCred`); carried over until the read path's bounds are redesigned. A new cluster gives
+`2 ^ 64 - 2` of them (`cluster_alloc`). -/
+@[no_expose] def readCredits (γ : Cluster) (n : Nat) : IProp GF := ApiImpl.readCredits γ n
+
+theorem readCredits_split (γ : Cluster) (a b : Nat) :
+    readCredits (GF := GF) γ (a + b) ⊣⊢ readCredits γ a ∗ readCredits γ b := by
+  unfold readCredits; exact ApiImpl.readCredits_split γ a b
+
+/-- (open) **A read request's credit**: one of `readCredits`. -/
 @[no_expose] def readCredit (γ : Cluster) : IProp GF := ApiImpl.readCredit γ
+
+theorem readCredit_eq (γ : Cluster) : readCredit (GF := GF) γ ⊣⊢ readCredits γ 1 := by
+  unfold readCredit readCredits ApiImpl.readCredit; exact .rfl
 
 /-- **A read state** (persistent): a `Ready`'s `ReadState{Index: idx, RequestCtx: c}`. -/
 @[no_expose] def readStateOk (γ : Cluster) (N : Namespace) (c : List w8) (idx : w64) : IProp GF :=
@@ -162,14 +173,20 @@ instance readStateOk_persistent (γ : Cluster) (N : Namespace) (c : List w8) (id
   unfold readStateOk; exact ApiImpl.readStateOk_persistent γ N c idx
 
 /-- **What a read state tells the client** of a context it committed: a read with context `c` took
-effect when the committed log was `l`, of length `idx`, and gave `Q` of its requested entries. -/
+effect when the committed log was `l`, of length `idx`, and gave `Q` of its requested entries. A
+ghost update within `N`, given a committed log `l'` at least `idx` long (raft hands the read state out
+before the client knows the log committed that far: it waits until it has applied `idx` entries);
+the result under two laters (the read's deposit and the context's predicate are both saved
+predicates). (2026-10-27: changed from the first draft's pure entailment, which raft cannot prove:
+`ApiImpl.readStateOk_ctx_impl`.) -/
 theorem readStateOk_ctx (γ : Cluster) (N : Namespace) (c : List w8) (idx : w64)
-    (Q : List LogEntry → IProp GF) :
-    readStateOk (GF := GF) γ N c idx ∗ isReadCtx γ N c Q ⊢
-    ∃ l, ⌜l.length = uint.nat idx⌝ ∗ isCommittedLogLb γ l ∗ ▷ □ Q (opsOf l) :=
-  -- (2026-10-27) not provable as stated: proved as `ApiImpl.readStateOk_ctx_impl`, a ghost update
-  -- within `N`, given a committed log at least `idx` long, the result under two laters
-  sorry
+    (Q : List LogEntry → IProp GF) (l' : List LogEntry) (E : CoPset) :
+    ↑N ⊆ E → uint.nat idx ≤ l'.length →
+    ⊢ readStateOk (GF := GF) γ N c idx -∗ isReadCtx γ N c Q -∗ isCommittedLogLb γ l' ={E}=∗
+      ∃ l, ⌜l.length = uint.nat idx⌝ ∗ isCommittedLogLb γ l ∗ ▷ ▷ □ Q (opsOf l) := by
+  intro HE Hle
+  unfold readStateOk isReadCtx isCommittedLogLb
+  exact ApiImpl.readStateOk_ctx_impl γ N c idx Q l' E HE Hle
 
 /-- **A read state's context was committed** (`readCtx_commit`): a read is requested only with a
 committed context (`node.ReadIndex`). (2026-10-27, for kv: the applier tells its own reader's
@@ -178,18 +195,31 @@ theorem readStateOk_used (γ : Cluster) (N : Namespace) (c : List w8) (idx : w64
     readStateOk (GF := GF) γ N c idx ∗ ownReadCtxs γ U ⊢ ⌜c ∈ U⌝ := by
   unfold readStateOk ownReadCtxs; exact ApiImpl.readStateOk_used_impl γ N c idx U
 
+/-- **A node's boot token** of a new cluster of the peers `ps` with the contexts `ctxs`, for node
+`id`'s `StartNode` (exclusive). -/
+@[no_expose] def nodeBoot (γ : Cluster) (N : Namespace) (ps : List w64) (ctxs : List (List w8))
+    (id : w64) : IProp GF :=
+  ApiImpl.nodeBoot γ N ps ctxs id
+
 /-- **A new cluster** of the peers `ps`, in the caller's namespace `N`: the client's committed
 requested entries at the bootstrap entries (one `ConfChangeAddNode` per peer, at term 1: `BootLog`;
-none is a filler), the read contexts with none used, and one boot
-token per peer, for its `StartNode`. Replaces the allocation variants (`ownRaftGhost_alloc_*`,
-`raft_dyn_alloc*`, `allocClient*`). -/
-@[no_expose] def nodeBoot (γ : Cluster) (N : Namespace) (id : w64) : IProp GF := sorry
-
-theorem cluster_alloc (N : Namespace) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry) :
-    BootLog ps ctxs boot → ps.Nodup →
-    ⊢ |==> ∃ γ, ownCommittedOps (GF := GF) γ boot ∗ ownReadCtxs γ ∅ ∗
-        [∗list] id ∈ ps, nodeBoot γ N id :=
-  sorry
+none is a filler), the read contexts with none used, the cluster's read credits, and one boot token
+per peer, for its `StartNode`. The term budget, backed by time receipts (`receiptBound`), is the
+cluster's. `bootMarshal` is what `StartNode` needs of `proto.Marshal` at the peers' conf changes.
+Replaces the allocation variants (`ownRaftGhost_alloc_*`, `raft_dyn_alloc*`, `allocClient*`).
+(2026-10-27: changed from the first draft: a fancy update at any mask, the receipts' bound, the
+peers non-empty and non-zero, `bootMarshal`, the read credits; `nodeBoot` names the peers and their
+contexts. `ApiImpl.cluster_alloc_impl`.) -/
+theorem cluster_alloc (N : Namespace) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry)
+    (E : CoPset) :
+    receiptBound GF ≤ 2 ^ 64 - 2 →
+    BootLog ps ctxs boot → ps.Nodup → ps ≠ [] → W64 0 ∉ ps →
+    ⊢ bootMarshal (GF := GF) ps ctxs (LogEntry.toEntries boot 0) -∗
+      |={E}=> ∃ γ, ownCommittedOps γ boot ∗ ownReadCtxs γ ∅ ∗ readCredits γ (2 ^ 64 - 2) ∗
+        [∗list] id ∈ ps, nodeBoot γ N ps ctxs id := by
+  intro Hrb HB Hnd Hne Hnz
+  unfold ownCommittedOps ownReadCtxs readCredits nodeBoot
+  exact ApiImpl.cluster_alloc_impl N ps ctxs boot E Hrb HB Hnd Hne Hnz
 
 /- The node's predicates take the node `n` first (there is one per node, many per cluster), then
 the cluster and namespace, and the state that changes as one record, so that a new field does not
@@ -612,16 +642,14 @@ abbrev RestartNode.spec : Prop :=
       ∃ (n : Loc), ⌜nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗
         isNode n γ N cv.ID' ∗ nodeDriver n γ N (NodeDriverState.init (interface.ok si)) }}
 
-/-- **`StartNode(c, peers)`**: starts a node of the cluster `γ` from its boot token. The ghost
-premises of today's spec (`bootInit`, `isCommitted γ bootLog`, `BootLogOk γ.reCCOk`, the
-`RaftNames` fields) are replaced by `nodeBoot`; the Go-level premises are today's. (open: the
-storage contract's premises `ownStorage`/`NsCap`/`certLink`, the term budget `budgetInv`/`termLB`,
-the static/dynamic mode and `snapIn`, carried over unchanged.) -/
+/-- **`StartNode(c, peers)`**: starts node `cv.ID'` of the cluster `γ` from its boot token
+(`cluster_alloc`), of the peers `ps` with the contexts `ctxs`. The Go-level premises are today's.
+(2026-10-27: the term budget is the cluster's, in the boot token; the storage is never compacted
+past index `1`, `storCap`: the cluster takes no snapshot.) -/
 abbrev StartNode.spec : Prop :=
   ∀ (γ : Cluster) (N : Namespace) (c : Loc) (cv : Config) (lok si : GoInterfaceOk)
     (σ : StorState) (hs : HardStateM) (csm : ConfStateM) (R : IProp GF)
-    (peers : GoSlice) (dq : DFrac) (pv : List Peer) (ps : List w64) (ctxs : List (List w8))
-    (bud : BudgetNames),
+    (peers : GoSlice) (dq : DFrac) (pv : List Peer) (ps : List w64) (ctxs : List (List w8)),
   -- `NewRawNode`'s premises (unchanged)
   ConfigValid cv →
   cv.Logger' = interface.ok lok →
@@ -650,10 +678,11 @@ abbrev StartNode.spec : Prop :=
             Φ (PairV (PairV #hp #cs) #interface.nil)) -∗
            WP (App (Val #(methods si.ty go!"InitialState" si.v)) (Val #())) {{ Φ }}) ∗
       peers ↦*{dq} pv ∗ peersCtx pv ctxs ∗
-      -- the node's boot token (in place of `bootInit`, `isCommitted γ bootLog`, `bootMarshal`)
-      nodeBoot γ N cv.ID' ∗
-      -- (open) the term budget
-      inv budgetN (budgetInv bud) ∗ termLB bud (W64 1) }}
+      -- the node's boot token (in place of `bootInit`, `isCommitted γ bootLog`, `bootMarshal`,
+      -- the term budget)
+      nodeBoot γ N ps ctxs cv.ID' ∗
+      -- the storage never compacted past index `1` (raft's no-snapshot mode)
+      storCap (interface.ok si) 1 }}
     (App (App (Val #(functions StartNode [])) (Val #c)) (Val #peers))
   {{ (nd : GoInterface), RET #nd;
       R ∗ ∃ (n : Loc), ⌜nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗
@@ -703,7 +732,8 @@ theorem node.wp_Tick : node.Tick.spec (GF := GF) (hG := hG) := by
 theorem node.wp_TransferLeadership : node.TransferLeadership.spec (GF := GF) (hG := hG) := by
   exact ApiImpl.node.wp_TransferLeadership_impl
     _root_.Perennial.EtcdGrove.node.wp_TransferLeadership
-theorem wp_StartNode : StartNode.spec (GF := GF) (hG := hG) := sorry
+theorem wp_StartNode : StartNode.spec (GF := GF) (hG := hG) := by
+  exact ApiImpl.wp_StartNode_impl _root_.Perennial.EtcdGrove.wp_StartNode
 theorem wp_RestartNode : RestartNode.spec (GF := GF) (hG := hG) := sorry
 
 end links
