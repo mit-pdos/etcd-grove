@@ -38,6 +38,8 @@ public import Proof.k8s_io.apimachinery.pkg.util.sets.Set__Insert
 public import Proof.k8s_io.apimachinery.pkg.util.sets.Set__Intersection
 public import Proof.k8s_io.apimachinery.pkg.util.sets.Set__Len
 public import Proof.k8s_io.apimachinery.pkg.util.sets.Set__UnsortedList
+public import Proof.k8s_io.client_go.tools.cache.synctrack.SingleFileTracker__Finished
+public import Proof.k8s_io.client_go.tools.cache.synctrack.SingleFileTracker__Start
 public import Proof.k8s_io.client_go.tools.cache.SplitMetaNamespaceKey
 public import Proof.k8s_io.client_go.tools.cache.cache__Add
 public import Proof.k8s_io.client_go.tools.cache.cache__AddIndexers
@@ -60,12 +62,19 @@ public import Proof.k8s_io.client_go.tools.cache.noopMetric__Set
 public import Proof.k8s_io.client_go.tools.cache.parseRVForMetricsWithTruncation
 public import Proof.k8s_io.client_go.tools.cache.processDeltas
 public import Proof.k8s_io.client_go.tools.cache.processReplacedAllInfo
+public import Proof.k8s_io.client_go.tools.cache.processorListener__add
+public import Proof.k8s_io.client_go.tools.cache.processorListener__pop
+public import Proof.k8s_io.client_go.tools.cache.processorListener__run
 public import Proof.k8s_io.client_go.tools.cache.reconcileReplacement
 public import Proof.k8s_io.client_go.tools.cache.rvFromObject
 public import Proof.k8s_io.apimachinery.pkg.runtime.schema.GroupVersionResource__Empty_ptr
 public import Proof.k8s_io.apimachinery.pkg.util.sets.List
 public import Proof.k8s_io.apimachinery.pkg.util.sets.New
+public import Proof.k8s_io.client_go.tools.cache.sharedIndexInformer__OnAdd
+public import Proof.k8s_io.client_go.tools.cache.sharedIndexInformer__OnDelete
+public import Proof.k8s_io.client_go.tools.cache.sharedIndexInformer__OnUpdate
 public import Proof.k8s_io.client_go.tools.cache.sharedIndexInformer__handleDeltas
+public import Proof.k8s_io.client_go.tools.cache.sharedProcessor__distribute
 public import Proof.k8s_io.client_go.tools.cache.storeIndex__addIndexers
 public import Proof.k8s_io.client_go.tools.cache.storeIndex__addKeyToIndex
 public import Proof.k8s_io.client_go.tools.cache.storeIndex__deleteKeyFromIndex
@@ -97,6 +106,8 @@ public import Proof.k8s_io.utils.trace.New
 public import Proof.k8s_io.utils.trace.Trace__LogIfLong
 public import Perennial.Proof.slices.Link
 public import Perennial.Proof.cmp.Link
+public import Spec.k8s_io.utils.buffer.TypedRingGrowing__ReadOne
+public import Spec.k8s_io.utils.buffer.TypedRingGrowing__WriteOne
 
 @[expose] public section
 
@@ -106,7 +117,7 @@ namespace Perennial
 namespace EtcdGrove
 namespace k8scache
 
-open Iris Iris.BI k8s_io.client_go.tools.cache k8s_io.apimachinery.pkg.util.sets
+open Iris Iris.BI k8s_io.client_go.tools.cache k8s_io.apimachinery.pkg.util.sets k8s_io.client_go.tools.cache.synctrack k8s_io.utils.buffer
 
 section links
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -294,6 +305,14 @@ theorem sets.Set.wp_UnsortedList :
     EtcdGrove.sets.Set.UnsortedList.spec (GF := GF) (hG := hG) :=
   EtcdGrove.sets.Set.UnsortedList.wp_proof
 
+theorem synctrack.SingleFileTracker.wp_Finished :
+    EtcdGrove.synctrack.SingleFileTracker.Finished.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.synctrack.SingleFileTracker.Finished.wp_proof
+
+theorem synctrack.SingleFileTracker.wp_Start :
+    EtcdGrove.synctrack.SingleFileTracker.Start.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.synctrack.SingleFileTracker.Start.wp_proof
+
 theorem cache.wp_SplitMetaNamespaceKey :
     EtcdGrove.cache.SplitMetaNamespaceKey.spec (GF := GF) (hG := hG) :=
   EtcdGrove.cache.SplitMetaNamespaceKey.wp_proof
@@ -462,6 +481,30 @@ theorem cache.wp_processDeltas :
     EtcdGrove.cache.processDeltas.spec (GF := GF) (hG := hG) :=
   EtcdGrove.cache.processDeltas.wp_proof cache.wp_processReplacedAllInfo cache.cache.wp_Get cache.cache.wp_Add cache.cache.wp_Update cache.cache.wp_Delete cache.cache.wp_Bookmark
 
+theorem cache.processorListener.wp_add :
+    EtcdGrove.cache.processorListener.add.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cache.processorListener.add.wp_proof synctrack.SingleFileTracker.wp_Start
+
+theorem cache.processorListener.wp_run :
+    EtcdGrove.cache.processorListener.run.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cache.processorListener.run.wp_proof synctrack.SingleFileTracker.wp_Finished trace.wp_New trace.Trace.wp_LogIfLong
+
+theorem cache.sharedProcessor.wp_distribute :
+    EtcdGrove.cache.sharedProcessor.distribute.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cache.sharedProcessor.distribute.wp_proof cache.processorListener.wp_add
+
+theorem cache.sharedIndexInformer.wp_OnAdd :
+    EtcdGrove.cache.sharedIndexInformer.OnAdd.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cache.sharedIndexInformer.OnAdd.wp_proof cache.sharedProcessor.wp_distribute
+
+theorem cache.sharedIndexInformer.wp_OnDelete :
+    EtcdGrove.cache.sharedIndexInformer.OnDelete.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cache.sharedIndexInformer.OnDelete.wp_proof cache.sharedProcessor.wp_distribute
+
+theorem cache.sharedIndexInformer.wp_OnUpdate :
+    EtcdGrove.cache.sharedIndexInformer.OnUpdate.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cache.sharedIndexInformer.OnUpdate.wp_proof cache.sharedProcessor.wp_distribute
+
 theorem cache.sharedIndexInformer.wp_handleDeltas :
     EtcdGrove.cache.sharedIndexInformer.handleDeltas.spec (GF := GF) (hG := hG) :=
   EtcdGrove.cache.sharedIndexInformer.handleDeltas.wp_proof cache.wp_processDeltas
@@ -475,6 +518,24 @@ theorem cache.threadSafeMap.wp_Resync :
   EtcdGrove.cache.threadSafeMap.Resync.wp_proof
 
 end links_hasLC
+
+/-! The results that reach a function specified but not proved yet (a later unit's):
+its spec is a hypothesis (`h_<fn>`) of each of them. -/
+section links_pending
+variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [package_sem : k8s_io.client_go.tools.cache.Assumptions]
+variable (h_TypedRingGrowing__ReadOne : EtcdGrove.buffer.TypedRingGrowing.ReadOne.spec (GF := GF) (hG := hG))
+variable (h_TypedRingGrowing__WriteOne : EtcdGrove.buffer.TypedRingGrowing.WriteOne.spec (GF := GF) (hG := hG))
+include h_TypedRingGrowing__ReadOne h_TypedRingGrowing__WriteOne
+
+theorem cache.processorListener.wp_pop :
+    EtcdGrove.cache.processorListener.pop.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.cache.processorListener.pop.wp_proof h_TypedRingGrowing__ReadOne h_TypedRingGrowing__WriteOne
+
+end links_pending
 
 end k8scache
 end EtcdGrove

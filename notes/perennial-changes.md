@@ -293,7 +293,8 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   nothing about that call's effects (a trust-base bug, not a missing feature).
 - **Needed by.** client-go's workqueue: `delayingType.waitingLoop` (`defer
   utilruntime.HandleCrashWithLogger(logger)`) and `Typed.updateUnfinishedWorkLoop`
-  (`HandleCrashWithContext`).
+  (`HandleCrashWithContext`); client-go's informers: `processorListener.pop` and `run`
+  (`HandleCrashWithLogger`, one `sorry`, `ListenerDefs.lean`'s `deferred_HandleCrashWithLogger`).
 - **Workaround here.** None: `delayingType.waitingLoop`'s proof leaves its two returns (where the
   deferred call runs) `sorry` (gap G-defer-variadic) rather than prove the model's no-op.
 - **Proposed.** In `deferStmt`, apply `$f` to the names the prelude binds (the callee signature's

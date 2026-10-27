@@ -113,3 +113,19 @@ processReplacedAllInfo: reconcileReplacement cache__Get cache__Replace
 processDeltas: processReplacedAllInfo cache__Get cache__Add cache__Update cache__Delete cache__Bookmark
 sharedIndexInformer__handleDeltas: processDeltas
 controller__processLoop: RealFIFO__Pop
+#
+# the shared informer's listeners (shared_informer.go's processorListener; DaemonSet plan phase 4,
+# third round), over synctrack's tracker and k8s.io/utils/buffer's ring (specified, pending)
+SingleFileTracker__Start:
+SingleFileTracker__Finished:
+TypedRingGrowing__ReadOne: ?
+TypedRingGrowing__WriteOne: ?
+processorListener__add: SingleFileTracker__Start
+processorListener__pop: TypedRingGrowing__ReadOne TypedRingGrowing__WriteOne
+processorListener__run: SingleFileTracker__Finished trace_New trace_Trace__LogIfLong
+# the processor and the informer as its own handler (shared_informer.go; DaemonSet plan phase 4,
+# third round): handleDeltas' premise handlerOk discharged in Results.lean
+sharedProcessor__distribute: processorListener__add
+sharedIndexInformer__OnAdd: sharedProcessor__distribute
+sharedIndexInformer__OnUpdate: sharedProcessor__distribute
+sharedIndexInformer__OnDelete: sharedProcessor__distribute

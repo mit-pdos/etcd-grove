@@ -380,6 +380,15 @@ theorem's program runs with it off, the premise "a failed write had no effect" (
    indexer (`IV`, `itemsIv`, `ivWf`), and the queries (`ByIndex`, `Index`, `ListAllByNamespace`, the
    listers' `List`) return the relation's facts for the items they select (`idxSel`); every writer's
    spec unchanged; no axiom or `sorry` added (`notes/STATUS.md`, "The informers, third round").
+   *Third round, continued:* the listeners (`processorListener.add`/`pop`/`run`), the processor's
+   `distribute`, the informer's `OnAdd`/`OnUpdate`/`OnDelete` (discharging `processDeltas`'
+   `handlerOk`), `synctrack`'s `Start`/`Finished`, and `GetPodDaemonSets`/`GetHistoryDaemonSets`
+   over a label-selector boundary (`LabelSelectorAsSelector`, `Everything` axioms) proved; the ring
+   buffer pending; one `sorry` for G-defer-variadic. Open: `AddEventHandlerWithOptions`,
+   `HasSynced`, the processor's `run`/`shutdown`, the reflector minus its watch loop (D4 as a
+   hypothesis), and the informer contract's assembly (the history `γe` tied to the store's steps
+   through `procSend` and the FIFO; `gateOff`; the batch path still C4/D3) (`notes/STATUS.md`,
+   "The informers, third round: listeners, processor, selectors").
 5. **The controller.** `Run`, the workers, `syncDaemonSet` and what it calls on this scenario's
    paths, the event handlers, `syncNodeUpdate`; S1's invariant.
 6. **The closed theorem.** `examples/dsonepod`'s `wp_Main`, its package table and init, and

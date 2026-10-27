@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Code.context
+public import Perennial.Code.sync
 public import Perennial.Code.time
 public import Code.k8s_io.utils.clock
 public import Perennial.Golang.Defn
@@ -107,10 +108,6 @@ noncomputable def waitWithContextFunc.ty [FfiSyntax] [GoGlobalContext] : go.GoTy
   (go.GoType.Named go!"k8s.io/apimachinery/pkg/util/wait.waitWithContextFunc" [])
 
 attribute [irreducible] waitWithContextFunc.ty
-
-axiom backoffManager.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
-
-axiom Group.underlying [FfiSyntax] [GoGlobalContext] : go.GoType
 
 noncomputable def ErrWaitTimeout [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"k8s.io/apimachinery/pkg/util/wait.ErrWaitTimeout"
@@ -322,7 +319,7 @@ noncomputable def ExponentialBackoff.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Val #())))))))))
 
 noncomputable instance info' : PkgInfo pkg_id.k8s_io.apimachinery.pkg.util.wait where
-  pkgImportedPkgs := [pkg_id.context, pkg_id.time, pkg_id.k8s_io.utils.clock]
+  pkgImportedPkgs := [pkg_id.context, pkg_id.sync, pkg_id.time, pkg_id.k8s_io.utils.clock]
 
 axiom «_».init [FfiSyntax] [GoGlobalContext] : val
 
@@ -330,6 +327,7 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val (package.init pkg_id.k8s_io.apimachinery.pkg.util.wait)) (Lam BAnon
   (App (Val exceptionDo)
+  (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
   (App (App (Val exceptionSeq) (Lam BAnon
@@ -358,6 +356,8 @@ noncomputable def initialize' [FfiSyntax] [GoGlobalContext] : val :=
   (App (Val ErrWaitTimeout.init) (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.context.initialize') (Val #()))))))
+  (App (Val doExecute)
+  (App (Val _root_.Perennial.sync.initialize') (Val #()))))))
   (App (Val doExecute)
   (App (Val _root_.Perennial.time.initialize') (Val #()))))))
   (App (Val doExecute)
@@ -418,18 +418,72 @@ attribute [instance] Backoff.TypeAssumptions.type_repr
   Backoff.TypeAssumptions.get_Cap
   Backoff.TypeAssumptions.set_Cap
 
-axiom backoffManager : Type
-axiom backoffManager.zero_val : ZeroVal backoffManager
-attribute [instance] backoffManager.zero_val
+structure backoffManager [FfiSyntax] where
+  mk ::
+  backoff' : Backoff
+  initialBackoff' : Backoff
+  resetInterval' : _root_.Perennial.time.Duration
+  clock' : _root_.Perennial.k8s_io.utils.clock.Clock
+  lock' : _root_.Perennial.sync.Mutex
+  lastStart' : _root_.Perennial.time.Time
+  timer' : _root_.Perennial.k8s_io.utils.clock.Timer
+
+noncomputable instance backoffManager.zero_val [FfiSyntax] : ZeroVal backoffManager :=
+  ⟨backoffManager.mk zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef zeroValDef⟩
+
+@[reducible] noncomputable def backoffManager.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"backoff" Backoff.ty),
+(go.field_decl.FieldDecl go!"initialBackoff" Backoff.ty),
+(go.field_decl.FieldDecl go!"resetInterval" _root_.Perennial.time.Duration.ty),
+(go.field_decl.FieldDecl go!"clock" _root_.Perennial.k8s_io.utils.clock.Clock.ty),
+(go.field_decl.FieldDecl go!"lock" _root_.Perennial.sync.Mutex.ty),
+(go.field_decl.FieldDecl go!"lastStart" _root_.Perennial.time.Time.ty),
+(go.field_decl.FieldDecl go!"timer" _root_.Perennial.k8s_io.utils.clock.Timer.ty)]
+
+@[irreducible] noncomputable def backoffManager.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  backoffManager.fieldsUnsealed
+
+noncomputable instance equals_unfold_backoffManager [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold backoffManager.fields backoffManager.fieldsUnsealed :=
+  ⟨by unfold backoffManager.fields; rfl⟩
+
+@[reducible] noncomputable def backoffManager.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType backoffManager.fields)
 
 class backoffManager.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying backoffManager.underlying backoffManager
   underlying : go.UnderlyingDirectedEq backoffManager.ty backoffManager.underlying
-  isUnderlying : go.IsUnderlying backoffManager.underlying backoffManager.underlying
+  get_backoff : ∀ (x : backoffManager), go.IsGoStepPureDetTagged under (StructFieldGet backoffManager.underlying go!"backoff") #x (Val #(x.backoff'))
+  set_backoff : ∀ (x : backoffManager) (y : Backoff), go.IsGoStepPureDetTagged under (StructFieldSet backoffManager.underlying go!"backoff") (PairV #x #y) (Val #(({ x with backoff' := y } : backoffManager)))
+  get_initialBackoff : ∀ (x : backoffManager), go.IsGoStepPureDetTagged under (StructFieldGet backoffManager.underlying go!"initialBackoff") #x (Val #(x.initialBackoff'))
+  set_initialBackoff : ∀ (x : backoffManager) (y : Backoff), go.IsGoStepPureDetTagged under (StructFieldSet backoffManager.underlying go!"initialBackoff") (PairV #x #y) (Val #(({ x with initialBackoff' := y } : backoffManager)))
+  get_resetInterval : ∀ (x : backoffManager), go.IsGoStepPureDetTagged under (StructFieldGet backoffManager.underlying go!"resetInterval") #x (Val #(x.resetInterval'))
+  set_resetInterval : ∀ (x : backoffManager) (y : _root_.Perennial.time.Duration), go.IsGoStepPureDetTagged under (StructFieldSet backoffManager.underlying go!"resetInterval") (PairV #x #y) (Val #(({ x with resetInterval' := y } : backoffManager)))
+  get_clock : ∀ (x : backoffManager), go.IsGoStepPureDetTagged under (StructFieldGet backoffManager.underlying go!"clock") #x (Val #(x.clock'))
+  set_clock : ∀ (x : backoffManager) (y : _root_.Perennial.k8s_io.utils.clock.Clock), go.IsGoStepPureDetTagged under (StructFieldSet backoffManager.underlying go!"clock") (PairV #x #y) (Val #(({ x with clock' := y } : backoffManager)))
+  get_lock : ∀ (x : backoffManager), go.IsGoStepPureDetTagged under (StructFieldGet backoffManager.underlying go!"lock") #x (Val #(x.lock'))
+  set_lock : ∀ (x : backoffManager) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet backoffManager.underlying go!"lock") (PairV #x #y) (Val #(({ x with lock' := y } : backoffManager)))
+  get_lastStart : ∀ (x : backoffManager), go.IsGoStepPureDetTagged under (StructFieldGet backoffManager.underlying go!"lastStart") #x (Val #(x.lastStart'))
+  set_lastStart : ∀ (x : backoffManager) (y : _root_.Perennial.time.Time), go.IsGoStepPureDetTagged under (StructFieldSet backoffManager.underlying go!"lastStart") (PairV #x #y) (Val #(({ x with lastStart' := y } : backoffManager)))
+  get_timer : ∀ (x : backoffManager), go.IsGoStepPureDetTagged under (StructFieldGet backoffManager.underlying go!"timer") #x (Val #(x.timer'))
+  set_timer : ∀ (x : backoffManager) (y : _root_.Perennial.k8s_io.utils.clock.Timer), go.IsGoStepPureDetTagged under (StructFieldSet backoffManager.underlying go!"timer") (PairV #x #y) (Val #(({ x with timer' := y } : backoffManager)))
 
 attribute [instance] backoffManager.TypeAssumptions.type_repr
   backoffManager.TypeAssumptions.underlying
-  backoffManager.TypeAssumptions.isUnderlying
+  backoffManager.TypeAssumptions.get_backoff
+  backoffManager.TypeAssumptions.set_backoff
+  backoffManager.TypeAssumptions.get_initialBackoff
+  backoffManager.TypeAssumptions.set_initialBackoff
+  backoffManager.TypeAssumptions.get_resetInterval
+  backoffManager.TypeAssumptions.set_resetInterval
+  backoffManager.TypeAssumptions.get_clock
+  backoffManager.TypeAssumptions.set_clock
+  backoffManager.TypeAssumptions.get_lock
+  backoffManager.TypeAssumptions.set_lock
+  backoffManager.TypeAssumptions.get_lastStart
+  backoffManager.TypeAssumptions.set_lastStart
+  backoffManager.TypeAssumptions.get_timer
+  backoffManager.TypeAssumptions.set_timer
 
 abbrev BackoffManager [FfiSyntax] : Type := GoInterface
 
@@ -719,18 +773,36 @@ attribute [instance] fixedTimer.TypeAssumptions.type_repr
   fixedTimer.TypeAssumptions.get_new
   fixedTimer.TypeAssumptions.set_new
 
-axiom Group : Type
-axiom Group.zero_val : ZeroVal Group
-attribute [instance] Group.zero_val
+structure Group [FfiSyntax] where
+  mk ::
+  wg' : _root_.Perennial.sync.WaitGroup
+
+noncomputable instance Group.zero_val [FfiSyntax] : ZeroVal Group :=
+  ⟨Group.mk zeroValDef⟩
+
+@[reducible] noncomputable def Group.fieldsUnsealed [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  [(go.field_decl.FieldDecl go!"wg" _root_.Perennial.sync.WaitGroup.ty)]
+
+@[irreducible] noncomputable def Group.fields [FfiSyntax] [GoGlobalContext] : List go.field_decl :=
+  Group.fieldsUnsealed
+
+noncomputable instance equals_unfold_Group [FfiSyntax] [GoGlobalContext] :
+    EqualsUnfold Group.fields Group.fieldsUnsealed :=
+  ⟨by unfold Group.fields; rfl⟩
+
+@[reducible] noncomputable def Group.underlying [FfiSyntax] [GoGlobalContext] : go.GoType :=
+  (go.GoType.StructType Group.fields)
 
 class Group.TypeAssumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctions] : Prop where
   type_repr : go.TypeReprUnderlying Group.underlying Group
   underlying : go.UnderlyingDirectedEq Group.ty Group.underlying
-  isUnderlying : go.IsUnderlying Group.underlying Group.underlying
+  get_wg : ∀ (x : Group), go.IsGoStepPureDetTagged under (StructFieldGet Group.underlying go!"wg") #x (Val #(x.wg'))
+  set_wg : ∀ (x : Group) (y : _root_.Perennial.sync.WaitGroup), go.IsGoStepPureDetTagged under (StructFieldSet Group.underlying go!"wg") (PairV #x #y) (Val #(({ x with wg' := y } : Group)))
 
 attribute [instance] Group.TypeAssumptions.type_repr
   Group.TypeAssumptions.underlying
-  Group.TypeAssumptions.isUnderlying
+  Group.TypeAssumptions.get_wg
+  Group.TypeAssumptions.set_wg
 
 abbrev ConditionFunc [FfiSyntax] : Type := GoFunc
 
@@ -823,6 +895,7 @@ class Assumptions [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFun
   waitWithContextFunc_instance : waitWithContextFunc.TypeAssumptions
   ExponentialBackoff_unfold : FuncUnfold ExponentialBackoff [] ExponentialBackoff.impl
   import_context_Assumption : _root_.Perennial.context.Assumptions
+  import_sync_Assumption : _root_.Perennial.sync.Assumptions
   import_time_Assumption : _root_.Perennial.time.Assumptions
   import_clock_Assumption : _root_.Perennial.k8s_io.utils.clock.Assumptions
 
@@ -845,6 +918,7 @@ attribute [instance] Assumptions.Backoff_instance
   Assumptions.waitWithContextFunc_instance
   Assumptions.ExponentialBackoff_unfold
   Assumptions.import_context_Assumption
+  Assumptions.import_sync_Assumption
   Assumptions.import_time_Assumption
   Assumptions.import_clock_Assumption
 

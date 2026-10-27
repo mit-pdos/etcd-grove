@@ -364,6 +364,20 @@ handler types (`TypedResourceEventHandler[T Object]`, ...) translate with `T` un
   - `controller.processLoop`'s premises `gateOff` (client-go's `FeatureGates().Enabled(
     InOrderInformersBatchProcess)` returns `false`) and `errIsOk` (`errors.Is` returns on the
     loop's errors) are a spec's premises, not axioms: the batch path `Main` takes stays open.
+- **Third round (listeners, processor, selectors; 2026-10-27):**
+  - `Code/k8s_io/apimachinery/pkg/util/wait.toml` imports `sync` now: without it `wait.Group`'s
+    `sync.WaitGroup` field was axiomatized and `sharedProcessor`'s proofs reached the generated
+    `sorry` instances (`wait.lean` regenerated, `wait/Init.lean` and the k8setcd3 `PkgTable`).
+  - `sorry` `cache.deferred_HandleCrashWithLogger` (`ListenerDefs.lean`): G-defer-variadic is
+    reached by `processorListener.pop` and `run` (`defer utilruntime.HandleCrashWithLogger(...)`),
+    stated once so the fix removes one `sorry`.
+  - New trust-boundary axiom `labels.LabelSelectorAsSelector.wp_proof` (metav1's, names only):
+    an error iff the selector is invalid, else a selector whose `Empty`/`Matches` follow
+    `SelDefs.lean`'s model; validity's syntactic rules are the uninterpreted `axiom reqsValid`.
+  - `labels.Everything.wp_proof` strengthened (returns a non-nil selector whose `Empty()` is
+    `true` and on which `labels.MatchesNothing` returns `false`, a different dynamic type; the apiserver's `storage.Everything` still only stores it).
+  - `fmt.Errorf` with `string`/`map[string]string` arguments proved from the model
+    (`ErrorfLabels.lean`, the same `ArgWf` premise as `ErrorfSet.lean`).
 
 ## The call graph of `Main` (the worklist)
 

@@ -2,8 +2,9 @@
 # notes/k8s-etcd3-goose.md), but `ExponentialBackoff`, the loop client-go's `retry.OnError` runs
 # (notes/k8s-clientgo-goose.md). It imports `time`, `context` and `k8s.io/utils/clock`, so that
 # `Backoff` (whose literals `retry`'s variables are) and the function types translate.
+# And `sync` (2026-10-27): so that `Group` (a `sync.WaitGroup`), the shared processor's field, translates.
 translate = ["!*", "ExponentialBackoff"]
-imports = ["!*", "time", "context", "k8s.io/utils/clock"]
+imports = ["!*", "time", "context", "k8s.io/utils/clock", "sync"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

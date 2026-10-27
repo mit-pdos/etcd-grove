@@ -29,6 +29,8 @@ namespace k8sinformers
 #print axioms appslisters.daemonSetLister.wp_DaemonSets
 #print axioms appslisters.daemonSetNamespaceLister.wp_Get
 #print axioms appslisters.daemonSetNamespaceLister.wp_List
+#print axioms appslisters.daemonSetLister.wp_GetPodDaemonSets
+#print axioms appslisters.daemonSetLister.wp_GetHistoryDaemonSets
 -- the ControllerRevision lister (listers/apps/v1)
 #print axioms appslisters.wp_NewControllerRevisionLister
 #print axioms appslisters.controllerRevisionLister.wp_ControllerRevisions

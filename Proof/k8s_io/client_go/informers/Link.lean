@@ -22,8 +22,11 @@ public import Proof.k8s_io.client_go.listers.apps.v1.controllerRevisionNamespace
 public import Proof.k8s_io.client_go.listers.apps.v1.controllerRevisionNamespaceLister__List
 public import Proof.k8s_io.api.core.v1.Resource
 public import Proof.k8s_io.client_go.listers.apps.v1.daemonSetLister__DaemonSets
+public import Proof.k8s_io.client_go.listers.apps.v1.daemonSetLister__GetHistoryDaemonSets
+public import Proof.k8s_io.client_go.listers.apps.v1.daemonSetLister__GetPodDaemonSets
 public import Proof.k8s_io.client_go.listers.apps.v1.daemonSetNamespaceLister__Get
 public import Proof.k8s_io.client_go.listers.apps.v1.daemonSetNamespaceLister__List
+public import Proof.k8s_io.apimachinery.pkg.labels.Everything
 public import Proof.k8s_io.client_go.listers.New
 public import Proof.k8s_io.client_go.listers.core.v1.nodeLister__Get
 public import Proof.k8s_io.client_go.listers.core.v1.nodeLister__List
@@ -31,6 +34,7 @@ public import Proof.k8s_io.client_go.listers.core.v1.podLister__Pods
 public import Proof.k8s_io.client_go.listers.core.v1.podNamespaceLister__Get
 public import Proof.k8s_io.client_go.listers.core.v1.podNamespaceLister__List
 public import Proof.k8s_io.apimachinery.pkg.runtime.schema.GroupResource__String_ptr
+public import Proof.k8s_io.apimachinery.pkg.apis.meta.v1.LabelSelectorAsSelector
 public import GeneratedProof.k8s_io.client_go.informers
 public import Proof.k8s_io.client_go.Base
 public import Proof.k8s_io.client_go.tools.cache.Link
@@ -127,13 +131,29 @@ theorem appslisters.daemonSetLister.wp_DaemonSets :
     EtcdGrove.appslisters.daemonSetLister.DaemonSets.spec (GF := GF) (hG := hG) :=
   EtcdGrove.appslisters.daemonSetLister.DaemonSets.wp_proof listers.wp_NewNamespaced
 
-theorem appslisters.daemonSetNamespaceLister.wp_Get :
-    EtcdGrove.appslisters.daemonSetNamespaceLister.Get.spec (GF := GF) (hG := hG) :=
-  EtcdGrove.appslisters.daemonSetNamespaceLister.Get.wp_proof listers.ResourceIndexer.wp_Get
-
 theorem appslisters.daemonSetNamespaceLister.wp_List :
     EtcdGrove.appslisters.daemonSetNamespaceLister.List.spec (GF := GF) (hG := hG) :=
   EtcdGrove.appslisters.daemonSetNamespaceLister.List.wp_proof listers.ResourceIndexer.wp_List
+
+theorem labels.wp_Everything :
+    EtcdGrove.labels.Everything.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.labels.Everything.wp_proof
+
+theorem labels.wp_LabelSelectorAsSelector :
+    EtcdGrove.labels.LabelSelectorAsSelector.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.labels.LabelSelectorAsSelector.wp_proof
+
+theorem appslisters.daemonSetLister.wp_GetHistoryDaemonSets :
+    EtcdGrove.appslisters.daemonSetLister.GetHistoryDaemonSets.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.appslisters.daemonSetLister.GetHistoryDaemonSets.wp_proof appslisters.daemonSetLister.wp_DaemonSets appslisters.daemonSetNamespaceLister.wp_List labels.wp_Everything labels.wp_LabelSelectorAsSelector
+
+theorem appslisters.daemonSetLister.wp_GetPodDaemonSets :
+    EtcdGrove.appslisters.daemonSetLister.GetPodDaemonSets.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.appslisters.daemonSetLister.GetPodDaemonSets.wp_proof appslisters.daemonSetLister.wp_DaemonSets appslisters.daemonSetNamespaceLister.wp_List labels.wp_Everything labels.wp_LabelSelectorAsSelector
+
+theorem appslisters.daemonSetNamespaceLister.wp_Get :
+    EtcdGrove.appslisters.daemonSetNamespaceLister.Get.spec (GF := GF) (hG := hG) :=
+  EtcdGrove.appslisters.daemonSetNamespaceLister.Get.wp_proof listers.ResourceIndexer.wp_Get
 
 theorem corelisters.nodeLister.wp_Get :
     EtcdGrove.corelisters.nodeLister.Get.spec (GF := GF) (hG := hG) :=

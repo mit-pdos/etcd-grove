@@ -45,3 +45,13 @@ podNamespaceLister__List: ResourceIndexer__List
 NewNodeLister: core_v1_Resource listers_New
 nodeLister__Get: ResourceIndexer__Get
 nodeLister__List: ResourceIndexer__List
+#
+# the label selectors' trust boundary (apimachinery's `labels.Everything`, `metav1.
+# LabelSelectorAsSelector`; names-only functions, axioms: notes/k8s-daemonset-goose.md)
+labels_Everything:
+v1_LabelSelectorAsSelector:
+#
+# the DaemonSet lister's expansion (`listers/apps/v1/daemonset_expansion.go`): the DaemonSets
+# selecting a pod or a ControllerRevision
+daemonSetLister__GetPodDaemonSets: daemonSetLister__DaemonSets daemonSetNamespaceLister__List labels_Everything v1_LabelSelectorAsSelector
+daemonSetLister__GetHistoryDaemonSets: daemonSetLister__DaemonSets daemonSetNamespaceLister__List labels_Everything v1_LabelSelectorAsSelector

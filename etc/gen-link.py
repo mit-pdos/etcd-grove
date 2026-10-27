@@ -406,7 +406,8 @@ LEAN_FIRST = {
     # the store keys and the thread-safe store, over sets' and the trust boundary of
     # `strconv.ParseInt`
     "--k8scache": ("link-lean-first-k8scache.txt",
-                   "k8s_io.client_go.tools.cache k8s_io.apimachinery.pkg.util.sets",
+                   "k8s_io.client_go.tools.cache k8s_io.apimachinery.pkg.util.sets "
+                   "k8s_io.client_go.tools.cache.synctrack k8s_io.utils.buffer",
                    "k8s_io.client_go.tools.cache.Assumptions",
                    "client-go's local cache's proofs (`k8s.io/client-go/tools/cache`)", [""]),
     # client-go's informers above the store (k8s.io/client-go/listers, informers,
