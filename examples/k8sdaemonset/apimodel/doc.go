@@ -88,8 +88,9 @@
 //
 //   - FailWrites: a write may fail before taking effect (500).
 //   - AmbiguousWrites: a write may take effect and still report failure (a timeout after the
-//     commit). Off by default: the theorem's premise "a failed write had no effect" is this flag
-//     off (notes/k8s-daemonset-plan.md, the suspected bug).
+//     commit). The theorem's program (examples/k8sdaemonset/dsmain) runs with it on (D51), under
+//     which the unmodified DaemonSet controller can put two pods on a node
+//     (issues/k8s-daemonset-ambiguous-create-duplicate-pod.md).
 //   - FailReads: a Get or List may fail (500); a Watch may fail to start (500).
 //   - EndWatches, ExpireWatches, Bookmarks: above.
 //

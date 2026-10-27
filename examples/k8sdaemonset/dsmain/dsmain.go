@@ -8,9 +8,11 @@
 //
 // The scenario is the robustness test's: one Ready node, one DaemonSet "ds-1" in "default"
 // whose pods run nginx. The model may fail any request of the controller and its informers,
-// end or expire any watch, and send bookmarks (every Config flag but AmbiguousWrites: the
-// theorem's premise "a failed write had no effect", D50; with it on the controller does put two
-// pods on the node, issues/k8s-daemonset-ambiguous-create-duplicate-pod.md).
+// including a write that commits and still reports failure (every Config flag, AmbiguousWrites
+// too: D51), end or expire any watch, and send bookmarks. With ambiguous writes the unmodified
+// controller can put two pods on the node (issues/k8s-daemonset-ambiguous-create-duplicate-pod.md),
+// so Main's checker can panic and the adequacy theorem below is false of the code as it is: the
+// bug is left unfixed until a proof genuinely gets stuck on it (D51).
 //
 // The adequacy theorem to prove (phase 6): for every number of checks, no thread of
 // Main(checks) panics or is stuck.
@@ -46,10 +48,10 @@ const (
 	dsName    = "ds-1"
 )
 
-// serverConfig is the model's configuration: every failure but ambiguous writes.
+// serverConfig is the model's configuration: every failure, ambiguous writes included.
 func serverConfig() apimodel.Config {
-	return apimodel.Config{FailWrites: true, FailReads: true, EndWatches: true,
-		ExpireWatches: true, Bookmarks: true, FaultPercent: 20}
+	return apimodel.Config{FailWrites: true, AmbiguousWrites: true, FailReads: true,
+		EndWatches: true, ExpireWatches: true, Bookmarks: true, FaultPercent: 20}
 }
 
 // setFeatureGates sets the gates the scenario needs, as kube-controller-manager's

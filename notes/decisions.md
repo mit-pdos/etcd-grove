@@ -21370,10 +21370,11 @@ flags. Client-go's typed interfaces are embedded with nil values, so a method th
 implement panics: the no-panic theorem shows none is called (a Goose check pending: an embedded
 interface field).
 
-**The premise as configuration.** `Config.AmbiguousWrites` (a write may commit and still report
-failure) is the realistic behavior; the theorem's program runs with it off, which is the premise
-"a failed write had no effect". It matters: with it on, the real controller puts two pods on a node
-in 4 of 50 runs (`issues/k8s-daemonset-ambiguous-create-duplicate-pod.md`), with it off 0 of 30.
+**The premise as configuration** (superseded by D51: the program now runs with the flag on).
+`Config.AmbiguousWrites` (a write may commit and still report failure) is the realistic behavior;
+the theorem's program ran with it off, which was the premise "a failed write had no effect". It
+matters: with it on, the real controller puts two pods on a node in 4 of 50 runs
+(`issues/k8s-daemonset-ambiguous-create-duplicate-pod.md`), with it off 0 of 30.
 
 **The model's spec is an internal layer** (2026-10-27 · the user: "The go model is *still* the
 trust base ... The proven spec is an internal proof detail that does not show up in the spec
@@ -21387,3 +21388,26 @@ model's code. The specs are a proof device, so that the informers' and the contr
 reason about one abstract state rather than step through the model; a wrong spec would make a
 proof fail, not a theorem say something false, since no statement at the spec boundary mentions
 it.
+
+## D51: realistic failures in the theorem's program; a bug is fixed only when a proof is genuinely stuck on it (2026-10-27 · the user: "I want AmbiguousWrites on Main, and for now, leave the thing unfixed. We'll only fix it when we genuinely get stuck in a proof (or I might do it earlier myself)"; "This will cause the test to fail, and that's ok for now")
+
+**The choice.** The DaemonSet theorem's program (`examples/k8sdaemonset/dsmain`) runs the model API
+server with every failure flag, `AmbiguousWrites` included: a write may commit and still report
+failure, as a timeout after the commit does in practice. D50's premise "a failed write had no
+effect" (the flag off) is withdrawn: it removed exactly the behavior that breaks the controller.
+
+**What follows.** With ambiguous writes the unmodified controller can put two pods of the DaemonSet
+on one node (`issues/k8s-daemonset-ambiguous-create-duplicate-pod.md`; reproduced on a real API
+server), so `Main`'s checker can panic: the adequacy theorem for `Main` is false of the code as it
+is, and `Main`'s Go test `TestMainNeverPanics` fails in such runs (2 of 100 at the change). Both are
+accepted. The bug is not fixed now: the proofs go on bottom up, and the controller is changed only
+when a proof genuinely gets stuck on it (the S1 proof is expected to, at the ambiguous create in
+`syncNodes`), or by the user. The candidate fixes are in
+`issues/upstream/k8s-daemonset-ambiguous-create-duplicate-pod/` (04, 05).
+
+**The rule, generally.** Implementations and the program's configuration are not changed to make a
+property provable or to dodge a gap; a gap that blocks a proof is left open (a named hypothesis)
+until a proof is genuinely stuck on it, then raised. So the informers stay on their default batch
+path (`InOrderInformersBatchProcess` on, gaps C4/D3), and the proposal to turn the gate off is
+withdrawn. `Main` setting its feature gates in code (phase B) is configuration of the scenario the
+robustness test runs, not a dodge, and stays.

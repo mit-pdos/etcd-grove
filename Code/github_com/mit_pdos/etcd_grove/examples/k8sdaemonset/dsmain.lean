@@ -72,9 +72,9 @@ noncomputable def run [FfiSyntax] [GoGlobalContext] : GoString :=
 noncomputable def Main [FfiSyntax] [GoGlobalContext] : GoString :=
   go!"github.com/mit-pdos/etcd-grove/examples/k8sdaemonset/dsmain.Main"
 
-/-- serverConfig is the model's configuration: every failure but ambiguous writes.
+/-- serverConfig is the model's configuration: every failure, ambiguous writes included.
 
-    go: dsmain.go:50:6 -/
+    go: dsmain.go:52:6 -/
 noncomputable def serverConfig.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val exceptionDo)
@@ -84,8 +84,9 @@ noncomputable def serverConfig.impl [FfiSyntax] [GoGlobalContext] : val :=
   (Let "$v2" (Val #true)
   (Let "$v3" (Val #true)
   (Let "$v4" (Val #true)
-  (Let "$v5" (Val #(W64 20))
-  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"FailWrites")) (ElementExpression go.bool (Var "$v0"))), (KeyedElement (some (KeyField go!"FailReads")) (ElementExpression go.bool (Var "$v1"))), (KeyedElement (some (KeyField go!"EndWatches")) (ElementExpression go.bool (Var "$v2"))), (KeyedElement (some (KeyField go!"ExpireWatches")) (ElementExpression go.bool (Var "$v3"))), (KeyedElement (some (KeyField go!"Bookmarks")) (ElementExpression go.bool (Var "$v4"))), (KeyedElement (some (KeyField go!"FaultPercent")) (ElementExpression go.int64 (Var "$v5")))])))))))))))
+  (Let "$v5" (Val #true)
+  (Let "$v6" (Val #(W64 20))
+  (App (Val (GoInstruction (CompositeLiteral _root_.Perennial.github_com.mit_pdos.etcd_grove.examples.k8sdaemonset.apimodel.Config.ty))) (LiteralValue [(KeyedElement (some (KeyField go!"FailWrites")) (ElementExpression go.bool (Var "$v0"))), (KeyedElement (some (KeyField go!"AmbiguousWrites")) (ElementExpression go.bool (Var "$v1"))), (KeyedElement (some (KeyField go!"FailReads")) (ElementExpression go.bool (Var "$v2"))), (KeyedElement (some (KeyField go!"EndWatches")) (ElementExpression go.bool (Var "$v3"))), (KeyedElement (some (KeyField go!"ExpireWatches")) (ElementExpression go.bool (Var "$v4"))), (KeyedElement (some (KeyField go!"Bookmarks")) (ElementExpression go.bool (Var "$v5"))), (KeyedElement (some (KeyField go!"FaultPercent")) (ElementExpression go.int64 (Var "$v6")))]))))))))))))
 
 /-- setFeatureGates sets the gates the scenario needs, as kube-controller-manager's
     --feature-gates=WatchListClient=false,AtomicFIFO=true,StaleControllerConsistencyDaemonSet=true
@@ -99,7 +100,7 @@ noncomputable def serverConfig.impl [FfiSyntax] [GoGlobalContext] : val :=
     are on by default; setting them states the configuration in the program rather than in the
     default table pkg/features' init registers.
 
-    go: dsmain.go:66:6 -/
+    go: dsmain.go:68:6 -/
 noncomputable def setFeatureGates.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val exceptionDo)
@@ -127,7 +128,7 @@ noncomputable def setFeatureGates.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- newNode is the scenario's node: Ready.
 
-    go: dsmain.go:77:6 -/
+    go: dsmain.go:79:6 -/
 noncomputable def newNode.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val exceptionDo)
@@ -144,7 +145,7 @@ noncomputable def newNode.impl [FfiSyntax] [GoGlobalContext] : val :=
     would give it (k8s.io/kubernetes/pkg/apis/core/v1: SetDefaults_PodSpec, SetDefaults_Container;
     the model defaults the DaemonSet's own fields but not its template, apimodel's doc.go).
 
-    go: dsmain.go:88:6 -/
+    go: dsmain.go:90:6 -/
 noncomputable def newDaemonSet.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV BAnon
   (App (Val exceptionDo)
@@ -183,7 +184,7 @@ noncomputable def newDaemonSet.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- controlledBy reports whether the pod's controller is the object with this UID.
 
-    go: dsmain.go:116:6 -/
+    go: dsmain.go:118:6 -/
 noncomputable def controlledBy.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "pod"
   (Lam "uid"
@@ -215,7 +216,7 @@ noncomputable def controlledBy.impl [FfiSyntax] [GoGlobalContext] : val :=
     being deleted count too, as in the robustness test. It returns the number of such pods
     bound to a node (0 if the list fails).
 
-    go: dsmain.go:129:6 -/
+    go: dsmain.go:131:6 -/
 noncomputable def check.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "ctx"
   (Lam "admin"
@@ -328,7 +329,7 @@ noncomputable def check.impl [FfiSyntax] [GoGlobalContext] : val :=
     checks `checks` times, a millisecond apart, and stops everything. It returns the number of
     the DaemonSet's bound pods at the last check.
 
-    go: dsmain.go:161:6 -/
+    go: dsmain.go:163:6 -/
 noncomputable def run.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "cfg"
   (Lam "checks"
@@ -539,7 +540,7 @@ noncomputable def run.impl [FfiSyntax] [GoGlobalContext] : val :=
 
 /-- Main is the theorem's program: the scenario with `checks` checks.
 
-    go: dsmain.go:208:6 -/
+    go: dsmain.go:210:6 -/
 noncomputable def Main.impl [FfiSyntax] [GoGlobalContext] : val :=
   (LamV "checks"
   (App (Val exceptionDo)

@@ -132,20 +132,25 @@ every pod of the DaemonSet the server holds. It rests on
   a `WroteAt` between them would be lost);
 - **the informer contract**: the store's `LastStoreSyncResourceVersion` never decreases, across
   relists too, and once it is at least `r` the store reflects every change up to `r`;
-- **the model's write contract**: a failed write has no effect; a created pod's resource version is
-  the one returned.
+- **the model's write contract**: a created pod's resource version is the one returned. A failed
+  write may still have taken effect (`AmbiguousWrites`, on in the program since D51), and that
+  breaks the invariant: see below.
 
 Expectations (`ControllerExpectations`) only make the controller more conservative; S1 should not
 need them, though `SatisfiedExpectations` must be specified enough to show it does not panic.
 
-**A bug outside the theorem's premise (confirmed in phase 0).** If a pod create is committed but
+**A bug the theorem's program reaches (confirmed in phase 0; D51).** If a pod create is committed but
 its call returns an error (a timeout after the commit), `syncNodes` lowers the expectations
 (`CreationObserved`, `daemon_controller.go:1107`) and `OnWrite` never records a resource version.
 A later sync on a pod cache that has not seen the pod then creates a second one. The robustness
 test cannot reach this: its injected 500s are synthesized before the request is sent
 (`test/utils/robustness/transport.go:110`). Reproduced over the model with
-`Config.AmbiguousWrites` (`issues/k8s-daemonset-ambiguous-create-duplicate-pod.md`); the
-theorem's program runs with it off, the premise "a failed write had no effect" (D50).
+`Config.AmbiguousWrites` (`issues/k8s-daemonset-ambiguous-create-duplicate-pod.md`). The
+theorem's program runs with it on (D51, withdrawing D50's premise "a failed write had no effect"):
+S1, and so the adequacy theorem, is false of the unmodified controller, and `Main`'s Go test fails
+in such runs. The controller is left unfixed until the S1 proof genuinely gets stuck here
+(expected at the ambiguous create in `syncNodes`), or the user fixes it; candidate fixes in
+`issues/upstream/k8s-daemonset-ambiguous-create-duplicate-pod/`.
 
 ## Phases
 
@@ -171,7 +176,10 @@ theorem's program runs with it off, the premise "a failed write had no effect" (
    `AmbiguousWrites`, the node and the (template-defaulted) DaemonSet created by the admin client,
    the real informer factory and `NewDaemonSetsController`, `Run` with two workers, and `checks`
    checks (a loop bound, not a context) panicking if two pods of the DaemonSet target one node.
-   Its tests under `-race`: 300 runs of `Main(2000)`, no panic; the checker catches the known bug in 4 of 100 runs with `AmbiguousWrites`. The smoke test now builds in the module at
+   Its tests under `-race`: 300 runs of `Main(2000)`, no panic; the checker catches the known bug in 4 of 100 runs with `AmbiguousWrites`.
+   **Since D51 (2026-10-27)** `Main`'s model has every failure flag, `AmbiguousWrites` included, so
+   the checker can panic (2 of 100 runs at the change) and `TestMainNeverPanics` fails in such runs:
+   expected and accepted while the bug is unfixed. The smoke test now builds in the module at
    the pin (no generated `go.mod`). Still open: the event recorder (`tools/record`, names only).
 1. **The translation survey** (as `notes/k8s-etcd3-goose.md`). **Leaf libraries done**
    (2026-10-26, `notes/k8s-clientgo-goose.md`): in project `k8s-apiserver` (not a new project:
@@ -371,8 +379,8 @@ theorem's program runs with it off, the premise "a failed write had no effect" (
    `IndexKeys`/`ListIndexFuncValues` (unreached by `Main`), the factory and typed informers (C2/D2),
    the informer contract's assembly (the invariant tying the FIFO's queue, the store through
    `storeWriter` and `InformerModel`); `PopBatch`/`Transaction` (D3/C4: the path `Main`'s default
-   gates select, so either `Main` turns `InOrderInformersBatchProcess` off or C4 is fixed in
-   Perennial first). ~~Decision needed: the index functions `Fam` are pure functions of the
+   gates select; `Main` keeps the gate on, D51: C4 is to be fixed in Perennial, the gate is not
+   turned off to dodge it). ~~Decision needed: the index functions `Fam` are pure functions of the
    interface value~~ (approved and done in the third round, below).
    *Status, proofs, third round (2026-10-27, branch `k8s-daemonset-proof`, phase C3):* **index
    values per item**: `Fam` is a family of relations between an object and its values

@@ -52,9 +52,10 @@ func TestScheduled(t *testing.T) {
 	}
 }
 
-// TestAmbiguousWritesDetected: with ambiguous writes (outside the theorem's premise), the
+// TestAmbiguousWritesDetected: with ambiguous writes (on in serverConfig since D51), the
 // checker does catch the duplicate pod (issues/k8s-daemonset-ambiguous-create-duplicate-pod.md)
-// in some runs; informational, it does not fail.
+// in some runs; informational, it does not fail. TestMainNeverPanics and TestScheduled run the
+// same configuration and so fail in such runs: expected while the bug is unfixed (D51).
 func TestAmbiguousWritesDetected(t *testing.T) {
 	runs, checks := envInt("DSMAIN_AMBIGUOUS_RUNS", 20), envInt("DSMAIN_CHECKS", 2000)
 	cfg := serverConfig()
