@@ -32,7 +32,7 @@ abbrev insert.spec : Prop :=
     (m : Loc) (mm : GMap K Loc) (w : Loc) (wf : waitFor K),
   byDataOk mm ws →
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.util.workqueue ∗ wqHeap (K := K) pq ws ∗
-      m ↦$ mm ∗ w ↦ wf }}
+      m ↦$ mm ∗ wfFields (K := K) w wf }}
     (App (App (App (Val #(functions insert [T])) (Val #pq)) (Val #m)) (Val #w))
   {{ RET #(); ∃ (ws' : List (Loc × K)) (mm' : GMap K Loc),
       wqHeap (K := K) pq ws' ∗ m ↦$ mm' ∗ ⌜byDataOk mm' ws'⌝ }}

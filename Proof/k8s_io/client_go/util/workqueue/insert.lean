@@ -39,7 +39,8 @@ theorem insert.wp_proof
   wp_start as ⟨Hq, Hm, Hw⟩
   have hh := wq_heapIface (K := K) (T := T) @hLen @hLess @hSwap @hPush pq
   ihave #Hheap := hh $$ Hpkg
-  iStructNamed Hw
+  iunfold wfFields at Hw
+  icases Hw with ⟨data, readyAt, index⟩
   wp_auto
   wp_apply wp_map_lookup2 (V := Loc) T (go.GoType.PointerType (waitFor.ty T)) m mm wf.data' _ $$ Hm as Hm
   cases hk : mm !! wf.data'

@@ -11,6 +11,7 @@ public import Spec.k8s_io.client_go.util.workqueue.waitForPriorityQueue__Less
 public import Spec.k8s_io.client_go.util.workqueue.waitForPriorityQueue__Swap
 public import Spec.k8s_io.client_go.util.workqueue.waitForPriorityQueue__Push
 public import Spec.k8s_io.client_go.util.workqueue.waitForPriorityQueue__Pop
+public import Spec.k8s_io.client_go.util.workqueue.waitForPriorityQueue__Peek
 
 @[expose] public section
 
@@ -108,6 +109,68 @@ theorem wq_heapPopIface
   isplitr
   · ipureintro; rfl
   iexists _; iexact Ha
+
+/-- `pq.Len()` through the pointer, on the heap: its number of entries. -/
+theorem wqHeap_Len_of
+    (hLen : waitForPriorityQueue.Len.spec (GF := GF) (hG := hG))
+    (pq : Loc) (ws : List (Loc × K)) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.util.workqueue ∗ wqHeap (K := K) pq ws }}
+      (App (Val (pq @!! go.GoType.PointerType (waitForPriorityQueue.ty T) @!! go!"Len")) (Val #()))
+    {{ RET #(W64 (ws.length : Int)); wqHeap (K := K) pq ws ∗ ⌜ws.length < 2 ^ 63⌝ }} := by
+  wp_start as Hq
+  iunfold wqHeap at Hq
+  icases Hq with ⟨%s, Hqf, Hq⟩
+  ihave %Hlen : ⌜ws.length = sint.nat s.len ∧ 0 ≤ sint.Z s.len⌝ $$ [Hq]
+  · iunfold wqAt at Hq
+    icases Hq with ⟨Hs, -, -⟩
+    ihave %H := ownSlice_len s _ _ $$ Hs
+    ipureintro; simp only [List.length_map] at H; exact H
+  wp_auto
+  wp_apply (hLen (K := K) (T := T) s)
+  rw [show s.len = W64 (ws.length : Int) by rw [Hlen.1]; word]
+  iapply HΦ
+  isplitl
+  · iunfold wqHeap; iexists s; iframe
+  ipureintro; rw [Hlen.1]; word
+
+/-- `pq.Peek()` through the pointer, on a non-empty heap: its first entry. -/
+theorem wqHeap_Peek_of
+    (hPeek : waitForPriorityQueue.Peek.spec (GF := GF) (hG := hG))
+    (pq : Loc) (a : Loc × K) (ws : List (Loc × K)) :
+    {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.util.workqueue ∗
+        wqHeap (K := K) pq (a :: ws) }}
+      (App (Val (pq @!! go.GoType.PointerType (waitForPriorityQueue.ty T) @!! go!"Peek")) (Val #()))
+    {{ RET #(interface.mkOk (go.GoType.PointerType (waitFor.ty T)) #a.1 : GoInterface);
+        wqHeap (K := K) pq (a :: ws) }} := by
+  wp_start as Hq
+  iunfold wqHeap at Hq
+  icases Hq with ⟨%s, Hqf, Hq⟩
+  wp_auto
+  wp_apply (hPeek (K := K) (T := T) s a ws) $$ [$Hq] as Hq
+  iapply HΦ
+  iunfold wqHeap; iexists s; iframe
+
+/-- The first entry's `readyAt`, borrowed from the heap. -/
+theorem wqHeap_first_readyAt (pq : Loc) (a : Loc × K) (ws : List (Loc × K)) :
+    wqHeap (GF := GF) (K := K) pq (a :: ws) ⊢
+      ∃ t : time.Time, structFieldRef (waitFor K) go!"readyAt" a.1 ↦ t ∗
+        (structFieldRef (waitFor K) go!"readyAt" a.1 ↦ t -∗ wqHeap (K := K) pq (a :: ws)) := by
+  iintro Hq
+  iunfold wqHeap at Hq
+  icases Hq with ⟨%s, Hqf, Hq⟩
+  iunfold wqAt at Hq
+  icases Hq with ⟨Hs, Hcap, Hits⟩
+  icases BigSepL.bigSepL_cons.1 $$ Hits with ⟨Ha, Hits⟩
+  iunfold wfAt at Ha
+  icases Ha with ⟨#Hd, ⟨%t, Ht⟩, Hi⟩
+  iexists t
+  iframe Ht
+  iintro Ht
+  iunfold wqHeap; iexists s; iframe Hqf
+  iunfold wqAt; iframe Hs Hcap
+  iapply BigSepL.bigSepL_cons.2
+  iframe Hits
+  iunfold wfAt; iframe Hi; iframe #; iexists t; iexact Ht
 
 end lemmas
 

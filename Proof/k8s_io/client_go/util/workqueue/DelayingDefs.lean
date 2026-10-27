@@ -188,6 +188,19 @@ theorem byDataOk_delete {mm : GMap K Loc} {ws ws' : List (Loc × K)} (a : Loc ×
       · subst h; exact absurd rfl e
     · exact Or.inl
 
+/-- An entry's fields, owned (an entry received from `waitingForAddCh`, split). -/
+def wfFields (w : Loc) (wf : waitFor K) : IProp GF :=
+  iprop(structFieldRef (waitFor K) go!"data" w ↦ wf.data' ∗
+    structFieldRef (waitFor K) go!"readyAt" w ↦ wf.readyAt' ∗
+    structFieldRef (waitFor K) go!"index" w ↦ wf.index')
+
+theorem wfFields_of (w : Loc) (wf : waitFor K) :
+    (w ↦ wf : IProp GF) ⊢ wfFields (K := K) w wf := by
+  iintro Hw
+  iStructNamed Hw
+  iunfold wfFields
+  iframe
+
 /-- An entry sent on `waitingForAddCh`: a `*waitFor[T]` owned by its holder. -/
 def entryOk (w : Loc) : IProp GF :=
   iprop(∃ wf : waitFor K, w ↦ wf)
