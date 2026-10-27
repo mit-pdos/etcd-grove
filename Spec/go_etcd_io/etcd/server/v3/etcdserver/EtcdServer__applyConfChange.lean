@@ -59,14 +59,15 @@ abbrev EtcdServer.applyConfChange.spec : Prop :=
   ∀ (s cc ep : Loc) (m : ConfChangeM) (cs : Loc) (v3 : Bool) (ci : Loc) (ua : GoInterface)
     (E : apply.AEnv GF) (γs : ServerRaftNames) (Pre Q Post Adv : IProp GF) (i t : w64)
     (γB : backend.BNames) (cl : Loc) (rs : apply.RestM) (d : mvcc.KBReal) (al st lp : Loc)
-    (dv : Option NodeNames) (ds : List EntryM) (ca k : Nat) (cfg cs' : CCState) (e : EntryM)
+    (dv : Option Loc) (ds : List Draft.LogEntry) (v : Draft.ConfigView) (k : Nat)
+    (m' : Draft.Membership) (e : Draft.LogEntry)
     (lg bh : Loc) (ix : GoInterfaceOk) (lgh tl : Loc) (lid : w64) (prs : trIds) (lgc : Loc)
     (cid : w64),
   ccApplyOkM γs m → E.RO = srvRestOwnH γB cl (srvObjsOn al st lp cl d.be) →
   E.γ.kb = some d → d.γB = γB →
   (dv = none → γs.raft.dyn = false) →
-  (∀ γn, dv = some γn → v3 = true ∧ ∀ dec c0 h0 h1, γn.mode = .dyn dec c0 h0 h1 →
-    DynCCPreOp dec ds ca cfg (ccV2Of (.v1 (membership.ccRaftEff rs.bk m))) k e cs') →
+  (∀ n, dv = some n → v3 = true ∧
+    DynCCPre γs.raft.dec ds v (.v1 (membership.ccRaftEff rs.bk m)) k e m') →
   (m.type = W32 0 → m.nodeId ≠ lid → m.nodeId ∈ prs) →
   (m.type = W32 1 → m.nodeId ≠ lid) →
   (m.type = W32 0 →
@@ -77,7 +78,7 @@ abbrev EtcdServer.applyConfChange.spec : Prop :=
       srvCIAddr s ↦□ ciIface ci ∗ srvUberApplyAddr s ↦ ua ∗ apply.applierFor ua E ∗
       srvRaftNode s γs ∗ srvClusterAddr s ↦□ cl ∗ E.RO rs ∗
       membership.rcLgAddr cl ↦□ lgc ∗ ⌜lgc ≠ null⌝ ∗ membership.rcCidAddr cl ↦□ cid ∗
-      dvCCPre s dv ca cfg ds ∗
+      dvCCPre s γs dv v ds ∗
       ownConfChange cc (DFrac.own 1) m ∗ epConfState ep cs ∗
       srvBeHooksAddr s ↦□ bh ∗ storage.isBackendHooks bh ix lgh ∗
       srvTransportAddr s ↦□ srvTrIface tl ∗
@@ -96,7 +97,7 @@ abbrev EtcdServer.applyConfChange.spec : Prop :=
       (∃ (m' : ConfChangeM) (csl : Loc), ownConfChange cc DFrac.discard m' ∗ ⌜m'.id = m.id⌝ ∗
         epConfState ep csl) ∗
       E.RO (ccRest v3 m rs) ∗ (if v3 then iprop(Post ∨ Adv) else Pre) ∗
-      dvCCPost dv k cs' ∗ ccMembRes γs cl tl lid (ccPeersAfter v3 m rs.bk prs) ∗
+      dvCCPost γs dv k m' ∗ ccMembRes γs cl tl lid (ccPeersAfter v3 m rs.bk prs) ∗
       mvcc.storeRT E.γ }}
 
 end spec

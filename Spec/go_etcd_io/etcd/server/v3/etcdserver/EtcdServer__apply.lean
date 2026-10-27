@@ -62,7 +62,7 @@ abbrev EtcdServer.apply.spec : Prop :=
   ∀ (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp GF) (E : apply.AEnv GF) (ρ : ReqNames)
     (b : GoInterface) (es : GoSlice) (ents : List Loc) (ms : List EntryModel) (f0 : w64) (ep : Loc) (cs : Loc)
     (rac : GoChan) (st : ApplyState) (a at0 : w64) (x : apply.ApplyKV) (γr : ReadNames)
-    (A : List EntryModel) (γp : GName) (dv : Option NodeNames) (w : Nat),
+    (A : List EntryModel) (γp : GName) (dv : Option Loc) (w : Nat),
   ms ≠ [] → entriesFrom f0 ms → loopOk γ st (f0 - 1) → logShape ms →
   dvOk ρ.raft γr.kv.c0 dv (ciEff γ st.k) f0 ms →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗ isServer s γ ci TM E ρ γr ∗ batchWaitOk ρ E ms ∗ es ↦*□ ents ∗ entriesAt ents ms ∗

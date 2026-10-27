@@ -54,7 +54,7 @@ batch's share of the write budget (`txn.storeWTs`, one token per entry of `ce`) 
 theorem run_job_body (hAA : EtcdServer.applyAll.spec (GF := GF) (hG := hG))
     (C : ApplyCtx GF) (A ce : List EntryModel)
     (apL : Loc) (es : GoSlice) (ceL : List Loc) (rac nc : GoChan) (γs : schedule.SchedNames)
-    (dv : Option NodeNames) (γnc : NotifyNames)
+    (dv : Option Loc) (γnc : NotifyNames)
     (hidx : srvIdxOk C.ai₀ (A ++ ce)) (hok : logShape (A ++ ce))
     (hw : C.γw = C.ρ.wait)
     -- (D43 M3, 2026-10-25) the driver's view, `applyAll`'s (`dvOk`): without one, raft's static
