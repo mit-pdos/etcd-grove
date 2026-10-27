@@ -1243,7 +1243,10 @@ theorem NewServer.wp_proofM (on : Bool)
         rfl
       ipureintro; exact Hhknn
     -- (E3l) the equation of the backend names: the write right lends the store's half on `d.be`
-    iapply rwLens_authBeOn
+    isplitr
+    · iapply rwLens_authBeOn
+    -- (E3n) and so does the rest resource, at the same rest value
+    iapply roLends_authBeOn
   imodintro
   iapply HΦ
   iright

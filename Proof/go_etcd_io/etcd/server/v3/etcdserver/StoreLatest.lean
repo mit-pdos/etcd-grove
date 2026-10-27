@@ -140,14 +140,24 @@ def authApplyResPre (M : auth.AuthMode) (stl : Loc) (st : auth.AuthState) (d : m
       ⌜hs.getLast? = some st⌝ ∗ authStepsAtHook stl d γa T)
   | _ => iprop(True)
 
+/-- **The rest resource lends the store's half of `be` at the same rest value** (E3n; persistent):
+what the apply thread holds (`E.RO`, the rest buckets with the objects' backend parts) lends
+`authBeOn stl bel` to an admin entry's application and takes it back, the rest buckets kept. -/
+def roLendsAuthBe (RO : apply.RestM → IProp GF) (stl bel : Loc) : IProp GF :=
+  iprop(□ ∀ r : apply.RestM, RO r -∗ authBeOn stl bel ∗ (authBeOn stl bel -∗ RO r))
+
+instance roLendsAuthBe_persistent (RO : apply.RestM → IProp GF) (stl bel : Loc) :
+    Persistent (roLendsAuthBe RO stl bel) := by
+  unfold roLendsAuthBe; infer_instance
+
 /-- **The server's row for its apply thread's auth resource** (E3l): the store its `authStore`
 field holds, `authApplyResB` in the environment's mode on the backend `bel` at the environment's
 hook (`E.P`, `E.f`), and the equation of the backend names: the environment's write right lends
-the store's half of `be` on `bel`. -/
+the store's half of `be` on `bel`, and (E3n) so does its rest resource, at the same rest value. -/
 def srvAuthApplyResB (s : Loc) (E : apply.AEnv GF) (st : auth.AuthState) : IProp GF :=
   iprop(∃ (stl bel : Loc), structFieldRef go_etcd_io.etcd.server.v3.etcdserver.EtcdServer
       go!"authStore" s ↦□ (auth.authIface stl) ∗ authApplyResB E.authMode stl st bel E.P E.f ∗
-    rwLens E.RW (authBeOn stl bel))
+    rwLens E.RW (authBeOn stl bel) ∗ roLendsAuthBe E.RO stl bel)
 
 end defs
 
@@ -196,7 +206,7 @@ theorem authApplyResB_of_pre (M : auth.AuthMode) (stl : Loc) (st : auth.AuthStat
 theorem srvAuthApplyResAt_of_B (s : Loc) (E : apply.AEnv GF) (st : auth.AuthState) :
     srvAuthApplyResB (GF := GF) s E st ⊢ srvAuthApplyResAt s E st := by
   unfold srvAuthApplyResB srvAuthApplyResAt
-  iintro ⟨%stl, %bel, #Hf, H, -⟩
+  iintro ⟨%stl, %bel, #Hf, H, -, -⟩
   iexists stl
   iframe Hf
   iapply authApplyResAt_of_B $$ H
@@ -250,6 +260,23 @@ theorem rwLens_authBeOn (γB : backend.BNames) (al stl lp cl bel : Loc) :
   iintro Hau
   iunfold srvRestRWH
   iframe Hrw
+  iunfold srvObjsOn
+  iframe Hal Hau Hle Hcl
+
+/-- **The server's rest resource lends the store's half on its backend** (E3n): of
+`srvRestOwnH`'s objects (`srvObjsOn`), as the server builds `E.RO`. -/
+theorem roLends_authBeOn (γB : backend.BNames) (c al stl lp cl bel : Loc) :
+    ⊢ roLendsAuthBe (GF := GF) (srvRestOwnH γB c (srvObjsOn al stl lp cl bel)) stl bel := by
+  iunfold roLendsAuthBe
+  iintro !> %r HRO
+  iunfold srvRestOwnH at HRO
+  icases HRO with ⟨Hr, Hobj⟩
+  iunfold srvObjsOn at Hobj
+  icases Hobj with ⟨Hal, Hau, Hle, Hcl⟩
+  iframe Hau
+  iintro Hau
+  iunfold srvRestOwnH
+  iframe Hr
   iunfold srvObjsOn
   iframe Hal Hau Hle Hcl
 

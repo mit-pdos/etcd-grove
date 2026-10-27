@@ -158,7 +158,7 @@ theorem srv_uberAuthStepsL_on
   icases Hb with ⟨%au, %le, #Hauf, #Hlef, #Hub, %stl, %Hau, #HL⟩
   subst Hau
   iunfold srvAuthApplyResB at HR
-  icases HR with ⟨%stl', %bel, #Hf, HB, #Hlens⟩
+  icases HR with ⟨%stl', %bel, #Hf, HB, #Hlens, #Hro⟩
   icombine Hauf Hf gives %Hst
   have Hst' := apply.mkOk_ptr_inj _ _ _ Hst
   subst Hst'
@@ -171,7 +171,7 @@ theorem srv_uberAuthStepsL_on
   isplitl [Ho HX HT Htp]
   · iunfold srvAuthApplyResB
     iexists stl, bel
-    iframe Hf Hlens
+    iframe Hf Hlens Hro
     rw [hB]
     unfold authApplyResB
     iexists hs, P0, f0, T, be
