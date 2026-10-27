@@ -19500,6 +19500,10 @@ under the batch lock, the user chose (b).
   (`authPubLbM`) holds a state recorded at an index at least `i` (`authSnapFrom`), true of the
   real backend provided a state is published only after its batch's write-back (the store's
   publication is to be done by the apply thread after the admin step's `Unlock`);
+- the write contract at every schema auth backend on the server's backend (appended by E3l), at
+  the post-lock hook the server freezes (appended by E3n, 2026-10-27: "E3n of the auth plan"): an
+  admin entry's batch transaction runs under the server's hook, not the `nil` one of the store's
+  construction;
 - `CreateAuthBuckets` (one transaction, from `rbOwn` with the auth buckets absent or empty);
 - at a backend swap (`applySnapshot`'s restore, `Recover`), the old lock's `authLockI` given out
   and the new one's installed (the share with the restored state appended, `Recover`'s post).
@@ -22976,3 +22980,82 @@ is new: `apply.opW_isGet`, `readonlyW`, `readonlyW_of_txnReadonly`, `permCheck3L
 `insLt`, `eq_of_perm_sorted`, `rolesSorted` and its lemmas, `authDet_of_sorted`, `grantPermFresh`,
 `adminDetReq`; `adminPropOk`, `adminPropRes`, `commitOkOn_admin`; restated `apply_auth_store_range_lb`,
 `apply_check_txn_auth_lb`. No closed theorem changed. Trust base unchanged.
+
+## E3n of the auth plan: the admin steps at the server's frozen hook; the uber-applier's latest-state admin triples; an admin entry's application with auth on (2026-10-27 · `notes/auth-plan.md`, E3l's and E3m's left items)
+
+**(1) The hook the admin steps run under, and the uber-applier's admin triples.** E3l's row
+(`authApplyResB`) held the store's admin steps (`apply.isAuthStepsX`) and the write contract at every
+schema auth backend (`authWBackendAt`) at the batch-lock contract `P f` D22's premise gives at the
+store's construction, when the backend's post-lock hook is still `nil`. An admin entry's application
+runs under the hook the server freezes later (`E.P = batchLockInv γA (metaTM …)`, `E.f = #hook`), and
+the apply layer's admin triples (`applierAdmin_uberX`) ask the store's steps at `E.P E.f`: the two did
+not meet. Now, as `authApplyOkM` already does for the store's other contracts:
+- the construction's post gives `authApplyResPre M stl st d` (`StoreLatest.lean`): the row with its
+  hook-dependent facts for every frozen hook of the backend `d` (`authStepsAtHook`: `∀ W Pk f`,
+  `isBackend … Pk`, `plHookRO d.γB f`, `f ≠ nil`, the write contract and the admin steps at `Pk #f`);
+- `authApplyResB M stl st bel Pk f` takes the hook as parameters, and `srvAuthApplyResB` is at
+  `E.P E.f`; `NewServer` instantiates the construction's at the frozen hook
+  (`authApplyResB_of_pre`, with `isBackend` and `plHookRO`);
+- **D22's named premise `authSchemaSrv` changes accordingly**: its E3l clause (the write contract at
+  every schema auth backend on the server's backend) is now at the frozen hook (`∀ W' Pk' f'`,
+  `isBackend d.γB d.P W' Pk' d.be`, `plHookRO d.γB f'`, `f' ≠ nil`), with the same write token `T`.
+  One more item for D22's list: the auth write contract at the server's post-lock hook.
+
+`apply.uberAuthStepsL_of_base` (`apply/UberAdmLBase.lean`): the uber-applier's construction
+(`uberBaseAuth`: `uberIs`'s `baseAuth` and `baseShape`), its store's checks at the latest state and
+its admin steps carrying `X` give `uberAuthStepsL` (the base chain's admin triples,
+`applierAdmin_uberX`; the auth applier's latest-state `Apply` over an inner applier that does not
+reject, `applierAdmL_auth`, `applyNR_base`), as `uberKVL_of_base` does for KV. `srv_uberAuthStepsL_on`
+(`UberOn.lean`; restated `server_uber_auth_steps_on`, every callee linked): with auth on, the built
+part's store fact (`srvUberBase`) and the apply thread's row give `uberAuthStepsL ua E (adminW stl
+bel (.on γa) E.P E.f T) (authOwnFu ∗ tieRes stl) (latestRes stl)`, the row given back.
+
+**(2) An admin entry's application with auth on.** Two gaps closed first:
+- *The borrow of the store's `be` half.* The apply thread holds the rest resource (`E.RO`, the rest
+  buckets with the objects' backend parts), not the write right `E.RW` the E3l lens was over, and a
+  lens through `E.RW` would give back some rest value, not the same. `srvAuthApplyResB` gains
+  `roLendsAuthBe E.RO stl bel` (`□ ∀ r, E.RO r -∗ authBeOn stl bel ∗ (authBeOn stl bel -∗ E.RO r)`),
+  which `NewServer` proves of `srvRestOwnH … (srvObjsOn …)` (`roLends_authBeOn`).
+- *The outcome as the model's step.* `applyStep_admin_keep` (`ApplyTieOn.lean`): an admitted admin
+  request's `apply.Apply` keeps the KV log and the chain (an admin kind is neither pre-v3 nor a store
+  kind, nor an alarm). `adminOut_model`: `Apply.adminSpecL`'s admin outcome with `v3`, at a history
+  whose latest state is `st`: a refusal at the latest state keeps the authority and the state; a
+  dispatched request's result (without an extra error) is a step to `o`, the authority at the history
+  after it, whose latest state `outState st o` the model's admin step reaches (`adminStateR`), for
+  each of `SetUp`'s five kinds (`AuthEnable` through `authEnableR`).
+
+`apply_admin_entry_on` (`AdminEntryOn.lean`, the triple `adminEntryOn.spec`; restated
+`server_admin_entry_on`, every callee linked): `apply.Apply(lg, e, uberApply, w, true)` on an
+admitted admin request, from the row's parts (the authority with its fuel and tie at `hs`, latest
+`st`; `T`; the provider's admin share; the write contract at every schema auth backend on `bel`), the
+rest lens and the rest `E.RO rs`, `uberAuthStepsL` and one receipt: the half of `be` borrowed into
+`adminW` (`adminW_of_beOn`) and returned (`beOn_of_adminW`), `latestRes` lent (`ownFuT_lend`); post:
+`Apply`'s (the result, the waiter's part, `adminRejErr`), the rest at the same value, the KV log and
+chain kept, `T` and the admin share back, and the authority at a history `hs'` whose latest state
+`st'` satisfies `adminStateR rq st st'`. Its premise `noSideEffect rq = false` excludes a crafted
+request that also sets a read field (`apply.Apply` would skip it with no waiter); the server's
+proposers set one field.
+
+**Not done (in order).**
+- `applyEntryNormal.specOn` itself (over `isServerM true`, `srvApplyKVOn`): the no-data entries, KV
+  entries (`kv_entry_pre_on`, `apply.Apply.kvSpecL` with `L hs` lent by `ownFuT_lend`,
+  `kvOn_after_kv`, `kv_entry_post_on`, then `kvLogAtM true` for `applied_predepositM`), cluster
+  entries, admin entries (`apply_admin_entry_on`; the receipt taken at an apply-thread step; the
+  model's step `outcomeOn_of_adminStateR` with `entryDetOn` for `kvEntryOn`; `authPublishT` for the
+  published lower bound), replays (`v3 = false`); handing the waiter `resultΨOn` (`authTie`,
+  `entryWitOn`); the NOSPACE branch dead (`applyResultIs_notNoSpaceOn`, `_Admin`). It is today's
+  690-line proof over the mode-`on` rows; a stage of its own. Two lemmas it needs are still missing:
+  the mode-`on` `kvApplied_next` (`kvAppliedLOn … (A ++ [m])` to `kvLogAtM true γr i x'.log`), and the
+  rest across an admin entry (`restEntry`'s `restAfter` is the identity on an admin kind,
+  `restAfter_other`, so `srvRest E γr (A ++ [m]) = srvRest E γr A` for it).
+- `applyAll`, `run`, `start` with auth on.
+
+**Exported statements changed.** Definitions: `authApplyResB` (the hook as parameters),
+`srvAuthApplyResB` (at `E.P E.f`; `roLendsAuthBe`), `authStoreKit` (post: `authApplyResPre`),
+`authSchemaSrv` (the clause at the frozen hook). Theorems: `authApplyResAt_of_B` (the hook
+parameters). New: `authStepsAtHook`, `authApplyResPre`, `authApplyResB_of_pre`, `roLendsAuthBe`,
+`roLends_authBeOn`, `apply.uberAuthStepsL_of_base`, `srv_uberAuthStepsL_on`,
+`server_uber_auth_steps_on`, `applyStep_admin_keep`, `adminOut_model`, `adminEntryOn.spec`,
+`apply_admin_entry_on`, `server_admin_entry_on`. No closed theorem changed.
+
+**Trust base.** Unchanged (no axiom, no `sorry`); D22's named premise `authSchemaSrv` says more.
