@@ -197,6 +197,23 @@ theorem's program runs with it off, the premise "a failed write had no effect" (
    `Get` to `Done`; the delaying queue; the rate limiters), `tools/cache`'s store, thread-safe map
    (with its resource version) and indexers, the listers, `flowcontrol.Backoff`, the consistency
    store (`k8s.io/client-go/util/consistency`), `ControllerExpectations`.
+   *Status, `util/workqueue` (2026-10-27, branch `k8s-leaf-workqueue`):* linked in
+   `Proof/k8s_io/client_go/util/workqueue/Link.lean` (results `Results.lean`, TCB
+   `etc/tcb-collections/clientgo-workqueue.txt`). The typed queue proved: `Get` returns either
+   `shutdownLb` (and the zero item) or the item's exclusive key token `keyTok γ k`, which `Done`
+   consumes, so no two workers hold one key between `Get` and `Done` (the exclusivity S1 rests
+   on); `Add`, `Len`, `ShuttingDown` (`true` gives `shutdownLb`), `ShutDown`/`ShutDownWithDrain`
+   (each spends a shutdown token, `shutdownToks`), constructors for the default FIFO without
+   metrics. The rate limiters proved (`When`'s bound: exponential `≤ maxDelay`, fast-slow `fast ∨
+   slow`, bucket and max-of `≥ 0`; `DefaultTypedControllerRateLimiter`). The delaying and
+   rate-limiting queues proved (`waitingLoop`, `AddAfter`, `AddRateLimited`, `Forget`,
+   `NumRequeues`, `NewTypedRateLimitingQueueWithConfig` for an unconfigured or named queue) up to
+   gap C2 (the promoted methods' specs are hypotheses, `notes/k8s-clientgo-goose.md`) and the
+   waiting loop's deferred `HandleCrashWithLogger` (`sorry`, a Goose bug dropping a deferred call's
+   variadic argument, `notes/perennial-changes.md`). Two bugs filed:
+   `issues/k8s-workqueue-done-without-get-duplicates.md`,
+   `issues/k8s-workqueue-exponential-backoff-2to63.md`. Not done: `TypedWithMaxWaitRateLimiter`,
+   metrics other than the no-op ones, `SetProvider`, `parallelizer.go`.
 3. **The model API server's spec and proof.** Logically atomic triples over an abstract state of
    resources and its change log (compare D44-D48's KV state and its watches: a watch is repeated
    reads of the log).

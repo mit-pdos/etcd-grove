@@ -25,7 +25,7 @@ variable [sem : go.Semantics]
 variable [package_sem : k8s_io.client_go.util.workqueue.Assumptions]
 
 theorem waitForPriorityQueue.Len.wp_proof : waitForPriorityQueue.Len.spec (GF := GF) (hG := hG) := by
-  intro K T _ s
+  intro T s
   wp_start as -
   wp_auto
   iapply HΦ

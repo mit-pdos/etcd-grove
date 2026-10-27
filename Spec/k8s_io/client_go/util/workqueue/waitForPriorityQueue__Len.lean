@@ -25,7 +25,7 @@ variable [package_sem : k8s_io.client_go.util.workqueue.Assumptions]
 
 /-- `pq.Len()`: the slice's length. -/
 abbrev waitForPriorityQueue.Len.spec : Prop :=
-  ∀ {K : Type} {T : go.GoType} [QItem (GF := GF) K T] (s : GoSlice),
+  ∀ {T : go.GoType} (s : GoSlice),
   {{ isPkgInit (PROP := IProp GF) pkg_id.k8s_io.client_go.util.workqueue }}
     (App (Val (s @!! waitForPriorityQueue.ty T @!! go!"Len")) (Val #()))
   {{ RET #s.len; True }}

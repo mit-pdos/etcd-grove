@@ -217,7 +217,8 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   `TypedBucketRateLimiter[T]`): every call through `TypedRateLimitingInterface[T]` (the DaemonSet
   controller's `Get`, `Done`, `AddRateLimited`) resolves through these unfolds.
 - **Workaround here.** The promoted methods excluded in `Code/k8s_io/client_go/util/workqueue.toml`
-  (no `MethodUnfold` for them).
+  (no `MethodUnfold` for them); their specs are hypotheses of the work queue's results that reach
+  them (2026-10-27, `notes/k8s-clientgo-goose.md`, "What C2 leaves unlinked").
 - **Proposed.** `glang.VerbatimExpr(ty)` for the struct there (one line; tried in a scratch copy of
   the pinned translator: workqueue's translation then elaborates, nothing else changes), with a
   Goose test of a generic struct embedding an interface.
@@ -266,6 +267,62 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   byte loop, which computes the same result).
 - **Proposed.** Range over a string, stepping by `utf8` decoding (needs a model of
   `utf8.DecodeRuneInString`).
+- **Status.** Not started.
+
+### Goose: a deferred call drops its variadic argument (2026-10-27, client-go workqueue)
+
+- **Missing.** `deferStmt` (`goose/goose.go:2128`) calls the deferred function `$f` with
+  `$a0 .. $a(n-1)` for the call's `n` syntactic arguments, but `callExprPrelude` binds the
+  arguments as the callee's parameters: for a variadic callee, the variadic slice is one more name
+  (`$a1`, `slice.nil` when no variadic argument is passed). So `defer
+  utilruntime.HandleCrashWithLogger(logger)` (`HandleCrashWithLogger(logger, handlers ...)`)
+  becomes `$f $a0`, a partial application: the deferred function never runs. (With variadic
+  arguments passed, presumably the converse: more names applied than bound.)
+- **Soundness.** The model is not Go's: a deferred variadic call does nothing in it, so a proof says
+  nothing about that call's effects (a trust-base bug, not a missing feature).
+- **Needed by.** client-go's workqueue: `delayingType.waitingLoop` (`defer
+  utilruntime.HandleCrashWithLogger(logger)`) and `Typed.updateUnfinishedWorkLoop`
+  (`HandleCrashWithContext`).
+- **Workaround here.** None: `delayingType.waitingLoop`'s proof leaves its two returns (where the
+  deferred call runs) `sorry` (gap G-defer-variadic) rather than prove the model's no-op.
+- **Proposed.** In `deferStmt`, apply `$f` to the names the prelude binds (the callee signature's
+  parameter count for a variadic call); a Goose test of `defer f(x)` with `f(x int, ys ...int)`.
+- **Status.** Not started.
+
+### Semantics: `sync.Mutex{}` (2026-10-26, client-go workqueue)
+
+- **Missing.** `sync.Mutex`'s model has underlying type `go.bool` (`TrustedCode/sync.lean`), and a
+  composite literal at a named type steps at its underlying type, so `&sync.Mutex{}` reaches
+  `CompositeLiteral go.bool (LiteralValueV [])`, which has no step (composite literals step at
+  structs, arrays, slices, maps and pointers only).
+- **Needed by.** client-go's `newQueue` (`sync.NewCond(&sync.Mutex{})`); the backend's
+  `backend.wp_mutexLit` (`storage/backend/MutexLit.lean`) states the same gap as an axiom.
+- **Workaround here.** A hypothesis class, `EtcdGrove.MutexLitSemantics`
+  (`Proof/sync/MutexLitSemantics.lean`, in `SEM_PREMISES`): the empty literal of `go.bool` is
+  `false`.
+- **Proposed.** An empty composite literal of a type whose underlying type is not a struct (and
+  has no literal rule) is its zero value; or `sync.Mutex`'s model as a struct.
+- **Status.** Not started.
+
+### Semantics: `float64(c)` of an untyped integer constant (2026-10-27, client-go workqueue)
+
+- **Missing.** `backoff > math.MaxInt64` with `backoff : float64` is emitted as `Convert
+  go.untypedInt go.float64 #c` at run time, and `UntypedIntSemantics` converts untyped integers to
+  the integer types only.
+- **Needed by.** client-go's `TypedItemExponentialFailureRateLimiter.When`.
+- **Workaround here.** A hypothesis class, `EtcdGrove.UntypedIntToFloat64Semantics`
+  (`Proof/k8s_io/client_go/util/workqueue/UntypedIntToFloat.lean`, in `SEM_PREMISES`): it steps to
+  an uninterpreted float of the integer, as `float64(n)` of a typed integer does.
+- **Proposed.** Goose folding the constant conversion, or the step in `UntypedIntSemantics`.
+- **Status.** Not started.
+
+### Specs: `container/heap` (2026-10-27, client-go workqueue)
+
+- **Missing.** No specs of `container/heap` in Perennial. This repository states `heap.Push`,
+  `heap.Fix` (the lessor's), `heap.Init`, `heap.Pop` (the work queue's) as trust-boundary axioms
+  over the contract `heap.heapIface` (`Proof/container/heap/Defs.lean`); `Init` and `Pop` are
+  stated up to a permutation (no heap order).
+- **Proposed.** Proved specs in Perennial (the package is plain Go over `heap.Interface`).
 - **Status.** Not started.
 
 ### Specs: `reflect`

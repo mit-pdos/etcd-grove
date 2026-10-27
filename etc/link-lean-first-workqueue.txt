@@ -1,0 +1,118 @@
+# The functions linked in `Proof/k8s_io/client_go/util/workqueue/Link.lean` (all Lean-first),
+# read by `etc/gen-link.py --workqueue`: `<fn>: <callees in the order of <fn>.wp_proof's
+# hypotheses>`. client-go's work queue (`k8s.io/client-go/util/workqueue`: the typed queue, the
+# rate limiters, the delaying and rate-limiting queues; notes/k8s-daemonset-plan.md phase 2); the
+# results are in the namespace `workqueue`.
+#
+# the trust boundary: names-only functions (axioms)
+math_Pow:
+time_Duration__Nanoseconds_ptr:
+rate_NewLimiter:
+rate_Limiter__Reserve:
+rate_Reservation__Delay:
+clock_RealClock__Now:
+clock_RealClock__NewTimer:
+clock_RealClock__NewTicker:
+clock_realTimer__C:
+clock_realTimer__Stop:
+clock_realTicker__C:
+clock_realTicker__Stop:
+Background:
+runtime_HandleCrashWithLogger:
+heap_Init_:
+heap_Pop:
+heap_Push:
+heap_Fix:
+#
+# k8s.io/apimachinery/pkg/util/sets (`Set[T]`'s methods the queue uses)
+Set__Has:
+Set__Insert:
+Set__Delete:
+Set__Len:
+#
+# the typed queue (`queue.go`)
+queue__Push:
+queue__Pop:
+queue__Len:
+queue__Touch:
+noMetrics__add:
+noMetrics__get:
+noMetrics__done:
+noMetrics__updateUnfinishedWork:
+DefaultQueue:
+newQueue:
+newQueueMetrics:
+newQueueWithConfig: DefaultQueue newQueueMetrics newQueue
+NewTypedWithConfig: newQueueWithConfig
+NewTyped: NewTypedWithConfig
+Typed__Add: Set__Has Set__Insert queue__Push queue__Touch noMetrics__add
+Typed__Get: Set__Insert Set__Delete queue__Len queue__Pop noMetrics__get
+Typed__Done: Set__Has Set__Delete Set__Len queue__Push noMetrics__done
+Typed__Len: queue__Len
+Typed__ShuttingDown:
+Typed__ShutDown:
+Typed__ShutDownWithDrain: Set__Len
+#
+# the rate limiters (`default_rate_limiters.go`)
+TypedItemExponentialFailureRateLimiter__When: time_Duration__Nanoseconds_ptr math_Pow
+TypedItemExponentialFailureRateLimiter__Forget:
+TypedItemExponentialFailureRateLimiter__NumRequeues:
+TypedItemFastSlowRateLimiter__When:
+TypedItemFastSlowRateLimiter__Forget:
+TypedItemFastSlowRateLimiter__NumRequeues:
+TypedBucketRateLimiter__When: rate_Limiter__Reserve rate_Reservation__Delay
+TypedBucketRateLimiter__Forget:
+TypedBucketRateLimiter__NumRequeues:
+TypedMaxOfRateLimiter__When:
+TypedMaxOfRateLimiter__Forget:
+TypedMaxOfRateLimiter__NumRequeues:
+NewTypedItemExponentialFailureRateLimiter: TypedItemExponentialFailureRateLimiter__When TypedItemExponentialFailureRateLimiter__Forget TypedItemExponentialFailureRateLimiter__NumRequeues
+NewTypedItemFastSlowRateLimiter: TypedItemFastSlowRateLimiter__When TypedItemFastSlowRateLimiter__Forget TypedItemFastSlowRateLimiter__NumRequeues
+NewTypedMaxOfRateLimiter: TypedMaxOfRateLimiter__When TypedMaxOfRateLimiter__Forget TypedMaxOfRateLimiter__NumRequeues
+DefaultTypedItemBasedRateLimiter: NewTypedItemExponentialFailureRateLimiter
+DefaultTypedControllerRateLimiter: NewTypedItemExponentialFailureRateLimiter rate_NewLimiter NewTypedMaxOfRateLimiter TypedBucketRateLimiter__When TypedBucketRateLimiter__Forget TypedBucketRateLimiter__NumRequeues
+#
+# the delaying queue (`delaying_queue.go`)
+waitForPriorityQueue__Len:
+waitForPriorityQueue__Less:
+waitForPriorityQueue__Swap:
+waitForPriorityQueue__Push:
+waitForPriorityQueue__Pop:
+waitForPriorityQueue__Peek:
+insert: heap_Fix heap_Push waitForPriorityQueue__Len waitForPriorityQueue__Less waitForPriorityQueue__Swap waitForPriorityQueue__Push
+noopMetric__Inc:
+noopMetricsProvider__NewRetriesMetric:
+defaultRetryMetrics__retry: noopMetric__Inc
+newRetryMetrics: defaultRetryMetrics__retry noopMetricsProvider__NewRetriesMetric
+delayingType__ShutDown: Typed__ShutDown
+delayingType__AddAfter: delayingType__ShuttingDown delayingType__Add
+delayingType__waitingLoop: delayingType__Add Typed__ShuttingDown insert heap_Init_ heap_Pop runtime_HandleCrashWithLogger waitForPriorityQueue__Len waitForPriorityQueue__Less waitForPriorityQueue__Swap waitForPriorityQueue__Push waitForPriorityQueue__Pop waitForPriorityQueue__Peek
+newDelayingQueue: newRetryMetrics delayingType__waitingLoop
+NewTypedDelayingQueueWithConfig: Background NewTypedWithConfig newDelayingQueue clock_RealClock__Now clock_RealClock__NewTimer clock_RealClock__NewTicker clock_realTimer__C clock_realTimer__Stop clock_realTicker__C clock_realTicker__Stop
+#
+# the rate-limiting queue (`rate_limiting_queue.go`)
+rateLimitingType__AddRateLimited: delayingType__AddAfter
+rateLimitingType__Forget:
+rateLimitingType__NumRequeues:
+NewTypedRateLimitingQueueWithConfig: NewTypedDelayingQueueWithConfig
+#
+# gap C2 (notes/k8s-clientgo-goose.md): the methods the delaying and rate-limiting queues promote
+# from their embedded interfaces (`TypedInterface[T]`, `TypedDelayingInterface[T]`) are excluded
+# from the translation (`Code/k8s_io/client_go/util/workqueue.toml`: Goose's unfolding of a
+# generic struct's promoted pointer method does not elaborate), so no call of one can be
+# executed; their specs are stated, not proved (`?`): each result reaching one takes its spec as
+# a hypothesis (`section links_pending`)
+delayingType__Add: ?
+delayingType__Len: ?
+delayingType__Get: ?
+delayingType__Done: ?
+delayingType__ShutDownWithDrain: ?
+delayingType__ShuttingDown: ?
+rateLimitingType__Add: ?
+rateLimitingType__Len: ?
+rateLimitingType__Get: ?
+rateLimitingType__Done: ?
+rateLimitingType__ShutDown: ?
+rateLimitingType__ShutDownWithDrain: ?
+rateLimitingType__ShuttingDown: ?
+rateLimitingType__AddAfter: ?

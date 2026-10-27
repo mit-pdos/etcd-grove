@@ -56,7 +56,7 @@ theorem wq_heapIface
       ihave %H := ownSlice_len s _ _ $$ Hs
       ipureintro; simp only [List.length_map] at H; word
     wp_auto
-    wp_apply (hLen (K := K) (T := T) s)
+    wp_apply (hLen (T := T) s)
     iapply HΦ
     isplitl
     · iunfold wqHeap; iexists s; iframe
@@ -126,7 +126,7 @@ theorem wqHeap_Len_of
     ihave %H := ownSlice_len s _ _ $$ Hs
     ipureintro; simp only [List.length_map] at H; exact H
   wp_auto
-  wp_apply (hLen (K := K) (T := T) s)
+  wp_apply (hLen (T := T) s)
   rw [show s.len = W64 (ws.length : Int) by rw [Hlen.1]; word]
   iapply HΦ
   isplitl

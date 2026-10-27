@@ -50,6 +50,7 @@ usage: etc/gen-link.py --raft > Proof/go_etcd_io/raft/v3/Link.lean
        etc/gen-link.py --cacher > Proof/k8s_io/apiserver/pkg/storage/cacher/Link.lean
        etc/gen-link.py --k8setcd3 > Proof/github_com/mit_pdos/etcd_grove/examples/k8setcd3/Link.lean
        etc/gen-link.py --common > Proof/github_com/mit_pdos/etcd_grove/examples/common/Link.lean
+       etc/gen-link.py --workqueue > Proof/k8s_io/client_go/util/workqueue/Link.lean
 
 `--cache` links the proofs of etcd's `cache` package (`Proof/go_etcd_io/etcd/cache/v3/` and
 the specs and proofs of its functions), which are all
@@ -165,6 +166,11 @@ SEM_PREMISES = [
     "EtcdGrove.ErrorStringLeaf",
     # (rafthttp stage 6f) a `*errorString` not a `writerToResponse` (`rafthttp/Pipe.lean`)
     "EtcdGrove.ErrorStringNotWriter",
+    # (client-go's work queue) `sync.Mutex{}` is the zero mutex (`Proof/sync/MutexLitSemantics.lean`)
+    "EtcdGrove.MutexLitSemantics",
+    # (client-go's work queue) `float64(n)` of an untyped integer constant
+    # (`Proof/k8s_io/client_go/util/workqueue/UntypedIntToFloat.lean`)
+    "EtcdGrove.UntypedIntToFloat64Semantics",
 ]
 
 # The Lean-first links: (callee list, what the links open, the package assumptions they
@@ -377,6 +383,13 @@ LEAN_FIRST = {
     # the examples' shared start (examples/common, D33): a member's configuration and server
     # (over the server's, `@`), its gRPC service (over v3rpc's, `@`) and a client (over the
     # client's `New`, `@`), which the examples' Links take as `@` callees
+    # client-go's work queue (k8s.io/client-go/util/workqueue, notes/k8s-daemonset-plan.md phase 2):
+    # the typed queue, the rate limiters, the delaying and rate-limiting queues, over sets' and
+    # the trust boundary of k8s.io/utils/clock, klog, x/time/rate, container/heap and math
+    "--workqueue": ("link-lean-first-workqueue.txt",
+                    "k8s_io.client_go.util.workqueue k8s_io.apimachinery.pkg.util.sets",
+                    "k8s_io.client_go.util.workqueue.Assumptions",
+                    "client-go's work queue's proofs (`k8s.io/client-go/util/workqueue`)", [""]),
     "--common": ("link-lean-first-common.txt",
                  "github_com.mit_pdos.etcd_grove.examples.common",
                  "github_com.mit_pdos.etcd_grove.examples.common.Assumptions",
@@ -385,7 +398,8 @@ LEAN_FIRST = {
 # The mode whose results are put in a namespace of their own (see the docstring).
 NAMESPACED = {"--backend": "backend", "--client": "client", "--concurrency": "concurrency", "--leasing": "leasing", "--recipes": "recipes", "--v3lock": "v3lock", "--v3election": "v3election",
               "--txn": "txn", "--porcupine": "porcupine", "--lintest": "lintest",
-              "--lintest-counter": "lintest", "--linkv3p": "linkv3p", "--linkvtxn": "linkvtxn", "--watchkv": "watchkv", "--authkv": "authkv", "--cachekv": "cachekv", "--common": "common", "--k8s": "kubernetes", "--k8s-etcd3": "k8s", "--cacher": "cacher", "--k8setcd3": "k8setcd3", "--apply": "apply", "--v3rpc": "v3rpc", "--read": "read"}
+              "--lintest-counter": "lintest", "--linkv3p": "linkv3p", "--linkvtxn": "linkvtxn", "--watchkv": "watchkv", "--authkv": "authkv", "--cachekv": "cachekv", "--common": "common", "--k8s": "kubernetes", "--k8s-etcd3": "k8s", "--cacher": "cacher", "--k8setcd3": "k8setcd3", "--apply": "apply", "--v3rpc": "v3rpc", "--read": "read",
+              "--workqueue": "workqueue"}
 # The Links a mode imports for the callees' results they already define (see "Reuse" above), by
 # their module below `Proof/`, beside those of its `@` callees.
 REUSES = {"--server": ["Proof.go_etcd_io.etcd.server.v3.storage.mvcc.Link"]}

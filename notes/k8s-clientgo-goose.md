@@ -98,6 +98,26 @@ with it the promoted methods translate and `Code`/`GeneratedProof` of workqueue 
 else changes. A Perennial change (proposed in `notes/perennial-changes.md`), then a pin bump and
 the exclusions dropped.
 
+*What C2 leaves unlinked (phase 2, 2026-10-27, branch `k8s-leaf-workqueue`).* The workqueue's
+proofs do not change Goose or the pin. The underlying methods are proved (`Typed[T]`'s `Add`,
+`Get`, `Done`, `Len`, `ShuttingDown`, `ShutDown`, `ShutDownWithDrain`; `delayingType`'s own
+`ShutDown`, `AddAfter`, `waitingLoop`; `rateLimitingType`'s own `AddRateLimited`, `Forget`,
+`NumRequeues`), and the 14 promoted methods have specs (`Spec/k8s_io/client_go/util/workqueue/`)
+stated as their targets' (a promoted method forwards to the embedded value's), but no proofs:
+`delayingType.{Add, Len, Get, Done, ShutDownWithDrain, ShuttingDown}` and
+`rateLimitingType.{Add, Len, Get, Done, ShutDown, ShutDownWithDrain, ShuttingDown, AddAfter}`.
+They are `?` in `etc/link-lean-first-workqueue.txt`, so `Proof/k8s_io/client_go/util/workqueue/Link.lean`'s
+`section links_pending` takes their specs as hypotheses (`h_delayingType__Add`, ...) in every
+result that reaches one: `delayingType.wp_AddAfter` (its `q.ShuttingDown()`, `q.Add(item)`),
+`delayingType.wp_waitingLoop` (`q.Add`), and through them `wp_newDelayingQueue`,
+`wp_NewTypedDelayingQueueWithConfig`, `wp_NewTypedRateLimitingQueueWithConfig`,
+`rateLimitingType.wp_AddRateLimited`. A caller using the queue through
+`TypedRateLimitingInterface[T]` needs the same for the promoted methods it calls (the DaemonSet
+controller's `Get`, `Done`, `Add`, `ShutDown`); its `AddRateLimited` and `Forget` are
+`rateLimitingType`'s own. With C2 fixed (and the exclusions dropped), each promoted method's proof is a forward to
+its target's result, and the hypotheses go away. Not stated at all: `TypedBucketRateLimiter`'s
+promoted `*rate.Limiter` methods (no caller here).
+
 **C3. An axiomatized type alias is declared under another name than its uses** (Lean: `Invalid
 field ty ... klog.v2.Logger`). Goose declares an axiomatized alias as `axiom Logger : go.GoType`
 (`goose/types.go:65`) but refers to every alias as `Logger.ty`. Hit: `klog.Logger`

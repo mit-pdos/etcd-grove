@@ -25,7 +25,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : k8s_io.apimachinery.pkg.util.sets.Assumptions]
 
-theorem Set.Delete.wp_proof [EtcdGrove.DeleteNamedMapSemantics] : Set.Delete.spec (GF := GF) (hG := hG) := by
+theorem Set.Delete.wp_proof : Set.Delete.spec (GF := GF) (hG := hG) := by
   intro K _ _ _ _ T _ _ m s sl dq ks
   wp_start as ⟨Hm, Hsl⟩
   ihave %Hlen := ownSlice_len _ _ _ $$ Hsl
@@ -46,7 +46,7 @@ theorem Set.Delete.wp_proof [EtcdGrove.DeleteNamedMapSemantics] : Set.Delete.spe
     simp only [show 0 ≤ sint.Z n ∧ sint.Z n < sint.Z sl.len from ⟨Hn.1, Hif⟩, and_self, ↓reduceIte]
     wp_apply wp_load_slice_index sl (sint.Z n) ks dq e Hn.1 $$ [Hsl] as Hsl
     · iframe; ipureintro; exact He
-    wp_apply wp_mapDelete_named (key_type := T) (elem_type := Empty.ty) $$ Hm as Hm
+    wp_apply wp_mapDelete_underlying (key_type := T) (elem_type := Empty.ty) $$ Hm as Hm
     wp_for_post
     iframe
     iexists n + W64 1, e

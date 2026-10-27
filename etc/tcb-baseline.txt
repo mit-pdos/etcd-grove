@@ -371,6 +371,13 @@ axiom bridge.bridgeAt
 axiom bufferM.ownBuffer_new
 axiom bytes.Buffer.Bytes.wp_proof
 axiom bytes.Buffer.Write.wp_proof
+axiom clock.RealClock.NewTicker.wp_proof
+axiom clock.RealClock.NewTimer.wp_proof
+axiom clock.RealClock.Now.wp_proof
+axiom clock.realTicker.C.wp_proof
+axiom clock.realTicker.Stop.wp_proof
+axiom clock.realTimer.C.wp_proof
+axiom clock.realTimer.Stop.wp_proof
 axiom config.ServerConfig.BackendPath.wp_proof
 axiom config.ServerConfig.PeerDialTimeout.wp_proof
 axiom context.Err.wp_proof
@@ -469,6 +476,8 @@ axiom grpclog.SetLoggerV2.wp_proof
 axiom health.NewServer.wp_proof
 axiom health.Server.SetServingStatus.wp_proof
 axiom heap.Fix.wp_proof
+axiom heap.Init_.wp_proof
+axiom heap.Pop.wp_proof
 axiom heap.Push.wp_proof
 axiom http.CloseIdleConnections_ok
 axiom http.Error_ok
@@ -511,6 +520,7 @@ axiom insecure.NewCredentials.wp_proof
 axiom io.MultiReader.wp_proof
 axiom io.Pipe.wp_proof
 axiom io.PipeWriter.CloseWithError.wp_proof
+axiom klog.Background.wp_proof
 axiom klog.V.wp_proof
 axiom klog.Verbose.Infof.wp_proof
 axiom kmetrics.HistogramVec.WithContext.wp_proof
@@ -521,6 +531,7 @@ axiom lease.lessor.Promote.wp_proof
 axiom lease.lessor.Recover.wp_proof
 axiom lease.lessor.scheduleCheckpointIfNeeded.wp_proof
 axiom math.Ceil.wp_proof
+axiom math.Pow.wp_proof
 axiom membership.RaftCluster.Recover.wp_proof
 axiom membership.RaftCluster.SetBackend.wp_proof
 axiom membership.RaftCluster.SetVersionChangedNotifier.wp_proof
@@ -599,8 +610,10 @@ axiom raftpb.ConfChangeType.String.wp_proof
 axiom raftpb.MessageType.String.wp_proof
 axiom rand.Int63n.wp_proof
 axiom rate.Every.wp_proof
+axiom rate.Limiter.Reserve.wp_proof
 axiom rate.Limiter.Wait.wp_proof
 axiom rate.NewLimiter.wp_proof
+axiom rate.Reservation.Delay.wp_proof
 axiom reflect.New.wp_proof
 axiom reflect.TypeOf.wp_proof
 axiom reflect.Value.Addr.wp_proof
@@ -650,6 +663,7 @@ axiom strings.HasSuffix.wp_proof
 axiom strings.SplitN.wp_proof
 axiom strings.TrimSuffix.wp_proof
 axiom swMsgBound_phys
+axiom time.Duration.Nanoseconds_ptr.wp_proof
 axiom time.Duration.Seconds.wp_proof
 axiom time.Duration.Seconds_ptr.wp_proof
 axiom time.Duration.String.wp_proof
@@ -680,6 +694,7 @@ axiom types.IDFromString.wp_proof
 axiom types.NewURLs.wp_proof
 axiom types.URLs.StringSlice.wp_proof
 axiom utf8.ValidString.wp_proof
+axiom utilruntime.HandleCrashWithLogger.wp_proof
 axiom v2stats.FollowerStats.Fail.wp_proof
 axiom v2stats.FollowerStats.Succ.wp_proof
 axiom v2stats.LeaderStats.Follower.wp_proof
@@ -728,3 +743,4 @@ sorry k8setcd3.client_ctx_field
 sorry k8setcd3.revRoom
 sorry kubernetes.kvIs_ne_null
 sorry rafthttp.Transport.RemoveAllPeers.wp_proof
+sorry workqueue.delayingType.waitingLoop.wp_proof
