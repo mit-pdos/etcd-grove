@@ -35,6 +35,12 @@ structure LogEntry where
 /-- The Go record of the entry at index `idx`. -/
 def LogEntry.toEntryM (idx : w64) (e : LogEntry) : EntryM := ⟨e.term, idx, e.type, e.data⟩
 
+/-- A raft entry as a client sees it: its index dropped. -/
+def LogEntry.ofEntryM (e : EntryM) : LogEntry := ⟨e.Term', e.Type', e.Data'⟩
+
+/-- A raft log as a client sees it (the committed log up to a snapshot, `SnapLoan.dlv`). -/
+def strip (L : List EntryM) : List LogEntry := L.map LogEntry.ofEntryM
+
 /-- **A filler**: an entry that carries nothing, an empty normal entry or an empty `ConfChangeV2`.
 Raft appends these itself: a new leader's entry (`raft.go:961`), the entry leaving a joint
 configuration (`AutoLeave`, `raft.go:742`), the entry in place of a conf change it refuses
