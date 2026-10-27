@@ -29,10 +29,8 @@ public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.quietLogger__Debug
 public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.quietLogger__Errorf
 public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.quietLogger__Infof
 public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.quietLogger__Warningf
-public import Spec.go_etcd_io.raft.v3.RestartNode
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.KVStorageInstance
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.Alloc
-public import Proof.go_etcd_io.raft.v3.Linked
 
 @[expose] public section
 
@@ -41,7 +39,6 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 
-open RaftLink
 namespace kv
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
@@ -123,7 +120,7 @@ theorem bigSepM_constMap {V : Type} (l : List w64) (v : V) (hnd : l.Nodup)
     iapply IH (List.nodup_cons.mp hnd).2 $$ H2
 
 /-- The cluster's voters. -/
-def clusterIds : List w64 := [W64 1, W64 2, W64 3]
+abbrev clusterIds : List w64 := kvVoters
 
 theorem clusterIds_nodup : clusterIds.Nodup := by decide
 
@@ -155,21 +152,6 @@ theorem clusterIds_ne : GMap.listToSet clusterIds ≠ ∅ := by
   rw [h, GMap.size_empty] at this
   omega
 
-/-! ## The cluster's mode (2026-10-21, D22 S-r): static, no configuration change
-
-(From stage N, 2026-10-15, until D22 S-r the dynamic mode of `RemoveMember(3)`.) -/
-
-/-- The conf-change bytes the cluster admits: none. -/
-def ccOkS (_ty : w32) (_bs : List w8) : Prop := False
-
-/-- A replica's node, in the cluster's static mode, taking snapshots of the cluster's data
-(D22 S-r). -/
-theorem kvStat_cluster (γn : NodeNames) (Hok : γn.raft.reCCOk = ccOkS) (Hmd : γn.mode = .static)
-    (Hns : γn.raft.reNoXfer = false) (Hsn : γn.snapIn = true)
-    (Hsok : γn.raft.reSnapOkRaw = kvSnapOk) (Hdyn : γn.raft.reDyn = none)
-    (Htrk : γn.raft.reTracked = none) : KVStat γn :=
-  ⟨Hmd, fun ty bs h => by rw [Hok] at h; exact h, Hns, Hsn, Hsok, Hdyn, Htrk⟩
-
 theorem take_drop_ne (l : List w64) (hnd : l.Nodup) (n : Nat) (x y : w64)
     (hx : x ∈ l.take n) (hy : y ∈ l.drop n) : x ≠ y := by
   rw [← List.take_append_drop n l, List.nodup_append] at hnd
@@ -200,7 +182,7 @@ abbrev nodeConfig (id : w64) (st : Loc) : Config :=
 
 theorem nodeConfig_valid (id : w64) (st : Loc) (h : id ∈ clusterIds) :
     ConfigValid (nodeConfig id st) := by
-  simp only [clusterIds, List.mem_cons, List.not_mem_nil, or_false] at h
+  simp only [clusterIds, kvVoters, List.mem_cons, List.not_mem_nil, or_false] at h
   unfold ConfigValid
   rcases h with rfl | rfl | rfl <;> simp <;> decide
 
@@ -208,20 +190,14 @@ section reg
 variable [KVStor GF]
 
 /-- What `StartCluster` holds of a replica between starting its node and starting its replica: the
-node's driver token (with the node, `isNode`, in it), the storage's record and the replica's
-sequence-number token. -/
-def drvRes (γr : RKVNames) (bud : BudgetNames) (id : w64) (nd : GoInterface) (st : Loc) :
-    IProp GF :=
-  iprop(∃ (γn : NodeNames) (n : Loc),
-    ⌜γn.raft = γr.raft ∧ γn.bud = bud ∧ γn.stor = kvStorIface st ∧
-      nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗
-    nodeDriver γn id n [] hsZero ∗ (∃ (ms : Loc) (γs : MemStorNames), kvStorRec st ms γs) ∗
-    id ↪[γr.seq] W64 0 ∗
-    -- (D22 S-r) the storage's snapshot token, for `run`
-    runStor γr st memStorEmpty ∗
-    -- (2026-10-15, stage N; static since D22 S-r) the node's mode and the driver's view of its
-    -- configuration
-    ⌜KVStat γn⌝ ∗ nodeCfg γn 0 (cfgState (GMap.listToSet clusterIds) ∅))
+node (`Draft.isNode`), its driver token idle on the store's storage, the storage's record, the
+replica's sequence-number token, and the storage's snapshot token, for `run`. -/
+def drvRes (γr : RKVNames) (id : w64) (nd : GoInterface) (st : Loc) : IProp GF :=
+  iprop(∃ (n : Loc), ⌜nd = interface.mkOk (go.GoType.PointerType node.ty) #n⌝ ∗
+    Draft.isNode n γr.cluster kvRaftN id ∗
+    Draft.nodeDriver n γr.cluster kvRaftN (Draft.NodeDriverState.init (kvStorIface st)) ∗
+    (∃ (ms : Loc) (γs : MemStorNames), kvStorRec st ms γs) ∗
+    id ↪[γr.seq] W64 0 ∗ runStor γr st memStorEmpty)
 
 theorem StartCluster.wp_proof
     (wp_NewStorage : kv.NewStorage.spec (GF := GF) (hG := hG))
@@ -234,7 +210,7 @@ theorem StartCluster.wp_proof
     (wp_Errorf : quietLogger.Errorf.spec (GF := GF) (hG := hG))
     (wp_Infof : quietLogger.Infof.spec (GF := GF) (hG := hG))
     (wp_Warningf : quietLogger.Warningf.spec (GF := GF) (hG := hG))
-    (wp_RestartNode : RestartNode.spec (GF := GF) (hG := hG)) :
+    (wp_RestartNode : Draft.RestartNode.spec (GF := GF) (hG := hG)) :
     StartCluster.spec (GF := GF) (hG := hG) := by
   intro vsl Hrb
   wp_start as ⟨#HstorInv, #Hvsl⟩
@@ -242,68 +218,35 @@ theorem StartCluster.wp_proof
   ihave %Hvlen := ownSlice_len _ _ _ $$ Hvsl
   have Hvlen3 : sint.Z vsl.len = 3 := by
     have h := Hvlen.1
-    simp only [clusterIds, List.length_cons, List.length_nil] at h
+    simp only [clusterIds, kvVoters, List.length_cons, List.length_nil] at h
     word
   wp_auto
   wp_apply wp_map_make1 (K := w64) (V := GoInterface) as %mP HmP
   wp_apply wp_map_make1 (K := w64) (V := Loc) as %mS HmS
-  -- raft's ghost state for the cluster and the term budget (2026-10-14, stage R) with the
-  -- store's invariant, the client's half of the store's state and the sequence-number tokens,
-  -- allocated from the client's share once raft's names exist: the store builds the standing
-  -- update for raft's own entries (`kv_noopAu`)
-  -- (2026-10-21, D22 S-r) in the static mode, admitting no conf change (until then
-  -- `raft_dyn_alloc`, the dynamic mode of `RemoveMember(3)`)
-  imod ownRaftGhost_alloc_snap (GF := GF) ⊤ (GMap.listToSet clusterIds) (GMap.listToSet clusterIds)
-    ccOkS kvSnapOk
-    (fun γ => iprop(∃ γr : RKVNames, ⌜γr.raft = γ⌝ ∗ rkvInv γr ∗ rkvVal γr kvEmpty ∗
-      ([∗map] id ↦ s ∈ constMap clusterIds (W64 0), id ↪[γr.seq] s)))
-    clusterIds_ne (by rw [GMap.elem_of_list_to_set]; decide) $$ []
-    with ⟨%γ, %Hcfg', #Hcinv, #Hc0, Hghosts, ⟨%γr, %Hγr, #Hreg, Hval, Hseqs⟩,
-      -, #HrdI⟩
-  · unfold allocClient
-    iintro %γ0 %_ #_ HcL Hfresh HrdF
-    imod rkvInv_alloc (GF := GF) ⊤ γ0 (constMap clusterIds (W64 0)) $$ HcL Hfresh HrdF
-      with ⟨%γr0, %Hγr0, #Hreg0, Hval0, Hseqs0⟩
-    ihave #Hnoop := kv_noopAu γr0 $$ Hreg0
-    subst Hγr0
-    imodintro
-    iframe Hnoop
-    iexists γr0
-    iframe Hreg0 Hval0 Hseqs0
-    ipureintro; rfl
-  have Hcfg : γ.reCfg = GMap.listToSet clusterIds := Hcfg'.1
-  -- (2026-10-19, D22 S-a) leader transfer on (`RaftNames.reNoXfer`)
-  have Hnx := Hcfg'.2.2.2.1
-  have HccOk := Hcfg'.2.2.1
-  -- (D22 S-r) snapshots on, of the cluster's data (`kvSnapOk`)
-  have HnoSnap := Hcfg'.2.2.2.2.1
-  have Hsok := Hcfg'.2.2.2.2.2.2.1
-  -- (2026-10-26, D22 J2) no snapshot directory
-  have HsLoc := Hcfg'.2.2.2.2.2.2.2
-  have Hdyn := Hcfg'.2.1
-  have Htrk := Hcfg'.2.2.2.2.2.1
-  -- the term budget (D19b: backed by time receipts; the ticks' credits are the ticking loops'
-  -- own receipts)
-  imod budget_alloc (GF := GF) Hrb ⊤ with ⟨%bud, #Hbinv, #Hlb0⟩
-  rw [listToSet_constMap]
-  ihave Hghosts := bigSepM_constMap clusterIds () clusterIds_nodup
-    (fun id _ => ownRaftGhost (GF := GF) γ id initPState) $$ Hghosts
+  -- the cluster (the voters `1, 2, 3`, static, of the store's snapshots' data `kvSnapOk`; its
+  -- term budget backed by the time receipts), then the store's invariant from the client's share,
+  -- with the client's half of the store's state and the sequence-number tokens
+  imod Draft.cluster_alloc_static (GF := GF) kvRaftN clusterIds kvSnapOk ⊤ Hrb (by decide)
+    clusterIds_nodup (by decide) (by decide)
+    with ⟨%γ, Hops, HU, #Hstatic, #Hxfer, Hboots⟩
+  imod rkvInv_alloc (GF := GF) ⊤ γ (constMap clusterIds (W64 0)) $$ Hops HU
+    with ⟨%γr, %Hγr, #Hreg, Hval, Hseqs⟩
+  subst Hγr
   ihave Hseqs := bigSepM_constMap clusterIds (W64 0) clusterIds_nodup
     (fun id s => (id ↪[γr.seq] s : IProp GF)) $$ Hseqs
-  subst Hγr
   ihave Htodo := (BigSepL.bigSepL_sep_eqv
-    (Φ := fun _ id => ownRaftGhost (GF := GF) γr.raft id initPState)
-    (Ψ := fun _ id => (id ↪[γr.seq] W64 0 : IProp GF)) (l := clusterIds)).2 $$ [Hghosts Hseqs]
-  · iframe Hghosts Hseqs
+    (Φ := fun _ id => Draft.nodeRestartBoot (GF := GF) γr.cluster kvRaftN clusterIds id)
+    (Ψ := fun _ id => (id ↪[γr.seq] W64 0 : IProp GF)) (l := clusterIds)).2 $$ [Hboots Hseqs]
+  · iframe Hboots Hseqs
   -- the nodes
   ihave IH1 : iprop(∃ (k : w64) (idv : w64) (M : GMap w64 GoInterface) (S : GMap w64 Loc),
       "i" ∷ i_ptr ↦ k ∗ "id" ∷ id_ptr ↦ idv ∗ "HmP" ∷ mP ↦$ M ∗ "HmS" ∷ mS ↦$ S ∗
       "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ 3⌝ ∗
-      "#Hpeers" ∷ ([∗map] id ↦ nd ∈ M, kvPeerOk γr.raft bud id nd) ∗
+      "#Hpeers" ∷ ([∗map] id ↦ nd ∈ M, kvPeerOk γr.cluster id nd) ∗
       "Hdone" ∷ ([∗list] id ∈ clusterIds.take (sint.nat k), ∃ (nd : GoInterface) (st : Loc),
-        ⌜M !! id = some nd ∧ S !! id = some st⌝ ∗ drvRes γr bud id nd st) ∗
+        ⌜M !! id = some nd ∧ S !! id = some st⌝ ∗ drvRes γr id nd st) ∗
       "Htodo" ∷ ([∗list] id ∈ clusterIds.drop (sint.nat k),
-        ownRaftGhost γr.raft id initPState ∗ id ↪[γr.seq] W64 0) ∗
+        Draft.nodeRestartBoot γr.cluster kvRaftN clusterIds id ∗ id ↪[γr.seq] W64 0) ∗
       "%Hdom" ∷ ⌜∀ id, id ∈ clusterIds.drop (sint.nat k) → M !! id = none ∧ S !! id = none⌝)
     $$ [i id HmP HmS Htodo]
   · iexists W64 0, _, ∅, ∅
@@ -320,7 +263,7 @@ theorem StartCluster.wp_proof
   wp_for IH1
   wp_if_destruct
   · have Hlt : sint.Z k < 3 := by word
-    have Hlt' : sint.nat k < clusterIds.length := by simp [clusterIds]; word
+    have Hlt' : sint.nat k < clusterIds.length := by simp [clusterIds, kvVoters]; word
     obtain ⟨id0, Hid0⟩ : ∃ id0, clusterIds[sint.nat k]? = some id0 :=
       ⟨_, List.getElem?_eq_getElem Hlt'⟩
     have Hbnd : 0 ≤ sint.Z k ∧ sint.Z k < sint.Z vsl.len := ⟨Hk.1, by word⟩
@@ -329,13 +272,12 @@ theorem StartCluster.wp_proof
     · iframe Hvsl; ipureintro; exact Hid0
     wp_apply (wp_NewStorage _ clusterIds) $$ [$HstorInv $Hvsl]
       as %st ⟨%ms, %γs, #Hrec, #Hvoters, Hmem, Hca, Hstok, %Hcap⟩
-    -- (D22 S-b′3) the storage's certificate registry tied to raft's names
-    imod memCertInv_alloc γr.raft γs ⊤ $$ Hca with #Hci
-    ihave #Hcl : certLink (GF := GF) γr.raft (kvStorIface st) $$ []
-    · iunfold certLink; iright; iapply kvStorCertOk_intro γr.raft st ms γs $$ Hci Hrec
+    -- the storage's certificate registry tied to the cluster
+    imod Draft.storageCertInv_alloc γr.cluster kvRaftN γs ⊤ $$ Hca with #Hci
+    ihave #Hcl := kvStorCertLink_intro γr.cluster kvRaftN st ms γs $$ Hci Hrec
     have Hid0m : id0 ∈ clusterIds := List.mem_of_getElem? Hid0
     rw [drop_cons_of_getElem? _ _ _ Hid0]
-    icases Htodo with ⟨⟨Hghost, Hseq⟩, Htodo⟩
+    icases Htodo with ⟨⟨Hboot, Hseq⟩, Htodo⟩
     ihave #Hlogger := qLogger_isLogger wp_Debugf wp_Errorf wp_Infof wp_Warningf
     ihave #Hstor := kvStorage_isStorage wp_Snapshot st ms γs $$ Hpkg Hrec
     ihave #Hinit := kvStorage_initialState wp_InitialState st _ clusterIds memStorEmpty
@@ -352,25 +294,17 @@ theorem StartCluster.wp_proof
       $$ Hown
     ihave #Hraftinit : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3 $$ []
     · iPkgInit
-    -- (2026-10-19, D21 M2r) leader transfer on: (D22 S-a) the allocation's
-    -- (`RaftNames.reNoXfer`, until then out of the no-snapshot mode: nothing committed)
-    have HnsR : γr.raft.reNoXfer = false := Hnx
-    ihave Hghost : rnInit γr.raft .static id0 (GMap.listToSet clusterIds) $$ [Hghost]
-    · iunfold rnInit
-      iexact Hghost
-    wp_apply (wp_RestartNode γr.raft .static
-      bud _ (nodeConfig id0 st) qLogger
+    wp_apply (wp_RestartNode γr.cluster kvRaftN clusterIds _ (nodeConfig id0 st) qLogger
       ⟨go.GoType.PointerType rStorageTy, #st⟩ memStorEmpty (HardStateM.mk (W64 0) (W64 0) (W64 0))
-      (kv.kvConfState clusterIds) true
+      (kv.kvConfState clusterIds)
       (nodeConfig_valid id0 st Hid0m) rfl rfl
       (by show sint.Z (W64 256) < 2 ^ 62; decide) rfl rfl rfl
       (by right; show W64 1048576 ≠ W64 0; decide)
       rfl rfl rfl rfl (by left; rfl) rfl ⟨rfl, rfl, rfl⟩
-      (by decide) clusterIds_nodup (by decide) (by decide) rfl rfl rfl rfl Hcfg Hid0m
-      rfl (fun _ => ⟨HnoSnap, rfl⟩))
-      $$ [$Hraftinit $«$a0» $Hlogger $Hstor $Hown $Hinit $Hghost $Hc0 $Hbinv $Hlb0 $Hcl]
-      as %nd ⟨%γn, %n, %Hnd, #HisNode, Hdrv, Hncfg⟩
-    obtain ⟨Hr, Hb, Hs, Hmd, Hsn, rfl⟩ := Hnd
+      rfl rfl rfl rfl rfl Hid0m rfl)
+      $$ [$Hraftinit $«$a0» $Hlogger $Hstor $Hown $Hinit $Hboot $Hcl]
+      as %nd ⟨%n, %Hnd, #HisNode, Hdrv⟩
+    subst Hnd
     have Hdrop := drop_cons_of_getElem? _ _ _ Hid0
     have Hnd' : (clusterIds.drop (sint.nat k)).Nodup := clusterIds_nodup.sublist (List.drop_sublist _ _)
     rw [Hdrop] at Hnd'
@@ -388,20 +322,20 @@ theorem StartCluster.wp_proof
     isplitr
     · ipureintro; constructor <;> word
     isplitr
-    · iapply (BigSepM.bigSepM_insert (Φ := fun id nd => kvPeerOk (GF := GF) γr.raft bud id nd)
+    · iapply (BigSepM.bigSepM_insert (Φ := fun id nd => kvPeerOk (GF := GF) γr.cluster id nd)
         HM0).2
       iframe Hpeers
       unfold kvPeerOk
-      iexists γn, n
+      iexists n
       iframe HisNode
-      ipureintro; exact ⟨Hr, Hb, rfl, Hsn, by rw [Hr, HsLoc]⟩
+      ipureintro; rfl
     isplitl
     · iapply (BigSepL.bigSepL_append (Φ := fun _ id => iprop(∃ (nd : GoInterface) (st' : Loc),
           ⌜(<[id0 := interface.mkOk (go.GoType.PointerType node.ty) #n]> M) !! id = some nd ∧
-            (<[id0 := st]> S) !! id = some st'⌝ ∗ drvRes (GF := GF) γr bud id nd st'))).2
+            (<[id0 := st]> S) !! id = some st'⌝ ∗ drvRes (GF := GF) γr id nd st'))).2
       isplitl [Hdone]
       · iapply (BigSepL.bigSepL_mono (Φ := fun _ id => iprop(∃ (nd : GoInterface) (st' : Loc),
-            ⌜M !! id = some nd ∧ S !! id = some st'⌝ ∗ drvRes (GF := GF) γr bud id nd st')) ?_)
+            ⌜M !! id = some nd ∧ S !! id = some st'⌝ ∗ drvRes (GF := GF) γr id nd st')) ?_)
           $$ Hdone
         intro j x Hx
         have Hxt : x ∈ clusterIds.take (sint.nat k) := List.mem_of_getElem? Hx
@@ -415,28 +349,24 @@ theorem StartCluster.wp_proof
         exact Hl
       · iapply (BigSepL.bigSepL_singleton (Φ := fun _ id => iprop(∃ (nd : GoInterface) (st' : Loc),
           ⌜(<[id0 := interface.mkOk (go.GoType.PointerType node.ty) #n]> M) !! id = some nd ∧
-            (<[id0 := st]> S) !! id = some st'⌝ ∗ drvRes (GF := GF) γr bud id nd st'))).2
+            (<[id0 := st]> S) !! id = some st'⌝ ∗ drvRes (GF := GF) γr id nd st'))).2
         iexists _, st
         isplitr
         · ipureintro; exact ⟨GMap.lookup_insert _ _ _, GMap.lookup_insert _ _ _⟩
         unfold drvRes
-        iexists γn, n
-        iframe Hdrv Hseq Hncfg
+        iexists n
+        rw [← Hiface]
+        iframe HisNode Hdrv Hseq
         isplitr
-        · ipureintro; exact ⟨Hr, Hb, by rw [Hs]; rfl, rfl⟩
+        · ipureintro; rfl
         isplitr
         · iexists ms, γs
           iframe Hrec
-        isplitl [Hstok]
-        · unfold runStor
-          iexists ms, γs, vsl, clusterIds
-          iframe Hrec Hstok Hci Hvoters Hvsl
-          ipureintro
-          exact ⟨Hcap, by rw [Hcfg], clusterIds_nodup, by decide, by decide, by decide,
-            Int.le_refl _⟩
+        unfold runStor
+        iexists ms, γs, vsl
+        iframe Hrec Hstok Hci Hvoters Hvsl
         ipureintro
-        exact kvStat_cluster γn (by rw [Hr]; exact HccOk) Hmd (by rw [Hr]; exact HnsR) Hsn
-          (by rw [Hr]; exact Hsok) (by rw [Hr]; exact Hdyn) (by rw [Hr]; exact Htrk)
+        exact ⟨Hcap, Int.le_refl _⟩
     ipureintro
     intro id Hid
     have Hne : id ≠ id0 := fun h => Hid0n (h ▸ Hid)
@@ -445,6 +375,7 @@ theorem StartCluster.wp_proof
   · have Hk3 : sint.nat k = 3 := by word
     rw [Hk3]
     simp only [show clusterIds.take 3 = clusterIds from rfl, show clusterIds.drop 3 = [] from rfl]
+    clear Hdom Hk3
     imod ownMap_persist mP _ M $$ HmP with #HmP
     imod ownMap_persist mS _ S $$ HmS with #HmS
     ipersist peers
@@ -453,13 +384,13 @@ theorem StartCluster.wp_proof
     icases typedPointsto_split _ _ _ $$ «$r0» with Htrs
     try simp only [TypedPointsto.typedPointstoDef]
     icases Htrs with ⟨mu, left, -⟩
-    imod sync.init_Mutex (transfersInv bud «$r0_ptr») ⊤ («$r0_ptr».[RTransfers, go!"mu"])
+    imod sync.init_Mutex (transfersInv γr.cluster «$r0_ptr») ⊤ («$r0_ptr».[RTransfers, go!"mu"])
       $$ mu [left] with #Htr
     · inext
       unfold transfersInv
       iexists W64 1048576
       iframe left
-    ihave #Htr' : isTransfers bud «$r0_ptr» $$ []
+    ihave #Htr' : isTransfers γr.cluster «$r0_ptr» $$ []
     · unfold isTransfers; iexact Htr
     ipersist tr
     ihave Hnil := ownSlice_nil (V := Loc) (GF := GF) (DFrac.own 1)
@@ -470,7 +401,7 @@ theorem StartCluster.wp_proof
         "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ 3⌝ ∗ "%Hrs" ∷ ⌜rs.length = sint.nat k⌝ ∗
         "#Hregs" ∷ ([∗list] r ∈ rs, ∃ γp, isKV γr γp r) ∗
         "Hdrv" ∷ ([∗list] id ∈ clusterIds.drop (sint.nat k), ∃ (nd : GoInterface) (st : Loc),
-          ⌜M !! id = some nd ∧ S !! id = some st⌝ ∗ drvRes γr bud id nd st))
+          ⌜M !! id = some nd ∧ S !! id = some st⌝ ∗ drvRes γr id nd st))
       $$ [i id kvs Hnil Hncap Hdone]
     · iexists W64 0, _, slice.nil, []
       iframe i id kvs
@@ -488,7 +419,7 @@ theorem StartCluster.wp_proof
     wp_for IH2
     wp_if_destruct
     · have Hlt : sint.Z k < 3 := by word
-      have Hlt' : sint.nat k < clusterIds.length := by simp [clusterIds]; word
+      have Hlt' : sint.nat k < clusterIds.length := by simp [clusterIds, kvVoters]; word
       obtain ⟨id0, Hid0⟩ : ∃ id0, clusterIds[sint.nat k]? = some id0 :=
         ⟨_, List.getElem?_eq_getElem Hlt'⟩
       have Hbnd : 0 ≤ sint.Z k ∧ sint.Z k < sint.Z vsl.len := ⟨Hk.1, by word⟩
@@ -500,33 +431,25 @@ theorem StartCluster.wp_proof
       icases Hdrv with ⟨⟨%nd, %st, %Hlk, Hres⟩, Hdrv⟩
       obtain ⟨HMl, HSl⟩ := Hlk
       unfold drvRes
-      icases Hres with ⟨%γn, %n, %Hgn, Hnode, #Hsrec, Hseq, Hrs, %Hmd, Hncfg⟩
-      obtain ⟨Hr, Hb, Hs, rfl⟩ := Hgn
+      icases Hres with ⟨%n, %Hgn, #HisNode, Hnode, #Hsrec, Hseq, Hrs⟩
+      subst Hgn
       wp_apply wp_map_lookup1 go.uint64 _ mP M id0 DFrac.discard $$ HmP as -
       wp_apply wp_map_lookup1 go.uint64 _ mS S id0 DFrac.discard $$ HmS as -
       simp only [HMl, HSl, Option.getD_some]
-      wp_apply (wp_New γr γn id0 n st _ (cfgState (GMap.listToSet clusterIds) ∅))
-          $$ [Hnode Hseq Hncfg Hrs]
-      · iframe Hreg Hnode Hsrec Hc0 Hseq Hncfg Hrs
-        isplitr
-        · ipureintro; exact Hr
-        isplitr
-        · ipureintro; exact Hmd
-        isplitr
-        · ipureintro; exact Hs
+      wp_apply (wp_New γr id0 n st _) $$ [Hnode Hseq Hrs]
+      · iframe Hreg HisNode Hnode Hstatic Hxfer Hsrec Hseq Hrs
         unfold sendSpec
         imodintro
         iintro %msl %ms %Φ'
         imodintro
-        iintro ⟨Hmsl, Hmsok, Hcr, Htks⟩ HΦ'
-        rw [Hr, Hb]
+        iintro ⟨Hmsl, Hmsok⟩ HΦ'
         wp_auto
-        wp_apply (wp_deliver γr.raft _ bud mP «$r0_ptr» M msl ms)
-          $$ [$Hmsl $Hmsok $Hcr $Htks]
+        wp_apply (wp_deliver γr.cluster mP «$r0_ptr» M msl ms)
+          $$ [$Hmsl $Hmsok]
         · iframe #
         iapply HΦ'
         itrivial
-      iintro %r ⟨%γp, %Hγp, #Hisreg⟩
+      iintro %r ⟨%γp, #Hisreg⟩
       wp_apply wp_slice_literal (V := Loc) [r]
       isplitr
       · ipureintro; rfl
@@ -535,19 +458,9 @@ theorem StartCluster.wp_proof
       wp_apply wp_slice_append $$ [$Hks $Hkcap $Hsl2] as %ksl' ⟨Hks, Hkcap, -⟩
       wp_apply wp_map_lookup1 go.uint64 _ mP M id0 DFrac.discard $$ HmP as -
       simp only [HMl, Option.getD_some]
-      ihave #Hpeer := BigSepM.bigSepM_lookup (Φ := fun id nd => kvPeerOk (GF := GF) γr.raft bud id nd)
-        HMl $$ Hpeers
-      unfold kvPeerOk
-      icases Hpeer with ⟨%γn', %n', %Hgn', #HisNode'⟩
-      obtain ⟨-, Hb', Hn', -⟩ := Hgn'
-      have Hnn : n' = n := by
-        simp only [interface.mkOk, GoInterface.ok.injEq] at Hn'
-        injection Hn' with _ h
-        exact (go.intoVal_inj (V := Loc) h).symm
-      subst Hnn
       wp_apply wp_fork $$ []
-      · wp_apply (wp_tick γn' id0 n') $$ []
-        · iframe HisNode'
+      · wp_apply (wp_tick γr.cluster id0 n) $$ []
+        · iframe HisNode
         itrivial
       wp_for_post
       iframe

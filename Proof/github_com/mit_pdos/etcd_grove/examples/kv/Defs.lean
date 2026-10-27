@@ -392,7 +392,7 @@ def lockInv (γr : RKVNames) (γp : RepNames) (id : w64) (r : Loc) : IProp GF :=
     "Hrds" ∷ readsOwn γr id r ns)
 
 /-- The voters of the store's cluster. -/
-def kvVoters : List w64 := [W64 1, W64 2, W64 3]
+abbrev kvVoters : List w64 := [W64 1, W64 2, W64 3]
 
 /-- Replica `id` at `r`, on node `n` of the store's static cluster (`Draft.isStaticCluster`, of
 the voters `kvVoters`, admitting snapshots of the store's data, `kvSnapOk`; leader transfer on),
