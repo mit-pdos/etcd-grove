@@ -1838,6 +1838,26 @@ theorem server_range_on [go_etcd_io.etcd.cache.v3.Assumptions] :
       traceutil.Trace.wp_Step)
     RangeRequest.wp_String proto.wp_Size
 
+/-- **A read-only `Txn` with auth on** (the auth plan's E3v, 2026-10-27; `EtcdServer.Txn.specOnR`,
+`Proof/go_etcd_io/etcd/server/v3/etcdserver/EtcdServer__Txn.lean`): as `server_range_on`, for a
+read-only transaction: a success's checks (`CheckTxnAuth`, through E3m's `apply_check_txn_auth_lb`)
+passed every permission they see at states no older than a bound `m ≥ n` (`txnClassFrom`) and, if
+linearizable, no older than the state the committed log through the read index left
+(`authFloorAt`); the read at the mode-`on` model (`txnReadOkM true`). Every callee linked. -/
+theorem server_txn_ro_on [go_etcd_io.etcd.cache.v3.Assumptions] :
+    EtcdServer.Txn.specOnR (GF := GF) (hG := hG) :=
+  EtcdServer.Txn.wp_proofOnR txn.wp_IsTxnReadonly traceutil.Tracer.wp_Start trace.wp_WithAttributes
+    TxnRequest.wp_GetCompare wp_firstCompareKey «attribute».wp_String TxnRequest.wp_GetSuccess
+    wp_firstOpKey wp_firstOpType wp_firstOpLease «attribute».wp_Int64 «attribute».wp_Int
+    TxnRequest.wp_GetFailure «attribute».wp_Bool EtcdServer.wp_Logger traceutil.wp_EnsureTrace
+    txn.wp_IsTxnSerializable traceutil.Trace.wp_Step
+    (apply.CheckTxnAuth.wp_lb apply.checkTxnPermission.wp_lb)
+    txn.wp_WarnOfExpensiveReadOnlyTxnRequest traceutil.Trace.wp_LogIfLong strconv.wp_FormatBool
+    time.Duration.wp_Seconds prometheus.HistogramVec.wp_WithLabelValues EtcdServer.wp_KV txn.wp_Txn
+    (EtcdServer.doSerialize.wp_proofM true traceutil.wp_Get EtcdServer.wp_AuthInfoFromCtx
+      traceutil.Trace.wp_Step)
+    proto.wp_Size
+
 end adminLatest
 
 /-- **A refused admin check keeps the model's auth state; a passed one admits the principal** (the
@@ -1873,6 +1893,7 @@ theorem admin_state_auth_enable [GooseExts] (γa : auth.AuthNames) (rq : EtcdGro
 #print axioms Perennial.EtcdGrove.server_run_on
 #print axioms Perennial.EtcdGrove.server_start_on
 #print axioms Perennial.EtcdGrove.server_range_on
+#print axioms Perennial.EtcdGrove.server_txn_ro_on
 #print axioms Perennial.EtcdGrove.admin_state_of_latest
 
 section userAddHandler

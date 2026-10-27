@@ -6,6 +6,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRead
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReqOn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.ReadOn
 
 @[expose] public section
 
@@ -89,6 +90,40 @@ abbrev EtcdServer.Txn.specOn : Prop :=
           ∃ (tw : txn.TxnModelW) (hm : apply.HeaderModel) (L : List EntryModel),
             ⌜tw.toModel = t⌝ ∗ pubAfterM true E ρ (apply.withHeader (irrTxn tw) hm) L) ∨
        (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err ∗ txnErrOk E ρ F t err)) }}
+
+/-- **`spec` for a read-only transaction in the auth mode `on`** (the auth plan's E3v, 2026-10-27;
+`notes/decisions.md`, "E3v of the auth plan"; `Range.specOn`'s): in the mode `on γa`, a read-only
+`t` with its gets within the model, over the request and read views with auth on, the read deposit
+at the mode-`on` model's state (`kvDep γr.kv Qr (kvStM true γr.kv)`), a lower bound `n` of the auth
+store's published index (`auth.authPubLbM`; `0` is free) with the server's range check at such
+bounds (`srvAuthLb`). Success: every permission the transaction's checks see was granted at states
+no older than some `m ≥ n` (`txnClassFrom`, through `CheckTxnAuth`'s checks at the bound) and, for a
+linearizable `t`, no older than the auth state the committed log through the read index left
+(`authFloorAt`: `Txn` checks after waiting for the read index); the read as `spec`'s, at the
+mode-`on` model (`txnReadOkM true`). Failure: an error the gRPC layer can take. -/
+abbrev EtcdServer.Txn.specOnR : Prop :=
+  ∀ (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (γr : ReadNames) (c : w64)
+    (ctx : GoInterfaceOk) (cd : context.ContextDesc (IProp GF)) (r : Loc) (t : TxnModel)
+    (Qr : List EntryModel → IProp GF) (ot : Option Loc) (te : Bool) (F : mvcc.Log) (n : Nat)
+    (γa : auth.AuthNames),
+  E.authMode = .on γa →
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver ∗
+      isServerReqM true s E ρ ∗ isServerReadM true s E γr ∗ srvAuthLb s E ∗
+      auth.authPubLbM E.authMode n ∗ srvLeadTimeReader s ∗ idCred ρ.ids 1 ∗
+      srvRdCall s E γr c ∗ context.isContext ctx cd ∗ traceutil.ctxTraceIs ctx ot ∗
+      traceutil.ownTraceOpt ot te ∗ txn.txnRequestIs r t ∗
+      ⌜txn.txnReadonly t = true ∧ txn.txnGetsOk t⌝ ∗ mvcc.idxCert E.γ.idx F ∗
+      kvDep γr.kv Qr (kvStM true γr.kv) }}
+    (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Txn"))
+      (Val #(GoInterface.ok ctx))) (Val #r))
+  {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err);
+      srvLeadTimeReader s ∗ srvRdCall s E γr c ∗ idCred ρ.ids 1 ∗
+      ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗
+          (∃ (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (m : Nat), ⌜n ≤ m⌝ ∗
+            txnClassFrom E.authMode m info t ∗
+            (if txn.txnSerializable t then iprop(True) else authFloorAt E.authMode γr c m)) ∗
+          txnReadOkM true E γr c F t Qr resp) ∨
+       (⌜err ≠ GoInterface.nil⌝ ∗ applyErrIs err)) }}
 
 end spec
 
