@@ -38,6 +38,10 @@ module
 public import Proof.go_etcd_io.raft.v3.InvNodeCtx
 public import Perennial.Proof.context
 public import Proof.go_etcd_io.raft.v3.InvMemstorage
+public import Proof.go_etcd_io.raft.v3.NodeApiVocab
+-- (2026-10-27) the implementation (`NodeApiImpl.lean`) and raft's linked specs, not exported
+import Proof.go_etcd_io.raft.v3.NodeApiImpl
+import Proof.go_etcd_io.raft.v3.Link
 
 @[expose] public section
 
@@ -58,66 +62,53 @@ variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
 /-! ## The abstract state -/
 
-/-- An entry of the committed log as a client sees it. Its index is its position (the `i`-th entry,
-from 0, has index `i + 1`). -/
-structure LogEntry where
-  term : w64
-  type : raftpb.EntryType
-  data : List w8
-
-/-- The Go record of the entry at index `idx`. -/
-def LogEntry.toEntryM (idx : w64) (e : LogEntry) : EntryM := ⟨e.term, idx, e.type, e.data⟩
-
-/-- **A filler**: an entry that carries nothing, an empty normal entry or an empty `ConfChangeV2`.
-Raft appends these itself: a new leader's entry (`raft.go:961`), the entry leaving a joint
-configuration (`AutoLeave`, `raft.go:742`), the entry in place of a conf change it refuses
-(`raft.go:1341`). A client's empty proposal looks the same, so it is a filler too: an operation must
-be encoded as non-empty bytes to take effect as one. -/
-def LogEntry.isFiller (e : LogEntry) : Prop :=
-  e.data = [] ∧ (e.type = W32 0 ∨ e.type = W32 2)
-
-instance (e : LogEntry) : Decidable e.isFiller := by unfold LogEntry.isFiller; infer_instance
-
-/-- **The requested entries** of a log: everything but its fillers. -/
-def opsOf (l : List LogEntry) : List LogEntry := l.filter fun e => !decide e.isFiller
-
 /-- A cluster's ghost names (opaque to clients). -/
-@[no_expose] def Cluster : Type 1 := RaftNames
+@[no_expose] def Cluster : Type 1 := ApiImpl.Cluster
 
 /-- **The committed requested entries, the client's** (exclusive): `opsOf` of the committed log.
 Raft changes it only by firing an update the client gave it, when the requested entry commits;
 fillers commit without changing it. -/
-@[no_expose] def ownCommittedOps (γ : Cluster) (ops : List LogEntry) : IProp GF := sorry
+@[no_expose] def ownCommittedOps (γ : Cluster) (ops : List LogEntry) : IProp GF :=
+  ApiImpl.ownCommittedOps γ ops
 
 /-- **A lower bound of the committed log**, fillers included (persistent): the committed log extends
 `l`. -/
-@[no_expose] def isCommittedLogLb (γ : Cluster) (l : List LogEntry) : IProp GF := sorry
+@[no_expose] def isCommittedLogLb (γ : Cluster) (l : List LogEntry) : IProp GF :=
+  ApiImpl.isCommittedLogLb γ l
 
 instance ownCommittedOps_timeless (γ : Cluster) (ops : List LogEntry) :
-    Timeless (ownCommittedOps (GF := GF) γ ops) := sorry
+    Timeless (ownCommittedOps (GF := GF) γ ops) := by
+  unfold ownCommittedOps; exact ApiImpl.ownCommittedOps_timeless γ ops
 instance isCommittedLogLb_persistent (γ : Cluster) (l : List LogEntry) :
-    Persistent (isCommittedLogLb (GF := GF) γ l) := sorry
+    Persistent (isCommittedLogLb (GF := GF) γ l) := by
+  unfold isCommittedLogLb; exact ApiImpl.isCommittedLogLb_persistent γ l
 instance isCommittedLogLb_timeless (γ : Cluster) (l : List LogEntry) :
-    Timeless (isCommittedLogLb (GF := GF) γ l) := sorry
+    Timeless (isCommittedLogLb (GF := GF) γ l) := by
+  unfold isCommittedLogLb; exact ApiImpl.isCommittedLogLb_timeless γ l
 
 /-- The committed requested entries are those of a committed log. (2026-10-27, for kv: the
 client's resource kept, which a persistent conclusion alone does not give back.) -/
 theorem ownCommittedOps_get_lb (γ : Cluster) (ops : List LogEntry) :
     ownCommittedOps (GF := GF) γ ops ⊢
-      ownCommittedOps γ ops ∗ ∃ l, isCommittedLogLb γ l ∗ ⌜opsOf l = ops⌝ := sorry
+      ownCommittedOps γ ops ∗ ∃ l, isCommittedLogLb γ l ∗ ⌜opsOf l = ops⌝ := by
+  unfold ownCommittedOps isCommittedLogLb; exact ApiImpl.ownCommittedOps_get_lb_impl γ ops
 
 /-- The requested entries of a committed log are a prefix of those committed now. -/
 theorem ownCommittedOps_lb_prefix (γ : Cluster) (ops l : List LogEntry) :
-    ownCommittedOps (GF := GF) γ ops ∗ isCommittedLogLb γ l ⊢ ⌜opsOf l <+: ops⌝ := sorry
+    ownCommittedOps (GF := GF) γ ops ∗ isCommittedLogLb γ l ⊢ ⌜opsOf l <+: ops⌝ := by
+  unfold ownCommittedOps isCommittedLogLb; exact ApiImpl.ownCommittedOps_lb_prefix_impl γ ops l
 
 /-- Every committed log extends the empty one. -/
-theorem isCommittedLogLb_nil (γ : Cluster) : ⊢ isCommittedLogLb (GF := GF) γ [] := sorry
+theorem isCommittedLogLb_nil (γ : Cluster) : ⊢ isCommittedLogLb (GF := GF) γ [] := by
+  unfold isCommittedLogLb; exact ApiImpl.isCommittedLogLb_nil_impl γ
 
 theorem isCommittedLogLb_mono (γ : Cluster) (l1 l2 : List LogEntry) :
-    l1 <+: l2 → isCommittedLogLb (GF := GF) γ l2 ⊢ isCommittedLogLb γ l1 := sorry
+    l1 <+: l2 → isCommittedLogLb (GF := GF) γ l2 ⊢ isCommittedLogLb γ l1 := by
+  unfold isCommittedLogLb; exact ApiImpl.isCommittedLogLb_mono_impl γ l1 l2
 
 theorem isCommittedLogLb_agree (γ : Cluster) (l1 l2 : List LogEntry) :
-    isCommittedLogLb (GF := GF) γ l1 ∗ isCommittedLogLb γ l2 ⊢ ⌜l1 <+: l2 ∨ l2 <+: l1⌝ := sorry
+    isCommittedLogLb (GF := GF) γ l1 ∗ isCommittedLogLb γ l2 ⊢ ⌜l1 <+: l2 ∨ l2 <+: l1⌝ := by
+  unfold isCommittedLogLb; exact ApiImpl.isCommittedLogLb_agree_impl γ l1 l2
 
 /-! ## The cluster and its nodes -/
 
@@ -127,19 +118,23 @@ theorem isCommittedLogLb_agree (γ : Cluster) (l1 l2 : List LogEntry) :
 so far (`readCtx_commit`); any other context is unused and may be committed. A new cluster gives it
 at `∅`. (The authority-over-used-keys pattern of a ghost map; a client whose readers run
 concurrently shares it through its own invariant.) -/
-@[no_expose] def ownReadCtxs (γ : Cluster) (U : GSet (List w8)) : IProp GF := sorry
+@[no_expose] def ownReadCtxs (γ : Cluster) (U : GSet (List w8)) : IProp GF :=
+  ApiImpl.ownReadCtxs γ U
 
 instance ownReadCtxs_timeless (γ : Cluster) (U : GSet (List w8)) :
-    Timeless (ownReadCtxs (GF := GF) γ U) := sorry
+    Timeless (ownReadCtxs (GF := GF) γ U) := by
+  unfold ownReadCtxs; exact ApiImpl.ownReadCtxs_timeless γ U
 
 /-- **The read context `c` is committed to `Q`** (persistent): every read with context `c` takes
 effect at a moment when the committed requested entries are some `ops`, and gives `□ Q ops`
 (`readStateOk_ctx`). A client may retry a read with the same context. -/
 @[no_expose] def isReadCtx (γ : Cluster) (N : Namespace) (c : List w8)
-    (Q : List LogEntry → IProp GF) : IProp GF := sorry
+    (Q : List LogEntry → IProp GF) : IProp GF :=
+  ApiImpl.isReadCtx γ N c Q
 
 instance isReadCtx_persistent (γ : Cluster) (N : Namespace) (c : List w8)
-    (Q : List LogEntry → IProp GF) : Persistent (isReadCtx (GF := GF) γ N c Q) := sorry
+    (Q : List LogEntry → IProp GF) : Persistent (isReadCtx (GF := GF) γ N c Q) := by
+  unfold isReadCtx; exact ApiImpl.isReadCtx_persistent γ N c Q
 
 /-- **Committing an unused context `c` to `Q`**, once: with an update that, at the moment a read
 takes effect, proves `□ Q ops` of the committed requested entries `ops` (leaving them unchanged). A
@@ -151,31 +146,37 @@ theorem readCtx_commit (γ : Cluster) (N : Namespace) (U : GSet (List w8)) (c : 
     ownReadCtxs (GF := GF) γ U ∗
       □ AU <{ ∃∃ (ops : List LogEntry), ownCommittedOps γ ops }> @ ⊤ \ ↑N, ∅
            <{ ownCommittedOps γ ops, COMM □ Q ops }> ⊢
-    |==> (ownReadCtxs γ (insert c U) ∗ isReadCtx γ N c Q) := sorry
+    |==> (ownReadCtxs γ (insert c U) ∗ isReadCtx γ N c Q) := by
+  unfold ownReadCtxs isReadCtx ownCommittedOps; exact ApiImpl.readCtx_commit_impl γ N U c Q
 
 /-- (open) **A read request's credit**: raft counts read requests in a 64-bit counter (today's
 `rdCred`); carried over until the read path's bounds are redesigned. -/
-@[no_expose] def readCredit (γ : Cluster) : IProp GF := sorry
+@[no_expose] def readCredit (γ : Cluster) : IProp GF := ApiImpl.readCredit γ
 
 /-- **A read state** (persistent): a `Ready`'s `ReadState{Index: idx, RequestCtx: c}`. -/
 @[no_expose] def readStateOk (γ : Cluster) (N : Namespace) (c : List w8) (idx : w64) : IProp GF :=
-  sorry
+  ApiImpl.readStateOk γ N c idx
 
 instance readStateOk_persistent (γ : Cluster) (N : Namespace) (c : List w8) (idx : w64) :
-    Persistent (readStateOk (GF := GF) γ N c idx) := sorry
+    Persistent (readStateOk (GF := GF) γ N c idx) := by
+  unfold readStateOk; exact ApiImpl.readStateOk_persistent γ N c idx
 
 /-- **What a read state tells the client** of a context it committed: a read with context `c` took
 effect when the committed log was `l`, of length `idx`, and gave `Q` of its requested entries. -/
 theorem readStateOk_ctx (γ : Cluster) (N : Namespace) (c : List w8) (idx : w64)
     (Q : List LogEntry → IProp GF) :
     readStateOk (GF := GF) γ N c idx ∗ isReadCtx γ N c Q ⊢
-    ∃ l, ⌜l.length = uint.nat idx⌝ ∗ isCommittedLogLb γ l ∗ ▷ □ Q (opsOf l) := sorry
+    ∃ l, ⌜l.length = uint.nat idx⌝ ∗ isCommittedLogLb γ l ∗ ▷ □ Q (opsOf l) :=
+  -- (2026-10-27) not provable as stated: proved as `ApiImpl.readStateOk_ctx_impl`, a ghost update
+  -- within `N`, given a committed log at least `idx` long, the result under two laters
+  sorry
 
 /-- **A read state's context was committed** (`readCtx_commit`): a read is requested only with a
 committed context (`node.ReadIndex`). (2026-10-27, for kv: the applier tells its own reader's
 context from another's by it.) -/
 theorem readStateOk_used (γ : Cluster) (N : Namespace) (c : List w8) (idx : w64) (U : GSet (List w8)) :
-    readStateOk (GF := GF) γ N c idx ∗ ownReadCtxs γ U ⊢ ⌜c ∈ U⌝ := sorry
+    readStateOk (GF := GF) γ N c idx ∗ ownReadCtxs γ U ⊢ ⌜c ∈ U⌝ := by
+  unfold readStateOk ownReadCtxs; exact ApiImpl.readStateOk_used_impl γ N c idx U
 
 /-- **A new cluster** of the peers `ps`, in the caller's namespace `N`: the client's committed
 requested entries at the bootstrap entries (one `ConfChangeAddNode` per peer, at term 1: `BootLog`;
@@ -183,15 +184,6 @@ none is a filler), the read contexts with none used, and one boot
 token per peer, for its `StartNode`. Replaces the allocation variants (`ownRaftGhost_alloc_*`,
 `raft_dyn_alloc*`, `allocClient*`). -/
 @[no_expose] def nodeBoot (γ : Cluster) (N : Namespace) (id : w64) : IProp GF := sorry
-
-/-- The bootstrap log: a `ConfChangeAddNode` of each peer, its context `ctx`, at term 1, as
-`MarshalConfChange` encodes it (`bs`). -/
-def BootLog (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry) : Prop :=
-  boot.length = ps.length ∧ (boot.length : Int) < 2 ^ 61 ∧
-  ∀ (k : Nat) (e : LogEntry), boot[k]? = some e →
-    ∃ id ctx, ps[k]? = some id ∧ ctxs[k]? = some ctx ∧ e.term = W64 1 ∧ e.type = W32 1 ∧
-      -- `Bootstrap`'s `ConfChange{Type: ConfChangeAddNode, NodeID: id, Context: ctx}`
-      MarshalsConfChange (some (.v1 ⟨W32 0, id, ctx, W64 0⟩)) e.data
 
 theorem cluster_alloc (N : Namespace) (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry) :
     BootLog ps ctxs boot → ps.Nodup →
@@ -204,50 +196,24 @@ the cluster and namespace, and the state that changes as one record, so that a n
 change their arity. -/
 
 /-- **A running node** `n` of id `id` in the cluster `γ` (persistent). -/
-@[no_expose] def isNode (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) : IProp GF := sorry
+@[no_expose] def isNode (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) : IProp GF :=
+  ApiImpl.isNode n γ N id
 
 instance isNode_persistent (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) :
-    Persistent (isNode (GF := GF) n γ N id) := sorry
+    Persistent (isNode (GF := GF) n γ N id) := by
+  unfold isNode; exact ApiImpl.isNode_persistent n γ N id
 
 /-- The node's `Ready` channel `ch` (persistent). -/
-@[no_expose] def isReadyChan (n : Loc) (γ : Cluster) (N : Namespace) (ch : Loc) : IProp GF := sorry
+@[no_expose] def isReadyChan (n : Loc) (γ : Cluster) (N : Namespace) (ch : Loc) : IProp GF :=
+  ApiImpl.isReadyChan n γ N ch
 
 instance isReadyChan_persistent (n : Loc) (γ : Cluster) (N : Namespace) (ch : Loc) :
-    Persistent (isReadyChan (GF := GF) n γ N ch) := sorry
-
-/-- The Go entries of the log entries `l`, at the indices after `base`. -/
-def LogEntry.toEntries (l : List LogEntry) (base : Nat) : List EntryM :=
-  l.mapIdx fun i e => e.toEntryM (W64 (base + i + 1))
-
-/-- The state of a node's `Ready` loop. -/
-structure NodeDriverState where
-  /-- the node's storage (fixed: the `Storage` it was started with), which a `Ready` hands the
-  driver entries for, and `Advance` takes the receipt of -/
-  storage : Storage
-  /-- the committed log delivered so far (fillers included); after a `Ready` with a snapshot, the
-  committed log up to the snapshot -/
-  delivered : List LogEntry
-  /-- the hard state last handed out -/
-  hardState : HardStateM
-  /-- while a `Ready` is being handled (between receiving it and `Advance`): its entries to persist,
-  and its snapshot's loan, if it has one (the storage contract's vocabulary: `readyOut`,
-  `advReceipt`) -/
-  handling : Option (List EntryM × Option SnapLoan)
-
-/-- The state a node's `Ready` loop starts in, at the storage `stor`. -/
-def NodeDriverState.init (stor : Storage) : NodeDriverState := ⟨stor, [], hsZero, none⟩
+    Persistent (isReadyChan (GF := GF) n γ N ch) := by
+  unfold isReadyChan; exact ApiImpl.isReadyChan_persistent n γ N ch
 
 /-- **The `Ready` loop's token** (exclusive): one per node, at the loop's state `st`. -/
 @[no_expose] def nodeDriver (n : Loc) (γ : Cluster) (N : Namespace) (st : NodeDriverState) : IProp GF :=
-  sorry
-
-/-- The Go entries `sl` are the log entries `ce`, at the indices after `base` (read-only). -/
-def committedEntriesAt (sl : GoSlice) (base : Nat) (ce : List LogEntry) : IProp GF :=
-  entsRO sl (LogEntry.toEntries ce base)
-
-instance committedEntriesAt_persistent (sl : GoSlice) (base : Nat) (ce : List LogEntry) :
-    Persistent (committedEntriesAt (GF := GF) sl base ce) := by
-  unfold committedEntriesAt; infer_instance
+  ApiImpl.nodeDriver n γ N st
 
 /-! ## A static cluster (open: today's static mode, carried over)
 
@@ -275,10 +241,12 @@ theorem isStaticCluster_normal (γ : Cluster) (N : Namespace) (vs : List w64)
 
 /-- **Leader transfer is on** in the cluster (persistent; today `RaftNames.reNoXfer = false`): what
 `node.TransferLeadership` takes. -/
-@[no_expose] def leaderTransferOn (γ : Cluster) (N : Namespace) : IProp GF := sorry
+@[no_expose] def leaderTransferOn (γ : Cluster) (N : Namespace) : IProp GF :=
+  ApiImpl.leaderTransferOn γ N
 
 instance leaderTransferOn_persistent (γ : Cluster) (N : Namespace) :
-    Persistent (leaderTransferOn (GF := GF) γ N) := sorry
+    Persistent (leaderTransferOn (GF := GF) γ N) := by
+  unfold leaderTransferOn; exact ApiImpl.leaderTransferOn_persistent γ N
 
 /-- **A static cluster's boot token** for node `id` (exclusive): what its `RestartNode` takes (today
 `rnInit γ .static id`, `isCommitted γ []`, the term budget's `budgetInv` and `termLB`). -/
@@ -302,10 +270,12 @@ theorem cluster_alloc_static (N : Namespace) (vs : List w64)
 /-- **The snapshot `k` is certified** for the cluster (persistent; today `raftSnapCertD`): its
 configuration the cluster's at its index, its data what the client vouches for of the committed log
 up to it. -/
-@[no_expose] def snapshotCert (γ : Cluster) (N : Namespace) (k : SnapTrip) : IProp GF := sorry
+@[no_expose] def snapshotCert (γ : Cluster) (N : Namespace) (k : SnapTrip) : IProp GF :=
+  ApiImpl.snapshotCert γ N k
 
 instance snapshotCert_persistent (γ : Cluster) (N : Namespace) (k : SnapTrip) :
-    Persistent (snapshotCert (GF := GF) γ N k) := sorry
+    Persistent (snapshotCert (GF := GF) γ N k) := by
+  unfold snapshotCert; exact ApiImpl.snapshotCert_persistent γ N k
 
 /-- **What a certified snapshot's data is**, in a static cluster: `snapOk` of the committed log up
 to its index. -/
@@ -372,25 +342,31 @@ theorem storageCertLink_intro (γ : Cluster) (N : Namespace) (st : Storage) :
 
 /-- (open) **A message a `Ready` handed out** (persistent; today `isRaftMsg` and `termLB`): sent by
 a node of the cluster, legitimately, of a term within the cluster's budget. -/
-@[no_expose] def sentMsg (γ : Cluster) (N : Namespace) (st : MsgSt) : IProp GF := sorry
+@[no_expose] def sentMsg (γ : Cluster) (N : Namespace) (st : MsgSt) : IProp GF :=
+  ApiImpl.sentMsg γ N st
 
 instance sentMsg_persistent (γ : Cluster) (N : Namespace) (st : MsgSt) :
-    Persistent (sentMsg (GF := GF) γ N st) := sorry
+    Persistent (sentMsg (GF := GF) γ N st) := by
+  unfold sentMsg; exact ApiImpl.sentMsg_persistent γ N st
 
 /-- (open) **What a sent message carries for its receiver's `Step`** (today `rdCred`, one for a
 `MsgReadIndex`, and `stTks`, a forwarded proposal's tickets). -/
-@[no_expose] def msgCredits (γ : Cluster) (N : Namespace) (st : MsgSt) : IProp GF := sorry
+@[no_expose] def msgCredits (γ : Cluster) (N : Namespace) (st : MsgSt) : IProp GF :=
+  ApiImpl.msgCredits γ N st
 
 /-- (open) **Tick credits** (today `tickCred`: time receipts): one per `Tick`, and one per
 `MsgTimeoutNow` stepped. -/
-@[no_expose] def tickCredit (γ : Cluster) (n : Nat) : IProp GF := sorry
+@[no_expose] def tickCredit (γ : Cluster) (n : Nat) : IProp GF := ApiImpl.tickCredit γ n
 
-theorem tickCredit_intro (γ : Cluster) (n : Nat) : ⧗ n ⊢ tickCredit (GF := GF) γ n := sorry
+theorem tickCredit_intro (γ : Cluster) (n : Nat) : ⧗ n ⊢ tickCredit (GF := GF) γ n := by
+  unfold tickCredit; exact ApiImpl.tickCredit_intro_impl γ n
 
-theorem tickCredit_zero (γ : Cluster) : ⊢ |==> tickCredit (GF := GF) γ 0 := sorry
+theorem tickCredit_zero (γ : Cluster) : ⊢ |==> tickCredit (GF := GF) γ 0 := by
+  unfold tickCredit; exact ApiImpl.tickCredit_zero_impl γ
 
 /-- (open) **A message `node.Step` takes** at the node `id` (today `stepP`): the message at `ml`. -/
-@[no_expose] def stepIn (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) : IProp GF := sorry
+@[no_expose] def stepIn (γ : Cluster) (N : Namespace) (id : w64) (ml : Loc) : IProp GF :=
+  ApiImpl.stepIn γ N id ml
 
 /-- (open) **Stepping a sent message**: a copy of it (its fields, entries and snapshot; no local
 responses), owned with its entries slice fresh, addressed to `id`, with its credits and, for a
@@ -449,6 +425,23 @@ def readyRest (γ : Cluster) (N : Namespace) (rd : Ready) (st : NodeDriverState)
       (∀ e0, es.head? = some e0 → uint.Z e0.Index' + (es.length : Int) ≤ Lx + 1) ∧
       ((st.delivered ++ ce).length : Int) ≤ Lx⌝ ∗
     readySnap γ N rd st ce st' es L)
+
+/-- The implementation's rest of a `Ready` is the draft's (its snapshot case unreachable). -/
+private theorem readyRest_of_impl (γ : Cluster) (N : Namespace) (rd : Ready) (st : NodeDriverState)
+    (ce : List LogEntry) (st' : NodeDriverState) :
+    ApiImpl.readyRest (GF := GF) γ N rd st ce st' ⊢ readyRest γ N rd st ce st' := by
+  unfold ApiImpl.readyRest readyRest
+  iintro ⟨%es, %ms, %L, %h, %H, Hes, Hm, Hms, Hhs, Hss, %Hx, Hsnap⟩
+  iexists es, ms, L, h
+  unfold sentMsg msgCredits
+  iframe Hes Hm Hms Hhs Hss
+  isplitr
+  · ipureintro; exact H
+  isplitr
+  · ipureintro; exact Hx
+  cases L with
+  | none => unfold ApiImpl.readySnap readySnap; iexact Hsnap
+  | some l => unfold ApiImpl.readySnap; iexfalso; iexact Hsnap
 
 end api
 
@@ -679,15 +672,37 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF] [StorageModel GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.raft.v3.Assumptions]
 
-theorem node.wp_Propose : node.Propose.spec (GF := GF) (hG := hG) := sorry
-theorem node.wp_ProposeConfChange : node.ProposeConfChange.spec (GF := GF) (hG := hG) := sorry
-theorem node.wp_ReadIndex : node.ReadIndex.spec (GF := GF) (hG := hG) := sorry
-theorem node.wp_Ready : node.Ready.spec (GF := GF) (hG := hG) := sorry
-theorem node.wp_readyRecv : node.readyRecv.spec (GF := GF) (hG := hG) := sorry
-theorem node.wp_Advance : node.Advance.spec (GF := GF) (hG := hG) := sorry
-theorem node.wp_Step : node.Step.spec (GF := GF) (hG := hG) := sorry
-theorem node.wp_Tick : node.Tick.spec (GF := GF) (hG := hG) := sorry
-theorem node.wp_TransferLeadership : node.TransferLeadership.spec (GF := GF) (hG := hG) := sorry
+theorem node.wp_Propose : node.Propose.spec (GF := GF) (hG := hG) := by
+  exact ApiImpl.node.wp_Propose_impl _root_.Perennial.EtcdGrove.node.wp_Propose
+theorem node.wp_ProposeConfChange : node.ProposeConfChange.spec (GF := GF) (hG := hG) := by
+  exact ApiImpl.node.wp_ProposeConfChange_impl _root_.Perennial.EtcdGrove.node.wp_ProposeConfChange
+theorem node.wp_ReadIndex : node.ReadIndex.spec (GF := GF) (hG := hG) := by
+  exact ApiImpl.node.wp_ReadIndex_impl
+    (_root_.Perennial.EtcdGrove.node.ReadIndex.wp_proofReq
+      _root_.Perennial.EtcdGrove.node.wp_step
+      _root_.Perennial.EtcdGrove.raftpb.MessageType.wp_Enum)
+theorem node.wp_Ready : node.Ready.spec (GF := GF) (hG := hG) := by
+  exact ApiImpl.node.wp_Ready_impl
+theorem node.wp_readyRecv : node.readyRecv.spec (GF := GF) (hG := hG) := by
+  intro n ch γ N st Hh
+  iintro %Φ Hpre HΦ
+  unfold isReadyChan nodeDriver
+  iapply (ApiImpl.node.wp_readyRecv_impl n ch γ N st Hh) $$ Hpre
+  iintro !> %rd ⟨%ce, %st', Hce, Hlb, Hrs, Hrest, Hdrv⟩
+  iapply HΦ
+  iexists ce, st'
+  unfold isCommittedLogLb readStateOk
+  iframe Hce Hlb Hrs Hdrv
+  iapply readyRest_of_impl $$ Hrest
+theorem node.wp_Advance : node.Advance.spec (GF := GF) (hG := hG) := by
+  exact ApiImpl.node.wp_Advance_impl _root_.Perennial.EtcdGrove.node.wp_Advance
+theorem node.wp_Step : node.Step.spec (GF := GF) (hG := hG) := by
+  exact ApiImpl.node.wp_Step_impl _root_.Perennial.EtcdGrove.node.wp_Step
+theorem node.wp_Tick : node.Tick.spec (GF := GF) (hG := hG) := by
+  exact ApiImpl.node.wp_Tick_impl _root_.Perennial.EtcdGrove.node.wp_Tick
+theorem node.wp_TransferLeadership : node.TransferLeadership.spec (GF := GF) (hG := hG) := by
+  exact ApiImpl.node.wp_TransferLeadership_impl
+    _root_.Perennial.EtcdGrove.node.wp_TransferLeadership
 theorem wp_StartNode : StartNode.spec (GF := GF) (hG := hG) := sorry
 theorem wp_RestartNode : RestartNode.spec (GF := GF) (hG := hG) := sorry
 

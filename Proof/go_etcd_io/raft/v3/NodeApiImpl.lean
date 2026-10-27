@@ -24,6 +24,7 @@ public import Proof.go_etcd_io.raft.v3.InvNodeCtx
 public import Perennial.Proof.context
 public import Proof.go_etcd_io.raft.v3.InvMemstorage
 public import Perennial.Ghost.MonoList
+public import Proof.go_etcd_io.raft.v3.NodeApiVocab
 public import Spec.go_etcd_io.raft.v3.Api
 import all Proof.go_etcd_io.raft.v3.InvNode
 import Proof.go_etcd_io.raft.v3.node__Ready
@@ -40,39 +41,16 @@ namespace Perennial
 namespace EtcdGrove
 namespace ApiImpl
 
-open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
+open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3 Draft
 
 /-! ## The abstract state (as in the draft) -/
 
 section pure
 variable [GooseExts]
 
-/-- An entry of the committed log as a client sees it. Its index is its position (the `i`-th entry,
-from 0, has index `i + 1`). -/
-structure LogEntry where
-  term : w64
-  type : raftpb.EntryType
-  data : List w8
-
 instance LogEntry_countable : Pos.Countable LogEntry :=
   countableOfLeftInverse (fun e : LogEntry => (e.term, e.type, e.data))
     (fun p => ⟨p.1, p.2.1, p.2.2⟩) (fun _ => rfl)
-
-/-- The Go record of the entry at index `idx`. -/
-def LogEntry.toEntryM (idx : w64) (e : LogEntry) : EntryM := ⟨e.term, idx, e.type, e.data⟩
-
-/-- **A filler** (the draft's): raft's own entries, and a client's empty proposal. -/
-def LogEntry.isFiller (e : LogEntry) : Prop :=
-  e.data = [] ∧ (e.type = W32 0 ∨ e.type = W32 2)
-
-instance (e : LogEntry) : Decidable e.isFiller := by unfold LogEntry.isFiller; infer_instance
-
-/-- **The requested entries** of a log: everything but its fillers. -/
-def opsOf (l : List LogEntry) : List LogEntry := l.filter fun e => !decide e.isFiller
-
-/-- The Go entries of the log entries `l`, at the indices after `base`. -/
-def LogEntry.toEntries (l : List LogEntry) (base : Nat) : List EntryM :=
-  l.mapIdx fun i e => e.toEntryM (W64 (base + i + 1))
 
 /-- A raft entry as a client sees it: its index dropped. -/
 def LogEntry.ofEntryM (e : EntryM) : LogEntry := ⟨e.Term', e.Type', e.Data'⟩
@@ -453,14 +431,6 @@ end ctx
 section boot
 variable [GooseExts]
 
-/-- The bootstrap log (the draft's): a `ConfChangeAddNode` of each peer, its context `ctx`, at term
-1, as `MarshalConfChange` encodes it. -/
-def BootLog (ps : List w64) (ctxs : List (List w8)) (boot : List LogEntry) : Prop :=
-  boot.length = ps.length ∧ (boot.length : Int) < 2 ^ 61 ∧
-  ∀ (k : Nat) (e : LogEntry), boot[k]? = some e →
-    ∃ id ctx, ps[k]? = some id ∧ ctxs[k]? = some ctx ∧ e.term = W64 1 ∧ e.type = W32 1 ∧
-      MarshalsConfChange (some (.v1 ⟨W32 0, id, ctx, W64 0⟩)) e.data
-
 theorem ofEntryM_toEntryM (idx : w64) (e : LogEntry) : LogEntry.ofEntryM (e.toEntryM idx) = e := by
   cases e; rfl
 
@@ -511,7 +481,7 @@ theorem opsOf_eq_self (l : List LogEntry) (H : ∀ e ∈ l, ¬ e.isFiller) : ops
   intro e he
   simp [H e he]
 
-theorem BootLog.ok {ps : List w64} {ctxs : List (List w8)} {boot : List LogEntry}
+theorem BootLog_ok {ps : List w64} {ctxs : List (List w8)} {boot : List LogEntry}
     (H : BootLog ps ctxs boot) : BootLogOk ps (LogEntry.toEntries boot 0) := by
   obtain ⟨Hl, Hb, Hk⟩ := H
   refine ⟨by rw [toEntries_length, Hl], by rw [toEntries_length]; exact Hb, fun k e He => ?_⟩
@@ -530,7 +500,7 @@ theorem BootLog.ok {ps : List w64} {ctxs : List (List w8)} {boot : List LogEntry
     rw [uint_Z_W64 _ (by omega) this]
     push_cast; omega
 
-theorem BootLog.opsOf {ps : List w64} {ctxs : List (List w8)} {boot : List LogEntry}
+theorem BootLog_opsOf {ps : List w64} {ctxs : List (List w8)} {boot : List LogEntry}
     (H : BootLog ps ctxs boot) : opsOf boot = boot := by
   apply opsOf_eq_self
   intro e he
@@ -539,10 +509,10 @@ theorem BootLog.opsOf {ps : List w64} {ctxs : List (List w8)} {boot : List LogEn
   rintro ⟨-, h | h⟩ <;> rw [Hty] at h <;> have := congrArg (fun x : w32 => uint.Z x) h <;>
     revert this <;> decide
 
-theorem BootLog.idx {ps : List w64} {ctxs : List (List w8)} {boot : List LogEntry}
+theorem BootLog_idx {ps : List w64} {ctxs : List (List w8)} {boot : List LogEntry}
     (H : BootLog ps ctxs boot) : IdxOk (LogEntry.toEntries boot 0) := by
   intro k e He
-  have Hok := H.ok
+  have Hok := BootLog_ok H
   exact (Hok.2.2 k e He).2.1
 
 /-- The fresh-data tokens of the keys of `L` (raft's `bootFreshFrom`). -/
@@ -646,10 +616,10 @@ theorem api_alloc_client (N : Namespace) (E : CoPset) (cfg : GSet w64) (ps : Lis
   · inext
     unfold apiInvBody
     iexists LogEntry.toEntries boot 0, bootFresh (LogEntry.toEntries boot 0), ∅
-    rw [strip_toEntries, HB.opsOf]
+    rw [strip_toEntries, (BootLog_opsOf HB)]
     iframe HrL Hf Ho1 Hfa Hrfa
     isplitr
-    · ipureintro; exact HB.idx
+    · ipureintro; exact (BootLog_idx HB)
     isplitr
     · unfold freshOk
       imodintro
@@ -684,7 +654,7 @@ theorem api_alloc_client (N : Namespace) (E : CoPset) (cfg : GSet w64) (ps : Lis
     iframe Ho2
     iexists boot
     unfold isCommittedLogLb
-    rw [HB.opsOf]
+    rw [(BootLog_opsOf HB)]
     isplitl []
     · iright; iframe Hflb Holb
     ipureintro; rfl
@@ -706,7 +676,7 @@ theorem cluster_alloc_impl (N : Namespace) (ps : List w64) (ctxs : List (List w8
   intro Hrb HB Hnd Hne Hnz
   iintro #Hm
   imod budget_alloc_boot (GF := GF) Hrb E with ⟨%bud, #Hbinv, #Htlb⟩
-  have Hok := HB.ok
+  have Hok := (BootLog_ok HB)
   have Hwf := Hok.wf Hnd
   have Hbne : LogEntry.toEntries boot 0 ≠ [] := by
     intro h
@@ -1127,15 +1097,6 @@ instance isReadyChan_persistent (n : Loc) (γ : Cluster) (N : Namespace) (ch : L
     Persistent (isReadyChan (GF := GF) n γ N ch) := by
   unfold isReadyChan; infer_instance
 
-/-- The state of a node's `Ready` loop (the draft's). -/
-structure NodeDriverState where
-  storage : Storage
-  delivered : List LogEntry
-  hardState : HardStateM
-  handling : Option (List EntryM × Option SnapLoan)
-
-def NodeDriverState.init (stor : Storage) : NodeDriverState := ⟨stor, [], hsZero, none⟩
-
 /-- **The `Ready` loop's token**: raft's driver token (idle, or busy with a `Ready`) at the raft
 log `ds` the client sees as `st.delivered`, at a node that takes no snapshot. -/
 def nodeDriver (n : Loc) (γ : Cluster) (N : Namespace) (st : NodeDriverState) : IProp GF :=
@@ -1146,10 +1107,6 @@ def nodeDriver (n : Loc) (γ : Cluster) (N : Namespace) (st : NodeDriverState) :
     ((⌜st.handling = none⌝ ∗ EtcdGrove.nodeDriver γn id n ds st.hardState) ∨
      (∃ (es : List EntryM) (L : Option SnapLoan), ⌜st.handling = some (es, L)⌝ ∗
        nodeDriverBusy γn id n ds es st.hardState L)))
-
-/-- The Go entries `sl` are the log entries `ce`, at the indices after `base` (read-only). -/
-def committedEntriesAt (sl : GoSlice) (base : Nat) (ce : List LogEntry) : IProp GF :=
-  entsRO sl (LogEntry.toEntries ce base)
 
 /-- (open) **A message a `Ready` handed out**: sent by a node of the cluster, of a term within the
 cluster's budget. -/
@@ -2126,6 +2083,13 @@ theorem node.wp_Step_impl (hS : EtcdGrove.node.Step.spec (GF := GF) (hG := hG)) 
     iapply Hin
     ipureintro; exact Hf
   iexact HΦ
+
+/-- (open) **The snapshot `k` is certified** for the cluster: raft's certificate (`raftSnapCertD`). -/
+def snapshotCert (γ : Cluster) (_N : Namespace) (k : SnapTrip) : IProp GF := raftSnapCertD γ.raft k
+
+instance snapshotCert_persistent (γ : Cluster) (N : Namespace) (k : SnapTrip) :
+    Persistent (snapshotCert (GF := GF) γ N k) := by
+  unfold snapshotCert; infer_instance
 
 end misc
 

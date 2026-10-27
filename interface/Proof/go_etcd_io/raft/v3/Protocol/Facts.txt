@@ -25,9 +25,9 @@ theorem ownRaftGhost_alloc_core [ReceiptGS GF] [InvGS GF] (E : CoPset) (cfg ids 
     : RaftNames → IProp GF) (trk : Option (GSet w64)) (Htrk : ∀ (T : GSet w64), trk = some T → cfg ⊆
     T ∧ dyn = none) (ns : Bool) (Hns : ns = true → L ≠ []) (nx : Bool) (Hnx : nx = true → L ≠ [])
     (sok : List BootEntry → List w8 → Prop) (sl : w64 → Option GName) (nsN : Namespace) : cfg ≠ ∅ →
-    ¬W64 0 ∈ ids → BootWf L → (L ≠ [] → 1 ≤ uint.Z t) → ⊢ allocClientGen E cfg dyn ccOk L C ={E}=∗ ∃
-    γ, ⌜γ.reCfg = cfg ∧ γ.reDyn = dyn ∧ γ.reCCOk = ccOk ∧ γ.reBoot = L ∧ γ.reTracked = trk ∧
-    γ.reNoSnap = ns ∧ γ.reNoXfer = nx ∧ γ.reSnapOkRaw = sok ∧ γ.reSnapLoc = sl ∧ γ.reNs = nsN⌝ ∗
+    ¬W64 0 ∈ ids → BootWf L → (L ≠ [] → 1 ≤ uint.Z t) → ⊢ allocClientGen E cfg dyn ccOk L C nsN
+    ={E}=∗ ∃ γ, ⌜γ.reCfg = cfg ∧ γ.reDyn = dyn ∧ γ.reCCOk = ccOk ∧ γ.reBoot = L ∧ γ.reTracked = trk
+    ∧ γ.reNoSnap = ns ∧ γ.reNoXfer = nx ∧ γ.reSnapOkRaw = sok ∧ γ.reSnapLoc = sl ∧ γ.reNs = nsN⌝ ∗
     raftCommitInv γ ∗ isCommitted γ L ∗ ([∗map] id ↦ _u ∈ toMap ids, ownRaftGhost γ id (initPStateAt
     t L) dyn.isSome) ∗ C γ ∗ rdCred γ (2 ^ 64 - 2) ∗ rdCredInv γ
 
@@ -66,6 +66,12 @@ theorem allocClient_gen [ReceiptGS GF] [InvGS GF] (E : CoPset) (cfg : GSet w64) 
 
 theorem GMap.exists_fresh_nat {V : Type} (K : GMap Nat V) : ∃ k, K !! k = none
 
+theorem propIsAt_propIs [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (d : List w8) (γq : GName) (Q :
+    List EntryM → IProp GF) : ⊢ propIsAt γ d γq -∗ savedPredOwn γq DFrac.discard Q -∗ propIs γ d Q
+
+def propIsAt (γ : RaftNames) (d : List w8) (γq : GName) : IProp GF :=
+  iprop(∃ γd, d ↪[γ.reProps]□ (γq, γd))
+
 theorem BootLogOk.wf {ps : List w64} {bootLog : List EntryM} (H : BootLogOk ps bootLog) (Hnd :
     ps.Nodup) : BootWf bootLog
 
@@ -84,14 +90,16 @@ def allocClientBoot [InvGS GF] (E : CoPset) (cfg : GSet w64) (ccOk : w32 → Lis
 theorem entsData_keys [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (L : List EntryM) : ([∗list] e ∈ L,
     entDataIs γ e (some (entKey e.Type' e.Data'))) ⊢ entsData γ L ∗ [∗list] e ∈ L, entData γ e
 
-theorem boot_register [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (Lc Ls : List EntryM) (R : GMap
-    (List w8) PropRec) (F : GMap (List w8) Unit) : (List.map (fun e => entKey e.Type' e.Data')
-    Ls).Nodup → (∀ (e : EntryM), e ∈ Ls → ¬Filler e.Type' e.Data' ∧ CCDecodes e.Type' e.Data' ∧
-    uint.Z e.Index' ≤ ↑Lc.length ∧ R !! entKey e.Type' e.Data' = none ∧ F !! entKey e.Type' e.Data'
-    = none) → ⊢ ghostMapAuth γ.reProps 1 R -∗ ghostMapAuth γ.reFresh 1 F -∗ ([∗map] d ↦ p ∈ R,
-    iprop(propSlot γ d p Lc ∗ propFresh γ d)) ==∗ ∃ R', ghostMapAuth γ.reProps 1 R' ∗ ghostMapAuth
-    γ.reFresh 1 (bootFreshFrom F Ls) ∗ ([∗map] d ↦ p ∈ R', iprop(propSlot γ d p Lc ∗ propFresh γ d))
-    ∗ [∗list] e ∈ Ls, entDataIs γ e (some (entKey e.Type' e.Data'))
+theorem boot_register [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (Lc : List EntryM) (γq : GName) (Ls
+    : List EntryM) (R : GMap (List w8) PropRec) (F : GMap (List w8) Unit) : (List.map (fun e =>
+    entKey e.Type' e.Data') Ls).Nodup → (∀ (e : EntryM), e ∈ Ls → ¬Filler e.Type' e.Data' ∧
+    CCDecodes e.Type' e.Data' ∧ uint.Z e.Index' ≤ ↑Lc.length ∧ R !! entKey e.Type' e.Data' = none ∧
+    F !! entKey e.Type' e.Data' = none) → ⊢ (savedPredOwn γq DFrac.discard fun x => iprop(True)) -∗
+    ghostMapAuth γ.reProps 1 R -∗ ghostMapAuth γ.reFresh 1 F -∗ ([∗map] d ↦ p ∈ R, iprop(propSlot γ
+    d p Lc ∗ propFresh γ d)) ==∗ ∃ R', ghostMapAuth γ.reProps 1 R' ∗ ghostMapAuth γ.reFresh 1
+    (bootFreshFrom F Ls) ∗ ([∗map] d ↦ p ∈ R', iprop(propSlot γ d p Lc ∗ propFresh γ d)) ∗ ([∗list]
+    e ∈ Ls, entDataIs γ e (some (entKey e.Type' e.Data'))) ∗ [∗list] e ∈ Ls, propIsAt γ (entKey
+    e.Type' e.Data') γq
 
 theorem BootWf.terms {L : List EntryM} (H : BootWf L) (e : EntryM) : e ∈ L → e.Term' = W64 1
 
@@ -103,6 +111,9 @@ theorem ownRaftGhost_alloc_gen [ReceiptGS GF] [InvGS GF] (E : CoPset) (cfg ids :
     cfg ≠ ∅ → ¬W64 0 ∈ ids → ⊢ allocClient E cfg dyn C ={E}=∗ ∃ γ, ⌜γ.reCfg = cfg ∧ γ.reDyn = dyn ∧
     γ.reCCOk = ccOk ∧ γ.reNoXfer = false⌝ ∗ raftCommitInv γ ∗ isCommitted γ [] ∗ ([∗map] id ↦ _u ∈
     toMap ids, ownRaftGhost γ id initPState dyn.isSome) ∗ C γ ∗ rdCred γ (2 ^ 64 - 2) ∗ rdCredInv γ
+
+theorem propIsAt_persistent (γ : RaftNames) (d : List w8) (γq : GName) : Persistent (propIsAt γ d
+    γq)
 
 theorem rdCred_zero [ReceiptGS GF] [InvGS GF] (γ : RaftNames) : ⊢ |==> rdCred γ 0
 
@@ -150,12 +161,17 @@ theorem ownRaftGhost_committed [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (id : 
     : Bool} : ⊢ ownRaftGhost γ id s md -∗ ∃ fp, ⌜FullOk s.base fp⌝ ∗ isCommitted γ (List.take
     (uint.Z s.commit).toNat (fp ++ s.log))
 
+theorem prop_register_at [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (E : CoPset) (d : List w8) (γq :
+    GName) : ↑(raftN γ) ⊆ E → ⊢ raftCommitInv γ -∗ propFresh γ d ={E}=∗ propIsAt γ d γq
+
 theorem BootWf.data {L : List EntryM} (H : BootWf L) (e : EntryM) : e ∈ L → ¬Filler e.Type' e.Data'
     ∧ CCDecodes e.Type' e.Data' ∧ uint.Z e.Index' ≤ ↑L.length
 
 theorem ods_not_fresh [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (l : List EntryM) (ods : List
     (Option (List w8))) (R : GMap (List w8) PropRec) (d : List w8) (HRd : R !! d = none) : ⊢
     ([∗list] e;o ∈ l;ods, entDataIs γ e o) -∗ ghostMapAuth γ.reProps 1 R -∗ ⌜¬some d ∈ ods⌝
+
+theorem propIsAt_timeless (γ : RaftNames) (d : List w8) (γq : GName) : Timeless (propIsAt γ d γq)
 
 theorem committed_data [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (E : CoPset) (l : List EntryM) :
     ↑(raftN γ) ⊆ E → ⊢ raftCommitInv γ -∗ isCommitted γ l ={E}=∗ ∃ ods, [∗list] e;o ∈ l;ods,
@@ -166,12 +182,18 @@ theorem entsData_lookup [ReceiptGS GF] [InvGS GF] (γ : RaftNames) (l : List Ent
     entDataIs γ e o) -∗ ∃ o, ⌜ods[m]? = some o⌝ ∗ entDataIs γ e o
 
 def allocClientGen [InvGS GF] (E : CoPset) (cfg : GSet w64) (dyn : Option ((e : GooseExts) →
-    DynCfg)) (ccOk : w32 → List w8 → Prop) (L : List EntryM) (C : RaftNames → IProp GF) : IProp GF
-    :=
+    DynCfg)) (ccOk : w32 → List w8 → Prop) (L : List EntryM) (C : RaftNames → IProp GF) (nsN :
+    Namespace := nroot.@"raft_commit") : IProp GF :=
   iprop(∀ γ,
-      ⌜γ.reCfg = cfg ∧ γ.reDyn = dyn ∧ γ.reCCOk = ccOk ∧ γ.reBoot = L⌝ -∗
+      ⌜γ.reCfg = cfg ∧ γ.reDyn = dyn ∧ γ.reCCOk = ccOk ∧ γ.reBoot = L ∧ γ.reNs = nsN⌝ -∗
         isCommitted γ L -∗
-          rLog γ L -∗ ghostMapAuth γ.reFresh 1 (bootFresh L) -∗ ghostMapAuth γ.reRdFresh 1 ∅ ={E}=∗ noopAu γ ∗ C γ)
+          rLog γ L -∗
+            ghostMapAuth γ.reFresh 1 (bootFresh L) -∗
+              ghostMapAuth γ.reRdFresh 1 ∅ -∗
+                (∃ γT,
+                    (savedPredOwn γT DFrac.discard fun x => iprop(True)) ∗
+                      [∗list] e ∈ L, propIsAt γ (entKey e.Type' e.Data') γT) ={E}=∗
+                  noopAu γ ∗ C γ)
 
 def bootPState (bootLog : List EntryM) : PState :=
   have __src := initPState;
