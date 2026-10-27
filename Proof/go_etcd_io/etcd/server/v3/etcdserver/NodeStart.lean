@@ -214,6 +214,27 @@ theorem rnToks_of_start (γ : RNNames) (hpre : γ.pre = [])
     iframe Hcons
     iexact Hcum0
 
+/-- **A registered `MemoryStorage` whose certificate registry is tied to the cluster**
+(`Draft.storageCertInv`, from `NewMemoryStorage`'s `memCertAuth`) **has the cluster's certificates**
+(`Draft.storageCertLink`, what `StartNode` takes of a static cluster's storage; 2026-10-27, as kv's
+`kvStorCertLink_intro`). -/
+theorem memStorCertLink_intro (reg : GName) (γ : Draft.Cluster) (N : Namespace) (ms : Loc)
+    (γs : MemStorNames) :
+    letI : MemStorReg GF := ⟨reg⟩
+    Draft.storageCertInv (GF := GF) γ N γs ∗ memStorReg ms γs ⊢
+      Draft.storageCertLink γ N (memStorIface ms) := by
+  letI : MemStorReg GF := ⟨reg⟩
+  iintro ⟨#Hinv, #Hreg⟩
+  iapply Draft.storageCertLink_intro γ N (memStorIface ms)
+  isplit
+  · iintro !> %k %E %hE #Hc
+    ihave #Hc := memStorCert_at ms γs k $$ Hreg Hc
+    iapply Draft.storageCert_read γ N γs k E hE $$ Hinv Hc
+  · iintro !> %k %E %hE #Hk
+    imod Draft.storageCert_register γ N γs k E hE $$ Hinv Hk with #Hc
+    imodintro
+    iapply memStorCert_intro ms γs k $$ Hreg Hc
+
 /-- **The composition's statement** (see the file header; 2026-10-27: over the node API, for the
 server's raft names `γr` and the cluster's storage model `srvStor γr`): for the receiver `b` and the
 config `cv` with `StartNode.spec`'s premises on it, the peers, the server's names
