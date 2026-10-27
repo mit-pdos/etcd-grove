@@ -100,6 +100,46 @@ structure ServerRaftNames [GooseExts] where
 section pure
 variable [GooseExts]
 
+/-- Raft's full committed log holding the server's `L` after its start: `pre ++ L`, as raft's
+records. -/
+def srvLogOf (γ : ServerRaftNames) (L : List EntryModel) : List EntryM :=
+  (γ.pre ++ L).map EntryModel.toM
+
+theorem srvLogOf_prefix (γ : ServerRaftNames) (A B : List EntryModel) :
+    srvLogOf γ A <+: srvLogOf γ B ↔ A <+: B := by
+  unfold srvLogOf
+  rw [List.prefix_map_iff_of_injective EntryModel.toM_injective, List.prefix_append_right_inj]
+
+theorem srvLogOf_length (γ : ServerRaftNames) (L : List EntryModel) :
+    (srvLogOf γ L).length = γ.pre.length + L.length := by
+  simp [srvLogOf]
+
+theorem srvLogOf_snoc (γ : ServerRaftNames) (L : List EntryModel) (e : EntryModel) :
+    srvLogOf γ (L ++ [e]) = srvLogOf γ L ++ [e.toM] := by
+  simp [srvLogOf]
+
+theorem srvLogOf_drop (γ : ServerRaftNames) (L : List EntryModel) :
+    (srvLogOf γ L).drop γ.pre.length = L.map EntryModel.toM := by
+  unfold srvLogOf
+  rw [List.map_append, List.drop_left' (by simp)]
+
+theorem srvLogOf_take (γ : ServerRaftNames) (L : List EntryModel) (m : Nat) :
+    (srvLogOf γ L).take (γ.pre.length + m) = srvLogOf γ (L.take m) := by
+  unfold srvLogOf
+  rw [List.map_append, List.map_append, List.map_take]
+  have h : γ.pre.length = (γ.pre.map EntryModel.toM).length := by simp
+  rw [h, List.take_length_add_append]
+
+theorem srvLogOf_pre_prefix (γ : ServerRaftNames) (L : List EntryModel) :
+    γ.pre.map EntryModel.toM <+: srvLogOf γ L := by
+  unfold srvLogOf; rw [List.map_append]; exact List.prefix_append _ _
+
+theorem srvLogOf_lookup (γ : ServerRaftNames) (L : List EntryModel) (m : Nat) (e : EntryModel)
+    (h : L[m]? = some e) : (srvLogOf γ L)[γ.pre.length + m]? = some e.toM := by
+  unfold srvLogOf
+  rw [List.getElem?_map, List.getElem?_append_right (by omega), Nat.add_sub_cancel_left, h]
+  rfl
+
 /-- An entry as raft's node API sees it: its index dropped. -/
 def EntryModel.toLE (m : EntryModel) : Draft.LogEntry := ⟨m.term, m.typ, m.data⟩
 
@@ -233,8 +273,6 @@ theorem srvRLogLb_idx (γ : ServerRaftNames) (L : List EntryModel) :
     srvRLogLb (GF := GF) γ L ⊢ ⌜srvIdxOkW γ.ai0 L⌝ := by
   unfold srvRLogLb; iintro ⟨-, %H⟩; ipureintro; exact H
 
-variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
-
 /-- Any storage model (the node API's laws take one, unused). -/
 abbrev srvAnyStor : StorageModel GF :=
   letI : MemStorReg GF := ⟨default⟩
@@ -243,10 +281,9 @@ abbrev srvAnyStor : StorageModel GF :=
 /-- Two prefixes of the committed log are comparable. -/
 theorem srvRLogLb_prefix (γ : ServerRaftNames) (A B : List EntryModel) :
     srvRLogLb (GF := GF) γ A ∗ srvRLogLb γ B ⊢ ⌜A <+: B ∨ B <+: A⌝ := by
-  letI := srvAnyStor (GF := GF)
   unfold srvRLogLb
   iintro ⟨⟨#HA, %hA⟩, ⟨#HB, %hB⟩⟩
-  icases Draft.isCommittedLogLb_agree γ.raft.cl (srvLE γ A) (srvLE γ B) $$ [HA HB] with %H
+  icases Draft.isCommittedLogLb_agree' γ.raft.cl (srvLE γ A) (srvLE γ B) $$ [HA HB] with %H
   · iframe HA HB
   ipureintro
   rcases H with h | h
@@ -256,11 +293,10 @@ theorem srvRLogLb_prefix (γ : ServerRaftNames) (A B : List EntryModel) :
 /-- A prefix of a committed prefix. -/
 theorem srvRLogLb_mono (γ : ServerRaftNames) (A B : List EntryModel) (h : A <+: B) :
     srvRLogLb (GF := GF) γ B ⊢ srvRLogLb γ A := by
-  letI := srvAnyStor (GF := GF)
   unfold srvRLogLb
   iintro ⟨#HB, %hB⟩
   isplitl
-  · iapply Draft.isCommittedLogLb_mono γ.raft.cl _ _ (srvLE_prefix_of γ A B h) $$ HB
+  · iapply Draft.isCommittedLogLb_mono' γ.raft.cl _ _ (srvLE_prefix_of γ A B h) $$ HB
   · ipureintro; exact srvIdxOkW_prefix γ.ai0 A B hB h
 
 end ghost
@@ -573,17 +609,13 @@ theorem srv_next_bound (γ : ServerRaftNames) (Lf : List EntryModel) (l : List D
 
 end purefacts
 
-/-! ## The server's updates as the node API's -/
+/-! ## The server's half and the committed log -/
 
-section bridges
+section lb
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
-variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
-
-theorem srv_mask_inner : (⊤ \ ↑srvRaftN : CoPset) ⊆ (⊤ \ ↑srvClusterN) \ ↑srvLogN :=
-  mask_diff_ndot2 srvRaftN "cluster" "log"
 
 /-- **The server's half bounds every prefix of the committed log**, by their requested entries:
 a committed log's requested entries are those of a prefix of the server's log (2026-10-27: until
@@ -593,7 +625,6 @@ theorem srvRLog_lb (γ : ServerRaftNames) (E : CoPset) (hE : ↑srvLogN ⊆ E)
     ⊢ srvRaftLogInv (GF := GF) γ -∗ srvRLog γ L -∗ srvRLogLb γ A ={E}=∗
       srvRLog γ L ∗ ⌜srvIdxOkW γ.ai0 L ∧ (∀ m ∈ L, ¬ m.toLE.isFiller) ∧
         Draft.opsOf (A.map EntryModel.toLE) <+: L.map EntryModel.toLE⌝ := by
-  letI := srvAnyStor (GF := GF)
   iintro #Hinv HL #HA
   iunfold srvRaftLogInv at Hinv
   icases Hinv with ⟨#Hli, -, -, -⟩
@@ -606,7 +637,7 @@ theorem srvRLog_lb (γ : ServerRaftNames) (E : CoPset) (hE : ↑srvLogN ⊆ E)
   obtain ⟨-, rfl⟩ := Hag
   iunfold srvRLogLb at HA
   icases HA with ⟨#HA, %HAi⟩
-  ihave %Hp := Draft.ownCommittedOps_lb_prefix γ.raft.cl _ _ $$ [Hown HA]
+  ihave %Hp := Draft.ownCommittedOps_lb_prefix' γ.raft.cl _ _ $$ [Hown HA]
   · iframe Hown HA
   imod Hclose $$ [Hown Hlog HP HF HR Hfr Hregs] with -
   · inext
@@ -619,6 +650,20 @@ theorem srvRLog_lb (γ : ServerRaftNames) (E : CoPset) (hE : ↑srvLogN ⊆ E)
   iframe HL
   ipureintro
   exact ⟨Hfacts.1, Hfacts.2.1, srv_ops_prefix γ A Lf Hfacts.2.1 Hp⟩
+
+end lb
+
+/-! ## The server's updates as the node API's -/
+
+section bridges
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+variable [raftAsm : go_etcd_io.raft.v3.Assumptions]
+
+theorem srv_mask_inner : (⊤ \ ↑srvRaftN : CoPset) ⊆ (⊤ \ ↑srvClusterN) \ ↑srvLogN :=
+  mask_diff_ndot2 srvRaftN "cluster" "log"
 
 /-- **Firing the registered reads** at the server's log after one more entry `e`: each read's
 update, at the log `Lf ++ [e]` (the KV invariant's half, through the update). -/

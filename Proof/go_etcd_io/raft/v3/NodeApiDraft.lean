@@ -755,6 +755,48 @@ instance readCredits_timeless (γ : Cluster) (n : Nat) : Timeless (readCredits (
 
 end api
 
+/-! ### The committed log's laws without the section's unused instances (2026-10-27, the server
+port's addition; proved)
+
+The laws above take `[StorageModel GF]` and raft's `Assumptions` (the section's variables), which
+they do not use; a client whose own statements are free of them (etcd's server, whose committed-log
+predicates are used across hundreds of its modules) uses these. Proposed change: drop the unused
+instances from the laws above (`omit ... in`), and these with them. -/
+
+section lawsPure
+variable [GooseExts] [GooseInterp]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+
+theorem isCommittedLogLb_mono' (γ : Cluster) (l1 l2 : List LogEntry) :
+    l1 <+: l2 → isCommittedLogLb (GF := GF) γ l2 ⊢ isCommittedLogLb γ l1 := by
+  intro Hp
+  unfold isCommittedLogLb ApiImpl.isCommittedLogLb
+  iintro (%Hnil | ⟨#H1, #H2⟩)
+  · ileft; ipureintro; subst Hnil; exact List.prefix_nil.mp Hp
+  iright
+  isplitl []
+  · iapply monoListLbOwn_le _ Hp $$ H1
+  · iapply monoListLbOwn_le _ (ApiImpl.opsOf_prefix Hp) $$ H2
+
+theorem isCommittedLogLb_agree' (γ : Cluster) (l1 l2 : List LogEntry) :
+    isCommittedLogLb (GF := GF) γ l1 ∗ isCommittedLogLb γ l2 ⊢ ⌜l1 <+: l2 ∨ l2 <+: l1⌝ := by
+  unfold isCommittedLogLb ApiImpl.isCommittedLogLb
+  iintro ⟨(%H1 | ⟨#H1, -⟩), (%H2 | ⟨#H2, -⟩)⟩
+  · ipureintro; subst H1; exact .inl List.nil_prefix
+  · ipureintro; subst H1; exact .inl List.nil_prefix
+  · ipureintro; subst H2; exact .inr List.nil_prefix
+  iapply mono_list_lb_valid $$ H1 H2
+
+theorem ownCommittedOps_lb_prefix' (γ : Cluster) (ops l : List LogEntry) :
+    ownCommittedOps (GF := GF) γ ops ∗ isCommittedLogLb γ l ⊢ ⌜opsOf l <+: ops⌝ := by
+  unfold ownCommittedOps isCommittedLogLb ApiImpl.ownCommittedOps ApiImpl.isCommittedLogLb
+  iintro ⟨⟨Ha, -⟩, (%Hnil | ⟨-, #Hlb⟩)⟩
+  · ipureintro; subst Hnil; exact List.nil_prefix
+  icases mono_list_auth_lb_valid $$ Ha Hlb with %H
+  ipureintro; exact H.2
+
+end lawsPure
+
 /-! ## The specs -/
 
 section spec
