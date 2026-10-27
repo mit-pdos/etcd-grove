@@ -397,7 +397,9 @@ def isRaftNodeIfc (E : RNEnv GF) (γ : RNNames) (n : GoInterface) : IProp GF :=
         (App (App (Val #(methods ni.ty go!"ReadIndex" ni.v)) (Val #(GoInterface.ok ctx)))
           (Val #sl))
       {{ (err : GoInterface), RET #err; applyErrIs err ∗
-          (⌜err = GoInterface.nil⌝ -∗ □ E.RQ id n Qr) }}))
+          (⌜err = GoInterface.nil⌝ -∗ □ E.RQ id n Qr) }}) ∗
+    -- (2026-10-27) the node itself (the `Ready` channel's receive takes it)
+    (letI := srvStor (GF := GF) γ.node; Draft.isNode γ.nl γ.node.cl srvClusterN γ.id))
 
 instance isRaftNodeIfc_persistent (E : RNEnv GF) (γ : RNNames) (n : GoInterface) :
     Persistent (isRaftNodeIfc E γ n) := by
@@ -558,7 +560,8 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
               hardState := phsNext (rnDrvSt γ L p).hardState h
               handling := some (es, some l) }) ={⊤}=∗
       ∃ ce' es' p', rnReadyData E γ rd L ce' es' p p' ∗ rnBusy γ L ce' es' p' ∗
-        Draft.deliveredLogLb γ.nl γ.node.cl srvClusterN (srvLE γ.srv (L ++ ce')) := by
+        Draft.deliveredLogLb γ.nl γ.node.cl srvClusterN (srvLE γ.srv (L ++ ce')) ∗
+        ⌜srvIdxOkW E.γr.raft.ai0 (L ++ ce')⌝ := by
   letI := srvStor (GF := GF) γ.node
   simp only [Draft.committedEntriesAt, rnDrvSt]
   iintro #Henv #Hbr Hcfg #Hce #Hcom ⟨%sts, #Hrs, #Hrsok⟩ Hrest Hdrv
@@ -607,9 +610,9 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
   ihave #Hcom' : Draft.isCommittedLogLb E.γr.raft.raft.cl (srvLE E.γr.raft (L ++ ce')) $$ []
   · rw [HsrvLE, Hdel, Hraft]; iexact Hcom
   ihave %Hnext := Draft.isCommittedLogLb_length E.γr.raft.raft.cl _ $$ Hcom'
-  imod srvRLogLb_intro E.γr.raft ⊤ (fun _ _ => CoPset.mem_full) (L ++ ce') ?_ $$ Hinv Hcom'
-    with #HLb
-  · intro n m hm
+  have HLi' : ∀ (n : Nat) (m : EntryModel), (L ++ ce')[n]? = some m →
+      uint.Z m.index = uint.Z E.γr.raft.ai0 + 1 + n := by
+    intro n m hm
     rcases Nat.lt_or_ge n L.length with hn | hn
     · rw [List.getElem?_append_left hn] at hm
       exact (HLi n m hm).1
@@ -625,6 +628,9 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
         omega
       rw [Hai0]
       word
+  imod srvRLogLb_intro E.γr.raft ⊤ (fun _ _ => CoPset.mem_full) (L ++ ce') HLi' $$ Hinv Hcom'
+    with #HLb
+  ihave %HLiW := srvRLogLb_idx E.γr.raft _ $$ HLb
   imod HC $$ %(L ++ ce') HLb [] with #HEC
   · ipureintro
     rw [HsrvLE, srvLE_length] at Hnext
@@ -680,7 +686,7 @@ theorem rn_ready_recv [go_etcd_io.raft.v3.Assumptions] (E : RNEnv GF) (γ : RNNa
     iunfold rnBusyN
     rw [EntryModel.map_toM_ofM, Hdel]
     iexact Hdrv
-  · rw [Hdel]; iexact Hdlb
+  · rw [Hdel]; iframe Hdlb; ipureintro; exact HLiW
 
 /-! ## (D22 J6a) A `Ready` with a snapshot (2026-10-27: unreachable, `srv_readySnap_none`) -/
 
@@ -972,7 +978,9 @@ half, and `cum`'s authority, one element per payload sent after the first, endin
 def rnLoopTokP (γ : RNNames) (L : List EntryModel) (p : HardStateM) : IProp GF :=
   iprop(∃ (sent : List toApply) (cums : List (List EntryModel)),
     rnDrv γ L p ∗ spscProducer γ.ap sent ∗ monoListAuthOwn γ.cum 1 cums ∗
-    ⌜cums.length = sent.length + 1 ∧ cums.getLast? = some L⌝)
+    ⌜cums.length = sent.length + 1 ∧ cums.getLast? = some L⌝ ∗
+    -- (2026-10-27) the log's indices consecutive from the start's (`rn_ready_recv`'s premise)
+    ⌜∃ ai : w64, uint.Z ai = γ.pre.length ∧ srvIdxOkW ai L⌝)
 
 /-- The loop's ghost state at some `prevHardSt` (D22l: `rnLoopTokP`, the loop keeps it tied to
 the raft term it records). -/

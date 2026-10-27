@@ -544,6 +544,9 @@ theorem isRaftNodeIfc_of_isNode (E : RNEnv GF) (γ : RNNames) (s : Loc) (issued 
   · -- `Stop`: the premise
     iunfold rnStopOk at Hstop
     iexact Hstop
+  isplitr
+  rotate_left
+  · iexact Hnode0
   · -- `ReadIndex`
     iintro !> %ctx %cd %sl %id %n %Qr %Φ !> ⟨#Hctx, #Hsl, #Hcal, #Hau, Hcred, Hfresh⟩ HΦ
     imod committedAtLeast_log s E.γr n ⊤ CoPset.subseteq_top $$ Hcinv Hcal with ⟨%L, #HL, %HnL⟩
