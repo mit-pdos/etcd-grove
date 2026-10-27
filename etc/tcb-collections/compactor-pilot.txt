@@ -11,7 +11,15 @@ roots ^clockwork\.
 roots ^EtcdServer\.wp_Compact$
 axiom attribute.Bool.wp_proof
 axiom attribute.Int64.wp_proof
+axiom backend.isDB
 axiom backend.optsAt
+axiom backend.ownDB
+axiom backend.ownWTxG
+axiom backend.rBkt
+axiom backend.rtxSnap
+axiom backend.rtxStats
+axiom backend.txDB
+axiom backend.txLive
 axiom clockwork.NewRealClock.wp_proof
 axiom clockwork.clockLb
 axiom clockwork.realClock
