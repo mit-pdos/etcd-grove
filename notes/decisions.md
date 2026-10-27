@@ -24510,3 +24510,34 @@ statement of a mode-off result changed; the mode-`on` statements gained the conj
 
 **Not done (in order).** The Auth handlers, `setupAuthOk`; `examples/authkv` and the closed
 theorem.
+
+## E3y of the auth plan: the Auth handlers with auth on (2026-10-27 · `notes/auth-plan.md`, E3x's first left item)
+
+The gRPC Auth handlers `AuthServer.{AuthEnable,UserAdd,RoleAdd,UserGrantRole}` (v3rpc) take their
+server call as a contract (`authInnerOk`: the call's error is one `togRPCError` takes, `applyErrIs`,
+and its outcome `authEntryOut Q`). With auth on it is discharged by the servers' `specOn` (E3w,
+E3x): `authEnable_end_to_end_on`, `userAdd_end_to_end_on`, `roleAdd_end_to_end_on`,
+`userGrantRole_end_to_end_on` (`api/v3rpc/Results.lean`): the handler's `(resp, nil)` is the
+request applied at the committed prefix before its entry, its admin step succeeding there
+(`adminOutOn`'s `appliedOkM true`, `adminDoneM`); an error, `togRPCError`'s of the server's
+(`authWrapOut`).
+
+`UserAdd` needed a stronger trust boundary (the user's call, 2026-10-27). Its server hashes the
+password before proposing, and returns `bcrypt.GenerateFromPassword`'s error as is; the handler
+hands every error to `togRPCError`, which needs it non-nil, a safe map key, with an `Error()` that
+returns and an error tree (`applyErrIs`). `bcrypt.GenerateFromPassword.spec` (an axiom) said
+nothing of its error (`⌜err ≠ nil⌝`), so `EtcdServer.UserAdd.spec`'s hashing-error branch had no
+`applyErrIs` and the handler's contract could not be met, in either mode. A gap in this
+repository's spec, not in the Go code: bcrypt v0.57.0's only errors under go1.27.3 are
+`ErrPasswordTooLong` (`errors.New`, a pointer leaf) and `InvalidCostError` (an `int`, a non-pointer
+leaf, a safe key); `crypto/rand.Reader` (the default, which etcd never replaces) never returns an
+error (go1.24+: it crashes instead), the salt it encodes decodes, and the Blowfish key (the
+password and a 0) is never empty. The axiom now says so: the error is `ok ei` with `ei` a leaf
+without `Is`, a pointer error or a non-pointer safe key, whose `Error()` returns; and a returned
+hash comes with `err = nil` (before, the post did not exclude a hash and an error together).
+`EtcdServer.UserAdd.spec`/`specOn`'s hashing-error branch carries `applyErrIs err`
+(`applyErrIs_leaf`/`applyErrIs_valLeaf`). The handler's answer `userAddAnsOn`: the hashing's
+error with nothing proposed (`adminPreOn` back), or `userAddOutOn`.
+
+**Not done (in order).** `setupAuthOk`; `examples/authkv` and the closed theorem.
+
