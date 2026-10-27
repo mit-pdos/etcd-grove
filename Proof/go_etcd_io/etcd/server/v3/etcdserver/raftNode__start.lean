@@ -413,11 +413,13 @@ theorem raftNode.start.wp_proof
       icases HCl with ⟨#HLb, %HidxOk⟩
       wp_bind (App (App (Val (@! go_etcd_io.etcd.server.v3.etcdserver.updateCommittedIndex))
         (Val #ap_ptr)) (Val #rh))
-      iapply (wp_updateCommittedIndex ap_ptr rh rd.CommittedEntries' ceL L' ce R E.γr) $$ [HR]
+      iapply (wp_updateCommittedIndex ap_ptr rh rd.CommittedEntries' ceL L' ce R E.γr null) $$ [HR]
       · iframe HR; iframe #
-        ipureintro; exact HidxOk
+        isplitr
+        · ipureintro; exact HidxOk
+        ileft; ipureintro; rfl
       inext
-      iintro ⟨HR, #Hclast⟩
+      iintro ⟨HR, #Hclast, -⟩
       wp_auto
       -- `cum` extended with the batch, then `applyc <- ap` (or `<-r.stopped`)
       imod cum_extend γ.cum cums L' ce sent.length Hcums.1 Hcums.2 $$ Hauth with ⟨Hauth, #Hcn, #Hcn1⟩
@@ -440,6 +442,8 @@ theorem raftNode.start.wp_proof
         iapply spsc_send_au γ.ap apc (rnApP E γ) _ sent _ _ $$ Hsp [$Hlc1 $Hlc2 $Hlc3]
           [$Hprod Hnrcv Hgive]
         · iunfold rnApP
+          ileft
+          iunfold rnApN
           iexists L', ce, ceL
           simp only [Int.toNat_natCast]
           iframe Hcn Hcn1 Hce Hcea HC

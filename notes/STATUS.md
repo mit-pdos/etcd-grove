@@ -233,6 +233,11 @@ removed, ..., adequacy coverage" below.
     raft's names (`snapDirs_alloc`), `NewServer.spec` taking `γd` with `snapDir_init`. `Process`
     unchanged (MsgSnap refuted in the no-snapshot mode; L3 adds `γd` to `srvProcOk`). No axiom.
     `notes/decisions.md`, "D22 J2".
+  - **J6a done (2026-10-26)**: the raft node's payload with a snapshot (`rnApP = rnApN ∨
+    rnApSnap`, `rnReadySnap`, `rn_ready_recvL`, `rnApplyTok_recvS`, `updateCommittedIndex` with a
+    snapshot), parametric in raft's mode; and J7b's raft part: `readySnapData` states the snapshot's
+    id is the last of its committed log (`ownRawNodeReady_loanLast`). Left to J6b/J8a: a two-receive
+    `notifyc`. `notes/decisions.md`, "D22 J6a".
   - **J1a done (2026-10-26)**: the snapshot path's construction bundle `srvSnapBoot`
     (`SnapRO.lean`: `srvSnapRO`, the snapshot-taken counter `γt`'s authority, the `E.RD`/`lgMu`
     reader-slot stocks) from `NewServer` through `srvBuilt`, `isServerBuilt` and `isServerRun`;

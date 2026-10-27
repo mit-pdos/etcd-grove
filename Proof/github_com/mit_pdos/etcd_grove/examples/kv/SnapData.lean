@@ -216,8 +216,8 @@ theorem readyDataL_split (γ : NodeNames) (rd : Ready) (d ce es : List EntryM) (
     ipureintro; exact Hsn
   | some l =>
     simp only [readyDataL, readySnapData, rdCommon, rdSnap]
-    iintro ⟨#Hce, #Hcomm, #Hes, Hms, Hmsok, Hcr, Htks, Hsts, -, -, -, #Hidx, -, Hsn, #Hdl, -, %Hl,
-      Hout⟩
+    iintro ⟨#Hce, #Hcomm, #Hes, Hms, Hmsok, Hcr, Htks, Hsts, -, -, -, #Hidx, -, Hsn, #Hdl, -, -,
+      %Hl, Hout⟩
     iframe Hce Hcomm Hes Hms Hmsok Hcr Htks Hsts Hidx Hsn Hdl Hout
     ipureintro; exact Hl
 
