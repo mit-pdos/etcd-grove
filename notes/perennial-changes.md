@@ -99,6 +99,13 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
 - **Proposed change.** The caches keyed per declaration, or held in the tactic's own state
   (`MetaM`/`TacticM` state, or an environment extension reset per declaration), so that a
   declaration's elaboration does not depend on its siblings'.
+- **Seen again, within one declaration** (2026-10-27, the compactor pilot): in
+  `v3compactor.Periodic.getCompactInterval`/`getRetryInterval`'s proofs, `word` in the two sibling
+  branches of one `if` (hypotheses `h < pd` and `¬ h < pd`) gave a proof the kernel rejected
+  ("application type mismatch": the second branch's goal closed by the first branch's cached term,
+  built over the other hypothesis). So a cached proof does leak between contexts, as the paragraph
+  above feared, and fails at the kernel rather than silently. Workaround there: no `word` in sibling
+  branches (`rfl`/`omega` and `BitVec.toInt_sdiv_of_ne_or_ne` instead), with a comment.
 - **Status.** Not started (found 2026-10-21, `raft-retarget`, now on `lean`).
 
 ### Specs: `context.WithCancel`'s cancel function not `nil`

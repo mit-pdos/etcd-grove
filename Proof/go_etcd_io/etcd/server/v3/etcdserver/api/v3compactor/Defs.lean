@@ -65,6 +65,21 @@ def retryOf (period : Int) : Int := min period 3600000000000 / 10
 /-- `getRetentions`: `period / retry + 1` samples in the window. -/
 def retentionsOf (period : Int) : Int := period / retryOf period + 1
 
+/-- `period / retry + 1` does not overflow: the quotient is at most `19` when `retry = 1` (a period
+under `20ns`), and at most half the period otherwise. -/
+theorem retentions_bound (p : Int) (hp : 10 ≤ p) (hp2 : p < 2 ^ 63) :
+    0 ≤ p / retryOf p ∧ p / retryOf p + 1 < 2 ^ 63 := by
+  unfold retryOf
+  have hd : 1 ≤ min p 3600000000000 / 10 := by omega
+  generalize hdd : min p 3600000000000 / 10 = d at hd ⊢
+  have hq0 : 0 ≤ p / d := Int.ediv_nonneg (by omega) (by omega)
+  refine ⟨hq0, ?_⟩
+  by_cases h1 : d = 1
+  · subst h1; omega
+  · have hmul : p / d * d ≤ p := Int.ediv_mul_le p (by omega)
+    have h2 : p / d * 2 ≤ p / d * d := Int.mul_le_mul_of_nonneg_left (by omega) hq0
+    omega
+
 section defs
 variable [GooseExts] [GooseSemantics] [GooseInterp]
 variable [go_gctx : GoGlobalContext]
@@ -200,6 +215,30 @@ def runPre (E : CompactEnv GF) (P : Int → IProp GF) : IProp GF :=
 def perPausedInv (pc : Loc) (q : Qp) : IProp GF :=
   iprop(∃ b : Bool, structFieldRef v3compactor.Periodic go!"paused" pc ↦{DFrac.own q} b)
 
+/-- `paused`'s fraction family is fractional (the `RWMutex` invariant's requirement): fractions of
+the cell split and, agreeing on the value, combine. -/
+instance perPausedInv_fractional (pc : Loc) : Fractional (perPausedInv (GF := GF) pc) where
+  fractional q1 q2 := by
+    have hp : ∀ b : Bool,
+        (structFieldRef v3compactor.Periodic go!"paused" pc ↦{DFrac.own (q1 + q2)} b : IProp GF) ⊣⊢
+          structFieldRef v3compactor.Periodic go!"paused" pc ↦{DFrac.own q1} b ∗
+          structFieldRef v3compactor.Periodic go!"paused" pc ↦{DFrac.own q2} b := fun b =>
+      (typedPointsto_dfractional (GF := GF) (structFieldRef v3compactor.Periodic go!"paused" pc) b).dfractional
+        (DFrac.own q1) (DFrac.own q2)
+    unfold perPausedInv
+    refine ⟨?_, ?_⟩
+    · iintro ⟨%b, H⟩
+      icases (hp b).1 $$ H with ⟨H1, H2⟩
+      isplitl [H1]
+      · iexists b; iexact H1
+      · iexists b; iexact H2
+    · iintro ⟨⟨%b1, H1⟩, ⟨%b2, H2⟩⟩
+      icombine H1 H2 gives %Hc
+      subst Hc
+      iexists b1
+      iapply (hp b1).2
+      iframe
+
 /-- **A periodic compactor** (`*Periodic`, from `newPeriodic`) of `period`: its fields, read-only,
 the clock's contract, the mutex's writer guard. -/
 def isPeriodic (pc : Loc) (E : CompactEnv GF) (period : Int) : IProp GF :=
@@ -250,7 +289,7 @@ def isRevision (rc : Loc) (E : CompactEnv GF) (ret : Int) : IProp GF :=
     context.isContext ctx cd ∗
     structFieldRef v3compactor.Revision go!"cancel" rc ↦□ cancel ∗
     context.cancelSpec cancel γctx iprop(True) ∗
-    isLock (structFieldRef v3compactor.Revision go!"mu" rc) (revPausedInv rc))
+    sync.isMutex (structFieldRef v3compactor.Revision go!"mu" rc) (revPausedInv rc))
 
 set_option synthInstance.maxSize 512 in
 instance isRevision_persistent (rc : Loc) (E : CompactEnv GF) (ret : Int) :

@@ -2,6 +2,7 @@
 module
 
 public import Perennial.Proof.ProofPrelude
+public import Perennial.GeneratedProof.time
 public import Perennial.Golang.Theory
 public import Code.github_com.jonboulle.clockwork
 
@@ -15,25 +16,6 @@ namespace Perennial
 open Iris Iris.BI
 noncomputable section
 namespace github_com.jonboulle.clockwork
-
-namespace Clock
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : github_com.jonboulle.clockwork.Assumptions]
-
-noncomputable instance Clock_typed_pointsto :
-    TypedPointsto (GF := GF) github_com.jonboulle.clockwork.Clock :=
-  sorry -- axiomatized type
-
-noncomputable instance Clock_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) github_com.jonboulle.clockwork.Clock github_com.jonboulle.clockwork.Clock.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end Clock
 
 namespace realClock
 section def_
@@ -134,25 +116,6 @@ noncomputable instance blocker_access_store_ch (l : Loc) (v : github_com.jonboul
 end def_
 end blocker
 
-namespace expirer
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : github_com.jonboulle.clockwork.Assumptions]
-
-noncomputable instance expirer_typed_pointsto :
-    TypedPointsto (GF := GF) github_com.jonboulle.clockwork.expirer :=
-  sorry -- axiomatized type
-
-noncomputable instance expirer_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) github_com.jonboulle.clockwork.expirer github_com.jonboulle.clockwork.expirer.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end expirer
-
 namespace fakeClockContext
 section def_
 
@@ -172,25 +135,6 @@ noncomputable instance fakeClockContext_into_val_typed :
 end def_
 end fakeClockContext
 
-namespace Ticker
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : github_com.jonboulle.clockwork.Assumptions]
-
-noncomputable instance Ticker_typed_pointsto :
-    TypedPointsto (GF := GF) github_com.jonboulle.clockwork.Ticker :=
-  sorry -- axiomatized type
-
-noncomputable instance Ticker_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) github_com.jonboulle.clockwork.Ticker github_com.jonboulle.clockwork.Ticker.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end Ticker
-
 namespace realTicker
 section def_
 
@@ -200,12 +144,33 @@ variable [sem : go.Semantics]
 variable [package_sem' : github_com.jonboulle.clockwork.Assumptions]
 
 noncomputable instance realTicker_typed_pointsto :
-    TypedPointsto (GF := GF) github_com.jonboulle.clockwork.realTicker :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) github_com.jonboulle.clockwork.realTicker where
+  typedPointstoDef l v dq := iprop(
+    "Ticker" ∷ typedPointsto (structFieldRef github_com.jonboulle.clockwork.realTicker go!"Ticker" l) v.Ticker' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance realTicker_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) github_com.jonboulle.clockwork.realTicker github_com.jonboulle.clockwork.realTicker.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) github_com.jonboulle.clockwork.realTicker github_com.jonboulle.clockwork.realTicker.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance realTicker_access_load_Ticker (l : Loc) (v : github_com.jonboulle.clockwork.realTicker) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.realTicker go!"Ticker" l) v.Ticker' dq)
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.realTicker go!"Ticker" l) v.Ticker' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance realTicker_access_store_Ticker (l : Loc) (v : github_com.jonboulle.clockwork.realTicker) (Ticker' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.realTicker go!"Ticker" l) v.Ticker' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.realTicker go!"Ticker" l) Ticker' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Ticker' := Ticker' } : github_com.jonboulle.clockwork.realTicker) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end realTicker
@@ -219,34 +184,104 @@ variable [sem : go.Semantics]
 variable [package_sem' : github_com.jonboulle.clockwork.Assumptions]
 
 noncomputable instance fakeTicker_typed_pointsto :
-    TypedPointsto (GF := GF) github_com.jonboulle.clockwork.fakeTicker :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) github_com.jonboulle.clockwork.fakeTicker where
+  typedPointstoDef l v dq := iprop(
+    "c" ∷ typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeTicker go!"c" l) v.c' dq ∗
+    "exp" ∷ typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeTicker go!"exp" l) v.exp' dq ∗
+    "reset" ∷ typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeTicker go!"reset" l) v.reset' dq ∗
+    "stop" ∷ typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeTicker go!"stop" l) v.stop' dq ∗
+    "d" ∷ typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeTicker go!"d" l) v.d' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance fakeTicker_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) github_com.jonboulle.clockwork.fakeTicker github_com.jonboulle.clockwork.fakeTicker.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) github_com.jonboulle.clockwork.fakeTicker github_com.jonboulle.clockwork.fakeTicker.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance fakeTicker_access_load_c (l : Loc) (v : github_com.jonboulle.clockwork.fakeTicker) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeTicker go!"c" l) v.c' dq)
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeTicker go!"c" l) v.c' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance fakeTicker_access_store_c (l : Loc) (v : github_com.jonboulle.clockwork.fakeTicker) (c' : GoChan) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeTicker go!"c" l) v.c' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeTicker go!"c" l) c' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with c' := c' } : github_com.jonboulle.clockwork.fakeTicker) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance fakeTicker_access_load_exp (l : Loc) (v : github_com.jonboulle.clockwork.fakeTicker) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeTicker go!"exp" l) v.exp' dq)
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeTicker go!"exp" l) v.exp' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance fakeTicker_access_store_exp (l : Loc) (v : github_com.jonboulle.clockwork.fakeTicker) (exp' : time.Time) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeTicker go!"exp" l) v.exp' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeTicker go!"exp" l) exp' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with exp' := exp' } : github_com.jonboulle.clockwork.fakeTicker) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance fakeTicker_access_load_reset (l : Loc) (v : github_com.jonboulle.clockwork.fakeTicker) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeTicker go!"reset" l) v.reset' dq)
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeTicker go!"reset" l) v.reset' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance fakeTicker_access_store_reset (l : Loc) (v : github_com.jonboulle.clockwork.fakeTicker) (reset' : GoFunc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeTicker go!"reset" l) v.reset' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeTicker go!"reset" l) reset' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with reset' := reset' } : github_com.jonboulle.clockwork.fakeTicker) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance fakeTicker_access_load_stop (l : Loc) (v : github_com.jonboulle.clockwork.fakeTicker) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeTicker go!"stop" l) v.stop' dq)
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeTicker go!"stop" l) v.stop' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance fakeTicker_access_store_stop (l : Loc) (v : github_com.jonboulle.clockwork.fakeTicker) (stop' : GoFunc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeTicker go!"stop" l) v.stop' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeTicker go!"stop" l) stop' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with stop' := stop' } : github_com.jonboulle.clockwork.fakeTicker) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance fakeTicker_access_load_d (l : Loc) (v : github_com.jonboulle.clockwork.fakeTicker) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeTicker go!"d" l) v.d' dq)
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeTicker go!"d" l) v.d' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance fakeTicker_access_store_d (l : Loc) (v : github_com.jonboulle.clockwork.fakeTicker) (d' : time.Duration) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeTicker go!"d" l) v.d' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeTicker go!"d" l) d' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with d' := d' } : github_com.jonboulle.clockwork.fakeTicker) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end fakeTicker
-
-namespace Timer
-section def_
-
-variable [GooseExts] [GooseSemantics] [GooseInterp] [go_gctx : GoGlobalContext]
-variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
-variable [sem : go.Semantics]
-variable [package_sem' : github_com.jonboulle.clockwork.Assumptions]
-
-noncomputable instance Timer_typed_pointsto :
-    TypedPointsto (GF := GF) github_com.jonboulle.clockwork.Timer :=
-  sorry -- axiomatized type
-
-noncomputable instance Timer_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) github_com.jonboulle.clockwork.Timer github_com.jonboulle.clockwork.Timer.underlying :=
-  sorry -- axiomatized type
-
-end def_
-end Timer
 
 namespace realTimer
 section def_
@@ -257,12 +292,33 @@ variable [sem : go.Semantics]
 variable [package_sem' : github_com.jonboulle.clockwork.Assumptions]
 
 noncomputable instance realTimer_typed_pointsto :
-    TypedPointsto (GF := GF) github_com.jonboulle.clockwork.realTimer :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) github_com.jonboulle.clockwork.realTimer where
+  typedPointstoDef l v dq := iprop(
+    "Timer" ∷ typedPointsto (structFieldRef github_com.jonboulle.clockwork.realTimer go!"Timer" l) v.Timer' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance realTimer_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) github_com.jonboulle.clockwork.realTimer github_com.jonboulle.clockwork.realTimer.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) github_com.jonboulle.clockwork.realTimer github_com.jonboulle.clockwork.realTimer.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance realTimer_access_load_Timer (l : Loc) (v : github_com.jonboulle.clockwork.realTimer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.realTimer go!"Timer" l) v.Timer' dq)
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.realTimer go!"Timer" l) v.Timer' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance realTimer_access_store_Timer (l : Loc) (v : github_com.jonboulle.clockwork.realTimer) (Timer' : Loc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.realTimer go!"Timer" l) v.Timer' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.realTimer go!"Timer" l) Timer' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with Timer' := Timer' } : github_com.jonboulle.clockwork.realTimer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end realTimer
@@ -276,12 +332,101 @@ variable [sem : go.Semantics]
 variable [package_sem' : github_com.jonboulle.clockwork.Assumptions]
 
 noncomputable instance fakeTimer_typed_pointsto :
-    TypedPointsto (GF := GF) github_com.jonboulle.clockwork.fakeTimer :=
-  sorry -- axiomatized type
+    TypedPointsto (GF := GF) github_com.jonboulle.clockwork.fakeTimer where
+  typedPointstoDef l v dq := iprop(
+    "c" ∷ typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeTimer go!"c" l) v.c' dq ∗
+    "exp" ∷ typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeTimer go!"exp" l) v.exp' dq ∗
+    "reset" ∷ typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeTimer go!"reset" l) v.reset' dq ∗
+    "stop" ∷ typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeTimer go!"stop" l) v.stop' dq ∗
+    "afterFunc" ∷ typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeTimer go!"afterFunc" l) v.afterFunc' dq ∗
+    "_" ∷ True)
+  typedPointstoDef_dfractional := by solve_typed_pointsto_dfractional
+  typedPointstoDef_timeless := by solve_typed_pointsto_timeless
+  typedPointsto_agree := by solve_typed_pointsto_agree
 
 noncomputable instance fakeTimer_into_val_typed :
-    IntoValTypedUnderlying (GF := GF) github_com.jonboulle.clockwork.fakeTimer github_com.jonboulle.clockwork.fakeTimer.underlying :=
-  sorry -- axiomatized type
+    IntoValTypedUnderlying (GF := GF) github_com.jonboulle.clockwork.fakeTimer github_com.jonboulle.clockwork.fakeTimer.underlying := by
+  solve_into_val_typed_struct
+
+noncomputable instance fakeTimer_access_load_c (l : Loc) (v : github_com.jonboulle.clockwork.fakeTimer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeTimer go!"c" l) v.c' dq)
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeTimer go!"c" l) v.c' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance fakeTimer_access_store_c (l : Loc) (v : github_com.jonboulle.clockwork.fakeTimer) (c' : GoChan) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeTimer go!"c" l) v.c' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeTimer go!"c" l) c' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with c' := c' } : github_com.jonboulle.clockwork.fakeTimer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance fakeTimer_access_load_exp (l : Loc) (v : github_com.jonboulle.clockwork.fakeTimer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeTimer go!"exp" l) v.exp' dq)
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeTimer go!"exp" l) v.exp' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance fakeTimer_access_store_exp (l : Loc) (v : github_com.jonboulle.clockwork.fakeTimer) (exp' : time.Time) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeTimer go!"exp" l) v.exp' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeTimer go!"exp" l) exp' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with exp' := exp' } : github_com.jonboulle.clockwork.fakeTimer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance fakeTimer_access_load_reset (l : Loc) (v : github_com.jonboulle.clockwork.fakeTimer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeTimer go!"reset" l) v.reset' dq)
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeTimer go!"reset" l) v.reset' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance fakeTimer_access_store_reset (l : Loc) (v : github_com.jonboulle.clockwork.fakeTimer) (reset' : GoFunc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeTimer go!"reset" l) v.reset' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeTimer go!"reset" l) reset' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with reset' := reset' } : github_com.jonboulle.clockwork.fakeTimer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance fakeTimer_access_load_stop (l : Loc) (v : github_com.jonboulle.clockwork.fakeTimer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeTimer go!"stop" l) v.stop' dq)
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeTimer go!"stop" l) v.stop' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance fakeTimer_access_store_stop (l : Loc) (v : github_com.jonboulle.clockwork.fakeTimer) (stop' : GoFunc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeTimer go!"stop" l) v.stop' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeTimer go!"stop" l) stop' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with stop' := stop' } : github_com.jonboulle.clockwork.fakeTimer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance fakeTimer_access_load_afterFunc (l : Loc) (v : github_com.jonboulle.clockwork.fakeTimer) (dq : DFrac) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeTimer go!"afterFunc" l) v.afterFunc' dq)
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeTimer go!"afterFunc" l) v.afterFunc' dq)
+      (typedPointsto l v dq) (typedPointsto l v dq) :=
+ by
+  solve_pointsto_access_struct
+
+noncomputable instance fakeTimer_access_store_afterFunc (l : Loc) (v : github_com.jonboulle.clockwork.fakeTimer) (afterFunc' : GoFunc) :
+    AccessStrict (PROP := IProp GF)
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeTimer go!"afterFunc" l) v.afterFunc' (DFrac.own 1))
+      (typedPointsto (structFieldRef github_com.jonboulle.clockwork.fakeTimer go!"afterFunc" l) afterFunc' (DFrac.own 1))
+      (typedPointsto l v (DFrac.own 1)) (typedPointsto l ({ v with afterFunc' := afterFunc' } : github_com.jonboulle.clockwork.fakeTimer) (DFrac.own 1)) :=
+ by
+  solve_pointsto_access_struct
 
 end def_
 end fakeTimer

@@ -1,7 +1,9 @@
 # Types and names only: the auto-compactor's clock (`Clock`, `NewRealClock`; the spec-first pilot,
 # notes/compactor-pilot-plan.md). Its methods are a trust boundary.
 translate = ["!*"]
-imports = ["!*"]
+# `time`: the interfaces' methods name `time.Time` and `time.Duration` (without it, Goose axiomatizes
+# `Clock` as an opaque type, whose values are no interface values).
+imports = ["!*", "time"]
 
 # translate the definitions of all type declarations goose supports
 translate_types = true

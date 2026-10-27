@@ -1,7 +1,7 @@
 /-
 Proof of `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3compactor/Periodic__getCompactInterval.lean`. Lean-first (no Rocq
 counterpart). The spec-first pilot's phase 1 (`notes/compactor-pilot-plan.md`): the spec is written,
-the proof is phase 1's glue (`sorry` until written).
+the proof is phase 1's glue.
 -/
 module
 
@@ -27,7 +27,25 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Ass
 
 theorem v3compactor.Periodic.getCompactInterval.wp_proof :
     v3compactor.Periodic.getCompactInterval.spec (GF := GF) (hG := hG) := by
-  sorry
+  intro pc pd dq
+  wp_start as Hp
+  wp_auto
+  -- (one `word` per declaration: two in sibling branches shared a cached proof the kernel rejected)
+  have hH : sint.Z (W64 3600000000000) = 3600000000000 := by rfl
+  wp_if_destruct
+  · simp only [_root_.Perennial.time.Hour]
+    (try wp_auto)
+    iapply HΦ
+    iframe
+    ipureintro
+    rw [hH] at *
+    omega
+  · (try wp_auto)
+    iapply HΦ
+    iframe
+    ipureintro
+    rw [hH] at *
+    omega
 
 end proof
 

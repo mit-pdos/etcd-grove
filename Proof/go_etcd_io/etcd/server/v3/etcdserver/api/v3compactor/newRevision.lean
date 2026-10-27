@@ -1,7 +1,7 @@
 /-
 Proof of `Spec/go_etcd_io/etcd/server/v3/etcdserver/api/v3compactor/newRevision.lean`. Lean-first (no Rocq
 counterpart). The spec-first pilot's phase 1 (`notes/compactor-pilot-plan.md`): the spec is written,
-the proof is phase 1's glue (`sorry` until written).
+the proof is phase 1's glue.
 -/
 module
 
@@ -29,7 +29,40 @@ variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.Ass
 theorem v3compactor.newRevision.wp_proof
     (hWithCancelBackground : context.WithCancelBackground.spec (GF := GF) (hG := hG)) :
     v3compactor.newRevision.spec (GF := GF) (hG := hG) := by
-  sorry
+  intro lg clk ret E
+  wp_start as ⟨%Hlgnn, #Hclk⟩
+  ihave #Pctx : isPkgInit (PROP := IProp GF) pkg_id.context $$ []
+  · iPkgInit
+  ihave #Psync : isPkgInit (PROP := IProp GF) pkg_id.sync $$ []
+  · iPkgInit
+  wp_auto
+  iStructNamed «$r0»
+  -- `mu` over `paused`
+  imod sync.init_Mutex (revPausedInv «$r0_ptr») ⊤ (structFieldRef v3compactor.Revision go!"mu" «$r0_ptr»)
+    $$ [mu] [paused] with #Hmu
+  · iexact mu
+  · inext; unfold revPausedInv; iexists false; iexact paused
+  -- the fields are read-only once stored: persisted under the postcondition's update
+  iapply wp_fupd
+  wp_apply _root_.Perennial.context.wp_Background
+  wp_apply hWithCancelBackground as %ctx %γctx %cancel ⟨#Hcs, #Hctx⟩
+  ipersist lg
+  ipersist clock
+  ipersist retention
+  ipersist rg
+  ipersist c
+  ipersist ctx
+  ipersist cancel
+  imodintro
+  iapply HΦ
+  unfold isRevision
+  iexists lg, clk, ret, ctx, { Values := ∅, Deadline := none, Done_gn := γctx, PDone := iprop(True) },
+    γctx, cancel
+  iframe
+  iframe #
+  isplitr
+  · ipureintro; exact Hlgnn
+  ipureintro; rfl
 
 end proof
 
