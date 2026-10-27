@@ -736,11 +736,13 @@ proves them)
 What porting etcd's server onto this API needed beyond the section above (`notes/decisions.md`,
 "etcd's server on raft's node API"). -/
 
-/-- **A committed log fits raft's 64-bit indices** (2026-10-27, the server port's addition): its
-entries are at the indices `1 .. l.length`, each a `uint64`. What the server needs to number the
-requested entries of its own log (`SrvRaftLog.lean`, `srvPropAu_api`). -/
+/-- **A committed log's next index fits raft's 64-bit indices** (2026-10-27, the server port's
+addition): its entries are at the indices `1 .. l.length`, each a `uint64`, and raft's log is
+bounded by the cluster's time receipts (`receiptBound GF ≤ 2 ^ 64 - 2`), so the index after it is
+one too. What the server needs to number the requested entries of its own log (`SrvRaftLog.lean`,
+`srvPropAu_api`) and to hand a committed log to its committed index (`E.C`). -/
 theorem isCommittedLogLb_length (γ : Cluster) (l : List LogEntry) :
-    isCommittedLogLb (GF := GF) γ l ⊢ ⌜(l.length : Int) < 2 ^ 64⌝ := sorry
+    isCommittedLogLb (GF := GF) γ l ⊢ ⌜(l.length : Int) + 1 < 2 ^ 64⌝ := sorry
 
 /-- (2026-10-27, the server port's addition) **The read context `c` was committed after the log
 `l0` was** (persistent): what `readCtx_commit_after` gives with the context. Raft's read index is
