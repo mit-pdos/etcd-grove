@@ -21,6 +21,9 @@ leaky or unusable. Check its findings against the source before acting on them. 
 - implementation detail in the statement: ghost names, fractions, internal records or fields,
   masks; the test: an alternative implementation of the same API (etcd's `Put`: one in-memory
   server, no raft) would have the same spec;
+- a resource the caller passes and gets back for the proof's bookkeeping (a lock's reader slot,
+  a credit): is the spec provable without it, or with a resource every Go caller has
+  (`threadTok`)?
 - a client that unfolds the spec's predicates or opens the package's invariants: a missing law;
 - a spec that no client uses;
 - a statement that `interface/` does not show in full or that hides behind a wrapper.

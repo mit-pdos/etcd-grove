@@ -15,3 +15,7 @@ One entry per critique of a run: date, target, what the user said, the rule it b
 - 2026-10-27, same: "When I ask for a spec to be improved, I'm generally wanting to change
   predicates that are used in that spec too." Rule (`SKILL.md`, "Repair"): the vocabulary is in
   scope.
+- 2026-10-27, `EtcdServer.Put.spec` (candidate 3 kept a per-caller token `kvCaller s` for the
+  server's RWMutex reader slots, "linear is the safe choice"): "Why is kvCaller needed? Would the
+  spec be unprovable without it?" It was not needed: the caller's `threadTok` bounds the readers.
+  Rule (`SKILL.md`, review list): question every bookkeeping resource a caller threads through.
