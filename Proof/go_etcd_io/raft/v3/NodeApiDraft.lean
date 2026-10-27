@@ -130,7 +130,7 @@ def BootEnts (ps : List w64) (ctxs : List (List w8)) (boot : List Ent) : Prop :=
 
 theorem cluster_alloc (N : Namespace) (ps : List w64) (ctxs : List (List w8)) (boot : List Ent) :
     BootEnts ps ctxs boot → ps.Nodup →
-    ⊢ (∀ γ, ownEntsAu (GF := GF) γ N) ==∗ ∃ γ, ownCommitted γ boot ∗ [∗list] id ∈ ps, nodeBoot γ N id :=
+    ⊢ |==> ∃ γ, ownCommitted (GF := GF) γ boot ∗ [∗list] id ∈ ps, nodeBoot γ N id :=
   sorry
 
 /-- **A running node** `n` of id `id` in the cluster `γ` (persistent). -/
@@ -255,8 +255,9 @@ abbrev StartNode.spec : Prop :=
             Φ (PairV (PairV #hp #cs) #interface.nil)) -∗
            WP (App (Val #(methods si.ty go!"InitialState" si.v)) (Val #())) {{ Φ }}) ∗
       peers ↦*{dq} pv ∗ peersCtx pv ctxs ∗
-      -- the node's boot token (in place of `bootInit`, `isCommitted γ bootLog`, `bootMarshal`)
-      nodeBoot γ N cv.ID' ∗
+      -- the node's boot token (in place of `bootInit`, `isCommitted γ bootLog`, `bootMarshal`), and the
+      -- client's update for raft's own entries (any node may become leader and append one)
+      nodeBoot γ N cv.ID' ∗ ownEntsAu γ N ∗
       -- (open) the term budget
       inv budgetN (budgetInv bud) ∗ termLB bud (W64 1) }}
     (App (App (Val #(functions StartNode [])) (Val #c)) (Val #peers))
