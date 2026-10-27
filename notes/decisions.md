@@ -22223,3 +22223,44 @@ Also not done (J4's, the other agent's): the storage token into J0 item 2's inva
 `NewServer` (`srvSnapState`'s restatement owns it).
 
 No axiom added or removed (`NewAuthStore`'s restated), no `sorry`.
+
+## D22 J6a: the raft node's payload with a snapshot; J7b's raft part (2026-10-26 · decided by the orchestrator while the user was away (J1a/J6a))
+
+Stage J6a of `notes/snapshot-sj-plan.md`, with J7b's raft part ("D22 J7": raft's `Ready` ties the
+snapshot's term to its last entry's). Parametric in raft's mode: every new case is proved without
+`rnEnvOk`'s no-snapshot clause, which refutes it today (L3 drops the clause, nothing to redo).
+
+- **Raft (J7b)**: `readySnapData` (`InvNode.lean`) gains `⌜plogLast base0 l.dlv = snapId l.snap⌝`:
+  the committed log up to the lent snapshot ends at the snapshot's id, so its last entry's term is
+  the snapshot's `Metadata.Term`. Proved by `ownRawNodeReady_loanLast` (`InvRawnodeReady.lean`): the
+  node's log is at the pending snapshot (`LogStoreOk`: `prev` is its id), the node's full prefix
+  ends at its base (`FullOk`) and is committed through the commit index (`ownRaftGhost_cmt`), and
+  the loan's committed log has the snapshot's length, so it is that prefix (`isCommitted_agree`).
+  `node.run` supplies it (as J2's `snapLocal`); `examples/kv`'s `readyDataL_split` skips it. No
+  axiom. For J8a: with `snapId sv = ⟨Term, Index⟩`, `plogLast base0 L = snapId sv` gives the term of
+  the entry at the snapshot's index (what `hmeta` needs once `imageAt` states the image's term as its
+  last entry's: J8a's sender side, "D22 J7").
+- **The server's `Ready` receive** (`InvRaftNode.lean`): `rnReadySnap` (raft's `readySnapData` as
+  the server's data: the half of the snapshot `ApplySnapshot` takes, the committed log up to it as
+  the server's log `A'` with `E.C A'`, `snapLocal`, the last-id fact, `rnFits` of the entries, the
+  storage lent) and `rnBusyS` (the driver busy at the loan); `rn_ready_recvL` gives `rn_ready_recv`'s
+  result or the snapshot case. `raftNode.start` still uses `rn_ready_recv` (J6b switches).
+- **The payload** (`rnApP`): now `rnApN ∨ rnApSnap`; `rnApN` is the old body (entries); `rnApSnap`
+  is a snapshot batch: `cum[i+1] = A'` extending `cum[i]` strictly, `|pre ++ A'|` the snapshot's
+  index, no entries, the apply thread's own clone read-only (`ownSnapM … DFrac.discard`: the fork's
+  `raftNode.start` clones `rd.Snapshot` for `ap.snapshot`), `E.C A'`, `snapLocal`, the last-id fact,
+  `notifyc`, `raftAdvancedC`, `committedAtLeast` the snapshot's index, the raft term.
+  `rnApP_rtOk` covers both. `rnApplyTok_recv` takes the no-snapshot mode (`hns`; `run` gets it from
+  `isRaftNode_noSnap`); `rnApplyTok_recvS` is the snapshot receive (for J8a).
+- **`updateCommittedIndex.spec`** generalized: `ap.snapshot ↦□ sn` with `sn = nil` or a read-only
+  snapshot (no committed entries, a committed log reaching its index); post the committed index at
+  least the snapshot's. Proved (+ the hypothesis `SnapshotMetadata.GetIndex.spec`).
+- **For J6b and J8a**: `notifyc` in the snapshot case is stated as the entries' (`isNotify … True`,
+  one receive), but Go sends twice and `applyAll` receives twice (`applySnapshot`'s `<-notifyc`, then
+  `applyAll`'s): `NotifyC.lean` needs a two-receive variant, whose second send carries J0 item 2's
+  ceiling (`monoNatLbOwn γsc i`); J6b changes `rnApSnap`'s notify clause with it. J6b also builds
+  `rnApSnap` from `rnReadySnap` (the clone: `proto.Clone`'s spec) and calls `rn_ready_recvL`.
+
+Statement changes: `readySnapData` (raft's `Ready` payload, more facts; consumers only), the internal
+`rnApP`, `rnApplyTok_recv` (a premise), `updateCommittedIndex.spec` (more general). No closed
+theorem's statement changes. No axiom, no `sorry`.

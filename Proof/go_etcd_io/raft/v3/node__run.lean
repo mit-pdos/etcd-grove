@@ -879,6 +879,14 @@ theorem node.run.wp_proof
         icases ownRawNodeReady_loanLoc γ.raft nv.rn' id rs rdv' ce es ms false l0 $$ Hrn
           with ⟨#Hx, -⟩
         imodintro; iintro %l %h; cases h; iexact Hx
+    -- (2026-10-26, D22 J6a; J7b's raft part) a snapshot handed out ends its committed log
+    ihave %Hllast : ⌜∀ l : SnapLoan, L = some l → plogLast base0 l.dlv = snapId l.snap⌝ $$ [Hrn]
+    · cases L with
+      | none => ipureintro; intro l h; cases h
+      | some l0 =>
+        icases ownRawNodeReady_loanLast γ.raft nv.rn' id rs rdv' ce es ms false l0 $$ Hrn
+          with ⟨%Hx, -⟩
+        ipureintro; intro l h; cases h; exact Hx
     imod ownRawNodeReady_handout γ.raft nv.rn' id rs rdv' ce es ms L $$ Hrn
       with ⟨Hrn, Happ, Hcr, Htk, #Hri⟩
     -- (2026-10-15, stage N) the committed log handed out grows, a lower bound for the driver;
@@ -924,6 +932,8 @@ theorem node.run.wp_proof
         · iexists h; iframe Hhh; ipureintro; rfl
         isplitr
         · ipureintro; exact ⟨Hsin, Hsnp.2.1 Hsin⟩
+        isplitr
+        · ipureintro; exact Hllast l rfl
         isplitr
         · ipureintro; exact Hlo
         rw [← Hstor]

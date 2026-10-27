@@ -180,7 +180,7 @@ IsEmptySnap: @
 zap_Duration:
 zap_Logger__Fatal:
 proto_Clone:
-updateCommittedIndex: Entry__GetIndex
+updateCommittedIndex: Entry__GetIndex SnapshotMetadata__GetIndex
 raftNode__tick:
 raftNode__advanceTicks: raftNode__tick
 raftNode__getLatestTickTs:

@@ -52,11 +52,13 @@ theorem srvIdxOk_last_le (ai0 : w64) (A ce : List EntryModel) (ci : w64)
     omega
 
 theorem updateCommittedIndex.wp_proof
-    (hGI : raftpb.Entry.GetIndex.spec (GF := GF) (hG := hG)) :
+    (hGI : raftpb.Entry.GetIndex.spec (GF := GF) (hG := hG))
+    -- (D22 J6a) the snapshot's index
+    (hSGI : raftpb.SnapshotMetadata.GetIndex.spec (GF := GF) (hG := hG)) :
     updateCommittedIndex.spec (GF := GF) (hG := hG) := by
   have hGI := wp_entryAt_GetIndex hGI
-  intro ap rh es ceL A ce R γr
-  wp_start as ⟨#Hes, #Hsl, #Hents, #Hsnap, #Hrh, HR, #Hlog, %Hidx⟩
+  intro ap rh es ceL A ce R γr sn
+  wp_start as ⟨#Hes, #Hsl, #Hents, #Hsnap, #Hrh, HR, #Hlog, %Hidx, #Hsn⟩
   imod monoNatLbOwn_0 (GF := GF) γr.committed with #H0
   ihave %Hlen := ownSlice_len _ _ _ $$ Hsl
   iunfold entriesAt at Hents
@@ -108,12 +110,66 @@ theorem updateCommittedIndex.wp_proof
       left
       rw [List.getLast?_eq_getElem?, ← Hlen2, hm]
       rfl
-  -- `ap.snapshot != nil`: never (no snapshot)
   iunfold isReadyHandler at Hrh
   icases Hrh with ⟨%gl, %ul, %uls, %uci, #Hgl, #Hul, #Huls, #Huci, #Hglt, #Hult, #Hulst, #Hucit⟩
+  icases Hsn with (%Hnull | ⟨%sv, %A', #Hown, #HA', %Hce⟩)
+  rotate_left
+  · -- (D22 J6a) a snapshot: no committed entries, so `ci` is the snapshot's index if not `0`
+    obtain ⟨hce, hle⟩ := Hce
+    subst hce
+    have hci0 : ci = W64 0 := by
+      rcases Hci with h | ⟨-, h⟩
+      · simp at h
+      · exact h
+    subst hci0
+    ihave #Hown' := Hown
+    iunfold ownSnapM at Hown'
+    icases Hown' with ⟨%ds, %pm, %uf, %Hnn, #HD, #Hd, #HM, #Hm, #Hpb⟩
+    have hd : decide (sn = null) = false := decide_eq_false Hnn
+    simp only [hd]
+    (try wp_auto)
+    wp_apply hSGI pm DFrac.discard sv.Metadata' $$ [$Hrpkg $Hm] as -
+    (try wp_auto)
+    wp_if_destruct
+    · -- the snapshot's index not `0`: `ci` set to it, the committed index raised
+      wp_apply hSGI pm DFrac.discard sv.Metadata' $$ [$Hrpkg $Hm] as -
+      (try wp_auto)
+      wp_if_destruct
+      · exfalso; rename_i hlt; rw [Hif] at hlt; exact absurd hlt (by decide)
+      ispecialize Hucit $$ %sv.Metadata'.Index' %A'
+      wp_bind (App (Val #uci) (Val #sv.Metadata'.Index'))
+      iapply Hucit $$ [HR]
+      · iframe HR HA'
+        ipureintro; exact hle
+      inext
+      iintro ⟨HR, #Hca⟩
+      (try wp_auto)
+      iapply HΦ
+      iframe HR
+      isplitr
+      · unfold committedLast; simp only [List.getLast?_nil]; itrivial
+      iright; iexists sv; iframe Hown Hca
+    · -- the index is `0`: nothing raised, `0` a lower bound already
+      iapply HΦ
+      iframe HR
+      isplitr
+      · unfold committedLast; simp only [List.getLast?_nil]; itrivial
+      iright; iexists sv; iframe Hown
+      have h0 : sv.Metadata'.Index' = W64 0 := by
+        have : ¬ (uint.Z (W64 0) < uint.Z sv.Metadata'.Index') := by simpa using Hif
+        word
+      rw [h0]; iunfold committedAtLeast
+      rw [show uint.nat (W64 0) = 0 from rfl]
+      iexact H0
+  -- `ap.snapshot != nil`: never (no snapshot)
+  subst Hnull
+  wp_auto
   wp_if_destruct
   · iapply HΦ
     iframe HR
+    isplitr
+    rotate_left
+    · ileft; ipureintro; first | rfl | trivial
     unfold committedLast
     rcases Hci with h | ⟨h, -⟩
     · cases hl : ce.getLast? with
@@ -136,9 +192,12 @@ theorem updateCommittedIndex.wp_proof
       ipureintro; exact srvIdxOk_last_le γr.raft.ai0 A ce ci Hidx Hci
     inext
     iintro ⟨HR, #Hca⟩
-    wp_auto
+    (try wp_auto)
     iapply HΦ
     iframe HR
+    isplitr
+    rotate_left
+    · ileft; ipureintro; first | rfl | trivial
     unfold committedLast
     rcases Hci with h | ⟨-, h⟩
     · cases hl : ce.getLast? with

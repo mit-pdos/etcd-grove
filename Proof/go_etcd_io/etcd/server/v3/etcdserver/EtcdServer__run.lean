@@ -573,7 +573,9 @@ theorem EtcdServer.run.wp_proof
       iexfalso; iexact Hf
     simp only [↓reduceIte]
     icases Hrecv with ⟨HP, Hcons⟩
-    icases rnApplyTok_recv Er γn rcv A apv $$ Hcons Hidx HP with
+    -- (D22 J6a) no snapshot payload in raft's no-snapshot mode (`isRaftNode`'s `rnEnvOk`)
+    ihave %Hns := isRaftNode_noSnap Er γn _ $$ Hrn
+    icases rnApplyTok_recv Er γn rcv A apv Hns $$ Hcons Hidx HP with
       ⟨%ce, %ceL, Happly, #Hents, #Hentsat, #HC, %Hsnap, Hnc, HG, #Hrac, #Hcl⟩
     -- (D43 M3) `notifyc` and the driver's view, at the apply side (`rnDv`)
     icases Hnc with ⟨%γnc, #Hncb0, Hnrc⟩

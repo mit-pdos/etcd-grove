@@ -1783,6 +1783,69 @@ theorem ownRaftGhost_readStates (γ : RaftNames) (id : w64) (ps : PState) {md : 
 theorem toPState_rd_states (s : NState) : (toPState s).rd.states = s.rd.states := by
   by_cases h : s.role = .leader <;> simp [toPState, h, rdNL]
 
+/-- (2026-10-26, D22 J6a; J7b's raft part) **A lent snapshot's id is the last of its committed
+log**: the committed log up to the snapshot a `Ready` hands out (`l.dlv`) ends at the snapshot's id
+(`plogLast base0 l.dlv = snapId l.snap`, so its last entry has the snapshot's term). The node's log
+is at the pending snapshot (`LogStoreOk`: its base is the snapshot's id), its full prefix ends at
+its base (`FullOk`) and is committed up to the commit index, at least the base's; the loan's
+committed log has the snapshot's length, so it is that full prefix (`isCommitted_agree`). -/
+theorem ownRawNodeReady_loanLast (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNState)
+    (rd : Ready) (ce es : List EntryM) (ms : List QMsg) (h : Bool) (l : SnapLoan) :
+    ownRawNodeReady (GF := GF) γ rn id rs rd ce es ms h (some l) ⊢
+      ⌜plogLast base0 l.dlv = snapId l.snap⌝ ∗ ownRawNodeReady γ rn id rs rd ce es ms h (some l) := by
+  iintro H
+  ihave %Hx : ⌜plogLast base0 l.dlv = snapId l.snap⌝ $$ [H]
+  · iunfold ownRawNodeReady at H
+    icases H with ⟨%s, %cf, %fp, %rnv, %sv, %hprev, H⟩
+    iNamed H
+    unfold rdSnapRel
+    icases Hrdz with ⟨-, #Hcl, %Hr⟩
+    obtain ⟨-, hsr⟩ := Hr
+    have hsn : s.logst.snap = some (snapId l.snap) := hsr.1
+    have hdl : l.dlv.length = (uint.Z l.snap.Metadata'.Index').toNat := hsr.2.2.2.2.2.2.2.1
+    iunfold ownRaftPhysReady at Hphys
+    iNamed Hphys
+    icases ownRaftLog_pure s.log (rdyLog h (some l).isSome s.logst)
+      (s.logst.prev = snapId l.snap ∧ uint.Z s.logst.prev.index' ≤ uint.Z s.logst.committed)
+      (fun lv σ _ _ Hst _ Happ _ _ _ _ => by
+        have e1 : (rdyLog h (some l).isSome s.logst).snap = s.logst.snap := by
+          unfold rdyLog logHanded; split <;> simp
+        have e2 : (rdyLog h (some l).isSome s.logst).prev = s.logst.prev := by
+          unfold rdyLog logHanded; split <;> simp
+        have e3 : (rdyLog h (some l).isSome s.logst).committed = s.logst.committed := by
+          unfold rdyLog logHanded; split <;> simp
+        rw [e1, hsn, e2] at Hst
+        rw [e2, e3] at Happ
+        exact ⟨Hst.1, Happ.1⟩) $$ Hlog with ⟨%Hpv, -⟩
+    iunfold ownStepGhost at Hghost
+    icases Hghost with ⟨Hg, -⟩
+    icases ownRaftGhost_cmt γ id _ $$ Hg with ⟨%fp', %Hf', -, #Hc⟩
+    have hb : (toPState (if h then { s with outbox := [] } else s)).base = snapId l.snap := by
+      rw [← Hpv.1]; cases h <;> rfl
+    have hcm : (toPState (if h then { s with outbox := [] } else s)).commit = s.logst.committed := by
+      cases h <;> rfl
+    rw [hb] at Hf'
+    icases isCommitted_agree γ _ _ $$ Hcl Hc with %Hag
+    ipureintro
+    obtain ⟨Hfl, -, Hfl2⟩ := Hf'
+    have hlen : (fp'.length : Int) = (l.dlv.length : Int) := by
+      rw [Hfl, hdl]; simp only [snapId]
+      have := uint_Z_nonneg l.snap.Metadata'.Index'; omega
+    have hfp : fp' <+: cprefix fp' (toPState (if h then { s with outbox := [] } else s)) := by
+      unfold cprefix
+      rw [hcm, List.take_append, List.take_of_length_le]
+      · exact List.prefix_append _ _
+      · have := Hpv.2; rw [Hpv.1] at this
+        simp only [snapId] at Hfl this
+        omega
+    have heq : fp' = l.dlv := by
+      rcases Hag with h1 | h1
+      · exact (List.prefix_of_prefix_length_le hfp h1 (by omega)).eq_of_length (by omega)
+      · exact (hfp.trans h1).eq_of_length (by omega)
+    rw [← heq]; exact Hfl2
+  iframe H
+  ipureintro; exact Hx
+
 end rawnodeReady
 
 end EtcdGrove

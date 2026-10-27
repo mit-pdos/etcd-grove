@@ -654,6 +654,9 @@ def readySnapData (γ : NodeNames) (rd : Ready) (d ce es : List EntryM)
     -- (2026-10-26, D22 J2, R-loc) the snapshot local to the node (`snapLocal`: for a server, its
     -- index saved in the member's snapshot directory, which `snapDirInv` turns into its file)
     snapLocal γ.raft γ.id l.snap.Metadata'.Index' ∗
+    -- (2026-10-26, D22 J6a; J7b's raft part) the snapshot's id is the last of the committed log up
+    -- to it (`ownRawNodeReady_loanLast`): its term is the term of the entry at its index
+    ⌜plogLast base0 l.dlv = snapId l.snap⌝ ∗
     ⌜l.ptr = rd.Snapshot' ∧ ce = [] ∧ d <+: l.dlv ∧
       -- (D22 S-r, 2026-10-21) past the committed log handed out before
       d.length < l.dlv.length ∧
