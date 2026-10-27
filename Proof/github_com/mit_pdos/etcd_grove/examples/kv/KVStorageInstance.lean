@@ -38,6 +38,7 @@ module
 public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.Storage__Snapshot
 public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.Storage__InitialState
 public import Proof.go_etcd_io.raft.v3.MemCertLink
+public import Proof.go_etcd_io.raft.v3.Linked
 
 @[expose] public section
 
@@ -48,6 +49,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
+
+open RaftLink
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 

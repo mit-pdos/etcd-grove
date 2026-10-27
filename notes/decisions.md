@@ -20145,6 +20145,88 @@ Auth service's contracts discharging `setupAuthOk`, and `Work` (E2b's, E2f's lis
 collections that listed it updated, and `authkv` gains the client's existing gRPC trust-boundary axioms
 (`StaticMethod`, `grpcConn`, `status.FromError`, ...) that `SetUp` reaches.
 
+## Package signatures, enforced by Lean's module system: raft's node API first (2026-10-26 · the user's request, carried out)
+
+**The problem** (`notes/raft-spec-review.md`, "Modularity review"): nothing in raft's proof was
+sealed but `ownRaftPhys`, so clients proved things by opening raft's predicates (`isNode`'s
+channels, `nodeDriver`'s ghost halves, `readyP`), re-proved raft's lemmas (the server's
+`rn_ready_recv`), and reached raft's internals through any import (1099 modules outside raft
+reached `InvNode`'s or `InvRaftPhys`'s). A change inside raft rippled into the server and the
+examples. The user asked for a module signature per package, as a Rocq `Module Type`, which
+proofs above are written against and cannot see past "even if they wanted".
+
+**Decision: the signature is enforced by the module system, in place.** A package's API module
+is a public module (`@[expose] public section`) whose imports of the package's internals are
+non-public (`import`, not `public import`): its statements can mention only public names (Lean
+refuses a public statement over a privately imported name), the bodies of its `@[no_expose]`
+definitions are invisible to importers (they cannot `unfold`, `delta` or reduce them), and the
+internal modules are not loaded downstream. The package's own proofs `import all` the API module
+to see the bodies. Checked on Lean v4.34.1 (`$CLAUDE_JOB_DIR/tmp/sigtest`, 2026-10-26): a client
+cannot unfold a `@[no_expose]` predicate nor name a privately imported declaration; `import all`
+unseals; a sealed body may use a `private` helper, but a public statement in another module may
+not mention one, even with `import all` (so helpers that raft's internal specs mention stay
+public, sealed).
+
+`etc/sig-check.py etc/sigs/<pkg>.txt --check` closes the one gap Lean leaves (it cannot forbid a
+client from importing an internal module directly): no module outside the package may import a
+module the configuration marks `internal`, directly or through a chain of public imports; linking
+files (`Link`, `Results`, `Adequacy*`, `MainLinked`) are exempt, and a chain stops at them. A
+non-linking module that imports a linking file is a warning (`--strict`: an error).
+
+**This is not the 2026-10-14 attempt (branch `raft-sig`, never merged).** That one listed the API in
+`raftSig` structures and checked clients' constant uses with a script (`etc/api-check.py`), and
+rejected `@[no_expose]` because "the package's own proofs are other modules, and need the bodies
+too". `import all` answers that: here Lean itself rejects a client that opens a sealed predicate.
+Its open item, the vocabulary mixed with internal lemmas in `Proof/` files, is what stage 1 had to
+untangle (`ApiVocab.lean`).
+
+**Raft, stage 1: the node API** (what the server, rafthttp and the examples use).
+- `Spec/go_etcd_io/raft/v3/Api.lean` (until the class prototype below, `Sig.lean`): the module a client imports (the node specs, the API
+  modules), with the signature's description.
+- `InvNode.lean` and `InvNodeCtx.lean` are the API modules: `InvNode` imports `InvRawnodeReady`
+  and `InvApplyConf` non-publicly; the channel and ghost machinery is `@[no_expose]` (`isNode`,
+  `nodeDriver`, `nodeDriverBusy`, `readyP`, `propP`, `advanceP`, `confcP`, `confstateP`,
+  `isAdvChan`/`advInv`/`advDep`/`advRet`, `tickInv`, `nodeCfg`, `runCfg`, `dlvLb`); what a client
+  receives or builds stays transparent (`readyData`, `netP`/`fwdP`/`stepP`, `propArg`, the term
+  budget, the errors). New laws, for what clients opened the predicates for: `isNode_id`,
+  `isNode_commitInv`, `nodeDriver_isNode`, `readyP_take`, `readyP_take_ns` (the server's
+  `rn_ready_recv` now uses it instead of re-deriving `node_ready_receive`'s ghost step).
+- `ApiVocab.lean`: the records and pure predicates the API's statements use that lived in the
+  internal modules, moved unchanged (same names): from `InvRaftPhys` (`QMsg`, `msgAbs`, `SentMsgOk`,
+  `AppShape`, `AppFrom`, `NsCap`), `InvRawnode` (`Pending`, `RNMode`, `SnapLoan`, `RNState`,
+  `NetMsgOk`, `DynCCPreOp`, `isRaftMsg`, `msgDat`, `propEntryM`), `InvRawnodeReady` (`readyDq`,
+  `stTks`, `readyIdx`, `readyOut`, `softStateRO`, `snapReceipt`), `InvBoot` (`bootInit`,
+  `bootMarshal`, `peersCtx`) and the `RawNode`-level specs (`rnInit`, `HsEmpty`, `ConfigValid`,
+  `CCAllowed`).
+- `Linked.lean` (`RaftLink`): the linked results proofs outside the linking files use as lemmas
+  (`wp_StartNode`, `wp_RestartNode`, the `MemoryStorage` ones, `wp_IsEmpty*`), restated over raft's
+  `Link.lean` imported non-publicly. `MemstorageInstance` imports `Link` non-publicly; kv's `Base`
+  imports the facade and the signature instead of raft's `Link`.
+- Sealed below the API (`etc/sigs/raft.txt`): `InvRawnode`, `InvRawnodeReady`, `InvRawnodeC`,
+  `InvNodeRun`, `InvBoot`, `InvRaftPhys` and everything importing them.
+
+**No statement changed**: every spec, law and closed theorem says what it said; definitions moved
+under their names, and `@[no_expose]` changes only who may unfold. The trust base is unchanged
+(`etc/tcb-report.py --check`).
+
+**Debt, in the open** (for later stages):
+- still public and transparent: the protocol's ghost vocabulary (`Protocol/*`), the protobuf model
+  (`InvPb*`), the `Storage` contract and `MemoryStorage`'s predicates (`InvStorage`,
+  `InvMemstorage`), and in `ApiVocab` records that encode internals (`RNState.steps : List Pending`,
+  `readyDq`'s half fractions; `notes/raft-spec-review.md`, leaks 3 and 5);
+- `NodeNames` is a public structure: its channel fields are visible, though useless without the
+  sealed predicates' bodies (a later stage makes it abstract);
+- the `RawNode` API's specs are stated over the internals and are not in the signature;
+- other packages' non-linking modules that import a linking file (`sig-check` warnings: the client
+  library's `ReplyValues`/`InvServerKV`/`ServeFromStart` import `client/v3/Results`, `InvAuth`
+  imports `adt`'s `Link`, ...) reach every package's internals through it.
+
+**How to extend it** (the next package, or raft's next stage): mark the internals in
+`etc/sigs/<pkg>.txt`; make the API module's imports of them non-public; move the vocabulary its
+statements need into a public module; seal what clients must not see inside; give the package's
+proofs `import all`; let the compiler list the client sites that open a sealed predicate, and give
+each a law.
+
 ## D44: one stated spec per KV method; the client's KV calls specified over one KV, its members hidden (2026-10-25 · the user; branch `kv-stated-specs`)
 
 *Supersedes in part* "A generic gRPC specification" (the client's KV specs generic in a `GrpcSpec`)
@@ -21410,6 +21492,95 @@ lose their workload parameter, with the same meaning: `plainEntryOn m`, `plainLo
 `NewServer.spec` did. `kv_cert_floor_on` reads the revision through `kvStateOf_rev` (the KV state
 became a record of compaction, base and changes). After the merge: 718 axioms, 6 sorries (lean's 721
 less the three server axioms `origin/lean` proved).
+
+## Raft's signature as a class: the specs over abstract predicates (2026-10-26 · the user's clarification, prototype)
+
+**The user's correction** of "Package signatures" (above): sealing keeps the predicates' definitions
+in the specs' trust base -- `node.Propose.spec` still imports `InvNode`, and its meaning is
+`rLog`'s and `isCommitted`'s definitions. What is wanted is a module type: the spec says "there is
+an `rLog` and an `rLogLb`, satisfying these laws, and `Propose`'s update moves `rLog`", without
+defining them, in a file other proofs build against that holds no definitions or proofs they are
+not to see.
+
+**Decision: a class of abstract fields and laws** (Lean has no module types; a structure or class
+is their analogue, as for functors in Rocq). `Spec/go_etcd_io/raft/v3/Sig.lean`: `class RaftSig`
+-- abstract `Names`/`NodeNames` (`Type 1`, as raft's are), the invariant `inv` and its namespace
+`N`, `isNode`, the committed log `rLog` and its lower bound `rLogLb`, `entData`, `propFresh`,
+`propReg`, `isReadyChan`, `nodeDriver`, `nodeDriverBusy`, `readyData`, `noSnap` -- with the laws
+(persistence, `rLogLb_mono`, `rLogLb_agree`, `rLog_lb`, `isNode_inv`, `prop_register`,
+`prop_collect`, `readyData_committed`); and `node.Propose.specS`, `node.Ready.specS`,
+`node.readyRecv.specS` over `[S : RaftSig GF]`, `Propose`'s update written over `S.rLog`. Its
+imports: the Go code and the generated declarations, `Base` (the package facts `isPkgInit`
+means), `PbModel` (the records' pure models) and `SigBase` (contexts and errors, concrete: they
+are facts of Go values, moved out of `InvNode`/`InvNodeCtx`). None of raft's proofs or ghost
+state: checked on the import closure. `Proof/go_etcd_io/raft/v3/SigImpl.lean`: `instance
+raftSigImpl` (`rLog` the invariant's ghost variable, `rLogLb` `isCommitted`, ...), its laws from the
+protocol's lemmas, the three specs from raft's at the instance.
+
+**Rejected:** `opaque` constants with the laws as axioms (the laws would join the trust base
+unproved); `@[no_expose]` alone (the definition stays in the specs' meaning: what "Package
+signatures" did, kept as the interim boundary, `Api.lean`).
+
+**Open (the user's choices, asked 2026-10-26):** how abstract a `Ready`'s payload is (one
+abstract `readyData` with one law, or its pieces concrete); whether `Base` and `PbModel` move to
+`Spec/`; `[S : RaftSig GF]` or an explicit `(S : RaftSig GF)`. Then: the other specs over the
+signature, clients generic in `S`, closed theorems at `raftSigImpl`.
+
+## Package APIs: an importable list and a generated interface (2026-10-26 · the user's choice; supersedes "Raft's signature as a class")
+
+**Why not the class** (the user's objection, 2026-10-26): every library that wraps raft and states
+some of raft's predicates in its specs would need a signature that includes `RaftSig`, and an
+instance that carries raft's; a proof importing both raft and the library then sees two instances
+(`raftSigImpl`, and the library's through its own) that typeclass resolution cannot identify --
+Lean has no sharing constraints. The class prototype (`Sig.lean`, `SigImpl.lean`) is removed;
+`SigBase.lean` stays, as `Proof/go_etcd_io/raft/v3/ApiCtx.lean` (the node API's contexts and errors).
+
+**Decision: generate the interface from the proofs, and enforce an importable list.**
+- **What a module exposes** is what Lean's module system exports: an ordinary `import` loads it
+  at `OLeanLevel.exported` -- `private` declarations absent, theorems as statements, definitions
+  with their bodies only when exported (`@[expose]`). `etc/interface.lean` loads the modules that
+  way (`importModules (level := .exported)`; the private view too, only to tell a theorem from an
+  `axiom`, which look alike to a client) and prints each declaration; `etc/gen-interface.py`
+  writes `interface/<module path>.txt` for every importable module and commits it, so the API is
+  reviewed as a diff (checked 2026-10-26 on a scratch module: a sealed body is absent, a private
+  helper too, a theorem shows its statement). `--layout` checks the file layout from the same
+  dump (a spec file exposes its `<F>.spec`, its proof file `<F>.wp_proof`), against a baseline of
+  the known violations.
+- **Package-private visibility does not exist** (Lean v4.34.1): a declaration is private to its
+  module or public to every importer, and `import all` is unrestricted -- Lake has an
+  `allowImportAll` option meant to forbid it across packages, but the check is commented out
+  ("We've decided to disable this check for now", `Lake/Build/Module.lean`), and this repository
+  is one Lake package anyway. So definitions raft's own files share are public to every
+  directory. `etc/api/<pkg>.txt` lists the modules other directories may import, and
+  `etc/api-check.py` enforces it (in place of "Package signatures"' denylist, `etc/sig-check.py`,
+  removed): outside modules import only listed modules, never with `import all`; a listed module
+  publicly imports only listed modules.
+- **Spec stubs** (the user's suggestion): with the dump, a spec needs no definition -- the proof
+  file states the theorem (an `axiom` while unproven), and the interface shows its statement.
+  Not adopted yet: raft's specs stay `<F>.spec` definitions with `<F>.wp_proof` over the callees'
+  specs and `Link.lean`. The interface is for review, not compiled: Lean's printer does not
+  guarantee its output parses back.
+
+**Raft's list** (`etc/api/raft.txt`, 144 modules with `raftpb`'s specs): what clients imported on
+2026-10-26 and what those publicly import, grouped -- the node API, `MemoryStorage` and the
+`Storage` contract, `raftpb`, the protocol's client vocabulary, the models it is stated in -- and,
+as debt to remove, the proof internals clients reach (`FrameH`, `ProjSimps`, `LemmasMiscR`,
+`raft__Step.Dispatch`, and through public imports `StepLemmas*`, `LemmasSendRD`, `SpecResults`,
+`Protocol.LeaderCompleteness`, `RefinementDyn`, `StepRInv`).
+
+**Amendment (2026-10-26, the user's): the functions' statements in the interface.** The user asked
+for the stub idea (specs gone, the interface showing each function's statement from its proof
+file), then judged the generated interface enough if it covers the per-function proof files. It
+does now: `etc/gen-interface.py` also writes the interface of every `Proof/<pkg>/<F>.lean` that has
+a spec (raft: 311 of them), where `<F>.wp_proof` -- or the `axiom` in its place -- is printed with
+`<F>.spec` unfolded (`etc/interface.lean`, `deltaExpand` of the conclusion's `….spec`), so the Hoare
+triple and the callees' specs it takes are read off the interface. The `Spec/` files and
+`Link.lean` stay: removing them (each proof stating its theorem and using its callees' theorems
+directly) would also rework `etc/proof_roots.py`, `etc/tcb-report.py`, `etc/verified-code.py` and
+`etc/gen-link.py` (their roots are `Link.lean`'s theorems), and 238 modules import raft's spec
+files besides their own proofs and the linking files (helper definitions in spec files that the
+invariants use would have to move first). Go strings, which Lean prints as byte lists, are printed
+back as `go!"..."`.
 
 ## D22 J2: R-loc implemented (2026-10-26 · decided by the orchestrator while the user was away (J2))
 
