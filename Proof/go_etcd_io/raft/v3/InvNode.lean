@@ -1230,7 +1230,7 @@ the entry `propEntryM data` holds the bytes, which must not be empty (`Hne`: an 
 be a leader's own entry); no slice to record.) -/
 theorem node_propose_ghost (γ : NodeNames) (id : w64) (n : Loc)
     (data : List w8) (Q : List EntryM → IProp GF) (E : CoPset)
-    (HE1 : ↑raftN ⊆ E) (Hne : data ≠ []) :
+    (HE1 : ↑(raftN γ.raft) ⊆ E) (Hne : data ≠ []) :
     ⊢ isNode γ id n -∗ propArg γ.raft data Q ={E}=∗
       propData γ.raft (propEntryM data) ∗ entTk γ.raft (propEntryM data) := by
   iintro #Hnode Harg
@@ -1254,7 +1254,7 @@ theorem node_propose_ghost (γ : NodeNames) (id : w64) (n : Loc)
 /-- **Registering `d` with `Q`, at the node** (2026-10-21; `prop_register`): what a client does,
 once per data, before proposing it. -/
 theorem node_prop_register (γ : NodeNames) (id : w64) (n : Loc) (d : List w8)
-    (Q : List EntryM → IProp GF) (E : CoPset) (HE1 : ↑raftN ⊆ E) :
+    (Q : List EntryM → IProp GF) (E : CoPset) (HE1 : ↑(raftN γ.raft) ⊆ E) :
     ⊢ isNode γ id n -∗ propFresh γ.raft d ={E}=∗ propIs γ.raft d Q := by
   iintro #Hnode Hfr
   open_node Hnode
@@ -1276,7 +1276,7 @@ theorem node_readState_data (γ : NodeNames) (id : w64) (n : Loc) (st : ReadStat
 
 /-- The data of a committed log's entries. -/
 theorem node_committed_data (γ : NodeNames) (id : w64) (n : Loc) (l : List EntryM)
-    (E : CoPset) (HE : ↑raftN ⊆ E) :
+    (E : CoPset) (HE : ↑(raftN γ.raft) ⊆ E) :
     ⊢ isNode γ id n -∗ isCommitted γ.raft l ={E}=∗
       ∃ ods, [∗list] e;o ∈ l;ods, entDataIs (GF := GF) γ.raft e o := by
   iintro #Hnode #Hc

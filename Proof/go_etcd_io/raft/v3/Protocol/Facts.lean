@@ -291,7 +291,7 @@ theorem entsData_lookup (γ : RaftNames) (l : List EntryM) (ods : List (Option (
 quarter agree (the register's `reg_log_committed`, 2026-10-14, stage R; here since 2026-10-16,
 stage R7, shared with the server). -/
 theorem rLog_committed (γ : RaftNames) (L : List EntryM) (E : CoPset)
-    (HE : ↑raftLogN ⊆ E) :
+    (HE : ↑(raftLogN γ) ⊆ E) :
     ⊢ raftCommitInv γ -∗ rLog γ L ={E}=∗ rLog γ L ∗ isCommitted γ L := by
   iintro #Hinv HrL
   ihave #Hli := raftCommitInv_log γ $$ Hinv
@@ -315,7 +315,7 @@ registry gets `d ↦ (γq, γd)`, `γq` naming `Q`, `γd` the (empty) map of `d`
 committed entry holds `d` yet (`ods_not_fresh`), so the slot starts with no result. -/
 theorem prop_register (γ : RaftNames) (E : CoPset) (d : List w8)
     (Q : List EntryM → IProp GF) :
-    ↑raftN ⊆ E →
+    ↑(raftN γ) ⊆ E →
     ⊢ raftCommitInv γ -∗ propFresh γ d ={E}=∗ propIs γ d Q := by
   intro HE
   iintro #Hinv Hfr
@@ -398,7 +398,7 @@ leaves the node): the client's update, with the predicate `d` was registered und
 new deposit of `d`'s slot, whose ticket (`propTk`) travels with the proposal. -/
 theorem prop_deposit (γ : RaftNames) (E : CoPset) (d : List w8)
     (Q : List EntryM → IProp GF) :
-    ↑raftN ⊆ E →
+    ↑(raftN γ) ⊆ E →
     ⊢ raftCommitInv γ -∗ propIs γ d Q -∗ propAu1 γ d Q ={E}=∗ propTk γ d := by
   intro HE
   iintro #Hinv #Hpi Hau
@@ -455,7 +455,7 @@ position `m` of a committed log `L` holding `d` --, the update's result at the l
 naming it). -/
 theorem prop_collect (γ : RaftNames) (E : CoPset) (d : List w8)
     (Q : List EntryM → IProp GF) (L : List EntryM) (m : Nat) (e : EntryM) :
-    ↑raftN ⊆ E → L[m]? = some e →
+    ↑(raftN γ) ⊆ E → L[m]? = some e →
     ⊢ raftCommitInv γ -∗ propIs γ d Q -∗ isCommitted γ L -∗ entDataIs γ e (some d) ={E}=∗
       ▷ ▷ □ Q (L.take m) := by
   intro HE Hm
@@ -515,7 +515,7 @@ theorem prop_collect (γ : RaftNames) (E : CoPset) (d : List w8)
 
 /-- The data of a committed log's entries. -/
 theorem committed_data (γ : RaftNames) (E : CoPset) (l : List EntryM) :
-    ↑raftN ⊆ E →
+    ↑(raftN γ) ⊆ E →
     ⊢ raftCommitInv γ -∗ isCommitted γ l ={E}=∗
       ∃ ods, [∗list] e;o ∈ l;ods, entDataIs (GF := GF) γ e o := by
   intro HE
@@ -1032,7 +1032,9 @@ theorem ownRaftGhost_alloc_core (E : CoPset) (cfg ids : GSet w64)
     -- (2026-10-21, D22 S-r) the snapshots' data the cluster admits (`RaftNames.reSnapOkRaw`)
     (sok : List BootEntry → List w8 → Prop)
     -- (2026-10-26, D22 J2) the nodes' snapshot directories (`RaftNames.reSnapLoc`)
-    (sl : w64 → Option GName) :
+    (sl : w64 → Option GName)
+    -- (2026-10-27) the commit invariant's namespace (`RaftNames.reNs`)
+    (nsN : Namespace) :
     -- (2026-10-14, reconfiguration stage B2) the voters are not empty: `RaftNames.reCfg_ne`
     cfg ≠ ∅ →
     W64 0 ∉ ids →
@@ -1040,7 +1042,7 @@ theorem ownRaftGhost_alloc_core (E : CoPset) (cfg ids : GSet w64)
     ⊢ allocClientGen E cfg dyn ccOk L C -∗
       |={E}=> ∃ γ : RaftNames, ⌜γ.reCfg = cfg ∧ γ.reDyn = dyn ∧ γ.reCCOk = ccOk ∧ γ.reBoot = L ∧
           γ.reTracked = trk ∧ γ.reNoSnap = ns ∧ γ.reNoXfer = nx ∧ γ.reSnapOkRaw = sok ∧
-          γ.reSnapLoc = sl⌝ ∗
+          γ.reSnapLoc = sl ∧ γ.reNs = nsN⌝ ∗
         raftCommitInv (GF := GF) γ ∗
         isCommitted γ L ∗
         ([∗map] id ↦ _u ∈ toMap ids, ownRaftGhost γ id (initPStateAt t L) dyn.isSome) ∗
@@ -1081,7 +1083,7 @@ theorem ownRaftGhost_alloc_core (E : CoPset) (cfg ids : GSet w64)
       γ0 = ⟨cfg, nv, nt, na, nc, nl, nw, ne, γc, γpr, γcl, γfr, nlc, nrq, γrd, γrf, γrc, γtb,
         dyn, ccOk, L.map BootEntry.ofEntry, Hcne, trk, Htrk, ns,
         fun h he => Hns h (List.map_eq_nil_iff.1 he), nx,
-        fun h he => Hnx h (List.map_eq_nil_iff.1 he), sok, sl⟩ :=
+        fun h he => Hnx h (List.map_eq_nil_iff.1 he), sok, sl, nsN⟩ :=
     ⟨_, rfl⟩
   have e1 : γ0.reVotes = nv := by rw [Hγ0]
   have e2 : γ0.reTerms = nt := by rw [Hγ0]
@@ -1118,7 +1120,7 @@ theorem ownRaftGhost_alloc_core (E : CoPset) (cfg ids : GSet w64)
   imod Hcl $$ %γ0 [] Hc0 [Hcl2] Hfra Hrfa with ⟨#Hnoop, HCl⟩
   · ipureintro; exact ⟨e0, eD, eCC, eB⟩
   · unfold rLog; iexact Hcl2
-  imod inv_alloc rdCredN E iprop(∃ B : Nat, own γ0.reRdCred (● B : Auth Nat) ∗
+  imod inv_alloc (rdCredN γ0) E iprop(∃ B : Nat, own γ0.reRdCred (● B : Auth Nat) ∗
       ⌜B < 2 ^ 64 - 1⌝) $$ [HCa] with #Hcinv
   · inext
     iexists 2 ^ 64 - 2
@@ -1164,7 +1166,7 @@ theorem ownRaftGhost_alloc_core (E : CoPset) (cfg ids : GSet w64)
     · iexact Hav
     · iapply (BigSepM.bigSepM_empty).2; iempintro
   icases rlq_split γ0 L $$ Hcl1 with ⟨Hq1, Hq2⟩
-  imod inv_alloc raftLogN E (raftLogInvBody γ0) $$ [Hcauth Htbl Hq1 Htba] with #Hinv
+  imod inv_alloc (raftLogN γ0) E (raftLogInvBody γ0) $$ [Hcauth Htbl Hq1 Htba] with #Hinv
   · inext
     unfold raftLogInvBody
     iexists L
@@ -1180,7 +1182,7 @@ theorem ownRaftGhost_alloc_core (E : CoPset) (cfg ids : GSet w64)
       iapply (BigSepM.bigSepM_empty).2; iempintro
     unfold logRest
     iframe Hq1 Hds
-  imod inv_alloc raftRegN E (regsOwn γ0) $$ [Hq2 Hpra Hrda] with #Hreg
+  imod inv_alloc (raftRegN γ0) E (regsOwn γ0) $$ [Hq2 Hpra Hrda] with #Hreg
   · inext
     unfold regsOwn regsAt propsOwn readsReg
     iexists L
@@ -1195,7 +1197,7 @@ theorem ownRaftGhost_alloc_core (E : CoPset) (cfg ids : GSet w64)
   imodintro
   iexists γ0
   isplitr; · ipureintro; exact ⟨e0, eD, eCC, eB, by rw [Hγ0], by rw [Hγ0], by rw [Hγ0], by rw [Hγ0],
-    by rw [Hγ0]⟩
+    by rw [Hγ0], by rw [Hγ0]⟩
   isplitr; · iexact Hinv'
   isplitr; · iexact Hc0
   isplitl [Hv Ht Ha Hc Hl Hw He Hlc Hrq Hcr0]
@@ -1229,7 +1231,8 @@ theorem ownRaftGhost_alloc_gen (E : CoPset) (cfg ids : GSet w64)
   iintro Hcl
   ihave Hcl' := allocClient_gen E cfg dyn ccOk C $$ Hcl
   imod ownRaftGhost_alloc_core E cfg ids dyn ccOk [] (W64 0) C none (fun _ h => by cases h)
-    false (fun h => by cases h) false (fun h => by cases h) (fun _ _ => True) (fun _ => none) Hcne Hnz
+    false (fun h => by cases h) false (fun h => by cases h) (fun _ _ => True) (fun _ => none)
+    (nroot .@ "raft_commit") Hcne Hnz
     (BootWf_nil _)
     (fun h => absurd rfl h) $$ Hcl' with ⟨%γ, %Hγ, H⟩
   imodintro
@@ -1261,12 +1264,13 @@ theorem ownRaftGhost_alloc_snap (E : CoPset) (cfg ids : GSet w64)
   iintro Hcl
   ihave Hcl' := allocClient_gen E cfg none ccOk C $$ Hcl
   imod ownRaftGhost_alloc_core E cfg ids none ccOk [] (W64 0) C none (fun _ h => by cases h)
-    false (fun h => by cases h) false (fun h => by cases h) sok (fun _ => none) Hcne Hnz (BootWf_nil _)
+    false (fun h => by cases h) false (fun h => by cases h) sok (fun _ => none) (nroot .@ "raft_commit") Hcne Hnz
+    (BootWf_nil _)
     (fun h => absurd rfl h) $$ Hcl' with ⟨%γ, %Hγ, H⟩
   imodintro
   iexists γ
   isplitr; · ipureintro; exact ⟨Hγ.1, Hγ.2.1, Hγ.2.2.1, Hγ.2.2.2.2.2.2.1, Hγ.2.2.2.2.2.1,
-    Hγ.2.2.2.2.1, Hγ.2.2.2.2.2.2.2.1, Hγ.2.2.2.2.2.2.2.2⟩
+    Hγ.2.2.2.2.1, Hγ.2.2.2.2.2.2.2.1, Hγ.2.2.2.2.2.2.2.2.1⟩
   rw [initPState_eq]
   simp only [Option.isSome_none]
   iexact H
@@ -1355,13 +1359,13 @@ theorem ownRaftGhost_alloc_boot (E : CoPset) (cfg ids : GSet w64) (ccOk : w32 �
   · unfold allocClientGen allocClientBoot; iexact Hcl
   imod ownRaftGhost_alloc_core E cfg ids none ccOk bootLog (W64 1) C (some cfg)
     (fun T hT => by cases hT; exact ⟨GMap.subseteq_refl _, rfl⟩) ns (fun _ => Hbne) nx (fun _ => Hbne)
-    (fun _ _ => True) sl Hcne Hnz Hok.wf
+    (fun _ _ => True) sl (nroot .@ "raft_commit") Hcne Hnz Hok.wf
     (fun _ => by rw [show uint.Z (W64 1) = 1 from rfl]; exact Int.le_refl _)
     $$ Hcl' with ⟨%γ, %Hγ, H⟩
   imodintro
   iexists γ
   isplitr; · ipureintro; exact ⟨Hγ.1, Hγ.2.1, Hγ.2.2.1, Hγ.2.2.2.1, Hγ.2.2.2.2.1, Hγ.2.2.2.2.2.1,
-    Hγ.2.2.2.2.2.2.1, Hγ.2.2.2.2.2.2.2.2⟩
+    Hγ.2.2.2.2.2.2.1, Hγ.2.2.2.2.2.2.2.2.1⟩
   rw [bootPState_eq]
   simp only [Option.isSome_none]
   iexact H

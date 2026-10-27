@@ -790,7 +790,7 @@ theorem propSlot_fire (γ : RaftNames) (d : List w8) (p : PropRec) (l : List Ent
 /-- A read slot, fired at the log grown by one entry. -/
 theorem readSlot_fire (γ : RaftNames) (r : GName × List EntryM) (l : List EntryM)
     (e : EntryM) :
-    ⊢ readSlot (GF := GF) γ r l -∗ ghostVar γ.reRLog (1 : Qp).half (l ++ [e]) ={⊤ \ ↑raftN}=∗
+    ⊢ readSlot (GF := GF) γ r l -∗ ghostVar γ.reRLog (1 : Qp).half (l ++ [e]) ={⊤ \ ↑(raftN γ)}=∗
       ghostVar γ.reRLog (1 : Qp).half (l ++ [e]) ∗ readSlot γ r (l ++ [e]) := by
   unfold readSlot
   iintro ⟨%Qr, #Hsp, #Hau, %Hpre, #Hres⟩ Hv
@@ -851,11 +851,11 @@ theorem bigSepM_fupd_thread {K V : Type} [DecidableEq K] [Pos.Countable K] (E : 
 /-- Every read slot, fired at the log grown by one entry. -/
 theorem readsReg_fire (γ : RaftNames) (l : List EntryM) (e : EntryM)
     (RR : GMap (List w8) (GName × List EntryM)) :
-    ⊢ readsReg (GF := GF) γ l RR -∗ ghostVar γ.reRLog (1 : Qp).half (l ++ [e]) ={⊤ \ ↑raftN}=∗
+    ⊢ readsReg (GF := GF) γ l RR -∗ ghostVar γ.reRLog (1 : Qp).half (l ++ [e]) ={⊤ \ ↑(raftN γ)}=∗
       ghostVar γ.reRLog (1 : Qp).half (l ++ [e]) ∗ readsReg γ (l ++ [e]) RR := by
   unfold readsReg
   iintro ⟨Ha, Hs⟩ Hv
-  imod bigSepM_fupd_thread (⊤ \ ↑raftN) iprop(ghostVar γ.reRLog (1 : Qp).half (l ++ [e]))
+  imod bigSepM_fupd_thread (⊤ \ ↑(raftN γ)) iprop(ghostVar γ.reRLog (1 : Qp).half (l ++ [e]))
     (fun c r => iprop(readSlot γ r l ∗ rdFresh γ c))
     (fun c r => iprop(readSlot γ r (l ++ [e]) ∗ rdFresh γ c)) RR $$ [] Hv Hs with ⟨Hv, Hs⟩
   · imodintro
@@ -873,7 +873,7 @@ def commitSt (γ : RaftNames) (l : List EntryM) : IProp GF :=
 
 theorem fire_one (γ : RaftNames) (G : List EntryM) (m : Nat) (e : EntryM) :
     PlogWf base0 G → G[m]? = some e →
-    ⊢ logRecs (GF := GF) γ base0 G -∗ commitSt γ (G.take m) ={⊤ \ ↑raftN}=∗
+    ⊢ logRecs (GF := GF) γ base0 G -∗ commitSt γ (G.take m) ={⊤ \ ↑(raftN γ)}=∗
       commitSt γ (G.take (m + 1)) := by
   intro Hwf He
   iintro #Hr Hst
@@ -905,7 +905,7 @@ theorem fire_one (γ : RaftNames) (G : List EntryM) (m : Nat) (e : EntryM) :
   unfold propsOwn
   icases Hprops with ⟨Hra, Hs⟩
   -- the entry's own update moves the log; the other proposal slots keep their results
-  ihave Hfire : |={⊤ \ ↑raftN}=> ghostVar γ.reRLog (1 : Qp).half (G.take m ++ [e]) ∗
+  ihave Hfire : |={⊤ \ ↑(raftN γ)}=> ghostVar γ.reRLog (1 : Qp).half (G.take m ++ [e]) ∗
       ghostMapAuth γ.reProps 1 R ∗
       [∗map] d ↦ p ∈ R, propSlot γ d p (G.take m ++ [e]) ∗ propFresh γ d $$ [Hv Hra Hs]
   · cases o with
@@ -982,7 +982,7 @@ theorem fire_one (γ : RaftNames) (G : List EntryM) (m : Nat) (e : EntryM) :
 
 theorem fire_upto (γ : RaftNames) (G : List EntryM) (d m : Nat) :
     PlogWf base0 G → m + d ≤ G.length →
-    ⊢ logRecs (GF := GF) γ base0 G -∗ commitSt γ (G.take m) ={⊤ \ ↑raftN}=∗
+    ⊢ logRecs (GF := GF) γ base0 G -∗ commitSt γ (G.take m) ={⊤ \ ↑(raftN γ)}=∗
       commitSt γ (G.take (m + d)) := by
   induction d generalizing m with
   | zero =>
@@ -1001,7 +1001,7 @@ theorem fire_upto (γ : RaftNames) (G : List EntryM) (d m : Nat) :
 /-- `fire_upto` with both halves of the commit invariant open, from a ghost step. -/
 theorem fire_upto_open (γ : RaftNames) (G : List EntryM) (d m : Nat) :
     PlogWf base0 G → m + d ≤ G.length →
-    ⊢ logRecs (GF := GF) γ base0 G -∗ commitSt γ (G.take m) ={(⊤ \ ↑raftRegN) \ ↑raftLogN}=∗
+    ⊢ logRecs (GF := GF) γ base0 G -∗ commitSt γ (G.take m) ={(⊤ \ ↑(raftRegN γ)) \ ↑(raftLogN γ)}=∗
       commitSt γ (G.take (m + d)) := by
   intro Hwf Hle
   iintro #Hr Hs
@@ -1034,11 +1034,11 @@ below both (`cq_agree`, from the vote table), so -- the logs having records -- t
 prefixes are prefixes of one another (`full_take_eq`). The extension is entry by entry,
 firing the deposited updates (`fire_upto`) -- with both halves of the invariant open: the
 registry half by the ghost step (its contents `regsOwn`, held across the step since it took
-`£ 1` to open them), the log half here; the updates' outer mask `⊤ ∖ ↑raftN` excludes
+`£ 1` to open them), the log half here; the updates' outer mask `⊤ ∖ ↑(raftN γ)` excludes
 both. -/
 theorem commit_extend (γ : RaftNames) (t n : w64) (G : List EntryM) (ldr : w64) :
     ⊢ raftCommitInv (GF := GF) γ -∗ regsOwn γ -∗ cq γ t n G -∗ isLeader γ ldr t -∗
-      cmtLb γ ldr t n ={⊤ \ ↑raftRegN}=∗
+      cmtLb γ ldr t n ={⊤ \ ↑(raftRegN γ)}=∗
       regsOwn γ ∗ isCommitted γ (G.take (uint.Z n).toNat) := by
   iintro #Hinv Hregs #Hcq #Hldr #Hclb
   ihave #Hli := raftCommitInv_log γ $$ Hinv
@@ -1055,7 +1055,7 @@ theorem commit_extend (γ : RaftNames) (t n : w64) (G : List EntryM) (ldr : w64)
   unfold plogLastIndexZ at HnG
   rw [base0_index] at HnG
   -- the log after: extended to `G`'s first `n` entries, or already past them
-  ihave Hext : |={(⊤ \ ↑raftRegN) \ ↑raftLogN}=> ∃ P', commitSt γ P' ∗ committedJust γ P' ∗
+  ihave Hext : |={(⊤ \ ↑(raftRegN γ)) \ ↑(raftLogN γ)}=> ∃ P', commitSt γ P' ∗ committedJust γ P' ∗
       votesTbl γ ∗ isCommitted γ (G.take (uint.Z n).toNat) $$ [HP Hv Hregs Htbl]
   · unfold committedJust
     icases Hj with (%HP0 | ⟨%t0, %n0, %G0, %ldr0, #Hcq0, %HP0, #Hldr0, #Hclb0⟩)
@@ -1154,7 +1154,7 @@ theorem vote_insert (γ : RaftNames) (id : w64) (γv : GName) (voted : GMap w64 
     (T c : w64) :
     γ.reVotes !! id = some γv → voted !! T = none →
     ⊢ raftCommitInv (GF := GF) γ -∗ voteJust γ id T c -∗ ghostMapAuth γv (1 : Qp).half voted
-      ={⊤ \ ↑raftRegN}=∗
+      ={⊤ \ ↑(raftRegN γ)}=∗
       ghostMapAuth γv (1 : Qp).half (<[T := c]> voted) ∗ T ↪[γv]□ c := by
   intro Hγv Hfree
   iintro #Hinv #Hj Ha
@@ -1375,7 +1375,7 @@ theorem winTbl_insert (γ : RaftNames) (id T : w64) (c : CfgM) (V : GSet w64) :
 
 /-- `Step.win` on the winners table: inside the commit invariant. -/
 theorem win_register (γ : RaftNames) (id T : w64) (c : CfgM) (V : GSet w64) :
-    ⊢ raftCommitInv (GF := GF) γ -∗ isWinCore γ id T c V ={⊤ \ ↑raftRegN}=∗ isWin γ id T V := by
+    ⊢ raftCommitInv (GF := GF) γ -∗ isWinCore γ id T c V ={⊤ \ ↑(raftRegN γ)}=∗ isWin γ id T V := by
   iintro #Hinv #Hw
   ihave #Hli := raftCommitInv_log γ $$ Hinv
   unfold raftLogInv raftLogInvBody

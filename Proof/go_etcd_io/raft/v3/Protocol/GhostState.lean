@@ -786,7 +786,8 @@ instance committedJust_persistent (γ : RaftNames) (l : List EntryM) :
     Persistent (committedJust (GF := GF) γ l) := by
   unfold committedJust; infer_instance
 
-def raftN : Namespace := nroot .@ "raft_commit"
+/-- The commit invariant's namespace (2026-10-27: the cluster's, `RaftNames.reNs`). -/
+def raftN (γ : RaftNames) : Namespace := γ.reNs
 
 /-! ### The client's log, the registries and the commit invariant (2026-10-14, stage R)
 
@@ -818,32 +819,34 @@ commit several times, and each commit fires updates that live under the invarian
 The other ghost lemmas open the log half only. -/
 
 /-- The log half of the commit invariant. -/
-abbrev raftLogN : Namespace := raftN .@ "log"
+abbrev raftLogN (γ : RaftNames) : Namespace := raftN γ .@ "log"
 /-- The registry half of the commit invariant. -/
-abbrev raftRegN : Namespace := raftN .@ "reg"
+abbrev raftRegN (γ : RaftNames) : Namespace := raftN γ .@ "reg"
 
 /-- Opening the log half with the registry half open (`iinv`'s side condition, by `simp`). -/
-@[simp] theorem raftLogN_sub : (↑raftLogN : CoPset) ⊆ ⊤ \ ↑raftRegN :=
-  mask_ndot_ne' raftN "log" "reg" (by decide)
+@[simp] theorem raftLogN_sub {γ : RaftNames} : (↑(raftLogN γ) : CoPset) ⊆ ⊤ \ ↑(raftRegN γ) :=
+  mask_ndot_ne' (raftN γ) "log" "reg" (by decide)
 
-@[simp] theorem raftRegN_sub : (↑raftRegN : CoPset) ⊆ ⊤ \ ↑raftLogN :=
-  mask_ndot_ne' raftN "reg" "log" (by decide)
+@[simp] theorem raftRegN_sub {γ : RaftNames} : (↑(raftRegN γ) : CoPset) ⊆ ⊤ \ ↑(raftLogN γ) :=
+  mask_ndot_ne' (raftN γ) "reg" "log" (by decide)
 
 /-- The updates' outer mask, inside both halves open. -/
-theorem raftN_open_sub : (⊤ \ ↑raftN : CoPset) ⊆ (⊤ \ ↑raftRegN) \ ↑raftLogN :=
-  mask_diff_ndot2 raftN "reg" "log"
+theorem raftN_open_sub {γ : RaftNames} :
+    (⊤ \ ↑(raftN γ) : CoPset) ⊆ (⊤ \ ↑(raftRegN γ)) \ ↑(raftLogN γ) :=
+  mask_diff_ndot2 (raftN γ) "reg" "log"
 
-theorem raftLogN_of {E : CoPset} (HE : ↑raftN ⊆ E) : (↑raftLogN : CoPset) ⊆ E :=
-  fun p hp => HE p (nclose_subseteq raftN "log" p hp)
+theorem raftLogN_of {γ : RaftNames} {E : CoPset} (HE : ↑(raftN γ) ⊆ E) : (↑(raftLogN γ) : CoPset) ⊆ E :=
+  fun p hp => HE p (nclose_subseteq (raftN γ) "log" p hp)
 
-theorem raftRegN_of {E : CoPset} (HE : ↑raftN ⊆ E) : (↑raftRegN : CoPset) ⊆ E :=
-  fun p hp => HE p (nclose_subseteq raftN "reg" p hp)
+theorem raftRegN_of {γ : RaftNames} {E : CoPset} (HE : ↑(raftN γ) ⊆ E) : (↑(raftRegN γ) : CoPset) ⊆ E :=
+  fun p hp => HE p (nclose_subseteq (raftN γ) "reg" p hp)
 
-theorem raftLogN_of_diff {E : CoPset} (HE : ↑raftN ⊆ E) : (↑raftLogN : CoPset) ⊆ E \ ↑raftRegN := by
+theorem raftLogN_of_diff {γ : RaftNames} {E : CoPset} (HE : ↑(raftN γ) ⊆ E) :
+    (↑(raftLogN γ) : CoPset) ⊆ E \ ↑(raftRegN γ) := by
   intro p hp
   rw [Iris.Std.LawfulSet.mem_diff]
-  exact ⟨HE p (nclose_subseteq raftN "log" p hp),
-    fun h => ndot_ne_disjoint raftN (show "log" ≠ "reg" by decide) p ⟨hp, h⟩⟩
+  exact ⟨HE p (nclose_subseteq (raftN γ) "log" p hp),
+    fun h => ndot_ne_disjoint (raftN γ) (show "log" ≠ "reg" by decide) p ⟨hp, h⟩⟩
 
 /-- The quarter of `reRLog` each half of the commit invariant holds. -/
 abbrev rlq : Qp := (1 : Qp).half.half
@@ -926,7 +929,7 @@ variable [InvGS GF]
 /-- A read's update (see the section header): persistent, the log unchanged, a persistent
 result. -/
 def readAu (γ : RaftNames) (Qr : List EntryM → IProp GF) : IProp GF :=
-  iprop(□ AU <{ ∃∃ (L : List EntryM), rLog γ L }> @ ⊤ \ ↑raftN, ∅
+  iprop(□ AU <{ ∃∃ (L : List EntryM), rLog γ L }> @ ⊤ \ ↑(raftN γ), ∅
               <{ rLog γ L, COMM □ Qr L }>)
 
 instance readAu_persistent (γ : RaftNames) (Qr : List EntryM → IProp GF) :
@@ -937,7 +940,7 @@ instance readAu_persistent (γ : RaftNames) (Qr : List EntryM → IProp GF) :
 ticket travelling with it, `propTk`) is appended at one index, so it occurs at most once in the
 committed log, and raft fires its update at most once (`fire_one`). -/
 def propAu1 (γ : RaftNames) (d : List w8) (Q : List EntryM → IProp GF) : IProp GF :=
-  iprop(AU <{ ∃∃ (L : List EntryM), rLog γ L }> @ ⊤ \ ↑raftN, ∅
+  iprop(AU <{ ∃∃ (L : List EntryM), rLog γ L }> @ ⊤ \ ↑(raftN γ), ∅
               <{ ∀∀ (e : EntryM), rLog γ (L ++ [e]) ∗ entDataIs γ e (some d) ∗
                    ⌜uint.Z e.Index' = (L.length : Int) + 1⌝,
                  COMM □ Q L }>)
@@ -945,7 +948,7 @@ def propAu1 (γ : RaftNames) (d : List w8) (Q : List EntryM → IProp GF) : IPro
 /-- The standing update for raft's own entries (see the section header): the client gives it
 at allocation (`ownRaftGhost_alloc_gen`); it lives in `raftCommitInv`. -/
 def noopAu (γ : RaftNames) : IProp GF :=
-  iprop(□ AU <{ ∃∃ (L : List EntryM), rLog γ L }> @ ⊤ \ ↑raftN, ∅
+  iprop(□ AU <{ ∃∃ (L : List EntryM), rLog γ L }> @ ⊤ \ ↑(raftN γ), ∅
               <{ ∀∀ (e : EntryM), rLog γ (L ++ [e]) ∗ entDataIs γ e none ∗
                    ⌜uint.Z e.Index' = (L.length : Int) + 1⌝, COMM True }>)
 
@@ -955,7 +958,7 @@ instance noopAu_persistent (γ : RaftNames) : Persistent (noopAu (GF := GF) γ) 
 /-- Firing a read's update: the invariant's half at `l` agrees with the client's, both
 unchanged. -/
 theorem readAu_fire (γ : RaftNames) (Qr : List EntryM → IProp GF) (l : List EntryM) :
-    ⊢ readAu γ Qr -∗ ghostVar γ.reRLog (1 : Qp).half l ={⊤ \ ↑raftN}=∗
+    ⊢ readAu γ Qr -∗ ghostVar γ.reRLog (1 : Qp).half l ={⊤ \ ↑(raftN γ)}=∗
       ghostVar γ.reRLog (1 : Qp).half l ∗ □ Qr l := by
   iintro #Hau Hv
   unfold readAu
@@ -978,7 +981,7 @@ half of the client's log, at `l`, moves to `l ++ [e]` with the client's half, an
 at `l` comes out. -/
 theorem propAu1_fire (γ : RaftNames) (d : List w8) (Q : List EntryM → IProp GF)
     (l : List EntryM) (e : EntryM) (Hidx : uint.Z e.Index' = (l.length : Int) + 1) :
-    ⊢ propAu1 γ d Q -∗ entDataIs γ e (some d) -∗ ghostVar γ.reRLog (1 : Qp).half l ={⊤ \ ↑raftN}=∗
+    ⊢ propAu1 γ d Q -∗ entDataIs γ e (some d) -∗ ghostVar γ.reRLog (1 : Qp).half l ={⊤ \ ↑(raftN γ)}=∗
       ghostVar γ.reRLog (1 : Qp).half (l ++ [e]) ∗ □ Q l := by
   iintro Hau #He Hv
   unfold propAu1
@@ -1002,7 +1005,7 @@ theorem propAu1_fire (γ : RaftNames) (d : List w8) (Q : List EntryM → IProp G
 /-- Firing the standing update at an entry `e` of raft's own, at the next index. -/
 theorem noopAu_fire (γ : RaftNames) (l : List EntryM) (e : EntryM)
     (Hidx : uint.Z e.Index' = (l.length : Int) + 1) :
-    ⊢ noopAu γ -∗ entDataIs γ e none -∗ ghostVar γ.reRLog (1 : Qp).half l ={⊤ \ ↑raftN}=∗
+    ⊢ noopAu γ -∗ entDataIs γ e none -∗ ghostVar γ.reRLog (1 : Qp).half l ={⊤ \ ↑(raftN γ)}=∗
       ghostVar γ.reRLog (1 : Qp).half (l ++ [e]) := by
   iintro #Hau #He Hv
   unfold noopAu
@@ -1118,10 +1121,10 @@ def raftLogInvBody (γ : RaftNames) : IProp GF :=
   iprop(∃ l, ownCommitted γ l ∗ committedJust γ l ∗ votesTbl γ ∗ winTbl γ ∗ logRest γ l)
 
 /-- The log half of the commit invariant. -/
-def raftLogInv (γ : RaftNames) : IProp GF := inv raftLogN (raftLogInvBody γ)
+def raftLogInv (γ : RaftNames) : IProp GF := inv (raftLogN γ) (raftLogInvBody γ)
 
 /-- The registry half of the commit invariant. -/
-def raftRegInv (γ : RaftNames) : IProp GF := inv raftRegN (regsOwn γ)
+def raftRegInv (γ : RaftNames) : IProp GF := inv (raftRegN γ) (regsOwn γ)
 
 /-- The commit invariant (see the section header). -/
 def raftCommitInv (γ : RaftNames) : IProp GF := iprop(raftLogInv γ ∗ raftRegInv γ)
@@ -1358,13 +1361,14 @@ theorem lcmOwn_bound_keep (γ : RaftNames) (id : w64) (s : PState) (n : w64) :
 - one credit per `MsgReadIndex` in the outbox;
 - the credits' invariant. -/
 
-def rdCredN : Namespace := nroot .@ "raft_read_credits"
+/-- The read credits' invariant's namespace: beside the commit invariant's halves, in the cluster's
+(2026-10-27; until then `nroot .@ "raft_read_credits"`). -/
+def rdCredN (γ : RaftNames) : Namespace := raftN γ .@ "read_credits"
 
 /-- The read credits' invariant, inside a ghost step (the commit invariant's registry half
 open, 2026-10-14, stage R). -/
-theorem rdCredN_sub : (↑rdCredN : CoPset) ⊆ ⊤ \ ↑raftRegN :=
-  fun p hp => mask_diff_ndot raftN "reg" p
-    (mask_ndot_ne' nroot "raft_read_credits" "raft_commit" (by decide) p hp)
+theorem rdCredN_sub {γ : RaftNames} : (↑(rdCredN γ) : CoPset) ⊆ ⊤ \ ↑(raftRegN γ) :=
+  mask_ndot_ne' (raftN γ) "read_credits" "reg" (by decide)
 
 /-- `n` read credits. -/
 def rdCred (γ : RaftNames) (n : Nat) : IProp GF :=
@@ -1372,7 +1376,7 @@ def rdCred (γ : RaftNames) (n : Nat) : IProp GF :=
 
 /-- The credits handed out are fewer than `2^64 - 1`. -/
 def rdCredInv (γ : RaftNames) : IProp GF :=
-  inv rdCredN iprop(∃ B : Nat, own γ.reRdCred (● B : Auth Nat) ∗ ⌜B < 2 ^ 64 - 1⌝)
+  inv (rdCredN γ) iprop(∃ B : Nat, own γ.reRdCred (● B : Auth Nat) ∗ ⌜B < 2 ^ 64 - 1⌝)
 
 instance rdCredInv_persistent (γ : RaftNames) : Persistent (rdCredInv (GF := GF) γ) := by
   unfold rdCredInv; infer_instance
@@ -1389,7 +1393,7 @@ theorem rdCred_zero_upd (γ : RaftNames) : ⊢ |==> rdCred (GF := GF) γ 0 := by
   exact own_unit _
 
 /-- The credits handed out are fewer than `2^64 - 1`. -/
-theorem rdCred_bound (γ : RaftNames) (n : Nat) (E : CoPset) (HE : ↑rdCredN ⊆ E) :
+theorem rdCred_bound (γ : RaftNames) (n : Nat) (E : CoPset) (HE : ↑(rdCredN γ) ⊆ E) :
     ⊢ rdCredInv (GF := GF) γ -∗ rdCred γ n ={E}=∗ rdCred γ n ∗ ⌜n < 2 ^ 64 - 1⌝ := by
   iintro #Hinv Hcr
   unfold rdCredInv

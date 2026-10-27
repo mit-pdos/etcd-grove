@@ -349,6 +349,10 @@ structure RaftNames where
   `node.Step` to the `Ready` that hands it out. Raft's own results, `examples/kv` and the
   no-snapshot clusters keep the default. -/
   reSnapLoc : w64 → Option GName := fun _ => none
+  /-- The namespace of the commit invariant (2026-10-27, the node API over an abstract log): every
+  client update's outer mask leaves it out (`raftN γ`). The node API's allocation puts it inside the
+  caller's namespace; the default is the fixed one the commit invariant had until then. -/
+  reNs : Namespace := nroot .@ "raft_commit"
 
 /-- The configuration a step is taken at is the ghost state's (2026-10-14, reconfiguration
 stage B2): its incoming voters are `γ.reCfg` and it is not joint (learners, staged
