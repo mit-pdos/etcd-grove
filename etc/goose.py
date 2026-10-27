@@ -39,6 +39,11 @@ The pinned Perennial is `.lake/packages/perennial` when Lake has already checked
 out at the pinned revision, otherwise a clone in `.lake/goose/perennial`.  A
 project's source is cloned into `.lake/goose/<name>` at its pinned revision, except
 for a project in this repository (`local`), whose source is that directory.
+
+Every `go` command runs with `GOTOOLCHAIN` set to the pinned GO_TOOLCHAIN (Go fetches it if
+absent): the translation of a standard-library package (names-only `net/http`, `encoding/json`,
+...) is of the toolchain's own source, which changes between patch releases (go1.27.1's
+`net/http` gives a different translation from go1.27.3's).
 """
 
 import argparse
@@ -54,6 +59,8 @@ from dataclasses import dataclass, field
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 WORK = os.path.join(ROOT, ".lake", "goose")
+# The Go toolchain the translations are generated with (the module docstring says why).
+GO_TOOLCHAIN = "go1.27.3"
 
 
 @dataclass
@@ -904,6 +911,7 @@ def main():
     ap.add_argument("--src", action="append", default=[], metavar="NAME=DIR")
     ap.add_argument("--perennial", default=os.environ.get("PERENNIAL_DIR"))
     args = ap.parse_args()
+    os.environ["GOTOOLCHAIN"] = GO_TOOLCHAIN
 
     projects = [p for p in PROJECTS if not args.project or p.name in args.project]
     local = {p.name: os.environ[p.env] for p in PROJECTS if os.environ.get(p.env)}
