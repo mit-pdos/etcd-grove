@@ -70,6 +70,34 @@ theorem entryClaims_conf (γi : IdNames) :
       ileft; ipureintro; left; exact h m (by simp)
     · iapply entryClaims_conf γi l (fun m' hm => h m' (by simp [hm]))
 
+/-- **The bootstrap log's entries, as the server's** (2026-10-27): consecutive from index `1`,
+conf changes. -/
+theorem bootEntries_ok (ps : List w64) (bootLog : List EntryM) (hboot : srvBootLogOk ps bootLog) :
+    srvIdxOkW (W64 0) (bootEntries bootLog) ∧ ∀ m ∈ bootEntries bootLog, m.typ = W32 1 := by
+  obtain ⟨-, -, hk⟩ := hboot
+  have hent : ∀ (n : Nat) (m : EntryModel), (bootEntries bootLog)[n]? = some m →
+      uint.Z m.index = (n : Int) + 1 ∧ m.typ = W32 1 ∧ isConfChangeEncoding m.data := by
+    intro n m hm
+    unfold bootEntries at hm
+    rw [List.getElem?_map] at hm
+    cases he : bootLog[n]? with
+    | none => rw [he] at hm; simp at hm
+    | some e =>
+      rw [he] at hm
+      simp only [Option.map_some, Option.some.injEq] at hm
+      subst hm
+      obtain ⟨-, hi, ht, ⟨cm, hd, -⟩⟩ := hk n e he
+      refine ⟨hi, ht, ?_⟩
+      unfold isConfChangeEncoding
+      show (ccDecodeV1 e.Data').isSome = true
+      rw [hd]; rfl
+  refine ⟨fun n m hm => ?_, fun m hm => ?_⟩
+  · obtain ⟨hi, ht, hc⟩ := hent n m hm
+    refine ⟨?_, Or.inr ⟨ht, hc⟩⟩
+    rw [hi]; word
+  · obtain ⟨n, hn⟩ := List.getElem?_of_mem hm
+    exact (hent n m hn).2.1
+
 /-- **The KV invariant at the bootstrap log** (a new cluster: the server's start log empty, its
 start index `0`, the consistent index `0`, the base chain, a non-empty start log): from the
 server's log of requested entries at the cluster's bootstrap log (`srvLogInv_alloc`'s; 2026-10-27,
