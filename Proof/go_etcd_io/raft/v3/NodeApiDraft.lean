@@ -209,6 +209,9 @@ instance isNode_persistent (n : Loc) (γ : Cluster) (N : Namespace) (id : w64) :
 /-- The node's `Ready` channel `ch` (persistent). -/
 @[no_expose] def isReadyChan (n : Loc) (γ : Cluster) (N : Namespace) (ch : Loc) : IProp GF := sorry
 
+instance isReadyChan_persistent (n : Loc) (γ : Cluster) (N : Namespace) (ch : Loc) :
+    Persistent (isReadyChan (GF := GF) n γ N ch) := sorry
+
 /-- The Go entries of the log entries `l`, at the indices after `base`. -/
 def LogEntry.toEntries (l : List LogEntry) (base : Nat) : List EntryM :=
   l.mapIdx fun i e => e.toEntryM (W64 (base + i + 1))
@@ -238,6 +241,10 @@ def NodeDriverState.init (stor : Storage) : NodeDriverState := ⟨stor, [], hsZe
 /-- The Go entries `sl` are the log entries `ce`, at the indices after `base` (read-only). -/
 def committedEntriesAt (sl : GoSlice) (base : Nat) (ce : List LogEntry) : IProp GF :=
   entsRO sl (LogEntry.toEntries ce base)
+
+instance committedEntriesAt_persistent (sl : GoSlice) (base : Nat) (ce : List LogEntry) :
+    Persistent (committedEntriesAt (GF := GF) sl base ce) := by
+  unfold committedEntriesAt; infer_instance
 
 /-! ## A static cluster (open: today's static mode, carried over)
 

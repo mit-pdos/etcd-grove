@@ -37,7 +37,6 @@ module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.Storage__Snapshot
 public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.Storage__InitialState
-public import Proof.go_etcd_io.raft.v3.MemCertLink
 public import Proof.go_etcd_io.raft.v3.Linked
 
 @[expose] public section
@@ -155,18 +154,19 @@ theorem kvStorCert_intro (s ms : Loc) (γs : MemStorNames) (k : SnapTrip) :
     ipureintro; rfl
   iexact H
 
-/-- (D22 S-b′3, 2026-10-20) A store storage whose `MemoryStorage`'s registry is tied to `γ`
-(`memCertInv`) meets `storCertOk γ`. -/
-theorem kvStorCertOk_intro (γ : RaftNames) (s ms : Loc) (γs : MemStorNames) :
-    ⊢ memCertInv (GF := GF) γ γs -∗ kvStorRec s ms γs -∗ storCertOk γ (kvStorIface s) := by
+/-- A store storage whose `MemoryStorage`'s registry is tied to the cluster
+(`Draft.storageCertInv`) has the cluster's certificates (`Draft.storageCertLink`). -/
+theorem kvStorCertLink_intro (γ : Draft.Cluster) (N : Namespace) (s ms : Loc) (γs : MemStorNames) :
+    ⊢ Draft.storageCertInv (GF := GF) γ N γs -∗ kvStorRec s ms γs -∗
+      Draft.storageCertLink γ N (kvStorIface s) := by
   iintro #Hinv #Hrec
-  unfold storCertOk
+  iapply Draft.storageCertLink_intro γ N (kvStorIface s)
   isplit
   · iintro !> %k %E %hE #Hc
     ihave #Hc := kvStorCert_at s ms γs k $$ Hrec Hc
-    iapply memCert_read γ γs k E hE $$ Hinv Hc
+    iapply Draft.storageCert_read γ N γs k E hE $$ Hinv Hc
   · iintro !> %k %E %hE #Hk
-    imod memCert_register γ γs k E hE $$ Hinv Hk with #Hc
+    imod Draft.storageCert_register γ N γs k E hE $$ Hinv Hk with #Hc
     imodintro
     iapply kvStorCert_intro s ms γs k $$ Hrec Hc
 
