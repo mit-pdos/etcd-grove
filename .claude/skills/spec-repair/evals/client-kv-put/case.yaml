@@ -1,0 +1,9 @@
+schema_version: "1.1"
+name: client-kv-put
+expected_outcome: |
+  A findings report on the client's kv.Put spec as an application (the examples: putget,
+  linkvtxn, k8setcd3, ...) uses it: whether the caller's atomic update over etcd's KV state is the
+  right shape, what is promised on success and on each error (a timed-out or failed Put may still have
+  been applied), what the response's header revision means, whether the premises (options, the
+  client's state, the dup/duplicate-request story) are faithful to etcd and stated abstractly, and
+  whether applications unfold the spec's predicates. No answer key yet: judged by the user.

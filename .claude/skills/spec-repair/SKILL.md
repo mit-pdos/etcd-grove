@@ -10,8 +10,9 @@ best contract its clients can have: true of the Go code, as strong as the code a
 need, stated in abstract terms, with the laws its clients need, and readable in `interface/`. Start
 from whatever exists, including nothing. How to get there is up to you. Read `LESSONS.md` first.
 
-**Review.** Spawn a fresh subagent that sees the target's `interface/` files, the Go source, and the
-clients' proofs, but not your conclusions. Ask it where the contract is wrong, weak, too strong,
+**Review.** Spawn a fresh subagent that sees the target's `interface/` files (where its package has
+none, the spec file and the definitions it names), the Go source, and the clients' proofs, but not
+your conclusions. Ask it where the contract is wrong, weak, too strong,
 leaky or unusable. Check its findings against the source before acting on them. Look at least for:
 
 - a claim the Go code does not support, or one it supports but the spec omits;

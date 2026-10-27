@@ -1,0 +1,9 @@
+schema_version: "1.1"
+name: btree-replace-or-insert
+expected_outcome: |
+  A findings report on BTree.ReplaceOrInsert's spec as its client (etcd's cache package) uses
+  it: whether the abstract model (ownBTree over a map or ordered list) is the right one, whether the
+  return value (the replaced item, and whether one was replaced) is specified, whether premises (the
+  Less function's strict weak order, non-nil items, copy-on-write sharing with clones) are real
+  preconditions of the Go code and stated abstractly, and whether the cache's proofs need laws the
+  package does not export. No answer key yet: judged by the user.
