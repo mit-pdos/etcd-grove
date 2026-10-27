@@ -86,6 +86,12 @@ Each found by a past review (`notes/spec-first-study/pilot-review-1.md`, the com
   the resources a spec takes, not only their names.
 - **Repairs introduce defects.** In a second or later round, look hardest at what changed since the
   previous round: two of the compactor pilot's three round-2 blockers came from round-1 repairs.
+- **A client that unfolds another package's definitions.** In every caller's proof (glue and
+  sampled), list each `unfold`/`iunfold`/destructuring of a definition the spec's package (or any
+  package other than the caller's) owns: a contract, a predicate, a package initializer's fact (an
+  `icases` of `<pkg>Init` by position). Each is a missing law of that package; report it with the
+  law to add. (Phase 3 of the compactor pilot: the reviews never counted these, and both `Run`
+  proofs took `ErrCompacted` from mvcc's initializer fact by its 31st conjunct.)
 - **A premise stricter than the Go parser.** Compare a configuration premise with what the Go code
   accepts (`time.ParseDuration` accepts negative durations; an integer flag may be parsed elsewhere).
 

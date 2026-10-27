@@ -139,6 +139,19 @@ it cannot meet); measured against the hard one, it says whether the hard proof f
 and so whether a hard proof per package is needed or an easy one is enough. Record for each: the time
 it took, and the spec problems it found that the review and the glue had not.
 
+*Unfolds across a package boundary* (added 2026-10-27, the user's: a client of a good spec does not
+unfold its definitions). Phase 1b's caller-burden metric predicts them; phase 1's glue and phase 3's
+proofs are where they show. List, for each proof, every `unfold`/`iunfold`/destructuring of a
+definition of another package (its predicates, its package initializer's fact, its contracts; not
+Perennial's proof-mode patterns such as `chan.blockingClausePre`). Each is a finding against that
+package's API: a missing law, added to the package that owns the definition (for Perennial's, a
+Perennial change, `notes/perennial-changes.md`), and the proof rewritten to use it. Unfolding a
+definition of the proof's own package is normal. The pilot's two `Run` proofs had three:
+`clockwork.clockOk` (now `clockOk_ok`/`clockOk_Now`/`clockOk_After`), mvcc's package fact, taken
+by its 31st of 42 conjuncts (now `mvcc.ErrCompacted_target`), and Perennial's `context.isContextDef`
+(`isContext_Done`, a Perennial branch). **The freeze requires the list empty**, or each remaining
+unfold justified in `notes/decisions.md` (a law pending in Perennial, say).
+
 **Phase 4: the remaining proofs**, against frozen specs, in parallel (independent per function,
 which suits agents).
 

@@ -108,6 +108,20 @@ Perennial pin at the start: `a39a3d14c` (Perennial's `lean` head on 2026-10-22).
   branches (`rfl`/`omega` and `BitVec.toInt_sdiv_of_ne_or_ne` instead), with a comment.
 - **Status.** Not started (found 2026-10-21, `raft-retarget`, now on `lean`).
 
+### Specs: a law for `Done()` of an `isContext` context (2026-10-27, the compactor pilot)
+
+- **Missing.** `isContext` (an `abbrev` of `isContextDef`) has no law for calling `Done()`: clients
+  `iunfold context.isContextDef` and take its `#HDone` field (the compactor's `Run` proofs, the
+  client's `lessor`/`watchGRPCStream` proofs, leasing's).
+- **Needed by.** The spec-first recipe's rule that a client does not unfold another package's
+  definitions (`notes/spec-first-plan.md`, phase 3); the freeze of the compactor's specs.
+- **Workaround here.** The unfold, kept until the law lands.
+- **Proposed change.** `context.isContext_Done : isContext c s ⊢ {{ True }} c.Done() {{ ch γch,
+  RET #ch; isContextDone s ch γch }}`, next to `isContext_pers`: branch `context-done-law` of
+  Perennial (`3c384b081`, off `lean` at `edcadb1e5`; worktree `/shared/perennial-ctxdone`), checked
+  against the pinned `6b58510f9` (the same `isContextDef`), not yet built or landed there.
+- **Status.** Branch committed, not pushed (2026-10-27).
+
 ### Specs: `context.WithCancel`'s cancel function not `nil`
 
 - **Missing.** `context.WithCancel`'s specs (`context.WithCancel.spec`, `wp_WithCancel_Background`,

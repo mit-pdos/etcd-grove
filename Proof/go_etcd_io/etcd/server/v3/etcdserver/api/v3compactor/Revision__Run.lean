@@ -12,6 +12,7 @@ public import Spec.go_uber_org.zap.Logger__Info
 public import Spec.go_uber_org.zap.Logger__Warn
 public import Spec.go_uber_org.zap.Error
 public import Spec.errors.Is
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ErrLaws
 
 @[expose] public section
 
@@ -99,14 +100,13 @@ theorem v3compactor.Revision.Run.wp_proof
     icases Hctx2 with ⟨-, #HDone, -⟩
     wp_apply +noauto HDone as %dch %γd #Hdone
     (try wp_auto)
-    ihave #Hclk' := Hclk
-    iunfold clockwork.clockOk at Hclk'
-    icases Hclk' with ⟨%ci, %Hci, -, #HAfter⟩
+    icases clockwork.clockOk_ok _ _ $$ Hclk with %Hci
+    obtain ⟨ci, Hci⟩ := Hci
     subst Hci
     icases clockwork.clockLb_init (GF := GF) clockwork.realClock with ⟨%n0, #Hn0⟩
     simp only [go_etcd_io.etcd.server.v3.etcdserver.api.v3compactor.revInterval]
     (try wp_auto)
-    ihave #HA := HAfter $$ %(W64 300000000000) %(iprop(True) : IProp GF) %n0 [] Hn0
+    ihave #HA := clockwork.clockOk_After _ _ (W64 300000000000) (iprop(True) : IProp GF) n0 $$ Hclk [] Hn0
     · iintro !>; itrivial
     wp_apply +noauto HA as %tch %γt ⟨%T, %HnT, -, #Htch⟩
     wp_auto_lc 2
@@ -215,13 +215,7 @@ theorem v3compactor.Revision.Run.wp_proof
       -- `err == nil || errors.Is(err, mvcc.ErrCompacted)`: `ErrCompacted` is an `errors.New` error
       ihave #Pmvcc : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
       · iPkgInit
-      ihave #Perr : isPkgInit (PROP := IProp GF) pkg_id.errors $$ []
-      · iPkgInit
-      ihave Hmi : (go_etcd_io.etcd.server.v3.storage.mvcc.mvccInit : IProp GF) $$ []
-      · iapply isPkgInit_access $$ Pmvcc
-      icases Hmi with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #HnvC, -, -, -, -, -, -, -, -, -, -, -⟩
-      iunfold EtcdGrove.errorsNewVar at HnvC
-      icases HnvC with ⟨%xe, #Hxe, -⟩
+      icases mvcc.ErrCompacted_target $$ Pmvcc with ⟨%ec, #Hec, %Hecp⟩
       cases err with
       | nil =>
         (try wp_auto)
@@ -229,10 +223,10 @@ theorem v3compactor.Revision.Run.wp_proof
       | ok ei =>
         iunfold errTreeOk at Herr
         ihave ⟨%S, %M, #Htree, %HS⟩ := Herr $$
-          %(interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #xe)
-        have Hptr : ∀ tii, interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #xe =
-            GoInterface.ok tii → _root_.Perennial.errors.IsPointerError tii := fun tii h => by
-          cases h; exact (EtcdGrove.errorString_leaf xe).1
+          %(GoInterface.ok ec)
+        have Hptr : ∀ tii, GoInterface.ok ec = GoInterface.ok tii →
+            _root_.Perennial.errors.IsPointerError tii := fun tii h => by
+          cases h; exact Hecp
         (try wp_auto)
         wp_apply (hIs S M (GoInterface.ok ei) _ Hptr (HS.2 Hptr)) $$ [] as %b -
         · iframe Htree; ipureintro; exact HS.1

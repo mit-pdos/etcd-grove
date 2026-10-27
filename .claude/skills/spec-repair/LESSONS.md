@@ -31,3 +31,12 @@ but its first-ranked finding had been fixed after its snapshot. Rules: a paramet
 precondition, chosen by the caller, is vacuous; name the commit under review and compare with `HEAD`
 before reporting; give the reviewer a context bundle (rounds take about 9 minutes, mostly reading).
 
+
+## 2026-10-27, the compactor pilot's phase 3 (the `Run` proofs)
+
+Four review rounds never counted the unfolds a client makes of another package's definitions; the
+two `Run` proofs had three (the clock's `clockOk`, mvcc's initializer fact taken by position,
+Perennial's `isContextDef`), each a missing law. The user's rule: a client of a good spec does not
+unfold its definitions. Rule (the reviewer's "Failure patterns", and phase 3 of
+`notes/spec-first-plan.md`): list every cross-package unfold in the callers' proofs, add the law to
+the owning package, and freeze only with the list empty.

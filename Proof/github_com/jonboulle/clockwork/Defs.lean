@@ -104,6 +104,38 @@ instance clockOk_persistent (γc : ClockName) (clk : GoInterface) :
     Persistent (clockOk (GF := GF) γc clk) := by
   unfold clockOk; infer_instance
 
+/-! The laws a client uses instead of unfolding `clockOk`: the clock is a non-nil interface, and
+its methods' triples. -/
+
+theorem clockOk_ok (γc : ClockName) (clk : GoInterface) :
+    clockOk (GF := GF) γc clk ⊢ ⌜∃ ci : GoInterfaceOk, clk = GoInterface.ok ci⌝ := by
+  unfold clockOk
+  iintro ⟨%ci, %h, -⟩
+  ipureintro; exact ⟨ci, h⟩
+
+/-- `Now()` returns (some time: the model gives no relation to `clockLb`). -/
+theorem clockOk_Now (γc : ClockName) (ci : GoInterfaceOk) :
+    clockOk (GF := GF) γc (GoInterface.ok ci) ⊢
+      {{ True }} (App (Val #(methods ci.ty go!"Now" ci.v)) (Val #()))
+      {{ (t : time.Time), RET #t; True }} := by
+  unfold clockOk
+  iintro ⟨%ci', %h, #HNow, -⟩
+  cases h
+  iexact HNow
+
+/-- `After(d)`: a channel that delivers once the clock is `d` past a time `T`, at least any bound
+`n` the caller holds, at which a persistent fact `P` the caller holds is stamped. -/
+theorem clockOk_After (γc : ClockName) (ci : GoInterfaceOk) (d : time.Duration) (P : IProp GF)
+    (n : Int) :
+    clockOk (GF := GF) γc (GoInterface.ok ci) ⊢ □ P -∗ clockLb γc n -∗
+      {{ True }} (App (Val #(methods ci.ty go!"After" ci.v)) (Val #d))
+      {{ (ch : Loc) (γ : ChanNames), RET #ch; ∃ T : Int, ⌜n ≤ T⌝ ∗ stampAt γc iprop(□ P) T ∗
+          isChanBag γ ch (V := time.Time) (fun _ => clockLb γc (T + sint.Z d)) }} := by
+  unfold clockOk
+  iintro ⟨%ci', %h, -, #HAfter⟩ #HP #Hn
+  cases h
+  iapply HAfter $$ HP Hn
+
 end defs
 
 end clockwork

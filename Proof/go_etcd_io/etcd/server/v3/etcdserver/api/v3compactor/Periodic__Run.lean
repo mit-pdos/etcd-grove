@@ -15,6 +15,7 @@ public import Spec.go_uber_org.zap.Logger__Info
 public import Spec.go_uber_org.zap.Logger__Warn
 public import Spec.go_uber_org.zap.Error
 public import Spec.errors.Is
+public import Proof.go_etcd_io.etcd.server.v3.storage.mvcc.ErrLaws
 
 @[expose] public section
 
@@ -120,10 +121,10 @@ theorem v3compactor.Periodic.Run.wp_proof
   ipersist compactInterval
   ipersist retryInterval
   ipersist retentions
-  ihave #Hclk' := Hclk
-  iunfold clockwork.clockOk at Hclk'
-  icases Hclk' with ⟨%cki, %Hcki, #HNow, #HAfter⟩
+  icases clockwork.clockOk_ok _ _ $$ Hclk with %Hcki
+  obtain ⟨cki, Hcki⟩ := Hcki
   subst Hcki
+  ihave #HNow := clockwork.clockOk_Now _ _ $$ Hclk
   ihave #HRev' := HRev
   iunfold revGetterOk at HRev'
   icases HRev' with ⟨%ri0, %Hri0, #HRevT⟩
@@ -224,7 +225,7 @@ theorem v3compactor.Periodic.Run.wp_proof
     icases Hctx2 with ⟨-, #HDone, -⟩
     wp_apply +noauto HDone as %dch %γd #Hdone
     (try wp_auto)
-    ihave #HA := HAfter $$ %ri %(E.RevLb (sint.Z v)) %n Hv Hn
+    ihave #HA := clockwork.clockOk_After _ _ ri (E.RevLb (sint.Z v)) n $$ Hclk Hv Hn
     wp_apply +noauto HA as %tch %γt ⟨%T, %HnT, #HstT, #Htch⟩
     wp_auto_lc 2
     wp_apply_core chan.wp_select_blocking
@@ -377,11 +378,7 @@ theorem v3compactor.Periodic.Run.wp_proof
         -- `err == nil || errors.Is(err, mvcc.ErrCompacted)`: `ErrCompacted` is an `errors.New` error
         ihave #Pmvcc : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.storage.mvcc $$ []
         · iPkgInit
-        ihave Hmi : (go_etcd_io.etcd.server.v3.storage.mvcc.mvccInit : IProp GF) $$ []
-        · iapply isPkgInit_access $$ Pmvcc
-        icases Hmi with ⟨-, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, -, #HnvC, -, -, -, -, -, -, -, -, -, -, -⟩
-        iunfold EtcdGrove.errorsNewVar at HnvC
-        icases HnvC with ⟨%xe, #Hxe, -⟩
+        icases mvcc.ErrCompacted_target $$ Pmvcc with ⟨%ec, #Hec, %Hecp⟩
         have hw2 : windowOk (y0 :: rest) (sint.Z v) (sint.Z rn) (sint.Z y0) := by
           obtain ⟨a, b, c, d, -, -, -⟩ := hw'
           exact ⟨a, b, c, d, (b y0 (by simp)).1, by simp, by simp⟩
@@ -392,10 +389,10 @@ theorem v3compactor.Periodic.Run.wp_proof
         | ok ei =>
           iunfold errTreeOk at Herr
           ihave ⟨%S, %M, #Htree, %HS⟩ := Herr $$
-            %(interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #xe)
-          have Hptr : ∀ tii, interface.mkOk (go.GoType.PointerType _root_.Perennial.errors.errorString.ty) #xe =
-              GoInterface.ok tii → _root_.Perennial.errors.IsPointerError tii := fun tii h => by
-            cases h; exact (EtcdGrove.errorString_leaf xe).1
+            %(GoInterface.ok ec)
+          have Hptr : ∀ tii, GoInterface.ok ec = GoInterface.ok tii →
+              _root_.Perennial.errors.IsPointerError tii := fun tii h => by
+            cases h; exact Hecp
           (try wp_auto)
           wp_apply (hIs S M (GoInterface.ok ei) _ Hptr (HS.2 Hptr)) $$ [] as %b -
           · iframe Htree; ipureintro; exact HS.1
