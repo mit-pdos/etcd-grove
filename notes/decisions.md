@@ -23733,3 +23733,43 @@ into them), which changes every translated function and so every proof that symb
 one (about 2700 files here; Perennial adjusted 65 modules). `6b58510f9` is the last `lean` head
 before that merge and has method sets. Moving to the head is its own task.
 
+## E3r of the auth plan: `start` with auth on; the read side generic in the deposits' state function (2026-10-27 · `notes/auth-plan.md`, E3q's first left item)
+
+`EtcdServer.start.specOn` (`Spec/.../EtcdServer__start.lean`) and `wp_proofOn` (by the same edits as
+`wp_proof`), restated `server_start_on` (`Results.lean`, every callee linked, `run` through
+`server_run_on`; no `sorry`, trust base unchanged). Premises: `isServerBuiltOn`, the environment's
+mode `on γa`, the receipts' bound, and `srvLessorNil` (carried up from the apply thread, still
+discharged by nothing). Post: `isServerReqM true`, `isServerReadM true`, `srvStarted` at `kvStM true`.
+
+**The read side's deposits, generic in a state function.** A reader deposits its update with the
+read index (`kvDep γk Q`: `Q L = □ Q0 (state of L)`), and the read loop fires the deposits at the
+committed log (`readCompose`, from the KV invariant, `kv_read_compose`). The state of `L` was the
+mode-off model's (`kvStateOf (kvModel γk L)`), which with auth on is not the KV invariant's
+(`kvInvOn`: the mode-`on` model's), so the deposits could not be fired. Options weighed: a guard on
+the start chain's auth bit (`γk.ch0`) inside the deposit (needs the mode-off readers to know the bit,
+which is inside `kvInv`); the mode as a field of the names (the same); indexing the read package by
+`on` (the read package would import the auth model). Chosen: the deposits' **state function `F`** as a
+trailing argument with a default, `kvDep γk Q (F := kvStOff γk)`, and the same on `regOk`, `readInv`,
+`readCompose`, `isReadPre`, `isReadLoopPre`, `isReadNotify`, `srvStarted`: every existing use
+elaborates to today's meaning with its text unchanged, and the read package's specs (`NewRead`,
+`LinearizableReadNotify`, `LinearizableReadLoop`, `requestCurrentIndex`, `sendReadIndex`) quantify
+over `F` (their proofs never look inside a deposit: one more binder each). With auth on `F` is
+`kvStOn γk srvAuthSt0` (`kvStM true`, `ReadOn.lean`), and `kv_read_compose_on` fires the deposits from
+`kvInvOn`. The read view `isServerReadM on` (`srvReadFieldsAtM`: the notifier at `kvStM on`, the mode's
+applied index and KV invariants), `isReadServer_of_serverM` in either mode (`AppliedIndex.specM`,
+`getAppliedIndex.specM`).
+
+**Found: the request view with auth on could not be built.** `srvReqFieldsAtM on` (E3b) carried
+`srvIndexInvs`, the applied index's invariant **over the mode-off model**; with auth on the server
+allocates only `srvAppliedInvM true` at the atomic (E3k), so `isServerReqM true` had no producer, and
+the results over it (`server_process_irr_on`, `server_raft_request_on`, `server_put_on`,
+`server_delete_range_on`, `server_txn_on`) rested on a premise no server meets. Fixed: `srvIndexInvsM
+on` in `srvReqFieldsAtM` (`srvIndexInvs` at `false`, by definition), the proposer's `wp_proofM` over
+`getAppliedIndex.specM on`; `start.specOn` now produces `isServerReqM true`. Statement change of those
+results' premise (at `on = true` only).
+
+**Not done (in order).** The readers with auth on (`Range`, the read-only `Txn`, over
+`isServerReadM true` with deposits at `kvStM true`, and the published lower bound `authPublishT`); the
+admin proposers, the Auth handlers, `setupAuthOk`; `examples/authkv` and the closed theorem.
+`srvLessorNil` is a premise from `applyEntryNormal.specOn` up to `start.specOn`.
+

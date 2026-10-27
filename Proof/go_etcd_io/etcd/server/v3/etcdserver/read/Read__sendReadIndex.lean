@@ -37,7 +37,7 @@ theorem read.Read.sendReadIndex.wp_proof
     (hZE : zap.Error.spec (GF := GF) (hG := hG))
     (hW : zap.Logger.Warn.spec (GF := GF) (hG := hG)) :
     read.Read.sendReadIndex.spec (GF := GF) (hG := hG) := by
-  intro r γr RQ LR NR id n Qr
+  intro r γr RQ LR NR id n Qr F
   wp_start as ⟨#Hpre, HLR, #Hc, #HRA, Hfr, Hcr⟩
   iunfold isReadLoopPre at Hpre
   icases Hpre with ⟨%srv, %rf, %wc, %γw, #Hsf, #Hsrv, #Hrf, #Hraft, -, -, -, -, #Hcci, -, -⟩

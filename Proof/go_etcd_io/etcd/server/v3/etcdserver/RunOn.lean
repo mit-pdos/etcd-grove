@@ -99,5 +99,27 @@ def isServerRunOn (s : Loc) (γ : ApplyNames) (ci : Loc) (TM : MetaCI → IProp 
 
 end defs
 
+section lemmas
+variable [GooseExts] [GooseSemantics] [GooseInterp]
+variable [go_gctx : GoGlobalContext]
+variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
+variable [sem : go.Semantics]
+
+/-- **At the empty log the model's auth state is the start's** (E3r): `StartOn`'s `kvRunOn []` hides
+an auth state the model reaches, which at `[]` is `srvAuthSt0` (`kvRaftOfOn` of the empty log). -/
+theorem kvRunOn_nil_at (γr : ReadNames) (ai₀ c₀ : w64) (x : apply.ApplyKV) :
+    kvRunOn (GF := GF) γr ai₀ c₀ [] x ⊢ kvRunAtOn γr ai₀ c₀ [] x srvAuthSt0 := by
+  unfold kvRunOn kvRunAtOn kvAppliedOn kvAppliedLOn
+  iintro ⟨⟨%st, ⟨#HL, Hhi, #Hc, %hs⟩, %hch⟩, %h⟩
+  have hst : st = srvAuthSt0 := by
+    rw [kvRaftOfOn_nil] at hs
+    exact (Prod.mk.inj hs).1
+  subst hst
+  iframe HL Hhi Hc
+  ipureintro
+  exact ⟨⟨hs, hch⟩, h⟩
+
+end lemmas
+
 end EtcdGrove
 end Perennial

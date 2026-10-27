@@ -201,8 +201,21 @@ instance waitInvM_persistent (on : Bool) (w : GoInterface) (ρ : ReqNames) (E : 
 theorem waitInvM_false (w : GoInterface) (ρ : ReqNames) (E : apply.AEnv GF) :
     waitInvM (GF := GF) false w ρ E = waitInv w ρ E := rfl
 
-/-- **The server as a proposer sees it, in the auth mode `on`** (`srvReqFieldsAt` with `waitInvM`
-and `kvInvM` from the server's start state, `srvAuthSt0`). -/
+/-- **The applied and committed indices' invariants in the auth mode `on`** (`srvIndexInvs` at
+`false`, by definition; the auth plan's E3r, 2026-10-27: with auth on the server's applied index's
+invariant is `srvAppliedInvM true`, the only one at its atomic). -/
+def srvIndexInvsM (on : Bool) (s : Loc) (E : apply.AEnv GF) : IProp GF :=
+  iprop(∃ γr : ReadNames, srvAppliedInvM on s E γr ∗ srvCommittedInv s γr)
+
+instance srvIndexInvsM_persistent (on : Bool) (s : Loc) (E : apply.AEnv GF) :
+    Persistent (srvIndexInvsM (GF := GF) on s E) := by
+  unfold srvIndexInvsM; infer_instance
+
+theorem srvIndexInvsM_false (s : Loc) (E : apply.AEnv GF) :
+    srvIndexInvsM (GF := GF) false s E = srvIndexInvs s E := rfl
+
+/-- **The server as a proposer sees it, in the auth mode `on`** (`srvReqFieldsAt` with `waitInvM`,
+`kvInvM` from the server's start state, `srvAuthSt0`, and (E3r) `srvIndexInvsM`). -/
 def srvReqFieldsAtM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (v : ReqFields) :
     IProp GF :=
   iprop(structFieldRef EtcdServer go!"reqIDGen" s ↦□ v.gen ∗ idGen ρ.ids v.gen (srvFloorFact E) ∗
@@ -221,7 +234,7 @@ def srvReqFieldsAtM (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames) (v
     structFieldRef raftNodeConfig go!"transport"
       (structFieldRef raftNode go!"raftNodeConfig" (structFieldRef EtcdServer go!"r" s)) ↦□ v.tr ∗
     srvPeersOk v.cluster v.cid v.tr ∗
-    srvIndexInvs s E ∗
+    srvIndexInvsM on s E ∗
     srvMintInv ρ ∗ kvInvM on ρ.raft ρ.kv srvAuthSt0 ∗ ⌜structFieldRef EtcdServer go!"Cfg" s ≠ null⌝)
 
 instance srvReqFieldsAtM_persistent (on : Bool) (s : Loc) (E : apply.AEnv GF) (ρ : ReqNames)

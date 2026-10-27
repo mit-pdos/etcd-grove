@@ -27,9 +27,10 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-theorem EtcdServer.AppliedIndex.wp_proof
-    (hG' : EtcdServer.getAppliedIndex.spec (GF := GF) (hG := hG)) :
-    EtcdServer.AppliedIndex.spec (GF := GF) (hG := hG) := by
+/-- In either auth mode (E3r). -/
+theorem EtcdServer.AppliedIndex.wp_proofM (on : Bool)
+    (hG' : EtcdServer.getAppliedIndex.specM (GF := GF) (hG := hG) on) :
+    EtcdServer.AppliedIndex.specM (GF := GF) (hG := hG) on := by
   intro s E γr
   wp_start as #Hinv
   wp_auto
@@ -37,6 +38,11 @@ theorem EtcdServer.AppliedIndex.wp_proof
   · iframe #
   iapply HΦ
   iexact Hv
+
+theorem EtcdServer.AppliedIndex.wp_proof
+    (hG' : EtcdServer.getAppliedIndex.spec (GF := GF) (hG := hG)) :
+    EtcdServer.AppliedIndex.spec (GF := GF) (hG := hG) :=
+  EtcdServer.AppliedIndex.wp_proofM false hG'
 
 end proof
 
