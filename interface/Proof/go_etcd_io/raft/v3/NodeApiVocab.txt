@@ -14,6 +14,12 @@ def Draft.LogEntry.toEntryM (idx : w64) (e : Draft.LogEntry) : EntryM :=
 def Draft.LogEntry.isFiller (e : Draft.LogEntry) : Prop :=
   e.data = [] ∧ (e.type = W32 0 ∨ e.type = W32 2)
 
+def Draft.strip (L : List EntryM) : List Draft.LogEntry :=
+  List.map Draft.LogEntry.ofEntryM L
+
+def Draft.LogEntry.ofEntryM (e : EntryM) : Draft.LogEntry :=
+  { term := e.Term', type := e.Type', data := e.Data' }
+
 def Draft.opsOf (l : List Draft.LogEntry) : List Draft.LogEntry :=
   List.filter (fun e => !decide e.isFiller) l
 
