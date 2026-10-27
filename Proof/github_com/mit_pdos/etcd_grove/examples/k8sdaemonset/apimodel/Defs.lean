@@ -93,9 +93,10 @@ class ApiDeps [FfiSyntax] [GoGlobalContext] [GoLocalContext] [GoSemanticsFunctio
   meta_sem : k8s_io.apimachinery.pkg.apis.«meta».v1.Assumptions
   errors_sem : k8s_io.apimachinery.pkg.api.errors.Assumptions
   schema_sem : k8s_io.apimachinery.pkg.runtime.schema.Assumptions
+  types_sem : k8s_io.apimachinery.pkg.types.Assumptions
 
 attribute [instance] ApiDeps.sync_sem ApiDeps.time_sem ApiDeps.core_sem ApiDeps.apps_sem
-  ApiDeps.meta_sem ApiDeps.errors_sem ApiDeps.schema_sem
+  ApiDeps.meta_sem ApiDeps.errors_sem ApiDeps.schema_sem ApiDeps.types_sem
 
 section defs
 variable [ext : FfiSyntax] [ffi : FfiModel] [FfiInterp ffi] [FfiSemantics ext ffi]
@@ -229,6 +230,9 @@ def tableFixed (r : Res) (T : Tbl) : IProp GF :=
     T.t.[apimodel.table, go!"objs"] ↦□ T.objs ∗ T.t.[apimodel.table, go!"empty"] ↦□ T.empty ∗
     emptyOk r T.empty)
 
+instance tableFixed_persistent (r : Res) (T : Tbl) : Persistent (tableFixed (GF := GF) r T) := by
+  unfold tableFixed emptyOk; infer_instance
+
 /-- A log entry in the heap: its type, version and object. -/
 def changeAt (c : apimodel.change) (e : Change) : IProp GF :=
   iprop(⌜c.typ' = e.typ.str ∧ c.rv' = e.rv⌝ ∗ objAt c.obj' (DFrac.own 1) e.obj)
@@ -286,11 +290,14 @@ def resField : Res → GoString
 def tableOf (s : Loc) (r : Res) (t : Loc) : IProp GF :=
   iprop(s.[apimodel.Server, resField r] ↦□ t)
 
+instance tableOf_persistent (s : Loc) (r : Res) (t : Loc) : Persistent (tableOf (GF := GF) s r t) := by
+  unfold tableOf; infer_instance
+
 /-- **The model API server** `s` with failure configuration `cfg` (persistent): its fixed fields,
 its tables', its lock with `lockInv` and its condition variable; the receipts' bound under which
 its version counter does not wrap (`receiptBound GF ≤ 2 ^ 63`). -/
-def isServer (s : Loc) (γ : ApiNames) (cfg : apimodel.Config) : IProp GF :=
-  iprop(∃ L : SrvLocs, "#Hchanged" ∷ s.[apimodel.Server, go!"changed"] ↦□ L.cond ∗
+def srvFixed (s : Loc) (γ : ApiNames) (L : SrvLocs) (cfg : apimodel.Config) : IProp GF :=
+  iprop("#Hchanged" ∷ s.[apimodel.Server, go!"changed"] ↦□ L.cond ∗
     "#Hcfg" ∷ cfgAt (s.[apimodel.Server, go!"cfg"]) cfg ∗
     "#Hrvs" ∷ s.[apimodel.Server, go!"rvs"] ↦□ L.rvs ∗
     "#Htp" ∷ tableOf s .pods L.tp.t ∗ "#Htn" ∷ tableOf s .nodes L.tn.t ∗
@@ -302,9 +309,17 @@ def isServer (s : Loc) (γ : ApiNames) (cfg : apimodel.Config) : IProp GF :=
       #(s.[apimodel.Server, go!"mu"])) ∗
     "%Hbound" ∷ ⌜receiptBound GF ≤ 2 ^ 63⌝)
 
+instance srvFixed_persistent (s : Loc) (γ : ApiNames) (L : SrvLocs) (cfg : apimodel.Config) :
+    Persistent (srvFixed (GF := GF) s γ L cfg) := by
+  unfold srvFixed tableFixed emptyOk cfgAt tableOf; infer_instance
+
+/-- **The model API server** (persistent): `srvFixed` at its fixed locations. -/
+def isServer (s : Loc) (γ : ApiNames) (cfg : apimodel.Config) : IProp GF :=
+  iprop(∃ L : SrvLocs, srvFixed s γ L cfg)
+
 instance isServer_persistent (s : Loc) (γ : ApiNames) (cfg : apimodel.Config) :
     Persistent (isServer (GF := GF) s γ cfg) := by
-  unfold isServer tableFixed emptyOk cfgAt tableOf; infer_instance
+  unfold isServer; infer_instance
 
 /-! ## The functions the operations take -/
 

@@ -216,6 +216,9 @@ def applyChange (M : GMap Key Obj) (c : Change) : GMap Key Obj :=
   | .deleted => GMap.delete c.obj.key M
   | _ => <[c.obj.key := c.obj]> M
 
+/-- A table with a change applied and logged. -/
+def Table.record (T : Table) (c : Change) : Table := ⟨applyChange T.objs c, T.log ++ [c]⟩
+
 /-- **The objects a log leaves.** -/
 def replay (l : List Change) : GMap Key Obj := l.foldl applyChange ∅
 

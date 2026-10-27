@@ -30,6 +30,8 @@ theorem Server.chance.wp_proof (wp_Int63n : rand.Int63n.spec (GF := GF) (hG := h
     Server.chance.spec (GF := GF) (hG := hG) := by
   intro _ s γ cfg flag admin
   wp_start as #Hs
+  iunfold isServer at Hs
+  icases Hs with ⟨%L, #Hs⟩
   iNamed Hs
   iNamed Hcfg
   wp_auto
