@@ -49,7 +49,7 @@ theorem alloc1 (id : w64) (bootLog : List EntryM)
         γ.reBoot = bootLog ∧ γ.reNoSnap = true ∧ γ.reNoXfer = true ∧
         γn.N = srvNet γ bud ∧ γn.dir = dir ∧ ρ.rd.kv.log0 = [[], []]⌝ ∗
       memberBoot γ bud bootLog ρ E₀ Φs id ∗ netHttpOk γn id ∗
-      etcdKV ρ.rd.kv (kvStateOf (kvModel ρ.rd.kv (bootEntries bootLog))) := by
+      etcdKV ρ.rd.kv (kvModelSt ρ.rd.kv (bootEntries bootLog)) := by
   istart
   imod newServerNames_alloc (GF := GF) with ⟨%idx, %cok, %rev, Hidx, Hcok, Hrev⟩
   have Hin : id ∈ GMap.listToSet [id] := by
@@ -94,8 +94,8 @@ theorem alloc1 (id : w64) (bootLog : List EntryM)
   rw [hiss', hcnt, hraft, hiss]
   rw [← srvPropMint_congr _ γk.ids ρ.ids (by rw [hiss', hiss])]
   rw [etcdKV_congr ρ.rd.kv γk hst,
-    show kvModel ρ.rd.kv (bootEntries bootLog) = kvModel γk (bootEntries bootLog) by
-      unfold kvModel; rw [hc0', hch', hlog']]
+    show kvModelSt ρ.rd.kv (bootEntries bootLog) = kvModelSt γk (bootEntries bootLog) by
+      unfold kvModelSt kvLeases kvModel; rw [hc0', hch', hlog']]
   iframe Hghost Hcomm Hcinv Hbinv Hlb Hcl Hpm Hrc Hsh HrdC Hidx Hcok Hrev Hnk Hkvρ Hwt Hetcd Hsd
   isplitr
   · ipureintro
@@ -104,8 +104,9 @@ theorem alloc1 (id : w64) (bootLog : List EntryM)
     intro ty d h
     simp only at h ⊢
     rw [hcc] at h
+    refine ⟨h.1, h.2.1, h.2.2.1, ccPolOk_of_boot _ _ ?_⟩
     rw [hcfg]
-    exact h
+    exact h.2.2.2
   iunfold idNoZero
   rw [hiss', hiss]
   iexact H0

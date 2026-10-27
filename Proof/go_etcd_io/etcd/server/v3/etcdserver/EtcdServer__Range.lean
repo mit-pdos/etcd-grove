@@ -232,7 +232,8 @@ local macro "range_tail" : tactic => `(tactic| (
       iapply HIRP $$ [Ha Hard]
       · iframe Ha Hks Hes Hard; ipureintro; exact Hkb
       inext
-      iintro %perr ⟨Ha, -, -, Hard, #HpE, -, #Hpv⟩
+      iintro %perr ⟨Ha, -, -, Hard, #HpE0, -, #Hpv⟩
+      ihave #HpE := authApplyErrIs_apply perr $$ HpE0
       wp_auto
       iapply HΦ'
       iframe Ha Hard HpE

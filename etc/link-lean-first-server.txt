@@ -48,6 +48,8 @@ consistentIndex__UnsafeConsistentIndex: consistentIndex__SetConsistentIndex sche
 schema_MustUnsafeSaveConfStateToBackend:
 storage_NewBackendHooks:
 storage_BackendHooks__OnPreCommitUnsafe: schema_MustUnsafeSaveConfStateToBackend batchTxBuffered__UnsafePut schema_bucket__ID schema_bucket__Name schema_bucket__IsSafeRangeBucket
+# (D43 M5b′, 2026-10-26) `applyConfChange`'s `SetConfState`, with its body
+storage_BackendHooks__SetConfState: proto_CloneConfState
 batchTxBuffered__UnsafePut: @
 backend__ConcurrentReadTx: @
 backend__ReadTx: @
@@ -67,6 +69,7 @@ batchTxBuffered__UnsafeSeqPut: @
 batchTxBuffered__Unlock: @
 batchTxBuffered__UnsafeRange: @
 batchTxBuffered__UnsafeCreateBucket: @
+batchTxBuffered__UnsafeDelete: @
 # The lessor's KV-facing methods (server/lease/lessor.go; the backend's unit 8, 2026-10-13), see
 # lease/InvLessor.lean: mvcc's and the txn package's lessor contracts are derived from them
 # (lease/LessorContract.lean).
@@ -109,6 +112,17 @@ lease_lessor__Checkpoint: lease_lessor__shouldPersistCheckpoints lease_Lease__pe
 lease_lessor__ExpiredLeasesC:
 lease_lessor__Promote:
 lease_lessor__Demote:
+# Revoke (unit T3, 2026-10-25): the lease's keys (`Lease.Keys`), sorted (`sort.StringSlice.Sort`,
+# the trust boundary: Perennial's `sort` has the type only), deleted through the store's range
+# deleter (mvcc's metrics/watchable write transaction), the lease's record deleted
+# (`schema.UnsafeDeleteLease`, names-only: the trust boundary). Not reached from NewServer: the
+# apply thread's `Revoke` clause is still vacuous (L3).
+lease_Lease__Keys:
+sort_StringSlice__Sort:
+schema_UnsafeDeleteLease:
+mvcc_metricsTxnWrite__DeleteRange: @
+mvcc_watchableStoreTxnWrite__End: @
+lease_lessor__Revoke: lease_Lease__Keys sort_StringSlice__Sort schema_UnsafeDeleteLease mvcc_metricsTxnWrite__DeleteRange mvcc_watchableStoreTxnWrite__End
 schema_bucket__ID:
 schema_bucket__Name:
 schema_bucket__IsSafeRangeBucket:
@@ -121,10 +135,16 @@ ConfChange__GetId: @
 # The applier (`apply.Apply`): proved in the apply package (`--apply`), linked in its
 # `Link.lean` (`@`; since the apply package's unit 3, 2026-10-12).
 apply_Apply: @
-# The apply thread's trust boundary (`axiom … .wp_proof`), see InvApplier.lean: the
-# membership change's contract, and names-only callees (zap, the alarm store, ...).
-EtcdServer__applyConfChange:
+# The apply thread's trust boundary (`axiom … .wp_proof`), see InvApplier.lean: names-only
+# callees (zap, the alarm store, ...).
 pbutil_MustUnmarshalMessage:
+# (D43 M5e, 2026-10-26) `applyConfChange`, with its body (it was the trust boundary until
+# then); the membership backend's three writers and reader are the trust boundary (their
+# contracts over the rest model, storage/schema/membershipBackend__*.lean).
+schema_membershipBackend__MustSaveMemberToBackend:
+schema_membershipBackend__MustDeleteMemberFromBackend:
+schema_membershipBackend__MustReadMembersFromBackend:
+EtcdServer__applyConfChange: EtcdServer__Logger EtcdServer__MemberID RaftCluster__ValidateConfigurationChange RaftCluster__AddMember RaftCluster__RemoveMember schema_membershipBackend__MustSaveMemberToBackend schema_membershipBackend__MustDeleteMemberFromBackend schema_membershipBackend__MustReadMembersFromBackend storage_BackendHooks__SetConfState consistentIndex__ConsistentApplyingIndex rafthttp_Transport__RemovePeer raftpb_ConfChange__GetType raftpb_ConfChange__GetNodeId json_Unmarshal zap_Logger__Error zap_Bool zap_Error
 # The apply thread's small callees, with bodies (proved): the server's leader test and
 # logger (server.go), the notifier (pkg/notify), the election timeout (server/config), the
 # alarm store's Get (api/v3alarm).
@@ -593,6 +613,11 @@ EtcdServer__IsIDRemoved: RaftCluster__IsIDRemoved
 # (`updateMembershipMetric`, a prometheus gauge).
 RaftCluster__updateMembershipMetric:
 RaftCluster__RemoveMember: RaftCluster__updateMembershipMetric types_ID__String_ptr zap_Logger__Info zap_Logger__Warn zap_String zap_Strings zap_Bool
+# (D43 M5b, 2026-10-26) the cluster's writer of an addition (`AddMember`, with its body; the
+# backend's save a triple its caller gives); the trust boundary: its learner metric
+# (`setIsLearnerMetric`, a prometheus gauge).
+setIsLearnerMetric:
+RaftCluster__AddMember: RaftCluster__updateMembershipMetric setIsLearnerMetric types_ID__String_ptr zap_Logger__Info zap_String zap_Strings zap_Bool
 # (D43 M4, 2026-10-26) the validation of a conf change (`ValidateConfigurationChange`, with its
 # body; the backend's read a triple its caller gives), raft's getters linked in raft's Link (`@`);
 # the trust boundary (the user's decision): `json.Unmarshal` of a change's context.
@@ -628,7 +653,7 @@ watchableStore__Close: @
 backend__SetTxPostLockInsideApplyHook: @
 EtcdServer__restoreAlarms: schema_NewAlarmBackend v3alarm_NewAlarmStore
 EtcdServer__NewUberApplier: EtcdServer__KV apply_NewUberApplier
-etcdserver_NewServer: zap_Logger__Error zap_Error zap_Logger__Info zap_Logger__Warn v2stats_NewServerStats membership_RaftCluster__String v2stats_NewLeaderStats types_ID__String_ptr bootstrappedRaft__newRaftNode node__Ready node__Advance node__Tick node__ReadIndex types_URLs__StringSlice idutil_NewGenerator NewNotifier addFeatureGateMetrics prometheus_GaugeVec__With membership_RaftCluster__SetVersionChangedNotifier EtcdServer__Logger config_ServerConfig__ReqTimeout EtcdServer__FeatureEnabled time_Duration__Seconds_ptr math_Ceil lease_NewLessor auth_NewTokenProvider mvcc_New newCorruptionChecker mvcc_store__HashStorage schema_NewAuthBackend auth_NewAuthStore v3compactor_New EtcdServer__restoreAlarms EtcdServer__NewUberApplier EtcdServer__getTxPostLockInsideApplyHook backend__SetTxPostLockInsideApplyHook config_ServerConfig__PeerDialTimeout membership_RaftCluster__ID rafthttp_Transport__Start rafthttp_Transport__AddRemote rafthttp_Transport__AddPeer watchableStore__Close schema_bucket__ID schema_bucket__Name schema_bucket__IsSafeRangeBucket lease_lessor__GetLease lease_lessor__Attach lease_lessor__Detach lease_lessor__SetRangeDeleter lease_lessor__Lookup lease_lessor__Grant lease_lessor__Checkpoint lease_Lease__TTL lease_lessor__Promote lease_lessor__Demote lease_lessor__ExpiredLeasesC backend__ConcurrentReadTx backend__ReadTx backend__BatchTx backend__ForceCommit backend__Size backend__SizeInUse concurrentReadTx__RLock concurrentReadTx__RUnlock concurrentReadTx__UnsafeRange readTx__RLock readTx__RUnlock readTx__UnsafeRange batchTxBuffered__LockInsideApply batchTxBuffered__LockOutsideApply batchTxBuffered__UnsafeSeqPut batchTxBuffered__Unlock batchTxBuffered__UnsafeRange batchTxBuffered__UnsafeCreateBucket node__Propose EtcdServer__MemberID EtcdServer__Leader EtcdServer__Term EtcdServer__ForceSnapshot consistentIndex__ConsistentIndex EtcdServer__ClusterVersion MemoryStorage__Snapshot node__ApplyConfChange node__Step node__ReportUnreachable node__ReportSnapshot EtcdServer__Process EtcdServer__IsIDRemoved EtcdServer__ReportUnreachable EtcdServer__ReportSnapshot
+etcdserver_NewServer: zap_Logger__Error zap_Error zap_Logger__Info zap_Logger__Warn v2stats_NewServerStats membership_RaftCluster__String v2stats_NewLeaderStats types_ID__String_ptr bootstrappedRaft__newRaftNode node__Ready node__Advance node__Tick node__ReadIndex types_URLs__StringSlice idutil_NewGenerator NewNotifier addFeatureGateMetrics prometheus_GaugeVec__With membership_RaftCluster__SetVersionChangedNotifier EtcdServer__Logger config_ServerConfig__ReqTimeout EtcdServer__FeatureEnabled time_Duration__Seconds_ptr math_Ceil lease_NewLessor auth_NewTokenProvider mvcc_New newCorruptionChecker mvcc_store__HashStorage schema_NewAuthBackend auth_NewAuthStore v3compactor_New EtcdServer__restoreAlarms EtcdServer__NewUberApplier EtcdServer__getTxPostLockInsideApplyHook backend__SetTxPostLockInsideApplyHook config_ServerConfig__PeerDialTimeout membership_RaftCluster__ID rafthttp_Transport__Start rafthttp_Transport__AddRemote rafthttp_Transport__AddPeer watchableStore__Close schema_bucket__ID schema_bucket__Name schema_bucket__IsSafeRangeBucket lease_lessor__GetLease lease_lessor__Attach lease_lessor__Detach lease_lessor__SetRangeDeleter lease_lessor__Lookup lease_lessor__Grant lease_lessor__Checkpoint lease_Lease__TTL lease_lessor__Promote lease_lessor__Demote lease_lessor__ExpiredLeasesC backend__ConcurrentReadTx backend__ReadTx backend__BatchTx backend__ForceCommit backend__Size backend__SizeInUse concurrentReadTx__RLock concurrentReadTx__RUnlock concurrentReadTx__UnsafeRange readTx__RLock readTx__RUnlock readTx__UnsafeRange batchTxBuffered__LockInsideApply batchTxBuffered__LockOutsideApply batchTxBuffered__UnsafeSeqPut batchTxBuffered__Unlock batchTxBuffered__UnsafeRange batchTxBuffered__UnsafeCreateBucket node__Propose EtcdServer__MemberID EtcdServer__Leader EtcdServer__Term EtcdServer__ForceSnapshot consistentIndex__ConsistentIndex EtcdServer__ClusterVersion MemoryStorage__Snapshot node__ApplyConfChange node__Step node__ReportUnreachable node__ReportSnapshot EtcdServer__Process EtcdServer__IsIDRemoved EtcdServer__ReportUnreachable EtcdServer__ReportSnapshot batchTxBuffered__UnsafeDelete
 # (D22 S-f, 2026-10-19) opening a received database snapshot (server/storage/backend.go,
 # storage/InvOpen.lean): `OpenSnapshotBackend` with its body; the trust boundary: `OpenBackend`
 # (its goroutine can panic: `dbOpensOk`), the snapshotter's `DBFilePath`, `os.Rename` and the
@@ -673,9 +698,11 @@ EtcdServer__sendMergedSnap: EtcdServer__Logger EtcdServer__MemberID types_ID__St
 rafthttp_NewRoundTripper:
 rafthttp_Transport__ActiveSince:
 rafthttp_Transport__AddPeer: types_NewURLs v2stats_LeaderStats__Follower rafthttp_startPeer rafthttp_addPeerToProber types_ID__String types_ID__String_ptr zap_Logger__Info zap_String zap_Strings
-# (D22 receiver epochs, S8d, 2026-10-25) `applySnapshot`'s transport reset over `trLive`; its proof
-# is the membership track's M5's (`sorry` on purpose, the user's decision).
-rafthttp_Transport__RemoveAllPeers:
+# (D22 receiver epochs, S8d, 2026-10-25) `applySnapshot`'s transport reset over `trLive`; proved in
+# the membership track's M5a (2026-10-26, a `sorry` on purpose until then), with `RemovePeer`
+# (`applyConfChange`'s `RemoveNode`): `removePeer` stops the peer and deletes it.
+rafthttp_Transport__RemoveAllPeers: rafthttp_peer__stop types_ID__String_ptr zap_Logger__Info zap_Logger__Warn zap_String
+rafthttp_Transport__RemovePeer: rafthttp_peer__stop types_ID__String_ptr zap_Logger__Info zap_Logger__Warn zap_String
 rafthttp_Transport__AddRemote: types_NewURLs rafthttp_startRemote types_ID__String_ptr zap_Logger__Info zap_String zap_Strings
 rafthttp_Transport__CutPeer: rafthttp_peer__Pause
 rafthttp_Transport__Get:
@@ -765,6 +792,7 @@ rafthttp_urlPicker__pick:
 rafthttp_urlPicker__unreachable:
 rafthttp_waitSchedule:
 types_NewURLs:
+# (D43 M5a, 2026-10-26) translated with its body (an axiom until then)
 v2stats_LeaderStats__Follower:
 probing_NewHandler:
 v2stats_ServerStats__SendAppendReq:

@@ -159,7 +159,8 @@ def authReqContractN (ai : GoInterfaceOk) (m : GoString) (T : Type) (γ : mvcc.S
 
 /-- A permission check `m(authInfo, key)` of the auth store (`IsPutPermitted`: a write of the
 point `key`), with the caller's reader resource `RD` (held and given back) and the key shorter
-than `2 ^ 63 - 1`: an error the gRPC layer can take, with its verdict in the mode `M`
+than `2 ^ 63 - 1`: an error the gRPC layer can take and one of the auth package's
+(`authApplyErrIs`; the auth plan's E3i, 2026-10-27), with its verdict in the mode `M`
 (`auth.permVerdict`: in the mode `off` the check passes; `notes/auth-plan.md`, A0); the caller's
 `AuthInfo` and keys kept. -/
 def permCheck2 (ai : GoInterfaceOk) (m : GoString) (RD : IProp GF) (M : auth.AuthMode) :
@@ -168,7 +169,7 @@ def permCheck2 (ai : GoInterfaceOk) (m : GoString) (RD : IProp GF) (M : auth.Aut
       (dk : DFrac),
     {{ a ↦{dq} info ∗ key ↦*{dk} k ∗ RD ∗ ⌜sint.Z key.len < 2 ^ 63 - 1⌝ }}
       (App (App (Val #(methods ai.ty m ai.v)) (Val #a)) (Val #key))
-    {{ (err : GoInterface), RET #err; a ↦{dq} info ∗ key ↦*{dk} k ∗ RD ∗ applyErrIs err ∗
+    {{ (err : GoInterface), RET #err; a ↦{dq} info ∗ key ↦*{dk} k ∗ RD ∗ authApplyErrIs err ∗
         ⌜M.isOn = false → err = GoInterface.nil⌝ ∗ auth.permVerdict M info k [] .write err }}))
 
 /-- A permission check `m(authInfo, key, rangeEnd)` of the auth store (as `permCheck2`;
@@ -180,7 +181,7 @@ def permCheck3 (ai : GoInterfaceOk) (m : GoString) (RD : IProp GF) (M : auth.Aut
     {{ a ↦{dq} info ∗ key ↦*{dk} k ∗ re ↦*{de} e ∗ RD ∗ ⌜sint.Z key.len < 2 ^ 63 - 1⌝ }}
       (App (App (App (Val #(methods ai.ty m ai.v)) (Val #a)) (Val #key)) (Val #re))
     {{ (err : GoInterface), RET #err; a ↦{dq} info ∗ key ↦*{dk} k ∗ re ↦*{de} e ∗ RD ∗
-        applyErrIs err ∗ ⌜M.isOn = false → err = GoInterface.nil⌝ ∗
+        authApplyErrIs err ∗ ⌜M.isOn = false → err = GoInterface.nil⌝ ∗
         auth.permVerdict M info k e op err }}))
 
 /-- **The `auth.AuthStore` `st`** as the apply package uses it, whose writes run under the batch
@@ -317,12 +318,15 @@ admitted). -/
 def isApplyLessor (le : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (P : IProp GF) (f : val)
     (RW : IProp GF) : IProp GF :=
   iprop(txn.isTxnLessor le γ.leases ∗ ∃ li : GoInterfaceOk, ⌜le = GoInterface.ok li⌝ ∗
-    □ (∀ (id ttl : w64) (L : List w64) (Pre Q Post : IProp GF),
-      {{ mvcc.csContract P f Pre Q Post ∗ lease.leaseOwn γ.leases L ∗ mvcc.storeWT γ ∗ mvcc.storeRT γ ∗
+    □ (∀ (id ttl : w64) (L : List w64) (I : GMap go_etcd_io.etcd.server.v3.lease.LeaseItem w64)
+        (Pre Q Post : IProp GF),
+      {{ mvcc.csContract P f Pre Q Post ∗ lease.leaseOwn γ.leases L I ∗ lease.leaseRevokers γ.leases L ∗
+          mvcc.storeWT γ ∗ mvcc.storeRT γ ∗
           lease.leaseGranted γ.leases id ∗ RW }}
         (App (App (Val #(methods li.ty go!"Grant" li.v)) (Val #id)) (Val #ttl))
       {{ (l : Loc) (err : GoInterface), RET (PairV #l #err); (Post ∨ Pre) ∗ mvcc.storeRT γ ∗
-          (∃ L' : List w64, lease.leaseOwn γ.leases L' ∗ ⌜∀ x ∈ L, x ∈ L'⌝ ∗
+          (∃ L' : List w64, lease.leaseOwn γ.leases L' I ∗ lease.leaseRevokers γ.leases L' ∗
+            ⌜∀ x ∈ L, x ∈ L'⌝ ∗
             (⌜err ≠ GoInterface.nil⌝ ∨
               (⌜err = GoInterface.nil⌝ ∗ ∃ id' : w64, leaseTTLIs l id' ∗ ⌜id' ∈ L'⌝))) ∗
           applyErrIs err }}) ∗
@@ -331,13 +335,15 @@ def isApplyLessor (le : GoInterface) (s : Loc) (γ : mvcc.StoreNames) (P : IProp
     -- record the store's range deleter)
     □ (∀ (id : w64) (log : mvcc.Log) (L : List w64) (Pre Q Post : IProp GF),
       {{ ⌜False⌝ ∗ mvcc.csContract P f Pre Q Post ∗ txn.kvWriter s γ log ∗ mvcc.storeWT γ ∗
-          lease.leaseOwn γ.leases L ∗ txn.leasesKnown L (mvcc.stateAfter log) ∗
+          lease.leaseOwn γ.leases L (mvcc.leaseItemsOf (mvcc.stateAfter log)) ∗
+          txn.leasesKnown L (mvcc.stateAfter log) ∗
           (□ ∀ pend : List mvcc.Change, ⌜∀ c ∈ pend, c.isDel = true⌝ -∗
             mvcc.certOkNext γ log pend) }}
         (App (Val #(methods li.ty go!"Revoke" li.v)) (Val #id))
       {{ (err : GoInterface), RET #err; (Post ∨ Pre) ∗
           (∃ (pend : List mvcc.Change) (L' : List w64), ⌜∀ c ∈ pend, c.isDel = true⌝ ∗
-            txn.kvWriter s γ (mvcc.commitLog log pend) ∗ lease.leaseOwn γ.leases L' ∗
+            txn.kvWriter s γ (mvcc.commitLog log pend) ∗
+            lease.leaseOwn γ.leases L' (mvcc.leaseItemsOf (mvcc.stateAfter (mvcc.commitLog log pend))) ∗
             txn.leasesKnown L' (mvcc.stateAfter (mvcc.commitLog log pend))) ∗
           applyErrIs err }}) ∗
     □ (∀ (id rem : w64) (Pre Q Post : IProp GF),

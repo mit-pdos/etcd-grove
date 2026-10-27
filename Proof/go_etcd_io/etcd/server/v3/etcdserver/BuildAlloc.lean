@@ -42,14 +42,14 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
 /-- A ghost variable's whole as its two halves. -/
-private theorem buildGhostVarHalves {A : Type} [Pos.Countable A] (γ : GName) (a : A) :
+theorem buildGhostVarHalves {A : Type} [Pos.Countable A] (γ : GName) (a : A) :
     ghostVar (GF := GF) γ 1 a ⊢ ghostVar γ (1 : Qp).half a ∗ ghostVar γ (1 : Qp).half a := by
   have h := ghostVar_split (GF := GF) γ a (1 : Qp).half (1 : Qp).half
   rw [Qp.half_add_half] at h
   exact wand_entails h
 
 /-- A mono nat's whole authority as its two halves. -/
-private theorem buildMonoNatHalves (γ : GName) (n : Nat) :
+theorem buildMonoNatHalves (γ : GName) (n : Nat) :
     monoNatAuthOwn (GF := GF) γ 1 n ⊢
       monoNatAuthOwn γ (1 : Qp).half n ∗ monoNatAuthOwn γ (1 : Qp).half n := by
   have hf := (monoNatAuthOwn_fractional (GF := GF) γ n).fractional (1 : Qp).half (1 : Qp).half
@@ -81,8 +81,8 @@ theorem kvInv_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (ccOk : w32 →
     (hc0 : γk.c0 = W64 0) (hch : γk.ch0 = apply.alarmChain false false false)
     (hlog : γk.log0 ≠ []) :
     ⊢ rLog (GF := GF) γs.raft bootLog -∗
-      ghostVar γk.st 1 (kvStateOf (kvModel γk (bootEntries bootLog))) ={E}=∗
-      kvInv γs γk ∗ etcdKV γk (kvStateOf (kvModel γk (bootEntries bootLog))) := by
+      ghostVar γk.st 1 (kvModelSt γk (bootEntries bootLog)) ={E}=∗
+      kvInv γs γk ∗ etcdKV γk (kvModelSt γk (bootEntries bootLog)) := by
   iintro HL Hv
   icases buildGhostVarHalves γk.st _ $$ Hv with ⟨Hv1, Hv2⟩
   have hsl : srvLogOf γs (bootEntries bootLog) = bootLog := by
@@ -129,7 +129,7 @@ theorem kvInv_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (ccOk : w32 →
     refine ⟨fun h0 => ?_, fun _ => hid⟩
     rw [ht] at h0; exact absurd h0 (by decide)
   -- (audit phase B3) every conf change of the boot log is one `applyConfChange` takes
-  have hccl : ccLogOk γs.raft.reCfg (bootEntries bootLog) := by
+  have hccl : ccLogOk γs.raft (bootEntries bootLog) := by
     intro m hm _
     obtain ⟨n, hn⟩ := List.getElem?_of_mem hm
     obtain ⟨-, -, hk⟩ := hboot
@@ -142,16 +142,16 @@ theorem kvInv_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (ccOk : w32 →
       simp only [Option.map_some, Option.some.injEq] at hn
       subst hn
       obtain ⟨-, -, -, -, hok⟩ := hk n e he
-      exact (hcc _ _ hok).2
+      exact ccPolOk_of_boot _ _ (hcc _ _ hok).2
   ihave #Hcl := entryClaims_conf (GF := GF) γk.ids (bootEntries bootLog) (fun m hm => by
     obtain ⟨n, hn⟩ := List.getElem?_of_mem hm
     obtain ⟨-, ht, -, -⟩ := hent' n m hn
     rw [ht]; decide)
   iunfold kvInv
   imod inv_alloc kvN E (iprop(∃ L : List EntryModel,
-      srvRLog γs L ∗ ghostVar γk.st (1 : Qp).half (kvStateOf (kvModel γk L)) ∗
+      srvRLog γs L ∗ ghostVar γk.st (1 : Qp).half (kvModelSt γk L) ∗
       ⌜plainLog L ∧ srvIdxOkW γs.ai0 L ∧ uint.Z γk.c0 ≤ uint.Z γs.ai0 + L.length ∧
-        γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ []⌝ ∗ kvWork γs.raft.reCfg γk L))
+        γk.ch0 = apply.alarmChain false false false ∧ γk.log0 ≠ []⌝ ∗ kvWork γs.raft γk L))
     $$ [HL Hv1] with #Hinv
   · inext
     iexists bootEntries bootLog

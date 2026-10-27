@@ -405,7 +405,7 @@ theorem applierAdmin_uberG (E : AEnv GF) (W : IProp GF)
         applierAdmin E (baseChain E.authOn) base W Own := by
   iintro ⟨#Hpkg, #Hu, #Hst⟩
   iunfold uberIs at Hu
-  icases Hu with ⟨-, #Hopts, -, -, -, %base, #Hbf, -, #Hsh⟩
+  icases Hu with ⟨-, #Hopts, -, -, -, %base, #Hbf, -, #Hsh, -⟩
   iexists base
   iframe Hbf
   iapply hB base $$ [Hpkg Hsh Hopts Hst]

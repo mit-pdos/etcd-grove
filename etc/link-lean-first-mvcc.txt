@@ -209,7 +209,7 @@ ChanBufLen:
 # The trust boundary (D19j, 2026-10-18): `ReportEventReceived` (`metrics.go`, names-only: a gauge's
 # `Sub` and a counter's `Add` of a non-negative count), for the watch server's `sendLoop`.
 ReportEventReceived:
-newWatchableStore: zap_NewNop NewStore newWatcherGroup adt_ownIvt_split
+newWatchableStore: zap_NewNop NewStore newWatcherGroup adt_ownIvt_split watchableStore__Write traceutil_TODO
 mvcc_New: newWatchableStore watchableStore__syncWatchersLoop watchableStore__syncVictimsLoop
 watchableStore__NewWatchStream: watchableStore__watch watchableStore__progress watchableStore__progressAll watchableStore__rev
 # Compaction (unit 5a, 2026-10-13; Compact.lean, InvCompact.lean, notes/decisions.md "mvcc:

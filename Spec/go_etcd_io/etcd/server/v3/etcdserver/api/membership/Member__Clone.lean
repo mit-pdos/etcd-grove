@@ -23,13 +23,14 @@ variable {hlc : HasLC} {GF : BundledGFunctors} [hG : HeapGS hlc GF]
 variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.Assumptions]
 
-/-- `m.Clone()` of an owned member `m` (not nil: the points-tos say so) returns a fresh owned
-member with the same id; `m` kept. -/
+/-- `m.Clone()` of a member `m` at some fraction `q` with the value `mm` (not nil: the points-tos
+say so) returns a fresh owned member with the same id; `m` kept. (Until D43 M5b, 2026-10-26, of
+an owned member, `memberIs`: the cluster's lock now holds half of each member.) -/
 abbrev membership.Member.Clone.spec : Prop :=
-  ∀ (m : Loc) (id : w64),
-  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership ∗ membership.memberIs m id }}
+  ∀ (m : Loc) (q : Qp) (mm : apply.MemberM),
+  {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership ∗ membership.memberAt m q mm }}
     (App (Val (m @!! go.GoType.PointerType go_etcd_io.etcd.server.v3.etcdserver.api.membership.Member.ty @!! go!"Clone")) (Val #()))
-  {{ (mm : Loc), RET #mm; membership.memberIs m id ∗ membership.memberIs mm id }}
+  {{ (mc : Loc), RET #mc; membership.memberAt m q mm ∗ membership.memberIs mc mm.id }}
 
 end spec
 

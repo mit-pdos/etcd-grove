@@ -136,7 +136,7 @@ theorem alloc3 (id₁ id₂ id₃ : w64) (bootLog : List EntryM)
       (netHttpOk γn id₂ ∗ http.httpProtoOwn a₂ (raftProto (netRh γn))) ∗
       memberBoot γ bud bootLog ρ₃ E₃ Φs id₃ ∗
       (netHttpOk γn id₃ ∗ http.httpProtoOwn a₃ (raftProto (netRh γn))) ∗
-      etcdKV ρ₁.rd.kv (kvStateOf (kvModel ρ₁.rd.kv (bootEntries bootLog))) := by
+      etcdKV ρ₁.rd.kv (kvModelSt ρ₁.rd.kv (bootEntries bootLog)) := by
   obtain ⟨hn12, hn13, hn23⟩ := id_ne id₁ id₂ id₃ Hlow Hlow0
   obtain ⟨hp12, hp13, hp23⟩ := pfx_ne id₁ id₂ id₃ Hlow Hlow0
   have Hnz := id_nz id₁ id₂ id₃ Hlow Hlow0
@@ -174,8 +174,9 @@ theorem alloc3 (id₁ id₂ id₃ : w64) (bootLog : List EntryM)
     intro ty d h
     simp only at h ⊢
     rw [hcc] at h
+    refine ⟨h.1, h.2.1, h.2.2.1, ccPolOk_of_boot _ _ ?_⟩
     rw [hcfg]
-    exact h
+    exact h.2.2.2
   icases Hms with ⟨Hm₁, Hm₂, Hm₃, -⟩
   icases Hwns with ⟨Hw₁, Hw₂, Hw₃, -⟩
   imod budget_alloc_boot (GF := GF) Hrb ⊤ with ⟨%bud, #Hbinv, #Hlb⟩
@@ -224,8 +225,8 @@ theorem alloc3 (id₁ id₂ id₃ : w64) (bootLog : List EntryM)
       by funext B; unfold kvModel; rw [hc0₃, hch₃, hlog₃, hc0₁, hch₁, hlog₁],
       by rw [hlog₂, hlog], by rw [hlog₃, hlog]⟩
   rw [etcdKV_congr ρ₁.rd.kv γk hst₁,
-    show kvModel ρ₁.rd.kv (bootEntries bootLog) = kvModel γk (bootEntries bootLog) by
-      unfold kvModel; rw [hc0₁, hch₁, hlog₁]]
+    show kvModelSt ρ₁.rd.kv (bootEntries bootLog) = kvModelSt γk (bootEntries bootLog) by
+      unfold kvModelSt kvLeases kvModel; rw [hc0₁, hch₁, hlog₁]]
   iexact Hetcd
 
 end alloc

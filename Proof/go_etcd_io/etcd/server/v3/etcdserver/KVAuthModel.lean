@@ -203,7 +203,8 @@ open Classical in
 /-- **An entry's effect in the mode `on`**, from the consistent index `c₀` with the chain `ch`, on
 the auth state and the KV log `s`: a normal entry with data that decodes to `rq` is, above `c₀`
 (`v3`) and of an admin kind, the admin step (the log kept); a KV request the auth layer refuses at
-`s.1`, nothing; otherwise today's `kvEntry`. -/
+`s.1`, nothing; otherwise today's `kvEntry`, at the empty lease table (unit T3, L3a: the mode-`on`
+log has no lease request, `plainEntryOn`). -/
 def kvEntryOn (c₀ : w64) (ch : apply.Chain) (s : auth.AuthState × mvcc.Log) (m : EntryModel) :
     auth.AuthState × mvcc.Log :=
   if m.typ = W32 0 ∧ m.data ≠ [] then
@@ -212,9 +213,9 @@ def kvEntryOn (c₀ : w64) (ch : apply.Chain) (s : auth.AuthState × mvcc.Log) (
       if uint.Z c₀ < uint.Z m.index ∧ apply.needAdminPermission rq = true then
         (adminNext rq s.1, s.2)
       else if apply.isKVKind (apply.dispatchKind rq) = true ∧ ¬ kvGranted s.1 rq then s
-      else (s.1, kvEntry c₀ ch s.2 m)
+      else (s.1, kvEntry c₀ ch [] s.2 m)
     | none => s
-  else (s.1, kvEntry c₀ ch s.2 m)
+  else (s.1, kvEntry c₀ ch [] s.2 m)
 
 /-- **The mode-`on` model of a raft log** `A`, from the start's auth state and log `s₀`. -/
 def kvRaftOfOn (c₀ : w64) (ch : apply.Chain) (s₀ : auth.AuthState × mvcc.Log)
@@ -248,7 +249,7 @@ theorem kvEntryOn_admin (c₀ : w64) (ch : apply.Chain) (s : auth.AuthState × m
 theorem kvEntryOn_of_granted (c₀ : w64) (ch : apply.Chain) (s : auth.AuthState × mvcc.Log)
     (m : EntryModel) (rq : apply.IRRModel) (hdec : apply.irrDecode m.data = some rq)
     (hna : apply.needAdminPermission rq = false) (hg : kvGranted s.1 rq) :
-    kvEntryOn c₀ ch s m = (s.1, kvEntry c₀ ch s.2 m) := by
+    kvEntryOn c₀ ch s m = (s.1, kvEntry c₀ ch [] s.2 m) := by
   unfold kvEntryOn
   split
   · rw [hdec]
@@ -267,16 +268,17 @@ theorem kvEntryOn_of_refused (c₀ : w64) (ch : apply.Chain) (s : auth.AuthState
 
 /-- **With auth disabled throughout, the mode-`on` model is today's**: if the start's auth state is
 disabled and no entry is an admin entry, every KV entry is let through and the auth state is kept,
-so the log is `kvRaftOf`'s. -/
+so the log is `kvRaftOf`'s; (unit T3, L3a) if no entry changes the empty lease table. -/
 theorem kvRaftOfOn_disabled (c₀ : w64) (ch : apply.Chain) (st₀ : auth.AuthState) (log₀ : mvcc.Log)
     (A : List EntryModel) (hen : st₀.enabled = false)
-    (hA : ∀ m ∈ A, ∀ rq, apply.irrDecode m.data = some rq → apply.needAdminPermission rq = false) :
+    (hA : ∀ m ∈ A, ∀ rq, apply.irrDecode m.data = some rq → apply.needAdminPermission rq = false)
+    (hL : ∀ m ∈ A, kvTable c₀ ch [] m = []) :
     kvRaftOfOn c₀ ch (st₀, log₀) A = (st₀, kvRaftOf c₀ ch log₀ A) := by
   induction A generalizing log₀ with
   | nil => rfl
   | cons m A ih =>
     have hm := hA m (List.mem_cons_self ..)
-    have hstep : kvEntryOn c₀ ch (st₀, log₀) m = (st₀, kvEntry c₀ ch log₀ m) := by
+    have hstep : kvEntryOn c₀ ch (st₀, log₀) m = (st₀, kvEntry c₀ ch [] log₀ m) := by
       by_cases hc : m.typ = W32 0 ∧ m.data ≠ []
       · cases hdec : apply.irrDecode m.data with
         | some rq =>
@@ -291,9 +293,11 @@ theorem kvRaftOfOn_disabled (c₀ : w64) (ch : apply.Chain) (st₀ : auth.AuthSt
       · unfold kvEntryOn
         rw [if_neg hc]
     show List.foldl (kvEntryOn c₀ ch) (kvEntryOn c₀ ch (st₀, log₀) m) A =
-      (st₀, List.foldl (kvEntry c₀ ch) (kvEntry c₀ ch log₀ m) A)
-    rw [hstep]
-    exact ih (kvEntry c₀ ch log₀ m) (fun m' hm' => hA m' (List.mem_cons_of_mem _ hm'))
+      (st₀, (List.foldl (kvEntrySt c₀ ch) (kvEntrySt c₀ ch (log₀, []) m) A).1)
+    rw [hstep, show kvEntrySt c₀ ch (log₀, []) m = (kvEntry c₀ ch [] log₀ m, []) by
+      unfold kvEntrySt; rw [hL m (List.mem_cons_self ..)]]
+    exact ih (kvEntry c₀ ch [] log₀ m) (fun m' hm' => hA m' (List.mem_cons_of_mem _ hm'))
+      (fun m' hm' => hL m' (List.mem_cons_of_mem _ hm'))
 
 end pure
 
@@ -400,19 +404,19 @@ def kvModelOn (γk : KVNames) (st₀ : auth.AuthState) (L : List EntryModel) : m
 theorem kvModelOn_nil (γk : KVNames) (st₀ : auth.AuthState) : kvModelOn γk st₀ [] = γk.log0 := rfl
 
 /-- **The workload facts of the committed log in the mode `on`** (`kvWork` with `logShapeOn`). -/
-def kvWorkOn (cfg : GSet w64) (γk : KVNames) (L : List EntryModel) : IProp GF :=
+def kvWorkOn (cfg : RaftNames) (γk : KVNames) (L : List EntryModel) : IProp GF :=
   iprop(⌜logShapeOn L ∧ ccLogOk cfg L⌝ ∗ [∗list] m ∈ L, entryClaim γk.ids m)
 
-instance kvWorkOn_persistent (cfg : GSet w64) (γk : KVNames) (L : List EntryModel) :
+instance kvWorkOn_persistent (cfg : RaftNames) (γk : KVNames) (L : List EntryModel) :
     Persistent (kvWorkOn (GF := GF) cfg γk L) := by
   unfold kvWorkOn; infer_instance
 
-instance kvWorkOn_timeless (cfg : GSet w64) (γk : KVNames) (L : List EntryModel) :
+instance kvWorkOn_timeless (cfg : RaftNames) (γk : KVNames) (L : List EntryModel) :
     Timeless (kvWorkOn (GF := GF) cfg γk L) := by
   unfold kvWorkOn; infer_instance
 
 /-- `kvWork` gives `kvWorkOn`. -/
-theorem kvWorkOn_of_kvWork (cfg : GSet w64) (γk : KVNames) (L : List EntryModel) :
+theorem kvWorkOn_of_kvWork (cfg : RaftNames) (γk : KVNames) (L : List EntryModel) :
     kvWork (GF := GF) cfg γk L ⊢ kvWorkOn cfg γk L := by
   unfold kvWork kvWorkOn
   iintro ⟨%h, #H⟩
@@ -431,7 +435,7 @@ def kvInvOn (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState) : IP
     srvRLog γ L ∗ ghostVar γk.st (1 : Qp).half (kvStateOf (kvModelOn γk st₀ L)) ∗
     ⌜plainLogOn L ∧ detLogOn γk.c0 γk.ch0 (st₀, γk.log0) L ∧ srvIdxOkW γ.ai0 L ∧
       uint.Z γk.c0 ≤ uint.Z γ.ai0 + L.length ∧
-      γk.ch0 = apply.alarmChain true false false ∧ γk.log0 ≠ []⌝ ∗ kvWorkOn γ.raft.reCfg γk L)
+      γk.ch0 = apply.alarmChain true false false ∧ γk.log0 ≠ []⌝ ∗ kvWorkOn γ.raft γk L)
 
 instance kvInvOn_persistent (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState) :
     Persistent (kvInvOn (GF := GF) γ γk st₀) := by

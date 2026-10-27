@@ -77,6 +77,40 @@ theorem bootKVOf_false : bootKVOf false = bootKV := rfl
 /-- The bootstrap log as the server's entries. -/
 def bootEntries (bootLog : List EntryM) : List EntryModel := bootLog.map EntryModel.ofM
 
+/-- A bootstrap log's entries change no lease table (unit T3, L3a). -/
+theorem kvTableOf_boot (c₀ : w64) (ch : apply.Chain) (lt : LeaseTable)
+    (ccOk : w32 → List w8 → Prop) (ps : List w64) (bootLog : List EntryM)
+    (hb : BootLogOk ccOk ps bootLog) : kvTableOf c₀ ch lt (bootEntries bootLog) = lt := by
+  obtain ⟨-, -, he⟩ := hb
+  unfold kvTableOf bootEntries
+  rw [List.foldl_map]
+  suffices h : ∀ (l : List EntryM), (∀ e ∈ l, e.Type' = W32 1) →
+      l.foldl (fun lt e => kvTable c₀ ch lt (EntryModel.ofM e)) lt = lt by
+    apply h
+    intro e hm
+    obtain ⟨k, hk, rfl⟩ := List.getElem_of_mem hm
+    exact (he k _ (List.getElem?_eq_getElem hk)).2.2.1
+  intro l
+  induction l with
+  | nil => intro _; rfl
+  | cons e l ih =>
+    intro hl
+    rw [List.foldl_cons]
+    have ht : e.Type' = W32 1 := hl e (List.mem_cons_self ..)
+    have : kvTable c₀ ch lt (EntryModel.ofM e) = lt := by
+      unfold kvTable
+      simp only [EntryModel.ofM, ht]
+      rfl
+    rw [this]
+    exact ih (fun e' h' => hl e' (List.mem_cons_of_mem _ h'))
+
+/-- **The start state of a bootstrap log has no lease** (unit T3, L3a). -/
+theorem kvModelSt_boot (γk : KVNames) (ccOk : w32 → List w8 → Prop) (ps : List w64)
+    (bootLog : List EntryM) (hb : BootLogOk ccOk ps bootLog) :
+    kvModelSt γk (bootEntries bootLog) = kvStateOf (kvModel γk (bootEntries bootLog)) := by
+  unfold kvModelSt kvLeases
+  rw [kvTableOf_boot _ _ _ ccOk ps bootLog hb]
+
 /-- **A message raft hands the server is no `MsgSnap`** (D19p, 2026-10-18; since D21 M3,
 2026-10-19, of any cluster in the no-snapshot mode, `RaftNames.reNoSnap`, which `isRaftMsg` says;
 until then of a one-member cluster, raft's tracked bound its one node). -/
@@ -172,11 +206,14 @@ hands out but a snapshot (`srvMsgNoSnap`, D19p; until then every message, the tr
 contract, `rafthttp.Transport`, asking nothing of them) with its bundle (`srvMsgNet`, D21 stage
 M1), a tick's resource raft's tick credit of the budget `bud`, the read names `ρ.rd`, raft's read
 registrations. (2026-10-24, rafthttp stage 6d) Of the member `id` (its messages' sender), the
-transport's `Send` borrowing `S` (the server's: the raft loop's key, `srvTrKey`). -/
+transport's `Send` borrowing `S` (the server's: the raft loop's key, `srvTrKey`); (D43 M5c) its
+`Stop` (D43 M5e, 2026-10-26) asked of no one (`ST := False`: the static server's transport is
+frozen, its stop token the apply thread's, `srvApRes`, which M6's stopping server hands over; until
+then `True`, a free `Stop`, which Go's `AddPeer` on a stopped transport made unsound). -/
 def srvEr (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV)
     (bud : BudgetNames) (id : w64) (S : IProp GF) : RNEnv GF :=
   ⟨srvC ρ E ai₀ c₀ x₀, fun m => iprop(srvMsgNet ρ.raft.raft bud id m ∗ srvMsgNoSnap m),
-    iprop(True), ρ.rd, srvRQ ρ.rd.raft, S⟩
+    iprop(True), ρ.rd, srvRQ ρ.rd.raft, S, iprop(False)⟩
 
 /-- The ticker's contract does not read the transport's borrow (`isRNTicker` reads `E.T`). -/
 theorem rnTickerOk_srvEr_S (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64)
@@ -283,7 +320,7 @@ def applyBuiltNA (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (E : a
     ciApplying ci a t ∗ srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗ srvBeOwn s E ∗
     revAuth E x₀.log ∗ srvAuthApplyRes s E ∗
     srvAppliedOwn γr ai₀ ∗ appliedLogAt γr ai₀ x₀.log ∗ kvRun γr ai₀ c₀ [] x₀ ∗ srvRest E γr [] ∗
-    srvForceSnapAddr s ↦ f)
+    srvApRes s γr [] ∗ srvForceSnapAddr s ↦ f)
 
 /-- **The built part** (`NewServer.spec`'s postcondition, on success): `isServerBuilt` but the
 rows of `srvBuildGap` (named as `isServerBuilt`'s; `#Hfb`, `#Hrdb`, `Happ` without their KV

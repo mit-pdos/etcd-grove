@@ -110,7 +110,8 @@ theorem membership.RaftCluster.Members.wp_proof
   wp_call
   wp_apply sync.Mutex.wp_Lock $$ [$Hrc] as ⟨Hlocked, Hinv⟩
   iunfold membership.rcLockInvG at Hinv
-  icases Hinv with ⟨%mp, %mm, Hmf, Hmap, %Hsz, Hmems, Hrem⟩
+  icases Hinv with ⟨%mm, %mem, Hmem, %Hsz, Hrem⟩
+  icases membership.memAt_open c _ mm mem $$ Hmem with ⟨%mp, Hfl, Hmap, Hmems, Hmf⟩
   wp_auto
   wp_func_lits
   wp_bind (App (App (Val (map.forRange _ _)) _) _)
@@ -121,7 +122,8 @@ theorem membership.RaftCluster.Members.wp_proof
       "Hsl" ∷ sl' ↦* cl.map Prod.fst ∗
       "Hcap" ∷ ownSliceCap Loc sl' (DFrac.own 1) ∗
       "Hcl" ∷ ([∗list] p ∈ cl, membership.memberIs p.1 p.2) ∗
-      "Hmems" ∷ ([∗map] _k ↦ m ∈ mm, membership.ownMember m) ∗
+      "Hmems" ∷ ([∗map] k ↦ m ∈ mm,
+        membership.memberAt m (1 : Qp).half ((mem !! k).getD default)) ∗
       "m" ∷ m_ptr ↦ x)) $$ Hmap
   iintro %keys ⟨%Hkset, %Hklen, %Hknodup⟩
   isplitl [ms m Hmems]
@@ -142,14 +144,13 @@ theorem membership.RaftCluster.Members.wp_proof
     iNamed HP
     (try wp_auto)
     icases (BigSepM.bigSepM_lookup_acc (PROP := IProp GF)
-      (Φ := fun (_ : w64) (m : Loc) => membership.ownMember (GF := GF) m) Hvv).1 $$ Hmems
+      (Φ := fun (k : w64) (m : Loc) => membership.memberAt (GF := GF) m (1 : Qp).half
+        ((mem !! k).getD default)) Hvv).1 $$ Hmems
       with ⟨Hown, Hmclose⟩
-    iunfold membership.ownMember at Hown
-    icases Hown with ⟨%id, Hown⟩
-    wp_apply hClone vv id $$ [Hown] as %mc ⟨Hown, Hmc⟩
+    wp_apply hClone vv _ _ $$ [Hown] as %mc ⟨Hown, Hmc⟩
     · iframe #; iframe Hown
     ihave Hmems := Hmclose $$ [Hown]
-    · iunfold membership.ownMember; iexists id; iexact Hown
+    · iexact Hown
     (try wp_auto)
     wp_apply wp_slice_literal (V := Loc) [mc]
     isplitr
@@ -162,7 +163,7 @@ theorem membership.RaftCluster.Members.wp_proof
     iright; ileft
     isplitr
     · ipureintro; rfl
-    iexists sl3, cl ++ [(mc, id)], vv
+    iexists sl3, cl ++ [(mc, ((mem !! key).getD default).id)], vv
     simp only [named, List.map_append, List.map_cons, List.map_nil]
     iframe ms Hsl Hcap Hmems m
     isplitl []
@@ -186,11 +187,13 @@ theorem membership.RaftCluster.Members.wp_proof
   (try wp_auto)
   wp_method_call
   wp_call
-  wp_apply sync.Mutex.wp_Unlock $$ [$Hrc $Hlocked Hmf Hmap Hmems Hrem]
+  wp_apply sync.Mutex.wp_Unlock $$ [$Hrc $Hlocked Hmf Hfl Hmap Hmems Hrem]
   · inext
     iunfold membership.rcLockInvG
-    iexists mp, mm
-    iframe Hmf Hmap Hmems Hrem
+    iexists mm, mem
+    isplitl [Hmf Hfl Hmap Hmems]
+    · iapply Hmf $$ Hfl Hmap Hmems
+    iframe Hrem
     ipureintro; exact Hsz
   (try wp_auto)
   iapply HΦ
