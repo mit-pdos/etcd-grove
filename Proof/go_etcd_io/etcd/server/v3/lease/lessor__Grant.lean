@@ -78,7 +78,7 @@ theorem lease.lessor.Grant.wp_proof
     icases Hcs with ⟨HPre, -, -⟩
     iframe Hown Hrvk HPre
     isplitr
-    · ipureintro; intro h; cases h
+    · ipureintro; exact ⟨fun h => (by cases h), Or.inl trivial⟩
     iunfold lessorErrIs
     iexists ErrLeaseNotFound, enf
     iframe Henf
@@ -94,12 +94,19 @@ theorem lease.lessor.Grant.wp_proof
     icases Hcs with ⟨HPre, -, -⟩
     iframe Hown Hrvk HPre
     isplitr
-    · ipureintro; intro h; cases h
+    · ipureintro
+      refine ⟨fun h => (by cases h), Or.inr (Or.inl ?_)⟩
+      have h9 : sint.Z (W64 9000000000) = 9000000000 := by decide
+      rw [h9] at Hif; exact Hif
     iunfold lessorErrIs
     iexists ErrLeaseTTLTooLarge, etl
     iframe Hetl
     ipureintro; exact ⟨Or.inr (Or.inr rfl), rfl⟩
   (try wp_auto)
+  have httl : sint.Z ttl ≤ 9000000000 := by
+    have h9 : sint.Z (W64 9000000000) = 9000000000 := by decide
+    have := Hif; rw [h9] at this; omega
+  have hid0 : id ≠ W64 0 := by assumption
   wp_apply hNew as %l ⟨%Hlnn, HID, Httl, Hrem, HexMu, Hexp, Hmu0, ⟨%sm, HiS, Hsm⟩, ⟨%rc, Hrc, Hrcl⟩⟩
   ipersist HID
   ipersist Hrc
@@ -135,7 +142,7 @@ theorem lease.lessor.Grant.wp_proof
   wp_apply (wp_map_lookup2 LeaseID.ty (go.GoType.PointerType Lease.ty) lm M id) $$ HM as HM
   cases hM : M !! id with
   | some l0 =>
-    simp only [Option.getD_some, Option.isSome_some, decide_true]
+    simp only [Option.getD_some, Option.isSome_some, _root_.decide_true]
     (try wp_auto)
     ihave Hx : lessorExtra lp M 1 $$ [Hdc Hnp Hnot Hh Hhq Hcp Hmeta Hbl]
     · iunfold lessorExtra; iexists dc, np, h, hx, cp, bl; iframe
@@ -155,7 +162,7 @@ theorem lease.lessor.Grant.wp_proof
     iunfold leaseOwn
     iframe Hown Hcls Hrvk HPre
     isplitr
-    · ipureintro; intro h; cases h
+    · ipureintro; exact ⟨fun h => (by cases h), Or.inr (Or.inr ((HL id).2 (by rw [hM]; rfl)))⟩
     iunfold lessorErrIs
     iexists ErrLeaseExists, eex
     iframe Heex
@@ -263,7 +270,7 @@ theorem lease.lessor.Grant.wp_proof
     iunfold leaseOwn
     iframe Hown Hcls Hrvk HPost HID
     isplitr
-    · ipureintro; exact ⟨rfl, Hlnn, hnot⟩
+    · ipureintro; exact ⟨rfl, Hlnn, hid0, httl, hnot⟩
     iexists t; iexact Httl
 
 end proof

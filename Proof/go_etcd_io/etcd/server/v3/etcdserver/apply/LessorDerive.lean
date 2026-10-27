@@ -100,9 +100,9 @@ theorem isApplyLessor_of_lessorInv
       · iexists L; iframe Hown Hrvk
         isplitr
         · ipureintro; intro x hx; exact hx
-        ileft; ipureintro; exact Hne
+        ileft; ipureintro; exact Hne.1
       iapply lessorErrIs_applyErrIs err $$ [$Hpkg $Herr]
-    · obtain ⟨Herr, Hln, Hnin⟩ := Hok
+    · obtain ⟨Herr, Hln, -, -, Hnin⟩ := Hok
       subst Herr
       iapply HΦ
       iframe Hrt

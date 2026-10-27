@@ -29,7 +29,8 @@ lease `l` (its `ID` and `ttl` read-only: its `ttl` the larger of `ttl` and the l
 `id` added to the live set, its record written to the backend (`Post`). Since D19n (2026-10-18)
 only a lease the lessor's grant guard admits (`leaseGranted γl id`), which the lessor's lock then
 keeps for every lease of its map. (Unit T3, L2b) The owner's item map `I` is unchanged: the new
-lease's item set is empty. -/
+lease's item set is empty. (L3c, 2026-10-27) The error case exactly when `id` is 0, the TTL above
+`MaxLeaseTTL` (`9000000000`) or `id` live. -/
 abbrev lease.lessor.Grant.spec : Prop :=
   ∀ (lp : Loc) (γl : GName) (id ttl : w64) (L : List w64) (I : GMap LeaseItem w64) (P : IProp GF)
     (f : val) (T R : IProp GF) (Pre Q Post : IProp GF),
@@ -38,8 +39,9 @@ abbrev lease.lessor.Grant.spec : Prop :=
       T ∗ R ∗ leaseGranted γl id }}
     (App (App (Val (lp @!! go.GoType.PointerType lessor.ty @!! go!"Grant")) (Val #id)) (Val #ttl))
   {{ (l : Loc) (err : GoInterface), RET (PairV #l #err); R ∗
-      ((⌜err ≠ GoInterface.nil⌝ ∗ lessorErrIs err ∗ leaseOwn γl L I ∗ leaseRevokers γl L ∗ Pre) ∨
-      (⌜err = GoInterface.nil ∧ l ≠ null ∧ id ∉ L⌝ ∗ leaseOwn γl (L ++ [id]) I ∗ leaseRevokers γl (L ++ [id]) ∗ Post ∗
+      ((⌜err ≠ GoInterface.nil ∧ (id = W64 0 ∨ 9000000000 < sint.Z ttl ∨ id ∈ L)⌝ ∗ lessorErrIs err ∗
+        leaseOwn γl L I ∗ leaseRevokers γl L ∗ Pre) ∨
+      (⌜err = GoInterface.nil ∧ l ≠ null ∧ id ≠ W64 0 ∧ sint.Z ttl ≤ 9000000000 ∧ id ∉ L⌝ ∗ leaseOwn γl (L ++ [id]) I ∗ leaseRevokers γl (L ++ [id]) ∗ Post ∗
         lsF go!"ID" l ↦□ id ∗ ∃ t : w64, lsF go!"ttl" l ↦□ t)) }}
 
 end spec
