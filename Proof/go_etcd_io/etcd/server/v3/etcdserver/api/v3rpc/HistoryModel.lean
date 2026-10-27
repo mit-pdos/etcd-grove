@@ -401,7 +401,8 @@ theorem histReached_of_cert (γ : ServerRaftNames) (γk : KVNames) (E : apply.AE
     iunfold histReachedAt
     iexists Lb
     rw [← hr]
-    iframe HLb
+    ihave #HLb' := srvRLogLb_reg γr.raft γ.raft.reg Lb $$ HLb
+    iframe HLb'
     ipureintro
     have h0 := kvRaftOf_extends γk.c0 γk.ch0 γk.log0 Lb
     have hl0 : 2 ≤ γk.log0.length := by rw [← hlog]; exact Hok.2
@@ -418,7 +419,8 @@ theorem histReached_of_cert (γ : ServerRaftNames) (γk : KVNames) (E : apply.AE
   iunfold histReachedAt
   iexists A
   rw [← hr]
-  iframe HA
+  ihave #HA' := srvRLogLb_reg γr.raft γ.raft.reg A $$ HA
+  iframe HA'
   ipureintro
   rw [← kvModel_congr γk γr.kv hc0 hch hlog, hA]; exact h
 
@@ -545,7 +547,8 @@ theorem histWL_of_sealed (γ : ServerRaftNames) (γk : KVNames) (E : apply.AEnv 
   · iunfold histLog
     iexists []
     rw [← hr]
-    iframe H0lb
+    ihave #H0lb' := srvRLogLb_reg γr.raft γ.raft.reg [] $$ H0lb
+    iframe H0lb'
     ipureintro
     refine ⟨?_, startLog_ok⟩
     unfold kvModel; rw [kvRaftOf_nil, hlog0]

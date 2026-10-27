@@ -110,12 +110,12 @@ theorem Main.wp_proof
   wp_apply wp_NewNop as %lg %Hlg
   (try wp_auto)
   -- the ghost state `NewServer` takes (`alloc1`)
+  have hblen0 : boot.length = 1 := by rw [Hbf.boot.1]; rfl
   imod (common.alloc1 id ctxs boot Hbf.idLow Hbf.boot Hbf.cc (k8setcd3Dir id) (dirOne_member id _)
       (by omega) (by omega)) $$ Hmarsh
     with ⟨%γ, %ρ, %E₀, %Φs, %γn, %Hal, Hmb, #Hnet, Hetcd⟩
   obtain ⟨hvs, hdyn, hboot, hγn1, hγn2, hlog⟩ := Hal
   have hblen : (Draft.LogEntry.toEntries boot 0).length ≤ 2 ^ 60 := by
-    have hblen0 : boot.length = 1 := by rw [Hbf.boot.1]; rfl
     simp [Draft.LogEntry.toEntries, hblen0]
   -- `StartServer("k8setcd3", "127.0.0.1:23906", clientAddr, lg)`
   -- (2026-10-24, rafthttp stage 6d) the one-member directory is well formed
@@ -214,7 +214,7 @@ theorem Main.wp_proof
     have h : kvModel ρ.rd.kv (bootEntries (Draft.LogEntry.toEntries boot 0)) = [[], []] := by
       unfold kvModel
       rw [linkv.kvRaftOf_boot _ _ _ (fun _ _ => True) [id] (Draft.LogEntry.toEntries boot 0) (srvBootLogOk_of_BootLog _ _ _ Hbf.boot), hlog]
-    rw [kvModelSt_boot _ _ _ (Draft.LogEntry.toEntries boot 0) (srvBootLogOk_of_BootLog _ _ _ Hbf.boot), h]; rfl
+    rw [kvModelSt_boot _ (fun _ _ => True) _ (Draft.LogEntry.toEntries boot 0) (srvBootLogOk_of_BootLog _ _ _ Hbf.boot), h]; rfl
   imod (seedInv_alloc ρ.rd.kv σb ⊤) $$ [Hetcd] with ⟨%γs, #Hsi, Hs⟩
   · rw [← hboot0]; iexact Hetcd
   ihave #Hkc' := Hkc

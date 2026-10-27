@@ -159,6 +159,7 @@ theorem Main.wp_proof
   wp_apply wp_NewNop as %lg %Hlg
   (try wp_auto)
   -- the ghost state `NewServer` takes (`alloc1`)
+  have hblen0 : boot.length = 1 := by rw [Hbf.boot.1]; rfl
   imod (common.alloc1 id ctxs boot Hbf.idLow Hbf.boot Hbf.cc (wkDir id) (dirOne_member id _)
       (by omega) (by omega)) $$ Hmarsh with ⟨%γ, %ρ, %E₀, %Φs, %γn, %Hal, Hmb, #Hnet, Hetcd⟩
   obtain ⟨hvs, hdyn, hboot, hγn1, hγn2, hlog⟩ := Hal
@@ -166,12 +167,11 @@ theorem Main.wp_proof
   -- state (`linkv.kvRaftOf_boot`), so the start state's changes are `[[]]`
   have hσ0 : (kvModelSt ρ.rd.kv (bootEntries (Draft.LogEntry.toEntries boot 0))).changes = [[]] := by
     unfold kvModelSt kvModel
-    rw [linkv.kvRaftOf_boot _ _ _ _ _ (Draft.LogEntry.toEntries boot 0) (srvBootLogOk_of_BootLog _ _ _ Hbf.boot), hlog]
+    rw [linkv.kvRaftOf_boot _ _ _ (fun _ _ => True) _ (Draft.LogEntry.toEntries boot 0) (srvBootLogOk_of_BootLog _ _ _ Hbf.boot), hlog]
     rfl
   imod (wkInv_alloc ρ.rd.kv _ (trs.map pairOf) (by rw [hσ0]; exact wkW_start _))
     $$ Hetcd with ⟨%γc, #Hwk⟩
   have hblen : (Draft.LogEntry.toEntries boot 0).length ≤ 2 ^ 60 := by
-    have hblen0 : boot.length = 1 := by rw [Hbf.boot.1]; rfl
     simp [Draft.LogEntry.toEntries, hblen0]
   -- `Main`'s premises in the shared start's form
   ihave #Hb := common.bootPremise_of N [id] (Draft.LogEntry.toEntries boot 0) ctxs (wkDir id) go!"watchkv" go!"watchkv"
