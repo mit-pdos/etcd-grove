@@ -43,8 +43,7 @@ with `termLB bud term`). -/
 module
 
 public import Proof.go_etcd_io.raft.v3.InvNode
-public import Proof.go_etcd_io.raft.v3.InvBoot
-public import Spec.go_etcd_io.raft.v3.NewRawNode
+public import Proof.go_etcd_io.raft.v3.ApiVocab
 
 @[expose] public section
 

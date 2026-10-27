@@ -419,10 +419,7 @@ theorem raftNode_of_StartNode (reg : GName)
   ihave %Hnid : ⌜γw.node.id = γw.id⌝ $$ []
   · ihave #Hisnode' := Hisnode
     iunfold rnIsNode at Hisnode'
-    iunfold isNode at Hisnode'
-    icases Hisnode' with ⟨%nv, %r, %lok, Hrest⟩
-    iNamed Hrest
-    ipureintro; exact Hgid
+    iapply isNode_id $$ Hisnode'
   iapply HΦ
   iexists γw, rv
   isplitr

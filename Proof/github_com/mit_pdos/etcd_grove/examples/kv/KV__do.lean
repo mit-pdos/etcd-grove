@@ -143,7 +143,7 @@ theorem KV.do.wp_proof
     obtain ⟨Hm1, Hm2, Hv⟩ := Hm
     -- the client's result, from the operation's slot (2026-10-14, stage R)
     ihave #Hcinv : raftCommitInv γr.raft $$ []
-    · rw [← Hraft]; open_node HisNode; iexact Hcinv
+    · rw [← Hraft]; iapply isNode_commitInv $$ HisNode
     imod kv_collect γr d γo Ψ l ods m ⊤ CoPset.subseteq_top raftN_regN Hm1 Hm2
       $$ Hinv Hcinv Hop Hsp Htok Hl Hods with HQ
     imod lc_fupd_elim_later $$ Hlc1 HQ with HQ

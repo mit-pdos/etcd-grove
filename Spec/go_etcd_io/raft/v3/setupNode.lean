@@ -17,6 +17,9 @@ public import Proof.go_etcd_io.raft.v3.InvNode
 public import Spec.go_etcd_io.raft.v3.NewRawNode
 public import Spec.go_etcd_io.raft.v3.RawNode__Bootstrap
 public import Spec.go_etcd_io.raft.v3.newNode
+public import Proof.go_etcd_io.raft.v3.InvRawnodeReady
+public import Proof.go_etcd_io.raft.v3.InvApplyConf
+public import Spec.go_etcd_io.raft.v3.RawNode__ProposeConfChange
 
 @[expose] public section
 

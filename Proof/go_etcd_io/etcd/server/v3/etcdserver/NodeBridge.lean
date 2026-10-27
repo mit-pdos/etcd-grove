@@ -36,6 +36,7 @@ public import Spec.go_etcd_io.raft.v3.node__Step
 public import Spec.go_etcd_io.raft.v3.node__ReportUnreachable
 public import Spec.go_etcd_io.raft.v3.node__ReportSnapshot
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.InvRaftNode
+public import Proof.go_etcd_io.raft.v3.Linked
 
 @[expose] public section
 
@@ -45,6 +46,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
+
+open RaftLink
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.etcd.server.v3.etcdserver go_etcd_io.raft.v3
 

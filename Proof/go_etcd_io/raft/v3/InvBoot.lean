@@ -24,6 +24,7 @@ The predicates of a new cluster's start (raft v3.7 retarget, stage R8b, D12: `no
 -/
 module
 
+public import Proof.go_etcd_io.raft.v3.ApiVocab
 public import Proof.go_etcd_io.raft.v3.InvRawnode
 public import Proof.go_etcd_io.raft.v3.Protocol.Facts
 public import Spec.go_etcd_io.raft.v3.raft__applyConfChange
@@ -128,43 +129,15 @@ theorem rawNodeFresh_set_xf (rn : Loc) (id : w64) (si : GoInterfaceOk) (V : GSet
     ipureintro
     exact ⟨Hasync, Hrel, Hterm0, Hlog, by show { s.gh with xf := false } = _; rw [Hgh], Hpvoff, Hsdr, Hdom, Hhz⟩
 
-/-- The `Context` bytes of the peers `pv`, read-only: `ctxs[k]` behind `pv[k].Context`. -/
-def peersCtx (pv : List Peer) (ctxs : List (List w8)) : IProp GF :=
-  iprop([∗list] p;ctx ∈ pv;ctxs, p.Context' ↦*□ ctx)
+-- (2026-10-26, raft's signature, stage 1) `peersCtx` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
 
-instance peersCtx_persistent (pv : List Peer) (ctxs : List (List w8)) :
-    Persistent (peersCtx (GF := GF) pv ctxs) := by
-  unfold peersCtx; infer_instance
+-- (2026-10-26, raft's signature, stage 1) `peersCtx_persistent` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
 
-/-- `proto.Marshal` of the `k`-th peer's conf change returns the bytes of the `k`-th boot entry
-(see the file header): for a `*pb.ConfChange` at `p` holding `m` with `m.nodeId = ps[k]`,
-`m.context = ctxs[k]`, `Type = AddNode` and `Id` unset, the call returns a fresh slice holding
-`e.Data'` for `bootLog[k] = e`, with a `nil` error, and gives the message back. Persistent (one
-call per peer). -/
-def bootMarshal (ps : List w64) (ctxs : List (List w8)) (bootLog : List EntryM) : IProp GF :=
-  iprop(□ ∀ (k : Nat) (p : Loc) (dq : DFrac) (m : CCV1M) (e : EntryM)
-    (_ : ps[k]? = some m.nodeId ∧ ctxs[k]? = some m.context ∧ bootLog[k]? = some e ∧
-      m.type = W32 0 ∧ m.id = W64 0) (Φ : val → IProp GF),
-    ownCCV1 p dq m -∗
-    (∀ (d : GoSlice), ownCCV1 p dq m -∗ d ↦* e.Data' -∗ Φ (PairV #d #interface.nil)) -∗
-    WP (App (Val (@! google_golang_org.protobuf.proto.Marshal))
-          (Val #(interface.mkOk (go.GoType.PointerType raftpb.ConfChange.ty) #p))) {{ Φ }})
+-- (2026-10-26, raft's signature, stage 1) `bootMarshal` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
 
-instance bootMarshal_persistent (ps : List w64) (ctxs : List (List w8)) (bootLog : List EntryM) :
-    Persistent (bootMarshal (GF := GF) ps ctxs bootLog) := by
-  unfold bootMarshal; infer_instance
+-- (2026-10-26, raft's signature, stage 1) `bootMarshal_persistent` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
 
-/-- (2026-10-25, T-M M2a) The ghost state a member of a new cluster starts `Bootstrap` with, in the
-mode `md` (as `rnInit` for `RestartNode`): statically the bootstrap state `bootPState bootLog`
-(`ownRaftGhost_alloc_boot`); dynamically the dynamic model's `rboot c0 bootLog`
-(`raft_dyn_alloc_boot`: configuration index `0`), the initial configuration `c0` the peers' `V`,
-with no learner. -/
-def bootInit (γ : RaftNames) (md : RNMode) (id : w64) (V : GSet w64) (bootLog : List EntryM) :
-    IProp GF :=
-  match md with
-  | .static => ownRaftGhost γ id (bootPState bootLog)
-  | .dyn dec c0 h0 _ => iprop(⌜γ.dyn = some (DynCfg.ofFold dec c0 h0) ∧ c0 = cfgState V ∅⌝ ∗
-      ownRaftGhostR γ dec c0 id (rboot c0 bootLog))
+-- (2026-10-26, raft's signature, stage 1) `bootInit` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
 
 /-- The commit invariant, from the boot ghost state in either mode. -/
 theorem bootInit_inv (γ : RaftNames) (md : RNMode) (id : w64) (V : GSet w64)

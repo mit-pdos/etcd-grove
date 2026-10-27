@@ -35,6 +35,7 @@ raft v3.7 (2026-10-16, stage R5): `confChangeToMsg` returns a `*pb.Message`, own
 -/
 module
 
+public import Proof.go_etcd_io.raft.v3.ApiVocab
 public import Proof.go_etcd_io.raft.v3.InvRawnode
 public import Proof.go_etcd_io.raft.v3.InvConfChangeMsg
 
@@ -73,11 +74,7 @@ theorem ccData_decodes (o : CCMsg) (bs : List w8) (H : CCData (some o) bs) :
   · refine ⟨fun h => ?_, fun _ => ⟨m, H⟩⟩
     exfalso; revert h; simp only [ccEntryType]; word
 
-/-- The conf change `o` is one the cluster admits (2026-10-15, stage N): the bytes it is
-marshaled to satisfy `γ.reCCOk` (`RaftNames.reCCOk`; always, for a cluster that admits every
-change). -/
-def CCAllowed (γ : RaftNames) (o : CCMsg) : Prop :=
-  ∀ bs, CCData (some o) bs → γ.reCCOk (ccEntryType (some o)) bs
+-- (2026-10-26, raft's signature, stage 1) `CCAllowed` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
 
 omit [GooseSemantics] go_gctx [StorageModel GF] sem package_sem in
 /-- A conf change's entry is no client operation: its data are bytes that decode.

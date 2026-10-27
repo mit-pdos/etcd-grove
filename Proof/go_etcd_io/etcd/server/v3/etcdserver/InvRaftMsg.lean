@@ -18,6 +18,7 @@ public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetTo
 public import Spec.go_etcd_io.raft.v3.raftpb.Message__GetType
 public import Spec.go_etcd_io.raft.v3.IsEmptyHardState
 public import Spec.go_etcd_io.raft.v3.IsEmptySnap
+public import Proof.go_etcd_io.raft.v3.Linked
 
 @[expose] public section
 
@@ -27,6 +28,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
+
+open RaftLink
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3
 

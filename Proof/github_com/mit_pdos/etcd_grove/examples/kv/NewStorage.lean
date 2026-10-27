@@ -6,6 +6,7 @@ module
 
 public import Spec.github_com.mit_pdos.etcd_grove.examples.kv.NewStorage
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.Lemmas
+public import Proof.go_etcd_io.raft.v3.Linked
 
 @[expose] public section
 
@@ -13,6 +14,8 @@ noncomputable section
 
 namespace Perennial
 namespace EtcdGrove
+
+open RaftLink
 namespace kv
 
 open Iris Iris.BI Iris.ProofMode go_etcd_io.raft.v3

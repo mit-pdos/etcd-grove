@@ -22,7 +22,7 @@ invariant** (D6: an entry's data is its bytes; until then `inv propDataN (propDa
 module
 
 public import Proof.go_etcd_io.raft.v3.InvNode
-public import Spec.go_etcd_io.raft.v3.NewRawNode
+public import Proof.go_etcd_io.raft.v3.ApiVocab
 
 @[expose] public section
 

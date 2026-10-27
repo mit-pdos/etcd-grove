@@ -73,6 +73,7 @@ message is a `MsgReadIndex` iff its abstraction is a `readIndex`, `msgAbs_rdCoun
 -/
 module
 
+public import Proof.go_etcd_io.raft.v3.ApiVocab
 public import Proof.go_etcd_io.raft.v3.InvRawnode
 -- `ownRaftGhost_drain` (2026-10-13)
 public import Proof.go_etcd_io.raft.v3.Protocol.Refinement
@@ -298,15 +299,9 @@ def outboxRelP (o : List Msg) (ms1 ms2 : List QMsg) : Prop :=
   ∃ (as1 as2 : List (Option Msg)), o ≡ₚ absList as1 ++ absList as2 ∧
     List.Forall₂ (fun q a => msgAbs q.st a) ms1 as1 ∧ List.Forall₂ (fun q a => msgAbs q.st a) ms2 as2
 
-/-- A response type: what `send` queues in `msgsAfterAppend` (`AAMsgOk`). -/
-def RespType (t : w32) : Prop := t = MsgAppResp ∨ t = MsgVoteResp ∨ t = MsgPreVoteResp
+-- (2026-10-26, raft's signature, stage 1) `RespType` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
 
-instance (t : w32) : Decidable (RespType t) := by unfold RespType; infer_instance
-
-/-- The fraction at which a `Ready` hands a message out (see the file header): half of a
-response (`acceptReady` reads the other half's `To`), the whole of any other. -/
-def readyDq (st : MsgSt) : DFrac :=
-  if RespType st.msg.Type' then DFrac.own (1 : Qp).half else DFrac.own 1
+-- (2026-10-26, raft's signature, stage 1) `readyDq` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
 
 /-- `msgsAfterAppend`'s messages to the node itself, which `acceptReady` queues. -/
 def isSelfQ (id : w64) (q : QMsg) : Bool := decide (q.st.msg.To' = id)
@@ -837,8 +832,7 @@ theorem rdCountM_filter_le (l : List QMsg) (f : QMsg → Bool) :
   rw [List.countP_map, List.countP_map]
   exact List.filter_sublist.countP_le
 
-omit [GooseInterp] [GooseSemantics] go_gctx in
-theorem mtypeOf_MsgReadIndex : mtypeOf MsgReadIndex = some .readIndex := rfl
+-- (2026-10-26, raft's signature, stage 1) `mtypeOf_MsgReadIndex` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
 
 omit [GooseInterp] [GooseSemantics] go_gctx in
 /-- Only `MsgReadIndex` is abstracted as a `readIndex`. -/
@@ -902,9 +896,7 @@ theorem outboxRelP_rdCount (o : List Msg) (ms1 ms2 : List QMsg) (f : QMsg → Bo
 A queued `MsgProp` carries its entries' tickets (`entTk`); the abstract outbox keeps them
 (`rdOwn`'s `msgsTks`), and a `Ready` hands each proposal it hands out its own (`stTks`). -/
 
-/-- A message's tickets: a proposal's entries'. -/
-def stTks (γ : RaftNames) (st : MsgSt) : IProp GF :=
-  if st.msg.Type' = MsgProp then iprop([∗list] e ∈ st.ents, entTk γ e) else iprop(emp)
+-- (2026-10-26, raft's signature, stage 1) `stTks` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
 
 omit [GooseInterp] [GooseSemantics] go_gctx in
 /-- Only `MsgProp` is abstracted as a `propose`. -/
@@ -1007,16 +999,9 @@ theorem rdCred_msgs (γ : RaftNames) (ms : List QMsg) :
     · iexact H1
     · iapply IH $$ H2
 
-/-- A `Ready`'s `SoftState` as the application reads it (2026-10-16, stage R7a, D10): `nil`, or a
-`*SoftState` whose `Lead` and `RaftState` are read-only (raft never writes a `SoftState` after
-`r.softState()` allocates it: `readyWithoutAccept` hands it out and `acceptReady` keeps it as
-`prevSoftSt`). The server's `softStateAt` has this form, so it can be defined over it. -/
-def softStateRO (p : Loc) : IProp GF :=
-  iprop(⌜p = null⌝ ∨ ∃ (lead : w64) (rs : StateType),
-    structFieldRef SoftState go!"Lead" p ↦□ lead ∗ structFieldRef SoftState go!"RaftState" p ↦□ rs)
+-- (2026-10-26, raft's signature, stage 1) `softStateRO` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
 
-instance softStateRO_persistent (p : Loc) : Persistent (softStateRO (GF := GF) p) := by
-  unfold softStateRO; infer_instance
+-- (2026-10-26, raft's signature, stage 1) `softStateRO_persistent` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
 
 /-- From the whole struct read-only (how the node holds it). -/
 theorem softStateRO_of_opt (p : Loc) :
@@ -1065,27 +1050,9 @@ def rdSnapOut (γ : RaftNames) (rs : RNState) (rd : Ready) (ce es : List EntryM)
   | some l => iprop(ownSnapS l.ptr (DFrac.own (1 : Qp).half) l.snap ∗ isCommitted γ l.dlv ∗
       ⌜LoanOut rs rd ce es l⌝)
 
-/-- (D22 S-d3a) What a `Ready` hands the application for the storage: the right to append the batch
-(`appendRight`), or with a snapshot the storage itself, at a state with nothing pending and the
-loan's floor (`ownRaftLog_lend`); (D22 S-d4, 2026-10-21) and the snapshot's certificate in the
-storage's registry (`storCert`, the log's `Hkcert`), which the application's `ApplySnapshot` takes
-(`MemoryStorage.ApplySnapshot`'s `memStorCert`). -/
-def readyOut (st : Storage) (es : List EntryM) (L : Option SnapLoan) : IProp GF :=
-  match L with
-  | none => appendRight st es
-  | some l => iprop((∃ σ, ownStorage st σ ∗ ⌜σ.pend = [] ∧ σ.fl = l.fl⌝) ∗
-      storCert st (snapTrip l.snap l.snap.Metadata'.ConfState'.lists))
+-- (2026-10-26, raft's signature, stage 1) `readyOut` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
 
-/-- (D22 S-d3a) **The application's receipt of a snapshot `Ready`'s loan**, which `Advance` takes:
-the half of the snapshot it was handed, and the storage at the snapshot -- its boundary and its
-own snapshot the loan's, its lists and `AutoLeave` the snapshot's, holding the entries `es` the
-`Ready` handed out after it, nothing pending, the floor it was lent at. What a `MemoryStorage`'s
-`ApplySnapshot` then `Append` give (stage S-r). -/
-def snapReceipt (st : Storage) (l : SnapLoan) (es : List EntryM) : IProp GF :=
-  iprop(ownSnapM l.ptr (DFrac.own (1 : Qp).half) l.snap ∗
-    ∃ σr, ownStorage st σr ∗ ⌜σr.prev = snapId l.snap ∧ σr.ss = snapId l.snap ∧ σr.ents = es ∧
-      σr.pend = [] ∧ σr.fl = l.fl ∧ σr.scs = l.snap.Metadata'.ConfState'.lists ∧
-      σr.sal = l.snap.Metadata'.ConfState'.AutoLeave' ∧ σr.sdat = l.snap.Data'⌝)
+-- (2026-10-26, raft's signature, stage 1) `snapReceipt` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
 
 /-- (D22 S-d3a) What `Advance` takes back: nothing, or the loan's receipt. -/
 def loanRet (rs : RNState) : IProp GF :=
@@ -1306,18 +1273,9 @@ theorem ownRawNodeReady_abandon (γ : RaftNames) (rn : Loc) (id : w64) (rs : RNS
     (Int.le_refl _) ⟨Hrnfl.1, fun h => absurd Hrnfl.2 (Int.not_le.2 h)⟩ Hloan.1
     $$ Hrn Hphys Hghost Hsdrf Hsoft Hhard Hsteps Hsteps_cap Hpend Hdeliv Hstrecs Hlc Hsloc
 
-/-- The indices a `Ready` hands out are within the node's log at hand-out time (2026-10-18, D19b
-stage 5): its last index `L` has a record (`lastRec`, whose time receipt bounds it,
-`lastRec_receipt`), the entries to append end at most at `L`, the committed log handed out is
-at most `L` long. -/
-def readyIdx (γr : RaftNames) (d ce es : List EntryM) : IProp GF :=
-  iprop(∃ L : Int, lastRec γr L ∗ ⌜L < 2 ^ 64 ∧
-    (∀ e0, es.head? = some e0 → uint.Z e0.Index' + (es.length : Int) ≤ L + 1) ∧
-    ((d ++ ce).length : Int) ≤ L⌝)
+-- (2026-10-26, raft's signature, stage 1) `readyIdx` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
 
-instance readyIdx_persistent (γr : RaftNames) (d ce es : List EntryM) :
-    Persistent (readyIdx (GF := GF) γr d ce es) := by
-  unfold readyIdx; infer_instance
+-- (2026-10-26, raft's signature, stage 1) `readyIdx_persistent` moved to `Proof.go_etcd_io.raft.v3.ApiVocab`.
 
 omit [GooseInterp] [GooseSemantics] go_gctx in
 /-- The indices a `Ready` hands out are within the log (2026-10-18, D19b stage 5, `readyIdx`):

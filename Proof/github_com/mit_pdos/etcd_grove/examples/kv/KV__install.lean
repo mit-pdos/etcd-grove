@@ -125,7 +125,7 @@ theorem KV.install.wp_proof (wp_decode : kv.decode.spec (GF := GF) (hG := hG)) :
           imod kv_deposited_minted γr o d0 (rep, sq) ⊤ CoPset.subseteq_top
             (by rw [show (⊤ : CoPset) \ ↑rkvN = ⊤ \ ↑rkvN from rfl]; exact raftN_regN) Hkey
             $$ Hinv [] [] [] with %Hd0
-          · rw [← Hraft]; open_node HisNode; iexact Hcinv
+          · rw [← Hraft]; iapply isNode_commitInv $$ HisNode
           · iexact Hdep
           · rw [Hif]; iexact Hmint
           subst Hd0

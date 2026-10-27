@@ -77,7 +77,7 @@ local macro "apply_rest" : tactic => `(tactic| (
         imod kv_deposited_minted γr em.Data' d0 (rep, sq) ⊤ CoPset.subseteq_top
           (by rw [show (⊤ : CoPset) \ ↑rkvN = ⊤ \ ↑rkvN from rfl]; exact raftN_regN) Hkey
           $$ Hinv [] [] [] with %Hd0
-        · rw [← Hraft]; open_node HisNode; iexact Hcinv
+        · rw [← Hraft]; iapply isNode_commitInv $$ HisNode
         · rw [← Hraft]; iexact Hdep
         · rw [Hif]; iexact Hmint
         subst Hd0
