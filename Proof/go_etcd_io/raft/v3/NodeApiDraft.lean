@@ -770,24 +770,6 @@ theorem readStateOk_after (γ : Cluster) (N : Namespace) (c : List w8) (idx : w6
     (l0 : List LogEntry) :
     readStateOk (GF := GF) γ N c idx ∗ readCtxAfter γ N c l0 ⊢ ⌜l0.length ≤ uint.nat idx⌝ := sorry
 
-/-- (2026-10-27, the server port's addition) **No empty `ConfChangeV2` is proposed in the
-cluster** (persistent): the client renounces `ConfChangeV2` proposals (etcd's server proposes only
-v1 changes, and none of its own). Proposed change: `cluster_alloc`/`dynamicCluster_alloc` give it
-on request, `node.ProposeConfChange` then taking only v1 changes. -/
-@[no_expose] def noConfChangeV2 (γ : Cluster) (N : Namespace) : IProp GF := sorry
-
-instance noConfChangeV2_persistent (γ : Cluster) (N : Namespace) :
-    Persistent (noConfChangeV2 (GF := GF) γ N) := sorry
-
-/-- (the server port's addition) **Every committed filler is an empty normal entry** when no
-`ConfChangeV2` is proposed and the configuration is never joint (no auto-leave entry): a refused
-conf change is replaced by an empty normal entry (`raft.go:1341`), a new leader's entry is an empty
-normal one (`raft.go:961`). What etcd's apply loop needs: it panics on an entry of type
-`EntryConfChangeV2`. -/
-theorem noConfChangeV2_filler (γ : Cluster) (N : Namespace) (l : List LogEntry) :
-    noConfChangeV2 (GF := GF) γ N ∗ isCommittedLogLb γ l ⊢
-      ⌜∀ e ∈ l, e.isFiller → e.type = W32 0⌝ := sorry
-
 /-- (2026-10-27, the server port's addition) **Receiving a `Ready` as a channel's receive**, for a
 `select` (etcd's `raftNode.start` receives it among a ticker's and a stop channel's): the node's
 `Ready` channel is a channel of `Ready`s whose receive, by the loop's token at rest, gives
@@ -815,17 +797,6 @@ theorem isReadyChan_recvAu (n ch : Loc) (γ : Cluster) (N : Namespace) (id : w64
                     hardState := phsNext st.hardState h
                     handling := some (es, some l) })) -∗ Φ rd true) -∗
           recvAu γc Ready Φ) := sorry
-
-/-- (the server port's addition) The allocations' companion: a cluster allocated without any
-`ConfChangeV2` proposal yet may renounce them (see `noConfChangeV2`'s proposed change). -/
-theorem noConfChangeV2_alloc (γ : Cluster) (N : Namespace) (vs : List w64) (snapOk : List LogEntry → List w8 → Prop)
-    (E : CoPset) :
-    ⊢ isStaticCluster (GF := GF) γ N vs snapOk ={E}=∗ noConfChangeV2 γ N := sorry
-
-/-- (2026-10-27, the server port's addition; proved) The read credits are timeless: the server
-keeps its share in an invariant, opened without a later credit. -/
-instance readCredits_timeless (γ : Cluster) (n : Nat) : Timeless (readCredits (GF := GF) γ n) := by
-  unfold readCredits ApiImpl.readCredits rdCred; infer_instance
 
 end api
 
@@ -926,6 +897,35 @@ theorem readCredits_split' (γ : Cluster) (a b : Nat) :
 
 theorem readCredit_eq' (γ : Cluster) : readCredit (GF := GF) γ ⊣⊢ readCredits γ 1 := by
   unfold readCredit readCredits ApiImpl.readCredit; exact .rfl
+
+/-- (2026-10-27, the server port's addition) **No empty `ConfChangeV2` is proposed in the
+cluster** (persistent): the client renounces `ConfChangeV2` proposals (etcd's server proposes only
+v1 changes, and none of its own). Proposed change: `cluster_alloc`/`dynamicCluster_alloc` give it
+on request, `node.ProposeConfChange` then taking only v1 changes. -/
+@[no_expose] def noConfChangeV2 (γ : Cluster) (N : Namespace) : IProp GF := sorry
+
+instance noConfChangeV2_persistent (γ : Cluster) (N : Namespace) :
+    Persistent (noConfChangeV2 (GF := GF) γ N) := sorry
+
+/-- (the server port's addition) **Every committed filler is an empty normal entry** when no
+`ConfChangeV2` is proposed and the configuration is never joint (no auto-leave entry): a refused
+conf change is replaced by an empty normal entry (`raft.go:1341`), a new leader's entry is an empty
+normal one (`raft.go:961`). What etcd's apply loop needs: it panics on an entry of type
+`EntryConfChangeV2`. -/
+theorem noConfChangeV2_filler (γ : Cluster) (N : Namespace) (l : List LogEntry) :
+    noConfChangeV2 (GF := GF) γ N ∗ isCommittedLogLb γ l ⊢
+      ⌜∀ e ∈ l, e.isFiller → e.type = W32 0⌝ := sorry
+
+/-- (the server port's addition) The allocations' companion: a cluster allocated without any
+`ConfChangeV2` proposal yet may renounce them (see `noConfChangeV2`'s proposed change). -/
+theorem noConfChangeV2_alloc (γ : Cluster) (N : Namespace) (vs : List w64) (snapOk : List LogEntry → List w8 → Prop)
+    (E : CoPset) :
+    ⊢ isStaticCluster (GF := GF) γ N vs snapOk ={E}=∗ noConfChangeV2 γ N := sorry
+
+/-- (2026-10-27, the server port's addition; proved) The read credits are timeless: the server
+keeps its share in an invariant, opened without a later credit. -/
+instance readCredits_timeless (γ : Cluster) (n : Nat) : Timeless (readCredits (GF := GF) γ n) := by
+  unfold readCredits ApiImpl.readCredits rdCred; infer_instance
 
 end lawsPure2
 

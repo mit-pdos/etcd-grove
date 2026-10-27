@@ -544,12 +544,12 @@ instance srvLogInv_persistent (γ : ServerRaftNames) : Persistent (srvLogInv (GF
 
 /-- **The cluster's kind** (persistent): static or dynamic (`γ.raft.dyn`) at the voters it started
 with, no snapshot (a static cluster vouches for no snapshot's data: `snapOk` false), leader
-transfer off. -/
+transfer off, no `ConfChangeV2` proposed (so every filler is an empty normal entry). -/
 def srvClusterOk (γ : ServerRaftNames) : IProp GF :=
   iprop((if γ.raft.dyn then
       Draft.isDynamicCluster γ.raft.cl srvClusterN (Draft.Membership.simple γ.raft.cfg) γ.raft.dec
     else Draft.isStaticCluster γ.raft.cl srvClusterN γ.raft.vs (fun _ _ => False)) ∗
-    Draft.leaderTransferOff γ.raft.cl srvClusterN)
+    Draft.leaderTransferOff γ.raft.cl srvClusterN ∗ Draft.noConfChangeV2 γ.raft.cl srvClusterN)
 
 instance srvClusterOk_persistent (γ : ServerRaftNames) : Persistent (srvClusterOk (GF := GF) γ) := by
   unfold srvClusterOk; split <;> infer_instance
@@ -663,6 +663,59 @@ theorem srvRLog_lb (γ : ServerRaftNames) (E : CoPset) (hE : ↑srvLogN ⊆ E)
   iframe HL
   ipureintro
   exact ⟨Hfacts.1, Hfacts.2.1, srv_ops_prefix γ A Lf Hfacts.2.1 Hp⟩
+
+/-- **A committed log, as the server's** (2026-10-27): a committed log after the start log whose
+indices are consecutive is a `srvRLogLb`: its entries are normal or v1 conf changes, its requested
+entries being the server's (whose are), its fillers empty normal entries (`noConfChangeV2`). -/
+theorem srvRLogLb_intro (γ : ServerRaftNames) (E : CoPset) (hE : ↑srvLogN ⊆ E)
+    (L : List EntryModel)
+    (hidx : ∀ (n : Nat) (m : EntryModel), L[n]? = some m → uint.Z m.index = uint.Z γ.ai0 + 1 + n) :
+    ⊢ srvRaftLogInv (GF := GF) γ -∗ Draft.isCommittedLogLb γ.raft.cl (srvLE γ L) ={E}=∗
+      srvRLogLb γ L := by
+  iintro #Hinv #HL
+  iunfold srvRaftLogInv at Hinv
+  icases Hinv with ⟨#Hli, #Hcl, -, -⟩
+  iunfold srvClusterOk at Hcl
+  icases Hcl with ⟨-, -, #Hnv2⟩
+  ihave %Hfill := Draft.noConfChangeV2_filler γ.raft.cl srvClusterN _ $$ [Hnv2 HL]
+  · iframe Hnv2 HL
+  iunfold srvLogInv at Hli
+  iinv Hli with ⟨%Lf, %P, %F, %R, >Hcore, Hregs⟩ Hclose
+  iunfold srvLogCore at Hcore
+  icases Hcore with ⟨Hown, Hlog, HP, HF, HR, Hfrs, %Hfacts⟩
+  ihave %Hp := Draft.ownCommittedOps_lb_prefix' γ.raft.cl _ _ $$ [Hown HL]
+  · iframe Hown HL
+  imod Hclose $$ [Hown Hlog HP HF HR Hfrs Hregs] with -
+  · inext
+    iexists Lf, P, F, R
+    iunfold srvLogCore
+    iframe Hown Hlog HP HF HR Hfrs Hregs
+    ipureintro; exact Hfacts
+  imodintro
+  iunfold srvRLogLb
+  iframe HL
+  ipureintro
+  obtain ⟨Hidx, Hnf, -, -⟩ := Hfacts
+  have Hops := srv_ops_prefix γ L Lf Hnf Hp
+  intro n m hm
+  refine ⟨hidx n m hm, ?_⟩
+  by_cases hf : m.toLE.isFiller
+  · have : m.toLE ∈ srvLE γ L := by
+      unfold srvLE; rw [List.map_append]
+      exact List.mem_append_right _ (List.mem_map_of_mem (List.mem_of_getElem? hm))
+    exact .inl (Hfill _ this hf)
+  · -- a requested entry: one of the server's
+    have hin : m.toLE ∈ Draft.opsOf (L.map EntryModel.toLE) := by
+      unfold Draft.opsOf
+      rw [List.mem_filter]
+      exact ⟨List.mem_map_of_mem (List.mem_of_getElem? hm), by simp [hf]⟩
+    obtain ⟨m', hm', he⟩ := List.mem_map.1 (Hops.subset hin)
+    obtain ⟨j, hj⟩ := List.getElem?_of_mem hm'
+    have ht := (Hidx j m' hj).2
+    have h1 := congrArg Draft.LogEntry.type he
+    have h2 := congrArg Draft.LogEntry.data he
+    simp only [EntryModel.toLE] at h1 h2
+    rw [← h1, ← h2]; exact ht
 
 end lb
 
