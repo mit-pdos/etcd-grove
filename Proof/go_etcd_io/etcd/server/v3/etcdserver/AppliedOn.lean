@@ -70,6 +70,24 @@ theorem kvLogsOkM_insert (on : Bool) (γr : ReadNames) (M : GMap w64 mvcc.Log) (
     · obtain ⟨A', h1, h2, h3⟩ := Hm k L' hk
       exact ⟨A', h1.trans h, h2, h3⟩
 
+/-- The applied logs of `kvLogsPubM` (E3u). -/
+theorem kvLogsPubM_ok (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (M : GMap w64 mvcc.Log)
+    (a : w64) : kvLogsPubM (GF := GF) on E γr M a ⊢ kvLogsOkM on γr M := by
+  iintro H
+  icases (kvLogsPubM_iff on E γr M a).1 $$ H with ⟨H, -⟩
+  iexact H
+
+/-- `kvLogsOkM_insert` under `kvLogsPubM` (E3u; the current applied index unchanged). -/
+theorem kvLogsPubM_insert (on : Bool) (E : apply.AEnv GF) (γr : ReadNames) (M : GMap w64 mvcc.Log)
+    (a v : w64) (L : mvcc.Log) :
+    kvLogsPubM (GF := GF) on E γr M a ∗ kvLogAtM on γr v L ⊢ kvLogsPubM on E γr (M.insert v L) a := by
+  iintro ⟨H, #HA⟩
+  icases (kvLogsPubM_iff on E γr M a).1 $$ H with ⟨#Hk, #Hp⟩
+  iapply (kvLogsPubM_iff on E γr _ a).2
+  iframe Hp
+  iapply kvLogsOkM_insert on γr M v L $$ [Hk HA]
+  iframe Hk HA
+
 /-- **The log after the next entry, deposited ahead, in the mode** (`applied_predeposit`'s
 counterpart): the apply thread deposits a log `L` extending its current one as the log applied
 through `v' = v + 1`, `L` the mode's model of the committed raft log through `v'`. -/
@@ -108,7 +126,7 @@ theorem applied_predepositM (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : Rea
     | some L' => have := hk v' L' h; omega
   imod ghost_map_insert_persist v' L hfresh $$ HM with ⟨HM, #HLv'⟩
   imod ghostVar_update_halves true γr.pend false false $$ Hpo Hp with ⟨Hpo, Hp⟩
-  ihave #Hkl' := kvLogsOkM_insert on γr M v' L $$ [Hkl HkA]
+  ihave #Hkl' := kvLogsPubM_insert on E γr M v0 v' L $$ [Hkl HkA]
   · iframe Hkl HkA
   imod Hclose $$ [Hat Hauth HM Hp] with -
   · inext
@@ -149,6 +167,7 @@ theorem appliedLogAt_kvLogAtM (on : Bool) (s : Loc) (E : apply.AEnv GF) (γr : R
     iframe Hat Hauth HM Hp HL Hc Hkl
     ipureintro; exact HMk
   imodintro
+  ihave #Hkl := kvLogsPubM_ok on E γr M v $$ Hkl
   iunfold kvLogsOkM at Hkl
   icases Hkl with ⟨%Lb, #Hlb, %Hm⟩
   obtain ⟨A, hA, h1, h2⟩ := Hm i L1 Hm1

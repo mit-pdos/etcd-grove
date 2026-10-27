@@ -899,6 +899,11 @@ local macro "cc_kv_appliedOn" : tactic => `(tactic| (
       Hpe.2.2.1 $$ Hka
     imod applied_predepositM true s E γr aw m.index xj.log xj.log (by omega) (List.prefix_refl _)
       $$ Hainv Hao Hlog HkL with Hpre
+    -- (E3u) the auth state at the log through `m.index` published, for the applied index
+    imod srvApplyKVOn_appliedPub s E ρ.wait xj saj γa hM γr _ m.index
+      (by have := hiA; simp only [List.length_append, List.length_singleton] at this ⊢; omega) $$
+          HKV Hka
+      with ⟨HKV, Hka, #HpubI⟩
     wp_apply (hSet1 s E γr aw m.index xj.log) $$ [Hpre] as ⟨Hao, -, #Hlog'⟩
     · iframe #; iframe Hpre
     (try wp_auto)
@@ -1280,6 +1285,11 @@ theorem EtcdServer.apply.wp_proofOn
         wp_apply hGI $$ [He] as -
         · iframe He
         icases srvApplyKVOn_idxCert s E ρ.wait x1 sa1 $$ HKV with ⟨HKV, #Hcert, -⟩
+        -- (E3u) the auth state at the log through `m.index` published, for the applied index
+        imod srvApplyKVOn_appliedPub s E ρ.wait x1 sa1 γa hM γr _ m.index
+          (by have := hiA; simp only [List.length_append, List.length_singleton] at this ⊢; omega) $$
+          HKV Hka
+          with ⟨HKV, Hka, #HpubI⟩
         wp_apply (hSet1 s E γr aw m.index x1.log) $$ [Hpre] as ⟨Hao, -, #Hlog'⟩
         · iframe #; iframe Hpre
         (try wp_auto)
@@ -1565,6 +1575,11 @@ theorem EtcdServer.apply.wp_proofOn
         wp_apply hGI $$ [He] as -
         · iframe He
         icases srvApplyKVOn_idxCert s E ρ.wait x1 sa1 $$ HKV with ⟨HKV, #Hcert, -⟩
+        -- (E3u) the auth state at the log through `m.index` published, for the applied index
+        imod srvApplyKVOn_appliedPub s E ρ.wait x1 sa1 γa hM γr _ m.index
+          (by have := hiA; simp only [List.length_append, List.length_singleton] at this ⊢; omega) $$
+          HKV Hka
+          with ⟨HKV, Hka, #HpubI⟩
         wp_apply (hSet1 s E γr aw m.index x1.log) $$ [Hpre] as ⟨Hao, -, #Hlog'⟩
         · iframe #; iframe Hpre
         (try wp_auto)

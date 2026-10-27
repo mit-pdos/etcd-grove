@@ -56,8 +56,12 @@ auth plan"): in the mode `on γa`, over the request and read views with auth on 
 true`, `isServerReadM true`), the read deposit at the mode-`on` model's state (`kvDep γr.kv Q
 (kvStM true γr.kv)`), and a lower bound `n` of the auth store's published index the reader holds
 (`auth.authPubLbM`), with the server's range check at it (`srvAuthLb`). Success: the auth store's
-`IsRangePermitted` passed for some auth info at states no older than `n` (`apply.rangeClassFrom`:
-a state recorded at an index at least `n` permits the read of the request's range), and the read
+`IsRangePermitted` passed for some auth info at states no older than some `m ≥ n`
+(`apply.rangeClassFrom`: a state recorded at an index at least `m` permits the read of the
+request's range) and, for a linearizable read, no older than the auth state the committed log
+through the read index left (`authFloorAt`, E3u: the applied index's invariant has that state
+published, and `Range` checks after waiting for the read index, so the reader needs no bound of its
+own beyond `n`, which `auth.authPubLb γa 0` always gives), and the read
 as `spec`'s, a linearizable one at the mode-`on` model of a committed raft log `L` at which the
 deposit gave `□ Q L` (`rangeReadOkM true`). -/
 abbrev EtcdServer.Range.specOn : Prop :=
@@ -74,7 +78,9 @@ abbrev EtcdServer.Range.specOn : Prop :=
     (App (App (Val (s @!! go.GoType.PointerType EtcdServer.ty @!! go!"Range"))
       (Val #(GoInterface.ok ctx))) (Val #r))
   {{ (resp : Loc) (err : GoInterface), RET (PairV #resp #err); srvRdCall s E γr c ∗
-      ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗ (∃ info, apply.rangeClassFrom E.authMode n info o) ∗
+      ((⌜err = GoInterface.nil ∧ resp ≠ null⌝ ∗
+          (∃ (info : go_etcd_io.etcd.server.v3.auth.AuthInfo) (m : Nat), ⌜n ≤ m⌝ ∗ apply.rangeClassFrom E.authMode m info o ∗
+            (if o.base.serializable then iprop(True) else authFloorAt E.authMode γr c m)) ∗
           rangeReadOkM true E γr c F o resp Q) ∨
        (⌜resp = null ∧ err ≠ GoInterface.nil⌝ ∗ applyErrIs err)) }}
 

@@ -23885,3 +23885,44 @@ conjunct each).
 `authPubLb γa 0` from the construction); the read-only `Txn` with auth on (`Txn.specOn`'s read branch
 over E3m's `apply_check_txn_auth_lb`); the admin proposers (their answer, and the same `pubAfterM`),
 the Auth handlers, `setupAuthOk`; `examples/authkv` and the closed theorem.
+
+## E3u of the auth plan: the server-kept lower bound, a linearizable read's floor (2026-10-27 · `notes/auth-plan.md`, E3t's first left item)
+
+**What a server-kept bound can mean.** A bound of `0` is free (`authPubLbM_zero`, from
+`monoNatLbOwn_0`), so keeping one in `srvAuthLb` would say nothing. A bound that says something must
+be tied to an event the reader can name. For a linearizable `Range`, there is one: Go's `Range`
+waits for the read index (`linearizableReadNotify`) *before* its auth check (`doSerialize`'s
+`chk`), so the check can be required to see an auth state no older than the one the committed log
+through the read index left. Serializable reads have no such event; they keep the caller's bound.
+
+**How.** The applied index's invariant keeps, in the mode `on`, the auth state at the current
+applied log published (`appliedPubM on E γr a`, `ServerOn.lean`: a committed raft log `A` through
+`a` whose model's auth state is `authPubAt`). It is folded into the body as `kvLogsPubM on E γr M a`
+(`kvLogsOk` at `false`, by definition, so `srvAppliedBodyM_false` stays `rfl`; `kvLogsPubM_iff`,
+`_ok`, `_insert`, `_move`). Who maintains it:
+
+- the boot: `srvIndices_allocM` takes `appliedPubM on E γr 0`, which `NewServer` publishes from the
+  construction's apply resource (`authApplyResPre_publish`, `StoreLatest.lean`; `appliedPubM_zero`);
+- `setAppliedIndex.specM on` takes `appliedPubM on E γr v'` (one more premise; `spec` derived from
+  `specM false` with `True` for it);
+- the apply loop with auth on publishes from its KV row before each `setAppliedIndex`
+  (`srvApplyKVOn_appliedPub`, `ApplyNormalOn.lean`: the row's latest state is the model's at the
+  applied log, `kvAppliedLOn`), at the normal entry and at the conf change.
+
+The readers: `readIndexOk_logM`/`readIndexOk_logRM`/`readServed_logRM` return it
+(`appliedPubFrom on E γr c`: published at an applied index at least the read index `c`), and
+`authFloor_of_pubFrom` turns it with the reader's bound `n` into a bound `m ≥ n` with the floor
+`authFloorAt M γr c m` (`ReadOn.lean`: the model's auth state at a committed raft log through an
+index at least `c` is recorded in the store's history at an index at most `m`).
+
+**The statement.** `Range.specOn`'s success: `∃ info m, ⌜n ≤ m⌝ ∗ apply.rangeClassFrom E.authMode m
+info o ∗ (if serializable then True else authFloorAt E.authMode γr c m)`: the check's verdict comes
+from states at indices at least `m`, so for a linearizable read no older than the state its read
+index's committed log left. The proof instantiates the store's lower-bound check after the read
+index (`Range.wp_proofOn`'s `wp_join` carries `m`), as the code does. Statement changes:
+`srvAppliedBodyM`'s last conjunct, `srvIndices_allocM`'s and `setAppliedIndex.specM`'s premises,
+the read-index lemmas' posts, `Range.specOn`'s post.
+
+**Not done (in order).** The read-only `Txn` with auth on (`Txn.specOn`'s read branch over E3m's
+`apply_check_txn_auth_lb`, which can take the same floor); the admin proposers, the Auth handlers,
+`setupAuthOk`; `examples/authkv` and the closed theorem.
