@@ -549,6 +549,11 @@ def watchAt (x : GoInterface) (γ : ApiNames) (γw : WatchNames) (r : Res) (ns :
     isSpsc (V := Unit) g dch (fun _ _ => iprop(False)) (fun _ => iprop(True)) ∗
     w ↪[γ.ws]□ spscCode g)
 
+instance watchAt_persistent (x : GoInterface) (γ : ApiNames) (γw : WatchNames) (r : Res)
+    (ns : GoString) (bm : Bool) (inits : List Obj) :
+    Persistent (watchAt (GF := GF) x γ γw r ns bm inits) := by
+  unfold watchAt; infer_instance
+
 /-- **The watch's consumer side**, after `n` events, at position `p`. -/
 def watchCons (γw : WatchNames) (n : Nat) (p : Pos') : IProp GF :=
   iprop(∃ evs : List k8s_io.apimachinery.pkg.watch.Event, spscConsumer γw.ch evs ∗
