@@ -44,6 +44,9 @@ leaky or unusable. Check its findings against the source before acting on them. 
   `isStaticCluster` beside `isDynamicCluster`): it splits the proof into the two cases; the
   general spec should cover the special one as an instance (no reconfiguration is a run of the
   proof with reconfiguration);
+- a premise no client can obtain: every resource a spec takes must come from some spec or law
+  the client sees (`Start`'s `kvBuilt` needs `NewServer`'s post, and that a cluster allocation
+  law), not from the implementation's internal lemmas;
 - a spec that no client uses;
 - a statement that `interface/` does not show in full or that hides behind a wrapper (an atomic
   update behind a helper like `kvOpAu1`: write it in the triple), or whose shape differs from
