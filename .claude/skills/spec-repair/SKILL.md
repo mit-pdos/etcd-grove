@@ -18,12 +18,15 @@ leaky or unusable. Check its findings against the source before acting on them. 
 - a claim the Go code does not support, or one it supports but the spec omits;
 - a premise that is neither a real precondition of the Go code nor a stated, filed scope restriction
   (`issues/`, CLAUDE.md "Issues in the verified code");
-- implementation detail in the statement: ghost names, fractions, internal records or fields;
+- implementation detail in the statement: ghost names, fractions, internal records or fields,
+  masks; the test: an alternative implementation of the same API (etcd's `Put`: one in-memory
+  server, no raft) would have the same spec;
 - a client that unfolds the spec's predicates or opens the package's invariants: a missing law;
 - a spec that no client uses;
 - a statement that `interface/` does not show in full or that hides behind a wrapper.
 
-**Repair.** Fix what the review confirms. Afterwards, spawn a second fresh reviewer on the new
+**Repair.** Fix what the review confirms. The vocabulary is in scope: replace or redefine the
+predicates the spec is written in, not only how the spec combines them. Afterwards, spawn a second fresh reviewer on the new
 `interface/` and iterate until it finds nothing you agree with.
 
 **Constraints:**

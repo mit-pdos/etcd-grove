@@ -8,3 +8,10 @@ One entry per critique of a run: date, target, what the user said, the rule it b
 - 2026-10-27, `EtcdServer.Put.spec` (iterating on candidates): "write the spec as we go in a temp
   file so I can see it in full" (candidate 2 had been an abbreviated sketch in chat). Rule
   (`SKILL.md`, "Iterating with the user"): the full candidate lives in a scratch file.
+- 2026-10-27, `EtcdServer.Put.spec` (candidate 2, which bundled raft's log certificates into
+  `srvLogLb`): "This spec should be the same spec that an alternate implementation would have ...
+  an in-memory, single-server version of etcd that has no raft library and no srvLogLb." Rule
+  (`SKILL.md`, review list): the alternative-implementation test for implementation detail.
+- 2026-10-27, same: "When I ask for a spec to be improved, I'm generally wanting to change
+  predicates that are used in that spec too." Rule (`SKILL.md`, "Repair"): the vocabulary is in
+  scope.
