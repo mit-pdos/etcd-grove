@@ -306,6 +306,136 @@ theorem isAuthStepsX_of_authInvT
     iapply HΦ
     iframe HPP HW HA Ha Hresp; iexact Hout
 
+/-- **`isAuthStepsX` of the real store, keeping its backend** (the auth plan's E3l): as
+`isAuthStepsX_of_authInvT`, with the write resource's backend `be` kept by each step (E3l's
+`X.specTB`) and a persistent fact `Ψ be` of it carried along (the server's: the half of `be` it
+lent is its rest's, `authBeOn`). -/
+theorem isAuthStepsX_of_authInvTB
+    (hEnable : auth.authStore.AuthEnable.specTB (GF := GF) (hG := hG))
+    (hUserAdd : auth.authStore.UserAdd.specTSureB (GF := GF) (hG := hG))
+    (hRoleAdd : auth.authStore.RoleAdd.specTB (GF := GF) (hG := hG))
+    (hUserGrantRole : auth.authStore.UserGrantRole.specTB (GF := GF) (hG := hG))
+    (hRoleGrantPermission : auth.authStore.RoleGrantPermission.specTB (GF := GF) (hG := hG))
+    (st : Loc) (R : IProp GF) (M : auth.AuthMode) (P : IProp GF) (f : val) (T : IProp GF)
+    (Ψ : go_etcd_io.etcd.server.v3.auth.AuthBackend → IProp GF) [hΨ : ∀ be, Persistent (Ψ be)] :
+    isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.auth ∗ auth.authInv st R M ⊢
+      isAuthStepsX (auth.authIface st) P f M (auth.tieRes st M)
+        iprop((∃ be : go_etcd_io.etcd.server.v3.auth.AuthBackend, ((auth.aF go!"be" st ↦{DFrac.own (1 : Qp).half} be ∗
+          auth.authWBackendOk be M P f T) ∗ T) ∗ Ψ be) ∗ auth.tpAdmin st M) := by
+  iintro ⟨#Hpkg, #Hinv⟩
+  iunfold isAuthStepsX
+  iexists (interface.mk (go.GoType.PointerType auth.authStore.ty) #st)
+  isplitr
+  · ipureintro; rfl
+  isplitr
+  · iintro !> %hs %Pre %Q %Post %Φ !> ⟨%Hon, Ho, HX, ⟨⟨%be, ⟨Hbe, HT⟩, #HΨ⟩, HA⟩, Hcs, %Hok⟩ HΦ
+    iunfold auth.tieRes at HX
+    icases HX with ⟨%b0, %sc0, Hfl, #Hev, Hca, #Hs, %Ht⟩
+    ihave HWR : auth.authWRxB st M P f T b0 sc0 be $$ [Hbe HT Hfl Hca]
+    · iunfold auth.authWRxB; iframe; iframe #
+    iapply (hEnable st R M P f T hs Pre Q Post b0 sc0 be) $$ [Ho HWR HA Hcs]
+    · iframe; iframe #; ipureintro; exact ⟨Hon, Hok⟩
+    iintro !> %err ⟨%b, %sc, HA, HPP, HWR, %en, %Hen, #Hv, Hout⟩
+    iunfold auth.authWRxB at HWR
+    icases HWR with ⟨Hbe, HT, Hfl, #Hev', Hca, #Hs'⟩
+    ihave Hout := auth.adminOutP_tieRes st M hs _ _ err b0 sc0 b sc Ht $$ [Hfl Hca Hout]
+    · iframe; iframe #
+    -- (E3c) the flag read is the admin side's half, tied to the latest state
+    ihave Hout := adminOutX_rel M _ hs _ (authEnableR M en) _ err
+      (fun stl o hl hR => ⟨fun γa hM => by
+        subst hM; subst Hen; exact ((Ht stl hl).1).symm, hR⟩) $$ Hout
+    icases adminOutX_applyErrIs M _ hs _ _ err $$ [$Hpkg $Hout] with ⟨Hout, #Ha⟩
+    iapply HΦ
+    iframe HPP HA Ha
+    isplitl [Hbe HT]
+    · iexists be; iframe Hbe HT HΨ
+    iexists en; iframe Hv; iexact Hout
+  isplitr
+  · iintro !> %hs %Pre %Q %Post %r %name %Φ !> ⟨#Hr, #Hsure, %Hn, Ho, HX, ⟨⟨%be, ⟨Hbe, HT⟩, #HΨ⟩, HA⟩, Hcs, %Hok⟩ HΦ
+    iunfold auth.tieRes at HX
+    icases HX with ⟨%b0, %sc0, Hfl, #Hev, Hca, #Hs, %Ht⟩
+    ihave HWR : auth.authWRxB st M P f T b0 sc0 be $$ [Hbe HT Hfl Hca]
+    · iunfold auth.authWRxB; iframe; iframe #
+    iapply (hUserAdd st R M P f T hs Pre Q Post r name b0 sc0 be) $$ [Ho HWR Hcs]
+    · iframe; iframe #; isplitr
+      · ipureintro; exact Hn
+      ipureintro; exact Hok
+    iintro !> %resp %err ⟨%b, %sc, HPP, HWR, Hresp, Hout⟩
+    iunfold auth.authWRxB at HWR
+    icases HWR with ⟨Hbe, HT, Hfl, #Hev', Hca, #Hs'⟩
+    ihave Hout := auth.adminOutP_tieRes st M hs _ _ err b0 sc0 b sc Ht $$ [Hfl Hca Hout]
+    · iframe; iframe #
+    icases adminOutX_applyErrIs M _ hs _ _ err $$ [$Hpkg $Hout] with ⟨Hout, #Ha⟩
+    iapply HΦ
+    iframe HPP HA Ha Hresp
+    isplitl [Hbe HT]
+    · iexists be; iframe Hbe HT HΨ
+    iexact Hout
+  isplitr
+  · iintro !> %hs %Pre %Q %Post %r %name %Φ !> ⟨#Hr, %Hn, Ho, HX, ⟨⟨%be, ⟨Hbe, HT⟩, #HΨ⟩, HA⟩, Hcs, %Hok⟩ HΦ
+    iunfold auth.tieRes at HX
+    icases HX with ⟨%b0, %sc0, Hfl, #Hev, Hca, #Hs, %Ht⟩
+    ihave HWR : auth.authWRxB st M P f T b0 sc0 be $$ [Hbe HT Hfl Hca]
+    · iunfold auth.authWRxB; iframe; iframe #
+    iapply (hRoleAdd st R M P f T hs Pre Q Post r name b0 sc0 be) $$ [Ho HWR Hcs]
+    · iframe; iframe #; isplitr
+      · ipureintro; exact Hn
+      ipureintro; exact Hok
+    iintro !> %resp %err ⟨%b, %sc, HPP, HWR, Hresp, Hout⟩
+    iunfold auth.authWRxB at HWR
+    icases HWR with ⟨Hbe, HT, Hfl, #Hev', Hca, #Hs'⟩
+    ihave Hout := auth.adminOutP_tieRes st M hs _ _ err b0 sc0 b sc Ht $$ [Hfl Hca Hout]
+    · iframe; iframe #
+    icases adminOutX_applyErrIs M _ hs _ _ err $$ [$Hpkg $Hout] with ⟨Hout, #Ha⟩
+    iapply HΦ
+    iframe HPP HA Ha Hresp
+    isplitl [Hbe HT]
+    · iexists be; iframe Hbe HT HΨ
+    iexact Hout
+  isplitr
+  · iintro !> %hs %Pre %Q %Post %r %user %role %Φ !> ⟨#Hr, %Hn, Ho, HX, ⟨⟨%be, ⟨Hbe, HT⟩, #HΨ⟩, HA⟩, Hcs, %Hb, %Hok⟩ HΦ
+    iunfold auth.tieRes at HX
+    icases HX with ⟨%b0, %sc0, Hfl, #Hev, Hca, #Hs, %Ht⟩
+    ihave HWR : auth.authWRxB st M P f T b0 sc0 be $$ [Hbe HT Hfl Hca]
+    · iunfold auth.authWRxB; iframe; iframe #
+    iapply (hUserGrantRole st R M P f T hs Pre Q Post r user role b0 sc0 be) $$ [Ho HWR Hcs]
+    · iframe; iframe #; isplitr
+      · ipureintro; exact Hn
+      isplitr
+      · ipureintro; exact Hb
+      ipureintro; exact Hok
+    iintro !> %resp %err ⟨%b, %sc, HPP, HWR, Hresp, Hout⟩
+    iunfold auth.authWRxB at HWR
+    icases HWR with ⟨Hbe, HT, Hfl, #Hev', Hca, #Hs'⟩
+    ihave Hout := auth.adminOutP_tieRes st M hs _ _ err b0 sc0 b sc Ht $$ [Hfl Hca Hout]
+    · iframe; iframe #
+    icases adminOutX_applyErrIs M _ hs _ _ err $$ [$Hpkg $Hout] with ⟨Hout, #Ha⟩
+    iapply HΦ
+    iframe HPP HA Ha Hresp
+    isplitl [Hbe HT]
+    · iexists be; iframe Hbe HT HΨ
+    iexact Hout
+  · iintro !> %hs %Pre %Q %Post %r %name %w %Φ !> ⟨#Hr, %Hn, Ho, HX, ⟨⟨%be, ⟨Hbe, HT⟩, #HΨ⟩, HA⟩, Hcs, %Hok⟩ HΦ
+    iunfold auth.tieRes at HX
+    icases HX with ⟨%b0, %sc0, Hfl, #Hev, Hca, #Hs, %Ht⟩
+    ihave HWR : auth.authWRxB st M P f T b0 sc0 be $$ [Hbe HT Hfl Hca]
+    · iunfold auth.authWRxB; iframe; iframe #
+    iapply (hRoleGrantPermission st R M P f T hs Pre Q Post r name w b0 sc0 be) $$ [Ho HWR Hcs]
+    · iframe; iframe #; isplitr
+      · ipureintro; exact Hn
+      ipureintro; exact Hok
+    iintro !> %resp %err ⟨%b, %sc, HPP, HWR, Hresp, Hout⟩
+    iunfold auth.authWRxB at HWR
+    icases HWR with ⟨Hbe, HT, Hfl, #Hev', Hca, #Hs'⟩
+    ihave Hout := auth.adminOutP_tieRes st M hs _ _ err b0 sc0 b sc Ht $$ [Hfl Hca Hout]
+    · iframe; iframe #
+    icases adminOutX_applyErrIs M _ hs _ _ err $$ [$Hpkg $Hout] with ⟨Hout, #Ha⟩
+    iapply HΦ
+    iframe HPP HA Ha Hresp
+    isplitl [Hbe HT]
+    · iexists be; iframe Hbe HT HΨ
+    iexact Hout
+
 end proof
 
 

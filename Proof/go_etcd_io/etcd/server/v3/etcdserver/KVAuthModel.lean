@@ -404,19 +404,19 @@ def kvModelOn (γk : KVNames) (st₀ : auth.AuthState) (L : List EntryModel) : m
 theorem kvModelOn_nil (γk : KVNames) (st₀ : auth.AuthState) : kvModelOn γk st₀ [] = γk.log0 := rfl
 
 /-- **The workload facts of the committed log in the mode `on`** (`kvWork` with `logShapeOn`). -/
-def kvWorkOn (cfg : GSet w64) (γk : KVNames) (L : List EntryModel) : IProp GF :=
+def kvWorkOn (cfg : RaftNames) (γk : KVNames) (L : List EntryModel) : IProp GF :=
   iprop(⌜logShapeOn L ∧ ccLogOk cfg L⌝ ∗ [∗list] m ∈ L, entryClaim γk.ids m)
 
-instance kvWorkOn_persistent (cfg : GSet w64) (γk : KVNames) (L : List EntryModel) :
+instance kvWorkOn_persistent (cfg : RaftNames) (γk : KVNames) (L : List EntryModel) :
     Persistent (kvWorkOn (GF := GF) cfg γk L) := by
   unfold kvWorkOn; infer_instance
 
-instance kvWorkOn_timeless (cfg : GSet w64) (γk : KVNames) (L : List EntryModel) :
+instance kvWorkOn_timeless (cfg : RaftNames) (γk : KVNames) (L : List EntryModel) :
     Timeless (kvWorkOn (GF := GF) cfg γk L) := by
   unfold kvWorkOn; infer_instance
 
 /-- `kvWork` gives `kvWorkOn`. -/
-theorem kvWorkOn_of_kvWork (cfg : GSet w64) (γk : KVNames) (L : List EntryModel) :
+theorem kvWorkOn_of_kvWork (cfg : RaftNames) (γk : KVNames) (L : List EntryModel) :
     kvWork (GF := GF) cfg γk L ⊢ kvWorkOn cfg γk L := by
   unfold kvWork kvWorkOn
   iintro ⟨%h, #H⟩
@@ -435,7 +435,7 @@ def kvInvOn (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState) : IP
     srvRLog γ L ∗ ghostVar γk.st (1 : Qp).half (kvStateOf (kvModelOn γk st₀ L)) ∗
     ⌜plainLogOn L ∧ detLogOn γk.c0 γk.ch0 (st₀, γk.log0) L ∧ srvIdxOkW γ.ai0 L ∧
       uint.Z γk.c0 ≤ uint.Z γ.ai0 + L.length ∧
-      γk.ch0 = apply.alarmChain true false false ∧ γk.log0 ≠ []⌝ ∗ kvWorkOn γ.raft.reCfg γk L)
+      γk.ch0 = apply.alarmChain true false false ∧ γk.log0 ≠ []⌝ ∗ kvWorkOn γ.raft γk L)
 
 instance kvInvOn_persistent (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthState) :
     Persistent (kvInvOn (GF := GF) γ γk st₀) := by

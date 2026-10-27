@@ -25,11 +25,12 @@ variable [sem : go.Semantics]
 variable [package_sem : go_etcd_io.etcd.server.v3.etcdserver.api.v2stats.Assumptions]
 
 /-- The logger defaulted to `zap.NewNop()` when nil, the followers' map made, the stats
-allocated. -/
+allocated: their mutex initialized (guarding nothing), the map owned. -/
 theorem v2stats.NewLeaderStats.wp_proof (wp_NewNop : zap.NewNop.spec (GF := GF) (hG := hG)) :
     v2stats.NewLeaderStats.spec (GF := GF) (hG := hG) := by
   intro lg id
   wp_start
+  iapply wp_fupd
   ihave #Hzap : isPkgInit (PROP := IProp GF) pkg_id.go_uber_org.zap $$ []
   · iPkgInit
   (try wp_auto)
@@ -42,8 +43,21 @@ theorem v2stats.NewLeaderStats.wp_proof (wp_NewNop : zap.NewNop.spec (GF := GF) 
     wp_alloc p as Hp
     (try wp_auto)
     ihave %Hnn := typedPointsto_not_null $$ Hp
+    iStructNamed Hp
+    iStructNamed leaderStats
+    ipersist Followers
+    imod sync.init_Mutex iprop(True) ⊤ (v2stats.lsMutexAddr p) $$ Mutex [] with #Hmu
+    · inext; itrivial
+    imodintro
     iapply HΦ
-    ipureintro; exact Hnn
+    isplitr
+    · ipureintro; exact Hnn
+    isplitr
+    · iunfold v2stats.isLeaderStats; iexact Hmu
+    iunfold v2stats.lsFollowers
+    iexists m, ∅
+    iframe #; iframe
+    ipureintro; intro k v h; simp at h
 
 end proof
 

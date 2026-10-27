@@ -18,7 +18,7 @@ environment's `AEnv.RO` its resource. Of the writers the apply path reaches:
   saved (`members/<id> := json(member)`, `MustSaveMemberToBackend`: the **in-memory** member,
   exception 7, which is why the in-memory list is part of the state); for another id nothing
   (a removed member's: a warning; neither: a panic the contract does not model, as before);
-* the server's `applyConfChange` (`AddNode`, `membership.ccRest`, server-level).
+* the server's `applyConfChange` (`AddNode`, `RemoveNode`: `ccRest`, server-level).
 
 The writers the workload does not reach (the alarm store's `Activate`/`Deactivate`, the auth
 store's writes, the lessor's `Grant`/`Checkpoint`, the cluster's `SetDowngradeInfo`) take the
@@ -33,6 +33,7 @@ module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.InvRequest
 public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBbolt
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.MemberModel
 
 @[expose] public section
 
@@ -41,17 +42,6 @@ noncomputable section
 namespace Perennial
 namespace EtcdGrove
 namespace apply
-
-/-- **A cluster member, as a value** (`membership.Member`: its id, its `RaftAttributes`' peer
-URLs and learner flag, its `Attributes`' name and client URLs): what `json.Unmarshal` of a
-member's JSON gives (the members' records and a conf change's context are the members' JSON). -/
-structure MemberM where
-  id : w64
-  peerURLs : List GoString
-  isLearner : Bool
-  name : GoString
-  clientURLs : List GoString
-  deriving Inhabited
 
 /-- **The rest buckets and the cluster's in-memory members** (see the file header): each rest
 bucket's contents (absent if absent: `backend.rbData`'s value) and the cluster's member list. -/
@@ -72,9 +62,32 @@ opaque semverNorm : GoString → GoString
 /-- The `cluster` bucket's version key (`schema.ClusterClusterVersionKeyName`). -/
 def clusterVersionKey [GooseExts] : GoString := go!"clusterVersion"
 
+/-- `n/k := v` in the tracked buckets `bk` (the bucket created if absent; D43 M5b′, 2026-10-26: the
+member backend's contracts' effect). -/
+def bkPut (bk : GMap GoString backend.BktData) (n k v : GoString) : GMap GoString backend.BktData :=
+  bk.insert n (((bk.lookup n).getD ∅).insert k v)
+
+/-- `delete(n, k)` in the tracked buckets `bk` (the bucket created empty if absent; D43 M5b′). -/
+def bkDel (bk : GMap GoString backend.BktData) (n k : GoString) : GMap GoString backend.BktData :=
+  bk.insert n (((bk.lookup n).getD ∅).delete k)
+
 /-- `n/k := v` in the rest buckets (the bucket created if absent). -/
 def RestM.putIn (r : RestM) (n k v : GoString) : RestM :=
   { r with bk := r.bk.insert n (((r.bk.lookup n).getD ∅).insert k v) }
+
+/-- `delete(n, k)` in the rest buckets (D43 M5b′, 2026-10-26: `MustDeleteMemberFromBackend`'s;
+the bucket created empty if absent, as `putIn`). -/
+def RestM.delIn (r : RestM) (n k : GoString) : RestM :=
+  { r with bk := r.bk.insert n (((r.bk.lookup n).getD ∅).delete k) }
+
+theorem RestM.putIn_bk (r : RestM) (n k v : GoString) : (r.putIn n k v).bk = bkPut r.bk n k v :=
+  rfl
+
+theorem RestM.delIn_bk (r : RestM) (n k : GoString) : (r.delIn n k).bk = bkDel r.bk n k := rfl
+
+theorem RestM.putIn_mem (r : RestM) (n k v : GoString) : (r.putIn n k v).mem = r.mem := rfl
+
+theorem RestM.delIn_mem (r : RestM) (n k : GoString) : (r.delIn n k).mem = r.mem := rfl
 
 /-- **`SetVersion` of the version `MustParse(s)`** (see the file header). -/
 def restSetVersion [GooseExts] (v3 : Bool) (s : GoString) (r : RestM) : RestM :=

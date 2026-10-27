@@ -4,9 +4,10 @@
 (no Rocq counterpart).
 * `srvNetMember γn s id τ` (persistent): the server `s` is member `id` of the network `γn`:
   what its inbound path reads (`srvProcOk`, its member id among it) and its raft wrapper's
-  transport `τ.t` with the names `τ.c` (`SrvTr`), of member `id`, frozen (`trFrozen`) with no
-  remote (a new cluster's bootstrap has none, `bootOk`'s `Hrms0`; what `CutPeer`/`MendPeer` need,
-  the partition plan's S2, 2026-10-20) and every other member of the network added as a peer
+  transport `τ.t` with the names `τ.c` (`SrvTr`), of member `id`, frozen (`trFrozen`, the static
+  mode's) with no remote ever (D43 M5c: its pool's ids `τ.c.L` empty, so no remote is started; what
+  `CutPeer`/`MendPeer` need, the partition plan's S2, 2026-10-20; until M5c, a new cluster's
+  bootstrap has none, `bootOk`'s `Hrms0`) and every other member of the network added as a peer
   (what `Handler` needs, D40). `NewServer` gives it.
 * `srvTrTok γn τ`: one of the transport's lock's reader tokens (`trTok`), what `CutPeer` and
   `MendPeer` borrow; `srvServeRes γn τ`: what each request the transport's handler serves
@@ -45,7 +46,7 @@ structure SrvTr (GF : BundledGFunctors) where
 def srvNetMember (γn : NetNames GF) (s : Loc) (id : w64) (τ : SrvTr GF) : IProp GF :=
   iprop(srvProcOk γn s id ∗ rnTransportAddr (srvRAddr s) ↦□ transportIface τ.t ∗ ⌜τ.c.lid = id⌝ ∗
     ∃ rs : trIds, trFrozen γn τ.t τ.c rs ∗
-      ⌜rs.1 = [] ∧ ∀ f, (netRh γn).member f → f ≠ id → f ∈ rs.2⌝)
+      ⌜τ.c.L = [] ∧ ∀ f, (netRh γn).member f → f ≠ id → f ∈ rs⌝)
 
 instance srvNetMember_persistent (γn : NetNames GF) (s : Loc) (id : w64) (τ : SrvTr GF) :
     Persistent (srvNetMember (GF := GF) γn s id τ) := by

@@ -102,6 +102,55 @@ noncomputable def NewLeaderStats.impl [GooseExts] [GoGlobalContext] : val :=
   (App (Val doExecute)
   (Val #())))))))))
 
+/-- go: leader.go:67:24 -/
+noncomputable def LeaderStats.Follower.impl [GooseExts] [GoGlobalContext] : val :=
+  (LamV "ls"
+  (Lam "name"
+  (App (Val wrapDefer)
+  (Lam "$defer"
+  (Let "ls" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType LeaderStats.ty)))) (Var "ls"))
+  (Let "name" (App (Val (GoInstruction (GoAlloc go.string))) (Var "name"))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "__p" (App (App (Val (map.lookup2 go.string (go.GoType.PointerType FollowerStats.ty))) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string (go.GoType.PointerType FollowerStats.ty))))) (App (Val (GoInstruction (StructFieldRef leaderStats.ty go!"Followers"))) (App (Val (GoInstruction (StructFieldRef LeaderStats.ty go!"leaderStats"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType LeaderStats.ty)))) (Var "ls")))))) (App (Val (GoInstruction (GoLoad go.string))) (Var "name")))
+  (Let "$ret0" (Fst (Var "__p"))
+  (Let "$ret1" (Snd (Var "__p"))
+  (Let "$r0" (Var "$ret0")
+  (Let "$r1" (Var "$ret1")
+  (Let "ok" (App (Val (GoInstruction (GoAlloc go.bool))) (App (Val (GoInstruction (GoZeroVal go.bool))) (Val #())))
+  (Let "fs" (App (Val (GoInstruction (GoAlloc (go.GoType.PointerType FollowerStats.ty)))) (App (Val (GoInstruction (GoZeroVal (go.GoType.PointerType FollowerStats.ty)))) (Val #())))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (App (Val doReturn)
+  (App (Val (GoInstruction (GoLoad (go.GoType.PointerType FollowerStats.ty)))) (Var "fs")))))
+  (If (App (Val (GoInstruction (GoUnOp GoNot go.bool))) (App (Val (GoInstruction (GoLoad go.bool))) (Var "ok")))
+  (Let "$r0" (App (Val (GoInstruction (GoAlloc FollowerStats.ty))) (App (Val (GoInstruction (CompositeLiteral FollowerStats.ty))) (LiteralValue [])))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (Val #(W64 4890909195324358656))
+  (App (App (Val exceptionSeq) (Lam BAnon
+  (Let "$r0" (App (Val (GoInstruction (GoLoad (go.GoType.PointerType FollowerStats.ty)))) (Var "fs"))
+  (App (Val doExecute)
+  (App (App (App (Val (map.insert go.string)) (App (Val (GoInstruction (GoLoad (go.GoType.MapType go.string (go.GoType.PointerType FollowerStats.ty))))) (App (Val (GoInstruction (StructFieldRef leaderStats.ty go!"Followers"))) (App (Val (GoInstruction (StructFieldRef LeaderStats.ty go!"leaderStats"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType LeaderStats.ty)))) (Var "ls")))))) (App (Val (GoInstruction (GoLoad go.string))) (Var "name"))) (Var "$r0"))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.float64))) (Pair (App (Val (GoInstruction (StructFieldRef LatencyStats.ty go!"Minimum"))) (App (Val (GoInstruction (StructFieldRef FollowerStats.ty go!"Latency"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType FollowerStats.ty)))) (Var "fs")))) (Var "$r0"))))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType FollowerStats.ty)))) (Pair (Var "fs") (Var "$r0"))))))
+  (App (Val doExecute)
+  (Val #()))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore go.bool))) (Pair (Var "ok") (Var "$r1")))))))
+  (App (Val doExecute)
+  (App (Val (GoInstruction (GoStore (go.GoType.PointerType FollowerStats.ty)))) (Pair (Var "fs") (Var "$r0"))))))))))))))
+  (App (Val doExecute)
+  (Let "$f" (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType LeaderStats.ty) go!"Unlock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType LeaderStats.ty)))) (Var "ls")))
+  (App (Val (GoInstruction (GoStore deferType))) (Pair (Var "$defer") (Let "$oldf" (App (Val (GoInstruction (GoLoad deferType))) (Var "$defer"))
+  (Lam BAnon
+  (Seq (App (Var "$f") (Val #()))
+  (App (Var "$oldf") (Val #()))))))))))))
+  (App (Val doExecute)
+  (App (App (Val (GoInstruction (MethodResolve (go.GoType.PointerType LeaderStats.ty) go!"Lock"))) (App (Val (GoInstruction (GoLoad (go.GoType.PointerType LeaderStats.ty)))) (Var "ls"))) (Val #()))))))))))
+
 noncomputable instance info' : PkgInfo pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.v2stats where
   pkgImportedPkgs := [pkg_id.sync, pkg_id.time, pkg_id.go_uber_org.zap, pkg_id.go_etcd_io.raft.v3]
 
@@ -193,6 +242,11 @@ class LeaderStats.TypeAssumptions [GooseExts] [GoGlobalContext] [GoLocalContext]
   set_leaderStats : ∀ (x : LeaderStats) (y : leaderStats), go.IsGoStepPureDetTagged under (StructFieldSet LeaderStats.underlying go!"leaderStats") (PairV #x #y) (Val #(({ x with leaderStats' := y } : LeaderStats)))
   get_Mutex : ∀ (x : LeaderStats), go.IsGoStepPureDetTagged under (StructFieldGet LeaderStats.underlying go!"Mutex") #x (Val #(x.Mutex'))
   set_Mutex : ∀ (x : LeaderStats) (y : _root_.Perennial.sync.Mutex), go.IsGoStepPureDetTagged under (StructFieldSet LeaderStats.underlying go!"Mutex") (PairV #x #y) (Val #(({ x with Mutex' := y } : LeaderStats)))
+  ptr_Follower_unfold : MethodUnfold (go.GoType.PointerType LeaderStats.ty) go!"Follower" LeaderStats.Follower.impl
+  ptr_Lock_unfold : MethodUnfold (go.GoType.PointerType LeaderStats.ty) go!"Lock" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Lock"))) (App (Val (GoInstruction (StructFieldRef LeaderStats.ty go!"Mutex"))) (Var "$r"))))
+  ptr_Unlock_unfold : MethodUnfold (go.GoType.PointerType LeaderStats.ty) go!"Unlock" (LamV "$r"
+(App (Val (GoInstruction (MethodResolve (go.GoType.PointerType _root_.Perennial.sync.Mutex.ty) go!"Unlock"))) (App (Val (GoInstruction (StructFieldRef LeaderStats.ty go!"Mutex"))) (Var "$r"))))
 
 attribute [instance] LeaderStats.TypeAssumptions.type_repr
   LeaderStats.TypeAssumptions.underlying
@@ -202,6 +256,9 @@ attribute [instance] LeaderStats.TypeAssumptions.type_repr
   LeaderStats.TypeAssumptions.set_leaderStats
   LeaderStats.TypeAssumptions.get_Mutex
   LeaderStats.TypeAssumptions.set_Mutex
+  LeaderStats.TypeAssumptions.ptr_Follower_unfold
+  LeaderStats.TypeAssumptions.ptr_Lock_unfold
+  LeaderStats.TypeAssumptions.ptr_Unlock_unfold
 
 structure LatencyStats [GooseExts] where
   mk ::

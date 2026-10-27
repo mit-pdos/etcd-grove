@@ -20,6 +20,7 @@ Lean-first (no Rocq counterpart).
 module
 
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVReadOn
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.KVAuthShape
 
 @[expose] public section
 
@@ -72,6 +73,41 @@ theorem commitOkOn_plain (c₀ : w64) (ch : apply.Chain) (s₀ : auth.AuthState 
     rw [plainReq_noAdminP rq hp] at ha
     cases ha
 
+/-- An admitted admin request is not a KV request. -/
+theorem adminKindOk_nonKV' (rq : apply.IRRModel) (h : apply.adminKindOk rq) :
+    apply.isKVKind (apply.dispatchKind rq) = false := by
+  unfold apply.adminKindOk at h
+  split at h <;> simp_all [apply.isKVKind]
+
+/-- **What an admin proposal needs in the mode `on`** (the auth plan's E3m; `KVAuthShape.lean`): an
+admitted admin request (`adminKindOk`) that needs the admin permission, whose `UserAdd` (if any)
+has a password choice that cannot fail and that grants no permission to a role (a
+`RoleGrantPermission` is determinate only at a state where its role has none, which the proposer
+does not see: `grantPermFresh`), from a start whose users' roles are sorted. -/
+def adminPropOk (st₀ : auth.AuthState) (rq : apply.IRRModel) : Prop :=
+  apply.adminKindOk rq ∧ apply.needAdminPermission rq = true ∧
+    (∀ m, rq.authUserAdd = some m → m.pwSure) ∧ rq.authRoleGrantPermission = none ∧
+    rolesSorted st₀
+
+/-- **The committer's obligation for an admin entry** (`commitOkOn`): admitted, and determinate
+at the state after any log (the users' roles sorted along the model, `rolesSorted_kvRaftOfOn`;
+`authDet_of_sorted`). -/
+theorem commitOkOn_admin (c₀ : w64) (ch : apply.Chain) (st₀ : auth.AuthState) (log₀ : mvcc.Log)
+    (L : List EntryModel) (e : EntryModel) (d : List w8) (rq : apply.IRRModel)
+    (hed : e.data = d) (hdec : apply.irrDecode d = some rq) (ha : adminPropOk st₀ rq) :
+    commitOkOn c₀ ch (st₀, log₀) L e := by
+  obtain ⟨hk, -, hpw, hgp, hsort⟩ := ha
+  refine ⟨fun _ _ rq' h => ?_, fun _ _ rq' h => ?_⟩
+  · rw [hed, hdec] at h; cases h; exact Or.inr hk
+  · rw [hed, hdec] at h
+    cases h
+    refine ⟨fun _ _ => ?_, fun hkv => ?_⟩
+    · apply authDet_of_sorted
+      · exact rolesSorted_kvRaftOfOn c₀ ch _ L hsort
+      · refine ⟨hpw, fun r w ps hr _ => ?_⟩
+        rw [hgp] at hr; cases hr
+    · rw [adminKindOk_nonKV' rq hk] at hkv; cases hkv
+
 /-- **A write-free entry keeps the mode-`on` model's state** (auth state and log): a request that
 needs no admin permission and writes nothing, let through or refused. -/
 theorem kvEntryOn_nonwrite (c₀ : w64) (ch : apply.Chain) (s : auth.AuthState × mvcc.Log)
@@ -121,10 +157,19 @@ instance grantedRes_persistent (γk : KVNames) (st₀ : auth.AuthState) (rq : ap
     Persistent (grantedRes (GF := GF) γk st₀ rq γc Q L) := by
   unfold grantedRes; infer_instance
 
+/-- **An admin proposal's result in the mode `on`** at the committed log `L` before its entry: the
+users' roles sorted there and the entry determinate, so the auth state after it is the model's step
+`adminNext rq` of the state after `L` (the auth plan's E3m). -/
+def adminPropRes (γk : KVNames) (st₀ : auth.AuthState) (rq : apply.IRRModel) (L : List EntryModel) :
+    IProp GF :=
+  iprop(⌜rolesSorted (kvRaftOfOn γk.c0 γk.ch0 (st₀, γk.log0) L).1 ∧
+    authDet rq (kvRaftOfOn γk.c0 γk.ch0 (st₀, γk.log0) L).1⌝)
+
 /-- **What a proposal of `rq` needs in the mode `on`** (`reqPropOk`'s, see the header): a plain
 request with no KV write (`Qr` trivial); or a plain request of the KV operation `op` with its
 client's update fired at most once, `Qr` its result if granted (`grantedRes`). Either with every
-permission of the cache's shape (`kvShapeAll`). -/
+permission of the cache's shape (`kvShapeAll`). Or (E3m) an admin request meeting `adminPropOk`,
+`Qr` its step's determinacy at the commit (`adminPropRes`). -/
 def reqPropOkOn (γk : KVNames) (st₀ : auth.AuthState) (rq : apply.IRRModel)
     (Qr : List EntryModel → IProp GF) : IProp GF :=
   iprop((⌜plainReq rq ∧ ¬ writeKind (apply.dispatchKind rq) ∧ irrNoZeroEnd rq ∧ rqShape rq ∧
@@ -132,7 +177,8 @@ def reqPropOkOn (γk : KVNames) (st₀ : auth.AuthState) (rq : apply.IRRModel)
     (∃ (op : KVOp) (Q : KVState → IProp GF) (γc : GName), ⌜plainReq rq ∧
         reqKVOp rq = some op ∧ irrNoZeroEnd rq ∧ rqShape rq ∧ kvShapeAll rq ∧
         Qr = grantedRes γk st₀ rq γc Q⌝ ∗
-      kvOpAu1 γk op Q))
+      kvOpAu1 γk op Q) ∨
+    ⌜adminPropOk st₀ rq ∧ irrNoZeroEnd rq ∧ Qr = adminPropRes γk st₀ rq⌝)
 
 end defs
 
@@ -151,8 +197,8 @@ theorem kvModelOn_snoc_nonwrite (γk : KVNames) (st₀ : auth.AuthState) (L : Li
   rfl
 
 /-- **The mode-`on` workload facts, one entry on** (`kvWork_snoc`'s). -/
-theorem kvWorkOn_snoc (cfg : GSet w64) (γk : KVNames) (L : List EntryModel) (e : EntryModel)
-    (hs : entryShapeOn e) (hc : e.typ ≠ W32 0 → ccBootOk cfg e.data) :
+theorem kvWorkOn_snoc (cfg : RaftNames) (γk : KVNames) (L : List EntryModel) (e : EntryModel)
+    (hs : entryShapeOn e) (hc : e.typ ≠ W32 0 → ccPolOk cfg e.data) :
     ⊢ kvWorkOn (GF := GF) cfg γk L -∗ entryClaim γk.ids e -∗ kvWorkOn cfg γk (L ++ [e]) := by
   iintro Hw #He
   iunfold kvWorkOn at Hw
@@ -195,7 +241,7 @@ theorem kv_prop_au_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthS
     iframe Hcl Hreg
     ipureintro; exact ⟨hdec, hid⟩
   iunfold reqPropOkOn at Hok
-  icases Hok with (%Hno | ⟨%op, %Q, %γc, %Hop, Hau⟩)
+  icases Hok with (%Hno | ⟨%op, %Q, %γc, %Hop, Hau⟩ | %Had)
   · -- no KV write: the state kept, granted or refused
     obtain ⟨hplain, hnw, -, hshape, hsa, hQr⟩ := Hno
     subst hQr
@@ -225,7 +271,7 @@ theorem kv_prop_au_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthS
       have hent : kvModelOn γk st₀ (L ++ [e]) = kvModelOn γk st₀ L :=
         kvModelOn_snoc_nonwrite γk st₀ L e rq (by rw [hed]; exact hdec)
           (plainReq_noAdminP rq hplain) hnw
-      ihave #Hw' := kvWorkOn_snoc γ.raft.reCfg γk L e (hsh e het hed hshape)
+      ihave #Hw' := kvWorkOn_snoc γ.raft γk L e (hsh e het hed hshape)
         (fun h => absurd het h) $$ Hw (Hecl $$ %e %hed)
       imod Hclose $$ [HL Hσ] with -
       · inext
@@ -276,7 +322,7 @@ theorem kv_prop_au_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthS
       obtain ⟨het, hed, hidx⟩ := He
       have hidx' := srvIdxOkW_snoc γ.ai0 L e Hok.2.2.1 hidx (Or.inl het)
       have hdata : e.data ≠ [] := by rw [hed]; exact hd
-      ihave #Hw' := kvWorkOn_snoc γ.raft.reCfg γk L e (hsh e het hed hshape)
+      ihave #Hw' := kvWorkOn_snoc γ.raft γk L e (hsh e het hed hshape)
         (fun h => absurd het h) $$ Hw (Hecl $$ %e %hed)
       have hfacts := kvInvOn_facts_snoc γ γk st₀ L e Hok hidx'
         (commitOkOn_plain _ _ _ L e d rq hed hdec hplain hsa)
@@ -328,6 +374,59 @@ theorem kv_prop_au_on (γ : ServerRaftNames) (γk : KVNames) (st₀ : auth.AuthS
         iunfold grantedRes
         iright
         ipureintro; exact hg
+  · -- an admin request: the KV state kept, the step determinate at the commit
+    obtain ⟨hadm, -, hQr⟩ := Had
+    subst hQr
+    have hna := hadm.2.1
+    imodintro
+    unfold srvPropAu1
+    iauintro
+    unfold atomic_acc
+    iunfold kvInvOn at Hinv
+    iinv Hinv with >Hi Hclose
+    icases Hi with ⟨%L, HL, Hσ, %Hok, #Hw⟩
+    isimp only [texist_cons, texist_nil, tforall_cons, tforall_nil, Std.Tele.app, ULift.down]
+    iapply fupd_mask_intro (Std.LawfulSet.empty_subset)
+    iintro Hmask
+    iexists L
+    iframe HL
+    isplit
+    · iintro HL
+      imod Hmask with -
+      imod Hclose $$ [HL Hσ] with -
+      · inext; iexists L; iframe HL Hσ Hw; ipureintro; exact Hok
+      imodintro
+      itrivial
+    · iintro %e ⟨%He, HL⟩
+      imod Hmask with -
+      obtain ⟨het, hed, hidx⟩ := He
+      have hidx' := srvIdxOkW_snoc γ.ai0 L e Hok.2.2.1 hidx (Or.inl het)
+      have hdata : e.data ≠ [] := by rw [hed]; exact hd
+      have hidxe : uint.Z γk.c0 < uint.Z e.index := by
+        have := Hok.2.2.2.1
+        omega
+      have hent : kvModelOn γk st₀ (L ++ [e]) = kvModelOn γk st₀ L :=
+        kvModelOn_snoc_admin γk st₀ L e rq het hdata (by rw [hed]; exact hdec) hidxe hna
+      have hshe : entryShapeOn e :=
+        ⟨fun _ => Or.inr ⟨rq, by rw [hed]; exact hdec, ⟨id, hid⟩, Or.inr hadm.1⟩,
+          fun h => absurd het h⟩
+      ihave #Hw' := kvWorkOn_snoc γ.raft γk L e hshe (fun h => absurd het h)
+        $$ Hw (Hecl $$ %e %hed)
+      have hc := commitOkOn_admin γk.c0 γk.ch0 st₀ γk.log0 L e d rq hed hdec hadm
+      imod Hclose $$ [HL Hσ] with -
+      · inext
+        iexists L ++ [e]
+        rw [hent]
+        iframe HL Hσ Hw'
+        ipureintro
+        exact kvInvOn_facts_snoc γ γk st₀ L e Hok hidx' hc
+      imodintro
+      iintro !>
+      iunfold adminPropRes
+      ipureintro
+      have hs := rolesSorted_kvRaftOfOn γk.c0 γk.ch0 (st₀, γk.log0) L hadm.2.2.2.2
+      refine ⟨hs, authDet_of_sorted rq _ hs ⟨hadm.2.2.1, fun r w ps hr _ => ?_⟩⟩
+      rw [hadm.2.2.2.1] at hr; cases hr
 
 end lemmas
 

@@ -214,7 +214,8 @@ the requests in flight finish (`ErrStopped`). *(B)* Also `Stop`/`HardStop` from 
     batch transaction, or a contract, decided in M4c).
   - *M4d.* `ValidateConfigurationChange` translated (its `RemoveNode` case proved, the others over
     `json.Unmarshal`'s opaque model as `ccContextOf`).
-- **M5. `applyConfChange` proved** for `AddNode` of a known member and `RemoveNode`: raft's
+- **M5. `applyConfChange` proved** (**done 2026-10-26**, sub-stages M5a-M5e below; `removed` is
+  `false`: the local member's removal is M6's) for `AddNode` of a known member and `RemoveNode`: raft's
   `ApplyConfChange` in the dynamic mode, the cluster writers (M4), `transport.RemovePeer`, and
   `removed = (id = local)`. (2026-10-25, D22 S8d: `rafthttp.Transport.RemoveAllPeers.spec` exists
   over `trLive` (`Spec/.../rafthttp/Transport__RemoveAllPeers.lean`, ids `(rs.1, [])` after; its proof
@@ -224,6 +225,41 @@ the requests in flight finish (`ErrStopped`). *(B)* Also `Stop`/`HardStop` from 
   consumed by `Stop`; the readers restated over `trState`, D43 "W3 settled"); `Process`'s removed-sender branch and the
   `403` it answers made reachable: the raft protocol's "no 403" weakened to "no 403 to a member not
   removed", `checkPostResponse`'s `errMemberRemoved` then a real error.
+  *Scoped 2026-10-26* (D43 "M5"; the user's decisions): (i) `AddMember` translated and proved,
+  `json.Marshal` of a `*Member` a new trust-boundary axiom over the opaque `memberEnc` (as M4d's
+  `Unmarshal`); (ii) the server's dynamic policy admits `RemoveNode` of **another** member only until
+  M6 (`applyConfChange`'s spec covers either, `removed = (id = local)`; `apply`'s `shouldStop` stays
+  `false`); (iii) `probing.NewProber` restated: `proberOk` also promises `Remove(id)` (`removePeer`'s).
+  Found while scoping: `removePeer` deletes from `LeaderStats.Followers` without the stats' lock; no
+  race in the server (the map's only other writer, `Follower`, runs from `AddPeer` under the same
+  transport write lock; `LeaderStats.JSON`, which reads it outside any lock, has no caller in the
+  server), so the map's ownership goes in the transport's lock (`trLockP`) and `Follower` is
+  translated and proved (its axiom goes). Sub-stages:
+  - *M5a.* rafthttp's peer removal: `Follower` proved, `removePeer`/`RemovePeer` specified and
+    proved on `trLive` (the id leaves the peers' ids), `RemoveAllPeers` proved (its `sorry` goes).
+    **Done (2026-10-26, branch `membership-m5`)**: D43 "M5a carried out".
+  - *M5b.* The cluster's in-memory members (`clusterMem` defined from the lock invariant, the
+    user's decision) and `AddMember` translated and proved. **Done (2026-10-26)**: D43 "M5b
+    carried out".
+  - *M5b′* (rescoped, the user's decisions): the member backend's writers and read
+    (`MustSaveMemberToBackend`, `MustDeleteMemberFromBackend`, `MustReadMembersFromBackend`)
+    contract axioms over the tracked buckets (replacing the opaque `ccValidOn`), `ccRest` with
+    `RemoveNode` (`members_removed`); `BackendHooks.SetConfState` translated and proved. **Done
+    (2026-10-26)**: D43 "M5b′ carried out" (the contracts not linked until M5e).
+  - *M5c.* W3: the apply thread holds `trLive` (`NewServer` stops freezing it; the readers over
+    `trState` and their tokens). Blocked, then decided ((A), (i): D43 "M5c blocked"). **Done
+    (2026-10-26)**: D43 "M5c carried out" (`Stop` gated by `TS`/`E.ST`, peers-only ids, the pool,
+    the readers over `trState`; the static server still freezes, the dynamic hand-off a lemma; the
+    dynamic handler left for M8).
+  - *M5d.* The server's cluster in the dynamic mode: `isRaftClusterG c (rcDyn γ)`, `rcRemovedOwn`
+    the apply thread's; `srvCCPolicy`'s dynamic case admits a `RemoveNode` of another member.
+    **Done (2026-10-26)**: D43 "M5d carried out" (the policy mode-aware, the log-aware decoder
+    `srvDec c0 boot`, the view's voters shrinking at a validated `RemoveNode`).
+  - *M5e.* `applyConfChange` proved (the axiom goes). **Blocked (2026-10-26)**: D43 "M5e blocked" (the
+    `AddNode`'s member from `json.Unmarshal`, the static mode's `AddPeer` on a freely stoppable
+    transport, the dynamic mode's `AddPeer`); M5d waits with it. Decided the same day; started (`Unmarshal`
+    restated, the `be` field, the translation), then blocked on `s.beHooks`: D43 "M5e started, then
+    blocked again". **Done (2026-10-26)**: D43 "M5e carried out" (721 → 723 axioms).
   *Note from the snapshot track (2026-10-26, D22 J0; `notes/snapshot-sj-plan.md`, "J0 decisions",
   J-T; decided by the orchestrator while the user was away): D22's stage J-T takes M5's rafthttp
   part that `applySnapshot` needs, and does it first: the transport state split (`γr` keeping the
@@ -238,7 +274,10 @@ the requests in flight finish (`ErrStopped`). *(B)* Also `Stop`/`HardStop` from 
   sender's directory URLs, so a handler's `AddRemote` in the snapshot window meets
   `AddRemote_core`'s premises). Left to M5: `RemovePeer`'s spec and proof on the same
   `removePeer` core, `applyConfChange`, and the removed-sender `403`/`Process` change; M6 uses
-  `Stop_live` as J-T leaves it. Rebase M5's rafthttp work on J-T's state, not on `trFrozen`.*
+  `Stop_live` as J-T leaves it. Rebase M5's rafthttp work on J-T's state, not on `trFrozen`. (Merge of M5 into `lean`, 2026-10-27: M5a and M5c did this rafthttp part first,
+  on branch `membership-m5`, before J-T started -- the peers-only `trLive`, the remotes' ids and a
+  pool of four `R`s per member in the lock, `Stop` gated by `TS`/`E.ST`, `RemoveAllPeers` proved; D43
+  "M5c carried out". J-T starts from that state.)*
 - **M6. The stopping server** (Q4 (A)): `apply`'s `shouldStop`, `stopWithDelay` translated, `errorc`
   carrying a stop request, `run`'s return and deferred shutdown (`Cleanup`, `raftNode.stop`,
   `transport.Stop` consuming the peers right), the "server open" token (D19m (B)) through every

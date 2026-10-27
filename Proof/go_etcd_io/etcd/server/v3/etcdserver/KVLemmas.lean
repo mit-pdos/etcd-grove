@@ -120,8 +120,8 @@ theorem kvInv_facts_snoc (γ : ServerRaftNames) (γk : KVNames) (L : List EntryM
   · simp only [List.length_append, List.length_singleton]; push_cast; omega
 
 /-- **The workload facts, one entry on** (D19c): the entry of a good shape, its id claimed. -/
-theorem kvWork_snoc (cfg : GSet w64) (γk : KVNames) (L : List EntryModel) (e : EntryModel)
-    (hs : entryShape e) (hc : e.typ ≠ W32 0 → ccBootOk cfg e.data) :
+theorem kvWork_snoc (cfg : RaftNames) (γk : KVNames) (L : List EntryModel) (e : EntryModel)
+    (hs : entryShape e) (hc : e.typ ≠ W32 0 → ccPolOk cfg e.data) :
     ⊢ kvWork (GF := GF) cfg γk L -∗ entryClaim γk.ids e -∗ kvWork cfg γk (L ++ [e]) := by
   iintro Hw #He
   iunfold kvWork at Hw
@@ -141,21 +141,21 @@ theorem kvWork_snoc (cfg : GSet w64) (γk : KVNames) (L : List EntryModel) (e : 
 
 /-- An entry of raft's own (an empty entry, a conf change of id `0`) has a good shape and nothing
 to claim (D19c). -/
-theorem noop_shape (cfg : GSet w64) (e : EntryModel) (h : srvNoopEntry cfg e) : entryShape e := by
+theorem noop_shape (cfg : RaftNames) (e : EntryModel) (h : srvNoopEntry cfg e) : entryShape e := by
   rcases h with ⟨ht, hd⟩ | ⟨ht, -, hid, -⟩
   · exact ⟨fun _ => Or.inl hd, fun h' => absurd ht h'⟩
   · refine ⟨fun h' => ?_, fun _ => hid⟩
     rw [ht] at h'; exact absurd h' (by decide)
 
 /-- A conf change of raft's own is one `applyConfChange` takes (audit phase B3). -/
-theorem noop_cc (cfg : GSet w64) (e : EntryModel) (h : srvNoopEntry cfg e) :
-    e.typ ≠ W32 0 → ccBootOk cfg e.data := by
+theorem noop_cc (cfg : RaftNames) (e : EntryModel) (h : srvNoopEntry cfg e) :
+    e.typ ≠ W32 0 → ccPolOk cfg e.data := by
   intro ht
   rcases h with ⟨ht0, -⟩ | ⟨-, -, -, hb⟩
   · exact absurd ht0 ht
   · exact hb
 
-theorem noop_claim (γi : IdNames) (cfg : GSet w64) (e : EntryModel) (h : srvNoopEntry cfg e) :
+theorem noop_claim (γi : IdNames) (cfg : RaftNames) (e : EntryModel) (h : srvNoopEntry cfg e) :
     ⊢ entryClaim (GF := GF) γi e := by
   iunfold entryClaim
   ileft
@@ -222,7 +222,7 @@ theorem kv_prop_au (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : ap
         rw [hed, hdec] at h
         cases h
         exact hnw
-      ihave #Hw' := kvWork_snoc γ.raft.reCfg γk L e (hsh e het hed hshape)
+      ihave #Hw' := kvWork_snoc γ.raft γk L e (hsh e het hed hshape)
         (fun h => absurd het h) $$ Hw (Hecl $$ %e %hed)
       imod Hclose $$ [HL Hσ] with -
       · inext
@@ -282,7 +282,7 @@ theorem kv_prop_au (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : ap
         rw [kvModel_snoc_state γk L e rq Hok.2.2.2.1 Hok.2.2.2.2 het hdata
           (by rw [hed]; exact hdec) hidxe, Hag]
         unfold kvReqStep; rw [hop]
-      ihave #Hw' := kvWork_snoc γ.raft.reCfg γk L e (hsh e het hed hshape)
+      ihave #Hw' := kvWork_snoc γ.raft γk L e (hsh e het hed hshape)
         (fun h => absurd het h) $$ Hw (Hecl $$ %e %hed)
       imod Hclose $$ [HL Hσ] with -
       · inext
@@ -345,7 +345,7 @@ theorem kv_prop_au (γ : ServerRaftNames) (γk : KVNames) (d : List w8) (rq : ap
         rw [kvModel_snoc_state γk L e rq Hok.2.2.2.1 Hok.2.2.2.2 het hdata
           (by rw [hed]; exact hdec) hidxe, Hag]
         unfold kvReqStep; rw [hop]
-      ihave #Hw' := kvWork_snoc γ.raft.reCfg γk L e (hsh e het hed hshape)
+      ihave #Hw' := kvWork_snoc γ.raft γk L e (hsh e het hed hshape)
         (fun h => absurd het h) $$ Hw (Hecl $$ %e %hed)
       imod Hclose $$ [HL Hσ] with -
       · inext
@@ -398,9 +398,9 @@ theorem kv_noop_au (γ : ServerRaftNames) (γk : KVNames) :
       rcases He with h | h
       · left; exact h.2
       · right; left; rw [h.1]; exact h10
-    ihave #Hnc := noop_claim (GF := GF) γk.ids γ.raft.reCfg e He
-    ihave #Hw' := kvWork_snoc γ.raft.reCfg γk L e (noop_shape γ.raft.reCfg e He)
-      (noop_cc γ.raft.reCfg e He) $$ Hw Hnc
+    ihave #Hnc := noop_claim (GF := GF) γk.ids γ.raft e He
+    ihave #Hw' := kvWork_snoc γ.raft γk L e (noop_shape γ.raft e He)
+      (noop_cc γ.raft e He) $$ Hw Hnc
     imod Hclose $$ [HL Hσ] with -
     · inext
       iexists L ++ [e]

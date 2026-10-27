@@ -15,7 +15,8 @@ environment's `AEnv.RO` (`srvRestOwn`):
   members whose JSON the bootstrap entries' contexts are);
 * `restEntry c0 m`: a normal entry's request through `dispatch` (`apply.restAfter`: the cluster
   version and the member attributes), with `v3` iff above `c0`; a conf change through
-  `applyConfChange` (`ccRest`: a validated `AddNode` saves the context's member, with `v3`);
+  `applyConfChange` (`ccRest`: with `v3`, a validated `AddNode` saves the context's member, a
+  validated `RemoveNode` deletes the member and records its removal);
 * `restModel c0 bootLog L`: their fold over the raft log `L` from `restBoot bootLog`.
 
 It is a function of the log and of cluster-wide values (`c0`, the boot log): every member's
@@ -33,6 +34,7 @@ public import Proof.go_etcd_io.etcd.server.v3.storage.backend.InvBackend
 public import Proof.go_etcd_io.etcd.server.v3.auth.InvAuth
 public import Proof.go_etcd_io.etcd.server.v3.lease.LessorBackend
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.v3alarm.Defs
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.api.membership.Defs
 
 @[expose] public section
 
@@ -52,20 +54,68 @@ open Iris Iris.BI go_etcd_io.raft.v3
 bytes): what `applyConfChange`'s `AddMember` saves. -/
 opaque membership.ccMemberOf [GooseExts] : List w8 → apply.MemberM
 
-/-- **`ValidateConfigurationChange`'s verdict with `shouldApplyV3`** (opaque): a function of the
-`members` and `members_removed` buckets it reads (`MustReadMembersFromBackend`) and of the change
-(its node, type and context): `true` when it returns `nil`. -/
-opaque membership.ccValidOn [GooseExts] : GMap GoString backend.BktData → CCV1M → Bool
+/-- A peer URL some member of `mems` (each member's peer URLs) has. -/
+def membership.urlTaken (mems : GMap w64 (List GoString)) (u : GoString) : Prop :=
+  ∃ k pus, mems !! k = some pus ∧ u ∈ pus
+
+/-- **The verdict of `ValidateConfigurationChange` with `shouldApplyV3`**, on the members' peer URLs
+`mems` and the removed members `rmv` the backend holds: not a removed id; an `AddNode` (not a
+promotion: the scope's) of an id not a member, whose peer URLs (the context's member's) no member
+has; a `RemoveNode` of a member. -/
+def membership.ccValidM [GooseExts] (mems : GMap w64 (List GoString)) (rmv : GMap w64 Bool) (m : CCV1M) : Prop :=
+  (rmv !! m.nodeId).getD false = false ∧
+  (if m.type = W32 0 then mems !! m.nodeId = none ∧
+      ∀ u, u ∈ (membership.ccMemberOf m.context).peerURLs → ¬ membership.urlTaken mems u
+    else (mems !! m.nodeId).isSome = true)
+
+/-- **The members and the removed members the `members` and `members_removed` buckets decode to**
+(opaque, a function of the tracked buckets; D43 M5b′, 2026-10-26, the user's decision):
+`MustReadMembersFromBackend`'s answer -- each member's id (its key, `mustParseMemberIDFromBytes`)
+with the peer URLs its JSON value unmarshals to, and the ids under `members_removed` -- as its
+read contract states it (`schema.membershipBackend.MustReadMembersFromBackend.spec`). -/
+opaque membership.membersOfBk [GooseExts] :
+    GMap GoString backend.BktData → GMap w64 (List GoString) × GMap w64 Bool
+
+open Classical in
+/-- **`ValidateConfigurationChange`'s verdict with `shouldApplyV3`** (D43 M5b′, 2026-10-26, the
+user's decision: defined, until then opaque): `ccValidM` of what the backend's read returns at the
+tracked buckets `bk` (`membersOfBk`); `true` when it returns `nil`. -/
+def membership.ccValidOn [GooseExts] (bk : GMap GoString backend.BktData) (m : CCV1M) : Bool :=
+  decide (membership.ccValidM (membership.membersOfBk bk).1 (membership.membersOfBk bk).2 m)
+
+/-- **The member an `AddNode`'s `AddMember` adds** (D43 M5e, 2026-10-26): the context's member
+(`ccMemberOf`) with the change's node as its id (`json.Unmarshal`'s `ID` field, which
+`applyConfChange` checks against the change's `NodeId`). -/
+def membership.ccMemberAt [GooseExts] (m : CCV1M) : apply.MemberM :=
+  { membership.ccMemberOf m.context with id := m.nodeId }
+
+/-- **The change `applyConfChange` hands raft for `m`** (with `v3`; D43 M5d, 2026-10-26): the change
+itself when it validates against the tracked buckets `bk` (`ccValidOn`), else the change with
+`NodeId` `0` (`cc.NodeId = raft.None`), which raft's `confchange` skips. -/
+def membership.ccRaftEff [GooseExts] (bk : GMap GoString backend.BktData) (m : CCV1M) : CCV1M :=
+  if membership.ccValidOn bk m = true then m else { m with nodeId := W64 0 }
+
+/-- The value `MustDeleteMemberFromBackend` puts under a removed member's key in
+`members_removed` (`[]byte("removed")`). -/
+def membership.removedVal [GooseExts] : GoString := go!"removed"
 
 /-- **What `applyConfChange(cc, ep, v3)` does to the rest buckets and the members** (D22,
-2026-10-23): with `v3`, an `AddNode` that validates adds the context's member, in memory and in
-`members` (`AddMember`'s `MustSaveMemberToBackend` and `c.members[m.ID] = m`); anything else
-nothing (a failed validation; without `v3`, `AddMember` writes nothing; the server's policy admits
-no other change, `ccApplyOk`). -/
+2026-10-23; D43 M5b′, 2026-10-26: with `RemoveNode`): with `v3`, a change that validates
+(`ccValidOn`): an `AddNode` adds the context's member (`ccMemberAt`), in memory and in `members` (`AddMember`'s
+`MustSaveMemberToBackend` and `c.members[m.ID] = m`); a `RemoveNode` deletes the member from
+`members` and records it in `members_removed` (`RemoveMember`'s `MustDeleteMemberFromBackend`)
+and from memory (`delete(c.members, id)`). Anything else nothing (a failed validation; without
+`v3`, the writers write nothing; the server's policy admits no other change, `ccApplyOk`). -/
 def ccRest [GooseExts] (v3 : Bool) (m : CCV1M) (r : apply.RestM) : apply.RestM :=
-  if v3 = true ∧ m.type = W32 0 ∧ membership.ccValidOn r.bk m = true then
-    ({ r with mem := r.mem.insert m.nodeId (membership.ccMemberOf m.context) } : apply.RestM).putIn
-      go!"members" (apply.memberKey m.nodeId) (apply.memberEnc (membership.ccMemberOf m.context))
+  if v3 = true ∧ membership.ccValidOn r.bk m = true then
+    if m.type = W32 0 then
+      ({ r with mem := r.mem.insert m.nodeId (membership.ccMemberAt m) } : apply.RestM).putIn
+        go!"members" (apply.memberKey m.nodeId) (apply.memberEnc (membership.ccMemberAt m))
+    else if m.type = W32 1 then
+      (({ r with mem := r.mem.delete m.nodeId } : apply.RestM).delIn go!"members"
+        (apply.memberKey m.nodeId)).putIn go!"members_removed" (apply.memberKey m.nodeId)
+        membership.removedVal
+    else r
   else r
 
 /-! ## The model of the applied log -/
@@ -110,9 +160,14 @@ theorem putIn_other (r : apply.RestM) (n k v n' : GoString) (h : n ≠ n') :
     (r.putIn n k v).bk.lookup n' = r.bk.lookup n' := by
   simp [apply.RestM.putIn, GMap.lookup_insert_eq_iff, h]
 
-/-- **An entry changes only the `members` and `cluster` buckets.** -/
+/-- A delete from another bucket leaves a bucket. -/
+theorem delIn_other (r : apply.RestM) (n k n' : GoString) (h : n ≠ n') :
+    (r.delIn n k).bk.lookup n' = r.bk.lookup n' := by
+  simp [apply.RestM.delIn, GMap.lookup_insert_eq_iff, h]
+
+/-- **An entry changes only the `members`, `members_removed` and `cluster` buckets.** -/
 theorem restEntry_keep [GooseExts] (c0 : w64) (m : EntryModel) (r : apply.RestM) (n : GoString)
-    (h1 : go!"members" ≠ n) (h2 : go!"cluster" ≠ n) :
+    (h1 : go!"members" ≠ n) (h2 : go!"cluster" ≠ n) (h3 : go!"members_removed" ≠ n) :
     (restEntry c0 m r).bk.lookup n = r.bk.lookup n := by
   have hsv : ∀ v3 s r', (apply.restSetVersion v3 s r').bk.lookup n = r'.bk.lookup n := by
     intro v3 s r'; unfold apply.restSetVersion; split
@@ -132,7 +187,11 @@ theorem restEntry_keep [GooseExts] (c0 : w64) (m : EntryModel) (r : apply.RestM)
       · rfl
   have hcc : ∀ v3 cc r', (ccRest v3 cc r').bk.lookup n = r'.bk.lookup n := by
     intro v3 cc r'; unfold ccRest; split
-    · exact putIn_other _ _ _ _ _ h1
+    · split
+      · exact putIn_other _ _ _ _ _ h1
+      · split
+        · rw [putIn_other _ _ _ _ _ h3, delIn_other _ _ _ _ h1]
+        · rfl
     · rfl
   unfold restEntry
   split
@@ -146,13 +205,14 @@ theorem restEntry_keep [GooseExts] (c0 : w64) (m : EntryModel) (r : apply.RestM)
     · rfl
 
 theorem restModel_keep [GooseExts] (c0 : w64) (bootLog : List EntryM) (L : List EntryModel)
-    (n : GoString) (h1 : go!"members" ≠ n) (h2 : go!"cluster" ≠ n) :
+    (n : GoString) (h1 : go!"members" ≠ n) (h2 : go!"cluster" ≠ n)
+    (h3 : go!"members_removed" ≠ n) :
     (restModel c0 bootLog L).bk.lookup n = (restBoot bootLog).bk.lookup n := by
   unfold restModel
   generalize restBoot bootLog = r0
   induction L generalizing r0 with
   | nil => rfl
-  | cons m L ih => rw [List.foldl_cons, ih, restEntry_keep _ _ _ _ h1 h2]
+  | cons m L ih => rw [List.foldl_cons, ih, restEntry_keep _ _ _ _ h1 h2 h3]
 
 theorem restModel_nil [GooseExts] (c0 : w64) (bootLog : List EntryM) :
     restModel c0 bootLog [] = restBoot bootLog := rfl
@@ -239,12 +299,8 @@ variable [go_gctx : GoGlobalContext]
 variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
-/-- **The cluster `c`'s in-memory member list is `mem`** (opaque, exclusive; D22, 2026-10-23,
-option (i) of "D22c decided"): `c.members` (each member as the record its JSON unmarshals to).
-`bootstrap`'s contract gives it at the boot log's members (`memBoot`); the cluster's contracts
-(`isCluster`'s `UpdateAttributes`, `applyConfChange`'s `AddMember`) take it and give it back
-changed as `restUpdateAttrs`/`ccRest` say. -/
-opaque membership.clusterMem (c : Loc) (mem : GMap w64 apply.MemberM) : IProp GF
+/- `membership.clusterMem` (the cluster's in-memory members) is defined in the membership
+package's `Defs.lean` since D43 M5b (2026-10-26; opaque here until then). -/
 
 /-- **The server's `AEnv.RO`**: the backend `γB`'s tracked buckets' client half and the cluster
 `c`'s in-memory members, at `r`. -/

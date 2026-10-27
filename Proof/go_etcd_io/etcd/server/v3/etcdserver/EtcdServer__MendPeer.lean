@@ -39,7 +39,9 @@ theorem EtcdServer.MendPeer.wp_proof
   · iPkgInit
   wp_auto
   iunfold srvTrTok at Htok
-  wp_apply (wp_MendPeer hpp γn τ.t τ.c rs id (by rw [Hrs.1]; simp)) $$ [Htok] as Htok
+  iunfold trFrozen at Hf
+  icases Hf with ⟨#Hst, -⟩
+  wp_apply (wp_MendPeer hpp γn τ.t τ.c id (by rw [Hrs.1]; simp)) $$ [Htok] as Htok
   · iframe; iframe #
   iapply HΦ
   iunfold srvTrTok

@@ -139,7 +139,7 @@ peers before the transport is given up), so `AddRemote` of one does nothing
 (`AddRemote_frozen`). -/
 theorem trAddRemote_of_frozen (Rh : RaftHttp GF) (t : Loc) (lid : w64) (γd : GName)
     (R : IProp GF) (γs γr : GName) (rs : trIds)
-    (Hcov : ∀ f, Rh.member f → f ≠ lid → f ∈ rs.2) :
+    (Hcov : ∀ f, Rh.member f → f ≠ lid → f ∈ rs) :
     ⊢ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp -∗
       sync.isRWMutexGuard (t.[rafthttp.Transport, go!"mu"]) (trLockP Rh t lid γd R γs γr) -∗
       trRemotesFrozen γr rs -∗ trAddRemote Rh t lid := by

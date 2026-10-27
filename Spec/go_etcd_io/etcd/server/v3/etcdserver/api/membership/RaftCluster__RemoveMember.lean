@@ -40,21 +40,24 @@ instance membership.beDeleteOk_persistent (bi : GoInterfaceOk) (id : w64) (Pd Qd
 /-- `c.RemoveMember(id, v3)` on a cluster of the dynamic instance (`isRaftClusterG c (rcDyn γ)`)
 with the removed map's writer half at `rm`: with `v3`, it calls the backend's delete (`c.be`, an
 interface `bi` read-only, whose triple the caller gives: the backend's buckets are the caller's,
-`Pd` to `Qd`) and moves the writer half to `rm` with `id` removed; without, nothing. Its other
-reads are of read-only fields: the logger (non-nil), the cluster id. -/
+`Pd` to `Qd`) and moves the writer half to `rm` with `id` removed, and (D43 M5b, 2026-10-26) the
+in-memory members' apply-thread half (`clusterMem`) to `mem` without `id`; without, nothing. Its
+other reads are of read-only fields: the logger (non-nil), the cluster id. -/
 abbrev membership.RaftCluster.RemoveMember.spec : Prop :=
-  ∀ (c : Loc) (γ : GName) (rm : GMap w64 Bool) (id : w64) (v3 : Bool) (lg : Loc) (cid : w64)
-    (bi : GoInterfaceOk) (Pd Qd : IProp GF),
+  ∀ (c : Loc) (γ : GName) (rm : GMap w64 Bool) (mem : GMap w64 apply.MemberM) (id : w64) (dqb : DFrac)
+    (v3 : Bool) (lg : Loc) (cid : w64) (bi : GoInterfaceOk) (Pd Qd : IProp GF),
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.membership ∗
       membership.isRaftClusterG c (membership.rcDyn γ) ∗ membership.rcRemovedOwn γ rm ∗
+      membership.clusterMem c mem ∗
       membership.rcLgAddr c ↦□ lg ∗ ⌜lg ≠ null⌝ ∗ membership.rcCidAddr c ↦□ cid ∗
-      membership.rcBeAddr c ↦□ GoInterface.ok bi ∗
+      membership.rcBeAddr c ↦{dqb} GoInterface.ok bi ∗
       (if v3 then iprop(membership.beDeleteOk bi id Pd Qd ∗ Pd) else iprop(True)) }}
     (App (App (Val (c @!! go.GoType.PointerType
       go_etcd_io.etcd.server.v3.etcdserver.api.membership.RaftCluster.ty @!!
       go!"RemoveMember")) (Val #id)) (Val #v3))
-  {{ RET #(); if v3 then iprop(Qd ∗ membership.rcRemovedOwn γ (GMap.insert id true rm))
-      else membership.rcRemovedOwn γ rm }}
+  {{ RET #(); membership.rcBeAddr c ↦{dqb} GoInterface.ok bi ∗ if v3 then iprop(Qd ∗ membership.rcRemovedOwn γ (GMap.insert id true rm) ∗
+        membership.clusterMem c (GMap.delete id mem))
+      else iprop(membership.rcRemovedOwn γ rm ∗ membership.clusterMem c mem) }}
 
 end spec
 

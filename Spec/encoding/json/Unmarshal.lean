@@ -27,11 +27,13 @@ variable [sem : go.Semantics]
 /-- `json.Unmarshal(data, cc)` into a `*membership.ConfigChangeContext` `p`, of bytes whose decoding
 the model knows (`membership.ccContextOf data = some (id, prom)`: a JSON object with the
 embedded `Member`'s fields and `IsPromote`): it returns `nil` and leaves `*p` with the member's id
-`id`, `IsPromote` `prom`, and the member's peer URLs and `IsLearner` as `membership.ccMemberOf`
-models them, its peer URLs a fresh slice. Faithful: `encoding/json` decodes an object into the
+`id`, `IsPromote` `prom`, and the member's peer URLs, `IsLearner`, name and client URLs as
+`membership.ccMemberOf` models them, its URL slices fresh (D43 M5e, 2026-10-26, the user's
+decision: restated with the name and the client URLs, which `applyConfChange`'s `AddMember` needs
+of the member it adds). Faithful: `encoding/json` decodes an object into the
 struct's exported fields by name (`ConfigChangeContext`'s `Member` is embedded, so its fields are
-the object's; `ID` an integer, `PeerURLs` an array of strings, `IsLearner` a boolean), allocating
-the slice, and leaves the other fields as the JSON says; it reads `data`, writes nothing else, and
+the object's; `ID` an integer, `PeerURLs` and `ClientURLs` arrays of strings, `IsLearner` a
+boolean, `Name` a string), allocating the slices, and leaves the other fields as the JSON says; it reads `data`, writes nothing else, and
 returns `nil` on input it decodes. `ccContextOf`/`ccMemberOf` are opaque functions of the bytes:
 the spec claims only that the decoding is a function of them. -/
 abbrev encoding.json.Unmarshal.spec : Prop :=
@@ -47,9 +49,11 @@ abbrev encoding.json.Unmarshal.spec : Prop :=
       ∃ (v' : go_etcd_io.etcd.server.v3.etcdserver.api.membership.ConfigChangeContext)
         (pus : List GoString),
         p ↦ v' ∗ v'.Member'.RaftAttributes'.PeerURLs' ↦* pus ∗
+        v'.Member'.Attributes'.ClientURLs' ↦* (membership.ccMemberOf bs).clientURLs ∗
         ⌜v'.Member'.ID' = id ∧ v'.IsPromote' = prom ∧
           pus = (membership.ccMemberOf bs).peerURLs ∧
-          v'.Member'.RaftAttributes'.IsLearner' = (membership.ccMemberOf bs).isLearner⌝ }}
+          v'.Member'.RaftAttributes'.IsLearner' = (membership.ccMemberOf bs).isLearner ∧
+          v'.Member'.Attributes'.Name' = (membership.ccMemberOf bs).name⌝ }}
 
 end spec
 

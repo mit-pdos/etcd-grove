@@ -31,6 +31,7 @@ public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BuildGap
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.BuildAlloc
 public import Proof.go_etcd_io.etcd.server.v3.auth.Boot
 public import Proof.go_etcd_io.etcd.server.v3.etcdserver.apply.BaseAuth
+public import Proof.go_etcd_io.etcd.server.v3.etcdserver.StoreLatest
 
 @[expose] public section
 
@@ -183,7 +184,7 @@ theorem srvCM_false (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64) (x₀
 def srvErM (on : Bool) (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV)
     (bud : BudgetNames) (id : w64) (S : IProp GF) : RNEnv GF :=
   ⟨srvCM on ρ E ai₀ c₀ x₀, fun m => iprop(srvMsgNet ρ.raft.raft bud id m ∗ srvMsgNoSnap m),
-    iprop(True), ρ.rd, srvRQ ρ.rd.raft, S⟩
+    iprop(True), ρ.rd, srvRQ ρ.rd.raft, S, iprop(False)⟩
 
 theorem srvErM_false (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w64) (x₀ : apply.ApplyKV)
     (bud : BudgetNames) (id : w64) (S : IProp GF) :
@@ -242,7 +243,7 @@ theorem srvKVInvsM_true (E : apply.AEnv GF) (γr : ReadNames) :
     srvKVInvsM (GF := GF) true E γr = srvKVInvsOn E γr srvAuthSt0 := rfl
 
 /-- **`applyBuiltNA` in the auth mode `on`** (the auth plan's E3c): the apply thread's auth
-resource at the store's start state (`srvAuthApplyResAt` at `srvAuthSt0`, the latest state of the
+resource at the store's start state (`srvAuthApplyResB` at `srvAuthSt0`, the latest state of the
 store's history `[bootState, bump bootState]`), what ties the apply thread's auth state to the
 model's from the start (`applyBuiltOn`). -/
 def applyBuiltNAOn (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (E : apply.AEnv GF)
@@ -250,9 +251,9 @@ def applyBuiltNAOn (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInterface) (E :
   iprop(∃ (st₀ : ApplyState) (a t : w64) (f : Bool),
     applyThread γ st₀ ∗ ⌜loopOk γ st₀ ai₀ ∧ c₀ = ciEff γ st₀.k⌝ ∗ applyBackend γ ci b ∗
     ciApplying ci a t ∗ srvLgReader s ∗ srvBemuReaderAt s E.γbe ∗ srvBeOwn s E ∗
-    revAuth E x₀.log ∗ srvAuthApplyResAt s E srvAuthSt0 ∗
+    revAuth E x₀.log ∗ srvAuthApplyResB s E srvAuthSt0 ∗
     srvAppliedOwn γr ai₀ ∗ appliedLogAt γr ai₀ x₀.log ∗ kvRun γr ai₀ c₀ [] x₀ ∗ srvRest E γr [] ∗
-    srvForceSnapAddr s ↦ f)
+    srvApRes s γr [] ∗ srvForceSnapAddr s ↦ f)
 
 /-- **`applyBuiltNA` in the auth mode `on`**: `applyBuiltNA` at `on = false` (by definition),
 `applyBuiltNAOn` at `on = true`. -/
@@ -264,10 +265,13 @@ def applyBuiltNAM (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (b : GoInte
 
 /-- **The server's uber-applier's base applier's auth layer** (the auth plan's E3k; persistent):
 its store and lessor the server's `authStore` and `lessor` fields' (`apply.uberBaseAuth`), what the
-apply thread's latest-state KV triples come from (`apply.uberKVL_of_base`). -/
+apply thread's latest-state KV triples come from (`apply.uberKVL_of_base`); with the store's
+checks at the latest state in the environment's mode (`authStoreLatestM`, E3l: with auth on, of the
+store's invariant). -/
 def srvUberBase (s : Loc) (ua : GoInterface) (E : apply.AEnv GF) : IProp GF :=
   iprop(∃ au le : GoInterface, srvAuthStoreAddr s ↦□ au ∗ srvLessorAddr s ↦□ le ∗
-    apply.uberBaseAuth ua E au le)
+    apply.uberBaseAuth ua E au le ∗
+    ∃ stl : Loc, ⌜au = auth.authIface stl⌝ ∗ authStoreLatestM E.authMode au E.RD stl)
 
 instance srvUberBase_persistent (s : Loc) (ua : GoInterface) (E : apply.AEnv GF) :
     Persistent (srvUberBase s ua E) := by
@@ -352,7 +356,7 @@ variable {GF : BundledGFunctors} [hG : HeapGS HasLC.hasLC GF]
 variable [sem : go.Semantics]
 
 /-- **`applyBuiltNAM` from the mode-`on` row** (E3c): the mode-`on` row is the mode-off one with
-the auth resource at its latest state, which the mode-off row forgets (`srvAuthApplyRes_of_At`). -/
+the auth resource at its latest state, which the mode-off row forgets (`srvAuthApplyResAt_of_B`, `srvAuthApplyRes_of_At`). -/
 theorem srvUberRowM_of_On (on : Bool) (s : Loc) (E : apply.AEnv GF) (x₀ : apply.ApplyKV) :
     (∃ ua : GoInterface, srvUberApplyAddr s ↦ ua ∗ srvUberBase s ua E ∗ apply.applierFor ua E ∗
       apply.applyKV E ua x₀) ⊢ srvUberRowM (GF := GF) on s E x₀ := by
@@ -369,12 +373,13 @@ theorem applyBuiltNAM_of_On (on : Bool) (s : Loc) (γ : ApplyNames) (ci : Loc) (
     applyBuiltNAOn (GF := GF) s γ ci b E γr ai₀ c₀ x₀ ⊢ applyBuiltNAM on s γ ci b E γr ai₀ c₀ x₀ := by
   cases on
   · unfold applyBuiltNAM applyBuiltNAOn applyBuiltNA
-    iintro ⟨%st₀, %a, %t, %f, Hth, %Hok, Hbe, Hca, Hlg, Hbm, Hbo, Hra, Har, Hao, Hal, Hkr, Hrs, Hfs⟩
+    iintro ⟨%st₀, %a, %t, %f, Hth, %Hok, Hbe, Hca, Hlg, Hbm, Hbo, Hra, Har, Hao, Hal, Hkr, Hrs, Hap, Hfs⟩
     iexists st₀, a, t, f
-    iframe Hth Hbe Hca Hlg Hbm Hbo Hra Hao Hal Hkr Hrs Hfs
+    iframe Hth Hbe Hca Hlg Hbm Hbo Hra Hao Hal Hkr Hrs Hap Hfs
     isplitr
     · ipureintro; exact Hok
-    iapply srvAuthApplyRes_of_At $$ Har
+    iapply srvAuthApplyRes_of_At
+    iapply srvAuthApplyResAt_of_B $$ Har
   · unfold applyBuiltNAM
     iintro H; iexact H
 
@@ -492,7 +497,7 @@ theorem rnTickerOk_srvErM_S (on : Bool) (ρ : ReqNames) (E : apply.AEnv GF) (ai�
 what both modes' shapes give, `logShapeM_cc`). -/
 theorem batchWaitOk_of_claims (ρ : ReqNames) (E : apply.AEnv GF) (L : List EntryModel)
     (hcc : ∀ m ∈ L, m.typ ≠ W32 0 → ccIdOf m.data = W64 0)
-    (hcl : ccLogOk ρ.raft.raft.reCfg L) :
+    (hcl : ccLogOk ρ.raft.raft L) :
     ⊢ ([∗list] m ∈ L, entryClaim ρ.ids m) -∗ idNoZero ρ.ids -∗ srvRLogLb ρ.raft L -∗
       batchWaitOk ρ E L := by
   iintro #Hcl #HNZ #HL
@@ -574,7 +579,8 @@ theorem rnEnvOk_of_clusterOn (ρ : ReqNames) (E : apply.AEnv GF) (ai₀ c₀ : w
     (hraft : γw.node.raft = ρ.raft.raft) (hpre : γw.pre = ρ.raft.pre)
     (hai : uint.Z ρ.raft.ai0 = γw.pre.length) (hai0 : ρ.raft.ai0 = ai₀)
     (hmode : γw.node.mode = RNMode.static ↔ γw.node.raft.reDyn = none)
-    (hdec : ∀ dec c0 h0 h1, γw.node.mode = .dyn dec c0 h0 h1 → dec = srvDec)
+    (hdec : ∀ dec c0 h0 h1, γw.node.mode = .dyn dec c0 h0 h1 →
+      dec = srvDec ρ.rd.kv.c0 ρ.rd.raft.raft.reBoot)
     (hstor : γw.node.stor = memStorIface γw.ms)
     (hbud : γw.node.bud = bud)
     (hns : ρ.raft.raft.reNoSnap = true)
@@ -639,7 +645,8 @@ theorem rnEnvOk_of_clusterM (on : Bool) (ρ : ReqNames) (E : apply.AEnv GF) (ai�
     (hraft : γw.node.raft = ρ.raft.raft) (hpre : γw.pre = ρ.raft.pre)
     (hai : uint.Z ρ.raft.ai0 = γw.pre.length) (hai0 : ρ.raft.ai0 = ai₀)
     (hmode : γw.node.mode = RNMode.static ↔ γw.node.raft.reDyn = none)
-    (hdec : ∀ dec c0 h0 h1, γw.node.mode = .dyn dec c0 h0 h1 → dec = srvDec)
+    (hdec : ∀ dec c0 h0 h1, γw.node.mode = .dyn dec c0 h0 h1 →
+      dec = srvDec ρ.rd.kv.c0 ρ.rd.raft.raft.reBoot)
     (hstor : γw.node.stor = memStorIface γw.ms)
     (hbud : γw.node.bud = bud)
     (hns : ρ.raft.raft.reNoSnap = true)
@@ -753,7 +760,7 @@ theorem kvInvOn_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (st₀ : auth
     obtain ⟨-, ht, -, hid⟩ := hent n m hn
     refine ⟨fun h0 => ?_, fun _ => hid⟩
     rw [ht] at h0; exact absurd h0 (by decide)
-  have hccl : ccLogOk γs.raft.reCfg (bootEntries bootLog) := by
+  have hccl : ccLogOk γs.raft (bootEntries bootLog) := by
     intro m hm _
     obtain ⟨n, hn⟩ := List.getElem?_of_mem hm
     obtain ⟨-, -, hk⟩ := hboot
@@ -766,7 +773,7 @@ theorem kvInvOn_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (st₀ : auth
       simp only [Option.map_some, Option.some.injEq] at hn
       subst hn
       obtain ⟨-, -, -, -, hok⟩ := hk n e he
-      exact (hcc _ _ hok).2
+      exact ccPolOk_of_boot _ _ (hcc _ _ hok).2
   ihave #Hcl := entryClaims_conf (GF := GF) γk.ids (bootEntries bootLog) (fun m hm => by
     rw [hty m hm]; decide)
   iunfold kvInvOn
@@ -774,7 +781,7 @@ theorem kvInvOn_alloc_boot (γs : ServerRaftNames) (γk : KVNames) (st₀ : auth
       srvRLog γs L ∗ ghostVar γk.st (1 : Qp).half (kvStateOf (kvModelOn γk st₀ L)) ∗
       ⌜plainLogOn L ∧ detLogOn γk.c0 γk.ch0 (st₀, γk.log0) L ∧ srvIdxOkW γs.ai0 L ∧
         uint.Z γk.c0 ≤ uint.Z γs.ai0 + L.length ∧
-        γk.ch0 = apply.alarmChain true false false ∧ γk.log0 ≠ []⌝ ∗ kvWorkOn γs.raft.reCfg γk L))
+        γk.ch0 = apply.alarmChain true false false ∧ γk.log0 ≠ []⌝ ∗ kvWorkOn γs.raft γk L))
     $$ [HL Hv1] with #Hinv
   · inext
     iexists bootEntries bootLog

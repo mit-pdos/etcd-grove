@@ -29,7 +29,7 @@ the lock's reader tokens. A mux of the pipeline handler (`/raft`), the stream ha
 prober's (`/raft/probing`). -/
 abbrev rafthttp.Transport.Handler.spec : Prop :=
   ∀ (γn : NetNames GF) (t : Loc) (c : TrN GF) (rs : trIds) (a : GoString),
-  (netRh γn).owner a = c.lid → (∀ f, (netRh γn).member f → f ≠ c.lid → f ∈ rs.2) →
+  (netRh γn).owner a = c.lid → (∀ f, (netRh γn).member f → f ≠ c.lid → f ∈ rs) →
   {{ isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.etcd.server.v3.etcdserver.api.rafthttp ∗
       trFrozen γn t c rs }}
     (App (Val (t @!! go.GoType.PointerType rafthttp.Transport.ty @!! go!"Handler")) (Val #()))

@@ -38,18 +38,18 @@ theorem membership.RaftCluster.IsIDRemoved.wp_proof :
   wp_call
   wp_apply sync.Mutex.wp_Lock $$ [$Hrc] as ⟨Hlocked, Hinv⟩
   iunfold membership.rcLockInvG at Hinv
-  icases Hinv with ⟨%mp, %mm, Hmf, Hmap, %Hsz, Hmems, %lid, %rp, %rm, #Hlid, Hrf, Hrm, HRM⟩
-  icases HPr lid mm rm $$ HRM with ⟨%Hp, HRM⟩
+  icases Hinv with ⟨%ms, %mem, Hmem, %Hsz, %lid, %rp, %rm, #Hlid, Hrf, Hrm, HRM⟩
+  icases HPr lid ms rm $$ HRM with ⟨%Hp, HRM⟩
   (try wp_auto)
   wp_apply wp_map_lookup1 _ _ rp rm id (DFrac.own 1) $$ [$Hrm] as Hrm
   (try wp_auto)
   wp_method_call
   wp_call
-  wp_apply sync.Mutex.wp_Unlock $$ [$Hrc $Hlocked Hmf Hmap Hmems Hrf Hrm HRM]
+  wp_apply sync.Mutex.wp_Unlock $$ [$Hrc $Hlocked Hmem Hrf Hrm HRM]
   · inext
     iunfold membership.rcLockInvG
-    iexists mp, mm
-    iframe Hmf Hmap Hmems
+    iexists ms, mem
+    iframe Hmem
     isplitr
     · ipureintro; exact Hsz
     iexists lid, rp, rm
