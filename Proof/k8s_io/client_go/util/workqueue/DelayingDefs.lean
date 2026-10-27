@@ -218,6 +218,17 @@ instance isRetryMetrics_persistent (rm : retryMetrics) :
     Persistent (isRetryMetrics (GF := GF) rm) := by
   unfold isRetryMetrics; infer_instance
 
+/-- The no-op metric, as a `CounterMetric`. -/
+abbrev noopCounter : CounterMetric := interface.mkOk noopMetric.ty #(noopMetric.mk)
+
+/-- A `*defaultRetryMetrics` whose `retry()` returns (persistent): nil (an unnamed queue's), or
+counting into the no-op metric. -/
+def defaultRetryOk (m : Loc) : IProp GF :=
+  iprop(⌜m = Loc.null⌝ ∨ structFieldRef defaultRetryMetrics go!"retries" m ↦□ noopCounter)
+
+instance defaultRetryOk_persistent (m : Loc) : Persistent (defaultRetryOk (GF := GF) m) := by
+  unfold defaultRetryOk; infer_instance
+
 /-- **The delaying queue** (persistent): see the file header. -/
 def isDelaying (q : Loc) (γ : DNames) : IProp GF :=
   iprop(∃ (tq : Loc) (c : GoInterface) (ch : Loc) (hb : k8s_io.utils.clock.Ticker) (wch : Loc)
@@ -244,6 +255,12 @@ set_option synthInstance.maxSize 1024 in
 instance isDelaying_persistent (q : Loc) (γ : DNames) :
     Persistent (isDelaying (GF := GF) (K := K) q γ) := by
   unfold isDelaying; simp only [named]; infer_instance
+
+/-- The delaying queue configurations the specs cover: no logger (so `klog.Background()`), no
+clock (so `clock.RealClock{}`), the default typed queue, and no metrics (as `queueConfigOk`). -/
+def delayConfigOk (cfg : TypedDelayingQueueConfig K) : Prop :=
+  cfg.Logger' = Loc.null ∧ cfg.Clock' = interface.nil ∧ cfg.Queue' = interface.nil ∧
+    (cfg.Name' = [] ∨ cfg.MetricsProvider' = interface.nil ∨ cfg.MetricsProvider' = noopProvider)
 
 /-- **The rate-limiting queue** (persistent): a `*rateLimitingType[T]` over the delaying queue
 `dq` and a rate limiter whose `When` satisfies `P`. -/
