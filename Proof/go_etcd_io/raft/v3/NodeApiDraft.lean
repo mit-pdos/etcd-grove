@@ -927,6 +927,16 @@ keeps its share in an invariant, opened without a later credit. -/
 instance readCredits_timeless (γ : Cluster) (n : Nat) : Timeless (readCredits (GF := GF) γ n) := by
   unfold readCredits ApiImpl.readCredits rdCred; infer_instance
 
+/-- (2026-10-27, the server port's addition) **A sent `MsgSnap` carries a certified snapshot**
+(raft's `msgCert`: a `MsgSnap`'s snapshot is one of its storage's, whose certificates are the
+cluster's): with `snapshotCert_data`, a static cluster that vouches for no snapshot's data
+(`snapOk` false) sends none. -/
+theorem sentMsg_snapshot (γ : Cluster) (N : Namespace) (src : w64) (st : MsgSt) :
+    st.msg.Type' = MsgSnap →
+    sentMsg (GF := GF) γ N src st ⊢
+      ∃ sv, ⌜st.snap = some sv⌝ ∗ snapshotCert γ N (snapTrip sv sv.Metadata'.ConfState'.lists) :=
+  sorry
+
 end lawsPure2
 
 /-! ## The specs -/

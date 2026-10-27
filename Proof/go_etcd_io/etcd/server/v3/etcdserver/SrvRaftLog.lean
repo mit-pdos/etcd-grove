@@ -1285,6 +1285,54 @@ theorem srvReadWit_of (γ : ServerRaftNames) (c : List w8) (Qr : List EntryModel
   imodintro
   iexact HQr
 
+/-- **The server's cluster sends no `MsgSnap`** (2026-10-27): a dynamic cluster sends none, a static
+one vouches for no snapshot's data. -/
+theorem srv_sentMsg_notSnap (γ : ServerRaftNames) (src : w64) (st : MsgSt) :
+    srvClusterOk (GF := GF) γ ∗ Draft.sentMsg γ.raft.cl srvClusterN src st ⊢
+      ⌜st.msg.Type' ≠ MsgSnap⌝ := by
+  letI := srvAnyStor (GF := GF)
+  iintro ⟨#Hcl, #Hs⟩
+  iunfold srvClusterOk at Hcl
+  cases hd : γ.raft.dyn
+  · isimp only [hd, Bool.false_eq_true, ↓reduceIte] at Hcl
+    icases Hcl with ⟨#Hk, -, -⟩
+    by_cases hsn : st.msg.Type' = MsgSnap
+    · iexfalso
+      icases Draft.sentMsg_snapshot γ.raft.cl srvClusterN src st hsn $$ Hs with ⟨%sv, -, #Hc⟩
+      icases Draft.snapshotCert_data γ.raft.cl srvClusterN γ.raft.vs (fun _ _ => False) _
+        $$ [Hk Hc] with ⟨%l, -, %Hf⟩
+      · iframe Hk Hc
+      exact Hf.2.elim
+    · ipureintro; exact hsn
+  · isimp only [hd, ↓reduceIte] at Hcl
+    icases Hcl with ⟨#Hk, -, -⟩
+    iapply Draft.sentMsg_dynamic_notSnapshot $$ [Hk Hs]
+    iframe Hk Hs
+
+/-- **The server's cluster's `Ready`s carry no snapshot** (2026-10-27), at the server's storage
+model: a dynamic cluster's carry none, a static one vouches for no snapshot's data. -/
+theorem srv_readySnap_none (γ : ServerRaftNames) (rd : Ready) (st : Draft.NodeDriverState)
+    (ce : List Draft.LogEntry) (es : List EntryM) (l : SnapLoan) :
+    srvClusterOk (GF := GF) γ ∗
+      (letI := srvStor (GF := GF) γ.raft
+       Draft.readySnap γ.raft.cl srvClusterN rd st ce es (some l)) ⊢ False := by
+  letI := srvStor (GF := GF) γ.raft
+  iintro ⟨#Hcl, Hs⟩
+  iunfold srvClusterOk at Hcl
+  cases hd : γ.raft.dyn
+  · isimp only [hd, Bool.false_eq_true, ↓reduceIte] at Hcl
+    icases Hcl with ⟨#Hk, -, -⟩
+    simp only [Draft.readySnap]
+    icases Hs with ⟨-, -, -, #Hc, -⟩
+    icases Draft.snapshotCert_data γ.raft.cl srvClusterN γ.raft.vs (fun _ _ => False) _
+      $$ [Hk Hc] with ⟨%l', -, %Hf⟩
+    · iframe Hk Hc
+    exact Hf.2.elim
+  · isimp only [hd, ↓reduceIte] at Hcl
+    icases Hcl with ⟨#Hk, -, -⟩
+    iapply Draft.readySnap_dynamic $$ [Hk Hs]
+    iframe Hk Hs
+
 end bridges
 
 
