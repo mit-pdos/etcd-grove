@@ -32,7 +32,7 @@ theorem KV.RemoveMember.wp_proof
     (wp_node_ProposeConfChange : Draft.node.ProposeConfChange.spec (GF := GF) (hG := hG))
     (wp_ConfChangeType_Enum : raftpb.ConfChangeType.Enum.spec (GF := GF) (hG := hG)) :
     KV.RemoveMember.spec (GF := GF) (hG := hG) := by
-  intro γr γp r id
+  intro γr γp r id Hsh
   wp_start as #Hreg
   iunfold isKV at Hreg
   icases Hreg with ⟨%id0, %n, %st, #Hrep⟩
@@ -68,7 +68,7 @@ theorem KV.RemoveMember.wp_proof
   wp_auto
   ihave #Hbg := nodeCtx_background (GF := GF) bgCd
   -- the update over the committed requested entries: the change's entry carries no datum
-  ihave Hcau := kv_ccAu γr id $$ Hinv
+  ihave Hcau := kv_ccAu γr id Hsh $$ Hinv
   wp_apply wp_node_ProposeConfChange n γr.cluster kvRaftN id0 _ (.v1 (rmCC id)) (DFrac.own 1)
       context.backgroundCtxVal bgCd
       $$ [$Hraftinit $HisNode $Hbg $Hcci $Hcau] as %err -

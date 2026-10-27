@@ -230,7 +230,7 @@ theorem StartCluster.wp_proof
   -- with the client's half of the store's state and the sequence-number tokens
   imod Draft.cluster_alloc_static (GF := GF) kvRaftN clusterIds kvSnapOk ⊤ Hrb (by decide)
     clusterIds_nodup (by decide) (by decide)
-    with ⟨%γ, Hops, HU, #Hstatic, #Hxfer, Hboots⟩
+    with ⟨%γ, Hops, HU, -, #Hstatic, #Hxfer, Hboots⟩
   imod rkvInv_alloc (GF := GF) ⊤ γ (constMap clusterIds (W64 0)) $$ Hops HU
     with ⟨%γr, %Hγr, #Hreg, Hval, Hseqs⟩
   subst Hγr

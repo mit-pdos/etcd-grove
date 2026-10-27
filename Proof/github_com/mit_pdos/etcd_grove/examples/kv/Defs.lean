@@ -257,13 +257,25 @@ variable [GooseExts]
 id}` (type `1`; no context, no id). -/
 def rmCC (id : w64) : ConfChangeM := { type := W32 1, nodeId := id, context := [], id := W64 0 }
 
+/-- The voters of the store's cluster. -/
+abbrev kvVoters : List w64 := [W64 1, W64 2, W64 3]
+
+/-- **`RemoveMember(id)`'s change keeps the store's voters** (2026-10-27): it is a `CCShrink` of
+`kvVoters` -- removing `id` drops at most a learner, so `id` is not a voter. The premise
+`KV.RemoveMember` takes, which `node.ApplyConfChange` needs in raft's static cluster (it covers no
+change of the voters); unsatisfiable for a voter, the way the earlier proof's `CCAllowed` premise
+was in the static cluster. -/
+def RmShrink (id : w64) : Prop :=
+  CCShrink (GMap.listToSet kvVoters) (ccV2Of (.v1 (rmCC id))).1 (ccV2Of (.v1 (rmCC id))).2
+
 /-- **The conf changes among the committed requested entries are `RemoveMember`'s** (2026-10-27):
 every entry of `ops` that is not a normal one is a `ConfChange` (type `1`) whose bytes carry
-`rmCC id` for some `id` -- the only conf change the store proposes (`kv_ccAu`). What `run` needs to
-apply a committed conf-change entry (`node.ApplyConfChange`). -/
+`rmCC id` for some `id` whose removal keeps the voters (`RmShrink`) -- the only conf change the
+store proposes (`kv_ccAu`). What `run` needs to apply a committed conf-change entry
+(`node.ApplyConfChange`). -/
 def RmReqs (ops : List Draft.LogEntry) : Prop :=
   ∀ e ∈ ops, e.type ≠ W32 0 →
-    e.type = W32 1 ∧ ∃ id, MarshalsConfChange (some (.v1 (rmCC id))) e.data
+    e.type = W32 1 ∧ ∃ id, MarshalsConfChange (some (.v1 (rmCC id))) e.data ∧ RmShrink id
 
 end ccfg
 
@@ -402,9 +414,6 @@ def lockInv (γr : RKVNames) (γp : RepNames) (id : w64) (r : Loc) : IProp GF :=
     "%HWdom" ∷ ⌜∀ s ch, W !! s = some ch → uint.Z s ≤ uint.Z ns⌝ ∗
     "Hwaiters" ∷ ([∗map] s ↦ ch ∈ W, waiterOk γr id s ch) ∗
     "Hrds" ∷ readsOwn γr id r ns)
-
-/-- The voters of the store's cluster. -/
-abbrev kvVoters : List w64 := [W64 1, W64 2, W64 3]
 
 /-- Replica `id` at `r`, on node `n` of the store's static cluster (`Draft.isStaticCluster`, of
 the voters `kvVoters`, admitting snapshots of the store's data, `kvSnapOk`; leader transfer on),

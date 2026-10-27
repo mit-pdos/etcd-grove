@@ -7,11 +7,13 @@ states Go values whose contexts hold their bytes (`readStatesPts_rsOk`), its har
 `proto.Unmarshal` into a fresh `pb.ConfChange`, applied by pointer (`ownConfChange_persist`:
 `node.ApplyConfChange` reads it on raft's goroutine).
 
-**Raft's draft API (2026-10-27).** A `Ready` comes through `Draft.node.readyRecv`: its committed
-entries (`Draft.committedEntriesAt`, normal ones in the store's static cluster,
-`Draft.isStaticCluster_normal`, so the conf-change branch is dead), its read states, and the rest
-(`Draft.readyRest`): the entries to persist, the messages, and the snapshot part (`Draft.readySnap`),
-in the storage contract's vocabulary.
+**Raft's node API (2026-10-27).** A `Ready` comes through `Draft.node.readyRecv`: its committed
+entries (`Draft.committedEntriesAt`), its read states, the rest (`Draft.readyRest`): the entries to
+persist, the messages, and the snapshot part (`Draft.readySnap`), in the storage contract's
+vocabulary; and the loop's new state, by the snapshot's loan. A committed conf-change entry (type
+`1`) is a requested one, so `RemoveMember`'s (`kv_committed_cc`, `RmReqs`): its bytes decode to
+`rmCC id`, a change keeping the voters (`RmShrink id`), which `Draft.node.ApplyConfChange` applies in
+the static cluster; `reconf` is set.
 
 **Snapshots (D22 S-r, 2026-10-21).** The loop holds the storage's snapshot token at the
 application's view `σt` (`runStor`, destructured once), whose snapshot is at `snapIndex`, at most
@@ -34,7 +36,7 @@ applies nothing), the replica takes a snapshot of its state at the applied index
 witness (`Advance`'s, `kvStorFloor_at`) bounds the index, the data is `encodeState`'s
 (`stateEnc_intro`), the configuration the cluster's voters (`Storage.voters`); it is certified
 (`Draft.snapshotCert_static`) and registered at any term (`Draft.storageCert_registerAny`); then
-`Compact`s to `snapMargin` below it. `reconf` stays `false`: no committed entry is a conf change.
+`Compact`s to `snapMargin` below it -- unless `reconf` is set.
 -/
 module
 
@@ -52,6 +54,7 @@ public import Spec.go_etcd_io.raft.v3.MemoryStorage__Compact
 public import Proof.go_etcd_io.raft.v3.MemstorageAU
 public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetType
 public import Spec.go_etcd_io.raft.v3.raftpb.Entry__GetData
+public import Spec.google_golang_org.protobuf.proto.UnmarshalConfChange
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.Lemmas
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.KVStorageInstance
 public import Proof.github_com.mit_pdos.etcd_grove.examples.kv.SnapData
@@ -122,6 +125,8 @@ theorem KV.run.wp_proof
     (wp_MemoryStorage_ApplySnapshot : MemoryStorage.ApplySnapshot.spec (GF := GF) (hG := hG))
     (wp_MemoryStorage_CreateSnapshot : MemoryStorage.CreateSnapshot.spec (GF := GF) (hG := hG))
     (wp_MemoryStorage_Compact : MemoryStorage.Compact.spec (GF := GF) (hG := hG))
+    (wp_proto_UnmarshalConfChange : proto.UnmarshalConfChange.spec (GF := GF) (hG := hG))
+    (wp_node_ApplyConfChange : Draft.node.ApplyConfChange.spec (GF := GF) (hG := hG))
     (wp_Entry_GetType : raftpb.Entry.GetType.spec (GF := GF) (hG := hG))
     (wp_Entry_GetData : raftpb.Entry.GetData.spec (GF := GF) (hG := hG)) :
     KV.run.spec (GF := GF) (hG := hG) := by
@@ -140,6 +145,8 @@ theorem KV.run.wp_proof
   · iPkgInit
   ihave #Hpbinit : isPkgInit (PROP := IProp GF) pkg_id.go_etcd_io.raft.v3.raftpb $$ []
   · iPkgInit
+  ihave #Hprotoinit : isPkgInit (PROP := IProp GF) pkg_id.google_golang_org.protobuf.proto $$ []
+  · iPkgInit
   -- raft's error variables: `ErrSnapOutOfDate` and `ErrCompacted`
   ihave #Hinit := isInitialized_access $$ Hraftinit
   iunfold isInitialized at Hinit
@@ -155,19 +162,19 @@ theorem KV.run.wp_proof
   wp_auto
   wp_apply wp_node_Ready γr.cluster kvRaftN id n $$ [$Hraftinit $HisNode] as %ch #Hch
   ihave IH : iprop(∃ (dv : Draft.NodeDriverState) (rdv : Ready) (pv : GoSlice)
-      (ps : List ReadState) (a : w64) (sI : w64) (σt : StorState),
+      (ps : List ReadState) (a : w64) (sI : w64) (σt : StorState) (rc : Bool),
       "Hrd" ∷ rd_ptr ↦ rdv ∗ "Hdrv" ∷ Draft.nodeDriver n γr.cluster kvRaftN dv ∗
       "Hrun" ∷ runOwn γr r dv.delivered ∗
       "pending" ∷ pending_ptr ↦ pv ∗ "Hpv" ∷ pv ↦* ps ∗
       "Hpcap" ∷ ownSliceCap ReadState pv (DFrac.own 1) ∗
       "Hps" ∷ ([∗list] v ∈ ps, rsOk γr.cluster v) ∗
       "applied" ∷ applied_ptr ↦ a ∗ "snapIndex" ∷ snapIndex_ptr ↦ sI ∗
-      "reconf" ∷ reconf_ptr ↦ false ∗ "Htok" ∷ memSnapTok ms γs σt ∗
+      "reconf" ∷ reconf_ptr ↦ rc ∗ "Htok" ∷ memSnapTok ms γs σt ∗
       "%Ha" ∷ ⌜uint.Z a = (dv.delivered.length : Int) ∧ σt.ss.index' = sI ∧ uint.Z sI ≤ uint.Z a ∧
         uint.Z σt.prev.index' ≤ uint.Z σt.ss.index' ∧ dv.handling = none ∧
         dv.storage = kvStorIface st⌝)
     $$ [rd Hdrv Hrun pending applied snapIndex reconf Htok]
-  · iexists Draft.NodeDriverState.init (kvStorIface st), _, _, [], _, _, memStorEmpty
+  · iexists Draft.NodeDriverState.init (kvStorIface st), _, _, [], _, _, memStorEmpty, false
     iframe
     isplitl []
     · iapply ownSlice_nil
@@ -180,9 +187,25 @@ theorem KV.run.wp_proof
   wp_for IH
   try wp_auto
   wp_apply wp_readyRecv n ch γr.cluster kvRaftN dv Ha.2.2.2.2.1 $$ [$Hch $Hdrv]
-    as %rdv' ⟨%ce, %dv', #Hce, #Hcomm, ⟨%sts, #Hsts, #Hstsok⟩, Hrest, Hdrv⟩
+    as %rdv' ⟨%ce, %es, %hh, %L, #Hce, #Hcomm, ⟨%sts, #Hsts, #Hstsok⟩, Hrest, Hdrv⟩
   unfold Draft.readyRest
-  icases Hrest with ⟨%es, %msgs, %L, %hh, %Hdv', #Hes, Hms, Hmsok, -, -, %Hidx, HS⟩
+  icases Hrest with ⟨%msgs, #Hes, Hms, Hmsok, -, -, %Hidx, HS⟩
+  -- the loop's new state, by the snapshot's loan
+  ihave Hdrv : iprop(∃ dv' : Draft.NodeDriverState, Draft.nodeDriver n γr.cluster kvRaftN dv' ∗
+      ⌜dv'.storage = dv.storage ∧ dv'.handling = some (es, L) ∧
+        (L = none → dv'.delivered = dv.delivered ++ ce) ∧
+        (∀ l, L = some l → dv'.delivered = Draft.strip l.dlv)⌝) $$ [Hdrv]
+  · cases L with
+    | none =>
+      iexists _; iframe Hdrv; ipureintro
+      refine ⟨rfl, rfl, fun _ => rfl, ?_⟩
+      intro l h; cases h
+    | some l0 =>
+      iexists _; iframe Hdrv; ipureintro
+      refine ⟨rfl, rfl, ?_, ?_⟩
+      · intro h; cases h
+      · intro l h; cases h; rfl
+  icases Hdrv with ⟨%dv', Hdrv, %Hdv'⟩
   obtain ⟨Lr, HLr⟩ := Hidx
   have HstorEq : dv'.storage = kvStorIface st := Hdv'.1.trans Ha.2.2.2.2.2
   wp_apply wp_fits rdv'.Entries' es DFrac.discard $$ [$Hes] as %b ⟨-, %Hfit⟩
@@ -214,7 +237,7 @@ theorem KV.run.wp_proof
       -- no snapshot: the right to append, as before
       simp only [Draft.readySnap]
       icases HS with ⟨%Hsn, Happ⟩
-      obtain ⟨Hdl, Hsn⟩ := Hsn
+      have Hdl : dv'.delivered = dv.delivered ++ ce := Hdv'.2.2.1 rfl
       rw [Hsn]
       wp_auto
       wp_join_done
@@ -256,8 +279,12 @@ theorem KV.run.wp_proof
     | some l =>
       -- a snapshot: installed
       simp only [Draft.readySnap]
-      icases HS with ⟨%dl, %Hl, Hsn, #Hdl, #Hscert, Hout⟩
-      obtain ⟨Hdlv', -, Hptr, Hce0, Hpre, Hlen, Hdlv, Hi0, Hi61, Hfl, Hlio⟩ := Hl
+      icases HS with ⟨%Hl, Hsn, #Hdl, #Hscert, Hout⟩
+      obtain ⟨-, Hptr, Hce0, Hpre, Hlen, Hdlv, Hi0, Hi61, Hfl, Hlio⟩ := Hl
+      have Hdlv' : dv'.delivered = Draft.strip l.dlv := Hdv'.2.2.2 l rfl
+      have Hsl : (Draft.strip l.dlv).length = l.dlv.length := by simp [Draft.strip]
+      rw [← Hsl] at Hlen Hdlv
+      generalize Draft.strip l.dlv = dl at Hlen Hdlv Hdlv' Hpre ⊢
       subst Hce0
       unfold readyOut
       icases Hout with ⟨⟨%σ, Hown, %Hσ⟩, #Hcert⟩
@@ -410,19 +437,15 @@ theorem KV.run.wp_proof
   ihave %Hcelen := ownSlice_len $$ Hce
   ihave %Hcebl := entsBig_length $$ Hceb
   rw [toEntries_length] at Hcebl
-  -- in the static cluster every committed entry is a normal one
-  ihave %Hnorm := Draft.isStaticCluster_normal γr.cluster kvRaftN kvVoters kvSnapOk (D0 ++ ce)
-    $$ [Hstatic Hcomm0]
-  · iframe Hstatic Hcomm0
   have Hbig := Ha0.2.2.2.2.2.2
-  ihave IHa : iprop(∃ (k : w64) (ev : Loc) (a' : w64),
+  ihave IHa : iprop(∃ (k : w64) (ev : Loc) (a' : w64) (rc' : Bool),
       "i" ∷ i_ptr ↦ k ∗ "e" ∷ e_ptr ↦ ev ∗ "Hrun" ∷ runOwn γr r (D0 ++ ce.take (sint.nat k)) ∗
-      "applied" ∷ applied_ptr ↦ a' ∗
+      "applied" ∷ applied_ptr ↦ a' ∗ "reconf" ∷ reconf_ptr ↦ rc' ∗
       "%Ha" ∷ ⌜uint.Z a' = ((D0 ++ ce.take (sint.nat k)).length : Int)⌝ ∗
       "%Hk" ∷ ⌜0 ≤ sint.Z k ∧ sint.Z k ≤ (ce.length : Int)⌝)
-    $$ [i e Hrun applied]
-  · iexists W64 0, _, a0
-    iframe i e applied
+    $$ [i e Hrun applied reconf]
+  · iexists W64 0, _, a0, rc
+    iframe i e applied reconf
     simp only [show sint.nat (W64 0) = 0 from rfl, List.take_zero, List.append_nil]
     iframe Hrun
     ipureintro
@@ -445,18 +468,46 @@ theorem KV.run.wp_proof
       (D0 ++ ce)
       (by rw [List.append_assoc, ← Htk]; exact List.prefix_append_right_inj _ |>.mpr (List.take_prefix _ _))
       $$ Hcomm0
-    -- in the static cluster a normal entry, no conf change
-    have Hty0 : en.type = W32 0 :=
-      Hnorm en (List.mem_append_right _ (List.mem_of_getElem? Hen))
-    -- `if e.GetType() == pb.EntryConfChange { ... }`: not taken
+    -- `if e.GetType() == pb.EntryConfChange { ... r.node.ApplyConfChange(&cc) }`
     wp_apply wp_Entry_GetType.1 ln DFrac.discard _ $$ [$Hpbinit $Hent] as -
-    rw [decide_eq_false (show ¬ en.type = W32 1 by rw [Hty0]; intro h; revert h; word)]
-    try wp_auto
+    wp_join iprop(∃ rc2 : Bool, reconf_ptr ↦ rc2 ∗ e_ptr ↦ ln ∗ r_ptr ↦ r)
+      at next with [reconf e r] as ⟨%rc2, reconf, e, r⟩
+    · by_cases Hty1 : en.type = W32 1
+      · rw [decide_eq_true Hty1]
+        -- a committed conf change is a `RemoveMember`'s, which keeps the voters (`RmReqs`)
+        imod kv_committed_cc γr (D0 ++ ce.take (sint.nat k) ++ [en]) en ⊤ CoPset.subseteq_top
+            (List.mem_append_right _ (List.mem_singleton_self _)) Hty1 $$ Hinv Hc1
+          with %Hcc
+        obtain ⟨rid, Hm, Hsh⟩ := Hcc
+        try wp_auto
+        -- `proto.Unmarshal(e.GetData(), &cc)`: the bytes decode (the error is nil)
+        wp_apply wp_Entry_GetData.1 ln DFrac.discard _ $$ [$Hpbinit $Hent] as %ds1 ⟨#Hds1, -⟩
+        wp_apply wp_proto_UnmarshalConfChange ds1 _ DFrac.discard cc_ptr _
+          $$ [$Hprotoinit $Hds1 $cc] as %err ⟨-, Hres⟩
+        rw [Hm]
+        icases Hres with ⟨%Herr, Hown⟩
+        imod ownConfChange_persist $$ Hown with #Hown
+        try wp_auto
+        -- `r.node.ApplyConfChange(&cc)`: a change keeping the voters (`RmShrink`)
+        ihave Hcci : ownConfChangeI (interface.mkOk (go.GoType.PointerType raftpb.ConfChange.ty) #cc_ptr)
+            DFrac.discard (some (.v1 (rmCC rid))) $$ []
+        · simp only [ownConfChangeI]
+          iexists cc_ptr
+          iframe Hown
+          ipureintro; rfl
+        wp_apply wp_node_ApplyConfChange n γr.cluster kvRaftN id kvVoters kvSnapOk _
+            (.v1 (rmCC rid)) Hsh
+          $$ [$Hraftinit $HisNode $Hstatic $Hcci] as %csp %cs -
+        try wp_auto
+        wp_join_done
+      · rw [decide_eq_false Hty1]
+        try wp_auto
+        wp_join_done
     wp_apply wp_apply γr γp r id n st (D0 ++ ce.take (sint.nat k)) ln en _
       $$ [$Hpkg $Hrep $Hrun $Hent $Hc1] as Hrun
     wp_for_post
     iframe
-    iexists k + W64 1, ln, a' + W64 1
+    iexists k + W64 1, ln, a' + W64 1, rc2
     rw [show sint.nat (k + W64 1) = sint.nat k + 1 by word, Htk, List.append_assoc]
     iframe
     ipureintro
@@ -476,15 +527,28 @@ theorem KV.run.wp_proof
     -- the reads whose index is applied, answered
     wp_apply wp_answer γr γp r id n st (D0 ++ ce) pv' (ps ++ vls) (DFrac.own 1) a' (Int.le_of_eq Ha)
       $$ [$Hpkg $Hrep $Hrun $Hpv $Hps] as %rest ⟨Hrun, %ps', Hrest, Hcap2, Hps'⟩
-    have Hnd : ∀ e ∈ dv'.delivered, e.type = W32 0 := by rw [← Ha0.2.2.2.2.1]; exact Hnorm
     rw [show advReceipt (kvStorIface st) es L = advReceipt dv'.storage es L by rw [HstorEq]]
-    wp_apply wp_node_Advance n γr.cluster kvRaftN dv' es L Hdv'.2.1 Hnd
+    wp_apply wp_node_Advance n γr.cluster kvRaftN dv' es L Hdv'.2.1
       $$ [$Hraftinit $Hdrv $Hrcpt] as ⟨Hdrv, Hreq⟩
     try wp_auto
     -- (D22 S-r) `if !reconf && applied-snapIndex >= snapEvery`: a snapshot
     have Hsa : uint.Z sI0 ≤ uint.Z a' := by
       have : ((D0 ++ ce).length : Int) ≥ D0.length := by simp; omega
       have := Ha0.1; have := Ha0.2.2.1; omega
+    cases rc' with
+    | true =>
+      -- a conf change applied: no more snapshots (the voters are no longer the configuration)
+      try wp_auto
+      wp_for_post
+      iframe
+      iexists { dv' with handling := none }, rdv', rest, ps', a', sI0, σt0, true
+      rw [show ({ dv' with handling := none } : Draft.NodeDriverState).delivered = D0 ++ ce
+        from Ha0.2.2.2.2.1.symm]
+      iframe
+      ipureintro
+      exact ⟨Ha, Ha0.2.1, Hsa, Ha0.2.2.2.1, rfl, HstorEq⟩
+    | false =>
+    try wp_auto
     wp_if_destruct
     · -- the snapshot: only after a `Ready` without one (a snapshot `Ready` applies nothing)
       have Hge : uint.Z (W64 100) ≤ uint.Z (a' - sI0) := by
@@ -596,7 +660,7 @@ theorem KV.run.wp_proof
         have := Ha0.2.2.2.1; rw [Ha0.2.1] at this; simp only; omega
       wp_for_post
       iframe
-      iexists { dv' with handling := none }, rdv', rest, ps', a', a', σt2
+      iexists { dv' with handling := none }, rdv', rest, ps', a', a', σt2, false
       iframe Hdrv
       ihave Hrun : runOwn γr r ({ dv' with handling := none } : Draft.NodeDriverState).delivered
         $$ [HmK HK HmA HA]
@@ -613,7 +677,7 @@ theorem KV.run.wp_proof
     · -- no snapshot taken
       wp_for_post
       iframe
-      iexists { dv' with handling := none }, rdv', rest, ps', a', sI0, σt0
+      iexists { dv' with handling := none }, rdv', rest, ps', a', sI0, σt0, false
       rw [show ({ dv' with handling := none } : Draft.NodeDriverState).delivered = D0 ++ ce
         from Ha0.2.2.2.2.1.symm]
       iframe

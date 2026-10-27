@@ -690,7 +690,7 @@ theorem kv_propAu (γr : RKVNames) (d : List w8) (γp : GName × GName) (Hne : d
 
 /-- **The update `Node.ProposeConfChange` takes** for a conf change (`RemoveMember`'s): its entry
 carries no datum, so the history does not move. -/
-theorem kv_ccAu (γr : RKVNames) (id : w64) :
+theorem kv_ccAu (γr : RKVNames) (id : w64) (Hsh : RmShrink id) :
     ⊢ rkvInv (GF := GF) γr -∗
       AU <{ ∃∃ (ops : List Draft.LogEntry), Draft.ownCommittedOps γr.cluster ops }>
           @ ⊤ \ ↑kvRaftN, ∅
@@ -749,7 +749,7 @@ theorem kv_ccAu (γr : RKVNames) (id : w64) :
         rcases List.mem_append.mp he with h | h
         · exact Hrm e h hty
         · simp only [List.mem_singleton] at h; subst h
-          exact ⟨rfl, id, Hbs⟩
+          exact ⟨rfl, id, Hbs, Hsh⟩
     imodintro
     itrivial
 
@@ -824,6 +824,39 @@ theorem kv_collect (γr : RKVNames) (d : List w8) (γp : GName × GName) (Ψ : L
     iapply Hiff $$ HQ
   · iexfalso
     iapply token_exclusive $$ Htok Htok'
+
+/-- **A committed conf-change entry is a `RemoveMember`'s** (2026-10-27): an entry of type `1` (a
+`ConfChange`, never a filler) of a committed log is among the committed requested entries
+(`Draft.ownCommittedOps_lb_prefix`), whose conf changes are `RemoveMember`'s (`RmReqs`): its bytes
+decode to `rmCC id` for some `id`. What `run` applies with `node.ApplyConfChange`. -/
+theorem kv_committed_cc (γr : RKVNames) (l : List Draft.LogEntry) (e : Draft.LogEntry) (E : CoPset)
+    (HE : ↑rkvN ⊆ E) :
+    e ∈ l → e.type = W32 1 →
+    ⊢ rkvInv (GF := GF) γr -∗ Draft.isCommittedLogLb γr.cluster l ={E}=∗
+      ⌜∃ id, ccDecodeV1 e.data = some (rmCC id) ∧ RmShrink id⌝ := by
+  intro Hel Hty
+  iintro #Hinv #Hl
+  unfold rkvInv rkvInvBody
+  iinv Hinv with ⟨%ops, %S, %Mi, %O, %U, >Hc, Hsl⟩ Hclose
+  iunfold kvCore at Hc
+  icases Hc with ⟨Hops, Hv, HU, HS, HMi, HO, %Hok, %Hodm, %Hrm⟩
+  ihave %Hpre := Draft.ownCommittedOps_lb_prefix γr.cluster ops l $$ [Hops Hl]
+  · iframe Hops Hl
+  have Hnf : ¬ e.isFiller := by
+    rintro ⟨-, h | h⟩ <;> rw [Hty] at h <;> revert h <;> word
+  have Hin : e ∈ ops := Hpre.subset (List.mem_filter.mpr ⟨Hel, by simp [Hnf]⟩)
+  have Hne : e.type ≠ W32 0 := by rw [Hty]; intro h; revert h; word
+  obtain ⟨-, id, Hm, Hsh⟩ := Hrm e Hin Hne
+  imod Hclose $$ [Hops Hv HU HS HMi HO Hsl] with -
+  · inext
+    iexists ops, S, Mi, O, U
+    iframe Hsl
+    unfold kvCore
+    iframe Hops Hv HU HS HMi HO
+    ipureintro; exact ⟨Hok, Hodm, Hrm⟩
+  imodintro
+  ipureintro
+  exact ⟨id, Hm, Hsh⟩
 
 end lemmas
 
