@@ -28,6 +28,9 @@ leaky or unusable. Check its findings against the source before acting on them. 
 - a conjunct copied from another spec, or a constant (`+ 4`, `2 ^ 62`), whose reason you have not
   checked: proof slack, or a fact of every reachable state (a law of the vocabulary, not one
   operation's post);
+- a witness or history predicate beside an atomic update's `Q` (`kvWas γ σ`): the caller's `Q`
+  keeps what it needs; a stale read can still fire the update at the current state, its
+  answer a past state of it;
 - a spec that no client uses;
 - a statement that `interface/` does not show in full or that hides behind a wrapper (an atomic
   update behind a helper like `kvOpAu1`: write it in the triple), or whose shape differs from

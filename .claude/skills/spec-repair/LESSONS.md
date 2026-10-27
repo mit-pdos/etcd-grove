@@ -27,3 +27,6 @@ One entry per critique of a run: date, target, what the user said, the rule it b
   the client's `kv.Put`): "Why did you add the pure facts with random hard-coded numbers?" They were
   proof slack and facts of every reachable state. Rule (`SKILL.md`, review list): no unchecked copied
   conjunct or constant; reachable-state facts are a law of the vocabulary.
+- 2026-10-27, `EtcdServer.Range.spec` (candidate 1 returned `kvWas γ σ ∗ □ Q σ`): "what's the
+  point of kvWas? The Q predicate can maintain whatever facts are important". Rule (`SKILL.md`,
+  review list): no witness predicate beside an AU's `Q`; a serializable read fires the AU too.
